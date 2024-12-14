@@ -1,0 +1,7 @@
+mobs:
+  ZOMBIE: 100
+  SKELETON: 75
+  CREEPER: 50
+  SPIDER: 10
+  ENDERMAN: 1000
+  # etc...

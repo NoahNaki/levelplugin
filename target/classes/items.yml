@@ -1,0 +1,36 @@
+items:
+  1001:
+    name: "Steel Chestplate"
+    rarity: RARE
+    level_requirement: 8
+    material: "IRON_CHESTPLATE"
+    hp: 20
+    def: 3
+    str: 0
+    agi: 220
+    int: 0
+    dex: 0
+
+  2001:
+    name: "Sword of Power"
+    rarity: LEGENDARY
+    level_requirement: 10
+    class_requirement: WARRIOR
+    material: "DIAMOND_SWORD"
+    def: 0
+    str: 5
+    agi: 2
+    int: 0
+    dex: 0
+
+  3001:
+    name: "Rogue Dagger"
+    rarity: EPIC
+    level_requirement: 5
+    class_requirement: ROGUE
+    material: "IRON_SWORD"
+    def: 0
+    str: 2
+    agi: 5
+    int: 0
+    dex: 2

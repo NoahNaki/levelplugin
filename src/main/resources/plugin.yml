@@ -1,0 +1,27 @@
+name: LevelPlugin
+main: me.nakilex.levelplugin.Main
+version: 1.0
+author: YourName
+api-version: 1.19
+description: A simple MMORPG leveling system plugin for Minecraft
+
+commands:
+  addpoints:
+    description: Grants skill points to a player
+    usage: /addpoints <player> <amount>
+  addxp:
+    description: Grants XP to a player
+    usage: /addxp <player> <amount>
+  stats:
+    description: Opens the stats GUI
+    usage: /stats
+    permission: none
+  additem:
+    description: Gives a custom item to a player
+    usage: /additem <item_id> <player> <amount>
+  setlevel:
+    description: Sets a player's level
+    usage: /setlevel <player> <level>
+  class:
+    description: Change your class
+    usage: /class <Warrior|Rogue|Archer|Mage>
