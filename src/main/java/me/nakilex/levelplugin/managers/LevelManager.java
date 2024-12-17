@@ -13,7 +13,7 @@ public class LevelManager {
     private HashMap<UUID, Integer> playerLevels = new HashMap<>();
     private HashMap<UUID, Integer> playerXp = new HashMap<>();
 
-    private final int MAX_LEVEL = 20;
+    private final int MAX_LEVEL = 100;
     private final int XP_PER_LEVEL_MULTIPLIER = 100;
 
     public LevelManager(Main plugin) {

@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.managers;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
@@ -78,7 +79,7 @@ public class StatsManager {
             case DEF: ps.defenceStat++; break;
         }
 
-        player.sendMessage("§aYou invested 1 point into " + stat + ".");
+        //player.sendMessage("§aYou invested 1 point into " + stat + ".");
         recalcDerivedStats(player);
     }
 
@@ -112,12 +113,37 @@ public class StatsManager {
 
         if (refunded) {
             ps.skillPoints++;
-            player.sendMessage("§aYou refunded 1 point from " + stat + ".");
+            //player.sendMessage("§aYou refunded 1 point from " + stat + ".");
             recalcDerivedStats(player);
         } else {
-            player.sendMessage("§cYou have no points to refund in " + stat + "!");
+            //player.sendMessage("§cYou have no points to refund in " + stat + "!");
         }
     }
+
+    public void refundAllStats(Player player) {
+        PlayerStats ps = getPlayerStats(player);
+
+        // Calculate total points invested
+        int totalRefundedPoints = ps.strength + ps.agility + ps.intelligence
+            + ps.dexterity + ps.healthStat + ps.defenceStat;
+
+        // Reset all stats
+        ps.strength = 0;
+        ps.agility = 0;
+        ps.intelligence = 0;
+        ps.dexterity = 0;
+        ps.healthStat = 0;
+        ps.defenceStat = 0;
+
+        // Add all refunded points back to skillPoints
+        ps.skillPoints += totalRefundedPoints;
+
+        // Recalculate derived stats
+        recalcDerivedStats(player);
+
+        player.sendMessage(ChatColor.GREEN + "All skill points have been refunded!");
+    }
+
 
     /**
      * Recalculate the derived stats, including maxHealth & maxMana.
@@ -160,6 +186,24 @@ public class StatsManager {
             }
         }
     }
+
+    /**
+     * Get the current value of a specific stat for a player.
+     */
+    public int getStatValue(Player player, StatType stat) {
+        PlayerStats ps = getPlayerStats(player);
+
+        switch (stat) {
+            case STR: return ps.strength;
+            case AGI: return ps.agility;
+            case INT: return ps.intelligence;
+            case DEX: return ps.dexterity;
+            case HP:  return ps.healthStat;
+            case DEF: return ps.defenceStat;
+            default: return 0; // Return 0 if stat type is invalid
+        }
+    }
+
 
     public static class PlayerStats {
         public int healthStat = 0;

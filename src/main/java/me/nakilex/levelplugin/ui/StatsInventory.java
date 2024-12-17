@@ -6,82 +6,107 @@ import me.nakilex.levelplugin.managers.StatsManager.StatType;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
-import org.bukkit.SkullType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.BookMeta;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.inventory.ItemFlag;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class StatsInventory {
 
     public static Inventory getStatsMenu(Player player) {
-        Inventory inv = Bukkit.createInventory(null, 9, ChatColor.BLUE + "Allocate Your Stats");
+        Inventory inv = Bukkit.createInventory(null, 27, ChatColor.BLUE + "Stats");
 
         PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
 
-        // Each stat book now shows incremental and total effects
-        inv.setItem(0, createStatBook(
-            "STR", StatType.STR, ps.strength, ps.skillPoints,
-            "Increases melee damage.",
+        // Stat books
+        inv.setItem(10, createStatBook(
+            "Strength", StatType.STR, ps.strength, ps.skillPoints,
+            "Increases your melee damage.",
             new String[]{
-                "Each point: +0.5 melee damage",
-                "Current bonus: " + ps.strength * 0.5 + " damage"
+                "Each point increases melee damage by 0.5.",
+                "Current bonus: " + ChatColor.YELLOW + (ps.strength * 0.5) + " damage."
             }
         ));
-        inv.setItem(1, createStatBook(
-            "AGI", StatType.AGI, ps.agility, ps.skillPoints,
-            "Increases movement speed & dodge chance.",
+        inv.setItem(11, createStatBook(
+            "Agility", StatType.AGI, ps.agility, ps.skillPoints,
+            "Improves your speed and dodge chance.",
             new String[]{
-                "Each point: +1% dodge, +0.001 walk speed",
-                "Current dodge: " + ps.agility + "%, Speed: +" + (ps.agility * 0.001f)
+                "Each point increases dodge chance by 1% and speed by 0.001.",
+                "Current dodge chance: " + ChatColor.YELLOW + ps.agility + "%.",
+                "Speed bonus: +" + (ps.agility * 0.001f)
             }
         ));
-        inv.setItem(2, createStatBook(
-            "INT", StatType.INT, ps.intelligence, ps.skillPoints,
-            "Increases max mana & mana regen.",
+        inv.setItem(12, createStatBook(
+            "Intelligence", StatType.INT, ps.intelligence, ps.skillPoints,
+            "Increases your max mana and mana regeneration.",
             new String[]{
-                "Each point: +10 max mana, +0.05 mana/sec",
-                "Current max mana: " + ps.maxMana + ", Regen: " + (ps.intelligence * 0.05) + " mana/sec"
+                "Each point adds 10 max mana and 0.05 mana/sec.",
+                "Current max mana: " + ChatColor.YELLOW + ps.maxMana,
+                "Mana regen: +" + (ps.intelligence * 0.05) + " mana/sec."
             }
         ));
-        inv.setItem(3, createStatBook(
-            "DEX", StatType.DEX, ps.dexterity, ps.skillPoints,
-            "Increases crit chance.",
+        inv.setItem(14, createStatBook(
+            "Dexterity", StatType.DEX, ps.dexterity, ps.skillPoints,
+            "Improves your critical hit chance.",
             new String[]{
-                "Each point: +1% crit chance",
-                "Current crit chance: " + ps.dexterity + "%"
+                "Each point increases critical hit chance by 1%.",
+                "Current crit chance: " + ChatColor.YELLOW + ps.dexterity + "%."
             }
         ));
-        inv.setItem(4, createStatBook(
-            "HP", StatType.HP, ps.healthStat, ps.skillPoints,
-            "Increases max health.",
+        inv.setItem(15, createStatBook(
+            "Health", StatType.HP, ps.healthStat, ps.skillPoints,
+            "Increases your maximum health.",
             new String[]{
-                "Each point: +2 max HP",
-                "Current HP bonus: " + (ps.healthStat * 2) + " HP"
+                "Each point increases max health by 2 HP.",
+                "Current HP bonus: " + ChatColor.YELLOW + (ps.healthStat * 2) + " HP."
             }
         ));
-        inv.setItem(5, createStatBook(
-            "DEF", StatType.DEF, ps.defenceStat, ps.skillPoints,
+        inv.setItem(16, createStatBook(
+            "Defense", StatType.DEF, ps.defenceStat, ps.skillPoints,
             "Reduces incoming damage.",
             new String[]{
-                "Each point: 0.5 damage negation",
-                "Current negation: " + (ps.defenceStat * 0.5) + " damage"
+                "Each point reduces damage taken by 0.5.",
+                "Current damage reduction: " + ChatColor.YELLOW + (ps.defenceStat * 0.5) + " damage."
             }
         ));
 
+        // Refund Skill Points Button
+        inv.setItem(22, createMenuItem(Material.ENDER_EYE,
+            ChatColor.RED + "" + ChatColor.BOLD + "Refund All Skill Points",
+            ChatColor.YELLOW + "Click twice to confirm."
+        ));
+
         // Player head with overall summary
-        inv.setItem(8, createPlayerHead(player, ps));
+        inv.setItem(26, createPlayerHead(player, ps));
+
+        // Fill all empty slots with gray stained glass panes
+        ItemStack filler = createFillerItem(Material.GRAY_STAINED_GLASS_PANE, " ");
+        for (int i = 0; i < inv.getSize(); i++) {
+            if (inv.getItem(i) == null) {
+                inv.setItem(i, filler);
+            }
+        }
 
         return inv;
     }
 
-    /**
-     * Create a stat book with extended incremental and total effect details.
-     */
+    private static ItemStack createFillerItem(Material material, String space) {
+        ItemStack filler = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+        ItemMeta meta = filler.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(" "); // Blank display name
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES); // Hide attributes
+            filler.setItemMeta(meta);
+        }
+        return filler;
+    }
+
     private static ItemStack createStatBook(
         String statName,
         StatType statType,
@@ -90,53 +115,83 @@ public class StatsInventory {
         String description,
         String[] effectDetails
     ) {
-        ItemStack book = new ItemStack(Material.WRITTEN_BOOK);
-        BookMeta meta = (BookMeta) book.getItemMeta();
-        meta.setTitle(ChatColor.GREEN + statName);
-        meta.setAuthor("System");
-        meta.setDisplayName(ChatColor.YELLOW + statName + " Book");
+        ItemStack book = new ItemStack(Material.ENCHANTED_BOOK);
+        ItemMeta meta = book.getItemMeta();
 
+        // If value exceeds the max stack size, cap it at 64 for visual representation
+        int displayValue = Math.min(currentValue, 64);
+        book.setAmount(Math.max(displayValue, 1)); // Ensure at least 1 is displayed
+
+        // Display title
+        meta.setDisplayName(ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "Upgrade your " + ChatColor.GREEN + statName + ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + " skill");
+        // Create the lore
         List<String> lore = new ArrayList<>();
-        lore.add(ChatColor.GRAY + description);
-        lore.add(ChatColor.DARK_AQUA + "Currently: " + currentValue);
-        lore.add(ChatColor.DARK_PURPLE + "Unspent Skill Points: " + skillPoints);
         lore.add("");
-        // Add incremental and total effect lines
+        lore.add(ChatColor.GRAY + description);
+        lore.add("");
+
+        // Always show the actual stat value in the lore
+        lore.add(ChatColor.WHITE + "Current " + statName + " Value: " + ChatColor.YELLOW + currentValue);
+
+        // Add any custom effect details
         for (String line : effectDetails) {
-            lore.add(ChatColor.GOLD + line);
+            lore.add(ChatColor.WHITE + line);
         }
         lore.add("");
-        lore.add(ChatColor.GREEN + "Left-click: +1 " + statName);
-        lore.add(ChatColor.RED + "Right-click: -1 " + statName);
+        lore.add(ChatColor.GREEN + "Left-Click to add 1 point");
+        lore.add(ChatColor.RED + "Right-Click to remove 1 point");
+        lore.add(ChatColor.YELLOW + "Hold Shift to modify by 5");
+
 
         meta.setLore(lore);
-        meta.setPages("Invest or refund 1 point in " + statName + ".");
         book.setItemMeta(meta);
 
         return book;
     }
 
-    /**
-     * Player head displaying overall stats summary.
-     */
+
+
+
+
     private static ItemStack createPlayerHead(Player player, PlayerStats ps) {
-        ItemStack head = new ItemStack(Material.PLAYER_HEAD, 1, (short) SkullType.PLAYER.ordinal());
+        ItemStack head = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta skullMeta = (SkullMeta) head.getItemMeta();
         skullMeta.setOwningPlayer(player);
-        skullMeta.setDisplayName(ChatColor.GOLD + player.getName() + "'s Stats");
+        skullMeta.setDisplayName(ChatColor.WHITE + "" + ChatColor.BOLD + player.getName() + "'s Info");
 
         List<String> lore = new ArrayList<>();
-        lore.add(ChatColor.YELLOW + "Health: " + (int) player.getHealth() + "/" + (int) player.getMaxHealth());
-        lore.add(ChatColor.BLUE + "Mana: " + (int)ps.currentMana + "/" + ps.maxMana);
-        lore.add(ChatColor.RED + "STR: " + ps.strength);
-        lore.add(ChatColor.GREEN + "AGI: " + ps.agility);
-        lore.add(ChatColor.LIGHT_PURPLE + "INT: " + ps.intelligence);
-        lore.add(ChatColor.AQUA + "DEX: " + ps.dexterity);
-        lore.add(ChatColor.GRAY + "DEF: " + ps.defenceStat);
-        lore.add(ChatColor.DARK_AQUA + "SkillPoints Left: " + ps.skillPoints);
+
+        // Add level to the lore
+        int level = StatsManager.getInstance().getLevel(player);
+        lore.add(ChatColor.GOLD + "Level: " + ChatColor.WHITE + level);
+        lore.add("");
+        lore.add(ChatColor.RED + "HP: " + ChatColor.BOLD + ChatColor.RED + "♥ " + ChatColor.YELLOW + (int) player.getHealth() + "/" + (int) player.getMaxHealth());
+        lore.add(ChatColor.BLUE + "Mana: " + ChatColor.BOLD + ChatColor.BLUE + "✦ " + ChatColor.YELLOW + (int) ps.currentMana + "/" + ps.maxMana);
+        lore.add("");
+        lore.add(ChatColor.GRAY + "STR: " + ChatColor.WHITE + ps.strength);
+        lore.add(ChatColor.GRAY + "AGI: " + ChatColor.WHITE + ps.agility);
+        lore.add(ChatColor.GRAY + "INT: " + ChatColor.WHITE + ps.intelligence);
+        lore.add(ChatColor.GRAY + "DEX: " + ChatColor.WHITE + ps.dexterity);
+        lore.add(ChatColor.GRAY + "DEF: " + ChatColor.WHITE + ps.defenceStat);
+        lore.add("");
+        String currentClass = ps.playerClass != null ? ps.playerClass.name() : "None";
+        lore.add(ChatColor.GRAY + "Class: " + ChatColor.WHITE + currentClass);
 
         skullMeta.setLore(lore);
         head.setItemMeta(skullMeta);
+
         return head;
+    }
+
+    private static ItemStack createMenuItem(Material mat, String displayName, String s) {
+        ItemStack item = new ItemStack(mat, 1);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(displayName);
+            meta.setLore(Collections.emptyList()); // Clear default lore
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES); // Hide item attributes like attack damage
+            item.setItemMeta(meta);
+        }
+        return item;
     }
 }

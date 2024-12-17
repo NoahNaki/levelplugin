@@ -25,3 +25,12 @@ commands:
   class:
     description: Change your class
     usage: /class <Warrior|Rogue|Archer|Mage>
+  addmob:
+    description: Spawns custom mobs
+    usage: /addmob <mobid> <amount>
+  balance:
+    description: Shows your coin balance
+    usage: /balance
+  addcoins:
+    description: Adds coins to your balance
+    usage: /addcoins <player> <amount>

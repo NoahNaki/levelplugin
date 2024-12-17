@@ -9,8 +9,5 @@
         <module name="levelplugin" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel>
-      <module name="levelplugin" target="1.8" />
-    </bytecodeTargetLevel>
   </component>
 </project>

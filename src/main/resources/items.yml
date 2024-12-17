@@ -1,36 +1,485 @@
 items:
-  1001:
-    name: "Steel Chestplate"
-    rarity: RARE
-    level_requirement: 8
-    material: "IRON_CHESTPLATE"
-    hp: 20
-    def: 3
-    str: 0
-    agi: 220
+  # WARRIOR Weapons
+  1:
+    name: "Bronze Axe"
+    rarity: COMMON
+    level_requirement: 2
+    class_requirement: WARRIOR
+    material: "STONE_AXE"
+    def: 1
+    str: 2
+    agi: 0
     int: 0
     dex: 0
 
-  2001:
-    name: "Sword of Power"
+  2:
+    name: "Iron Warhammer"
+    rarity: UNCOMMON
+    level_requirement: 6
+    class_requirement: WARRIOR
+    material: "IRON_AXE"
+    def: 4
+    str: 4
+    agi: 0
+    int: 0
+    dex: 0
+
+  3:
+    name: "Steel Broadsword"
+    rarity: RARE
+    level_requirement: 12
+    class_requirement: WARRIOR
+    material: "IRON_SWORD"
+    def: 3
+    str: 6
+    agi: 1
+    int: 0
+    dex: 1
+
+  4:
+    name: "Titan's Blade"
     rarity: LEGENDARY
-    level_requirement: 10
+    level_requirement: 18
     class_requirement: WARRIOR
     material: "DIAMOND_SWORD"
-    def: 0
-    str: 5
-    agi: 2
+    def: 5
+    str: 10
+    agi: 0
+    int: 0
+    dex: 2
+
+  5:
+    name: "Obsidian Maul"
+    rarity: EPIC
+    level_requirement: 25
+    class_requirement: WARRIOR
+    material: "NETHERITE_AXE"
+    def: 8
+    str: 12
+    agi: 0
     int: 0
     dex: 0
 
-  3001:
-    name: "Rogue Dagger"
-    rarity: EPIC
-    level_requirement: 5
+  6:
+    name: "Dragonbone Warhammer"
+    rarity: MYTHIC
+    level_requirement: 30
+    class_requirement: WARRIOR
+    material: "DIAMOND_SHOVEL"
+    def: 10
+    str: 15
+    agi: 0
+    int: 2
+    dex: 0
+
+  7:
+    name: "Enchanted War Axe"
+    rarity: LEGENDARY
+    level_requirement: 35
+    class_requirement: WARRIOR
+    material: "NETHERITE_SWORD"
+    def: 7
+    str: 14
+    agi: 1
+    int: 1
+    dex: 1
+
+  # ROGUE Weapons
+  8:
+    name: "Rusty Shiv"
+    rarity: COMMON
+    level_requirement: 2
+    class_requirement: ROGUE
+    material: "WOODEN_SWORD"
+    def: 0
+    str: 1
+    agi: 2
+    int: 0
+    dex: 1
+
+  9:
+    name: "Iron Fang"
+    rarity: UNCOMMON
+    level_requirement: 8
     class_requirement: ROGUE
     material: "IRON_SWORD"
     def: 0
     str: 2
-    agi: 5
+    agi: 4
     int: 0
     dex: 2
+
+  10:
+    name: "Shadow Dagger"
+    rarity: RARE
+    level_requirement: 12
+    class_requirement: ROGUE
+    material: "GOLDEN_SWORD"
+    def: 0
+    str: 3
+    agi: 6
+    int: 1
+    dex: 3
+
+  11:
+    name: "Venom Blade"
+    rarity: LEGENDARY
+    level_requirement: 20
+    class_requirement: ROGUE
+    material: "DIAMOND_SWORD"
+    def: 1
+    str: 5
+    agi: 9
+    int: 0
+    dex: 4
+
+  12:
+    name: "Phantom Knives"
+    rarity: EPIC
+    level_requirement: 25
+    class_requirement: ROGUE
+    material: "NETHERITE_SWORD"
+    def: 1
+    str: 4
+    agi: 12
+    int: 2
+    dex: 6
+
+  13:
+    name: "Assassin's Edge"
+    rarity: LEGENDARY
+    level_requirement: 30
+    class_requirement: ROGUE
+    material: "DIAMOND_SWORD"
+    def: 0
+    str: 6
+    agi: 15
+    int: 0
+    dex: 7
+
+  14:
+    name: "Nightmare Fang"
+    rarity: MYTHIC
+    level_requirement: 40
+    class_requirement: ROGUE
+    material: "NETHERITE_SWORD"
+    def: 2
+    str: 8
+    agi: 18
+    int: 1
+    dex: 10
+
+  # MAGE Weapons
+  15:
+    name: "Apprentice Wand"
+    rarity: COMMON
+    level_requirement: 2
+    class_requirement: MAGE
+    material: "STICK"
+    def: 0
+    str: 0
+    agi: 1
+    int: 3
+    dex: 0
+
+  16:
+    name: "Crystal Rod"
+    rarity: UNCOMMON
+    level_requirement: 8
+    class_requirement: MAGE
+    material: "BLAZE_ROD"
+    def: 0
+    str: 0
+    agi: 2
+    int: 5
+    dex: 1
+
+  17:
+    name: "Sage's Staff"
+    rarity: RARE
+    level_requirement: 12
+    class_requirement: MAGE
+    material: "BLAZE_ROD"
+    def: 0
+    str: 0
+    agi: 1
+    int: 8
+    dex: 1
+
+  18:
+    name: "Arcane Conduit"
+    rarity: LEGENDARY
+    level_requirement: 20
+    class_requirement: MAGE
+    material: "STICK"
+    def: 1
+    str: 0
+    agi: 2
+    int: 10
+    dex: 2
+
+  19:
+    name: "Ethereal Wand"
+    rarity: EPIC
+    level_requirement: 25
+    class_requirement: MAGE
+    material: "BLAZE_ROD"
+    def: 0
+    str: 1
+    agi: 3
+    int: 15
+    dex: 3
+
+  20:
+    name: "Celestial Scepter"
+    rarity: LEGENDARY
+    level_requirement: 30
+    class_requirement: MAGE
+    material: "NETHERITE_STICK"
+    def: 2
+    str: 0
+    agi: 3
+    int: 18
+    dex: 3
+
+  21:
+    name: "Staff of the Void"
+    rarity: MYTHIC
+    level_requirement: 40
+    class_requirement: MAGE
+    material: "BLAZE_ROD"
+    def: 2
+    str: 0
+    agi: 2
+    int: 25
+    dex: 5
+
+  22:
+    name: "Bronze Chestplate"
+    rarity: COMMON
+    level_requirement: 2
+    material: "LEATHER_CHESTPLATE"
+    hp: 10
+    def: 3
+    str: 1
+    agi: 0
+    intel: 0
+    dex: 0
+
+  23:
+    name: "Iron Plate"
+    rarity: UNCOMMON
+    level_requirement: 8
+    material: "IRON_CHESTPLATE"
+    hp: 20
+    def: 6
+    str: 2
+    agi: 0
+    intel: 0
+    dex: 1
+
+  24:
+    name: "Steel Armor"
+    rarity: RARE
+    level_requirement: 12
+    material: "IRON_CHESTPLATE"
+    hp: 30
+    def: 9
+    str: 3
+    agi: 0
+    intel: 0
+    dex: 1
+
+  25:
+    name: "Titan's Guard"
+    rarity: LEGENDARY
+    level_requirement: 20
+    material: "DIAMOND_CHESTPLATE"
+    hp: 50
+    def: 12
+    str: 5
+    agi: 0
+    intel: 0
+    dex: 2
+
+  26:
+    name: "Obsidian Armor"
+    rarity: EPIC
+    level_requirement: 30
+    material: "NETHERITE_CHESTPLATE"
+    hp: 70
+    def: 15
+    str: 6
+    agi: 0
+    intel: 0
+    dex: 2
+
+  27:
+    name: "Dragonplate"
+    rarity: MYTHIC
+    level_requirement: 40
+    material: "NETHERITE_CHESTPLATE"
+    hp: 100
+    def: 20
+    str: 10
+    agi: 0
+    intel: 2
+    dex: 3
+
+  # ROGUE Armor
+  28:
+    name: "Shadow Cloak"
+    rarity: COMMON
+    level_requirement: 2
+    material: "LEATHER_CHESTPLATE"
+    hp: 5
+    def: 1
+    str: 0
+    agi: 2
+    intel: 0
+    dex: 1
+
+  29:
+    name: "Night Stalker"
+    rarity: UNCOMMON
+    level_requirement: 8
+    material: "CHAINMAIL_CHESTPLATE"
+    hp: 10
+    def: 2
+    str: 1
+    agi: 4
+    intel: 0
+    dex: 2
+
+  30:
+    name: "Silent Leather"
+    rarity: RARE
+    level_requirement: 12
+    material: "LEATHER_CHESTPLATE"
+    hp: 15
+    def: 3
+    str: 2
+    agi: 6
+    intel: 0
+    dex: 3
+
+  31:
+    name: "Phantom Armor"
+    rarity: LEGENDARY
+    level_requirement: 20
+    material: "DIAMOND_CHESTPLATE"
+    hp: 25
+    def: 4
+    str: 3
+    agi: 8
+    intel: 1
+    dex: 4
+
+  32:
+    name: "Assassin's Shroud"
+    rarity: EPIC
+    level_requirement: 30
+    material: "NETHERITE_CHESTPLATE"
+    hp: 35
+    def: 6
+    str: 4
+    agi: 12
+    intel: 2
+    dex: 6
+
+  33:
+    name: "Nightmare Vest"
+    rarity: MYTHIC
+    level_requirement: 40
+    material: "NETHERITE_CHESTPLATE"
+    hp: 50
+    def: 8
+    str: 6
+    agi: 18
+    intel: 3
+    dex: 7
+
+  # MAGE Armor
+  34:
+    name: "Apprentice Robe"
+    rarity: COMMON
+    level_requirement: 2
+    material: "LEATHER_CHESTPLATE"
+    hp: 5
+    def: 0
+    str: 0
+    agi: 1
+    intel: 3
+    dex: 0
+
+  35:
+    name: "Mystic Robe"
+    rarity: UNCOMMON
+    level_requirement: 8
+    material: "LEATHER_CHESTPLATE"
+    hp: 10
+    def: 1
+    str: 0
+    agi: 2
+    intel: 5
+    dex: 1
+
+  36:
+    name: "Sage's Robe"
+    rarity: RARE
+    level_requirement: 12
+    material: "GOLDEN_CHESTPLATE"
+    hp: 15
+    def: 2
+    str: 0
+    agi: 2
+    intel: 8
+    dex: 1
+
+  37:
+    name: "Enchanter's Vestment"
+    rarity: LEGENDARY
+    level_requirement: 20
+    material: "DIAMOND_CHESTPLATE"
+    hp: 25
+    def: 3
+    str: 0
+    agi: 3
+    intel: 10
+    dex: 2
+
+  38:
+    name: "Archmage's Robe"
+    rarity: EPIC
+    level_requirement: 30
+    material: "NETHERITE_CHESTPLATE"
+    hp: 35
+    def: 4
+    str: 0
+    agi: 3
+    intel: 15
+    dex: 3
+
+  39:
+    name: "Celestial Mantle"
+    rarity: LEGENDARY
+    level_requirement: 35
+    material: "NETHERITE_CHESTPLATE"
+    hp: 45
+    def: 6
+    str: 0
+    agi: 4
+    intel: 20
+    dex: 3
+
+  40:
+    name: "Voidwalker Robe"
+    rarity: MYTHIC
+    level_requirement: 40
+    material: "NETHERITE_CHESTPLATE"
+    hp: 55
+    def: 8
+    str: 0
+    agi: 5
+    intel: 25
+    dex: 5

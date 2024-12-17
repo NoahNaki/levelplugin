@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.items;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -26,24 +27,27 @@ public class ItemUtil {
         meta.setDisplayName(rarityColor + cItem.getName());
 
         List<String> lore = new ArrayList<>();
-        lore.add(ChatColor.GRAY + "Level Req: " + cItem.getLevelRequirement());
+        lore.add("");
+        lore.add(ChatColor.GRAY + "Level Requirement: "  + ChatColor.WHITE + cItem.getLevelRequirement());
 
         // Only add class requirement line if it's not ANY
         if (cItem.getClassRequirement() != null && !cItem.getClassRequirement().equalsIgnoreCase("ANY")) {
-            lore.add(ChatColor.GRAY + "Class Req: " + cItem.getClassRequirement().toUpperCase());
+            lore.add(ChatColor.GRAY + "Class Requirement: " + ChatColor.WHITE + cItem.getClassRequirement().toUpperCase());
         }
-
-        lore.add(rarityColor + "" + ChatColor.BOLD + cItem.getRarity().name());
         lore.add("");
 
-        if (cItem.getHp() != 0)   lore.add(ChatColor.RED + "HP: +" + cItem.getHp());
-        if (cItem.getDef() != 0)  lore.add(ChatColor.GRAY + "DEF: +" + cItem.getDef());
-        if (cItem.getStr() != 0)  lore.add(ChatColor.RED + "STR: +" + cItem.getStr());
-        if (cItem.getAgi() != 0)  lore.add(ChatColor.GREEN + "AGI: +" + cItem.getAgi());
-        if (cItem.getIntel() != 0) lore.add(ChatColor.LIGHT_PURPLE + "INT: +" + cItem.getIntel());
-        if (cItem.getDex() != 0)  lore.add(ChatColor.AQUA + "DEX: +" + cItem.getDex());
+        if (cItem.getHp() != 0)   lore.add(ChatColor.RED + "❤ " + ChatColor.GRAY + "Health: " + ChatColor.RED + "+" + cItem.getHp());
+        if (cItem.getDef() != 0)  lore.add(ChatColor.GRAY + "⛊ " + ChatColor.GRAY + "Defence: " + ChatColor.WHITE + "+" + cItem.getDef());
+        if (cItem.getStr() != 0)  lore.add(ChatColor.BLUE + "☠ " + ChatColor.GRAY + "Strength: " + ChatColor.WHITE + "+" + cItem.getStr());
+        if (cItem.getAgi() != 0)  lore.add(ChatColor.GREEN + "≈ " + ChatColor.GRAY + "Agility: " + ChatColor.WHITE + "+" + cItem.getAgi());
+        if (cItem.getIntel() != 0) lore.add(ChatColor.AQUA + "♦ " + ChatColor.GRAY + "Intelligence: " + ChatColor.WHITE + "+" + cItem.getIntel());
+        if (cItem.getDex() != 0)  lore.add(ChatColor.YELLOW + "➹ " + ChatColor.GRAY + "Dexterity: " + ChatColor.WHITE + "+" + cItem.getDex());
+        lore.add("");
+
+        lore.add(rarityColor + "" + ChatColor.BOLD + cItem.getRarity().name());
 
         meta.setLore(lore);
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
 
         // Store numeric ID in the PDC
         meta.getPersistentDataContainer().set(ITEM_ID_KEY, PersistentDataType.INTEGER, cItem.getId());

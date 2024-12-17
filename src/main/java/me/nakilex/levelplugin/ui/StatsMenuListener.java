@@ -4,47 +4,125 @@ import me.nakilex.levelplugin.managers.StatsManager;
 import me.nakilex.levelplugin.managers.StatsManager.StatType;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.ClickType;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.BookMeta;
+
+import java.util.HashSet;
+import java.util.Set;
 
 public class StatsMenuListener implements Listener {
 
+    private final Set<Player> refundConfirmations = new HashSet<>();
+
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (event.getView().getTitle().equals(ChatColor.BLUE + "Allocate Your Stats")) {
-            event.setCancelled(true);
+        if (event.getView().getTitle().equals(ChatColor.BLUE + "Stats")) {
+            event.setCancelled(true); // Prevent item movement
 
-            if (event.getCurrentItem() == null || event.getCurrentItem().getType() == Material.AIR) {
+            Player player = (Player) event.getWhoClicked();
+            ItemStack clickedItem = event.getCurrentItem();
+
+            if (clickedItem == null || clickedItem.getType() == Material.AIR) return;
+
+            StatsManager statsManager = StatsManager.getInstance();
+            String displayName = ChatColor.stripColor(clickedItem.getItemMeta().getDisplayName());
+
+            // Handle Refund All Skill Points Confirmation
+            if (clickedItem.getType() == Material.ENDER_EYE) {
+                if (refundConfirmations.contains(player)) {
+                    statsManager.refundAllStats(player);
+                    refundConfirmations.remove(player);
+                    player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
+                } else {
+                    refundConfirmations.add(player);
+                    player.sendMessage(ChatColor.YELLOW + "Click again to confirm refunding all skill points.");
+                    player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 1.5f);
+                }
+                // Refresh the inventory to reflect changes
+                player.openInventory(StatsInventory.getStatsMenu(player));
                 return;
             }
 
-            Player player = (Player) event.getWhoClicked();
-            if (event.getCurrentItem().getType() == Material.WRITTEN_BOOK) {
-                String displayName = ChatColor.stripColor(
-                    event.getCurrentItem().getItemMeta().getDisplayName()
-                );
+            // Determine which stat was clicked
+            StatsManager.StatType stat = null;
+            if (displayName.contains("Strength")) stat = StatsManager.StatType.STR;
+            else if (displayName.contains("Agility")) stat = StatsManager.StatType.AGI;
+            else if (displayName.contains("Intelligence")) stat = StatsManager.StatType.INT;
+            else if (displayName.contains("Dexterity")) stat = StatsManager.StatType.DEX;
+            else if (displayName.contains("Health")) stat = StatsManager.StatType.HP;
+            else if (displayName.contains("Defense")) stat = StatsManager.StatType.DEF;
 
-                StatType stat = null;
-                if (displayName.contains("STR")) stat = StatType.STR;
-                else if (displayName.contains("AGI")) stat = StatType.AGI;
-                else if (displayName.contains("INT")) stat = StatType.INT;
-                else if (displayName.contains("DEX")) stat = StatType.DEX;
-                else if (displayName.contains("HP"))  stat = StatType.HP;
-                else if (displayName.contains("DEF")) stat = StatType.DEF;
+            if (stat != null) {
+                int availablePoints = statsManager.getPlayerStats(player).skillPoints;
+                int currentStatValue = statsManager.getStatValue(player, stat);
 
-                if (stat != null) {
-                    if (event.getClick() == ClickType.LEFT) {
-                        StatsManager.getInstance().investStat(player, stat);
-                    } else if (event.getClick() == ClickType.RIGHT) {
-                        StatsManager.getInstance().refundStat(player, stat);
+                // Left-click: Add 1 point
+                if (event.getClick() == ClickType.LEFT) {
+                    if (availablePoints > 0) {
+                        statsManager.investStat(player, stat);
+                        playSoundEffect(player, true);
+                        player.sendMessage(ChatColor.GREEN + "You added 1 point to " + stat.name() + ".");
+                    } else {
+                        player.sendMessage(ChatColor.RED + "You have no skill points left!");
                     }
-                    // Refresh GUI
-                    player.openInventory(StatsInventory.getStatsMenu(player));
                 }
+                // Shift-left-click: Add 5 points
+                else if (event.getClick() == ClickType.SHIFT_LEFT) {
+                    int pointsToAdd = Math.min(5, availablePoints);
+                    if (pointsToAdd > 0) {
+                        for (int i = 0; i < pointsToAdd; i++) {
+                            statsManager.investStat(player, stat);
+                        }
+                        playSoundEffect(player, true);
+                        player.sendMessage(ChatColor.GREEN + "You added " + pointsToAdd + " points to " + stat.name() + ".");
+                    } else {
+                        player.sendMessage(ChatColor.RED + "You have no skill points left!");
+                    }
+                }
+                // Right-click: Refund 1 point
+                else if (event.getClick() == ClickType.RIGHT) {
+                    if (currentStatValue > 0) {
+                        statsManager.refundStat(player, stat);
+                        playSoundEffect(player, false);
+                        player.sendMessage(ChatColor.RED + "You refunded 1 point from " + stat.name() + ".");
+                    } else {
+                        player.sendMessage(ChatColor.RED + "You can't refund points you haven't invested!");
+                    }
+                }
+                // Shift-right-click: Refund 5 points
+                else if (event.getClick() == ClickType.SHIFT_RIGHT) {
+                    int pointsToRefund = Math.min(5, currentStatValue);
+                    if (pointsToRefund > 0) {
+                        for (int i = 0; i < pointsToRefund; i++) {
+                            statsManager.refundStat(player, stat);
+                        }
+                        playSoundEffect(player, false);
+                        player.sendMessage(ChatColor.RED + "You refunded " + pointsToRefund + " points from " + stat.name() + ".");
+                    } else {
+                        player.sendMessage(ChatColor.RED + "You can't refund points you haven't invested!");
+                    }
+                }
+
+                // Refresh the inventory to reflect updated stats
+                player.openInventory(StatsInventory.getStatsMenu(player));
             }
+        }
+    }
+
+
+
+    // Method to play sound effects
+    private void playSoundEffect(Player player, boolean isInvesting) {
+        if (isInvesting) {
+            player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f); // Investing sound
+        } else {
+            player.playSound(player.getLocation(), Sound.ENTITY_ARROW_HIT_PLAYER, 1.0f, 1.0f); // Refunding sound
         }
     }
 }

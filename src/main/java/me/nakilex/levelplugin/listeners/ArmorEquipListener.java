@@ -70,24 +70,52 @@ public class ArmorEquipListener implements Listener {
             }
         }
         if (event.isShiftClick()) {
-            // SHIFT-CLICK means the item is being instantly moved
-            // to the "most appropriate slot" (like armor slot).
+            Bukkit.getLogger().info("[ArmorEquipListener] Shift-click detected. Slot=" + event.getSlot());
+
             ItemStack shiftedItem = event.getCurrentItem();
+            if (shiftedItem == null || shiftedItem.getType() == Material.AIR) return;
+
             int itemId = ItemUtil.getCustomItemId(shiftedItem);
-            if (itemId != -1) {
-                CustomItem cItem = ItemManager.getInstance().getItemById(itemId);
-                // If it's recognized armor
-                if (cItem != null && isArmorMaterial(cItem.getMaterial())) {
-                    int playerLevel = StatsManager.getInstance().getLevel(player);
-                    if (playerLevel < cItem.getLevelRequirement()) {
-                        event.setCancelled(true);
-                        player.sendMessage("§cYou are not high enough level to equip this armor (via shift-click)!");
-                        Bukkit.getLogger().info("[ArmorEquipListener] " + player.getName()
-                            + " blocked shift-click armor " + cItem.getName() + " due to level req");
-                    }
-                    // If level is ok, it might auto-slot into armor, which triggers
-                    // the rest of the logic. If that doesn't happen automatically,
-                    // the code might still apply stats in the normal flow
+            if (itemId == -1) return;
+
+            CustomItem cItem = ItemManager.getInstance().getItemById(itemId);
+
+            if (cItem != null && isArmorMaterial(cItem.getMaterial())) {
+                int playerLevel = StatsManager.getInstance().getLevel(player);
+                if (playerLevel < cItem.getLevelRequirement()) {
+                    event.setCancelled(true);
+                    player.sendMessage("§cYou are not high enough level to equip this armor (via shift-click)!");
+                    return;
+                }
+
+                // Determine where the item will go
+                EntityEquipment equipment = player.getEquipment();
+                if (cItem.getMaterial().name().endsWith("_HELMET") && equipment.getHelmet() == null) {
+                    equipment.setHelmet(shiftedItem);
+                    applyItemStats(player, cItem);
+                    equippedArmors.computeIfAbsent(player.getUniqueId(), k -> new HashSet<>()).add(itemId);
+                    player.getInventory().setItem(event.getSlot(), null); // Remove from current slot
+                    event.setCancelled(true);
+                } else if (cItem.getMaterial().name().endsWith("_CHESTPLATE") && equipment.getChestplate() == null) {
+                    equipment.setChestplate(shiftedItem);
+                    applyItemStats(player, cItem);
+                    equippedArmors.computeIfAbsent(player.getUniqueId(), k -> new HashSet<>()).add(itemId);
+                    player.getInventory().setItem(event.getSlot(), null);
+                    event.setCancelled(true);
+                } else if (cItem.getMaterial().name().endsWith("_LEGGINGS") && equipment.getLeggings() == null) {
+                    equipment.setLeggings(shiftedItem);
+                    applyItemStats(player, cItem);
+                    equippedArmors.computeIfAbsent(player.getUniqueId(), k -> new HashSet<>()).add(itemId);
+                    player.getInventory().setItem(event.getSlot(), null);
+                    event.setCancelled(true);
+                } else if (cItem.getMaterial().name().endsWith("_BOOTS") && equipment.getBoots() == null) {
+                    equipment.setBoots(shiftedItem);
+                    applyItemStats(player, cItem);
+                    equippedArmors.computeIfAbsent(player.getUniqueId(), k -> new HashSet<>()).add(itemId);
+                    player.getInventory().setItem(event.getSlot(), null);
+                    event.setCancelled(true);
+                } else {
+                    Bukkit.getLogger().info("[ArmorEquipListener] Shift-click: Armor slot already occupied.");
                 }
             }
         }
