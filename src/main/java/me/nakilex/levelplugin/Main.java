@@ -70,6 +70,10 @@ public class Main extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new ArmorEquipListener(), this);
         getServer().getPluginManager().registerEvents(new WeaponHeldListener(), this);
         getServer().getPluginManager().registerEvents(new ClickComboListener(), this);
+        getServer().getPluginManager().registerEvents(new ItemNameDisplayListener(), this);
+        getServer().getPluginManager().registerEvents(new StaticItemListener(), this);
+
+
 
         // If you created a new MobDeathListener for custom loot/coins:
         getServer().getPluginManager().registerEvents(new MobDeathListener(mobManager, economyManager), this);
