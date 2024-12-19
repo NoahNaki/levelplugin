@@ -35,9 +35,12 @@ public class BlacksmithGUI implements Listener {
         Inventory gui = Bukkit.createInventory(player, 27, "Blacksmith");
 
         // Fill GUI with decorative panes
-        ItemStack glassPane = createGlassPane();
         for (int i = 0; i < gui.getSize(); i++) {
-            gui.setItem(i, glassPane);
+            if (i == 0 || i == 8 || i == 9 || i == 17 || i == 18 || i == 26) {
+                gui.setItem(i, createRedGlassPane());
+            } else {
+                gui.setItem(i, createGlassPane());
+            }
         }
 
         // Add Upgrade Slot (slot 13)
@@ -54,6 +57,24 @@ public class BlacksmithGUI implements Listener {
 
     private ItemStack createGlassPane() {
         ItemStack glassPane = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+        ItemMeta meta = glassPane.getItemMeta();
+        if (meta == null) return glassPane;
+        meta.setDisplayName(" ");
+        glassPane.setItemMeta(meta);
+        return glassPane;
+    }
+
+    private ItemStack createRedGlassPane() {
+        ItemStack glassPane = new ItemStack(Material.RED_STAINED_GLASS_PANE);
+        ItemMeta meta = glassPane.getItemMeta();
+        if (meta == null) return glassPane;
+        meta.setDisplayName(" ");
+        glassPane.setItemMeta(meta);
+        return glassPane;
+    }
+
+    private ItemStack createGreenGlassPane() {
+        ItemStack glassPane = new ItemStack(Material.GREEN_STAINED_GLASS_PANE);
         ItemMeta meta = glassPane.getItemMeta();
         if (meta == null) return glassPane;
         meta.setDisplayName(" ");
@@ -95,40 +116,21 @@ public class BlacksmithGUI implements Listener {
         Inventory clickedInventory = event.getClickedInventory();
         Inventory topInventory = event.getView().getTopInventory(); // The Blacksmith GUI
 
-        // Debugging
-        Main.getInstance().getLogger().info("=== InventoryClickEvent Fired ===");
-        Main.getInstance().getLogger().info("Clicked Inventory: " + (clickedInventory == null ? "NULL" : clickedInventory.getType()));
-        Main.getInstance().getLogger().info("Top Inventory: " + (topInventory == null ? "NULL" : topInventory.getType()));
-        Main.getInstance().getLogger().info("Slot: " + event.getSlot());
-        Main.getInstance().getLogger().info("Raw Slot: " + event.getRawSlot());
-        Main.getInstance().getLogger().info("Player Inventory: " + player.getInventory().getType());
-
         // Ensure the event is only for the Blacksmith GUI
-        if (!openInventories.containsKey(player.getUniqueId())) {
-            Main.getInstance().getLogger().info("Ignored: Player does not have a tracked Blacksmith GUI.");
-            return;
-        }
+        if (!openInventories.containsKey(player.getUniqueId())) return;
 
         Inventory playerGUI = openInventories.get(player.getUniqueId());
-        if (!topInventory.equals(playerGUI)) {
-            Main.getInstance().getLogger().info("Ignored: Event inventory does not match the Blacksmith GUI.");
-            return;
-        }
+        if (!topInventory.equals(playerGUI)) return;
 
-        if (event.getRawSlot() >= 27) {
-            Main.getInstance().getLogger().info("Ignored: Click was in the player's inventory.");
-            return;
-        }
+        if (event.getRawSlot() >= 27) return; // Ignore clicks in the player's inventory
 
         // Prevent default behavior for all slots in the Blacksmith GUI
         event.setCancelled(true);
 
         int slot = event.getSlot();
-        Main.getInstance().getLogger().info("Clicked Slot: " + slot);
 
         if (slot == 13) {
             // Allow item placement in the upgrade slot
-            Main.getInstance().getLogger().info("Upgrade Slot Clicked: Allowing item placement.");
             event.setCancelled(false);
 
             // Update the upgrade button based on the item in slot 13
@@ -140,20 +142,14 @@ public class BlacksmithGUI implements Listener {
                         int upgradeCost = upgradeManager.getUpgradeCost(customItem);
                         updateUpgradeButton(playerGUI, upgradeCost);
                     } else {
-                        // Invalid item, reset the upgrade button
                         updateUpgradeButton(playerGUI, 0);
                     }
                 } else {
-                    // No item in slot, reset the upgrade button
                     updateUpgradeButton(playerGUI, 0);
                 }
-            }, 1L); // Delay to allow the inventory to update
+            }, 1L);
         } else if (slot == 22) {
-            // Handle upgrade button click
-            Main.getInstance().getLogger().info("Upgrade Button Clicked.");
             handleUpgradeButtonClick(player, playerGUI);
-        } else {
-            Main.getInstance().getLogger().info("Ignored: Click was in an unrelated slot.");
         }
     }
 
@@ -178,14 +174,17 @@ public class BlacksmithGUI implements Listener {
         int upgradeCost = upgradeManager.getUpgradeCost(customItem);
 
         try {
-            // Deduct coins
             economyManager.deductCoins(player, upgradeCost);
 
-            // Attempt upgrade
             if (upgradeManager.attemptUpgrade(itemStack, customItem)) {
                 player.sendMessage("§aUpgrade successful!");
+
+                // Change red panes to green temporarily
+                setTemporaryGreenPanes(playerGUI);
+
                 // Update the GUI with the upgraded item
-                playerGUI.setItem(13, itemStack); // The itemStack is already updated
+                playerGUI.setItem(13, itemStack);
+
                 // Update the upgrade button to reflect the new cost
                 int newUpgradeCost = upgradeManager.getUpgradeCost(customItem);
                 updateUpgradeButton(playerGUI, newUpgradeCost);
@@ -197,6 +196,21 @@ public class BlacksmithGUI implements Listener {
         }
     }
 
+    private void setTemporaryGreenPanes(Inventory gui) {
+        int[] slots = {0, 8, 9, 17, 18, 26};
+
+        // Set green panes
+        for (int slot : slots) {
+            gui.setItem(slot, createGreenGlassPane());
+        }
+
+        // Reset to red panes after 1 second
+        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+            for (int slot : slots) {
+                gui.setItem(slot, createRedGlassPane());
+            }
+        }, 20L); // 20 ticks = 1 second
+    }
 
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
@@ -216,7 +230,6 @@ public class BlacksmithGUI implements Listener {
         // Handle returning the item in the upgrade slot
         ItemStack itemInSlot = playerGUI.getItem(13); // Slot 13 is the upgrade slot
         if (itemInSlot != null) {
-            // Add the item back to the player's inventory
             player.getInventory().addItem(itemInSlot);
         }
 

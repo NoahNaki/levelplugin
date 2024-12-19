@@ -21,7 +21,7 @@ public class ItemUpgradeManager {
         // Upgrade cost scales based on item upgrade level and rarity
         int baseCost = 100; // Base cost
         int rarityMultiplier = item.getRarity().ordinal() + 1; // Common=1, Rare=2, etc.
-        return baseCost + (item.getUpgradeLevel() * 50 * rarityMultiplier);
+        return baseCost + (item.getUpgradeLevel() * 150 * rarityMultiplier);
     }
 
     public boolean attemptUpgrade(ItemStack itemStack, CustomItem customItem) {
