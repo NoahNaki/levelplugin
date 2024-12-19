@@ -16,9 +16,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class BlacksmithGUI implements Listener {
 
@@ -46,7 +44,7 @@ public class BlacksmithGUI implements Listener {
         gui.setItem(13, null);
 
         // Add Upgrade Button (slot 22)
-        ItemStack upgradeButton = createUpgradeButton();
+        ItemStack upgradeButton = createUpgradeButton(0); // Pass 0 as the initial upgrade cost
         gui.setItem(22, upgradeButton);
 
         // Track GUI
@@ -57,17 +55,36 @@ public class BlacksmithGUI implements Listener {
     private ItemStack createGlassPane() {
         ItemStack glassPane = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
         ItemMeta meta = glassPane.getItemMeta();
+        if (meta == null) return glassPane;
         meta.setDisplayName(" ");
         glassPane.setItemMeta(meta);
         return glassPane;
     }
 
-    private ItemStack createUpgradeButton() {
+    private ItemStack createUpgradeButton(int upgradeCost) {
         ItemStack upgradeButton = new ItemStack(Material.ANVIL);
         ItemMeta meta = upgradeButton.getItemMeta();
+        if (meta == null) return upgradeButton;
+
         meta.setDisplayName("§aUpgrade");
+
+        // Add lore to display the upgrade cost
+        List<String> lore = new ArrayList<>();
+        if (upgradeCost > 0) {
+            lore.add("§7Cost: §6⛃ " + upgradeCost);
+            lore.add("§7Click to upgrade your item.");
+        } else {
+            lore.add("§7Place an item in the slot above.");
+        }
+        meta.setLore(lore);
+
         upgradeButton.setItemMeta(meta);
         return upgradeButton;
+    }
+
+    private void updateUpgradeButton(Inventory gui, int upgradeCost) {
+        ItemStack upgradeButton = createUpgradeButton(upgradeCost);
+        gui.setItem(22, upgradeButton); // Slot 22 is the upgrade button
     }
 
     @EventHandler
@@ -103,7 +120,6 @@ public class BlacksmithGUI implements Listener {
             return;
         }
 
-
         // Prevent default behavior for all slots in the Blacksmith GUI
         event.setCancelled(true);
 
@@ -114,6 +130,24 @@ public class BlacksmithGUI implements Listener {
             // Allow item placement in the upgrade slot
             Main.getInstance().getLogger().info("Upgrade Slot Clicked: Allowing item placement.");
             event.setCancelled(false);
+
+            // Update the upgrade button based on the item in slot 13
+            Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+                ItemStack itemStack = playerGUI.getItem(13);
+                if (itemStack != null) {
+                    CustomItem customItem = itemManager.getCustomItemFromItemStack(itemStack);
+                    if (customItem != null) {
+                        int upgradeCost = upgradeManager.getUpgradeCost(customItem);
+                        updateUpgradeButton(playerGUI, upgradeCost);
+                    } else {
+                        // Invalid item, reset the upgrade button
+                        updateUpgradeButton(playerGUI, 0);
+                    }
+                } else {
+                    // No item in slot, reset the upgrade button
+                    updateUpgradeButton(playerGUI, 0);
+                }
+            }, 1L); // Delay to allow the inventory to update
         } else if (slot == 22) {
             // Handle upgrade button click
             Main.getInstance().getLogger().info("Upgrade Button Clicked.");
@@ -122,8 +156,6 @@ public class BlacksmithGUI implements Listener {
             Main.getInstance().getLogger().info("Ignored: Click was in an unrelated slot.");
         }
     }
-
-
 
     private void handleUpgradeButtonClick(Player player, Inventory playerGUI) {
         ItemStack itemStack = playerGUI.getItem(13); // Get item from the upgrade slot
@@ -138,6 +170,11 @@ public class BlacksmithGUI implements Listener {
             return;
         }
 
+        if (customItem.getUpgradeLevel() >= 5) {
+            player.sendMessage("§cThis item has reached the maximum upgrade level!");
+            return;
+        }
+
         int upgradeCost = upgradeManager.getUpgradeCost(customItem);
 
         try {
@@ -148,14 +185,18 @@ public class BlacksmithGUI implements Listener {
             if (upgradeManager.attemptUpgrade(itemStack, customItem)) {
                 player.sendMessage("§aUpgrade successful!");
                 // Update the GUI with the upgraded item
-                playerGUI.setItem(13, itemManager.updateItem(itemStack, customItem, customItem.getUpgradeLevel()));
+                playerGUI.setItem(13, itemStack); // The itemStack is already updated
+                // Update the upgrade button to reflect the new cost
+                int newUpgradeCost = upgradeManager.getUpgradeCost(customItem);
+                updateUpgradeButton(playerGUI, newUpgradeCost);
             } else {
                 player.sendMessage("§cUpgrade failed!");
             }
         } catch (IllegalArgumentException e) {
-            player.sendMessage("§cNot enough coins! Upgrade cost: " + upgradeCost);
+            player.sendMessage("§cNot enough coins! Upgrade cost: §6⛃ " + upgradeCost);
         }
     }
+
 
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {

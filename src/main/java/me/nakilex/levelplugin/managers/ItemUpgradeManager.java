@@ -26,7 +26,8 @@ public class ItemUpgradeManager {
 
     public boolean attemptUpgrade(ItemStack itemStack, CustomItem customItem) {
         if (customItem.getUpgradeLevel() >= 5) {
-            plugin.getLogger().info("Upgrade limit reached for item: " + customItem.getBaseName());
+            // Send a message to the player and log the issue
+            Main.getInstance().getLogger().info("Upgrade limit reached for item: " + customItem.getBaseName());
             return false; // Upgrade limit reached
         }
 
@@ -38,11 +39,12 @@ public class ItemUpgradeManager {
         return false; // Upgrade failed
     }
 
+
     private int calculateSuccessChance(CustomItem item) {
-        // Success chance decreases as upgrade level increases
-        int baseChance = 75; // Base success chance
-        int levelPenalty = item.getUpgradeLevel() * 10; // 10% penalty per upgrade level
-        return Math.max(10, baseChance - levelPenalty);
+        // Success chance decreases drastically as upgrade level increases
+        int baseChance = 50; // Start with a lower base success chance (e.g., 50%)
+        int levelPenalty = item.getUpgradeLevel() * 20; // Apply a harsher penalty (20% per level)
+        return Math.max(5, baseChance - levelPenalty); // Ensure a minimum success chance of 5%
     }
 
     private void applyUpgrade(ItemStack itemStack, CustomItem customItem) {

@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.items;
 
 import org.bukkit.Material;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -122,12 +123,14 @@ public class CustomItem {
             case COMMON:
                 return 0.0;
             case UNCOMMON:
-                return 0.1;
+                return 0.07;
             case RARE:
-                return 0.2;
+                return 0.1;
             case EPIC:
-                return 0.3;
+                return 0.2;
             case LEGENDARY:
+                return 0.3;
+            case MYTHIC:
                 return 0.5;
             default:
                 return 0.0;
@@ -137,19 +140,6 @@ public class CustomItem {
     // Generates the display name with stars based on upgrade level
     public String getDisplayName() {
         return getName(); // Uses the getName method for consistent naming
-    }
-
-    // Converts the item's current stats into a readable string for item lore
-    public List<String> generateLore() {
-        List<String> lore = new ArrayList<>();
-        lore.add("§7HP: §a" + hp);
-        lore.add("§7Defense: §a" + def);
-        lore.add("§7Strength: §a" + str);
-        lore.add("§7Agility: §a" + agi);
-        lore.add("§7Intelligence: §a" + intel);
-        lore.add("§7Dexterity: §a" + dex);
-        lore.add("§7Upgrade Level: §a" + upgradeLevel + "/5");
-        return lore;
     }
 
     // Updates stats and lore after an upgrade
