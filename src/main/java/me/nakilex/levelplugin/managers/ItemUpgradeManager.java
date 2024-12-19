@@ -46,18 +46,22 @@ public class ItemUpgradeManager {
     }
 
     private void applyUpgrade(ItemStack itemStack, CustomItem customItem) {
-        // Increment upgrade level
-        customItem.setUpgradeLevel(customItem.getUpgradeLevel() + 1);
+        // Increment the upgrade level for this specific item
+        int currentUpgradeLevel = ItemUtil.getUpgradeLevel(itemStack);
+        if (currentUpgradeLevel >= 5) return; // Enforce max upgrade level
 
-        // Update stats based on the new level
+        int newUpgradeLevel = currentUpgradeLevel + 1;
+        customItem.setUpgradeLevel(newUpgradeLevel);
         customItem.increaseStats();
 
-        // Regenerate the item with updated properties
-        ItemStack upgradedItem = ItemUtil.createItemStackFromCustomItem(customItem, itemStack.getAmount());
+        // Update the specific item
+        ItemUtil.updateUpgradeLevel(itemStack, newUpgradeLevel);
 
-        // Update the item in the inventory
-        itemStack.setType(upgradedItem.getType());
-        itemStack.setItemMeta(upgradedItem.getItemMeta());
+        // Regenerate the item’s display name and lore
+        ItemStack updatedItem = ItemUtil.createItemStackFromCustomItem(customItem, itemStack.getAmount());
+        itemStack.setType(updatedItem.getType());
+        itemStack.setItemMeta(updatedItem.getItemMeta());
     }
+
 
 }

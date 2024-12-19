@@ -20,6 +20,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static me.nakilex.levelplugin.items.ItemUtil.GLOBAL_ID_KEY;
+import static me.nakilex.levelplugin.items.ItemUtil.ITEM_ID_KEY;
+
 public class ItemManager {
 
     private static ItemManager instance;
@@ -112,29 +115,35 @@ public class ItemManager {
         }
 
         ItemMeta meta = itemStack.getItemMeta();
-        if (!meta.hasDisplayName()) {
-            return null; // No display name, not a custom item
+        if (meta == null) return null;
+
+        // Get the custom item ID from PersistentDataContainer
+        int itemId = meta.getPersistentDataContainer().getOrDefault(ITEM_ID_KEY, PersistentDataType.INTEGER, -1);
+        if (itemId == -1) {
+            Main.getInstance().getLogger().info("No custom item ID found in PersistentDataContainer.");
+            return null; // Not a custom item
         }
 
-        String itemDisplayName = ChatColor.stripColor(meta.getDisplayName());
-        Main.getInstance().getLogger().info("Item Display Name (Stripped): " + itemDisplayName);
-
-        for (CustomItem customItem : itemsMap.values()) {
-            String customItemName = ChatColor.stripColor(customItem.getName());
-            if (itemDisplayName.startsWith(customItemName)) { // Support stars after name
-                Main.getInstance().getLogger().info("Custom Item Matched: " + customItem.getName());
-                return customItem;
-            }
+        // Retrieve the custom item by its ID
+        CustomItem customItem = itemsMap.get(itemId);
+        if (customItem == null) {
+            Main.getInstance().getLogger().info("No matching custom item found for ID: " + itemId);
+        } else {
+            Main.getInstance().getLogger().info("Custom Item Matched: " + customItem.getBaseName());
         }
 
-        Main.getInstance().getLogger().info("No matching custom item found.");
-        return null;
+        return customItem;
     }
+
+
+
 
     public ItemStack updateItem(ItemStack itemStack, CustomItem customItem, int upgradeLevel) {
-        customItem.setUpgradeLevel(upgradeLevel); // Update the level
-        customItem.increaseStats(); // Recalculate stats
-        return ItemUtil.createItemStackFromCustomItem(customItem, itemStack.getAmount()); // Regenerate the item
+        customItem.setUpgradeLevel(upgradeLevel); // Update level
+        customItem.increaseStats(); // Update stats
+        ItemUtil.updateUpgradeLevel(itemStack, upgradeLevel); // Store unique level in PDC
+        return ItemUtil.createItemStackFromCustomItem(customItem, itemStack.getAmount());
     }
+
 
 }
