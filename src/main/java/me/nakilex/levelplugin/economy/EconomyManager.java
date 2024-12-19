@@ -55,4 +55,14 @@ public class EconomyManager {
         int current = getBalance(player);
         setBalance(player, current + amount);
     }
+
+    public void deductCoins(Player player, int amount) {
+        int current = getBalance(player);
+        if (current >= amount) {
+            setBalance(player, current - amount);
+        } else {
+            throw new IllegalArgumentException("Not enough coins to deduct!");
+        }
+    }
+
 }

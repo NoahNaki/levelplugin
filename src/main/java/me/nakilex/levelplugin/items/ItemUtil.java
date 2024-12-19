@@ -24,7 +24,8 @@ public class ItemUtil {
         if (meta == null) return stack;
 
         ChatColor rarityColor = cItem.getRarity().getColor();
-        meta.setDisplayName(rarityColor + cItem.getName());
+        String stars = "★".repeat(cItem.getUpgradeLevel());
+        meta.setDisplayName(rarityColor + cItem.getBaseName() + " " + stars);
 
         List<String> lore = new ArrayList<>();
         lore.add("");
@@ -44,6 +45,7 @@ public class ItemUtil {
         if (cItem.getDex() != 0)  lore.add(ChatColor.YELLOW + "➹ " + ChatColor.GRAY + "Dexterity: " + ChatColor.WHITE + "+" + cItem.getDex());
         lore.add("");
 
+        //lore.add(ChatColor.GRAY + "Upgrade Level: " + ChatColor.GREEN + cItem.getUpgradeLevel() + "/5");
         lore.add(rarityColor + "" + ChatColor.BOLD + cItem.getRarity().name());
 
         meta.setLore(lore);
@@ -54,6 +56,7 @@ public class ItemUtil {
         stack.setItemMeta(meta);
         return stack;
     }
+
 
     public static int getCustomItemId(ItemStack stack) {
         if (stack == null || !stack.hasItemMeta()) return -1;
