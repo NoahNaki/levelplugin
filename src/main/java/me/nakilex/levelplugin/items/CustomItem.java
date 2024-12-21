@@ -15,12 +15,19 @@ public class CustomItem {
     private final Material material;
 
     // Stats
-    private int hp;
-    private int def;
-    private int str;
-    private int agi;
-    private int intel;
-    private int dex;
+    private int baseHp;
+    private int baseDef;
+    private int baseStr;
+    private int baseAgi;
+    private int baseIntel;
+    private int baseDex;
+
+    private int bonusHp = 0;
+    private int bonusDef = 0;
+    private int bonusStr = 0;
+    private int bonusAgi = 0;
+    private int bonusIntel = 0;
+    private int bonusDex = 0;
 
     // Current level of the item (starts at 0 by default)
     private int upgradeLevel = 0;
@@ -33,12 +40,12 @@ public class CustomItem {
         this.levelRequirement = levelRequirement;
         this.classRequirement = classRequirement;
         this.material = material;
-        this.hp = hp;
-        this.def = def;
-        this.str = str;
-        this.agi = agi;
-        this.intel = intel;
-        this.dex = dex;
+        this.baseHp = hp;
+        this.baseDef = def;
+        this.baseStr = str;
+        this.baseAgi = agi;
+        this.baseIntel = intel;
+        this.baseDex = dex;
     }
 
     // Getters
@@ -67,27 +74,27 @@ public class CustomItem {
     }
 
     public int getHp() {
-        return hp;
+        return baseHp + bonusHp;
     }
 
     public int getDef() {
-        return def;
+        return baseDef + bonusDef;
     }
 
     public int getStr() {
-        return str;
+        return baseStr + bonusStr;
     }
 
     public int getAgi() {
-        return agi;
+        return baseAgi + bonusAgi;
     }
 
     public int getIntel() {
-        return intel;
+        return baseIntel + bonusIntel;
     }
 
     public int getDex() {
-        return dex;
+        return baseDex + bonusDex;
     }
 
     public int getUpgradeLevel() {
@@ -105,16 +112,35 @@ public class CustomItem {
         this.upgradeLevel = upgradeLevel;
     }
 
-    // Increases stats based on rarity and upgrade level
+    // Adds bonus stats from items or temporary effects
+    public void addBonusStats(int hp, int def, int str, int agi, int intel, int dex) {
+        this.bonusHp += hp;
+        this.bonusDef += def;
+        this.bonusStr += str;
+        this.bonusAgi += agi;
+        this.bonusIntel += intel;
+        this.bonusDex += dex;
+    }
+
+    public void removeBonusStats(int hp, int def, int str, int agi, int intel, int dex) {
+        this.bonusHp -= hp;
+        this.bonusDef -= def;
+        this.bonusStr -= str;
+        this.bonusAgi -= agi;
+        this.bonusIntel -= intel;
+        this.bonusDex -= dex;
+    }
+
+    // Increases base stats based on rarity and upgrade level
     public void increaseStats() {
         double multiplier = 1.0 + (upgradeLevel * 0.1) + getRarityMultiplier();
 
-        this.hp = (int) (hp * multiplier);
-        this.def = (int) (def * multiplier);
-        this.str = (int) (str * multiplier);
-        this.agi = (int) (agi * multiplier);
-        this.intel = (int) (intel * multiplier);
-        this.dex = (int) (dex * multiplier);
+        this.baseHp = (int) (baseHp * multiplier);
+        this.baseDef = (int) (baseDef * multiplier);
+        this.baseStr = (int) (baseStr * multiplier);
+        this.baseAgi = (int) (baseAgi * multiplier);
+        this.baseIntel = (int) (baseIntel * multiplier);
+        this.baseDex = (int) (baseDex * multiplier);
     }
 
     // Helper method to calculate rarity multiplier

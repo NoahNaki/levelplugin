@@ -18,16 +18,10 @@ public class StatsManager {
 
     private StatsManager() {}
 
-    /**
-     * Link the StatsManager to your LevelManager instance.
-     */
     public void setLevelManager(LevelManager levelManager) {
         this.levelManager = levelManager;
     }
 
-    /**
-     * A new method to get the player's level via LevelManager
-     */
     public int getLevel(Player player) {
         if (levelManager == null) {
             Bukkit.getLogger().warning("[StatsManager] LevelManager is null! Did you call setLevelManager(...) in onEnable()?");
@@ -36,7 +30,6 @@ public class StatsManager {
         return levelManager.getLevel(player);
     }
 
-    // Ensure the player has a default record in statsMap
     public void initPlayer(Player player) {
         UUID uuid = player.getUniqueId();
         if (!statsMap.containsKey(uuid)) {
@@ -50,17 +43,11 @@ public class StatsManager {
         return statsMap.get(player.getUniqueId());
     }
 
-    /**
-     * Give skill points (e.g., from leveling up or commands).
-     */
     public void addSkillPoints(Player player, int points) {
         PlayerStats ps = getPlayerStats(player);
         ps.skillPoints += points;
     }
 
-    /**
-     * Increase 1 point in a specific stat.
-     */
     public void investStat(Player player, StatType stat) {
         PlayerStats ps = getPlayerStats(player);
         if (ps.skillPoints <= 0) {
@@ -71,113 +58,90 @@ public class StatsManager {
         ps.skillPoints--;
 
         switch (stat) {
-            case STR: ps.strength++; break;
-            case AGI: ps.agility++; break;
-            case INT: ps.intelligence++; break;
-            case DEX: ps.dexterity++; break;
-            case HP:  ps.healthStat++; break;
-            case DEF: ps.defenceStat++; break;
+            case STR: ps.baseStrength++; break;
+            case AGI: ps.baseAgility++; break;
+            case INT: ps.baseIntelligence++; break;
+            case DEX: ps.baseDexterity++; break;
+            case HP:  ps.baseHealthStat++; break;
+            case DEF: ps.baseDefenceStat++; break;
         }
 
-        //player.sendMessage("§aYou invested 1 point into " + stat + ".");
         recalcDerivedStats(player);
     }
 
-    /**
-     * Refund 1 point from a specific stat, if possible.
-     */
     public void refundStat(Player player, StatType stat) {
         PlayerStats ps = getPlayerStats(player);
         boolean refunded = false;
 
         switch (stat) {
             case STR:
-                if (ps.strength > 0) { ps.strength--; refunded = true; }
+                if (ps.baseStrength > 0) { ps.baseStrength--; refunded = true; }
                 break;
             case AGI:
-                if (ps.agility > 0) { ps.agility--; refunded = true; }
+                if (ps.baseAgility > 0) { ps.baseAgility--; refunded = true; }
                 break;
             case INT:
-                if (ps.intelligence > 0) { ps.intelligence--; refunded = true; }
+                if (ps.baseIntelligence > 0) { ps.baseIntelligence--; refunded = true; }
                 break;
             case DEX:
-                if (ps.dexterity > 0) { ps.dexterity--; refunded = true; }
+                if (ps.baseDexterity > 0) { ps.baseDexterity--; refunded = true; }
                 break;
             case HP:
-                if (ps.healthStat > 0) { ps.healthStat--; refunded = true; }
+                if (ps.baseHealthStat > 0) { ps.baseHealthStat--; refunded = true; }
                 break;
             case DEF:
-                if (ps.defenceStat > 0) { ps.defenceStat--; refunded = true; }
+                if (ps.baseDefenceStat > 0) { ps.baseDefenceStat--; refunded = true; }
                 break;
         }
 
         if (refunded) {
             ps.skillPoints++;
-            //player.sendMessage("§aYou refunded 1 point from " + stat + ".");
             recalcDerivedStats(player);
-        } else {
-            //player.sendMessage("§cYou have no points to refund in " + stat + "!");
         }
     }
 
     public void refundAllStats(Player player) {
         PlayerStats ps = getPlayerStats(player);
 
-        // Calculate total points invested
-        int totalRefundedPoints = ps.strength + ps.agility + ps.intelligence
-            + ps.dexterity + ps.healthStat + ps.defenceStat;
+        int totalRefundedPoints = ps.baseStrength + ps.baseAgility + ps.baseIntelligence
+            + ps.baseDexterity + ps.baseHealthStat + ps.baseDefenceStat;
 
-        // Reset all stats
-        ps.strength = 0;
-        ps.agility = 0;
-        ps.intelligence = 0;
-        ps.dexterity = 0;
-        ps.healthStat = 0;
-        ps.defenceStat = 0;
+        ps.baseStrength = 0;
+        ps.baseAgility = 0;
+        ps.baseIntelligence = 0;
+        ps.baseDexterity = 0;
+        ps.baseHealthStat = 0;
+        ps.baseDefenceStat = 0;
 
-        // Add all refunded points back to skillPoints
         ps.skillPoints += totalRefundedPoints;
-
-        // Recalculate derived stats
         recalcDerivedStats(player);
 
         player.sendMessage(ChatColor.GREEN + "All skill points have been refunded!");
     }
 
-
-    /**
-     * Recalculate the derived stats, including maxHealth & maxMana.
-     */
     public void recalcDerivedStats(Player player) {
         PlayerStats ps = getPlayerStats(player);
 
-        // Health
-        double newMaxHealth = 20.0 + (ps.healthStat * 2.0);
+        double newMaxHealth = 20.0 + ((ps.baseHealthStat + ps.bonusHealthStat) * 2.0);
         newMaxHealth = Math.min(newMaxHealth, 200.0);
         player.setMaxHealth(newMaxHealth);
 
-        // Mana
-        ps.maxMana = 50 + (ps.intelligence * 10);
+        ps.maxMana = 50 + ((ps.baseIntelligence + ps.bonusIntelligence) * 10);
         if (ps.currentMana > ps.maxMana) {
             ps.currentMana = ps.maxMana;
         }
 
-        // Walk speed: base .20f + 0.001 * agility
-        float newWalkSpeed = 0.20f + (ps.agility * 0.001f);
+        float newWalkSpeed = 0.20f + ((ps.baseAgility + ps.bonusAgility) * 0.001f);
         if (newWalkSpeed > 1.0f) newWalkSpeed = 1.0f;
         player.setWalkSpeed(newWalkSpeed);
     }
 
-    /**
-     * Called every second in ManaRegenTask, for example.
-     */
     public void regenManaForAllPlayers() {
         for (Player player : Bukkit.getOnlinePlayers()) {
             PlayerStats ps = getPlayerStats(player);
 
-            // Example formula: base 2.0 + (0.3 * INT)
             double baseRegenPerSec = 2.0;
-            double intBonus = ps.intelligence * 0.3;
+            double intBonus = (ps.baseIntelligence + ps.bonusIntelligence) * 0.3;
             double totalRegen = baseRegenPerSec + intBonus;
 
             ps.currentMana += totalRegen;
@@ -187,41 +151,34 @@ public class StatsManager {
         }
     }
 
-    /**
-     * Get the current value of a specific stat for a player.
-     */
     public int getStatValue(Player player, StatType stat) {
         PlayerStats ps = getPlayerStats(player);
 
         switch (stat) {
-            case STR: return ps.strength;
-            case AGI: return ps.agility;
-            case INT: return ps.intelligence;
-            case DEX: return ps.dexterity;
-            case HP:  return ps.healthStat;
-            case DEF: return ps.defenceStat;
-            default: return 0; // Return 0 if stat type is invalid
+            case STR: return ps.baseStrength + ps.bonusStrength;
+            case AGI: return ps.baseAgility + ps.bonusAgility;
+            case INT: return ps.baseIntelligence + ps.bonusIntelligence;
+            case DEX: return ps.baseDexterity + ps.bonusDexterity;
+            case HP:  return ps.baseHealthStat + ps.bonusHealthStat;
+            case DEF: return ps.baseDefenceStat + ps.bonusDefenceStat;
+            default: return 0;
         }
     }
 
-
     public static class PlayerStats {
-        public int healthStat = 0;
-        public int strength = 0;
-        public int agility = 0;
-        public int dexterity = 0;
-        public int defenceStat = 0;
-        public int intelligence = 0;
+        public int baseHealthStat = 0, bonusHealthStat = 0;
+        public int baseStrength = 0, bonusStrength = 0;
+        public int baseAgility = 0, bonusAgility = 0;
+        public int baseDexterity = 0, bonusDexterity = 0;
+        public int baseDefenceStat = 0, bonusDefenceStat = 0;
+        public int baseIntelligence = 0, bonusIntelligence = 0;
 
         public int maxMana = 50;
         public int currentMana = 50;
-
         public int skillPoints = 0;
 
-        // Add playerClass, default to VILLAGER
         public PlayerClass playerClass = PlayerClass.VILLAGER;
     }
-
 
     public enum StatType {
         STR, AGI, INT, DEX, HP, DEF

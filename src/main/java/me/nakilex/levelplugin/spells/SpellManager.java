@@ -24,6 +24,8 @@ public class SpellManager {
         loadSpellsConfig(plugin);
     }
 
+
+
     private void loadSpellsConfig(Plugin plugin) {
         File file = new File(plugin.getDataFolder(), "spells.yml");
         if (!file.exists()) {

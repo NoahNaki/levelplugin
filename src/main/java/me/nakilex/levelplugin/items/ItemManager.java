@@ -135,9 +135,6 @@ public class ItemManager {
         return customItem;
     }
 
-
-
-
     public ItemStack updateItem(ItemStack itemStack, CustomItem customItem, int upgradeLevel) {
         customItem.setUpgradeLevel(upgradeLevel); // Update level
         customItem.increaseStats(); // Update stats
@@ -145,5 +142,7 @@ public class ItemManager {
         return ItemUtil.createItemStackFromCustomItem(customItem, itemStack.getAmount());
     }
 
-
+    public Map<Integer, CustomItem> getAllItems() {
+        return new HashMap<>(itemsMap);
+    }
 }

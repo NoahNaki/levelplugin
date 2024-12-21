@@ -25,11 +25,13 @@ public class StatsEffectListener implements Listener {
             Player player = (Player) damager;
             PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
 
-            // Strength: e.g. +0.5 damage per STR
-            double finalDamage = event.getDamage() + (ps.strength * 0.5);
+            // Calculate total strength
+            int totalStrength = ps.baseStrength + ps.bonusStrength;
+            double finalDamage = event.getDamage() + (totalStrength * 0.5);
 
             // Dexterity: Crit chance e.g. 1% per DEX
-            double critChance = ps.dexterity * 0.01; // e.g. 20 DEX = 20% crit
+            int totalDexterity = ps.baseDexterity + ps.bonusDexterity;
+            double critChance = totalDexterity * 0.01; // e.g. 20 DEX = 20% crit
             if (random.nextDouble() < critChance) {
                 finalDamage *= 1.5; // 50% more damage on crit
                 player.sendMessage(ChatColor.GOLD + "Critical Hit!");
@@ -44,7 +46,8 @@ public class StatsEffectListener implements Listener {
             PlayerStats vs = StatsManager.getInstance().getPlayerStats(victim);
 
             // Agility: Dodge chance e.g. 1% per AGI
-            double dodgeChance = vs.agility * 0.01;
+            int totalAgility = vs.baseAgility + vs.bonusAgility;
+            double dodgeChance = totalAgility * 0.01;
             if (random.nextDouble() < dodgeChance) {
                 event.setCancelled(true);
                 victim.sendMessage(ChatColor.GREEN + "You dodged the attack!");
@@ -52,7 +55,8 @@ public class StatsEffectListener implements Listener {
             }
 
             // Defence: Flat damage negation e.g. 0.5 per DEF stat
-            double reducedDamage = event.getDamage() - (vs.defenceStat * 0.5);
+            int totalDefence = vs.baseDefenceStat + vs.bonusDefenceStat;
+            double reducedDamage = event.getDamage() - (totalDefence * 0.5);
             if (reducedDamage < 0) reducedDamage = 0;
 
             event.setDamage(reducedDamage);
