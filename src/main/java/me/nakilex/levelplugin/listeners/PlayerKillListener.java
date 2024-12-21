@@ -1,5 +1,7 @@
 package me.nakilex.levelplugin.listeners;
 
+import me.nakilex.levelplugin.managers.LevelManager;
+import me.nakilex.levelplugin.mob.CustomMob;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Entity;
@@ -9,8 +11,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
-
-import me.nakilex.levelplugin.managers.LevelManager;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.util.Map;
 import java.util.UUID;
@@ -40,44 +42,55 @@ public class PlayerKillListener implements Listener {
             return;
         }
 
-        // Grab the base XP from config
-        int baseXP = mobConfig.getInt("mobs." + entityType.name(), 10);
+        // Fetch PersistentDataContainer
+        PersistentDataContainer pdc = entity.getPersistentDataContainer();
 
-        // Retrieve damage info from MobDamageListener
-        Map<UUID, Double> damageContributors = MobDamageListener.getDamageMapForEntity(entity.getUniqueId());
-        double totalDamage = 0.0;
+        // Check if the mob has a custom ID
+        if (pdc.has(CustomMob.MOB_ID_KEY, PersistentDataType.STRING)) {
+            // Retrieve the mob ID
+            String mobID = pdc.get(CustomMob.MOB_ID_KEY, PersistentDataType.STRING);
 
-        for (double dmg : damageContributors.values()) {
-            totalDamage += dmg;
-        }
+            // Get the mob's XP directly from metadata
+            int baseXP = pdc.getOrDefault(CustomMob.XP_KEY, PersistentDataType.INTEGER, 10); // Default 10 if missing
+            Bukkit.getLogger().info("[Debug] Custom Mob ID: " + mobID + ", XP: " + baseXP);
 
-        // For each player who contributed damage, distribute XP proportionally
-        if (totalDamage <= 0) {
-            // if somehow no recorded damage, or totalDamage is 0, just skip
-            MobDamageListener.clearDamageRecord(entity.getUniqueId());
-            return;
-        }
+            // Retrieve damage info from MobDamageListener
+            Map<UUID, Double> damageContributors = MobDamageListener.getDamageMapForEntity(entity.getUniqueId());
+            double totalDamage = 0.0;
 
-        for (Map.Entry<UUID, Double> entry : damageContributors.entrySet()) {
-            UUID playerUUID = entry.getKey();
-            double dmgDone = entry.getValue();
-            double fraction = dmgDone / totalDamage;  // fraction of total damage
-            int xpAward = (int) Math.round(fraction * baseXP);
-
-            Player contributor = Bukkit.getPlayer(playerUUID);
-            if (contributor != null && contributor.isOnline()) {
-                levelManager.addXP(contributor, xpAward);
-
-                // Verbose message with damage % and XP gained
-                double percentage = fraction * 100.0;
-                contributor.sendMessage(String.format(
-                    "§eYou dealt %.1f%% of the damage to %s and earned %d XP!",
-                    percentage, entityType.name(), xpAward
-                ));
+            for (double dmg : damageContributors.values()) {
+                totalDamage += dmg;
             }
-        }
 
-        // Clear the damage record for this entity
-        MobDamageListener.clearDamageRecord(entity.getUniqueId());
+            if (totalDamage <= 0) {
+                MobDamageListener.clearDamageRecord(entity.getUniqueId());
+                return;
+            }
+
+            for (Map.Entry<UUID, Double> entry : damageContributors.entrySet()) {
+                UUID playerUUID = entry.getKey();
+                double dmgDone = entry.getValue();
+                double fraction = dmgDone / totalDamage;
+                int xpAward = (int) Math.round(fraction * baseXP);
+
+                Player contributor = Bukkit.getPlayer(playerUUID);
+                if (contributor != null && contributor.isOnline()) {
+                    levelManager.addXP(contributor, xpAward);
+                    double percentage = fraction * 100.0;
+                    contributor.sendMessage(String.format(
+                        "§eYou dealt %.1f%% of the damage to %s and earned %d XP!",
+                        percentage, mobID, xpAward // Display custom ID instead of entity type
+                    ));
+                }
+            }
+
+            // Clear the damage record
+            MobDamageListener.clearDamageRecord(entity.getUniqueId());
+
+        } else {
+            // Default behavior for non-custom mobs
+            int baseXP = mobConfig.getInt("mobs." + entityType.name(), 10);
+            Bukkit.getLogger().warning("[Debug] Non-custom mob killed. Using default XP: " + baseXP);
+        }
     }
 }

@@ -13,7 +13,7 @@ mobs:
         base: 5
         multiplier: 1
       movementspeed: 0.2
-      xp: 50
+      xp: 500
     loot:
       - item: COINS
         drop_min: 5
@@ -35,7 +35,7 @@ mobs:
         base: 10
         multiplier: 2
       movementspeed: 0.3
-      xp: 100
+      xp: 1000
     loot:
       - item: COINS
         drop_min: 1

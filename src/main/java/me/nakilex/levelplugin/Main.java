@@ -18,7 +18,10 @@ import me.nakilex.levelplugin.ui.ClassMenuListener;
 import me.nakilex.levelplugin.ui.StatsMenuListener;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import java.io.File;
 
 public class Main extends JavaPlugin {
 
@@ -42,6 +45,11 @@ public class Main extends JavaPlugin {
     public void onEnable() {
         instance = this;
 
+        // Load custommobs.yml configuration
+        saveResource("custommobs.yml", false); // Copy file from JAR if it doesn't exist
+        mobConfig = YamlConfiguration.loadConfiguration(new File(getDataFolder(), "custommobs.yml"));
+        getLogger().info("Loaded custommobs.yml: " + mobConfig.saveToString()); // Debugging configuration loading
+
         // Initialize NPC Manager
         npcManager = new NPCManager(this);
 
@@ -52,15 +60,12 @@ public class Main extends JavaPlugin {
         // Initialize NamespacedKey for item upgrades
         upgradeKey = new NamespacedKey(this, "upgrade_level");
 
-
         // Initialize Managers
         levelManager = new LevelManager(this);
         economyManager = new EconomyManager(this);
         itemManager = new ItemManager(this); // Load items dynamically from items.yml
         itemUpgradeManager = new ItemUpgradeManager(this);
         mobManager = new MobManager(this);
-
-
 
         StatsManager.getInstance().setLevelManager(levelManager);
 
@@ -160,7 +165,7 @@ public class Main extends JavaPlugin {
         getCommand("addpoints").setExecutor(new AddPointsCommand());
         getCommand("addxp").setExecutor(new AddXPCommand(levelManager));
         getCommand("stats").setExecutor(new StatsCommand());
-        getCommand("additem").setExecutor(new AddItemCommand()); // Pass item manager for dynamic item creation
+        getCommand("additem").setExecutor(new AddItemCommand());
         getCommand("setlevel").setExecutor(new SetLevelCommand(this));
         getCommand("class").setExecutor(new ClassCommand());
         getCommand("balance").setExecutor(new BalanceCommand(economyManager));
