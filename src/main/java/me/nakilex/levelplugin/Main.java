@@ -10,6 +10,7 @@ import me.nakilex.levelplugin.managers.LevelManager;
 import me.nakilex.levelplugin.managers.NPCManager;
 import me.nakilex.levelplugin.managers.StatsManager;
 import me.nakilex.levelplugin.mob.MobManager;
+import me.nakilex.levelplugin.spells.SpellManager;
 import me.nakilex.levelplugin.tasks.ActionBarTask;
 import me.nakilex.levelplugin.tasks.ManaRegenTask;
 import me.nakilex.levelplugin.tasks.WeaponCheckTask;
@@ -34,6 +35,7 @@ public class Main extends JavaPlugin {
     private ItemManager itemManager;
     private ItemUpgradeManager itemUpgradeManager;
     private NPCManager npcManager;
+    private SpellManager spellmanager;
 
     // Configurations
     private FileConfiguration mobConfig;
@@ -66,6 +68,8 @@ public class Main extends JavaPlugin {
         itemManager = new ItemManager(this); // Load items dynamically from items.yml
         itemUpgradeManager = new ItemUpgradeManager(this);
         mobManager = new MobManager(this);
+        spellmanager = new SpellManager(this); // Happens after registering listeners
+
 
         StatsManager.getInstance().setLevelManager(levelManager);
 
@@ -137,7 +141,7 @@ public class Main extends JavaPlugin {
 
     // Start periodic tasks
     private void startTasks() {
-        new ActionBarTask().runTaskTimer(this, 20L, 20L);
+        new ActionBarTask().runTaskTimer(this, 1L, 1L);
         new WeaponCheckTask().runTaskTimer(this, 20L, 20L);
         new ManaRegenTask().runTaskTimer(this, 20L, 20L);
     }

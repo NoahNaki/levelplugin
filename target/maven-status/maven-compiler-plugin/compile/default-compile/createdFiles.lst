@@ -51,7 +51,6 @@ me\nakilex\levelplugin\commands\BlacksmithCommand.class
 me\nakilex\levelplugin\economy\EconomyManager.class
 me\nakilex\levelplugin\items\ItemUtil.class
 me\nakilex\levelplugin\economy\BalanceCommand.class
-me\nakilex\levelplugin\YamlLoader.class
 me\nakilex\levelplugin\managers\ItemUpgradeManager.class
 me\nakilex\levelplugin\mob\MobConfig.class
 me\nakilex\levelplugin\npc\CustomNPC$NPCEquipment.class
