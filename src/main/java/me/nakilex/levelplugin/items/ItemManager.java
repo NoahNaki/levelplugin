@@ -43,7 +43,7 @@ public class ItemManager {
     private void loadItemsConfig(Plugin plugin) {
         File file = new File(plugin.getDataFolder(), "items.yml");
         if (!file.exists()) {
-            plugin.saveResource("items.yml", false);
+            plugin.saveResource("items.yml", true);
         }
         itemsConfig = YamlConfiguration.loadConfiguration(file);
 

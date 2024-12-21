@@ -37,4 +37,7 @@ commands:
   blacksmith:
     description: Opens the Blacksmith GUI.
     usage: /blacksmith
+  npc:
+    description: Main command for managing NPCs.
+    usage: /npc <add|remove> <args>
 

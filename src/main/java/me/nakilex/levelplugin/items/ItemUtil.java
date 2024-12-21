@@ -56,6 +56,8 @@ public class ItemUtil {
 
         meta.setLore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES); // Hide item attributes
+        meta.setUnbreakable(true); // Make the item unbreakable
+        meta.addItemFlags(ItemFlag.HIDE_UNBREAKABLE);; // Hide item attributes
 
         // Store unique data in the PersistentDataContainer
         PersistentDataContainer pdc = meta.getPersistentDataContainer();

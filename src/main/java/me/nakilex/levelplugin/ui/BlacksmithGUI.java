@@ -129,6 +129,37 @@ public class BlacksmithGUI implements Listener {
 
         int slot = event.getSlot();
 
+        // Handle shift-click behavior
+        if (event.isShiftClick() && clickedInventory != null) {
+            ItemStack currentItem = event.getCurrentItem();
+
+            // Ensure the item is valid
+            if (currentItem != null && currentItem.getType() != Material.AIR) {
+                // Check if slot 13 is empty
+                if (playerGUI.getItem(13) == null) {
+                    playerGUI.setItem(13, currentItem);
+                    clickedInventory.setItem(event.getSlot(), null); // Remove the item from the clicked inventory
+
+                    // Update the upgrade button based on the item in slot 13
+                    Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+                        ItemStack itemStack = playerGUI.getItem(13);
+                        if (itemStack != null) {
+                            CustomItem customItem = itemManager.getCustomItemFromItemStack(itemStack);
+                            if (customItem != null) {
+                                int upgradeCost = upgradeManager.getUpgradeCost(customItem);
+                                updateUpgradeButton(playerGUI, upgradeCost);
+                            } else {
+                                updateUpgradeButton(playerGUI, 0);
+                            }
+                        } else {
+                            updateUpgradeButton(playerGUI, 0);
+                        }
+                    }, 1L);
+                }
+            }
+            return; // Stop further handling as shift-click is processed
+        }
+
         if (slot == 13) {
             // Allow item placement in the upgrade slot
             event.setCancelled(false);

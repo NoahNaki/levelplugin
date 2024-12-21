@@ -1,0 +1,17 @@
+npcs:
+  merchant:
+    mobType: VILLAGER
+    name: Merchant
+    alwaysFacePlayer: true
+    location: world,150,70,200
+    onRightClickCommand: "say Welcome to my shop!"
+    isMovable: false
+    cooldown: 5
+    isVisible: true
+    isInvulnerable: true
+    equipment:
+      helmet: "DIAMOND_HELMET"
+      chestplate: "IRON_CHESTPLATE"
+      leggings: "LEATHER_LEGGINGS"
+      boots: "CHAINMAIL_BOOTS"
+      weapon: "IRON_AXE"

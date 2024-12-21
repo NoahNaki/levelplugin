@@ -1,0 +1,45 @@
+mobs:
+  IceZombie:
+    id: IceZombie
+    entitytype: ZOMBIE
+    name: "&bFrozen Zombie"
+    minlevel: 1
+    maxlevel: 10
+    stats:
+      health:
+        base: 50
+        multiplier: 5
+      damage:
+        base: 5
+        multiplier: 1
+      movementspeed: 0.2
+      xp: 50
+    loot:
+      - item: COINS
+        drop_min: 5
+        drop_max: 15
+        drop_rate: 80
+      - item: PACKED_ICE
+        drop_rate: 30
+  FireSlime:
+    id: FireSlime
+    entitytype: SLIME
+    name: "&6Fire Slime"
+    minlevel: 5
+    maxlevel: 15
+    stats:
+      health:
+        base: 100
+        multiplier: 10
+      damage:
+        base: 10
+        multiplier: 2
+      movementspeed: 0.3
+      xp: 100
+    loot:
+      - item: COINS
+        drop_min: 1
+        drop_max: 20
+        drop_rate: 100
+      - item: SLIME_BALL
+        drop_rate: 50

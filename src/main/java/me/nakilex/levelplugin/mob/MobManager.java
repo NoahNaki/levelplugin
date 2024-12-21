@@ -18,11 +18,12 @@ public class MobManager {
 
     private Main plugin;
     private File customMobsFile;
-    private FileConfiguration customMobsConfig;
+    private FileConfiguration mobConfig;
     private Map<String, MobConfig> mobConfigs = new HashMap<>();
 
     public MobManager(Main plugin) {
         this.plugin = plugin;
+        createMobConfig(); // Load or save the mob config during initialization
         loadCustomMobsYML();
         loadMobConfigs();
     }
@@ -31,14 +32,14 @@ public class MobManager {
         customMobsFile = new File(plugin.getDataFolder(), "custommobs.yml");
         if (!customMobsFile.exists()) {
             plugin.getLogger().info("[Debug] custommobs.yml not found, copying from resources...");
-            plugin.saveResource("custommobs.yml", false);
+            plugin.saveResource("custommobs.yml", true);
         }
-        customMobsConfig = YamlConfiguration.loadConfiguration(customMobsFile);
+        mobConfig = YamlConfiguration.loadConfiguration(customMobsFile);
         plugin.getLogger().info("[Debug] custommobs.yml loaded or created successfully.");
     }
 
     private void loadMobConfigs() {
-        ConfigurationSection mobsSec = customMobsConfig.getConfigurationSection("mobs");
+        ConfigurationSection mobsSec = mobConfig.getConfigurationSection("mobs");
         if (mobsSec == null) {
             plugin.getLogger().warning("[Debug] No 'mobs' section found in custommobs.yml!");
             return;
@@ -149,11 +150,20 @@ public class MobManager {
         }
     }
 
-    public void saveCustomMobsConfig() {
-        try {
-            customMobsConfig.save(customMobsFile);
-        } catch (Exception e) {
-            e.printStackTrace();
+    private void createMobConfig() {
+        File mobFile = new File(plugin.getDataFolder(), "custommobs.yml");
+        plugin.getLogger().info("[Debug] Path for custommobs.yml: " + mobFile.getAbsolutePath());
+
+        if (!mobFile.exists()) {
+            plugin.getLogger().info("[Debug] custommobs.yml not found. Saving default...");
+            plugin.saveResource("custommobs.yml", false); // Save from resources
         }
+
+        mobConfig = YamlConfiguration.loadConfiguration(mobFile);
+        plugin.getLogger().info("[Debug] Loaded custommobs.yml successfully.");
+    }
+
+    public FileConfiguration getMobConfig() {
+        return mobConfig;
     }
 }

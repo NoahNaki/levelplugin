@@ -5,21 +5,20 @@ import me.nakilex.levelplugin.economy.BalanceCommand;
 import me.nakilex.levelplugin.economy.EconomyManager;
 import me.nakilex.levelplugin.items.ItemManager;
 import me.nakilex.levelplugin.listeners.*;
-import me.nakilex.levelplugin.managers.*;
+import me.nakilex.levelplugin.managers.ItemUpgradeManager;
+import me.nakilex.levelplugin.managers.LevelManager;
+import me.nakilex.levelplugin.managers.NPCManager;
+import me.nakilex.levelplugin.managers.StatsManager;
 import me.nakilex.levelplugin.mob.MobManager;
-import me.nakilex.levelplugin.tasks.*;
+import me.nakilex.levelplugin.tasks.ActionBarTask;
+import me.nakilex.levelplugin.tasks.ManaRegenTask;
+import me.nakilex.levelplugin.tasks.WeaponCheckTask;
 import me.nakilex.levelplugin.ui.BlacksmithGUI;
 import me.nakilex.levelplugin.ui.ClassMenuListener;
 import me.nakilex.levelplugin.ui.StatsMenuListener;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
-
-import java.io.File;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 
 public class Main extends JavaPlugin {
 
@@ -31,6 +30,7 @@ public class Main extends JavaPlugin {
     private EconomyManager economyManager;
     private ItemManager itemManager;
     private ItemUpgradeManager itemUpgradeManager;
+    private NPCManager npcManager;
 
     // Configurations
     private FileConfiguration mobConfig;
@@ -42,18 +42,25 @@ public class Main extends JavaPlugin {
     public void onEnable() {
         instance = this;
 
+        // Initialize NPC Manager
+        npcManager = new NPCManager(this);
+
+        // Load and spawn NPCs
+        npcManager.loadNPCs();
+        npcManager.spawnAllNPCs();
+
         // Initialize NamespacedKey for item upgrades
         upgradeKey = new NamespacedKey(this, "upgrade_level");
 
-        // Load configuration files
-        createMobConfig();
 
         // Initialize Managers
         levelManager = new LevelManager(this);
-        mobManager = new MobManager(this);
         economyManager = new EconomyManager(this);
         itemManager = new ItemManager(this); // Load items dynamically from items.yml
         itemUpgradeManager = new ItemUpgradeManager(this);
+        mobManager = new MobManager(this);
+
+
 
         StatsManager.getInstance().setLevelManager(levelManager);
 
@@ -74,9 +81,17 @@ public class Main extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        // Save balances if economy manager is initialized
         if (economyManager != null) {
             economyManager.saveBalances();
         }
+
+        // Despawn and save NPCs
+        if (npcManager != null) {
+            npcManager.despawnAllNPCs();
+            npcManager.saveNPCs();
+        }
+
         getLogger().info("LevelPlugin has been disabled!");
     }
 
@@ -106,25 +121,13 @@ public class Main extends JavaPlugin {
         return itemUpgradeManager;
     }
 
+    public NPCManager getNPCManager() {
+        return npcManager;
+    }
+
     // Getter for Upgrade Key
     public NamespacedKey getUpgradeKey() {
         return upgradeKey;
-    }
-
-    // Create mob configuration
-    private void createMobConfig() {
-        File mobFile = new File(getDataFolder(), "mobs.yml");
-        if (!mobFile.exists()) {
-            saveResource("mobs.yml", false);
-        }
-        mobConfig = YamlConfiguration.loadConfiguration(mobFile);
-
-        InputStream defaultStream = this.getResource("mobs.yml");
-        if (defaultStream != null) {
-            YamlConfiguration defaultConfig = YamlConfiguration.loadConfiguration(
-                new InputStreamReader(defaultStream, StandardCharsets.UTF_8));
-            mobConfig.setDefaults(defaultConfig);
-        }
     }
 
     // Start periodic tasks
@@ -149,6 +152,7 @@ public class Main extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new ClassMenuListener(), this);
         getServer().getPluginManager().registerEvents(blacksmithGUI, this);
         getServer().getPluginManager().registerEvents(new MobDeathListener(mobManager, economyManager), this);
+        getServer().getPluginManager().registerEvents(new NPCClickListener(npcManager), this);
     }
 
     // Register plugin commands
@@ -163,5 +167,6 @@ public class Main extends JavaPlugin {
         getCommand("addcoins").setExecutor(new AddCoinsCommand(economyManager));
         getCommand("addmob").setExecutor(new AddMobCommand(mobManager));
         getCommand("blacksmith").setExecutor(new BlacksmithCommand(blacksmithGUI));
+        getCommand("npc").setExecutor(new NPCCommand(npcManager));
     }
 }
