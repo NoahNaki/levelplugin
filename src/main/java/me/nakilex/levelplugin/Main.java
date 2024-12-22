@@ -5,17 +5,16 @@ import me.nakilex.levelplugin.economy.BalanceCommand;
 import me.nakilex.levelplugin.economy.EconomyManager;
 import me.nakilex.levelplugin.items.ItemManager;
 import me.nakilex.levelplugin.listeners.*;
-import me.nakilex.levelplugin.managers.ItemUpgradeManager;
-import me.nakilex.levelplugin.managers.LevelManager;
-import me.nakilex.levelplugin.managers.NPCManager;
-import me.nakilex.levelplugin.managers.StatsManager;
+import me.nakilex.levelplugin.managers.*;
+import me.nakilex.levelplugin.mob.HorseManager;
 import me.nakilex.levelplugin.mob.MobManager;
 import me.nakilex.levelplugin.spells.SpellManager;
 import me.nakilex.levelplugin.tasks.ActionBarTask;
+import me.nakilex.levelplugin.tasks.HorseSaverTask;
 import me.nakilex.levelplugin.tasks.ManaRegenTask;
-import me.nakilex.levelplugin.tasks.WeaponCheckTask;
 import me.nakilex.levelplugin.ui.BlacksmithGUI;
 import me.nakilex.levelplugin.ui.ClassMenuListener;
+import me.nakilex.levelplugin.ui.HorseGUI;
 import me.nakilex.levelplugin.ui.StatsMenuListener;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -36,9 +35,12 @@ public class Main extends JavaPlugin {
     private ItemUpgradeManager itemUpgradeManager;
     private NPCManager npcManager;
     private SpellManager spellmanager;
+    private HorseManager horseManager;
+
 
     // Configurations
     private FileConfiguration mobConfig;
+    private HorseConfigManager horseConfigManager;
 
     // NamespacedKey for PersistentDataContainer
     private NamespacedKey upgradeKey;
@@ -50,7 +52,7 @@ public class Main extends JavaPlugin {
         // Load custommobs.yml configuration
         saveResource("custommobs.yml", false); // Copy file from JAR if it doesn't exist
         mobConfig = YamlConfiguration.loadConfiguration(new File(getDataFolder(), "custommobs.yml"));
-        getLogger().info("Loaded custommobs.yml: " + mobConfig.saveToString()); // Debugging configuration loading
+        horseConfigManager = new HorseConfigManager(getDataFolder());
 
         // Initialize NPC Manager
         npcManager = new NPCManager(this);
@@ -76,16 +78,16 @@ public class Main extends JavaPlugin {
         // Start repeating tasks
         startTasks();
 
-        // Initialize Blacksmith GUI
+        // Initialize Blacksmith GUI and Horse GUI
         BlacksmithGUI blacksmithGUI = new BlacksmithGUI(economyManager, itemUpgradeManager, itemManager);
+        horseManager = new HorseManager(horseConfigManager);
+        HorseGUI horseGUI = new HorseGUI(horseManager);
 
         // Register Listeners
-        registerListeners(blacksmithGUI);
+        registerListeners(blacksmithGUI, horseGUI);
 
         // Register Commands
-        registerCommands(blacksmithGUI);
-
-        getLogger().info("LevelPlugin (with Blacksmith and dynamic items) has been enabled!");
+        registerCommands(blacksmithGUI, horseGUI);
     }
 
     @Override
@@ -142,30 +144,31 @@ public class Main extends JavaPlugin {
     // Start periodic tasks
     private void startTasks() {
         new ActionBarTask().runTaskTimer(this, 1L, 1L);
-        new WeaponCheckTask().runTaskTimer(this, 20L, 20L);
         new ManaRegenTask().runTaskTimer(this, 20L, 20L);
+        new HorseSaverTask(horseConfigManager).runTaskTimer(this, 6000L, 6000L); // Saves every 5 minutes
     }
 
     // Register plugin event listeners
-    private void registerListeners(BlacksmithGUI blacksmithGUI) {
+    private void registerListeners(BlacksmithGUI blacksmithGUI, HorseGUI horseGUI) {
         getServer().getPluginManager().registerEvents(new MobDamageListener(), this);
         getServer().getPluginManager().registerEvents(new PlayerKillListener(levelManager, mobConfig), this);
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(levelManager), this);
         getServer().getPluginManager().registerEvents(new StatsMenuListener(), this);
         getServer().getPluginManager().registerEvents(new StatsEffectListener(), this);
-        getServer().getPluginManager().registerEvents(new ArmorEquipListener(), this);
-        getServer().getPluginManager().registerEvents(new WeaponHeldListener(), this);
+        getServer().getPluginManager().registerEvents(new ArmorListener(), this);
+        getServer().getPluginManager().registerEvents(new ArmorStatsListener(), this);
+        getServer().getPluginManager().registerEvents(new WeaponListener(), this);
+        getServer().getPluginManager().registerEvents(new WeaponStatsListener(), this);
         getServer().getPluginManager().registerEvents(new ClickComboListener(), this);
         getServer().getPluginManager().registerEvents(new ItemNameDisplayListener(), this);
         getServer().getPluginManager().registerEvents(new StaticItemListener(), this);
         getServer().getPluginManager().registerEvents(new ClassMenuListener(), this);
         getServer().getPluginManager().registerEvents(blacksmithGUI, this);
-        getServer().getPluginManager().registerEvents(new MobDeathListener(mobManager, economyManager), this);
-        getServer().getPluginManager().registerEvents(new NPCClickListener(npcManager), this);
+        getServer().getPluginManager().registerEvents(horseGUI, this);
     }
 
     // Register plugin commands
-    private void registerCommands(BlacksmithGUI blacksmithGUI) {
+    private void registerCommands(BlacksmithGUI blacksmithGUI, HorseGUI horseGUI) {
         getCommand("addpoints").setExecutor(new AddPointsCommand());
         getCommand("addxp").setExecutor(new AddXPCommand(levelManager));
         getCommand("stats").setExecutor(new StatsCommand());
@@ -177,5 +180,6 @@ public class Main extends JavaPlugin {
         getCommand("addmob").setExecutor(new AddMobCommand(mobManager));
         getCommand("blacksmith").setExecutor(new BlacksmithCommand(blacksmithGUI));
         getCommand("npc").setExecutor(new NPCCommand(npcManager));
+        getCommand("horse").setExecutor(new HorseCommand(horseGUI));
     }
 }

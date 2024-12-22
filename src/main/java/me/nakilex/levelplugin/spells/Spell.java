@@ -171,12 +171,10 @@ public class Spell {
 
         // Allow left-click to be used as part of the combo instead of triggering the basic attack
         if (!activeCombo.isEmpty() && activeCombo.length() < 3) {
-            Bukkit.getLogger().info("Combo active: " + activeCombo + " - Allowing combo input instead of basic attack.");
             return; // Let the input contribute to the combo instead
         }
 
         // If no combo is active, proceed with basic attack
-        Bukkit.getLogger().info("Mage Basic Skill activated by: " + player.getName());
         Snowball projectile = player.launchProjectile(Snowball.class);
         projectile.setVelocity(player.getLocation().getDirection().multiply(2));
         projectile.getWorld().playSound(player.getLocation(), Sound.ENTITY_WITCH_THROW, 1f, 1f);
@@ -189,7 +187,6 @@ public class Spell {
             @Override
             public void run() {
                 if (!projectile.isValid() || projectile.isDead()) {
-                    Bukkit.getLogger().info("Mage Basic Skill projectile expired.");
                     cancel();
                     return;
                 }

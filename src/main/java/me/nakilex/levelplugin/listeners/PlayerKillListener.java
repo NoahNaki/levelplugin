@@ -52,9 +52,7 @@ public class PlayerKillListener implements Listener {
 
             // Get the mob's XP directly from metadata
             int baseXP = pdc.getOrDefault(CustomMob.XP_KEY, PersistentDataType.INTEGER, 10); // Default 10 if missing
-            Bukkit.getLogger().info("[Debug] Custom Mob ID: " + mobID + ", XP: " + baseXP);
 
-            // Retrieve damage info from MobDamageListener
             Map<UUID, Double> damageContributors = MobDamageListener.getDamageMapForEntity(entity.getUniqueId());
             double totalDamage = 0.0;
 
@@ -90,7 +88,6 @@ public class PlayerKillListener implements Listener {
         } else {
             // Default behavior for non-custom mobs
             int baseXP = mobConfig.getInt("mobs." + entityType.name(), 10);
-            Bukkit.getLogger().warning("[Debug] Non-custom mob killed. Using default XP: " + baseXP);
         }
     }
 }

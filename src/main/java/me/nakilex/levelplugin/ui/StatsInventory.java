@@ -145,11 +145,7 @@ public class StatsInventory {
         lore.add(ChatColor.GRAY + "Defense: " + ChatColor.WHITE + (ps.baseDefenceStat + ps.bonusDefenceStat) + ChatColor.GREEN + " (+" + ps.bonusDefenceStat + ")");
         lore.add("");
 
-        // Fetch XP details from LevelManager
         lore.add(ChatColor.GOLD + "Total XP: " + ChatColor.WHITE + currentXP + ChatColor.GRAY + " / " + ChatColor.WHITE + nextLevelXP);
-
-        Bukkit.getLogger().info("[StatsInventory] Debug - Player: " + player.getName() + ", Current XP: " + currentXP + ", Required XP: " + nextLevelXP);
-
         meta.setLore(lore);
         head.setItemMeta(meta);
         return head;

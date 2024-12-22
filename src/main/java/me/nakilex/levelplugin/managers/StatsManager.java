@@ -1,12 +1,12 @@
 package me.nakilex.levelplugin.managers;
 
+import me.nakilex.levelplugin.items.CustomItem;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.InventoryClickEvent;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class StatsManager {
 
@@ -15,8 +15,10 @@ public class StatsManager {
 
     private LevelManager levelManager; // Reference to the actual LevelManager
     private final Map<UUID, PlayerStats> statsMap = new HashMap<>();
+    private final Map<UUID, Set<Integer>> equippedItemsMap = new HashMap<>();
 
-    private StatsManager() {}
+
+    public StatsManager() {}
 
     public void setLevelManager(LevelManager levelManager) {
         this.levelManager = levelManager;
@@ -28,6 +30,10 @@ public class StatsManager {
             return 1;
         }
         return levelManager.getLevel(player);
+    }
+
+    public Set<Integer> getEquippedItems(UUID uuid){
+        return equippedItemsMap.computeIfAbsent(uuid, k -> new HashSet<>());
     }
 
     public void initPlayer(Player player) {
@@ -122,10 +128,21 @@ public class StatsManager {
     public void recalcDerivedStats(Player player) {
         PlayerStats ps = getPlayerStats(player);
 
-        double newMaxHealth = 20.0 + ((ps.baseHealthStat + ps.bonusHealthStat) * 2.0);
-        newMaxHealth = Math.min(newMaxHealth, 200.0);
-        player.setMaxHealth(newMaxHealth);
+        // Ensure stats can't be negative
+        ps.baseHealthStat = Math.max(0, ps.baseHealthStat);
+        ps.bonusHealthStat = Math.max(0, ps.bonusHealthStat);
 
+        // Calculate new max health
+        double newMaxHealth = 20.0 + ((ps.baseHealthStat + ps.bonusHealthStat) * 2.0);
+
+        // Ensure valid health ranges
+        newMaxHealth = Math.max(1.0, Math.min(newMaxHealth, 200.0));
+
+        // Set health safely
+        player.setMaxHealth(newMaxHealth);
+        player.setHealth(Math.min(player.getHealth(), newMaxHealth));
+
+        // Mana and walk speed calculations
         ps.maxMana = 50 + ((ps.baseIntelligence + ps.bonusIntelligence) * 10);
         if (ps.currentMana > ps.maxMana) {
             ps.currentMana = ps.maxMana;
@@ -135,6 +152,7 @@ public class StatsManager {
         if (newWalkSpeed > 1.0f) newWalkSpeed = 1.0f;
         player.setWalkSpeed(newWalkSpeed);
     }
+
 
     public void regenManaForAllPlayers() {
         for (Player player : Bukkit.getOnlinePlayers()) {
@@ -150,6 +168,23 @@ public class StatsManager {
             }
         }
     }
+
+    // Handle stats application for manual equipping
+    public void handleArmorManual(Player player, CustomItem newItem, InventoryClickEvent event) {
+        PlayerStats ps = getPlayerStats(player);
+
+        // Apply stats
+        ps.bonusHealthStat += newItem.getHp();
+        ps.bonusDefenceStat += newItem.getDef();
+        ps.bonusStrength += newItem.getStr();
+        ps.bonusAgility += newItem.getAgi();
+        ps.bonusIntelligence += newItem.getIntel();
+        ps.bonusDexterity += newItem.getDex();
+
+        recalcDerivedStats(player);
+        Bukkit.getLogger().info("[DEBUG] Manually equipped: " + newItem.getName() + " for " + player.getName());
+    }
+
 
     public int getStatValue(Player player, StatType stat) {
         PlayerStats ps = getPlayerStats(player);

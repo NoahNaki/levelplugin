@@ -48,22 +48,21 @@ public class ItemUpgradeManager {
     }
 
     private void applyUpgrade(ItemStack itemStack, CustomItem customItem) {
-        // Increment the upgrade level for this specific item
         int currentUpgradeLevel = ItemUtil.getUpgradeLevel(itemStack);
-        if (currentUpgradeLevel >= 5) return; // Enforce max upgrade level
+        if (currentUpgradeLevel >= 5) return;
 
         int newUpgradeLevel = currentUpgradeLevel + 1;
         customItem.setUpgradeLevel(newUpgradeLevel);
+
+        // The single place we multiply stats:
         customItem.increaseStats();
 
-        // Update the specific item
+        // Now update the PDC and lore/visuals
         ItemUtil.updateUpgradeLevel(itemStack, newUpgradeLevel);
-
-        // Regenerate the item’s display name and lore
         ItemStack updatedItem = ItemUtil.createItemStackFromCustomItem(customItem, itemStack.getAmount());
+
+        // Overwrite the original item with updated name/lore
         itemStack.setType(updatedItem.getType());
         itemStack.setItemMeta(updatedItem.getItemMeta());
     }
-
-
 }

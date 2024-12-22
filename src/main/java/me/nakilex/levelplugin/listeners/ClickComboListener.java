@@ -100,7 +100,6 @@ public class ClickComboListener implements Listener {
 
         Spell spell = SpellManager.getInstance().getSpell(className, combo);
         if (spell == null) {
-            player.sendMessage("§cInvalid combo: " + combo);
             return;
         }
 

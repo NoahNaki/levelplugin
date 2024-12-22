@@ -135,12 +135,21 @@ public class ItemManager {
         return customItem;
     }
 
+    // In ItemManager.updateItem(...) we remove or comment out the increaseStats call:
     public ItemStack updateItem(ItemStack itemStack, CustomItem customItem, int upgradeLevel) {
-        customItem.setUpgradeLevel(upgradeLevel); // Update level
-        customItem.increaseStats(); // Update stats
-        ItemUtil.updateUpgradeLevel(itemStack, upgradeLevel); // Store unique level in PDC
+        // We still update the persistent data for the new level:
+        customItem.setUpgradeLevel(upgradeLevel);
+
+        // REMOVE OR COMMENT OUT THIS LINE:
+        // customItem.increaseStats();
+
+        // Just update PDC so the item’s "upgrade level" is stored
+        ItemUtil.updateUpgradeLevel(itemStack, upgradeLevel);
+
+        // And rebuild the item stack (name/lore) from the customItem
         return ItemUtil.createItemStackFromCustomItem(customItem, itemStack.getAmount());
     }
+
 
     public Map<Integer, CustomItem> getAllItems() {
         return new HashMap<>(itemsMap);

@@ -40,4 +40,7 @@ commands:
   npc:
     description: Main command for managing NPCs.
     usage: /npc <add|remove> <args>
+  horse:
+    description: Manage your horse
+    usage: /horse [reroll]
 
