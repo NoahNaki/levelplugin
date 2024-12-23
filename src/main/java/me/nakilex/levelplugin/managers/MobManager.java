@@ -1,6 +1,8 @@
-package me.nakilex.levelplugin.mob;
+package me.nakilex.levelplugin.managers;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.mob.CustomMob;
+import me.nakilex.levelplugin.mob.MobConfig;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.configuration.ConfigurationSection;

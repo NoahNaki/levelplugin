@@ -1,7 +1,7 @@
 package me.nakilex.levelplugin.listeners;
 
 import me.nakilex.levelplugin.spells.Spell;
-import me.nakilex.levelplugin.spells.SpellManager;
+import me.nakilex.levelplugin.managers.SpellManager;
 import me.nakilex.levelplugin.managers.StatsManager;
 import me.nakilex.levelplugin.managers.StatsManager.PlayerStats;
 import org.bukkit.*;

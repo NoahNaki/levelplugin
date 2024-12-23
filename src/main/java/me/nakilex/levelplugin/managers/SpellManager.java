@@ -1,5 +1,6 @@
-package me.nakilex.levelplugin.spells;
+package me.nakilex.levelplugin.managers;
 
+import me.nakilex.levelplugin.spells.Spell;
 import org.bukkit.Material;
 import org.bukkit.plugin.Plugin;
 

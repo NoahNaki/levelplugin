@@ -1,13 +1,14 @@
-package me.nakilex.levelplugin.items;
+package me.nakilex.levelplugin.managers;
 
 import me.nakilex.levelplugin.Main;
-import org.bukkit.ChatColor;
+import me.nakilex.levelplugin.items.CustomItem;
+import me.nakilex.levelplugin.items.ItemRarity;
+import me.nakilex.levelplugin.items.ItemUtil;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 
@@ -15,12 +16,9 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-import static me.nakilex.levelplugin.items.ItemUtil.GLOBAL_ID_KEY;
 import static me.nakilex.levelplugin.items.ItemUtil.ITEM_ID_KEY;
 
 public class ItemManager {

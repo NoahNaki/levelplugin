@@ -1,6 +1,6 @@
 package me.nakilex.levelplugin.commands;
 
-import me.nakilex.levelplugin.economy.EconomyManager;
+import me.nakilex.levelplugin.managers.EconomyManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;

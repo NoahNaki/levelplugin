@@ -1,9 +1,9 @@
 package me.nakilex.levelplugin.listeners;
 
-import me.nakilex.levelplugin.mob.MobManager;
+import me.nakilex.levelplugin.managers.MobManager;
 import me.nakilex.levelplugin.mob.MobConfig;
 import me.nakilex.levelplugin.mob.CustomMob;
-import me.nakilex.levelplugin.economy.EconomyManager;
+import me.nakilex.levelplugin.managers.EconomyManager;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;

@@ -5,7 +5,7 @@ import me.nakilex.levelplugin.events.ArmorEquipEvent.EquipMethod;
 import me.nakilex.levelplugin.events.ArmorType;
 import me.nakilex.levelplugin.managers.LevelManager;
 import me.nakilex.levelplugin.items.CustomItem;
-import me.nakilex.levelplugin.items.ItemManager;
+import me.nakilex.levelplugin.managers.ItemManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;

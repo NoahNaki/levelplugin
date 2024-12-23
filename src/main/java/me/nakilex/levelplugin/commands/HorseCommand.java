@@ -1,6 +1,6 @@
 package me.nakilex.levelplugin.commands;
 
-import me.nakilex.levelplugin.mob.HorseManager;
+import me.nakilex.levelplugin.managers.HorseManager;
 import me.nakilex.levelplugin.ui.HorseGUI;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;

@@ -1,7 +1,7 @@
-package me.nakilex.levelplugin.mob;
+package me.nakilex.levelplugin.managers;
 
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.managers.HorseConfigManager;
+import me.nakilex.levelplugin.mob.HorseData;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Horse;
 import org.bukkit.entity.Player;

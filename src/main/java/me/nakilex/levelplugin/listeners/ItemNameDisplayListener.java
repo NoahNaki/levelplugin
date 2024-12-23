@@ -1,7 +1,7 @@
 package me.nakilex.levelplugin.listeners;
 
 import me.nakilex.levelplugin.items.CustomItem;
-import me.nakilex.levelplugin.items.ItemManager;
+import me.nakilex.levelplugin.managers.ItemManager;
 import me.nakilex.levelplugin.items.ItemUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;

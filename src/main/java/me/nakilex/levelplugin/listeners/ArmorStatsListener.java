@@ -2,7 +2,7 @@ package me.nakilex.levelplugin.listeners;
 
 import me.nakilex.levelplugin.events.ArmorEquipEvent;
 import me.nakilex.levelplugin.items.CustomItem;
-import me.nakilex.levelplugin.items.ItemManager;
+import me.nakilex.levelplugin.managers.ItemManager;
 import me.nakilex.levelplugin.managers.LevelManager;
 import me.nakilex.levelplugin.managers.StatsManager;
 import org.bukkit.ChatColor;

@@ -1,4 +1,4 @@
-package me.nakilex.levelplugin.economy;
+package me.nakilex.levelplugin.managers;
 
 import org.bukkit.plugin.Plugin;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -7,7 +7,6 @@ import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.UUID;
 
 public class EconomyManager {
 

@@ -1,6 +1,6 @@
 package me.nakilex.levelplugin.commands;
 
-import me.nakilex.levelplugin.mob.MobManager;
+import me.nakilex.levelplugin.managers.MobManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;

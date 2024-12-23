@@ -1,14 +1,14 @@
 package me.nakilex.levelplugin;
 
 import me.nakilex.levelplugin.commands.*;
-import me.nakilex.levelplugin.economy.BalanceCommand;
-import me.nakilex.levelplugin.economy.EconomyManager;
-import me.nakilex.levelplugin.items.ItemManager;
+import me.nakilex.levelplugin.commands.BalanceCommand;
+import me.nakilex.levelplugin.managers.EconomyManager;
+import me.nakilex.levelplugin.managers.ItemManager;
 import me.nakilex.levelplugin.listeners.*;
 import me.nakilex.levelplugin.managers.*;
-import me.nakilex.levelplugin.mob.HorseManager;
-import me.nakilex.levelplugin.mob.MobManager;
-import me.nakilex.levelplugin.spells.SpellManager;
+import me.nakilex.levelplugin.managers.HorseManager;
+import me.nakilex.levelplugin.managers.MobManager;
+import me.nakilex.levelplugin.managers.SpellManager;
 import me.nakilex.levelplugin.tasks.ActionBarTask;
 import me.nakilex.levelplugin.tasks.HorseSaverTask;
 import me.nakilex.levelplugin.tasks.ManaRegenTask;
@@ -81,7 +81,7 @@ public class Main extends JavaPlugin {
         // Initialize Blacksmith GUI and Horse GUI
         BlacksmithGUI blacksmithGUI = new BlacksmithGUI(economyManager, itemUpgradeManager, itemManager);
         horseManager = new HorseManager(horseConfigManager);
-        HorseGUI horseGUI = new HorseGUI(horseManager);
+        HorseGUI horseGUI = new HorseGUI(horseManager, economyManager);
 
         // Register Listeners
         registerListeners(blacksmithGUI, horseGUI);
