@@ -41,9 +41,10 @@ public class HorseConfigManager {
     public HorseData loadHorseData(UUID uuid) {
         if (config.contains(uuid.toString())) {
             String type = config.getString(uuid.toString() + ".type");
+            boolean isVariant = config.getBoolean(uuid.toString() + ".isVariant"); // New field
             int speed = config.getInt(uuid.toString() + ".speed");
             int jumpHeight = config.getInt(uuid.toString() + ".jumpHeight");
-            return new HorseData(type, speed, jumpHeight, uuid);
+            return new HorseData(type, isVariant, speed, jumpHeight, uuid); // Pass isVariant
         }
         return null;
     }

@@ -6,13 +6,15 @@ import java.util.Random;
 public class HorseData {
 
     private String type;
+    private boolean isVariant; // New field to distinguish variants
     private int speed;
     private int jumpHeight;
     private UUID ownerUUID;
 
     // Constructor
-    public HorseData(String type, int speed, int jumpHeight, UUID ownerUUID) {
+    public HorseData(String type, boolean isVariant, int speed, int jumpHeight, UUID ownerUUID) {
         this.type = type;
+        this.isVariant = isVariant;
         this.speed = speed;
         this.jumpHeight = jumpHeight;
         this.ownerUUID = ownerUUID;
@@ -21,6 +23,10 @@ public class HorseData {
     // Getters
     public String getType() {
         return type;
+    }
+
+    public boolean isVariant() { // New getter for variant check
+        return isVariant;
     }
 
     public int getSpeed() {
@@ -40,6 +46,10 @@ public class HorseData {
         this.type = type;
     }
 
+    public void setVariant(boolean variant) {
+        isVariant = variant;
+    }
+
     public void setSpeed(int speed) {
         this.speed = speed;
     }
@@ -55,18 +65,27 @@ public class HorseData {
     // Method to generate a random horse
     public static HorseData randomHorse(UUID ownerUUID) {
         Random random = new Random();
-        String[] types = {"brown", "black", "white", "zombie", "skeleton"};
+        String[] colors = { "WHITE", "CREAMY", "CHESTNUT", "BROWN", "BLACK", "GRAY", "DARK_BROWN" }; // Colors
+        String[] variants = { "ZOMBIE", "SKELETON" }; // Variants
 
-        String randomType = types[random.nextInt(types.length)];
+        boolean isVariant = random.nextBoolean(); // Randomly decide if it's a variant
+        String randomType;
+
+        if (isVariant) {
+            randomType = variants[random.nextInt(variants.length)];
+        } else {
+            randomType = colors[random.nextInt(colors.length)];
+        }
+
         int randomSpeed = random.nextInt(10) + 1; // 1-10
         int randomJumpHeight = random.nextInt(10) + 1; // 1-10
 
-        return new HorseData(randomType, randomSpeed, randomJumpHeight, ownerUUID);
+        return new HorseData(randomType, isVariant, randomSpeed, randomJumpHeight, ownerUUID);
     }
 
     // Display horse stats as a string
     @Override
     public String toString() {
-        return "Type: " + type + ", Speed: " + speed + ", Jump Height: " + jumpHeight;
+        return "Type: " + type + ", Variant: " + isVariant + ", Speed: " + speed + ", Jump Height: " + jumpHeight;
     }
 }

@@ -60,6 +60,6 @@ public class HorseGUI implements Listener {
 
         HorseData newHorse = horseManager.getHorse(playerUUID);
         player.sendMessage("§eYou rerolled your horse! New stats: " + newHorse.toString());
-        player.closeInventory();
+        //player.closeInventory();
     }
 }

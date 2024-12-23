@@ -180,6 +180,6 @@ public class Main extends JavaPlugin {
         getCommand("addmob").setExecutor(new AddMobCommand(mobManager));
         getCommand("blacksmith").setExecutor(new BlacksmithCommand(blacksmithGUI));
         getCommand("npc").setExecutor(new NPCCommand(npcManager));
-        getCommand("horse").setExecutor(new HorseCommand(horseGUI));
+        getCommand("horse").setExecutor(new HorseCommand(horseManager, horseGUI));
     }
 }
