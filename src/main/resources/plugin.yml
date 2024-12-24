@@ -4,6 +4,7 @@ version: 1.0
 author: YourName
 api-version: 1.19
 description: A simple MMORPG leveling system plugin for Minecraft
+depend: [ProtocolLib]
 
 commands:
   addpoints:
@@ -43,4 +44,6 @@ commands:
   horse:
     description: Manage your horse
     usage: /horse [reroll]
-
+  effect:
+    description: Toggles the sword circle effect.
+    usage: /effect

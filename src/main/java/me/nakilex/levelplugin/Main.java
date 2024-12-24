@@ -2,6 +2,7 @@ package me.nakilex.levelplugin;
 
 import me.nakilex.levelplugin.commands.*;
 import me.nakilex.levelplugin.commands.BalanceCommand;
+import me.nakilex.levelplugin.effects.EffectManager;
 import me.nakilex.levelplugin.managers.EconomyManager;
 import me.nakilex.levelplugin.managers.ItemManager;
 import me.nakilex.levelplugin.listeners.*;
@@ -36,6 +37,8 @@ public class Main extends JavaPlugin {
     private NPCManager npcManager;
     private SpellManager spellmanager;
     private HorseManager horseManager;
+    private EffectManager effectManager;
+
 
 
     // Configurations
@@ -56,6 +59,8 @@ public class Main extends JavaPlugin {
 
         // Initialize NPC Manager
         npcManager = new NPCManager(this);
+        effectManager = new EffectManager();
+
 
         // Load and spawn NPCs
         npcManager.loadNPCs();
@@ -165,6 +170,8 @@ public class Main extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new ClassMenuListener(), this);
         getServer().getPluginManager().registerEvents(blacksmithGUI, this);
         getServer().getPluginManager().registerEvents(horseGUI, this);
+        getServer().getPluginManager().registerEvents(new EffectListener(), this);
+
     }
 
     // Register plugin commands
@@ -181,5 +188,7 @@ public class Main extends JavaPlugin {
         getCommand("blacksmith").setExecutor(new BlacksmithCommand(blacksmithGUI));
         getCommand("npc").setExecutor(new NPCCommand(npcManager));
         getCommand("horse").setExecutor(new HorseCommand(horseManager, horseGUI));
+        getCommand("effect").setExecutor(new EffectCommand(effectManager));
+
     }
 }
