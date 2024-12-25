@@ -4,7 +4,7 @@ version: 1.0
 author: YourName
 api-version: 1.19
 description: A simple MMORPG leveling system plugin for Minecraft
-depend: [ProtocolLib, Citizens]
+depend: [ProtocolLib, Citizens, Vault]
 
 commands:
   addpoints:
@@ -44,6 +44,6 @@ commands:
   effect:
     description: Toggles the sword circle effect.
     usage: /effect
-  storage:
-    description: Opens your personal storage.
-    usage: /storage
+  ps:
+    description: Manage personal storage.
+    usage: /ps <create|open>

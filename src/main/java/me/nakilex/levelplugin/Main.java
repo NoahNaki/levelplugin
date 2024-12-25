@@ -15,6 +15,10 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
+import me.nakilex.levelplugin.storage.StorageManager;
+import me.nakilex.levelplugin.storage.commands.StorageCommand;
+import me.nakilex.levelplugin.storage.listeners.StorageEvents;
+
 
 import java.io.File;
 
@@ -47,6 +51,8 @@ public class Main extends JavaPlugin {
         saveResource("custommobs.yml", true); // Copy file from JAR if it doesn't exist
         mobConfig = YamlConfiguration.loadConfiguration(new File(getDataFolder(), "custommobs.yml"));
         horseConfigManager = new HorseConfigManager(getDataFolder());
+        StorageManager.getInstance().loadAll(); // Load existing storage data
+
 
         // Initialize NamespacedKey for item upgrades
         upgradeKey = new NamespacedKey(this, "upgrade_level");
@@ -154,6 +160,8 @@ public class Main extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new EffectListener(effectManager), this);
         getServer().getPluginManager().registerEvents(new NPCClickListener(economyManager), this);
         getServer().getPluginManager().registerEvents(new NPCCommandListener(), this);
+        getServer().getPluginManager().registerEvents(new StorageEvents(), this);
+
     }
 
     // Register plugin commands
@@ -170,5 +178,7 @@ public class Main extends JavaPlugin {
         getCommand("blacksmith").setExecutor(new BlacksmithCommand(blacksmithGUI));
         getCommand("horse").setExecutor(new HorseCommand(horseManager, horseGUI));
         getCommand("effect").setExecutor(new EffectCommand(effectManager));
+        getCommand("ps").setExecutor(new StorageCommand());
+
     }
 }
