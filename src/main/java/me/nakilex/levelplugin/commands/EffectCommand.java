@@ -1,4 +1,3 @@
-// EffectCommand.java
 package me.nakilex.levelplugin.commands;
 
 import me.nakilex.levelplugin.effects.EffectManager;
@@ -24,15 +23,25 @@ public class EffectCommand implements CommandExecutor {
 
         Player player = (Player) sender;
 
-        // Toggle the sword circle effect
-        if (effectManager.hasActiveEffect(player)) {
-            effectManager.stopSwordCircleEffect(player);
-            player.sendMessage("Effect stopped.");
-        } else {
-            effectManager.startSwordCircleEffect(player);
-            player.sendMessage("Effect started.");
-        }
+        if (args.length > 0) {
+            String effectType = args[0].toLowerCase();
+            effectManager.stopEffect(player); // Stop any active effect first
 
+            switch (effectType) {
+                case "circlesword":
+                    effectManager.startSwordCircleEffect(player);
+                    player.sendMessage("Started Circle Sword Effect!");
+                    break;
+                case "swordfire":
+                    effectManager.startSwordFireEffect(player);
+                    player.sendMessage("Started Sword Fire Effect!");
+                    break;
+                default:
+                    player.sendMessage("Invalid effect type! Use circlesword or swordfire.");
+            }
+        } else {
+            player.sendMessage("Usage: /effect <circlesword|swordfire>");
+        }
         return true;
     }
 }

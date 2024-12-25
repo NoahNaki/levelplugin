@@ -44,3 +44,6 @@ commands:
   effect:
     description: Toggles the sword circle effect.
     usage: /effect
+  storage:
+    description: Opens your personal storage.
+    usage: /storage

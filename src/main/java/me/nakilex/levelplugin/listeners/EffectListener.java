@@ -1,28 +1,30 @@
-// EffectListener.java
 package me.nakilex.levelplugin.listeners;
 
-import me.nakilex.levelplugin.effects.SwordCircleEffect;
-import me.nakilex.levelplugin.tasks.SwordCircleTask;
+import me.nakilex.levelplugin.effects.EffectManager;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.plugin.java.JavaPlugin;
 
 public class EffectListener implements Listener {
+
+    private final EffectManager effectManager;
+
+    // Constructor to inject the EffectManager
+    public EffectListener(EffectManager effectManager) {
+        this.effectManager = effectManager;
+    }
 
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
         Player player = event.getPlayer();
 
-        // Create the SwordCircleEffect
-        SwordCircleEffect effect = new SwordCircleEffect();
-        effect.spawnSwords(player.getLocation());
+        // Trigger the currently active effect
+        if (effectManager.hasActiveEffect(player)) {
+            player.sendMessage("You already have an active effect!");
+            return;
+        }
 
-        // Start the SwordCircleTask to animate the swords
-        new SwordCircleTask(effect.getArmorStands(), player)
-            .runTaskTimer(JavaPlugin.getProvidingPlugin(getClass()), 0L, 1L);
-
-        player.sendMessage("You triggered the Sword Circle Effect!");
+        player.sendMessage("Left click detected. Trigger an effect using /effect <type>.");
     }
 }

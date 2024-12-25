@@ -32,8 +32,6 @@ public class Main extends JavaPlugin {
     private HorseManager horseManager;
     private EffectManager effectManager;
 
-
-
     // Configurations
     private FileConfiguration mobConfig;
     private HorseConfigManager horseConfigManager;
@@ -61,6 +59,8 @@ public class Main extends JavaPlugin {
         mobManager = new MobManager(this);
         spellmanager = new SpellManager(this); // Happens after registering listeners
 
+        // Initialize EffectManager
+        effectManager = new EffectManager();
 
         StatsManager.getInstance().setLevelManager(levelManager);
 
@@ -122,7 +122,6 @@ public class Main extends JavaPlugin {
         return itemUpgradeManager;
     }
 
-
     // Getter for Upgrade Key
     public NamespacedKey getUpgradeKey() {
         return upgradeKey;
@@ -152,10 +151,9 @@ public class Main extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new ClassMenuListener(), this);
         getServer().getPluginManager().registerEvents(blacksmithGUI, this);
         getServer().getPluginManager().registerEvents(horseGUI, this);
-        //getServer().getPluginManager().registerEvents(new EffectListener(), this);
+        getServer().getPluginManager().registerEvents(new EffectListener(effectManager), this);
         getServer().getPluginManager().registerEvents(new NPCClickListener(economyManager), this);
         getServer().getPluginManager().registerEvents(new NPCCommandListener(), this);
-
     }
 
     // Register plugin commands

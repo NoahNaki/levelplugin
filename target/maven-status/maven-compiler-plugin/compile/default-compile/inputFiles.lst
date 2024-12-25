@@ -1,5 +1,4 @@
 C:\Users\noahs\Desktop\levelplugin\src\main\java\me\nakilex\levelplugin\mob\MobConfig.java
-C:\Users\noahs\Desktop\levelplugin\src\main\java\me\nakilex\levelplugin\commands\CreateNPCCommand.java
 C:\Users\noahs\Desktop\levelplugin\src\main\java\me\nakilex\levelplugin\commands\EffectCommand.java
 C:\Users\noahs\Desktop\levelplugin\src\main\java\me\nakilex\levelplugin\managers\HorseConfigManager.java
 C:\Users\noahs\Desktop\levelplugin\src\main\java\me\nakilex\levelplugin\commands\StatsCommand.java
@@ -12,12 +11,14 @@ C:\Users\noahs\Desktop\levelplugin\src\main\java\me\nakilex\levelplugin\mob\Hors
 C:\Users\noahs\Desktop\levelplugin\src\main\java\me\nakilex\levelplugin\commands\AddItemCommand.java
 C:\Users\noahs\Desktop\levelplugin\src\main\java\me\nakilex\levelplugin\items\CustomItem.java
 C:\Users\noahs\Desktop\levelplugin\src\main\java\me\nakilex\levelplugin\tasks\ActionBarTask.java
+C:\Users\noahs\Desktop\levelplugin\src\main\java\me\nakilex\levelplugin\listeners\NPCClickListener.java
 C:\Users\noahs\Desktop\levelplugin\src\main\java\me\nakilex\levelplugin\managers\MobManager.java
 C:\Users\noahs\Desktop\levelplugin\src\main\java\me\nakilex\levelplugin\utils\CooldownUtil.java
 C:\Users\noahs\Desktop\levelplugin\src\main\java\me\nakilex\levelplugin\items\ItemRarity.java
 C:\Users\noahs\Desktop\levelplugin\src\main\java\me\nakilex\levelplugin\listeners\StaticItemListener.java
 C:\Users\noahs\Desktop\levelplugin\src\main\java\me\nakilex\levelplugin\managers\SpellManager.java
 C:\Users\noahs\Desktop\levelplugin\src\main\java\me\nakilex\levelplugin\managers\LevelManager.java
+C:\Users\noahs\Desktop\levelplugin\src\main\java\me\nakilex\levelplugin\listeners\NPCCommandListener.java
 C:\Users\noahs\Desktop\levelplugin\src\main\java\me\nakilex\levelplugin\utils\VectorUtil.java
 C:\Users\noahs\Desktop\levelplugin\src\main\java\me\nakilex\levelplugin\managers\HorseManager.java
 C:\Users\noahs\Desktop\levelplugin\src\main\java\me\nakilex\levelplugin\managers\ItemManager.java

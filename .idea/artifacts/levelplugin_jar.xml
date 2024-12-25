@@ -1,6 +1,6 @@
 <component name="ArtifactManager">
   <artifact type="jar" build-on-make="true" name="levelplugin:jar">
-    <output-path>$PROJECT_DIR$/../Minecraft Servers/1.20.4 Paper/plugins</output-path>
+    <output-path>$PROJECT_DIR$/../Minecraft Servers/1.21.4 Paper/plugins</output-path>
     <root id="archive" name="levelplugin.jar">
       <element id="module-output" name="levelplugin" />
     </root>
