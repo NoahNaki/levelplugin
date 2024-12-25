@@ -1,15 +1,9 @@
 package me.nakilex.levelplugin;
 
 import me.nakilex.levelplugin.commands.*;
-import me.nakilex.levelplugin.commands.BalanceCommand;
 import me.nakilex.levelplugin.effects.EffectManager;
-import me.nakilex.levelplugin.managers.EconomyManager;
-import me.nakilex.levelplugin.managers.ItemManager;
 import me.nakilex.levelplugin.listeners.*;
 import me.nakilex.levelplugin.managers.*;
-import me.nakilex.levelplugin.managers.HorseManager;
-import me.nakilex.levelplugin.managers.MobManager;
-import me.nakilex.levelplugin.managers.SpellManager;
 import me.nakilex.levelplugin.tasks.ActionBarTask;
 import me.nakilex.levelplugin.tasks.HorseSaverTask;
 import me.nakilex.levelplugin.tasks.ManaRegenTask;
@@ -34,7 +28,6 @@ public class Main extends JavaPlugin {
     private EconomyManager economyManager;
     private ItemManager itemManager;
     private ItemUpgradeManager itemUpgradeManager;
-    private NPCManager npcManager;
     private SpellManager spellmanager;
     private HorseManager horseManager;
     private EffectManager effectManager;
@@ -53,18 +46,9 @@ public class Main extends JavaPlugin {
         instance = this;
 
         // Load custommobs.yml configuration
-        saveResource("custommobs.yml", false); // Copy file from JAR if it doesn't exist
+        saveResource("custommobs.yml", true); // Copy file from JAR if it doesn't exist
         mobConfig = YamlConfiguration.loadConfiguration(new File(getDataFolder(), "custommobs.yml"));
         horseConfigManager = new HorseConfigManager(getDataFolder());
-
-        // Initialize NPC Manager
-        npcManager = new NPCManager(this);
-        effectManager = new EffectManager();
-
-
-        // Load and spawn NPCs
-        npcManager.loadNPCs();
-        npcManager.spawnAllNPCs();
 
         // Initialize NamespacedKey for item upgrades
         upgradeKey = new NamespacedKey(this, "upgrade_level");
@@ -93,6 +77,13 @@ public class Main extends JavaPlugin {
 
         // Register Commands
         registerCommands(blacksmithGUI, horseGUI);
+
+        if (!getServer().getPluginManager().isPluginEnabled("Citizens")) {
+            getLogger().severe("Citizens is installed but disabled! Check for errors.");
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+
     }
 
     @Override
@@ -100,12 +91,6 @@ public class Main extends JavaPlugin {
         // Save balances if economy manager is initialized
         if (economyManager != null) {
             economyManager.saveBalances();
-        }
-
-        // Despawn and save NPCs
-        if (npcManager != null) {
-            npcManager.despawnAllNPCs();
-            npcManager.saveNPCs();
         }
 
         getLogger().info("LevelPlugin has been disabled!");
@@ -137,9 +122,6 @@ public class Main extends JavaPlugin {
         return itemUpgradeManager;
     }
 
-    public NPCManager getNPCManager() {
-        return npcManager;
-    }
 
     // Getter for Upgrade Key
     public NamespacedKey getUpgradeKey() {
@@ -170,7 +152,9 @@ public class Main extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new ClassMenuListener(), this);
         getServer().getPluginManager().registerEvents(blacksmithGUI, this);
         getServer().getPluginManager().registerEvents(horseGUI, this);
-        getServer().getPluginManager().registerEvents(new EffectListener(), this);
+        //getServer().getPluginManager().registerEvents(new EffectListener(), this);
+        getServer().getPluginManager().registerEvents(new NPCClickListener(economyManager), this);
+        getServer().getPluginManager().registerEvents(new NPCCommandListener(), this);
 
     }
 
@@ -186,9 +170,7 @@ public class Main extends JavaPlugin {
         getCommand("addcoins").setExecutor(new AddCoinsCommand(economyManager));
         getCommand("addmob").setExecutor(new AddMobCommand(mobManager));
         getCommand("blacksmith").setExecutor(new BlacksmithCommand(blacksmithGUI));
-        getCommand("npc").setExecutor(new NPCCommand(npcManager));
         getCommand("horse").setExecutor(new HorseCommand(horseManager, horseGUI));
         getCommand("effect").setExecutor(new EffectCommand(effectManager));
-
     }
 }

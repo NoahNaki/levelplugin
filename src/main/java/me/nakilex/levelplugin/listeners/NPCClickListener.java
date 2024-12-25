@@ -1,53 +1,50 @@
 package me.nakilex.levelplugin.listeners;
 
-import me.nakilex.levelplugin.managers.NPCManager;
-import me.nakilex.levelplugin.npc.CustomNPC;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.entity.Entity;
+import me.nakilex.levelplugin.managers.EconomyManager;
+import net.citizensnpcs.api.CitizensAPI;
+import net.citizensnpcs.api.npc.NPC;
+import net.citizensnpcs.api.npc.NPCRegistry;
+import net.citizensnpcs.api.trait.Trait;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
-
-import java.util.UUID;
+import org.bukkit.plugin.Plugin;
 
 public class NPCClickListener implements Listener {
-    private final NPCManager npcManager;
 
-    public NPCClickListener(NPCManager npcManager) {
-        this.npcManager = npcManager;
+    private EconomyManager economyManager;
+
+    // Constructor to get the EconomyManager instance
+    public NPCClickListener(EconomyManager economyManager) {
+        this.economyManager = economyManager;
     }
 
     @EventHandler
     public void onNPCClick(PlayerInteractEntityEvent event) {
-        Player player = event.getPlayer();
-        Entity clickedEntity = event.getRightClicked();
-
-        // Check if the clicked entity is an NPC
-        CustomNPC clickedNPC = npcManager.getNPCByUUID(clickedEntity.getUniqueId());
-        if (clickedNPC == null) {
-            return; // Not an NPC, do nothing
+        // Ignore offhand interactions
+        if (event.getHand() == org.bukkit.inventory.EquipmentSlot.OFF_HAND) {
+            return; // Ignore offhand clicks
         }
 
-        event.setCancelled(true); // Prevent default interaction behavior
+        // Check if the entity clicked is an NPC
+        if (CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked())) {
 
-        // Execute NPC behavior
-        handleNPCInteraction(player, clickedNPC);
-    }
+            // Get the player who clicked
+            Player player = event.getPlayer();
 
-    private void handleNPCInteraction(Player player, CustomNPC npc) {
-        // Display interact message, if any
-        if (npc.hasInteractMessage()) {
-            player.sendMessage(ChatColor.GOLD + npc.getInteractMessage());
+            // Retrieve the NPC that was clicked
+            NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
+
+            // Check for a specific NPC by ID
+            if (npc.getId() == 1) { // Replace '1' with your NPC ID
+
+                // Give the player 10 coins when interacting with this NPC
+                economyManager.addCoins(player, 10);
+
+                // Notify the player
+                player.sendMessage("You received 10 coins for interacting with NPC ID " + npc.getId() + "!");
+            }
         }
-
-        // Execute command, if any
-        if (npc.hasCommand()) {
-            String command = npc.getOnRightClickCommand();
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command.replace("%player%", player.getName()));
-        }
-
-        // Optional: Add cooldown handling logic here
     }
 }

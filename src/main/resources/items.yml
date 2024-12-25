@@ -235,7 +235,7 @@ items:
     rarity: LEGENDARY
     level_requirement: 30
     class_requirement: MAGE
-    material: "NETHERITE_STICK"
+    material: "STICK"
     def: 2
     str: 0
     agi: 3
