@@ -1,35 +1,47 @@
 package me.nakilex.levelplugin.storage;
 
-import org.bukkit.Bukkit;
+import me.nakilex.levelplugin.storage.gui.StorageGUI;
+import me.nakilex.levelplugin.storage.listeners.StorageEvents;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.Inventory;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 
 public class PersonalStorage {
 
     private final Player owner;
-    private final Inventory inventory;
+    private final StorageGUI gui;
 
     public PersonalStorage(Player owner) {
         this.owner = owner;
-        this.inventory = Bukkit.createInventory(null, 27, owner.getName() + "'s Storage");
+        this.gui = new StorageGUI(owner); // Use StorageGUI for multi-page support
     }
 
-    // Open storage GUI for the player
+    // Open the GUI for the player
     public void open(Player player) {
-        player.openInventory(inventory);
+        StorageGUI gui = new StorageGUI(player);
+        StorageEvents.getInstance().registerGUI(gui.getInventory(), gui);
+        gui.open(player);
+    }
+
+
+
+    // Handle click events in the GUI
+    public void handleClick(InventoryClickEvent event) {
+        gui.handleClick(event);
+    }
+
+    // Handle close events for saving inventory
+    public void handleClose(InventoryCloseEvent event) {
+        gui.handleClose(event);
     }
 
     // Save storage contents (placeholder for persistence)
     public void save() {
-        // TODO: Save inventory contents to file
+        // TODO: Save each page's inventory contents
     }
 
     // Load storage contents (placeholder for persistence)
     public void load() {
-        // TODO: Load inventory contents from file
-    }
-
-    public Inventory getInventory() {
-        return inventory;
+        // TODO: Load each page's inventory contents
     }
 }

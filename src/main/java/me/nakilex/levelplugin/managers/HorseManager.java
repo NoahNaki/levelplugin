@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.managers;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.mob.HorseData;
 import org.bukkit.Bukkit;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Horse;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -67,7 +68,7 @@ public class HorseManager {
 
         // Set jump and speed attributes
         horse.setJumpStrength(horseData.getJumpHeight() / 10.0);
-        horse.getAttribute(org.bukkit.attribute.Attribute.GENERIC_MOVEMENT_SPEED)
+        horse.getAttribute(Attribute.MOVEMENT_SPEED)
             .setBaseValue(horseData.getSpeed() / 10.0);
 
         // Equip saddle for all types

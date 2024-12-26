@@ -31,6 +31,6 @@ public class XPBarHandler {
     public static void handleLevelUpEvent(Player player, int newLevel) {
         player.sendMessage("§aYou’ve reached Level " + newLevel + "!");
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
-        player.getWorld().spawnParticle(Particle.VILLAGER_HAPPY, player.getLocation(), 30);
+        player.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, player.getLocation(), 30);
     }
 }

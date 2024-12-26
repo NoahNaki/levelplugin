@@ -74,7 +74,7 @@ public class Spell {
         switch(effectKey.toUpperCase()) {
             // Warrior
             case "GROUND_SLAM": {
-                spawnAoEParticles(player.getLocation(), 5, Particle.EXPLOSION_LARGE);
+                spawnAoEParticles(player.getLocation(), 5, Particle.EXPLOSION);
                 player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ZOMBIE_ATTACK_IRON_DOOR, 1f, 0.8f);
                 player.sendMessage("§eYou slam the ground, dealing AoE damage and knockback!");
                 break;
@@ -120,7 +120,7 @@ public class Spell {
                 break;
             }
             case "SMOKE_BOMB": {
-                spawnAoEParticles(player.getLocation(), 5, Particle.SMOKE_LARGE);
+                spawnAoEParticles(player.getLocation(), 5, Particle.LARGE_SMOKE);
                 player.sendMessage("§eYou toss a smoke bomb, blinding enemies!");
                 break;
             }
@@ -135,7 +135,7 @@ public class Spell {
                 break;
             }
             case "EXPLOSIVE_ARROW": {
-                spawnAoEParticles(player.getLocation(), 4, Particle.EXPLOSION_LARGE);
+                spawnAoEParticles(player.getLocation(), 4, Particle.EXPLOSION);
                 player.sendMessage("§eYou shoot an explosive arrow!");
                 break;
             }
@@ -178,7 +178,7 @@ public class Spell {
         Snowball projectile = player.launchProjectile(Snowball.class);
         projectile.setVelocity(player.getLocation().getDirection().multiply(2));
         projectile.getWorld().playSound(player.getLocation(), Sound.ENTITY_WITCH_THROW, 1f, 1f);
-        projectile.getWorld().spawnParticle(Particle.CRIT_MAGIC, projectile.getLocation(), 20, 0.2, 0.2, 0.2);
+        projectile.getWorld().spawnParticle(Particle.CRIT, projectile.getLocation(), 20, 0.2, 0.2, 0.2);
 
         projectile.setCustomName("MageBasicSkill");
         projectile.setCustomNameVisible(false);
@@ -190,7 +190,7 @@ public class Spell {
                     cancel();
                     return;
                 }
-                projectile.getWorld().spawnParticle(Particle.CRIT_MAGIC, projectile.getLocation(), 5, 0.1, 0.1, 0.1);
+                projectile.getWorld().spawnParticle(Particle.CRIT, projectile.getLocation(), 5, 0.1, 0.1, 0.1);
             }
         }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 1L);
     }
@@ -232,9 +232,9 @@ public class Spell {
     }
 
     private void healPlayer(Player player, int amount) {
-        double newHealth = Math.min(player.getHealth() + amount, player.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue());
+        double newHealth = Math.min(player.getHealth() + amount, player.getAttribute(Attribute.MAX_HEALTH).getValue());
         player.setHealth(newHealth);
-        player.getWorld().spawnParticle(Particle.VILLAGER_HAPPY, player.getLocation(), 30, 1, 1, 1);
+        player.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, player.getLocation(), 30, 1, 1, 1);
         player.getWorld().playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_HIT, 1f, 1f);
     }
 
