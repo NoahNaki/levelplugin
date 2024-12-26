@@ -14,6 +14,7 @@ import me.nakilex.levelplugin.ui.StatsMenuListener;
 import me.nakilex.levelplugin.utils.ConfigValues;
 import me.nakilex.levelplugin.utils.DealMaker;
 import me.nakilex.levelplugin.utils.MessageStrings;
+import me.nakilex.levelplugin.utils.TradingWindow;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -162,27 +163,6 @@ public class Main extends JavaPlugin {
         return levelManager;
     }
 
-    public MobManager getMobManager() {
-        return mobManager;
-    }
-
-    public EconomyManager getEconomyManager() {
-        return economyManager;
-    }
-
-    public ItemManager getItemManager() {
-        return itemManager;
-    }
-
-    public ItemUpgradeManager getItemUpgradeManager() {
-        return itemUpgradeManager;
-    }
-
-    // Getter for Upgrade Key
-    public NamespacedKey getUpgradeKey() {
-        return upgradeKey;
-    }
-
     private void createCustomConfig() {
         customConfigFile = new File(getDataFolder(), "config.yml");
         if (!customConfigFile.exists()) {
@@ -231,6 +211,9 @@ public class Main extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new NPCClickListener(economyManager), this);
         getServer().getPluginManager().registerEvents(new NPCCommandListener(), this);
         getServer().getPluginManager().registerEvents(new StorageEvents(), this);
+        getServer().getPluginManager().registerEvents(new PlayerRightClicksPlayerListener(), this);
+        getServer().getPluginManager().registerEvents(new TradingWindow(), this);
+
 
     }
 
