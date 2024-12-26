@@ -1,0 +1,46 @@
+ACCEPT_TRADE_ITEM: §2§lAccept Trade
+OWN_ACCEPT_DEAL_ITEM: §a§lAccept this deal
+AUTHOR_OF_PLUGIN_IS: '§aAuthor of the trade plugin is §6Robby3St. §aFind the plugin
+  on §6GitHub '
+OPPONENT_DENIED_TRADE_REQUEST: '%s denied your trading request!'
+ALREADY_SENT_TRADE_REQUEST: §cYou already sent a trade request to §6%s! §cPlease cancel
+  the trade, by using §8/trade cancel§c first,
+PLAYER_WENT_OFFLINE: Sorry, but this player went offline!
+YOU_CANCELED_YOUR_TRADE_REQUEST: You cancelled your trade with %s!
+MUST_BE_A_PLAYER: You must be a player, to do this!
+OPPOSITE_ACCEPTS_DEAL_ITEM: §a§lOpposite accepts this deal
+CAN_NOT_TRADE_WITH_YOURSELF: §cYou can't trade with yourself!
+DEAL_PARTNERS_FIELD: §7§l§i(Deal partner's field)
+DOWNLOAD_PLUGIN_HERE: '§aYou can download the original trade plugin by Robby3St here: '
+FILLER_ITEM: §7§l(Filler)
+DEAL_PARTNERS_LORE_2: §r§litem
+WRONG_USAGE: §cWrong usage of the command /trade! Please use §6/trade <Name>§c or
+  §6/trade accept§c, to accept an incoming trade.
+YOU_DECLINED_DEAL: You declined the deal with %s by closing your inventory!
+OPPONENT_CANCELED_TRADE_OFFER: '%s canceled the trade with you.'
+DEAL_WITH: §6§lDeal with %s
+TRADE_REQUEST_SENT: §aThe trade request was now sent to §6%s!
+YOU_GOT_A_NEW_TRADE_OFFER: You got a new trade offer by §6%s! §rUse §8/trade accept
+  <Name>, §rto deal.
+PLAYER_DID_NOT_SENT_YOU_A_TRADE_REQUEST: This player is not in a trade offer with
+  you. Sorry.
+OPPOSITE_DID_NOT_ACCEPTED_TRADE_ITEM: §c§lOpposite didn't accepted yet
+DEAL_PARTNERS_LORE_1: '§r§lDeal partner''s '
+NO_TRADES_TO_CANCEL: Sorry, but you got no trade offers to cancel!
+COULD_NOT_FIND_PLAYER_WITH_THAT_NAME: §cCould not find a player with that name!
+YOU_DECLINED_TRADE_REQUEST: 'Declined trade request by '
+OWN_TRADE_REQUEST_EXPIRED: Your trade request to §6%s§r expired!
+YOU_GOT_NO_TRADING_OFFER: Sorry, but you got no trading offer.
+YOU_GOT_MORE_THAN_ONE_OFFER: You got more than 1 trade offer! Please use /trade accept
+  <Name> to accept a specific trade by a player
+OPPONENT_DECLINED_DEAL: ' declined the deal!'
+OWN_DECLINE_DEAL_ITEM: §c§lDecline this deal
+TRADE_REQUEST_BY_EXPIRED: The trade request by §6%s§r expired!
+NO_PERMISSION: §cYou don't have the permissions to do that!
+PLUGIN_VERSION_IS: '§aThe current used version of the pluin is: §6%s. §aYou can check
+  for original newer versions here: §6GitHub %s'
+RELOADED_CONFIG: Reloaded the config!
+COULD_NOT_FIND_PLAYER_WITH_THAT_NAME_PLEASE_USE_COMMAND: '%s§cCould not find a player
+  with the name §6''%s''. §cPlease use §6/trade <Name>§c or §6/trade accept, §cto
+  accept an incoming trade!'
+GOT_NO_REQUESTS_TO_DENY: You got no trade requests to deny!
