@@ -11,7 +11,11 @@ import me.nakilex.levelplugin.ui.BlacksmithGUI;
 import me.nakilex.levelplugin.ui.ClassMenuListener;
 import me.nakilex.levelplugin.ui.HorseGUI;
 import me.nakilex.levelplugin.ui.StatsMenuListener;
+import me.nakilex.levelplugin.utils.ConfigValues;
+import me.nakilex.levelplugin.utils.DealMaker;
+import me.nakilex.levelplugin.utils.MessageStrings;
 import org.bukkit.NamespacedKey;
+import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -21,6 +25,7 @@ import me.nakilex.levelplugin.storage.listeners.StorageEvents;
 
 
 import java.io.File;
+import java.io.IOException;
 
 public class Main extends JavaPlugin {
 
@@ -35,6 +40,13 @@ public class Main extends JavaPlugin {
     private SpellManager spellmanager;
     private HorseManager horseManager;
     private EffectManager effectManager;
+    public final static String PREFIX = "";
+    private static Main plugin;
+    private DealMaker dealMaker;
+    private File customConfigFile;
+    private FileConfiguration customConfig;
+    private ConfigValues configValues;
+    private MessageStrings messageStrings;
 
     // Configurations
     private FileConfiguration mobConfig;
@@ -52,6 +64,14 @@ public class Main extends JavaPlugin {
         mobConfig = YamlConfiguration.loadConfiguration(new File(getDataFolder(), "custommobs.yml"));
         horseConfigManager = new HorseConfigManager(getDataFolder());
         StorageManager.getInstance().loadAll(); // Load existing storage data
+
+        //Trade Plugin
+        this.plugin = this;
+        this.createCustomConfig();
+        this.configValues = new ConfigValues(this.customConfigFile);
+        this.dealMaker = new DealMaker();
+        this.messageStrings = new MessageStrings();
+        this.getCommand("trade").setExecutor(new TradeCommand());
 
 
         // Initialize NamespacedKey for item upgrades
@@ -99,12 +119,42 @@ public class Main extends JavaPlugin {
             economyManager.saveBalances();
         }
 
+        this.dealMaker.closeAllTrades();
+
         getLogger().info("LevelPlugin has been disabled!");
     }
 
     // Singleton Instance Getter
     public static Main getInstance() {
         return instance;
+    }
+
+    public FileConfiguration getCustomConfig() {
+        return this.customConfig;
+    }
+
+    public static Main getPlugin() {
+        return plugin;
+    }
+
+    public FileConfiguration getConfig() {
+        return plugin.getConfig();
+    }
+
+    public ConfigValues getConfigValues() {
+        return this.configValues;
+    }
+
+    public DealMaker getDealMaker() {
+        return this.dealMaker;
+    }
+
+    public MessageStrings getMessageStrings() {
+        return this.messageStrings;
+    }
+
+    public void reloadConfigValues() {
+        this.configValues = new ConfigValues(this.customConfigFile);
     }
 
     // Getters for Managers
@@ -131,6 +181,26 @@ public class Main extends JavaPlugin {
     // Getter for Upgrade Key
     public NamespacedKey getUpgradeKey() {
         return upgradeKey;
+    }
+
+    private void createCustomConfig() {
+        customConfigFile = new File(getDataFolder(), "config.yml");
+        if (!customConfigFile.exists()) {
+            customConfigFile.getParentFile().mkdirs();
+            try {
+                customConfigFile.createNewFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+//            saveResource("config.yml", false);
+        }
+
+        customConfig = new YamlConfiguration();
+        try {
+            customConfig.load(customConfigFile);
+        } catch (IOException | InvalidConfigurationException e) {
+            e.printStackTrace();
+        }
     }
 
     // Start periodic tasks
