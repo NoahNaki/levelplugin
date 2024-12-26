@@ -10,7 +10,6 @@ import org.bukkit.inventory.Inventory;
 import java.util.HashMap;
 import java.util.Map;
 
-
 public class StorageEvents implements Listener {
 
     private static StorageEvents instance;
@@ -20,6 +19,7 @@ public class StorageEvents implements Listener {
     public StorageEvents() {
         instance = this;
     }
+
     // Register a GUI when opened
     public void registerGUI(Inventory inventory, StorageGUI gui) {
         guiMap.put(inventory, gui);

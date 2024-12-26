@@ -3,13 +3,10 @@ package me.nakilex.levelplugin.listeners;
 import me.nakilex.levelplugin.managers.EconomyManager;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
-import net.citizensnpcs.api.npc.NPCRegistry;
-import net.citizensnpcs.api.trait.Trait;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
-import org.bukkit.plugin.Plugin;
 
 public class NPCClickListener implements Listener {
 

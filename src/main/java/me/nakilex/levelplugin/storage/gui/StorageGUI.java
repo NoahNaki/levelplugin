@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.storage.gui;
 
+import me.nakilex.levelplugin.managers.EconomyManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -25,12 +26,16 @@ public class StorageGUI {
     private final List<Inventory> pages;
     private final Player owner;
     private int currentPage;
+    private static final int PAGE_COST = 1000;
+    private final EconomyManager economyManager;
 
     public StorageGUI(Player player) {
         this.owner = player;
+        this.economyManager = new EconomyManager(
+            Bukkit.getPluginManager().getPlugin("LevelPlugin")
+        );
         this.pages = new ArrayList<>();
         this.currentPage = 0;
-        loadStorage(); // Load saved data when initializing
         if (pages.isEmpty()) addPage(); // Ensure at least one page exists
     }
 
@@ -48,18 +53,23 @@ public class StorageGUI {
 
     // Set up navigation buttons (Next and Previous)
     private void setupNavigationButtons(Inventory inventory) {
+        // Next Page Button
         ItemStack nextPage = new ItemStack(Material.ARROW);
         ItemMeta nextMeta = nextPage.getItemMeta();
         nextMeta.setDisplayName("Next Page");
+        List<String> lore = new ArrayList<>();
+        lore.add("Cost: " + PAGE_COST + " coins");
+        nextMeta.setLore(lore);
         nextPage.setItemMeta(nextMeta);
 
+        // Previous Page Button
         ItemStack prevPage = new ItemStack(Material.ARROW);
         ItemMeta prevMeta = prevPage.getItemMeta();
         prevMeta.setDisplayName("Previous Page");
         prevPage.setItemMeta(prevMeta);
 
-        inventory.setItem(53, nextPage); // Next Page Button
-        inventory.setItem(45, prevPage); // Previous Page Button
+        inventory.setItem(53, nextPage);
+        inventory.setItem(45, prevPage);
     }
 
     // Open the current page
@@ -75,43 +85,38 @@ public class StorageGUI {
 
     // Handle clicks inside the GUI
     public void handleClick(InventoryClickEvent event) {
-        System.out.println("DEBUG: Click detected inside GUI.");
-
-        // Check if the inventory is a storage page
         if (!event.getView().getTitle().startsWith("Storage - Page")) {
-            return; // Ignore clicks outside storage pages
-        }
-
-        // Validate the clicked item
-        if (event.getCurrentItem() == null || !event.getCurrentItem().hasItemMeta()) {
-            System.out.println("DEBUG: Clicked item is null or has no meta.");
             return;
         }
-
+        if (event.getCurrentItem() == null || !event.getCurrentItem().hasItemMeta()) {
+            return;
+        }
         String itemName = event.getCurrentItem().getItemMeta().getDisplayName();
-        System.out.println("DEBUG: Clicked item name - " + itemName);
 
-        // Handle navigation buttons
         if (itemName.equals("Next Page")) {
-            System.out.println("DEBUG: Next Page button clicked.");
-            event.setCancelled(true); // Cancel click on navigation button
+            event.setCancelled(true);
             if (currentPage < pages.size() - 1) {
                 currentPage++;
             } else {
-                addPage(); // Add a new page if we're at the end
-                currentPage++;
+                int balance = economyManager.getBalance(owner);
+                if (balance >= PAGE_COST) {
+                    economyManager.deductCoins(owner, PAGE_COST);
+                    addPage();
+                    currentPage++;
+                    owner.sendMessage("You have purchased a new page for " + PAGE_COST + " coins.");
+                } else {
+                    owner.sendMessage("You do not have enough coins to buy a new page.");
+                }
             }
             open(owner);
         } else if (itemName.equals("Previous Page")) {
-            System.out.println("DEBUG: Previous Page button clicked.");
-            event.setCancelled(true); // Cancel click on navigation button
+            event.setCancelled(true);
             if (currentPage > 0) {
                 currentPage--;
                 open(owner);
             }
         } else {
-            System.out.println("DEBUG: Non-navigation item clicked.");
-            event.setCancelled(false); // Allow clicks on other items
+            event.setCancelled(false);
         }
     }
 

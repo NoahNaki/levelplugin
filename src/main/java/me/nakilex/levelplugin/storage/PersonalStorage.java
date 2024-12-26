@@ -23,8 +23,6 @@ public class PersonalStorage {
         gui.open(player);
     }
 
-
-
     // Handle click events in the GUI
     public void handleClick(InventoryClickEvent event) {
         gui.handleClick(event);

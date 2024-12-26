@@ -56,7 +56,7 @@
     </repository>
     <repository>
       <id>citizens-repo</id>
-      <url>https://repo.citizensnpcs.co/repository/maven-public/</url>
+      <url>https://maven.citizensnpcs.co/repo</url>
     </repository>
   </repositories>
   <dependencies>
@@ -68,9 +68,15 @@
     </dependency>
     <dependency>
       <groupId>net.citizensnpcs</groupId>
-      <artifactId>citizensapi</artifactId>
-      <version>2.0.30-SNAPSHOT</version>
+      <artifactId>citizens-main</artifactId>
+      <version>2.0.37-SNAPSHOT</version>
       <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <artifactId>*</artifactId>
+          <groupId>*</groupId>
+        </exclusion>
+      </exclusions>
     </dependency>
   </dependencies>
   <properties>
