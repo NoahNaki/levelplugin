@@ -1,25 +1,19 @@
 package me.nakilex.levelplugin.utils;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.trade.utils.MessageStrings;
+import me.nakilex.levelplugin.trade.utils.Translations;
 import org.bukkit.*;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.*;
-import org.bukkit.event.player.PlayerAttemptPickupItemEvent;
-import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Objects;
 
 public class TradingWindow implements Listener {
     MessageStrings messageStrings = Main.getPlugin().getMessageStrings();

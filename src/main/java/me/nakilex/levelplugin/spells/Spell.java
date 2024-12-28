@@ -2,7 +2,7 @@ package me.nakilex.levelplugin.spells;
 
 import org.bukkit.Material;
 import org.bukkit.attribute.Attribute;
-import me.nakilex.levelplugin.listeners.ClickComboListener;
+import me.nakilex.levelplugin.player.listener.ClickComboListener;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -167,7 +167,7 @@ public class Spell {
 
     private void mageBasicSkill(Player player) {
         // Check if the player is in the middle of a combo
-        String activeCombo = me.nakilex.levelplugin.listeners.ClickComboListener.getActiveCombo(player);
+        String activeCombo = ClickComboListener.getActiveCombo(player);
 
         // Allow left-click to be used as part of the combo instead of triggering the basic attack
         if (!activeCombo.isEmpty() && activeCombo.length() < 3) {

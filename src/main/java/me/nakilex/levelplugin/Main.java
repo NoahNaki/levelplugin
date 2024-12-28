@@ -1,19 +1,52 @@
 package me.nakilex.levelplugin;
 
-import me.nakilex.levelplugin.commands.*;
-import me.nakilex.levelplugin.effects.EffectManager;
-import me.nakilex.levelplugin.listeners.*;
-import me.nakilex.levelplugin.managers.*;
-import me.nakilex.levelplugin.tasks.ActionBarTask;
-import me.nakilex.levelplugin.tasks.HorseSaverTask;
-import me.nakilex.levelplugin.tasks.ManaRegenTask;
-import me.nakilex.levelplugin.ui.BlacksmithGUI;
-import me.nakilex.levelplugin.ui.ClassMenuListener;
-import me.nakilex.levelplugin.ui.HorseGUI;
-import me.nakilex.levelplugin.ui.StatsMenuListener;
-import me.nakilex.levelplugin.utils.ConfigValues;
+import me.nakilex.levelplugin.blacksmith.commands.BlacksmithCommand;
+import me.nakilex.levelplugin.blacksmith.managers.ItemUpgradeManager;
+import me.nakilex.levelplugin.effects.commands.EffectCommand;
+import me.nakilex.levelplugin.effects.listeners.EffectListener;
+import me.nakilex.levelplugin.effects.listeners.StatsEffectListener;
+import me.nakilex.levelplugin.items.commands.AddItemCommand;
+import me.nakilex.levelplugin.items.listeners.*;
+import me.nakilex.levelplugin.items.managers.ItemManager;
+import me.nakilex.levelplugin.mob.commands.AddMobCommand;
+import me.nakilex.levelplugin.mob.listeners.MobDamageListener;
+import me.nakilex.levelplugin.mob.managers.MobManager;
+import me.nakilex.levelplugin.npc.listeners.NPCClickListener;
+import me.nakilex.levelplugin.npc.listeners.NPCCommandListener;
+import me.nakilex.levelplugin.party.PartyChatListener;
+import me.nakilex.levelplugin.party.PartyCommands;
+import me.nakilex.levelplugin.party.PartyInviteListener;
+import me.nakilex.levelplugin.party.PartyManager;
+import me.nakilex.levelplugin.player.attributes.commands.AddPointsCommand;
+import me.nakilex.levelplugin.player.attributes.commands.StatsCommand;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.classes.commands.ClassCommand;
+import me.nakilex.levelplugin.economy.commands.AddCoinsCommand;
+import me.nakilex.levelplugin.economy.commands.BalanceCommand;
+import me.nakilex.levelplugin.economy.managers.EconomyManager;
+import me.nakilex.levelplugin.effects.managers.EffectManager;
+import me.nakilex.levelplugin.horse.commands.HorseCommand;
+import me.nakilex.levelplugin.horse.managers.HorseConfigManager;
+import me.nakilex.levelplugin.horse.managers.HorseManager;
+import me.nakilex.levelplugin.player.level.commands.AddXPCommand;
+import me.nakilex.levelplugin.player.level.commands.SetLevelCommand;
+import me.nakilex.levelplugin.player.level.managers.LevelManager;
+import me.nakilex.levelplugin.player.attributes.managers.ActionBarTask;
+import me.nakilex.levelplugin.horse.utils.HorseSaverTask;
+import me.nakilex.levelplugin.player.attributes.managers.ManaRegenTask;
+import me.nakilex.levelplugin.player.listener.ClickComboListener;
+import me.nakilex.levelplugin.player.listener.PlayerJoinListener;
+import me.nakilex.levelplugin.player.listener.PlayerKillListener;
+import me.nakilex.levelplugin.spells.managers.SpellManager;
+import me.nakilex.levelplugin.trade.commands.TradeCommand;
+import me.nakilex.levelplugin.trade.listeners.PlayerRightClicksPlayerListener;
+import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
+import me.nakilex.levelplugin.player.classes.listeners.ClassMenuListener;
+import me.nakilex.levelplugin.horse.gui.HorseGUI;
+import me.nakilex.levelplugin.player.attributes.listeners.StatsMenuListener;
+import me.nakilex.levelplugin.trade.data.ConfigValues;
 import me.nakilex.levelplugin.utils.DealMaker;
-import me.nakilex.levelplugin.utils.MessageStrings;
+import me.nakilex.levelplugin.trade.utils.MessageStrings;
 import me.nakilex.levelplugin.utils.TradingWindow;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.InvalidConfigurationException;
@@ -41,6 +74,7 @@ public class Main extends JavaPlugin {
     private SpellManager spellmanager;
     private HorseManager horseManager;
     private EffectManager effectManager;
+    private PartyManager partyManager;
     public final static String PREFIX = "";
     private static Main plugin;
     private DealMaker dealMaker;
@@ -85,6 +119,7 @@ public class Main extends JavaPlugin {
         itemUpgradeManager = new ItemUpgradeManager(this);
         mobManager = new MobManager(this);
         spellmanager = new SpellManager(this); // Happens after registering listeners
+        partyManager = new PartyManager();
 
         // Initialize EffectManager
         effectManager = new EffectManager();
@@ -193,7 +228,7 @@ public class Main extends JavaPlugin {
     // Register plugin event listeners
     private void registerListeners(BlacksmithGUI blacksmithGUI, HorseGUI horseGUI) {
         getServer().getPluginManager().registerEvents(new MobDamageListener(), this);
-        getServer().getPluginManager().registerEvents(new PlayerKillListener(levelManager, mobConfig), this);
+        getServer().getPluginManager().registerEvents(new PlayerKillListener(levelManager, mobConfig, partyManager), this);
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(levelManager), this);
         getServer().getPluginManager().registerEvents(new StatsMenuListener(), this);
         getServer().getPluginManager().registerEvents(new StatsEffectListener(), this);
@@ -213,6 +248,9 @@ public class Main extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new StorageEvents(), this);
         getServer().getPluginManager().registerEvents(new PlayerRightClicksPlayerListener(), this);
         getServer().getPluginManager().registerEvents(new TradingWindow(), this);
+        getServer().getPluginManager().registerEvents(new PartyChatListener(partyManager), this);
+        getServer().getPluginManager().registerEvents(new PartyInviteListener(partyManager), this);
+
 
 
     }
@@ -232,6 +270,8 @@ public class Main extends JavaPlugin {
         getCommand("horse").setExecutor(new HorseCommand(horseManager, horseGUI));
         getCommand("effect").setExecutor(new EffectCommand(effectManager));
         getCommand("ps").setExecutor(new StorageCommand());
+        getCommand("party").setExecutor(new PartyCommands(partyManager));
+
 
     }
 }

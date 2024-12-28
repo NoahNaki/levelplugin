@@ -1,6 +1,6 @@
 package me.nakilex.levelplugin.storage.gui;
 
-import me.nakilex.levelplugin.managers.EconomyManager;
+import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -14,7 +14,6 @@ import org.bukkit.configuration.file.FileConfiguration;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 
 
