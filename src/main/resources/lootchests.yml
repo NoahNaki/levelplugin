@@ -1,0 +1,9 @@
+loot_chests:
+  1:
+    coordinates: 100, 64, 200
+    tier: 1
+  2:
+    coordinates: 150, 70, 250
+    tier: 2
+cooldowns:
+  default: 600

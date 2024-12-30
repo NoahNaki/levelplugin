@@ -8,6 +8,11 @@ import me.nakilex.levelplugin.effects.listeners.StatsEffectListener;
 import me.nakilex.levelplugin.items.commands.AddItemCommand;
 import me.nakilex.levelplugin.items.listeners.*;
 import me.nakilex.levelplugin.items.managers.ItemManager;
+import me.nakilex.levelplugin.lootchests.commands.LootChestCommand;
+import me.nakilex.levelplugin.lootchests.config.ConfigManager;
+import me.nakilex.levelplugin.lootchests.listeners.LootChestListener;
+import me.nakilex.levelplugin.lootchests.managers.CooldownManager;
+import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.mob.commands.AddMobCommand;
 import me.nakilex.levelplugin.mob.listeners.MobDamageListener;
 import me.nakilex.levelplugin.mob.managers.MobManager;
@@ -82,6 +87,10 @@ public class Main extends JavaPlugin {
     private FileConfiguration customConfig;
     private ConfigValues configValues;
     private MessageStrings messageStrings;
+    private ConfigManager configManager;
+    private CooldownManager cooldownManager;
+    private LootChestManager lootChestManager;
+
 
     // Configurations
     private FileConfiguration mobConfig;
@@ -99,6 +108,10 @@ public class Main extends JavaPlugin {
         mobConfig = YamlConfiguration.loadConfiguration(new File(getDataFolder(), "custommobs.yml"));
         horseConfigManager = new HorseConfigManager(getDataFolder());
         StorageManager.getInstance().loadAll(); // Load existing storage data
+        configManager = new ConfigManager(this);
+        cooldownManager = new CooldownManager(this, configManager, null);
+        lootChestManager = new LootChestManager(this, configManager, cooldownManager);
+        cooldownManager.setLootChestManager(lootChestManager);
 
         //Trade Plugin
         this.plugin = this;
@@ -250,6 +263,8 @@ public class Main extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new TradingWindow(), this);
         getServer().getPluginManager().registerEvents(new PartyChatListener(partyManager), this);
         getServer().getPluginManager().registerEvents(new PartyInviteListener(partyManager), this);
+        getServer().getPluginManager().registerEvents(new LootChestListener(lootChestManager), this);
+
 
 
 
@@ -271,6 +286,8 @@ public class Main extends JavaPlugin {
         getCommand("effect").setExecutor(new EffectCommand(effectManager));
         getCommand("ps").setExecutor(new StorageCommand());
         getCommand("party").setExecutor(new PartyCommands(partyManager));
+        getCommand("lootchest").setExecutor(new LootChestCommand(configManager, lootChestManager));
+
 
 
     }
