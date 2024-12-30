@@ -6,12 +6,6 @@ import org.bukkit.World;
 
 public class ParticleUtils {
 
-    /**
-     * Spawns tier-based particle effects at a specified location.
-     *
-     * @param location Location to spawn the particles.
-     * @param tier     Which tier's effect to display (1–4).
-     */
     public static void displayTierParticles(Location location, int tier) {
         if (location == null) return;
         World world = location.getWorld();
@@ -19,55 +13,46 @@ public class ParticleUtils {
 
         switch (tier) {
             case 1:
-                // Example: Small white sparkles
-                // VILLAGER_HAPPY is a small, subtle particle effect
+                // White sparkles
                 world.spawnParticle(
-                    Particle.HAPPY_VILLAGER,  // Particle type
-                    location.add(0.5, 1, 0.5), // Slight offset so it's above the chest center
-                    10,                       // Number of particles
-                    0.3, 0.5, 0.3,            // Spread in X, Y, Z
-                    0                          // Extra speed or offset
+                    Particle.HAPPY_VILLAGER,
+                    location.clone().add(0.5, 1, 0.5),
+                    50,
+                    0.2, 0.5, 0.2,
+                    0
                 );
                 break;
-
             case 2:
-                // Example: Yellow sparkles
-                // CRIT is a decent choice; set "extra" so it's visible
+                // Yellow sparkles
                 world.spawnParticle(
                     Particle.CRIT,
-                    location.add(0.5, 1, 0.5),
-                    15,
+                    location.clone().add(0.5, 1, 0.5),
+                    60,
                     0.3, 0.5, 0.3,
                     0.01
                 );
                 break;
-
             case 3:
-                // Example: Blue sparkles
-                // SPELL_WITCH is a purple swirl, but you could use PORTAL (purple) or CRIT_MAGIC (blueish)
+                // Blue sparkles
                 world.spawnParticle(
                     Particle.PORTAL,
-                    location.add(0.5, 1, 0.5),
-                    20,
+                    location.clone().add(0.5, 1, 0.5),
+                    75,
                     0.3, 0.5, 0.3,
                     0.01
                 );
                 break;
-
             case 4:
-                // Example: Green sparkles
-                // TOTEM has a greenish swirl effect
+                // Green sparkles
                 world.spawnParticle(
                     Particle.TOTEM_OF_UNDYING,
-                    location.add(0.5, 1, 0.5),
-                    20,
+                    location.clone().add(0.5, 1, 0.5),
+                    75,
                     0.3, 0.5, 0.3,
                     0.01
                 );
                 break;
-
             default:
-                // Fallback: no effect or a default effect
                 break;
         }
     }

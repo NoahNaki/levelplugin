@@ -13,6 +13,7 @@ public class LootChestCommand implements CommandExecutor {
     private final ConfigManager configManager;
     private final LootChestManager lootChestManager;
 
+
     public LootChestCommand(ConfigManager configManager, LootChestManager lootChestManager) {
         this.configManager = configManager;
         this.lootChestManager = lootChestManager;

@@ -53,3 +53,6 @@ commands:
   party:
     description: Manage your party
     usage: /party <subcommand>
+  lootchest:
+    description: "LootChest management command"
+    usage: "/lootchest <reload|list>"
