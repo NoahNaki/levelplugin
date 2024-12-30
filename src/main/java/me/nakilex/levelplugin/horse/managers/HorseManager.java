@@ -3,18 +3,22 @@ package me.nakilex.levelplugin.horse.managers;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.horse.data.HorseData;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.entity.AbstractHorse;
 import org.bukkit.entity.Horse;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDismountEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.HashMap;
 import java.util.UUID;
 
-public class HorseManager {
+public class HorseManager implements Listener {
 
     private final HorseConfigManager configManager;
     private final HashMap<UUID, HorseData> horses = new HashMap<>();
@@ -22,6 +26,7 @@ public class HorseManager {
     // Constructor to accept HorseConfigManager
     public HorseManager(HorseConfigManager configManager) {
         this.configManager = configManager;
+        Bukkit.getPluginManager().registerEvents(this, Main.getInstance()); // Register event listener
     }
 
     // Example methods
@@ -65,6 +70,7 @@ public class HorseManager {
         horse.setTamed(true);
         horse.setCustomName(player.getName() + "'s Horse");
         horse.setCustomNameVisible(true);
+        horse.setInvulnerable(true);
 
         // Set jump and speed attributes
         horse.setJumpStrength(horseData.getJumpHeight() / 10.0);
@@ -72,12 +78,7 @@ public class HorseManager {
             .setBaseValue(horseData.getSpeed() / 10.0);
 
         // Equip saddle for all types
-        if (horse instanceof Horse) { // Normal horses
-            ((Horse) horse).getInventory().setSaddle(new org.bukkit.inventory.ItemStack(org.bukkit.Material.SADDLE));
-        } else if (horse instanceof org.bukkit.entity.ZombieHorse || horse instanceof org.bukkit.entity.SkeletonHorse) {
-            // Apply saddle appearance and enable riding control
-            horse.getInventory().setSaddle(new org.bukkit.inventory.ItemStack(org.bukkit.Material.SADDLE));
-        }
+        horse.getInventory().setSaddle(new ItemStack(Material.SADDLE));
 
         // Mount the player
         horse.addPassenger(player);
@@ -98,11 +99,21 @@ public class HorseManager {
 
     public void dismountHorse(Player player) {
         // Check if the player is riding a horse
-        if (player.isInsideVehicle() && player.getVehicle() instanceof org.bukkit.entity.AbstractHorse) {
-            org.bukkit.entity.AbstractHorse horse = (org.bukkit.entity.AbstractHorse) player.getVehicle();
+        if (player.isInsideVehicle() && player.getVehicle() instanceof AbstractHorse) {
+            AbstractHorse horse = (AbstractHorse) player.getVehicle();
             horse.remove(); // Despawn the horse
             player.leaveVehicle(); // Ensure the player is removed from the horse
         }
     }
 
+    @EventHandler
+    public void onInventoryClick(InventoryClickEvent event) {
+        // Prevent removing saddle from horse inventory
+        if (event.getClickedInventory() != null && event.getClickedInventory().getHolder() instanceof AbstractHorse) {
+            ItemStack item = event.getCurrentItem();
+            if (item != null && item.getType() == Material.SADDLE) {
+                event.setCancelled(true);
+            }
+        }
+    }
 }
