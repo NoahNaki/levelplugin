@@ -1,94 +1,9 @@
 items:
-  # WARRIOR Weapons
-  1:
-    name: "Bronze Axe"
-    rarity: COMMON
-    level_requirement: 2
-    class_requirement: WARRIOR
-    material: "STONE_AXE"
-    def: 1
-    str: 2
-    agi: 0
-    int: 0
-    dex: 0
-
-  2:
-    name: "Iron Warhammer"
-    rarity: UNCOMMON
-    level_requirement: 6
-    class_requirement: WARRIOR
-    material: "IRON_AXE"
-    def: 4
-    str: 4
-    agi: 0
-    int: 0
-    dex: 0
-
-  3:
-    name: "Steel Broadsword"
-    rarity: RARE
-    level_requirement: 12
-    class_requirement: WARRIOR
-    material: "IRON_SWORD"
-    def: 3
-    str: 6
-    agi: 1
-    int: 0
-    dex: 1
-
-  4:
-    name: "Titan's Blade"
-    rarity: LEGENDARY
-    level_requirement: 18
-    class_requirement: WARRIOR
-    material: "DIAMOND_SWORD"
-    def: 5
-    str: 10
-    agi: 0
-    int: 0
-    dex: 2
-
-  5:
-    name: "Obsidian Maul"
-    rarity: EPIC
-    level_requirement: 25
-    class_requirement: WARRIOR
-    material: "NETHERITE_AXE"
-    def: 8
-    str: 12
-    agi: 0
-    int: 0
-    dex: 0
-
-  6:
-    name: "Dragonbone Warhammer"
-    rarity: MYTHIC
-    level_requirement: 30
-    class_requirement: WARRIOR
-    material: "DIAMOND_SHOVEL"
-    def: 10
-    str: 15
-    agi: 0
-    int: 2
-    dex: 0
-
-  7:
-    name: "Enchanted War Axe"
-    rarity: LEGENDARY
-    level_requirement: 35
-    class_requirement: WARRIOR
-    material: "NETHERITE_SWORD"
-    def: 7
-    str: 14
-    agi: 1
-    int: 1
-    dex: 1
-
-  # ROGUE Weapons
-  8:
+  # LEVEL 1-15
+  1: # Rogue Weapon
     name: "Rusty Shiv"
     rarity: COMMON
-    level_requirement: 2
+    level_requirement: 1
     class_requirement: ROGUE
     material: "WOODEN_SWORD"
     def: 0
@@ -97,83 +12,34 @@ items:
     int: 0
     dex: 1
 
-  9:
-    name: "Iron Fang"
-    rarity: UNCOMMON
-    level_requirement: 8
-    class_requirement: ROGUE
-    material: "IRON_SWORD"
-    def: 0
+  2: # Warrior Weapon
+    name: "Bronze Axe"
+    rarity: COMMON
+    level_requirement: 1
+    class_requirement: WARRIOR
+    material: "WOODEN_SHOVEL"
+    def: 1
     str: 2
-    agi: 4
+    agi: 0
+    int: 0
+    dex: 0
+
+  3: # Archer Weapon
+    name: "Hunting Bow"
+    rarity: COMMON
+    level_requirement: 1
+    class_requirement: ARCHER
+    material: "BOW"
+    def: 0
+    str: 1
+    agi: 3
     int: 0
     dex: 2
 
-  10:
-    name: "Shadow Dagger"
-    rarity: RARE
-    level_requirement: 12
-    class_requirement: ROGUE
-    material: "GOLDEN_SWORD"
-    def: 0
-    str: 3
-    agi: 6
-    int: 1
-    dex: 3
-
-  11:
-    name: "Venom Blade"
-    rarity: LEGENDARY
-    level_requirement: 20
-    class_requirement: ROGUE
-    material: "DIAMOND_SWORD"
-    def: 1
-    str: 5
-    agi: 9
-    int: 0
-    dex: 4
-
-  12:
-    name: "Phantom Knives"
-    rarity: EPIC
-    level_requirement: 25
-    class_requirement: ROGUE
-    material: "NETHERITE_SWORD"
-    def: 1
-    str: 4
-    agi: 12
-    int: 2
-    dex: 6
-
-  13:
-    name: "Assassin's Edge"
-    rarity: LEGENDARY
-    level_requirement: 30
-    class_requirement: ROGUE
-    material: "DIAMOND_SWORD"
-    def: 0
-    str: 6
-    agi: 15
-    int: 0
-    dex: 7
-
-  14:
-    name: "Nightmare Fang"
-    rarity: MYTHIC
-    level_requirement: 40
-    class_requirement: ROGUE
-    material: "NETHERITE_SWORD"
-    def: 2
-    str: 8
-    agi: 18
-    int: 1
-    dex: 10
-
-  # MAGE Weapons
-  15:
+  4: # Mage Weapon
     name: "Apprentice Wand"
     rarity: COMMON
-    level_requirement: 2
+    level_requirement: 1
     class_requirement: MAGE
     material: "STICK"
     def: 0
@@ -182,304 +48,323 @@ items:
     int: 3
     dex: 0
 
-  16:
-    name: "Crystal Rod"
+  5: # Armor
+    name: "Leather Armor"
+    rarity: COMMON
+    level_requirement: 5
+    material: "LEATHER_CHESTPLATE"
+    hp: 10
+    def: 3
+    str: 1
+    agi: 1
+    int: 0
+    dex: 0
+
+
+  # LEVEL 16-30
+  6: # Rogue Weapon
+    name: "Golden Fang"
     rarity: UNCOMMON
-    level_requirement: 8
-    class_requirement: MAGE
-    material: "BLAZE_ROD"
+    level_requirement: 16
+    class_requirement: ROGUE
+    material: "GOLDEN_SWORD"
     def: 0
+    str: 3
+    agi: 4
+    int: 0
+    dex: 3
+
+  7: # Warrior Weapon
+    name: "Golden Warhammer"
+    rarity: UNCOMMON
+    level_requirement: 16
+    class_requirement: WARRIOR
+    material: "GOLDEN_SHOVEL"
+    def: 2
+    str: 5
+    agi: 0
+    int: 0
+    dex: 1
+
+  8: # Archer Weapon
+    name: "Golden Bow"
+    rarity: UNCOMMON
+    level_requirement: 16
+    class_requirement: ARCHER
+    material: "BOW"
+    def: 0
+    str: 2
+    agi: 5
+    int: 0
+    dex: 4
+
+  9: # Mage Weapon
+    name: "Mystic Wand"
+    rarity: UNCOMMON
+    level_requirement: 16
+    class_requirement: MAGE
+    material: "STICK"
+    def: 1
     str: 0
     agi: 2
     int: 5
     dex: 1
 
-  17:
-    name: "Sage's Staff"
-    rarity: RARE
-    level_requirement: 12
-    class_requirement: MAGE
-    material: "BLAZE_ROD"
-    def: 0
-    str: 0
-    agi: 1
-    int: 8
-    dex: 1
-
-  18:
-    name: "Arcane Conduit"
-    rarity: LEGENDARY
+  10: # Armor
+    name: "Golden Armor"
+    rarity: UNCOMMON
     level_requirement: 20
+    material: "GOLDEN_CHESTPLATE"
+    hp: 25
+    def: 6
+    str: 2
+    agi: 1
+    int: 0
+    dex: 2
+
+
+  # LEVEL 31-50
+  11: # Rogue Weapon
+    name: "Steel Dagger"
+    rarity: RARE
+    level_requirement: 31
+    class_requirement: ROGUE
+    material: "STONE_SWORD"
+    def: 1
+    str: 4
+    agi: 6
+    int: 1
+    dex: 4
+
+  12: # Warrior Weapon
+    name: "Stone War Axe"
+    rarity: RARE
+    level_requirement: 31
+    class_requirement: WARRIOR
+    material: "STONE_SHOVEL"
+    def: 3
+    str: 7
+    agi: 0
+    int: 0
+    dex: 2
+
+  13: # Archer Weapon
+    name: "Reinforced Bow"
+    rarity: RARE
+    level_requirement: 31
+    class_requirement: ARCHER
+    material: "BOW"
+    def: 1
+    str: 3
+    agi: 6
+    int: 0
+    dex: 4
+
+  14: # Mage Weapon
+    name: "Runed Staff"
+    rarity: RARE
+    level_requirement: 31
     class_requirement: MAGE
     material: "STICK"
     def: 1
     str: 0
-    agi: 2
-    int: 10
+    agi: 3
+    int: 8
     dex: 2
 
-  19:
-    name: "Ethereal Wand"
-    rarity: EPIC
-    level_requirement: 25
-    class_requirement: MAGE
-    material: "BLAZE_ROD"
-    def: 0
-    str: 1
-    agi: 3
-    int: 15
-    dex: 3
-
-  20:
-    name: "Celestial Scepter"
-    rarity: LEGENDARY
-    level_requirement: 30
-    class_requirement: MAGE
-    material: "STICK"
-    def: 2
-    str: 0
-    agi: 3
-    int: 18
-    dex: 3
-
-  21:
-    name: "Staff of the Void"
-    rarity: MYTHIC
-    level_requirement: 40
-    class_requirement: MAGE
-    material: "BLAZE_ROD"
-    def: 2
-    str: 0
-    agi: 2
-    int: 25
-    dex: 5
-
-  22:
-    name: "Bronze Chestplate"
-    rarity: COMMON
-    level_requirement: 2
-    material: "LEATHER_CHESTPLATE"
-    hp: 10
-    def: 3
-    str: 1
-    agi: 0
-    intel: 0
-    dex: 0
-
-  23:
-    name: "Iron Plate"
-    rarity: UNCOMMON
-    level_requirement: 8
-    material: "IRON_CHESTPLATE"
-    hp: 20
-    def: 6
-    str: 2
-    agi: 0
-    intel: 0
-    dex: 1
-
-  24:
-    name: "Steel Armor"
+  15: # Armor
+    name: "Chainmail Armor"
     rarity: RARE
-    level_requirement: 12
-    material: "IRON_CHESTPLATE"
-    hp: 30
+    level_requirement: 35
+    material: "CHAINMAIL_CHESTPLATE"
+    hp: 40
     def: 9
     str: 3
-    agi: 0
-    intel: 0
-    dex: 1
+    agi: 2
+    int: 0
+    dex: 3
 
-  25:
-    name: "Titan's Guard"
-    rarity: LEGENDARY
-    level_requirement: 20
-    material: "DIAMOND_CHESTPLATE"
-    hp: 50
-    def: 12
-    str: 5
-    agi: 0
-    intel: 0
-    dex: 2
 
-  26:
-    name: "Obsidian Armor"
+  # LEVEL 51-65
+  16: # Rogue Weapon
+    name: "Iron Blade"
     rarity: EPIC
-    level_requirement: 30
-    material: "NETHERITE_CHESTPLATE"
+    level_requirement: 51
+    class_requirement: ROGUE
+    material: "IRON_SWORD"
+    def: 2
+    str: 5
+    agi: 8
+    int: 2
+    dex: 6
+
+  17: # Warrior Weapon
+    name: "Iron Warhammer"
+    rarity: EPIC
+    level_requirement: 51
+    class_requirement: WARRIOR
+    material: "IRON_SHOVEL"
+    def: 5
+    str: 9
+    agi: 0
+    int: 1
+    dex: 3
+
+  18: # Archer Weapon
+    name: "Iron Bow"
+    rarity: EPIC
+    level_requirement: 51
+    class_requirement: ARCHER
+    material: "BOW"
+    def: 1
+    str: 5
+    agi: 8
+    int: 0
+    dex: 6
+
+  19: # Mage Weapon
+    name: "Arcane Rod"
+    rarity: EPIC
+    level_requirement: 51
+    class_requirement: MAGE
+    material: "BLAZE_ROD"
+    def: 2
+    str: 0
+    agi: 3
+    int: 12
+    dex: 3
+
+  20: # Armor
+    name: "Iron Armor"
+    rarity: EPIC
+    level_requirement: 55
+    material: "IRON_CHESTPLATE"
+    hp: 55
+    def: 12
+    str: 4
+    agi: 2
+    int: 1
+    dex: 4
+
+  # LEVEL 66-80
+  21: # Rogue Weapon
+    name: "Diamond Dagger"
+    rarity: LEGENDARY
+    level_requirement: 66
+    class_requirement: ROGUE
+    material: "DIAMOND_SWORD"
+    def: 3
+    str: 6
+    agi: 12
+    int: 2
+    dex: 8
+
+  22: # Warrior Weapon
+    name: "Diamond Maul"
+    rarity: LEGENDARY
+    level_requirement: 66
+    class_requirement: WARRIOR
+    material: "DIAMOND_SHOVEL"
+    def: 7
+    str: 15
+    agi: 0
+    int: 1
+    dex: 3
+
+  23: # Archer Weapon
+    name: "Diamond Bow"
+    rarity: LEGENDARY
+    level_requirement: 66
+    class_requirement: ARCHER
+    material: "BOW"
+    def: 2
+    str: 6
+    agi: 12
+    int: 0
+    dex: 8
+
+  24: # Mage Weapon
+    name: "Diamond Conduit"
+    rarity: LEGENDARY
+    level_requirement: 66
+    class_requirement: MAGE
+    material: "BLAZE_ROD"
+    def: 3
+    str: 0
+    agi: 4
+    int: 18
+    dex: 4
+
+  25: # Armor
+    name: "Diamond Armor"
+    rarity: LEGENDARY
+    level_requirement: 70
+    material: "DIAMOND_CHESTPLATE"
     hp: 70
     def: 15
-    str: 6
-    agi: 0
-    intel: 0
-    dex: 2
+    str: 5
+    agi: 3
+    int: 2
+    dex: 5
 
-  27:
-    name: "Dragonplate"
+
+  # LEVEL 81-100
+  26: # Rogue Weapon
+    name: "Shadow Fang"
     rarity: MYTHIC
-    level_requirement: 40
+    level_requirement: 81
+    class_requirement: ROGUE
+    material: "NETHERITE_SWORD"
+    def: 4
+    str: 8
+    agi: 18
+    int: 3
+    dex: 10
+
+  27: # Warrior Weapon
+    name: "Obsidian Crusher"
+    rarity: MYTHIC
+    level_requirement: 81
+    class_requirement: WARRIOR
+    material: "NETHERITE_SHOVEL"
+    def: 10
+    str: 20
+    agi: 0
+    int: 2
+    dex: 5
+
+  28: # Archer Weapon
+    name: "Obsidian Bow"
+    rarity: MYTHIC
+    level_requirement: 81
+    class_requirement: ARCHER
+    material: "BOW"
+    def: 3
+    str: 8
+    agi: 18
+    int: 0
+    dex: 10
+
+  29: # Mage Weapon
+    name: "Void Staff"
+    rarity: MYTHIC
+    level_requirement: 81
+    class_requirement: MAGE
+    material: "BLAZE_ROD"
+    def: 4
+    str: 0
+    agi: 5
+    int: 25
+    dex: 6
+
+  30: # Armor
+    name: "Netherite Armor"
+    rarity: MYTHIC
+    level_requirement: 85
     material: "NETHERITE_CHESTPLATE"
     hp: 100
     def: 20
-    str: 10
-    agi: 0
-    intel: 2
-    dex: 3
-
-  # ROGUE Armor
-  28:
-    name: "Shadow Cloak"
-    rarity: COMMON
-    level_requirement: 2
-    material: "LEATHER_CHESTPLATE"
-    hp: 5
-    def: 1
-    str: 0
-    agi: 2
-    intel: 0
-    dex: 1
-
-  29:
-    name: "Night Stalker"
-    rarity: UNCOMMON
-    level_requirement: 8
-    material: "CHAINMAIL_CHESTPLATE"
-    hp: 10
-    def: 2
-    str: 1
+    str: 8
     agi: 4
-    intel: 0
-    dex: 2
-
-  30:
-    name: "Silent Leather"
-    rarity: RARE
-    level_requirement: 12
-    material: "LEATHER_CHESTPLATE"
-    hp: 15
-    def: 3
-    str: 2
-    agi: 6
-    intel: 0
-    dex: 3
-
-  31:
-    name: "Phantom Armor"
-    rarity: LEGENDARY
-    level_requirement: 20
-    material: "DIAMOND_CHESTPLATE"
-    hp: 25
-    def: 4
-    str: 3
-    agi: 8
-    intel: 1
-    dex: 4
-
-  32:
-    name: "Assassin's Shroud"
-    rarity: EPIC
-    level_requirement: 30
-    material: "NETHERITE_CHESTPLATE"
-    hp: 35
-    def: 6
-    str: 4
-    agi: 12
-    intel: 2
+    int: 3
     dex: 6
-
-  33:
-    name: "Nightmare Vest"
-    rarity: MYTHIC
-    level_requirement: 40
-    material: "NETHERITE_CHESTPLATE"
-    hp: 50
-    def: 8
-    str: 6
-    agi: 18
-    intel: 3
-    dex: 7
-
-  # MAGE Armor
-  34:
-    name: "Apprentice Robe"
-    rarity: COMMON
-    level_requirement: 2
-    material: "LEATHER_CHESTPLATE"
-    hp: 5
-    def: 0
-    str: 0
-    agi: 1
-    intel: 3
-    dex: 0
-
-  35:
-    name: "Mystic Robe"
-    rarity: UNCOMMON
-    level_requirement: 8
-    material: "LEATHER_CHESTPLATE"
-    hp: 10
-    def: 1
-    str: 0
-    agi: 2
-    intel: 5
-    dex: 1
-
-  36:
-    name: "Sage's Robe"
-    rarity: RARE
-    level_requirement: 12
-    material: "GOLDEN_CHESTPLATE"
-    hp: 15
-    def: 2
-    str: 0
-    agi: 2
-    intel: 8
-    dex: 1
-
-  37:
-    name: "Enchanter's Vestment"
-    rarity: LEGENDARY
-    level_requirement: 20
-    material: "DIAMOND_CHESTPLATE"
-    hp: 25
-    def: 3
-    str: 0
-    agi: 3
-    intel: 10
-    dex: 2
-
-  38:
-    name: "Archmage's Robe"
-    rarity: EPIC
-    level_requirement: 30
-    material: "NETHERITE_CHESTPLATE"
-    hp: 35
-    def: 4
-    str: 0
-    agi: 3
-    intel: 15
-    dex: 3
-
-  39:
-    name: "Celestial Mantle"
-    rarity: LEGENDARY
-    level_requirement: 35
-    material: "NETHERITE_CHESTPLATE"
-    hp: 45
-    def: 6
-    str: 0
-    agi: 4
-    intel: 20
-    dex: 3
-
-  40:
-    name: "Voidwalker Robe"
-    rarity: MYTHIC
-    level_requirement: 40
-    material: "NETHERITE_CHESTPLATE"
-    hp: 55
-    def: 8
-    str: 0
-    agi: 5
-    intel: 25
-    dex: 5

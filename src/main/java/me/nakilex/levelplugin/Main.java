@@ -245,29 +245,29 @@ public class Main extends JavaPlugin {
 
     private void registerListeners(BlacksmithGUI blacksmithGUI, HorseGUI horseGUI) {
         // Existing listeners
-//        getServer().getPluginManager().registerEvents(new MobDamageListener(), this);
-//        getServer().getPluginManager().registerEvents(new PlayerKillListener(levelManager, mobConfig, partyManager), this);
-//        getServer().getPluginManager().registerEvents(new PlayerJoinListener(levelManager), this);
-//        getServer().getPluginManager().registerEvents(new StatsMenuListener(), this);
-//        getServer().getPluginManager().registerEvents(new StatsEffectListener(), this);
-//        getServer().getPluginManager().registerEvents(new ArmorListener(), this);
-//        getServer().getPluginManager().registerEvents(new ArmorStatsListener(), this);
-//        getServer().getPluginManager().registerEvents(new WeaponListener(), this);
-//        getServer().getPluginManager().registerEvents(new WeaponStatsListener(), this);
-//        getServer().getPluginManager().registerEvents(new ClickComboListener(), this);
-//        getServer().getPluginManager().registerEvents(new ItemNameDisplayListener(), this);
-//        getServer().getPluginManager().registerEvents(new StaticItemListener(), this);
-//        getServer().getPluginManager().registerEvents(new ClassMenuListener(), this);
-//        getServer().getPluginManager().registerEvents(blacksmithGUI, this);
-//        getServer().getPluginManager().registerEvents(horseGUI, this);
-//        getServer().getPluginManager().registerEvents(new EffectListener(effectManager), this);
-//        getServer().getPluginManager().registerEvents(new NPCClickListener(economyManager), this);
-//        getServer().getPluginManager().registerEvents(new NPCCommandListener(), this);
-//        getServer().getPluginManager().registerEvents(new StorageEvents(), this);
-//        getServer().getPluginManager().registerEvents(new PlayerRightClicksPlayerListener(), this);
-//        getServer().getPluginManager().registerEvents(new TradingWindow(), this);
-//        getServer().getPluginManager().registerEvents(new PartyChatListener(partyManager), this);
-//        getServer().getPluginManager().registerEvents(new PartyInviteListener(partyManager), this);
+        getServer().getPluginManager().registerEvents(new MobDamageListener(), this);
+        getServer().getPluginManager().registerEvents(new PlayerKillListener(levelManager, mobConfig, partyManager), this);
+        getServer().getPluginManager().registerEvents(new PlayerJoinListener(levelManager), this);
+        getServer().getPluginManager().registerEvents(new StatsMenuListener(), this);
+        getServer().getPluginManager().registerEvents(new StatsEffectListener(), this);
+        getServer().getPluginManager().registerEvents(new ArmorListener(), this);
+        getServer().getPluginManager().registerEvents(new ArmorStatsListener(), this);
+        getServer().getPluginManager().registerEvents(new WeaponListener(), this);
+        getServer().getPluginManager().registerEvents(new WeaponStatsListener(), this);
+        getServer().getPluginManager().registerEvents(new ClickComboListener(), this);
+        getServer().getPluginManager().registerEvents(new ItemNameDisplayListener(), this);
+        getServer().getPluginManager().registerEvents(new StaticItemListener(), this);
+        getServer().getPluginManager().registerEvents(new ClassMenuListener(), this);
+        getServer().getPluginManager().registerEvents(blacksmithGUI, this);
+        getServer().getPluginManager().registerEvents(horseGUI, this);
+        getServer().getPluginManager().registerEvents(new EffectListener(effectManager), this);
+        getServer().getPluginManager().registerEvents(new NPCClickListener(economyManager), this);
+        getServer().getPluginManager().registerEvents(new NPCCommandListener(), this);
+        getServer().getPluginManager().registerEvents(new StorageEvents(), this);
+        getServer().getPluginManager().registerEvents(new PlayerRightClicksPlayerListener(), this);
+        getServer().getPluginManager().registerEvents(new TradingWindow(), this);
+        getServer().getPluginManager().registerEvents(new PartyChatListener(partyManager), this);
+        getServer().getPluginManager().registerEvents(new PartyInviteListener(partyManager), this);
 
         // Register your new loot chest listeners
         getServer().getPluginManager().registerEvents(new LootChestListener(lootChestManager), this);

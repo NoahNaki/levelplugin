@@ -15,6 +15,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
+import java.util.Random;
 
 import java.util.*;
 
@@ -79,65 +80,26 @@ public class LootChestManager {
     }
 
     public void spawnChest(ChestData data) {
-        plugin.getLogger().info("[LootChestManager] spawnChest: Attempting to place chestId "
-            + data.getChestId() + " at " + data.getX() + ", " + data.getY() + ", " + data.getZ());
-
         Location loc = data.toLocation();
-        if (loc == null) {
-            plugin.getLogger().info("[LootChestManager] spawnChest: location was null. Possibly invalid or world not loaded?");
-            return;
-        }
-
-        // Replace existing block with a CHEST
         Block block = loc.getBlock();
         block.setType(Material.CHEST);
-
-        // IMPORTANT: Track it in spawnedChests so we can find it in InventoryCloseEvent
         spawnedChests.put(data.getChestId(), loc);
-
-        plugin.getLogger().info("[LootChestManager] Placed CHEST for chestId "
-            + data.getChestId() + " at " + loc);
-
-        // Optionally add random loot
         org.bukkit.block.Chest chestState = (org.bukkit.block.Chest) block.getState();
         chestState.getBlockInventory().clear();
 
         ItemStack loot = getRandomLootForTier(data.getTier());
-        if (loot != null) {
-            plugin.getLogger().info("[LootChestManager] Adding random loot "
-                + loot.getType() + " to chest " + data.getChestId());
-            chestState.getBlockInventory().addItem(loot);
-        } else {
-            plugin.getLogger().info("[LootChestManager] No loot found for tier " + data.getTier());
-        }
+
+        // Add the item into a random slot within the chest's inventory
+        Random random = new Random();
+        int randomSlot = random.nextInt(chestState.getBlockInventory().getSize());
+
+
+        // Force the inventory to update to reflect changes visually
         chestState.update(true);
 
-        // Start continuous particle task
+        // Start particle effect
         startParticleTask(data.getChestId(), loc, data.getTier());
-
-        // Right after you do chestState.getBlockInventory().addItem(loot)
-        Map<Integer, ItemStack> leftover = chestState.getBlockInventory().addItem(loot);
-
-// 1) Log leftover
-        plugin.getLogger().info("[Debug] leftover => " + leftover);
-
-// 2) Log each non-null slot
-        ItemStack[] contentsAfter = chestState.getBlockInventory().getContents();
-        for (int i = 0; i < contentsAfter.length; i++) {
-            if (contentsAfter[i] != null) {
-                plugin.getLogger().info("[Debug] slot " + i + ": " + contentsAfter[i].getType()
-                    + " x" + contentsAfter[i].getAmount());
-            }
-        }
-
-
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            // Re-check if that block is still a chest
-            if (loc.getBlock().getState() instanceof Chest c) {
-                plugin.getLogger().info("[Debug] One second later, chest contents at " + loc + " => "
-                    + Arrays.toString(c.getBlockInventory().getContents()));
-            }
-        }, 20L);
+        chestState.getBlockInventory().setItem(randomSlot, loot);
     }
 
 
@@ -192,7 +154,6 @@ public class LootChestManager {
         spawnChest(data);
         plugin.getLogger().info("[LootChestManager] Finished respawnChest for chest " + chestId);
     }
-
 
 
     // For the /lootchest list command
