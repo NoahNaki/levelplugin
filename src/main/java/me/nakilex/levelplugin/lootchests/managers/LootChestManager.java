@@ -186,35 +186,46 @@ public class LootChestManager {
     }
 
 
-    private ItemStack getRandomLootForTier(int tier) {
-        // Determine level range for each tier
+    public static ItemStack getRandomLootForTier(int tier) {
         int minLevel, maxLevel;
         switch (tier) {
             case 1:
                 minLevel = 1;
-                maxLevel = 25;
+                maxLevel = 12;
                 break;
             case 2:
-                minLevel = 26;
-                maxLevel = 45;
+                minLevel = 13;
+                maxLevel = 25;
                 break;
             case 3:
-                minLevel = 46;
-                maxLevel = 65;
+                minLevel = 26;
+                maxLevel = 38;
                 break;
             case 4:
-                minLevel = 66;
+                minLevel = 39;
+                maxLevel = 50;
+                break;
+            case 5:
+                minLevel = 51;
+                maxLevel = 62;
+                break;
+            case 6:
+                minLevel = 63;
+                maxLevel = 75;
+                break;
+            case 7:
+                minLevel = 76;
+                maxLevel = 88;
+                break;
+            case 8:
+                minLevel = 89;
                 maxLevel = 100;
                 break;
             default:
-                plugin.getLogger().info("[LootChestManager] getRandomLootForTier => Invalid tier: " + tier);
                 return null;
         }
 
         // Gather matching items from your ItemManager
-        plugin.getLogger().info("[LootChestManager] getRandomLootForTier => tier=" + tier
-            + ", searching for items with level_requirement between " + minLevel + " and " + maxLevel);
-
         List<CustomItem> matching = new ArrayList<>();
         for (CustomItem cItem : ItemManager.getInstance().getAllItems().values()) {
             int req = cItem.getLevelRequirement();
@@ -223,9 +234,6 @@ public class LootChestManager {
             }
         }
 
-        plugin.getLogger().info("[LootChestManager] Found " + matching.size()
-            + " item(s) matching the range for tier " + tier);
-
         if (matching.isEmpty()) {
             return null;  // no items match => chest gets no item
         }
@@ -233,11 +241,7 @@ public class LootChestManager {
         // Pick one at random from the matching items
         CustomItem chosen = matching.get(new Random().nextInt(matching.size()));
 
-        plugin.getLogger().info("[LootChestManager] Chose item ID " + chosen.getId()
-            + " (" + chosen.getBaseName() + ") levelReq=" + chosen.getLevelRequirement());
-
         // Convert the chosen CustomItem -> ItemStack
         return ItemUtil.createItemStackFromCustomItem(chosen, 1);
     }
-
 }

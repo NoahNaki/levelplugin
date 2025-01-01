@@ -368,3 +368,125 @@ items:
     agi: 4
     int: 3
     dex: 6
+  # Tier 4 (Levels 39–50)
+  31: # Rogue Weapon
+    name: "Shadow Dagger"
+    rarity: RARE
+    level_requirement: 39
+    class_requirement: ROGUE
+    material: "STONE_SWORD"
+    def: 2
+    str: 5
+    agi: 7
+    int: 1
+    dex: 5
+
+  32: # Warrior Weapon
+    name: "Heavy Axe"
+    rarity: RARE
+    level_requirement: 40
+    class_requirement: WARRIOR
+    material: "STONE_SHOVEL"
+    def: 4
+    str: 9
+    agi: 0
+    int: 0
+    dex: 2
+
+  33: # Archer Weapon
+    name: "Crossbow"
+    rarity: RARE
+    level_requirement: 41
+    class_requirement: ARCHER
+    material: "BOW"
+    def: 2
+    str: 4
+    agi: 7
+    int: 0
+    dex: 5
+
+  34: # Mage Weapon
+    name: "Enchanted Staff"
+    rarity: RARE
+    level_requirement: 42
+    class_requirement: MAGE
+    material: "STICK"
+    def: 2
+    str: 0
+    agi: 3
+    int: 9
+    dex: 2
+
+  35: # Armor
+    name: "Steel Armor"
+    rarity: RARE
+    level_requirement: 45
+    material: "IRON_CHESTPLATE"
+    hp: 45
+    def: 10
+    str: 3
+    agi: 2
+    int: 0
+    dex: 3
+
+  # Tier 7 (Levels 76–88)
+  36: # Rogue Weapon
+    name: "Phantom Blade"
+    rarity: LEGENDARY
+    level_requirement: 76
+    class_requirement: ROGUE
+    material: "DIAMOND_SWORD"
+    def: 3
+    str: 7
+    agi: 14
+    int: 2
+    dex: 9
+
+  37: # Warrior Weapon
+    name: "Titan Hammer"
+    rarity: LEGENDARY
+    level_requirement: 78
+    class_requirement: WARRIOR
+    material: "DIAMOND_SHOVEL"
+    def: 8
+    str: 16
+    agi: 0
+    int: 2
+    dex: 4
+
+  38: # Archer Weapon
+    name: "Phoenix Bow"
+    rarity: LEGENDARY
+    level_requirement: 79
+    class_requirement: ARCHER
+    material: "BOW"
+    def: 3
+    str: 7
+    agi: 14
+    int: 0
+    dex: 9
+
+  39: # Mage Weapon
+    name: "Inferno Staff"
+    rarity: LEGENDARY
+    level_requirement: 80
+    class_requirement: MAGE
+    material: "BLAZE_ROD"
+    def: 4
+    str: 0
+    agi: 4
+    int: 20
+    dex: 4
+
+  40: # Armor
+    name: "Obsidian Armor"
+    rarity: LEGENDARY
+    level_requirement: 82
+    material: "NETHERITE_CHESTPLATE"
+    hp: 85
+    def: 18
+    str: 6
+    agi: 3
+    int: 2
+    dex: 5
+

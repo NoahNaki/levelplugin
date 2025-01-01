@@ -56,3 +56,6 @@ commands:
   lootchest:
     description: "LootChest management command"
     usage: "/lootchest <reload|list>"
+  addpotion:
+    description: Gives a player a potion.
+    usage: /addpotion <playername> <potion_id>

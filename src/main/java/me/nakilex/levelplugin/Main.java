@@ -7,7 +7,7 @@ import me.nakilex.levelplugin.economy.commands.AddCoinsCommand;
 import me.nakilex.levelplugin.economy.commands.BalanceCommand;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.effects.commands.EffectCommand;
-import me.nakilex.levelplugin.effects.listeners.EffectListener;
+//import me.nakilex.levelplugin.effects.listeners.EffectListener;
 import me.nakilex.levelplugin.effects.listeners.StatsEffectListener;
 import me.nakilex.levelplugin.effects.managers.EffectManager;
 import me.nakilex.levelplugin.horse.commands.HorseCommand;
@@ -47,6 +47,9 @@ import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.player.listener.ClickComboListener;
 import me.nakilex.levelplugin.player.listener.PlayerJoinListener;
 import me.nakilex.levelplugin.player.listener.PlayerKillListener;
+import me.nakilex.levelplugin.potions.commands.AddPotionCommand;
+import me.nakilex.levelplugin.potions.listeners.PotionUseListener;
+import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.storage.StorageManager;
 import me.nakilex.levelplugin.storage.commands.StorageCommand;
@@ -90,6 +93,7 @@ public class Main extends JavaPlugin {
     private ConfigManager configManager;
     private CooldownManager cooldownManager;
     private LootChestManager lootChestManager;
+    private PotionManager potionManager;
 
     // Other Configurations
     private FileConfiguration mobConfig;
@@ -103,6 +107,12 @@ public class Main extends JavaPlugin {
         // 1) Mark this plugin instance
         instance = this;
         plugin = this;
+
+        saveResource("potions.yml", false);
+        File configFile = new File(getDataFolder(), "potions.yml");
+        FileConfiguration config = YamlConfiguration.loadConfiguration(configFile);
+
+        potionManager = new PotionManager(config);
 
         // 2) Load any resource files first (like custommobs.yml, lootchests.yml, etc.)
         saveResource("custommobs.yml", false);
@@ -260,7 +270,6 @@ public class Main extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new ClassMenuListener(), this);
         getServer().getPluginManager().registerEvents(blacksmithGUI, this);
         getServer().getPluginManager().registerEvents(horseGUI, this);
-        getServer().getPluginManager().registerEvents(new EffectListener(effectManager), this);
         getServer().getPluginManager().registerEvents(new NPCClickListener(economyManager), this);
         getServer().getPluginManager().registerEvents(new NPCCommandListener(), this);
         getServer().getPluginManager().registerEvents(new StorageEvents(), this);
@@ -272,7 +281,11 @@ public class Main extends JavaPlugin {
         // Register your new loot chest listeners
         getServer().getPluginManager().registerEvents(new LootChestListener(lootChestManager), this);
         getServer().getPluginManager().registerEvents(new LootChestCloseListener(lootChestManager), this);
+
+        // Register PotionUseListener here
+        getServer().getPluginManager().registerEvents(new PotionUseListener(potionManager, this), this);
     }
+
 
     private void registerCommands(BlacksmithGUI blacksmithGUI, HorseGUI horseGUI) {
         // Your existing commands
@@ -290,6 +303,8 @@ public class Main extends JavaPlugin {
         getCommand("effect").setExecutor(new EffectCommand(effectManager));
         getCommand("ps").setExecutor(new StorageCommand());
         getCommand("party").setExecutor(new PartyCommands(partyManager));
+        getCommand("addpotion").setExecutor(new AddPotionCommand(potionManager, this));
+
 
         // LootChest plugin commands (reload, list, etc.)
         getCommand("lootchest").setExecutor(new LootChestCommand(configManager, lootChestManager));

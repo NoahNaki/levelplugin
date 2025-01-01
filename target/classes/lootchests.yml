@@ -3,7 +3,25 @@ loot_chests:
     coordinates: 100, 64, 200
     tier: 1
   2:
-    coordinates: 150, 70, 250
+    coordinates: 101, 64, 200
     tier: 2
+  3:
+    coordinates: 102, 64, 200
+    tier: 3
+  4:
+    coordinates: 103, 64, 200
+    tier: 4
+  5:
+    coordinates: 104, 64, 200
+    tier: 5
+  6:
+    coordinates: 105, 64, 200
+    tier: 6
+  7:
+    coordinates: 106, 64, 200
+    tier: 7
+  8:
+    coordinates: 107, 64, 200
+    tier: 8
 cooldowns:
   default: 20

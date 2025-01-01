@@ -19,7 +19,6 @@ public class StatsManager {
     private final Map<UUID, PlayerStats> statsMap = new HashMap<>();
     private final Map<UUID, Set<Integer>> equippedItemsMap = new HashMap<>();
 
-
     public StatsManager() {}
 
     public void setLevelManager(LevelManager levelManager) {
@@ -156,6 +155,7 @@ public class StatsManager {
     }
 
 
+
     public void regenManaForAllPlayers() {
         for (Player player : Bukkit.getOnlinePlayers()) {
             PlayerStats ps = getPlayerStats(player);
@@ -215,6 +215,18 @@ public class StatsManager {
         public int skillPoints = 0;
 
         public PlayerClass playerClass = PlayerClass.VILLAGER;
+
+        public int getCurrentMana() {
+            return currentMana;
+        }
+
+        public int getMaxMana() {
+            return maxMana;
+        }
+
+        public void setCurrentMana(int currentMana) {
+            this.currentMana = Math.max(0, Math.min(currentMana, maxMana)); // Ensure it's within bounds
+        }
     }
 
     public enum StatType {
