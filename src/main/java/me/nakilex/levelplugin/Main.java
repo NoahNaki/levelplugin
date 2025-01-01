@@ -72,8 +72,6 @@ import java.io.IOException;
 public class Main extends JavaPlugin {
 
     private static Main instance;
-
-    // Managers
     private LevelManager levelManager;
     private MobManager mobManager;
     private EconomyManager economyManager;
@@ -94,52 +92,46 @@ public class Main extends JavaPlugin {
     private CooldownManager cooldownManager;
     private LootChestManager lootChestManager;
     private PotionManager potionManager;
-
-    // Other Configurations
     private FileConfiguration mobConfig;
     private HorseConfigManager horseConfigManager;
-
-    // NamespacedKey for PersistentDataContainer
     private NamespacedKey upgradeKey;
 
     @Override
     public void onEnable() {
-        // 1) Mark this plugin instance
         instance = this;
         plugin = this;
 
+        loadConfigFiles();
+        initializeManagers();
+        setupCustomConfig();
+        registerCommandsAndListeners();
+        if (!validateDependencies()) return;
+        startTasks();
+        getLogger().info("LevelPlugin has been enabled successfully!");
+    }
+
+    private void loadConfigFiles() {
         saveResource("potions.yml", false);
         File configFile = new File(getDataFolder(), "potions.yml");
         FileConfiguration config = YamlConfiguration.loadConfiguration(configFile);
-
         potionManager = new PotionManager(config);
 
-        // 2) Load any resource files first (like custommobs.yml, lootchests.yml, etc.)
         saveResource("custommobs.yml", false);
         mobConfig = YamlConfiguration.loadConfiguration(new File(getDataFolder(), "custommobs.yml"));
+
         horseConfigManager = new HorseConfigManager(getDataFolder());
         StorageManager.getInstance().loadAll();
+    }
 
-        // 3) Initialize your custom item system
-        //    (so that ItemManager.getInstance() is valid BEFORE spawning loot chests)
+    private void initializeManagers() {
+
         itemManager = new ItemManager(this);
 
-        // 4) Initialize the config, cooldown, and loot-chest managers
         configManager = new ConfigManager(this);
         cooldownManager = new CooldownManager(this, configManager, null);
         lootChestManager = new LootChestManager(this, configManager, cooldownManager);
         cooldownManager.setLootChestManager(lootChestManager);
 
-        // 5) Create any custom config for the trade plugin
-        createCustomConfig();
-        configValues = new ConfigValues(this.customConfigFile);
-        dealMaker = new DealMaker();
-        messageStrings = new MessageStrings();
-
-        // 6) Register the "/trade" command
-        getCommand("trade").setExecutor(new TradeCommand());
-
-        // 7) Initialize other managers (Economy, Level, Mobs, Spells, Party, Effects, etc.)
         upgradeKey = new NamespacedKey(this, "upgrade_level");
         levelManager = new LevelManager(this);
         economyManager = new EconomyManager(this);
@@ -149,33 +141,36 @@ public class Main extends JavaPlugin {
         partyManager = new PartyManager();
         effectManager = new EffectManager();
 
-        // 8) Hook StatsManager to LevelManager
         StatsManager.getInstance().setLevelManager(levelManager);
+    }
 
-        // 9) Start repeating tasks
-        startTasks();
+    private void setupCustomConfig() {
+        createCustomConfig();
+        configValues = new ConfigValues(this.customConfigFile);
+        dealMaker = new DealMaker();
+        messageStrings = new MessageStrings();
+    }
 
-        // 10) Set up your GUIs
+    private void registerCommandsAndListeners() {
         BlacksmithGUI blacksmithGUI = new BlacksmithGUI(economyManager, itemUpgradeManager, itemManager);
         horseManager = new HorseManager(horseConfigManager);
         HorseGUI horseGUI = new HorseGUI(horseManager, economyManager);
 
-        // 11) Register ALL your listeners (including loot-chest listeners)
-        registerListeners(blacksmithGUI, horseGUI);
 
-        // 12) Register commands (including /lootchest)
+        getCommand("trade").setExecutor(new TradeCommand());
         registerCommands(blacksmithGUI, horseGUI);
+        registerListeners(blacksmithGUI, horseGUI);
+    }
 
-        // 13) Check if Citizens is enabled if you rely on it
+    private boolean validateDependencies() {
         if (!getServer().getPluginManager().isPluginEnabled("Citizens")) {
             getLogger().severe("Citizens is installed but disabled! Check for errors.");
             getServer().getPluginManager().disablePlugin(this);
-            return;
+            return false;
         }
-
-        // 14) Plugin fully enabled
-        getLogger().info("LevelPlugin has been enabled successfully!");
+        return true;
     }
+
 
 
     @Override
@@ -277,18 +272,13 @@ public class Main extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new TradingWindow(), this);
         getServer().getPluginManager().registerEvents(new PartyChatListener(partyManager), this);
         getServer().getPluginManager().registerEvents(new PartyInviteListener(partyManager), this);
-
-        // Register your new loot chest listeners
         getServer().getPluginManager().registerEvents(new LootChestListener(lootChestManager), this);
         getServer().getPluginManager().registerEvents(new LootChestCloseListener(lootChestManager), this);
-
-        // Register PotionUseListener here
         getServer().getPluginManager().registerEvents(new PotionUseListener(potionManager, this), this);
     }
 
 
     private void registerCommands(BlacksmithGUI blacksmithGUI, HorseGUI horseGUI) {
-        // Your existing commands
         getCommand("addpoints").setExecutor(new AddPointsCommand());
         getCommand("addxp").setExecutor(new AddXPCommand(levelManager));
         getCommand("stats").setExecutor(new StatsCommand());
@@ -304,9 +294,6 @@ public class Main extends JavaPlugin {
         getCommand("ps").setExecutor(new StorageCommand());
         getCommand("party").setExecutor(new PartyCommands(partyManager));
         getCommand("addpotion").setExecutor(new AddPotionCommand(potionManager, this));
-
-
-        // LootChest plugin commands (reload, list, etc.)
         getCommand("lootchest").setExecutor(new LootChestCommand(configManager, lootChestManager));
     }
 }
