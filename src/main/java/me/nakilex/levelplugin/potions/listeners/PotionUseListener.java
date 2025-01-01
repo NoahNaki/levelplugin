@@ -18,7 +18,9 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.NamespacedKey;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 public class PotionUseListener implements Listener {
@@ -86,6 +88,13 @@ public class PotionUseListener implements Listener {
         if (potionId.equals("healing_potion")) {
             int healAmount = (int) (player.getMaxHealth() * 0.1); // Restore 10% HP
             player.setHealth(Math.min(player.getHealth() + healAmount, player.getMaxHealth()));
+            meta.setDisplayName("§cHealing Potion §4[" + instance.getCharges() + "/3]");
+            List<String> lore = Collections.emptyList();
+            System.out.println("Setting lore: " + lore); // Check lore before setting
+            meta.setLore(lore);
+            meta.setLore(Arrays.asList(
+                "§4- §7Recover §f10% §c❤"
+            ));
         } else if (potionId.equals("mana_potion")) {
             int currentMana = StatsManager.getInstance().getPlayerStats(player).getCurrentMana();
             int maxMana = StatsManager.getInstance().getPlayerStats(player).getMaxMana();
@@ -94,12 +103,18 @@ public class PotionUseListener implements Listener {
             int newMana = Math.min(currentMana + manaRestore, maxMana);
 
             StatsManager.getInstance().getPlayerStats(player).setCurrentMana(newMana);
+            meta.setDisplayName("§bMana Potion §1[" + instance.getCharges() + "/5]");
+            List<String> lore = Collections.emptyList();
+            System.out.println("Setting lore: " + lore); // Check lore before setting
+            meta.setLore(lore);
+            meta.setLore(Arrays.asList(
+                "§1- §7Recover §f10% §b✨"
+            ));
         }
 
         player.sendMessage("Potion consumed! Remaining charges: " + instance.getCharges());
 
-        // Update item lore
-        meta.setLore(Collections.singletonList("Charges: " + instance.getCharges()));
+        // Update item meta
         item.setItemMeta(meta);
 
         if (instance.getCharges() <= 0) {

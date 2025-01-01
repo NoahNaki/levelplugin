@@ -8,7 +8,9 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 public class PotionInstance {
@@ -46,8 +48,20 @@ public class PotionInstance {
         ItemStack item = new ItemStack(template.getMaterial());
         ItemMeta meta = item.getItemMeta();
 
-        meta.setDisplayName(template.getName());
-        meta.setLore(Collections.singletonList("Charges: " + charges));
+        // Set Display Name with Charges
+        if (template.getId().equals("healing_potion")) {
+            meta.setDisplayName("§cHealing Potion §4[" + charges + "/" + template.getCharges() + "]");
+            List<String> lore = Collections.emptyList();
+            System.out.println("Setting lore: " + lore); // Check lore before setting
+            meta.setLore(lore);
+            meta.setLore(Arrays.asList("§4- §7Recover §f10% §c❤"));
+        } else if (template.getId().equals("mana_potion")) {
+            meta.setDisplayName("§bMana Potion §1[" + charges + "/" + template.getCharges() + "]");
+            List<String> lore = Collections.emptyList();
+            System.out.println("Setting lore: " + lore); // Check lore before setting
+            meta.setLore(lore);
+            meta.setLore(Arrays.asList("§1- §7Recover §f10% §b✨"));
+        }
 
         // Store UUID in PersistentDataContainer
         PersistentDataContainer data = meta.getPersistentDataContainer();

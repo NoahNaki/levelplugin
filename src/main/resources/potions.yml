@@ -9,5 +9,5 @@ potions:
     id: mana_potion
     name: "§9Mana Potion"
     material: POTION
-    charges: 5
+    charges: 3
     cooldownSeconds: 15
