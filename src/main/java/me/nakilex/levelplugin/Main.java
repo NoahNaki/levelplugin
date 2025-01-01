@@ -58,8 +58,7 @@ import me.nakilex.levelplugin.trade.commands.TradeCommand;
 import me.nakilex.levelplugin.trade.data.ConfigValues;
 import me.nakilex.levelplugin.trade.listeners.PlayerRightClicksPlayerListener;
 import me.nakilex.levelplugin.trade.utils.MessageStrings;
-import me.nakilex.levelplugin.utils.DealMaker;
-import me.nakilex.levelplugin.utils.TradingWindow;
+import me.nakilex.levelplugin.utils.*;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -106,7 +105,6 @@ public class Main extends JavaPlugin {
         setupCustomConfig();
         registerCommandsAndListeners();
         if (!validateDependencies()) return;
-        startTasks();
         getLogger().info("LevelPlugin has been enabled successfully!");
     }
 
@@ -156,10 +154,33 @@ public class Main extends JavaPlugin {
         horseManager = new HorseManager(horseConfigManager);
         HorseGUI horseGUI = new HorseGUI(horseManager, economyManager);
 
+        CommandRegistry.registerCommands(
+            this,
+            blacksmithGUI,
+            horseGUI,
+            levelManager,
+            economyManager,
+            partyManager,
+            effectManager,
+            potionManager,
+            lootChestManager,
+            configManager,
+            horseManager,
+            mobManager
+        );
 
-        getCommand("trade").setExecutor(new TradeCommand());
-        registerCommands(blacksmithGUI, horseGUI);
-        registerListeners(blacksmithGUI, horseGUI);
+        ListenerRegistry.registerListeners(
+            this,
+            blacksmithGUI,
+            horseGUI,
+            lootChestManager,
+            potionManager,
+            partyManager,
+            economyManager,
+            mobConfig
+        );
+
+        TaskRegistry.startTasks(this, horseConfigManager);
     }
 
     private boolean validateDependencies() {
@@ -170,8 +191,6 @@ public class Main extends JavaPlugin {
         }
         return true;
     }
-
-
 
     @Override
     public void onDisable() {
@@ -185,7 +204,6 @@ public class Main extends JavaPlugin {
         getLogger().info("LevelPlugin has been disabled!");
     }
 
-    // Singleton
     public static Main getInstance() {
         return instance;
     }
@@ -219,7 +237,6 @@ public class Main extends JavaPlugin {
         this.configValues = new ConfigValues(this.customConfigFile);
     }
 
-    // Manager Getters
     public LevelManager getLevelManager() {
         return levelManager;
     }
@@ -240,60 +257,5 @@ public class Main extends JavaPlugin {
         } catch (IOException | InvalidConfigurationException e) {
             e.printStackTrace();
         }
-    }
-
-    private void startTasks() {
-        new ActionBarTask().runTaskTimer(this, 1L, 1L);
-        new ManaRegenTask().runTaskTimer(this, 20L, 20L);
-        new HorseSaverTask(horseConfigManager).runTaskTimer(this, 6000L, 6000L);
-    }
-
-    private void registerListeners(BlacksmithGUI blacksmithGUI, HorseGUI horseGUI) {
-        // Existing listeners
-        getServer().getPluginManager().registerEvents(new MobDamageListener(), this);
-        getServer().getPluginManager().registerEvents(new PlayerKillListener(levelManager, mobConfig, partyManager), this);
-        getServer().getPluginManager().registerEvents(new PlayerJoinListener(levelManager), this);
-        getServer().getPluginManager().registerEvents(new StatsMenuListener(), this);
-        getServer().getPluginManager().registerEvents(new StatsEffectListener(), this);
-        getServer().getPluginManager().registerEvents(new ArmorListener(), this);
-        getServer().getPluginManager().registerEvents(new ArmorStatsListener(), this);
-        getServer().getPluginManager().registerEvents(new WeaponListener(), this);
-        getServer().getPluginManager().registerEvents(new WeaponStatsListener(), this);
-        getServer().getPluginManager().registerEvents(new ClickComboListener(), this);
-        getServer().getPluginManager().registerEvents(new ItemNameDisplayListener(), this);
-        getServer().getPluginManager().registerEvents(new StaticItemListener(), this);
-        getServer().getPluginManager().registerEvents(new ClassMenuListener(), this);
-        getServer().getPluginManager().registerEvents(blacksmithGUI, this);
-        getServer().getPluginManager().registerEvents(horseGUI, this);
-        getServer().getPluginManager().registerEvents(new NPCClickListener(economyManager), this);
-        getServer().getPluginManager().registerEvents(new NPCCommandListener(), this);
-        getServer().getPluginManager().registerEvents(new StorageEvents(), this);
-        getServer().getPluginManager().registerEvents(new PlayerRightClicksPlayerListener(), this);
-        getServer().getPluginManager().registerEvents(new TradingWindow(), this);
-        getServer().getPluginManager().registerEvents(new PartyChatListener(partyManager), this);
-        getServer().getPluginManager().registerEvents(new PartyInviteListener(partyManager), this);
-        getServer().getPluginManager().registerEvents(new LootChestListener(lootChestManager), this);
-        getServer().getPluginManager().registerEvents(new LootChestCloseListener(lootChestManager), this);
-        getServer().getPluginManager().registerEvents(new PotionUseListener(potionManager, this), this);
-    }
-
-
-    private void registerCommands(BlacksmithGUI blacksmithGUI, HorseGUI horseGUI) {
-        getCommand("addpoints").setExecutor(new AddPointsCommand());
-        getCommand("addxp").setExecutor(new AddXPCommand(levelManager));
-        getCommand("stats").setExecutor(new StatsCommand());
-        getCommand("additem").setExecutor(new AddItemCommand());
-        getCommand("setlevel").setExecutor(new SetLevelCommand(this));
-        getCommand("class").setExecutor(new ClassCommand());
-        getCommand("balance").setExecutor(new BalanceCommand(economyManager));
-        getCommand("addcoins").setExecutor(new AddCoinsCommand(economyManager));
-        getCommand("addmob").setExecutor(new AddMobCommand(mobManager));
-        getCommand("blacksmith").setExecutor(new BlacksmithCommand(blacksmithGUI));
-        getCommand("horse").setExecutor(new HorseCommand(horseManager, horseGUI));
-        getCommand("effect").setExecutor(new EffectCommand(effectManager));
-        getCommand("ps").setExecutor(new StorageCommand());
-        getCommand("party").setExecutor(new PartyCommands(partyManager));
-        getCommand("addpotion").setExecutor(new AddPotionCommand(potionManager, this));
-        getCommand("lootchest").setExecutor(new LootChestCommand(configManager, lootChestManager));
     }
 }
