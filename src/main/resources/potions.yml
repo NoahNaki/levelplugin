@@ -4,10 +4,10 @@ potions:
     name: "§6Healing Potion"
     material: POTION
     charges: 3
-    cooldownSeconds: 10
+    cooldownSeconds: 5
   mana_potion:
     id: mana_potion
     name: "§9Mana Potion"
     material: POTION
     charges: 3
-    cooldownSeconds: 15
+    cooldownSeconds: 5

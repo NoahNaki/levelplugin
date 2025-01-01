@@ -103,12 +103,12 @@ public class PotionUseListener implements Listener {
             int newMana = Math.min(currentMana + manaRestore, maxMana);
 
             StatsManager.getInstance().getPlayerStats(player).setCurrentMana(newMana);
-            meta.setDisplayName("§bMana Potion §1[" + instance.getCharges() + "/5]");
+            meta.setDisplayName("§bMana Potion §3[" + instance.getCharges() + "/3]");
             List<String> lore = Collections.emptyList();
             System.out.println("Setting lore: " + lore); // Check lore before setting
             meta.setLore(lore);
             meta.setLore(Arrays.asList(
-                "§1- §7Recover §f10% §b✨"
+                "§3- §7Recover §f10% §b✨"
             ));
         }
 

@@ -56,11 +56,11 @@ public class PotionInstance {
             meta.setLore(lore);
             meta.setLore(Arrays.asList("§4- §7Recover §f10% §c❤"));
         } else if (template.getId().equals("mana_potion")) {
-            meta.setDisplayName("§bMana Potion §1[" + charges + "/" + template.getCharges() + "]");
+            meta.setDisplayName("§bMana Potion §3[" + charges + "/" + template.getCharges() + "]");
             List<String> lore = Collections.emptyList();
             System.out.println("Setting lore: " + lore); // Check lore before setting
             meta.setLore(lore);
-            meta.setLore(Arrays.asList("§1- §7Recover §f10% §b✨"));
+            meta.setLore(Arrays.asList("§3- §7Recover §f10% §b✨"));
         }
 
         // Store UUID in PersistentDataContainer
