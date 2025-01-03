@@ -134,27 +134,27 @@ public class TradingWindow implements Listener {
         // Read the first line of input
         String line0 = e.getLine(0);
 
-        // Validate input (must be a positive number)
-        if (!line0.matches("\\d+")) {
-            p.sendMessage(ChatColor.RED + "Please enter a valid number!");
-            return;
+        // Check if input is invalid
+        boolean isValidInput = line0.matches("\\d+");
+        if (!isValidInput) {
+            p.sendMessage(ChatColor.RED + "Invalid input! Please enter a valid number.");
+        } else {
+            int coins = Integer.parseInt(line0); // Parse coin amount
+
+            // Update the coin offer for the correct player
+            if (tw.player.equals(p)) {
+                tw.playerCoinOffer = coins;
+                p.sendMessage(ChatColor.GREEN + "You set your coin offer to: " + coins);
+            } else if (tw.opposite.equals(p)) {
+                tw.opponentCoinOffer = coins;
+                p.sendMessage(ChatColor.GREEN + "You set your coin offer to: " + coins);
+            }
+
+            // Update the coin display in inventories
+            tw.updateCoinOfferItems();
         }
 
-        int coins = Integer.parseInt(line0); // Parse coin amount
-
-        // Update the coin offer for the correct player
-        if (tw.player.equals(p)) {
-            tw.playerCoinOffer = coins;
-            p.sendMessage(ChatColor.GREEN + "You set your coin offer to: " + coins);
-        } else if (tw.opposite.equals(p)) {
-            tw.opponentCoinOffer = coins;
-            p.sendMessage(ChatColor.GREEN + "You set your coin offer to: " + coins);
-        }
-
-        // Update the coin display in inventories
-        tw.updateCoinOfferItems();
-
-        // Reopen the trade window properly by resetting the inventories
+        // Reopen the trade window regardless of input validity
         Bukkit.getScheduler().runTaskLater(Main.getPlugin(), () -> {
             // Clear old inventories and create fresh ones
             tw.playerInventory = Bukkit.createInventory(null, tw.CHEST_SIZE,
@@ -183,6 +183,7 @@ public class TradingWindow implements Listener {
             tw.refreshInventorySwitch();
         }, 1L); // Delay by 1 tick
     }
+
 
     private void updateCoinOfferItems() {
         // Update the player's coin offer
