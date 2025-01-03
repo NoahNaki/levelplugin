@@ -17,6 +17,7 @@ commands:
     description: Opens the stats GUI
     usage: /stats
     permission: none
+    aliases: [s]
   additem:
     description: Gives a custom item to a player
     usage: /additem <item_id> <player> <amount>
@@ -26,12 +27,14 @@ commands:
   class:
     description: Change your class
     usage: /class <Warrior|Rogue|Archer|Mage>
+    aliases: [c]
   addmob:
     description: Spawns custom mobs
     usage: /addmob <mobid> <amount>
   balance:
     description: Shows your coin balance
     usage: /balance
+    aliases: [b]
   addcoins:
     description: Adds coins to your balance
     usage: /addcoins <player> <amount>
@@ -41,6 +44,7 @@ commands:
   horse:
     description: Manage your horse
     usage: /horse [reroll]
+    aliases: [h]
   effect:
     description: Toggles the sword circle effect.
     usage: /effect
@@ -53,6 +57,7 @@ commands:
   party:
     description: Manage your party
     usage: /party <subcommand>
+    aliases: [p]
   lootchest:
     description: "LootChest management command"
     usage: "/lootchest <reload|list>"
