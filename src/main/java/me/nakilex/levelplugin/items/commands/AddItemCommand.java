@@ -41,15 +41,38 @@ public class AddItemCommand implements CommandExecutor {
             return true;
         }
 
-        CustomItem cItem = ItemManager.getInstance().getItemById(itemId);
-        if (cItem == null) {
+        CustomItem template = ItemManager.getInstance().getTemplateById(itemId); // Fetch template by ID
+        if (template == null) {
             sender.sendMessage("§cNo custom item found with ID: " + itemId);
             return true;
         }
 
-        target.getInventory().addItem(ItemUtil.createItemStackFromCustomItem(cItem, amount));
-        sender.sendMessage("§aGave " + amount + "x " + cItem.getName() + " [ID:" + itemId + "] to " + target.getName());
-        target.sendMessage("§aYou received " + amount + "x " + cItem.getName() + "! (ID:" + itemId + ")");
+// Create a unique instance with a UUID
+        CustomItem instance = new CustomItem(
+            java.util.UUID.randomUUID(), // Generate new UUID
+            template.getId(),
+            template.getBaseName(),
+            template.getRarity(),
+            template.getLevelRequirement(),
+            template.getClassRequirement(),
+            template.getMaterial(),
+            template.getHp(),
+            template.getDef(),
+            template.getStr(),
+            template.getAgi(),
+            template.getIntel(),
+            template.getDex(),
+            0 // Start at upgrade level 0
+        );
+
+// Add the instance to UUID map
+        ItemManager.getInstance().addInstance(instance);
+
+// Create ItemStack and give it to player
+        target.getInventory().addItem(ItemUtil.createItemStackFromCustomItem(instance, amount));
+        sender.sendMessage("§aGave " + amount + "x " + instance.getName() + " [ID:" + itemId + "] to " + target.getName());
+        target.sendMessage("§aYou received " + amount + "x " + instance.getName() + "! (ID:" + itemId + ")");
+
         return true;
     }
 }

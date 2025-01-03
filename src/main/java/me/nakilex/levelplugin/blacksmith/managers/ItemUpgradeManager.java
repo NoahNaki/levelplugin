@@ -7,6 +7,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
 import java.util.Random;
+import java.util.UUID;
 
 public class ItemUpgradeManager {
 
@@ -18,50 +19,52 @@ public class ItemUpgradeManager {
     }
 
     public int getUpgradeCost(CustomItem item) {
-        // Upgrade cost scales based on item upgrade level and rarity
         int baseCost = 100; // Base cost
-        int rarityMultiplier = item.getRarity().ordinal() + 1; // Common=1, Rare=2, etc.
+        int rarityMultiplier = item.getRarity().ordinal() + 1;
         return baseCost + (item.getUpgradeLevel() * 150 * rarityMultiplier);
     }
 
     public boolean attemptUpgrade(ItemStack itemStack, CustomItem customItem) {
         if (customItem.getUpgradeLevel() >= 5) {
-            // Send a message to the player and log the issue
             Main.getInstance().getLogger().info("Upgrade limit reached for item: " + customItem.getBaseName());
-            return false; // Upgrade limit reached
+            return false;
         }
 
         int successChance = calculateSuccessChance(customItem);
         if (random.nextInt(100) < successChance) {
             applyUpgrade(itemStack, customItem);
-            return true; // Upgrade succeeded
+            return true;
         }
-        return false; // Upgrade failed
+        return false;
     }
 
-
     private int calculateSuccessChance(CustomItem item) {
-        // Success chance decreases drastically as upgrade level increases
-        int baseChance = 50; // Start with a lower base success chance (e.g., 50%)
-        int levelPenalty = item.getUpgradeLevel() * 20; // Apply a harsher penalty (20% per level)
-        return Math.max(5, baseChance - levelPenalty); // Ensure a minimum success chance of 5%
+        int baseChance = 50; // Base success chance
+        int levelPenalty = item.getUpgradeLevel() * 20;
+        return Math.max(5, baseChance - levelPenalty);
     }
 
     private void applyUpgrade(ItemStack itemStack, CustomItem customItem) {
-        int currentUpgradeLevel = ItemUtil.getUpgradeLevel(itemStack);
+        UUID uuid = ItemUtil.getItemUUID(itemStack);
+        if (uuid == null) {
+            Main.getInstance().getLogger().warning("Failed to find UUID for item during upgrade.");
+            return;
+        }
+
+        int currentUpgradeLevel = customItem.getUpgradeLevel();
         if (currentUpgradeLevel >= 5) return;
 
         int newUpgradeLevel = currentUpgradeLevel + 1;
         customItem.setUpgradeLevel(newUpgradeLevel);
 
-        // The single place we multiply stats:
+        // Update stats for this specific item instance
         customItem.increaseStats();
 
-        // Now update the PDC and lore/visuals
+        // Update the PDC and visuals
         ItemUtil.updateUpgradeLevel(itemStack, newUpgradeLevel);
         ItemStack updatedItem = ItemUtil.createItemStackFromCustomItem(customItem, itemStack.getAmount());
 
-        // Overwrite the original item with updated name/lore
+        // Replace the original item
         itemStack.setType(updatedItem.getType());
         itemStack.setItemMeta(updatedItem.getItemMeta());
     }

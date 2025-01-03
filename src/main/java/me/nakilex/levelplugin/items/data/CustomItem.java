@@ -1,14 +1,18 @@
 package me.nakilex.levelplugin.items.data;
 
 import org.bukkit.Material;
+import java.util.UUID;
 
 public class CustomItem {
 
+    // Unique instance ID
+    private final UUID uuid;
+
     private final int id;
-    private final String baseName; // Store the original name
+    private final String baseName;
     private final ItemRarity rarity;
     private final int levelRequirement;
-    private final String classRequirement;  // WARRIOR, ROGUE, etc., or ANY
+    private final String classRequirement;
     private final Material material;
 
     // Stats
@@ -26,11 +30,12 @@ public class CustomItem {
     private int bonusIntel = 0;
     private int bonusDex = 0;
 
-    // Current level of the item (starts at 0 by default)
     private int upgradeLevel = 0;
 
+    // Constructor for NEW item instance with a unique UUID
     public CustomItem(int id, String baseName, ItemRarity rarity, int levelRequirement, String classRequirement,
                       Material material, int hp, int def, int str, int agi, int intel, int dex) {
+        this.uuid = UUID.randomUUID(); // Generate unique UUID
         this.id = id;
         this.baseName = baseName;
         this.rarity = rarity;
@@ -45,7 +50,32 @@ public class CustomItem {
         this.baseDex = dex;
     }
 
-    // Getters
+    // Constructor for LOADING existing item with UUID
+    public CustomItem(UUID uuid, int id, String baseName, ItemRarity rarity, int levelRequirement, String classRequirement,
+                      Material material, int hp, int def, int str, int agi, int intel, int dex, int upgradeLevel) {
+        this.uuid = uuid;
+        this.id = id;
+        this.baseName = baseName;
+        this.rarity = rarity;
+        this.levelRequirement = levelRequirement;
+        this.classRequirement = classRequirement;
+        this.material = material;
+        this.baseHp = hp;
+        this.baseDef = def;
+        this.baseStr = str;
+        this.baseAgi = agi;
+        this.baseIntel = intel;
+        this.baseDex = dex;
+        this.upgradeLevel = upgradeLevel;
+    }
+
+    // Getter for UUID
+    public UUID getUuid() {
+        return uuid;
+    }
+
+    // Existing getters and setters remain unchanged...
+
     public int getId() {
         return id;
     }
@@ -99,17 +129,14 @@ public class CustomItem {
     }
 
     public String getName() {
-        // Returns the display name with upgrade stars
         String stars = "★".repeat(upgradeLevel);
         return baseName + stars;
     }
 
-    // Setters
     public void setUpgradeLevel(int upgradeLevel) {
         this.upgradeLevel = upgradeLevel;
     }
 
-    // Adds bonus stats from items or temporary effects
     public void addBonusStats(int hp, int def, int str, int agi, int intel, int dex) {
         this.bonusHp += hp;
         this.bonusDef += def;
@@ -128,10 +155,8 @@ public class CustomItem {
         this.bonusDex -= dex;
     }
 
-    // Increases base stats based on rarity and upgrade level
     public void increaseStats() {
         double multiplier = 1.0 + (upgradeLevel * 0.1) + getRarityMultiplier();
-
         this.baseHp = (int) (baseHp * multiplier);
         this.baseDef = (int) (baseDef * multiplier);
         this.baseStr = (int) (baseStr * multiplier);
@@ -140,7 +165,6 @@ public class CustomItem {
         this.baseDex = (int) (baseDex * multiplier);
     }
 
-    // Helper method to calculate rarity multiplier
     private double getRarityMultiplier() {
         switch (rarity) {
             case COMMON:
@@ -160,16 +184,14 @@ public class CustomItem {
         }
     }
 
-    // Generates the display name with stars based on upgrade level
     public String getDisplayName() {
-        return getName(); // Uses the getName method for consistent naming
+        return getName();
     }
 
-    // Updates stats and lore after an upgrade
     public void applyUpgrade() {
-        if (upgradeLevel < 5) { // Ensure the upgrade level is within the limit
+        if (upgradeLevel < 5) {
             upgradeLevel++;
-            increaseStats(); // Recalculate stats based on new upgrade level
+            increaseStats();
         }
     }
 }

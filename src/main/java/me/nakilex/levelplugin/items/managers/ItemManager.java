@@ -16,10 +16,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
-
-import static me.nakilex.levelplugin.items.utils.ItemUtil.ITEM_ID_KEY;
+import java.util.*;
 
 public class ItemManager {
 
@@ -29,7 +26,8 @@ public class ItemManager {
         return instance;
     }
 
-    private final Map<Integer, CustomItem> itemsMap = new HashMap<>();
+    private final Map<Integer, CustomItem> templatesMap = new HashMap<>(); // Templates by ID
+    private final Map<UUID, CustomItem> itemsMap = new HashMap<>(); // Instances by UUID
     private FileConfiguration itemsConfig;
 
     public ItemManager(Plugin plugin) {
@@ -54,7 +52,8 @@ public class ItemManager {
     }
 
     private void loadItems() {
-        itemsMap.clear();
+        templatesMap.clear(); // Clear templates map
+        itemsMap.clear();     // Clear instances map
 
         if (!itemsConfig.contains("items")) {
             Main.getInstance().getLogger().warning("No items found in items.yml!");
@@ -82,6 +81,7 @@ public class ItemManager {
                 ItemRarity rarity = ItemRarity.valueOf(rarityStr.toUpperCase());
                 Material material = Material.valueOf(materialStr.toUpperCase());
 
+                // Generate a base item (template)
                 CustomItem cItem = new CustomItem(
                     numericId,
                     name,
@@ -92,7 +92,8 @@ public class ItemManager {
                     hp, def, str, agi, intel, dex
                 );
 
-                itemsMap.put(numericId, cItem);
+                // Store template by ID
+                templatesMap.put(numericId, cItem); // Add template to ID map
 
             } catch (Exception e) {
                 Main.getInstance().getLogger().warning("Failed to load item with key: " + key);
@@ -100,11 +101,28 @@ public class ItemManager {
             }
         }
 
-        Main.getInstance().getLogger().info("Loaded " + itemsMap.size() + " custom items from items.yml.");
+        Main.getInstance().getLogger().info("Loaded " + templatesMap.size() + " custom items from items.yml.");
     }
 
+
+    // Get template by numeric ID
+    public CustomItem getTemplateById(int id) {
+        return templatesMap.get(id);
+    }
+
+    // Add an instance with UUID
+    public void addInstance(CustomItem instance) {
+        itemsMap.put(instance.getUuid(), instance);
+    }
+
+    // Retrieve instance by UUID
+    public CustomItem getItemByUUID(UUID uuid) {
+        return itemsMap.get(uuid);
+    }
+
+
     public CustomItem getItemById(int itemId) {
-        return itemsMap.get(itemId);
+        return templatesMap.get(itemId); // Use templatesMap for lookup by ID
     }
 
     public CustomItem getCustomItemFromItemStack(ItemStack itemStack) {
@@ -115,17 +133,17 @@ public class ItemManager {
         ItemMeta meta = itemStack.getItemMeta();
         if (meta == null) return null;
 
-        // Get the custom item ID from PersistentDataContainer
-        int itemId = meta.getPersistentDataContainer().getOrDefault(ITEM_ID_KEY, PersistentDataType.INTEGER, -1);
-        if (itemId == -1) {
-            Main.getInstance().getLogger().info("No custom item ID found in PersistentDataContainer.");
+        // Get the custom item UUID from PersistentDataContainer
+        UUID itemUUID = ItemUtil.getItemUUID(itemStack);
+        if (itemUUID == null) {
+            Main.getInstance().getLogger().info("No custom item UUID found in PersistentDataContainer.");
             return null; // Not a custom item
         }
 
-        // Retrieve the custom item by its ID
-        CustomItem customItem = itemsMap.get(itemId);
+        // Retrieve the custom item by its UUID
+        CustomItem customItem = itemsMap.get(itemUUID);
         if (customItem == null) {
-            Main.getInstance().getLogger().info("No matching custom item found for ID: " + itemId);
+            Main.getInstance().getLogger().info("No matching custom item found for UUID: " + itemUUID);
         } else {
             Main.getInstance().getLogger().info("Custom Item Matched: " + customItem.getBaseName());
         }
@@ -133,23 +151,7 @@ public class ItemManager {
         return customItem;
     }
 
-    // In ItemManager.updateItem(...) we remove or comment out the increaseStats call:
-    public ItemStack updateItem(ItemStack itemStack, CustomItem customItem, int upgradeLevel) {
-        // We still update the persistent data for the new level:
-        customItem.setUpgradeLevel(upgradeLevel);
-
-        // REMOVE OR COMMENT OUT THIS LINE:
-        // customItem.increaseStats();
-
-        // Just update PDC so the item’s "upgrade level" is stored
-        ItemUtil.updateUpgradeLevel(itemStack, upgradeLevel);
-
-        // And rebuild the item stack (name/lore) from the customItem
-        return ItemUtil.createItemStackFromCustomItem(customItem, itemStack.getAmount());
-    }
-
-
-    public Map<Integer, CustomItem> getAllItems() {
+    public Map<UUID, CustomItem> getAllItems() {
         return new HashMap<>(itemsMap);
     }
 }
