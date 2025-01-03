@@ -64,13 +64,17 @@ public class LevelManager {
             applyLevelUpBenefits(player, level);
             StatsManager.getInstance().addSkillPoints(player, 5);
 
-            XPBarHandler.handleLevelUpEvent(player, level);
+            // Recalculate xpNeeded for the next level before calling the event
             xpNeeded = level * XP_PER_LEVEL_MULTIPLIER;
+
+            // Only now call the level up event, after xpNeeded has been recalculated
+            XPBarHandler.handleLevelUpEvent(player, level, xpNeeded);
         }
 
         playerLevels.put(uuid, level);
         playerXp.put(uuid, xp);
     }
+
 
     private void applyLevelUpBenefits(Player player, int newLevel) {
         double newMaxHealth = player.getMaxHealth() + 1.0;
