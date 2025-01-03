@@ -27,6 +27,7 @@ public class TradingWindow implements Listener {
 
     // Tracks players waiting for sign input and their respective TradingWindow
     private static final java.util.Map<UUID, TradingWindow> awaitingSignInput = new java.util.HashMap<>();
+    private static final java.util.Set<UUID> activeSignInputs = new java.util.HashSet<>();
 
     // Stores the coin offers for both players
     private int playerCoinOffer = 0;     // Coins offered by the main player
@@ -94,42 +95,41 @@ public class TradingWindow implements Listener {
     }
 
     private void openCoinSignGUI(Player p, TradingWindow tw) {
-        // 1) Mark this player as awaiting sign input in this TradingWindow
+        // Mark the player as having an active sign input
         awaitingSignInput.put(p.getUniqueId(), tw);
+        activeSignInputs.add(p.getUniqueId()); // Add to active sign input set
 
-        // 2) Place a temporary sign block near the player
-        Location loc = p.getLocation().clone().add(0, -1, 0); // Place below player
+        Location loc = p.getLocation().clone().add(0, -1, 0);
         Block block = loc.getBlock();
-        block.setType(Material.OAK_SIGN); // Replace with appropriate sign type if needed
+        block.setType(Material.OAK_SIGN);
 
-        // 3) Get the sign state and set initial text
         Sign sign = (Sign) block.getState();
-        sign.setLine(0, "Enter coins"); // Placeholder text
+        sign.setLine(0, "Enter coins");
         sign.update(true, false);
 
-        // 4) Open the sign GUI for the player
         p.openSign(sign);
 
-        // 5) Remove the temporary sign after 10 seconds
+        // Cleanup after 10 seconds, just in case
         Bukkit.getScheduler().runTaskLater(Main.getPlugin(), () -> {
-            if(block.getType().toString().contains("SIGN")) {
-                block.setType(Material.AIR); // Remove the sign block
+            if (block.getType().toString().contains("SIGN")) {
+                block.setType(Material.AIR);
             }
-        }, 20L * 10); // 10 seconds
+            activeSignInputs.remove(p.getUniqueId()); // Remove the active sign input
+        }, 20L * 10);
     }
-
 
     @EventHandler
     public void onSignChange(SignChangeEvent e) {
         Player p = e.getPlayer();
 
-        // Check if player is awaiting input
+        // Check if the player is awaiting input
         if (!awaitingSignInput.containsKey(p.getUniqueId())) {
             return; // Player is not in input mode, ignore
         }
 
         // Retrieve the TradingWindow instance
         TradingWindow tw = awaitingSignInput.remove(p.getUniqueId());
+        activeSignInputs.remove(p.getUniqueId()); // Remove active input status immediately
 
         // Read the first line of input
         String line0 = e.getLine(0);
@@ -142,19 +142,47 @@ public class TradingWindow implements Listener {
 
         int coins = Integer.parseInt(line0); // Parse coin amount
 
-        // Determine which player set the offer and update accordingly
+        // Update the coin offer for the correct player
         if (tw.player.equals(p)) {
-            tw.playerCoinOffer = coins; // Update player's offer
+            tw.playerCoinOffer = coins;
             p.sendMessage(ChatColor.GREEN + "You set your coin offer to: " + coins);
         } else if (tw.opposite.equals(p)) {
-            tw.opponentCoinOffer = coins; // Update opponent's offer
+            tw.opponentCoinOffer = coins;
             p.sendMessage(ChatColor.GREEN + "You set your coin offer to: " + coins);
         }
 
-        // Update the coin lore on the ingots to reflect the new values
+        // Update the coin display in inventories
         tw.updateCoinOfferItems();
-    }
 
+        // Reopen the trade window properly by resetting the inventories
+        Bukkit.getScheduler().runTaskLater(Main.getPlugin(), () -> {
+            // Clear old inventories and create fresh ones
+            tw.playerInventory = Bukkit.createInventory(null, tw.CHEST_SIZE,
+                String.format(tw.messageStrings.getTranslation(Translations.DEAL_WITH), tw.opposite.getName()));
+            tw.oppositeInventory = Bukkit.createInventory(null, tw.CHEST_SIZE,
+                String.format(tw.messageStrings.getTranslation(Translations.DEAL_WITH), tw.player.getName()));
+
+            // Reinitialize inventory contents
+            tw.prepareInventory(tw.playerInventory);
+            tw.prepareInventory(tw.oppositeInventory);
+
+            // Sync slots and updates
+            tw.projectToOpponentField(tw.playerSlots, false);
+            tw.projectToOpponentField(tw.oppositeSlots, true);
+            tw.updateCoinOfferItems();
+
+            // Rebind the inventories to DealMaker to register them properly
+            DealMaker dm = Main.getPlugin().getDealMaker();
+            dm.addTradingWindow(tw); // Re-register this trade window
+
+            // Open the inventories for both players
+            tw.player.openInventory(tw.playerInventory);
+            tw.opposite.openInventory(tw.oppositeInventory);
+
+            // Ensure everything is synced
+            tw.refreshInventorySwitch();
+        }, 1L); // Delay by 1 tick
+    }
 
     private void updateCoinOfferItems() {
         // Update the player's coin offer
@@ -659,16 +687,23 @@ public class TradingWindow implements Listener {
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent e) {
         DealMaker dm = Main.getPlugin().getDealMaker();
-        if(dm.isInventoryInList(e.getInventory())) {
+
+        // Check if the inventory belongs to the trade system
+        if (dm.isInventoryInList(e.getInventory())) {
             TradingWindow tw = dm.getTradingWindowByPlayer((Player) e.getPlayer());
 
-            if(e.getPlayer() instanceof Player) {
+            // Ignore close events triggered by the sign GUI
+            if (activeSignInputs.contains(e.getPlayer().getUniqueId())) {
+                return; // Skip processing if player is still awaiting sign input
+            }
+
+            // Handle trade closure only if it's a genuine exit
+            if (e.getPlayer() instanceof Player) {
                 Player p = (Player) e.getPlayer();
                 tw.closeTrade(p);
             }
         }
     }
-
 
     @EventHandler
     public void onInventoryDrag(InventoryDragEvent e) {
