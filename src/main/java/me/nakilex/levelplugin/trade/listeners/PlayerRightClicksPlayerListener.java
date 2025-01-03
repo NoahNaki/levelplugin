@@ -9,6 +9,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
+import net.citizensnpcs.api.CitizensAPI;
+import net.citizensnpcs.api.npc.NPC;
 
 public class PlayerRightClicksPlayerListener implements Listener {
     @EventHandler
@@ -17,6 +19,11 @@ public class PlayerRightClicksPlayerListener implements Listener {
         ConfigValues configValues = Main.getPlugin().getConfigValues();
         Player p = e.getPlayer();
         if(e.getRightClicked() instanceof Player) {
+            if (CitizensAPI.getNPCRegistry().isNPC(e.getRightClicked())) {
+                // Right-clicked entity is a NPC, so do nothing
+                return;
+            }
+
             if(configValues.ENABLE_TRADE_BY_RIGHTCLICK_PLAYER && (configValues.toggleUseWithoutPermission()
                 || p.hasPermission("trade.tradebyclick")
                 || p.hasPermission("trade.*"))) {
