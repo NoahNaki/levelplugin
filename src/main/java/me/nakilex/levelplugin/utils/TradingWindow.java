@@ -4,9 +4,12 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.trade.utils.MessageStrings;
 import me.nakilex.levelplugin.trade.utils.Translations;
 import org.bukkit.*;
+import org.bukkit.block.Block;
+import org.bukkit.block.Sign;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
@@ -14,8 +17,22 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 public class TradingWindow implements Listener {
+
+    private static final int PLAYER_COIN_SLOT   = 0;  // now slot 0
+    private static final int OPPONENT_COIN_SLOT = 8;  // now slot 8
+
+    // Tracks players waiting for sign input and their respective TradingWindow
+    private static final java.util.Map<UUID, TradingWindow> awaitingSignInput = new java.util.HashMap<>();
+
+    // Stores the coin offers for both players
+    private int playerCoinOffer = 0;     // Coins offered by the main player
+    private int opponentCoinOffer = 0;  // Coins offered by the opponent
+
+
     MessageStrings messageStrings = Main.getPlugin().getMessageStrings();
     final int ROWS = 6;
     final int CHEST_SIZE = 9 * ROWS;
@@ -51,7 +68,6 @@ public class TradingWindow implements Listener {
     public TradingWindow(Player player, Player oppositeDealPartner) {
         this.player = player;
         this.opposite = oppositeDealPartner;
-
         playerAcceptedDeal = false;
         oppositeAcceptedDeal = false;
         paidAfterClose = false;
@@ -60,7 +76,6 @@ public class TradingWindow implements Listener {
             String.format(messageStrings.getTranslation(Translations.DEAL_WITH), oppositeDealPartner.getName()));
         this.oppositeInventory = Bukkit.createInventory(null, CHEST_SIZE,
             String.format(messageStrings.getTranslation(Translations.DEAL_WITH), player.getName()));
-
 
         prepareInventory(playerInventory);
         prepareInventory(oppositeInventory);
@@ -76,10 +91,119 @@ public class TradingWindow implements Listener {
             oppositeDealPartner.openInventory(oppositeInventory);
         player.playNote(player.getLocation(), Instrument.SNARE_DRUM, Note.natural(1, Note.Tone.D));
         opposite.playNote(opposite.getLocation(), Instrument.SNARE_DRUM, Note.natural(1, Note.Tone.D));
-
     }
 
+    private void openCoinSignGUI(Player p, TradingWindow tw) {
+        // 1) Mark this player as awaiting sign input in this TradingWindow
+        awaitingSignInput.put(p.getUniqueId(), tw);
+
+        // 2) Place a temporary sign block near the player
+        Location loc = p.getLocation().clone().add(0, -1, 0); // Place below player
+        Block block = loc.getBlock();
+        block.setType(Material.OAK_SIGN); // Replace with appropriate sign type if needed
+
+        // 3) Get the sign state and set initial text
+        Sign sign = (Sign) block.getState();
+        sign.setLine(0, "Enter coins"); // Placeholder text
+        sign.update(true, false);
+
+        // 4) Open the sign GUI for the player
+        p.openSign(sign);
+
+        // 5) Remove the temporary sign after 10 seconds
+        Bukkit.getScheduler().runTaskLater(Main.getPlugin(), () -> {
+            if(block.getType().toString().contains("SIGN")) {
+                block.setType(Material.AIR); // Remove the sign block
+            }
+        }, 20L * 10); // 10 seconds
+    }
+
+
+    @EventHandler
+    public void onSignChange(SignChangeEvent e) {
+        Player p = e.getPlayer();
+
+        // Check if player is awaiting input
+        if (!awaitingSignInput.containsKey(p.getUniqueId())) {
+            return; // Player is not in input mode, ignore
+        }
+
+        // Retrieve the TradingWindow instance
+        TradingWindow tw = awaitingSignInput.remove(p.getUniqueId());
+
+        // Read the first line of input
+        String line0 = e.getLine(0);
+
+        // Validate input (must be a positive number)
+        if (!line0.matches("\\d+")) {
+            p.sendMessage(ChatColor.RED + "Please enter a valid number!");
+            return;
+        }
+
+        int coins = Integer.parseInt(line0); // Parse coin amount
+
+        // Determine which player set the offer and update accordingly
+        if (tw.player.equals(p)) {
+            tw.playerCoinOffer = coins; // Update player's offer
+            p.sendMessage(ChatColor.GREEN + "You set your coin offer to: " + coins);
+        } else if (tw.opposite.equals(p)) {
+            tw.opponentCoinOffer = coins; // Update opponent's offer
+            p.sendMessage(ChatColor.GREEN + "You set your coin offer to: " + coins);
+        }
+
+        // Update the coin lore on the ingots to reflect the new values
+        tw.updateCoinOfferItems();
+    }
+
+
+    private void updateCoinOfferItems() {
+        // Update the player's coin offer
+        ItemStack yourCoinIngot = playerInventory.getItem(PLAYER_COIN_SLOT);
+        if (yourCoinIngot != null && yourCoinIngot.getType() == Material.GOLD_INGOT) {
+            ItemMeta meta = yourCoinIngot.getItemMeta();
+            meta.setDisplayName(ChatColor.GOLD + "Your Coin Offer");
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Coins: " + playerCoinOffer);
+            meta.setLore(lore);
+            yourCoinIngot.setItemMeta(meta);
+        }
+
+        // Update the opponent's coin offer
+        ItemStack opponentCoinIngot = playerInventory.getItem(OPPONENT_COIN_SLOT);
+        if (opponentCoinIngot != null && opponentCoinIngot.getType() == Material.GOLD_INGOT) {
+            ItemMeta meta = opponentCoinIngot.getItemMeta();
+            meta.setDisplayName(ChatColor.GOLD + "Opponent's Coin Offer");
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Coins: " + opponentCoinOffer);
+            meta.setLore(lore);
+            opponentCoinIngot.setItemMeta(meta);
+        }
+
+        // Mirror the same updates on the opposite's inventory
+        ItemStack oppCoinIngot = oppositeInventory.getItem(PLAYER_COIN_SLOT);
+        if (oppCoinIngot != null && oppCoinIngot.getType() == Material.GOLD_INGOT) {
+            ItemMeta meta = oppCoinIngot.getItemMeta();
+            meta.setDisplayName(ChatColor.GOLD + "Your Coin Offer");
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Coins: " + opponentCoinOffer); // From their perspective
+            meta.setLore(lore);
+            oppCoinIngot.setItemMeta(meta);
+        }
+
+        ItemStack yourOppCoinIngot = oppositeInventory.getItem(OPPONENT_COIN_SLOT);
+        if (yourOppCoinIngot != null && yourOppCoinIngot.getType() == Material.GOLD_INGOT) {
+            ItemMeta meta = yourOppCoinIngot.getItemMeta();
+            meta.setDisplayName(ChatColor.GOLD + "Opponent's Coin Offer");
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Coins: " + playerCoinOffer); // From their perspective
+            meta.setLore(lore);
+            yourOppCoinIngot.setItemMeta(meta);
+        }
+    }
+
+
     private void prepareInventory(Inventory inv) {
+        // 1) Create “filler” & other standard items:
         ItemStack filler = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
         ItemMeta im = filler.getItemMeta();
         im.setDisplayName(messageStrings.getTranslation(Translations.FILLER_ITEM));
@@ -90,27 +214,70 @@ public class TradingWindow implements Listener {
         imSep.setDisplayName(OPPOSITE_FIELD_GLASS_NAME);
         separator.setItemMeta(imSep);
 
+        // Prepare personal trade acceptance (green glass)
         ItemStack personalTradeAccepment = new ItemStack(Material.GREEN_STAINED_GLASS_PANE);
         ItemMeta imPTA = personalTradeAccepment.getItemMeta();
         imPTA.setDisplayName(messageStrings.getTranslation(Translations.ACCEPT_TRADE_ITEM));
         personalTradeAccepment.setItemMeta(imPTA);
 
+        // 2) Prepare our red & green glass items for toggling accept status:
         this.initGlassConfig();
 
-
-
+        // 3) Fill the entire inventory layout with filler, accept fields, etc.
         for(int i = 0; i < ROWS * 9; i++) {
             if(isPersonalTradeAccepmentField(i)) {
                 inv.setItem(i, ownGreenGlass);
-            } else if(isOpponentsField(i)) {
+            }
+            else if(isOpponentsField(i)) {
                 inv.setItem(i, separator);
-            } else if(isOpponentsAccepmentField(i)) {
+            }
+            else if(isOpponentsAccepmentField(i)) {
                 inv.setItem(i, oppositeRedGlass);
-            } else if(isFillerIndex(i)) {
+            }
+            else if(isFillerIndex(i)) {
                 inv.setItem(i, filler);
             }
         }
+
+        // ----------------------------------------------------------
+        // 4) Place the coin-offer ingots in slots 0 (player) & 8 (opponent).
+        // ----------------------------------------------------------
+        if (inv.equals(playerInventory)) {
+            // This is the main player's view
+            ItemStack yourCoinIngot = new ItemStack(Material.GOLD_INGOT);
+            ItemMeta yourCoinMeta = yourCoinIngot.getItemMeta();
+            yourCoinMeta.setDisplayName("Your Coin Offer");
+            yourCoinIngot.setItemMeta(yourCoinMeta);
+
+            // Place it in slot 0
+            inv.setItem(PLAYER_COIN_SLOT, yourCoinIngot);
+
+            ItemStack opponentCoinIngot = new ItemStack(Material.GOLD_INGOT);
+            ItemMeta oppCoinMeta = opponentCoinIngot.getItemMeta();
+            oppCoinMeta.setDisplayName("Opponent's Coin Offer");
+            opponentCoinIngot.setItemMeta(oppCoinMeta);
+
+            // Place it in slot 8
+            inv.setItem(OPPONENT_COIN_SLOT, opponentCoinIngot);
+
+        } else if (inv.equals(oppositeInventory)) {
+            // This is the opposite player's view
+            ItemStack yourCoinIngot = new ItemStack(Material.GOLD_INGOT);
+            ItemMeta yourCoinMeta = yourCoinIngot.getItemMeta();
+            yourCoinMeta.setDisplayName("Your Coin Offer");
+            yourCoinIngot.setItemMeta(yourCoinMeta);
+
+            inv.setItem(PLAYER_COIN_SLOT, yourCoinIngot);
+
+            ItemStack opponentCoinIngot = new ItemStack(Material.GOLD_INGOT);
+            ItemMeta oppCoinMeta = opponentCoinIngot.getItemMeta();
+            oppCoinMeta.setDisplayName("Opponent's Coin Offer");
+            opponentCoinIngot.setItemMeta(oppCoinMeta);
+
+            inv.setItem(OPPONENT_COIN_SLOT, opponentCoinIngot);
+        }
     }
+
 
     public void initGlassConfig() {
         oppositeRedGlass = new ItemStack(Material.RED_STAINED_GLASS_PANE);
@@ -277,8 +444,9 @@ public class TradingWindow implements Listener {
     }
 
     private boolean isOpponentsField(int index) {
-        return index > 13 && index < 9 * ROWS - 9 && (index + 4) % 9 < 3;
+        return index >= 13 && index < 9 * ROWS - 9 && (index + 4) % 9 < 3;
     }
+
 
     private boolean isFillerIndex(int index) {
         return index % 9 == 0 || (index + 1) % 9 == 0 || index < 9 || index > 9 * ROWS - 9 || (index + 5) % 9 == 0;
@@ -397,62 +565,91 @@ public class TradingWindow implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent e) {
-        if(!(e.getWhoClicked() instanceof Player)) return;
+        if (!(e.getWhoClicked() instanceof Player)) return;
         Player p = (Player) e.getWhoClicked();
         DealMaker dm = Main.getPlugin().getDealMaker();
 
+        // Check if the inventory is part of the trade system
+        if (dm.isInventoryInList(e.getClickedInventory())) {
+            TradingWindow tw = dm.getTradingWindow(e.getClickedInventory());
 
-        if(Main.getPlugin().getDealMaker().isInventoryInList(e.getClickedInventory())) {
-            TradingWindow tw = Main.getPlugin().getDealMaker().getTradingWindow(e.getClickedInventory());
+            // Player's Inventory Handling
+            if (e.getClickedInventory().equals(tw.playerInventory)) {
 
-            // Save click slot for drop event
-
-            if(e.getClick().isKeyboardClick()) {
-                if(tw.player.equals(p) && e.getClickedInventory().equals(tw.playerInventory)) {
-                    tw.cursorPlayer = e.getSlot();
-                    e.setCancelled(true);
+                // Handle Player Coin Slot
+                if (e.getSlot() == PLAYER_COIN_SLOT) {
+                    e.setCancelled(true); // Prevent moving the item
+                    if (tw.player.equals(p)) {
+                        openCoinSignGUI(p, tw); // Open the sign GUI for the main player
+                    }
+                    return;
                 }
-                else if(tw.opposite.equals(p) && e.getClickedInventory().equals(tw.oppositeInventory)) {
-                    tw.cursorOpponent = e.getSlot();
-                    e.setCancelled(true);
-                }
-            }
 
-            if(e.getClickedInventory().equals(tw.playerInventory)) {
-                if(isPersonalTradeAccepmentField(e.getSlot())) {
-                    // Player toggles deal status
+                // Handle Opponent Coin Slot
+                else if (e.getSlot() == OPPONENT_COIN_SLOT) {
+                    e.setCancelled(true); // Prevent moving the item
+                    if (tw.opposite.equals(p)) {
+                        openCoinSignGUI(p, tw); // Open the sign GUI for the opponent
+                    }
+                    return;
+                }
+
+                // Handle Deal Acceptance Field
+                if (isPersonalTradeAccepmentField(e.getSlot())) {
                     e.setCancelled(true);
                     this.toggleOwnStatus(tw, e.getClickedInventory());
-                } else if(isOwnField(e.getSlot())) {
-                    if(tw.playerAcceptedDeal || tw.oppositeAcceptedDeal)
-                        e.setCancelled(true);
+                }
+                // Handle Other Fields
+                else if (isOwnField(e.getSlot())) {
+                    if (tw.playerAcceptedDeal || tw.oppositeAcceptedDeal) e.setCancelled(true);
                     tw.refreshInventorySwitch();
                 } else {
                     e.setCancelled(true);
                 }
-            } else if(e.getClickedInventory().equals(tw.oppositeInventory)) {
-                if(isPersonalTradeAccepmentField(e.getSlot())) {
-                    // Opposite toggles own deal status
+
+                // Opponent's Inventory Handling
+            } else if (e.getClickedInventory().equals(tw.oppositeInventory)) {
+
+                // Handle Opponent Coin Slot
+                if (e.getSlot() == PLAYER_COIN_SLOT) {
+                    e.setCancelled(true); // Prevent moving the item
+                    if (tw.opposite.equals(p)) {
+                        openCoinSignGUI(p, tw); // Open the sign GUI for the opponent
+                    }
+                    return;
+                }
+
+                // Handle Player Coin Slot (From Opponent's Perspective)
+                else if (e.getSlot() == OPPONENT_COIN_SLOT) {
+                    e.setCancelled(true); // Prevent moving the item
+                    if (tw.player.equals(p)) {
+                        openCoinSignGUI(p, tw); // Open the sign GUI for the main player
+                    }
+                    return;
+                }
+
+                // Handle Deal Acceptance Field
+                if (isPersonalTradeAccepmentField(e.getSlot())) {
                     e.setCancelled(true);
                     this.toggleOpponentsStatus(tw);
-                } else if(isOwnField(e.getSlot())) {
-                    if(tw.playerAcceptedDeal || tw.oppositeAcceptedDeal)
-                        e.setCancelled(true);
-                    else
-                        e.setCancelled(false);
+                }
+                // Handle Other Fields
+                else if (isOwnField(e.getSlot())) {
+                    if (tw.playerAcceptedDeal || tw.oppositeAcceptedDeal) e.setCancelled(true);
+                    else e.setCancelled(false);
                     tw.refreshInventorySwitch();
                 } else {
                     e.setCancelled(true);
                 }
             }
-        } else if(dm.isPlayerCurrentlyDealing(p)) {
+        }
+        // Handle players dealing outside trade window
+        else if (dm.isPlayerCurrentlyDealing(p)) {
             TradingWindow tw = dm.getTradingWindowByPlayer(p);
-            if(tw.playerAcceptedDeal || tw.oppositeAcceptedDeal) {
-                if(e.isShiftClick())
-                    e.setCancelled(true);
-                else if(e.getClick().equals(ClickType.DOUBLE_CLICK)) // player double-clicks in own inventory
-                    e.setCancelled(true); // prevent stealing items from own slot field after trade accepted
-            } else if(e.isShiftClick()) {
+            if (tw.playerAcceptedDeal || tw.oppositeAcceptedDeal) {
+                if (e.isShiftClick()) e.setCancelled(true);
+                else if (e.getClick().equals(ClickType.DOUBLE_CLICK)) e.setCancelled(true);
+            } else if (e.isShiftClick()) {
                 tw.refreshInventorySwitch();
             }
         }
