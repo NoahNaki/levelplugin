@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.utils;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.trade.utils.MessageStrings;
 import me.nakilex.levelplugin.trade.utils.Translations;
 import org.bukkit.*;
@@ -32,6 +33,8 @@ public class TradingWindow implements Listener {
     // Stores the coin offers for both players
     private int playerCoinOffer = 0;     // Coins offered by the main player
     private int opponentCoinOffer = 0;  // Coins offered by the opponent
+
+    private EconomyManager economyManager;
 
 
     MessageStrings messageStrings = Main.getPlugin().getMessageStrings();
@@ -73,6 +76,9 @@ public class TradingWindow implements Listener {
         oppositeAcceptedDeal = false;
         paidAfterClose = false;
 
+        // Initialize the economy manager here
+        this.economyManager = Main.getPlugin().getEconomyManager();
+
         this.playerInventory = Bukkit.createInventory(null, CHEST_SIZE,
             String.format(messageStrings.getTranslation(Translations.DEAL_WITH), oppositeDealPartner.getName()));
         this.oppositeInventory = Bukkit.createInventory(null, CHEST_SIZE,
@@ -93,6 +99,7 @@ public class TradingWindow implements Listener {
         player.playNote(player.getLocation(), Instrument.SNARE_DRUM, Note.natural(1, Note.Tone.D));
         opposite.playNote(opposite.getLocation(), Instrument.SNARE_DRUM, Note.natural(1, Note.Tone.D));
     }
+
 
     private void openCoinSignGUI(Player p, TradingWindow tw) {
         // Mark the player as having an active sign input
@@ -406,8 +413,15 @@ public class TradingWindow implements Listener {
                 tw.playerInventory.close();
             if(tw.oppositeInventory.getViewers().contains(tw.opposite))
                 tw.oppositeInventory.close();
+
             if(tw.oppositeAcceptedDeal && tw.playerAcceptedDeal) {
                 // Both accepted the deal and the items to deal get flipped
+
+                // Deduct and add coins based on offers
+                economyManager.deductCoins(p, tw.playerCoinOffer);
+                economyManager.addCoins(o, tw.playerCoinOffer);
+                economyManager.deductCoins(o, tw.opponentCoinOffer);
+                economyManager.addCoins(p, tw.opponentCoinOffer);
 
                 // Check, if the items already got moved back to the inventory
                 for(int i = 0; i < ROWS * 9; i++) {
