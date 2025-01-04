@@ -221,6 +221,10 @@ public class Main extends JavaPlugin {
         return customConfig;
     }
 
+    public EconomyManager getEconomyManager() {
+        return economyManager;
+    }
+
     public ConfigValues getConfigValues() {
         return configValues;
     }

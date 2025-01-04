@@ -334,8 +334,8 @@ public class TradingWindow implements Listener {
     // -- Togggler for deal status
 
     public void toggleOpponentsStatus(TradingWindow tw) {
+        tw.oppositeAcceptedDeal = !tw.oppositeAcceptedDeal; // Toggle opponent acceptance
 
-        tw.oppositeAcceptedDeal = !tw.oppositeAcceptedDeal;
         for(int i = 0; i < ROWS * 9; i++) {
             if(tw.oppositeAcceptedDeal) {
                 if(isOpponentsAccepmentField(i)) {
@@ -354,12 +354,18 @@ public class TradingWindow implements Listener {
             }
         }
 
-        if(playerAcceptedDeal && oppositeAcceptedDeal)
-            tw.playerInventory.close();
+        // Auto-close and finalize the trade if both players have accepted
+        if (tw.playerAcceptedDeal && tw.oppositeAcceptedDeal) {
+            tw.player.closeInventory();
+            tw.opposite.closeInventory();
+            tw.closeTrade(tw.player); // Finalize trade
+        }
     }
 
+
     public void toggleOwnStatus(TradingWindow tw, Inventory inv) {
-        tw.playerAcceptedDeal = !tw.playerAcceptedDeal;
+        tw.playerAcceptedDeal = !tw.playerAcceptedDeal; // Toggle acceptance status
+
         for(int i = 0; i < ROWS * 9; i++) {
             if(tw.playerAcceptedDeal) {
                 if(isOpponentsAccepmentField(i)) {
@@ -377,9 +383,15 @@ public class TradingWindow implements Listener {
                 }
             }
         }
-        if(playerAcceptedDeal && oppositeAcceptedDeal)
-            tw.playerInventory.close();
+
+        // Auto-close and finalize the trade if both players have accepted
+        if (tw.playerAcceptedDeal && tw.oppositeAcceptedDeal) {
+            tw.player.closeInventory();
+            tw.opposite.closeInventory();
+            tw.closeTrade(tw.player); // Finalize trade
+        }
     }
+
 
     public void closeTrade(Player player) {
         DealMaker dm = Main.getPlugin().getDealMaker();
