@@ -148,17 +148,22 @@ public class TradingWindow implements Listener {
         } else {
             int coins = Integer.parseInt(line0); // Parse coin amount
 
-            // Update the coin offer for the correct player
-            if (tw.player.equals(p)) {
-                tw.playerCoinOffer = coins;
-                p.sendMessage(ChatColor.GREEN + "You set your coin offer to: " + coins);
-            } else if (tw.opposite.equals(p)) {
-                tw.opponentCoinOffer = coins;
-                p.sendMessage(ChatColor.GREEN + "You set your coin offer to: " + coins);
-            }
+            // Check if player has enough coins
+            if (tw.economyManager.getBalance(p) < coins) {
+                p.sendMessage(ChatColor.RED + "You do not have enough coins to offer this amount.");
+            } else {
+                // Update the coin offer for the correct player
+                if (tw.player.equals(p)) {
+                    tw.playerCoinOffer = coins;
+                    p.sendMessage(ChatColor.GREEN + "You set your coin offer to: " + coins);
+                } else if (tw.opposite.equals(p)) {
+                    tw.opponentCoinOffer = coins;
+                    p.sendMessage(ChatColor.GREEN + "You set your coin offer to: " + coins);
+                }
 
-            // Update the coin display in inventories
-            tw.updateCoinOfferItems();
+                // Update the coin display in inventories
+                tw.updateCoinOfferItems();
+            }
         }
 
         // Reopen the trade window regardless of input validity
@@ -190,6 +195,7 @@ public class TradingWindow implements Listener {
             tw.refreshInventorySwitch();
         }, 1L); // Delay by 1 tick
     }
+
 
 
     private void updateCoinOfferItems() {
