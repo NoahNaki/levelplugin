@@ -1,0 +1,7 @@
+mobs:
+  rpg_bat:
+    exp: 100
+    coins: "100-500"
+  zombie_king:
+    exp: 200
+    coins: "200-800"

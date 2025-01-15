@@ -8,8 +8,10 @@ import me.nakilex.levelplugin.horse.gui.HorseGUI;
 import me.nakilex.levelplugin.lootchests.listeners.LootChestCloseListener;
 import me.nakilex.levelplugin.lootchests.listeners.LootChestListener;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
+import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.mob.listeners.MobDamageListener;
 import me.nakilex.levelplugin.mob.listeners.MobDeathListener;
+import me.nakilex.levelplugin.mob.listeners.MythicMobDeathListener;
 import me.nakilex.levelplugin.npc.listeners.NPCClickListener;
 import me.nakilex.levelplugin.npc.listeners.NPCCommandListener;
 import me.nakilex.levelplugin.party.PartyChatListener;
@@ -38,7 +40,8 @@ public class ListenerRegistry {
                                          PotionManager potionManager,
                                          PartyManager partyManager,
                                          EconomyManager economyManager,
-                                         FileConfiguration mobConfig) {
+                                         FileConfiguration mobConfig,
+                                         MobRewardsConfig mobRewardsConfig) {
 
         PluginManager pm = plugin.getServer().getPluginManager();
 
@@ -46,11 +49,8 @@ public class ListenerRegistry {
         pm.registerEvents(new MobDamageListener(), plugin);
         //pm.registerEvents(new PlayerKillListener(plugin.getLevelManager(), mobConfig, partyManager), plugin);
         pm.registerEvents(new MobDeathListener(plugin.getMobManager(), economyManager), plugin);
-        System.out.println("MobDeathListener registered.");
-
         pm.registerEvents(new PlayerKillListener(plugin.getLevelManager(), mobConfig, partyManager), plugin);
-        System.out.println("PlayerKillListener registered.");
-
+        pm.registerEvents(new MythicMobDeathListener(mobRewardsConfig, plugin.getLevelManager(), economyManager), plugin);
         pm.registerEvents(new PlayerJoinListener(plugin.getLevelManager()), plugin);
         pm.registerEvents(new StatsMenuListener(), plugin);
         pm.registerEvents(new StatsEffectListener(), plugin);

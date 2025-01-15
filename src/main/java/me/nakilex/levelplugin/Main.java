@@ -11,6 +11,7 @@ import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.lootchests.config.ConfigManager;
 import me.nakilex.levelplugin.lootchests.managers.CooldownManager;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
+import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.mob.managers.MobManager;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
@@ -64,19 +65,40 @@ public class Main extends JavaPlugin {
     private FileConfiguration mobConfig;
     private HorseConfigManager horseConfigManager;
     private NamespacedKey upgradeKey;
+    private MobRewardsConfig mobRewardsConfig;
 
     @Override
     public void onEnable() {
+        // Set the plugin instance
         instance = this;
         plugin = this;
 
+        // Load configuration files
         loadConfigFiles();
+
+        // Initialize managers and other components
         initializeManagers();
+
+        // Setup custom configurations like mob_rewards.yml
         setupCustomConfig();
+
+        // Validate dependencies (e.g., MythicMobs)
+        if (!validateDependencies()) {
+            getLogger().severe("Missing required dependencies. Disabling plugin...");
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+
+        // Initialize the MobRewardsConfig
+        mobRewardsConfig = new MobRewardsConfig(this);
+
+        // Register commands and event listeners
         registerCommandsAndListeners();
-        if (!validateDependencies()) return;
+
+        // Log success message
         getLogger().info("LevelPlugin has been enabled successfully!");
     }
+
 
     private void loadConfigFiles() {
         saveResource("potions.yml", false);
@@ -147,7 +169,8 @@ public class Main extends JavaPlugin {
             potionManager,
             partyManager,
             economyManager,
-            mobConfig
+            mobConfig,
+            mobRewardsConfig
         );
 
         TaskRegistry.startTasks(this, horseConfigManager);

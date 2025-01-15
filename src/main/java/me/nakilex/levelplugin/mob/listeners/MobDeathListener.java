@@ -33,7 +33,7 @@ public class MobDeathListener implements Listener {
         // Log when any mob dies
         String mobName = event.getEntity().getName();
         String killerName = (event.getEntity().getKiller() != null) ? event.getEntity().getKiller().getName() : "Unknown";
-        System.out.println("EntityDeathEvent triggered for: Mob - " + mobName + ", Killed by: " + killerName);
+        //System.out.println("EntityDeathEvent triggered for: Mob - " + mobName + ", Killed by: " + killerName);
 
         if (!(event.getEntity().getKiller() instanceof Player)) return;
         Player killer = event.getEntity().getKiller();
@@ -41,13 +41,13 @@ public class MobDeathListener implements Listener {
         // Check PDC for custom mob ID
         PersistentDataContainer pdc = event.getEntity().getPersistentDataContainer();
         if (!pdc.has(CustomMob.MOB_ID_KEY, PersistentDataType.STRING)) {
-            System.out.println("Entity is not a custom mob.");
+            //System.out.println("Entity is not a custom mob.");
             return; // not a custom mob
         }
         String mobId = pdc.get(CustomMob.MOB_ID_KEY, PersistentDataType.STRING);
         MobConfig cfg = mobManager.getMobConfig(mobId);
         if (cfg == null) {
-            System.out.println("No configuration found for mob ID: " + mobId);
+            //System.out.println("No configuration found for mob ID: " + mobId);
             return;
         }
 
