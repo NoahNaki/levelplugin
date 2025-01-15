@@ -12,6 +12,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -36,6 +37,9 @@ public class PlayerKillListener implements Listener {
 
     @EventHandler
     public void onEntityDeath(EntityDeathEvent event) {
+        // Log when any mob dies
+        System.out.println("EntityDeathEvent triggered for: " + event.getEntity().getName());
+
         // Remove vanilla XP
         event.setDroppedExp(0);
 
@@ -100,6 +104,11 @@ public class PlayerKillListener implements Listener {
                     contributor.sendMessage(String.format(
                         "§eYou dealt %.1f%% of the damage to %s and earned %d XP!",
                         percentage, mobID, xpAward
+                    ));
+
+                    System.out.println(String.format(
+                        "Player %s dealt %.1f%% of the damage to mob %s and earned %d XP.",
+                        contributor.getName(), percentage, mobID, xpAward
                     ));
                 }
             }

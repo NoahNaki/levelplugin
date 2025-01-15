@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.mob.managers.MobManager;
 import me.nakilex.levelplugin.mob.data.MobConfig;
 import me.nakilex.levelplugin.mob.data.CustomMob;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
+import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
@@ -29,17 +30,26 @@ public class MobDeathListener implements Listener {
 
     @EventHandler
     public void onMobDeath(EntityDeathEvent event) {
+        // Log when any mob dies
+        String mobName = event.getEntity().getName();
+        String killerName = (event.getEntity().getKiller() != null) ? event.getEntity().getKiller().getName() : "Unknown";
+        System.out.println("EntityDeathEvent triggered for: Mob - " + mobName + ", Killed by: " + killerName);
+
         if (!(event.getEntity().getKiller() instanceof Player)) return;
         Player killer = event.getEntity().getKiller();
 
         // Check PDC for custom mob ID
         PersistentDataContainer pdc = event.getEntity().getPersistentDataContainer();
         if (!pdc.has(CustomMob.MOB_ID_KEY, PersistentDataType.STRING)) {
+            System.out.println("Entity is not a custom mob.");
             return; // not a custom mob
         }
         String mobId = pdc.get(CustomMob.MOB_ID_KEY, PersistentDataType.STRING);
         MobConfig cfg = mobManager.getMobConfig(mobId);
-        if(cfg == null) return;
+        if (cfg == null) {
+            System.out.println("No configuration found for mob ID: " + mobId);
+            return;
+        }
 
         event.getDrops().clear(); // clear vanilla drops
 
@@ -54,14 +64,17 @@ public class MobDeathListener implements Listener {
                     // add to killer's balance
                     economy.addCoins(killer, coins);
                     killer.sendMessage(ChatColor.GREEN + "You received " + coins + " coins!");
+                    System.out.println("Player " + killer.getName() + " received " + coins + " coins from mob " + mobName);
                 } else {
                     // normal item drop
                     Material mat = Material.matchMaterial(loot.getItem());
-                    if(mat != null) {
+                    if (mat != null) {
                         ItemStack stack = new ItemStack(mat, 1);
                         event.getDrops().add(stack);
+                        System.out.println("Player " + killer.getName() + " received item " + loot.getItem() + " from mob " + mobName);
                     } else {
                         killer.sendMessage(ChatColor.YELLOW + "Mob dropped unknown item: " + loot.getItem());
+                        System.out.println("Unknown item dropped: " + loot.getItem());
                     }
                 }
             }
