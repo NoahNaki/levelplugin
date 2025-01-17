@@ -42,14 +42,11 @@ public class MythicMobNameManager implements Listener {
         trackedMobs.add(activeMob);
 
         // Optionally, set an initial display name on spawn
-        // (not strictly required if the repeating task updates it quickly).
         setDisplayName(activeMob);
     }
 
     /**
-     * If a mob dies, you can remove it from tracking here
-     * to keep the set clean. (If you don't, our code below
-     * will auto-remove them anyway when it sees they're dead.)
+     * If a mob dies, you can remove it from tracking here.
      */
     @EventHandler
     public void onMythicMobDeath(EntityDeathEvent event) {
@@ -82,11 +79,11 @@ public class MythicMobNameManager implements Listener {
 
     /**
      * Applies the custom name format:
-     *   [Lv 10] (FormattedName) currentHP/maxHP ♥
+     *   [Lv X] (FormattedName) currentHP/maxHP ♥
      */
     private void setDisplayName(ActiveMob mob) {
-        // Example: set a static level or fetch from your logic
-        int level = 10;
+        // Fetch the level dynamically using MythicMobs API
+        int level = (int) mob.getLevel(); // Get the actual level of the mob
 
         double currentHP = mob.getEntity().getHealth();
         double maxHP     = mob.getEntity().getMaxHealth();

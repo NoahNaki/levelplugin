@@ -23,5 +23,11 @@ loot_chests:
   8:
     coordinates: 107, 64, 200
     tier: 8
+  9:
+    coordinates: -1214, 27, -1551
+    tier: 1
+  10:
+    coordinates: -1198, 21, -1560
+    tier: 1
 cooldowns:
   default: 20
