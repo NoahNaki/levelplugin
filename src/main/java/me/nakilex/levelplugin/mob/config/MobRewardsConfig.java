@@ -18,7 +18,7 @@ public class MobRewardsConfig {
 
         if (!configFile.exists()) {
             try {
-                plugin.saveResource("mob_rewards.yml", false);
+                plugin.saveResource("mob_rewards.yml", true);
             } catch (Exception e) {
                 plugin.getLogger().log(Level.SEVERE, "Failed to save mob_rewards.yml!", e);
             }

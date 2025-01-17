@@ -2,6 +2,7 @@ mobs:
   rpg_bat:
     exp: 100
     coins: "100-500"
-  zombie_king:
-    exp: 200
-    coins: "200-800"
+    items:
+      - itemid: 1
+        drop_rate: 100.0
+        quantity: "1-5"

@@ -25,15 +25,10 @@ import me.nakilex.levelplugin.utils.CommandRegistry;
 import me.nakilex.levelplugin.utils.DealMaker;
 import me.nakilex.levelplugin.utils.ListenerRegistry;
 import me.nakilex.levelplugin.utils.TaskRegistry;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -81,7 +76,6 @@ public class Main extends JavaPlugin {
 
         // Setup custom configurations like mob_rewards.yml
         setupCustomConfig();
-
         // Validate dependencies (e.g., MythicMobs)
         if (!validateDependencies()) {
             getLogger().severe("Missing required dependencies. Disabling plugin...");

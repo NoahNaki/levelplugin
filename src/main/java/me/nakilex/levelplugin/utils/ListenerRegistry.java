@@ -12,6 +12,7 @@ import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.mob.listeners.MobDamageListener;
 import me.nakilex.levelplugin.mob.listeners.MobDeathListener;
 import me.nakilex.levelplugin.mob.listeners.MythicMobDeathListener;
+import me.nakilex.levelplugin.mob.managers.MythicMobNameManager;
 import me.nakilex.levelplugin.npc.listeners.NPCClickListener;
 import me.nakilex.levelplugin.npc.listeners.NPCCommandListener;
 import me.nakilex.levelplugin.party.PartyChatListener;
@@ -74,5 +75,6 @@ public class ListenerRegistry {
         pm.registerEvents(new LootChestListener(lootChestManager), plugin);
         pm.registerEvents(new LootChestCloseListener(lootChestManager), plugin);
         pm.registerEvents(new PotionUseListener(potionManager, plugin), plugin);
+        pm.registerEvents(new MythicMobNameManager(plugin), plugin);
     }
 }
