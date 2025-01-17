@@ -1,5 +1,7 @@
 package me.nakilex.levelplugin;
 
+import io.lumine.mythic.bukkit.BukkitAPIHelper;
+import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
 import me.nakilex.levelplugin.blacksmith.managers.ItemUpgradeManager;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
@@ -37,6 +39,7 @@ import java.io.IOException;
 public class Main extends JavaPlugin {
 
     private static Main instance;
+    private BukkitAPIHelper mythicHelper;
     private LevelManager levelManager;
     private MobManager mobManager;
     private EconomyManager economyManager;
@@ -67,6 +70,15 @@ public class Main extends JavaPlugin {
         // Set the plugin instance
         instance = this;
         plugin = this;
+
+        if (MythicBukkit.inst() != null) {
+            mythicHelper = MythicBukkit.inst().getAPIHelper();
+            getLogger().info("MythicMobs API successfully loaded.");
+        } else {
+            getLogger().severe("MythicMobs not found! Disabling plugin...");
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
 
         // Load configuration files
         loadConfigFiles();
@@ -189,6 +201,10 @@ public class Main extends JavaPlugin {
         }
 
         getLogger().info("LevelPlugin has been disabled!");
+    }
+
+    public BukkitAPIHelper getMythicHelper() {
+        return mythicHelper;
     }
 
     public static Main getInstance() {
