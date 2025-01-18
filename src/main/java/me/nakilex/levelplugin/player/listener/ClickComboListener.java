@@ -79,6 +79,31 @@ public class ClickComboListener implements Listener {
         long now = System.currentTimeMillis();
         UUID uuid = player.getUniqueId();
 
+        // Retrieve the player's stats and class
+        PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
+        String className = ps.playerClass.name().toLowerCase();
+
+        // Check if the player is holding a valid weapon for their class
+        ItemStack mainHand = player.getInventory().getItemInMainHand();
+        if (mainHand == null || mainHand.getType() == Material.AIR) {
+            return; // Don't update action bar if no weapon is held
+        }
+
+        // Retrieve all spells for the player's class
+        Map<String, Spell> classSpells = SpellManager.getInstance().getSpellsByClass(className);
+        if (classSpells == null || classSpells.isEmpty()) {
+            return; // No spells found for the player's class
+        }
+
+        // Check if the weapon is valid for any spell in the player's class
+        boolean validWeapon = classSpells.values().stream()
+            .anyMatch(spell -> spell.getAllowedWeapons().contains(mainHand.getType()));
+
+        if (!validWeapon) {
+            return; // Don't update action bar if the weapon is invalid
+        }
+
+        // Proceed with combo recording
         ClickSequence seq = playerCombos.getOrDefault(uuid, new ClickSequence());
         if (now - seq.getLastClickTime() > MAX_COMBO_TIME) {
             seq.clear();
@@ -87,12 +112,14 @@ public class ClickComboListener implements Listener {
         seq.addClick(clickType, now);
         playerCombos.put(uuid, seq);
 
+        // If the combo is complete, handle the spell cast
         if (seq.isComplete()) {
             String combo = seq.getComboString();
             seq.clear();
             handleSpellCast(player, combo);
         }
     }
+
 
     private void handleSpellCast(Player player, String combo) {
         PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
