@@ -10,10 +10,13 @@ import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.Snowball;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 import org.bukkit.Bukkit;
 
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -74,23 +77,19 @@ public class Spell {
         switch(effectKey.toUpperCase()) {
             // Warrior
             case "GROUND_SLAM": {
-                spawnAoEParticles(player.getLocation(), 5, Particle.EXPLOSION);
-                player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ZOMBIE_ATTACK_IRON_DOOR, 1f, 0.8f);
-                player.sendMessage("§eYou slam the ground, dealing AoE damage and knockback!");
+                castGroundSlam(player);
                 break;
             }
             case "SHIELD_WALL": {
-                player.sendMessage("§eYou raise a shield wall, reducing damage for 10s!");
+                castShieldWall(player);
                 break;
             }
             case "BATTLE_CRY": {
-                player.sendMessage("§eYou unleash a Battle Cry, buffing allies’ damage!");
+                castBattleCry(player);
                 break;
             }
             case "CHARGE": {
-                Vector dir = player.getLocation().getDirection().normalize().multiply(2);
-                player.setVelocity(dir);
-                player.sendMessage("§eYou Charge forward, damaging enemies in your path!");
+                castCharge(player);
                 break;
             }
 
@@ -112,39 +111,37 @@ public class Spell {
 
             // Rogue
             case "SHADOW_STEP": {
-                player.sendMessage("§eYou vanish and appear behind your enemy with a critical strike!");
+                castShadowStep(player);
                 break;
             }
             case "BLADE_FURY": {
-                player.sendMessage("§eYou spin wildly, hitting all enemies around you!");
+                castBladeFury(player);
                 break;
             }
             case "SMOKE_BOMB": {
-                spawnAoEParticles(player.getLocation(), 5, Particle.LARGE_SMOKE);
-                player.sendMessage("§eYou toss a smoke bomb, blinding enemies!");
+                castSmokeBomb(player);
                 break;
             }
             case "VANISH": {
-                player.sendMessage("§eYou vanish into the shadows, speed +30% for 8s!");
+                castVanish(player);
                 break;
             }
 
             // Archer
             case "POWER_SHOT": {
-                player.sendMessage("§eYou unleash a Power Shot!");
+                castPowerShot(player);
                 break;
             }
             case "EXPLOSIVE_ARROW": {
-                spawnAoEParticles(player.getLocation(), 4, Particle.EXPLOSION);
-                player.sendMessage("§eYou shoot an explosive arrow!");
+                castExplosiveArrow(player);
                 break;
             }
             case "GRAPPLE_HOOK": {
-                player.sendMessage("§eYou fire a grapple hook!");
+                castGrappleHook(player);
                 break;
             }
             case "ARROW_STORM": {
-                player.sendMessage("§eYou fire a storm of arrows!");
+                castArrowStorm(player);
                 break;
             }
 
@@ -262,4 +259,332 @@ public class Spell {
         }
         return null;
     }
+
+    // Inside the Spell class
+
+    private void castGroundSlam(Player player) {
+        double radius = 5.0;
+        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 1.5; // 150% weapon damage
+
+        spawnAoEParticles(player.getLocation(), (int) radius, Particle.EXPLOSION);
+        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1f, 0.8f);
+
+        player.sendMessage("§eYou slam the ground, dealing AoE damage and knocking back enemies!");
+
+        // Damage and knockback nearby entities
+        for (Entity entity : player.getWorld().getNearbyEntities(player.getLocation(), radius, radius, radius)) {
+            if (entity instanceof LivingEntity && entity != player) {
+                LivingEntity target = (LivingEntity) entity;
+                target.damage(damage, player); // Apply damage
+                Vector knockback = target.getLocation().toVector().subtract(player.getLocation().toVector()).normalize().multiply(1.5);
+                knockback.setY(0.5); // Add upward knockback
+                target.setVelocity(knockback);
+            }
+        }
+    }
+
+    private void castShieldWall(Player player) {
+        int duration = 200; // 10 seconds (200 ticks)
+        double damageReduction = 0.5; // 50% damage reduction
+
+        player.sendMessage("§eYou raise a shield wall, reducing damage for 10 seconds!");
+
+        player.getWorld().playSound(player.getLocation(), Sound.ITEM_SHIELD_BLOCK, 1f, 1f);
+        player.getWorld().spawnParticle(Particle.BLOCK_CRUMBLE, player.getLocation(), 50, 1, 1, 1, Material.SHIELD.createBlockData());
+
+        // Apply temporary damage resistance (logic can be extended)
+        new BukkitRunnable() {
+            int ticks = 0;
+
+            @Override
+            public void run() {
+                if (ticks++ >= duration) {
+                    cancel();
+                    player.sendMessage("§cShield Wall has ended.");
+                }
+            }
+        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 20L);
+    }
+
+    private void castBattleCry(Player player) {
+        double buffMultiplier = 1.2; // 20% damage increase
+        int duration = 200; // 10 seconds (200 ticks)
+
+        player.sendMessage("§eYou unleash a Battle Cry, buffing your allies’ damage!");
+
+        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
+        player.getWorld().spawnParticle(Particle.SONIC_BOOM, player.getLocation(), 30, 1, 1, 1);
+
+        // Buff the player and nearby allies (logic for actual stat buff to be implemented)
+        for (Entity entity : player.getWorld().getNearbyEntities(player.getLocation(), 10, 10, 10)) {
+            if (entity instanceof Player) {
+                Player ally = (Player) entity;
+                ally.sendMessage("§eYou feel empowered by the Battle Cry!");
+                // Placeholder for adding a temporary stat buff
+            }
+        }
+    }
+
+    private void castCharge(Player player) {
+        Vector chargeVelocity = player.getLocation().getDirection().normalize().multiply(2);
+        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 1.2; // 120% weapon damage
+
+        player.setVelocity(chargeVelocity);
+        player.sendMessage("§eYou charge forward, damaging enemies in your path!");
+
+        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_HORSE_GALLOP, 1f, 1f);
+        player.getWorld().spawnParticle(Particle.LARGE_SMOKE, player.getLocation(), 20, 0.5, 0.5, 0.5);
+
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                // Check for entities in the charge path
+                for (Entity entity : player.getWorld().getNearbyEntities(player.getLocation(), 1, 1, 1)) {
+                    if (entity instanceof LivingEntity && entity != player) {
+                        LivingEntity target = (LivingEntity) entity;
+                        target.damage(damage, player); // Apply damage
+                        target.setVelocity(player.getLocation().getDirection().normalize().multiply(1.5));
+                    }
+                }
+            }
+        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 2L);
+    }
+
+    private void castPowerShot(Player player) {
+        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 2.0; // 200% weapon damage
+        double knockbackStrength = 2.0;
+
+        player.sendMessage("§eYou unleash a Power Shot!");
+        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ARROW_SHOOT, 1f, 0.8f);
+
+        // Launch a projectile
+        Snowball projectile = player.launchProjectile(Snowball.class);
+        projectile.setVelocity(player.getLocation().getDirection().multiply(2));
+        projectile.setCustomName("PowerShot");
+        projectile.setCustomNameVisible(false);
+
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (!projectile.isValid() || projectile.isDead()) {
+                    cancel();
+                    return;
+                }
+
+                projectile.getWorld().spawnParticle(Particle.CRIT, projectile.getLocation(), 10, 0.1, 0.1, 0.1);
+
+                // Check for collisions
+                for (Entity entity : projectile.getNearbyEntities(1, 1, 1)) {
+                    if (entity instanceof LivingEntity && entity != player) {
+                        LivingEntity target = (LivingEntity) entity;
+                        target.damage(damage, player); // Apply damage
+                        target.setVelocity(projectile.getVelocity().normalize().multiply(knockbackStrength)); // Knockback
+                        projectile.remove();
+                        cancel();
+                        return;
+                    }
+                }
+            }
+        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 1L);
+    }
+
+    private void castExplosiveArrow(Player player) {
+        double radius = 3.0;
+        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 1.5; // 150% weapon damage
+
+        player.sendMessage("§eYou shoot an Explosive Arrow!");
+        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_FIREWORK_ROCKET_LAUNCH, 1f, 1f);
+
+        // Launch a projectile
+        Snowball projectile = player.launchProjectile(Snowball.class);
+        projectile.setVelocity(player.getLocation().getDirection().multiply(2));
+        projectile.setCustomName("ExplosiveArrow");
+        projectile.setCustomNameVisible(false);
+
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (!projectile.isValid() || projectile.isDead()) {
+                    cancel();
+                    return;
+                }
+
+                // Check for collision
+                for (Entity entity : projectile.getNearbyEntities(1, 1, 1)) {
+                    if (entity instanceof LivingEntity && entity != player) {
+                        LivingEntity target = (LivingEntity) entity;
+                        // Explode on impact
+                        projectile.getWorld().spawnParticle(Particle.EXPLOSION, projectile.getLocation(), 20);
+                        projectile.getWorld().playSound(projectile.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
+
+                        // Damage all entities in the radius
+                        for (Entity nearby : projectile.getWorld().getNearbyEntities(projectile.getLocation(), radius, radius, radius)) {
+                            if (nearby instanceof LivingEntity && nearby != player) {
+                                ((LivingEntity) nearby).damage(damage, player);
+                            }
+                        }
+                        projectile.remove();
+                        cancel();
+                        return;
+                    }
+                }
+            }
+        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 1L);
+    }
+
+
+    private void castGrappleHook(Player player) {
+        player.sendMessage("§eYou fire a Grapple Hook!");
+        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ENDER_PEARL_THROW, 1f, 1f);
+
+        Snowball projectile = player.launchProjectile(Snowball.class);
+        projectile.setVelocity(player.getLocation().getDirection().multiply(2));
+        projectile.setCustomName("GrappleHook");
+        projectile.setCustomNameVisible(false);
+
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (!projectile.isValid() || projectile.isDead()) {
+                    cancel();
+                    return;
+                }
+
+                projectile.getWorld().spawnParticle(Particle.DOLPHIN, projectile.getLocation(), 5, 0.1, 0.1, 0.1);
+
+                // Check for collision
+                for (Entity entity : projectile.getNearbyEntities(1, 1, 1)) {
+                    if (entity instanceof LivingEntity || projectile.getLocation().getBlock().getType() != Material.AIR) {
+                        // Pull player to the location
+                        Location targetLocation = projectile.getLocation();
+                        player.teleport(targetLocation.add(0, 1, 0)); // Slight offset for safety
+                        projectile.remove();
+                        cancel();
+                        return;
+                    }
+                }
+            }
+        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 1L);
+    }
+
+    private void castArrowStorm(Player player) {
+        int arrowCount = 10;
+        double spread = 0.2;
+        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 0.5; // 50% weapon damage per arrow
+
+        player.sendMessage("§eYou unleash an Arrow Storm!");
+        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ARROW_SHOOT, 1f, 1f);
+
+        for (int i = 0; i < arrowCount; i++) {
+            Snowball projectile = player.launchProjectile(Snowball.class);
+            Vector direction = player.getLocation().getDirection().clone();
+            direction.add(new Vector((Math.random() - 0.5) * spread, (Math.random() - 0.5) * spread, (Math.random() - 0.5) * spread));
+            projectile.setVelocity(direction.multiply(2));
+            projectile.setCustomName("ArrowStorm");
+            projectile.setCustomNameVisible(false);
+
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    if (!projectile.isValid() || projectile.isDead()) {
+                        cancel();
+                        return;
+                    }
+
+                    projectile.getWorld().spawnParticle(Particle.CRIT, projectile.getLocation(), 5, 0.1, 0.1, 0.1);
+
+                    // Check for collisions
+                    for (Entity entity : projectile.getNearbyEntities(1, 1, 1)) {
+                        if (entity instanceof LivingEntity && entity != player) {
+                            LivingEntity target = (LivingEntity) entity;
+                            target.damage(damage, player); // Apply damage
+                            projectile.remove();
+                            cancel();
+                            return;
+                        }
+                    }
+                }
+            }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 1L);
+        }
+    }
+
+    private void castShadowStep(Player player) {
+        player.sendMessage("§eYou vanish and appear behind your enemy with a critical strike!");
+
+        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 1f);
+        player.getWorld().spawnParticle(Particle.LARGE_SMOKE, player.getLocation(), 20, 0.5, 1, 0.5);
+
+        // Find the closest enemy
+        LivingEntity target = player.getWorld().getNearbyEntities(player.getLocation(), 10, 10, 10).stream()
+            .filter(e -> e instanceof LivingEntity && e != player)
+            .map(e -> (LivingEntity) e)
+            .min(Comparator.comparingDouble(e -> e.getLocation().distance(player.getLocation())))
+            .orElse(null);
+
+        if (target != null) {
+            // Teleport behind the target
+            Location behindTarget = target.getLocation().clone().add(target.getLocation().getDirection().multiply(-1).normalize());
+            behindTarget.setYaw(target.getLocation().getYaw());
+            behindTarget.setPitch(target.getLocation().getPitch());
+            player.teleport(behindTarget);
+
+            // Perform a critical strike
+            double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 1.3; // 130% weapon damage
+            target.damage(damage, player);
+
+            // Visuals
+            target.getWorld().spawnParticle(Particle.CRIT, target.getLocation(), 20, 0.5, 1, 0.5);
+            player.getWorld().playSound(target.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 1f, 1f);
+        } else {
+            player.sendMessage("§cNo target found nearby!");
+        }
+    }
+
+    private void castBladeFury(Player player) {
+        double radius = 5.0;
+        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 1.5; // 150% weapon damage
+
+        player.sendMessage("§eYou spin wildly, hitting all enemies around you!");
+        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1f);
+        player.getWorld().spawnParticle(Particle.SWEEP_ATTACK, player.getLocation(), 30, radius, 1, radius);
+
+        // Damage all nearby entities
+        for (Entity entity : player.getWorld().getNearbyEntities(player.getLocation(), radius, radius, radius)) {
+            if (entity instanceof LivingEntity && entity != player) {
+                LivingEntity target = (LivingEntity) entity;
+                target.damage(damage, player); // Apply damage
+            }
+        }
+    }
+
+
+    private void castSmokeBomb(Player player) {
+        double radius = 5.0;
+
+        player.sendMessage("§eYou toss a smoke bomb, blinding enemies!");
+        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_TNT_PRIMED, 1f, 1f);
+        player.getWorld().spawnParticle(Particle.LARGE_SMOKE, player.getLocation(), 50, radius, 1, radius);
+
+        // Blind all nearby entities
+        for (Entity entity : player.getWorld().getNearbyEntities(player.getLocation(), radius, radius, radius)) {
+            if (entity instanceof LivingEntity && entity != player) {
+                LivingEntity target = (LivingEntity) entity;
+                target.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 100, 0)); // 5 seconds of blindness
+            }
+        }
+    }
+
+
+    private void castVanish(Player player) {
+        int duration = 200; // 10 seconds (200 ticks)
+
+        player.sendMessage("§eYou vanish into the shadows, gaining +30% speed!");
+        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_SCREAM, 1f, 1f);
+        player.getWorld().spawnParticle(Particle.CLOUD, player.getLocation(), 30, 0.5, 1, 0.5);
+
+        // Apply invisibility and speed effects
+        player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, duration, 0)); // Invisibility for 10 seconds
+        player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, duration, 0)); // Speed boost for 10 seconds
+    }
+
 }
