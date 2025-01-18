@@ -104,6 +104,9 @@ public class ItemManager {
         Main.getInstance().getLogger().info("Loaded " + templatesMap.size() + " custom items from items.yml.");
     }
 
+    public Map<Integer, CustomItem> getAllTemplates() {
+        return new HashMap<>(templatesMap);
+    }
 
     // Get template by numeric ID
     public CustomItem getTemplateById(int id) {

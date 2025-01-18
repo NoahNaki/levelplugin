@@ -225,9 +225,9 @@ public class LootChestManager {
                 return null;
         }
 
-        // Gather matching items from your ItemManager
+        // Gather matching items from the templatesMap
         List<CustomItem> matching = new ArrayList<>();
-        for (CustomItem cItem : ItemManager.getInstance().getAllItems().values()) {
+        for (CustomItem cItem : ItemManager.getInstance().getAllTemplates().values()) {
             int req = cItem.getLevelRequirement();
             if (req >= minLevel && req <= maxLevel) {
                 matching.add(cItem);
@@ -235,7 +235,7 @@ public class LootChestManager {
         }
 
         if (matching.isEmpty()) {
-            return null;  // no items match => chest gets no item
+            return null; // no items match => chest gets no item
         }
 
         // Pick one at random from the matching items
