@@ -16,8 +16,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 import org.bukkit.Bukkit;
 
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 /**
  * Represents a single Spell with its combo, name, mana cost, cooldown, effect logic, etc.
@@ -94,10 +93,10 @@ public class Spell {
             }
 
             case "METEOR":
-                castMeteorStrike(player);
+                castMeteor(player);
                 break;
             case "BLACKHOLE":
-                createBlackHole(player);
+                castBlackhole(player);
                 break;
             case "HEAL":
                 healPlayer(player, 10);
@@ -193,40 +192,89 @@ public class Spell {
     }
 
 
-    private void castMeteorStrike(Player player) {
-        Location target = player.getTargetBlock(null, 100).getLocation().add(0.5, 1, 0.5);
-        player.getWorld().spawnParticle(Particle.FLAME, target, 50, 1, 1, 1);
+    private void castMeteor(Player player) {
+        Location target = player.getTargetBlockExact(100).getLocation().add(0.5, 1, 0.5);
+        double radius = 4.0;
+        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 2.5; // 250% weapon damage
+
+        player.sendMessage("§eYou summon a Meteor!");
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 1f, 1f);
+        player.getWorld().spawnParticle(Particle.FLAME, target, 50, 1, 1, 1);
 
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                player.getWorld().createExplosion(target, 3.0f, false, false);
-            }
-        }.runTaskLater(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 40L);
-    }
-
-    private void createBlackHole(Player player) {
-        Location target = player.getEyeLocation().add(player.getEyeLocation().getDirection().multiply(5));
-        player.getWorld().spawnParticle(Particle.PORTAL, target, 100, 1, 1, 1);
-
+        // Delayed meteor strike
         new BukkitRunnable() {
             int ticks = 0;
+
             @Override
             public void run() {
-                if (ticks++ > 100) {
-                    cancel();
-                    return;
-                }
-                for (Entity entity : player.getWorld().getNearbyEntities(target, 5, 5, 5)) {
-                    if (entity instanceof LivingEntity && entity != player) {
-                        Vector pull = target.toVector().subtract(entity.getLocation().toVector()).normalize().multiply(0.2);
-                        entity.setVelocity(pull);
+                if (ticks++ >= 40) { // 2-second delay
+                    player.getWorld().spawnParticle(Particle.EXPLOSION, target, 20);
+                    player.getWorld().playSound(target, Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
+
+                    // Deal damage and ignite nearby entities
+                    for (Entity entity : player.getWorld().getNearbyEntities(target, radius, radius, radius)) {
+                        if (entity instanceof LivingEntity && entity != player) {
+                            LivingEntity targetEntity = (LivingEntity) entity;
+                            targetEntity.damage(damage, player); // Apply damage
+                            targetEntity.setFireTicks(100); // Ignite for 5 seconds
+                        }
                     }
+
+                    cancel();
+                } else {
+                    // Visuals during the meteor descent
+                    player.getWorld().spawnParticle(Particle.SMOKE, target.add(0, 0.2, 0), 10, 1, 1, 1, 0.1);
+                    player.getWorld().playSound(target, Sound.BLOCK_FIRE_AMBIENT, 0.5f, 0.8f);
                 }
             }
         }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 1L);
     }
+
+
+    private void castBlackhole(Player player) {
+        Location target = player.getEyeLocation().add(player.getLocation().getDirection().multiply(10));
+        double pullRadius = 5.0;
+        double damageRadius = 3.0;
+        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 0.5; // 50% weapon damage per tick
+
+        player.sendMessage("§eYou summon a Black Hole!");
+        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_SCREAM, 1f, 1f);
+        player.getWorld().spawnParticle(Particle.PORTAL, target, 100, 1, 1, 1);
+
+        new BukkitRunnable() {
+            int ticks = 0;
+
+            @Override
+            public void run() {
+                if (ticks++ >= 100) { // 5 seconds duration
+                    cancel();
+                    return;
+                }
+
+                // Pull nearby entities
+                for (Entity entity : player.getWorld().getNearbyEntities(target, pullRadius, pullRadius, pullRadius)) {
+                    if (entity instanceof LivingEntity && entity != player) {
+                        LivingEntity targetEntity = (LivingEntity) entity;
+
+                        // Pull toward the black hole
+                        Vector pullVector = target.toVector().subtract(targetEntity.getLocation().toVector()).normalize().multiply(0.2);
+                        targetEntity.setVelocity(pullVector);
+
+                        // Apply damage if within damage radius
+                        if (targetEntity.getLocation().distance(target) <= damageRadius) {
+                            targetEntity.damage(damage, player);
+                            targetEntity.getWorld().spawnParticle(Particle.CRIT, targetEntity.getLocation(), 10, 0.2, 0.2, 0.2);
+                        }
+                    }
+                }
+
+                // Visuals for the black hole
+                player.getWorld().spawnParticle(Particle.WITCH, target, 10, 0.5, 0.5, 0.5, 0.1);
+                player.getWorld().playSound(target, Sound.BLOCK_BEACON_AMBIENT, 0.5f, 1.2f);
+            }
+        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 2L);
+    }
+
 
     private void healPlayer(Player player, int amount) {
         double newHealth = Math.min(player.getHealth() + amount, player.getAttribute(Attribute.MAX_HEALTH).getValue());
@@ -432,8 +480,16 @@ public class Spell {
         }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 1L);
     }
 
+    private final Set<UUID> grappleCooldown = new HashSet<>(); // Tracks players who can't use grapple mid-air
 
     private void castGrappleHook(Player player) {
+        if (grappleCooldown.contains(player.getUniqueId())) {
+            player.sendMessage("§cYou must touch the ground before using Grapple Hook again!");
+            return;
+        }
+
+        grappleCooldown.add(player.getUniqueId()); // Add player to cooldown
+
         player.sendMessage("§eYou fire a Grapple Hook!");
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ENDER_PEARL_THROW, 1f, 1f);
 
@@ -450,14 +506,20 @@ public class Spell {
                     return;
                 }
 
-                projectile.getWorld().spawnParticle(Particle.DOLPHIN, projectile.getLocation(), 5, 0.1, 0.1, 0.1);
+                projectile.getWorld().spawnParticle(Particle.WITCH, projectile.getLocation(), 5, 0.1, 0.1, 0.1);
 
                 // Check for collision
                 for (Entity entity : projectile.getNearbyEntities(1, 1, 1)) {
                     if (entity instanceof LivingEntity || projectile.getLocation().getBlock().getType() != Material.AIR) {
-                        // Pull player to the location
+                        // Pull player toward the target location
                         Location targetLocation = projectile.getLocation();
-                        player.teleport(targetLocation.add(0, 1, 0)); // Slight offset for safety
+                        Vector direction = targetLocation.toVector().subtract(player.getLocation().toVector()).normalize().multiply(1.5);
+
+                        player.setVelocity(direction.add(new Vector(0, 0.5, 0))); // Horizontal and upward boost
+
+                        // Apply glide and slam detection
+                        handleGlideAndSlam(player);
+
                         projectile.remove();
                         cancel();
                         return;
@@ -465,6 +527,67 @@ public class Spell {
                 }
             }
         }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 1L);
+    }
+
+    private void handleGlideAndSlam(Player player) {
+        new BukkitRunnable() {
+            boolean slamTriggered = false; // Tracks if slam should be triggered upon landing
+
+            @Override
+            public void run() {
+                if (player.isOnGround()) {
+                    grappleCooldown.remove(player.getUniqueId()); // Allow grapple again when grounded
+                    if (slamTriggered) {
+                        performSlam(player); // Trigger slam upon landing
+                    }
+                    cancel();
+                    return;
+                }
+
+                if (slamTriggered) {
+                    // Maintain strong downward velocity for the slam
+                    Vector downwardVelocity = player.getVelocity();
+                    downwardVelocity.setY(Math.max(downwardVelocity.getY() - 0.5, -2.5)); // Consistent downward force
+                    player.setVelocity(downwardVelocity);
+                } else {
+                    // Glide effect
+                    Vector glide = player.getVelocity().multiply(0.9); // Slow horizontal speed
+                    glide.setY(Math.max(player.getVelocity().getY() - 0.05, -0.1)); // Slow vertical descent
+                    player.setVelocity(glide);
+
+                    // Check if the player is crouching (sneaking)
+                    if (player.isSneaking()) {
+                        slamTriggered = true; // Mark that slam should be triggered upon landing
+                        player.sendMessage("§ePreparing to slam into the ground!");
+                        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_WITHER_BREAK_BLOCK, 1f, 0.8f);
+                        player.getWorld().spawnParticle(Particle.SMOKE, player.getLocation(), 20, 0.5, 1, 0.5);
+
+                        // Apply initial downward velocity
+                        player.setVelocity(new Vector(0, -2, 0));
+                    }
+                }
+            }
+        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 10L, 1L);
+    }
+
+    private void performSlam(Player player) {
+        double radius = 5.0;
+        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 2.0; // 200% weapon damage
+
+        player.sendMessage("§eYou slam into the ground, damaging nearby enemies!");
+        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
+        player.getWorld().spawnParticle(Particle.EXPLOSION, player.getLocation(), 20);
+
+        // Damage and knock back nearby entities
+        for (Entity entity : player.getWorld().getNearbyEntities(player.getLocation(), radius, radius, radius)) {
+            if (entity instanceof LivingEntity && entity != player) {
+                LivingEntity target = (LivingEntity) entity;
+                target.damage(damage, player); // Apply damage
+                Vector knockback = target.getLocation().toVector().subtract(player.getLocation().toVector()).normalize().multiply(1.5);
+                knockback.setY(0.5); // Add upward knockback
+                target.setVelocity(knockback);
+            }
+        }
     }
 
     private void castArrowStorm(Player player) {
