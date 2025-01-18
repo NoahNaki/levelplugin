@@ -120,6 +120,52 @@ public class ClickComboListener implements Listener {
         }
     }
 
+    private void cancelBowPullAndShootArrow(Player player) {
+        // Ensure the player is an Archer and is holding a bow
+        PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
+        String className = ps.playerClass.name().toLowerCase();
+        ItemStack mainHand = player.getInventory().getItemInMainHand();
+
+        if (!className.equals("archer") || mainHand.getType() != Material.BOW) {
+            return; // Only proceed if the player is an archer class and holding a bow
+        }
+
+        // Cancel the bow pull animation and shoot the arrow instantly
+        player.launchProjectile(org.bukkit.entity.Arrow.class); // Launch an arrow immediately
+
+        // Optional: Add sound and particle effects to indicate the arrow is shot instantly
+        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ARROW_SHOOT, 1f, 1f);
+        player.getWorld().spawnParticle(Particle.INSTANT_EFFECT, player.getLocation(), 20, 0.5, 1, 0.5);
+    }
+
+    @EventHandler
+    public void onArhcerRightClick(PlayerInteractEvent event) {
+        Player player = event.getPlayer();
+        ItemStack mainHand = player.getInventory().getItemInMainHand();
+        PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
+        String className = ps.playerClass.name().toLowerCase();
+
+        if (mainHand == null || mainHand.getType() == Material.AIR) {
+            return;
+        }
+
+        Action action = event.getAction();
+        if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK) {
+            return;
+        }
+
+        // Add check for Archer class to instantly shoot the arrow
+        if (className.equals("archer") && mainHand.getType() == Material.BOW) {
+            cancelBowPullAndShootArrow(player); // Cancel the bow pull and shoot the arrow
+            return;
+        }
+
+        // Other spell handling logic for different classes...
+        recordComboClick(player, "R");
+    }
+
+
+
 
     private void handleSpellCast(Player player, String combo) {
         PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);

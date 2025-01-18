@@ -23,13 +23,13 @@ import me.nakilex.levelplugin.player.classes.listeners.ClassMenuListener;
 import me.nakilex.levelplugin.player.listener.ClickComboListener;
 import me.nakilex.levelplugin.player.listener.PlayerJoinListener;
 import me.nakilex.levelplugin.player.listener.PlayerKillListener;
+import me.nakilex.levelplugin.player.utils.ArrowUtils;
 import me.nakilex.levelplugin.potions.listeners.PotionUseListener;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.items.listeners.*;
 import me.nakilex.levelplugin.trade.listeners.PlayerRightClicksPlayerListener;
 import me.nakilex.levelplugin.storage.listeners.StorageEvents;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.entity.Player;
 import org.bukkit.plugin.PluginManager;
 
 public class ListenerRegistry {
@@ -48,7 +48,6 @@ public class ListenerRegistry {
 
         // Register all listeners
         pm.registerEvents(new MobDamageListener(), plugin);
-        //pm.registerEvents(new PlayerKillListener(plugin.getLevelManager(), mobConfig, partyManager), plugin);
         pm.registerEvents(new MobDeathListener(plugin.getMobManager(), economyManager), plugin);
         pm.registerEvents(new PlayerKillListener(plugin.getLevelManager(), mobConfig, partyManager), plugin);
         pm.registerEvents(new MythicMobDeathListener(mobRewardsConfig, plugin.getLevelManager(), economyManager), plugin);
@@ -76,5 +75,10 @@ public class ListenerRegistry {
         pm.registerEvents(new LootChestCloseListener(lootChestManager), plugin);
         pm.registerEvents(new PotionUseListener(potionManager, plugin), plugin);
         pm.registerEvents(new MythicMobNameManager(plugin), plugin);
+
+        // Register ArrowUtils listener and start cleanup task
+        ArrowUtils arrowUtils = new ArrowUtils(plugin);
+        pm.registerEvents(arrowUtils, plugin);  // Register the listener
+        arrowUtils.startArrowCleanupTask();    // Start the task to clean up arrows periodically
     }
 }
