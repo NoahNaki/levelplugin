@@ -40,57 +40,19 @@ public class ClickComboListener implements Listener {
         if (activeLeftClicks.containsKey(playerId)) {
             long lastClickTime = activeLeftClicks.get(playerId);
             if (currentTime - lastClickTime < 100) { // Adjust the threshold if necessary
-                Bukkit.getLogger().info("[Left-Click Debug] Time: " + currentTime +
-                    " | Duplicate event ignored due to rapid re-triggering for player: " + player.getName());
-                return;
+                return; // Ignore duplicate left-click events
             }
         }
 
         // Register the click
         activeLeftClicks.put(playerId, currentTime);
-        Bukkit.getLogger().info("[Left-Click Debug] Time: " + currentTime +
-            " | Left-click registered for player: " + player.getName());
 
         // Schedule removal after a short delay
-        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-            activeLeftClicks.remove(playerId);
-            Bukkit.getLogger().info("[Left-Click Debug] Time: " + System.currentTimeMillis() +
-                " | Left-click reset for player: " + player.getName());
-        }, 5L);
+        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> activeLeftClicks.remove(playerId), 5L);
 
         // Process the left-click
         recordComboClick(player, "L");
     }
-
-
-    @EventHandler
-    public void onPlayerInteract(PlayerInteractEvent event) {
-        Player player = event.getPlayer();
-        Action action = event.getAction();
-        long currentTime = System.currentTimeMillis();
-
-        // Log the type of interaction
-        Bukkit.getLogger().info("[Interact Debug] Time: " + currentTime +
-            " | Player: " + player.getName() +
-            " | Action: " + action);
-
-        // Ignore actions that are not relevant
-        if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK &&
-            action != Action.LEFT_CLICK_AIR && action != Action.LEFT_CLICK_BLOCK) {
-            return;
-        }
-
-        // Log for left-click interactions specifically
-        if (action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK) {
-            Bukkit.getLogger().info("[Interact Debug] Time: " + currentTime +
-                " | Left-click action detected for player: " + player.getName());
-        }
-    }
-
-
-
-
-
 
     @EventHandler
     public void onRightClick(PlayerInteractEvent event) {
