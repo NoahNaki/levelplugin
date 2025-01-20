@@ -6,13 +6,10 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import org.bukkit.Material;
 import org.bukkit.attribute.Attribute;
 import me.nakilex.levelplugin.player.listener.ClickComboListener;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.*;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
-import org.bukkit.entity.Snowball;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -783,36 +780,52 @@ public class Spell {
     }
 
     private void castHeroicLeap(Player player) {
-        double radius = 5.0;
-        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 1.2; // 120% weapon damage
+        double leapDistance = 15.0; // Distance of the leap
+        double damageRadius = 5.0; // Radius for AoE damage
+        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 1.8; // 180% weapon damage
 
-        Location target = player.getTargetBlockExact(20).getLocation();
-        if (target == null) {
-            player.sendMessage("§cNo valid target location found!");
-            return;
-        }
+        player.sendMessage("§eYou leap heroically into the air, ready to slam down on your foes!");
+        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_IRON_GOLEM_ATTACK, 1f, 1f);
 
-        ArmorStandEffectUtil.createTrail(player.getLocation(), target, Particle.FLAME, 0.5);
+        // Calculate the target location based on the player's direction
+        Location start = player.getLocation();
+        Vector direction = start.getDirection().normalize().multiply(leapDistance);
+        Location target = start.clone().add(direction);
 
-        player.setVelocity(target.toVector().subtract(player.getLocation().toVector()).normalize().multiply(1.5).setY(1));
+        // Launch the player into the air towards the target location
+        Vector leapVector = target.toVector().subtract(start.toVector()).normalize().multiply(1.5);
+        leapVector.setY(1.2); // Add vertical velocity
+        player.setVelocity(leapVector);
 
+        // Play a sound and spawn particles to visualize the leap
+        player.getWorld().spawnParticle(Particle.EXPLOSION, start, 10, 0.5, 1, 0.5);
+
+        // Handle the landing effects
         new BukkitRunnable() {
             @Override
             public void run() {
-                player.teleport(target);
-                player.getWorld().playSound(target, Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
-                spawnAoEParticles(target, (int) radius, Particle.EXPLOSION);
+                if (player.isOnGround()) {
+                    // Damage and knock back nearby entities upon landing
+                    player.getWorld().playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
+                    player.getWorld().spawnParticle(Particle.EXPLOSION, player.getLocation(), 20, 0.5, 1, 0.5);
 
-                for (Entity entity : player.getWorld().getNearbyEntities(target, radius, radius, radius)) {
-                    if (entity instanceof LivingEntity && entity != player) {
-                        LivingEntity targetEntity = (LivingEntity) entity;
-                        targetEntity.damage(damage, player);
-                        targetEntity.setVelocity(new Vector(0, 1, 0)); // Knock upward
+                    for (Entity entity : player.getWorld().getNearbyEntities(player.getLocation(), damageRadius, damageRadius, damageRadius)) {
+                        if (entity instanceof LivingEntity && entity != player) {
+                            LivingEntity target = (LivingEntity) entity;
+                            target.damage(damage, player); // Apply damage
+                            Vector knockback = target.getLocation().toVector().subtract(player.getLocation().toVector()).normalize().multiply(1.5);
+                            knockback.setY(0.5); // Add upward knockback
+                            target.setVelocity(knockback);
+                        }
                     }
+
+                    cancel();
                 }
             }
-        }.runTaskLater(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 10L);
+        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 1L);
     }
+
+
 
     private void castWhirlwind(Player player) {
         double radius = 4.0;
@@ -857,7 +870,7 @@ public class Spell {
         player.sendMessage("§eYou slam the ground, creating a shockwave!");
 
         // Spawn hammer-leading shockwave
-        ArmorStandEffectUtil.createLeadingArmorStand(player.getLocation(), Material.IRON_AXE, 10, distance);
+        ArmorStandEffectUtil.createLeadingArmorStand(player.getLocation(), Material.IRON_AXE, 10);
 
         Vector direction = player.getLocation().getDirection().normalize();
         Location start = player.getLocation().add(0, 1, 0);
@@ -879,5 +892,4 @@ public class Spell {
             if (!point.getBlock().isPassable()) break; // Stop shockwave at obstacles
         }
     }
-
 }

@@ -28,6 +28,11 @@ public class ParticleEffectUtil {
     }
 
     public static void createBlockBreakingEffect(Location location, Material material, int particleCount) {
+        if (material == null || !material.isBlock()) {
+            System.out.println("Invalid material for block breaking effect: " + material);
+            return; // Exit the method if the material is invalid
+        }
+
         for (int i = 0; i < particleCount; i++) {
             location.getWorld().spawnParticle(Particle.BLOCK_CRUMBLE,
                 location.getX() + Math.random() - 0.5,
@@ -38,6 +43,7 @@ public class ParticleEffectUtil {
                 material.createBlockData());
         }
     }
+
 
     public static void createVortexEffect(Location location, Particle particle, double radius, int height) {
         new BukkitRunnable() {
@@ -68,6 +74,18 @@ public class ParticleEffectUtil {
             }
         }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 1L);
     }
+
+    public static void createCircularParticleEffect(Location center, Particle particle, double radius, int particleCount) {
+        for (int i = 0; i < particleCount; i++) {
+            double angle = 2 * Math.PI * i / particleCount; // Distribute particles evenly in a circle
+            double x = radius * Math.cos(angle);
+            double z = radius * Math.sin(angle);
+
+            Location particleLocation = center.clone().add(x, 0, z);
+            center.getWorld().spawnParticle(particle, particleLocation, 1, 0, 0, 0, 0.1);
+        }
+    }
+
 
 
 }
