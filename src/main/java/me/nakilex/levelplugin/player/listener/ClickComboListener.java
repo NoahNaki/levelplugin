@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.player.listener;
 
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.spells.Spell;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
@@ -23,61 +24,72 @@ public class ClickComboListener implements Listener {
     private static final long MAX_COMBO_TIME = 2000L; // 2 seconds
     private static final Map<UUID, ClickSequence> playerCombos = new HashMap<>();
     private final Map<UUID, Map<String, Long>> spellCooldowns = new HashMap<>();
-    private final Set<UUID> activeLeftClicks = Collections.synchronizedSet(new HashSet<>());
+    private final Map<UUID, Long> activeLeftClicks = new HashMap<>();
 
 
-//    @EventHandler
-//    public void onLeftClick(PlayerAnimationEvent event) {
-//        // Ensure the event is triggered only for a left-click arm swing
-//        if (event.getAnimationType() != PlayerAnimationType.ARM_SWING) return;
-//
-//        Player player = event.getPlayer();
-//        UUID playerId = player.getUniqueId();
-//
-//        // Prevent duplicate left-click events
-//        if (activeLeftClicks.contains(playerId)) {
-//            return; // Ignore duplicate left-click events
-//        }
-//
-//        // Mark the left click as active
-//        activeLeftClicks.add(playerId);
-//
-//        try {
-//            // Process the left click
-//            ItemStack mainHand = player.getInventory().getItemInMainHand();
-//            PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
-//            String className = ps.playerClass.name().toLowerCase();
-//
-//            // Verify main hand is not empty
-//            if (mainHand == null || mainHand.getType() == Material.AIR) {
-//                return;
-//            }
-//
-//            // Handle Mage basic spell casting
-//            if (className.equals("mage")) {
-//                String activeCombo = getActiveCombo(player);
-//                if (activeCombo.isEmpty()) {
-//                    Spell basicSpell = new Spell(
-//                        "mage_basic",
-//                        "Basic Magic Attack",
-//                        "",
-//                        0, 0, 0,
-//                        List.of(Material.STICK),
-//                        "MAGE_BASIC",
-//                        1.0
-//                    );
-//                    basicSpell.castEffect(player);
-//                    return;
-//                }
-//            }
-//
-//            // Record the left-click for combos
-//            recordComboClick(player, "L");
-//        } finally {
-//            // Ensure the left click is removed from active tracking
-//            activeLeftClicks.remove(playerId);
-//        }
-//    }
+
+    @EventHandler
+    public void onLeftClick(PlayerAnimationEvent event) {
+        if (event.getAnimationType() != PlayerAnimationType.ARM_SWING) return;
+
+        Player player = event.getPlayer();
+        UUID playerId = player.getUniqueId();
+        long currentTime = System.currentTimeMillis();
+
+        // Check for recent clicks
+        if (activeLeftClicks.containsKey(playerId)) {
+            long lastClickTime = activeLeftClicks.get(playerId);
+            if (currentTime - lastClickTime < 100) { // Adjust the threshold if necessary
+                Bukkit.getLogger().info("[Left-Click Debug] Time: " + currentTime +
+                    " | Duplicate event ignored due to rapid re-triggering for player: " + player.getName());
+                return;
+            }
+        }
+
+        // Register the click
+        activeLeftClicks.put(playerId, currentTime);
+        Bukkit.getLogger().info("[Left-Click Debug] Time: " + currentTime +
+            " | Left-click registered for player: " + player.getName());
+
+        // Schedule removal after a short delay
+        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+            activeLeftClicks.remove(playerId);
+            Bukkit.getLogger().info("[Left-Click Debug] Time: " + System.currentTimeMillis() +
+                " | Left-click reset for player: " + player.getName());
+        }, 5L);
+
+        // Process the left-click
+        recordComboClick(player, "L");
+    }
+
+
+    @EventHandler
+    public void onPlayerInteract(PlayerInteractEvent event) {
+        Player player = event.getPlayer();
+        Action action = event.getAction();
+        long currentTime = System.currentTimeMillis();
+
+        // Log the type of interaction
+        Bukkit.getLogger().info("[Interact Debug] Time: " + currentTime +
+            " | Player: " + player.getName() +
+            " | Action: " + action);
+
+        // Ignore actions that are not relevant
+        if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK &&
+            action != Action.LEFT_CLICK_AIR && action != Action.LEFT_CLICK_BLOCK) {
+            return;
+        }
+
+        // Log for left-click interactions specifically
+        if (action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK) {
+            Bukkit.getLogger().info("[Interact Debug] Time: " + currentTime +
+                " | Left-click action detected for player: " + player.getName());
+        }
+    }
+
+
+
+
 
 
     @EventHandler
