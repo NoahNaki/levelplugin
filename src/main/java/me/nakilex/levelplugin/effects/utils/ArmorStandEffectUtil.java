@@ -87,6 +87,68 @@ public class ArmorStandEffectUtil {
         }
     }
 
+    private static Vector rotateAroundAxisY(Vector vector, double degrees) {
+        double radians = Math.toRadians(degrees);
+        double cos = Math.cos(radians);
+        double sin = Math.sin(radians);
+        double x = vector.getX() * cos + vector.getZ() * sin;
+        double z = vector.getZ() * cos - vector.getX() * sin;
+        return new Vector(x, vector.getY(), z);
+    }
+
+
+    public static void createLeadingArmorStandInDirection(
+        Location start,
+        Material material,
+        int speed,
+        Vector direction,
+        double maxDistance
+    ) {
+        // (1) Compute a small left offset
+        Vector leftOffset = rotateAroundAxisY(direction.clone(), -90).normalize().multiply(0.2);
+        // (2) Apply it to the start location
+        Location spawnLoc = start.clone().add(leftOffset);
+
+        // Then spawn the ArmorStand at spawnLoc
+        ArmorStand armorStand = (ArmorStand) spawnLoc.getWorld().spawnEntity(spawnLoc, EntityType.ARMOR_STAND);
+        armorStand.setVisible(false);
+        armorStand.setGravity(false);
+        armorStand.setItemInHand(new ItemStack(material));
+
+        // (Optional) T-Pose arms, or remove if you want them at default pose:
+        armorStand.setLeftArmPose(new EulerAngle(0, 0, Math.toRadians(-90)));
+        armorStand.setRightArmPose(new EulerAngle(0, 0, Math.toRadians(90)));
+
+        // We'll make the actual distance 2x the provided maxDistance
+        double actualMaxDistance = maxDistance * 2.0;
+
+        new BukkitRunnable() {
+            double traveled = 0.0; // how far the ArmorStand has traveled
+
+            @Override
+            public void run() {
+                // Stop if we've traveled beyond the 2x distance
+                if (traveled >= actualMaxDistance) {
+                    armorStand.remove();
+                    cancel();
+                    return;
+                }
+
+                // Move the stand forward in the given direction
+                Location currentLoc = armorStand.getLocation().add(direction.clone().multiply(speed * 0.1));
+                traveled += speed * 0.1;
+
+                // Teleport the ArmorStand to the new location (no rotation update, so it stays “stationary”)
+                armorStand.teleport(currentLoc);
+
+                // (Optional) spawn a trailing block-breaking effect, remove if unwanted
+                ParticleEffectUtil.createBlockBreakingEffect(currentLoc, material, 3);
+            }
+        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 1L);
+    }
+
+
+
     public static void createLeadingArmorStand(Location start, Material material, int speed) {
         double distance = 10 * speed; // Calculate distance for 5 seconds
 

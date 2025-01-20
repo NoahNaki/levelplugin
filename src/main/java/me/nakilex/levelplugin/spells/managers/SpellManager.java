@@ -57,9 +57,9 @@ public class SpellManager {
             "RRL", new Spell("blade_fury", "Blade Fury", "RRL", 15, 0, 1,
                 Arrays.asList(Material.WOODEN_SWORD, Material.STONE_SWORD, Material.IRON_SWORD, Material.GOLDEN_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD),
                 "BLADE_FURY", 1.5),
-            "RLR", new Spell("smoke_bomb", "Smoke Bomb", "RLR", 10, 0, 1,
+            "RLR", new Spell("dagger_throw", "Dagger Throw", "RLR", 10, 0, 1,
                 Arrays.asList(Material.WOODEN_SWORD, Material.STONE_SWORD, Material.IRON_SWORD, Material.GOLDEN_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD),
-                "SMOKE_BOMB", 0.0),
+                "DAGGER_THROW", 0.0),
             "RRR", new Spell("vanish", "Vanish", "RRR", 8, 0, 1,
                 Arrays.asList(Material.WOODEN_SWORD, Material.STONE_SWORD, Material.IRON_SWORD, Material.GOLDEN_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD),
                 "VANISH", 0.0)

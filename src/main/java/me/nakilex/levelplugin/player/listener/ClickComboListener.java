@@ -6,7 +6,6 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStats;
 import org.bukkit.*;
 import org.bukkit.block.Block;
-import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -14,6 +13,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerAnimationType;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.*;
@@ -23,56 +23,80 @@ public class ClickComboListener implements Listener {
     private static final long MAX_COMBO_TIME = 2000L; // 2 seconds
     private static final Map<UUID, ClickSequence> playerCombos = new HashMap<>();
     private final Map<UUID, Map<String, Long>> spellCooldowns = new HashMap<>();
+    private final Set<UUID> activeLeftClicks = Collections.synchronizedSet(new HashSet<>());
 
-    @EventHandler
-    public void onLeftClick(PlayerAnimationEvent event) {
-        if (event.getAnimationType() != PlayerAnimationType.ARM_SWING) return;
 
-        Player player = event.getPlayer();
-        ItemStack mainHand = player.getInventory().getItemInMainHand();
-        PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
-        String className = ps.playerClass.name().toLowerCase();
+//    @EventHandler
+//    public void onLeftClick(PlayerAnimationEvent event) {
+//        // Ensure the event is triggered only for a left-click arm swing
+//        if (event.getAnimationType() != PlayerAnimationType.ARM_SWING) return;
+//
+//        Player player = event.getPlayer();
+//        UUID playerId = player.getUniqueId();
+//
+//        // Prevent duplicate left-click events
+//        if (activeLeftClicks.contains(playerId)) {
+//            return; // Ignore duplicate left-click events
+//        }
+//
+//        // Mark the left click as active
+//        activeLeftClicks.add(playerId);
+//
+//        try {
+//            // Process the left click
+//            ItemStack mainHand = player.getInventory().getItemInMainHand();
+//            PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
+//            String className = ps.playerClass.name().toLowerCase();
+//
+//            // Verify main hand is not empty
+//            if (mainHand == null || mainHand.getType() == Material.AIR) {
+//                return;
+//            }
+//
+//            // Handle Mage basic spell casting
+//            if (className.equals("mage")) {
+//                String activeCombo = getActiveCombo(player);
+//                if (activeCombo.isEmpty()) {
+//                    Spell basicSpell = new Spell(
+//                        "mage_basic",
+//                        "Basic Magic Attack",
+//                        "",
+//                        0, 0, 0,
+//                        List.of(Material.STICK),
+//                        "MAGE_BASIC",
+//                        1.0
+//                    );
+//                    basicSpell.castEffect(player);
+//                    return;
+//                }
+//            }
+//
+//            // Record the left-click for combos
+//            recordComboClick(player, "L");
+//        } finally {
+//            // Ensure the left click is removed from active tracking
+//            activeLeftClicks.remove(playerId);
+//        }
+//    }
 
-        if (mainHand == null || mainHand.getType() == Material.AIR) {
-            return;
-        }
-
-        if (className.equals("mage")) {
-            String activeCombo = getActiveCombo(player);
-            if (activeCombo.isEmpty()) {
-                Spell basicSpell = new Spell(
-                    "mage_basic",
-                    "Basic Magic Attack",
-                    "",
-                    0, 0, 0,
-                    List.of(Material.STICK),
-                    "MAGE_BASIC",
-                    1.0
-                );
-                basicSpell.castEffect(player);
-                return;
-            }
-        }
-
-        recordComboClick(player, "L");
-    }
 
     @EventHandler
     public void onRightClick(PlayerInteractEvent event) {
+        // Ensure the event is triggered only for main hand and right-click actions
+        if (event.getHand() != EquipmentSlot.HAND ||
+            (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK)) return;
+
         Player player = event.getPlayer();
         ItemStack mainHand = player.getInventory().getItemInMainHand();
         PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
         String className = ps.playerClass.name().toLowerCase();
 
+        // Verify main hand is not empty
         if (mainHand == null || mainHand.getType() == Material.AIR) {
             return;
         }
 
-        Action action = event.getAction();
-        if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK) {
-            return;
-        }
-
+        // Record the right-click for combos
         recordComboClick(player, "R");
     }
 
@@ -120,65 +144,6 @@ public class ClickComboListener implements Listener {
             handleSpellCast(player, combo);
         }
     }
-
-    @EventHandler
-    public void onArcherRightClick(PlayerInteractEvent event) {
-        Player player = event.getPlayer();
-        ItemStack mainHand = player.getInventory().getItemInMainHand();
-        PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
-        String className = ps.playerClass.name().toLowerCase();
-
-        if (mainHand == null || mainHand.getType() == Material.AIR) {
-            return;
-        }
-
-        Action action = event.getAction();
-        if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK) {
-            return;
-        }
-
-        // Ensure the player is an archer class and holding a bow
-        if (className.equals("archer") && mainHand.getType() == Material.BOW) {
-            long currentTime = System.currentTimeMillis();
-            Long lastShotTime = playerCooldowns.get(player);
-
-            // Check if cooldown has passed (1 second cooldown)
-            if (lastShotTime == null || currentTime - lastShotTime >= 1000) {
-                // Cancel the event to prevent any animation (fidget/reload animation)
-                event.setCancelled(true);
-
-                // Immediately shoot the arrow without any animation
-                shootArrowInstantly(player);
-
-                // Update the cooldown for this player
-                playerCooldowns.put(player, currentTime);
-            } else {
-                // If cooldown hasn't passed, cancel the event to prevent the animation
-                event.setCancelled(true);
-            }
-        }
-    }
-
-    // Method to shoot an arrow instantly
-    private void shootArrowInstantly(Player player) {
-        // Directly shoot the arrow without any pull/charge animation
-        player.launchProjectile(Arrow.class);
-
-        // Optionally, add sound or particle effects to simulate an instant shot
-        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ARROW_SHOOT, 1f, 1f);
-        player.getWorld().spawnParticle(Particle.CRIT, player.getLocation(), 10, 0.1, 0.1, 0.1);
-
-        // Clear any potential pull animation state manually by forcing a state reset (optional)
-        // This step would be ideal if we could use reflection to reset the bow state if it was stuck
-    }
-
-
-    // A Map to store the cooldown time of each player (you can make this static if needed)
-    private final Map<Player, Long> playerCooldowns = new HashMap<>();
-
-
-
-
 
     private void handleSpellCast(Player player, String combo) {
         PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);

@@ -3,19 +3,15 @@ package me.nakilex.levelplugin.spells;
 import me.nakilex.levelplugin.effects.utils.ArmorStandEffectUtil;
 import me.nakilex.levelplugin.effects.utils.ParticleEffectUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
-import org.bukkit.Material;
+import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import me.nakilex.levelplugin.player.listener.ClickComboListener;
 import org.bukkit.entity.*;
-import org.bukkit.Location;
-import org.bukkit.Particle;
-import org.bukkit.Sound;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
-import org.bukkit.Bukkit;
 
 import java.util.*;
 
@@ -121,8 +117,8 @@ public class Spell {
                 castBladeFury(player);
                 break;
             }
-            case "SMOKE_BOMB": {
-                castSmokeBomb(player);
+            case "DAGGER_THROW": {
+                castDaggerThrow(player);
                 break;
             }
             case "VANISH": {
@@ -725,24 +721,6 @@ public class Spell {
         }
     }
 
-
-    private void castSmokeBomb(Player player) {
-        double radius = 5.0;
-
-        player.sendMessage("§eYou toss a smoke bomb, blinding enemies!");
-        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_TNT_PRIMED, 1f, 1f);
-        player.getWorld().spawnParticle(Particle.LARGE_SMOKE, player.getLocation(), 50, radius, 1, radius);
-
-        // Blind all nearby entities
-        for (Entity entity : player.getWorld().getNearbyEntities(player.getLocation(), radius, radius, radius)) {
-            if (entity instanceof LivingEntity && entity != player) {
-                LivingEntity target = (LivingEntity) entity;
-                target.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 100, 0)); // 5 seconds of blindness
-            }
-        }
-    }
-
-
     private void castVanish(Player player) {
         int duration = 200; // 10 seconds (200 ticks)
 
@@ -754,6 +732,67 @@ public class Spell {
         player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, duration, 0)); // Invisibility for 10 seconds
         player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, duration, 0)); // Speed boost for 10 seconds
     }
+
+    private void castDaggerThrow(Player player) {
+        player.sendMessage("§eYou throw 3 daggers in a cone!");
+
+        double distance = 10.0;
+        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 1.5;
+
+        // Base location at player's chest level
+        Location baseLocation = player.getLocation().clone().add(0, 1.0, 0); // Chest level
+
+        // Get the player's forward direction (horizontal only)
+        Vector forward = baseLocation.getDirection();
+        forward.setY(0).normalize(); // Only horizontal movement
+
+        // Add a hard-coded offset to the left
+        Vector leftOffset = rotateAroundAxisY(forward.clone(), -90).normalize().multiply(0.7); // Adjust multiplier for more/less left
+        Location adjustedLocation = baseLocation.clone().add(leftOffset);
+
+        // Spawn locations for the three daggers
+        Location centerSpawn = adjustedLocation.clone(); // Center dagger
+        Location leftSpawn = adjustedLocation.clone().add(rotateAroundAxisY(forward.clone(), -15).normalize().multiply(0.3)); // Left dagger
+        Location rightSpawn = adjustedLocation.clone().add(rotateAroundAxisY(forward.clone(), 15).normalize().multiply(0.3)); // Right dagger
+
+        // Spawn each dagger
+        ArmorStandEffectUtil.createLeadingArmorStandInDirection(centerSpawn, Material.IRON_SWORD, 22, forward, distance);
+        ArmorStandEffectUtil.createLeadingArmorStandInDirection(leftSpawn, Material.IRON_SWORD, 22, rotateAroundAxisY(forward.clone(), -15).normalize(), distance);
+        ArmorStandEffectUtil.createLeadingArmorStandInDirection(rightSpawn, Material.IRON_SWORD, 22, rotateAroundAxisY(forward.clone(), 15).normalize(), distance);
+
+        // Damage logic (unchanged)
+        for (Vector dir : new Vector[]{forward, rotateAroundAxisY(forward.clone(), -15), rotateAroundAxisY(forward.clone(), 15)}) {
+            for (double i = 0; i <= distance; i += 0.5) {
+                Location point = adjustedLocation.clone().add(dir.clone().multiply(i));
+                point.getWorld().spawnParticle(Particle.CRIT, point, 5, 0.1, 0.1, 0.1, 0.0);
+
+                for (Entity entity : point.getWorld().getNearbyEntities(point, 1, 1, 1)) {
+                    if (entity instanceof LivingEntity && entity != player) {
+                        LivingEntity target = (LivingEntity) entity;
+                        target.damage(damage, player);
+                    }
+                }
+                if (!point.getBlock().isPassable()) {
+                    break;
+                }
+            }
+        }
+    }
+
+
+
+
+
+    private Vector rotateAroundAxisY(Vector vector, double degrees) {
+        double radians = Math.toRadians(degrees);
+        double cos = Math.cos(radians);
+        double sin = Math.sin(radians);
+        double x = vector.getX() * cos + vector.getZ() * sin;
+        double z = vector.getZ() * cos - vector.getX() * sin;
+        return new Vector(x, vector.getY(), z);
+    }
+
+
 
     private void castIronFortress(Player player) {
         int duration = 100; // 5 seconds (100 ticks)
