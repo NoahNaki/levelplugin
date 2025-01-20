@@ -1,5 +1,7 @@
 package me.nakilex.levelplugin.spells;
 
+import me.nakilex.levelplugin.effects.utils.ArmorStandEffectUtil;
+import me.nakilex.levelplugin.effects.utils.ParticleEffectUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import org.bukkit.Material;
 import org.bukkit.attribute.Attribute;
@@ -79,22 +81,23 @@ public class Spell {
         // For demonstration, we do simple logic based on effectKey
         switch(effectKey.toUpperCase()) {
             // Warrior
-            case "GROUND_SLAM": {
-                castGroundSlam(player);
+            case "IRON_FORTRESS": {
+                castIronFortress(player);
                 break;
             }
-            case "SHIELD_WALL": {
-                castShieldWall(player);
+            case "HEROIC_LEAP": {
+                castHeroicLeap(player);
                 break;
             }
-            case "BATTLE_CRY": {
-                castBattleCry(player);
+            case "WHIRLWIND": {
+                castWhirlwind(player);
                 break;
             }
-            case "CHARGE": {
-                castCharge(player);
+            case "SEISMIC_SHOCKWAVE": {
+                castSeismicShockwave(player);
                 break;
             }
+
 
             case "METEOR":
                 castMeteor(player);
@@ -753,6 +756,128 @@ public class Spell {
         // Apply invisibility and speed effects
         player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, duration, 0)); // Invisibility for 10 seconds
         player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, duration, 0)); // Speed boost for 10 seconds
+    }
+
+    private void castIronFortress(Player player) {
+        int duration = 100; // 5 seconds (100 ticks)
+        double reflectPercentage = 0.5; // Reflect 50% damage
+
+        player.sendMessage("§eYou raise an Iron Fortress, becoming immune and reflecting damage!");
+
+        ParticleEffectUtil.createShieldEffect(player.getLocation(), 2, Particle.BLOCK_CRUMBLE, Material.IRON_BLOCK);
+        player.getWorld().playSound(player.getLocation(), Sound.ITEM_SHIELD_BLOCK, 1f, 1f);
+
+        new BukkitRunnable() {
+            int ticks = 0;
+
+            @Override
+            public void run() {
+                if (ticks++ >= duration) {
+                    cancel();
+                    player.sendMessage("§cIron Fortress has ended.");
+                    return;
+                }
+                // Reflect damage logic could be implemented in a custom damage listener
+            }
+        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 1L);
+    }
+
+    private void castHeroicLeap(Player player) {
+        double radius = 5.0;
+        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 1.2; // 120% weapon damage
+
+        Location target = player.getTargetBlockExact(20).getLocation();
+        if (target == null) {
+            player.sendMessage("§cNo valid target location found!");
+            return;
+        }
+
+        ArmorStandEffectUtil.createTrail(player.getLocation(), target, Particle.FLAME, 0.5);
+
+        player.setVelocity(target.toVector().subtract(player.getLocation().toVector()).normalize().multiply(1.5).setY(1));
+
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                player.teleport(target);
+                player.getWorld().playSound(target, Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
+                spawnAoEParticles(target, (int) radius, Particle.EXPLOSION);
+
+                for (Entity entity : player.getWorld().getNearbyEntities(target, radius, radius, radius)) {
+                    if (entity instanceof LivingEntity && entity != player) {
+                        LivingEntity targetEntity = (LivingEntity) entity;
+                        targetEntity.damage(damage, player);
+                        targetEntity.setVelocity(new Vector(0, 1, 0)); // Knock upward
+                    }
+                }
+            }
+        }.runTaskLater(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 10L);
+    }
+
+    private void castWhirlwind(Player player) {
+        double radius = 4.0;
+        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 0.8; // 80% weapon damage per tick
+        int duration = 100; // 5 seconds (100 ticks)
+
+        player.sendMessage("§eYou spin in a whirlwind, slicing nearby enemies!");
+
+        // Spawn spinning axes
+        ArmorStandEffectUtil.spawnRotatingArmorStands(player.getLocation(), Material.IRON_AXE, 3, duration);
+
+        new BukkitRunnable() {
+            int ticks = 0;
+
+            @Override
+            public void run() {
+                if (ticks++ >= duration) {
+                    cancel();
+                    player.sendMessage("§cWhirlwind has ended.");
+                    return;
+                }
+
+                // Create particle vortex
+                ParticleEffectUtil.createVortexEffect(player.getLocation(), Particle.SWEEP_ATTACK, radius, 10);
+
+                for (Entity entity : player.getWorld().getNearbyEntities(player.getLocation(), radius, radius, radius)) {
+                    if (entity instanceof LivingEntity && entity != player) {
+                        LivingEntity target = (LivingEntity) entity;
+                        target.damage(damage, player);
+                    }
+                }
+            }
+        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 5L);
+    }
+
+
+    private void castSeismicShockwave(Player player) {
+        double distance = 10.0;
+        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 1.5; // 150% weapon damage
+        double slowDuration = 60; // 3 seconds (60 ticks)
+
+        player.sendMessage("§eYou slam the ground, creating a shockwave!");
+
+        // Spawn hammer-leading shockwave
+        ArmorStandEffectUtil.createLeadingArmorStand(player.getLocation(), Material.IRON_AXE, 10, distance);
+
+        Vector direction = player.getLocation().getDirection().normalize();
+        Location start = player.getLocation().add(0, 1, 0);
+        for (double i = 0; i <= distance; i += 0.5) {
+            Location point = start.clone().add(direction.clone().multiply(i));
+            point.getWorld().spawnParticle(Particle.CRIT, point, 10, 0.2, 0.2, 0.2);
+
+            // Ground cracking effect
+            ParticleEffectUtil.createBlockBreakingEffect(point, Material.COBBLESTONE, 5);
+
+            for (Entity entity : player.getWorld().getNearbyEntities(point, 1, 1, 1)) {
+                if (entity instanceof LivingEntity && entity != player) {
+                    LivingEntity target = (LivingEntity) entity;
+                    target.damage(damage, player);
+                    target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, (int) slowDuration, 1)); // Slow effect
+                }
+            }
+
+            if (!point.getBlock().isPassable()) break; // Stop shockwave at obstacles
+        }
     }
 
 }

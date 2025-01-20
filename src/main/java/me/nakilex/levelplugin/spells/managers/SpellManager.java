@@ -27,20 +27,19 @@ public class SpellManager {
     private void loadSpells() {
         // Warrior Spells
         spellsByClass.put("warrior", Map.of(
-            "RLR", new Spell("ground_slam", "Ground Slam", "RLR", 10, 0, 1,
+            "RLR", new Spell("iron_fortress", "Iron Fortress", "RLR", 15, 0, 2,
                 Arrays.asList(Material.WOODEN_SHOVEL, Material.STONE_SHOVEL, Material.IRON_SHOVEL, Material.GOLDEN_SHOVEL, Material.DIAMOND_SHOVEL, Material.NETHERITE_SHOVEL),
-                "GROUND_SLAM", 1.5),
-            "RRR", new Spell("charge", "Charge", "RRR", 8, 0, 1,
+                "IRON_FORTRESS", 0.0),
+            "RRR", new Spell("heroic_leap", "Heroic Leap", "RRR", 10, 0, 2,
                 Arrays.asList(Material.WOODEN_SHOVEL, Material.STONE_SHOVEL, Material.IRON_SHOVEL, Material.GOLDEN_SHOVEL, Material.DIAMOND_SHOVEL, Material.NETHERITE_SHOVEL),
-                "CHARGE", 1.2),
-            "RRL", new Spell("shield_wall", "Shield Wall", "RRL", 12, 0, 1,
+                "HEROIC_LEAP", 1.2),
+            "RRL", new Spell("whirlwind", "Whirlwind", "RRL", 12, 0, 2,
                 Arrays.asList(Material.WOODEN_SHOVEL, Material.STONE_SHOVEL, Material.IRON_SHOVEL, Material.GOLDEN_SHOVEL, Material.DIAMOND_SHOVEL, Material.NETHERITE_SHOVEL),
-                "SHIELD_WALL", 0.0),
-            "RLL", new Spell("battle_cry", "Battle Cry", "RLL", 10, 0, 1,
+                "WHIRLWIND", 0.8),
+            "RLL", new Spell("seismic_shockwave", "Seismic Shockwave", "RLL", 14, 0, 3,
                 Arrays.asList(Material.WOODEN_SHOVEL, Material.STONE_SHOVEL, Material.IRON_SHOVEL, Material.GOLDEN_SHOVEL, Material.DIAMOND_SHOVEL, Material.NETHERITE_SHOVEL),
-                "BATTLE_CRY", 0.0)
+                "SEISMIC_SHOCKWAVE", 1.5)
         ));
-
 
         // Mage Spells
         spellsByClass.put("mage", Map.of(
