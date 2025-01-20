@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.spells;
 
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import org.bukkit.Material;
 import org.bukkit.attribute.Attribute;
 import me.nakilex.levelplugin.player.listener.ClickComboListener;
@@ -10,6 +11,7 @@ import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.Snowball;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -30,6 +32,8 @@ public class Spell {
     private final int cooldown;          // in seconds
     private final int levelReq;
     private final List<Material> allowedWeapons; // which weapon materials are valid (e.g. all SHOVELS for warrior)
+    private final Map<UUID, Long> mageBasicCooldown = new HashMap<>();
+
 
     // A short descriptor of the effect logic: e.g. "GROUND_SLAM", "SHIELD_WALL", etc.
     private final String effectKey;
@@ -159,37 +163,78 @@ public class Spell {
         }
     }
 
-    //MAGE
-
     private void mageBasicSkill(Player player) {
+        // Retrieve player's stats and class
+        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
+        String className = ps.playerClass.name().toLowerCase();
+
+        // Check if the player is a Mage
+        if (!className.equals("mage")) {
+            return; // Do nothing if the player is not a Mage
+        }
+
+        // Check if the player is holding a valid Mage weapon (stick or blaze rod)
+        ItemStack mainHand = player.getInventory().getItemInMainHand();
+        if (mainHand == null || (mainHand.getType() != Material.STICK && mainHand.getType() != Material.BLAZE_ROD)) {
+            return; // Do nothing if the player is not holding a valid Mage weapon
+        }
+
+        // Check cooldown
+        UUID playerUUID = player.getUniqueId();
+        long currentTime = System.currentTimeMillis();
+        if (mageBasicCooldown.containsKey(playerUUID)) {
+            long lastCastTime = mageBasicCooldown.get(playerUUID);
+            if (currentTime - lastCastTime < 500) { // Cooldown of 500ms
+                player.sendMessage("§cSkill is on cooldown! Please wait a moment.");
+                return;
+            }
+        }
+
+        // Record the cast time
+        mageBasicCooldown.put(playerUUID, currentTime);
+
         // Check if the player is in the middle of a combo
         String activeCombo = ClickComboListener.getActiveCombo(player);
-
-        // Allow left-click to be used as part of the combo instead of triggering the basic attack
         if (!activeCombo.isEmpty() && activeCombo.length() < 3) {
             return; // Let the input contribute to the combo instead
         }
 
-        // If no combo is active, proceed with basic attack
-        Snowball projectile = player.launchProjectile(Snowball.class);
-        projectile.setVelocity(player.getLocation().getDirection().multiply(2));
-        projectile.getWorld().playSound(player.getLocation(), Sound.ENTITY_WITCH_THROW, 1f, 1f);
-        projectile.getWorld().spawnParticle(Particle.CRIT, projectile.getLocation(), 20, 0.2, 0.2, 0.2);
+        // Magic Beam Logic
+        Location start = player.getEyeLocation();
+        Vector direction = start.getDirection().normalize();
+        double beamLength = 20.0; // Max length of the beam
+        double damage = 6.0; // Damage dealt to entities
 
-        projectile.setCustomName("MageBasicSkill");
-        projectile.setCustomNameVisible(false);
+        // Beam visuals and logic
+        for (double i = 0; i < beamLength; i += 0.5) {
+            Location point = start.clone().add(direction.clone().multiply(i));
 
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (!projectile.isValid() || projectile.isDead()) {
-                    cancel();
-                    return;
+            // Spawn particles at each point along the beam
+            player.getWorld().spawnParticle(Particle.END_ROD, point, 1, 0.1, 0.1, 0.1, 0.1);
+
+            // Check for collision with entities
+            for (Entity entity : player.getWorld().getNearbyEntities(point, 0.5, 0.5, 0.5)) {
+                if (entity instanceof LivingEntity && entity != player) {
+                    LivingEntity target = (LivingEntity) entity;
+                    target.damage(damage, player); // Apply damage to the entity
+                    player.getWorld().spawnParticle(Particle.WITCH, target.getLocation(), 10, 0.2, 0.2, 0.2);
+                    player.getWorld().playSound(target.getLocation(), Sound.ITEM_TRIDENT_THUNDER, 1f, 1f);
+                    return; // Stop the beam upon hitting an entity
                 }
-                projectile.getWorld().spawnParticle(Particle.CRIT, projectile.getLocation(), 5, 0.1, 0.1, 0.1);
             }
-        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 1L);
+
+            // Stop if the beam reaches an obstacle
+            if (!point.getBlock().isPassable()) {
+                player.getWorld().playSound(point, Sound.BLOCK_GLASS_BREAK, 1f, 1f);
+                break;
+            }
+        }
+
+        // Play casting sound at the player's location
+        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_WITCH_THROW, 1f, 1f);
     }
+
+
 
 
     private void castMeteor(Player player) {

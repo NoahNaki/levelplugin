@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStats;
 import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -120,26 +121,8 @@ public class ClickComboListener implements Listener {
         }
     }
 
-    private void cancelBowPullAndShootArrow(Player player) {
-        // Ensure the player is an Archer and is holding a bow
-        PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
-        String className = ps.playerClass.name().toLowerCase();
-        ItemStack mainHand = player.getInventory().getItemInMainHand();
-
-        if (!className.equals("archer") || mainHand.getType() != Material.BOW) {
-            return; // Only proceed if the player is an archer class and holding a bow
-        }
-
-        // Cancel the bow pull animation and shoot the arrow instantly
-        player.launchProjectile(org.bukkit.entity.Arrow.class); // Launch an arrow immediately
-
-        // Optional: Add sound and particle effects to indicate the arrow is shot instantly
-        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ARROW_SHOOT, 1f, 1f);
-        player.getWorld().spawnParticle(Particle.INSTANT_EFFECT, player.getLocation(), 20, 0.5, 1, 0.5);
-    }
-
     @EventHandler
-    public void onArhcerRightClick(PlayerInteractEvent event) {
+    public void onArcherRightClick(PlayerInteractEvent event) {
         Player player = event.getPlayer();
         ItemStack mainHand = player.getInventory().getItemInMainHand();
         PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
@@ -154,15 +137,45 @@ public class ClickComboListener implements Listener {
             return;
         }
 
-        // Add check for Archer class to instantly shoot the arrow
+        // Ensure the player is an archer class and holding a bow
         if (className.equals("archer") && mainHand.getType() == Material.BOW) {
-            cancelBowPullAndShootArrow(player); // Cancel the bow pull and shoot the arrow
-            return;
-        }
+            long currentTime = System.currentTimeMillis();
+            Long lastShotTime = playerCooldowns.get(player);
 
-        // Other spell handling logic for different classes...
-        recordComboClick(player, "R");
+            // Check if cooldown has passed (1 second cooldown)
+            if (lastShotTime == null || currentTime - lastShotTime >= 1000) {
+                // Cancel the event to prevent any animation (fidget/reload animation)
+                event.setCancelled(true);
+
+                // Immediately shoot the arrow without any animation
+                shootArrowInstantly(player);
+
+                // Update the cooldown for this player
+                playerCooldowns.put(player, currentTime);
+            } else {
+                // If cooldown hasn't passed, cancel the event to prevent the animation
+                event.setCancelled(true);
+            }
+        }
     }
+
+    // Method to shoot an arrow instantly
+    private void shootArrowInstantly(Player player) {
+        // Directly shoot the arrow without any pull/charge animation
+        player.launchProjectile(Arrow.class);
+
+        // Optionally, add sound or particle effects to simulate an instant shot
+        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ARROW_SHOOT, 1f, 1f);
+        player.getWorld().spawnParticle(Particle.CRIT, player.getLocation(), 10, 0.1, 0.1, 0.1);
+
+        // Clear any potential pull animation state manually by forcing a state reset (optional)
+        // This step would be ideal if we could use reflection to reset the bow state if it was stuck
+    }
+
+
+    // A Map to store the cooldown time of each player (you can make this static if needed)
+    private final Map<Player, Long> playerCooldowns = new HashMap<>();
+
 
 
 
