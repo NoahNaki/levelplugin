@@ -26,8 +26,6 @@ public class ClickComboListener implements Listener {
     private final Map<UUID, Map<String, Long>> spellCooldowns = new HashMap<>();
     private final Map<UUID, Long> activeLeftClicks = new HashMap<>();
 
-
-
     @EventHandler
     public void onLeftClick(PlayerAnimationEvent event) {
         if (event.getAnimationType() != PlayerAnimationType.ARM_SWING) return;
@@ -70,7 +68,21 @@ public class ClickComboListener implements Listener {
             return;
         }
 
-        // Record the right-click for combos
+        // Check if there is an active combo
+        String activeCombo = getActiveCombo(player);
+        if (!activeCombo.isEmpty() && activeCombo.length() < 3) {
+            // Add to combo instead of shooting an arrow
+            recordComboClick(player, "R");
+            return;
+        }
+
+        // Add check for Archer class to instantly shoot the arrow
+        if (className.equals("archer") && mainHand.getType() == Material.BOW) {
+            cancelBowPullAndShootArrow(player); // Cancel the bow pull and shoot the arrow
+            return;
+        }
+
+        // Other spell handling logic for different classes...
         recordComboClick(player, "R");
     }
 
@@ -132,27 +144,6 @@ public class ClickComboListener implements Listener {
         // Optional: Add sound and particle effects to indicate the arrow is shot instantly
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ARROW_SHOOT, 1f, 1f);
         player.getWorld().spawnParticle(Particle.INSTANT_EFFECT, player.getLocation(), 20, 0.5, 1, 0.5);
-    }
-    @EventHandler
-    public void onArhcerRightClick(PlayerInteractEvent event) {
-        Player player = event.getPlayer();
-        ItemStack mainHand = player.getInventory().getItemInMainHand();
-        PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
-        String className = ps.playerClass.name().toLowerCase();
-        if (mainHand == null || mainHand.getType() == Material.AIR) {
-            return;
-        }
-        Action action = event.getAction();
-        if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK) {
-            return;
-        }
-        // Add check for Archer class to instantly shoot the arrow
-        if (className.equals("archer") && mainHand.getType() == Material.BOW) {
-            cancelBowPullAndShootArrow(player); // Cancel the bow pull and shoot the arrow
-            return;
-        }
-        // Other spell handling logic for different classes...
-        recordComboClick(player, "R");
     }
 
     private void handleSpellCast(Player player, String combo) {

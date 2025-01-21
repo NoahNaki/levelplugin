@@ -8,6 +8,7 @@ import org.bukkit.attribute.Attribute;
 import me.nakilex.levelplugin.player.listener.ClickComboListener;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.FireworkMeta;
@@ -238,42 +239,71 @@ public class Spell {
 
 
     private void castMeteor(Player player) {
-        Location target = player.getTargetBlockExact(100).getLocation().add(0.5, 1, 0.5);
-        double radius = 4.0;
+        Location target = player.getTargetBlockExact(20) != null
+            ? player.getTargetBlockExact(20).getLocation().add(0.5, 1, 0.5)
+            : player.getLocation().add(player.getLocation().getDirection().normalize().multiply(5));
+        double radius = 4.0; // Explosion radius
         double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 2.5; // 250% weapon damage
 
         player.sendMessage("§eYou summon a Meteor!");
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 1f, 1f);
-        player.getWorld().spawnParticle(Particle.FLAME, target, 50, 1, 1, 1);
 
-        // Delayed meteor strike
+        // Spawn the fireball above the target location
+        Location spawnLocation = target.clone().add(0, 15, 0); // Spawn 15 blocks above the target
+        Fireball fireball = player.getWorld().spawn(spawnLocation, Fireball.class);
+        fireball.setShooter(player); // Ensure the fireball is associated with the player
+        fireball.setVelocity(new Vector(0, -1.5, 0)); // Apply downward velocity
+        fireball.setIsIncendiary(false); // Prevent fire spread
+
+        // Create particle effects while the fireball descends
         new BukkitRunnable() {
-            int ticks = 0;
-
             @Override
             public void run() {
-                if (ticks++ >= 40) { // 2-second delay
-                    player.getWorld().spawnParticle(Particle.EXPLOSION, target, 20);
-                    player.getWorld().playSound(target, Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
-
-                    // Deal damage and ignite nearby entities
-                    for (Entity entity : player.getWorld().getNearbyEntities(target, radius, radius, radius)) {
-                        if (entity instanceof LivingEntity && entity != player) {
-                            LivingEntity targetEntity = (LivingEntity) entity;
-                            targetEntity.damage(damage, player); // Apply damage
-                            targetEntity.setFireTicks(100); // Ignite for 5 seconds
-                        }
-                    }
-
+                if (!fireball.isValid()) {
                     cancel();
-                } else {
-                    // Visuals during the meteor descent
-                    player.getWorld().spawnParticle(Particle.SMOKE, target.add(0, 0.2, 0), 10, 1, 1, 1, 0.1);
-                    player.getWorld().playSound(target, Sound.BLOCK_FIRE_AMBIENT, 0.5f, 0.8f);
+                    return;
                 }
+
+                // Particle trail for the fireball
+                fireball.getWorld().spawnParticle(Particle.FLAME, fireball.getLocation(), 10, 0.3, 0.3, 0.3, 0.02);
+                fireball.getWorld().spawnParticle(Particle.LARGE_SMOKE, fireball.getLocation(), 5, 0.2, 0.2, 0.2, 0.02);
+
+                // Play sound as the fireball descends
+                fireball.getWorld().playSound(fireball.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 0.5f, 1f);
             }
-        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 1L);
+        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 2L);
+
+        // Handle explosion when the fireball hits
+        fireball.setMetadata("Meteor", new FixedMetadataValue(Bukkit.getPluginManager().getPlugin("LevelPlugin"), true));
+        fireball.setYield((float) radius); // Set explosion radius
+        fireball.setGravity(true);
+
+        fireball.setMetadata("ExplosionLogic", new FixedMetadataValue(Bukkit.getPluginManager().getPlugin("LevelPlugin"), true));
+
+        // Listen for the fireball's collision
+        Bukkit.getPluginManager().registerEvents(new Listener() {
+            @EventHandler
+            public void onProjectileHit(org.bukkit.event.entity.ProjectileHitEvent event) {
+                if (!(event.getEntity() instanceof Fireball) || !event.getEntity().hasMetadata("Meteor")) return;
+                Fireball fireball = (Fireball) event.getEntity();
+
+                // Explosion logic
+                fireball.getWorld().spawnParticle(Particle.EXPLOSION, fireball.getLocation(), 1);
+                fireball.getWorld().playSound(fireball.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
+
+                // Damage and ignite nearby entities
+                for (Entity entity : fireball.getWorld().getNearbyEntities(fireball.getLocation(), radius, radius, radius)) {
+                    if (entity instanceof LivingEntity && entity != player) {
+                        LivingEntity targetEntity = (LivingEntity) entity;
+                        targetEntity.damage(damage, player); // Apply damage
+                        targetEntity.setFireTicks(100); // Ignite for 5 seconds
+                    }
+                }
+                fireball.remove(); // Remove the fireball after impact
+            }
+        }, Bukkit.getPluginManager().getPlugin("LevelPlugin"));
     }
+
 
 
     private void castBlackhole(Player player) {
@@ -284,7 +314,9 @@ public class Spell {
 
         player.sendMessage("§eYou summon a Black Hole!");
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_SCREAM, 1f, 1f);
-        player.getWorld().spawnParticle(Particle.PORTAL, target, 100, 1, 1, 1);
+
+        // Create a circular visual effect on the ground
+        createBlackholeEffect(target, pullRadius);
 
         new BukkitRunnable() {
             int ticks = 0;
@@ -319,6 +351,42 @@ public class Spell {
             }
         }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 2L);
     }
+
+    /**
+     * Creates a circular effect on the ground to visually represent a black hole.
+     */
+    private void createBlackholeEffect(Location center, double radius) {
+        new BukkitRunnable() {
+            int ticks = 0;
+
+            @Override
+            public void run() {
+                if (ticks++ >= 100) { // 5 seconds duration
+                    cancel();
+                    return;
+                }
+
+                // Generate particles in a circle
+                for (double angle = 0; angle < 360; angle += 10) {
+                    double radians = Math.toRadians(angle);
+                    double x = radius * Math.cos(radians);
+                    double z = radius * Math.sin(radians);
+                    Location particleLocation = center.clone().add(x, 0, z);
+
+                    // Add swirling effect by raising and lowering particles
+                    particleLocation.add(0, Math.sin(ticks / 10.0) * 0.5, 0);
+
+                    // Spawn particles for the circle
+                    center.getWorld().spawnParticle(Particle.PORTAL, particleLocation, 1, 0, 0, 0, 0);
+                    center.getWorld().spawnParticle(Particle.SMOKE, particleLocation, 1, 0, 0, 0, 0);
+                }
+
+                // Core effect at the black hole center
+                center.getWorld().spawnParticle(Particle.DRAGON_BREATH, center, 5, 0.2, 0.2, 0.2, 0.02);
+            }
+        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 2L);
+    }
+
 
 
     private void healPlayer(Player player, int amount) {
@@ -444,43 +512,74 @@ public class Spell {
     }
 
     private void castPowerShot(Player player) {
-        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 2.0; // 200% weapon damage
-        double knockbackStrength = 2.0;
+        double radius = 5.0; // Radius of the area
+        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 0.8; // 80% weapon damage per arrow
+        int duration = 100; // 5 seconds (100 ticks)
+        int arrowCount = 30; // Total number of arrows to rain down
 
-        player.sendMessage("§eYou unleash a Power Shot!");
-        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ARROW_SHOOT, 1f, 0.8f);
+        // Determine the target location
+        Location targetLocation = player.getTargetBlockExact(20) != null
+            ? player.getTargetBlockExact(20).getLocation().add(0.5, 0.5, 0.5)
+            : player.getLocation().add(player.getLocation().getDirection().normalize().multiply(5));
 
-        // Launch an arrow
-        Arrow arrow = player.launchProjectile(Arrow.class);
-        arrow.setVelocity(player.getLocation().getDirection().multiply(2));
-        arrow.setCustomName("PowerShot");
-        arrow.setCustomNameVisible(false);
-        arrow.setCritical(true); // Critical hit effect
+        player.sendMessage("§eYou summon an Arrow Rain!");
+        player.getWorld().playSound(targetLocation, Sound.ENTITY_ARROW_SHOOT, 1f, 1f);
 
         new BukkitRunnable() {
+            int arrowsSpawned = 0;
+
             @Override
             public void run() {
-                if (!arrow.isValid() || arrow.isDead()) {
+                if (arrowsSpawned >= arrowCount) {
                     cancel();
                     return;
                 }
 
-                arrow.getWorld().spawnParticle(Particle.CRIT, arrow.getLocation(), 10, 0.1, 0.1, 0.1);
+                // Generate random drop locations within the radius
+                double xOffset = (Math.random() - 0.5) * 2 * radius;
+                double zOffset = (Math.random() - 0.5) * 2 * radius;
+                Location dropLocation = targetLocation.clone().add(xOffset, 15, zOffset); // Increased spawn height
 
-                // Check for collisions
-                for (Entity entity : arrow.getNearbyEntities(1, 1, 1)) {
-                    if (entity instanceof LivingEntity && entity != player) {
-                        LivingEntity target = (LivingEntity) entity;
-                        target.damage(damage, player); // Apply damage
-                        target.setVelocity(arrow.getVelocity().normalize().multiply(knockbackStrength)); // Knockback
-                        arrow.remove();
-                        cancel();
-                        return;
+                // Spawn a particle effect at the arrow spawn height
+                dropLocation.getWorld().spawnParticle(Particle.CLOUD, dropLocation, 10, 0.3, 0.3, 0.3, 0.02);
+                dropLocation.getWorld().playSound(dropLocation, Sound.ENTITY_FIREWORK_ROCKET_LAUNCH, 0.5f, 1.5f);
+
+                // Spawn a falling arrow with downward velocity
+                Arrow arrow = player.getWorld().spawnArrow(dropLocation, new Vector(0, -3, 0), 1.5f, 0.0f); // Increased velocity
+                arrow.setCustomName("ArrowRain");
+                arrow.setCustomNameVisible(false);
+                arrow.setShooter(player);
+                arrow.setPickupStatus(AbstractArrow.PickupStatus.DISALLOWED); // Prevent pickup
+
+                // Prevent the arrow from damaging players
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        if (!arrow.isValid() || arrow.isDead()) {
+                            cancel();
+                            return;
+                        }
+
+                        for (Entity entity : arrow.getNearbyEntities(1, 1, 1)) {
+                            if (entity instanceof LivingEntity && entity != player) {
+                                LivingEntity target = (LivingEntity) entity;
+
+                                // Deal damage to the entity
+                                target.damage(damage, player);
+
+                                // Apply slowness effect
+                                target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 1)); // Slow for 2 seconds
+                            }
+                        }
                     }
-                }
+                }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 1L);
+
+                arrowsSpawned++;
             }
-        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 1L);
+        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, duration / arrowCount); // Spread out arrow spawns
     }
+
+
 
     private void castExplosiveArrow(Player player) {
         double explosionRadius = 5.0; // Radius of the explosion
