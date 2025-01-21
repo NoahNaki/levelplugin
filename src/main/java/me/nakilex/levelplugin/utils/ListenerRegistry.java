@@ -75,6 +75,7 @@ public class ListenerRegistry {
         pm.registerEvents(new LootChestCloseListener(lootChestManager), plugin);
         pm.registerEvents(new PotionUseListener(potionManager, plugin), plugin);
         pm.registerEvents(new MythicMobNameManager(plugin), plugin);
+        pm.registerEvents(new FallDamageDisabler(), plugin);
 
         // Register ArrowUtils listener and start cleanup task
         ArrowUtils arrowUtils = new ArrowUtils(plugin);
