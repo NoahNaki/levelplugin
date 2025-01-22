@@ -36,9 +36,9 @@ public class SpellManager {
             "RRL", new Spell("whirlwind", "Whirlwind", "RRL", 12, 0, 2,
                 Arrays.asList(Material.WOODEN_SHOVEL, Material.STONE_SHOVEL, Material.IRON_SHOVEL, Material.GOLDEN_SHOVEL, Material.DIAMOND_SHOVEL, Material.NETHERITE_SHOVEL),
                 "WHIRLWIND", 0.8),
-            "RLL", new Spell("seismic_shockwave", "Seismic Shockwave", "RLL", 14, 0, 3,
+            "RLL", new Spell("ground_slam", "Ground Slam", "RLL", 14, 0, 3,
                 Arrays.asList(Material.WOODEN_SHOVEL, Material.STONE_SHOVEL, Material.IRON_SHOVEL, Material.GOLDEN_SHOVEL, Material.DIAMOND_SHOVEL, Material.NETHERITE_SHOVEL),
-                "SEISMIC_SHOCKWAVE", 1.5)
+                "GROUND_SLAM", 1.5)
         ));
 
         // Mage Spells

@@ -94,8 +94,8 @@ public class Spell {
                 castWhirlwind(player);
                 break;
             }
-            case "SEISMIC_SHOCKWAVE": {
-                castSeismicShockwave(player);
+            case "GROUND_SLAM": {
+                castGroundSlam(player);
                 break;
             }
 
@@ -425,28 +425,6 @@ public class Spell {
     }
 
     // Inside the Spell class
-
-    private void castGroundSlam(Player player) {
-        double radius = 5.0;
-        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 1.5; // 150% weapon damage
-
-        spawnAoEParticles(player.getLocation(), (int) radius, Particle.EXPLOSION);
-        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1f, 0.8f);
-
-        player.sendMessage("§eYou slam the ground, dealing AoE damage and knocking back enemies!");
-
-        // Damage and knockback nearby entities
-        for (Entity entity : player.getWorld().getNearbyEntities(player.getLocation(), radius, radius, radius)) {
-            if (entity instanceof LivingEntity && entity != player) {
-                LivingEntity target = (LivingEntity) entity;
-                target.damage(damage, player); // Apply damage
-                Vector knockback = target.getLocation().toVector().subtract(player.getLocation().toVector()).normalize().multiply(1.5);
-                knockback.setY(0.5); // Add upward knockback
-                target.setVelocity(knockback);
-            }
-        }
-    }
-
     private void castShieldWall(Player player) {
         int duration = 200; // 10 seconds (200 ticks)
         double damageReduction = 0.5; // 50% damage reduction
@@ -1151,6 +1129,66 @@ public class Spell {
             }
         }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 5L);
     }
+
+    private void castGroundSlam(Player player) {
+        double maxRadius = 10.0; // Maximum radius of the ripple
+        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 1.5; // 150% weapon damage
+        int duration = 20; // Duration in ticks between each ripple expansion
+        int steps = 10; // Number of ripple steps (determines granularity of the effect)
+
+        player.sendMessage("§eYou slam the ground, creating a powerful ripple effect!");
+        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
+        player.getWorld().spawnParticle(Particle.EXPLOSION, player.getLocation(), 10, 0.5, 0.5, 0.5);
+
+        new BukkitRunnable() {
+            double currentRadius = 0;
+
+            @Override
+            public void run() {
+                if (currentRadius >= maxRadius) {
+                    cancel();
+                    return;
+                }
+
+                // Increase the radius for the next ripple
+                currentRadius += maxRadius / steps;
+
+                // Create ripple effect
+                for (double angle = 0; angle < 360; angle += 10) {
+                    double radians = Math.toRadians(angle);
+                    double x = Math.cos(radians) * currentRadius;
+                    double z = Math.sin(radians) * currentRadius;
+                    Location rippleLocation = player.getLocation().clone().add(x, 0, z);
+
+                    // Spawn particles at the ripple location
+                    rippleLocation.getWorld().spawnParticle(Particle.BLOCK_CRUMBLE, rippleLocation, 10, 0.2, 0.2, 0.2, 0.1, Material.DIRT.createBlockData());
+                    rippleLocation.getWorld().spawnParticle(Particle.CRIT, rippleLocation, 5, 0.2, 0.2, 0.2);
+
+                    // Check for entities within the ripple area
+                    for (Entity entity : rippleLocation.getWorld().getNearbyEntities(rippleLocation, 1, 1, 1)) {
+                        if (entity instanceof LivingEntity && entity != player) {
+                            LivingEntity target = (LivingEntity) entity;
+                            target.damage(damage, player);
+
+                            // Apply knockback to the target
+                            Vector knockback = target.getLocation().toVector().subtract(player.getLocation().toVector()).normalize().multiply(0.5);
+                            knockback.setY(0.3); // Add a slight upward component to the knockback
+                            target.setVelocity(knockback);
+                        }
+                    }
+
+                    // Stop ripple at obstacles
+                    if (!rippleLocation.getBlock().isPassable()) {
+                        break;
+                    }
+                }
+
+                // Sound effect for the ripple
+                player.getWorld().playSound(player.getLocation(), Sound.BLOCK_ANVIL_LAND, 0.5f, 0.8f);
+            }
+        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, duration / steps);
+    }
+
 
 
     private void castSeismicShockwave(Player player) {
