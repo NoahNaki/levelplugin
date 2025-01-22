@@ -18,6 +18,7 @@ import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.EulerAngle;
 import org.bukkit.util.Vector;
 
 import java.util.*;
@@ -991,6 +992,11 @@ public class Spell {
 
             ItemStack shieldItem = new ItemStack(Material.SHIELD);
             armorStand.getEquipment().setItemInMainHand(shieldItem);
+
+            // Adjust the shield-holding arm pose to ensure the shield is upright
+            armorStand.setArms(true);
+            armorStand.setRightArmPose(new EulerAngle(Math.toRadians(-90), Math.toRadians(0), Math.toRadians(0)));
+
             shields.add(armorStand);
         }
 
@@ -1006,7 +1012,7 @@ public class Spell {
                     return;
                 }
 
-                angle += Math.PI / 30; // Rotate by a small angle each tick
+                angle += Math.PI / 60; // Rotate by a smaller angle each tick to slow down rotation
                 for (int i = 0; i < shields.size(); i++) {
                     ArmorStand shield = shields.get(i);
                     double radians = angle + (2 * Math.PI * i / shields.size()); // Evenly space shields
@@ -1014,9 +1020,24 @@ public class Spell {
                     double z = Math.sin(radians) * 2;
                     Location shieldLocation = player.getLocation().clone().add(x, 1, z);
                     shield.teleport(shieldLocation);
+
+                    // Calculate yaw to keep the shield facing inward toward the player
+                    float yaw = (float) Math.toDegrees(Math.atan2(player.getLocation().getZ() - shieldLocation.getZ(),
+                        player.getLocation().getX() - shieldLocation.getX()));
+                    shield.setRotation(yaw, 0);
                 }
             }
         }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 1L);
+
+        // Schedule a task to remove shields after 5 seconds
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                shields.forEach(Entity::remove);
+                shields.clear();
+                player.sendMessage("§cYour Iron Fortress has expired!");
+            }
+        }.runTaskLater(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 100L); // 100 ticks = 5 seconds
 
         // Cancel player damage and handle shield breaking
         Bukkit.getPluginManager().registerEvents(new Listener() {
@@ -1042,6 +1063,8 @@ public class Spell {
             }
         }, Bukkit.getPluginManager().getPlugin("LevelPlugin"));
     }
+
+
 
     private void castHeroicLeap(Player player) {
         double leapDistance = 15.0; // Distance of the leap
