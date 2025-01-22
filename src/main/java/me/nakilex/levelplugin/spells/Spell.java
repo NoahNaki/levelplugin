@@ -8,7 +8,9 @@ import org.bukkit.attribute.Attribute;
 import me.nakilex.levelplugin.player.listener.ClickComboListener;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.FireworkMeta;
@@ -971,30 +973,74 @@ public class Spell {
         return new Vector(x, vector.getY(), z);
     }
 
-
-
     private void castIronFortress(Player player) {
-        int duration = 100; // 5 seconds (100 ticks)
-        double reflectPercentage = 0.5; // Reflect 50% damage
+        player.sendMessage("§eYou raise an Iron Fortress, becoming immune to 4 hits!");
 
-        player.sendMessage("§eYou raise an Iron Fortress, becoming immune and reflecting damage!");
-
-        ParticleEffectUtil.createShieldEffect(player.getLocation(), 2, Particle.BLOCK_CRUMBLE, Material.IRON_BLOCK);
+        // Play sound and particle effects
         player.getWorld().playSound(player.getLocation(), Sound.ITEM_SHIELD_BLOCK, 1f, 1f);
+        ParticleEffectUtil.createShieldEffect(player.getLocation(), 2, Particle.BLOCK_CRUMBLE, Material.IRON_BLOCK);
 
+        // Create and track 4 armor stands holding shields
+        List<ArmorStand> shields = new ArrayList<>();
+        for (int i = 0; i < 4; i++) {
+            ArmorStand armorStand = (ArmorStand) player.getWorld().spawnEntity(player.getLocation(), EntityType.ARMOR_STAND);
+            armorStand.setInvisible(true);
+            armorStand.setMarker(true);
+            armorStand.setSmall(true);
+            armorStand.setGravity(false);
+
+            ItemStack shieldItem = new ItemStack(Material.SHIELD);
+            armorStand.getEquipment().setItemInMainHand(shieldItem);
+            shields.add(armorStand);
+        }
+
+        // Rotate the shields around the player
         new BukkitRunnable() {
-            int ticks = 0;
+            double angle = 0;
 
             @Override
             public void run() {
-                if (ticks++ >= duration) {
+                if (!player.isOnline() || shields.isEmpty()) {
+                    shields.forEach(Entity::remove);
                     cancel();
-                    player.sendMessage("§cIron Fortress has ended.");
                     return;
                 }
-                // Reflect damage logic could be implemented in a custom damage listener
+
+                angle += Math.PI / 30; // Rotate by a small angle each tick
+                for (int i = 0; i < shields.size(); i++) {
+                    ArmorStand shield = shields.get(i);
+                    double radians = angle + (2 * Math.PI * i / shields.size()); // Evenly space shields
+                    double x = Math.cos(radians) * 2; // Radius of the circle
+                    double z = Math.sin(radians) * 2;
+                    Location shieldLocation = player.getLocation().clone().add(x, 1, z);
+                    shield.teleport(shieldLocation);
+                }
             }
         }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 1L);
+
+        // Cancel player damage and handle shield breaking
+        Bukkit.getPluginManager().registerEvents(new Listener() {
+            @EventHandler
+            public void onEntityDamage(EntityDamageEvent event) {
+                if (!(event.getEntity() instanceof Player) || !event.getEntity().equals(player)) {
+                    return;
+                }
+
+                if (!shields.isEmpty()) {
+                    event.setCancelled(true); // Cancel the damage
+
+                    // Remove one shield
+                    ArmorStand shield = shields.remove(0);
+                    shield.getWorld().playSound(shield.getLocation(), Sound.ITEM_SHIELD_BREAK, 1f, 1f);
+                    shield.remove();
+
+                    if (shields.isEmpty()) {
+                        player.sendMessage("§cYour Iron Fortress has been broken!");
+                        HandlerList.unregisterAll(this); // Unregister the event listener
+                    }
+                }
+            }
+        }, Bukkit.getPluginManager().getPlugin("LevelPlugin"));
     }
 
     private void castHeroicLeap(Player player) {
@@ -1018,11 +1064,15 @@ public class Spell {
         // Play a sound and spawn particles to visualize the leap
         player.getWorld().spawnParticle(Particle.EXPLOSION, start, 10, 0.5, 1, 0.5);
 
-        // Handle the landing effects
+        // Handle the landing effects with a 2-tick delay
         new BukkitRunnable() {
+            boolean hasLanded = false;
+
             @Override
             public void run() {
-                if (player.isOnGround()) {
+                if (!hasLanded && player.isOnGround()) {
+                    hasLanded = true;
+
                     // Damage and knock back nearby entities upon landing
                     player.getWorld().playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
                     player.getWorld().spawnParticle(Particle.EXPLOSION, player.getLocation(), 20, 0.5, 1, 0.5);
@@ -1037,10 +1087,10 @@ public class Spell {
                         }
                     }
 
-                    cancel();
+                    cancel(); // Stop the task after the effect is applied
                 }
             }
-        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 1L);
+        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 2L, 1L); // Delay by 2 ticks before starting the ground check
     }
 
 
