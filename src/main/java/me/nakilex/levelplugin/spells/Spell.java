@@ -967,6 +967,7 @@ public class Spell {
             armorStand.setMarker(true);
             armorStand.setSmall(true);
             armorStand.setGravity(false);
+            armorStand.setSmall(true);
 
             ItemStack shieldItem = new ItemStack(Material.SHIELD);
             armorStand.getEquipment().setItemInMainHand(shieldItem);
@@ -1049,7 +1050,7 @@ public class Spell {
         double damageRadius = 5.0; // Radius for AoE damage
         double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 1.8; // 180% weapon damage
 
-        player.sendMessage("§eYou leap heroically into the air, ready to slam down on your foes!");
+        player.sendMessage("§eYou leap heroically into the air, engulfed in fiery energy!");
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_IRON_GOLEM_ATTACK, 1f, 1f);
 
         // Calculate the target location based on the player's direction
@@ -1062,8 +1063,9 @@ public class Spell {
         leapVector.setY(1.2); // Add vertical velocity
         player.setVelocity(leapVector);
 
-        // Play a sound and spawn particles to visualize the leap
-        player.getWorld().spawnParticle(Particle.EXPLOSION, start, 10, 0.5, 1, 0.5);
+        // Play a sound and spawn fiery particles to visualize the leap
+        player.getWorld().spawnParticle(Particle.FLAME, start, 30, 0.5, 1, 0.5);
+        player.getWorld().spawnParticle(Particle.LARGE_SMOKE, start, 15, 0.5, 1, 0.5);
 
         // Handle the landing effects with a 2-tick delay
         new BukkitRunnable() {
@@ -1077,6 +1079,8 @@ public class Spell {
                     // Damage and knock back nearby entities upon landing
                     player.getWorld().playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
                     player.getWorld().spawnParticle(Particle.EXPLOSION, player.getLocation(), 20, 0.5, 1, 0.5);
+                    player.getWorld().spawnParticle(Particle.FLAME, player.getLocation(), 50, 1, 0.5, 1, 0.1);
+                    player.getWorld().spawnParticle(Particle.LAVA, player.getLocation(), 20, 0.5, 0.5, 0.5);
 
                     for (Entity entity : player.getWorld().getNearbyEntities(player.getLocation(), damageRadius, damageRadius, damageRadius)) {
                         if (entity instanceof LivingEntity && entity != player) {
@@ -1093,6 +1097,7 @@ public class Spell {
             }
         }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 2L, 1L); // Delay by 2 ticks before starting the ground check
     }
+
 
 
 
@@ -1137,7 +1142,7 @@ public class Spell {
         int steps = 10; // Number of ripple steps (determines granularity of the effect)
 
         player.sendMessage("§eYou slam the ground, creating a powerful ripple effect!");
-        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
+        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1f);
         player.getWorld().spawnParticle(Particle.EXPLOSION, player.getLocation(), 10, 0.5, 0.5, 0.5);
 
         new BukkitRunnable() {
@@ -1184,41 +1189,8 @@ public class Spell {
                 }
 
                 // Sound effect for the ripple
-                player.getWorld().playSound(player.getLocation(), Sound.BLOCK_ANVIL_LAND, 0.5f, 0.8f);
+                player.getWorld().playSound(player.getLocation(), Sound.ENTITY_IRON_GOLEM_ATTACK, 0.5f, 0.8f);
             }
         }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, duration / steps);
-    }
-
-
-
-    private void castSeismicShockwave(Player player) {
-        double distance = 10.0;
-        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 1.5; // 150% weapon damage
-        double slowDuration = 60; // 3 seconds (60 ticks)
-
-        player.sendMessage("§eYou slam the ground, creating a shockwave!");
-
-        // Spawn hammer-leading shockwave
-        ArmorStandEffectUtil.createLeadingArmorStand(player.getLocation(), Material.IRON_AXE, 10);
-
-        Vector direction = player.getLocation().getDirection().normalize();
-        Location start = player.getLocation().add(0, 1, 0);
-        for (double i = 0; i <= distance; i += 0.5) {
-            Location point = start.clone().add(direction.clone().multiply(i));
-            point.getWorld().spawnParticle(Particle.CRIT, point, 10, 0.2, 0.2, 0.2);
-
-            // Ground cracking effect
-            ParticleEffectUtil.createBlockBreakingEffect(point, Material.COBBLESTONE, 5);
-
-            for (Entity entity : player.getWorld().getNearbyEntities(point, 1, 1, 1)) {
-                if (entity instanceof LivingEntity && entity != player) {
-                    LivingEntity target = (LivingEntity) entity;
-                    target.damage(damage, player);
-                    target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, (int) slowDuration, 1)); // Slow effect
-                }
-            }
-
-            if (!point.getBlock().isPassable()) break; // Stop shockwave at obstacles
-        }
     }
 }

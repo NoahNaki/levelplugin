@@ -56,7 +56,9 @@ public class ClickComboListener implements Listener {
     public void onRightClick(PlayerInteractEvent event) {
         // Ensure the event is triggered only for main hand and right-click actions
         if (event.getHand() != EquipmentSlot.HAND ||
-            (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK)) return;
+            (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK)) {
+            return;
+        }
 
         Player player = event.getPlayer();
         ItemStack mainHand = player.getInventory().getItemInMainHand();
@@ -68,23 +70,35 @@ public class ClickComboListener implements Listener {
             return;
         }
 
-        // Check if there is an active combo
-        String activeCombo = getActiveCombo(player);
-        if (!activeCombo.isEmpty() && activeCombo.length() < 3) {
-            // Add to combo instead of shooting an arrow
-            recordComboClick(player, "R");
+        // Check if the player is an Archer and holding a bow
+        if (className.equals("archer") && mainHand.getType() == Material.BOW) {
+            // Check if there's an active combo
+            String activeCombo = getActiveCombo(player);
+
+            if (!activeCombo.isEmpty()) {
+                // Active combo detected, cancel the bow shot and register the combo
+                event.setCancelled(true);
+                recordComboClick(player, "R");
+            } else {
+                // No active combo, allow the bow shot
+                cancelBowPullAndShootArrow(player);
+            }
             return;
         }
 
-        // Add check for Archer class to instantly shoot the arrow
-        if (className.equals("archer") && mainHand.getType() == Material.BOW) {
-            cancelBowPullAndShootArrow(player); // Cancel the bow pull and shoot the arrow
+        // For non-archer classes or if not holding a bow, check for active combo
+        String activeCombo = getActiveCombo(player);
+        if (!activeCombo.isEmpty() && activeCombo.length() < 3) {
+            // Add to combo instead of performing other actions
+            recordComboClick(player, "R");
             return;
         }
 
         // Other spell handling logic for different classes...
         recordComboClick(player, "R");
     }
+
+
 
     private void recordComboClick(Player player, String clickType) {
         long now = System.currentTimeMillis();
@@ -132,19 +146,20 @@ public class ClickComboListener implements Listener {
     }
 
     private void cancelBowPullAndShootArrow(Player player) {
-        // Ensure the player is an Archer and is holding a bow
-        PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
-        String className = ps.playerClass.name().toLowerCase();
+        // Ensure the player is holding a bow
         ItemStack mainHand = player.getInventory().getItemInMainHand();
-        if (!className.equals("archer") || mainHand.getType() != Material.BOW) {
-            return; // Only proceed if the player is an archer class and holding a bow
+        if (mainHand.getType() != Material.BOW) {
+            return; // Only proceed if holding a bow
         }
-        // Cancel the bow pull animation and shoot the arrow instantly
-        player.launchProjectile(org.bukkit.entity.Arrow.class); // Launch an arrow immediately
-        // Optional: Add sound and particle effects to indicate the arrow is shot instantly
+
+        // Launch an arrow immediately
+        player.launchProjectile(org.bukkit.entity.Arrow.class);
+
+        // Add sound and particle effects
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ARROW_SHOOT, 1f, 1f);
         player.getWorld().spawnParticle(Particle.INSTANT_EFFECT, player.getLocation(), 20, 0.5, 1, 0.5);
     }
+
 
     private void handleSpellCast(Player player, String combo) {
         PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
