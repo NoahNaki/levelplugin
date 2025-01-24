@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStats;
 import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -16,6 +17,10 @@ import org.bukkit.event.player.PlayerAnimationType;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.entity.Entity;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.Vector;
+
 
 import java.util.*;
 
@@ -25,6 +30,12 @@ public class ClickComboListener implements Listener {
     private static final Map<UUID, ClickSequence> playerCombos = new HashMap<>();
     private final Map<UUID, Map<String, Long>> spellCooldowns = new HashMap<>();
     private final Map<UUID, Long> activeLeftClicks = new HashMap<>();
+    private final Map<UUID, Long> bowCooldowns = new HashMap<>();
+    private static final long BOW_SHOT_COOLDOWN = 500L; // 500 milliseconds (0.5 seconds)
+    private final Map<UUID, Long> mageCooldowns = new HashMap<>();
+    private static final long MAGE_ATTACK_COOLDOWN = 500L; // 0.5 seconds cooldown
+
+
 
     @EventHandler
     public void onLeftClick(PlayerAnimationEvent event) {
@@ -34,23 +45,52 @@ public class ClickComboListener implements Listener {
         UUID playerId = player.getUniqueId();
         long currentTime = System.currentTimeMillis();
 
-        // Check for recent clicks
+        // Check for recent clicks to prevent spam
         if (activeLeftClicks.containsKey(playerId)) {
             long lastClickTime = activeLeftClicks.get(playerId);
-            if (currentTime - lastClickTime < 100) { // Adjust the threshold if necessary
+            if (currentTime - lastClickTime < 100) { // Adjust threshold as needed
                 return; // Ignore duplicate left-click events
             }
         }
 
         // Register the click
         activeLeftClicks.put(playerId, currentTime);
-
-        // Schedule removal after a short delay
         Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> activeLeftClicks.remove(playerId), 5L);
 
-        // Process the left-click
-        recordComboClick(player, "L");
+        // Retrieve player stats
+        PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
+        String className = ps.playerClass.name().toLowerCase();
+
+        // Check if the player is a Mage
+        if (className.equals("mage")) {
+            // Check if there's an active combo
+            String activeCombo = getActiveCombo(player);
+
+            if (!activeCombo.isEmpty()) {
+                // Active combo detected, prevent basic attack
+                recordComboClick(player, "L");
+                return;
+            }
+
+            // Handle Mage basic attack with cooldown
+            if (mageCooldowns.containsKey(playerId)) {
+                long lastAttackTime = mageCooldowns.get(playerId);
+                if (currentTime - lastAttackTime < MAGE_ATTACK_COOLDOWN) {
+                    return;
+                }
+            }
+
+            // Execute Mage's basic attack
+            executeMageBasicAttack(player);
+
+            // Set cooldown for Mage's basic attack
+            mageCooldowns.put(playerId, currentTime);
+        } else {
+            // Non-Mage classes can still register combos
+            recordComboClick(player, "L");
+        }
     }
+
 
     @EventHandler
     public void onRightClick(PlayerInteractEvent event) {
@@ -145,11 +185,79 @@ public class ClickComboListener implements Listener {
         }
     }
 
+    private void executeMageBasicAttack(Player player) {
+        double damage = 5.0; // Basic attack damage
+        double range = 15.0; // Max range the particle can travel
+        double speed = 2.5; // Speed of the particle
+        Location startLocation = player.getEyeLocation().add(0, 0, 0); // Start slightly above player eyes
+        org.bukkit.util.Vector direction = startLocation.getDirection().normalize(); // Normalize direction vector
+
+        // Sound effect for casting the attack
+        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 1f, 1f);
+
+        new BukkitRunnable() {
+            double distanceTravelled = 0.0;
+            Location currentLocation = startLocation.clone();
+
+            @Override
+            public void run() {
+                if (distanceTravelled >= range) {
+                    cancel(); // Stop when the max range is reached
+                    return;
+                }
+
+                // Move the particle forward
+                currentLocation.add(direction.clone().multiply(speed));
+                distanceTravelled += speed;
+
+                // Display the particle at the new location
+                player.getWorld().spawnParticle(Particle.FLAME, currentLocation, 5, 0.1, 0.1, 0.1, 0.01);
+
+                // Check for collisions with entities
+                for (Entity entity : player.getWorld().getNearbyEntities(currentLocation, 0.5, 0.5, 0.5)) {
+                    if (entity instanceof LivingEntity && entity != player) {
+                        LivingEntity target = (LivingEntity) entity;
+
+                        // Deal damage to the entity
+                        target.damage(damage, player);
+
+                        // Display a hit effect
+                        target.getWorld().spawnParticle(Particle.CRIT, target.getLocation(), 10, 0.2, 0.2, 0.2, 0.1);
+                        target.getWorld().playSound(target.getLocation(), Sound.ENTITY_GENERIC_HURT, 1f, 1f);
+
+                        // Stop the particle when it hits an entity
+                        cancel();
+                        return;
+                    }
+                }
+
+                // Stop the particle if it hits a block
+                if (!currentLocation.getBlock().isPassable()) {
+                    currentLocation.getWorld().spawnParticle(Particle.SMOKE, currentLocation, 10, 0.2, 0.2, 0.2, 0.01);
+                    cancel();
+                }
+            }
+        }.runTaskTimer(Main.getInstance(), 0L, 1L); // Run every tick
+    }
+
+
+
     private void cancelBowPullAndShootArrow(Player player) {
         // Ensure the player is holding a bow
         ItemStack mainHand = player.getInventory().getItemInMainHand();
         if (mainHand.getType() != Material.BOW) {
             return; // Only proceed if holding a bow
+        }
+
+        UUID playerId = player.getUniqueId();
+        long currentTime = System.currentTimeMillis();
+
+        // Check if the player is on cooldown
+        if (bowCooldowns.containsKey(playerId)) {
+            long lastShotTime = bowCooldowns.get(playerId);
+            if (currentTime - lastShotTime < BOW_SHOT_COOLDOWN) {
+                return; // Prevent shooting
+            }
         }
 
         // Launch an arrow immediately
@@ -158,7 +266,11 @@ public class ClickComboListener implements Listener {
         // Add sound and particle effects
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ARROW_SHOOT, 1f, 1f);
         player.getWorld().spawnParticle(Particle.INSTANT_EFFECT, player.getLocation(), 20, 0.5, 1, 0.5);
+
+        // Record the current time as the last shot time
+        bowCooldowns.put(playerId, currentTime);
     }
+
 
 
     private void handleSpellCast(Player player, String combo) {

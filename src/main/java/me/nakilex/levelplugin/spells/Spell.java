@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.spells;
 
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.effects.utils.ArmorStandEffectUtil;
 import me.nakilex.levelplugin.effects.utils.ParticleEffectUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
@@ -90,8 +91,8 @@ public class Spell {
                 castHeroicLeap(player);
                 break;
             }
-            case "WHIRLWIND": {
-                castWhirlwind(player);
+            case "UPPERCUT": {
+                castUppercut(player);
                 break;
             }
             case "GROUND_SLAM": {
@@ -1098,41 +1099,48 @@ public class Spell {
         }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 2L, 1L); // Delay by 2 ticks before starting the ground check
     }
 
+    private void castUppercut(Player player) {
+        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 1.3; // 130% weapon damage
+        double range = 4.0; // Range in front of the player
+        double knockupStrength = 1.5; // Vertical velocity applied to enemies
+        double knockbackStrength = 0.5; // Slight backward push
 
+        player.sendMessage("§eYou unleash a powerful uppercut, sending enemies flying!");
+        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1.2f);
 
+        // Visualize the slash
+        Location startLocation = player.getEyeLocation();
+        Vector direction = player.getLocation().getDirection().normalize();
 
-    private void castWhirlwind(Player player) {
-        double radius = 4.0;
-        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 0.8; // 80% weapon damage per tick
-        int duration = 100; // 5 seconds (100 ticks)
+        for (double i = 0; i <= range; i += 0.5) {
+            Location slashLocation = startLocation.clone().add(direction.clone().multiply(i));
+            player.getWorld().spawnParticle(Particle.SWEEP_ATTACK, slashLocation, 1, 0.1, 0.2, 0.1, 0.01);
+        }
 
-        player.sendMessage("§eYou spin in a whirlwind, slicing nearby enemies!");
+        // Damage and launch entities in the forward cone
+        for (Entity entity : player.getWorld().getNearbyEntities(player.getLocation(), range, range, range)) {
+            if (entity instanceof LivingEntity && entity != player) {
+                LivingEntity target = (LivingEntity) entity;
 
-        // Spawn spinning axes
-        ArmorStandEffectUtil.spawnRotatingArmorStands(player.getLocation(), Material.IRON_AXE, 3, duration);
-
-        new BukkitRunnable() {
-            int ticks = 0;
-
-            @Override
-            public void run() {
-                if (ticks++ >= duration) {
-                    cancel();
-                    player.sendMessage("§cWhirlwind has ended.");
-                    return;
+                // Check if the entity is within the forward cone
+                Vector toTarget = target.getLocation().toVector().subtract(player.getLocation().toVector()).normalize();
+                double angle = direction.angle(toTarget);
+                if (Math.toDegrees(angle) > 45) {
+                    continue; // Ignore entities outside the cone
                 }
 
-                // Create particle vortex
-                ParticleEffectUtil.createVortexEffect(player.getLocation(), Particle.SWEEP_ATTACK, radius, 10);
+                // Apply damage
+                target.damage(damage, player);
 
-                for (Entity entity : player.getWorld().getNearbyEntities(player.getLocation(), radius, radius, radius)) {
-                    if (entity instanceof LivingEntity && entity != player) {
-                        LivingEntity target = (LivingEntity) entity;
-                        target.damage(damage, player);
-                    }
-                }
+                // Launch the target upwards
+                Vector knockup = new Vector(0, knockupStrength, 0).add(direction.clone().multiply(knockbackStrength));
+                target.setVelocity(knockup);
+
+                // Visual effects for the target
+                target.getWorld().spawnParticle(Particle.CRIT, target.getLocation(), 10, 0.2, 0.2, 0.2, 0.1);
+                target.getWorld().playSound(target.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 1f, 1f);
             }
-        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 5L);
+        }
     }
 
     private void castGroundSlam(Player player) {

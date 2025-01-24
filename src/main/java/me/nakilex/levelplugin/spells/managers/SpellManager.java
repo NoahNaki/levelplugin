@@ -33,9 +33,9 @@ public class SpellManager {
             "RRR", new Spell("heroic_leap", "Heroic Leap", "RRR", 10, 0, 2,
                 Arrays.asList(Material.WOODEN_SHOVEL, Material.STONE_SHOVEL, Material.IRON_SHOVEL, Material.GOLDEN_SHOVEL, Material.DIAMOND_SHOVEL, Material.NETHERITE_SHOVEL),
                 "HEROIC_LEAP", 1.2),
-            "RRL", new Spell("whirlwind", "Whirlwind", "RRL", 12, 0, 2,
+            "RRL", new Spell("uppercut", "Uppercut", "RRL", 15, 4, 5,
                 Arrays.asList(Material.WOODEN_SHOVEL, Material.STONE_SHOVEL, Material.IRON_SHOVEL, Material.GOLDEN_SHOVEL, Material.DIAMOND_SHOVEL, Material.NETHERITE_SHOVEL),
-                "WHIRLWIND", 0.8),
+                "UPPERCUT", 1.3),
             "RLL", new Spell("ground_slam", "Ground Slam", "RLL", 14, 0, 3,
                 Arrays.asList(Material.WOODEN_SHOVEL, Material.STONE_SHOVEL, Material.IRON_SHOVEL, Material.GOLDEN_SHOVEL, Material.DIAMOND_SHOVEL, Material.NETHERITE_SHOVEL),
                 "GROUND_SLAM", 1.5)
