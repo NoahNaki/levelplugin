@@ -11,6 +11,7 @@ import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.mob.listeners.MobDamageListener;
 import me.nakilex.levelplugin.mob.listeners.MobDeathListener;
+import me.nakilex.levelplugin.mob.listeners.MythicMobDamageListener;
 import me.nakilex.levelplugin.mob.listeners.MythicMobDeathListener;
 import me.nakilex.levelplugin.mob.managers.MythicMobNameManager;
 import me.nakilex.levelplugin.npc.listeners.NPCClickListener;
@@ -75,6 +76,7 @@ public class ListenerRegistry {
         pm.registerEvents(new LootChestCloseListener(lootChestManager), plugin);
         pm.registerEvents(new PotionUseListener(potionManager, plugin), plugin);
         pm.registerEvents(new MythicMobNameManager(plugin), plugin);
+        pm.registerEvents(new MythicMobDamageListener(), plugin);
         pm.registerEvents(new FallDamageDisabler(), plugin);
 
         // Register ArrowUtils listener and start cleanup task
