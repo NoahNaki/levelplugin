@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.spells;
 
+import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.effects.utils.ParticleEffectUtil;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
@@ -174,24 +175,36 @@ public class WarriorSpell {
 
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1.2f);
 
+        // Visual slash effect
         Location startLocation = player.getEyeLocation();
         Vector direction = player.getLocation().getDirection().normalize();
-
         for (double i = 0; i <= range; i += 0.5) {
             Location slashLocation = startLocation.clone().add(direction.clone().multiply(i));
             player.getWorld().spawnParticle(Particle.SWEEP_ATTACK, slashLocation, 1, 0.1, 0.2, 0.1, 0.01);
         }
 
+        // Actual damage/knock-up logic
         for (Entity entity : player.getWorld().getNearbyEntities(player.getLocation(), range, range, range)) {
             if (entity instanceof LivingEntity && entity != player) {
                 LivingEntity target = (LivingEntity) entity;
 
+                // 1) If it's a player, check if they're in a duel.
+                if (target instanceof Player) {
+                    Player pTarget = (Player) target;
+                    if (!DuelManager.getInstance().areInDuel(player.getUniqueId(), pTarget.getUniqueId())) {
+                        // Not in a duel, skip applying damage/knockup
+                        continue;
+                    }
+                }
+
+                // 2) Check angle so we only affect targets in front
                 Vector toTarget = target.getLocation().toVector().subtract(player.getLocation().toVector()).normalize();
                 double angle = direction.angle(toTarget);
                 if (Math.toDegrees(angle) > 45) {
                     continue;
                 }
 
+                // 3) If we pass the checks, apply damage and knockup
                 target.damage(damage, player);
 
                 Vector knockup = new Vector(0, knockupStrength, 0).add(direction.clone().multiply(knockbackStrength));
@@ -202,6 +215,7 @@ public class WarriorSpell {
             }
         }
     }
+
 
     private void castGroundSlam(Player player) {
         double maxRadius = 10.0;
