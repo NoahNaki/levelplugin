@@ -60,7 +60,7 @@ public class ClickComboListener implements Listener {
         Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> activeLeftClicks.remove(playerId), 5L);
 
         // Retrieve player stats
-        PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
+        PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
         String className = ps.playerClass.name().toLowerCase();
 
         // Check if the player is a Mage
@@ -104,7 +104,7 @@ public class ClickComboListener implements Listener {
 
         Player player = event.getPlayer();
         ItemStack mainHand = player.getInventory().getItemInMainHand();
-        PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
+        PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
         String className = ps.playerClass.name().toLowerCase();
 
         // Verify main hand is not empty
@@ -147,7 +147,7 @@ public class ClickComboListener implements Listener {
         UUID uuid = player.getUniqueId();
 
         // Retrieve the player's stats and class
-        PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
+        PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
         String className = ps.playerClass.name().toLowerCase();
 
         // Check if the player is holding a valid weapon for their class
@@ -222,7 +222,7 @@ public class ClickComboListener implements Listener {
 
 
     private void handleSpellCast(Player player, String combo) {
-        PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
+        PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
         String className = ps.playerClass.name().toLowerCase();
 
         Spell spell = SpellManager.getInstance().getSpell(className, combo);

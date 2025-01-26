@@ -67,7 +67,7 @@ public class MageSpell {
         int range = 20;
 
         // Damage dealt by the ray
-        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
+        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
         double damage = 5.0 + ps.baseIntelligence + + ps.bonusIntelligence * 0.5; // Example: base damage + INT scaling
 
         // Starting point and direction of the ray
@@ -124,7 +124,7 @@ public class MageSpell {
      *  ------------------------------------------------ */
     private void castMeteor(Player player) {
         // 1) Gather INT from player + weapon
-        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
+        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
         int playerInt = ps.baseIntelligence + ps.bonusIntelligence;
 
         ItemStack mainHand = player.getInventory().getItemInMainHand();
@@ -202,7 +202,7 @@ public class MageSpell {
      *  ------------------------------------------------ */
     private void castBlackhole(Player player) {
         // 1) Gather INT
-        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
+        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
         int playerInt = ps.baseIntelligence + ps.bonusIntelligence;
 
         ItemStack mainHand = player.getInventory().getItemInMainHand();
@@ -282,7 +282,7 @@ public class MageSpell {
      *  ------------------------------------------------ */
     private void healPlayer(Player player, int baseAmount) {
         // Retrieve player's stats
-        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
+        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
         int intelligence = ps.baseIntelligence + ps.bonusIntelligence;
 
         // Scale healing with intelligence

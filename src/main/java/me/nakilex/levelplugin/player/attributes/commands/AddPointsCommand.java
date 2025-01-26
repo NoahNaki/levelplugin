@@ -5,7 +5,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
+
+import java.util.UUID;
 
 public class AddPointsCommand implements CommandExecutor {
 
@@ -17,13 +18,9 @@ public class AddPointsCommand implements CommandExecutor {
             return true;
         }
 
-        Player target = Bukkit.getPlayerExact(args[0]);
-        if (target == null) {
-            sender.sendMessage("§cCould not find player " + args[0]);
-            return true;
-        }
-
+        String playerName = args[0];
         int amount;
+
         try {
             amount = Integer.parseInt(args[1]);
         } catch (NumberFormatException e) {
@@ -36,10 +33,21 @@ public class AddPointsCommand implements CommandExecutor {
             return true;
         }
 
-        // Grant skill points
-        StatsManager.getInstance().addSkillPoints(target, amount);
-        sender.sendMessage("§aGave " + amount + " skill points to " + target.getName());
-        target.sendMessage("§aYou have received " + amount + " skill points!");
+        // Fetch player's UUID from name
+        UUID targetUUID = Bukkit.getOfflinePlayer(playerName).getUniqueId();
+        if (targetUUID == null) {
+            sender.sendMessage("§cCould not find player " + playerName);
+            return true;
+        }
+
+        // Grant skill points using UUID
+        StatsManager.getInstance().addSkillPoints(targetUUID, amount);
+        sender.sendMessage("§aGave " + amount + " skill points to " + playerName);
+
+        // Notify the player if they are online
+        if (Bukkit.getPlayer(targetUUID) != null) {
+            Bukkit.getPlayer(targetUUID).sendMessage("§aYou have received " + amount + " skill points!");
+        }
 
         return true;
     }

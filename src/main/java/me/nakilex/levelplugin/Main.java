@@ -18,6 +18,7 @@ import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.mob.managers.MobManager;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
@@ -65,7 +66,10 @@ public class Main extends JavaPlugin {
     private HorseConfigManager horseConfigManager;
     private NamespacedKey upgradeKey;
     private MobRewardsConfig mobRewardsConfig;
+
     private ItemConfig itemConfig;
+    private PlayerConfig playerConfig;
+
 
     @Override
     public void onEnable() {
@@ -91,6 +95,9 @@ public class Main extends JavaPlugin {
         // Initialize ItemConfig and load items
         itemConfig = new ItemConfig(this);
         itemConfig.loadItems();
+
+        playerConfig = new PlayerConfig(this);
+        playerConfig.loadAllPlayers();
 
         // Setup custom configurations like mob_rewards.yml
         setupCustomConfig();
@@ -211,6 +218,10 @@ public class Main extends JavaPlugin {
         // Save items before shutting down
         if (itemConfig != null) {
             itemConfig.saveItems();
+        }
+
+        if (playerConfig != null) {
+            playerConfig.saveAllPlayers();
         }
 
         getLogger().info("LevelPlugin has been disabled!");

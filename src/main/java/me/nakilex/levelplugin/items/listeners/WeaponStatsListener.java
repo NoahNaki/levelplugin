@@ -45,7 +45,7 @@ public class WeaponStatsListener implements Listener {
         if (newWeapon != null && !newWeapon.getType().isAir()) {
             CustomItem newCustom = ItemManager.getInstance().getCustomItemFromItemStack(newWeapon);
             if (newCustom != null) {
-                StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
+                StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
                 Set<Integer> eqSet = StatsManager.getInstance().getEquippedItems(uuid);
 
                 // Check level/class requirements here (if you skip them, remove this)
@@ -84,7 +84,7 @@ public class WeaponStatsListener implements Listener {
 
     // Helper methods (same as before)
     private void addWeaponStats(Player player, CustomItem customItem) {
-        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
+        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
         ps.bonusHealthStat      += customItem.getHp();
         ps.bonusDefenceStat     += customItem.getDef();
         ps.bonusStrength        += customItem.getStr();
@@ -94,7 +94,7 @@ public class WeaponStatsListener implements Listener {
     }
 
     private void removeWeaponStats(Player player, CustomItem customItem) {
-        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
+        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
         ps.bonusHealthStat      -= customItem.getHp();
         ps.bonusDefenceStat     -= customItem.getDef();
         ps.bonusStrength        -= customItem.getStr();

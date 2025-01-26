@@ -58,7 +58,7 @@ public class StatsMenuListener implements Listener {
             else if (displayName.contains("Defense")) stat = StatsManager.StatType.DEF;
 
             if (stat != null) {
-                int availablePoints = statsManager.getPlayerStats(player).skillPoints;
+                int availablePoints = statsManager.getPlayerStats(player.getUniqueId()).skillPoints;
                 int currentStatValue = statsManager.getStatValue(player, stat);
 
                 // Left-click: Add 1 point

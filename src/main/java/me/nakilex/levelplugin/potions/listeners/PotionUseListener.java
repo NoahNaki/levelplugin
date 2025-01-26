@@ -96,13 +96,13 @@ public class PotionUseListener implements Listener {
                 "§4- §7Recover §f10% §c❤"
             ));
         } else if (potionId.equals("mana_potion")) {
-            int currentMana = StatsManager.getInstance().getPlayerStats(player).getCurrentMana();
-            int maxMana = StatsManager.getInstance().getPlayerStats(player).getMaxMana();
+            int currentMana = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).getCurrentMana();
+            int maxMana = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).getMaxMana();
 
             int manaRestore = (int) (maxMana * 0.1); // Restore 10% of max mana
             int newMana = Math.min(currentMana + manaRestore, maxMana);
 
-            StatsManager.getInstance().getPlayerStats(player).setCurrentMana(newMana);
+            StatsManager.getInstance().getPlayerStats(player.getUniqueId()).setCurrentMana(newMana);
             meta.setDisplayName("§bMana Potion §3[" + instance.getCharges() + "/3]");
             List<String> lore = Collections.emptyList();
             System.out.println("Setting lore: " + lore); // Check lore before setting

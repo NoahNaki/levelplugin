@@ -23,7 +23,7 @@ public class StatsEffectListener implements Listener {
         // Outgoing damage modifications if a player is the damager
         if (damager instanceof Player) {
             Player player = (Player) damager;
-            PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
+            PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
 
             // Calculate total strength
             int totalStrength = ps.baseStrength + ps.bonusStrength;
@@ -42,15 +42,15 @@ public class StatsEffectListener implements Listener {
 
         // Incoming damage modifications if the target is a player
         if (target instanceof Player) {
-            Player victim = (Player) target;
-            PlayerStats vs = StatsManager.getInstance().getPlayerStats(victim);
+            Player player = (Player) target;
+            PlayerStats vs = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
 
             // Agility: Dodge chance e.g. 1% per AGI
             int totalAgility = vs.baseAgility + vs.bonusAgility;
             double dodgeChance = totalAgility * 0.01;
             if (random.nextDouble() < dodgeChance) {
                 event.setCancelled(true);
-                victim.sendMessage(ChatColor.GREEN + "You dodged the attack!");
+                player.sendMessage(ChatColor.GREEN + "You dodged the attack!");
                 return;
             }
 

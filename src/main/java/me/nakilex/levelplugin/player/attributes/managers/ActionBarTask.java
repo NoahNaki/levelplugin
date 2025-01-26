@@ -12,7 +12,7 @@ public class ActionBarTask extends BukkitRunnable {
     @Override
     public void run() {
         for (Player player : Bukkit.getOnlinePlayers()) {
-            StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
+            StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
 
             double hp = player.getHealth();
             double maxHp = player.getMaxHealth();

@@ -71,7 +71,7 @@ public class ClassMenuListener implements Listener {
         }
 
         if (selectedClass != null) {
-            StatsManager.getInstance().getPlayerStats(player).playerClass = selectedClass;
+            StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass = selectedClass;
             player.sendMessage(ChatColor.DARK_GRAY + "[" + ChatColor.GOLD + "Class Selection" + ChatColor.DARK_GRAY + "] "
                 + ChatColor.GREEN + "You have selected " + ChatColor.AQUA + className + ChatColor.GREEN + "!");
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);

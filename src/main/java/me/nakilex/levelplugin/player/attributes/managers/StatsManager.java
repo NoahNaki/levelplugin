@@ -37,26 +37,26 @@ public class StatsManager {
         return equippedItemsMap.computeIfAbsent(uuid, k -> new HashSet<>());
     }
 
-    public void initPlayer(Player player) {
-        UUID uuid = player.getUniqueId();
-        if (!statsMap.containsKey(uuid)) {
-            PlayerStats defaultStats = new PlayerStats();
-            statsMap.put(uuid, defaultStats);
-        }
+    public Set<UUID> getAllPlayerUUIDs() {
+        return statsMap.keySet();
     }
 
-    public PlayerStats getPlayerStats(Player player) {
-        initPlayer(player);
-        return statsMap.get(player.getUniqueId());
+
+    public void initPlayer(UUID uuid) {
+        statsMap.putIfAbsent(uuid, new PlayerStats());
     }
 
-    public void addSkillPoints(Player player, int points) {
-        PlayerStats ps = getPlayerStats(player);
+    public PlayerStats getPlayerStats(UUID uuid) {
+        return statsMap.computeIfAbsent(uuid, k -> new PlayerStats());
+    }
+
+    public void addSkillPoints(UUID uuid, int points) {
+        PlayerStats ps = getPlayerStats(uuid);
         ps.skillPoints += points;
     }
 
     public void investStat(Player player, StatType stat) {
-        PlayerStats ps = getPlayerStats(player);
+        PlayerStats ps = getPlayerStats(player.getUniqueId());
         if (ps.skillPoints <= 0) {
             player.sendMessage("§cYou have no skill points left!");
             return;
@@ -77,7 +77,7 @@ public class StatsManager {
     }
 
     public void refundStat(Player player, StatType stat) {
-        PlayerStats ps = getPlayerStats(player);
+        PlayerStats ps = getPlayerStats(player.getUniqueId());
         boolean refunded = false;
 
         switch (stat) {
@@ -108,7 +108,7 @@ public class StatsManager {
     }
 
     public void refundAllStats(Player player) {
-        PlayerStats ps = getPlayerStats(player);
+        PlayerStats ps = getPlayerStats(player.getUniqueId());
 
         int totalRefundedPoints = ps.baseStrength + ps.baseAgility + ps.baseIntelligence
             + ps.baseDexterity + ps.baseHealthStat + ps.baseDefenceStat;
@@ -135,7 +135,7 @@ public class StatsManager {
 
 
     public void recalcDerivedStats(Player player) {
-        PlayerStats ps = getPlayerStats(player);
+        PlayerStats ps = getPlayerStats(player.getUniqueId());
 
         // Ensure stats can't be negative
         ps.baseHealthStat = Math.max(0, ps.baseHealthStat);
@@ -166,7 +166,7 @@ public class StatsManager {
 
     public void regenManaForAllPlayers() {
         for (Player player : Bukkit.getOnlinePlayers()) {
-            PlayerStats ps = getPlayerStats(player);
+            PlayerStats ps = getPlayerStats(player.getUniqueId());
 
             double baseRegenPerSec = 2.0;
             double intBonus = (ps.baseIntelligence + ps.bonusIntelligence) * 0.3;
@@ -181,7 +181,7 @@ public class StatsManager {
 
     // Handle stats application for manual equipping
     public void handleArmorManual(Player player, CustomItem newItem, InventoryClickEvent event) {
-        PlayerStats ps = getPlayerStats(player);
+        PlayerStats ps = getPlayerStats(player.getUniqueId());
 
         // Apply stats
         ps.bonusHealthStat += newItem.getHp();
@@ -197,7 +197,7 @@ public class StatsManager {
 
 
     public int getStatValue(Player player, StatType stat) {
-        PlayerStats ps = getPlayerStats(player);
+        PlayerStats ps = getPlayerStats(player.getUniqueId());
 
         switch (stat) {
             case STR: return ps.baseStrength + ps.bonusStrength;
