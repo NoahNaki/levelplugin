@@ -9,6 +9,7 @@ import me.nakilex.levelplugin.effects.managers.EffectManager;
 import me.nakilex.levelplugin.horse.gui.HorseGUI;
 import me.nakilex.levelplugin.horse.managers.HorseConfigManager;
 import me.nakilex.levelplugin.horse.managers.HorseManager;
+import me.nakilex.levelplugin.items.config.ItemConfig;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.lootchests.config.ConfigManager;
 import me.nakilex.levelplugin.lootchests.managers.CooldownManager;
@@ -64,6 +65,7 @@ public class Main extends JavaPlugin {
     private HorseConfigManager horseConfigManager;
     private NamespacedKey upgradeKey;
     private MobRewardsConfig mobRewardsConfig;
+    private ItemConfig itemConfig;
 
     @Override
     public void onEnable() {
@@ -86,8 +88,13 @@ public class Main extends JavaPlugin {
         // Initialize managers and other components
         initializeManagers();
 
+        // Initialize ItemConfig and load items
+        itemConfig = new ItemConfig(this);
+        itemConfig.loadItems();
+
         // Setup custom configurations like mob_rewards.yml
         setupCustomConfig();
+
         // Validate dependencies (e.g., MythicMobs)
         if (!validateDependencies()) {
             getLogger().severe("Missing required dependencies. Disabling plugin...");
@@ -104,6 +111,7 @@ public class Main extends JavaPlugin {
         // Log success message
         getLogger().info("LevelPlugin has been enabled successfully!");
     }
+
 
 
     private void loadConfigFiles() {
@@ -200,8 +208,14 @@ public class Main extends JavaPlugin {
             dealMaker.closeAllTrades();
         }
 
+        // Save items before shutting down
+        if (itemConfig != null) {
+            itemConfig.saveItems();
+        }
+
         getLogger().info("LevelPlugin has been disabled!");
     }
+
 
     public BukkitAPIHelper getMythicHelper() {
         return mythicHelper;
