@@ -17,9 +17,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class TradingWindow implements Listener {
 
@@ -29,6 +27,8 @@ public class TradingWindow implements Listener {
     // Tracks players waiting for sign input and their respective TradingWindow
     private static final java.util.Map<UUID, TradingWindow> awaitingSignInput = new java.util.HashMap<>();
     private static final java.util.Set<UUID> activeSignInputs = new java.util.HashSet<>();
+    private final Map<UUID, Location> activeSignLocations = new HashMap<>();
+
 
     // Stores the coin offers for both players
     private int playerCoinOffer = 0;     // Coins offered by the main player
@@ -106,6 +106,7 @@ public class TradingWindow implements Listener {
         awaitingSignInput.put(p.getUniqueId(), tw);
         activeSignInputs.add(p.getUniqueId()); // Add to active sign input set
 
+        // Define the specific location where the sign will be spawned
         Location loc = p.getLocation().clone().add(0, -1, 0);
         Block block = loc.getBlock();
         block.setType(Material.OAK_SIGN);
@@ -114,16 +115,13 @@ public class TradingWindow implements Listener {
         sign.setLine(0, "Enter coins");
         sign.update(true, false);
 
-        p.openSign(sign);
+        // Track the sign's location for cleanup
+        activeSignLocations.put(p.getUniqueId(), loc);
 
-        // Cleanup after 10 seconds, just in case
-        Bukkit.getScheduler().runTaskLater(Main.getPlugin(), () -> {
-            if (block.getType().toString().contains("SIGN")) {
-                block.setType(Material.AIR);
-            }
-            activeSignInputs.remove(p.getUniqueId()); // Remove the active sign input
-        }, 20L * 10);
+        p.openSign(sign);
     }
+
+
 
     @EventHandler
     public void onSignChange(SignChangeEvent e) {
@@ -730,6 +728,16 @@ public class TradingWindow implements Listener {
                 return; // Skip processing if player is still awaiting sign input
             }
 
+            // Cleanup any active sign
+            UUID playerId = e.getPlayer().getUniqueId();
+            if (activeSignLocations.containsKey(playerId)) {
+                Location signLocation = activeSignLocations.get(playerId);
+                if (signLocation.getBlock().getType().toString().contains("SIGN")) {
+                    signLocation.getBlock().setType(Material.AIR);
+                }
+                activeSignLocations.remove(playerId); // Clean up tracking
+            }
+
             // Handle trade closure only if it's a genuine exit
             if (e.getPlayer() instanceof Player) {
                 Player p = (Player) e.getPlayer();
@@ -737,6 +745,7 @@ public class TradingWindow implements Listener {
             }
         }
     }
+
 
     @EventHandler
     public void onInventoryDrag(InventoryDragEvent e) {
