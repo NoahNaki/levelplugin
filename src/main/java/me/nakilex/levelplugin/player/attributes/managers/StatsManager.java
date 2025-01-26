@@ -123,8 +123,16 @@ public class StatsManager {
         ps.skillPoints += totalRefundedPoints;
         recalcDerivedStats(player);
 
+        // DEBUG:
+        Bukkit.getLogger().info("[DEBUG] [StatsManager] " + player.getName()
+            + " refunded all stats. skillPoints=" + ps.skillPoints
+            + ", baseSTR=" + ps.baseStrength + ", baseAGI=" + ps.baseAgility
+            + ", baseINT=" + ps.baseIntelligence + ", baseDEX=" + ps.baseDexterity
+            + ", baseHP=" + ps.baseHealthStat + ", baseDEF=" + ps.baseDefenceStat);
+
         player.sendMessage(ChatColor.GREEN + "All skill points have been refunded!");
     }
+
 
     public void recalcDerivedStats(Player player) {
         PlayerStats ps = getPlayerStats(player);

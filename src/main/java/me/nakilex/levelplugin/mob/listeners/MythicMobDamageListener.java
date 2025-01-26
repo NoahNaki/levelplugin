@@ -3,8 +3,10 @@ package me.nakilex.levelplugin.mob.listeners;
 import io.lumine.mythic.bukkit.BukkitAPIHelper;
 import io.lumine.mythic.bukkit.MythicBukkit;
 import io.lumine.mythic.core.mobs.ActiveMob;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 
@@ -39,4 +41,16 @@ public class MythicMobDamageListener implements Listener {
             damage,
             mythicMob.getMobType()));
     }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void debugFinalDamage(EntityDamageByEntityEvent e) {
+        if (e.getDamager() instanceof Player) {
+            Player p = (Player) e.getDamager();
+            Bukkit.getLogger().info("[DEBUG FINAL] " + p.getName()
+                + " -> " + e.getEntity().getName()
+                + " : rawDamage=" + e.getDamage()
+                + ", finalDamage=" + e.getFinalDamage());
+        }
+    }
+
 }

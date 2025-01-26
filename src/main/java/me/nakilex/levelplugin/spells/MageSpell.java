@@ -1,5 +1,8 @@
 package me.nakilex.levelplugin.spells;
 
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.items.data.CustomItem;
+import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.listener.ClickComboListener;
 import org.bukkit.*;
@@ -20,6 +23,10 @@ import java.util.Map;
 import java.util.UUID;
 
 public class MageSpell {
+
+    // Optional if you need the plugin reference for setMetadata, etc.
+    // Otherwise, you can do a static reference or however your plugin is structured.
+    private final Main plugin = Main.getInstance();
 
     private final Map<UUID, Long> mageBasicCooldown = new HashMap<>();
 
@@ -46,47 +53,51 @@ public class MageSpell {
         }
     }
 
-    /** MAGE BASIC SKILL */
+    /** ------------------------------------------------
+     *  MAGE BASIC SKILL (beam that deals single hit)
+     *  ------------------------------------------------ */
     private void mageBasicSkill(Player player) {
-        // 1) Get the player's stats
+        // 1) Check if player is actually a Mage
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
-
-        // 2) Make sure they're actually a Mage
-        String className = ps.playerClass.name().toLowerCase();
-        if (!className.equals("mage")) {
+        if (!ps.playerClass.name().equalsIgnoreCase("mage")) {
             return;
         }
 
-        // 3) Check weapon
+        // 2) Check if main-hand item is valid for a 'wand'
         ItemStack mainHand = player.getInventory().getItemInMainHand();
-        if (mainHand == null || (mainHand.getType() != Material.STICK && mainHand.getType() != Material.BLAZE_ROD)) {
+        if (mainHand == null
+            || (mainHand.getType() != Material.STICK && mainHand.getType() != Material.BLAZE_ROD)) {
             return;
         }
 
-        // 4) Cooldown check
+        // 3) Cooldown check (500ms)
         UUID playerUUID = player.getUniqueId();
-        long currentTime = System.currentTimeMillis();
+        long now = System.currentTimeMillis();
         if (mageBasicCooldown.containsKey(playerUUID)) {
-            long lastCastTime = mageBasicCooldown.get(playerUUID);
-            if (currentTime - lastCastTime < 500) { // 500ms cooldown
+            long lastUse = mageBasicCooldown.get(playerUUID);
+            if (now - lastUse < 500) {
                 return;
             }
         }
-        mageBasicCooldown.put(playerUUID, currentTime);
+        mageBasicCooldown.put(playerUUID, now);
 
-        // 5) Prevent interfering with combos
+        // 4) Avoid conflicts with partial combos
         String activeCombo = ClickComboListener.getActiveCombo(player);
         if (!activeCombo.isEmpty() && activeCombo.length() < 3) {
             return;
         }
 
-        // 6) Incorporate Intelligence into damage
-        int intelligence = ps.baseIntelligence + ps.bonusIntelligence;
-        // You can tailor the formula as desired:
-        // e.g. 6 base damage + 0.4 per INT:
-        double damage = 6.0 + (0.4 * intelligence);
+        // 5) Calculate total Intelligence from:
+        //    (player's base + bonus) + (weapon's baseIntel + bonusIntel)
+        int playerInt = ps.baseIntelligence + ps.bonusIntelligence;
 
-        // 7) Ray/beam logic
+        CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(mainHand);
+        int weaponInt = (cItem != null) ? cItem.getIntel() : 0;
+
+        // Example damage formula: 6 base + (0.4 * totalINT)
+        double damage = 6.0 + 0.4 * (playerInt + weaponInt);
+
+        // 6) Ray logic: go 20 blocks
         Location start = player.getEyeLocation();
         Vector direction = start.getDirection().normalize();
         double beamLength = 20.0;
@@ -95,47 +106,60 @@ public class MageSpell {
             Location point = start.clone().add(direction.clone().multiply(i));
             player.getWorld().spawnParticle(Particle.END_ROD, point, 1, 0.1, 0.1, 0.1, 0.1);
 
+            // Check for entities in small radius
             for (Entity entity : player.getWorld().getNearbyEntities(point, 0.5, 0.5, 0.5)) {
                 if (entity instanceof LivingEntity && entity != player) {
                     LivingEntity target = (LivingEntity) entity;
-                    target.damage(damage, player);
+                    target.damage(damage, player); // single custom damage
                     player.getWorld().spawnParticle(Particle.WITCH, target.getLocation(), 10, 0.2, 0.2, 0.2);
                     player.getWorld().playSound(target.getLocation(), Sound.ITEM_TRIDENT_THUNDER, 1f, 1f);
-                    return;
+                    return; // stop the beam after hitting something
                 }
             }
 
+            // If we hit a non-passable block, break
             if (!point.getBlock().isPassable()) {
                 player.getWorld().playSound(point, Sound.BLOCK_GLASS_BREAK, 1f, 1f);
                 break;
             }
         }
 
+        // If beam hits nothing, just play a sound at the end
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_WITCH_THROW, 1f, 1f);
     }
 
-    /** METEOR */
+    /** ------------------------------------------------
+     *  METEOR: AoE damage on impact, purely from INT
+     *  ------------------------------------------------ */
     private void castMeteor(Player player) {
+        // 1) Gather INT from player + weapon
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
-        int intelligence = ps.baseIntelligence + ps.bonusIntelligence;
+        int playerInt = ps.baseIntelligence + ps.bonusIntelligence;
 
+        ItemStack mainHand = player.getInventory().getItemInMainHand();
+        CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(mainHand);
+        int weaponInt = (cItem != null) ? cItem.getIntel() : 0;
+
+        // Example formula: 10 base + 2.0 * totalINT
+        double finalDamage = 10.0 + 2.0 * (playerInt + weaponInt);
+
+        // 2) Decide where meteor lands:
         Location target = player.getTargetBlockExact(20) != null
             ? player.getTargetBlockExact(20).getLocation().add(0.5, 1, 0.5)
             : player.getLocation().add(player.getLocation().getDirection().normalize().multiply(5));
 
-        double radius = 4.0;
-        // Example formula: 250% Attack Damage + intelligence * 2
-        double baseWeaponDamage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue();
-        double damage = (baseWeaponDamage * 2.5) + (intelligence * 2);
-
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 1f, 1f);
 
-        Location spawnLocation = target.clone().add(0, 15, 0); // 15 blocks above
+        // 3) Spawn Fireball from above
+        Location spawnLocation = target.clone().add(0, 15, 0);
         Fireball fireball = player.getWorld().spawn(spawnLocation, Fireball.class);
         fireball.setShooter(player);
         fireball.setVelocity(new Vector(0, -1.5, 0));
-        fireball.setIsIncendiary(false); // No fire spread
+        // Disable vanilla explosion damage
+        fireball.setIsIncendiary(false);
+        fireball.setYield(0f);
 
+        // 4) Visual flame trail
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -143,59 +167,69 @@ public class MageSpell {
                     cancel();
                     return;
                 }
-                fireball.getWorld().spawnParticle(Particle.FLAME, fireball.getLocation(), 10, 0.3, 0.3, 0.3, 0.02);
-                fireball.getWorld().spawnParticle(Particle.LARGE_SMOKE, fireball.getLocation(), 5, 0.2, 0.2, 0.2, 0.02);
-                fireball.getWorld().playSound(fireball.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 0.5f, 1f);
+                Location fbLoc = fireball.getLocation();
+                fbLoc.getWorld().spawnParticle(Particle.FLAME, fbLoc, 10, 0.3, 0.3, 0.3, 0.02);
+                fbLoc.getWorld().spawnParticle(Particle.LARGE_SMOKE, fbLoc, 5, 0.2, 0.2, 0.2, 0.02);
+                fbLoc.getWorld().playSound(fbLoc, Sound.ENTITY_BLAZE_SHOOT, 0.5f, 1f);
             }
-        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 2L);
+        }.runTaskTimer(plugin, 0L, 2L);
 
-        fireball.setMetadata("Meteor", new FixedMetadataValue(
-            Bukkit.getPluginManager().getPlugin("LevelPlugin"), true)
-        );
-        fireball.setYield((float) radius);
-        fireball.setGravity(true);
+        // Mark our Fireball with metadata
+        fireball.setMetadata("Meteor", new FixedMetadataValue(plugin, true));
 
-        fireball.setMetadata("ExplosionLogic", new FixedMetadataValue(
-            Bukkit.getPluginManager().getPlugin("LevelPlugin"), true)
-        );
-
+        // 5) Custom explosion logic
         Bukkit.getPluginManager().registerEvents(new Listener() {
             @EventHandler
             public void onProjectileHit(org.bukkit.event.entity.ProjectileHitEvent event) {
-                if (!(event.getEntity() instanceof Fireball) || !event.getEntity().hasMetadata("Meteor")) return;
-                Fireball fireball = (Fireball) event.getEntity();
+                if (!(event.getEntity() instanceof Fireball)
+                    || !event.getEntity().hasMetadata("Meteor")) return;
+                Fireball fb = (Fireball) event.getEntity();
+                if (!fb.equals(fireball)) return; // ensure it's the same meteor
 
-                fireball.getWorld().spawnParticle(Particle.EXPLOSION, fireball.getLocation(), 1);
-                fireball.getWorld().playSound(fireball.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
+                // Create explosion effect
+                fb.getWorld().spawnParticle(Particle.EXPLOSION, fb.getLocation(), 1);
+                fb.getWorld().playSound(fb.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
 
-                for (Entity entity : fireball.getWorld().getNearbyEntities(fireball.getLocation(), radius, radius, radius)) {
-                    if (entity instanceof LivingEntity && entity != player) {
-                        LivingEntity targetEntity = (LivingEntity) entity;
-                        targetEntity.damage(damage, player);
-                        targetEntity.setFireTicks(100); // 5 seconds
+                double radius = 4.0;
+                for (Entity e : fb.getWorld().getNearbyEntities(fb.getLocation(), radius, radius, radius)) {
+                    if (e instanceof LivingEntity && e != player) {
+                        LivingEntity le = (LivingEntity) e;
+                        le.damage(finalDamage, player);
+                        le.setFireTicks(100); // 5s of fire
                     }
                 }
-                fireball.remove();
+                fb.remove();
+
+                // Unregister so future meteors won't fire duplicates
+                org.bukkit.event.entity.ProjectileHitEvent.getHandlerList().unregister(this);
             }
-        }, Bukkit.getPluginManager().getPlugin("LevelPlugin"));
+        }, plugin);
     }
 
-    /** BLACKHOLE */
+    /** ------------------------------------------------
+     *  BLACKHOLE: pulls mobs in, deals repeated damage
+     *  ------------------------------------------------ */
     private void castBlackhole(Player player) {
+        // 1) Gather INT
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
-        int intelligence = ps.baseIntelligence + ps.bonusIntelligence;
+        int playerInt = ps.baseIntelligence + ps.bonusIntelligence;
 
+        ItemStack mainHand = player.getInventory().getItemInMainHand();
+        CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(mainHand);
+        int weaponInt = (cItem != null) ? cItem.getIntel() : 0;
+
+        // Example formula: 10 base + 0.5 * totalINT each "pull" tick
+        double damage = 10.0 + 0.5 * (playerInt + weaponInt);
+
+        // 2) Create blackhole ~10 blocks forward
         Location target = player.getEyeLocation().add(player.getLocation().getDirection().multiply(10));
         double pullRadius = 5.0;
         double damageRadius = 1.0;
-        // Example formula: 10% Attack Damage + intelligence * 0.2
-        double damage = (player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 0.1)
-            + (intelligence * 0.2);
 
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_SCREAM, 1f, 1f);
-
         createBlackholeEffect(target, pullRadius);
 
+        // 3) Repeated pulling & damage for ~2.5s (50 ticks)
         new BukkitRunnable() {
             int ticks = 0;
             @Override
@@ -204,25 +238,26 @@ public class MageSpell {
                     cancel();
                     return;
                 }
-                for (Entity entity : player.getWorld().getNearbyEntities(target, pullRadius, pullRadius, pullRadius)) {
-                    if (entity instanceof LivingEntity && entity != player) {
-                        LivingEntity targetEntity = (LivingEntity) entity;
-                        Vector pullVector = target.toVector()
-                            .subtract(targetEntity.getLocation().toVector())
+                for (Entity e : player.getWorld().getNearbyEntities(target, pullRadius, pullRadius, pullRadius)) {
+                    if (e instanceof LivingEntity && e != player) {
+                        LivingEntity le = (LivingEntity) e;
+                        Vector pullVec = target.toVector()
+                            .subtract(le.getLocation().toVector())
                             .normalize().multiply(0.2);
-                        targetEntity.setVelocity(pullVector);
+                        le.setVelocity(pullVec);
 
-                        if (targetEntity.getLocation().distance(target) <= damageRadius) {
-                            targetEntity.damage(damage, player);
-                            targetEntity.getWorld().spawnParticle(Particle.CRIT,
-                                targetEntity.getLocation(), 10, 0.2, 0.2, 0.2);
+                        // If close enough to center, deal damage
+                        if (le.getLocation().distance(target) <= damageRadius) {
+                            le.damage(damage, player);
+                            le.getWorld().spawnParticle(Particle.CRIT, le.getLocation(), 10, 0.2, 0.2, 0.2);
                         }
                     }
                 }
+                // For visuals each tick
                 player.getWorld().spawnParticle(Particle.WITCH, target, 10, 0.5, 0.5, 0.5, 0.1);
                 player.getWorld().playSound(target, Sound.BLOCK_BEACON_AMBIENT, 0.5f, 1.2f);
             }
-        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 2L);
+        }.runTaskTimer(plugin, 0L, 2L);
     }
 
     private void createBlackholeEffect(Location center, double radius) {
@@ -235,32 +270,37 @@ public class MageSpell {
                     return;
                 }
                 for (double angle = 0; angle < 360; angle += 10) {
-                    double radians = Math.toRadians(angle);
-                    double x = radius * Math.cos(radians);
-                    double z = radius * Math.sin(radians);
-                    Location particleLocation = center.clone().add(x, 0, z);
+                    double rad = Math.toRadians(angle);
+                    double x = radius * Math.cos(rad);
+                    double z = radius * Math.sin(rad);
+                    Location particleLoc = center.clone().add(x, 0, z);
 
-                    // Make the ring move up/down slightly
-                    particleLocation.add(0, Math.sin(ticks / 10.0) * 0.5, 0);
+                    // Make the ring rise/fall slightly
+                    particleLoc.add(0, Math.sin(ticks / 10.0) * 0.5, 0);
 
-                    center.getWorld().spawnParticle(Particle.PORTAL, particleLocation, 1, 0, 0, 0, 0);
-                    center.getWorld().spawnParticle(Particle.SMOKE, particleLocation, 1, 0, 0, 0, 0);
+                    center.getWorld().spawnParticle(Particle.PORTAL, particleLoc, 1, 0, 0, 0, 0);
+                    center.getWorld().spawnParticle(Particle.SMOKE, particleLoc, 1, 0, 0, 0, 0);
                 }
                 center.getWorld().spawnParticle(Particle.DRAGON_BREATH, center, 5, 0.2, 0.2, 0.2, 0.02);
             }
-        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 2L);
+        }.runTaskTimer(plugin, 0L, 2L);
     }
 
-    /** HEAL (Not damage-based, so no Intelligence damage scaling here) */
+    /** ------------------------------------------------
+     *  HEAL: unchanged, no INT usage here
+     *  ------------------------------------------------ */
     private void healPlayer(Player player, int amount) {
         double maxHealth = player.getAttribute(Attribute.MAX_HEALTH).getValue();
         double newHealth = Math.min(player.getHealth() + amount, maxHealth);
         player.setHealth(newHealth);
+
         player.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, player.getLocation(), 30, 1, 1, 1);
         player.getWorld().playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_HIT, 1f, 1f);
     }
 
-    /** TELEPORT (No damage here, so no Intelligence factor needed) */
+    /** ------------------------------------------------
+     *  TELEPORT: unchanged, no INT usage
+     *  ------------------------------------------------ */
     private void teleportPlayer(Player player, int distance, int particles) {
         Location target = player.getLocation().add(player.getLocation().getDirection().multiply(distance));
         Location safeLocation = findSafeLocation(target, player);
@@ -277,6 +317,7 @@ public class MageSpell {
     }
 
     private Location findSafeLocation(Location target, Player player) {
+        // Simple check for block collisions near that spot
         for (int i = -1; i <= 1; i++) {
             Location tempLocation = target.clone().add(0, i, 0);
             if (ClickComboListener.isLocTpSafe(tempLocation)) {
@@ -285,5 +326,4 @@ public class MageSpell {
         }
         return null;
     }
-
 }
