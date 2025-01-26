@@ -64,3 +64,6 @@ commands:
   addpotion:
     description: Gives a player a potion.
     usage: /addpotion <playername> <potion_id>
+  duel:
+    description: Accepts or Declines a duel request
+    usage: /duel <accept|decline>

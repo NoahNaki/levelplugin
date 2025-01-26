@@ -41,16 +41,4 @@ public class MythicMobDamageListener implements Listener {
             damage,
             mythicMob.getMobType()));
     }
-
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void debugFinalDamage(EntityDamageByEntityEvent e) {
-        if (e.getDamager() instanceof Player) {
-            Player p = (Player) e.getDamager();
-            Bukkit.getLogger().info("[DEBUG FINAL] " + p.getName()
-                + " -> " + e.getEntity().getName()
-                + " : rawDamage=" + e.getDamage()
-                + ", finalDamage=" + e.getFinalDamage());
-        }
-    }
-
 }

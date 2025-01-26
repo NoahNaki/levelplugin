@@ -163,6 +163,27 @@ public class StatsManager {
     }
 
 
+    public void regenHealthForAllPlayers() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            PlayerStats ps = getPlayerStats(player.getUniqueId());
+
+            // Base health regeneration per second
+            double baseRegenPerSec = 1.0;
+
+            // HealthStat bonus (both base and bonus combined)
+            double healthBonus = (ps.baseHealthStat + ps.bonusHealthStat) * 0.2;
+
+            // Total health regeneration
+            double totalRegen = baseRegenPerSec + healthBonus;
+
+            // Apply regeneration
+            double newHealth = player.getHealth() + totalRegen;
+
+            // Ensure health does not exceed the max health
+            player.setHealth(Math.min(newHealth, player.getMaxHealth()));
+        }
+    }
+
 
     public void regenManaForAllPlayers() {
         for (Player player : Bukkit.getOnlinePlayers()) {

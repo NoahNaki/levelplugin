@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.utils;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
+import me.nakilex.levelplugin.duels.listeners.DuelListener;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.effects.listeners.StatsEffectListener;
 import me.nakilex.levelplugin.horse.gui.HorseGUI;
@@ -78,6 +79,9 @@ public class ListenerRegistry {
         pm.registerEvents(new MythicMobNameManager(plugin), plugin);
         pm.registerEvents(new MythicMobDamageListener(), plugin);
         pm.registerEvents(new FallDamageDisabler(), plugin);
+        pm.registerEvents(new HungerDisabler(), plugin);
+        pm.registerEvents(new DuelListener(), plugin);
+
 
         // Register ArrowUtils listener and start cleanup task
         ArrowUtils arrowUtils = new ArrowUtils(plugin);
