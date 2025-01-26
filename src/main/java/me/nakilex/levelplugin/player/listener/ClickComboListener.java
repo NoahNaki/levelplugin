@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.player.listener;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.spells.MageSpell;
 import me.nakilex.levelplugin.spells.Spell;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
@@ -34,6 +35,7 @@ public class ClickComboListener implements Listener {
     private static final long BOW_SHOT_COOLDOWN = 500L; // 500 milliseconds (0.5 seconds)
     private final Map<UUID, Long> mageCooldowns = new HashMap<>();
     private static final long MAGE_ATTACK_COOLDOWN = 500L; // 0.5 seconds cooldown
+    private final MageSpell mageSpell = new MageSpell(); // Instance of MageSpell
 
 
 
@@ -81,7 +83,7 @@ public class ClickComboListener implements Listener {
             }
 
             // Execute Mage's basic attack
-            executeMageBasicAttack(player);
+            mageSpell.mageBasicSkill(player);
 
             // Set cooldown for Mage's basic attack
             mageCooldowns.put(playerId, currentTime);
@@ -185,60 +187,6 @@ public class ClickComboListener implements Listener {
         }
     }
 
-    private void executeMageBasicAttack(Player player) {
-        double damage = 5.0; // Basic attack damage
-        double range = 15.0; // Max range the particle can travel
-        double speed = 2.5; // Speed of the particle
-        Location startLocation = player.getEyeLocation().add(0, 0, 0); // Start slightly above player eyes
-        org.bukkit.util.Vector direction = startLocation.getDirection().normalize(); // Normalize direction vector
-
-        // Sound effect for casting the attack
-        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 1f, 1f);
-
-        new BukkitRunnable() {
-            double distanceTravelled = 0.0;
-            Location currentLocation = startLocation.clone();
-
-            @Override
-            public void run() {
-                if (distanceTravelled >= range) {
-                    cancel(); // Stop when the max range is reached
-                    return;
-                }
-
-                // Move the particle forward
-                currentLocation.add(direction.clone().multiply(speed));
-                distanceTravelled += speed;
-
-                // Display the particle at the new location
-                player.getWorld().spawnParticle(Particle.FLAME, currentLocation, 5, 0.1, 0.1, 0.1, 0.01);
-
-                // Check for collisions with entities
-                for (Entity entity : player.getWorld().getNearbyEntities(currentLocation, 0.5, 0.5, 0.5)) {
-                    if (entity instanceof LivingEntity && entity != player) {
-                        LivingEntity target = (LivingEntity) entity;
-
-                        // Deal damage to the entity
-                        target.damage(damage, player);
-
-                        // Display a hit effect
-                        target.getWorld().spawnParticle(Particle.CRIT, target.getLocation(), 10, 0.2, 0.2, 0.2, 0.1);
-                        target.getWorld().playSound(target.getLocation(), Sound.ENTITY_GENERIC_HURT, 1f, 1f);
-
-                        // Stop the particle when it hits an entity
-                        cancel();
-                        return;
-                    }
-                }
-
-                // Stop the particle if it hits a block
-                if (!currentLocation.getBlock().isPassable()) {
-                    currentLocation.getWorld().spawnParticle(Particle.SMOKE, currentLocation, 10, 0.2, 0.2, 0.2, 0.01);
-                    cancel();
-                }
-            }
-        }.runTaskTimer(Main.getInstance(), 0L, 1L); // Run every tick
-    }
 
 
 

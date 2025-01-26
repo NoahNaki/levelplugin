@@ -29,6 +29,11 @@ public class MageSpell {
     private final Main plugin = Main.getInstance();
 
     private final Map<UUID, Long> mageBasicCooldown = new HashMap<>();
+    private final Map<UUID, Double> teleportManaCosts = new HashMap<>();
+    private final Map<UUID, Long> lastTeleportTimes = new HashMap<>();
+    private static final double INITIAL_TELEPORT_MANA_COST = 5.0; // Starting mana cost
+    private static final double TELEPORT_MANA_MULTIPLIER = 1.2; // Multiplier for successive casts
+    private static final long TELEPORT_RESET_TIME = 3000L; // 3 seconds in milliseconds
 
     public void castMageSpell(Player player, String effectKey) {
         switch (effectKey.toUpperCase()) {
@@ -54,79 +59,65 @@ public class MageSpell {
     }
 
     /** ------------------------------------------------
-     *  MAGE BASIC SKILL (beam that deals single hit)
+    /** ------------------------------------------------
+     *  MAGE BASIC ATTACK: Simple ray attack
      *  ------------------------------------------------ */
-    private void mageBasicSkill(Player player) {
-        // 1) Check if player is actually a Mage
+    public void mageBasicSkill(Player player) {
+        // Range of the ray in blocks
+        int range = 20;
+
+        // Damage dealt by the ray
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
-        if (!ps.playerClass.name().equalsIgnoreCase("mage")) {
-            return;
-        }
+        double damage = 5.0 + ps.baseIntelligence + + ps.bonusIntelligence * 0.5; // Example: base damage + INT scaling
 
-        // 2) Check if main-hand item is valid for a 'wand'
-        ItemStack mainHand = player.getInventory().getItemInMainHand();
-        if (mainHand == null
-            || (mainHand.getType() != Material.STICK && mainHand.getType() != Material.BLAZE_ROD)) {
-            return;
-        }
-
-        // 3) Cooldown check (500ms)
-        UUID playerUUID = player.getUniqueId();
-        long now = System.currentTimeMillis();
-        if (mageBasicCooldown.containsKey(playerUUID)) {
-            long lastUse = mageBasicCooldown.get(playerUUID);
-            if (now - lastUse < 500) {
-                return;
-            }
-        }
-        mageBasicCooldown.put(playerUUID, now);
-
-        // 4) Avoid conflicts with partial combos
-        String activeCombo = ClickComboListener.getActiveCombo(player);
-        if (!activeCombo.isEmpty() && activeCombo.length() < 3) {
-            return;
-        }
-
-        // 5) Calculate total Intelligence from:
-        //    (player's base + bonus) + (weapon's baseIntel + bonusIntel)
-        int playerInt = ps.baseIntelligence + ps.bonusIntelligence;
-
-        CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(mainHand);
-        int weaponInt = (cItem != null) ? cItem.getIntel() : 0;
-
-        // Example damage formula: 6 base + (0.4 * totalINT)
-        double damage = 6.0 + 0.4 * (playerInt + weaponInt);
-
-        // 6) Ray logic: go 20 blocks
+        // Starting point and direction of the ray
         Location start = player.getEyeLocation();
         Vector direction = start.getDirection().normalize();
-        double beamLength = 20.0;
 
-        for (double i = 0; i < beamLength; i += 0.5) {
-            Location point = start.clone().add(direction.clone().multiply(i));
-            player.getWorld().spawnParticle(Particle.END_ROD, point, 1, 0.1, 0.1, 0.1, 0.1);
+        World world = player.getWorld();
 
-            // Check for entities in small radius
-            for (Entity entity : player.getWorld().getNearbyEntities(point, 0.5, 0.5, 0.5)) {
+        // Play initial sound and particle effects
+        world.playSound(start, Sound.ENTITY_GHAST_SHOOT, 1f, 1.2f);
+        world.spawnParticle(Particle.END_ROD, start, 5, 0.1, 0.1, 0.1, 0.02);
+
+        // Perform the ray trace
+        for (int i = 0; i < range; i++) {
+            Location current = start.clone().add(direction.clone().multiply(i));
+
+            // Visual effect for the ray path
+            world.spawnParticle(Particle.CRIT, current, 1, 0, 0, 0, 0);
+
+            // Check for entities at the current location
+            for (Entity entity : world.getNearbyEntities(current, 0.5, 0.5, 0.5)) {
                 if (entity instanceof LivingEntity && entity != player) {
                     LivingEntity target = (LivingEntity) entity;
-                    target.damage(damage, player); // single custom damage
-                    player.getWorld().spawnParticle(Particle.WITCH, target.getLocation(), 10, 0.2, 0.2, 0.2);
-                    player.getWorld().playSound(target.getLocation(), Sound.ITEM_TRIDENT_THUNDER, 1f, 1f);
-                    return; // stop the beam after hitting something
+
+                    // Apply damage and knockback
+                    target.damage(damage, player);
+                    target.setVelocity(direction.clone().multiply(0.2));
+
+                    // Visual and sound effect on hit
+                    world.spawnParticle(Particle.DAMAGE_INDICATOR, target.getLocation(), 10, 0.2, 0.2, 0.2, 0.02);
+                    world.playSound(target.getLocation(), Sound.ENTITY_PLAYER_HURT, 1f, 1.5f);
+
+                    return; // Stop the ray after hitting the first entity
                 }
             }
 
-            // If we hit a non-passable block, break
-            if (!point.getBlock().isPassable()) {
-                player.getWorld().playSound(point, Sound.BLOCK_GLASS_BREAK, 1f, 1f);
-                break;
+            // Stop the ray if it hits a solid block
+            if (current.getBlock().getType().isSolid()) {
+                world.spawnParticle(Particle.SMOKE, current, 5, 0.2, 0.2, 0.2, 0.05);
+                world.playSound(current, Sound.BLOCK_STONE_HIT, 1f, 0.8f);
+                return;
             }
         }
 
-        // If beam hits nothing, just play a sound at the end
-        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_WITCH_THROW, 1f, 1f);
+        // End of ray reached without hitting anything
+        world.spawnParticle(Particle.SMOKE, start.clone().add(direction.multiply(range)), 5, 0.2, 0.2, 0.2, 0.05);
     }
+
+
+
 
     /** ------------------------------------------------
      *  METEOR: AoE damage on impact, purely from INT
@@ -289,14 +280,27 @@ public class MageSpell {
     /** ------------------------------------------------
      *  HEAL: unchanged, no INT usage here
      *  ------------------------------------------------ */
-    private void healPlayer(Player player, int amount) {
+    private void healPlayer(Player player, int baseAmount) {
+        // Retrieve player's stats
+        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player);
+        int intelligence = ps.baseIntelligence + ps.bonusIntelligence;
+
+        // Scale healing with intelligence
+        double scaledHealing = baseAmount + (intelligence * 0.5); // Example scaling: 50% of INT added to base amount
         double maxHealth = player.getAttribute(Attribute.MAX_HEALTH).getValue();
-        double newHealth = Math.min(player.getHealth() + amount, maxHealth);
+        double newHealth = Math.min(player.getHealth() + scaledHealing, maxHealth);
+
+        // Apply the healing
         player.setHealth(newHealth);
 
+        // Add visual and sound effects
         player.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, player.getLocation(), 30, 1, 1, 1);
         player.getWorld().playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_HIT, 1f, 1f);
+
+        // Optional: Send a message to the player indicating how much they were healed
+        player.sendMessage("§aYou have been healed for " + Math.round(scaledHealing) + " health!");
     }
+
 
     /** ------------------------------------------------
      *  TELEPORT: unchanged, no INT usage
