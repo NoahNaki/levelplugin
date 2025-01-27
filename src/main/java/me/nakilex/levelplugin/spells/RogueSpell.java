@@ -1,24 +1,28 @@
 package me.nakilex.levelplugin.spells;
 
 import me.nakilex.levelplugin.duels.managers.DuelManager;
-import me.nakilex.levelplugin.effects.utils.ArmorStandEffectUtil;
-import me.nakilex.levelplugin.effects.utils.ParticleEffectUtil;
-import org.bukkit.*;
+import me.nakilex.levelplugin.utils.MetadataTrait;
+import net.citizensnpcs.api.CitizensAPI;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.*;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.HandlerList;
-import org.bukkit.event.Listener;
-import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.FireworkMeta;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.util.EulerAngle;
-import org.bukkit.util.Vector;
+import net.citizensnpcs.api.npc.NPC;
+import net.citizensnpcs.api.trait.Trait;
+import net.citizensnpcs.api.npc.NPC;
+import net.citizensnpcs.api.util.DataKey;
 
-import java.util.*;
+
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 public class RogueSpell {
 
@@ -31,16 +35,84 @@ public class RogueSpell {
                 castBladeFury(player);
                 break;
             case "VANISH":
-                castVanish(player);
+                //castVanish(player);
                 break;
             case "DAGGER_THROW":
-                castDaggerThrow(player);
+                castShadowClone(player);
                 break;
             default:
                 player.sendMessage("§eUnknown Rogue Spell: " + effectKey);
                 break;
         }
     }
+
+    private void castShadowClone(Player player) {
+        UUID playerUUID = player.getUniqueId();
+
+        // Debug: Log player UUID
+        Bukkit.getLogger().info("[ShadowClone] Checking for existing shadow clone for player: " + player.getName() + " (UUID: " + playerUUID + ")");
+
+        // Iterate over all NPCs in the registry
+        NPC existingClone = null;
+        for (NPC npc : CitizensAPI.getNPCRegistry()) {
+            if (npc.hasTrait(MetadataTrait.class)) {
+                MetadataTrait metadata = npc.getTrait(MetadataTrait.class);
+                if (metadata.getOwner() != null && metadata.getOwner().equals(playerUUID)) {
+                    existingClone = npc;
+                    break;
+                }
+            }
+        }
+
+        if (existingClone != null) {
+            // Swap positions
+            Bukkit.getLogger().info("[ShadowClone] Found active shadow clone. Swapping positions...");
+            Location cloneLocation = existingClone.getEntity().getLocation();
+            Location playerLocation = player.getLocation();
+
+            existingClone.teleport(playerLocation, PlayerTeleportEvent.TeleportCause.PLUGIN);
+            player.teleport(cloneLocation);
+
+            player.sendMessage("§aYou swapped places with your shadow clone!");
+            player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 1f);
+            return;
+        }
+
+        // No active shadow clone, create a new one
+        Bukkit.getLogger().info("[ShadowClone] No active shadow clone found. Creating a new one...");
+        Location cloneLocation = player.getLocation();
+
+        NPC shadowClone = CitizensAPI.getNPCRegistry().createNPC(EntityType.PLAYER, "Shadow Clone");
+        shadowClone.spawn(cloneLocation);
+        shadowClone.getOrAddTrait(MetadataTrait.class).setOwner(playerUUID);
+
+        // Mimic player appearance
+        if (shadowClone.getEntity() instanceof Player npcPlayer) {
+            npcPlayer.getInventory().setArmorContents(player.getInventory().getArmorContents());
+            npcPlayer.getInventory().setItemInMainHand(player.getInventory().getItemInMainHand());
+            npcPlayer.getInventory().setItemInOffHand(player.getInventory().getItemInOffHand());
+        }
+
+        player.sendMessage("§aYou created a shadow clone!");
+
+        // Schedule removal
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (shadowClone.isSpawned()) {
+                    Bukkit.getLogger().info("[ShadowClone] Expiring shadow clone for player: " + player.getName());
+                    Location explosionLocation = shadowClone.getEntity().getLocation();
+                    shadowClone.despawn();
+                    shadowClone.destroy();
+
+                    explosionLocation.getWorld().createExplosion(explosionLocation, 2.0f, false, false);
+                    player.sendMessage("§cYour shadow clone exploded!");
+                }
+            }
+        }.runTaskLater(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 100L); // 5 seconds
+    }
+
+
 
     private void castShadowStep(Player player) {
 
@@ -129,63 +201,4 @@ public class RogueSpell {
             }
         }
     }
-
-    private void castVanish(Player player) {
-        int duration = 200;
-
-        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_SCREAM, 1f, 1f);
-        player.getWorld().spawnParticle(Particle.CLOUD, player.getLocation(), 30, 0.5, 1, 0.5);
-        player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, duration, 0));
-        player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, duration, 0));
-    }
-
-    private void castDaggerThrow(Player player) {
-        double distance = 10.0;
-        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 1.5;
-
-        Location baseLocation = player.getLocation().clone().add(0, 1.0, 0); // Chest level
-
-        Vector forward = baseLocation.getDirection();
-        forward.setY(0).normalize(); // Only horizontal movement
-
-        Vector leftOffset = rotateAroundAxisY(forward.clone(), -90).normalize().multiply(0.7); // Adjust multiplier for more/less left
-        Location adjustedLocation = baseLocation.clone().add(leftOffset);
-
-        Location centerSpawn = adjustedLocation.clone(); // Center dagger
-        Location leftSpawn = adjustedLocation.clone().add(rotateAroundAxisY(forward.clone(), -15).normalize().multiply(0.3)); // Left dagger
-        Location rightSpawn = adjustedLocation.clone().add(rotateAroundAxisY(forward.clone(), 15).normalize().multiply(0.3)); // Right dagger
-
-        ArmorStandEffectUtil.createLeadingArmorStandInDirection(centerSpawn, Material.IRON_SWORD, 22, forward, distance);
-        ArmorStandEffectUtil.createLeadingArmorStandInDirection(leftSpawn, Material.IRON_SWORD, 22, rotateAroundAxisY(forward.clone(), -15).normalize(), distance);
-        ArmorStandEffectUtil.createLeadingArmorStandInDirection(rightSpawn, Material.IRON_SWORD, 22, rotateAroundAxisY(forward.clone(), 15).normalize(), distance);
-
-        for (Vector dir : new Vector[]{forward, rotateAroundAxisY(forward.clone(), -15), rotateAroundAxisY(forward.clone(), 15)}) {
-            for (double i = 0; i <= distance; i += 0.5) {
-                Location point = adjustedLocation.clone().add(dir.clone().multiply(i));
-                point.getWorld().spawnParticle(Particle.CRIT, point, 5, 0.1, 0.1, 0.1, 0.0);
-
-                for (Entity entity : point.getWorld().getNearbyEntities(point, 1, 1, 1)) {
-                    if (entity instanceof LivingEntity && entity != player) {
-                        LivingEntity target = (LivingEntity) entity;
-                        target.damage(damage, player);
-                    }
-                }
-                if (!point.getBlock().isPassable()) {
-                    break;
-                }
-            }
-        }
-    }
-
-    private Vector rotateAroundAxisY(Vector vector, double degrees) {
-        double radians = Math.toRadians(degrees);
-        double cos = Math.cos(radians);
-        double sin = Math.sin(radians);
-        double x = vector.getX() * cos + vector.getZ() * sin;
-        double z = vector.getZ() * cos - vector.getX() * sin;
-        return new Vector(x, vector.getY(), z);
-    }
-
-
-
 }

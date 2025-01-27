@@ -25,10 +25,8 @@ import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.storage.StorageManager;
 import me.nakilex.levelplugin.trade.data.ConfigValues;
 import me.nakilex.levelplugin.trade.utils.MessageStrings;
-import me.nakilex.levelplugin.utils.CommandRegistry;
-import me.nakilex.levelplugin.utils.DealMaker;
-import me.nakilex.levelplugin.utils.ListenerRegistry;
-import me.nakilex.levelplugin.utils.TaskRegistry;
+import me.nakilex.levelplugin.utils.*;
+import net.citizensnpcs.api.CitizensAPI;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -85,6 +83,8 @@ public class Main extends JavaPlugin {
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
+
+        CitizensAPI.getTraitFactory().registerTrait(net.citizensnpcs.api.trait.TraitInfo.create(MetadataTrait.class).withName("MetadataTrait"));
 
         // Load configuration files
         loadConfigFiles();

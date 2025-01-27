@@ -36,10 +36,8 @@ public class PotionUseListener implements Listener {
     @EventHandler
     public void onPlayerUsePotion(PlayerInteractEvent event) {
         // Debug log to check event triggering
-        System.out.println("PlayerInteractEvent triggered");
 
         if (event.getHand() != EquipmentSlot.HAND) {
-            System.out.println("Event skipped: not main hand");
             return;
         }
 
@@ -48,7 +46,6 @@ public class PotionUseListener implements Listener {
 
         // Check if item is valid and is a potion
         if (item == null || !item.hasItemMeta() || !(item.getType() == Material.POTION || item.getType() == Material.SPLASH_POTION || item.getType() == Material.LINGERING_POTION)) {
-            System.out.println("Event skipped: invalid item or not a potion");
             return;
         }
 
@@ -57,7 +54,6 @@ public class PotionUseListener implements Listener {
         NamespacedKey key = new NamespacedKey(plugin, "potion_uuid");
 
         if (!data.has(key, PersistentDataType.STRING)) {
-            System.out.println("No UUID found in PersistentDataContainer");
             return;
         }
 
@@ -65,14 +61,12 @@ public class PotionUseListener implements Listener {
         try {
             uuid = UUID.fromString(data.get(key, PersistentDataType.STRING));
         } catch (IllegalArgumentException e) {
-            System.out.println("Invalid UUID in PersistentDataContainer");
             return;
         }
 
         PotionInstance instance = potionManager.getPotionInstance(uuid);
         if (instance == null || potionManager.isOnCooldown(uuid)) {
             player.sendMessage("Potion is on cooldown!");
-            System.out.println("Cooldown active or instance not found");
             return;
         }
 
