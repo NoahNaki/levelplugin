@@ -3,13 +3,11 @@ package me.nakilex.levelplugin.spells;
 import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.utils.MetadataTrait;
 import net.citizensnpcs.api.CitizensAPI;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Particle;
-import org.bukkit.Sound;
+import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.*;
 import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -17,12 +15,11 @@ import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.api.trait.Trait;
 import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.api.util.DataKey;
+import org.bukkit.util.EulerAngle;
+import org.bukkit.util.Vector;
 
 
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class RogueSpell {
 
@@ -35,7 +32,7 @@ public class RogueSpell {
                 castBladeFury(player);
                 break;
             case "VANISH":
-                //castVanish(player);
+                castShurikenThrow(player);
                 break;
             case "DAGGER_THROW":
                 castShadowClone(player);
@@ -44,6 +41,107 @@ public class RogueSpell {
                 player.sendMessage("§eUnknown Rogue Spell: " + effectKey);
                 break;
         }
+    }
+
+
+    private void castShurikenThrow(Player player) {
+        // The center location from which our "shuriken" will be formed
+        final Location center = player.getLocation().clone();
+
+        // Forward velocity (tweak as desired)
+        final Vector forwardVelocity = center.getDirection().multiply(1.3);
+
+        // We’ll store ArmorStands so we can manipulate/rotate/remove them later
+        final List<ArmorStand> stands = new ArrayList<>();
+
+        // Create 4 offsets in a + shape around the center
+        final double radius = 0.2; // or even 0.15
+        final Vector[] offsets = {
+            new Vector(radius, 0, 0),
+            new Vector(-radius, 0, 0),
+            new Vector(0, 0, radius),
+            new Vector(0, 0, -radius)
+        };
+
+        // For each offset, spawn an ArmorStand
+        for (Vector offset : offsets) {
+            Location spawnLoc = center.clone().add(offset);
+            ArmorStand stand = (ArmorStand) spawnLoc.getWorld().spawnEntity(spawnLoc, EntityType.ARMOR_STAND);
+
+            // Make the stand invisible, remove base plate, no gravity, etc.
+            stand.setInvisible(true);
+            stand.setMarker(true);
+            stand.setBasePlate(false);
+            stand.setGravity(false);
+            stand.setArms(true);
+
+            // Give the stand a sword in its hand
+            stand.getEquipment().setItemInMainHand(new ItemStack(Material.IRON_SWORD));
+
+            // Make arms T-pose, so swords stick out horizontally
+            // Adjust as needed if you want them oriented differently.
+            // Example: tilt arms forward (around X) so the handle is closer to center
+            stand.setRightArmPose(new EulerAngle(Math.toRadians(270), 0, Math.toRadians(90)));
+            stand.setLeftArmPose(new EulerAngle(Math.toRadians(270), 0, Math.toRadians(-90)));
+            stands.add(stand);
+        }
+
+        // Schedule a repeating task to move the stands forward & rotate them
+        new BukkitRunnable() {
+            // totalTicks controls how long the shuriken “flies” before disappearing
+            private final int maxTicks = 60; // e.g., 3 seconds at 20 TPS
+            private int ticksLived = 0;
+
+            // We'll track a rotation angle in radians
+            private double angle = 0.0;
+
+            @Override
+            public void run() {
+                if (ticksLived++ >= maxTicks) {
+                    // Time’s up – remove the armor stands
+                    for (ArmorStand stand : stands) {
+                        if (!stand.isDead()) {
+                            stand.remove();
+                        }
+                    }
+                    cancel();
+                    return;
+                }
+
+                // Increase rotation angle slightly each tick
+                angle += Math.toRadians(45); // 15 degrees per tick
+
+                // Move the center forward
+                center.add(forwardVelocity);
+
+                // For each stand, calculate a new rotated position around the center
+                for (int i = 0; i < stands.size(); i++) {
+                    ArmorStand stand = stands.get(i);
+                    Vector baseOffset = offsets[i].clone();
+
+                    // Rotate the offset around the Y-axis by our current 'angle'
+                    double cos = Math.cos(angle);
+                    double sin = Math.sin(angle);
+
+                    double rotatedX = baseOffset.getX() * cos - baseOffset.getZ() * sin;
+                    double rotatedZ = baseOffset.getX() * sin + baseOffset.getZ() * cos;
+
+                    // Generate the new location by adding rotated offset to center
+                    Location newLoc = center.clone().add(rotatedX, 0, rotatedZ);
+
+                    // Face outward from center (optional), so the stands rotate properly
+                    float yawDegrees = (float) Math.toDegrees(Math.atan2(-rotatedX, rotatedZ));
+                    newLoc.setYaw(yawDegrees);
+
+                    // Move the ArmorStand
+                    stand.teleport(newLoc);
+                }
+            }
+        }.runTaskTimer(
+            Bukkit.getPluginManager().getPlugin("LevelPlugin"),
+            0L,
+            1L
+        );
     }
 
     private void castShadowClone(Player player) {
