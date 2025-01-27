@@ -86,11 +86,18 @@ public class RogueSpell {
         shadowClone.spawn(cloneLocation);
         shadowClone.getOrAddTrait(MetadataTrait.class).setOwner(playerUUID);
 
+        // Set the NPC's skin to match the player
+        shadowClone.data().setPersistent("player-skin-name", player.getName());
+
         // Mimic player appearance
         if (shadowClone.getEntity() instanceof Player npcPlayer) {
+            // Copy the player's armor
             npcPlayer.getInventory().setArmorContents(player.getInventory().getArmorContents());
             npcPlayer.getInventory().setItemInMainHand(player.getInventory().getItemInMainHand());
             npcPlayer.getInventory().setItemInOffHand(player.getInventory().getItemInOffHand());
+
+            // Debug: Log armor application
+            Bukkit.getLogger().info("[ShadowClone] Applied player's armor to shadow clone.");
         }
 
         player.sendMessage("§aYou created a shadow clone!");
@@ -111,7 +118,6 @@ public class RogueSpell {
             }
         }.runTaskLater(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 100L); // 5 seconds
     }
-
 
 
     private void castShadowStep(Player player) {
