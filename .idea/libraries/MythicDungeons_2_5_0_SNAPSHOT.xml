@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="MythicDungeons-2.5.0-SNAPSHOT">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/../Minecraft Servers/1.21.3 Paper/plugins/MythicDungeons-2.5.0-SNAPSHOT.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
