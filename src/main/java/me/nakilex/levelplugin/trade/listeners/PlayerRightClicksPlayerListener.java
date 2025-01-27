@@ -18,28 +18,36 @@ public class PlayerRightClicksPlayerListener implements Listener {
         MessageStrings messageStrings = Main.getPlugin().getMessageStrings();
         ConfigValues configValues = Main.getPlugin().getConfigValues();
         Player p = e.getPlayer();
-        if(e.getRightClicked() instanceof Player) {
+
+        // Check if the entity clicked is a Player
+        if (e.getRightClicked() instanceof Player) {
+            // Check if the clicked entity is an NPC
             if (CitizensAPI.getNPCRegistry().isNPC(e.getRightClicked())) {
-                // Right-clicked entity is a NPC, so do nothing
+                // Right-clicked entity is an NPC, so do nothing
                 return;
             }
 
-            if(configValues.ENABLE_TRADE_BY_RIGHTCLICK_PLAYER && (configValues.toggleUseWithoutPermission()
+            // Check if trading by shift right-click is enabled and the player meets permission requirements
+            if (configValues.ENABLE_TRADE_BY_RIGHTCLICK_PLAYER && (configValues.toggleUseWithoutPermission()
                 || p.hasPermission("trade.tradebyclick")
                 || p.hasPermission("trade.*"))) {
 
-                if(configValues.REQUIRE_SHIFT_CLICK && !p.isSneaking()) return;
+                // Ensure the player is sneaking (shift right-click)
+                if (!p.isSneaking()) return;
 
                 Player target = (Player) e.getRightClicked();
                 DealMaker dm = Main.getPlugin().getDealMaker();
-                if(dm.addPlayerToCooldown(p)) {
-                    if(dm.madePlayerARequest(target, p)) {
+
+                // Handle trade cooldowns and requests
+                if (dm.addPlayerToCooldown(p)) {
+                    if (dm.madePlayerARequest(target, p)) {
                         dm.acceptTrade(p, target);
                     } else {
                         boolean success = dm.makeTradeOffer(p, target);
-                        if(success)
+                        if (success) {
                             p.sendMessage(Main.PREFIX + String.format(
                                 messageStrings.getTranslation(Translations.TRADE_REQUEST_SENT), target.getName()));
+                        }
                     }
                 }
             }
