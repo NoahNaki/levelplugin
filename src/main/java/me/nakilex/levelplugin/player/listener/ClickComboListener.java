@@ -65,6 +65,13 @@ public class ClickComboListener implements Listener {
 
         // Check if the player is a Mage
         if (className.equals("mage")) {
+            // Ensure the player is holding a blaze rod or stick
+            ItemStack mainHand = player.getInventory().getItemInMainHand();
+            if (mainHand == null ||
+                (mainHand.getType() != Material.BLAZE_ROD && mainHand.getType() != Material.STICK)) {
+                return; // Not holding a valid weapon for Mage, ignore
+            }
+
             // Check if there's an active combo
             String activeCombo = getActiveCombo(player);
 
@@ -92,6 +99,7 @@ public class ClickComboListener implements Listener {
             recordComboClick(player, "L");
         }
     }
+
 
 
     @EventHandler

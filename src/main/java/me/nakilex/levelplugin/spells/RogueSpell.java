@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.spells;
 
+import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.effects.utils.ArmorStandEffectUtil;
 import me.nakilex.levelplugin.effects.utils.ParticleEffectUtil;
 import org.bukkit.*;
@@ -56,6 +57,7 @@ public class RogueSpell {
                     return;
                 }
 
+                // Find the closest living entity within 15 blocks, excluding 'player'
                 LivingEntity target = player.getWorld().getNearbyEntities(player.getLocation(), 15, 15, 15).stream()
                     .filter(e -> e instanceof LivingEntity && e != player)
                     .map(e -> (LivingEntity) e)
@@ -63,37 +65,53 @@ public class RogueSpell {
                     .orElse(null);
 
                 if (target != null) {
-                    Location behindTarget = target.getLocation().clone().add(target.getLocation().getDirection().multiply(-1).normalize());
+                    // --- Only apply to players if they're in a duel with the caster ---
+                    if (target instanceof Player) {
+                        Player pTarget = (Player) target;
+                        if (!DuelManager.getInstance().areInDuel(player.getUniqueId(), pTarget.getUniqueId())) {
+                            // Not in a duel, skip this iteration
+                            // (No teleport behind them, no damage/effect)
+                            casts++;
+                            return;
+                        }
+                    }
+                    // If it's a non-player or a Player in a duel, proceed:
+
+                    // Teleport behind target
+                    Location behindTarget = target.getLocation().clone()
+                        .add(target.getLocation().getDirection().multiply(-1).normalize());
                     behindTarget.setYaw(target.getLocation().getYaw());
                     behindTarget.setPitch(target.getLocation().getPitch());
                     player.teleport(behindTarget);
 
-                    double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 1.5; // Increased damage for effect
+                    double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 1.5; // 150% weapon damage
                     target.damage(damage, player);
 
-                    target.getWorld().spawnParticle(Particle.CRIT, target.getLocation(), 30, 0.5, 1, 0.5); // Critical hit particles
-                    target.getWorld().spawnParticle(Particle.SWEEP_ATTACK, target.getLocation(), 10, 0.5, 0.5, 0.5); // Sweep attack visuals
-                    target.getWorld().spawnParticle(Particle.PORTAL, target.getLocation(), 20, 0.5, 1, 0.5); // Portal effect for teleportation
+                    target.getWorld().spawnParticle(Particle.CRIT, target.getLocation(), 30, 0.5, 1, 0.5);
+                    target.getWorld().spawnParticle(Particle.SWEEP_ATTACK, target.getLocation(), 10, 0.5, 0.5, 0.5);
+                    target.getWorld().spawnParticle(Particle.PORTAL, target.getLocation(), 20, 0.5, 1, 0.5);
 
                     player.getWorld().playSound(target.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 1f, 1f);
-                    player.getWorld().playSound(target.getLocation(), Sound.ENTITY_WITHER_SHOOT, 0.5f, 1.2f); // Wither-like whoosh sound
-                    player.getWorld().playSound(target.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 0.5f); // Distorted teleport sound
+                    player.getWorld().playSound(target.getLocation(), Sound.ENTITY_WITHER_SHOOT, 0.5f, 1.2f);
+                    player.getWorld().playSound(target.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 0.5f);
 
+                    // If the target is a Player, briefly apply blindness
                     if (target instanceof Player) {
-                        ((Player) target).addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 20, 0)); // 1 second of blindness
+                        ((Player) target).addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 20, 0));
                     }
 
                     target.getWorld().spawnParticle(Particle.EXPLOSION, target.getLocation(), 10, 0.3, 0.3, 0.3);
 
-                    player.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 20, 0)); // 1 second of glowing for cool effect
-                } else {
+                    // Give caster a brief glowing effect
+                    player.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 20, 0));
                 }
 
+                // Small particle effect around the caster each cast
                 player.getWorld().spawnParticle(Particle.ASH, player.getLocation(), 10, 0.3, 0.3, 0.3);
 
                 casts++;
             }
-        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 10L); // Delay of 10 ticks (0.5 seconds) between casts
+        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 10L); // 10 ticks = 0.5 sec intervals
     }
 
 

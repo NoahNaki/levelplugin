@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.spells;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
@@ -229,22 +230,37 @@ public class MageSpell {
                     cancel();
                     return;
                 }
+
+                // Pull and optionally damage nearby entities
                 for (Entity e : player.getWorld().getNearbyEntities(target, pullRadius, pullRadius, pullRadius)) {
                     if (e instanceof LivingEntity && e != player) {
                         LivingEntity le = (LivingEntity) e;
+
+                        // --- Only affect players if they are in a duel with 'player' ---
+                        if (le instanceof Player) {
+                            Player pTarget = (Player) le;
+                            if (!DuelManager.getInstance().areInDuel(player.getUniqueId(), pTarget.getUniqueId())) {
+                                // Skip pulling/damage for players not in a duel
+                                continue;
+                            }
+                        }
+                        // If it's a mob or a player in a duel, proceed:
+
+                        // Pull entity toward blackhole center
                         Vector pullVec = target.toVector()
                             .subtract(le.getLocation().toVector())
                             .normalize().multiply(0.2);
                         le.setVelocity(pullVec);
 
-                        // If close enough to center, deal damage
+                        // If close enough to center, apply damage
                         if (le.getLocation().distance(target) <= damageRadius) {
                             le.damage(damage, player);
                             le.getWorld().spawnParticle(Particle.CRIT, le.getLocation(), 10, 0.2, 0.2, 0.2);
                         }
                     }
                 }
-                // For visuals each tick
+
+                // Visuals each tick
                 player.getWorld().spawnParticle(Particle.WITCH, target, 10, 0.5, 0.5, 0.5, 0.1);
                 player.getWorld().playSound(target, Sound.BLOCK_BEACON_AMBIENT, 0.5f, 1.2f);
             }
@@ -276,6 +292,7 @@ public class MageSpell {
             }
         }.runTaskTimer(plugin, 0L, 2L);
     }
+
 
     /** ------------------------------------------------
      *  HEAL: unchanged, no INT usage here

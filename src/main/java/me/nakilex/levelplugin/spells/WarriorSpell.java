@@ -250,24 +250,38 @@ public class WarriorSpell {
                     for (Entity entity : rippleLocation.getWorld().getNearbyEntities(rippleLocation, 1, 1, 1)) {
                         if (entity instanceof LivingEntity && entity != player) {
                             LivingEntity target = (LivingEntity) entity;
+
+                            // --- Only apply to players if they're in a duel with the caster ---
+                            if (target instanceof Player) {
+                                Player pTarget = (Player) target;
+                                // If not in a duel with the caster, skip both damage & knockback
+                                if (!DuelManager.getInstance().areInDuel(player.getUniqueId(), pTarget.getUniqueId())) {
+                                    continue;
+                                }
+                            }
+                            // -----------------------------------------------------------------
+
+                            // If it's a non-player or a player in a duel, apply damage & knockback
                             target.damage(damage, player);
 
-                            Vector knockback = target.getLocation().toVector().subtract(player.getLocation().toVector()).normalize().multiply(0.5);
+                            Vector knockback = target.getLocation().toVector()
+                                .subtract(player.getLocation().toVector())
+                                .normalize()
+                                .multiply(0.5);
                             knockback.setY(0.3);
                             target.setVelocity(knockback);
                         }
                     }
 
+                    // If we hit solid ground, break out of the loop
                     if (!rippleLocation.getBlock().isPassable()) {
                         break;
                     }
                 }
 
+                // Minor sound effect each "wave"
                 player.getWorld().playSound(player.getLocation(), Sound.ENTITY_IRON_GOLEM_ATTACK, 0.5f, 0.8f);
             }
         }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, duration / steps);
     }
-
-
-
 }

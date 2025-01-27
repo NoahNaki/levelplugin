@@ -1,48 +1,32 @@
 package me.nakilex.levelplugin.duels.managers;
 
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
 
-/**
- * Singleton to manage all active duels, incoming requests, etc.
- */
 public class DuelManager {
-
     private static final DuelManager instance = new DuelManager();
     public static DuelManager getInstance() { return instance; }
 
-    /**
-     * Map of requestTarget -> DuelRequest
-     * (i.e., you store requests keyed by the "target" for quick lookup.)
-     */
     private final Map<UUID, DuelRequest> duelRequests = new HashMap<>();
 
-    /**
-     * Active duels: If two players are dueling, store them in a map
-     * or store a separate Duel object. This example uses a Map of p1->p2
-     * but you could store a more complex structure if you want.
-     */
+    // activeDuels: p1->p2 and p2->p1
     private final Map<UUID, UUID> activeDuels = new HashMap<>();
 
-    /**
-     * Create a new request from 'requester' to 'target'.
-     * Overwrites old request if one already exists for 'target'.
-     */
     public void createRequest(Player requester, Player target) {
-        DuelRequest request = new DuelRequest(requester.getUniqueId(), target.getUniqueId(), System.currentTimeMillis());
-        duelRequests.put(target.getUniqueId(), request);
+        DuelRequest req = new DuelRequest(requester.getUniqueId(), target.getUniqueId(), System.currentTimeMillis());
+        duelRequests.put(target.getUniqueId(), req);
+        // (Do NOT send messages here, to avoid duplicates.)
     }
 
-    /**
-     * Checks if a valid request exists for the given target.
-     */
     public DuelRequest getRequest(UUID targetId) {
         DuelRequest request = duelRequests.get(targetId);
         if (request == null) return null;
-
-        // Check if it hasn't expired (10 seconds = 10000 ms).
+        // check expiry
         long now = System.currentTimeMillis();
         if (now - request.getTimestamp() > 10000) {
             // expired
@@ -52,38 +36,57 @@ public class DuelManager {
         return request;
     }
 
-    /**
-     * Accept the request if it exists and isn't expired.
-     */
     public boolean acceptRequest(Player target) {
         DuelRequest request = getRequest(target.getUniqueId());
-        if (request == null) {
-            return false; // No valid request found
-        }
+        if (request == null) return false;
 
-        // Start the duel
-        startDuel(request.getRequester(), request.getTarget());
-        // Remove the request from memory
+        // Remove the request so it can’t be reused
         duelRequests.remove(target.getUniqueId());
-        return true;
-    }
 
-    /**
-     * Decline the request if it exists.
-     */
-    public boolean declineRequest(Player target) {
-        DuelRequest request = getRequest(target.getUniqueId());
-        if (request == null) {
+        Player requester = Bukkit.getPlayer(request.getRequester());
+        if (requester == null || !requester.isOnline() || !target.isOnline()) {
             return false;
         }
-        // Just remove from memory
+
+        // 1) Immediately notify them that it was accepted (if desired)
+        ChatFormatter.sendCenteredMessage(target,
+            "§aYou accepted " + requester.getName() + "’s duel request!");
+        ChatFormatter.sendCenteredMessage(requester,
+            "§aYour duel request was accepted by " + target.getName() + "!");
+
+        // 2) Begin a 5-second countdown, THEN call startDuel(...)
+        new BukkitRunnable() {
+            int countdown = 5;
+            @Override
+            public void run() {
+                if (!requester.isOnline() || !target.isOnline()) {
+                    cancel();
+                    return;
+                }
+                if (countdown <= 0) {
+                    startDuel(requester.getUniqueId(), target.getUniqueId());
+                    cancel();
+                    return;
+                }
+                ChatFormatter.sendCenteredMessage(requester,
+                    "§eDuel starts in " + countdown + " seconds...");
+                ChatFormatter.sendCenteredMessage(target,
+                    "§eDuel starts in " + countdown + " seconds...");
+                countdown--;
+            }
+        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 20L);
+
+        return true;
+    }
+
+
+    public boolean declineRequest(Player target) {
+        DuelRequest req = getRequest(target.getUniqueId());
+        if (req == null) return false;
         duelRequests.remove(target.getUniqueId());
         return true;
     }
 
-    /**
-     * Start the duel between two player UUIDs.
-     */
     public void startDuel(UUID p1, UUID p2) {
         activeDuels.put(p1, p2);
         activeDuels.put(p2, p1);
@@ -92,46 +95,68 @@ public class DuelManager {
         Player player2 = Bukkit.getPlayer(p2);
 
         if (player1 != null && player2 != null) {
-            player1.sendMessage("§aDuel started with " + player2.getName() + "!");
-            player2.sendMessage("§aDuel started with " + player1.getName() + "!");
+            ChatFormatter.sendCenteredMessage(player1, "§aDuel started with " + player2.getName() + "!");
+            ChatFormatter.sendCenteredMessage(player2, "§aDuel started with " + player1.getName() + "!");
         }
+
+        // Start a repeating task to check distance. If > 100 blocks, end the duel.
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                Player pA = Bukkit.getPlayer(p1);
+                Player pB = Bukkit.getPlayer(p2);
+                if (pA == null || pB == null || !pA.isOnline() || !pB.isOnline()) {
+                    // One player left the server, so end duel
+                    endDuel(p1, p2);
+                    cancel();
+                    return;
+                }
+                // measure distance
+                double dist = pA.getLocation().distance(pB.getLocation());
+                if (dist > 100) {
+                    // End the duel
+                    ChatFormatter.sendCenteredMessage(pA,
+                        "§cDuel ended because you were too far apart!");
+                    ChatFormatter.sendCenteredMessage(pB,
+                        "§cDuel ended because you were too far apart!");
+                    endDuel(p1, p2);
+                    cancel();
+                }
+            }
+        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 40L);
+        // checks every 2 seconds
     }
 
-    /**
-     * End a duel between these two players, restore HP/mana, etc.
-     */
     public void endDuel(UUID p1, UUID p2) {
         activeDuels.remove(p1);
         activeDuels.remove(p2);
 
         Player player1 = Bukkit.getPlayer(p1);
         Player player2 = Bukkit.getPlayer(p2);
-
         if (player1 != null) {
             restorePlayer(player1);
-            player1.sendMessage("§cYour duel has ended!");
+            ChatFormatter.sendCenteredMessage(player1, "§cYour duel has ended!");
         }
         if (player2 != null) {
             restorePlayer(player2);
-            player2.sendMessage("§cYour duel has ended!");
+            ChatFormatter.sendCenteredMessage(player2, "§cYour duel has ended!");
         }
     }
 
-    /**
-     * Restore HP, Mana, etc. Adjust to your plugin’s actual mechanics.
-     */
-    private void restorePlayer(Player player) {
-        player.setHealth(player.getMaxHealth());
-        // Pseudocode for your own mana system:
-        // MyManaSystem.setMana(player, MyManaSystem.getMaxMana(player));
-        // or something similar
+    private void restorePlayer(Player p) {
+        p.setHealth(p.getMaxHealth());
+        // Restore mana, etc. if you have a system for that.
+    }
+
+    public boolean areInDuel(UUID p1, UUID p2) {
+        UUID partner = activeDuels.get(p1);
+        return partner != null && partner.equals(p2);
     }
 
     /**
-     * Check if these two players are currently in a duel with each other.
+     * Are they in a duel with ANYONE?
      */
-    public boolean areInDuel(UUID p1, UUID p2) {
-        UUID partner = activeDuels.get(p1);
-        return (partner != null && partner.equals(p2));
+    public boolean areInAnyDuel(Player p) {
+        return activeDuels.containsKey(p.getUniqueId());
     }
 }

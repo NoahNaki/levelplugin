@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.utils;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.blacksmith.commands.BlacksmithCommand;
 import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
+import me.nakilex.levelplugin.duels.commands.DuelCommand;
 import me.nakilex.levelplugin.economy.commands.AddCoinsCommand;
 import me.nakilex.levelplugin.economy.commands.BalanceCommand;
 import me.nakilex.levelplugin.effects.commands.EffectCommand;
@@ -63,5 +64,7 @@ public class CommandRegistry {
         plugin.getCommand("lootchest").setExecutor(new LootChestCommand(configManager, lootChestManager));
         plugin.getCommand("trade").setExecutor(new TradeCommand());
         plugin. getCommand("addmob").setExecutor(new AddMobCommand(mobManager));
+        plugin.getCommand("duel").setExecutor(new DuelCommand());
+
     }
 }
