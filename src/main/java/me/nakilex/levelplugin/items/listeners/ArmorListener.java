@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.items.data.ArmorType;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
+import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -134,8 +135,22 @@ public class ArmorListener implements Listener {
     // ----------------------------------------------------------------
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!(event.getWhoClicked() instanceof Player)) return;
+        // Only proceed if the clicker is a Player
+        if (!(event.getWhoClicked() instanceof Player)) {
+            return;
+        }
         Player player = (Player) event.getWhoClicked();
+
+        // 1) Check if the top inventory is the Merchant GUI by comparing its title
+        if (event.getView() != null
+            && event.getView().getTitle() != null
+            && ChatColor.stripColor(event.getView().getTitle()).equalsIgnoreCase("Merchant")) {
+            // If it's the merchant GUI, we do NOT want to run our armor equip logic
+            return;
+        }
+
+        // If we get here, it's not the Merchant GUI. Proceed with armor logic as before.
+
         if (event.getAction() == InventoryAction.NOTHING) return;
         if (event.getClickedInventory() == null) return;
         if (!event.getClickedInventory().getType().equals(InventoryType.PLAYER)
@@ -149,8 +164,18 @@ public class ArmorListener implements Listener {
 
         // SHIFT-CLICK scenario
         if (shiftClick) {
+            // 1) Check if the clicked inventory is the player's own inventory
+            if (event.getClickedInventory() == null
+                || event.getClickedInventory().getType() != InventoryType.PLAYER) {
+                // Not the player's inventory (e.g. chest, merchant, etc.), so skip
+                return;
+            }
+
+            // 2) Now we can proceed with armor SHIFT-click equip logic
             ArmorType newArmorType = ArmorType.matchType(currentItem);
-            if (newArmorType == null) return;  // not armor => skip
+            if (newArmorType == null) {
+                return;  // not armor => skip
+            }
 
             int rawSlot = event.getRawSlot();
             boolean equipping = (rawSlot != getArmorSlotIndex(newArmorType));
@@ -165,11 +190,13 @@ public class ArmorListener implements Listener {
                 newItem
             );
             Bukkit.getPluginManager().callEvent(armorEquipEvent);
+
             if (armorEquipEvent.isCancelled()) {
                 event.setCancelled(true);
             }
             return;
         }
+
 
         // DRAG / PICKUP / PLACE scenario
         if (!shiftClick && !numberKey) {
