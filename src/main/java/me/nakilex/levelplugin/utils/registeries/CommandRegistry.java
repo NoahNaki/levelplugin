@@ -1,4 +1,4 @@
-package me.nakilex.levelplugin.utils;
+package me.nakilex.levelplugin.utils.registeries;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.blacksmith.commands.BlacksmithCommand;
@@ -10,6 +10,7 @@ import me.nakilex.levelplugin.effects.commands.EffectCommand;
 import me.nakilex.levelplugin.horse.commands.HorseCommand;
 import me.nakilex.levelplugin.horse.gui.HorseGUI;
 import me.nakilex.levelplugin.items.commands.AddItemCommand;
+import me.nakilex.levelplugin.merchant.commands.MerchantCommand;
 import me.nakilex.levelplugin.mob.commands.AddMobCommand;
 import me.nakilex.levelplugin.mob.managers.MobManager;
 import me.nakilex.levelplugin.player.attributes.commands.AddPointsCommand;
@@ -30,7 +31,6 @@ import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.lootchests.config.ConfigManager;
-import org.bukkit.entity.Mob;
 
 public class CommandRegistry {
 
@@ -65,6 +65,8 @@ public class CommandRegistry {
         plugin.getCommand("trade").setExecutor(new TradeCommand());
         plugin. getCommand("addmob").setExecutor(new AddMobCommand(mobManager));
         plugin.getCommand("duel").setExecutor(new DuelCommand());
+        plugin.getCommand("merchant").setExecutor(new MerchantCommand(plugin));
+
 
     }
 }

@@ -1,4 +1,4 @@
-package me.nakilex.levelplugin.utils;
+package me.nakilex.levelplugin.utils.registeries;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
@@ -9,6 +9,7 @@ import me.nakilex.levelplugin.horse.gui.HorseGUI;
 import me.nakilex.levelplugin.lootchests.listeners.LootChestCloseListener;
 import me.nakilex.levelplugin.lootchests.listeners.LootChestListener;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
+import me.nakilex.levelplugin.merchant.listeners.MerchantListener;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.mob.listeners.MobDamageListener;
 import me.nakilex.levelplugin.mob.listeners.MobDeathListener;
@@ -31,6 +32,9 @@ import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.items.listeners.*;
 import me.nakilex.levelplugin.trade.listeners.PlayerRightClicksPlayerListener;
 import me.nakilex.levelplugin.storage.listeners.StorageEvents;
+import me.nakilex.levelplugin.utils.FallDamageDisabler;
+import me.nakilex.levelplugin.utils.HungerDisabler;
+import me.nakilex.levelplugin.utils.TradingWindow;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.PluginManager;
 
@@ -81,6 +85,8 @@ public class ListenerRegistry {
         pm.registerEvents(new FallDamageDisabler(), plugin);
         pm.registerEvents(new HungerDisabler(), plugin);
         pm.registerEvents(new DuelListener(), plugin);
+        pm.registerEvents(new MerchantListener(new EconomyManager(plugin)), plugin);
+
 
 
         // Register ArrowUtils listener and start cleanup task

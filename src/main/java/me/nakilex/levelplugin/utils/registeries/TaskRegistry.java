@@ -1,4 +1,4 @@
-package me.nakilex.levelplugin.utils;
+package me.nakilex.levelplugin.utils.registeries;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.horse.managers.HorseConfigManager;
