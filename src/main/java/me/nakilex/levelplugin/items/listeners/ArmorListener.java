@@ -142,10 +142,16 @@ public class ArmorListener implements Listener {
         Player player = (Player) event.getWhoClicked();
 
         // 1) Check if the top inventory is the Merchant GUI by comparing its title
-        if (event.getView() != null
-            && event.getView().getTitle() != null
-            && ChatColor.stripColor(event.getView().getTitle()).equalsIgnoreCase("Merchant")) {
-            // If it's the merchant GUI, we do NOT want to run our armor equip logic
+        InventoryType topInventoryType = event.getView().getTopInventory().getType();
+        if (topInventoryType != InventoryType.PLAYER && topInventoryType != InventoryType.CRAFTING) {
+            // If the top inventory is not the player's inventory, skip the logic
+            return;
+        }
+
+        // Ensure the clicked inventory is the player's inventory
+        if (event.getClickedInventory() == null ||
+            event.getClickedInventory().getType() != InventoryType.PLAYER) {
+            // Not interacting with the player's inventory
             return;
         }
 
