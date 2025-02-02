@@ -24,7 +24,7 @@ public class ArmorListener implements Listener {
     // ----------------------------------------------------------------
     // 1) RIGHT-CLICK FROM HOTBAR HANDLED MANUALLY
     // ----------------------------------------------------------------
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerInteract(PlayerInteractEvent event) {
         // Only care about right-click air or block
         Action action = event.getAction();

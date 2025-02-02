@@ -12,6 +12,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.ItemStack;
+import me.nakilex.levelplugin.items.data.ArmorType;
 
 public class WeaponListener implements Listener {
 
@@ -36,12 +37,27 @@ public class WeaponListener implements Listener {
             return;
         }
 
-        // Fire WeaponEquipEvent
-        WeaponType newType = WeaponType.matchType(newItem);
+        // *** NEW CHECKS: Skip if either item is recognized as armor ***
+        if ((oldItem != null && ArmorType.matchType(oldItem) != null) ||
+            (newItem != null && ArmorType.matchType(newItem) != null)) {
+            Bukkit.getLogger().info("  Skipping event because one of the items is recognized as armor.");
+            return;
+        }
+
+        // Only process if at least one item is a weapon.
+        WeaponType oldWeapon = WeaponType.matchType(oldItem);
+        WeaponType newWeapon = WeaponType.matchType(newItem);
+        if (oldWeapon == null && newWeapon == null) {
+            Bukkit.getLogger().info("  Skipping event because neither item is recognized as a weapon.");
+            return;
+        }
+
+        // Fire the WeaponEquipEvent for the hotbar change.
         WeaponEquipEvent equipEvent = new WeaponEquipEvent(
             player,
             EquipMethod.HELD_ITEM_CHANGE,
-            newType,
+            newWeapon,  // newWeapon may be null if the new item is not a weapon;
+            // however, we already skipped the case when neither item is a weapon.
             HandSlot.MAIN_HAND,
             oldItem,
             newItem
@@ -67,13 +83,22 @@ public class WeaponListener implements Listener {
         Bukkit.getLogger().info("  mainItem=" + debugItem(mainItem)
             + " offItem=" + debugItem(offItem));
 
-        // If they're the same, skip
-        if (isSameItem(mainItem, offItem)) {
-            Bukkit.getLogger().info("  Skipping event because items are the same.");
+        // *** NEW CHECKS: Skip if either item is recognized as armor ***
+        if ((mainItem != null && ArmorType.matchType(mainItem) != null) ||
+            (offItem != null && ArmorType.matchType(offItem) != null)) {
+            Bukkit.getLogger().info("  Skipping swap event because one of the items is recognized as armor.");
             return;
         }
 
-        // Fire for main hand
+        // Also skip if neither item is a weapon.
+        WeaponType mainWeapon = WeaponType.matchType(mainItem);
+        WeaponType offWeapon = WeaponType.matchType(offItem);
+        if (mainWeapon == null && offWeapon == null) {
+            Bukkit.getLogger().info("  Skipping swap event because neither item is recognized as a weapon.");
+            return;
+        }
+
+        // Fire for main hand: old = mainItem, new = offItem.
         WeaponType mainNewType = WeaponType.matchType(offItem);
         WeaponEquipEvent mainSwapEvent = new WeaponEquipEvent(
             player,
@@ -94,7 +119,7 @@ public class WeaponListener implements Listener {
 
         Bukkit.getLogger().info("[DEBUG] Main hand swap event completed successfully."); // DEBUG
 
-        // Fire for off-hand
+        // Fire for off-hand: old = offItem, new = mainItem.
         WeaponType offNewType = WeaponType.matchType(mainItem);
         WeaponEquipEvent offSwapEvent = new WeaponEquipEvent(
             player,
