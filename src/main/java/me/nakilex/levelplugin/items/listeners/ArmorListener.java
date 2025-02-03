@@ -55,7 +55,7 @@ public class ArmorListener implements Listener {
         boolean meetsRequirement = true; // default
         if (cItem != null) {
             int requiredLevel = cItem.getLevelRequirement();
-            int playerLevel   = LevelManager.getInstance().getLevel(player);
+            int playerLevel = LevelManager.getInstance().getLevel(player);
             if (playerLevel < requiredLevel) {
                 meetsRequirement = false;
             }
@@ -84,21 +84,21 @@ public class ArmorListener implements Listener {
 
         // If still not cancelled, physically equip
         if (!equipEvent.isCancelled()) {
-            // Put the item in the appropriate armor slot
+            // 1) Get the old item (the one currently equipped)
+            ItemStack oldArmor = getArmorSlotItem(player, type);
+
+            // 2) Equip the new item from hand
             setArmorSlotItem(player, type, inHand);
 
-            // Now remove that item from hand
-            player.getInventory().setItemInMainHand(null);
-            // or reduce the stack by 1 if you prefer to replicate older MC mechanics
-            // but typically it places the entire item in that slot
-        } else {
-            // If the event got cancelled by something else, do nothing
+            // 3) Put the old item into the player's hand
+            player.getInventory().setItemInMainHand(oldArmor);
+
+            // Force an inventory update
+            player.updateInventory();
         }
-        // Force an inventory update
-        player.updateInventory();
     }
 
-    // Helper to retrieve the item in the relevant armor slot
+        // Helper to retrieve the item in the relevant armor slot
     private ItemStack getArmorSlotItem(Player player, ArmorType type) {
         switch (type) {
             case HELMET:     return player.getInventory().getHelmet();
@@ -169,25 +169,35 @@ public class ArmorListener implements Listener {
         boolean numberKey  = (event.getClick() == ClickType.NUMBER_KEY);
 
         // SHIFT-CLICK scenario
+        // SHIFT-CLICK scenario
         if (shiftClick) {
-            // 1) Check if the clicked inventory is the player's own inventory
-            if (event.getClickedInventory() == null
-                || event.getClickedInventory().getType() != InventoryType.PLAYER) {
-                // Not the player's inventory (e.g. chest, merchant, etc.), so skip
-                return;
-            }
-
-            // 2) Now we can proceed with armor SHIFT-click equip logic
+            // 1) Make sure this is actually armor
             ArmorType newArmorType = ArmorType.matchType(currentItem);
-            if (newArmorType == null) {
-                return;  // not armor => skip
+            if (newArmorType == null) return;  // Not armor => skip
+
+            // The slot index for that armor in the player's inventory
+            int armorSlotIndex = getArmorSlotIndex(newArmorType);
+            int rawSlot = event.getRawSlot();
+
+            // Are we SHIFT-clicking the item FROM the armor slot (unequipping)
+            // or FROM the inventory (equipping)?
+            boolean equipping = (rawSlot != armorSlotIndex);
+
+            if (equipping) {
+                // If we're trying to equip via SHIFT-click, only proceed if the relevant slot is empty.
+                ItemStack inThatArmorSlot = event.getView().getItem(armorSlotIndex);
+                if (inThatArmorSlot != null && inThatArmorSlot.getType() != Material.AIR) {
+                    // Slot is occupied => SHIFT-click won't equip; skip firing an event.
+                    return;
+                }
             }
 
-            int rawSlot = event.getRawSlot();
-            boolean equipping = (rawSlot != getArmorSlotIndex(newArmorType));
-            ItemStack oldItem = equipping ? null : currentItem;
-            ItemStack newItem = equipping ? currentItem : null;
+            // If we get here, the slot is empty (so SHIFT-click will equip), or
+            // we are SHIFT-clicking from the armor slot (thus unequipping).
+            ItemStack oldItem = equipping ? null : currentItem;  // If equipping, old slot is empty
+            ItemStack newItem = equipping ? currentItem : null;  // If unequipping, new slot is empty
 
+            // Fire your event
             ArmorEquipEvent armorEquipEvent = new ArmorEquipEvent(
                 player,
                 EquipMethod.SHIFT_CLICK,
@@ -197,11 +207,12 @@ public class ArmorListener implements Listener {
             );
             Bukkit.getPluginManager().callEvent(armorEquipEvent);
 
+            // If something else cancels it, respect that
             if (armorEquipEvent.isCancelled()) {
                 event.setCancelled(true);
             }
-            return;
         }
+
 
 
         // DRAG / PICKUP / PLACE scenario
