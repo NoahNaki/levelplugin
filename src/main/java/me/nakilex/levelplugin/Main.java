@@ -23,6 +23,7 @@ import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.storage.StorageManager;
+import me.nakilex.levelplugin.storage.events.StorageEvents;
 import me.nakilex.levelplugin.trade.data.ConfigValues;
 import me.nakilex.levelplugin.trade.utils.MessageStrings;
 import me.nakilex.levelplugin.utils.*;
@@ -67,6 +68,9 @@ public class Main extends JavaPlugin {
     private HorseConfigManager horseConfigManager;
     private NamespacedKey upgradeKey;
     private MobRewardsConfig mobRewardsConfig;
+    private StorageEvents storageEvents; // Single, shared instance
+    private StorageManager storageManager;
+
 
     private ItemConfig itemConfig;
     private PlayerConfig playerConfig;
@@ -99,6 +103,9 @@ public class Main extends JavaPlugin {
         itemConfig = new ItemConfig(this);
         itemConfig.loadItems();
 
+        storageEvents = new StorageEvents();    // Create it here
+        getServer().getPluginManager().registerEvents(storageEvents, this);
+
         playerConfig = new PlayerConfig(this);
         playerConfig.loadAllPlayers();
 
@@ -123,7 +130,6 @@ public class Main extends JavaPlugin {
     }
 
 
-
     private void loadConfigFiles() {
         saveResource("potions.yml", false);
         File configFile = new File(getDataFolder(), "potions.yml");
@@ -134,7 +140,6 @@ public class Main extends JavaPlugin {
         mobConfig = YamlConfiguration.loadConfiguration(new File(getDataFolder(), "custommobs.yml"));
 
         horseConfigManager = new HorseConfigManager(getDataFolder());
-        StorageManager.getInstance().loadAll();
     }
 
     private void initializeManagers() {
@@ -170,6 +175,9 @@ public class Main extends JavaPlugin {
         horseManager = new HorseManager(horseConfigManager);
         HorseGUI horseGUI = new HorseGUI(horseManager, economyManager);
 
+        // 1) Assign the field so it’s not null.
+        this.storageManager = new StorageManager();
+
         CommandRegistry.registerCommands(
             this,
             blacksmithGUI,
@@ -182,7 +190,8 @@ public class Main extends JavaPlugin {
             lootChestManager,
             configManager,
             horseManager,
-            mobManager
+            mobManager,
+            storageManager
         );
 
         ListenerRegistry.registerListeners(
@@ -199,6 +208,8 @@ public class Main extends JavaPlugin {
 
         TaskRegistry.startTasks(this, horseConfigManager);
     }
+
+
 
     private boolean validateDependencies() {
         if (!getServer().getPluginManager().isPluginEnabled("Citizens")) {
@@ -225,6 +236,10 @@ public class Main extends JavaPlugin {
 
         if (playerConfig != null) {
             playerConfig.saveAllPlayers();
+        }
+
+        if (storageManager != null) {
+            storageManager.saveAllStorages();
         }
 
         getLogger().info("LevelPlugin has been disabled!");
@@ -263,6 +278,8 @@ public class Main extends JavaPlugin {
     public ConfigValues getConfigValues() {
         return configValues;
     }
+
+    public StorageEvents getStorageEvents() { return storageEvents; }
 
     public DealMaker getDealMaker() {
         return dealMaker;

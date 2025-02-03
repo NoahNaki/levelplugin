@@ -30,11 +30,13 @@ import me.nakilex.levelplugin.player.utils.ArrowUtils;
 import me.nakilex.levelplugin.potions.listeners.PotionUseListener;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.items.listeners.*;
+import me.nakilex.levelplugin.storage.StorageManager;
 import me.nakilex.levelplugin.trade.listeners.PlayerRightClicksPlayerListener;
-import me.nakilex.levelplugin.storage.listeners.StorageEvents;
+import me.nakilex.levelplugin.storage.events.StorageEvents;
 import me.nakilex.levelplugin.utils.FallDamageDisabler;
 import me.nakilex.levelplugin.utils.HungerDisabler;
 import me.nakilex.levelplugin.utils.TradingWindow;
+import net.citizensnpcs.api.util.Storage;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.PluginManager;
 
@@ -72,7 +74,6 @@ public class ListenerRegistry {
         pm.registerEvents(horseGUI, plugin);
         pm.registerEvents(new NPCClickListener(economyManager), plugin);
         pm.registerEvents(new NPCCommandListener(), plugin);
-        pm.registerEvents(new StorageEvents(), plugin);
         pm.registerEvents(new PlayerRightClicksPlayerListener(), plugin);
         pm.registerEvents(new TradingWindow(), plugin);
         pm.registerEvents(new PartyChatListener(partyManager), plugin);
@@ -86,6 +87,7 @@ public class ListenerRegistry {
         pm.registerEvents(new HungerDisabler(), plugin);
         pm.registerEvents(new DuelListener(), plugin);
         pm.registerEvents(new MerchantListener(new EconomyManager(plugin)), plugin);
+
 
 
 

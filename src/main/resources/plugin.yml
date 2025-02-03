@@ -50,7 +50,6 @@ commands:
     usage: /effect
   ps:
     description: Manage personal storage.
-    usage: /ps <create|open>
   trade:
     description: Lets you trade with another person
     usage: /trade <Name> | /trade accept | /trade accept <Name> | /trade cancel | /trade deny | /trade deny <Name> | /trade author | /trade version | /trade download | /trade toggle | /trade block | /trade block <Players separated by ","> | /trade unblock | /trade unblock <Players separated by ",">

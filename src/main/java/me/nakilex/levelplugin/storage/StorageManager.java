@@ -1,65 +1,113 @@
 package me.nakilex.levelplugin.storage;
 
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.storage.PersonalStorage;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.plugin.Plugin;
+
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class StorageManager {
 
-    // Map to track storages by player UUID
-    private final Map<String, PersonalStorage> storageMap = new HashMap<>();
+    // Holds all player storages in memory
+    private final Map<UUID, PersonalStorage> storages = new HashMap<>();
 
-    // Singleton instance
-    private static StorageManager instance;
+    /**
+     * Basic constructor—could load data from disk if you want
+     * all storages loaded on startup.
+     */
+    // In StorageManager.java
+    public StorageManager() {
+        // Optionally load existing data here—do it now!
+        File storageFolder = new File(Main.getInstance().getDataFolder(), "storage");
 
-    private StorageManager() {
-        // Private constructor for Singleton
-    }
-
-    // Get the singleton instance
-    public static StorageManager getInstance() {
-        if (instance == null) {
-            instance = new StorageManager();
-        }
-        return instance;
-    }
-
-    // Create a new storage for a player
-    public void createStorage(Player player) {
-        if (storageMap.containsKey(player.getUniqueId().toString())) {
-            player.sendMessage("You already have a storage!");
-            return;
+        // Make sure the folder exists (could be empty if no players have created storage yet)
+        if (!storageFolder.exists()) {
+            storageFolder.mkdirs();
         }
 
-        PersonalStorage storage = new PersonalStorage(player);
-        storageMap.put(player.getUniqueId().toString(), storage);
-        player.sendMessage("Storage created successfully!");
+        // For each "player_<UUID>.yml" file, parse out the UUID and load that player's storage
+        File[] files = storageFolder.listFiles();
+        if (files != null) {
+            for (File f : files) {
+                String fileName = f.getName();
+                if (fileName.startsWith("player_") && fileName.endsWith(".yml")) {
+                    // Extract the UUID from "player_<uuid>.yml"
+                    String uuidPart = fileName.substring("player_".length(), fileName.length() - 4); // remove .yml
+                    try {
+                        UUID uuid = UUID.fromString(uuidPart);
+
+                        // Create the personal storage and load items
+                        PersonalStorage ps = new PersonalStorage(uuid);
+                        ps.load();  // loads their pages/items from disk
+
+                        // Put it in memory
+                        storages.put(uuid, ps);
+                    } catch (IllegalArgumentException e) {
+                        // If it's not a valid UUID, just skip
+                        Bukkit.getLogger().warning("[StorageManager] Invalid file name: " + fileName);
+                    }
+                }
+            }
+        }
     }
 
-    // Open a player's storage
+    /**
+     * Creates a new PersonalStorage for a player, if they don’t already have one.
+     */
+    public void createStorage(UUID playerId) {
+        if (!storages.containsKey(playerId)) {
+            PersonalStorage newStorage = new PersonalStorage(playerId);
+            newStorage.load();  // recovers items from an old session if they exist
+            storages.put(playerId, newStorage);
+        }
+    }
+
+
+
+    /**
+     * Checks if a player already has storage.
+     */
+    public boolean hasStorage(UUID playerId) {
+        return storages.containsKey(playerId);
+    }
+
+    /**
+     * Retrieves the PersonalStorage instance for a player.
+     */
+    public PersonalStorage getStorage(UUID playerId) {
+        return storages.get(playerId);
+    }
+
+    /**
+     * Opens the storage for a specific player (if it exists).
+     */
     public void openStorage(Player player) {
-        if (!storageMap.containsKey(player.getUniqueId().toString())) {
-            player.sendMessage("You don't have a storage! Use /ps create.");
-            return;
-        }
-
-        storageMap.get(player.getUniqueId().toString()).open(player);
-    }
-
-    // Get a player's storage
-    public PersonalStorage getStorage(Player player) {
-        return storageMap.get(player.getUniqueId().toString());
-    }
-
-    // Save all storages (placeholder for persistence)
-    public void saveAll() {
-        for (PersonalStorage storage : storageMap.values()) {
-            storage.save();
+        PersonalStorage ps = storages.get(player.getUniqueId());
+        if (ps != null) {
+            // 1) Load from disk, so they get their saved items
+            ps.load();
+            // 2) Now actually open the GUI
+            ps.open(player);
+        } else {
+            player.sendMessage("You do not have storage! Use /ps create first.");
         }
     }
 
-    // Load all storages (placeholder for persistence)
-    public void loadAll() {
-        // TODO: Implement loading logic from files
+
+    /**
+     * Save all storages to disk—call on server shutdown, or periodically.
+     */
+    public void saveAllStorages() {
+        for (PersonalStorage ps : storages.values()) {
+            ps.save();
+        }
     }
 }

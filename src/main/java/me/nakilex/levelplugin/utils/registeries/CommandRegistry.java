@@ -21,6 +21,7 @@ import me.nakilex.levelplugin.player.level.commands.SetLevelCommand;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.potions.commands.AddPotionCommand;
 import me.nakilex.levelplugin.lootchests.commands.LootChestCommand;
+import me.nakilex.levelplugin.storage.StorageManager;
 import me.nakilex.levelplugin.storage.commands.StorageCommand;
 import me.nakilex.levelplugin.trade.commands.TradeCommand;
 import me.nakilex.levelplugin.party.PartyCommands;
@@ -45,7 +46,8 @@ public class CommandRegistry {
                                         LootChestManager lootChestManager,
                                         ConfigManager configManager,
                                         HorseManager horseManager,
-                                        MobManager mobManager) {
+                                        MobManager mobManager,
+                                        StorageManager storageManager) {
 
         plugin.getCommand("addpoints").setExecutor(new AddPointsCommand());
         plugin.getCommand("addxp").setExecutor(new AddXPCommand(levelManager));
@@ -58,7 +60,6 @@ public class CommandRegistry {
         plugin.getCommand("blacksmith").setExecutor(new BlacksmithCommand(blacksmithGUI));
         plugin.getCommand("horse").setExecutor(new HorseCommand(horseManager, horseGUI));
         plugin.getCommand("effect").setExecutor(new EffectCommand(effectManager));
-        plugin.getCommand("ps").setExecutor(new StorageCommand());
         plugin.getCommand("party").setExecutor(new PartyCommands(partyManager));
         plugin.getCommand("addpotion").setExecutor(new AddPotionCommand(potionManager, plugin));
         plugin.getCommand("lootchest").setExecutor(new LootChestCommand(configManager, lootChestManager));
@@ -66,6 +67,8 @@ public class CommandRegistry {
         plugin. getCommand("addmob").setExecutor(new AddMobCommand(mobManager));
         plugin.getCommand("duel").setExecutor(new DuelCommand());
         plugin.getCommand("merchant").setExecutor(new MerchantCommand(plugin));
+        plugin.getCommand("ps").setExecutor(new StorageCommand(storageManager));
+
 
 
     }
