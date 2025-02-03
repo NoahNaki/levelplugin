@@ -43,7 +43,6 @@ public class MythicMobDeathListener implements Listener {
         ActiveMob mythicMob = mythicHelper.getMythicMobInstance(event.getEntity());
 
         // Debug: Confirm event is triggered
-        System.out.println("[DEBUG] EntityDeathEvent triggered for: " + event.getEntity().getName());
 
         if (mythicMob != null) {
             // Strip any color codes from the Mythic Mob type
@@ -51,7 +50,6 @@ public class MythicMobDeathListener implements Listener {
             String mobType = rawMobType.replaceAll("§.", "");
 
             // Debug: Show raw vs. stripped
-            System.out.println("[DEBUG] rawMobType='" + rawMobType + "', strippedMobType='" + mobType + "'");
 
             // Check if this mob is in mob_rewards.yml
             if (mobRewardsConfig.getConfig().contains("mobs." + mobType)) {
