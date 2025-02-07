@@ -1,9 +1,11 @@
 package me.nakilex.levelplugin.items.listeners;
 
+import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.events.WeaponEquipEvent;
 import me.nakilex.levelplugin.items.events.WeaponEquipEvent.EquipMethod;
 import me.nakilex.levelplugin.items.events.WeaponEquipEvent.HandSlot;
 import me.nakilex.levelplugin.items.data.WeaponType;
+import me.nakilex.levelplugin.items.managers.ItemManager;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.*;
@@ -25,40 +27,43 @@ public class WeaponListener implements Listener {
         ItemStack oldItem = player.getInventory().getItem(oldSlot);
         ItemStack newItem = player.getInventory().getItem(newSlot);
 
-        // DEBUG
+        // DEBUG logging
         Bukkit.getLogger().info("[DEBUG][WeaponListener] onHotbarSlotChange fired.");
         Bukkit.getLogger().info("  OldSlot=" + oldSlot + " NewSlot=" + newSlot
             + " OldItem=" + debugItem(oldItem)
             + " NewItem=" + debugItem(newItem));
 
-        // If old and new are effectively the same, skip
+        // If the items are effectively the same, skip
         if (isSameItem(oldItem, newItem)) {
             Bukkit.getLogger().info("  Skipping event because items are the same (or both null).");
             return;
         }
 
-        // *** NEW CHECKS: Skip if either item is recognized as armor ***
+        // Skip if either item is recognized as armor
         if ((oldItem != null && ArmorType.matchType(oldItem) != null) ||
             (newItem != null && ArmorType.matchType(newItem) != null)) {
             Bukkit.getLogger().info("  Skipping event because one of the items is recognized as armor.");
             return;
         }
 
-        // Only process if at least one item is a weapon.
+        // Declare these variables so they can be used later.
         WeaponType oldWeapon = WeaponType.matchType(oldItem);
         WeaponType newWeapon = WeaponType.matchType(newItem);
-        if (oldWeapon == null && newWeapon == null) {
-            Bukkit.getLogger().info("  Skipping event because neither item is recognized as a weapon.");
+        CustomItem customOld = ItemManager.getInstance().getCustomItemFromItemStack(oldItem);
+        CustomItem customNew = ItemManager.getInstance().getCustomItemFromItemStack(newItem);
+
+        // If neither item is recognized as a weapon and neither has custom data, skip the event.
+        if (oldWeapon == null && newWeapon == null && customOld == null && customNew == null) {
+            Bukkit.getLogger().info("  Skipping event because neither item is recognized as a weapon or custom weapon.");
             return;
         }
 
         // Fire the WeaponEquipEvent for the hotbar change.
         WeaponEquipEvent equipEvent = new WeaponEquipEvent(
             player,
-            EquipMethod.HELD_ITEM_CHANGE,
-            newWeapon,  // newWeapon may be null if the new item is not a weapon;
-            // however, we already skipped the case when neither item is a weapon.
-            HandSlot.MAIN_HAND,
+            WeaponEquipEvent.EquipMethod.HELD_ITEM_CHANGE,
+            newWeapon, // newWeapon may be null if the new item isn't recognized by WeaponType
+            WeaponEquipEvent.HandSlot.MAIN_HAND,
             oldItem,
             newItem
         );
@@ -72,6 +77,7 @@ public class WeaponListener implements Listener {
             event.setCancelled(true);
         }
     }
+
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onSwapHand(PlayerSwapHandItemsEvent event) {
