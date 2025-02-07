@@ -55,6 +55,11 @@ public class StatsManager {
         ps.skillPoints += points;
     }
 
+    public int getSkillPoints(UUID uuid) {
+        return getPlayerStats(uuid).skillPoints;
+    }
+
+
     public void investStat(Player player, StatType stat) {
         PlayerStats ps = getPlayerStats(player.getUniqueId());
         if (ps.skillPoints <= 0) {
@@ -135,23 +140,35 @@ public class StatsManager {
 
 
     public void recalcDerivedStats(Player player) {
-        PlayerStats ps = getPlayerStats(player.getUniqueId());
+        PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
 
-        // Ensure stats can't be negative
+        // Ensure stats are not negative
         ps.baseHealthStat = Math.max(0, ps.baseHealthStat);
         ps.bonusHealthStat = Math.max(0, ps.bonusHealthStat);
 
-        // Calculate new max health
+        // Store the current health ratio (current health / old max health)
+        double oldMaxHealth = player.getMaxHealth();
+        double oldHealth = player.getHealth();
+        double healthRatio = oldHealth / oldMaxHealth;
+
+        // Calculate the new max health based on the health stats
         double newMaxHealth = 20.0 + ((ps.baseHealthStat + ps.bonusHealthStat) * 2.0);
+        newMaxHealth = Math.max(1.0, Math.min(newMaxHealth, 9999999.0));
 
-        // Ensure valid health ranges
-        newMaxHealth = Math.max(1.0, Math.min(newMaxHealth, 200.0));
-
-        // Set health safely
+        // Set the new max health
         player.setMaxHealth(newMaxHealth);
-        player.setHealth(Math.min(player.getHealth(), newMaxHealth));
 
-        // Mana and walk speed calculations
+        // Adjust the player's current health so the percentage stays the same.
+        // If the player was at full health, this sets them to full health.
+        double newHealth = newMaxHealth * healthRatio;
+        // Ensure newHealth is at least 1 (avoid setting to 0)
+        player.setHealth(Math.max(1.0, newHealth));
+
+        // Apply health scaling so the visual health bar remains at 20 health (10 hearts)
+        player.setHealthScaled(true);
+        player.setHealthScale(20.0);
+
+        // Recalculate other derived stats (e.g., mana, walk speed) as needed.
         ps.maxMana = 50 + ((ps.baseIntelligence + ps.bonusIntelligence) * 10);
         if (ps.currentMana > ps.maxMana) {
             ps.currentMana = ps.maxMana;
@@ -161,6 +178,7 @@ public class StatsManager {
         if (newWalkSpeed > 1.0f) newWalkSpeed = 1.0f;
         player.setWalkSpeed(newWalkSpeed);
     }
+
 
 
     public void regenHealthForAllPlayers() {

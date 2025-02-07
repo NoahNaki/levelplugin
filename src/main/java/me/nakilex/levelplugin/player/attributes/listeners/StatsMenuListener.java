@@ -21,7 +21,7 @@ public class StatsMenuListener implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (event.getView().getTitle().equals(ChatColor.BLUE + "Stats")) {
+        if (event.getView().getTitle().endsWith("skill points remaining")) {
             event.setCancelled(true); // Prevent item movement
 
             Player player = (Player) event.getWhoClicked();

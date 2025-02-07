@@ -21,9 +21,12 @@ import java.util.List;
 public class StatsInventory {
 
     public static Inventory getStatsMenu(Player player) {
-        Inventory inv = Bukkit.createInventory(null, 27, ChatColor.BLUE + "Stats");
-
         PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
+        Inventory inv = Bukkit.createInventory(
+            null,
+            27,
+             ps.skillPoints + " skill points remaining"
+        );
 
         // Stat books with base and bonus stats
         inv.setItem(10, createStatBook(
