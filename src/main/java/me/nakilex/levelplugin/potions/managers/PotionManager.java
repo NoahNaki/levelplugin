@@ -39,6 +39,10 @@ public class PotionManager {
         return templates.get(id);
     }
 
+    public Collection<PotionTemplate> getAllTemplates() {
+        return templates.values();
+    }
+
     public PotionInstance getPotionInstance(UUID uuid) {
         return instances.get(uuid);
     }

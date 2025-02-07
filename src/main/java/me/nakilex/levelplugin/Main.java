@@ -148,7 +148,7 @@ public class Main extends JavaPlugin {
 
         configManager = new ConfigManager(this);
         cooldownManager = new CooldownManager(this, configManager, null);
-        lootChestManager = new LootChestManager(this, configManager, cooldownManager);
+        lootChestManager = new LootChestManager(this, configManager, cooldownManager, potionManager);
         cooldownManager.setLootChestManager(lootChestManager);
 
         upgradeKey = new NamespacedKey(this, "upgrade_level");

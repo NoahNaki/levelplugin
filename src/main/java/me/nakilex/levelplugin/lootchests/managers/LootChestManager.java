@@ -6,6 +6,9 @@ import me.nakilex.levelplugin.lootchests.utils.ParticleUtils;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.potions.data.PotionInstance;
+import me.nakilex.levelplugin.potions.data.PotionTemplate;
+import me.nakilex.levelplugin.potions.managers.PotionManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -24,6 +27,8 @@ public class LootChestManager {
     private final JavaPlugin plugin;
     private final ConfigManager configManager;
     private CooldownManager cooldownManager;
+    private final PotionManager potionManager; // New field
+
 
     // Each chest’s data (ID -> ChestData)
     private final Map<Integer, ChestData> chestsById = new HashMap<>();
@@ -34,10 +39,12 @@ public class LootChestManager {
     // For continuous particles: chestId -> repeating task
     private final Map<Integer, org.bukkit.scheduler.BukkitTask> chestParticleTasks = new HashMap<>();
 
-    public LootChestManager(JavaPlugin plugin, ConfigManager configManager, CooldownManager cooldownManager) {
+    public LootChestManager(JavaPlugin plugin, ConfigManager configManager, CooldownManager cooldownManager, PotionManager potionManager) {
         this.plugin = plugin;
         this.configManager = configManager;
         this.cooldownManager = cooldownManager;
+        this.potionManager = potionManager; // assign it here
+
 
         loadChestDataFromConfig();
         spawnAllChestsOnStartup();
@@ -92,7 +99,6 @@ public class LootChestManager {
         // Add the item into a random slot within the chest's inventory
         Random random = new Random();
         int randomSlot = random.nextInt(chestState.getBlockInventory().getSize());
-
 
         // Force the inventory to update to reflect changes visually
         chestState.update(true);
@@ -186,7 +192,22 @@ public class LootChestManager {
     }
 
 
-    public static ItemStack getRandomLootForTier(int tier) {
+    public ItemStack getRandomLootForTier(int tier) {
+        // Example: 20% chance to drop a potion
+        double potionChance = 0.2;
+        if (Math.random() < potionChance) {
+            Collection<PotionTemplate> potionTemplates = potionManager.getAllTemplates();
+            List<PotionTemplate> availablePotions = new ArrayList<>(potionTemplates);
+            if (!availablePotions.isEmpty()) {
+                // Randomly pick one potion template
+                PotionTemplate selected = availablePotions.get(new Random().nextInt(availablePotions.size()));
+                // Create a new potion instance and convert it to an ItemStack
+                PotionInstance instance = potionManager.createInstance(selected);
+                return instance.toItemStack(plugin);
+            }
+        }
+
+        // If no potion is chosen, or if none exist, fallback to custom item logic
         int minLevel, maxLevel;
         switch (tier) {
             case 1:
@@ -225,7 +246,7 @@ public class LootChestManager {
                 return null;
         }
 
-        // Gather matching items from the templatesMap
+        // Gather matching custom items
         List<CustomItem> matching = new ArrayList<>();
         for (CustomItem cItem : ItemManager.getInstance().getAllTemplates().values()) {
             int req = cItem.getLevelRequirement();
@@ -235,13 +256,11 @@ public class LootChestManager {
         }
 
         if (matching.isEmpty()) {
-            return null; // no items match => chest gets no item
+            return null; // No matching custom item: chest gets no loot
         }
 
-        // Pick one at random from the matching items
+        // Pick one custom item at random
         CustomItem chosen = matching.get(new Random().nextInt(matching.size()));
-
-        // Convert the chosen CustomItem -> ItemStack
         return ItemUtil.createItemStackFromCustomItem(chosen, 1);
     }
 }
