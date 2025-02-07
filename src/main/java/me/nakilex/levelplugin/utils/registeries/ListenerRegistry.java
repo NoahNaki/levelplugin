@@ -22,6 +22,7 @@ import me.nakilex.levelplugin.party.PartyChatListener;
 import me.nakilex.levelplugin.party.PartyInviteListener;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.attributes.listeners.StatsMenuListener;
+import me.nakilex.levelplugin.player.classes.listeners.ArcherDoubleJumpListener;
 import me.nakilex.levelplugin.player.classes.listeners.ClassMenuListener;
 import me.nakilex.levelplugin.player.listener.ClickComboListener;
 import me.nakilex.levelplugin.player.listener.PlayerJoinListener;
@@ -87,6 +88,8 @@ public class ListenerRegistry {
         pm.registerEvents(new HungerDisabler(), plugin);
         pm.registerEvents(new DuelListener(), plugin);
         pm.registerEvents(new MerchantListener(new EconomyManager(plugin)), plugin);
+        pm.registerEvents(new ArcherDoubleJumpListener(), plugin);
+
 
 
 
