@@ -1,0 +1,9 @@
+merchants:
+  rogue_merchant:
+    title: "Rogue's Bazaar"
+    size: 27
+    items:
+      - slot: 10
+        item_id: 1        # This should match an id from your items.yml (e.g. "Rusty Shiv")
+        amount: 1
+        cost: 50

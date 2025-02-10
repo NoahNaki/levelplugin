@@ -1,22 +1,22 @@
-package me.nakilex.levelplugin.merchant.managers;
+package me.nakilex.levelplugin.salvage.managers;
 
 import me.nakilex.levelplugin.items.data.CustomItem;
 
-public class MerchantManager {
+public class SalvageManager {
 
     // Example rate: 1 coin per point of any stat
     // You can make this dynamic or configurable if you like.
     private static final int COINS_PER_STAT_POINT = 1;
 
-    private static MerchantManager instance;
+    private static SalvageManager instance;
 
-    private MerchantManager() {
+    private SalvageManager() {
         // Private constructor for singleton pattern
     }
 
-    public static MerchantManager getInstance() {
+    public static SalvageManager getInstance() {
         if (instance == null) {
-            instance = new MerchantManager();
+            instance = new SalvageManager();
         }
         return instance;
     }

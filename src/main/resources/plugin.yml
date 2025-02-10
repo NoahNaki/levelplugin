@@ -66,6 +66,9 @@ commands:
   duel:
     description: Accepts or Declines a duel request
     usage: /duel <accept|decline>
+  salvage:
+    description: Opens the Salvage GUI
+    usage: /salvage
   merchant:
-    description: Opens the Merchant GUI
-    usage: /merchant
+    description: Opens a merchant GUI.
+    usage: /merchant <name>

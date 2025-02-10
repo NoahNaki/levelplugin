@@ -10,7 +10,7 @@ import me.nakilex.levelplugin.effects.commands.EffectCommand;
 import me.nakilex.levelplugin.horse.commands.HorseCommand;
 import me.nakilex.levelplugin.horse.gui.HorseGUI;
 import me.nakilex.levelplugin.items.commands.AddItemCommand;
-import me.nakilex.levelplugin.merchant.commands.MerchantCommand;
+import me.nakilex.levelplugin.merchants.commands.MerchantCommand;
 import me.nakilex.levelplugin.mob.commands.AddMobCommand;
 import me.nakilex.levelplugin.mob.managers.MobManager;
 import me.nakilex.levelplugin.player.attributes.commands.AddPointsCommand;
@@ -66,8 +66,9 @@ public class CommandRegistry {
         plugin.getCommand("trade").setExecutor(new TradeCommand());
         plugin. getCommand("addmob").setExecutor(new AddMobCommand(mobManager));
         plugin.getCommand("duel").setExecutor(new DuelCommand());
-        plugin.getCommand("merchant").setExecutor(new MerchantCommand(plugin));
         plugin.getCommand("ps").setExecutor(new StorageCommand(storageManager));
+        plugin.getCommand("merchant").setExecutor(new MerchantCommand(plugin));
+
 
 
 

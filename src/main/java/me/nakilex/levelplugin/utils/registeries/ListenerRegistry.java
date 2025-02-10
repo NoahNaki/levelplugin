@@ -9,7 +9,6 @@ import me.nakilex.levelplugin.horse.gui.HorseGUI;
 import me.nakilex.levelplugin.lootchests.listeners.LootChestCloseListener;
 import me.nakilex.levelplugin.lootchests.listeners.LootChestListener;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
-import me.nakilex.levelplugin.merchant.listeners.MerchantListener;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.mob.listeners.MobDamageListener;
 import me.nakilex.levelplugin.mob.listeners.MobDeathListener;
@@ -87,7 +86,6 @@ public class ListenerRegistry {
         pm.registerEvents(new FallDamageDisabler(), plugin);
         pm.registerEvents(new HungerDisabler(), plugin);
         pm.registerEvents(new DuelListener(), plugin);
-        pm.registerEvents(new MerchantListener(new EconomyManager(plugin)), plugin);
         pm.registerEvents(new ArcherDoubleJumpListener(), plugin);
 
 

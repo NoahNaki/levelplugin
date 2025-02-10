@@ -1,11 +1,9 @@
-package me.nakilex.levelplugin.merchant.listeners;
+package me.nakilex.levelplugin.salvage.listeners;
 
-import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
-import me.nakilex.levelplugin.merchant.gui.MerchantGUI;
-import me.nakilex.levelplugin.merchant.managers.MerchantManager;
+import me.nakilex.levelplugin.salvage.managers.SalvageManager;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -15,16 +13,16 @@ import org.bukkit.event.inventory.*;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
-public class MerchantListener implements Listener {
+public class SalvageListener implements Listener {
 
     private final EconomyManager economyManager;
 
-    public MerchantListener(EconomyManager economyManager) {
+    public SalvageListener(EconomyManager economyManager) {
         this.economyManager = economyManager;
     }
 
     /**
-     * Handles clicks inside the merchant GUI:
+     * Handles clicks inside the salvage GUI:
      * 1. Prevent invalid items from being placed into slots 0-7.
      * 2. "Sell" items if slot 8 is clicked.
      */
@@ -35,14 +33,14 @@ public class MerchantListener implements Listener {
 
         // Check that this click is in the Merchant GUI by matching title
         if (!isMerchantInventory(event.getView().getTitle())) {
-            return; // It's not the merchant inventory, do nothing
+            return; // It's not the salvage inventory, do nothing
         }
 
         // If the click is in the player's own inventory, but SHIFT-click is used,
-        // the item could go into the merchant inventory automatically, so we must verify.
+        // the item could go into the salvage inventory automatically, so we must verify.
         if (event.isShiftClick()) {
             // SHIFT-click means the server tries to move the stack to the other inventory automatically
-            // If the top inventory is the merchant, let's see if it will land in slots 0-7
+            // If the top inventory is the salvage, let's see if it will land in slots 0-7
             if (event.getCurrentItem() != null) {
                 ItemStack currentItem = event.getCurrentItem();
                 CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(currentItem);
@@ -58,7 +56,7 @@ public class MerchantListener implements Listener {
         }
 
         // For normal clicks (including drop-and-drag within InventoryClickEvent):
-        // Check if they're clicking in the merchant inventory slots
+        // Check if they're clicking in the salvage inventory slots
         if (event.getClickedInventory() != null
             && event.getClickedInventory().equals(topInventory)) {
 
@@ -95,7 +93,7 @@ public class MerchantListener implements Listener {
         Inventory topInventory = event.getView().getTopInventory();
         if (topInventory == null) return;
 
-        // Check if it's the merchant inventory
+        // Check if it's the salvage inventory
         if (!isMerchantInventory(event.getView().getTitle())) {
             return; // not our inventory
         }
@@ -147,7 +145,7 @@ public class MerchantListener implements Listener {
             CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(slotItem);
             if (cItem != null) {
                 // Calculate value
-                totalCoins += MerchantManager.getInstance().getSellPrice(cItem);
+                totalCoins += SalvageManager.getInstance().getSellPrice(cItem);
             }
 
             // Clear the slot after "selling"
