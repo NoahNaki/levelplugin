@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.blacksmith.managers;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
@@ -24,7 +25,15 @@ public class ItemUpgradeManager {
         return baseCost + (item.getUpgradeLevel() * 150 * rarityMultiplier);
     }
 
-    public boolean attemptUpgrade(ItemStack itemStack, CustomItem customItem) {
+    /**
+     * Attempts to upgrade the given item.
+     *
+     * @param player     The player attempting the upgrade.
+     * @param itemStack  The ItemStack to upgrade.
+     * @param customItem The CustomItem data for the item.
+     * @return true if the upgrade succeeds; false otherwise.
+     */
+    public boolean attemptUpgrade(Player player, ItemStack itemStack, CustomItem customItem) {
         if (customItem.getUpgradeLevel() >= 5) {
             Main.getInstance().getLogger().info("Upgrade limit reached for item: " + customItem.getBaseName());
             return false;
@@ -32,7 +41,7 @@ public class ItemUpgradeManager {
 
         int successChance = calculateSuccessChance(customItem);
         if (random.nextInt(100) < successChance) {
-            applyUpgrade(itemStack, customItem);
+            applyUpgrade(player, itemStack, customItem);
             return true;
         }
         return false;
@@ -44,7 +53,15 @@ public class ItemUpgradeManager {
         return Math.max(5, baseChance - levelPenalty);
     }
 
-    private void applyUpgrade(ItemStack itemStack, CustomItem customItem) {
+    /**
+     * Applies the upgrade to the item. The player is passed in so that
+     * we can update the item's lore (or other player-specific info) using the player's data.
+     *
+     * @param player     The player performing the upgrade.
+     * @param itemStack  The ItemStack to upgrade.
+     * @param customItem The CustomItem data for the item.
+     */
+    private void applyUpgrade(Player player, ItemStack itemStack, CustomItem customItem) {
         UUID uuid = ItemUtil.getItemUUID(itemStack);
         if (uuid == null) {
             Main.getInstance().getLogger().warning("Failed to find UUID for item during upgrade.");
@@ -60,11 +77,12 @@ public class ItemUpgradeManager {
         // Update stats for this specific item instance
         customItem.increaseStats();
 
-        // Update the PDC and visuals
+        // Update the PDC and visuals.
+        // Note that we now pass the player into createItemStackFromCustomItem.
         ItemUtil.updateUpgradeLevel(itemStack, newUpgradeLevel);
-        ItemStack updatedItem = ItemUtil.createItemStackFromCustomItem(customItem, itemStack.getAmount());
+        ItemStack updatedItem = ItemUtil.createItemStackFromCustomItem(customItem, itemStack.getAmount(), player);
 
-        // Replace the original item
+        // Replace the original item with the updated one.
         itemStack.setType(updatedItem.getType());
         itemStack.setItemMeta(updatedItem.getItemMeta());
     }

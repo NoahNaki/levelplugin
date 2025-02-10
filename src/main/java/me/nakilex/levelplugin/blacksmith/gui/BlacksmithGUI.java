@@ -207,7 +207,7 @@ public class BlacksmithGUI implements Listener {
         try {
             economyManager.deductCoins(player, upgradeCost);
 
-            if (upgradeManager.attemptUpgrade(itemStack, customItem)) {
+            if (upgradeManager.attemptUpgrade(player, itemStack, customItem)) {
                 player.sendMessage("§aUpgrade successful!");
 
                 // Change red panes to green temporarily

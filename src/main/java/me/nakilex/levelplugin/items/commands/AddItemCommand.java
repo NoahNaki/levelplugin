@@ -69,7 +69,7 @@ public class AddItemCommand implements CommandExecutor {
         ItemManager.getInstance().addInstance(instance);
 
 // Create ItemStack and give it to player
-        target.getInventory().addItem(ItemUtil.createItemStackFromCustomItem(instance, amount));
+        target.getInventory().addItem(ItemUtil.createItemStackFromCustomItem(instance, amount, target.getPlayer()));
         sender.sendMessage("§aGave " + amount + "x " + instance.getName() + " [ID:" + itemId + "] to " + target.getName());
         target.sendMessage("§aYou received " + amount + "x " + instance.getName() + "! (ID:" + itemId + ")");
 

@@ -169,7 +169,7 @@ public class MythicMobDeathListener implements Listener {
                 ItemManager.getInstance().addInstance(newInstance);
 
                 // Convert CustomItem → ItemStack
-                ItemStack dropStack = ItemUtil.createItemStackFromCustomItem(newInstance, 1);
+                ItemStack dropStack = ItemUtil.createItemStackFromCustomItem(newInstance, 1, player);
 
                 System.out.println("[DEBUG] Dropping item: " + newInstance.getBaseName()
                     + " with UUID=" + newInstance.getUuid());

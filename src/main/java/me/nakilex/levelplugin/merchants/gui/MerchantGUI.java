@@ -74,10 +74,12 @@ public class MerchantGUI implements Listener {
         for (MerchantItem mItem : merchantItems.values()) {
             CustomItem template = ItemManager.getInstance().getTemplateById(mItem.getItemId());
             if (template != null) {
-                ItemStack stack = ItemUtil.createItemStackFromCustomItem(template, mItem.getAmount());
+                // Pass 'null' because we don't have a player context in the constructor.
+                ItemStack stack = ItemUtil.createItemStackFromCustomItem(template, mItem.getAmount(), null);
                 if (stack.hasItemMeta()) {
                     ItemMeta meta = stack.getItemMeta();
                     List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+                    lore.add("");
                     lore.add(ChatColor.GRAY + "Price:");
                     // Default: assume not enough coins (this will be updated when the inventory is open)
                     lore.add(ChatColor.RED + "- ✘ " + mItem.getCost() + " ⛃");
@@ -198,7 +200,7 @@ public class MerchantGUI implements Listener {
             }
             CustomItem template = ItemManager.getInstance().getTemplateById(mItem.getItemId());
             if (template != null) {
-                ItemStack purchasedItem = ItemUtil.createItemStackFromCustomItem(template, mItem.getAmount());
+                ItemStack purchasedItem = ItemUtil.createItemStackFromCustomItem(template, mItem.getAmount(), player);
                 player.getInventory().addItem(purchasedItem);
                 player.sendMessage(ChatColor.GREEN + "You purchased " +
                     purchasedItem.getItemMeta().getDisplayName() + ChatColor.GREEN +

@@ -261,6 +261,6 @@ public class LootChestManager {
 
         // Pick one custom item at random
         CustomItem chosen = matching.get(new Random().nextInt(matching.size()));
-        return ItemUtil.createItemStackFromCustomItem(chosen, 1);
+        return ItemUtil.createItemStackFromCustomItem(chosen, 1, null);
     }
 }
