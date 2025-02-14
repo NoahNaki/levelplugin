@@ -1,7 +1,6 @@
 package me.nakilex.levelplugin.player.listener;
 
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.display.DisplayManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import org.bukkit.Bukkit;
@@ -13,11 +12,9 @@ import org.bukkit.event.player.PlayerJoinEvent;
 public class PlayerJoinListener implements Listener {
 
     private final LevelManager levelManager;
-    private final DisplayManager displayManager;
 
-    public PlayerJoinListener(LevelManager levelManager, DisplayManager displayManager) {
+    public PlayerJoinListener(LevelManager levelManager) {
         this.levelManager = levelManager;
-        this.displayManager = displayManager;
     }
 
     @EventHandler
@@ -32,7 +29,6 @@ public class PlayerJoinListener implements Listener {
             player.setHealthScaled(true);
             player.setHealthScale(20.0);
             // Update the scoreboard with current money and party info
-            displayManager.updatePlayerDisplay(player);
         }, 20L); // delay of 20 ticks (1 second)
     }
 }

@@ -2,11 +2,11 @@ package me.nakilex.levelplugin.utils.registeries;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
-import me.nakilex.levelplugin.display.DisplayManager;
 import me.nakilex.levelplugin.duels.listeners.DuelListener;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.effects.listeners.StatsEffectListener;
 import me.nakilex.levelplugin.horse.gui.HorseGUI;
+import me.nakilex.levelplugin.items.listeners.*;
 import me.nakilex.levelplugin.lootchests.listeners.LootChestCloseListener;
 import me.nakilex.levelplugin.lootchests.listeners.LootChestListener;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
@@ -30,14 +30,8 @@ import me.nakilex.levelplugin.player.listener.PlayerKillListener;
 import me.nakilex.levelplugin.player.utils.ArrowUtils;
 import me.nakilex.levelplugin.potions.listeners.PotionUseListener;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
-import me.nakilex.levelplugin.items.listeners.*;
-import me.nakilex.levelplugin.scoreboard.ScoreboardManager;
-import me.nakilex.levelplugin.storage.StorageManager;
 import me.nakilex.levelplugin.trade.listeners.PlayerRightClicksPlayerListener;
-import me.nakilex.levelplugin.storage.events.StorageEvents;
 import me.nakilex.levelplugin.utils.*;
-import net.citizensnpcs.api.util.Storage;
-import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.PluginManager;
 
@@ -55,18 +49,12 @@ public class ListenerRegistry {
 
         PluginManager pm = plugin.getServer().getPluginManager();
 
-        DisplayManager displayManager = new DisplayManager(
-            plugin.getEconomyManager(),
-            partyManager,
-            new ScoreboardManager()  // or a pre-instantiated ScoreboardManager instance
-        );
-
         // Register all listeners
         pm.registerEvents(new MobDamageListener(), plugin);
         pm.registerEvents(new MobDeathListener(plugin.getMobManager(), economyManager), plugin);
         pm.registerEvents(new PlayerKillListener(plugin.getLevelManager(), mobConfig, partyManager), plugin);
         pm.registerEvents(new MythicMobDeathListener(mobRewardsConfig, plugin.getLevelManager(), economyManager), plugin);
-        pm.registerEvents(new PlayerJoinListener(plugin.getLevelManager(), displayManager), plugin);
+        pm.registerEvents(new PlayerJoinListener(plugin.getLevelManager()), plugin);
         pm.registerEvents(new StatsMenuListener(), plugin);
         pm.registerEvents(new StatsEffectListener(), plugin);
         pm.registerEvents(new ArmorListener(), plugin);

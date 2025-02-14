@@ -17,6 +17,7 @@ import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.mob.managers.MobManager;
 import me.nakilex.levelplugin.party.PartyManager;
+import me.nakilex.levelplugin.placeholders.MyCustomExpansion;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
@@ -70,8 +71,6 @@ public class Main extends JavaPlugin {
     private MobRewardsConfig mobRewardsConfig;
     private StorageEvents storageEvents; // Single, shared instance
     private StorageManager storageManager;
-
-
     private ItemConfig itemConfig;
     private PlayerConfig playerConfig;
 
@@ -82,16 +81,13 @@ public class Main extends JavaPlugin {
         instance = this;
         plugin = this;
 
-        if (MythicBukkit.inst() != null) {
-            mythicHelper = MythicBukkit.inst().getAPIHelper();
-            getLogger().info("MythicMobs API successfully loaded.");
+        if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            new MyCustomExpansion(this).register();
+            getLogger().info("MyCustomExpansion registered with PlaceholderAPI!");
         } else {
-            getLogger().severe("MythicMobs not found! Disabling plugin...");
-            getServer().getPluginManager().disablePlugin(this);
-            return;
+            getLogger().warning("PlaceholderAPI not found! Custom placeholders will not work.");
         }
 
-        CitizensAPI.getTraitFactory().registerTrait(net.citizensnpcs.api.trait.TraitInfo.create(MetadataTrait.class).withName("MetadataTrait"));
 
         // Load configuration files
         loadConfigFiles();
@@ -269,6 +265,10 @@ public class Main extends JavaPlugin {
 
     public FileConfiguration getCustomConfig() {
         return customConfig;
+    }
+
+    public PartyManager getPartyManager() {
+        return partyManager;
     }
 
     public EconomyManager getEconomyManager() {
