@@ -128,22 +128,30 @@ public class ItemUtil {
      */
     public static void updateCustomItemTooltip(ItemStack stack, Player player) {
         if (stack == null || !stack.hasItemMeta()) {
+            Bukkit.getLogger().info("[CustomItem] updateCustomItemTooltip: Item stack is null or has no item meta.");
             return;
         }
 
+        // Log that we're updating this particular item for the given player.
         ItemMeta meta = stack.getItemMeta();
+        String displayName = meta != null ? meta.getDisplayName() : "Unknown";
+        Bukkit.getLogger().info("[CustomItem] Updating tooltip for item: " + displayName + " for player: " + player.getName());
+
         // Retrieve the custom item ID from the PersistentDataContainer.
         Integer itemId = meta.getPersistentDataContainer().get(ITEM_ID_KEY, PersistentDataType.INTEGER);
         if (itemId == null) {
+            Bukkit.getLogger().info("[CustomItem] updateCustomItemTooltip: No custom item ID found.");
             return;
         }
 
         // Get the CustomItem instance from your ItemManager.
         CustomItem cItem = ItemManager.getInstance().getTemplateById(itemId);
         if (cItem == null) {
+            Bukkit.getLogger().info("[CustomItem] updateCustomItemTooltip: No CustomItem found for ID " + itemId);
             return;
         }
 
+        // Build the updated lore.
         List<String> lore = new ArrayList<>();
         lore.add(""); // Blank line for spacing
 
@@ -164,7 +172,6 @@ public class ItemUtil {
             String rawClassReq = cItem.getClassRequirement();
             String classReq = rawClassReq.substring(0, 1).toUpperCase() + rawClassReq.substring(1).toLowerCase();
             String classRequirementLine;
-
             if (player == null) {
                 classRequirementLine = ChatColor.GRAY + "Class Requirement: " + classReq;
             } else {
@@ -177,8 +184,7 @@ public class ItemUtil {
             }
             lore.add(classRequirementLine);
         }
-
-        lore.add(""); // Another blank line for spacing
+        lore.add(""); // Blank line for spacing
 
         // --- Stats Information ---
         if (cItem.getHp() != 0)
@@ -203,6 +209,7 @@ public class ItemUtil {
         meta.setLore(lore);
         stack.setItemMeta(meta);
     }
+
 
     public static UUID getItemUUID(ItemStack stack) {
         if (stack == null || !stack.hasItemMeta()) return null;

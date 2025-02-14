@@ -1,20 +1,23 @@
 package me.nakilex.levelplugin.player.listener;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.display.DisplayManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
-import me.nakilex.levelplugin.player.level.managers.LevelManager;
 
 public class PlayerJoinListener implements Listener {
 
     private final LevelManager levelManager;
+    private final DisplayManager displayManager;
 
-    public PlayerJoinListener(LevelManager levelManager) {
+    public PlayerJoinListener(LevelManager levelManager, DisplayManager displayManager) {
         this.levelManager = levelManager;
+        this.displayManager = displayManager;
     }
 
     @EventHandler
@@ -24,11 +27,12 @@ public class PlayerJoinListener implements Listener {
         StatsManager.getInstance().recalcDerivedStats(player);
         levelManager.initializePlayer(player);
 
-        // If your recalcDerivedStats doesn't set health scaling for some reason,
-        // you can manually set it here with a slight delay to ensure the player's data is loaded.
+        // Ensure the player's data is loaded, then apply health scaling and update scoreboard
         Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
             player.setHealthScaled(true);
             player.setHealthScale(20.0);
+            // Update the scoreboard with current money and party info
+            displayManager.updatePlayerDisplay(player);
         }, 20L); // delay of 20 ticks (1 second)
     }
 }
