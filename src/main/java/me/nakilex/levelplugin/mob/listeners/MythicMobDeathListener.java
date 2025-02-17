@@ -69,15 +69,15 @@ public class MythicMobDeathListener implements Listener {
                 dropCustomItems(player, mobType);
 
                 // 4) Notify player
-                player.sendMessage("You killed " + mobType + " and earned "
-                    + exp + " XP and " + coins + " coins!");
+//                player.sendMessage("You killed " + mobType + " and earned "
+//                    + exp + " XP and " + coins + " coins!");
             } else {
                 // Debug: If it doesn't find that path
-                System.out.println("[DEBUG] mob_rewards.yml has no path for: mobs." + mobType);
+                //System.out.println("[DEBUG] mob_rewards.yml has no path for: mobs." + mobType);
             }
         } else {
             // Debug: If the dead entity isn't recognized as a MythicMob
-            System.out.println("[DEBUG] The killed entity is not a MythicMob instance.");
+            //System.out.println("[DEBUG] The killed entity is not a MythicMob instance.");
         }
     }
 
@@ -93,7 +93,7 @@ public class MythicMobDeathListener implements Listener {
         System.out.println("[DEBUG] Checking config path: " + path
             + " => " + mobRewardsConfig.getConfig().contains(path));
         if (!mobRewardsConfig.getConfig().contains(path)) {
-            System.out.println("[DEBUG] Path not found for: " + path);
+            //System.out.println("[DEBUG] Path not found for: " + path);
             return;
         }
 
@@ -103,7 +103,7 @@ public class MythicMobDeathListener implements Listener {
         // Debug #2: Print the raw list we got from config
         System.out.println("[DEBUG] itemList for '" + mobType + "' => " + itemList);
         if (itemList == null || itemList.isEmpty()) {
-            System.out.println("[DEBUG] itemList is null/empty. No drops to process.");
+            //System.out.println("[DEBUG] itemList is null/empty. No drops to process.");
             return;
         }
 
@@ -113,7 +113,7 @@ public class MythicMobDeathListener implements Listener {
             System.out.println("[DEBUG] Processing drop entry: " + entry);
 
             if (!entry.containsKey("itemid")) {
-                System.out.println("[DEBUG] 'itemid' key missing in entry: " + entry);
+                //System.out.println("[DEBUG] 'itemid' key missing in entry: " + entry);
                 continue;
             }
             int itemId = (int) entry.get("itemid");
@@ -122,29 +122,29 @@ public class MythicMobDeathListener implements Listener {
             double dropRate = entry.containsKey("drop_rate")
                 ? (double) entry.get("drop_rate") : 100.0;
             double roll = ThreadLocalRandom.current().nextDouble() * 100.0;
-            System.out.println("[DEBUG] dropRate=" + dropRate + ", roll=" + roll);
+            //System.out.println("[DEBUG] dropRate=" + dropRate + ", roll=" + roll);
             if (roll > dropRate) {
                 // Skip if random roll doesn't meet drop_rate
-                System.out.println("[DEBUG] Skipping drop since roll (" + roll + ") > dropRate (" + dropRate + ")");
+                //System.out.println("[DEBUG] Skipping drop since roll (" + roll + ") > dropRate (" + dropRate + ")");
                 continue;
             }
 
             // quantity
             String qtyRange = entry.containsKey("quantity")
                 ? (String) entry.get("quantity") : "1-1";
-            System.out.println("[DEBUG] quantity range=" + qtyRange);
+            //System.out.println("[DEBUG] quantity range=" + qtyRange);
 
             String[] rangeSplit = qtyRange.split("-");
             int minQty = Integer.parseInt(rangeSplit[0]);
             int maxQty = Integer.parseInt(rangeSplit[1]);
             int quantity = ThreadLocalRandom.current().nextInt(minQty, maxQty + 1);
-            System.out.println("[DEBUG] Chosen quantity=" + quantity + " for itemId=" + itemId);
+            //System.out.println("[DEBUG] Chosen quantity=" + quantity + " for itemId=" + itemId);
 
             // Fetch the base template from ItemManager
             CustomItem template = ItemManager.getInstance().getTemplateById(itemId);
             if (template == null) {
                 player.sendMessage("§c[Warning] No CustomItem found with ID: " + itemId);
-                System.out.println("[DEBUG] Template not found in ItemManager for itemId=" + itemId);
+                //System.out.println("[DEBUG] Template not found in ItemManager for itemId=" + itemId);
                 continue;
             }
 
@@ -171,8 +171,8 @@ public class MythicMobDeathListener implements Listener {
                 // Convert CustomItem → ItemStack
                 ItemStack dropStack = ItemUtil.createItemStackFromCustomItem(newInstance, 1, player);
 
-                System.out.println("[DEBUG] Dropping item: " + newInstance.getBaseName()
-                    + " with UUID=" + newInstance.getUuid());
+//                System.out.println("[DEBUG] Dropping item: " + newInstance.getBaseName()
+//                    + " with UUID=" + newInstance.getUuid());
 
                 // Actually drop the item in the world
                 player.getWorld().dropItemNaturally(player.getLocation(), dropStack);

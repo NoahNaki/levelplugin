@@ -49,7 +49,14 @@ public class LevelManager {
         playerXp.put(uuid, newXP);
 
         checkLevelUp(uuid);
+
+        // Update the XP bar if the player is online
+        Player player = Bukkit.getPlayer(uuid);
+        if (player != null) {
+            XPBarHandler.updateXPBar(player, this);
+        }
     }
+
 
     // Add XP to a player (Player-based version)
     public void addXP(Player player, int amount) {

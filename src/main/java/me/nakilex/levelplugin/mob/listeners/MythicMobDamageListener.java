@@ -37,8 +37,8 @@ public class MythicMobDamageListener implements Listener {
         double damage = event.getFinalDamage();
 
         // Format and send a message to the player
-        player.sendMessage(String.format("§eYou dealt §c%.2f §edamage to §6%s§e!",
-            damage,
-            mythicMob.getMobType()));
+//        player.sendMessage(String.format("§eYou dealt §c%.2f §edamage to §6%s§e!",
+//            damage,
+//            mythicMob.getMobType()));
     }
 }
