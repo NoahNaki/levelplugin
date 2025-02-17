@@ -7,6 +7,10 @@ import me.nakilex.levelplugin.trade.utils.Translations;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
+import org.bukkit.conversations.Conversation;
+import org.bukkit.conversations.ConversationAbandonedEvent;
+import org.bukkit.conversations.ConversationAbandonedListener;
+import org.bukkit.conversations.ConversationFactory;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -28,6 +32,8 @@ public class TradingWindow implements Listener {
     private static final java.util.Map<UUID, TradingWindow> awaitingSignInput = new java.util.HashMap<>();
     private static final java.util.Set<UUID> activeSignInputs = new java.util.HashSet<>();
     private final Map<UUID, Location> activeSignLocations = new HashMap<>();
+    private static final Set<UUID> awaitingChatInput = new HashSet<>();
+
 
 
     // Stores the coin offers for both players
@@ -101,27 +107,50 @@ public class TradingWindow implements Listener {
     }
 
 
-    private void openCoinSignGUI(Player p, TradingWindow tw) {
-        // Mark the player as having an active sign input
-        awaitingSignInput.put(p.getUniqueId(), tw);
-        activeSignInputs.add(p.getUniqueId()); // Add to active sign input set
+//    private void openCoinSignGUI(Player p, TradingWindow tw) {
+//        // Mark the player as having an active sign input
+//        awaitingSignInput.put(p.getUniqueId(), tw);
+//        activeSignInputs.add(p.getUniqueId()); // Add to active sign input set
+//
+//        // Define the specific location where the sign will be spawned
+//        Location loc = p.getLocation().clone().add(0, -1, 0);
+//        Block block = loc.getBlock();
+//        block.setType(Material.OAK_SIGN);
+//
+//        Sign sign = (Sign) block.getState();
+//        sign.setLine(0, "Enter coins");
+//        sign.update(true, false);
+//
+//        // Track the sign's location for cleanup
+//        activeSignLocations.put(p.getUniqueId(), loc);
+//
+//        p.openSign(sign);
+//    }
 
-        // Define the specific location where the sign will be spawned
-        Location loc = p.getLocation().clone().add(0, -1, 0);
-        Block block = loc.getBlock();
-        block.setType(Material.OAK_SIGN);
+    private void openCoinChatInput(Player p, TradingWindow tw) {
+        // Mark that this player is in the middle of a chat input
+        awaitingChatInput.add(p.getUniqueId());
 
-        Sign sign = (Sign) block.getState();
-        sign.setLine(0, "Enter coins");
-        sign.update(true, false);
+        // Close the inventory so that the player can see the chat clearly
+        p.closeInventory();
 
-        // Track the sign's location for cleanup
-        activeSignLocations.put(p.getUniqueId(), loc);
-
-        p.openSign(sign);
+        ConversationFactory factory = new ConversationFactory(Main.getPlugin())
+            .withFirstPrompt(new CoinInputPrompt(tw, p))
+            .withLocalEcho(false)
+            .withTimeout(30)
+            .addConversationAbandonedListener(new ConversationAbandonedListener() {
+                @Override
+                public void conversationAbandoned(ConversationAbandonedEvent event) {
+                    // Remove the player from the awaiting set when conversation ends (normally or due to timeout)
+                    awaitingChatInput.remove(p.getUniqueId());
+                    // Optionally, reopen the inventories if the conversation was not abandoned manually
+                    // For example, if you want the GUI to return even on timeout:
+                    // tw.reopenInventories();
+                }
+            });
+        Conversation conv = factory.buildConversation(p);
+        conv.begin();
     }
-
-
 
     @EventHandler
     public void onSignChange(SignChangeEvent e) {
@@ -196,7 +225,7 @@ public class TradingWindow implements Listener {
 
 
 
-    private void updateCoinOfferItems() {
+    void updateCoinOfferItems() {
         // Update the player's coin offer
         ItemStack yourCoinIngot = playerInventory.getItem(PLAYER_COIN_SLOT);
         if (yourCoinIngot != null && yourCoinIngot.getType() == Material.GOLD_INGOT) {
@@ -624,95 +653,96 @@ public class TradingWindow implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent e) {
-        if (!(e.getWhoClicked() instanceof Player)) return;
+        if (!(e.getWhoClicked() instanceof Player)) {
+            return;
+        }
         Player p = (Player) e.getWhoClicked();
         DealMaker dm = Main.getPlugin().getDealMaker();
 
-        // Check if the inventory is part of the trade system
+        // Check if the clicked inventory belongs to the trading system
         if (dm.isInventoryInList(e.getClickedInventory())) {
             TradingWindow tw = dm.getTradingWindow(e.getClickedInventory());
 
-            // Player's Inventory Handling
+            // Handle the main player's inventory view
             if (e.getClickedInventory().equals(tw.playerInventory)) {
-
-                // Handle Player Coin Slot
+                // Handle the player's own coin offer slot
                 if (e.getSlot() == PLAYER_COIN_SLOT) {
-                    e.setCancelled(true); // Prevent moving the item
+                    e.setCancelled(true);
                     if (tw.player.equals(p)) {
-                        openCoinSignGUI(p, tw); // Open the sign GUI for the main player
+                        openCoinChatInput(p, tw);
                     }
                     return;
                 }
-
-                // Handle Opponent Coin Slot
+                // Handle the opponent's coin offer slot (from main player's perspective)
                 else if (e.getSlot() == OPPONENT_COIN_SLOT) {
-                    e.setCancelled(true); // Prevent moving the item
+                    e.setCancelled(true);
                     if (tw.opposite.equals(p)) {
-                        openCoinSignGUI(p, tw); // Open the sign GUI for the opponent
+                        openCoinChatInput(p, tw);
                     }
                     return;
                 }
-
-                // Handle Deal Acceptance Field
+                // Handle clicking the deal acceptance field
                 if (isPersonalTradeAccepmentField(e.getSlot())) {
                     e.setCancelled(true);
-                    this.toggleOwnStatus(tw, e.getClickedInventory());
+                    toggleOwnStatus(tw, e.getClickedInventory());
                 }
-                // Handle Other Fields
+                // Allow interacting with own item fields if neither party has accepted yet
                 else if (isOwnField(e.getSlot())) {
-                    if (tw.playerAcceptedDeal || tw.oppositeAcceptedDeal) e.setCancelled(true);
+                    if (tw.playerAcceptedDeal || tw.oppositeAcceptedDeal) {
+                        e.setCancelled(true);
+                    }
                     tw.refreshInventorySwitch();
                 } else {
                     e.setCancelled(true);
                 }
-
-                // Opponent's Inventory Handling
-            } else if (e.getClickedInventory().equals(tw.oppositeInventory)) {
-
-                // Handle Opponent Coin Slot
+            }
+            // Handle the opponent's inventory view
+            else if (e.getClickedInventory().equals(tw.oppositeInventory)) {
+                // Handle the coin offer slots from the opponent's perspective
                 if (e.getSlot() == PLAYER_COIN_SLOT) {
-                    e.setCancelled(true); // Prevent moving the item
+                    e.setCancelled(true);
                     if (tw.opposite.equals(p)) {
-                        openCoinSignGUI(p, tw); // Open the sign GUI for the opponent
+                        openCoinChatInput(p, tw);
                     }
                     return;
                 }
-
-                // Handle Player Coin Slot (From Opponent's Perspective)
                 else if (e.getSlot() == OPPONENT_COIN_SLOT) {
-                    e.setCancelled(true); // Prevent moving the item
+                    e.setCancelled(true);
                     if (tw.player.equals(p)) {
-                        openCoinSignGUI(p, tw); // Open the sign GUI for the main player
+                        openCoinChatInput(p, tw);
                     }
                     return;
                 }
-
-                // Handle Deal Acceptance Field
+                // Handle clicking the acceptance field
                 if (isPersonalTradeAccepmentField(e.getSlot())) {
                     e.setCancelled(true);
-                    this.toggleOpponentsStatus(tw);
+                    toggleOpponentsStatus(tw);
                 }
-                // Handle Other Fields
+                // Allow interacting with own item fields if neither party has accepted yet
                 else if (isOwnField(e.getSlot())) {
-                    if (tw.playerAcceptedDeal || tw.oppositeAcceptedDeal) e.setCancelled(true);
-                    else e.setCancelled(false);
+                    if (tw.playerAcceptedDeal || tw.oppositeAcceptedDeal) {
+                        e.setCancelled(true);
+                    } else {
+                        e.setCancelled(false);
+                    }
                     tw.refreshInventorySwitch();
                 } else {
                     e.setCancelled(true);
                 }
             }
         }
-        // Handle players dealing outside trade window
+        // If the clicked inventory isn't part of the trade but the player is in a trade session…
         else if (dm.isPlayerCurrentlyDealing(p)) {
             TradingWindow tw = dm.getTradingWindowByPlayer(p);
             if (tw.playerAcceptedDeal || tw.oppositeAcceptedDeal) {
-                if (e.isShiftClick()) e.setCancelled(true);
-                else if (e.getClick().equals(ClickType.DOUBLE_CLICK)) e.setCancelled(true);
+                if (e.isShiftClick() || e.getClick().equals(ClickType.DOUBLE_CLICK)) {
+                    e.setCancelled(true);
+                }
             } else if (e.isShiftClick()) {
                 tw.refreshInventorySwitch();
             }
         }
-    }
+}
 
 
     @EventHandler
@@ -721,14 +751,14 @@ public class TradingWindow implements Listener {
 
         // Check if the inventory belongs to the trade system
         if (dm.isInventoryInList(e.getInventory())) {
-            TradingWindow tw = dm.getTradingWindowByPlayer((Player) e.getPlayer());
-
-            // Ignore close events triggered by the sign GUI
-            if (activeSignInputs.contains(e.getPlayer().getUniqueId())) {
-                return; // Skip processing if player is still awaiting sign input
+            // If the player is awaiting chat input, don't close the trade.
+            if (awaitingChatInput.contains(e.getPlayer().getUniqueId())) {
+                return; // Skip trade closure
             }
 
-            // Cleanup any active sign
+            TradingWindow tw = dm.getTradingWindowByPlayer((Player) e.getPlayer());
+
+            // Cleanup any active sign (if any are still present)
             UUID playerId = e.getPlayer().getUniqueId();
             if (activeSignLocations.containsKey(playerId)) {
                 Location signLocation = activeSignLocations.get(playerId);
@@ -745,6 +775,7 @@ public class TradingWindow implements Listener {
             }
         }
     }
+
 
 
     @EventHandler
@@ -770,4 +801,48 @@ public class TradingWindow implements Listener {
         }
     }
 
+    // Getters for necessary fields
+    public EconomyManager getEconomyManager() {
+        return this.economyManager;
+    }
+
+    public Player getPlayer() {
+        return this.player;
+    }
+
+    public Player getOpponent() {
+        return this.opposite;
+    }
+
+    // Setters for coin offers
+    public void setPlayerCoinOffer(int coins) {
+        this.playerCoinOffer = coins;
+    }
+
+    public void setOpponentCoinOffer(int coins) {
+        this.opponentCoinOffer = coins;
+    }
+
+    /**
+     * Reopens the trading inventories for both players.
+     * This method encapsulates the logic you currently run after the sign input.
+     */
+    public void reopenInventories() {
+        Bukkit.getScheduler().runTask(Main.getPlugin(), () -> {
+            this.playerInventory = Bukkit.createInventory(null, this.CHEST_SIZE,
+                String.format(messageStrings.getTranslation(Translations.DEAL_WITH), this.opposite.getName()));
+            this.oppositeInventory = Bukkit.createInventory(null, this.CHEST_SIZE,
+                String.format(messageStrings.getTranslation(Translations.DEAL_WITH), this.player.getName()));
+            prepareInventory(this.playerInventory);
+            prepareInventory(this.oppositeInventory);
+            projectToOpponentField(this.playerSlots, false);
+            projectToOpponentField(this.oppositeSlots, true); // changed to 'oppositeSlots'
+            updateCoinOfferItems();
+            DealMaker dm = Main.getPlugin().getDealMaker();
+            dm.addTradingWindow(this);
+            this.player.openInventory(this.playerInventory);
+            this.opposite.openInventory(this.oppositeInventory);
+            refreshInventorySwitch();
+        });
+    }
 }
