@@ -17,9 +17,9 @@ public class NPCCommandListener implements Listener {
 
     // Constructor - initialize NPC-to-command mapping
     public NPCCommandListener() {
-        npcCommands.put("Blacksmith", "blacksmith"); // NPC "Blacksmith" runs /blacksmith
-        npcCommands.put("Merchant", "balance");     // NPC "Merchant" runs /balance
-        npcCommands.put("Stable", "horse reroll");  // NPC "Stable" runs /horse reroll
+//        npcCommands.put("Blacksmith", "blacksmith"); // NPC "Blacksmith" runs /blacksmith
+//        npcCommands.put("Merchant", "");     // NPC "Merchant" runs /balance
+//        npcCommands.put("Stable Keeper", "horse reroll");  // NPC "Stable" runs /horse reroll
     }
 
     @EventHandler
@@ -38,7 +38,7 @@ public class NPCCommandListener implements Listener {
             Bukkit.dispatchCommand(player, command);
 
             // Notify the player (optional)
-            player.sendMessage("You interacted with " + npcName + " and executed: /" + command);
+            //player.sendMessage("You interacted with " + npcName + " and executed: /" + command);
         }
     }
 }
