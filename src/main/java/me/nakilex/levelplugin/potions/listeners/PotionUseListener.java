@@ -35,8 +35,6 @@ public class PotionUseListener implements Listener {
 
     @EventHandler
     public void onPlayerUsePotion(PlayerInteractEvent event) {
-        // Debug log to check event triggering
-
         if (event.getHand() != EquipmentSlot.HAND) {
             return;
         }
@@ -45,7 +43,8 @@ public class PotionUseListener implements Listener {
         ItemStack item = event.getItem();
 
         // Check if item is valid and is a potion
-        if (item == null || !item.hasItemMeta() || !(item.getType() == Material.POTION || item.getType() == Material.SPLASH_POTION || item.getType() == Material.LINGERING_POTION)) {
+        if (item == null || !item.hasItemMeta() ||
+            !(item.getType() == Material.POTION || item.getType() == Material.SPLASH_POTION || item.getType() == Material.LINGERING_POTION)) {
             return;
         }
 
@@ -70,25 +69,29 @@ public class PotionUseListener implements Listener {
             return;
         }
 
-        // Cancel default animation if potion
+        // Cancel default animation
         event.setCancelled(true);
 
+        String potionId = instance.getTemplate().getId();
+
+        // Check if it's a healing potion and if the player's health is already full.
+        if (potionId.equals("healing_potion")) {
+            if (player.getHealth() >= player.getMaxHealth()) {
+                player.sendMessage("Your health is already full!");
+                return;
+            }
+        }
+
+        // Consume potion charge and start cooldown only if the potion can be used
         instance.consumeCharge();
         potionManager.startCooldown(uuid, instance.getTemplate().getCooldownSeconds());
 
         // Apply effects based on potion type
-        String potionId = instance.getTemplate().getId();
-
         if (potionId.equals("healing_potion")) {
             int healAmount = (int) (player.getMaxHealth() * 0.1); // Restore 10% HP
             player.setHealth(Math.min(player.getHealth() + healAmount, player.getMaxHealth()));
             meta.setDisplayName("§cHealing Potion §4[" + instance.getCharges() + "/3]");
-            List<String> lore = Collections.emptyList();
-            System.out.println("Setting lore: " + lore); // Check lore before setting
-            meta.setLore(lore);
-            meta.setLore(Arrays.asList(
-                "§4- §7Recover §f10% §c❤"
-            ));
+            meta.setLore(Arrays.asList("§4- §7Recover §f10% §c❤"));
         } else if (potionId.equals("mana_potion")) {
             int currentMana = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).getCurrentMana();
             int maxMana = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).getMaxMana();
@@ -98,17 +101,10 @@ public class PotionUseListener implements Listener {
 
             StatsManager.getInstance().getPlayerStats(player.getUniqueId()).setCurrentMana(newMana);
             meta.setDisplayName("§bMana Potion §3[" + instance.getCharges() + "/3]");
-            List<String> lore = Collections.emptyList();
-            System.out.println("Setting lore: " + lore); // Check lore before setting
-            meta.setLore(lore);
-            meta.setLore(Arrays.asList(
-                "§3- §7Recover §f10% §b✨"
-            ));
+            meta.setLore(Arrays.asList("§3- §7Recover §f10% §b✨"));
         }
 
         player.sendMessage("Potion consumed! Remaining charges: " + instance.getCharges());
-
-        // Update item meta
         item.setItemMeta(meta);
 
         if (instance.getCharges() <= 0) {
