@@ -27,16 +27,16 @@ public class SpellManager {
     private void loadSpells() {
         // Warrior Spells
         spellsByClass.put("warrior", Map.of(
-            "RLR", new Spell("iron_fortress", "Iron Fortress", "RLR", 15, 0, 3,
+            "RLR", new Spell("iron_fortress", "Iron Fortress", "RLR", 15, 0, 10,
                 Arrays.asList(Material.WOODEN_SHOVEL, Material.STONE_SHOVEL, Material.IRON_SHOVEL, Material.GOLDEN_SHOVEL, Material.DIAMOND_SHOVEL, Material.NETHERITE_SHOVEL),
                 "IRON_FORTRESS", 0.0),
-            "RRR", new Spell("heroic_leap", "Heroic Leap", "RRR", 10, 0, 15,
+            "RRR", new Spell("heroic_leap", "Heroic Leap", "RRR", 10, 0, 8,
                 Arrays.asList(Material.WOODEN_SHOVEL, Material.STONE_SHOVEL, Material.IRON_SHOVEL, Material.GOLDEN_SHOVEL, Material.DIAMOND_SHOVEL, Material.NETHERITE_SHOVEL),
                 "HEROIC_LEAP", 1.2),
-            "RRL", new Spell("uppercut", "Uppercut", "RRL", 15, 4, 10,
+            "RRL", new Spell("uppercut", "Uppercut", "RRL", 15, 4, 15,
                 Arrays.asList(Material.WOODEN_SHOVEL, Material.STONE_SHOVEL, Material.IRON_SHOVEL, Material.GOLDEN_SHOVEL, Material.DIAMOND_SHOVEL, Material.NETHERITE_SHOVEL),
                 "UPPERCUT", 1.3),
-            "RLL", new Spell("ground_slam", "Ground Slam", "RLL", 14, 0, 8,
+            "RLL", new Spell("ground_slam", "Ground Slam", "RLL", 14, 0, 3,
                 Arrays.asList(Material.WOODEN_SHOVEL, Material.STONE_SHOVEL, Material.IRON_SHOVEL, Material.GOLDEN_SHOVEL, Material.DIAMOND_SHOVEL, Material.NETHERITE_SHOVEL),
                 "GROUND_SLAM", 1.5)
         ));
@@ -51,16 +51,16 @@ public class SpellManager {
 
         // Rogue Spells
         spellsByClass.put("rogue", Map.of(
-            "RLL", new Spell("shadow_step", "Shadow Step", "RLL", 12, 0, 3,
+            "RLL", new Spell("shadow_step", "Shadow Step", "RLL", 12, 0, 15,
                 Arrays.asList(Material.WOODEN_SWORD, Material.STONE_SWORD, Material.IRON_SWORD, Material.GOLDEN_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD),
                 "SHADOW_STEP", 1.3),
-            "RRL", new Spell("blade_fury", "Blade Fury", "RRL", 15, 0, 8,
+            "RRL", new Spell("blade_fury", "Blade Fury", "RRL", 15, 0, 3,
                 Arrays.asList(Material.WOODEN_SWORD, Material.STONE_SWORD, Material.IRON_SWORD, Material.GOLDEN_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD),
                 "BLADE_FURY", 1.5),
             "RLR", new Spell("dagger_throw", "Dagger Throw", "RLR", 10, 0, 10,
                 Arrays.asList(Material.WOODEN_SWORD, Material.STONE_SWORD, Material.IRON_SWORD, Material.GOLDEN_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD),
                 "DAGGER_THROW", 0.0),
-            "RRR", new Spell("vanish", "Vanish", "RRR", 8, 0, 15,
+            "RRR", new Spell("vanish", "Vanish", "RRR", 8, 0, 8,
                 Arrays.asList(Material.WOODEN_SWORD, Material.STONE_SWORD, Material.IRON_SWORD, Material.GOLDEN_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD),
                 "VANISH", 0.0)
         ));
