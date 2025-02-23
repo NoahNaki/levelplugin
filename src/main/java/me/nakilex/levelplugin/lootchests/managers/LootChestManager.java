@@ -13,14 +13,14 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
-import org.bukkit.block.Chest;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
-import java.util.Random;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Random;
 
 public class LootChestManager {
 
@@ -29,22 +29,20 @@ public class LootChestManager {
     private CooldownManager cooldownManager;
     private final PotionManager potionManager; // New field
 
-
     // Each chest’s data (ID -> ChestData)
-    private final Map<Integer, ChestData> chestsById = new HashMap<>();
+    private final List<ChestData> chestDataList = new ArrayList<>();
 
     // Track where we actually spawned each chest. chestId -> location
-    private final Map<Integer, Location> spawnedChests = new HashMap<>();
+    private final java.util.Map<Integer, Location> spawnedChests = new java.util.HashMap<>();
 
     // For continuous particles: chestId -> repeating task
-    private final Map<Integer, org.bukkit.scheduler.BukkitTask> chestParticleTasks = new HashMap<>();
+    private final java.util.Map<Integer, org.bukkit.scheduler.BukkitTask> chestParticleTasks = new java.util.HashMap<>();
 
     public LootChestManager(JavaPlugin plugin, ConfigManager configManager, CooldownManager cooldownManager, PotionManager potionManager) {
         this.plugin = plugin;
         this.configManager = configManager;
         this.cooldownManager = cooldownManager;
         this.potionManager = potionManager; // assign it here
-
 
         loadChestDataFromConfig();
         spawnAllChestsOnStartup();
@@ -72,7 +70,7 @@ public class LootChestManager {
                 int tier = root.getInt(key + ".tier", 1);
 
                 ChestData data = new ChestData(chestId, x, y, z, tier);
-                chestsById.put(chestId, data);
+                chestDataList.add(data);
             } catch (Exception e) {
                 plugin.getLogger().warning("Error loading chest ID: " + key);
             }
@@ -81,7 +79,7 @@ public class LootChestManager {
 
     // 2) Spawn all on startup
     private void spawnAllChestsOnStartup() {
-        for (ChestData data : chestsById.values()) {
+        for (ChestData data : chestDataList) {
             spawnChest(data);
         }
     }
@@ -107,8 +105,6 @@ public class LootChestManager {
         startParticleTask(data.getChestId(), loc, data.getTier());
         chestState.getBlockInventory().setItem(randomSlot, loot);
     }
-
-
 
     private void startParticleTask(int chestId, Location loc, int tier) {
         cancelParticleTask(chestId);
@@ -150,7 +146,13 @@ public class LootChestManager {
     public void respawnChest(int chestId) {
         plugin.getLogger().info("[LootChestManager] respawnChest called for chest " + chestId);
 
-        ChestData data = chestsById.get(chestId);
+        ChestData data = null;
+        for (ChestData cd : chestDataList) {
+            if (cd.getChestId() == chestId) {
+                data = cd;
+                break;
+            }
+        }
         if (data == null) {
             plugin.getLogger().info("[LootChestManager] No ChestData found for chest " + chestId
                 + "; cannot respawn!");
@@ -161,25 +163,23 @@ public class LootChestManager {
         plugin.getLogger().info("[LootChestManager] Finished respawnChest for chest " + chestId);
     }
 
-
     // For the /lootchest list command
     public Collection<ChestData> getAllChestData() {
-        return chestsById.values();
+        return chestDataList;
     }
 
     // So we can add new data via a command
     public void addChestData(ChestData data) {
-        chestsById.put(data.getChestId(), data);
+        chestDataList.add(data);
     }
 
     public JavaPlugin getPlugin() {
         return plugin;
     }
 
-
     // Check if a given location belongs to a spawned chest
     public Integer getChestIdAtLocation(Location location) {
-        for (Map.Entry<Integer, Location> entry : spawnedChests.entrySet()) {
+        for (java.util.Map.Entry<Integer, Location> entry : spawnedChests.entrySet()) {
             if (entry.getValue().equals(location)) {
                 return entry.getKey();
             }
@@ -190,7 +190,6 @@ public class LootChestManager {
     public CooldownManager getCooldownManager() {
         return cooldownManager;
     }
-
 
     public ItemStack getRandomLootForTier(int tier) {
         // Example: 20% chance to drop a potion
@@ -259,8 +258,29 @@ public class LootChestManager {
             return null; // No matching custom item: chest gets no loot
         }
 
-        // Pick one custom item at random
+        // Pick one custom item at random from the templates
+        // Pick one custom item at random from the templates
         CustomItem chosen = matching.get(new Random().nextInt(matching.size()));
-        return ItemUtil.createItemStackFromCustomItem(chosen, 1, null);
+
+// Create a new unique instance based on the chosen template using the 12-parameter constructor
+        CustomItem newInstance = new CustomItem(
+            chosen.getId(),
+            chosen.getBaseName(),
+            chosen.getRarity(),
+            chosen.getLevelRequirement(),
+            chosen.getClassRequirement(),
+            chosen.getMaterial(),
+            chosen.getHp(),
+            chosen.getDef(),
+            chosen.getStr(),
+            chosen.getAgi(),
+            chosen.getIntel(),
+            chosen.getDex()
+        );
+// Register the new instance so it's tracked properly
+        ItemManager.getInstance().addInstance(newInstance);
+
+        return ItemUtil.createItemStackFromCustomItem(newInstance, 1, null);
+
     }
 }

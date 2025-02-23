@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public class MerchantGUI implements Listener {
     private final Inventory inventory;
@@ -173,7 +174,6 @@ public class MerchantGUI implements Listener {
         }
     }
 
-
     // Handle clicks so that items aren’t taken and purchases are processed.
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
@@ -198,9 +198,28 @@ public class MerchantGUI implements Listener {
                 player.sendMessage(ChatColor.RED + "Transaction failed: " + ex.getMessage());
                 return;
             }
+            // Instead of using the template directly, create a new instance
             CustomItem template = ItemManager.getInstance().getTemplateById(mItem.getItemId());
             if (template != null) {
-                ItemStack purchasedItem = ItemUtil.createItemStackFromCustomItem(template, mItem.getAmount(), player);
+                CustomItem newInstance = new CustomItem(
+                    UUID.randomUUID(), // Generate a new unique UUID
+                    template.getId(),
+                    template.getBaseName(),
+                    template.getRarity(),
+                    template.getLevelRequirement(),
+                    template.getClassRequirement(),
+                    template.getMaterial(),
+                    template.getHp(),
+                    template.getDef(),
+                    template.getStr(),
+                    template.getAgi(),
+                    template.getIntel(),
+                    template.getDex(),
+                    0 // Starting upgrade level
+                );
+                // Register the new instance so it's tracked
+                ItemManager.getInstance().addInstance(newInstance);
+                ItemStack purchasedItem = ItemUtil.createItemStackFromCustomItem(newInstance, mItem.getAmount(), player);
                 player.getInventory().addItem(purchasedItem);
                 player.sendMessage(ChatColor.GREEN + "You purchased " +
                     purchasedItem.getItemMeta().getDisplayName() + ChatColor.GREEN +
