@@ -6,7 +6,7 @@ import org.bukkit.World;
 
 public class ChestData {
 
-    private static final String WORLD_NAME = "rpgworld";
+    private static final String WORLD_NAME = "MmoRPG";
 
     private final int chestId;
     private final double x;

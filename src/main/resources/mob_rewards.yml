@@ -20,3 +20,115 @@ mobs:
       - itemid: 2
         drop_rate: 20.0
         quantity: "1-1"
+  City_Resident:
+    exp: 10
+    coins: "5-20"
+    items:
+      - itemid: 1
+        drop_rate: 10.0
+        quantity: "1-1"
+      - itemid: 5
+        drop_rate: 5.0
+        quantity: "1-1"
+
+  City_Guard:
+    exp: 150
+    coins: "100-200"
+    items:
+      - itemid: 6
+        drop_rate: 15.0
+        quantity: "1-1"
+      - itemid: 10
+        drop_rate: 5.0
+        quantity: "1-1"
+
+  City_Archer:
+    exp: 120
+    coins: "80-150"
+    items:
+      - itemid: 8
+        drop_rate: 12.0
+        quantity: "1-1"
+      - itemid: 10
+        drop_rate: 4.0
+        quantity: "1-1"
+
+  Wild_Rooster:
+    exp: 5
+    coins: "2-5"
+    items:
+      - itemid: 1
+        drop_rate: 8.0
+        quantity: "1-1"
+
+  Flowery_Slime:
+    exp: 15
+    coins: "5-10"
+    items:
+      - itemid: 1
+        drop_rate: 10.0
+        quantity: "1-1"
+
+  Timberbud:
+    exp: 30
+    coins: "10-20"
+    items:
+      - itemid: 2
+        drop_rate: 12.0
+        quantity: "1-1"
+
+  Angry_Hunter:
+    exp: 50
+    coins: "20-50"
+    items:
+      - itemid: 3
+        drop_rate: 15.0
+        quantity: "1-1"
+      - itemid: 5
+        drop_rate: 7.0
+        quantity: "1-1"
+
+  Crazed_Bandit:
+    exp: 100
+    coins: "50-100"
+    items:
+      - itemid: 6
+        drop_rate: 15.0
+        quantity: "1-1"
+      - itemid: 7
+        drop_rate: 10.0
+        quantity: "1-1"
+
+  Canyon_Miner:
+    exp: 200
+    coins: "150-250"
+    items:
+      - itemid: 10
+        drop_rate: 12.0
+        quantity: "1-1"
+      - itemid: 12
+        drop_rate: 8.0
+        quantity: "1-1"
+
+  Drunken_Miner:
+    exp: 300
+    coins: "200-400"
+    items:
+      - itemid: 15
+        drop_rate: 10.0
+        quantity: "1-1"
+      - itemid: 17
+        drop_rate: 6.0
+        quantity: "1-1"
+
+  Drunken_Woodcutter:
+    exp: 250
+    coins: "180-350"
+    items:
+      - itemid: 11
+        drop_rate: 12.0
+        quantity: "1-1"
+      - itemid: 14
+        drop_rate: 8.0
+        quantity: "1-1"
+

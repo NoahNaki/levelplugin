@@ -16,7 +16,7 @@ public class ClassMenu {
         // Create an inventory with 27 slots
         Inventory inv = Bukkit.createInventory(null, 27, ChatColor.DARK_GREEN + "Choose Your Class");
 
-        // Add class selection items with lore
+        // Warrior (using wooden shovel as icon)
         inv.setItem(10, createMenuItem(Material.WOODEN_SHOVEL, ChatColor.GREEN + "" + ChatColor.BOLD + "Start As A Warrior!",
             Arrays.asList(
                 "",
@@ -24,22 +24,24 @@ public class ClassMenu {
                 ChatColor.GREEN + "WARRIOR" + ChatColor.GRAY + "! Your starting item will be a sword.",
                 "",
                 ChatColor.RED + "" + ChatColor.BOLD + "ABILITY 1:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Taunt " + ChatColor.GRAY + "Force enemies to focus their attention on you,",
-                ChatColor.GRAY + "drawing their attacks away from your allies.",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Iron Fortress " + ChatColor.GRAY +
+                    "(Combo: RLR, Cost: 15, Cooldown: 3s)",
                 ChatColor.YELLOW + "" + ChatColor.BOLD + "ABILITY 2:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Berserk " + ChatColor.GRAY + "Enter a frenzied state, enhancing your attack",
-                ChatColor.GRAY + "speed and damage output for a limited time.",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Heroic Leap " + ChatColor.GRAY +
+                    "(Combo: RRR, Cost: 10, Cooldown: 15s, Multiplier: 1.2)",
                 ChatColor.BLUE + "" + ChatColor.BOLD + "ABILITY 3:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Shield Bash " + ChatColor.GRAY + "Stun and knock back enemies with a forceful",
-                ChatColor.GRAY + "shield bash, creating space in the heat of battle.",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Uppercut " + ChatColor.GRAY +
+                    "(Combo: RRL, Cost: 15, Extra: 4, Cooldown: 10s, Multiplier: 1.3)",
                 ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "ABILITY 4:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Piercing Strike " + ChatColor.GRAY + "Unleash a powerful, armor-piercing blow,",
-                ChatColor.GRAY + "dealing massive damage to a single target.",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Ground Slam " + ChatColor.GRAY +
+                    "(Combo: RLL, Cost: 14, Cooldown: 8s, Multiplier: 1.5)",
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
                 "",
                 ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
             )));
+
+        // Archer (using bow as icon)
         inv.setItem(12, createMenuItem(Material.BOW, ChatColor.YELLOW + "" + ChatColor.BOLD + "Start As An Archer!",
             Arrays.asList(
                 "",
@@ -47,22 +49,24 @@ public class ClassMenu {
                 ChatColor.YELLOW + "ARCHER" + ChatColor.GRAY + "! Your starting item will be a bow.",
                 "",
                 ChatColor.RED + "" + ChatColor.BOLD + "ABILITY 1:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Volley " + ChatColor.GRAY + "Rain a volley of arrows on a designated area,",
-                ChatColor.GRAY + "hitting multiple targets with a spread of projectiles.",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Power Shot " + ChatColor.GRAY +
+                    "(Combo: LLR, Cost: 12, Cooldown: 3s, Multiplier: 2.0)",
                 ChatColor.YELLOW + "" + ChatColor.BOLD + "ABILITY 2:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Hawk's Eye " + ChatColor.GRAY + "Enhance your vision, allowing you to spot",
-                ChatColor.GRAY + "hidden enemies and weak points in their armor.",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Explosive Arrow " + ChatColor.GRAY +
+                    "(Combo: LRR, Cost: 15, Cooldown: 8s, Multiplier: 1.5)",
                 ChatColor.BLUE + "" + ChatColor.BOLD + "ABILITY 3:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Camouflage " + ChatColor.GRAY + "Blend into the surroundings, becoming",
-                ChatColor.GRAY + "temporarily invisible to enemies.",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Grapple Hook " + ChatColor.GRAY +
+                    "(Combo: LLL, Cost: 8, Cooldown: 10s)",
                 ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "ABILITY 4:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Precision Shot " + ChatColor.GRAY + "Take careful aim and unleash a highly",
-                ChatColor.GRAY + "accurate shot, dealing critical damage.",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Arrow Storm " + ChatColor.GRAY +
+                    "(Combo: LRL, Cost: 20, Cooldown: 15s, Multiplier: 0.5)",
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
                 "",
                 ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
             )));
+
+        // Mage (using stick as icon)
         inv.setItem(14, createMenuItem(Material.STICK, ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "Start As A Mage!",
             Arrays.asList(
                 "",
@@ -70,22 +74,24 @@ public class ClassMenu {
                 ChatColor.LIGHT_PURPLE + "MAGE" + ChatColor.GRAY + "! Your starting item will be a magical staff.",
                 "",
                 ChatColor.RED + "" + ChatColor.BOLD + "ABILITY 1:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Fireball Barrage " + ChatColor.GRAY + "Unleash a rapid series of fireballs,",
-                ChatColor.GRAY + "scorching enemies in your path.",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Meteor " + ChatColor.GRAY +
+                    "(Combo: RLL, Cost: 20, Cooldown: 3s, Multiplier: 2.5)",
                 ChatColor.YELLOW + "" + ChatColor.BOLD + "ABILITY 2:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Black Hole " + ChatColor.GRAY + "Create a gravitational well that pulls in",
-                ChatColor.GRAY + "enemies, dealing damage and disrupting their positions.",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Blackhole " + ChatColor.GRAY +
+                    "(Combo: RRL, Cost: 18, Cooldown: 15s)",
                 ChatColor.BLUE + "" + ChatColor.BOLD + "ABILITY 3:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Teleportation " + ChatColor.GRAY + "Blink to a nearby location, evading danger",
-                ChatColor.GRAY + "or repositioning strategically.",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Heal " + ChatColor.GRAY +
+                    "(Combo: RLR, Cost: 15, Cooldown: 8s)",
                 ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "ABILITY 4:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Thunderstorm " + ChatColor.GRAY + "Call down a powerful lightning storm,",
-                ChatColor.GRAY + "dealing area-of-effect damage to all nearby foes.",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Teleport " + ChatColor.GRAY +
+                    "(Combo: RRR, Cost: 10, Cooldown: 10s)",
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
                 "",
                 ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
             )));
+
+        // Rogue (using iron sword as icon)
         inv.setItem(16, createMenuItem(Material.IRON_SWORD, ChatColor.RED + "" + ChatColor.BOLD + "Start As A Rogue!",
             Arrays.asList(
                 "",
@@ -93,23 +99,22 @@ public class ClassMenu {
                 ChatColor.RED + "ROGUE" + ChatColor.GRAY + "! Your starting item will be a dagger.",
                 "",
                 ChatColor.RED + "" + ChatColor.BOLD + "ABILITY 1:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Backstab " + ChatColor.GRAY + "Deliver a devastating strike from behind,",
-                ChatColor.GRAY + "dealing bonus critical damage.",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Shadow Step " + ChatColor.GRAY +
+                    "(Combo: RLL, Cost: 12, Cooldown: 3s, Multiplier: 1.3)",
                 ChatColor.YELLOW + "" + ChatColor.BOLD + "ABILITY 2:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Shadow Dash " + ChatColor.GRAY + "Dash forward at incredible speed,",
-                ChatColor.GRAY + "closing the distance to your target instantly.",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Blade Fury " + ChatColor.GRAY +
+                    "(Combo: RRL, Cost: 15, Cooldown: 8s, Multiplier: 1.5)",
                 ChatColor.BLUE + "" + ChatColor.BOLD + "ABILITY 3:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Vanish " + ChatColor.GRAY + "Disappear into the shadows, becoming",
-                ChatColor.GRAY + "invisible to enemies for a short time.",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Dagger Throw " + ChatColor.GRAY +
+                    "(Combo: RLR, Cost: 10, Cooldown: 10s)",
                 ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "ABILITY 4:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Poisoned Blade " + ChatColor.GRAY + "Coat your weapon with poison,",
-                ChatColor.GRAY + "dealing damage over time to struck enemies.",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Vanish " + ChatColor.GRAY +
+                    "(Combo: RRR, Cost: 8, Cooldown: 15s)",
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
                 "",
                 ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
             )));
-
 
         // Fill borders with gray stained glass panes
         ItemStack filler = createFillerItem(Material.GRAY_STAINED_GLASS_PANE, " ");
@@ -137,7 +142,7 @@ public class ClassMenu {
     }
 
     private static ItemStack createFillerItem(Material material, String space) {
-        ItemStack filler = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+        ItemStack filler = new ItemStack(material);
         ItemMeta meta = filler.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(" "); // Blank display name

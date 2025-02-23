@@ -30,6 +30,7 @@ import me.nakilex.levelplugin.player.listener.PlayerKillListener;
 import me.nakilex.levelplugin.player.utils.ArrowUtils;
 import me.nakilex.levelplugin.potions.listeners.PotionUseListener;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
+import me.nakilex.levelplugin.salvage.listeners.SalvageListener;
 import me.nakilex.levelplugin.trade.listeners.PlayerRightClicksPlayerListener;
 import me.nakilex.levelplugin.utils.*;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -84,6 +85,7 @@ public class ListenerRegistry {
         pm.registerEvents(new ArcherDoubleJumpListener(), plugin);
         pm.registerEvents(new InventoryOpenCustomItemListener(), plugin);
         pm.registerEvents(new CustomItemUpdateListener(), plugin);
+        pm.registerEvents(new SalvageListener(economyManager), plugin);
 
 
 

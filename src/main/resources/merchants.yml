@@ -145,3 +145,12 @@ merchants:
         item_id: 35   # Steel Armor (Rare, Tier 4)
         amount: 1
         cost: 220
+
+  potion_merchant:
+    title: "Alchemist's Brew"
+    size: 54
+    items:
+      - slot: 10   # ✅ Correct (Integer)
+        item_id: "healing_potion"
+        amount: 1
+        cost: 50   # ✅ Correct (Integer)

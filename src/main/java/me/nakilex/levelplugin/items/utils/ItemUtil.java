@@ -155,36 +155,36 @@ public class ItemUtil {
         List<String> lore = new ArrayList<>();
         lore.add(""); // Blank line for spacing
 
-//        // --- Level Requirement ---
-//        int playerLevel = (player != null) ? LevelManager.getInstance().getLevel(player) : 0;
-//        String levelRequirementLine;
-//        if (player == null) {
-//            levelRequirementLine = ChatColor.GRAY + "Level Requirement: " + cItem.getLevelRequirement();
-//        } else if (playerLevel < cItem.getLevelRequirement()) {
-//            levelRequirementLine = ChatColor.RED + "✘ " + ChatColor.GRAY + "Level Requirement: " + ChatColor.WHITE + cItem.getLevelRequirement();
-//        } else {
-//            levelRequirementLine = ChatColor.GREEN + "✔ " + ChatColor.GRAY + "Level Requirement: " + ChatColor.WHITE + cItem.getLevelRequirement();
-//        }
-//        lore.add(levelRequirementLine);
+        // --- Level Requirement ---
+        int playerLevel = (player != null) ? LevelManager.getInstance().getLevel(player) : 0;
+        String levelRequirementLine;
+        if (player == null) {
+            levelRequirementLine = ChatColor.GRAY + "Level Requirement: " + cItem.getLevelRequirement();
+        } else if (playerLevel < cItem.getLevelRequirement()) {
+            levelRequirementLine = ChatColor.RED + "✘ " + ChatColor.GRAY + "Level Requirement: " + ChatColor.WHITE + cItem.getLevelRequirement();
+        } else {
+            levelRequirementLine = ChatColor.GREEN + "✔ " + ChatColor.GRAY + "Level Requirement: " + ChatColor.WHITE + cItem.getLevelRequirement();
+        }
+        lore.add(levelRequirementLine);
 
         // --- Class Requirement ---
-//        if (cItem.getClassRequirement() != null && !cItem.getClassRequirement().equalsIgnoreCase("ANY")) {
-//            String rawClassReq = cItem.getClassRequirement();
-//            String classReq = rawClassReq.substring(0, 1).toUpperCase() + rawClassReq.substring(1).toLowerCase();
-//            String classRequirementLine;
-//            if (player == null) {
-//                classRequirementLine = ChatColor.GRAY + "Class Requirement: " + classReq;
-//            } else {
-//                PlayerClass playerClass = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass;
-//                if (playerClass.name().equalsIgnoreCase(classReq)) {
-//                    classRequirementLine = ChatColor.GREEN + "✔ " + ChatColor.GRAY + "Class Requirement: " + ChatColor.WHITE + classReq;
-//                } else {
-//                    classRequirementLine = ChatColor.RED + "✘ " + ChatColor.GRAY + "Class Requirement: " + ChatColor.WHITE + classReq;
-//                }
-//            }
-//            lore.add(classRequirementLine);
-//        }
-//        lore.add(""); // Blank line for spacing
+        if (cItem.getClassRequirement() != null && !cItem.getClassRequirement().equalsIgnoreCase("ANY")) {
+            String rawClassReq = cItem.getClassRequirement();
+            String classReq = rawClassReq.substring(0, 1).toUpperCase() + rawClassReq.substring(1).toLowerCase();
+            String classRequirementLine;
+            if (player == null) {
+                classRequirementLine = ChatColor.GRAY + "Class Requirement: " + classReq;
+            } else {
+                PlayerClass playerClass = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass;
+                if (playerClass.name().equalsIgnoreCase(classReq)) {
+                    classRequirementLine = ChatColor.GREEN + "✔ " + ChatColor.GRAY + "Class Requirement: " + ChatColor.WHITE + classReq;
+                } else {
+                    classRequirementLine = ChatColor.RED + "✘ " + ChatColor.GRAY + "Class Requirement: " + ChatColor.WHITE + classReq;
+                }
+            }
+            lore.add(classRequirementLine);
+        }
+        lore.add(""); // Blank line for spacing
 
         // --- Stats Information ---
         if (cItem.getHp() != 0)

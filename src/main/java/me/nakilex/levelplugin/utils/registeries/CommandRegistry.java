@@ -21,6 +21,7 @@ import me.nakilex.levelplugin.player.level.commands.SetLevelCommand;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.potions.commands.AddPotionCommand;
 import me.nakilex.levelplugin.lootchests.commands.LootChestCommand;
+import me.nakilex.levelplugin.salvage.commands.SalvageCommand;
 import me.nakilex.levelplugin.storage.StorageManager;
 import me.nakilex.levelplugin.storage.commands.StorageCommand;
 import me.nakilex.levelplugin.trade.commands.TradeCommand;
@@ -68,6 +69,8 @@ public class CommandRegistry {
         plugin.getCommand("duel").setExecutor(new DuelCommand());
         plugin.getCommand("ps").setExecutor(new StorageCommand(storageManager));
         plugin.getCommand("merchant").setExecutor(new MerchantCommand(plugin));
+        plugin.getCommand("salvage").setExecutor(new SalvageCommand(plugin));
+
 
 
 

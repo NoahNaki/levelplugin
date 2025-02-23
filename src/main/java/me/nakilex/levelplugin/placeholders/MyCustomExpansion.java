@@ -4,6 +4,7 @@ import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.party.Party;
 import me.nakilex.levelplugin.party.PartyManager;
+import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import org.bukkit.entity.Player;
 
 import java.util.List;
@@ -47,7 +48,7 @@ public class MyCustomExpansion extends PlaceholderExpansion {
      */
     @Override
     public String getAuthor() {
-        return "YourName";
+        return "Nakilex"; // Update with your actual name
     }
 
     /**
@@ -84,6 +85,13 @@ public class MyCustomExpansion extends PlaceholderExpansion {
             return formatBalance(balance);
         }
 
+        if (identifier.equalsIgnoreCase("level")) {
+            LevelManager levelManager = LevelManager.getInstance();
+            if (levelManager == null) return "1"; // Default level if LevelManager isn't initialized
+            return String.valueOf(levelManager.getLevel(player));
+        }
+
+
         if (identifier.startsWith("party_member_")) {
             String slotString = identifier.substring("party_member_".length()); // e.g. "1"
             int slot;
@@ -111,13 +119,14 @@ public class MyCustomExpansion extends PlaceholderExpansion {
                 return "";
             }
 
+            // Retrieve the member's level using LevelManager
+            LevelManager levelManager = LevelManager.getInstance();
+            int memberLevel = (levelManager != null) ? levelManager.getLevel(member) : 1;
             double hp = member.getHealth();
-            // Make the HP and heart red
-            // e.g. "Nakilex &c20 ❤"
-            return member.getName() + " &c" + (int) hp + " ❤";
+
+            // Return string with level prefix "[Lv. X] "
+            return "&7["+memberLevel+ "]&f " + member.getName() + " &c" + (int) hp + " ❤";
         }
-
-
         return null;
     }
 

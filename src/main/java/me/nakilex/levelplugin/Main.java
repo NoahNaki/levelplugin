@@ -206,7 +206,6 @@ public class Main extends JavaPlugin {
     }
 
 
-
     private boolean validateDependencies() {
         if (!getServer().getPluginManager().isPluginEnabled("Citizens")) {
             getLogger().severe("Citizens is installed but disabled! Check for errors.");
@@ -254,6 +253,10 @@ public class Main extends JavaPlugin {
         return plugin;
     }
 
+    public PotionManager getPotionManager() {
+        return potionManager;
+    }
+
     @Override
     public FileConfiguration getConfig() {
         return plugin.getConfig();
@@ -279,7 +282,9 @@ public class Main extends JavaPlugin {
         return configValues;
     }
 
-    public StorageEvents getStorageEvents() { return storageEvents; }
+    public StorageEvents getStorageEvents() {
+        return storageEvents;
+    }
 
     public DealMaker getDealMaker() {
         return dealMaker;
