@@ -50,6 +50,7 @@ public class StatsManager {
         return statsMap.computeIfAbsent(uuid, k -> new PlayerStats());
     }
 
+
     public void addSkillPoints(UUID uuid, int points) {
         PlayerStats ps = getPlayerStats(uuid);
         ps.skillPoints += points;

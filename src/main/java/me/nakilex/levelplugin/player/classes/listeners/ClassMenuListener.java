@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.player.classes.listeners;
 
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -37,8 +38,11 @@ public class ClassMenuListener implements Listener {
             return;
         }
 
-        // Get the display name of the clicked item
+        // Get the display name of the clicked item, stripping colors
         String displayName = ChatColor.stripColor(clickedItem.getItemMeta().getDisplayName());
+
+        // Debug: Log the item the player clicked
+        Bukkit.getLogger().info("[ClassMenuListener] " + player.getName() + " clicked on: " + displayName);
 
         if (displayName == null) {
             return;
@@ -67,11 +71,21 @@ public class ClassMenuListener implements Listener {
                 break;
             default:
                 player.sendMessage(ChatColor.RED + "Invalid class selection.");
+                Bukkit.getLogger().info("[ClassMenuListener] " + player.getName() + " clicked an invalid class item: " + displayName);
                 return;
         }
 
         if (selectedClass != null) {
+            // Debug: show what class they had before
+            PlayerClass oldClass = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass;
+            Bukkit.getLogger().info("[ClassMenuListener] " + player.getName() + " old class was: " + oldClass);
+
+            // Set the new class
             StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass = selectedClass;
+
+            // Debug: confirm the new class
+            Bukkit.getLogger().info("[ClassMenuListener] " + player.getName() + " new class is: " + selectedClass);
+
             player.sendMessage(ChatColor.DARK_GRAY + "[" + ChatColor.GOLD + "Class Selection" + ChatColor.DARK_GRAY + "] "
                 + ChatColor.GREEN + "You have selected " + ChatColor.AQUA + className + ChatColor.GREEN + "!");
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);

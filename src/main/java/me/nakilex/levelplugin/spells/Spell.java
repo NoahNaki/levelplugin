@@ -65,6 +65,8 @@ public class Spell {
         return levelReq;
     }
 
+    public String getCombo() {return combo; }
+
     public List<Material> getAllowedWeapons() {
         return allowedWeapons;
     }
