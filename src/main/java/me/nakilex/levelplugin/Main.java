@@ -102,9 +102,12 @@ public class Main extends JavaPlugin {
         storageEvents = new StorageEvents();    // Create it here
         getServer().getPluginManager().registerEvents(storageEvents, this);
 
+
         playerConfig = new PlayerConfig(this);
         playerConfig.loadAllPlayers();
 
+
+        CitizensAPI.getTraitFactory().registerTrait(net.citizensnpcs.api.trait.TraitInfo.create(MetadataTrait.class).withName("MetadataTrait"));
         // Setup custom configurations like mob_rewards.yml
         setupCustomConfig();
 

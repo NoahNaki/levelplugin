@@ -19,13 +19,13 @@ public class ArcherSpell {
     public void castArcherSpell(Player player, String effectKey) {
         switch (effectKey.toUpperCase()) {
             case "POWER_SHOT":
-                castPowerShot(player);
+                //castPowerShot(player);
                 break;
             case "ARROW_STORM":
                 castArrowStorm(player);
                 break;
             case "EXPLOSIVE_ARROW":
-                castExplosiveArrow(player);
+                //castExplosiveArrow(player);
                 break;
             case "GRAPPLE_HOOK":
                 castGrappleHook(player);
@@ -81,10 +81,15 @@ public class ArcherSpell {
 
                         for (Entity entity : arrow.getNearbyEntities(1, 1, 1)) {
                             if (entity instanceof LivingEntity && entity != player) {
+                                // Duel check: if the entity is a Player, ensure they're in a duel with the caster.
+                                if (entity instanceof Player) {
+                                    if (!DuelManager.getInstance().areInDuel(player.getUniqueId(), ((Player) entity).getUniqueId())) {
+                                        continue; // Skip if not in a duel.
+                                    }
+                                }
+
                                 LivingEntity target = (LivingEntity) entity;
-
                                 target.damage(damage, player);
-
                                 target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 1)); // Slow for 2 seconds
                             }
                         }
@@ -94,6 +99,8 @@ public class ArcherSpell {
             }
         }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, duration / arrowCount); // Spread out arrow spawns
     }
+
+
 
 
     private void castExplosiveArrow(Player player) {
