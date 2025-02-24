@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.player.listener;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.spells.MageSpell;
 import me.nakilex.levelplugin.spells.Spell;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
@@ -8,11 +9,14 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStats;
 import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Arrow;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerAnimationType;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -212,21 +216,53 @@ public class ClickComboListener implements Listener {
         if (bowCooldowns.containsKey(playerId)) {
             long lastShotTime = bowCooldowns.get(playerId);
             if (currentTime - lastShotTime < BOW_SHOT_COOLDOWN) {
-                return; // Prevent shooting
+                return; // Prevent shooting too frequently
             }
         }
 
-        // Launch an arrow immediately
-        player.launchProjectile(org.bukkit.entity.Arrow.class);
+        // Launch an arrow immediately and tag it
+        Arrow arrow = player.launchProjectile(Arrow.class);
+        arrow.setCustomName("BasicArcherArrow");
+        arrow.setCustomNameVisible(false);
 
-        // Add sound and particle effects
+        // Play sound and particle effects
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ARROW_SHOOT, 1f, 1f);
         player.getWorld().spawnParticle(Particle.INSTANT_EFFECT, player.getLocation(), 20, 0.5, 1, 0.5);
 
-        // Record the current time as the last shot time
+        // Record the shot time for cooldown purposes
         bowCooldowns.put(playerId, currentTime);
     }
 
+    @EventHandler
+    public void onProjectileDamage(EntityDamageByEntityEvent event) {
+        // Only handle damage where the target is a Player
+        if (!(event.getEntity() instanceof Player)) return;
+
+        // Check if the damager is an Arrow
+        if (event.getDamager() instanceof Arrow) {
+            Arrow arrow = (Arrow) event.getDamager();
+            // Check if the arrow was tagged as a basic archer arrow
+            if ("BasicArcherArrow".equals(arrow.getCustomName())) {
+                // Ensure the arrow was shot by a Player
+                if (arrow.getShooter() instanceof Player) {
+                    Player shooter = (Player) arrow.getShooter();
+                    Player target = (Player) event.getEntity();
+                    // Only allow damage if shooter and target are in a duel
+                    if (!DuelManager.getInstance().areInDuel(shooter.getUniqueId(), target.getUniqueId())) {
+                        event.setCancelled(true);
+                    }
+                }
+            }
+        }
+    }
+
+    @EventHandler
+    public void onPlayerDamage(EntityDamageEvent event) {
+        if (event.getEntity() instanceof Player) {
+            Player player = (Player) event.getEntity();
+            System.out.println("Player " + player.getName() + " was damaged. Cause: " + event.getCause());
+        }
+    }
 
 
     private void handleSpellCast(Player player, String combo) {

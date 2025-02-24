@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.spells;
 
+import me.nakilex.levelplugin.duels.managers.DuelManager;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.*;
@@ -262,15 +263,14 @@ public class ArcherSpell {
 
         new BukkitRunnable() {
             int arrowsFired = 0;
-
             @Override
             public void run() {
                 if (arrowsFired >= arrowCount) {
                     cancel();
                     return;
                 }
-
                 Arrow arrow = player.launchProjectile(Arrow.class);
+                arrow.setDamage(0);  // Prevent default damage
                 Vector direction = player.getLocation().getDirection().clone();
                 direction.add(new Vector((Math.random() - 0.5) * spread, (Math.random() - 0.5) * spread, (Math.random() - 0.5) * spread));
                 arrow.setVelocity(direction.multiply(2));
@@ -285,11 +285,14 @@ public class ArcherSpell {
                             cancel();
                             return;
                         }
-
                         arrow.getWorld().spawnParticle(Particle.CRIT, arrow.getLocation(), 5, 0.1, 0.1, 0.1);
-
                         for (Entity entity : arrow.getNearbyEntities(1, 1, 1)) {
                             if (entity instanceof LivingEntity && entity != player) {
+                                if (entity instanceof Player) {
+                                    if (!DuelManager.getInstance().areInDuel(player.getUniqueId(), entity.getUniqueId())) {
+                                        continue; // Skip if not in a duel.
+                                    }
+                                }
                                 LivingEntity target = (LivingEntity) entity;
                                 target.damage(damage, player);
                                 arrow.remove();
@@ -301,7 +304,6 @@ public class ArcherSpell {
                 }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 1L);
                 arrowsFired++;
             }
-        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 5L); // Fires one arrow every 5 ticks (0.25 seconds)
+        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 5L);
     }
-
 }
