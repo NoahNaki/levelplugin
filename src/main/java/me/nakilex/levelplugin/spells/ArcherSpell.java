@@ -19,13 +19,13 @@ public class ArcherSpell {
     public void castArcherSpell(Player player, String effectKey) {
         switch (effectKey.toUpperCase()) {
             case "POWER_SHOT":
-                //castPowerShot(player);
+                castPowerShot(player);
                 break;
             case "ARROW_STORM":
                 castArrowStorm(player);
                 break;
             case "EXPLOSIVE_ARROW":
-                //castExplosiveArrow(player);
+                castExplosiveArrow(player);
                 break;
             case "GRAPPLE_HOOK":
                 castGrappleHook(player);

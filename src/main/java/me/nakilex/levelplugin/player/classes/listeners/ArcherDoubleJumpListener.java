@@ -32,9 +32,9 @@ public class ArcherDoubleJumpListener implements Listener {
         }
 
         // Only continue if the player is an Archer.
-        if (!isArcher(player)) {
-            return;
-        }
+//        if (!isArcher(player)) {
+//            return;
+//        }
 
         // This event should only be fired in mid-air.
         if (player.isOnGround()) {
@@ -80,9 +80,9 @@ public class ArcherDoubleJumpListener implements Listener {
         Player player = event.getPlayer();
 
         // Only process if the player is an Archer.
-        if (!isArcher(player)) {
-            return;
-        }
+//        if (!isArcher(player)) {
+//            return;
+//        }
 
         // Calculate horizontal movement.
         double dx = event.getTo().getX() - event.getFrom().getX();
@@ -104,11 +104,11 @@ public class ArcherDoubleJumpListener implements Listener {
      * Determines whether the given player is an Archer.
      * Replace this with your actual logic (for example, checking a player manager or a stored property).
      */
-    private boolean isArcher(Player player) {
-        // Example: using a permission.
-        return player.hasPermission("class.archer");
-
-        // Alternatively, if you have a player manager:
-        // return YourPlayerManager.getPlayerClass(player) == PlayerClass.ARCHER;
-    }
+//    private boolean isArcher(Player player) {
+//        // Example: using a permission.
+//        return player.hasPermission("class.archer");
+//
+//        // Alternatively, if you have a player manager:
+//        // return YourPlayerManager.getPlayerClass(player) == PlayerClass.ARCHER;
+//    }
 }
