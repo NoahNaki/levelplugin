@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.utils.registeries;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
+import me.nakilex.levelplugin.doublejump.listeners.DoubleJumpListener;
 import me.nakilex.levelplugin.duels.listeners.DuelListener;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.effects.listeners.StatsEffectListener;
@@ -22,7 +23,6 @@ import me.nakilex.levelplugin.party.PartyChatListener;
 import me.nakilex.levelplugin.party.PartyInviteListener;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.attributes.listeners.StatsMenuListener;
-import me.nakilex.levelplugin.player.classes.listeners.ArcherDoubleJumpListener;
 import me.nakilex.levelplugin.player.classes.listeners.ClassMenuListener;
 import me.nakilex.levelplugin.player.listener.ClickComboListener;
 import me.nakilex.levelplugin.player.listener.PlayerJoinListener;
@@ -83,11 +83,12 @@ public class ListenerRegistry {
         pm.registerEvents(new FallDamageDisabler(), plugin);
         pm.registerEvents(new HungerDisabler(), plugin);
         pm.registerEvents(new DuelListener(), plugin);
-        pm.registerEvents(new ArcherDoubleJumpListener(), plugin);
         pm.registerEvents(new InventoryOpenCustomItemListener(), plugin);
         pm.registerEvents(new CustomItemUpdateListener(), plugin);
         pm.registerEvents(new SalvageListener(economyManager), plugin);
         pm.registerEvents(new SpellGUIListener(), plugin);
+        pm.registerEvents(new DoubleJumpListener(), plugin);
+
 
 
 
