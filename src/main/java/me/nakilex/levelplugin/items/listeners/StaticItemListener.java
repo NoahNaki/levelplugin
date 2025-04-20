@@ -53,11 +53,6 @@ public class StaticItemListener implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-
-        // Set the static items in the hotbar:
-        // Place the Horse Saddle in slot 6 (index 5)
-        // Place the Book in slot 7 (index 6)
-        // Place the Nether Star in slot 9 (index 8)
         player.getInventory().setItem(6, STATIC_HORSE_SADDLE);
         player.getInventory().setItem(7, STATIC_QUEST_BOOK);
         player.getInventory().setItem(8, STATIC_ITEM);
