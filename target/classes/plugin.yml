@@ -78,3 +78,6 @@ commands:
   dmgnumber:
     description: Toggle floating damage‑number holograms on/off
     usage: /<command>
+  dmgchat:
+    description: Toggle damage messages in chat
+    usage: /<command>

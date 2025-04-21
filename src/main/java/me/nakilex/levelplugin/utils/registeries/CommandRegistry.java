@@ -12,6 +12,7 @@ import me.nakilex.levelplugin.horse.gui.HorseGUI;
 import me.nakilex.levelplugin.items.commands.AddItemCommand;
 import me.nakilex.levelplugin.merchants.commands.MerchantCommand;
 import me.nakilex.levelplugin.mob.commands.AddMobCommand;
+import me.nakilex.levelplugin.mob.commands.DmgChatCommand;
 import me.nakilex.levelplugin.mob.commands.DmgNumberCommand;
 import me.nakilex.levelplugin.mob.managers.DmgNumberToggleManager;
 import me.nakilex.levelplugin.mob.managers.MobManager;
@@ -76,5 +77,6 @@ public class CommandRegistry {
         plugin.getCommand("salvage").setExecutor(new SalvageCommand(plugin));
         plugin.getCommand("spells").setExecutor(new SpellCommand());
         plugin.getCommand("dmgnumber").setExecutor(new DmgNumberCommand(dmgToggleManager));
+        plugin.getCommand("dmgchat").setExecutor(new DmgChatCommand());
     }
 }

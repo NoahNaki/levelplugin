@@ -88,6 +88,7 @@ public class ListenerRegistry {
         pm.registerEvents(new SpellGUIListener(), plugin);
         pm.registerEvents(new DoubleJumpListener(), plugin);
         pm.registerEvents(new DamageIndicatorListener(dmgToggleManager), plugin);
+        pm.registerEvents(new DamageChatListener(), plugin);
 
 
         // Register ArrowUtils listener and start cleanup task

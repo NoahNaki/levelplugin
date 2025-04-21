@@ -4,10 +4,12 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
+import me.nakilex.levelplugin.mob.managers.ChatToggleManager;
 import me.nakilex.levelplugin.party.Party;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.listener.ClickComboListener;
+import me.nakilex.levelplugin.spells.managers.SpellContextManager;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Entity;
@@ -30,14 +32,14 @@ public class MageSpell implements Listener {
     private final Main plugin = Main.getInstance();
     private final Logger logger = plugin.getLogger();
 
-    private final Map<UUID, Long> mageBasicCooldown  = new HashMap<>();
+    private final Map<UUID, Long> mageBasicCooldown = new HashMap<>();
     private final Map<UUID, Double> teleportManaCosts = new HashMap<>();
-    private final Map<UUID, Long> lastTeleportTimes  = new HashMap<>();
+    private final Map<UUID, Long> lastTeleportTimes = new HashMap<>();
     private static final Set<UUID> activeBlackholes = new HashSet<>();
 
     private static final double INITIAL_TELEPORT_MANA_COST = 5.0;
-    private static final double TELEPORT_MANA_MULTIPLIER    = 1.2;
-    private static final long   TELEPORT_RESET_TIME        = 3000L;
+    private static final double TELEPORT_MANA_MULTIPLIER = 1.2;
+    private static final long TELEPORT_RESET_TIME = 3000L;
 
     public void castMageSpell(Player player, String effectKey) {
         try {
@@ -87,17 +89,34 @@ public class MageSpell implements Listener {
         for (int i = 0; i < range; i++) {
             Location current = start.clone().add(direction.clone().multiply(i));
             world.spawnParticle(Particle.CRIT, current, 1, 0, 0, 0, 0);
+
             for (Entity entity : world.getNearbyEntities(current, 0.5, 0.5, 0.5)) {
                 if (entity instanceof LivingEntity && entity != player) {
                     LivingEntity target = (LivingEntity) entity;
                     logger.info("Basic hit entity: " + target.getType() + " at " + current);
+
+                    // Apply damage and knockback
                     target.damage(damage, player);
                     target.setVelocity(direction.clone().multiply(0.2));
                     world.spawnParticle(Particle.DAMAGE_INDICATOR, target.getLocation(), 10, 0.2, 0.2, 0.2, 0.02);
                     world.playSound(target.getLocation(), Sound.ENTITY_PLAYER_HURT, 1f, 1.5f);
+
+                    // Chat output
+                    if (ChatToggleManager.getInstance().isEnabled(player)) {
+                        String spellName = "Basic Mage Attack";
+                        String hitType = "hit";  // spells don't crit by default
+                        String targetName = target.getType().name().substring(0, 1).toUpperCase()
+                            + target.getType().name().substring(1).toLowerCase();
+                        player.sendMessage(String.format(
+                            "%s %s %s for %.1f damage",
+                            spellName, hitType, targetName, damage
+                        ));
+                    }
+
                     return;
                 }
             }
+
             if (current.getBlock().getType().isSolid()) {
                 logger.info("Basic attack hit solid block at " + current);
                 world.spawnParticle(Particle.SMOKE, current, 5, 0.2, 0.2, 0.2, 0.05);
@@ -169,7 +188,14 @@ public class MageSpell implements Listener {
                     if (e instanceof LivingEntity && e != player) {
                         LivingEntity le = (LivingEntity) e;
                         logger.info("Meteor hit entity: " + le.getType());
-                        le.damage(finalDamage, player);
+                        // ← new: record “Meteor” + no crit, then deal damage
+                        SpellContextManager.applySpellDamage(
+                            player,
+                            le,
+                            finalDamage,
+                            "Meteor",
+                            false     // Meteor never crits (or compute your own crit logic)
+                        );
                         le.setFireTicks(100);
                     }
                 }
@@ -187,59 +213,84 @@ public class MageSpell implements Listener {
     }
 
     private void castBlackhole(Player player) throws SpellCastCancelledException {
-        // If any blackhole is currently active, cancel new cast and abort mana deduction
+        // Prevent overlapping blackholes
         if (!activeBlackholes.isEmpty()) {
             String msg = "§cA blackhole is already active!";
             player.sendMessage(msg);
             throw new SpellCastCancelledException(msg);
         }
-
         UUID pid = player.getUniqueId();
-
-        // Register this player's blackhole
         activeBlackholes.add(pid);
-        logger.info("Registered blackhole for player " + player.getName());
 
-        // Gather stats
+        // Compute damage
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(pid);
         double damage = 10.0 + 0.5 * (ps.baseIntelligence + ps.bonusIntelligence);
 
-        // Compute center
-        Location target = player.getEyeLocation().add(player.getLocation().getDirection().multiply(10));
+        // Center + radii
+        Location center = player.getEyeLocation().add(player.getLocation().getDirection().multiply(10));
         double pullRadius   = 5.0;
         double damageRadius = 1.0;
 
+        // VFX/SFX
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_SCREAM, 1f, 1f);
-        createBlackholeEffect(target, pullRadius);
+        createBlackholeEffect(center, pullRadius);
 
-        // Pull and damage task
+        // Pull & damage loop
         new BukkitRunnable() {
             int ticks = 0;
+
             @Override
             public void run() {
                 if (ticks++ >= 50) {
-                    logger.info("Blackhole expired for " + player.getName());
                     activeBlackholes.remove(pid);
                     cancel();
                     return;
                 }
 
-                for (Entity e : player.getWorld().getNearbyEntities(target, pullRadius, pullRadius, pullRadius)) {
+                for (Entity e : player.getWorld().getNearbyEntities(center, pullRadius, pullRadius, pullRadius)) {
                     if (!(e instanceof LivingEntity) || e == player) continue;
-                    if (e instanceof Player && !DuelManager.getInstance().areInDuel(pid, ((Player)e).getUniqueId())) continue;
+                    if (e instanceof Player
+                        && !DuelManager.getInstance().areInDuel(pid, ((Player) e).getUniqueId()))
+                        continue;
 
                     LivingEntity le = (LivingEntity) e;
-                    Vector pullVec = target.toVector().subtract(le.getLocation().toVector()).normalize().multiply(0.2);
+                    // Pull effect
+                    Vector pullVec = center.toVector().subtract(le.getLocation().toVector())
+                        .normalize().multiply(0.2);
                     le.setVelocity(pullVec);
 
-                    if (le.getLocation().distance(target) <= damageRadius) {
-                        le.damage(damage, player);
-                        le.getWorld().spawnParticle(Particle.CRIT, le.getLocation(), 10, 0.2, 0.2, 0.2, 0.02);
+                    // Damage if in range
+                    if (le.getLocation().distance(center) <= damageRadius) {
+                        // --- DEBUG HERE ---
+                        plugin.getLogger().info("[Blackhole] Chat enabled? "
+                            + ChatToggleManager.getInstance().isEnabled(player));
+
+                        // apply damage + chat in one line
+                        SpellContextManager.applySpellDamage(
+                            player,
+                            le,
+                            damage,
+                            "Blackhole",
+                            false   // no crit support here
+                        );
+
+                        le.setFireTicks(100);
+
+                        // we hit one, so don’t keep looping (avoids spamming)
+                        return;
                     }
                 }
 
-                player.getWorld().spawnParticle(Particle.WITCH, target, 10, 0.5, 0.5, 0.5, 0.1);
-                player.getWorld().playSound(target, Sound.BLOCK_BEACON_AMBIENT, 0.5f, 1.2f);
+                // ongoing particles/sound...
+                for (double angle = 0; angle < 360; angle += 10) {
+                    double rad = Math.toRadians(angle);
+                    double x   = pullRadius * Math.cos(rad);
+                    double z   = pullRadius * Math.sin(rad);
+                    Location dust = center.clone().add(x, 0, z)
+                        .add(0, Math.sin(ticks / 10.0) * 0.5, 0);
+                    center.getWorld().spawnParticle(Particle.PORTAL, dust, 1, 0, 0, 0, 0);
+                }
+                center.getWorld().playSound(center, Sound.BLOCK_BEACON_AMBIENT, 0.5f, 1.2f);
             }
         }.runTaskTimer(plugin, 0L, 2L);
     }
@@ -248,6 +299,7 @@ public class MageSpell implements Listener {
     private void createBlackholeEffect(Location center, double radius) {
         new BukkitRunnable() {
             int ticks = 0;
+
             @Override
             public void run() {
                 if (ticks++ >= 50) {
@@ -256,12 +308,12 @@ public class MageSpell implements Listener {
                 }
                 for (double angle = 0; angle < 360; angle += 10) {
                     double rad = Math.toRadians(angle);
-                    double x   = radius * Math.cos(rad);
-                    double z   = radius * Math.sin(rad);
+                    double x = radius * Math.cos(rad);
+                    double z = radius * Math.sin(rad);
                     Location loc = center.clone().add(x, 0, z);
                     loc.add(0, Math.sin(ticks / 10.0) * 0.5, 0);
                     center.getWorld().spawnParticle(Particle.PORTAL, loc, 1, 0, 0, 0, 0);
-                    center.getWorld().spawnParticle(Particle.SMOKE,  loc, 1, 0, 0, 0, 0);
+                    center.getWorld().spawnParticle(Particle.SMOKE, loc, 1, 0, 0, 0, 0);
                 }
                 center.getWorld().spawnParticle(Particle.DRAGON_BREATH, center, 5, 0.2, 0.2, 0.2, 0.02);
             }
@@ -297,7 +349,7 @@ public class MageSpell implements Listener {
         // 3) Apply heal + VFX/SFX + messaging
         for (Player target : toHeal) {
             double maxHp = target.getAttribute(Attribute.MAX_HEALTH).getValue();
-            double newHp  = Math.min(target.getHealth() + amount, maxHp);
+            double newHp = Math.min(target.getHealth() + amount, maxHp);
             target.setHealth(newHp);
 
             // Particles & sound
@@ -320,7 +372,7 @@ public class MageSpell implements Listener {
     }
 
     private void teleportPlayer(Player player, int distance, int particles) {
-        Location target       = player.getLocation().add(player.getLocation().getDirection().multiply(distance));
+        Location target = player.getLocation().add(player.getLocation().getDirection().multiply(distance));
         Location safeLocation = findSafeLocation(target, player);
 
         if (safeLocation != null) {
@@ -342,5 +394,10 @@ public class MageSpell implements Listener {
             }
         }
         return null;
+    }
+
+    private String capitalize(String s) {
+        s = s.toLowerCase();
+        return Character.toUpperCase(s.charAt(0)) + s.substring(1);
     }
 }
