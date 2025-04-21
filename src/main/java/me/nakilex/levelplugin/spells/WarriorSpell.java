@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.spells;
 
 import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.effects.utils.ParticleEffectUtil;
+import me.nakilex.levelplugin.spells.SpellUtils;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.*;
@@ -50,14 +51,11 @@ public class WarriorSpell {
             armorStand.setMarker(true);
             armorStand.setSmall(true);
             armorStand.setGravity(false);
-            armorStand.setSmall(true);
-
-            ItemStack shieldItem = new ItemStack(Material.SHIELD);
-            armorStand.getEquipment().setItemInMainHand(shieldItem);
-
             armorStand.setArms(true);
             armorStand.setRightArmPose(new EulerAngle(Math.toRadians(-90), Math.toRadians(0), Math.toRadians(0)));
 
+            ItemStack shieldItem = new ItemStack(Material.SHIELD);
+            armorStand.getEquipment().setItemInMainHand(shieldItem);
             shields.add(armorStand);
         }
 
@@ -81,8 +79,10 @@ public class WarriorSpell {
                     Location shieldLocation = player.getLocation().clone().add(x, 1, z);
                     shield.teleport(shieldLocation);
 
-                    float yaw = (float) Math.toDegrees(Math.atan2(player.getLocation().getZ() - shieldLocation.getZ(),
-                        player.getLocation().getX() - shieldLocation.getX()));
+                    float yaw = (float) Math.toDegrees(Math.atan2(
+                        player.getLocation().getZ() - shieldLocation.getZ(),
+                        player.getLocation().getX() - shieldLocation.getX())
+                    );
                     shield.setRotation(yaw, 0);
                 }
             }
@@ -94,7 +94,7 @@ public class WarriorSpell {
                 shields.forEach(Entity::remove);
                 shields.clear();
             }
-        }.runTaskLater(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 100L); // 100 ticks = 5 seconds
+        }.runTaskLater(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 100L);
 
         Bukkit.getPluginManager().registerEvents(new Listener() {
             @EventHandler
@@ -104,35 +104,30 @@ public class WarriorSpell {
                 }
 
                 if (!shields.isEmpty()) {
-                    event.setCancelled(true); // Cancel the damage
-
-                    // Remove one shield
+                    event.setCancelled(true);
                     ArmorStand shield = shields.remove(0);
                     shield.getWorld().playSound(shield.getLocation(), Sound.ITEM_SHIELD_BREAK, 1f, 1f);
                     shield.remove();
 
                     if (shields.isEmpty()) {
-                        HandlerList.unregisterAll(this); // Unregister the event listener
+                        HandlerList.unregisterAll(this);
                     }
                 }
             }
         }, Bukkit.getPluginManager().getPlugin("LevelPlugin"));
     }
 
-
     private void castHeroicLeap(Player player) {
         double leapDistance = 15.0;
         double damageRadius = 5.0;
-        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 1.8; // 180% weapon damage
+        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 1.8;
 
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_IRON_GOLEM_ATTACK, 1f, 1f);
 
         Location start = player.getLocation();
         Vector direction = start.getDirection().normalize().multiply(leapDistance);
-        Location target = start.clone().add(direction);
-
-        Vector leapVector = target.toVector().subtract(start.toVector()).normalize().multiply(1.5);
-        leapVector.setY(1.2); // Add vertical velocity
+        Vector leapVector = direction.clone().normalize().multiply(1.5);
+        leapVector.setY(1.2);
         player.setVelocity(leapVector);
 
         player.getWorld().spawnParticle(Particle.FLAME, start, 30, 0.5, 1, 0.5);
@@ -154,7 +149,7 @@ public class WarriorSpell {
                     for (Entity entity : player.getWorld().getNearbyEntities(player.getLocation(), damageRadius, damageRadius, damageRadius)) {
                         if (entity instanceof LivingEntity && entity != player) {
                             LivingEntity target = (LivingEntity) entity;
-                            target.damage(damage, player);
+                            SpellUtils.dealWithChat(player, target, damage, "Heroic Leap");
                             Vector knockback = target.getLocation().toVector().subtract(player.getLocation().toVector()).normalize().multiply(1.5);
                             knockback.setY(0.5);
                             target.setVelocity(knockback);
@@ -164,18 +159,17 @@ public class WarriorSpell {
                     cancel();
                 }
             }
-        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 2L, 1L); // Delay by 2 ticks before starting the ground check
+        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 2L, 1L);
     }
 
     private void castUppercut(Player player) {
-        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 1.3; // 130% weapon damage
+        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 1.3;
         double range = 4.0;
         double knockupStrength = 1.5;
         double knockbackStrength = 0.5;
 
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1.2f);
 
-        // Visual slash effect
         Location startLocation = player.getEyeLocation();
         Vector direction = player.getLocation().getDirection().normalize();
         for (double i = 0; i <= range; i += 0.5) {
@@ -183,30 +177,18 @@ public class WarriorSpell {
             player.getWorld().spawnParticle(Particle.SWEEP_ATTACK, slashLocation, 1, 0.1, 0.2, 0.1, 0.01);
         }
 
-        // Actual damage/knock-up logic
         for (Entity entity : player.getWorld().getNearbyEntities(player.getLocation(), range, range, range)) {
             if (entity instanceof LivingEntity && entity != player) {
                 LivingEntity target = (LivingEntity) entity;
-
-                // 1) If it's a player, check if they're in a duel.
                 if (target instanceof Player) {
                     Player pTarget = (Player) target;
-                    if (!DuelManager.getInstance().areInDuel(player.getUniqueId(), pTarget.getUniqueId())) {
-                        // Not in a duel, skip applying damage/knockup
-                        continue;
-                    }
+                    if (!DuelManager.getInstance().areInDuel(player.getUniqueId(), pTarget.getUniqueId())) continue;
                 }
-
-                // 2) Check angle so we only affect targets in front
                 Vector toTarget = target.getLocation().toVector().subtract(player.getLocation().toVector()).normalize();
                 double angle = direction.angle(toTarget);
-                if (Math.toDegrees(angle) > 45) {
-                    continue;
-                }
+                if (Math.toDegrees(angle) > 45) continue;
 
-                // 3) If we pass the checks, apply damage and knockup
-                target.damage(damage, player);
-
+                SpellUtils.dealWithChat(player, target, damage, "Uppercut");
                 Vector knockup = new Vector(0, knockupStrength, 0).add(direction.clone().multiply(knockbackStrength));
                 target.setVelocity(knockup);
 
@@ -216,10 +198,9 @@ public class WarriorSpell {
         }
     }
 
-
     private void castGroundSlam(Player player) {
         double maxRadius = 10.0;
-        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 1.5; // 150% weapon damage
+        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 1.5;
         int duration = 20;
         int steps = 10;
 
@@ -239,9 +220,9 @@ public class WarriorSpell {
                 currentRadius += maxRadius / steps;
 
                 for (double angle = 0; angle < 360; angle += 10) {
-                    double radians = Math.toRadians(angle);
-                    double x = Math.cos(radians) * currentRadius;
-                    double z = Math.sin(radians) * currentRadius;
+                    double rad = Math.toRadians(angle);
+                    double x = Math.cos(rad) * currentRadius;
+                    double z = Math.sin(rad) * currentRadius;
                     Location rippleLocation = player.getLocation().clone().add(x, 0, z);
 
                     rippleLocation.getWorld().spawnParticle(Particle.BLOCK_CRUMBLE, rippleLocation, 10, 0.2, 0.2, 0.2, 0.1, Material.DIRT.createBlockData());
@@ -250,36 +231,20 @@ public class WarriorSpell {
                     for (Entity entity : rippleLocation.getWorld().getNearbyEntities(rippleLocation, 1, 1, 1)) {
                         if (entity instanceof LivingEntity && entity != player) {
                             LivingEntity target = (LivingEntity) entity;
-
-                            // --- Only apply to players if they're in a duel with the caster ---
                             if (target instanceof Player) {
                                 Player pTarget = (Player) target;
-                                // If not in a duel with the caster, skip both damage & knockback
-                                if (!DuelManager.getInstance().areInDuel(player.getUniqueId(), pTarget.getUniqueId())) {
-                                    continue;
-                                }
+                                if (!DuelManager.getInstance().areInDuel(player.getUniqueId(), pTarget.getUniqueId())) continue;
                             }
-                            // -----------------------------------------------------------------
-
-                            // If it's a non-player or a player in a duel, apply damage & knockback
-                            target.damage(damage, player);
-
-                            Vector knockback = target.getLocation().toVector()
-                                .subtract(player.getLocation().toVector())
-                                .normalize()
-                                .multiply(0.5);
+                            SpellUtils.dealWithChat(player, target, damage, "Ground Slam");
+                            Vector knockback = target.getLocation().toVector().subtract(player.getLocation().toVector()).normalize().multiply(0.5);
                             knockback.setY(0.3);
                             target.setVelocity(knockback);
                         }
                     }
 
-                    // If we hit solid ground, break out of the loop
-                    if (!rippleLocation.getBlock().isPassable()) {
-                        break;
-                    }
+                    if (!rippleLocation.getBlock().isPassable()) break;
                 }
 
-                // Minor sound effect each "wave"
                 player.getWorld().playSound(player.getLocation(), Sound.ENTITY_IRON_GOLEM_ATTACK, 0.5f, 0.8f);
             }
         }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, duration / steps);
