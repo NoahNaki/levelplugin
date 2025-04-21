@@ -75,3 +75,6 @@ commands:
   spells:
     description: Opens the Spells GUI
     usage: /spells
+  dmgnumber:
+    description: Toggle floating damage‑number holograms on/off
+    usage: /<command>
