@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class MageSpell implements Listener {
@@ -41,26 +42,33 @@ public class MageSpell implements Listener {
     private static final long   TELEPORT_RESET_TIME        = 3000L;
 
     public void castMageSpell(Player player, String effectKey) {
-        logger.info("castMageSpell called for player=" + player.getName() + " effectKey=" + effectKey);
-        switch (effectKey.toUpperCase()) {
-            case "METEOR":
-                castMeteor(player);
-                break;
-            case "BLACKHOLE":
-                castBlackhole(player);
-                break;
-            case "HEAL":
-                healPlayer(player, 10);
-                break;
-            case "TELEPORT":
-                teleportPlayer(player, 15, 150);
-                break;
-            case "MAGE_BASIC":
-                mageBasicSkill(player);
-                break;
-            default:
-                logger.warning("Unknown spell key: " + effectKey);
-                player.sendMessage("§eUnknown Mage Spell: " + effectKey);
+        try {
+            logger.info("castMageSpell called for player=" + player.getName() + " effectKey=" + effectKey);
+            switch (effectKey.toUpperCase()) {
+                case "METEOR":
+                    castMeteor(player);
+                    break;
+                case "BLACKHOLE":
+                    castBlackhole(player);
+                    break;
+                case "HEAL":
+                    healPlayer(player, 10);
+                    break;
+                case "TELEPORT":
+                    teleportPlayer(player, 15, 150);
+                    break;
+                case "MAGE_BASIC":
+                    mageBasicSkill(player);
+                    break;
+                default:
+                    logger.warning("Unknown Mage Spell: " + effectKey);
+                    player.sendMessage("§eUnknown Mage Spell: " + effectKey);
+            }
+        } catch (SpellCastCancelledException cancelled) {
+            // Spell cancelled, abort without mana deduction
+            return;
+        } catch (Exception ex) {
+            logger.log(Level.SEVERE, "Error casting mage spell", ex);
         }
     }
 
@@ -173,18 +181,24 @@ public class MageSpell implements Listener {
         }, plugin);
     }
 
-    private void castBlackhole(Player player) {
-        UUID pid = player.getUniqueId();
+    // Custom exception to signal that a spell cast was cancelled and should not consume mana
+    public static class SpellCastCancelledException extends RuntimeException {
+        public SpellCastCancelledException(String message) {
+            super(message);
+        }
+    }
 
-        logger.info("activeBlackholes before check: " + activeBlackholes);
-        logger.info("contains pid? " + activeBlackholes.contains(pid));
-
-        if (activeBlackholes.contains(pid)) {
-            logger.warning("Player " + player.getName() + " tried to cast a second blackhole.");
-            player.sendMessage("§cYou already have a blackhole active!");
-            return;
+    private void castBlackhole(Player player) throws SpellCastCancelledException {
+        // If any blackhole is currently active, cancel new cast and abort mana deduction
+        if (!activeBlackholes.isEmpty()) {
+            String msg = "§cA blackhole is already active!";
+            player.sendMessage(msg);
+            throw new SpellCastCancelledException(msg);
         }
 
+        UUID pid = player.getUniqueId();
+
+        // Register this player's blackhole
         activeBlackholes.add(pid);
         logger.info("Registered blackhole for player " + player.getName());
 
@@ -200,6 +214,7 @@ public class MageSpell implements Listener {
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_SCREAM, 1f, 1f);
         createBlackholeEffect(target, pullRadius);
 
+        // Pull and damage task
         new BukkitRunnable() {
             int ticks = 0;
             @Override
@@ -221,7 +236,7 @@ public class MageSpell implements Listener {
 
                     if (le.getLocation().distance(target) <= damageRadius) {
                         le.damage(damage, player);
-                        le.getWorld().spawnParticle(Particle.CRIT, le.getLocation(), 10, 0.2, 0.2, 0.2);
+                        le.getWorld().spawnParticle(Particle.CRIT, le.getLocation(), 10, 0.2, 0.2, 0.2, 0.02);
                     }
                 }
 
@@ -230,6 +245,7 @@ public class MageSpell implements Listener {
             }
         }.runTaskTimer(plugin, 0L, 2L);
     }
+
 
     private void createBlackholeEffect(Location center, double radius) {
         new BukkitRunnable() {
