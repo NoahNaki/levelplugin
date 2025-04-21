@@ -4,6 +4,8 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
+import me.nakilex.levelplugin.party.Party;
+import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.listener.ClickComboListener;
 import org.bukkit.*;
@@ -19,11 +21,7 @@ import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -271,16 +269,54 @@ public class MageSpell implements Listener {
     }
 
     private void healPlayer(Player player, int baseAmount) {
+        // 1) Compute how much to heal
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
-        int intelligence = ps.baseIntelligence + ps.bonusIntelligence;
-        double scaledHealing = baseAmount + (intelligence * 0.5);
-        double maxHealth     = player.getAttribute(Attribute.MAX_HEALTH).getValue();
-        double newHealth     = Math.min(player.getHealth() + scaledHealing, maxHealth);
+        int intel = ps.baseIntelligence + ps.bonusIntelligence;
+        double amount = baseAmount + (intel * 0.5);
 
-        player.setHealth(newHealth);
-        player.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, player.getLocation(), 30, 1, 1, 1);
-        player.getWorld().playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_HIT, 1f, 1f);
-        player.sendMessage("§aYou have been healed for " + Math.round(scaledHealing) + " health!");
+        // 2) Gather all targets: caster + nearby party members
+        List<Player> toHeal = new ArrayList<>();
+        toHeal.add(player);
+
+        Party party = Main.getInstance()
+            .getPartyManager()
+            .getParty(player.getUniqueId());
+        if (party != null) {
+            for (UUID memberId : party.getMembers()) {
+                if (memberId.equals(player.getUniqueId())) continue;
+                Player member = Bukkit.getPlayer(memberId);
+                if (member != null
+                    && member.isOnline()
+                    && member.getWorld().equals(player.getWorld())
+                    && member.getLocation().distanceSquared(player.getLocation()) <= 10 * 10) {
+                    toHeal.add(member);
+                }
+            }
+        }
+
+        // 3) Apply heal + VFX/SFX + messaging
+        for (Player target : toHeal) {
+            double maxHp = target.getAttribute(Attribute.MAX_HEALTH).getValue();
+            double newHp  = Math.min(target.getHealth() + amount, maxHp);
+            target.setHealth(newHp);
+
+            // Particles & sound
+            target.getWorld().spawnParticle(Particle.HAPPY_VILLAGER,
+                target.getLocation(),
+                30, 1, 1, 1, 0.2);
+            target.getWorld().playSound(target.getLocation(),
+                Sound.BLOCK_AMETHYST_BLOCK_HIT,
+                1f, 1f);
+
+            // Message
+            if (target.equals(player)) {
+                target.sendMessage("§aYou have been healed for " + Math.round(amount) + " health!");
+            } else {
+                target.sendMessage("§a" + player.getName()
+                    + " healed you for "
+                    + Math.round(amount) + " health!");
+            }
+        }
     }
 
     private void teleportPlayer(Player player, int distance, int particles) {
