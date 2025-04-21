@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.spells;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.duels.managers.DuelManager;
+import me.nakilex.levelplugin.effects.listeners.StatsEffectListener;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.mob.managers.ChatToggleManager;
@@ -18,6 +19,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -73,12 +75,13 @@ public class MageSpell implements Listener {
     }
 
     public void mageBasicSkill(Player player) {
-        logger.info("mageBasicSkill triggered by " + player.getName());
-        int range = 20;
+        plugin.getLogger().info("mageBasicSkill triggered by " + player.getName());
+
+        // 1) Compute damage
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
         double damage = 5.0 + ps.baseIntelligence + ps.bonusIntelligence * 0.5;
-        logger.info("Calculated basic damage: " + damage);
 
+        // 2) Raycast setup
         Location start = player.getEyeLocation();
         Vector direction = start.getDirection().normalize();
         World world = player.getWorld();
@@ -86,67 +89,63 @@ public class MageSpell implements Listener {
         world.playSound(start, Sound.ENTITY_GHAST_SHOOT, 1f, 1.2f);
         world.spawnParticle(Particle.END_ROD, start, 5, 0.1, 0.1, 0.1, 0.02);
 
+        int range = 20;
         for (int i = 0; i < range; i++) {
             Location current = start.clone().add(direction.clone().multiply(i));
             world.spawnParticle(Particle.CRIT, current, 1, 0, 0, 0, 0);
 
+            // 3) Hit entity
             for (Entity entity : world.getNearbyEntities(current, 0.5, 0.5, 0.5)) {
-                if (entity instanceof LivingEntity && entity != player) {
-                    LivingEntity target = (LivingEntity) entity;
-                    logger.info("Basic hit entity: " + target.getType() + " at " + current);
+                if (!(entity instanceof LivingEntity) || entity == player) continue;
+                LivingEntity target = (LivingEntity) entity;
 
-                    // Apply damage and knockback
-                    target.damage(damage, player);
-                    target.setVelocity(direction.clone().multiply(0.2));
-                    world.spawnParticle(Particle.DAMAGE_INDICATOR, target.getLocation(), 10, 0.2, 0.2, 0.2, 0.02);
-                    world.playSound(target.getLocation(), Sound.ENTITY_PLAYER_HURT, 1f, 1.5f);
+                // knockback & VFX
+                target.setVelocity(direction.clone().multiply(0.2));
+                world.spawnParticle(Particle.DAMAGE_INDICATOR, target.getLocation(), 10, 0.2, 0.2, 0.2, 0.02);
+                world.playSound(target.getLocation(), Sound.ENTITY_PLAYER_HURT, 1f, 1.5f);
 
-                    // Chat output
-                    if (ChatToggleManager.getInstance().isEnabled(player)) {
-                        String spellName = "Basic Mage Attack";
-                        String hitType = "hit";  // spells don't crit by default
-                        String targetName = target.getType().name().substring(0, 1).toUpperCase()
-                            + target.getType().name().substring(1).toLowerCase();
-                        player.sendMessage(String.format(
-                            "%s %s %s for %.1f damage",
-                            spellName, hitType, targetName, damage
-                        ));
-                    }
-
-                    return;
-                }
+                // unified damage + chat
+                me.nakilex.levelplugin.spells.SpellUtils.dealWithChat(
+                    player,
+                    target,
+                    damage,
+                    "Basic Mage Attack"
+                );
+                return;
             }
 
+            // 4) Hit block
             if (current.getBlock().getType().isSolid()) {
-                logger.info("Basic attack hit solid block at " + current);
                 world.spawnParticle(Particle.SMOKE, current, 5, 0.2, 0.2, 0.2, 0.05);
                 world.playSound(current, Sound.BLOCK_STONE_HIT, 1f, 0.8f);
                 return;
             }
         }
 
+        // 5) Missed everything
         Location end = start.clone().add(direction.multiply(range));
-        logger.info("Basic ray ended without hit. End point: " + end);
         world.spawnParticle(Particle.SMOKE, end, 5, 0.2, 0.2, 0.2, 0.05);
     }
 
+
+
     private void castMeteor(Player player) {
-        logger.info("castMeteor called by " + player.getName());
+        plugin.getLogger().info("castMeteor called by " + player.getName());
+
+        // Compute damage
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
         int playerInt = ps.baseIntelligence + ps.bonusIntelligence;
-
         ItemStack mainHand = player.getInventory().getItemInMainHand();
         CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(mainHand);
         int weaponInt = (cItem != null) ? cItem.getIntel() : 0;
-
         double finalDamage = 10.0 + 2.0 * (playerInt + weaponInt);
-        logger.info("Meteor damage computed: " + finalDamage);
 
-        Location target = player.getTargetBlockExact(20) != null
-            ? player.getTargetBlockExact(20).getLocation().add(0.5, 1, 0.5)
-            : player.getLocation().add(player.getLocation().getDirection().normalize().multiply(5));
-        logger.info("Meteor target location: " + target);
+        // Determine target location
+        Location target = Optional.ofNullable(player.getTargetBlockExact(20))
+            .map(b -> b.getLocation().add(0.5, 1, 0.5))
+            .orElseGet(() -> player.getLocation().add(player.getLocation().getDirection().normalize().multiply(5)));
 
+        // Launch fireball
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 1f, 1f);
         Location spawnLocation = target.clone().add(0, 15, 0);
         Fireball fireball = player.getWorld().spawn(spawnLocation, Fireball.class);
@@ -154,15 +153,12 @@ public class MageSpell implements Listener {
         fireball.setVelocity(new Vector(0, -1.5, 0));
         fireball.setIsIncendiary(false);
         fireball.setYield(0f);
+        fireball.setMetadata("Meteor", new FixedMetadataValue(plugin, true));
 
+        // Trail effect
         new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (!fireball.isValid()) {
-                    logger.info("Meteor fireball no longer valid, cancelling trail task.");
-                    cancel();
-                    return;
-                }
+            @Override public void run() {
+                if (!fireball.isValid()) { cancel(); return; }
                 Location fbLoc = fireball.getLocation();
                 fbLoc.getWorld().spawnParticle(Particle.FLAME, fbLoc, 10, 0.3, 0.3, 0.3, 0.02);
                 fbLoc.getWorld().spawnParticle(Particle.LARGE_SMOKE, fbLoc, 5, 0.2, 0.2, 0.2, 0.02);
@@ -170,40 +166,39 @@ public class MageSpell implements Listener {
             }
         }.runTaskTimer(plugin, 0L, 2L);
 
-        fireball.setMetadata("Meteor", new FixedMetadataValue(plugin, true));
-
+        // Impact listener
         Bukkit.getPluginManager().registerEvents(new Listener() {
-            @EventHandler
-            public void onProjectileHit(org.bukkit.event.entity.ProjectileHitEvent event) {
-                if (!(event.getEntity() instanceof Fireball) || !event.getEntity().hasMetadata("Meteor")) return;
-                Fireball fb = (Fireball) event.getEntity();
-                if (!fb.equals(fireball)) return;
-                logger.info("Meteor impacted at: " + fb.getLocation());
+            @EventHandler public void onProjectileHit(ProjectileHitEvent event) {
+                if (!(event.getEntity() instanceof Fireball fb)
+                    || !fb.hasMetadata("Meteor")
+                    || !fb.equals(fireball)) return;
 
-                fb.getWorld().spawnParticle(Particle.EXPLOSION, fb.getLocation(), 1);
-                fb.getWorld().playSound(fb.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
+                World w = fb.getWorld();
+                Location loc = fb.getLocation();
+                w.spawnParticle(Particle.EXPLOSION, loc, 1);
+                w.playSound(loc, Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
 
                 double radius = 4.0;
-                for (Entity e : fb.getWorld().getNearbyEntities(fb.getLocation(), radius, radius, radius)) {
-                    if (e instanceof LivingEntity && e != player) {
-                        LivingEntity le = (LivingEntity) e;
-                        logger.info("Meteor hit entity: " + le.getType());
-                        // ← new: record “Meteor” + no crit, then deal damage
-                        SpellContextManager.applySpellDamage(
+                for (Entity e : w.getNearbyEntities(loc, radius, radius, radius)) {
+                    if (e instanceof LivingEntity le && le != player) {
+                        le.setFireTicks(100);
+                        // unified damage + chat
+                        me.nakilex.levelplugin.spells.SpellUtils.dealWithChat(
                             player,
                             le,
                             finalDamage,
-                            "Meteor",
-                            false     // Meteor never crits (or compute your own crit logic)
+                            "Meteor"
                         );
-                        le.setFireTicks(100);
                     }
                 }
+
                 fb.remove();
-                org.bukkit.event.entity.ProjectileHitEvent.getHandlerList().unregister(this);
+                ProjectileHitEvent.getHandlerList().unregister(this);
             }
         }, plugin);
     }
+
+
 
     // Custom exception to signal that a spell cast was cancelled and should not consume mana
     public static class SpellCastCancelledException extends RuntimeException {
@@ -226,12 +221,12 @@ public class MageSpell implements Listener {
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(pid);
         double damage = 10.0 + 0.5 * (ps.baseIntelligence + ps.bonusIntelligence);
 
-        // Center + radii
-        Location center = player.getEyeLocation().add(player.getLocation().getDirection().multiply(10));
-        double pullRadius   = 5.0;
+        // Setup center & radii
+        Location center   = player.getEyeLocation().add(player.getLocation().getDirection().multiply(10));
+        double pullRadius = 5.0;
         double damageRadius = 1.0;
 
-        // VFX/SFX
+        // Initial VFX/SFX
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_SCREAM, 1f, 1f);
         createBlackholeEffect(center, pullRadius);
 
@@ -250,38 +245,28 @@ public class MageSpell implements Listener {
                 for (Entity e : player.getWorld().getNearbyEntities(center, pullRadius, pullRadius, pullRadius)) {
                     if (!(e instanceof LivingEntity) || e == player) continue;
                     if (e instanceof Player
-                        && !DuelManager.getInstance().areInDuel(pid, ((Player) e).getUniqueId()))
-                        continue;
+                        && !DuelManager.getInstance().areInDuel(pid, ((Player) e).getUniqueId())) continue;
 
                     LivingEntity le = (LivingEntity) e;
-                    // Pull effect
+                    // pull them in
                     Vector pullVec = center.toVector().subtract(le.getLocation().toVector())
                         .normalize().multiply(0.2);
                     le.setVelocity(pullVec);
 
-                    // Damage if in range
+                    // when in range, apply damage + chat & fire once
                     if (le.getLocation().distance(center) <= damageRadius) {
-                        // --- DEBUG HERE ---
-                        plugin.getLogger().info("[Blackhole] Chat enabled? "
-                            + ChatToggleManager.getInstance().isEnabled(player));
-
-                        // apply damage + chat in one line
-                        SpellContextManager.applySpellDamage(
+                        le.setFireTicks(100);
+                        me.nakilex.levelplugin.spells.SpellUtils.dealWithChat(
                             player,
                             le,
                             damage,
-                            "Blackhole",
-                            false   // no crit support here
+                            "Blackhole"
                         );
-
-                        le.setFireTicks(100);
-
-                        // we hit one, so don’t keep looping (avoids spamming)
                         return;
                     }
                 }
 
-                // ongoing particles/sound...
+                // ongoing VFX/SFX
                 for (double angle = 0; angle < 360; angle += 10) {
                     double rad = Math.toRadians(angle);
                     double x   = pullRadius * Math.cos(rad);

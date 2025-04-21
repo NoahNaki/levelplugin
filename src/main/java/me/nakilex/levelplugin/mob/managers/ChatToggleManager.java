@@ -27,4 +27,13 @@ public class ChatToggleManager {
         toggles.put(u, now);
         return now;
     }
+
+    /**
+     * Explicitly set the chat toggle state for a player.
+     * @param p the player
+     * @param enabled true to enable chat output, false to disable
+     */
+    public void setEnabled(Player p, boolean enabled) {
+        toggles.put(p.getUniqueId(), enabled);
+    }
 }
