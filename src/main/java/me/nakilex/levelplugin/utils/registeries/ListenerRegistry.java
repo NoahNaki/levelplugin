@@ -12,10 +12,8 @@ import me.nakilex.levelplugin.lootchests.listeners.LootChestCloseListener;
 import me.nakilex.levelplugin.lootchests.listeners.LootChestListener;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
-import me.nakilex.levelplugin.mob.listeners.MobDamageListener;
-import me.nakilex.levelplugin.mob.listeners.MobDeathListener;
-import me.nakilex.levelplugin.mob.listeners.MythicMobDamageListener;
-import me.nakilex.levelplugin.mob.listeners.MythicMobDeathListener;
+import me.nakilex.levelplugin.mob.listeners.*;
+import me.nakilex.levelplugin.mob.managers.DmgNumberToggleManager;
 import me.nakilex.levelplugin.mob.managers.MythicMobNameManager;
 import me.nakilex.levelplugin.npc.listeners.NPCClickListener;
 import me.nakilex.levelplugin.npc.listeners.NPCCommandListener;
@@ -47,7 +45,8 @@ public class ListenerRegistry {
                                          PartyManager partyManager,
                                          EconomyManager economyManager,
                                          FileConfiguration mobConfig,
-                                         MobRewardsConfig mobRewardsConfig) {
+                                         MobRewardsConfig mobRewardsConfig,
+                                         DmgNumberToggleManager dmgToggleManager) {
 
         PluginManager pm = plugin.getServer().getPluginManager();
 
@@ -88,11 +87,7 @@ public class ListenerRegistry {
         pm.registerEvents(new SalvageListener(economyManager), plugin);
         pm.registerEvents(new SpellGUIListener(), plugin);
         pm.registerEvents(new DoubleJumpListener(), plugin);
-
-
-
-
-
+        pm.registerEvents(new DamageIndicatorListener(dmgToggleManager), plugin);
 
 
         // Register ArrowUtils listener and start cleanup task

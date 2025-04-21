@@ -15,6 +15,7 @@ import me.nakilex.levelplugin.lootchests.config.ConfigManager;
 import me.nakilex.levelplugin.lootchests.managers.CooldownManager;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
+import me.nakilex.levelplugin.mob.managers.DmgNumberToggleManager;
 import me.nakilex.levelplugin.mob.managers.MobManager;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.placeholders.MyCustomExpansion;
@@ -73,7 +74,7 @@ public class Main extends JavaPlugin {
     private StorageManager storageManager;
     private ItemConfig itemConfig;
     private PlayerConfig playerConfig;
-
+    private DmgNumberToggleManager dmgNumberToggleManager;
 
     @Override
     public void onEnable() {
@@ -149,7 +150,7 @@ public class Main extends JavaPlugin {
         cooldownManager = new CooldownManager(this, configManager, null);
         lootChestManager = new LootChestManager(this, configManager, cooldownManager, potionManager);
         cooldownManager.setLootChestManager(lootChestManager);
-
+        dmgNumberToggleManager = new DmgNumberToggleManager();
         upgradeKey = new NamespacedKey(this, "upgrade_level");
         levelManager = new LevelManager(this);
         economyManager = new EconomyManager(this);
@@ -190,7 +191,8 @@ public class Main extends JavaPlugin {
             configManager,
             horseManager,
             mobManager,
-            storageManager
+            storageManager,
+            dmgNumberToggleManager
         );
 
         ListenerRegistry.registerListeners(
@@ -202,7 +204,8 @@ public class Main extends JavaPlugin {
             partyManager,
             economyManager,
             mobConfig,
-            mobRewardsConfig
+            mobRewardsConfig,
+            dmgNumberToggleManager
         );
 
         TaskRegistry.startTasks(this, horseConfigManager);
