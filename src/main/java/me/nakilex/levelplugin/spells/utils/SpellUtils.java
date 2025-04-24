@@ -1,13 +1,22 @@
-package me.nakilex.levelplugin.spells;
+package me.nakilex.levelplugin.spells.utils;
 
 import io.lumine.mythic.bukkit.MythicBukkit;
 import io.lumine.mythic.core.mobs.ActiveMob;
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.effects.listeners.StatsEffectListener;
 import me.nakilex.levelplugin.spells.managers.SpellContextManager;
 import me.nakilex.levelplugin.mob.managers.ChatToggleManager;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.HandlerList;
+import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 
 /**
  * Utility methods for consistent spell damage application and chat output.
@@ -21,51 +30,68 @@ public class SpellUtils {
      *
      * @param caster     the Player casting the spell
      * @param target     the LivingEntity being damaged
-     * @param damage     amount of damage to apply
+     * @param rawDamage     amount of damage to apply
      * @param spellName  name of the spell (displayed in log)
      */
     public static void dealWithChat(
         Player caster,
         LivingEntity target,
-        double damage,
+        double rawDamage,
         String spellName
     ) {
         ChatToggleManager chatMgr = ChatToggleManager.getInstance();
         boolean wasChatOn = chatMgr.isEnabled(caster);
-        // suppress vanilla chat
         chatMgr.setEnabled(caster, false);
 
-        // apply damage without default chat
+        // 1) Prepare a one‐off listener to catch the final damage value
+        Listener damageListener = new Listener() {
+            @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+            public void onEntityDamage(EntityDamageByEntityEvent ev) {
+                if (!ev.getEntity().equals(target)) return;
+
+                Player damager = null;
+                if (ev.getDamager() instanceof Player p) {
+                    damager = p;
+                } else if (ev.getDamager() instanceof Projectile proj
+                    && proj.getShooter() instanceof Player shooter) {
+                    damager = shooter;
+                }
+                if (damager == null || !damager.equals(caster)) return;
+
+                // now that we know it's your spell hit, grab the final damage:
+                double finalDamage = ev.getFinalDamage();
+                boolean wasCrit    = StatsEffectListener.consumeLastCrit(caster);
+                String hitType     = wasCrit ? "critically hit" : "hit";
+                ChatColor color    = wasCrit ? ChatColor.RED : ChatColor.WHITE;
+                String mobName     = getMobDisplayName(target);
+                double display     = Math.round(finalDamage * 10.0) / 10.0;
+
+                if (wasChatOn) {
+                    String msg = String.format(
+                        "%s %s %s for %.1f ❤ damage",
+                        spellName, hitType, mobName, display
+                    );
+                    caster.sendMessage(color + msg);
+                }
+
+                HandlerList.unregisterAll(this);
+                chatMgr.setEnabled(caster, wasChatOn);
+            }
+        };
+        Bukkit.getPluginManager().registerEvents(damageListener, Main.getInstance());
+
+        // 2) Now actually deal the damage (fires the event immediately)
         SpellContextManager.applySpellDamage(
             caster,
             target,
-            damage,
+            rawDamage,
             spellName,
             false
         );
-
-        // restore chat toggle
-        chatMgr.setEnabled(caster, wasChatOn);
-
-        // consume crit flag
-        boolean wasCrit = StatsEffectListener.consumeLastCrit(caster);
-        String hitType = wasCrit ? "critically hit" : "hit";
-        ChatColor color = wasCrit ? ChatColor.RED : ChatColor.WHITE;
-
-        if (wasChatOn) {
-            // get a clean mob name
-            String mobName = getMobDisplayName(target);
-            // build and send log message
-            String msg = String.format(
-                "%s %s %s for %.1f ❤ damage",
-                spellName,
-                hitType,
-                mobName,
-                damage
-            );
-            caster.sendMessage(color + msg);
-        }
     }
+
+
+
 
     /**
      * Returns the clean display name of the target, stripping MythicMobs tags,

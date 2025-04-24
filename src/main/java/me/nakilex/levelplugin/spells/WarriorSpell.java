@@ -2,7 +2,7 @@ package me.nakilex.levelplugin.spells;
 
 import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.effects.utils.ParticleEffectUtil;
-import me.nakilex.levelplugin.spells.SpellUtils;
+import me.nakilex.levelplugin.spells.utils.SpellUtils;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.*;

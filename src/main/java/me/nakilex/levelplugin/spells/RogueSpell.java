@@ -1,7 +1,7 @@
 package me.nakilex.levelplugin.spells;
 
 import me.nakilex.levelplugin.duels.managers.DuelManager;
-import me.nakilex.levelplugin.spells.SpellUtils;
+import me.nakilex.levelplugin.spells.utils.SpellUtils;
 import me.nakilex.levelplugin.utils.MetadataTrait;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
@@ -41,6 +41,10 @@ public class RogueSpell {
     }
 
     private void castShurikenThrow(Player player) {
+        // 1) compute damage once
+        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 1.3;
+
+        // 2) setup
         Location center = player.getLocation().clone();
         Vector forwardVelocity = center.getDirection().multiply(1.3);
         List<ArmorStand> stands = new ArrayList<>();
@@ -50,6 +54,7 @@ public class RogueSpell {
             new Vector(0, 0, radius), new Vector(0, 0, -radius)
         };
 
+        // 3) spawn the rotating “shuriken” armor stands
         for (Vector offset : offsets) {
             Location loc = center.clone().add(offset);
             ArmorStand stand = (ArmorStand) loc.getWorld().spawnEntity(loc, EntityType.ARMOR_STAND);
@@ -64,6 +69,7 @@ public class RogueSpell {
             stands.add(stand);
         }
 
+        // 4) animate & detect impact
         new BukkitRunnable() {
             int ticks = 0;
             double angle = 0;
@@ -88,6 +94,7 @@ public class RogueSpell {
                     double z = off.getX() * sin + off.getZ() * cos;
                     Location loc = center.clone().add(x, 0, z);
 
+                    // 4a) block collision → teleport player there
                     Block block = loc.getBlock();
                     if (block.getType() != Material.AIR && !block.isPassable()) {
                         player.teleport(loc);
@@ -97,9 +104,14 @@ public class RogueSpell {
                         return;
                     }
 
+                    // 4b) entity collision → deal damage + chat, then explode
                     for (Entity e : loc.getWorld().getNearbyEntities(loc, 0.3, 0.3, 0.3)) {
                         if (e.equals(player) || stands.contains(e)) continue;
-                        if (e instanceof LivingEntity) {
+                        if (e instanceof LivingEntity le) {
+                            // —— damage + chat here ——
+                            SpellUtils.dealWithChat(player, le, damage, "Shuriken Throw");
+
+                            // then explosion & cleanup
                             loc.getWorld().createExplosion(loc, 2f, false, false);
                             player.sendMessage("§cYour shuriken exploded on impact!");
                             removeAll(stands);
@@ -108,6 +120,7 @@ public class RogueSpell {
                         }
                     }
 
+                    // 4c) move the stand
                     loc.setYaw((float) Math.toDegrees(Math.atan2(-x, z)));
                     stand.teleport(loc);
                 }
@@ -116,54 +129,85 @@ public class RogueSpell {
             private void removeAll(List<ArmorStand> list) {
                 list.forEach(s -> { if (!s.isDead()) s.remove(); });
             }
-        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0, 1);
+        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, 1L);
     }
+
 
     private void castShadowClone(Player player) {
         UUID id = player.getUniqueId();
+
+        // 1) Swap with existing clone if there is one
         NPC existing = null;
         for (NPC npc : CitizensAPI.getNPCRegistry()) {
-            if (npc.hasTrait(MetadataTrait.class) && npc.getTrait(MetadataTrait.class).getOwner().equals(id)) {
+            if (npc.hasTrait(MetadataTrait.class)
+                && npc.getTrait(MetadataTrait.class).getOwner().equals(id)) {
                 existing = npc;
                 break;
             }
         }
-
         if (existing != null) {
             Location cloneLoc = existing.getEntity().getLocation();
             existing.teleport(player.getLocation(), PlayerTeleportEvent.TeleportCause.PLUGIN);
             player.teleport(cloneLoc);
             player.sendMessage("§aYou swapped places with your shadow clone!");
-            player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 1f);
+            player.getWorld().playSound(
+                player.getLocation(),
+                Sound.ENTITY_ENDERMAN_TELEPORT,
+                1f, 1f
+            );
             return;
         }
 
-        NPC clone = CitizensAPI.getNPCRegistry().createNPC(EntityType.PLAYER, "Shadow Clone");
+        // 2) Spawn a brand-new clone
+        NPC clone = CitizensAPI.getNPCRegistry()
+            .createNPC(EntityType.PLAYER, "Shadow Clone");
         clone.spawn(player.getLocation());
         clone.getOrAddTrait(MetadataTrait.class).setOwner(id);
         clone.data().setPersistent("player-skin-name", player.getName());
-
         if (clone.getEntity() instanceof Player p) {
             p.getInventory().setArmorContents(player.getInventory().getArmorContents());
             p.getInventory().setItemInMainHand(player.getInventory().getItemInMainHand());
             p.getInventory().setItemInOffHand(player.getInventory().getItemInOffHand());
         }
-
         player.sendMessage("§aYou created a shadow clone!");
 
+        // 3) Schedule its “explosion” in 5s
         new BukkitRunnable() {
             @Override
             public void run() {
-                if (clone.isSpawned()) {
-                    Location loc = clone.getEntity().getLocation();
-                    clone.despawn();
-                    clone.destroy();
-                    loc.getWorld().createExplosion(loc, 2f, false, false);
-                    player.sendMessage("§cYour shadow clone exploded!");
+                if (!clone.isSpawned()) return;
+
+                // a) Grab location, then kill the NPC
+                Location loc = clone.getEntity().getLocation();
+                clone.despawn();
+                clone.destroy();
+
+                // b) Visual + sound effect ONLY
+                loc.getWorld().spawnParticle(Particle.EXPLOSION, loc, 1);
+                loc.getWorld().playSound(
+                    loc,
+                    Sound.ENTITY_GENERIC_EXPLODE,
+                    1f, 1f
+                );
+                player.sendMessage("§cYour shadow clone exploded!");
+
+                // c) Now *manually* damage every nearby target and log it
+                double damage = player
+                    .getAttribute(Attribute.ATTACK_DAMAGE)
+                    .getValue() * 1.5;
+
+                for (Entity e : loc.getWorld().getNearbyEntities(loc, 3, 3, 3)) {
+                    if (!(e instanceof LivingEntity le) || le.equals(player)) continue;
+                    SpellUtils.dealWithChat(player, le, damage, "Shadow Clone");
                 }
             }
-        }.runTaskLater(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 100);
+        }.runTaskLater(
+            Bukkit.getPluginManager().getPlugin("LevelPlugin"),
+            100L
+        );
     }
+
+
 
     private void castShadowStep(Player player) {
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 1f);

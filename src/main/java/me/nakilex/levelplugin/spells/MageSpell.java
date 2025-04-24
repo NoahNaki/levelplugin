@@ -2,15 +2,11 @@ package me.nakilex.levelplugin.spells;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.duels.managers.DuelManager;
-import me.nakilex.levelplugin.effects.listeners.StatsEffectListener;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
-import me.nakilex.levelplugin.mob.managers.ChatToggleManager;
 import me.nakilex.levelplugin.party.Party;
-import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.listener.ClickComboListener;
-import me.nakilex.levelplugin.spells.managers.SpellContextManager;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Entity;
@@ -105,7 +101,7 @@ public class MageSpell implements Listener {
                 world.playSound(target.getLocation(), Sound.ENTITY_PLAYER_HURT, 1f, 1.5f);
 
                 // unified damage + chat
-                me.nakilex.levelplugin.spells.SpellUtils.dealWithChat(
+                me.nakilex.levelplugin.spells.utils.SpellUtils.dealWithChat(
                     player,
                     target,
                     damage,
@@ -183,7 +179,7 @@ public class MageSpell implements Listener {
                     if (e instanceof LivingEntity le && le != player) {
                         le.setFireTicks(100);
                         // unified damage + chat
-                        me.nakilex.levelplugin.spells.SpellUtils.dealWithChat(
+                        me.nakilex.levelplugin.spells.utils.SpellUtils.dealWithChat(
                             player,
                             le,
                             finalDamage,
@@ -256,7 +252,7 @@ public class MageSpell implements Listener {
                     // when in range, apply damage + chat & fire once
                     if (le.getLocation().distance(center) <= damageRadius) {
                         le.setFireTicks(100);
-                        me.nakilex.levelplugin.spells.SpellUtils.dealWithChat(
+                        me.nakilex.levelplugin.spells.utils.SpellUtils.dealWithChat(
                             player,
                             le,
                             damage,
