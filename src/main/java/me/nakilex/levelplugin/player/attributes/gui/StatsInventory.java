@@ -25,7 +25,7 @@ public class StatsInventory {
         Inventory inv = Bukkit.createInventory(
             null,
             27,
-             ps.skillPoints + " skill points remaining"
+            ps.skillPoints + " skill points remaining"
         );
 
         // Stat books with base and bonus stats
@@ -71,12 +71,19 @@ public class StatsInventory {
                 "Current HP bonus: " + ChatColor.YELLOW + ((ps.baseHealthStat + ps.bonusHealthStat) * 2) + " HP."
             }
         ));
+
+        // Updated Defense stat with diminishing returns
+        int totalDef = ps.baseDefenceStat + ps.bonusDefenceStat;
+        double percentReduction = totalDef / (totalDef + 100.0);
+        percentReduction *= 100.0; // convert to percentage
+        percentReduction = Math.round(percentReduction * 10.0) / 10.0; // round to 1 decimal
+
         inv.setItem(16, createStatBook(
             "Defense", StatType.DEF, ps.baseDefenceStat, ps.bonusDefenceStat, ps.skillPoints,
             "Reduces incoming damage.",
             new String[]{
-                "Each point reduces damage taken by 0.5.",
-                "Current damage reduction: " + ChatColor.YELLOW + ((ps.baseDefenceStat + ps.bonusDefenceStat) * 0.5) + " damage."
+                "Damage reduction scales with total Defense.",
+                "Current damage reduction: " + ChatColor.YELLOW + percentReduction + "%"
             }
         ));
 
@@ -99,6 +106,7 @@ public class StatsInventory {
 
         return inv;
     }
+
 
     private static ItemStack createStatBook(
         String statName, StatType statType, int baseValue, int bonusValue, int skillPoints,

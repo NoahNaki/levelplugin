@@ -2,13 +2,11 @@ package me.nakilex.levelplugin.effects.listeners;
 
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStats;
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.potion.PotionEffectType;
 
 import java.util.Map;
 import java.util.Random;
@@ -19,7 +17,7 @@ public class StatsEffectListener implements Listener {
 
     private final Random random = new Random();
 
-    // ← NEW: track whether each player's last hit was a crit
+    // Track whether each player's last hit was a crit
     private static final Map<UUID, Boolean> lastCritMap = new ConcurrentHashMap<>();
 
     /**
@@ -34,7 +32,7 @@ public class StatsEffectListener implements Listener {
     @EventHandler
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
         Entity damager = event.getDamager();
-        Entity target  = event.getEntity();
+        Entity target = event.getEntity();
 
         // Outgoing damage modifications if a player is the damager
         if (damager instanceof Player) {
@@ -53,10 +51,9 @@ public class StatsEffectListener implements Listener {
             boolean isCrit = random.nextDouble() < critChance;
             if (isCrit) {
                 finalDamage *= 1.5;
-                //player.sendMessage(ChatColor.GOLD + "Critical Hit!");
             }
 
-            // ← NEW: record crit status for chat listener
+            // Record crit status for chat listener
             lastCritMap.put(player.getUniqueId(), isCrit);
 
             // 4) Apply modified damage
@@ -73,14 +70,13 @@ public class StatsEffectListener implements Listener {
             double dodgeChance = totalAgility * 0.01;
             if (random.nextDouble() < dodgeChance) {
                 event.setCancelled(true);
-                //player.sendMessage(ChatColor.GREEN + "You dodged the attack!");
                 return;
             }
 
-            // Flat defence reduction (0.5 per DEF stat)
+            // Defense with diminishing returns using ratio-based formula
             int totalDefence = vs.baseDefenceStat + vs.bonusDefenceStat;
-            double reducedDamage = event.getDamage() - (totalDefence * 0.5);
-            if (reducedDamage < 0) reducedDamage = 0;
+            double percentReduction = totalDefence / (totalDefence + 100.0); // Diminishing returns
+            double reducedDamage = event.getDamage() * (1.0 - percentReduction);
 
             event.setDamage(reducedDamage);
         }
