@@ -134,7 +134,7 @@ public class MageSpell implements Listener {
         ItemStack mainHand = player.getInventory().getItemInMainHand();
         CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(mainHand);
         int weaponInt = (cItem != null) ? cItem.getIntel() : 0;
-        double finalDamage = 10.0 + 2.0 * (playerInt + weaponInt);
+        double finalDamage = 6.0 + 1.0 * (playerInt + weaponInt);
 
         // Determine target location
         Location target = Optional.ofNullable(player.getTargetBlockExact(20))
@@ -220,7 +220,7 @@ public class MageSpell implements Listener {
         // Setup center & radii
         Location center   = player.getEyeLocation().add(player.getLocation().getDirection().multiply(10));
         double pullRadius = 5.0;
-        double damageRadius = 1.0;
+        double damageRadius = 5.0;
 
         // Initial VFX/SFX
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_SCREAM, 1f, 1f);

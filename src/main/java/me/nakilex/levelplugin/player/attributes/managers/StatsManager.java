@@ -187,10 +187,10 @@ public class StatsManager {
             PlayerStats ps = getPlayerStats(player.getUniqueId());
 
             // Base health regeneration per second
-            double baseRegenPerSec = 1.0;
+            double baseRegenPerSec = 0.1;
 
             // HealthStat bonus (both base and bonus combined)
-            double healthBonus = (ps.baseHealthStat + ps.bonusHealthStat) * 0.2;
+            double healthBonus = (ps.baseHealthStat + ps.bonusHealthStat) * 0.01;
 
             // Total health regeneration
             double totalRegen = baseRegenPerSec + healthBonus;
@@ -208,8 +208,8 @@ public class StatsManager {
         for (Player player : Bukkit.getOnlinePlayers()) {
             PlayerStats ps = getPlayerStats(player.getUniqueId());
 
-            double baseRegenPerSec = 2.0;
-            double intBonus = (ps.baseIntelligence + ps.bonusIntelligence) * 0.3;
+            double baseRegenPerSec = 1.5;
+            double intBonus = (ps.baseIntelligence + ps.bonusIntelligence) * 0.1;
             double totalRegen = baseRegenPerSec + intBonus;
 
             ps.currentMana += totalRegen;

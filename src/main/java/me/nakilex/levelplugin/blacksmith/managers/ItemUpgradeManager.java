@@ -20,9 +20,9 @@ public class ItemUpgradeManager {
     }
 
     public int getUpgradeCost(CustomItem item) {
-        int baseCost = 100; // Base cost
+        int baseCost = 200; // Base cost
         int rarityMultiplier = item.getRarity().ordinal() + 1;
-        return baseCost + (item.getUpgradeLevel() * 150 * rarityMultiplier);
+        return baseCost + (item.getUpgradeLevel() * 250 * rarityMultiplier);
     }
 
     /**
