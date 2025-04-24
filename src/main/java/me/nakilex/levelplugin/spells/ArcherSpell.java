@@ -167,10 +167,24 @@ public class ArcherSpell {
 
     private final Set<UUID> grappleCooldown = new HashSet<>();
 
-    private void castGrappleHook(Player player) {
-        if (grappleCooldown.contains(player.getUniqueId())) return;
-        grappleCooldown.add(player.getUniqueId());
+    private boolean castGrappleHook(Player player) {
+        // 1) Must be standing on ground to fire
+        if (!player.isOnGround()) {
+            player.sendMessage(ChatColor.RED + "You must land before you can use Grapple Hook again!");
+            return false;
+        }
 
+        // 2) Must not already be recharging
+        UUID id = player.getUniqueId();
+        if (grappleCooldown.contains(id)) {
+            player.sendMessage(ChatColor.RED + "Grapple Hook is still recharging...");
+            return false;
+        }
+
+        // 3) Mark on cooldown
+        grappleCooldown.add(id);
+
+        // 4) Now fire your snowball hook
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ENDER_PEARL_THROW, 1f, 1f);
 
         Snowball projectile = player.launchProjectile(Snowball.class);
@@ -178,6 +192,7 @@ public class ArcherSpell {
         projectile.setCustomName("GrappleHook");
         projectile.setCustomNameVisible(false);
 
+        // Glide handler will clear cooldown once they land
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -188,21 +203,23 @@ public class ArcherSpell {
 
                 projectile.getWorld().spawnParticle(Particle.WITCH, projectile.getLocation(), 5, 0.1, 0.1, 0.1);
 
-                for (Entity entity : projectile.getNearbyEntities(1, 1, 1)) {
-                    if (entity instanceof LivingEntity || projectile.getLocation().getBlock().getType() != Material.AIR) {
-                        Location targetLocation = projectile.getLocation();
-                        Vector dir = targetLocation.toVector().subtract(player.getLocation().toVector())
-                            .normalize().multiply(1.5);
-                        player.setVelocity(dir.add(new Vector(0, 0.5, 0)));
+                if (!projectile.getNearbyEntities(1, 1, 1).isEmpty()
+                    || projectile.getLocation().getBlock().getType() != Material.AIR) {
 
-                        handleGlideAndSlam(player);
-                        projectile.remove();
-                        cancel();
-                        return;
-                    }
+                    // start pulling them
+                    Location hookLoc = projectile.getLocation();
+                    Vector pull = hookLoc.toVector().subtract(player.getLocation().toVector())
+                        .normalize().multiply(1.5);
+                    player.setVelocity(pull.add(new Vector(0, 0.5, 0)));
+
+                    handleGlideAndSlam(player);
+                    projectile.remove();
+                    cancel();
                 }
             }
         }.runTaskTimer(Main.getInstance(), 0L, 1L);
+
+        return true;
     }
 
     private void handleGlideAndSlam(Player player) {
@@ -211,6 +228,7 @@ public class ArcherSpell {
 
             @Override
             public void run() {
+                // As soon as they’re back on ground, clear the cooldown
                 if (player.isOnGround()) {
                     grappleCooldown.remove(player.getUniqueId());
                     if (slamTriggered) {
@@ -220,10 +238,11 @@ public class ArcherSpell {
                     return;
                 }
 
+                // While airborne, allow a sneak to slam
                 if (slamTriggered) {
-                    Vector downwardVelocity = player.getVelocity();
-                    downwardVelocity.setY(Math.max(downwardVelocity.getY() - 0.5, -2.5));
-                    player.setVelocity(downwardVelocity);
+                    Vector vel = player.getVelocity();
+                    vel.setY(Math.max(vel.getY() - 0.5, -2.5));
+                    player.setVelocity(vel);
                 } else {
                     Vector glide = player.getVelocity().multiply(0.9);
                     glide.setY(Math.max(player.getVelocity().getY() - 0.05, -0.1));
