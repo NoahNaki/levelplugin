@@ -23,6 +23,8 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
+import me.nakilex.levelplugin.settings.gui.SettingsGUI;
+import me.nakilex.levelplugin.settings.managers.SettingsManager;
 import me.nakilex.levelplugin.spells.managers.ManaCostTracker;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.storage.StorageManager;
@@ -178,6 +180,9 @@ public class Main extends JavaPlugin {
         BlacksmithGUI blacksmithGUI = new BlacksmithGUI(economyManager, itemUpgradeManager, itemManager);
         horseManager = new HorseManager(horseConfigManager);
         HorseGUI horseGUI = new HorseGUI(horseManager, economyManager);
+        SettingsManager settingsManager = new SettingsManager();
+        SettingsGUI settingsGUI = new SettingsGUI(settingsManager); // Initialize the field properly
+
 
         // 1) Assign the field so it’s not null.
         this.storageManager = new StorageManager();
@@ -196,8 +201,10 @@ public class Main extends JavaPlugin {
             horseManager,
             mobManager,
             storageManager,
-            dmgNumberToggleManager
+            dmgNumberToggleManager,
+            settingsGUI // ✅ Now included
         );
+
 
         ListenerRegistry.registerListeners(
             this,
@@ -209,8 +216,10 @@ public class Main extends JavaPlugin {
             economyManager,
             mobConfig,
             mobRewardsConfig,
-            dmgNumberToggleManager
+            dmgNumberToggleManager,
+            settingsGUI
         );
+
 
         TaskRegistry.startTasks(this, horseConfigManager);
     }

@@ -29,6 +29,7 @@ import me.nakilex.levelplugin.player.utils.ArrowUtils;
 import me.nakilex.levelplugin.potions.listeners.PotionUseListener;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.salvage.listeners.SalvageListener;
+import me.nakilex.levelplugin.settings.gui.SettingsGUI;
 import me.nakilex.levelplugin.spells.gui.SpellGUIListener;
 import me.nakilex.levelplugin.trade.listeners.PlayerRightClicksPlayerListener;
 import me.nakilex.levelplugin.utils.*;
@@ -46,7 +47,9 @@ public class ListenerRegistry {
                                          EconomyManager economyManager,
                                          FileConfiguration mobConfig,
                                          MobRewardsConfig mobRewardsConfig,
-                                         DmgNumberToggleManager dmgToggleManager) {
+                                         DmgNumberToggleManager dmgToggleManager,
+                                         SettingsGUI settingsGUI) {
+
 
         PluginManager pm = plugin.getServer().getPluginManager();
 
@@ -89,6 +92,8 @@ public class ListenerRegistry {
         pm.registerEvents(new DoubleJumpListener(), plugin);
         pm.registerEvents(new DamageIndicatorListener(dmgToggleManager), plugin);
         pm.registerEvents(new DamageChatListener(), plugin);
+        pm.registerEvents(settingsGUI, plugin); // ✅ No constructor call here
+
 
 
         // Register ArrowUtils listener and start cleanup task
