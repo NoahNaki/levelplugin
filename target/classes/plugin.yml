@@ -81,3 +81,6 @@ commands:
   dmgchat:
     description: Toggle damage messages in chat
     usage: /<command>
+  settings:
+    description: Opens the settings menu
+    usage: /settings
