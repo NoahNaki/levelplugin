@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.player.attributes.managers.ActionBarTask;
 import me.nakilex.levelplugin.player.attributes.managers.HealthRegenTask;
 import me.nakilex.levelplugin.player.attributes.managers.ManaRegenTask;
 import me.nakilex.levelplugin.horse.utils.HorseSaverTask;
+import me.nakilex.levelplugin.spells.managers.ManaCostTracker;
 
 public class TaskRegistry {
 

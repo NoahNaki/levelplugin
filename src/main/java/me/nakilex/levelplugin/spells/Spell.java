@@ -1,33 +1,35 @@
 package me.nakilex.levelplugin.spells;
 
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStats;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
 public class Spell {
 
-    private final String id;             // e.g. "ground_slam"
-    private final String displayName;    // e.g. "Ground Slam"
-    private final String combo;          // e.g. "RLR"
-    private final int manaCost;
+    private final String id;             // unique spell identifier
+    private final String displayName;    // e.g. "Teleport"
+    private final String combo;          // e.g. "RRR"
+
+    // dynamic mana-cost fields
+    private final double baseManaCost;
+    private final double manaCostMultiplier;
+
     private final int cooldown;          // in seconds
     private final int levelReq;
-    private final List<Material> allowedWeapons; // which weapon materials are valid (e.g. all SHOVELS for warrior)
-    private final Map<UUID, Long> mageBasicCooldown = new HashMap<>();
-
-
+    private final List<Material> allowedWeapons;
     private final String effectKey;
-    private final double damageMultiplier;  // % weapon damage, e.g. 1.5 = 150%
+    private final double damageMultiplier;  // e.g. 1.5 = 150%
 
     public Spell(
         String id,
         String displayName,
         String combo,
-        int manaCost,
+        double baseManaCost,
+        double manaCostMultiplier,
         int cooldown,
         int levelReq,
         List<Material> allowedWeapons,
@@ -37,7 +39,8 @@ public class Spell {
         this.id = id;
         this.displayName = displayName;
         this.combo = combo;
-        this.manaCost = manaCost;
+        this.baseManaCost = baseManaCost;
+        this.manaCostMultiplier = manaCostMultiplier;
         this.cooldown = cooldown;
         this.levelReq = levelReq;
         this.allowedWeapons = allowedWeapons;
@@ -45,40 +48,53 @@ public class Spell {
         this.damageMultiplier = damageMultiplier;
     }
 
-    public String getId() {
-        return id;
+    // Retrieve the current dynamic cost for this player and spell
+    public double getCurrentManaCost(Player player) {
+        return Main.getInstance()
+            .getManaTracker()
+            .getCost(player.getUniqueId(), id, baseManaCost);
     }
 
-    public String getDisplayName() {
-        return displayName;
+    // Expose base mana cost for UI and static references
+    public double getBaseManaCost() {
+        return baseManaCost;
     }
 
-    public int getManaCost() {
-        return manaCost;
+    // Alias for compatibility with SpellGUI
+    public double getManaCost() {
+        return baseManaCost;
     }
 
-    public int getCooldown() {
-        return cooldown;
+    // After a successful cast, bump the cost and schedule reset
+    public void recordSpellCast(Player player) {
+        Main.getInstance()
+            .getManaTracker()
+            .recordCast(player.getUniqueId(), id, baseManaCost);
     }
 
-    public int getLevelReq() {
-        return levelReq;
-    }
-
-    public String getCombo() {return combo; }
-
-    public List<Material> getAllowedWeapons() {
-        return allowedWeapons;
-    }
-
+    // Attempt to cast: handle mana deduction and then apply effect
     public void castEffect(Player player) {
+        double cost = getCurrentManaCost(player);
+        PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
+
+        // Check mana availability
+        if (ps.getCurrentMana() < cost) {
+            player.sendMessage("§cNot enough mana to cast " + displayName + " (needs " + cost + ")");
+            return;
+        }
+
+        // Deduct mana (round up to nearest int)
+        int newMana = ps.getCurrentMana() - (int) Math.ceil(cost);
+        ps.setCurrentMana(newMana);
+        recordSpellCast(player);
+
+        // Invoke the actual spell effect
         switch (effectKey.toUpperCase()) {
             case "GROUND_SLAM":
             case "HEROIC_LEAP":
             case "UPPERCUT":
             case "IRON_FORTRESS": {
-                WarriorSpell warriorSpell = new WarriorSpell();
-                warriorSpell.castWarriorSpell(player, effectKey);
+                new WarriorSpell().castWarriorSpell(player, effectKey);
                 break;
             }
             case "METEOR":
@@ -86,24 +102,21 @@ public class Spell {
             case "HEAL":
             case "TELEPORT":
             case "MAGE_BASIC": {
-                MageSpell mageSpell = new MageSpell();
-                mageSpell.castMageSpell(player, effectKey);
+                new MageSpell().castMageSpell(player, effectKey);
                 break;
             }
             case "ARROW_STORM":
             case "POWER_SHOT":
             case "GRAPPLE_HOOK":
             case "EXPLOSIVE_ARROW": {
-                ArcherSpell archerSpell = new ArcherSpell();
-                archerSpell.castArcherSpell(player, effectKey);
+                new ArcherSpell().castArcherSpell(player, effectKey);
                 break;
             }
             case "VANISH":
             case "BLADE_FURY":
             case "SHADOW_STEP":
             case "DAGGER_THROW": {
-                RogueSpell rogueSpell = new RogueSpell();
-                rogueSpell.castRogueSpell(player, effectKey);
+                new RogueSpell().castRogueSpell(player, effectKey);
                 break;
             }
             default: {
@@ -112,5 +125,12 @@ public class Spell {
         }
     }
 
-
+    // Standard getters
+    public String getId() { return id; }
+    public String getDisplayName() { return displayName; }
+    public String getCombo() { return combo; }
+    public int getCooldown() { return cooldown; }
+    public int getLevelReq() { return levelReq; }
+    public List<Material> getAllowedWeapons() { return allowedWeapons; }
+    public double getDamageMultiplier() { return damageMultiplier; }
 }

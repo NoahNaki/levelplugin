@@ -23,6 +23,7 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
+import me.nakilex.levelplugin.spells.managers.ManaCostTracker;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.storage.StorageManager;
 import me.nakilex.levelplugin.storage.events.StorageEvents;
@@ -75,12 +76,15 @@ public class Main extends JavaPlugin {
     private ItemConfig itemConfig;
     private PlayerConfig playerConfig;
     private DmgNumberToggleManager dmgNumberToggleManager;
+    private ManaCostTracker manaTracker;
 
     @Override
     public void onEnable() {
         // Set the plugin instance
         instance = this;
         plugin = this;
+
+        manaTracker = new ManaCostTracker(1.5, 5_000L);
 
         if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
             new MyCustomExpansion(this).register();
@@ -299,6 +303,8 @@ public class Main extends JavaPlugin {
     public MessageStrings getMessageStrings() {
         return messageStrings;
     }
+
+    public ManaCostTracker getManaTracker() { return manaTracker; }
 
     public void reloadConfigValues() {
         this.configValues = new ConfigValues(this.customConfigFile);
