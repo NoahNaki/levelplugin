@@ -18,6 +18,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 
+import java.util.logging.Logger;
+
 /**
  * Utility methods for consistent spell damage application and chat output.
  */
@@ -39,26 +41,31 @@ public class SpellUtils {
         double rawDamage,
         String spellName
     ) {
+        Logger logger = Main.getInstance().getLogger();
         ChatToggleManager chatMgr = ChatToggleManager.getInstance();
         boolean wasChatOn = chatMgr.isEnabled(caster);
-        chatMgr.setEnabled(caster, false);
 
-        // 1) Prepare a one‐off listener to catch the final damage value
+        // ONLY suppress vanilla chat if it was on
+        if (wasChatOn) {
+            logger.info("dealWithChat: [" + caster.getName() + "] chat ON, suppressing it");
+            chatMgr.setEnabled(caster, false);
+        } else {
+            logger.info("dealWithChat: [" + caster.getName() + "] chat already OFF, skipping suppress");
+        }
+
+        // Prepare the one-off damage listener
         Listener damageListener = new Listener() {
             @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
             public void onEntityDamage(EntityDamageByEntityEvent ev) {
+                // match caster → target
                 if (!ev.getEntity().equals(target)) return;
-
                 Player damager = null;
-                if (ev.getDamager() instanceof Player p) {
-                    damager = p;
-                } else if (ev.getDamager() instanceof Projectile proj
-                    && proj.getShooter() instanceof Player shooter) {
-                    damager = shooter;
-                }
+                if (ev.getDamager() instanceof Player p) damager = p;
+                else if (ev.getDamager() instanceof Projectile proj
+                    && proj.getShooter() instanceof Player shooter) damager = shooter;
                 if (damager == null || !damager.equals(caster)) return;
 
-                // now that we know it's your spell hit, grab the final damage:
+                // log final damage
                 double finalDamage = ev.getFinalDamage();
                 boolean wasCrit    = StatsEffectListener.consumeLastCrit(caster);
                 String hitType     = wasCrit ? "critically hit" : "hit";
@@ -74,22 +81,34 @@ public class SpellUtils {
                     caster.sendMessage(color + msg);
                 }
 
+                // cleanup listener
                 HandlerList.unregisterAll(this);
-                chatMgr.setEnabled(caster, wasChatOn);
+
+                // restore chat if we suppressed it
+                if (wasChatOn) {
+                    chatMgr.setEnabled(caster, true);
+                    logger.info("dealWithChat: [" + caster.getName() + "] restored chat ON");
+                }
             }
         };
         Bukkit.getPluginManager().registerEvents(damageListener, Main.getInstance());
+        logger.info("dealWithChat: listener registered for " + caster.getName());
 
-        // 2) Now actually deal the damage (fires the event immediately)
+        // Apply the damage
         SpellContextManager.applySpellDamage(
-            caster,
-            target,
-            rawDamage,
-            spellName,
-            false
+            caster, target, rawDamage, spellName, false
         );
-    }
+        logger.info("dealWithChat: applySpellDamage called for " + caster.getName());
 
+        // Fallback: if we suppressed chat but the listener never fired, restore next tick
+        if (wasChatOn) {
+            Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+                HandlerList.unregisterAll(damageListener);
+                chatMgr.setEnabled(caster, true);
+                logger.info("dealWithChat: [FALLBACK] restored chat ON for " + caster.getName());
+            });
+        }
+    }
 
 
 
