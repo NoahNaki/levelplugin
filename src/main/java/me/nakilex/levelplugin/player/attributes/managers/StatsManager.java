@@ -208,8 +208,8 @@ public class StatsManager {
         for (Player player : Bukkit.getOnlinePlayers()) {
             PlayerStats ps = getPlayerStats(player.getUniqueId());
 
-            double baseRegenPerSec = 1.5;
-            double intBonus = (ps.baseIntelligence + ps.bonusIntelligence) * 0.1;
+            double baseRegenPerSec = 2.5;
+            double intBonus = (ps.baseIntelligence + ps.bonusIntelligence) * 0.3;
             double totalRegen = baseRegenPerSec + intBonus;
 
             ps.currentMana += totalRegen;
