@@ -187,10 +187,10 @@ public class StatsManager {
             PlayerStats ps = getPlayerStats(player.getUniqueId());
 
             // Base health regeneration per second
-            double baseRegenPerSec = 0.1;
+            double baseRegenPerSec = 0.5;
 
             // HealthStat bonus (both base and bonus combined)
-            double healthBonus = (ps.baseHealthStat + ps.bonusHealthStat) * 0.01;
+            double healthBonus = (ps.baseHealthStat + ps.bonusHealthStat) * 0.03;
 
             // Total health regeneration
             double totalRegen = baseRegenPerSec + healthBonus;
