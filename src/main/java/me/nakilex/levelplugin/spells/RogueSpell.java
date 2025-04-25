@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.spells;
 
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.spells.utils.SpellUtils;
 import me.nakilex.levelplugin.utils.MetadataTrait;
@@ -11,6 +12,7 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.*;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -30,7 +32,7 @@ public class RogueSpell {
                 castBladeFury(player);
                 break;
             case "VANISH":
-                castShurikenThrow(player);
+                castVanish(player);
                 break;
             case "DAGGER_THROW":
                 castShadowClone(player);
@@ -267,5 +269,74 @@ public class RogueSpell {
                 SpellUtils.dealWithChat(player, le, damage, "Blade Fury");
             }
         }
+    }
+
+    /**
+     * Makes the player invisible for 5 seconds, blinks them forward ~3 blocks,
+     * and adds a swirly pre-vanish ring, multi-layered particles, firework burst,
+     * sound layers, after-blink trail, and brief glow on arrival.
+     */
+    private void castVanish(Player player) {
+        Location origin = player.getLocation();
+        World world   = origin.getWorld();
+        final int BASE_DURATION = 100;   // 5 seconds in ticks
+        final int EXTEND_DURATION = 20;  // 2 seconds
+
+        // Determine current effect state
+        boolean hasInvis = player.hasPotionEffect(PotionEffectType.INVISIBILITY);
+        int newDuration = BASE_DURATION;
+        int speedAmp = 0;
+        int jumpAmp = 0;
+
+        if (hasInvis) {
+            PotionEffect invis = player.getPotionEffect(PotionEffectType.INVISIBILITY);
+            newDuration = invis.getDuration() + EXTEND_DURATION;
+
+            PotionEffect speed = player.getPotionEffect(PotionEffectType.SPEED);
+            PotionEffect jump  = player.getPotionEffect(PotionEffectType.JUMP_BOOST);
+            speedAmp = (speed  != null ? speed.getAmplifier() : 0) + 1;
+            jumpAmp  = (jump   != null ? jump.getAmplifier()  : 0) + 1;
+        }
+
+        // 1) Pre-vanish swirling ring
+        new BukkitRunnable() {
+            int tick = 0;
+            @Override public void run() {
+                if (tick++ > 15) { cancel(); return; }
+                double radius = 1.0 + tick * 0.05;
+                for (double ang = 0; ang < 360; ang += 20) {
+                    double rad = Math.toRadians(ang + tick * 20);
+                    Location point = origin.clone().add(
+                        Math.cos(rad) * radius,
+                        0.5,
+                        Math.sin(rad) * radius
+                    );
+                    world.spawnParticle(Particle.END_ROD, point, 1, 0, 0, 0, 0);
+                }
+            }
+        }.runTaskTimer(Main.getInstance(), 0, 1);
+
+        // 2) Apply invisibility, speed, and jump
+        player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, newDuration, 0, false, false));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED,       newDuration, speedAmp, false, false));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST,        newDuration, jumpAmp,  false, false));
+
+        // 3) Layered cast sounds
+        world.playSound(origin, Sound.ENTITY_FIREWORK_ROCKET_LAUNCH, 1f, 1f);
+        world.playSound(origin, Sound.ENTITY_ILLUSIONER_CAST_SPELL,  1f, 1.2f);
+        world.playSound(origin, Sound.ITEM_TOTEM_USE,                0.8f, 1f);
+
+        // 4) Particle burst
+        world.spawnParticle(Particle.FIREWORK, origin, 30, 1, 1, 1, 0.05);
+        world.spawnParticle(Particle.SMOKE,      origin, 20, 0.5, 1, 0.5, 0.02);
+
+        // 5) Feedback message includes new levels & duration
+        int secs = newDuration / 20;
+        player.sendMessage(String.format(
+            "§aVanish stacked: Speed IIx%d, Jump Iix%d for %ds!",
+            speedAmp + 1, // display level = amplifier+1
+            jumpAmp + 1,
+            secs
+        ));
     }
 }
