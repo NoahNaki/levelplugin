@@ -16,6 +16,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.HashMap;
+import java.util.Set;
 import java.util.UUID;
 
 public class HorseManager implements Listener {
@@ -26,7 +27,21 @@ public class HorseManager implements Listener {
     // Constructor to accept HorseConfigManager
     public HorseManager(HorseConfigManager configManager) {
         this.configManager = configManager;
-        Bukkit.getPluginManager().registerEvents(this, Main.getInstance()); // Register event listener
+        Bukkit.getPluginManager().registerEvents(this, Main.getInstance());
+
+        // Load all previously saved horses into memory
+        Set<String> keys = configManager.getHorseUUIDStrings();
+        for (String uuidStr : keys) {
+            try {
+                UUID uuid = UUID.fromString(uuidStr);
+                HorseData data = configManager.loadHorseData(uuid);
+                if (data != null) {
+                    horses.put(uuid, data);
+                }
+            } catch (IllegalArgumentException ignored) {
+                // Skip invalid UUID entries
+            }
+        }
     }
 
     // Example methods

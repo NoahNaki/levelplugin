@@ -6,6 +6,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Set;
 import java.util.UUID;
 
 public class HorseConfigManager {
@@ -25,11 +26,13 @@ public class HorseConfigManager {
         config = YamlConfiguration.loadConfiguration(file);
     }
 
-    // Save horse data
+    // Save horse data, including variant flag
     public void saveHorseData(UUID uuid, HorseData horseData) {
-        config.set(uuid.toString() + ".type", horseData.getType());
-        config.set(uuid.toString() + ".speed", horseData.getSpeed());
-        config.set(uuid.toString() + ".jumpHeight", horseData.getJumpHeight());
+        String base = uuid.toString();
+        config.set(base + ".type", horseData.getType());
+        config.set(base + ".isVariant", horseData.isVariant());
+        config.set(base + ".speed", horseData.getSpeed());
+        config.set(base + ".jumpHeight", horseData.getJumpHeight());
         try {
             config.save(file);
         } catch (IOException e) {
@@ -39,13 +42,19 @@ public class HorseConfigManager {
 
     // Load horse data
     public HorseData loadHorseData(UUID uuid) {
-        if (config.contains(uuid.toString())) {
-            String type = config.getString(uuid.toString() + ".type");
-            boolean isVariant = config.getBoolean(uuid.toString() + ".isVariant"); // New field
-            int speed = config.getInt(uuid.toString() + ".speed");
-            int jumpHeight = config.getInt(uuid.toString() + ".jumpHeight");
-            return new HorseData(type, isVariant, speed, jumpHeight, uuid); // Pass isVariant
+        String base = uuid.toString();
+        if (config.contains(base)) {
+            String type = config.getString(base + ".type");
+            boolean isVariant = config.getBoolean(base + ".isVariant");
+            int speed = config.getInt(base + ".speed");
+            int jumpHeight = config.getInt(base + ".jumpHeight");
+            return new HorseData(type, isVariant, speed, jumpHeight, uuid);
         }
         return null;
+    }
+
+    // Expose all saved UUIDs for initial loading
+    public Set<String> getHorseUUIDStrings() {
+        return config.getKeys(false);
     }
 }

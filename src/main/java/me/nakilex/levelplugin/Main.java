@@ -221,7 +221,7 @@ public class Main extends JavaPlugin {
         );
 
 
-        TaskRegistry.startTasks(this, horseConfigManager);
+        TaskRegistry.startTasks(this, horseConfigManager, horseManager);
     }
 
 
