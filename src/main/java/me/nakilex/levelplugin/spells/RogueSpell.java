@@ -26,7 +26,7 @@ public class RogueSpell {
     public void castRogueSpell(Player player, String effectKey) {
         switch (effectKey.toUpperCase()) {
             case "SHADOW_STEP":
-                castShadowStep(player);
+                castExecute(player);
                 break;
             case "BLADE_FURY":
                 castBladeFury(player);
@@ -329,14 +329,60 @@ public class RogueSpell {
         // 4) Particle burst
         world.spawnParticle(Particle.FIREWORK, origin, 30, 1, 1, 1, 0.05);
         world.spawnParticle(Particle.SMOKE,      origin, 20, 0.5, 1, 0.5, 0.02);
-
-        // 5) Feedback message includes new levels & duration
-        int secs = newDuration / 20;
-        player.sendMessage(String.format(
-            "§aVanish stacked: Speed IIx%d, Jump Iix%d for %ds!",
-            speedAmp + 1, // display level = amplifier+1
-            jumpAmp + 1,
-            secs
-        ));
     }
+
+    private void castExecute(Player player) {
+        // Locate first valid target
+        LivingEntity found = null;
+        for (Entity e : player.getWorld().getNearbyEntities(player.getEyeLocation(), 10, 10, 10)) {
+            if (e instanceof LivingEntity && !e.equals(player)) {
+                found = (LivingEntity) e;
+                break;
+            }
+        }
+        if (found == null) {
+            player.sendMessage("§cNo valid target in range!");
+            return;
+        }
+        final LivingEntity target = found;
+        final World world = target.getWorld();
+        final double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 1.5;
+
+        // Prepare strike directions (8 around + above + below)
+        final Vector[] directions = new Vector[10];
+        int idx = 0;
+        // horizontal circle
+        for (int i = 0; i < 8; i++) {
+            double angle = Math.toRadians(i * 45);
+            directions[idx++] = new Vector(Math.cos(angle), 0.2, Math.sin(angle));
+        }
+        // above strike
+        directions[idx++] = new Vector(0, -1, 0);
+        // below strike
+        directions[idx++] = new Vector(0, 1, 0);
+
+        // Schedule sequential strikes
+        new BukkitRunnable() {
+            int step = 0;
+            @Override
+            public void run() {
+                if (step >= directions.length) {
+                    // final damage and finish
+                    SpellUtils.dealWithChat(player, target, damage, "Execute");
+                    cancel();
+                    return;
+                }
+                // Apply velocity
+                Vector v = directions[step].clone().multiply(1.2);
+                target.setVelocity(v);
+                // VFX/SFX
+                world.spawnParticle(Particle.CRIT, target.getLocation(), 15, 0.5, 1, 0.5);
+                world.playSound(target.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1f);
+                step++;
+            }
+        }.runTaskTimer(Main.getInstance(), 0L, 4L);
+
+        player.sendMessage("§aYou unleash a thousand cuts upon your foe!");
+    }
+
 }

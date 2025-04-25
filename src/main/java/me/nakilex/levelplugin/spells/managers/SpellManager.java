@@ -107,7 +107,7 @@ public class SpellManager {
         // Rogue Spells
         spellsByClass.put("rogue", Map.of(
             "RLL", new Spell(
-                "shadow_step", "Shadow Step", "RLL",
+                "shadow_step", "Shadow Step", "RRL",
                 12.0, defaultManaMultiplier,
                 0, 15,
                 Arrays.asList(
@@ -117,7 +117,7 @@ public class SpellManager {
                 "SHADOW_STEP", 1.3
             ),
             "RRL", new Spell(
-                "blade_fury", "Blade Fury", "RRL",
+                "blade_fury", "Blade Fury", "RLL",
                 15.0, defaultManaMultiplier,
                 0, 3,
                 Arrays.asList(
