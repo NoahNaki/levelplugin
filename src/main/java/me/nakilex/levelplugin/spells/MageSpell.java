@@ -95,8 +95,6 @@ public class MageSpell implements Listener {
                 if (!(entity instanceof LivingEntity) || entity == player) continue;
                 LivingEntity target = (LivingEntity) entity;
 
-                // knockback & VFX
-                target.setVelocity(direction.clone().multiply(0.2));
                 world.spawnParticle(Particle.DAMAGE_INDICATOR, target.getLocation(), 10, 0.2, 0.2, 0.2, 0.02);
                 world.playSound(target.getLocation(), Sound.ENTITY_PLAYER_HURT, 1f, 1.5f);
 
