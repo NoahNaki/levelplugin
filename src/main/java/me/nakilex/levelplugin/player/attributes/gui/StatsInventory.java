@@ -40,7 +40,7 @@ public class StatsInventory {
 
         // Agility with DR dodge chance
         int totalAgility = ps.baseAgility + ps.bonusAgility;
-        double dodgePercent = totalAgility / (totalAgility + 100.0) * 100.0;
+        double dodgePercent = totalAgility / (totalAgility + 200.0) * 100.0;
         dodgePercent = Math.round(dodgePercent * 10.0) / 10.0;  // 1-decimal precision
 
         inv.setItem(11, createStatBook(
@@ -65,7 +65,7 @@ public class StatsInventory {
 
         // Dexterity with DR crit chance
         int totalDexterity = ps.baseDexterity + ps.bonusDexterity;
-        double critPercent = totalDexterity / (totalDexterity + 100.0) * 100.0;
+        double critPercent  = totalDexterity / (totalDexterity + 200.0) * 100.0;
         critPercent = Math.round(critPercent * 10.0) / 10.0; // one decimal
 
         inv.setItem(14, createStatBook(

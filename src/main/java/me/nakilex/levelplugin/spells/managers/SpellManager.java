@@ -106,17 +106,17 @@ public class SpellManager {
 
         // Rogue Spells
         spellsByClass.put("rogue", Map.of(
-            "RLL", new Spell(
-                "shadow_step", "Execute", "RRL",
+            "RRL", new Spell(
+                "execute", "Execute", "RRL",
                 12.0, defaultManaMultiplier,
                 0, 15,
                 Arrays.asList(
                     Material.WOODEN_SWORD, Material.STONE_SWORD, Material.IRON_SWORD,
                     Material.GOLDEN_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD
                 ),
-                "SHADOW_STEP", 3.3
+                "EXECUTE", 3.3
             ),
-            "RRL", new Spell(
+            "RLL", new Spell(
                 "blade_fury", "Blade Fury", "RLL",
                 15.0, defaultManaMultiplier,
                 0, 3,

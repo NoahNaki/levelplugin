@@ -23,24 +23,25 @@ import java.util.*;
 
 public class RogueSpell {
 
-    public void castRogueSpell(Player player, String effectKey) {
+    public boolean castRogueSpell(Player player, String effectKey) {
         switch (effectKey.toUpperCase()) {
-            case "SHADOW_STEP":
-                castExecute(player);
-                break;
+            case "EXECUTE":
+                return castExecute(player);
             case "BLADE_FURY":
                 castBladeFury(player);
-                break;
+                return true;
             case "VANISH":
                 castVanish(player);
-                break;
+                return true;
             case "DAGGER_THROW":
                 castShadowClone(player);
-                break;
+                return true;
             default:
                 player.sendMessage("§eUnknown Rogue Spell: " + effectKey);
+                return false;
         }
     }
+
 
     private void castShurikenThrow(Player player) {
         // 1) compute damage once
@@ -351,51 +352,55 @@ public class RogueSpell {
     }
 
 
-    private void castExecute(Player player) {
-        // Locate first valid target
+    private boolean castExecute(Player player) {
+        // 1) find the first valid target
         LivingEntity found = null;
-        for (Entity e : player.getWorld().getNearbyEntities(player.getEyeLocation(), 10, 10, 10)) {
-            if (e instanceof LivingEntity && !e.equals(player)) {
-                found = (LivingEntity) e;
-                break;
+        for (Entity e : player.getWorld()
+            .getNearbyEntities(player.getEyeLocation(), 10, 10, 10)) {
+            if (!(e instanceof LivingEntity le) || le.equals(player)) continue;
+
+            // only allow hitting another Player if you're in a duel with them
+            if (le instanceof Player tgt
+                && !DuelManager.getInstance()
+                .areInDuel(player.getUniqueId(), tgt.getUniqueId())) {
+                continue;
             }
+
+            found = le;
+            break;
         }
+
         if (found == null) {
             player.sendMessage("§cNo valid target in range!");
-            return;
+            return false;  // no target → no mana consumed
         }
+
         final LivingEntity target = found;
         final World world = target.getWorld();
-        final double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 1.5;
+        final double damage = player.getAttribute(Attribute.ATTACK_DAMAGE)
+            .getValue() * 1.5;
 
-        // Prepare strike directions (8 around + above + below)
+        // 2) prepare strike directions (8 around + above + below)
         final Vector[] directions = new Vector[10];
         int idx = 0;
-        // horizontal circle
         for (int i = 0; i < 8; i++) {
             double angle = Math.toRadians(i * 45);
             directions[idx++] = new Vector(Math.cos(angle), 0.2, Math.sin(angle));
         }
-        // above strike
-        directions[idx++] = new Vector(0, -1, 0);
-        // below strike
-        directions[idx++] = new Vector(0, 1, 0);
+        directions[idx++] = new Vector(0, -1, 0);  // above
+        directions[idx++] = new Vector(0, 1, 0);   // below
 
-        // Schedule sequential strikes
+        // 3) schedule the stacked strikes
         new BukkitRunnable() {
             int step = 0;
             @Override
             public void run() {
                 if (step >= directions.length) {
-                    // final damage and finish
                     SpellUtils.dealWithChat(player, target, damage, "Execute");
                     cancel();
                     return;
                 }
-                // Apply velocity
-                Vector v = directions[step].clone().multiply(1.2);
-                target.setVelocity(v);
-                // VFX/SFX
+                target.setVelocity(directions[step].clone().multiply(1.2));
                 world.spawnParticle(Particle.CRIT, target.getLocation(), 15, 0.5, 1, 0.5);
                 world.playSound(target.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1f);
                 step++;
@@ -403,6 +408,6 @@ public class RogueSpell {
         }.runTaskTimer(Main.getInstance(), 0L, 4L);
 
         player.sendMessage("§aYou unleash a thousand cuts upon your foe!");
+        return true;  // success → mana *should* be consumed
     }
-
 }

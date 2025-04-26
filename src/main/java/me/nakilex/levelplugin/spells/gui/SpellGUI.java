@@ -30,7 +30,7 @@ public class SpellGUI {
         SPELL_DESCRIPTIONS.put("heal",          "Heal yourself or allies.");
         SPELL_DESCRIPTIONS.put("teleport",      "Teleport forward a short distance.");
 
-        SPELL_DESCRIPTIONS.put("shadow_step",   "Teleport behind your target.");
+        SPELL_DESCRIPTIONS.put("execute",   "Teleport behind your target.");
         SPELL_DESCRIPTIONS.put("blade_fury",    "Spin furiously, slicing nearby enemies.");
         SPELL_DESCRIPTIONS.put("dagger_throw",  "Throw a deadly dagger from range.");
         SPELL_DESCRIPTIONS.put("vanish",        "Disappear in the shadows temporarily.");
