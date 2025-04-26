@@ -144,10 +144,10 @@ public class ItemUtil {
             return;
         }
 
-        // Get the CustomItem instance from your ItemManager.
-        CustomItem cItem = ItemManager.getInstance().getTemplateById(itemId);
+        UUID uuid = getItemUUID(stack);
+        CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(stack);
         if (cItem == null) {
-            Bukkit.getLogger().info("[CustomItem] updateCustomItemTooltip: No CustomItem found for ID " + itemId);
+            Bukkit.getLogger().warning("[CustomItem] No instance found for UUID " + uuid);
             return;
         }
 
