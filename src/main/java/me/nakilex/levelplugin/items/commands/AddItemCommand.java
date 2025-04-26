@@ -41,37 +41,41 @@ public class AddItemCommand implements CommandExecutor {
             return true;
         }
 
-        CustomItem template = ItemManager.getInstance().getTemplateById(itemId); // Fetch template by ID
+        // Fetch the template (which now holds StatRanges)
+        CustomItem template = ItemManager.getInstance().getTemplateById(itemId);
         if (template == null) {
             sender.sendMessage("§cNo custom item found with ID: " + itemId);
             return true;
         }
 
-// Create a unique instance with a UUID
+        // Create a brand-new instance: UUID generated & stats rolled
         CustomItem instance = new CustomItem(
-            java.util.UUID.randomUUID(), // Generate new UUID
             template.getId(),
             template.getBaseName(),
             template.getRarity(),
             template.getLevelRequirement(),
             template.getClassRequirement(),
             template.getMaterial(),
-            template.getHp(),
-            template.getDef(),
-            template.getStr(),
-            template.getAgi(),
-            template.getIntel(),
-            template.getDex(),
-            0 // Start at upgrade level 0
+            template.getHpRange(),
+            template.getDefRange(),
+            template.getStrRange(),
+            template.getAgiRange(),
+            template.getIntelRange(),
+            template.getDexRange()
         );
 
-// Add the instance to UUID map
+        // Register it
         ItemManager.getInstance().addInstance(instance);
 
-// Create ItemStack and give it to player
-        target.getInventory().addItem(ItemUtil.createItemStackFromCustomItem(instance, amount, target.getPlayer()));
-        sender.sendMessage("§aGave " + amount + "x " + instance.getName() + " [ID:" + itemId + "] to " + target.getName());
-        target.sendMessage("§aYou received " + amount + "x " + instance.getName() + "! (ID:" + itemId + ")");
+        // Give the ItemStack to the player
+        target.getInventory().addItem(
+            ItemUtil.createItemStackFromCustomItem(instance, amount, target)
+        );
+
+        sender.sendMessage("§aGave " + amount + "x " + instance.getName()
+            + " [ID:" + itemId + "] to " + target.getName());
+        target.sendMessage("§aYou received " + amount + "x " + instance.getName()
+            + "! (ID:" + itemId + ")");
 
         return true;
     }

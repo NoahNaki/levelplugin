@@ -309,6 +309,10 @@ public class Main extends JavaPlugin {
         return dealMaker;
     }
 
+    public ItemConfig getItemConfig() {
+        return itemConfig;
+    }
+
     public MessageStrings getMessageStrings() {
         return messageStrings;
     }

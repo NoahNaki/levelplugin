@@ -202,20 +202,18 @@ public class MerchantGUI implements Listener {
             CustomItem template = ItemManager.getInstance().getTemplateById(mItem.getItemId());
             if (template != null) {
                 CustomItem newInstance = new CustomItem(
-                    UUID.randomUUID(), // Generate a new unique UUID
                     template.getId(),
                     template.getBaseName(),
                     template.getRarity(),
                     template.getLevelRequirement(),
                     template.getClassRequirement(),
                     template.getMaterial(),
-                    template.getHp(),
-                    template.getDef(),
-                    template.getStr(),
-                    template.getAgi(),
-                    template.getIntel(),
-                    template.getDex(),
-                    0 // Starting upgrade level
+                    template.getHpRange(),
+                    template.getDefRange(),
+                    template.getStrRange(),
+                    template.getAgiRange(),
+                    template.getIntelRange(),
+                    template.getDexRange()
                 );
                 // Register the new instance so it's tracked
                 ItemManager.getInstance().addInstance(newInstance);

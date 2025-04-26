@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.items.managers;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.data.CustomItem;
+import me.nakilex.levelplugin.items.data.StatRange;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import org.bukkit.Material;
@@ -9,7 +10,6 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 
 import java.io.File;
@@ -27,7 +27,8 @@ public class ItemManager {
     }
 
     private final Map<Integer, CustomItem> templatesMap = new HashMap<>(); // Templates by ID
-    private final Map<UUID, CustomItem> itemsMap = new HashMap<>(); // Instances by UUID
+    private final Map<UUID, CustomItem> itemsMap     = new HashMap<>(); // Instances by UUID
+
     private FileConfiguration itemsConfig;
 
     public ItemManager(Plugin plugin) {
@@ -52,8 +53,8 @@ public class ItemManager {
     }
 
     private void loadItems() {
-        templatesMap.clear(); // Clear templates map
-        itemsMap.clear();     // Clear instances map
+        templatesMap.clear();
+        itemsMap.clear();
 
         if (!itemsConfig.contains("items")) {
             Main.getInstance().getLogger().warning("No items found in items.yml!");
@@ -63,37 +64,48 @@ public class ItemManager {
         for (String key : itemsConfig.getConfigurationSection("items").getKeys(false)) {
             try {
                 int numericId = Integer.parseInt(key);
-                String path = "items." + key;
+                String path = "items." + key + ".";
 
-                String name = itemsConfig.getString(path + ".name", "Unknown Item");
-                String rarityStr = itemsConfig.getString(path + ".rarity", "COMMON");
-                int levelReq = itemsConfig.getInt(path + ".level_requirement", 1);
-                String classReq = itemsConfig.getString(path + ".class_requirement", "ANY");
-                String materialStr = itemsConfig.getString(path + ".material", "STONE");
+                // Basic fields
+                String name       = itemsConfig.getString(path + "name", "Unknown Item");
+                ItemRarity rarity = ItemRarity.valueOf(
+                    itemsConfig.getString(path + "rarity", "COMMON").toUpperCase());
+                int levelReq      = itemsConfig.getInt(path + "level_requirement", 1);
+                String classReq   = itemsConfig.getString(path + "class_requirement", "ANY");
+                Material material = Material.valueOf(
+                    itemsConfig.getString(path + "material", "STONE").toUpperCase());
 
-                int hp = itemsConfig.getInt(path + ".hp", 0);
-                int def = itemsConfig.getInt(path + ".def", 0);
-                int str = itemsConfig.getInt(path + ".str", 0);
-                int agi = itemsConfig.getInt(path + ".agi", 0);
-                int intel = itemsConfig.getInt(path + ".int", 0);
-                int dex = itemsConfig.getInt(path + ".dex", 0);
+                // === NEW: parse StatRanges instead of ints ===
+                StatRange hpRange    = StatRange.fromString(
+                    itemsConfig.getString(path + "hp", "0-0"));
+                StatRange defRange   = StatRange.fromString(
+                    itemsConfig.getString(path + "def", "0-0"));
+                StatRange strRange   = StatRange.fromString(
+                    itemsConfig.getString(path + "str", "0-0"));
+                StatRange agiRange   = StatRange.fromString(
+                    itemsConfig.getString(path + "agi", "0-0"));
+                StatRange intelRange = StatRange.fromString(
+                    itemsConfig.getString(path + "intel", "0-0"));
+                StatRange dexRange   = StatRange.fromString(
+                    itemsConfig.getString(path + "dex", "0-0"));
 
-                ItemRarity rarity = ItemRarity.valueOf(rarityStr.toUpperCase());
-                Material material = Material.valueOf(materialStr.toUpperCase());
-
-                // Generate a base item (template)
-                CustomItem cItem = new CustomItem(
+                // Build the template (rolls will happen when creating instances)
+                CustomItem template = new CustomItem(
                     numericId,
                     name,
                     rarity,
                     levelReq,
                     classReq,
                     material,
-                    hp, def, str, agi, intel, dex
+                    hpRange,
+                    defRange,
+                    strRange,
+                    agiRange,
+                    intelRange,
+                    dexRange
                 );
 
-                // Store template by ID
-                templatesMap.put(numericId, cItem); // Add template to ID map
+                templatesMap.put(numericId, template);
 
             } catch (Exception e) {
                 Main.getInstance().getLogger().warning("Failed to load item with key: " + key);
@@ -101,59 +113,50 @@ public class ItemManager {
             }
         }
 
-        Main.getInstance().getLogger().info("Loaded " + templatesMap.size() + " custom items from items.yml.");
+        Main.getInstance().getLogger()
+            .info("Loaded " + templatesMap.size() + " custom item templates from items.yml.");
     }
 
+    /** Returns a new map of templates, keyed by numeric ID */
     public Map<Integer, CustomItem> getAllTemplates() {
         return new HashMap<>(templatesMap);
     }
 
-    // Get template by numeric ID
+    /** Fetch the template (with ranges) for a given numeric ID */
     public CustomItem getTemplateById(int id) {
         return templatesMap.get(id);
     }
 
-    // Add an instance with UUID
+    /** Register a freshly‐rolled instance */
     public void addInstance(CustomItem instance) {
         itemsMap.put(instance.getUuid(), instance);
     }
 
-    // Retrieve instance by UUID
+    /** Lookup a live instance by its UUID */
     public CustomItem getItemByUUID(UUID uuid) {
         return itemsMap.get(uuid);
     }
 
-
-    public CustomItem getItemById(int itemId) {
-        return templatesMap.get(itemId); // Use templatesMap for lookup by ID
-    }
-
+    /**
+     * Given an ItemStack with our PDC UUID tag, pull out the matching
+     * CustomItem instance.
+     */
     public CustomItem getCustomItemFromItemStack(ItemStack itemStack) {
-        if (itemStack == null || !itemStack.hasItemMeta()) {
-            return null; // Item is null or has no meta
-        }
+        if (itemStack == null || !itemStack.hasItemMeta()) return null;
 
         ItemMeta meta = itemStack.getItemMeta();
-        if (meta == null) return null;
+        UUID uuid = ItemUtil.getItemUUID(itemStack);
+        if (uuid == null) return null;
 
-        // Get the custom item UUID from PersistentDataContainer
-        UUID itemUUID = ItemUtil.getItemUUID(itemStack);
-        if (itemUUID == null) {
-            Main.getInstance().getLogger().info("No custom item UUID found in PersistentDataContainer.");
-            return null; // Not a custom item
+        CustomItem ci = itemsMap.get(uuid);
+        if (ci == null) {
+            Main.getInstance().getLogger()
+                .info("No custom item found for UUID: " + uuid);
         }
-
-        // Retrieve the custom item by its UUID
-        CustomItem customItem = itemsMap.get(itemUUID);
-        if (customItem == null) {
-            Main.getInstance().getLogger().info("No matching custom item found for UUID: " + itemUUID);
-        } else {
-            Main.getInstance().getLogger().info("Custom Item Matched: " + customItem.getBaseName());
-        }
-
-        return customItem;
+        return ci;
     }
 
+    /** Return all active instances */
     public Map<UUID, CustomItem> getAllItems() {
         return new HashMap<>(itemsMap);
     }

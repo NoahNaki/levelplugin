@@ -33,8 +33,8 @@ public class StatsManager {
         return levelManager.getLevel(player);
     }
 
-    public Set<Integer> getEquippedItems(UUID uuid){
-        return equippedItemsMap.computeIfAbsent(uuid, k -> new HashSet<>());
+    public Set<Integer> getEquippedItems(UUID playerUuid) {
+        return equippedItemsMap.computeIfAbsent(playerUuid, k -> new HashSet<>());
     }
 
     public Set<UUID> getAllPlayerUUIDs() {

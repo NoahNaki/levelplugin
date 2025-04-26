@@ -270,12 +270,12 @@ public class LootChestManager {
             chosen.getLevelRequirement(),
             chosen.getClassRequirement(),
             chosen.getMaterial(),
-            chosen.getHp(),
-            chosen.getDef(),
-            chosen.getStr(),
-            chosen.getAgi(),
-            chosen.getIntel(),
-            chosen.getDex()
+            chosen.getHpRange(),
+            chosen.getDefRange(),
+            chosen.getStrRange(),
+            chosen.getAgiRange(),
+            chosen.getIntelRange(),
+            chosen.getDexRange()
         );
 // Register the new instance so it's tracked properly
         ItemManager.getInstance().addInstance(newInstance);

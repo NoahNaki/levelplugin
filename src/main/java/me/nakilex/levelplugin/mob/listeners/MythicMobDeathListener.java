@@ -157,12 +157,12 @@ public class MythicMobDeathListener implements Listener {
                     template.getLevelRequirement(),
                     template.getClassRequirement(),
                     template.getMaterial(),
-                    template.getHp(),
-                    template.getDef(),
-                    template.getStr(),
-                    template.getAgi(),
-                    template.getIntel(),
-                    template.getDex()
+                    template.getHpRange(),
+                    template.getDefRange(),
+                    template.getStrRange(),
+                    template.getAgiRange(),
+                    template.getIntelRange(),
+                    template.getDexRange()
                 );
 
                 // Add to ItemManager so it's recognized/tracked

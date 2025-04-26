@@ -3,7 +3,9 @@ package me.nakilex.levelplugin.items.listeners;
 import me.nakilex.levelplugin.items.events.WeaponEquipEvent;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -20,67 +22,53 @@ public class WeaponStatsListener implements Listener {
 
     @EventHandler
     public void onWeaponEquip(WeaponEquipEvent event) {
-        // 1) If event was cancelled by something else, do nothing
         if (event.isCancelled()) return;
 
         Player player = event.getPlayer();
-        UUID uuid = player.getUniqueId();
+        UUID puuid = player.getUniqueId();
+        StatsManager stats = StatsManager.getInstance();
+        Set<Integer> equippedIds = stats.getEquippedItems(puuid);
 
-        // 2) Remove old weapon stats if the old item was truly equipped
+        // 1) Remove old weapon stats by template ID
         ItemStack oldWeapon = event.getOldWeapon();
         if (oldWeapon != null && !oldWeapon.getType().isAir()) {
-            CustomItem oldCustom = ItemManager.getInstance().getCustomItemFromItemStack(oldWeapon);
-            if (oldCustom != null) {
-                Set<Integer> eqSet = StatsManager.getInstance().getEquippedItems(uuid);
-                if (eqSet.contains(oldCustom.getId())) {
-                    // We only remove stats if they were actually added
-                    removeWeaponStats(player, oldCustom);
-                    eqSet.remove(oldCustom.getId());
+            int oldId = ItemUtil.getCustomItemId(oldWeapon);
+            if (oldId != -1 && equippedIds.contains(oldId)) {
+                CustomItem template = ItemManager.getInstance().getTemplateById(oldId);
+                if (template != null) {
+                    removeWeaponStats(player, template);
+                    equippedIds.remove(oldId);
                 }
             }
         }
 
-        // 3) Attempt to add new weapon stats, but only if not already equipped
+        // 2) Add new weapon stats by template ID
         ItemStack newWeapon = event.getNewWeapon();
         if (newWeapon != null && !newWeapon.getType().isAir()) {
-            CustomItem newCustom = ItemManager.getInstance().getCustomItemFromItemStack(newWeapon);
-            if (newCustom != null) {
-                StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
-                Set<Integer> eqSet = StatsManager.getInstance().getEquippedItems(uuid);
-
-                // Check level/class requirements here (if you skip them, remove this)
-                int playerLevel = StatsManager.getInstance().getLevel(player);
-                int requiredLevel = newCustom.getLevelRequirement();
-                boolean meetsLevel = (playerLevel >= requiredLevel);
-
-                String reqClass = newCustom.getClassRequirement();
-                boolean meetsClass = reqClass.equalsIgnoreCase("ANY")
-                    || ps.playerClass.name().equalsIgnoreCase(reqClass);
-
-                if (!meetsLevel) {
-                    player.sendMessage(ChatColor.RED +
-                        "You can hold " + newCustom.getBaseName() + " but lack the level to gain its stats.");
-                }
-                else if (!meetsClass) {
-                    player.sendMessage(ChatColor.RED +
-                        "You can hold " + newCustom.getBaseName() + " but your class can’t use its stats.");
-                }
-                else {
-                    // If we haven’t already equipped this item, add its stats
-                    if (!eqSet.contains(newCustom.getId())) {
-                        addWeaponStats(player, newCustom);
-                        eqSet.add(newCustom.getId());
+            int newId = ItemUtil.getCustomItemId(newWeapon);
+            if (newId != -1 && !equippedIds.contains(newId)) {
+                CustomItem template = ItemManager.getInstance().getTemplateById(newId);
+                if (template != null) {
+                    // Level/class checks on the template
+                    int playerLevel   = LevelManager.getInstance().getLevel(player);
+                    int requiredLevel = template.getLevelRequirement();
+                    if (playerLevel < requiredLevel) {
+                        player.sendMessage(ChatColor.RED +
+                            "You can hold " + template.getBaseName() +
+                            " but lack the level to gain its stats.");
                     } else {
-                        // If it's already in the set, skip adding again
-                        Bukkit.getLogger().info("[DEBUG] Skipping double-add for item ID=" + newCustom.getId());
+                        // Apply template stats and track by ID
+                        addWeaponStats(player, template);
+                        equippedIds.add(newId);
                     }
                 }
             }
         }
 
-        // 4) Always recalc final stats
-        StatsManager.getInstance().recalcDerivedStats(player);
+        // 3) Always recalc final stats
+        stats.recalcDerivedStats(player);
     }
+
 
     // Helper methods (same as before)
     private void addWeaponStats(Player player, CustomItem customItem) {

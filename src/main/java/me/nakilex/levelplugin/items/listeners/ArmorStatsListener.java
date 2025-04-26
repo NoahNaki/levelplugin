@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.items.listeners;
 import me.nakilex.levelplugin.items.events.ArmorEquipEvent;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import org.bukkit.ChatColor;
@@ -20,58 +21,50 @@ public class ArmorStatsListener implements Listener {
 
     @EventHandler
     public void onArmorEquip(ArmorEquipEvent event) {
-        // If the event is cancelled by something else, do nothing
         if (event.isCancelled()) return;
 
         Player player = event.getPlayer();
-        UUID uuid = player.getUniqueId();
+        UUID puuid = player.getUniqueId();
+        StatsManager stats = StatsManager.getInstance();
+        Set<Integer> equippedIds = stats.getEquippedItems(puuid);
 
-        // ----- 1) Unequip Old Item -----
+        // 1) Unequip old item
         ItemStack oldItem = event.getOldArmorPiece();
         if (oldItem != null && !oldItem.getType().isAir()) {
-            CustomItem oldCustomItem = ItemManager.getInstance().getCustomItemFromItemStack(oldItem);
-            if (oldCustomItem != null) {
-                // Only remove if we had previously added it
-                Set<Integer> equippedIds = statsManager.getEquippedItems(uuid);
-                if (equippedIds.contains(oldCustomItem.getId())) {
-                    // Remove stats
-                    removeItemStats(player, oldCustomItem);
-                    // Remove from the set
-                    equippedIds.remove(oldCustomItem.getId());
+            int oldId = ItemUtil.getCustomItemId(oldItem);
+            if (oldId != -1 && equippedIds.contains(oldId)) {
+                CustomItem oldTemplate = ItemManager.getInstance().getTemplateById(oldId);
+                if (oldTemplate != null) {
+                    removeItemStats(player, oldTemplate);
+                    equippedIds.remove(oldId);
                 }
             }
         }
 
-        // ----- 2) Attempt to Equip New Item (with level check) -----
+        // 2) Equip new item (level check)
         ItemStack newItem = event.getNewArmorPiece();
         if (newItem != null && !newItem.getType().isAir()) {
-            CustomItem newCustomItem = ItemManager.getInstance().getCustomItemFromItemStack(newItem);
-            if (newCustomItem != null) {
-                int requiredLevel = newCustomItem.getLevelRequirement();
-                int playerLevel = LevelManager.getInstance().getLevel(player);
-
-                if (playerLevel < requiredLevel) {
-                    // Cancel so the item doesn't stay equipped
-                    event.setCancelled(true);
-                    player.sendMessage(ChatColor.RED + "You must be Level "
-                        + requiredLevel + " to wear this armor!");
-                    return; // Stop, do not add stats
+            int newId = ItemUtil.getCustomItemId(newItem);
+            if (newId != -1 && !equippedIds.contains(newId)) {
+                CustomItem newTemplate = ItemManager.getInstance().getTemplateById(newId);
+                if (newTemplate != null) {
+                    int req = newTemplate.getLevelRequirement();
+                    int lvl = LevelManager.getInstance().getLevel(player);
+                    if (lvl < req) {
+                        event.setCancelled(true);
+                        player.sendMessage(ChatColor.RED + "You must be Level " + req + " to wear this armor!");
+                        return;
+                    }
+                    addItemStats(player, newTemplate);
+                    equippedIds.add(newId);
                 }
-
-                // (Optional) class check for armor, if you do that
-                // ...
-
-                // If we pass checks, apply stats
-                addItemStats(player, newCustomItem);
-
-                // Add to the set of "equipped" item IDs
-                statsManager.getEquippedItems(uuid).add(newCustomItem.getId());
             }
         }
 
-        // ----- 3) Recalculate final stats -----
-        statsManager.recalcDerivedStats(player);
+        // 3) Recalc
+        stats.recalcDerivedStats(player);
     }
+
 
     private void addItemStats(Player player, CustomItem customItem) {
         StatsManager.PlayerStats ps = statsManager.getPlayerStats(player.getUniqueId());

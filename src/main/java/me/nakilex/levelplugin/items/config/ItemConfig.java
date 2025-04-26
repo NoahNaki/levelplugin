@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.items.config;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.data.ItemRarity;
+import me.nakilex.levelplugin.items.data.StatRange;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -33,21 +34,25 @@ public class ItemConfig {
 
     public void saveItems() {
         for (CustomItem item : ItemManager.getInstance().getAllItems().values()) {
-            String path = "items." + item.getUuid().toString();
-            config.set(path + ".id", item.getId());
-            config.set(path + ".baseName", item.getBaseName());
-            config.set(path + ".rarity", item.getRarity().name());
+            String path = "items." + item.getUuid();
+            config.set(path + ".id",               item.getId());
+            config.set(path + ".baseName",         item.getBaseName());
+            config.set(path + ".rarity",           item.getRarity().name());
             config.set(path + ".levelRequirement", item.getLevelRequirement());
             config.set(path + ".classRequirement", item.getClassRequirement());
-            config.set(path + ".material", item.getMaterial().name());
-            config.set(path + ".hp", item.getHp());
-            config.set(path + ".def", item.getDef());
-            config.set(path + ".str", item.getStr());
-            config.set(path + ".agi", item.getAgi());
+            config.set(path + ".material",         item.getMaterial().name());
+
+            // Persist *rolled* stats as plain ints:
+            config.set(path + ".hp",    item.getHp());
+            config.set(path + ".def",   item.getDef());
+            config.set(path + ".str",   item.getStr());
+            config.set(path + ".agi",   item.getAgi());
             config.set(path + ".intel", item.getIntel());
-            config.set(path + ".dex", item.getDex());
+            config.set(path + ".dex",   item.getDex());
+
             config.set(path + ".upgradeLevel", item.getUpgradeLevel());
         }
+
         try {
             config.save(file);
         } catch (IOException e) {
@@ -55,37 +60,48 @@ public class ItemConfig {
         }
     }
 
+
     public void loadItems() {
         if (!config.contains("items")) return;
 
         for (String key : config.getConfigurationSection("items").getKeys(false)) {
             try {
                 UUID uuid = UUID.fromString(key);
-                String path = "items." + key;
+                String base = "items." + key + ".";
 
-                int id = config.getInt(path + ".id");
-                String baseName = config.getString(path + ".baseName");
-                ItemRarity rarity = ItemRarity.valueOf(config.getString(path + ".rarity"));
-                int levelReq = config.getInt(path + ".levelRequirement");
-                String classReq = config.getString(path + ".classRequirement");
-                Material material = Material.valueOf(config.getString(path + ".material"));
+                int id             = config.getInt(base + "id");
+                String baseName    = config.getString(base + "baseName");
+                ItemRarity rarity  = ItemRarity.valueOf(config.getString(base + "rarity"));
+                int lvlReq         = config.getInt(base + "levelRequirement");
+                String clsReq      = config.getString(base + "classRequirement");
+                Material material  = Material.valueOf(config.getString(base + "material"));
+                int upgLvl         = config.getInt(base + "upgradeLevel", 0);
 
-                int hp = config.getInt(path + ".hp");
-                int def = config.getInt(path + ".def");
-                int str = config.getInt(path + ".str");
-                int agi = config.getInt(path + ".agi");
-                int intel = config.getInt(path + ".intel");
-                int dex = config.getInt(path + ".dex");
-                int upgradeLevel = config.getInt(path + ".upgradeLevel");
+                // Parse each rolled int as a single-value range:
+                StatRange hpRange    = StatRange.fromString(config.getString(base + "hp",    "0"));
+                StatRange defRange   = StatRange.fromString(config.getString(base + "def",   "0"));
+                StatRange strRange   = StatRange.fromString(config.getString(base + "str",   "0"));
+                StatRange agiRange   = StatRange.fromString(config.getString(base + "agi",   "0"));
+                StatRange intelRange = StatRange.fromString(config.getString(base + "intel", "0"));
+                StatRange dexRange   = StatRange.fromString(config.getString(base + "dex",   "0"));
 
-                CustomItem cItem = new CustomItem(uuid, id, baseName, rarity, levelReq, classReq, material, hp, def, str, agi, intel, dex, upgradeLevel);
-                ItemManager.getInstance().addInstance(cItem);
+                CustomItem instance = new CustomItem(
+                    uuid, id, baseName, rarity, lvlReq, clsReq, material,
+                    hpRange, defRange, strRange, agiRange, intelRange, dexRange,
+                    upgLvl
+                );
+
+                ItemManager.getInstance().addInstance(instance);
+
             } catch (Exception e) {
-                plugin.getLogger().warning("Failed to load custom item with UUID: " + key);
-                e.printStackTrace();
+                plugin.getLogger().warning("Failed to load custom item [" + key + "]: " + e.getMessage());
             }
         }
 
-        plugin.getLogger().info("Loaded " + ItemManager.getInstance().getAllItems().size() + " custom items from file.");
+        plugin.getLogger().info(
+            "Loaded " + ItemManager.getInstance().getAllItems().size()
+                + " custom items from custom_items.yml."
+        );
     }
+
 }

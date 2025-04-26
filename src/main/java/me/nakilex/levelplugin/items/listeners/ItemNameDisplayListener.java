@@ -15,10 +15,11 @@ import org.bukkit.scoreboard.ScoreboardManager;
 import org.bukkit.scoreboard.Team;
 
 import java.util.EnumSet;
+import java.util.UUID;
 
 public class ItemNameDisplayListener implements Listener {
 
-    // Set of armor, weapons, and shovels materials
+    // Which materials get the glow team treatment
     private static final EnumSet<Material> ARMOR_AND_WEAPONS = EnumSet.of(
         Material.DIAMOND_SWORD, Material.IRON_SWORD, Material.GOLDEN_SWORD, Material.NETHERITE_SWORD, Material.WOODEN_SWORD, Material.STONE_SWORD,
         Material.DIAMOND_AXE, Material.IRON_AXE, Material.GOLDEN_AXE, Material.NETHERITE_AXE, Material.WOODEN_AXE, Material.STONE_AXE,
@@ -36,47 +37,42 @@ public class ItemNameDisplayListener implements Listener {
         Item itemEntity = event.getEntity();
         ItemStack stack = itemEntity.getItemStack();
 
-        // Retrieve the Custom Item ID
-        int customItemId = ItemUtil.getCustomItemId(stack);
-        if (customItemId == -1) return; // Not a custom item
+        // 1) Pull the UUID we wrote on the ItemStack
+        UUID itemUUID = ItemUtil.getItemUUID(stack);
+        if (itemUUID == null) return;
 
-        // Get the CustomItem object
-        CustomItem customItem = ItemManager.getInstance().getItemById(customItemId);
+        // 2) Fetch the live instance (so we use its rolled stats & upgrade level)
+        CustomItem customItem = ItemManager.getInstance().getItemByUUID(itemUUID);
         if (customItem == null) return;
 
-        // Get the item's rarity color
+        // 3) Color + name
         ChatColor rarityColor = customItem.getRarity().getColor();
-
-        // Set the item's custom name with rarity color
         itemEntity.setCustomName(rarityColor + customItem.getName());
         itemEntity.setCustomNameVisible(true);
 
-        // Check if the item is a weapon, armor, or shovel
+        // 4) Glow if it's armor/weapon/shovel
         if (ARMOR_AND_WEAPONS.contains(customItem.getMaterial())) {
-            // Add glowing effect with the rarity color
             applyGlowWithColor(itemEntity, rarityColor);
         }
     }
 
     private void applyGlowWithColor(Item itemEntity, ChatColor rarityColor) {
-        // Get the scoreboard manager
         ScoreboardManager manager = itemEntity.getServer().getScoreboardManager();
         if (manager == null) return;
 
-        Scoreboard scoreboard = manager.getMainScoreboard();
-
-        // Ensure a team exists for the rarity color
+        Scoreboard board = manager.getMainScoreboard();
         String teamName = "glow_" + rarityColor.name().toLowerCase();
-        Team team = scoreboard.getTeam(teamName);
+
+        Team team = board.getTeam(teamName);
         if (team == null) {
-            team = scoreboard.registerNewTeam(teamName);
+            team = board.registerNewTeam(teamName);
             team.setColor(rarityColor);
-            team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.NEVER); // Hide name tags
-            team.setOption(Team.Option.COLLISION_RULE, Team.OptionStatus.NEVER); // Avoid interference
+            team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.NEVER);
+            team.setOption(Team.Option.COLLISION_RULE,    Team.OptionStatus.NEVER);
         }
 
-        // Add the item entity to the team
+        // Add the entity by its unique entry
         team.addEntry(itemEntity.getUniqueId().toString());
-        itemEntity.setGlowing(true); // Ensure the entity glows
+        itemEntity.setGlowing(true);
     }
 }
