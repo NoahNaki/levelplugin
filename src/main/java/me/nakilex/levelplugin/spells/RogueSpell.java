@@ -321,15 +321,35 @@ public class RogueSpell {
         player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED,       newDuration, speedAmp, false, false));
         player.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST,        newDuration, jumpAmp,  false, false));
 
-        // 3) Layered cast sounds
+        // **3) Hide the player from all others (not vanish offline!)**
+        for (Player other : Bukkit.getOnlinePlayers()) {
+            if (!other.equals(player)) {
+                other.hidePlayer(Main.getInstance(), player);
+            }
+        }
+
+        // 4) Layered cast sounds
         world.playSound(origin, Sound.ENTITY_FIREWORK_ROCKET_LAUNCH, 1f, 1f);
         world.playSound(origin, Sound.ENTITY_ILLUSIONER_CAST_SPELL,  1f, 1.2f);
         world.playSound(origin, Sound.ITEM_TOTEM_USE,                0.8f, 1f);
 
-        // 4) Particle burst
+        // 5) Particle burst
         world.spawnParticle(Particle.FIREWORK, origin, 30, 1, 1, 1, 0.05);
         world.spawnParticle(Particle.SMOKE,      origin, 20, 0.5, 1, 0.5, 0.02);
+
+        // **6) After duration, show player again**
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                for (Player other : Bukkit.getOnlinePlayers()) {
+                    if (!other.equals(player)) {
+                        other.showPlayer(Main.getInstance(), player);
+                    }
+                }
+            }
+        }.runTaskLater(Main.getInstance(), newDuration);
     }
+
 
     private void castExecute(Player player) {
         // Locate first valid target
