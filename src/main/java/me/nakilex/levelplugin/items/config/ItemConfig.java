@@ -78,12 +78,19 @@ public class ItemConfig {
                 int upgLvl         = config.getInt(base + "upgradeLevel", 0);
 
                 // Parse each rolled int as a single-value range:
-                StatRange hpRange    = StatRange.fromString(config.getString(base + "hp",    "0"));
-                StatRange defRange   = StatRange.fromString(config.getString(base + "def",   "0"));
-                StatRange strRange   = StatRange.fromString(config.getString(base + "str",   "0"));
-                StatRange agiRange   = StatRange.fromString(config.getString(base + "agi",   "0"));
-                StatRange intelRange = StatRange.fromString(config.getString(base + "intel", "0"));
-                StatRange dexRange   = StatRange.fromString(config.getString(base + "dex",   "0"));
+                    int hpValue    = config.getInt(base + "hp",    0);
+                    int defValue   = config.getInt(base + "def",   0);
+                    int strValue   = config.getInt(base + "str",   0);
+                    int agiValue   = config.getInt(base + "agi",   0);
+                    int intelValue = config.getInt(base + "intel", 0);
+                    int dexValue   = config.getInt(base + "dex",   0);
+
+                StatRange hpRange    = new StatRange(hpValue,    hpValue);
+                    StatRange defRange   = new StatRange(defValue,   defValue);
+                    StatRange strRange   = new StatRange(strValue,   strValue);
+                    StatRange agiRange   = new StatRange(agiValue,   agiValue);
+                    StatRange intelRange = new StatRange(intelValue, intelValue);
+                    StatRange dexRange   = new StatRange(dexValue,   dexValue);
 
                 CustomItem instance = new CustomItem(
                     uuid, id, baseName, rarity, lvlReq, clsReq, material,
