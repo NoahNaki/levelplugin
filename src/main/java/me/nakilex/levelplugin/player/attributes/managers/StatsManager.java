@@ -275,6 +275,8 @@ public class StatsManager {
         public void setCurrentMana(int currentMana) {
             this.currentMana = Math.max(0, Math.min(currentMana, maxMana)); // Ensure it's within bounds
         }
+
+
     }
 
     public enum StatType {

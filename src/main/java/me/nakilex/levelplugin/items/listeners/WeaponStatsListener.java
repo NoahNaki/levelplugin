@@ -27,47 +27,41 @@ public class WeaponStatsListener implements Listener {
         Player player = event.getPlayer();
         UUID puuid = player.getUniqueId();
         StatsManager stats = StatsManager.getInstance();
-        Set<Integer> equippedIds = stats.getEquippedItems(puuid);
+        Set<Integer> equipped = stats.getEquippedItems(puuid);
 
-        // 1) Remove old weapon stats by template ID
-        ItemStack oldWeapon = event.getOldWeapon();
-        if (oldWeapon != null && !oldWeapon.getType().isAir()) {
-            int oldId = ItemUtil.getCustomItemId(oldWeapon);
-            if (oldId != -1 && equippedIds.contains(oldId)) {
-                CustomItem template = ItemManager.getInstance().getTemplateById(oldId);
-                if (template != null) {
-                    removeWeaponStats(player, template);
-                    equippedIds.remove(oldId);
+        // 1) Remove old weapon
+        ItemStack oldWeap = event.getOldWeapon();
+        if (oldWeap != null && !oldWeap.getType().isAir()) {
+            CustomItem inst = ItemManager.getInstance().getCustomItemFromItemStack(oldWeap);
+            if (inst != null && equipped.contains(inst.getId())) {
+                removeWeaponStats(player, inst);
+                equipped.remove(inst.getId());
+            }
+        }
+
+        // 2) Add new weapon
+        ItemStack newWeap = event.getNewWeapon();
+        if (newWeap != null && !newWeap.getType().isAir()) {
+            CustomItem inst = ItemManager.getInstance().getCustomItemFromItemStack(newWeap);
+            if (inst != null && !equipped.contains(inst.getId())) {
+                int playerLevel   = LevelManager.getInstance().getLevel(player);
+                int requiredLevel = inst.getLevelRequirement();
+                if (playerLevel < requiredLevel) {
+                    player.sendMessage(ChatColor.RED +
+                        "You can hold " + inst.getBaseName() +
+                        " but lack the level to gain its stats.");
+                } else {
+                    addWeaponStats(player, inst);
+                    equipped.add(inst.getId());
                 }
             }
         }
 
-        // 2) Add new weapon stats by template ID
-        ItemStack newWeapon = event.getNewWeapon();
-        if (newWeapon != null && !newWeapon.getType().isAir()) {
-            int newId = ItemUtil.getCustomItemId(newWeapon);
-            if (newId != -1 && !equippedIds.contains(newId)) {
-                CustomItem template = ItemManager.getInstance().getTemplateById(newId);
-                if (template != null) {
-                    // Level/class checks on the template
-                    int playerLevel   = LevelManager.getInstance().getLevel(player);
-                    int requiredLevel = template.getLevelRequirement();
-                    if (playerLevel < requiredLevel) {
-                        player.sendMessage(ChatColor.RED +
-                            "You can hold " + template.getBaseName() +
-                            " but lack the level to gain its stats.");
-                    } else {
-                        // Apply template stats and track by ID
-                        addWeaponStats(player, template);
-                        equippedIds.add(newId);
-                    }
-                }
-            }
-        }
-
-        // 3) Always recalc final stats
+        // 3) Recalculate
         stats.recalcDerivedStats(player);
     }
+
+
 
 
     // Helper methods (same as before)

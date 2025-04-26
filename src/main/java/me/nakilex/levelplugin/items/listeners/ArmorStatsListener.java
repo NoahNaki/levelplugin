@@ -26,44 +26,39 @@ public class ArmorStatsListener implements Listener {
         Player player = event.getPlayer();
         UUID puuid = player.getUniqueId();
         StatsManager stats = StatsManager.getInstance();
-        Set<Integer> equippedIds = stats.getEquippedItems(puuid);
+        Set<Integer> equipped = stats.getEquippedItems(puuid);
 
-        // 1) Unequip old item
+        // 1) Unequip old piece
         ItemStack oldItem = event.getOldArmorPiece();
         if (oldItem != null && !oldItem.getType().isAir()) {
-            int oldId = ItemUtil.getCustomItemId(oldItem);
-            if (oldId != -1 && equippedIds.contains(oldId)) {
-                CustomItem oldTemplate = ItemManager.getInstance().getTemplateById(oldId);
-                if (oldTemplate != null) {
-                    removeItemStats(player, oldTemplate);
-                    equippedIds.remove(oldId);
-                }
+            CustomItem inst = ItemManager.getInstance().getCustomItemFromItemStack(oldItem);
+            if (inst != null && equipped.contains(inst.getId())) {
+                removeItemStats(player, inst);
+                equipped.remove(inst.getId());
             }
         }
 
-        // 2) Equip new item (level check)
+        // 2) Equip new piece
         ItemStack newItem = event.getNewArmorPiece();
         if (newItem != null && !newItem.getType().isAir()) {
-            int newId = ItemUtil.getCustomItemId(newItem);
-            if (newId != -1 && !equippedIds.contains(newId)) {
-                CustomItem newTemplate = ItemManager.getInstance().getTemplateById(newId);
-                if (newTemplate != null) {
-                    int req = newTemplate.getLevelRequirement();
-                    int lvl = LevelManager.getInstance().getLevel(player);
-                    if (lvl < req) {
-                        event.setCancelled(true);
-                        player.sendMessage(ChatColor.RED + "You must be Level " + req + " to wear this armor!");
-                        return;
-                    }
-                    addItemStats(player, newTemplate);
-                    equippedIds.add(newId);
+            CustomItem inst = ItemManager.getInstance().getCustomItemFromItemStack(newItem);
+            if (inst != null && !equipped.contains(inst.getId())) {
+                int req   = inst.getLevelRequirement();
+                int level = LevelManager.getInstance().getLevel(player);
+                if (level < req) {
+                    event.setCancelled(true);
+                    player.sendMessage(ChatColor.RED + "You must be Level " + req + " to wear this armor!");
+                    return;
                 }
+                addItemStats(player, inst);
+                equipped.add(inst.getId());
             }
         }
 
-        // 3) Recalc
+        // 3) Recalculate
         stats.recalcDerivedStats(player);
     }
+
 
 
     private void addItemStats(Player player, CustomItem customItem) {

@@ -13,6 +13,6 @@ public class PotionCooldownManager {
     }
 
     public void startCooldown(UUID uuid, int seconds) {
-        cooldowns.put(uuid, System.currentTimeMillis() + (seconds * 1000L));
+        cooldowns.put(uuid, System.currentTimeMillis() + (seconds * 2000L));
     }
 }

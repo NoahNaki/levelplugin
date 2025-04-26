@@ -9,6 +9,7 @@ public class CustomItem {
     // Unique instance ID
     private final UUID uuid;
 
+    // Template metadata
     private final int id;
     private final String baseName;
     private final ItemRarity rarity;
@@ -16,7 +17,7 @@ public class CustomItem {
     private final String classRequirement;
     private final Material material;
 
-    // Stat _ranges_
+    // The ranges from which we roll each stat exactly once
     private final StatRange hpRange;
     private final StatRange defRange;
     private final StatRange strRange;
@@ -24,26 +25,28 @@ public class CustomItem {
     private final StatRange intelRange;
     private final StatRange dexRange;
 
-    // One‐time rolled stats
-    private final int rolledHp;
-    private final int rolledDef;
-    private final int rolledStr;
-    private final int rolledAgi;
-    private final int rolledIntel;
-    private final int rolledDex;
+    // The mutable base stats (initialized by rolling once from each range)
+    private int baseHp;
+    private int baseDef;
+    private int baseStr;
+    private int baseAgi;
+    private int baseIntel;
+    private int baseDex;
 
-    // Bonuses and upgrades
+    // Any temporary bonuses (e.g. from enchantments, buffs)
     private int bonusHp    = 0;
     private int bonusDef   = 0;
     private int bonusStr   = 0;
     private int bonusAgi   = 0;
     private int bonusIntel = 0;
     private int bonusDex   = 0;
+
+    // How many times this item has been upgraded (max 5)
     private int upgradeLevel = 0;
 
     /**
-     * Constructor for loading an existing item (or creating from a template + fixed upgrade level).
-     * Rolls each stat once.
+     * Primary constructor: loads an existing item instance (with a fixed UUID and upgradeLevel),
+     * rolling its base stats once from the given ranges.
      */
     public CustomItem(UUID uuid,
                       int id,
@@ -74,20 +77,20 @@ public class CustomItem {
         this.intelRange = intelRange;
         this.dexRange   = dexRange;
 
-        // Roll each stat once
-        this.rolledHp    = hpRange.roll();
-        this.rolledDef   = defRange.roll();
-        this.rolledStr   = strRange.roll();
-        this.rolledAgi   = agiRange.roll();
-        this.rolledIntel = intelRange.roll();
-        this.rolledDex   = dexRange.roll();
+        // Roll each stat once and store as the mutable base
+        this.baseHp    = hpRange.roll();
+        this.baseDef   = defRange.roll();
+        this.baseStr   = strRange.roll();
+        this.baseAgi   = agiRange.roll();
+        this.baseIntel = intelRange.roll();
+        this.baseDex   = dexRange.roll();
 
         this.upgradeLevel = upgradeLevel;
     }
 
     /**
-     * Convenience constructor for creating a brand‐new item from ranges.
-     * Generates its own UUID.
+     * Convenience constructor for brand-new items: generates a UUID
+     * and starts at upgradeLevel 0.
      */
     public CustomItem(int id,
                       String baseName,
@@ -107,47 +110,42 @@ public class CustomItem {
             0);
     }
 
-    /* ─── Getters ───────────────────────────────────────────────────────── */
+    // ─── Getters ───────────────────────────────────────────────────────────────
 
-    public UUID getUuid()                 { return uuid; }
-    public int getId()                    { return id; }
-    public String getBaseName()           { return baseName; }
-    public ItemRarity getRarity()         { return rarity; }
-    public int getLevelRequirement()      { return levelRequirement; }
-    public String getClassRequirement()   { return classRequirement; }
-    public Material getMaterial()         { return material; }
+    public UUID getUuid()               { return uuid; }
+    public int getId()                  { return id; }
+    public String getBaseName()         { return baseName; }
+    public ItemRarity getRarity()       { return rarity; }
+    public int getLevelRequirement()    { return levelRequirement; }
+    public String getClassRequirement() { return classRequirement; }
+    public Material getMaterial()       { return material; }
 
-    public StatRange getHpRange()         { return hpRange; }
-    public StatRange getDefRange()        { return defRange; }
-    public StatRange getStrRange()        { return strRange; }
-    public StatRange getAgiRange()        { return agiRange; }
-    public StatRange getIntelRange()      { return intelRange; }
-    public StatRange getDexRange()        { return dexRange; }
+    public StatRange getHpRange()    { return hpRange; }
+    public StatRange getDefRange()   { return defRange; }
+    public StatRange getStrRange()   { return strRange; }
+    public StatRange getAgiRange()   { return agiRange; }
+    public StatRange getIntelRange() { return intelRange; }
+    public StatRange getDexRange()   { return dexRange; }
 
-    public int getHp()    { return rolledHp    + bonusHp; }
-    public int getDef()   { return rolledDef   + bonusDef; }
-    public int getStr()   { return rolledStr   + bonusStr; }
-    public int getAgi()   { return rolledAgi   + bonusAgi; }
-    public int getIntel() { return rolledIntel + bonusIntel; }
-    public int getDex()   { return rolledDex   + bonusDex; }
+    public int getHp()    { return baseHp    + bonusHp; }
+    public int getDef()   { return baseDef   + bonusDef; }
+    public int getStr()   { return baseStr   + bonusStr; }
+    public int getAgi()   { return baseAgi   + bonusAgi; }
+    public int getIntel() { return baseIntel + bonusIntel; }
+    public int getDex()   { return baseDex   + bonusDex; }
 
-    public int getUpgradeLevel()          { return upgradeLevel; }
+    public int getUpgradeLevel() { return upgradeLevel; }
 
-    /**
-     * Returns the display name (baseName + ★×upgradeLevel).
-     */
+    /** Display name with stars for upgrades. */
     public String getName() {
         return baseName + "★".repeat(upgradeLevel);
     }
+    public String getDisplayName() { return getName(); }
 
-    public String getDisplayName() {
-        return getName();
-    }
-
-    /* ─── Mutators ───────────────────────────────────────────────────────── */
+    // ─── Mutators ─────────────────────────────────────────────────────────────
 
     public void setUpgradeLevel(int upgradeLevel) {
-        this.upgradeLevel = upgradeLevel;
+        this.upgradeLevel = Math.min(5, Math.max(0, upgradeLevel));
     }
 
     public void addBonusStats(int hp, int def, int str, int agi, int intel, int dex) {
@@ -169,27 +167,25 @@ public class CustomItem {
     }
 
     /**
-     * Applies upgrades: increments upgradeLevel (max 5) and scales each rolled stat
+     * Increases upgradeLevel by 1 (up to 5) and then scales base stats
      * by (1 + 0.1×upgradeLevel + rarityBonus).
      */
     public void applyUpgrade() {
         if (upgradeLevel < 5) {
             upgradeLevel++;
-            double mult = 1.0 + upgradeLevel * 0.1 + getRarityMultiplier();
-            // Note: we scale the _rolled_ stats permanently
-            // (alternatively, you could track a separate upgraded value)
-            // Here we just recompute rolled*mult and floor to int.
-            // If you want to preserve original roll, store both.
-            int newHp    = (int) (rolledHp    * mult);
-            int newDef   = (int) (rolledDef   * mult);
-            int newStr   = (int) (rolledStr   * mult);
-            int newAgi   = (int) (rolledAgi   * mult);
-            int newIntel = (int) (rolledIntel * mult);
-            int newDex   = (int) (rolledDex   * mult);
-            // update rolled_* fields via reflection or redesign;
-            // for simplicity you might instead keep a baseRoll and upgradedRoll.
-            // (Implementation detail—adjust to your needs.)
+            increaseStats();
         }
+    }
+
+    /** Multiplies each base stat by the combined upgrade & rarity multiplier. */
+    public void increaseStats() {
+        double multiplier = 1.0 + (upgradeLevel * 0.1) + getRarityMultiplier();
+        baseHp    = (int)(baseHp    * multiplier);
+        baseDef   = (int)(baseDef   * multiplier);
+        baseStr   = (int)(baseStr   * multiplier);
+        baseAgi   = (int)(baseAgi   * multiplier);
+        baseIntel = (int)(baseIntel * multiplier);
+        baseDex   = (int)(baseDex   * multiplier);
     }
 
     private double getRarityMultiplier() {
@@ -200,6 +196,7 @@ public class CustomItem {
             case EPIC:      return 0.2;
             case LEGENDARY: return 0.3;
             case MYTHIC:    return 0.5;
+            case FABLED:    return 0.4; // if you want custom ratio
             default:        return 0.0;
         }
     }

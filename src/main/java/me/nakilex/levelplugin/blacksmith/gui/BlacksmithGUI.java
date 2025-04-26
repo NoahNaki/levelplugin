@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.blacksmith.managers.ItemUpgradeManager;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -184,48 +185,46 @@ public class BlacksmithGUI implements Listener {
         }
     }
 
-    private void handleUpgradeButtonClick(Player player, Inventory playerGUI) {
-        ItemStack itemStack = playerGUI.getItem(13); // Get item from the upgrade slot
-        if (itemStack == null) {
+    private void handleUpgradeButtonClick(Player player, Inventory gui) {
+        ItemStack itemStack = gui.getItem(13);
+        if (itemStack == null || itemStack.getType() == Material.AIR) {
             player.sendMessage("§cNo item in the upgrade slot!");
             return;
         }
 
+        // **Only accept real instances—no reroll fallback**
         CustomItem customItem = itemManager.getCustomItemFromItemStack(itemStack);
         if (customItem == null) {
-            player.sendMessage("§cInvalid item! Only custom items can be upgraded.");
+            player.sendMessage("§cInvalid item! Only already‐created custom items can be upgraded.");
             return;
         }
 
+        // Now you know `customItem` is the exact same instance whose stats you saw,
+        // so calling attemptUpgrade() will strictly *increase* its existing stats.
         if (customItem.getUpgradeLevel() >= 5) {
             player.sendMessage("§cThis item has reached the maximum upgrade level!");
             return;
         }
 
         int upgradeCost = upgradeManager.getUpgradeCost(customItem);
-
         try {
             economyManager.deductCoins(player, upgradeCost);
-
-            if (upgradeManager.attemptUpgrade(player, itemStack, customItem)) {
-                player.sendMessage("§aUpgrade successful!");
-
-                // Change red panes to green temporarily
-                setTemporaryGreenPanes(playerGUI);
-
-                // Update the GUI with the upgraded item
-                playerGUI.setItem(13, itemStack);
-
-                // Update the upgrade button to reflect the new cost
-                int newUpgradeCost = upgradeManager.getUpgradeCost(customItem);
-                updateUpgradeButton(playerGUI, newUpgradeCost);
-            } else {
-                player.sendMessage("§cUpgrade failed!");
-            }
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException ex) {
             player.sendMessage("§cNot enough coins! Upgrade cost: §6⛃ " + upgradeCost);
+            return;
+        }
+
+        if (upgradeManager.attemptUpgrade(player, itemStack, customItem)) {
+            player.sendMessage("§aUpgrade successful!");
+            setTemporaryGreenPanes(gui);
+            gui.setItem(13, itemStack);
+            updateUpgradeButton(gui, upgradeManager.getUpgradeCost(customItem));
+        } else {
+            player.sendMessage("§cUpgrade failed!");
         }
     }
+
+
 
     private void setTemporaryGreenPanes(Inventory gui) {
         int[] slots = {0, 8, 9, 17, 18, 26};
