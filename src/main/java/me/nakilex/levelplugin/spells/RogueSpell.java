@@ -10,6 +10,9 @@ import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.block.Block;
 import org.bukkit.entity.*;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.FireworkMeta;
@@ -21,7 +24,7 @@ import org.bukkit.util.Vector;
 
 import java.util.*;
 
-public class RogueSpell {
+public class RogueSpell implements Listener {
 
     public boolean castRogueSpell(Player player, String effectKey) {
         switch (effectKey.toUpperCase()) {
@@ -272,18 +275,16 @@ public class RogueSpell {
         }
     }
 
-    /**
-     * Makes the player invisible for 5 seconds, blinks them forward ~3 blocks,
-     * and adds a swirly pre-vanish ring, multi-layered particles, firework burst,
-     * sound layers, after-blink trail, and brief glow on arrival.
-     */
+    private static final Set<UUID> vanishedPlayers = new HashSet<>();
+    private static final Map<UUID, BukkitRunnable> vanishTasks = new HashMap<>();
+
+
     private void castVanish(Player player) {
         Location origin = player.getLocation();
-        World world   = origin.getWorld();
-        final int BASE_DURATION = 100;   // 5 seconds in ticks
+        World world = origin.getWorld();
+        final int BASE_DURATION = 100;   // 5 seconds
         final int EXTEND_DURATION = 20;  // 2 seconds
 
-        // Determine current effect state
         boolean hasInvis = player.hasPotionEffect(PotionEffectType.INVISIBILITY);
         int newDuration = BASE_DURATION;
         int speedAmp = 0;
@@ -294,61 +295,86 @@ public class RogueSpell {
             newDuration = invis.getDuration() + EXTEND_DURATION;
 
             PotionEffect speed = player.getPotionEffect(PotionEffectType.SPEED);
-            PotionEffect jump  = player.getPotionEffect(PotionEffectType.JUMP_BOOST);
-            speedAmp = (speed  != null ? speed.getAmplifier() : 0) + 1;
-            jumpAmp  = (jump   != null ? jump.getAmplifier()  : 0) + 1;
+            PotionEffect jump = player.getPotionEffect(PotionEffectType.JUMP_BOOST);
+            speedAmp = (speed != null ? speed.getAmplifier() : 0) + 1;
+            jumpAmp = (jump != null ? jump.getAmplifier() : 0) + 1;
         }
 
-        // 1) Pre-vanish swirling ring
-        new BukkitRunnable() {
-            int tick = 0;
-            @Override public void run() {
-                if (tick++ > 15) { cancel(); return; }
-                double radius = 1.0 + tick * 0.05;
-                for (double ang = 0; ang < 360; ang += 20) {
-                    double rad = Math.toRadians(ang + tick * 20);
-                    Location point = origin.clone().add(
-                        Math.cos(rad) * radius,
-                        0.5,
-                        Math.sin(rad) * radius
-                    );
-                    world.spawnParticle(Particle.END_ROD, point, 1, 0, 0, 0, 0);
-                }
-            }
-        }.runTaskTimer(Main.getInstance(), 0, 1);
-
-        // 2) Apply invisibility, speed, and jump
-        player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, newDuration, 0, false, false));
-        player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED,       newDuration, speedAmp, false, false));
-        player.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST,        newDuration, jumpAmp,  false, false));
-
-        // **3) Hide the player from all others (not vanish offline!)**
-        for (Player other : Bukkit.getOnlinePlayers()) {
-            if (!other.equals(player)) {
-                other.hidePlayer(Main.getInstance(), player);
-            }
-        }
-
-        // 4) Layered cast sounds
-        world.playSound(origin, Sound.ENTITY_FIREWORK_ROCKET_LAUNCH, 1f, 1f);
-        world.playSound(origin, Sound.ENTITY_ILLUSIONER_CAST_SPELL,  1f, 1.2f);
-        world.playSound(origin, Sound.ITEM_TOTEM_USE,                0.8f, 1f);
-
-        // 5) Particle burst
-        world.spawnParticle(Particle.FIREWORK, origin, 30, 1, 1, 1, 0.05);
-        world.spawnParticle(Particle.SMOKE,      origin, 20, 0.5, 1, 0.5, 0.02);
-
-        // **6) After duration, show player again**
-        new BukkitRunnable() {
+        // 👉 ONE vanish end task saved
+        BukkitRunnable vanishEndTask = new BukkitRunnable() {
             @Override
             public void run() {
+                if (!player.isOnline()) return;
+                vanishedPlayers.remove(player.getUniqueId());
                 for (Player other : Bukkit.getOnlinePlayers()) {
                     if (!other.equals(player)) {
                         other.showPlayer(Main.getInstance(), player);
                     }
                 }
             }
-        }.runTaskLater(Main.getInstance(), newDuration);
+        };
+        vanishEndTask.runTaskLater(Main.getInstance(), newDuration);
+        vanishTasks.put(player.getUniqueId(), vanishEndTask);  // SAVE IT
+
+        // apply effects
+        player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, newDuration, 0, false, false));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, newDuration, speedAmp, false, false));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, newDuration, jumpAmp, false, false));
+
+        vanishedPlayers.add(player.getUniqueId());
+
+        for (Player other : Bukkit.getOnlinePlayers()) {
+            if (!other.equals(player)) {
+                other.hidePlayer(Main.getInstance(), player);
+            }
+        }
+
+        world.playSound(origin, Sound.ENTITY_FIREWORK_ROCKET_LAUNCH, 1f, 1f);
+        world.playSound(origin, Sound.ENTITY_ILLUSIONER_CAST_SPELL, 1f, 1.2f);
+        world.playSound(origin, Sound.ITEM_TOTEM_USE, 0.8f, 1f);
+        world.spawnParticle(Particle.FIREWORK, origin, 30, 1, 1, 1, 0.05);
+        world.spawnParticle(Particle.SMOKE, origin, 20, 0.5, 1, 0.5, 0.02);
+    }
+
+
+    @EventHandler
+    public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
+        if (event.getDamager() instanceof Player damager) {
+            if (vanishedPlayers.contains(damager.getUniqueId())) {
+                cancelVanish(damager);
+            }
+        }
+
+        if (event.getEntity() instanceof Player damaged) {
+            if (vanishedPlayers.contains(damaged.getUniqueId())) {
+                cancelVanish(damaged);
+            }
+        }
+    }
+
+    private void cancelVanish(Player player) {
+        vanishedPlayers.remove(player.getUniqueId());
+
+        // Cancel the scheduled vanish end task
+        BukkitRunnable task = vanishTasks.remove(player.getUniqueId());
+        if (task != null) {
+            task.cancel();
+        }
+
+        player.removePotionEffect(PotionEffectType.INVISIBILITY);
+        player.removePotionEffect(PotionEffectType.SPEED);
+        player.removePotionEffect(PotionEffectType.JUMP_BOOST);
+
+        for (Player other : Bukkit.getOnlinePlayers()) {
+            if (!other.equals(player)) {
+                other.showPlayer(Main.getInstance(), player);
+            }
+        }
+
+        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_HURT, 1f, 1f);
+        player.getWorld().spawnParticle(Particle.SMOKE, player.getLocation(), 10, 0.5, 0.5, 0.5);
+
+        player.sendMessage("§cYour vanish was broken!");
     }
 
 
