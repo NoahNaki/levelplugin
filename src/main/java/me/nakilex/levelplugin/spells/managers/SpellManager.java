@@ -79,7 +79,7 @@ public class SpellManager {
                 20.0, defaultManaMultiplier,
                 0, 3,
                 Arrays.asList(Material.STICK, Material.BLAZE_ROD),
-                "METEOR", 2.5
+                "METEOR", 5.5
             ),
             "RRL", new Spell(
                 "blackhole", "Blackhole", "RRL",
@@ -107,14 +107,14 @@ public class SpellManager {
         // Rogue Spells
         spellsByClass.put("rogue", Map.of(
             "RLL", new Spell(
-                "shadow_step", "Shadow Step", "RRL",
+                "shadow_step", "Execute", "RRL",
                 12.0, defaultManaMultiplier,
                 0, 15,
                 Arrays.asList(
                     Material.WOODEN_SWORD, Material.STONE_SWORD, Material.IRON_SWORD,
                     Material.GOLDEN_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD
                 ),
-                "SHADOW_STEP", 1.3
+                "SHADOW_STEP", 3.3
             ),
             "RRL", new Spell(
                 "blade_fury", "Blade Fury", "RLL",
@@ -124,7 +124,7 @@ public class SpellManager {
                     Material.WOODEN_SWORD, Material.STONE_SWORD, Material.IRON_SWORD,
                     Material.GOLDEN_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD
                 ),
-                "BLADE_FURY", 1.5
+                "BLADE_FURY", 2.5
             ),
             "RLR", new Spell(
                 "dagger_throw", "Dagger Throw", "RLR",

@@ -37,15 +37,22 @@ public class StatsInventory {
                 "Current bonus: " + ChatColor.YELLOW + ((ps.baseStrength + ps.bonusStrength) * 0.5) + " damage."
             }
         ));
+
+        // Agility with DR dodge chance
+        int totalAgility = ps.baseAgility + ps.bonusAgility;
+        double dodgePercent = totalAgility / (totalAgility + 100.0) * 100.0;
+        dodgePercent = Math.round(dodgePercent * 10.0) / 10.0;  // 1-decimal precision
+
         inv.setItem(11, createStatBook(
             "Agility", StatType.AGI, ps.baseAgility, ps.bonusAgility, ps.skillPoints,
             "Improves your speed and dodge chance.",
             new String[]{
-                "Each point increases dodge chance by 1% and speed by 0.001.",
-                "Current dodge chance: " + ChatColor.YELLOW + (ps.baseAgility + ps.bonusAgility) + "%.",
+                "Dodge chance scales with total Agility.",
+                "Current dodge chance: " + ChatColor.YELLOW + dodgePercent + "%.",
                 "Speed bonus: +" + ((ps.baseAgility + ps.bonusAgility) * 0.001f)
             }
         ));
+
         inv.setItem(12, createStatBook(
             "Intelligence", StatType.INT, ps.baseIntelligence, ps.bonusIntelligence, ps.skillPoints,
             "Increases your max mana and mana regeneration.",
@@ -55,14 +62,21 @@ public class StatsInventory {
                 "Mana regen: +" + ((ps.baseIntelligence + ps.bonusIntelligence) * 0.05) + " mana/sec."
             }
         ));
+
+        // Dexterity with DR crit chance
+        int totalDexterity = ps.baseDexterity + ps.bonusDexterity;
+        double critPercent = totalDexterity / (totalDexterity + 100.0) * 100.0;
+        critPercent = Math.round(critPercent * 10.0) / 10.0; // one decimal
+
         inv.setItem(14, createStatBook(
             "Dexterity", StatType.DEX, ps.baseDexterity, ps.bonusDexterity, ps.skillPoints,
             "Improves your critical hit chance.",
             new String[]{
-                "Each point increases critical hit chance by 1%.",
-                "Current crit chance: " + ChatColor.YELLOW + (ps.baseDexterity + ps.bonusDexterity) + "%."
+                "Crit chance scales with total Dexterity.",
+                "Current crit chance: " + ChatColor.YELLOW + critPercent + "%."
             }
         ));
+
         inv.setItem(15, createStatBook(
             "Health", StatType.HP, ps.baseHealthStat, ps.bonusHealthStat, ps.skillPoints,
             "Increases your maximum health.",

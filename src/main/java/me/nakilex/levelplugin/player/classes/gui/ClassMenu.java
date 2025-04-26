@@ -99,7 +99,7 @@ public class ClassMenu {
                 ChatColor.RED + "ROGUE" + ChatColor.GRAY + "! Your starting item will be a dagger.",
                 "",
                 ChatColor.RED + "" + ChatColor.BOLD + "ABILITY 1:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Shadow Step " + ChatColor.GRAY +
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Execute " + ChatColor.GRAY +
                     "(Combo: RLL, Cost: 12, Cooldown: 3s, Multiplier: 1.3)",
                 ChatColor.YELLOW + "" + ChatColor.BOLD + "ABILITY 2:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Blade Fury " + ChatColor.GRAY +

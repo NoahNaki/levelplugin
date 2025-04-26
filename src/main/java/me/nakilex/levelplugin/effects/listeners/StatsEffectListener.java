@@ -44,14 +44,16 @@ public class StatsEffectListener implements Listener {
             double finalDamage = event.getDamage() + (totalStrength * 0.5);
 
             // 2) Dexterity → crit chance (1% per point)
+            // 2) Dexterity → crit chance (diminishing returns)
             int totalDexterity = ps.baseDexterity + ps.bonusDexterity;
-            double critChance = totalDexterity * 0.01;
+            double critChance = (double) totalDexterity / (totalDexterity + 100.0);
+            critChance = Math.max(0.0, Math.min(1.0, critChance));
 
-            // 3) Roll for crit
             boolean isCrit = random.nextDouble() < critChance;
             if (isCrit) {
-                finalDamage *= 1.5;
+                finalDamage *= 2;
             }
+
 
             // Record crit status for chat listener
             lastCritMap.put(player.getUniqueId(), isCrit);
@@ -66,12 +68,18 @@ public class StatsEffectListener implements Listener {
             PlayerStats vs = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
 
             // Dodge chance (1% per AGI)
+            // Dodge chance with diminishing returns
             int totalAgility = vs.baseAgility + vs.bonusAgility;
-            double dodgeChance = totalAgility * 0.01;
+// Use the same “100” constant so that each extra point has less impact at higher AGI
+            double dodgeChance = (double) totalAgility / (totalAgility + 100.0);
+// clamp to [0,1] just in case
+            dodgeChance = Math.max(0.0, Math.min(1.0, dodgeChance));
+
             if (random.nextDouble() < dodgeChance) {
                 event.setCancelled(true);
                 return;
             }
+
 
             // Defense with diminishing returns using ratio-based formula
             int totalDefence = vs.baseDefenceStat + vs.bonusDefenceStat;
