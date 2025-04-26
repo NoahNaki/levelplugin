@@ -3,7 +3,7 @@ package me.nakilex.levelplugin.spells.utils;
 import io.lumine.mythic.bukkit.MythicBukkit;
 import io.lumine.mythic.core.mobs.ActiveMob;
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.effects.listeners.StatsEffectListener;
+import me.nakilex.levelplugin.player.attributes.listeners.StatsEffectListener;
 import me.nakilex.levelplugin.spells.managers.SpellContextManager;
 import me.nakilex.levelplugin.mob.managers.ChatToggleManager;
 import org.bukkit.Bukkit;
@@ -16,7 +16,6 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.EntityDamageEvent;
 
 import java.util.logging.Logger;
 

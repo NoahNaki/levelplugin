@@ -63,17 +63,15 @@ public class StatsInventory {
             }
         ));
 
-        // Dexterity with DR crit chance
         int totalDexterity = ps.baseDexterity + ps.bonusDexterity;
-        double critPercent  = totalDexterity / (totalDexterity + 200.0) * 100.0;
-        critPercent = Math.round(critPercent * 10.0) / 10.0; // one decimal
-
+        double critPercent  = totalDexterity / (totalDexterity + 100.0) * 100.0;
+        critPercent = Math.round(critPercent * 10.0) / 10.0;
         inv.setItem(14, createStatBook(
             "Dexterity", StatType.DEX, ps.baseDexterity, ps.bonusDexterity, ps.skillPoints,
-            "Improves your critical hit chance.",
+            "Improves crit chance and subtracts from enemy dodge based on your DEX.",
             new String[]{
-                "Crit chance scales with total Dexterity.",
-                "Current crit chance: " + ChatColor.YELLOW + critPercent + "%."
+                "Crit chance: " + ChatColor.YELLOW + critPercent + "% (DR formula).",
+                "Accuracy: subtracts " + totalDexterity + " Agility points from the target before dodge."
             }
         ));
 

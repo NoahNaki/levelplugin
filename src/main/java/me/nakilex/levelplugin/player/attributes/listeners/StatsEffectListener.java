@@ -1,4 +1,4 @@
-package me.nakilex.levelplugin.effects.listeners;
+package me.nakilex.levelplugin.player.attributes.listeners;
 
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStats;
@@ -32,9 +32,9 @@ public class StatsEffectListener implements Listener {
     @EventHandler
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
         Entity damager = event.getDamager();
-        Entity target = event.getEntity();
+        Entity target  = event.getEntity();
 
-        // Outgoing damage modifications if a player is the damager
+        // ── Outgoing damage (when the damager is a player) ──
         if (damager instanceof Player) {
             Player player = (Player) damager;
             PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
@@ -43,47 +43,53 @@ public class StatsEffectListener implements Listener {
             int totalStrength = ps.baseStrength + ps.bonusStrength;
             double finalDamage = event.getDamage() + (totalStrength * 0.5);
 
-            // 2) Dexterity → crit chance (1% per point)
-            // 2) Dexterity → crit chance (diminishing returns)
+            // 2) Dex → crit (diminishing returns)
             int totalDexterity = ps.baseDexterity + ps.bonusDexterity;
             double critChance = (double) totalDexterity / (totalDexterity + 100.0);
             critChance = Math.max(0.0, Math.min(1.0, critChance));
 
             boolean isCrit = random.nextDouble() < critChance;
-            if (isCrit) {
-                finalDamage *= 2;
-            }
+            if (isCrit) finalDamage *= 2;
 
-
-            // Record crit status for chat listener
+            // Record for chat, etc.
             lastCritMap.put(player.getUniqueId(), isCrit);
 
-            // 4) Apply modified damage
+            // Apply
             event.setDamage(finalDamage);
         }
 
-        // Incoming damage modifications if the target is a player
+        // ── Incoming damage (when the target is a player) ──
         if (target instanceof Player) {
-            Player player = (Player) target;
-            PlayerStats vs = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
+            Player attacked = (Player) target;
+            PlayerStats vs = StatsManager.getInstance().getPlayerStats(attacked.getUniqueId());
 
-            // Dodge chance (1% per AGI)
-            // Dodge chance with diminishing returns
+            // 1) Target’s raw AGI
             int totalAgility = vs.baseAgility + vs.bonusAgility;
-// Use the same “100” constant so that each extra point has less impact at higher AGI
-            double dodgeChance = (double) totalAgility / (totalAgility + 100.0);
-// clamp to [0,1] just in case
+
+            // 2) Attacker’s DEX for accuracy
+            int attackerDex = 0;
+            if (damager instanceof Player) {
+                Player attacker = (Player) damager;
+                PlayerStats aps = StatsManager.getInstance().getPlayerStats(attacker.getUniqueId());
+                attackerDex = aps.baseDexterity + aps.bonusDexterity;
+            }
+
+            // 3) Subtract to get “effective” AGI
+            int effectiveAgility = Math.max(0, totalAgility - attackerDex);
+
+            // 4) Re‐compute dodge with diminishing returns
+            double dodgeChance = (double) effectiveAgility / (effectiveAgility + 100.0);
             dodgeChance = Math.max(0.0, Math.min(1.0, dodgeChance));
 
+            // 5) Dodge roll
             if (random.nextDouble() < dodgeChance) {
                 event.setCancelled(true);
                 return;
             }
 
-
-            // Defense with diminishing returns using ratio-based formula
+            // 6) Defense reduction (unchanged)
             int totalDefence = vs.baseDefenceStat + vs.bonusDefenceStat;
-            double percentReduction = totalDefence / (totalDefence + 100.0); // Diminishing returns
+            double percentReduction = (double) totalDefence / (totalDefence + 100.0);
             double reducedDamage = event.getDamage() * (1.0 - percentReduction);
 
             event.setDamage(reducedDamage);

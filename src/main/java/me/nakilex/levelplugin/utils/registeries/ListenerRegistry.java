@@ -5,7 +5,7 @@ import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
 import me.nakilex.levelplugin.doublejump.listeners.DoubleJumpListener;
 import me.nakilex.levelplugin.duels.listeners.DuelListener;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
-import me.nakilex.levelplugin.effects.listeners.StatsEffectListener;
+import me.nakilex.levelplugin.player.attributes.listeners.StatsEffectListener;
 import me.nakilex.levelplugin.horse.gui.HorseGUI;
 import me.nakilex.levelplugin.items.listeners.*;
 import me.nakilex.levelplugin.lootchests.listeners.LootChestCloseListener;

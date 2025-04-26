@@ -191,12 +191,12 @@ public class CustomItem {
     private double getRarityMultiplier() {
         switch (rarity) {
             case COMMON:    return 0.0;
-            case UNCOMMON:  return 0.07;
-            case RARE:      return 0.1;
-            case EPIC:      return 0.2;
-            case LEGENDARY: return 0.3;
-            case MYTHIC:    return 0.5;
-            case FABLED:    return 0.4; // if you want custom ratio
+            case UNCOMMON:  return 0.007;
+            case RARE:      return 0.01;
+            case EPIC:      return 0.02;
+            case LEGENDARY: return 0.03;
+            case MYTHIC:    return 0.05;
+            case FABLED:    return 0.04; // if you want custom ratio
             default:        return 0.0;
         }
     }
