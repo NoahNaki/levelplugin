@@ -1,11 +1,14 @@
 package me.nakilex.levelplugin.player.level.managers;
 
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import org.bukkit.*;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.FireworkMeta;
+import org.bukkit.persistence.PersistentDataType;
 
 public class XPBarHandler {
 
@@ -42,6 +45,20 @@ public class XPBarHandler {
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
         player.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, player.getLocation(), 30);
         launchFirework(player.getLocation());
+        player.getInventory().forEach(stack -> {
+            if (stack != null && stack.hasItemMeta()
+                && stack.getItemMeta().getPersistentDataContainer().has(ItemUtil.ITEM_UUID_KEY, PersistentDataType.STRING)) {
+                ItemUtil.updateCustomItemTooltip(stack, player);
+            }
+        });
+        // armor slots too
+        for (ItemStack armor : player.getInventory().getArmorContents()) {
+            if (armor != null && armor.hasItemMeta()
+                && armor.getItemMeta().getPersistentDataContainer().has(ItemUtil.ITEM_UUID_KEY, PersistentDataType.STRING)) {
+                ItemUtil.updateCustomItemTooltip(armor, player);
+            }
+        }
+        player.updateInventory();
     }
 
     public static void launchFirework(Location location) {

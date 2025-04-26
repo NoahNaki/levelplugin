@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.player.classes.listeners;
 
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import org.bukkit.Bukkit;
@@ -10,6 +11,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataType;
 
 public class ClassMenuListener implements Listener {
 
@@ -91,5 +93,19 @@ public class ClassMenuListener implements Listener {
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
             player.closeInventory();
         }
+
+        player.getInventory().forEach(stack -> {
+            if (stack != null && stack.hasItemMeta()
+                && stack.getItemMeta().getPersistentDataContainer().has(ItemUtil.ITEM_UUID_KEY, PersistentDataType.STRING)) {
+                ItemUtil.updateCustomItemTooltip(stack, player);
+            }
+        });
+        for (ItemStack armor : player.getInventory().getArmorContents()) {
+            if (armor != null && armor.hasItemMeta()
+                && armor.getItemMeta().getPersistentDataContainer().has(ItemUtil.ITEM_UUID_KEY, PersistentDataType.STRING)) {
+                ItemUtil.updateCustomItemTooltip(armor, player);
+            }
+        }
+        player.updateInventory();
     }
 }
