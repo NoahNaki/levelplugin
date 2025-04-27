@@ -53,7 +53,18 @@ public class MageSpell implements Listener {
                     healPlayer(player, 10);
                     break;
                 case "TELEPORT":
-                    teleportPlayer(player, 15, 150);
+                    StatsManager.PlayerStats stats = StatsManager
+                        .getInstance()
+                        .getPlayerStats(player.getUniqueId());
+                    int totalAgi = stats.baseAgility + stats.bonusAgility;
+
+                    final int baseDistance = 8;
+                    final double agiMultiplier = 0.05;
+                    int scaledDistance = baseDistance + (int)(totalAgi * agiMultiplier);
+
+                    scaledDistance = Math.max(baseDistance, Math.min(scaledDistance, 30));
+
+                    teleportPlayer(player, scaledDistance, 150);
                     break;
                 case "MAGE_BASIC":
                     mageBasicSkill(player);

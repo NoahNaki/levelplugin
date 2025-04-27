@@ -175,7 +175,7 @@ public class StatsManager {
             ps.currentMana = ps.maxMana;
         }
 
-        float newWalkSpeed = 0.20f + ((ps.baseAgility + ps.bonusAgility) * 0.001f);
+        float newWalkSpeed = 0.20f + ((ps.baseAgility + ps.bonusAgility) * 0.0006f);
         if (newWalkSpeed > 1.0f) newWalkSpeed = 1.0f;
         player.setWalkSpeed(newWalkSpeed);
     }
@@ -189,8 +189,8 @@ public class StatsManager {
             // Base health regeneration per second
             double baseRegenPerSec = 0.5;
 
-            // HealthStat bonus (both base and bonus combined)
-            double healthBonus = (ps.baseHealthStat + ps.bonusHealthStat) * 0.03;
+            // HealthStat bonus – *only base stat now*
+            double healthBonus = ps.baseHealthStat * 0.03;
 
             // Total health regeneration
             double totalRegen = baseRegenPerSec + healthBonus;
@@ -198,10 +198,11 @@ public class StatsManager {
             // Apply regeneration
             double newHealth = player.getHealth() + totalRegen;
 
-            // Ensure health does not exceed the max health
+            // Clamp to max health
             player.setHealth(Math.min(newHealth, player.getMaxHealth()));
         }
     }
+
 
 
     public void regenManaForAllPlayers() {
