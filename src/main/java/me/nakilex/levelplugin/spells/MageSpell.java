@@ -299,56 +299,64 @@ public class MageSpell implements Listener {
         }.runTaskTimer(plugin, 0L, 2L);
     }
 
+    /** Heals the caster and nearby party members, but never a duel opponent. */
     private void healPlayer(Player player, int baseAmount) {
-        // 1) Compute how much to heal
-        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
-        int intel = ps.baseIntelligence + ps.bonusIntelligence;
-        double amount = baseAmount + (intel * 0.5);
 
-        // 2) Gather all targets: caster + nearby party members
+        /* ── 1) Compute heal amount ─────────────────────────────── */
+        StatsManager.PlayerStats ps = StatsManager.getInstance()
+            .getPlayerStats(player.getUniqueId());
+        int    intel = ps.baseIntelligence + ps.bonusIntelligence;
+        double heal  = baseAmount + (intel * 0.5);
+
+        /* ── 2) Build target list (self + party-mates) ──────────── */
         List<Player> toHeal = new ArrayList<>();
-        toHeal.add(player);
+        toHeal.add(player);                                    // self is always OK
 
-        Party party = Main.getInstance()
+        DuelManager dm = DuelManager.getInstance();
+        Party party    = Main.getInstance()
             .getPartyManager()
             .getParty(player.getUniqueId());
+
         if (party != null) {
-            for (UUID memberId : party.getMembers()) {
-                if (memberId.equals(player.getUniqueId())) continue;
-                Player member = Bukkit.getPlayer(memberId);
-                if (member != null
-                    && member.isOnline()
-                    && member.getWorld().equals(player.getWorld())
-                    && member.getLocation().distanceSquared(player.getLocation()) <= 10 * 10) {
-                    toHeal.add(member);
-                }
+            for (UUID id : party.getMembers()) {
+                if (id.equals(player.getUniqueId())) continue;          // skip self
+
+                Player m = Bukkit.getPlayer(id);
+                if (m == null || !m.isOnline()) continue;
+
+                // nearby & same world
+                if (!m.getWorld().equals(player.getWorld())
+                    || m.getLocation().distanceSquared(player.getLocation()) > 10*10)
+                    continue;
+
+                // ✘ skip if this party-mate is currently duelling the caster
+                if (dm.areInDuel(player.getUniqueId(), m.getUniqueId())) continue;
+
+                toHeal.add(m);   // ✔ safe to heal
             }
         }
 
-        // 3) Apply heal + VFX/SFX + messaging
+        /* ── 3) Apply heal, VFX/SFX, messages ───────────────────── */
         for (Player target : toHeal) {
+
             double maxHp = target.getAttribute(Attribute.MAX_HEALTH).getValue();
-            double newHp = Math.min(target.getHealth() + amount, maxHp);
-            target.setHealth(newHp);
+            target.setHealth(Math.min(target.getHealth() + heal, maxHp));
 
-            // Particles & sound
             target.getWorld().spawnParticle(Particle.HAPPY_VILLAGER,
-                target.getLocation(),
-                30, 1, 1, 1, 0.2);
+                target.getLocation(), 30, 1, 1, 1, 0.2);
             target.getWorld().playSound(target.getLocation(),
-                Sound.BLOCK_AMETHYST_BLOCK_HIT,
-                1f, 1f);
+                Sound.BLOCK_AMETHYST_BLOCK_HIT, 1f, 1f);
 
-            // Message
             if (target.equals(player)) {
-                target.sendMessage("§aYou have been healed for " + Math.round(amount) + " health!");
+                target.sendMessage("§aYou have been healed for " + Math.round(heal) + " health!");
             } else {
                 target.sendMessage("§a" + player.getName()
-                    + " healed you for "
-                    + Math.round(amount) + " health!");
+                    + " healed you for " + Math.round(heal) + " health!");
             }
         }
     }
+
+
 
     private void teleportPlayer(Player player, int distance, int particles) {
         Location target = player.getLocation().add(player.getLocation().getDirection().multiply(distance));

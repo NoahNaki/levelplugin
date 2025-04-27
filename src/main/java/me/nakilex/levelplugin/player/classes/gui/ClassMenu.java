@@ -25,16 +25,16 @@ public class ClassMenu {
                 "",
                 ChatColor.RED + "" + ChatColor.BOLD + "ABILITY 1:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Iron Fortress " + ChatColor.GRAY +
-                    "(Combo: RLR, Cost: 15, Cooldown: 3s)",
+                    "(Combo: RLR)",
                 ChatColor.YELLOW + "" + ChatColor.BOLD + "ABILITY 2:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Heroic Leap " + ChatColor.GRAY +
-                    "(Combo: RRR, Cost: 10, Cooldown: 15s, Multiplier: 1.2)",
+                    "(Combo: RRR)",
                 ChatColor.BLUE + "" + ChatColor.BOLD + "ABILITY 3:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Uppercut " + ChatColor.GRAY +
-                    "(Combo: RRL, Cost: 15, Extra: 4, Cooldown: 10s, Multiplier: 1.3)",
+                    "(Combo: RRL)",
                 ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "ABILITY 4:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Ground Slam " + ChatColor.GRAY +
-                    "(Combo: RLL, Cost: 14, Cooldown: 8s, Multiplier: 1.5)",
+                    "(Combo: RLL)",
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
                 "",
@@ -50,16 +50,16 @@ public class ClassMenu {
                 "",
                 ChatColor.RED + "" + ChatColor.BOLD + "ABILITY 1:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Power Shot " + ChatColor.GRAY +
-                    "(Combo: LLR, Cost: 12, Cooldown: 3s, Multiplier: 2.0)",
+                    "(Combo: LLR)",
                 ChatColor.YELLOW + "" + ChatColor.BOLD + "ABILITY 2:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Explosive Arrow " + ChatColor.GRAY +
-                    "(Combo: LRR, Cost: 15, Cooldown: 8s, Multiplier: 1.5)",
+                    "(Combo: LRR)",
                 ChatColor.BLUE + "" + ChatColor.BOLD + "ABILITY 3:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Grapple Hook " + ChatColor.GRAY +
-                    "(Combo: LLL, Cost: 8, Cooldown: 10s)",
+                    "(Combo: LLL)",
                 ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "ABILITY 4:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Arrow Storm " + ChatColor.GRAY +
-                    "(Combo: LRL, Cost: 20, Cooldown: 15s, Multiplier: 0.5)",
+                    "(Combo: LRL)",
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
                 "",
@@ -75,16 +75,16 @@ public class ClassMenu {
                 "",
                 ChatColor.RED + "" + ChatColor.BOLD + "ABILITY 1:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Meteor " + ChatColor.GRAY +
-                    "(Combo: RLL, Cost: 20, Cooldown: 3s, Multiplier: 2.5)",
+                    "(Combo: RLL)",
                 ChatColor.YELLOW + "" + ChatColor.BOLD + "ABILITY 2:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Blackhole " + ChatColor.GRAY +
-                    "(Combo: RRL, Cost: 18, Cooldown: 15s)",
+                    "(Combo: RRL)",
                 ChatColor.BLUE + "" + ChatColor.BOLD + "ABILITY 3:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Heal " + ChatColor.GRAY +
-                    "(Combo: RLR, Cost: 15, Cooldown: 8s)",
+                    "(Combo: RLR)",
                 ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "ABILITY 4:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Teleport " + ChatColor.GRAY +
-                    "(Combo: RRR, Cost: 10, Cooldown: 10s)",
+                    "(Combo: RRR)",
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
                 "",
@@ -99,17 +99,17 @@ public class ClassMenu {
                 ChatColor.RED + "ROGUE" + ChatColor.GRAY + "! Your starting item will be a dagger.",
                 "",
                 ChatColor.RED + "" + ChatColor.BOLD + "ABILITY 1:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Execute " + ChatColor.GRAY +
-                    "(Combo: RLL, Cost: 12, Cooldown: 3s, Multiplier: 1.3)",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Endless Assault " + ChatColor.GRAY +
+                    "(Combo: RLL)",
                 ChatColor.YELLOW + "" + ChatColor.BOLD + "ABILITY 2:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Blade Fury " + ChatColor.GRAY +
-                    "(Combo: RRL, Cost: 15, Cooldown: 8s, Multiplier: 1.5)",
+                    "(Combo: RRL)",
                 ChatColor.BLUE + "" + ChatColor.BOLD + "ABILITY 3:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Dagger Throw " + ChatColor.GRAY +
-                    "(Combo: RLR, Cost: 10, Cooldown: 10s)",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Shadow Clone " + ChatColor.GRAY +
+                    "(Combo: RLR)",
                 ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "ABILITY 4:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Vanish " + ChatColor.GRAY +
-                    "(Combo: RRR, Cost: 8, Cooldown: 15s)",
+                    "(Combo: RRR)",
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
                 "",

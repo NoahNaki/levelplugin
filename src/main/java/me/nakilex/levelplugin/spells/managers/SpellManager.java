@@ -107,14 +107,14 @@ public class SpellManager {
         // Rogue Spells
         spellsByClass.put("rogue", Map.of(
             "RRL", new Spell(
-                "execute", "Execute", "RRL",
+                "endless_assault", "Endless Assault", "RRL",
                 12.0, defaultManaMultiplier,
                 0, 15,
                 Arrays.asList(
                     Material.WOODEN_SWORD, Material.STONE_SWORD, Material.IRON_SWORD,
                     Material.GOLDEN_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD
                 ),
-                "EXECUTE", 3.3
+                "ENDLESS_ASSAULT", 3.3
             ),
             "RLL", new Spell(
                 "blade_fury", "Blade Fury", "RLL",
@@ -127,14 +127,14 @@ public class SpellManager {
                 "BLADE_FURY", 2.5
             ),
             "RLR", new Spell(
-                "dagger_throw", "Dagger Throw", "RLR",
+                "shadow_clone", "Shadow Clone", "RLR",
                 10.0, defaultManaMultiplier,
                 0, 10,
                 Arrays.asList(
                     Material.WOODEN_SWORD, Material.STONE_SWORD, Material.IRON_SWORD,
                     Material.GOLDEN_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD
                 ),
-                "DAGGER_THROW", 0.0
+                "SHADOW_CLONE", 0.0
             ),
             "RRR", new Spell(
                 "vanish", "Vanish", "RRR",

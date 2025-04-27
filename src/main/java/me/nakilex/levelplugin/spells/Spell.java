@@ -114,8 +114,8 @@ public class Spell {
             }
             case "VANISH":
             case "BLADE_FURY":
-            case "EXECUTE":
-            case "DAGGER_THROW": {
+            case "ENDLESS_ASSAULT":
+            case "SHADOW_CLONE": {
                 new RogueSpell().castRogueSpell(player, effectKey);
                 break;
             }
