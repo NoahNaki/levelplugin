@@ -7,6 +7,7 @@ import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.*;
 import org.bukkit.inventory.meta.FireworkMeta;
+import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -17,6 +18,9 @@ import java.util.Set;
 import java.util.UUID;
 
 public class ArcherSpell {
+
+    private static final String META_KEY = "ArcherSpell";          // <— new
+    private final Main plugin = Main.getInstance();
 
     public void castArcherSpell(Player player, String effectKey) {
         switch (effectKey.toUpperCase()) {
@@ -73,6 +77,8 @@ public class ArcherSpell {
                 arrow.setShooter(player);
                 arrow.setPickupStatus(AbstractArrow.PickupStatus.DISALLOWED);
 
+                arrow.setMetadata(META_KEY, new FixedMetadataValue(plugin, player.getUniqueId()));
+
                 new BukkitRunnable() {
                     @Override
                     public void run() {
@@ -108,16 +114,23 @@ public class ArcherSpell {
 
 
     private void castExplosiveArrow(Player player) {
-        double explosionRadius = 5.0;
-        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 2.0; // 200% weapon damage
 
-        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ARROW_SHOOT, 1f, 1f);
+        double explosionRadius = 5.0;
+        double damage          = player.getAttribute(Attribute.ATTACK_DAMAGE)
+            .getValue() * 2.0;
+
+        player.getWorld().playSound(player.getLocation(),
+            Sound.ENTITY_ARROW_SHOOT, 1f, 1f);
 
         Arrow arrow = player.launchProjectile(Arrow.class);
         arrow.setVelocity(player.getLocation().getDirection().multiply(2));
         arrow.setCustomName("ExplosiveArrow");
         arrow.setCustomNameVisible(false);
         arrow.setCritical(true);
+
+        // duel-filter metadata
+        arrow.setMetadata(META_KEY,
+            new FixedMetadataValue(plugin, player.getUniqueId()));
 
         new BukkitRunnable() {
             @Override
@@ -127,41 +140,39 @@ public class ArcherSpell {
                     return;
                 }
 
-                arrow.getWorld().spawnParticle(Particle.CRIT, arrow.getLocation(), 5, 0.1, 0.1, 0.1);
+                arrow.getWorld().spawnParticle(Particle.CRIT,
+                    arrow.getLocation(), 5, 0.1, 0.1, 0.1);
 
-                if (arrow.isOnGround() || !arrow.getLocation().getBlock().isPassable()) {
-                    Location explosionLocation = arrow.getLocation();
+                /* ── explode when the arrow sticks ───────────────── */
+                if (arrow.isOnGround()
+                    || !arrow.getLocation().getBlock().isPassable()) {
 
-                    // VFX & sound only
-                    arrow.getWorld().spawnParticle(Particle.EXPLOSION, explosionLocation, 10, 1, 1, 1);
-                    arrow.getWorld().playSound(explosionLocation, Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
+                    Location boom = arrow.getLocation();
+                    World    w    = boom.getWorld();
 
-                    Firework firework = (Firework) arrow.getWorld().spawnEntity(explosionLocation, EntityType.FIREWORK_ROCKET);
-                    FireworkMeta meta = firework.getFireworkMeta();
-                    meta.addEffect(FireworkEffect.builder()
-                        .withColor(Color.ORANGE, Color.RED, Color.YELLOW)
-                        .withFade(Color.BLACK)
-                        .with(FireworkEffect.Type.BALL_LARGE)
-                        .trail(true)
-                        .flicker(true)
-                        .build());
-                    meta.setPower(1);
-                    firework.setFireworkMeta(meta);
-                    firework.detonate();
+                    /* ✨ purely-visual blast ✨ */
+                    w.spawnParticle(Particle.EXPLOSION,       boom, 1);
+                    w.spawnParticle(Particle.FIREWORK, boom, 100, 0.8, 0.8, 0.8, 0.05);
+                    w.playSound(boom, Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
 
-                    // —— manual damage + chat ——
-                    for (Entity entity : arrow.getWorld().getNearbyEntities(explosionLocation, explosionRadius, explosionRadius, explosionRadius)) {
-                        if (entity instanceof LivingEntity le && le != player) {
-                            SpellUtils.dealWithChat(player, le, damage, "Explosive Arrow");
-                            le.setFireTicks(60);
-                        }
+                    /* ✔ duel-safe manual damage loop */
+                    for (Entity e : w.getNearbyEntities(boom,
+                        explosionRadius,
+                        explosionRadius,
+                        explosionRadius)) {
+
+                        if (!(e instanceof LivingEntity le) || le == player) continue;
+                        if (!canHit(player, e))                        continue;
+
+                        SpellUtils.dealWithChat(player, le, damage, "Explosive Arrow");
+                        le.setFireTicks(60);
                     }
 
                     arrow.remove();
                     cancel();
                 }
             }
-        }.runTaskTimer(Main.getInstance(), 0L, 1L);
+        }.runTaskTimer(plugin, 0L, 1L);
     }
 
 
@@ -191,6 +202,9 @@ public class ArcherSpell {
         projectile.setVelocity(player.getLocation().getDirection().multiply(2));
         projectile.setCustomName("GrappleHook");
         projectile.setCustomNameVisible(false);
+
+
+        projectile.setMetadata(META_KEY, new FixedMetadataValue(plugin, player.getUniqueId()));
 
         // Glide handler will clear cooldown once they land
         new BukkitRunnable() {
@@ -259,25 +273,34 @@ public class ArcherSpell {
         }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 10L, 1L);
     }
 
+    /** Grapple-Hook landing slam */
     private void performSlam(Player player) {
+
         double radius = 5.0;
-        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 2.0; // 200% weapon damage
+        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 2.0;
 
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
         player.getWorld().spawnParticle(Particle.EXPLOSION, player.getLocation(), 20);
 
-        for (Entity entity : player.getWorld().getNearbyEntities(player.getLocation(), radius, radius, radius)) {
-            if (entity instanceof LivingEntity le && le != player) {
-                // —— damage + chat here ——
-                SpellUtils.dealWithChat(player, le, damage, "Grapple Hook");
-                Vector knockback = le.getLocation().toVector()
-                    .subtract(player.getLocation().toVector())
-                    .normalize().multiply(1.5);
-                knockback.setY(0.5);
-                le.setVelocity(knockback);
-            }
+        for (Entity entity : player.getWorld()
+            .getNearbyEntities(player.getLocation(),
+                radius, radius, radius)) {
+
+            if (!(entity instanceof LivingEntity le) || le == player) continue;
+            if (!canHit(player, le)) continue;        // ░░ NEW GUARD ░░
+
+            /* — damage + chat — */
+            SpellUtils.dealWithChat(player, le, damage, "Grapple Hook");
+
+            /* — knock-back only when duel-legal — */
+            Vector kb = le.getLocation().toVector()
+                .subtract(player.getLocation().toVector())
+                .normalize().multiply(1.5);
+            kb.setY(0.5);
+            le.setVelocity(kb);
         }
     }
+
 
     private void castArrowStorm(Player player) {
         int arrowCount = 10;
@@ -304,6 +327,9 @@ public class ArcherSpell {
                 arrow.setCustomName("ArrowStorm");
                 arrow.setCustomNameVisible(false);
                 arrow.setCritical(true);
+
+                arrow.setMetadata(META_KEY, new FixedMetadataValue(plugin, player.getUniqueId()));
+
 
                 new BukkitRunnable() {
                     @Override
@@ -336,5 +362,13 @@ public class ArcherSpell {
             }
         }.runTaskTimer(Main.getInstance(), 0L, 5L);
     }
+
+    /** true = we are allowed to hurt that target */
+    private boolean canHit(Player caster, Entity target) {
+        return !(target instanceof Player p)           // mobs are always OK
+            || DuelManager.getInstance()
+            .areInDuel(caster.getUniqueId(), p.getUniqueId());
+    }
+
 
 }

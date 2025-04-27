@@ -4,6 +4,7 @@ import io.lumine.mythic.bukkit.BukkitAPIHelper;
 import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
 import me.nakilex.levelplugin.blacksmith.managers.ItemUpgradeManager;
+import me.nakilex.levelplugin.duels.listeners.ProjectileFriendlyFireListener;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.effects.managers.EffectManager;
 import me.nakilex.levelplugin.horse.gui.HorseGUI;
@@ -25,6 +26,7 @@ import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
+import me.nakilex.levelplugin.spells.RogueSpell;
 import me.nakilex.levelplugin.spells.managers.ManaCostTracker;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.storage.StorageManager;
@@ -79,6 +81,8 @@ public class Main extends JavaPlugin {
     private PlayerConfig playerConfig;
     private DmgNumberToggleManager dmgNumberToggleManager;
     private ManaCostTracker manaTracker;
+    private RogueSpell rogueSpell;
+    private ProjectileFriendlyFireListener projectileFriendlyFireListener;
 
     @Override
     public void onEnable() {
@@ -217,7 +221,9 @@ public class Main extends JavaPlugin {
             mobConfig,
             mobRewardsConfig,
             dmgNumberToggleManager,
-            settingsGUI
+            settingsGUI,
+            rogueSpell,
+            projectileFriendlyFireListener
         );
 
 

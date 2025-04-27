@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
 import me.nakilex.levelplugin.doublejump.listeners.DoubleJumpListener;
 import me.nakilex.levelplugin.duels.listeners.DuelListener;
+import me.nakilex.levelplugin.duels.listeners.ProjectileFriendlyFireListener;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.player.attributes.listeners.StatsEffectListener;
 import me.nakilex.levelplugin.horse.gui.HorseGUI;
@@ -49,7 +50,10 @@ public class ListenerRegistry {
                                          FileConfiguration mobConfig,
                                          MobRewardsConfig mobRewardsConfig,
                                          DmgNumberToggleManager dmgToggleManager,
-                                         SettingsGUI settingsGUI) {
+                                         SettingsGUI settingsGUI,
+                                         RogueSpell rogueSpell,
+                                         ProjectileFriendlyFireListener projectileFriendlyFireListener
+                                         ) {
 
 
         PluginManager pm = plugin.getServer().getPluginManager();
@@ -95,6 +99,7 @@ public class ListenerRegistry {
         pm.registerEvents(new DamageChatListener(), plugin);
         pm.registerEvents(settingsGUI, plugin); // ✅ No constructor call here
         pm.registerEvents(new RogueSpell(), plugin);
+        pm.registerEvents(new ProjectileFriendlyFireListener(), plugin);
 
 
 
