@@ -133,8 +133,6 @@ public class SpellGUI {
         // Build the lore with combo, mana cost, and level requirement.
         List<String> lore = new ArrayList<>();
         lore.add(ChatColor.GRAY + "Combo: " + ChatColor.YELLOW + spell.getCombo());
-        lore.add(ChatColor.GRAY + "Mana Cost: " + ChatColor.YELLOW + spell.getManaCost());
-        lore.add(ChatColor.GRAY + "Requires Level: " + ChatColor.YELLOW + spell.getLevelReq());
 
         if (unlocked) {
             lore.add(ChatColor.DARK_GRAY + "" + ChatColor.STRIKETHROUGH + "--------------------");

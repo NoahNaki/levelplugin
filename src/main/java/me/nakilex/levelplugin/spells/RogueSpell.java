@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.spells;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.duels.managers.DuelManager;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.spells.utils.SpellUtils;
 import me.nakilex.levelplugin.utils.MetadataTrait;
 import net.citizensnpcs.api.CitizensAPI;
@@ -282,59 +283,80 @@ public class RogueSpell implements Listener {
     private void castVanish(Player player) {
         Location origin = player.getLocation();
         World world = origin.getWorld();
-        final int BASE_DURATION = 100;   // 5 seconds
-        final int EXTEND_DURATION = 20;  // 2 seconds
 
-        boolean hasInvis = player.hasPotionEffect(PotionEffectType.INVISIBILITY);
+        final int BASE_DURATION   = 100;  // 5s
+        final int EXTEND_DURATION = 20;   // +2s per cast while already invisible
+
+        // 1) compute new duration (extend if already invisible)
         int newDuration = BASE_DURATION;
-        int speedAmp = 0;
-        int jumpAmp = 0;
-
-        if (hasInvis) {
-            PotionEffect invis = player.getPotionEffect(PotionEffectType.INVISIBILITY);
-            newDuration = invis.getDuration() + EXTEND_DURATION;
-
-            PotionEffect speed = player.getPotionEffect(PotionEffectType.SPEED);
-            PotionEffect jump = player.getPotionEffect(PotionEffectType.JUMP_BOOST);
-            speedAmp = (speed != null ? speed.getAmplifier() : 0) + 1;
-            jumpAmp = (jump != null ? jump.getAmplifier() : 0) + 1;
+        if (player.hasPotionEffect(PotionEffectType.INVISIBILITY)) {
+            PotionEffect old = player.getPotionEffect(PotionEffectType.INVISIBILITY);
+            newDuration = old.getDuration() + EXTEND_DURATION;
         }
 
-        // 👉 ONE vanish end task saved
-        BukkitRunnable vanishEndTask = new BukkitRunnable() {
+        // 2) determine agility‐based buffs
+        int totalAgility = StatsManager
+            .getInstance()
+            .getStatValue(player, StatsManager.StatType.AGI);
+
+        boolean applySpeed = false, applyJump = false;
+        int speedAmp = 0, jumpAmp = 0;
+
+        if (totalAgility > 500) {
+            applySpeed = true; speedAmp = 1;   // Speed II
+            applyJump  = true; jumpAmp  = 1;   // Jump Boost II
+        } else if (totalAgility > 250) {
+            applySpeed = true; speedAmp = 0;   // Speed I
+            applyJump  = true; jumpAmp  = 0;   // Jump Boost I
+        } else if (totalAgility > 100) {
+            applySpeed = true; speedAmp = 0;   // Speed I
+            // no jump yet
+        }
+        // (<100: invis only)
+
+        // 3) schedule end‐of‐vanish cleanup
+        BukkitRunnable vanishEnd = new BukkitRunnable() {
             @Override
             public void run() {
                 if (!player.isOnline()) return;
                 vanishedPlayers.remove(player.getUniqueId());
-                for (Player other : Bukkit.getOnlinePlayers()) {
-                    if (!other.equals(player)) {
+                for (Player other : Bukkit.getOnlinePlayers())
+                    if (!other.equals(player))
                         other.showPlayer(Main.getInstance(), player);
-                    }
-                }
             }
         };
-        vanishEndTask.runTaskLater(Main.getInstance(), newDuration);
-        vanishTasks.put(player.getUniqueId(), vanishEndTask);  // SAVE IT
+        vanishEnd.runTaskLater(Main.getInstance(), newDuration);
+        vanishTasks.put(player.getUniqueId(), vanishEnd);
 
-        // apply effects
-        player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, newDuration, 0, false, false));
-        player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, newDuration, speedAmp, false, false));
-        player.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, newDuration, jumpAmp, false, false));
-
-        vanishedPlayers.add(player.getUniqueId());
-
-        for (Player other : Bukkit.getOnlinePlayers()) {
-            if (!other.equals(player)) {
-                other.hidePlayer(Main.getInstance(), player);
-            }
+        // 4) apply potion effects
+        player.addPotionEffect(
+            new PotionEffect(PotionEffectType.INVISIBILITY, newDuration, 0, false, false)
+        );
+        if (applySpeed) {
+            player.addPotionEffect(
+                new PotionEffect(PotionEffectType.SPEED, newDuration, speedAmp, false, false)
+            );
+        }
+        if (applyJump) {
+            player.addPotionEffect(
+                new PotionEffect(PotionEffectType.JUMP_BOOST, newDuration, jumpAmp, false, false)
+            );
         }
 
+        // 5) hide player from others
+        vanishedPlayers.add(player.getUniqueId());
+        for (Player other : Bukkit.getOnlinePlayers())
+            if (!other.equals(player))
+                other.hidePlayer(Main.getInstance(), player);
+
+        // 6) visual/audio feedback
         world.playSound(origin, Sound.ENTITY_FIREWORK_ROCKET_LAUNCH, 1f, 1f);
         world.playSound(origin, Sound.ENTITY_ILLUSIONER_CAST_SPELL, 1f, 1.2f);
         world.playSound(origin, Sound.ITEM_TOTEM_USE, 0.8f, 1f);
         world.spawnParticle(Particle.FIREWORK, origin, 30, 1, 1, 1, 0.05);
-        world.spawnParticle(Particle.SMOKE, origin, 20, 0.5, 1, 0.5, 0.02);
+        world.spawnParticle(Particle.SMOKE,    origin, 20, 0.5, 1, 0.5, 0.02);
     }
+
 
 
     @EventHandler
