@@ -3,6 +3,8 @@ package me.nakilex.levelplugin.spells;
 import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.effects.utils.ParticleEffectUtil;
 import me.nakilex.levelplugin.spells.utils.SpellUtils;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.*;
@@ -40,6 +42,9 @@ public class WarriorSpell {
         }
     }
 
+    // ─────────────────────────────────────────────────────
+    // 🛡️  Iron Fortress
+    // ─────────────────────────────────────────────────────
     private void castIronFortress(Player player) {
         player.getWorld().playSound(player.getLocation(), Sound.ITEM_SHIELD_BLOCK, 1f, 1f);
         ParticleEffectUtil.createShieldEffect(player.getLocation(), 2, Particle.BLOCK_CRUMBLE, Material.IRON_BLOCK);
@@ -117,22 +122,36 @@ public class WarriorSpell {
         }, Bukkit.getPluginManager().getPlugin("LevelPlugin"));
     }
 
+    // ─────────────────────────────────────────────────────
+    // 🦅  Heroic Leap (now scales with Agility)
+    // ─────────────────────────────────────────────────────
     private void castHeroicLeap(Player player) {
-        double leapDistance = 15.0;
-        double damageRadius = 5.0;
-        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 1.8;
+        // 1) Pull the player's total AGI (base + bonus)
+        int agility = StatsManager.getInstance().getStatValue(player, StatType.AGI);
 
+        // 2) Scaling formulas – tweak to taste
+        double damageRadius   = Math.min(4.0  + agility * 0.02, 8.0);  // +0.02 block per AGI, capped at 8 blocks
+        double damageMultiplier = 1.8 + agility * 0.01;                // +1% dmg per AGI
+
+        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * damageMultiplier;
+
+        // 3) Sound & initial particles
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_IRON_GOLEM_ATTACK, 1f, 1f);
 
         Location start = player.getLocation();
-        Vector direction = start.getDirection().normalize().multiply(leapDistance);
-        Vector leapVector = direction.clone().normalize().multiply(1.5);
-        leapVector.setY(1.2);
+        Vector direction = start.getDirection().normalize();
+
+        // Horizontal velocity scales a bit with AGI (capped so players don't yeet themselves into unloaded chunks)
+        double horizVel = Math.min(2.0 + agility * 0.005, 2.0); // base 1.0, +0.02 per AGI, cap 2.5
+        Vector leapVector = direction.clone().multiply(horizVel);
+        leapVector.setY(0.5 + Math.min(agility * 0.001, 0.5)); // base 1.0 vertical, +0.005 per AGI, cap 2.5
         player.setVelocity(leapVector);
 
+        // Trail
         player.getWorld().spawnParticle(Particle.FLAME, start, 30, 0.5, 1, 0.5);
         player.getWorld().spawnParticle(Particle.LARGE_SMOKE, start, 15, 0.5, 1, 0.5);
 
+        // 4) Wait for landing
         new BukkitRunnable() {
             boolean hasLanded = false;
 
@@ -141,11 +160,13 @@ public class WarriorSpell {
                 if (!hasLanded && player.isOnGround()) {
                     hasLanded = true;
 
+                    // Landing VFX/SFX
                     player.getWorld().playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
                     player.getWorld().spawnParticle(Particle.EXPLOSION, player.getLocation(), 20, 0.5, 1, 0.5);
                     player.getWorld().spawnParticle(Particle.FLAME, player.getLocation(), 50, 1, 0.5, 1, 0.1);
                     player.getWorld().spawnParticle(Particle.LAVA, player.getLocation(), 20, 0.5, 0.5, 0.5);
 
+                    // Damage + knockback
                     for (Entity entity : player.getWorld().getNearbyEntities(player.getLocation(), damageRadius, damageRadius, damageRadius)) {
                         if (entity instanceof LivingEntity && entity != player) {
                             LivingEntity target = (LivingEntity) entity;
@@ -162,6 +183,9 @@ public class WarriorSpell {
         }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 2L, 1L);
     }
 
+    // ─────────────────────────────────────────────────────
+    // 🗡️  Uppercut
+    // ─────────────────────────────────────────────────────
     private void castUppercut(Player player) {
         double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 1.3;
         double range = 4.0;
@@ -198,6 +222,9 @@ public class WarriorSpell {
         }
     }
 
+    // ─────────────────────────────────────────────────────
+    // 🌋  Ground Slam
+    // ─────────────────────────────────────────────────────
     private void castGroundSlam(Player player) {
         double maxRadius = 10.0;
         double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue() * 1.5;
