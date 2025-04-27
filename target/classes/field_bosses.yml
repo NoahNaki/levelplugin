@@ -3,6 +3,7 @@ mobs:
   ALIEN:
     exp: 100
     coins: "100-500"
+    gems: 20
     items:
       - itemid: 1
         drop_rate: 100.0

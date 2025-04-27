@@ -4,8 +4,9 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.blacksmith.commands.BlacksmithCommand;
 import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
 import me.nakilex.levelplugin.duels.commands.DuelCommand;
-import me.nakilex.levelplugin.economy.commands.AddCoinsCommand;
-import me.nakilex.levelplugin.economy.commands.BalanceCommand;
+import me.nakilex.levelplugin.economy.commands.*;
+import me.nakilex.levelplugin.economy.gui.GemExchangeGUI;
+import me.nakilex.levelplugin.economy.managers.GemsManager;
 import me.nakilex.levelplugin.effects.commands.EffectCommand;
 import me.nakilex.levelplugin.horse.commands.HorseCommand;
 import me.nakilex.levelplugin.horse.gui.HorseGUI;
@@ -56,7 +57,9 @@ public class CommandRegistry {
                                         MobManager mobManager,
                                         StorageManager storageManager,
                                         DmgNumberToggleManager dmgToggleManager,
-                                        SettingsGUI settingsGUI) { // ✅ added here
+                                        SettingsGUI settingsGUI,
+                                        GemsManager gemsManager,
+                                        GemExchangeGUI gemGui) { // ✅ added here
 
 
         plugin.getCommand("addpoints").setExecutor(new AddPointsCommand());
@@ -83,6 +86,9 @@ public class CommandRegistry {
         plugin.getCommand("dmgnumber").setExecutor(new DmgNumberCommand(dmgToggleManager));
         plugin.getCommand("dmgchat").setExecutor(new DmgChatCommand());
         plugin.getCommand("settings").setExecutor(new SettingsCommand(settingsGUI));
+        plugin.getCommand("addgems").setExecutor(new AddGemsCommand(gemsManager));
+        plugin.getCommand("gems").setExecutor(new GemsBalanceCommand(gemsManager));
+        plugin.getCommand("gemexchange").setExecutor(new GemExchangeCommand(gemGui));
 
     }
 }

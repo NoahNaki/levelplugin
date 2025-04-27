@@ -84,3 +84,9 @@ commands:
   settings:
     description: Opens the settings menu
     usage: /settings
+  addgems:
+    description: Give yourself some gems (admin).
+  gems:
+    description: Check your gem balance.
+  gemexchange:
+    description: Open the gem exchange GUI

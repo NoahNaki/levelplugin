@@ -102,7 +102,7 @@ public class ListenerRegistry {
         pm.registerEvents(settingsGUI, plugin); // ✅ No constructor call here
         pm.registerEvents(new RogueSpell(), plugin);
         pm.registerEvents(new ProjectileFriendlyFireListener(), plugin);
-        pm.registerEvents(new FieldBossListener(plugin, plugin.getBossConfig(), plugin.getItemManager()), plugin
+        pm.registerEvents(new FieldBossListener(plugin, plugin.getBossConfig(), plugin.getItemManager(), plugin.getGemsManager()), plugin
         );
 
 

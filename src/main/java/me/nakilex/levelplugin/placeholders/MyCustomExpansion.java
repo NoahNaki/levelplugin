@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.placeholders;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.economy.managers.GemsManager;
 import me.nakilex.levelplugin.party.Party;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
@@ -13,9 +14,11 @@ import java.util.UUID;
 public class MyCustomExpansion extends PlaceholderExpansion {
 
     private final Main plugin;
+    private final GemsManager gemsManager;
 
     public MyCustomExpansion(Main plugin) {
         this.plugin = plugin;
+        this.gemsManager = plugin.getGemsManager();
     }
 
     /**
@@ -83,6 +86,15 @@ public class MyCustomExpansion extends PlaceholderExpansion {
 
             // Use your formatting method
             return formatBalance(balance);
+        }
+
+        if (identifier.equalsIgnoreCase("gems")) {
+            int rawGems = plugin.getGemsManager().getTotalUnits(player);
+            // Convert int to long if needed, or keep int if your method uses int
+            long gems = rawGems;
+
+            // Use your formatting method
+            return formatBalance(gems);
         }
 
         if (identifier.equalsIgnoreCase("level")) {

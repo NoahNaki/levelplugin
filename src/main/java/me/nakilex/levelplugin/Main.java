@@ -5,7 +5,9 @@ import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
 import me.nakilex.levelplugin.blacksmith.managers.ItemUpgradeManager;
 import me.nakilex.levelplugin.duels.listeners.ProjectileFriendlyFireListener;
+import me.nakilex.levelplugin.economy.gui.GemExchangeGUI;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
+import me.nakilex.levelplugin.economy.managers.GemsManager;
 import me.nakilex.levelplugin.effects.managers.EffectManager;
 import me.nakilex.levelplugin.horse.gui.HorseGUI;
 import me.nakilex.levelplugin.horse.managers.HorseConfigManager;
@@ -85,6 +87,9 @@ public class Main extends JavaPlugin {
     private ProjectileFriendlyFireListener projectileFriendlyFireListener;
     private FileConfiguration bossConfig;
     private File bossConfigFile;
+    private GemsManager gemsManager;
+    private GemExchangeGUI gemGui;
+
 
     @Override
     public void onEnable() {
@@ -175,6 +180,8 @@ public class Main extends JavaPlugin {
         spellmanager = new SpellManager(this);
         partyManager = new PartyManager();
         effectManager = new EffectManager();
+        gemsManager = new GemsManager();
+        gemGui      = new GemExchangeGUI(this);
 
         StatsManager.getInstance().setLevelManager(levelManager);
     }
@@ -212,7 +219,9 @@ public class Main extends JavaPlugin {
             mobManager,
             storageManager,
             dmgNumberToggleManager,
-            settingsGUI // ✅ Now included
+            settingsGUI,
+            gemsManager,
+            gemGui
         );
 
 
@@ -338,6 +347,10 @@ public class Main extends JavaPlugin {
 
     public LevelManager getLevelManager() {
         return levelManager;
+    }
+
+    public GemsManager getGemsManager() {
+        return gemsManager;
     }
 
     public ItemManager getItemManager() {

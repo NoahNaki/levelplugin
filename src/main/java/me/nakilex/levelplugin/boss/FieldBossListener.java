@@ -5,6 +5,7 @@ import io.lumine.mythic.bukkit.MythicBukkit;
 import io.lumine.mythic.bukkit.events.MythicMobDeathEvent;
 import io.lumine.mythic.core.mobs.ActiveMob;
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.economy.managers.GemsManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
@@ -31,6 +32,7 @@ public class FieldBossListener implements Listener {
     private final Main plugin;
     private final FileConfiguration cfg;
     private final ItemManager itemManager;
+    private final GemsManager gemsManager;
 
     // lowercase→YAML key
     private final Map<String, String> bossKeyMap = new HashMap<>();
@@ -41,10 +43,12 @@ public class FieldBossListener implements Listener {
 
     public FieldBossListener(Main plugin,
                              FileConfiguration bossConfig,
-                             ItemManager itemManager) {
+                             ItemManager itemManager,
+                             GemsManager gemsManager) {
         this.plugin      = plugin;
         this.cfg         = bossConfig;
         this.itemManager = itemManager;
+        this.gemsManager = gemsManager;
 
         if (cfg.isConfigurationSection("mobs")) {
             for (String key : cfg.getConfigurationSection("mobs").getKeys(false)) {
@@ -130,6 +134,23 @@ public class FieldBossListener implements Listener {
             .sorted(Map.Entry.<UUID,Double>comparingByValue().reversed())
             .limit(3)
             .toList();
+
+        String gemStr = cfg.getString("mobs." + cfgKey + ".gems", "0");
+        int totalGems = Integer.parseInt(gemStr);
+
+        for (var entry : record.entrySet()) {
+            Player p = Bukkit.getPlayer(entry.getKey());
+            if (p == null) continue;
+
+            double share    = entry.getValue() / totalDmg;
+            int xpAward     = (int)Math.round(totalExp * share);
+            int coinsAward  = ThreadLocalRandom.current().nextInt(minCoins, maxCoins + 1);
+            int gemsAward   = (int)Math.round(totalGems * share);   // ← new!
+
+            plugin.getLevelManager().addXP(p, xpAward);
+            plugin.getEconomyManager().addCoins(p, coinsAward);
+            gemsManager.addUnits(p, gemsAward);                     // ← new!
+        }
 
         // 4) Award XP/coins & drop items *immediately* so level‐up fires right away
         for (var entry : top3) {
@@ -218,9 +239,6 @@ public class FieldBossListener implements Listener {
             }
         }.runTaskLater(plugin, 5L);
     }
-
-
-
 
 //    private void announceBossEngage(String name) {
 //        new BukkitRunnable() {
