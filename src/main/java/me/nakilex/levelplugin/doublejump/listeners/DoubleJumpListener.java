@@ -11,60 +11,75 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerToggleFlightEvent;
+import org.bukkit.util.Vector;
 
 public class DoubleJumpListener implements Listener {
 
-    // Hardcoded jump velocity; adjust as needed
-    private final double jumpVelocity = 0.5;
-
+    private static final double BASE_LIFT_VELOCITY       = 0.3;   // how much up
+    private static final double BASE_FORWARD_VELOCITY    = 0.5;   // how much forward
+    private static final double AGI_LIFT_MULTIPLIER      = 0.005; // extra up per Agi
+    private static final double AGI_FORWARD_MULTIPLIER   = 0.02;  // extra forward per Agi
+    private static final double MAX_LIFT_VELOCITY        = 0.6;
+    private static final double MAX_FORWARD_VELOCITY     = 1.2;
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        // Retrieve the player's class via StatsManager (like in SpellGUI)
-        PlayerClass playerClass = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass;
-        // Allow flight (and hence double jump) only if the player is an ARCHER
-        if (playerClass == PlayerClass.ARCHER) {
-            player.setAllowFlight(true);
-        } else {
-            player.setAllowFlight(false);
-        }
+        PlayerClass playerClass = StatsManager.getInstance()
+            .getPlayerStats(player.getUniqueId())
+            .playerClass;
+        player.setAllowFlight(playerClass == PlayerClass.ARCHER);
     }
 
     @EventHandler
     public void onPlayerToggleFlight(PlayerToggleFlightEvent event) {
         Player player = event.getPlayer();
-        // Check using StatsManager; only ARCHER can double jump
-        if (StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass != PlayerClass.ARCHER) {
-            return;
-        }
-        // Skip double jump logic if the player is in Creative mode
-        if (player.getGameMode() == GameMode.CREATIVE) {
-            return;
-        }
-        // Proceed only if the player isn't already flying
+        if (player.getGameMode() == GameMode.CREATIVE) return;
+
+        StatsManager.PlayerStats ps = StatsManager
+            .getInstance()
+            .getPlayerStats(player.getUniqueId());
+        if (ps.playerClass != PlayerClass.ARCHER) return;
+
         if (!player.isFlying()) {
-            // Cancel the default flight toggle and disable flight until landing
             event.setCancelled(true);
             player.setAllowFlight(false);
 
-            // Apply upward velocity for the double jump
-            player.setVelocity(player.getLocation().getDirection().setY(jumpVelocity));
+            int totalAgi = ps.baseAgility + ps.bonusAgility;
 
-            // Spawn cloud particles at the player's location
-            player.getWorld().spawnParticle(Particle.CLOUD, player.getLocation(), 30, 0.5, 0.1, 0.5, 0.1);
+            // 1) compute vertical lift
+            double lift = BASE_LIFT_VELOCITY + (totalAgi * AGI_LIFT_MULTIPLIER);
+            lift = Math.min(lift, MAX_LIFT_VELOCITY);
 
-            // Play a sound effect
-            player.getWorld().playSound(player.getLocation(), Sound.ENTITY_BAT_TAKEOFF, 1.0f, 1.0f);
+            // 2) compute forward thrust
+            double thrust = BASE_FORWARD_VELOCITY + (totalAgi * AGI_FORWARD_MULTIPLIER);
+            thrust = Math.min(thrust, MAX_FORWARD_VELOCITY);
+
+            // 3) build the velocity vector
+            Vector lookDir = player.getLocation()
+                .getDirection()
+                .setY(0)               // ignore looking up/down
+                .normalize()
+                .multiply(thrust);    // horizontal push
+            lookDir.setY(lift);                        // vertical lift
+
+            player.setVelocity(lookDir);
+
+            // FX/SFX
+            player.getWorld().spawnParticle(Particle.CLOUD, player.getLocation(),
+                30, 0.5, 0.1, 0.5, 0.1);
+            player.getWorld().playSound(player.getLocation(),
+                Sound.ENTITY_BAT_TAKEOFF, 1.0f, 1.0f);
         }
     }
 
     @EventHandler
     public void onPlayerLand(PlayerMoveEvent event) {
         Player player = event.getPlayer();
-        // When the player is on the ground, re-enable flight if they're an ARCHER
-        if (player.isOnGround() && StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass == PlayerClass.ARCHER) {
+        if (player.isOnGround() &&
+            StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass == PlayerClass.ARCHER) {
             player.setAllowFlight(true);
         }
     }
 }
+
