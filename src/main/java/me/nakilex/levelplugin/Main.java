@@ -83,6 +83,8 @@ public class Main extends JavaPlugin {
     private ManaCostTracker manaTracker;
     private RogueSpell rogueSpell;
     private ProjectileFriendlyFireListener projectileFriendlyFireListener;
+    private FileConfiguration bossConfig;
+    private File bossConfigFile;
 
     @Override
     public void onEnable() {
@@ -150,6 +152,10 @@ public class Main extends JavaPlugin {
         mobConfig = YamlConfiguration.loadConfiguration(new File(getDataFolder(), "custommobs.yml"));
 
         horseConfigManager = new HorseConfigManager(getDataFolder());
+
+        saveResource("field_bosses.yml", false);
+        bossConfigFile = new File(getDataFolder(), "field_bosses.yml");
+        bossConfig = YamlConfiguration.loadConfiguration(bossConfigFile);
     }
 
     private void initializeManagers() {
@@ -223,7 +229,8 @@ public class Main extends JavaPlugin {
             dmgNumberToggleManager,
             settingsGUI,
             rogueSpell,
-            projectileFriendlyFireListener
+            projectileFriendlyFireListener,
+            bossConfig
         );
 
 
@@ -331,6 +338,14 @@ public class Main extends JavaPlugin {
 
     public LevelManager getLevelManager() {
         return levelManager;
+    }
+
+    public ItemManager getItemManager() {
+        return itemManager;
+    }
+
+    public FileConfiguration getBossConfig() {
+        return bossConfig;
     }
 
     private void createCustomConfig() {

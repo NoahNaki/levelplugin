@@ -142,6 +142,8 @@ public class CustomItem {
     }
     public String getDisplayName() { return getName(); }
 
+
+
     // ─── Mutators ─────────────────────────────────────────────────────────────
 
     public void setUpgradeLevel(int upgradeLevel) {

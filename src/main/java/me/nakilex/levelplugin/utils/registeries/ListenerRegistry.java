@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.utils.registeries;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
+import me.nakilex.levelplugin.boss.FieldBossListener;
 import me.nakilex.levelplugin.doublejump.listeners.DoubleJumpListener;
 import me.nakilex.levelplugin.duels.listeners.DuelListener;
 import me.nakilex.levelplugin.duels.listeners.ProjectileFriendlyFireListener;
@@ -52,7 +53,8 @@ public class ListenerRegistry {
                                          DmgNumberToggleManager dmgToggleManager,
                                          SettingsGUI settingsGUI,
                                          RogueSpell rogueSpell,
-                                         ProjectileFriendlyFireListener projectileFriendlyFireListener
+                                         ProjectileFriendlyFireListener projectileFriendlyFireListener,
+                                         FileConfiguration bossConfig
                                          ) {
 
 
@@ -100,7 +102,8 @@ public class ListenerRegistry {
         pm.registerEvents(settingsGUI, plugin); // ✅ No constructor call here
         pm.registerEvents(new RogueSpell(), plugin);
         pm.registerEvents(new ProjectileFriendlyFireListener(), plugin);
-
+        pm.registerEvents(new FieldBossListener(plugin, plugin.getBossConfig(), plugin.getItemManager()), plugin
+        );
 
 
         // Register ArrowUtils listener and start cleanup task

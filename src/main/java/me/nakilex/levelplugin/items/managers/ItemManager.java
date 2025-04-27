@@ -156,6 +156,10 @@ public class ItemManager {
         return ci;
     }
 
+    public CustomItem getCustomItem(int id) {
+        return getTemplateById(id);
+    }
+
     /** Return all active instances */
     public Map<UUID, CustomItem> getAllItems() {
         return new HashMap<>(itemsMap);

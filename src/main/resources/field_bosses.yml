@@ -1,0 +1,12 @@
+# field_bosses.yml
+mobs:
+  ALIEN:
+    exp: 100
+    coins: "100-500"
+    items:
+      - itemid: 1
+        drop_rate: 100.0
+        quantity: "1-5"
+      - itemid: 40
+        drop_rate: 100.0
+        quantity: "1-1"
