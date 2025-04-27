@@ -3,10 +3,10 @@ package me.nakilex.levelplugin.items.listeners;
 import me.nakilex.levelplugin.items.events.WeaponEquipEvent;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
-import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -19,6 +19,7 @@ import java.util.UUID;
 public class WeaponStatsListener implements Listener {
 
     private final StatsManager statsManager = StatsManager.getInstance();
+    private final PlayerClassManager classManager = PlayerClassManager.getInstance();
 
     @EventHandler
     public void onWeaponEquip(WeaponEquipEvent event) {
@@ -29,7 +30,7 @@ public class WeaponStatsListener implements Listener {
         StatsManager stats = StatsManager.getInstance();
         Set<Integer> equipped = stats.getEquippedItems(puuid);
 
-        // 1) Remove old weapon
+        // Remove old weapon stats
         ItemStack oldWeap = event.getOldWeapon();
         if (oldWeap != null && !oldWeap.getType().isAir()) {
             CustomItem inst = ItemManager.getInstance().getCustomItemFromItemStack(oldWeap);
@@ -39,17 +40,28 @@ public class WeaponStatsListener implements Listener {
             }
         }
 
-        // 2) Add new weapon
+        // Add new weapon stats with level and class requirement check
         ItemStack newWeap = event.getNewWeapon();
         if (newWeap != null && !newWeap.getType().isAir()) {
             CustomItem inst = ItemManager.getInstance().getCustomItemFromItemStack(newWeap);
             if (inst != null && !equipped.contains(inst.getId())) {
-                int playerLevel   = LevelManager.getInstance().getLevel(player);
+                int playerLevel = LevelManager.getInstance().getLevel(player);
                 int requiredLevel = inst.getLevelRequirement();
+                PlayerClass requiredClass;
+
+                try {
+                    requiredClass = PlayerClass.valueOf(inst.getClassRequirement().toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    requiredClass = PlayerClass.VILLAGER;
+                }
+
+                // Correct retrieval of player class
+                PlayerClass playerClass = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass;
+
                 if (playerLevel < requiredLevel) {
-                    player.sendMessage(ChatColor.RED +
-                        "You can hold " + inst.getBaseName() +
-                        " but lack the level to gain its stats.");
+                    player.sendMessage(ChatColor.RED + "You can hold " + inst.getBaseName() + " but lack the level to gain its stats.");
+                } else if (requiredClass != PlayerClass.VILLAGER && requiredClass != playerClass) {
+                    player.sendMessage(ChatColor.RED + "You can hold " + inst.getBaseName() + " but lack the required class to gain its stats.");
                 } else {
                     addWeaponStats(player, inst);
                     equipped.add(inst.getId());
@@ -57,31 +69,27 @@ public class WeaponStatsListener implements Listener {
             }
         }
 
-        // 3) Recalculate
+        // Recalculate stats
         stats.recalcDerivedStats(player);
     }
 
-
-
-
-    // Helper methods (same as before)
     private void addWeaponStats(Player player, CustomItem customItem) {
-        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
-        ps.bonusHealthStat      += customItem.getHp();
-        ps.bonusDefenceStat     += customItem.getDef();
-        ps.bonusStrength        += customItem.getStr();
-        ps.bonusAgility         += customItem.getAgi();
-        ps.bonusIntelligence    += customItem.getIntel();
-        ps.bonusDexterity       += customItem.getDex();
+        StatsManager.PlayerStats ps = statsManager.getPlayerStats(player.getUniqueId());
+        ps.bonusHealthStat += customItem.getHp();
+        ps.bonusDefenceStat += customItem.getDef();
+        ps.bonusStrength += customItem.getStr();
+        ps.bonusAgility += customItem.getAgi();
+        ps.bonusIntelligence += customItem.getIntel();
+        ps.bonusDexterity += customItem.getDex();
     }
 
     private void removeWeaponStats(Player player, CustomItem customItem) {
-        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
-        ps.bonusHealthStat      -= customItem.getHp();
-        ps.bonusDefenceStat     -= customItem.getDef();
-        ps.bonusStrength        -= customItem.getStr();
-        ps.bonusAgility         -= customItem.getAgi();
-        ps.bonusIntelligence    -= customItem.getIntel();
-        ps.bonusDexterity       -= customItem.getDex();
+        StatsManager.PlayerStats ps = statsManager.getPlayerStats(player.getUniqueId());
+        ps.bonusHealthStat -= customItem.getHp();
+        ps.bonusDefenceStat -= customItem.getDef();
+        ps.bonusStrength -= customItem.getStr();
+        ps.bonusAgility -= customItem.getAgi();
+        ps.bonusIntelligence -= customItem.getIntel();
+        ps.bonusDexterity -= customItem.getDex();
     }
 }
