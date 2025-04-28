@@ -27,60 +27,53 @@ public class ClassMenuListener implements Listener {
         if (!(event.getWhoClicked() instanceof Player)) return;
         Player player = (Player) event.getWhoClicked();
 
-        String title = event.getView().getTitle();
-        if (!title.equals(ChatColor.DARK_GREEN + "Choose Your Class")) return;
+        String title = ChatColor.stripColor(event.getView().getTitle());
+        if (!"Choose Your Class".equalsIgnoreCase(title)) return;
 
         event.setCancelled(true);
-        ItemStack clicked = event.getCurrentItem();
-        if (clicked == null || !clicked.hasItemMeta() || !clicked.getItemMeta().hasDisplayName()) return;
 
-        String disp = ChatColor.stripColor(clicked.getItemMeta().getDisplayName());
-        PlayerClass selected = null;
-        String name = null;
-        switch (disp.toUpperCase()) {
-            case "START AS A WARRIOR!": selected = PlayerClass.WARRIOR; name = "Warrior"; break;
-            case "START AS AN ARCHER!":  selected = PlayerClass.ARCHER;  name = "Archer";  break;
-            case "START AS A MAGE!":    selected = PlayerClass.MAGE;    name = "Mage";    break;
-            case "START AS A ROGUE!":   selected = PlayerClass.ROGUE;   name = "Rogue";   break;
+        ItemStack clickedItem = event.getCurrentItem();
+        if (clickedItem == null || !clickedItem.hasItemMeta() || !clickedItem.getItemMeta().hasDisplayName()) return;
+
+        String displayName = ChatColor.stripColor(clickedItem.getItemMeta().getDisplayName());
+
+        PlayerClass selectedClass = null;
+        String className = null;
+
+        switch (displayName.toUpperCase()) {
+            case "START AS A WARRIOR!": selectedClass = PlayerClass.WARRIOR; className = "Warrior"; break;
+            case "START AS AN ARCHER!": selectedClass = PlayerClass.ARCHER;  className = "Archer";  break;
+            case "START AS A MAGE!":    selectedClass = PlayerClass.MAGE;    className = "Mage";    break;
+            case "START AS A ROGUE!":   selectedClass = PlayerClass.ROGUE;   className = "Rogue";   break;
             default:
                 player.sendMessage(ChatColor.RED + "Invalid class selection.");
                 return;
         }
 
-        // Track old class for logging
-        UUID puuid = player.getUniqueId();
-        PlayerClass oldClass = StatsManager.getInstance().getPlayerStats(puuid).playerClass;
+        if (selectedClass != null) {
+            UUID puuid = player.getUniqueId();
 
-        // Set new class
-        PlayerClassManager.getInstance().setPlayerClass(player, selected);
-        player.sendMessage(ChatColor.DARK_GRAY + "[" + ChatColor.GOLD + "Class Selection" + ChatColor.DARK_GRAY + "] "
-            + ChatColor.GREEN + "You have selected " + ChatColor.AQUA + name + ChatColor.GREEN + "!");
-        player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
-        player.closeInventory();
+            // ✅ Set class directly into StatsManager like old version
+            StatsManager.getInstance().getPlayerStats(puuid).playerClass = selectedClass;
 
-        // Adjust weapon stats based on new class & level
-        handleWeaponOnClassChange(player, oldClass, selected);
-
-        // Update all custom item tooltips
-        player.getInventory().forEach(stack -> {
-            if (stack != null && stack.hasItemMeta()
-                && stack.getItemMeta().getPersistentDataContainer().has(ItemUtil.ITEM_UUID_KEY, PersistentDataType.STRING)) {
-                ItemUtil.updateCustomItemTooltip(stack, player);
-            }
-        });
-        for (ItemStack armor : player.getInventory().getArmorContents()) {
-            if (armor != null && armor.hasItemMeta()
-                && armor.getItemMeta().getPersistentDataContainer().has(ItemUtil.ITEM_UUID_KEY, PersistentDataType.STRING)) {
-                ItemUtil.updateCustomItemTooltip(armor, player);
-            }
+            player.sendMessage(ChatColor.DARK_GRAY + "[" + ChatColor.GOLD + "Class Selection" + ChatColor.DARK_GRAY + "] "
+                + ChatColor.GREEN + "You have selected " + ChatColor.AQUA + className + ChatColor.GREEN + "!");
+            player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
+            player.closeInventory();
         }
+
+        // After setting class, handle weapon stats and refresh tooltips
+        handleWeaponStatAdjustment(player);
+        refreshInventoryTooltips(player);
         player.updateInventory();
     }
 
+
+
     /**
-     * Applies or removes weapon stats when the player changes class, checking both class and level requirements.
+     * Handles applying or removing weapon stats after a class change.
      */
-    private void handleWeaponOnClassChange(Player player, PlayerClass oldClass, PlayerClass newClass) {
+    private void handleWeaponStatAdjustment(Player player) {
         UUID puuid = player.getUniqueId();
         StatsManager statsMgr = StatsManager.getInstance();
         Set<Integer> equipped = statsMgr.getEquippedItems(puuid);
@@ -90,12 +83,13 @@ public class ClassMenuListener implements Listener {
         if (weapon == null || weapon.getType().isAir()) return;
 
         CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(weapon);
-        WeaponType wt   = WeaponType.matchType(weapon);
+        WeaponType wt = WeaponType.matchType(weapon);
         if (ci == null || wt == null) return;
 
-        int id           = ci.getId();
-        int reqLevel     = ci.getLevelRequirement();
+        int id = ci.getId();
+        int reqLevel = ci.getLevelRequirement();
         String clsReqRaw = ci.getClassRequirement();
+
         PlayerClass reqClass;
         try {
             reqClass = PlayerClass.valueOf(clsReqRaw.toUpperCase());
@@ -103,25 +97,50 @@ public class ClassMenuListener implements Listener {
             reqClass = PlayerClass.VILLAGER;
         }
 
-        boolean meetsClassReq = (reqClass == PlayerClass.VILLAGER || reqClass == newClass);
-        boolean meetsLevelReq = (playerLevel >= reqLevel);
-        boolean wasApplied    = equipped.contains(id);
+        PlayerClass currentClass = StatsManager.getInstance().getPlayerStats(puuid).playerClass;
 
-        // Remove stats if previously applied but now failing either requirement
+        // 🐛 DEBUGGING OUTPUT
+//        player.sendMessage(ChatColor.YELLOW + "[DEBUG] Your class: " + currentClass);
+//        player.sendMessage(ChatColor.YELLOW + "[DEBUG] Weapon requires: " + reqClass);
+//        player.sendMessage(ChatColor.YELLOW + "[DEBUG] Weapon name: " + ci.getBaseName());
+//        player.sendMessage(ChatColor.YELLOW + "[DEBUG] Raw class requirement string: " + clsReqRaw);
+//        player.sendMessage(ChatColor.YELLOW + "[DEBUG] Player Level: " + playerLevel + " / Required Level: " + reqLevel);
+
+        boolean meetsClassReq = (reqClass == PlayerClass.VILLAGER || reqClass == currentClass);
+        boolean meetsLevelReq = (playerLevel >= reqLevel);
+        boolean wasApplied = equipped.contains(id);
+
         if (wasApplied && (!meetsClassReq || !meetsLevelReq)) {
             removeWeaponStats(player, ci);
             equipped.remove(id);
             player.sendMessage(ChatColor.RED + "You no longer meet the requirements for " + ci.getBaseName() + "!");
-        }
-        // Add stats if not applied and both requirements now met
-        else if (!wasApplied && meetsClassReq && meetsLevelReq) {
+        } else if (!wasApplied && meetsClassReq && meetsLevelReq) {
             addWeaponStats(player, ci);
             equipped.add(id);
             player.sendMessage(ChatColor.GREEN + "Stats applied for " + ci.getBaseName() + "!");
         }
 
-        // Recalculate derived stats
         statsMgr.recalcDerivedStats(player);
+    }
+
+
+    /**
+     * Updates the tooltip of every item in the player's inventory and armor slots.
+     */
+    private void refreshInventoryTooltips(Player player) {
+        for (ItemStack stack : player.getInventory().getContents()) {
+            updateTooltipSafely(stack, player);
+        }
+        for (ItemStack armor : player.getInventory().getArmorContents()) {
+            updateTooltipSafely(armor, player);
+        }
+    }
+
+    private void updateTooltipSafely(ItemStack item, Player player) {
+        if (item != null && item.hasItemMeta()
+            && item.getItemMeta().getPersistentDataContainer().has(ItemUtil.ITEM_UUID_KEY, PersistentDataType.STRING)) {
+            ItemUtil.updateCustomItemTooltip(item, player);
+        }
     }
 
     private void addWeaponStats(Player player, CustomItem ci) {
