@@ -3,21 +3,24 @@ package me.nakilex.levelplugin.mob.listeners;
 import io.lumine.mythic.bukkit.BukkitAPIHelper;
 import io.lumine.mythic.bukkit.MythicBukkit;
 import io.lumine.mythic.core.mobs.ActiveMob;
+import me.nakilex.levelplugin.items.data.CustomItem;
+import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
-import me.nakilex.levelplugin.items.managers.ItemManager;
-import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class MythicMobDeathListener implements Listener {
@@ -28,64 +31,90 @@ public class MythicMobDeathListener implements Listener {
     private final EconomyManager economyManager;
     private final LootChestManager lootChestManager;
 
+    // ← New field: track which players damaged each mob
+    private final Map<UUID, Set<Player>> damageTracker = new ConcurrentHashMap<>();
+
     public MythicMobDeathListener(MobRewardsConfig mobRewardsConfig,
                                   LevelManager levelManager,
                                   EconomyManager economyManager,
                                   LootChestManager lootChestManager) {
-        this.mythicHelper = MythicBukkit.inst().getAPIHelper();
-        this.mobRewardsConfig = mobRewardsConfig;
-        this.levelManager = levelManager;
-        this.economyManager = economyManager;
+        this.mythicHelper      = MythicBukkit.inst().getAPIHelper();
+        this.mobRewardsConfig  = mobRewardsConfig;
+        this.levelManager      = levelManager;
+        this.economyManager    = economyManager;
         this.lootChestManager  = lootChestManager;
     }
 
+    // ← New method: record every player who hits a mob
+    @EventHandler
+    public void onEntityDamage(EntityDamageByEntityEvent event) {
+        if (!(event.getEntity() instanceof LivingEntity)) return;
+        if (!(event.getDamager() instanceof Player))       return;
+
+        LivingEntity mob    = (LivingEntity) event.getEntity();
+        Player        hitter = (Player) event.getDamager();
+
+        damageTracker
+            .computeIfAbsent(mob.getUniqueId(), uuid -> ConcurrentHashMap.newKeySet())
+            .add(hitter);
+    }
+
+    // ← Modified death handler: reward each participant client-side
     @EventHandler
     public void onEntityDeath(EntityDeathEvent event) {
-        // 1) Only proceed if a player killed the entity
-        if (!(event.getEntity().getKiller() instanceof Player)) return;
-        Player player = event.getEntity().getKiller();
-
-        // 2) Try to get the MythicMob instance
         ActiveMob mythicMob = mythicHelper.getMythicMobInstance(event.getEntity());
         if (mythicMob == null) return;
 
-        // 3) Strip any color codes from the mob type
-        String rawMobType = mythicMob.getMobType();
-        String mobType = rawMobType.replaceAll("§.", "");
-
-        // 4) Ensure we have rewards data for this mob
+        String mobType = mythicMob.getMobType().replaceAll("§.", "");
         if (!mobRewardsConfig.getConfig().contains("mobs." + mobType)) return;
 
-        // 5) Award XP
-        int exp = mobRewardsConfig.getConfig().getInt("mobs." + mobType + ".exp", 0);
-        levelManager.addXP(player, exp);
+        // Pull config once
+        ConfigurationSection node = mobRewardsConfig
+            .getConfig()
+            .getConfigurationSection("mobs." + mobType);
+        int exp        = node.getInt("exp", 0);
+        String coinsSpec = node.getString("coins", "0-0");
+        int tier       = node.getInt("tier", 0);
 
-        // 6) Award Coins
-        String coinRange = mobRewardsConfig.getConfig().getString("mobs." + mobType + ".coins", "0-0");
-        String[] coinsSplit = coinRange.split("-");
-        int minCoins = Integer.parseInt(coinsSplit[0]);
-        int maxCoins = Integer.parseInt(coinsSplit[1]);
-        int coins = ThreadLocalRandom.current().nextInt(minCoins, maxCoins + 1);
-        economyManager.addCoins(player, coins);
+        String[] sp     = coinsSpec.split("-");
+        int minCoins    = Integer.parseInt(sp[0]);
+        int maxCoins    = Integer.parseInt(sp[1]);
 
-        // 7) Drop any manually configured custom items
-        dropCustomItems(player, mobType);
+        // Who participated?
+        Set<Player> participants = damageTracker
+            .getOrDefault(event.getEntity().getUniqueId(), Collections.emptySet());
+        damageTracker.remove(event.getEntity().getUniqueId());
 
-        // 8) Drop tier-based loot if tier > 0
-        int tier = mobRewardsConfig.getConfig().getInt("mobs." + mobType + ".tier", 0);
-        if (tier > 0) {
-            ItemStack loot = lootChestManager.getRandomLootForTier(tier);
-            if (loot != null) {
-                // Update the tooltip before dropping
-                ItemUtil.updateCustomItemTooltip(loot, player);
-                player.getWorld().dropItemNaturally(player.getLocation(), loot);
+        for (Player player : participants) {
+            // 1) XP
+            levelManager.addXP(player, exp);
+
+            // 2) Coins
+            int coins = ThreadLocalRandom.current().nextInt(minCoins, maxCoins + 1);
+            economyManager.addCoins(player, coins);
+
+            // 3) Manual custom-item drops
+            dropCustomItems(player, mobType);
+
+            // 4) Tier-based loot if tier > 0
+            if (tier > 0) {
+                ItemStack loot = lootChestManager.getRandomLootForTier(tier);
+                if (loot != null) {
+                    // update tooltip for this player
+                    ItemUtil.updateCustomItemTooltip(loot, player);
+                    // give directly to inventory, fallback to drop if full
+                    Map<Integer, ItemStack> leftovers = player.getInventory().addItem(loot);
+                    leftovers.values().forEach(i ->
+                        player.getWorld().dropItemNaturally(player.getLocation(), i)
+                    );
+                }
             }
-        }
 
-        // 9) (Optional) Notify player of what they received
-        // player.sendMessage("You killed " + mobType +
-        //     " and earned " + exp + " XP, " + coins + " coins" +
-        //     (tier > 0 ? " plus tier-" + tier + " loot!" : "!"));
+            // 5) Optional feedback
+            player.sendMessage(
+                "§aYou earned " + exp + " XP and " + coins +
+                    " coins" + (tier > 0 ? " plus tier-" + tier + " loot!" : "!"));
+        }
     }
 
 
