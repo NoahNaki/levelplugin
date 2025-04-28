@@ -107,8 +107,9 @@ public class ListenerRegistry {
         pm.registerEvents(new RogueSpell(), plugin);
         pm.registerEvents(new MageSpell(), plugin);
         pm.registerEvents(new ProjectileFriendlyFireListener(), plugin);
-        pm.registerEvents(new FieldBossListener(plugin, plugin.getBossConfig(), plugin.getItemManager(), plugin.getGemsManager()), plugin
-        );
+        pm.registerEvents(new FieldBossListener(plugin, plugin.getBossConfig(), plugin.getItemManager(), plugin.getGemsManager()), plugin);
+        pm.registerEvents(new EquipOnJoinListener(), plugin);
+
 
 
         // Register ArrowUtils listener and start cleanup task
