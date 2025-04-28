@@ -31,7 +31,7 @@ public class GemsManager {
             + clusters * PER_CLUSTER;
     }
 
-    private ItemStack createCurrencyItem(Material mat, int qty, int unitValue) {
+    public ItemStack createCurrencyItem(Material mat, int qty, int unitValue) {
         ItemStack stack = new ItemStack(mat, qty);
         ItemMeta meta   = stack.getItemMeta();
         if (meta != null) {

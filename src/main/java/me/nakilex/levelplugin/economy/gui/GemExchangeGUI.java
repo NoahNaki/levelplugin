@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.economy.gui;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.economy.managers.GemsManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -29,10 +30,12 @@ public class GemExchangeGUI implements Listener {
 
     private final Main plugin;
     private final Inventory gui;
+    private final GemsManager gemsManager;
 
-    public GemExchangeGUI(Main plugin) {
+    public GemExchangeGUI(Main plugin, GemsManager gemsManager) {
         this.plugin = plugin;
         this.gui = Bukkit.createInventory(null, 27, TITLE);
+        this.gemsManager  = gemsManager;
         initItems();
         fillFiller();
         Bukkit.getPluginManager().registerEvents(this, plugin);
@@ -106,33 +109,62 @@ public class GemExchangeGUI implements Listener {
     private void handleConvert(Player p,
                                Material fromMat, int fromAmt,
                                Material toMat,   int toAmt) {
+        // 1) Count how many of the “from” material the player has
+        @SuppressWarnings("unchecked")
         Map<Integer, ItemStack> map = (Map<Integer, ItemStack>) p.getInventory().all(fromMat);
         int total = map.values().stream().mapToInt(ItemStack::getAmount).sum();
+
+        // 2) If they don’t have enough, bail out
         if (total < fromAmt) {
-            p.sendMessage(ChatColor.RED + "Not enough " + fromMat.name().toLowerCase().replace('_',' ') + "! Need " + fromAmt + ".");
+            p.sendMessage(ChatColor.RED
+                + "Not enough "
+                + fromMat.name().toLowerCase().replace('_',' ')
+                + "! Need " + fromAmt + ".");
             return;
         }
+
+        // 3) Remove exactly `fromAmt` items from their inventory
         int rem = fromAmt;
-        for (var e : map.entrySet()) {
-            ItemStack stack = e.getValue();
+        for (var entry : map.entrySet()) {
+            ItemStack stack = entry.getValue();
             int amt = stack.getAmount();
+
             if (amt <= rem) {
-                p.getInventory().clear(e.getKey());
+                p.getInventory().clear(entry.getKey());
                 rem -= amt;
             } else {
                 stack.setAmount(amt - rem);
                 rem = 0;
             }
+
             if (rem == 0) break;
         }
-        p.getInventory().addItem(new ItemStack(toMat, toAmt));
-        p.sendMessage(ChatColor.GREEN + "Converted " + fromAmt + " " + fromMat.name().toLowerCase().replace('_',' ') + " into " + toAmt + " " + toMat.name().toLowerCase().replace('_',' ') + "!");
+
+        // 4) Build the “pretty” custom item instead of a vanilla one
+        //    Determine the unit‐value of the target material:
+        int unitValue;
+        if (toMat == Material.MEDIUM_AMETHYST_BUD)      unitValue = 1;      // fragment = 1 unit
+        else if (toMat == Material.AMETHYST_SHARD)      unitValue = 64;     // shard = 64 units
+        else /* AMETHYST_CLUSTER */                     unitValue = 4096;   // cluster = 4096 units
+
+        ItemStack pretty = gemsManager.createCurrencyItem(toMat, toAmt, unitValue);
+        p.getInventory().addItem(pretty);
+
+        // 5) Send feedback and reopen GUI
+        p.sendMessage(ChatColor.GREEN
+            + "Converted " + fromAmt + " "
+            + fromMat.name().toLowerCase().replace('_',' ')
+            + " into " + toAmt + " "
+            + toMat.name().toLowerCase().replace('_',' ') + "!");
+
         new BukkitRunnable() {
-            @Override public void run() {
+            @Override
+            public void run() {
                 open(p);
             }
         }.runTaskLater(plugin, 1L);
     }
+
 
     private ItemStack createGuiItem(Material mat, String name, List<String> lore) {
         ItemStack item = new ItemStack(mat, 1);

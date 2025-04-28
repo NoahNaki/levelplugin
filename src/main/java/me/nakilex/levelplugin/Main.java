@@ -181,7 +181,7 @@ public class Main extends JavaPlugin {
         partyManager = new PartyManager();
         effectManager = new EffectManager();
         gemsManager = new GemsManager();
-        gemGui      = new GemExchangeGUI(this);
+        gemGui      = new GemExchangeGUI(this, gemsManager);
 
         StatsManager.getInstance().setLevelManager(levelManager);
     }
