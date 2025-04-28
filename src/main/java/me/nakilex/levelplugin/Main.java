@@ -242,7 +242,8 @@ public class Main extends JavaPlugin {
             rogueSpell,
             projectileFriendlyFireListener,
             bossConfig,
-            mageSpell
+            mageSpell,
+            gemsManager
         );
 
 

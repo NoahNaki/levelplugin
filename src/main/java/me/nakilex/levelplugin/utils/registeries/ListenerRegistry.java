@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.doublejump.listeners.DoubleJumpListener;
 import me.nakilex.levelplugin.duels.listeners.DuelListener;
 import me.nakilex.levelplugin.duels.listeners.ProjectileFriendlyFireListener;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
+import me.nakilex.levelplugin.economy.managers.GemsManager;
 import me.nakilex.levelplugin.player.attributes.listeners.StatsEffectListener;
 import me.nakilex.levelplugin.horse.gui.HorseGUI;
 import me.nakilex.levelplugin.items.listeners.*;
@@ -56,7 +57,8 @@ public class ListenerRegistry {
                                          RogueSpell rogueSpell,
                                          ProjectileFriendlyFireListener projectileFriendlyFireListener,
                                          FileConfiguration bossConfig,
-                                         MageSpell mageSpell
+                                         MageSpell mageSpell,
+                                         GemsManager gemsManager
                                          ) {
 
 
@@ -96,7 +98,7 @@ public class ListenerRegistry {
         pm.registerEvents(new DuelListener(), plugin);
         pm.registerEvents(new InventoryOpenCustomItemListener(), plugin);
         pm.registerEvents(new CustomItemUpdateListener(), plugin);
-        pm.registerEvents(new SalvageListener(economyManager), plugin);
+        pm.registerEvents(new SalvageListener(economyManager, gemsManager), plugin);
         pm.registerEvents(new SpellGUIListener(), plugin);
         pm.registerEvents(new DoubleJumpListener(), plugin);
         pm.registerEvents(new DamageIndicatorListener(dmgToggleManager), plugin);
