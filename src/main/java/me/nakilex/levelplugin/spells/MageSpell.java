@@ -95,7 +95,6 @@ public class MageSpell implements Listener {
         Vector direction = start.getDirection().normalize();
         World world = player.getWorld();
 
-        world.playSound(start, Sound.ENTITY_GHAST_SHOOT, 1f, 1.2f);
         world.spawnParticle(Particle.END_ROD, start, 5, 0.1, 0.1, 0.1, 0.02);
 
         int range = 20;
@@ -257,7 +256,7 @@ public class MageSpell implements Listener {
         double damageRadius = 5.0;
 
         // Initial VFX/SFX
-        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_SCREAM, 1f, 1f);
+        player.getWorld().playSound(player.getLocation(), Sound.BLOCK_RESPAWN_ANCHOR_CHARGE, 1f, 1f);
         createBlackholeEffect(center, pullRadius);
 
         // Pull & damage loop
