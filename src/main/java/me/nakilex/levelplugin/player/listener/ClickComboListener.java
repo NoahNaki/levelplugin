@@ -21,6 +21,8 @@ import org.bukkit.event.player.PlayerAnimationType;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.util.Vector;
 
 import java.util.*;
@@ -146,19 +148,34 @@ public class ClickComboListener implements Listener {
 
         UUID playerId = player.getUniqueId();
         long currentTime = System.currentTimeMillis();
-        if (bowCooldowns.containsKey(playerId) && currentTime - bowCooldowns.get(playerId) < BOW_SHOT_COOLDOWN) {
+        if (bowCooldowns.containsKey(playerId)
+            && currentTime - bowCooldowns.get(playerId) < BOW_SHOT_COOLDOWN) {
             return;
         }
 
+        // get and compute damage as before…
+        int strength = StatsManager.getInstance().getStatValue(player, StatsManager.StatType.STR);
+        double baseAtk = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue();
+        double damage = baseAtk + (strength * 0.5);
+
+        // launch arrow
         Arrow arrow = player.launchProjectile(Arrow.class);
+        arrow.setDamage(damage);
         arrow.setCustomName("BasicArcherArrow");
         arrow.setCustomNameVisible(false);
 
-        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ARROW_SHOOT, 1f, 1f);
-        player.getWorld().spawnParticle(Particle.INSTANT_EFFECT, player.getLocation(), 20, 0.5, 1, 0.5);
+        // <— new: tag for chat listener
+        arrow.setMetadata("BasicAttack",
+            new FixedMetadataValue(Main.getInstance(), playerId));
 
+        // vfx & cooldown
+        player.getWorld().playSound(player.getLocation(),
+            Sound.ENTITY_ARROW_SHOOT, 1f, 1f);
+        player.getWorld().spawnParticle(Particle.INSTANT_EFFECT,
+            player.getLocation(), 20, 0.5, 1, 0.5);
         bowCooldowns.put(playerId, currentTime);
     }
+
 
     @EventHandler
     public void onProjectileDamage(EntityDamageByEntityEvent event) {

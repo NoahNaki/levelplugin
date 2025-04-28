@@ -2,6 +2,8 @@ package me.nakilex.levelplugin.mob.listeners;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.mob.managers.ChatToggleManager;
+import me.nakilex.levelplugin.player.attributes.listeners.StatsEffectListener;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.spells.managers.SpellContextManager;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Entity;
@@ -23,48 +25,63 @@ public class DamageChatListener implements Listener {
         Main.getInstance().getLogger()
             .info("[ChatListener] Damage event: damager=" + rawDamager + " target=" + event.getEntity());
 
-        // 1) Projectile‑based spells
+        // 1) Projectile-based spells & basic‐attack arrows
         if (rawDamager instanceof Projectile) {
             Projectile proj = (Projectile) rawDamager;
             if (proj.getShooter() instanceof Player) {
                 player = (Player) proj.getShooter();
-                // e.g. Meteor fireball tagged earlier
+
                 if (proj.hasMetadata("Meteor")) {
                     spellName = "Meteor";
-                    // you could also check a crit‑metadata flag here
+                } else if (proj.hasMetadata("BasicAttack")) {
+                    spellName = "Basic Attack";
                 }
             }
         }
-        // 2) Direct‑damage via SpellContextManager
+        // 2) Direct-damage via SpellContextManager or melee basic‐attack
         else if (rawDamager instanceof Player) {
             player = (Player) rawDamager;
+
+            // a) consume any spell context
             SpellContextManager.Context ctx =
                 SpellContextManager.consume(player.getUniqueId());
             Main.getInstance().getLogger()
-                .info("[ChatListener] Consumed context: " + (ctx == null ? "null" : ctx.spellName + ", crit=" + ctx.isCrit));
+                .info("[ChatListener] Consumed context: " +
+                    (ctx == null ? "null" : ctx.spellName + ", crit=" + ctx.isCrit));
+
             if (ctx != null) {
                 spellName = ctx.spellName;
                 isCrit    = ctx.isCrit;
+            } else {
+                // b) no spell → check for Warrior/Rogue basic melee
+                StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
+                String className = ps.playerClass.name().toLowerCase();
+                if ("warrior".equals(className) || "rogue".equals(className)) {
+                    spellName = "Basic Attack";
+                    isCrit = StatsEffectListener.consumeLastCrit(player);
+                }
             }
         }
 
         // nothing to do if not a player spell/attack
         if (player == null || spellName == null) return;
 
-        // check toggle
+        // check chat toggle
         if (!ChatToggleManager.getInstance().isEnabled(player)) return;
 
-        // build and send the message
+        // build & send message
         String targetName = event.getEntity().getType().name();
         targetName = targetName.charAt(0) + targetName.substring(1).toLowerCase();
 
         double dmg = event.getFinalDamage();
         String hitType = isCrit ? "critically hit" : "hit";
-        String msg = String.format("%s %s %s for %.1f damage", spellName, hitType, targetName, dmg);
+        String msg = String.format("%s %s %s for %.1f damage",
+            spellName, hitType, targetName, dmg);
 
         Main.getInstance().getLogger()
             .info("[ChatListener] Sending chat: " + msg);
 
         player.sendMessage((isCrit ? ChatColor.YELLOW : ChatColor.WHITE) + msg);
     }
+
 }
