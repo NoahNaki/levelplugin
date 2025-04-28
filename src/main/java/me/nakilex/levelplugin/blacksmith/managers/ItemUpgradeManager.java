@@ -66,9 +66,14 @@ public class ItemUpgradeManager {
      * Compute success chance: starts at 50%, minus 20% per current upgrade level,
      * floored at 5%.
      */
+    private static final int[] UPGRADE_CHANCES = {33, 15, 10, 5, 2};
+
     private int calculateSuccessChance(CustomItem item) {
-        int baseChance = 50;
-        int penalty    = item.getUpgradeLevel() * 20;
-        return Math.max(5, baseChance - penalty);
+        int level = item.getUpgradeLevel();
+        if (level < 0 || level >= UPGRADE_CHANCES.length) {
+            return 0;
+        }
+        return UPGRADE_CHANCES[level];
     }
+
 }
