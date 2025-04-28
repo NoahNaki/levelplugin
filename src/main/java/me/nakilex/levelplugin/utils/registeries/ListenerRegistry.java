@@ -68,7 +68,7 @@ public class ListenerRegistry {
         pm.registerEvents(new MobDamageListener(), plugin);
         pm.registerEvents(new MobDeathListener(plugin.getMobManager(), economyManager), plugin);
         pm.registerEvents(new PlayerKillListener(plugin.getLevelManager(), mobConfig, partyManager), plugin);
-        pm.registerEvents(new MythicMobDeathListener(mobRewardsConfig, plugin.getLevelManager(), economyManager), plugin);
+        pm.registerEvents(new MythicMobDeathListener(mobRewardsConfig, plugin.getLevelManager(), economyManager, lootChestManager), plugin);
         pm.registerEvents(new PlayerJoinListener(plugin.getLevelManager()), plugin);
         pm.registerEvents(new StatsMenuListener(), plugin);
         pm.registerEvents(new StatsEffectListener(), plugin);

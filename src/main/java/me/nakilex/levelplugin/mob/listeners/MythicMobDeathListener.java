@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.mob.listeners;
 import io.lumine.mythic.bukkit.BukkitAPIHelper;
 import io.lumine.mythic.bukkit.MythicBukkit;
 import io.lumine.mythic.core.mobs.ActiveMob;
+import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
@@ -25,61 +26,69 @@ public class MythicMobDeathListener implements Listener {
     private final MobRewardsConfig mobRewardsConfig;
     private final LevelManager levelManager;
     private final EconomyManager economyManager;
+    private final LootChestManager lootChestManager;
 
     public MythicMobDeathListener(MobRewardsConfig mobRewardsConfig,
                                   LevelManager levelManager,
-                                  EconomyManager economyManager) {
+                                  EconomyManager economyManager,
+                                  LootChestManager lootChestManager) {
         this.mythicHelper = MythicBukkit.inst().getAPIHelper();
         this.mobRewardsConfig = mobRewardsConfig;
         this.levelManager = levelManager;
         this.economyManager = economyManager;
+        this.lootChestManager  = lootChestManager;
     }
 
     @EventHandler
     public void onEntityDeath(EntityDeathEvent event) {
+        // 1) Only proceed if a player killed the entity
         if (!(event.getEntity().getKiller() instanceof Player)) return;
-
         Player player = event.getEntity().getKiller();
+
+        // 2) Try to get the MythicMob instance
         ActiveMob mythicMob = mythicHelper.getMythicMobInstance(event.getEntity());
+        if (mythicMob == null) return;
 
-        // Debug: Confirm event is triggered
+        // 3) Strip any color codes from the mob type
+        String rawMobType = mythicMob.getMobType();
+        String mobType = rawMobType.replaceAll("§.", "");
 
-        if (mythicMob != null) {
-            // Strip any color codes from the Mythic Mob type
-            String rawMobType = mythicMob.getMobType();
-            String mobType = rawMobType.replaceAll("§.", "");
+        // 4) Ensure we have rewards data for this mob
+        if (!mobRewardsConfig.getConfig().contains("mobs." + mobType)) return;
 
-            // Debug: Show raw vs. stripped
+        // 5) Award XP
+        int exp = mobRewardsConfig.getConfig().getInt("mobs." + mobType + ".exp", 0);
+        levelManager.addXP(player, exp);
 
-            // Check if this mob is in mob_rewards.yml
-            if (mobRewardsConfig.getConfig().contains("mobs." + mobType)) {
-                // 1) Give XP
-                int exp = mobRewardsConfig.getConfig().getInt("mobs." + mobType + ".exp", 0);
-                levelManager.addXP(player, exp);
+        // 6) Award Coins
+        String coinRange = mobRewardsConfig.getConfig().getString("mobs." + mobType + ".coins", "0-0");
+        String[] coinsSplit = coinRange.split("-");
+        int minCoins = Integer.parseInt(coinsSplit[0]);
+        int maxCoins = Integer.parseInt(coinsSplit[1]);
+        int coins = ThreadLocalRandom.current().nextInt(minCoins, maxCoins + 1);
+        economyManager.addCoins(player, coins);
 
-                // 2) Give Coins
-                String coinRange = mobRewardsConfig.getConfig().getString("mobs." + mobType + ".coins", "0-0");
-                String[] coinsSplit = coinRange.split("-");
-                int minCoins = Integer.parseInt(coinsSplit[0]);
-                int maxCoins = Integer.parseInt(coinsSplit[1]);
-                int coins = ThreadLocalRandom.current().nextInt(minCoins, maxCoins + 1);
-                economyManager.addCoins(player, coins);
+        // 7) Drop any manually configured custom items
+        dropCustomItems(player, mobType);
 
-                // 3) Drop Custom Items (if any)
-                dropCustomItems(player, mobType);
-
-                // 4) Notify player
-//                player.sendMessage("You killed " + mobType + " and earned "
-//                    + exp + " XP and " + coins + " coins!");
-            } else {
-                // Debug: If it doesn't find that path
-                //System.out.println("[DEBUG] mob_rewards.yml has no path for: mobs." + mobType);
+        // 8) Drop tier-based loot if tier > 0
+        int tier = mobRewardsConfig.getConfig().getInt("mobs." + mobType + ".tier", 0);
+        if (tier > 0) {
+            ItemStack loot = lootChestManager.getRandomLootForTier(tier);
+            if (loot != null) {
+                // Update the tooltip before dropping
+                ItemUtil.updateCustomItemTooltip(loot, player);
+                player.getWorld().dropItemNaturally(player.getLocation(), loot);
             }
-        } else {
-            // Debug: If the dead entity isn't recognized as a MythicMob
-            //System.out.println("[DEBUG] The killed entity is not a MythicMob instance.");
         }
+
+        // 9) (Optional) Notify player of what they received
+        // player.sendMessage("You killed " + mobType +
+        //     " and earned " + exp + " XP, " + coins + " coins" +
+        //     (tier > 0 ? " plus tier-" + tier + " loot!" : "!"));
     }
+
+
 
     /**
      * Reads `mobs.<mobType>.items` from mob_rewards.yml,
@@ -170,11 +179,8 @@ public class MythicMobDeathListener implements Listener {
 
                 // Convert CustomItem → ItemStack
                 ItemStack dropStack = ItemUtil.createItemStackFromCustomItem(newInstance, 1, player);
+                ItemUtil.updateCustomItemTooltip(dropStack, player);
 
-//                System.out.println("[DEBUG] Dropping item: " + newInstance.getBaseName()
-//                    + " with UUID=" + newInstance.getUuid());
-
-                // Actually drop the item in the world
                 player.getWorld().dropItemNaturally(player.getLocation(), dropStack);
             }
         }
