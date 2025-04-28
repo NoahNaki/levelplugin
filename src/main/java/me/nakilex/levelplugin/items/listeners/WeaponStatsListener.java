@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.items.listeners;
 
+import me.nakilex.levelplugin.items.data.WeaponType;
 import me.nakilex.levelplugin.items.events.WeaponEquipEvent;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
@@ -23,14 +24,19 @@ public class WeaponStatsListener implements Listener {
 
     @EventHandler
     public void onWeaponEquip(WeaponEquipEvent event) {
+        // 0) ignore canceled or non-weapon events
         if (event.isCancelled()) return;
+        if (WeaponType.matchType(event.getOldWeapon()) == null
+            && WeaponType.matchType(event.getNewWeapon()) == null) {
+            return;
+        }
 
         Player player = event.getPlayer();
         UUID puuid = player.getUniqueId();
         StatsManager stats = StatsManager.getInstance();
         Set<Integer> equipped = stats.getEquippedItems(puuid);
 
-        // Remove old weapon stats
+        // 1) Remove old weapon stats
         ItemStack oldWeap = event.getOldWeapon();
         if (oldWeap != null && !oldWeap.getType().isAir()) {
             CustomItem inst = ItemManager.getInstance().getCustomItemFromItemStack(oldWeap);
@@ -40,7 +46,7 @@ public class WeaponStatsListener implements Listener {
             }
         }
 
-        // Add new weapon stats with level and class requirement check
+        // 2) Add new weapon stats with level and class requirement check
         ItemStack newWeap = event.getNewWeapon();
         if (newWeap != null && !newWeap.getType().isAir()) {
             CustomItem inst = ItemManager.getInstance().getCustomItemFromItemStack(newWeap);
@@ -55,13 +61,16 @@ public class WeaponStatsListener implements Listener {
                     requiredClass = PlayerClass.VILLAGER;
                 }
 
-                // Correct retrieval of player class
-                PlayerClass playerClass = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass;
+                PlayerClass playerClass = StatsManager.getInstance()
+                    .getPlayerStats(puuid).playerClass;
 
                 if (playerLevel < requiredLevel) {
-                    player.sendMessage(ChatColor.RED + "You can hold " + inst.getBaseName() + " but lack the level to gain its stats.");
-                } else if (requiredClass != PlayerClass.VILLAGER && requiredClass != playerClass) {
-                    player.sendMessage(ChatColor.RED + "You can hold " + inst.getBaseName() + " but lack the required class to gain its stats.");
+                    player.sendMessage(ChatColor.RED + "You can hold "
+                        + inst.getBaseName() + " but lack the level to gain its stats.");
+                } else if (requiredClass != PlayerClass.VILLAGER
+                    && requiredClass != playerClass) {
+                    player.sendMessage(ChatColor.RED + "You can hold "
+                        + inst.getBaseName() + " but lack the required class to gain its stats.");
                 } else {
                     addWeaponStats(player, inst);
                     equipped.add(inst.getId());
@@ -69,7 +78,7 @@ public class WeaponStatsListener implements Listener {
             }
         }
 
-        // Recalculate stats
+        // 3) Recalculate derived stats
         stats.recalcDerivedStats(player);
     }
 
