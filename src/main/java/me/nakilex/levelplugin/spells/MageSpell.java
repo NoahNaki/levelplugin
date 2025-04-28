@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.party.Party;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.listener.ClickComboListener;
+import me.nakilex.levelplugin.spells.utils.SpellUtils;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Entity;
@@ -15,6 +16,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.FixedMetadataValue;
@@ -132,13 +134,22 @@ public class MageSpell implements Listener {
         world.spawnParticle(Particle.SMOKE, end, 5, 0.2, 0.2, 0.2, 0.05);
     }
 
-
+    /** true = we are allowed to hurt that target */
+    private boolean canHit(Player caster, Entity target) {
+        // Mobs are always valid targets
+        if (!(target instanceof Player)) return true;
+        Player p = (Player) target;
+        // Only allow damage if they're in a duel together
+        return DuelManager.getInstance()
+            .areInDuel(caster.getUniqueId(), p.getUniqueId());
+    }
 
     private void castMeteor(Player player) {
         plugin.getLogger().info("castMeteor called by " + player.getName());
 
         // Compute damage
-        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
+        StatsManager.PlayerStats ps = StatsManager.getInstance()
+            .getPlayerStats(player.getUniqueId());
         int playerInt = ps.baseIntelligence + ps.bonusIntelligence;
         ItemStack mainHand = player.getInventory().getItemInMainHand();
         CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(mainHand);
@@ -185,16 +196,16 @@ public class MageSpell implements Listener {
 
                 double radius = 4.0;
                 for (Entity e : w.getNearbyEntities(loc, radius, radius, radius)) {
-                    if (e instanceof LivingEntity le && le != player) {
-                        le.setFireTicks(100);
-                        // unified damage + chat
-                        me.nakilex.levelplugin.spells.utils.SpellUtils.dealWithChat(
-                            player,
-                            le,
-                            finalDamage,
-                            "Meteor"
-                        );
-                    }
+                    if (!(e instanceof LivingEntity le) || le == player) continue;
+                    if (!canHit(player, le)) continue;  // ← skip non-duel players
+
+                    le.setFireTicks(100);
+                    SpellUtils.dealWithChat(
+                        player,
+                        le,
+                        finalDamage,
+                        "Meteor"
+                    );
                 }
 
                 fb.remove();
@@ -203,7 +214,21 @@ public class MageSpell implements Listener {
         }, plugin);
     }
 
+    @EventHandler
+    public void onFireballDamage(EntityDamageByEntityEvent event) {
+        if (!(event.getDamager() instanceof Fireball fb)) return;
+        if (!fb.hasMetadata("Meteor"))            return;  // only our meteors
+        if (!(event.getEntity() instanceof Player victim)) return;
 
+        Player shooter = (fb.getShooter() instanceof Player p) ? p : null;
+        if (shooter == null) return;
+
+        // if they’re not in a duel together, cancel the hit entirely
+        if (!DuelManager.getInstance()
+            .areInDuel(shooter.getUniqueId(), victim.getUniqueId())) {
+            event.setCancelled(true);
+        }
+    }
 
     // Custom exception to signal that a spell cast was cancelled and should not consume mana
     public static class SpellCastCancelledException extends RuntimeException {

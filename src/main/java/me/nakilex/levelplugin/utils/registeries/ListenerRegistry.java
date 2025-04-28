@@ -32,6 +32,7 @@ import me.nakilex.levelplugin.potions.listeners.PotionUseListener;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.salvage.listeners.SalvageListener;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
+import me.nakilex.levelplugin.spells.MageSpell;
 import me.nakilex.levelplugin.spells.RogueSpell;
 import me.nakilex.levelplugin.spells.gui.SpellGUIListener;
 import me.nakilex.levelplugin.trade.listeners.PlayerRightClicksPlayerListener;
@@ -54,7 +55,8 @@ public class ListenerRegistry {
                                          SettingsGUI settingsGUI,
                                          RogueSpell rogueSpell,
                                          ProjectileFriendlyFireListener projectileFriendlyFireListener,
-                                         FileConfiguration bossConfig
+                                         FileConfiguration bossConfig,
+                                         MageSpell mageSpell
                                          ) {
 
 
@@ -101,6 +103,7 @@ public class ListenerRegistry {
         pm.registerEvents(new DamageChatListener(), plugin);
         pm.registerEvents(settingsGUI, plugin); // ✅ No constructor call here
         pm.registerEvents(new RogueSpell(), plugin);
+        pm.registerEvents(new MageSpell(), plugin);
         pm.registerEvents(new ProjectileFriendlyFireListener(), plugin);
         pm.registerEvents(new FieldBossListener(plugin, plugin.getBossConfig(), plugin.getItemManager(), plugin.getGemsManager()), plugin
         );

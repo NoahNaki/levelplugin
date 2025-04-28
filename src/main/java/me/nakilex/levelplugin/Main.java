@@ -28,6 +28,7 @@ import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
+import me.nakilex.levelplugin.spells.MageSpell;
 import me.nakilex.levelplugin.spells.RogueSpell;
 import me.nakilex.levelplugin.spells.managers.ManaCostTracker;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
@@ -89,6 +90,7 @@ public class Main extends JavaPlugin {
     private File bossConfigFile;
     private GemsManager gemsManager;
     private GemExchangeGUI gemGui;
+    private MageSpell mageSpell;
 
 
     @Override
@@ -239,7 +241,8 @@ public class Main extends JavaPlugin {
             settingsGUI,
             rogueSpell,
             projectileFriendlyFireListener,
-            bossConfig
+            bossConfig,
+            mageSpell
         );
 
 
