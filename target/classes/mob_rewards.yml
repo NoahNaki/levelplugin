@@ -2,9 +2,10 @@ mobs:
   rpg_bat:
     exp: 100
     coins: "100-500"
+    tier: 2        # 0 = no auto tier loot
     items:
       - itemid: 1
-        drop_rate: 100.0
+        drop_rate: 0.0
         quantity: "1-5"
   SKELETON_SNIPER:
     exp: 1000
