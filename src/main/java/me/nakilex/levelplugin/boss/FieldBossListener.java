@@ -165,32 +165,36 @@ public class FieldBossListener implements Listener {
             plugin.getLevelManager().addXP(p, xpAward);
             plugin.getEconomyManager().addCoins(p, coinsAward);
 
-            // Item drops
             for (Map<String,Object> m : items) {
                 String itemId   = m.get("itemid").toString();
                 double dropPct  = (double)m.get("drop_rate");
                 String qtyRange = m.get("quantity").toString();
-                if (ThreadLocalRandom.current().nextDouble(0,100) > dropPct)
+
+                if (ThreadLocalRandom.current().nextDouble(0, 100) > dropPct)
                     continue;
 
                 String[] qr = qtyRange.split("-");
-                int minQ = Integer.parseInt(qr[0]),
-                    maxQ = Integer.parseInt(qr[1]);
-                int qty = ThreadLocalRandom.current().nextInt(minQ, maxQ+1);
+                int minQ = Integer.parseInt(qr[0]), maxQ = Integer.parseInt(qr[1]);
+                int qty = ThreadLocalRandom.current().nextInt(minQ, maxQ + 1);
 
                 ItemStack drop = null;
+
                 if (itemId.matches("\\d+")) {
                     int cid = Integer.parseInt(itemId);
-                    CustomItem ci = itemManager.getCustomItem(cid);
-                    if (ci != null) {
-                        drop = ItemUtil.createItemStackFromCustomItem(ci, qty, p);
-                    }
+                    // >>> use your new manager helper <<<
+                    CustomItem inst = itemManager.rollNewInstance(cid);
+                    if (inst != null)
+                        drop = ItemUtil.createItemStackFromCustomItem(inst, qty, p);
                 }
+
                 if (drop == null) {
                     Material mat = Material.matchMaterial(itemId.toUpperCase(Locale.ROOT));
-                    if (mat != null) drop = new ItemStack(mat, qty);
+                    if (mat != null)
+                        drop = new ItemStack(mat, qty);
                 }
-                if (drop != null) p.getWorld().dropItemNaturally(p.getLocation(), drop);
+
+                if (drop != null)
+                    p.getWorld().dropItemNaturally(p.getLocation(), drop);
             }
         }
 
@@ -239,6 +243,7 @@ public class FieldBossListener implements Listener {
             }
         }.runTaskLater(plugin, 5L);
     }
+
 
 //    private void announceBossEngage(String name) {
 //        new BukkitRunnable() {

@@ -156,6 +156,28 @@ public class ItemManager {
         return ci;
     }
 
+    public CustomItem rollNewInstance(int templateId) {
+        CustomItem tpl = templatesMap.get(templateId);
+        if (tpl == null) return null;
+
+        CustomItem inst = new CustomItem(
+            tpl.getId(),
+            tpl.getBaseName(),
+            tpl.getRarity(),
+            tpl.getLevelRequirement(),
+            tpl.getClassRequirement(),
+            tpl.getMaterial(),
+            tpl.getHpRange(),
+            tpl.getDefRange(),
+            tpl.getStrRange(),
+            tpl.getAgiRange(),
+            tpl.getIntelRange(),
+            tpl.getDexRange()
+        );
+        addInstance(inst);
+        return inst;
+    }
+
     public CustomItem getCustomItem(int id) {
         return getTemplateById(id);
     }
