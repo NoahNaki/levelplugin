@@ -221,7 +221,19 @@ public class ClickComboListener implements Listener {
 
     public static String getActiveCombo(Player player) {
         ClickSequence seq = playerCombos.get(player.getUniqueId());
-        return seq != null ? seq.getComboString() : "";
+        if (seq == null) {
+            return "";
+        }
+
+        long now = System.currentTimeMillis();
+        if (now - seq.getLastClickTime() > MAX_COMBO_TIME) {
+            // combo expired → clear and remove so next action‐bar tick sees ""
+            seq.clear();
+            playerCombos.remove(player.getUniqueId());
+            return "";
+        }
+
+        return seq.getComboString();
     }
 
     private static class ClickSequence {
