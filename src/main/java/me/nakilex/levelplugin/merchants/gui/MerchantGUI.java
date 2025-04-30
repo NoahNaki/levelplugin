@@ -125,21 +125,22 @@ public class MerchantGUI implements Listener {
 
             // 3) Add new price & gems stubs
             lore.add("");                               // spacer
-            lore.add(ChatColor.GOLD + "Price:");        // gold header
-            lore.add(ChatColor.GOLD + "- "
-                + ChatColor.RED   + "✘ "             // red X by default
+            lore.add(ChatColor.GOLD + "Price:");        // unified price header
+
+            lore.add(ChatColor.GRAY + "- "
+                + ChatColor.RED + "✘ "
                 + mItem.getCost()
                 + " "
-                + ChatColor.GOLD + "⛃");             // gold coin icon
+                + ChatColor.GOLD + "⛃");
 
             if (mItem.getGems() > 0) {
-                lore.add(ChatColor.GOLD + "Gems:");
                 lore.add(ChatColor.GRAY + "- "
-                    + ChatColor.RED   + "✘ "
+                    + ChatColor.RED + "✘ "
                     + mItem.getGems()
                     + " "
                     + ChatColor.LIGHT_PURPLE + "✦");
             }
+
 
             meta.setLore(lore);
             stack.setItemMeta(meta);
@@ -178,13 +179,16 @@ public class MerchantGUI implements Listener {
             int itemId = Integer.parseInt(map.get("item_id").toString());
             int amount = Integer.parseInt(map.get("amount").toString());
             int cost   = Integer.parseInt(map.get("cost").toString());
+            // ← safely pull gems (defaults to 0 if missing)
             int gems   = map.containsKey("gems")
                 ? Integer.parseInt(map.get("gems").toString())
                 : 0;
+
             merchantItems.put(slot,
                 new MerchantItem(slot, itemId, amount, cost, gems));
         } catch (Exception e) {
-            plugin.getLogger().warning("Failed to load a merchant item: " + e.getMessage());
+            plugin.getLogger().warning("Failed to load a merchant item from Map: "
+                + e.getMessage());
         }
     }
 
@@ -194,11 +198,16 @@ public class MerchantGUI implements Listener {
             int itemId = cs.getInt("item_id");
             int amount = cs.getInt("amount");
             int cost   = cs.getInt("cost");
-            int gems   = cs.contains("gems") ? cs.getInt("gems") : 0;
+            // ← same guard here
+            int gems   = cs.contains("gems")
+                ? cs.getInt("gems")
+                : 0;
+
             merchantItems.put(slot,
                 new MerchantItem(slot, itemId, amount, cost, gems));
         } catch (Exception e) {
-            plugin.getLogger().warning("Failed to load a merchant item: " + e.getMessage());
+            plugin.getLogger().warning("Failed to load a merchant item from Section: "
+                + e.getMessage());
         }
     }
 
@@ -258,20 +267,39 @@ public class MerchantGUI implements Listener {
             if (mItem == null) return;
 
             Player player = (Player) event.getWhoClicked();
-            int cost = mItem.getCost();
-            int balance = economyManager.getBalance(player);
-            if (balance < cost) {
+
+            int coinCost = mItem.getCost();
+            int gemCost = mItem.getGems();
+
+            int coinBalance = economyManager.getBalance(player);
+            int gemBalance = Main.getInstance().getGemsManager().getTotalUnits(player);
+
+            // Check coin requirement
+            if (coinBalance < coinCost) {
                 player.sendMessage(ChatColor.RED + "You don't have enough coins!");
                 return;
             }
 
+            // Check gem requirement
+            if (gemCost > 0 && gemBalance < gemCost) {
+                player.sendMessage(ChatColor.RED + "You don't have enough gems!");
+                return;
+            }
+
+            // Deduct coins
             try {
-                economyManager.deductCoins(player, cost);
+                economyManager.deductCoins(player, coinCost);
             } catch (IllegalArgumentException ex) {
                 player.sendMessage(ChatColor.RED + "Transaction failed: " + ex.getMessage());
                 return;
             }
 
+            // Deduct gems if needed
+            if (gemCost > 0) {
+                Main.getInstance().getGemsManager().deductUnits(player, gemCost);
+            }
+
+            // Give item to player
             CustomItem template = ItemManager.getInstance().getTemplateById(mItem.getItemId());
             if (template != null) {
                 CustomItem newInstance = new CustomItem(
@@ -294,7 +322,10 @@ public class MerchantGUI implements Listener {
                 player.sendMessage(ChatColor.GREEN +
                     "You purchased " +
                     purchasedItem.getItemMeta().getDisplayName() +
-                    ChatColor.GREEN + " for " + cost + " coins.");
+                    ChatColor.GREEN + " for " +
+                    ChatColor.GOLD + coinCost + "⛃" +
+                    (gemCost > 0 ? ChatColor.GRAY + " and " + ChatColor.LIGHT_PURPLE + gemCost + "✦" : "") +
+                    ChatColor.GREEN + ".");
             }
         }
     }
@@ -355,7 +386,7 @@ public class MerchantGUI implements Listener {
             if (priceHdr != -1 && priceHdr + 1 < lore.size()) {
                 boolean afford = coins >= mItem.getCost();
                 lore.set(priceHdr + 1,
-                    ChatColor.GRAY + "- "
+                    ChatColor.GRAY + ""
                         + (afford ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
                         + mItem.getCost()
                         + " "
@@ -364,12 +395,12 @@ public class MerchantGUI implements Listener {
             }
 
             // ── 4) Gems Price (if any) ───────────────────────
-            if (mItem.getGems() > 0) {
-                int gemsHdr = lore.indexOf(ChatColor.GOLD + "Gems:");
-                if (gemsHdr != -1 && gemsHdr + 1 < lore.size()) {
+            if (mItem.getGems() > 0 && priceHdr != -1) {
+                int gemLineIdx = priceHdr + 2;
+                if (gemLineIdx < lore.size()) {
                     boolean afford = totalGems >= mItem.getGems();
-                    lore.set(gemsHdr + 1,
-                        ChatColor.GRAY + "- "
+                    lore.set(gemLineIdx,
+                        ChatColor.GRAY + ""
                             + (afford ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
                             + mItem.getGems()
                             + " "
@@ -377,6 +408,7 @@ public class MerchantGUI implements Listener {
                     );
                 }
             }
+
 
             meta.setLore(lore);
             stack.setItemMeta(meta);
