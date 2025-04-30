@@ -5,7 +5,7 @@ items:
     rarity: COMMON
     level_requirement: 1
     class_requirement: WARRIOR
-    material: WOODEN_AXE
+    material: WOODEN_SHOVEL
     hp: 0-0
     def: 0-0
     str: 2-5
@@ -58,7 +58,7 @@ items:
     rarity: UNCOMMON
     level_requirement: 5
     class_requirement: WARRIOR
-    material: STONE_AXE
+    material: STONE_SHOVEL
     hp: 0-0
     def: 2-8
     str: 8-12
@@ -111,7 +111,7 @@ items:
     rarity: RARE
     level_requirement: 10
     class_requirement: WARRIOR
-    material: IRON_AXE
+    material: IRON_SHOVEL
     hp: 0-0
     def: 12-20
     str: 20-32
@@ -164,7 +164,7 @@ items:
     rarity: EPIC
     level_requirement: 20
     class_requirement: WARRIOR
-    material: IRON_AXE
+    material: IRON_SHOVEL
     hp: 0-0
     def: 25-40
     str: 40-64
@@ -217,7 +217,7 @@ items:
     rarity: LEGENDARY
     level_requirement: 30
     class_requirement: WARRIOR
-    material: DIAMOND_AXE
+    material: DIAMOND_SHOVEL
     hp: 0-0
     def: 35-80
     str: 50-100
@@ -270,7 +270,7 @@ items:
     rarity: MYTHIC
     level_requirement: 40
     class_requirement: WARRIOR
-    material: NETHERITE_AXE
+    material: NETHERITE_SHOVEL
     hp: 0-0
     def: 40-125
     str: 80-180

@@ -7,7 +7,8 @@ public enum WeaponType {
     SWORD,
     AXE,
     BOW,
-    WAND;
+    WAND,
+    SHOVEL;
 
     public static WeaponType matchType(ItemStack item) {
         if (item == null || item.getType() == Material.AIR) return null;
@@ -38,13 +39,23 @@ public enum WeaponType {
             case CROSSBOW:
                 return BOW;
 
-            // Wands (Mage weapons)
+            // Wands
             case STICK:
             case BLAZE_ROD:
                 return WAND;
+
+            // Shovels (for Warrior class)
+            case WOODEN_SHOVEL:
+            case STONE_SHOVEL:
+            case IRON_SHOVEL:
+            case GOLDEN_SHOVEL:
+            case DIAMOND_SHOVEL:
+            case NETHERITE_SHOVEL:
+                return SHOVEL;
 
             default:
                 return null;
         }
     }
+
 }
