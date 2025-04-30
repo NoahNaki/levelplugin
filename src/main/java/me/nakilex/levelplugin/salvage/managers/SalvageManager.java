@@ -55,6 +55,13 @@ public class SalvageManager {
                 + cItem.getDex();
 
         int multiplier = GEM_MULTIPLIERS.getOrDefault(cItem.getRarity(), 0);
-        return totalStats * multiplier;
+        int rawGems    = totalStats * multiplier;
+
+        // Divide by a larger number to make gems much rarer.
+        // We still guarantee at least 1 gem for epic+.
+        return multiplier > 0
+            ? Math.max(1, rawGems / 10)
+            : 0;
     }
+
 }

@@ -125,7 +125,18 @@ public class XPBarHandler {
 
         // RECALCULATE DERIVED STATS
         statsMgr.recalcDerivedStats(player);
+
+        // ─── FULL HEAL & MANA REFILL ────────────────────────────────────────────
+        // Heal the player to their new max health
+        player.setHealth(player.getMaxHealth());
+        // Refill their mana pool to max
+        StatsManager.PlayerStats ps = StatsManager
+            .getInstance()
+            .getPlayerStats(player.getUniqueId());
+        ps.setCurrentMana(ps.getMaxMana());
+        // ────────────────────────────────────────────────────────────────────────
     }
+
 
     /**
      * Launches a decorative firework at the given location.

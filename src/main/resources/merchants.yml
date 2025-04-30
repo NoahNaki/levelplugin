@@ -3,155 +3,355 @@ merchants:
     title: "Adventurer's Starter Shop"
     size: 54
     items:
+      # Weapons
       - slot: 10
-        item_id: 1    # Rusty Shiv (Rogue Weapon, Common)
+        item_id: 1    # Common Wooden Warrior Spear
         amount: 1
-        cost: 25
-        gems: 30
+        cost: 10      # max stats = 5 → price > 5
+        gems: 5
       - slot: 12
-        item_id: 2    # Bronze Axe (Warrior Weapon, Common)
+        item_id: 2    # Common Wooden Rogue Sword
         amount: 1
-        cost: 30
+        cost: 10      # max stats = 5 → price > 5
       - slot: 14
-        item_id: 3    # Hunting Bow (Archer Weapon, Common)
+        item_id: 3    # Common Wooden Mage Staff
         amount: 1
-        cost: 30
+        cost: 10      # max stats = 5 → price > 5
       - slot: 16
-        item_id: 4    # Apprentice Wand (Mage Weapon, Common)
+        item_id: 4    # Common Wooden Archer Bow
         amount: 1
-        cost: 30
-      - slot: 22
+        cost: 10      # max stats = 5 → price > 5
 
-  rogue_merchant:
-    title: "Rogue's Outfitter"
-    size: 54
-    items:
-      - slot: 10
-        item_id: 1    # Rusty Shiv (common)
-        amount: 1
-        cost: 40
-      - slot: 12
-        item_id: 6    # Golden Fang (Rogue Weapon, Uncommon)
-        amount: 1
-        cost: 60
-      - slot: 14
-        item_id: 16   # Iron Blade (Rogue Weapon, Epic)
-        amount: 1
-        cost: 100
-      - slot: 16
-        item_id: 21   # Diamond Dagger (Rogue Weapon, Legendary)
-        amount: 1
-        cost: 150
-      - slot: 18
-        item_id: 26   # Shadow Fang (Rogue Weapon, Mythic)
-        amount: 1
-        cost: 250
-
-  warrior_merchant:
-    title: "Warrior's Armory"
-    size: 54
-    items:
-      - slot: 10
-        item_id: 2    # Bronze Axe (common)
-        amount: 1
-        cost: 35
-      - slot: 12
-        item_id: 5    # Leather Armor (common)
-        amount: 1
-        cost: 50
-      - slot: 14
-        item_id: 7    # Golden Warhammer (Uncommon)
-        amount: 1
-        cost: 60
-      - slot: 16
-        item_id: 17   # Iron Warhammer (Epic)
-        amount: 1
-        cost: 110
-      - slot: 18
-        item_id: 22   # Diamond Maul (Legendary)
-        amount: 1
-        cost: 160
-
-  archer_merchant:
-    title: "Archer's Range"
-    size: 54
-    items:
-      - slot: 11
-        item_id: 3    # Hunting Bow (common)
-        amount: 1
-        cost: 30
-      - slot: 13
-        item_id: 8    # Golden Bow (Uncommon)
-        amount: 1
-        cost: 60
-      - slot: 15
-        item_id: 13   # Reinforced Bow (Rare)
-        amount: 1
-        cost: 70
-      - slot: 17
-        item_id: 18   # Iron Bow (Epic)
-        amount: 1
-        cost: 110
+      # Armor
       - slot: 19
-        item_id: 23   # Diamond Bow (Legendary)
+        item_id: 16   # Common Leather Helmet
         amount: 1
-        cost: 160
+        cost: 30      # max stats = 27 → price > 27
+      - slot: 21
+        item_id: 17   # Common Leather Chestplate
+        amount: 1
+        cost: 60      # max stats = 54 → price > 54
+      - slot: 23
+        item_id: 18   # Common Leather Leggings
+        amount: 1
+        cost: 40      # max stats = 38 → price > 38
+      - slot: 25
+        item_id: 19   # Common Leather Boots
+        amount: 1
+        cost: 25      # max stats = 21 → price > 21
 
-  mage_merchant:
-    title: "Mage's Curiosity Shop"
+  uncommon_gear_shop:
+    title: "Uncommon Gear Shop"
     size: 54
     items:
+      # Weapons
       - slot: 10
-        item_id: 4    # Apprentice Wand (common)
+        item_id: 6    # Uncommon Wooden Warrior Spear
         amount: 1
-        cost: 30
+        cost: 30      # max stats = 22 → price > 22
       - slot: 12
-        item_id: 9    # Mystic Wand (Uncommon)
+        item_id: 7    # Uncommon Wooden Rogue Sword
         amount: 1
-        cost: 60
+        cost: 30      # max stats = 24 → price > 24
       - slot: 14
-        item_id: 14   # Runed Staff (Rare)
+        item_id: 8    # Uncommon Wooden Mage Staff
         amount: 1
-        cost: 70
+        cost: 25      # max stats = 18 → price > 18
       - slot: 16
-        item_id: 19   # Arcane Rod (Epic)
+        item_id: 9    # Uncommon Wooden Archer Bow
         amount: 1
-        cost: 110
-      - slot: 18
-        item_id: 24   # Diamond Conduit (Legendary)
-        amount: 1
-        cost: 160
+        cost: 25      # max stats = 18 → price > 18
 
-  epic_shop:
-    title: "Epic Treasures"
+      # Armor
+      - slot: 19
+        item_id: 21   # Uncommon Leather Helmet
+        amount: 1
+        cost: 50      # max stats = 42 → price > 42
+      - slot: 21
+        item_id: 22   # Uncommon Leather Chestplate
+        amount: 1
+        cost: 85      # max stats = 80 → price > 80
+      - slot: 23
+        item_id: 23   # Uncommon Leather Leggings
+        amount: 1
+        cost: 65      # max stats = 59 → price > 59
+      - slot: 25
+        item_id: 24   # Uncommon Leather Boots
+        amount: 1
+        cost: 55      # max stats = 48 → price > 48
+
+  rare_gear_shop:
+    title: "Rare Gear Emporium"
     size: 54
     items:
+      # Rare Weapons (coins only)
       - slot: 10
-        item_id: 31   # Shadow Dagger (Rare, Tier 4)
+        item_id: 103  # Rare Iron Warrior Spear
         amount: 1
-        cost: 180
+        cost: 150     # max stats = 135 → price > 135
       - slot: 12
-        item_id: 32   # Heavy Axe (Rare, Tier 4)
+        item_id: 104  # Rare Iron Rogue Sword
         amount: 1
-        cost: 190
+        cost: 150     # max stats = 145 → price > 145
       - slot: 14
-        item_id: 33   # Crossbow (Rare, Tier 4)
+        item_id: 105  # Rare Iron Mage Stick
         amount: 1
-        cost: 200
+        cost: 120     # max stats = 115 → price > 115
       - slot: 16
-        item_id: 34   # Enchanted Staff (Rare, Tier 4)
+        item_id: 106  # Rare Iron Archer Bow
         amount: 1
-        cost: 210
-      - slot: 18
-        item_id: 35   # Steel Armor (Rare, Tier 4)
-        amount: 1
-        cost: 220
+        cost: 140     # max stats = 135 → price > 135
 
-  potion_merchant:
-    title: "Alchemist's Brew"
+      # Rare Armor (coins only)
+      - slot: 19
+        item_id: 128  # Rare Iron Helmet
+        amount: 1
+        cost: 350     # max stats = 330 → price > 330
+      - slot: 21
+        item_id: 129  # Rare Iron Chestplate
+        amount: 1
+        cost: 550     # max stats = 510 → price > 510
+      - slot: 23
+        item_id: 130  # Rare Iron Leggings
+        amount: 1
+        cost: 480     # max stats = 450 → price > 450
+      - slot: 25
+        item_id: 131  # Rare Iron Boots
+        amount: 1
+        cost: 450     # max stats = 420 → price > 420
+
+  epic_gear_shop:
+    title: "Epic Gear Cache"
     size: 54
     items:
-      - slot: 10   # ✅ Correct (Integer)
-        item_id: "healing_potion"
+      # Epic Weapons (coins + gems)
+      - slot: 10
+        item_id: 108  # Epic Iron Warrior Spear
         amount: 1
-        cost: 50   # ✅ Correct (Integer)
+        cost: 250     # max stats = 210 → price > 210
+        gems: 25      # salvage yields 210/10 = 21 → gems > 21
+      - slot: 12
+        item_id: 109  # Epic Iron Rogue Sword
+        amount: 1
+        cost: 300     # max stats = 240 → price > 240
+        gems: 25      # salvage yields 240/10 = 24 → gems > 24
+      - slot: 14
+        item_id: 110  # Epic Iron Mage Stick
+        amount: 1
+        cost: 200     # max stats = 180 → price > 180
+        gems: 20      # salvage yields 180/10 = 18 → gems > 18
+      - slot: 16
+        item_id: 111  # Epic Iron Archer Bow
+        amount: 1
+        cost: 250     # max stats = 220 → price > 220
+        gems: 25      # salvage yields 220/10 = 22 → gems > 22
+
+      # Epic Armor (coins + gems)
+      - slot: 19
+        item_id: 133  # Epic Iron Helmet
+        amount: 1
+        cost: 550     # max stats = 500 → price > 500
+        gems: 60      # salvage yields 500/10 = 50 → gems > 50
+      - slot: 21
+        item_id: 134  # Epic Iron Chestplate
+        amount: 1
+        cost: 700     # max stats = 690 → price > 690
+        gems: 70      # salvage yields 690/10 = 69 → gems > 69
+      - slot: 23
+        item_id: 135  # Epic Iron Leggings
+        amount: 1
+        cost: 650     # max stats = 620 → price > 620
+        gems: 65      # salvage yields 620/10 = 62 → gems > 62
+      - slot: 25
+        item_id: 136  # Epic Iron Boots
+        amount: 1
+        cost: 600     # max stats = 550 → price > 550
+        gems: 60      # salvage yields 550/10 = 55 → gems > 55
+
+  legendary_gear_shop:
+    title: "Legendary Armory"
+    size: 54
+    items:
+      # Legendary Weapons (coins + gems)
+      - slot: 10
+        item_id: 113  # Legendary Iron Warrior Spear
+        amount: 1
+        cost: 400     # max stats = 305 → price > 305
+        gems: 65      # salvage yields (305*2)/10 = 61 → gems > 61
+      - slot: 12
+        item_id: 114  # Legendary Iron Rogue Sword
+        amount: 1
+        cost: 450     # max stats = 340 → price > 340
+        gems: 70      # salvage yields (340*2)/10 = 68 → gems > 68
+      - slot: 14
+        item_id: 115  # Legendary Iron Mage Stick
+        amount: 1
+        cost: 350     # max stats = 260 → price > 260
+        gems: 55      # salvage yields (260*2)/10 = 52 → gems > 52
+      - slot: 16
+        item_id: 116  # Legendary Iron Archer Bow
+        amount: 1
+        cost: 400     # max stats = 295 → price > 295
+        gems: 60      # salvage yields (295*2)/10 = 59 → gems > 59
+
+      # Legendary Armor (coins + gems)
+      - slot: 19
+        item_id: 138  # Legendary Iron Helmet
+        amount: 1
+        cost: 800     # max stats = 700 → price > 700
+        gems: 150     # salvage yields (700*2)/10 = 140 → gems > 140
+      - slot: 21
+        item_id: 139  # Legendary Iron Chestplate
+        amount: 1
+        cost: 900     # max stats = 1000 → price > 1000
+        gems: 210     # salvage yields (1000*2)/10 = 200 → gems > 200
+      - slot: 23
+        item_id: 140  # Legendary Iron Leggings
+        amount: 1
+        cost: 850     # max stats = 930 → price > 930
+        gems: 190     # salvage yields (930*2)/10 = 186 → gems > 186
+      - slot: 25
+        item_id: 141  # Legendary Iron Boots
+        amount: 1
+        cost: 800     # max stats = 840 → price > 840
+        gems: 170     # salvage yields (840*2)/10 = 168 → gems > 168
+
+  mythic_gear_shop:
+    title: "Mythic Vault"
+    size: 54
+    items:
+      # Mythic Weapons (coins + gems)
+      - slot: 10
+        item_id: 218   # Dreadwyrm Pulverizer
+        amount: 1
+        cost: 900      # max stats = 850 → price > 850
+        gems: 300      # salvage yields 850*3/10 = 255 → gems > 255
+      - slot: 12
+        item_id: 219   # Voidreaver Greatblade
+        amount: 1
+        cost: 1100     # max stats = 1040 → price > 1040
+        gems: 350      # salvage yields 1040*3/10 = 312 → gems > 312
+      - slot: 14
+        item_id: 220   # Eternity's Flame
+        amount: 1
+        cost: 750      # max stats = 690 → price > 690
+        gems: 250      # salvage yields 690*3/10 = 207 → gems > 207
+      - slot: 16
+        item_id: 221   # Aurora's Wrath
+        amount: 1
+        cost: 820      # max stats = 760 → price > 760
+        gems: 260      # salvage yields 760*3/10 = 228 → gems > 228
+
+      # Mythic Armor (coins + gems)
+      - slot: 19
+        item_id: 248   # Eternity’s Crown
+        amount: 1
+        cost: 1500     # max stats = 1440 → price > 1440
+        gems: 480      # salvage yields 1440*3/10 = 432 → gems > 432
+      - slot: 21
+        item_id: 249   # Worldbreaker Plate
+        amount: 1
+        cost: 2200     # max stats = 2080 → price > 2080
+        gems: 700      # salvage yields 2080*3/10 = 624 → gems > 624
+      - slot: 23
+        item_id: 250   # Dreadlord Greaves
+        amount: 1
+        cost: 2000     # max stats = 1920 → price > 1920
+        gems: 625      # salvage yields 1920*3/10 = 576 → gems > 576
+      - slot: 25
+        item_id: 251   # Voidwalker Boots
+        amount: 1
+        cost: 1800     # max stats = 1760 → price > 1760
+        gems: 580      # salvage yields 1760*3/10 = 528 → gems > 528
+
+  warrior_shop:
+    title: "Warrior’s Arsenal"
+    size: 54
+    items:
+      # Tier 1–4 Warrior Spears
+      - slot: 10
+        item_id: 1    # Common Wooden Warrior Spear
+        amount: 1
+        cost: 10      # max stats = 5 → price > 5
+      - slot: 12
+        item_id: 6    # Uncommon Wooden Warrior Spear
+        amount: 1
+        cost: 25      # max stats = 18 → price > 18
+      - slot: 14
+        item_id: 11   # Rare Wooden Warrior Spear
+        amount: 1
+        cost: 60      # max stats = 50 → price > 50
+      - slot: 16
+        item_id: 108  # Epic Iron Warrior Spear
+        amount: 1
+        cost: 250     # max stats = 180 → price > 180
+        gems: 20      # salvage yields 18 → gems > 18
+
+  rogue_shop:
+    title: "Rogue’s Den"
+    size: 54
+    items:
+      # Tier 1–4 Rogue Blades
+      - slot: 10
+        item_id: 2    # Common Wooden Rogue Sword
+        amount: 1
+        cost: 10      # max stats = 5 → price > 5
+      - slot: 12
+        item_id: 7    # Uncommon Wooden Rogue Sword
+        amount: 1
+        cost: 30      # max stats = 24 → price > 24
+      - slot: 14
+        item_id: 12   # Rare Wooden Rogue Sword
+        amount: 1
+        cost: 60      # max stats = 55 → price > 55
+      - slot: 16
+        item_id: 109  # Epic Iron Rogue Sword
+        amount: 1
+        cost: 300     # max stats = 240 → price > 240
+        gems: 30      # salvage yields 24 → gems > 24
+
+  mage_shop:
+    title: "Mage’s Atelier"
+    size: 54
+    items:
+      # Tier 1–4 Mage Staves
+      - slot: 10
+        item_id: 3    # Common Wooden Mage Staff
+        amount: 1
+        cost: 10      # max stats = 5 → price > 5
+      - slot: 12
+        item_id: 8    # Uncommon Wooden Mage Staff
+        amount: 1
+        cost: 25      # max stats = 18 → price > 18
+      - slot: 14
+        item_id: 13   # Rare Wooden Mage Staff
+        amount: 1
+        cost: 60      # max stats = 55 → price > 55
+      - slot: 16
+        item_id: 110  # Epic Iron Mage Stick
+        amount: 1
+        cost: 200     # max stats = 160 → price > 160
+        gems: 20      # salvage yields 16 → gems > 16
+
+  archer_shop:
+    title: "Archer’s Outfitter"
+    size: 54
+    items:
+      # Tier 1–4 Archer Bows
+      - slot: 10
+        item_id: 4    # Common Wooden Archer Bow
+        amount: 1
+        cost: 10      # max stats = 5 → price > 5
+      - slot: 12
+        item_id: 9    # Uncommon Wooden Archer Bow
+        amount: 1
+        cost: 25      # max stats = 18 → price > 18
+      - slot: 14
+        item_id: 14   # Rare Wooden Archer Bow
+        amount: 1
+        cost: 70      # max stats = 65 → price > 65
+      - slot: 16
+        item_id: 111  # Epic Iron Archer Bow
+        amount: 1
+        cost: 250     # max stats = 220 → price > 220
+        gems: 25      # salvage yields 22 → gems > 22
