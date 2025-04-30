@@ -90,3 +90,6 @@ commands:
     description: Check your gem balance.
   gemexchange:
     description: Open the gem exchange GUI
+  tipsreload:
+    description: Reload auto-broadcast tips
+    usage: /<command>

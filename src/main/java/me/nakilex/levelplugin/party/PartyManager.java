@@ -48,7 +48,7 @@ public class PartyManager {
         Party party = parties.get(leader);
 
         // Check if party is already at or above max size
-        if (party.getSize() >= 8) {
+        if (party.getSize() >= 4) {
             // You could optionally send a message here indicating the party is full.
             return false;
         }

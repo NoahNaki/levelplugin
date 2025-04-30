@@ -34,6 +34,8 @@ import me.nakilex.levelplugin.spells.managers.ManaCostTracker;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.storage.StorageManager;
 import me.nakilex.levelplugin.storage.events.StorageEvents;
+import me.nakilex.levelplugin.tips.BroadcastManager;
+import me.nakilex.levelplugin.tips.TipsConfigManager;
 import me.nakilex.levelplugin.trade.data.ConfigValues;
 import me.nakilex.levelplugin.trade.utils.MessageStrings;
 import me.nakilex.levelplugin.utils.*;
@@ -91,6 +93,8 @@ public class Main extends JavaPlugin {
     private GemsManager gemsManager;
     private GemExchangeGUI gemGui;
     private MageSpell mageSpell;
+    private TipsConfigManager tipsCfg;
+    private BroadcastManager broadcastMgr;
 
 
     @Override
@@ -184,6 +188,9 @@ public class Main extends JavaPlugin {
         effectManager = new EffectManager();
         gemsManager = new GemsManager();
         gemGui      = new GemExchangeGUI(this, gemsManager);
+        this.tipsCfg     = new TipsConfigManager(this);
+        this.broadcastMgr = new BroadcastManager(this, this.tipsCfg);
+        this.broadcastMgr.start();
 
         StatsManager.getInstance().setLevelManager(levelManager);
     }
@@ -223,7 +230,9 @@ public class Main extends JavaPlugin {
             dmgNumberToggleManager,
             settingsGUI,
             gemsManager,
-            gemGui
+            gemGui,
+            tipsCfg,
+            broadcastMgr
         );
 
 

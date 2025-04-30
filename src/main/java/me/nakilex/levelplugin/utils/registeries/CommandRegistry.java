@@ -31,6 +31,9 @@ import me.nakilex.levelplugin.settings.gui.SettingsGUI;
 import me.nakilex.levelplugin.spells.commands.SpellCommand;
 import me.nakilex.levelplugin.storage.StorageManager;
 import me.nakilex.levelplugin.storage.commands.StorageCommand;
+import me.nakilex.levelplugin.tips.BroadcastManager;
+import me.nakilex.levelplugin.tips.TipsConfigManager;
+import me.nakilex.levelplugin.tips.TipsReloadCommand;
 import me.nakilex.levelplugin.trade.commands.TradeCommand;
 import me.nakilex.levelplugin.party.PartyCommands;
 import me.nakilex.levelplugin.effects.managers.EffectManager;
@@ -59,7 +62,9 @@ public class CommandRegistry {
                                         DmgNumberToggleManager dmgToggleManager,
                                         SettingsGUI settingsGUI,
                                         GemsManager gemsManager,
-                                        GemExchangeGUI gemGui) { // ✅ added here
+                                        GemExchangeGUI gemGui,
+                                        TipsConfigManager tipsCfg,
+                                        BroadcastManager broadcastMgr) { // ✅ added here
 
 
         plugin.getCommand("addpoints").setExecutor(new AddPointsCommand());
@@ -89,6 +94,8 @@ public class CommandRegistry {
         plugin.getCommand("addgems").setExecutor(new AddGemsCommand(gemsManager));
         plugin.getCommand("gems").setExecutor(new GemsBalanceCommand(gemsManager));
         plugin.getCommand("gemexchange").setExecutor(new GemExchangeCommand(gemGui));
+        plugin.getCommand("tipsreload").setExecutor(new TipsReloadCommand(tipsCfg, broadcastMgr));
+
 
     }
 }
