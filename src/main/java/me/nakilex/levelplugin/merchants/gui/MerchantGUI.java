@@ -7,6 +7,8 @@ import me.nakilex.levelplugin.items.data.StatRange;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.merchants.data.MerchantItem;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -19,6 +21,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
@@ -79,79 +82,72 @@ public class MerchantGUI implements Listener {
      */
     private void populateMerchantItems() {
         for (MerchantItem mItem : merchantItems.values()) {
-            CustomItem template = ItemManager.getInstance().getTemplateById(mItem.getItemId());
-            if (template == null) continue;
+            CustomItem tpl = ItemManager.getInstance().getTemplateById(mItem.getItemId());
+            if (tpl == null) continue;
 
-            // 1) Build the default ItemStack + lore
-            ItemStack stack = ItemUtil.createItemStackFromCustomItem(template, mItem.getAmount(), null);
+            // Base stack + lore from your existing helper (player=null gives gray req stubs)
+            ItemStack stack = ItemUtil.createItemStackFromCustomItem(tpl, mItem.getAmount(), null);
             ItemMeta meta = stack.getItemMeta();
             if (meta == null || !meta.hasLore()) {
                 inventory.setItem(mItem.getSlot(), stack);
                 continue;
             }
 
-            // 2) Rewrite the stat lines in-place
             List<String> lore = meta.getLore();
+
+            // 1) Rewrite each stat line to show the RANGE (white numbers)
             for (int i = 0; i < lore.size(); i++) {
                 String line = lore.get(i);
-
-                // Strength
                 if (line.contains("☠")) {
-                    lore.set(i,
-                        ChatColor.BLUE  + "☠ " + ChatColor.GRAY + "Strength: " +
-                            ChatColor.WHITE + "+" + template.getStrRange()
-                    );
-                }
-                // Health
-                else if (line.contains("❤")) {
-                    lore.set(i,
-                        ChatColor.RED   + "❤ " + ChatColor.GRAY + "Health: " +
-                            ChatColor.RED   + "+" + template.getHpRange()
-                    );
-                }
-                // Defence
-                else if (line.contains("⛂")) {
-                    lore.set(i,
-                        ChatColor.GRAY  + "⛂ " + ChatColor.GRAY + "Defence: " +
-                            ChatColor.WHITE + "+" + template.getDefRange()
-                    );
-                }
-                // Agility
-                else if (line.contains("≈")) {
-                    lore.set(i,
-                        ChatColor.GREEN + "≈ " + ChatColor.GRAY + "Agility: " +
-                            ChatColor.WHITE + "+" + template.getAgiRange()
-                    );
-                }
-                // Intelligence
-                else if (line.contains("♦")) {
-                    lore.set(i,
-                        ChatColor.AQUA  + "♦ " + ChatColor.GRAY + "Intelligence: " +
-                            ChatColor.WHITE + "+" + template.getIntelRange()
-                    );
-                }
-                // Dexterity
-                else if (line.contains("➹")) {
-                    lore.set(i,
-                        ChatColor.YELLOW+ "➹ " + ChatColor.GRAY + "Dexterity: " +
-                            ChatColor.WHITE + "+" + template.getDexRange()
-                    );
+                    lore.set(i, ChatColor.BLUE  + "☠ " + ChatColor.GRAY + "Strength: "
+                        + ChatColor.WHITE + "+" + tpl.getStrRange());
+                } else if (line.contains("❤")) {
+                    lore.set(i, ChatColor.RED   + "❤ " + ChatColor.GRAY + "Health: "
+                        + ChatColor.WHITE + "+" + tpl.getHpRange());
+                } else if (line.contains("⛂")) {
+                    lore.set(i, ChatColor.GRAY  + "⛂ " + ChatColor.GRAY + "Defence: "
+                        + ChatColor.WHITE + "+" + tpl.getDefRange());
+                } else if (line.contains("≈")) {
+                    lore.set(i, ChatColor.GREEN + "≈ " + ChatColor.GRAY + "Agility: "
+                        + ChatColor.WHITE + "+" + tpl.getAgiRange());
+                } else if (line.contains("♦")) {
+                    lore.set(i, ChatColor.AQUA  + "♦ " + ChatColor.GRAY + "Intelligence: "
+                        + ChatColor.WHITE + "+" + tpl.getIntelRange());
+                } else if (line.contains("➹")) {
+                    lore.set(i, ChatColor.YELLOW+ "➹ " + ChatColor.GRAY + "Dexterity: "
+                        + ChatColor.WHITE + "+" + tpl.getDexRange());
                 }
             }
 
-            // 3) Remove any old price block, then append fresh price lines
-            lore.removeIf(l -> l.contains("Price:") || l.contains("✘") || l.contains("✔"));
-            lore.add("");
-            lore.add(ChatColor.GRAY + "Price:");
-            lore.add(ChatColor.RED  + "- ✘ " + mItem.getCost() + " " + ChatColor.GOLD + "⛃");
+            // 2) Remove any old currency stubs, then re‐add fresh stubs
+            lore.removeIf(l -> l.equalsIgnoreCase("Price:") || l.startsWith("✘") || l.startsWith("✔"));
+            lore.removeIf(l -> l.equalsIgnoreCase("Gems:")  || l.startsWith("✘") || l.startsWith("✔"));
+
+            // 3) Add new price & gems stubs
+            lore.add("");                               // spacer
+            lore.add(ChatColor.GOLD + "Price:");        // gold header
+            lore.add(ChatColor.GOLD + "- "
+                + ChatColor.RED   + "✘ "             // red X by default
+                + mItem.getCost()
+                + " "
+                + ChatColor.GOLD + "⛃");             // gold coin icon
+
+            if (mItem.getGems() > 0) {
+                lore.add(ChatColor.GOLD + "Gems:");
+                lore.add(ChatColor.GRAY + "- "
+                    + ChatColor.RED   + "✘ "
+                    + mItem.getGems()
+                    + " "
+                    + ChatColor.LIGHT_PURPLE + "✦");
+            }
 
             meta.setLore(lore);
             stack.setItemMeta(meta);
-
-            // 4) Put it into the GUI
             inventory.setItem(mItem.getSlot(), stack);
         }
     }
+
+
 
 
     /**
@@ -178,11 +174,15 @@ public class MerchantGUI implements Listener {
 
     private void loadMerchantItem(Map<String, Object> map) {
         try {
-            int slot   = (Integer) map.get("slot");
-            int itemId = (Integer) map.get("item_id");
-            int amount = (Integer) map.get("amount");
-            int cost   = (Integer) map.get("cost");
-            merchantItems.put(slot, new MerchantItem(slot, itemId, amount, cost));
+            int slot   = Integer.parseInt(map.get("slot").toString());
+            int itemId = Integer.parseInt(map.get("item_id").toString());
+            int amount = Integer.parseInt(map.get("amount").toString());
+            int cost   = Integer.parseInt(map.get("cost").toString());
+            int gems   = map.containsKey("gems")
+                ? Integer.parseInt(map.get("gems").toString())
+                : 0;
+            merchantItems.put(slot,
+                new MerchantItem(slot, itemId, amount, cost, gems));
         } catch (Exception e) {
             plugin.getLogger().warning("Failed to load a merchant item: " + e.getMessage());
         }
@@ -190,15 +190,18 @@ public class MerchantGUI implements Listener {
 
     private void loadMerchantItem(ConfigurationSection cs) {
         try {
-            int slot    = cs.getInt("slot");
-            int itemId  = cs.getInt("item_id");
-            int amount  = cs.getInt("amount");
-            int cost    = cs.getInt("cost");
-            merchantItems.put(slot, new MerchantItem(slot, itemId, amount, cost));
+            int slot   = cs.getInt("slot");
+            int itemId = cs.getInt("item_id");
+            int amount = cs.getInt("amount");
+            int cost   = cs.getInt("cost");
+            int gems   = cs.contains("gems") ? cs.getInt("gems") : 0;
+            merchantItems.put(slot,
+                new MerchantItem(slot, itemId, amount, cost, gems));
         } catch (Exception e) {
             plugin.getLogger().warning("Failed to load a merchant item: " + e.getMessage());
         }
     }
+
 
     public Inventory getInventory() {
         return inventory;
@@ -208,24 +211,35 @@ public class MerchantGUI implements Listener {
      * Update the lore of each merchant item based on the player's current coins.
      */
     private void updatePriceLore(Player player) {
-        int playerCoins = economyManager.getBalance(player);
+        int coins = economyManager.getBalance(player);
+
         for (MerchantItem mItem : merchantItems.values()) {
-            int slot = mItem.getSlot();
-            ItemStack stack = inventory.getItem(slot);
+            ItemStack stack = inventory.getItem(mItem.getSlot());
             if (stack == null || !stack.hasItemMeta()) continue;
 
             ItemMeta meta = stack.getItemMeta();
-            List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
-            // Remove old price lines
-            lore.removeIf(line -> line.contains("Price:") || line.contains("✘") || line.contains("✔"));
+            List<String> lore = new ArrayList<>(meta.getLore());
 
-            lore.add(ChatColor.GRAY + "Price:");
-            if (playerCoins < mItem.getCost()) {
-                lore.add(ChatColor.GRAY + "- " + ChatColor.RED + "✘ " +
-                    mItem.getCost() + " " + ChatColor.GOLD + "⛃");
+            // Find the gold “Price:” header
+            int headerIdx = lore.indexOf(ChatColor.GOLD + "Price:");
+            if (headerIdx == -1) continue;  // shouldn’t happen
+
+            // Build the new price line
+            boolean afford = coins >= mItem.getCost();
+            String priceLine = ChatColor.GOLD + "- "
+                + (afford
+                ? ChatColor.GREEN + "✔ "
+                : ChatColor.RED   + "✘ ")
+                + mItem.getCost()
+                + " "
+                + ChatColor.GOLD + "⛃";
+
+            // Replace the line immediately after the header
+            int lineIdx = headerIdx + 1;
+            if (lineIdx < lore.size()) {
+                lore.set(lineIdx, priceLine);
             } else {
-                lore.add(ChatColor.GRAY + "- " + ChatColor.GREEN + "✔ " +
-                    mItem.getCost() + " " + ChatColor.GOLD + "⛃");
+                lore.add(priceLine);
             }
 
             meta.setLore(lore);
@@ -285,26 +299,119 @@ public class MerchantGUI implements Listener {
         }
     }
 
-    @EventHandler
-    public void onInventoryOpen(InventoryOpenEvent event) {
-        if (event.getInventory() != null && event.getInventory().equals(inventory)) {
-            Player player = (Player) event.getPlayer();
-            updateTaskId = Bukkit.getScheduler()
-                .runTaskTimer(plugin, () -> {
-                    if (inventory.getViewers().contains(player)) {
-                        updatePriceLore(player);
-                    }
-                }, 0L, 5L)
-                .getTaskId();
+    private void updateMerchantTooltips(Player player) {
+        int lvl       = StatsManager.getInstance().getLevel(player);
+        PlayerClass cls   = StatsManager.getInstance()
+            .getPlayerStats(player.getUniqueId()).playerClass;
+        int coins     = economyManager.getBalance(player);
+        int totalGems = Main.getInstance().getGemsManager().getTotalUnits(player);
+
+        for (MerchantItem mItem : merchantItems.values()) {
+            ItemStack stack = inventory.getItem(mItem.getSlot());
+            if (stack == null || !stack.hasItemMeta()) continue;
+
+            ItemMeta meta = stack.getItemMeta();
+            List<String> lore = new ArrayList<>(meta.getLore());
+            CustomItem tpl = ItemManager.getInstance().getTemplateById(mItem.getItemId());
+
+            // ── 1) Level Requirement ─────────────────────────
+            int lvlIdx = -1;
+            for (int i = 0; i < lore.size(); i++) {
+                if (lore.get(i).contains("Level Requirement:")) {
+                    lvlIdx = i;
+                    break;
+                }
+            }
+            if (lvlIdx != -1) {
+                boolean ok = lvl >= tpl.getLevelRequirement();
+                lore.set(lvlIdx,
+                    (ok ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
+                        + ChatColor.GRAY + "Level Requirement: "
+                        + ChatColor.WHITE + tpl.getLevelRequirement()
+                );
+            }
+
+            // ── 2) Class Requirement ─────────────────────────
+            int clsIdx = -1;
+            for (int i = 0; i < lore.size(); i++) {
+                if (lore.get(i).contains("Class Requirement:")) {
+                    clsIdx = i;
+                    break;
+                }
+            }
+            if (clsIdx != -1 && !tpl.getClassRequirement().equalsIgnoreCase("ANY")) {
+                boolean ok = cls.name().equalsIgnoreCase(tpl.getClassRequirement());
+                String cap = tpl.getClassRequirement().substring(0,1).toUpperCase()
+                    + tpl.getClassRequirement().substring(1).toLowerCase();
+                lore.set(clsIdx,
+                    (ok ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
+                        + ChatColor.GRAY + "Class Requirement: "
+                        + ChatColor.WHITE + cap
+                );
+            }
+
+            // ── 3) Coin Price ────────────────────────────────
+            int priceHdr = lore.indexOf(ChatColor.GOLD + "Price:");
+            if (priceHdr != -1 && priceHdr + 1 < lore.size()) {
+                boolean afford = coins >= mItem.getCost();
+                lore.set(priceHdr + 1,
+                    ChatColor.GRAY + "- "
+                        + (afford ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
+                        + mItem.getCost()
+                        + " "
+                        + ChatColor.GOLD + "⛃"
+                );
+            }
+
+            // ── 4) Gems Price (if any) ───────────────────────
+            if (mItem.getGems() > 0) {
+                int gemsHdr = lore.indexOf(ChatColor.GOLD + "Gems:");
+                if (gemsHdr != -1 && gemsHdr + 1 < lore.size()) {
+                    boolean afford = totalGems >= mItem.getGems();
+                    lore.set(gemsHdr + 1,
+                        ChatColor.GRAY + "- "
+                            + (afford ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
+                            + mItem.getGems()
+                            + " "
+                            + ChatColor.LIGHT_PURPLE + "✦"
+                    );
+                }
+            }
+
+            meta.setLore(lore);
+            stack.setItemMeta(meta);
         }
     }
 
+    // ─── Replace your onInventoryOpen with this ──────────────────────────────
     @EventHandler
-    public void onInventoryClose(InventoryCloseEvent event) {
-        if (event.getInventory() != null && event.getInventory().equals(inventory)
-            && updateTaskId != -1) {
+    public void onInventoryOpen(InventoryOpenEvent e) {
+        if (!(e.getPlayer() instanceof Player)) return;
+        if (!e.getInventory().equals(inventory)) return;
+
+        Player p = (Player)e.getPlayer();
+
+        // Run it immediately once
+        updateMerchantTooltips(p);
+
+        // Schedule it every 5 ticks
+        updateTaskId = Bukkit.getScheduler()
+            .runTaskTimer(plugin, () -> {
+                if (inventory.getViewers().contains(p)) {
+                    updateMerchantTooltips(p);
+                }
+            }, 0L, 5L)
+            .getTaskId();
+    }
+
+    // ─── And make sure your close handler stays as is ────────────────────────
+    @EventHandler
+    public void onInventoryClose(InventoryCloseEvent e) {
+        if (!e.getInventory().equals(inventory)) return;
+        if (updateTaskId != -1) {
             Bukkit.getScheduler().cancelTask(updateTaskId);
             updateTaskId = -1;
         }
     }
+
 }

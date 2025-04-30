@@ -7,6 +7,7 @@ merchants:
         item_id: 1    # Rusty Shiv (Rogue Weapon, Common)
         amount: 1
         cost: 25
+        gems: 30
       - slot: 12
         item_id: 2    # Bronze Axe (Warrior Weapon, Common)
         amount: 1

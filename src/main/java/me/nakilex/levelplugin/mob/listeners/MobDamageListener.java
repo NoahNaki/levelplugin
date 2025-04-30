@@ -1,10 +1,9 @@
 package me.nakilex.levelplugin.mob.listeners;
 
 import me.nakilex.levelplugin.mob.data.CustomMob;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
@@ -26,10 +25,18 @@ public class MobDamageListener implements Listener {
 
     @EventHandler
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
-        // Check if the damager is a player
-        if (!(event.getDamager() instanceof Player)) return;
+        Player player = null;
+        Entity damager = event.getDamager();
 
-        Player player = (Player) event.getDamager();
+        if (damager instanceof Player) {
+            player = (Player) damager;
+        } else if (damager instanceof Arrow arrow && arrow.hasMetadata("BasicAttack")) {
+            UUID shooterId = (UUID) arrow.getMetadata("BasicAttack").get(0).value();
+            player = Bukkit.getPlayer(shooterId);
+        }
+
+        if (player == null) return;
+
         Entity entity = event.getEntity();
         double damage = event.getFinalDamage();
 
@@ -39,21 +46,17 @@ public class MobDamageListener implements Listener {
         playerDamage.put(player.getUniqueId(), playerDamage.getOrDefault(player.getUniqueId(), 0.0) + damage);
 
         // Update health display if the entity is a custom mob
-        if (entity instanceof LivingEntity) {
-            LivingEntity livingEntity = (LivingEntity) entity;
+        if (entity instanceof LivingEntity livingEntity) {
             PersistentDataContainer pdc = livingEntity.getPersistentDataContainer();
-
             if (!pdc.has(CustomMob.MOB_ID_KEY, PersistentDataType.STRING)) return;
 
-            // Retrieve metadata
             String level = pdc.has(CustomMob.LEVEL_KEY, PersistentDataType.INTEGER)
                 ? String.valueOf(pdc.get(CustomMob.LEVEL_KEY, PersistentDataType.INTEGER))
                 : "1";
 
-            double currentHealth = Math.max(livingEntity.getHealth() - damage, 0); // Ensure no negative health
+            double currentHealth = Math.max(livingEntity.getHealth() - damage, 0);
             double maxHealth = livingEntity.getMaxHealth();
 
-            // Reformat the custom mob's name
             String levelPrefix = ChatColor.GRAY + "[Lv " + level + "]  ";
             String mobName = ChatColor.WHITE + getMobName(livingEntity.getCustomName()) + "  ";
             String healthText = ChatColor.RED + String.format("%.0f", currentHealth) + "/" + String.format("%.0f", maxHealth) + " ♥";
@@ -61,6 +64,7 @@ public class MobDamageListener implements Listener {
             livingEntity.setCustomName(levelPrefix + mobName + healthText);
         }
     }
+
 
     /**
      * Extracts the mob's original name (removes health and level prefixes).

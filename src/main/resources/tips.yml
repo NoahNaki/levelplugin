@@ -1,8 +1,10 @@
 tips:
-  - "&6Tip 1: Don’t forget to spend your skill points!"
-  - "&6Tip 2: You can trade gems at /gemexchange."
-  - "&6Tip 3: Use /horse to summon your mount."
-# and so on…
-
-# Delay (in seconds) between broadcasts
-delay: 5
+  - "You can type [item] to link what you're holding in chat!"
+  - "Don’t forget to spend your skill points!"
+  - "You can trade gems at a Gem Exchanger."
+  - "You can change your class at anytime using /class"
+  - "Type /settings to toggle different visual features"
+  - "Every mobility spell scales with agility!"
+  - "You can trade with others using /trade <username>"
+  - "You can sell your unwanted items at a Scrapper for coins & gems!"
+# etc.

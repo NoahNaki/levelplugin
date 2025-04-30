@@ -13,6 +13,7 @@ import me.nakilex.levelplugin.horse.gui.HorseGUI;
 import me.nakilex.levelplugin.horse.managers.HorseConfigManager;
 import me.nakilex.levelplugin.horse.managers.HorseManager;
 import me.nakilex.levelplugin.items.config.ItemConfig;
+import me.nakilex.levelplugin.items.gui.ItemsBrowser;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.lootchests.config.ConfigManager;
 import me.nakilex.levelplugin.lootchests.managers.CooldownManager;
@@ -147,6 +148,7 @@ public class Main extends JavaPlugin {
 
         // Register commands and event listeners
         registerCommandsAndListeners();
+        new ItemsBrowser(this);
 
         // Log success message
         getLogger().info("LevelPlugin has been enabled successfully!");
@@ -373,6 +375,7 @@ public class Main extends JavaPlugin {
     public FileConfiguration getBossConfig() {
         return bossConfig;
     }
+
 
     private void createCustomConfig() {
         customConfigFile = new File(getDataFolder(), "config.yml");

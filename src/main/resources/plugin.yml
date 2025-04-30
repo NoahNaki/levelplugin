@@ -93,3 +93,6 @@ commands:
   tipsreload:
     description: Reload auto-broadcast tips
     usage: /<command>
+  itemsbrowser:
+    description: Opens the custom item browser GUI.
+    usage: /itemsbrowser
