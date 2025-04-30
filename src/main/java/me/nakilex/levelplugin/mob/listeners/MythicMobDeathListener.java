@@ -13,6 +13,7 @@ import me.nakilex.levelplugin.items.utils.ItemUtil;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
@@ -48,12 +49,26 @@ public class MythicMobDeathListener implements Listener {
     // ← New method: record every player who hits a mob
     @EventHandler
     public void onEntityDamage(EntityDamageByEntityEvent event) {
+        // only care about living‐entity mobs
         if (!(event.getEntity() instanceof LivingEntity)) return;
-        if (!(event.getDamager() instanceof Player))       return;
 
-        LivingEntity mob    = (LivingEntity) event.getEntity();
-        Player        hitter = (Player) event.getDamager();
+        Player hitter = null;
+        // 1) direct melee
+        if (event.getDamager() instanceof Player) {
+            hitter = (Player) event.getDamager();
+        }
+        // 2) projectile hit
+        else if (event.getDamager() instanceof Projectile) {
+            Projectile proj = (Projectile) event.getDamager();
+            if (proj.getShooter() instanceof Player) {
+                hitter = (Player) proj.getShooter();
+            }
+        }
 
+        if (hitter == null) return;
+
+        // record participation
+        LivingEntity mob = (LivingEntity) event.getEntity();
         damageTracker
             .computeIfAbsent(mob.getUniqueId(), uuid -> ConcurrentHashMap.newKeySet())
             .add(hitter);
