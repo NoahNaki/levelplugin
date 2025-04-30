@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.spells.utils.SpellUtils;
 import me.nakilex.levelplugin.utils.MetadataTrait;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
+import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.block.Block;
@@ -320,9 +321,11 @@ public class RogueSpell implements Listener {
             public void run() {
                 if (!player.isOnline()) return;
                 vanishedPlayers.remove(player.getUniqueId());
-                for (Player other : Bukkit.getOnlinePlayers())
-                    if (!other.equals(player))
+                for (Player other : Bukkit.getOnlinePlayers()) {
+                    if (!other.equals(player)) {
                         other.showPlayer(Main.getInstance(), player);
+                    }
+                }
             }
         };
         vanishEnd.runTaskLater(Main.getInstance(), newDuration);
@@ -345,16 +348,35 @@ public class RogueSpell implements Listener {
 
         // 5) hide player from others
         vanishedPlayers.add(player.getUniqueId());
-        for (Player other : Bukkit.getOnlinePlayers())
-            if (!other.equals(player))
+        for (Player other : Bukkit.getOnlinePlayers()) {
+            if (!other.equals(player)) {
                 other.hidePlayer(Main.getInstance(), player);
+            }
+        }
 
-        // 6) visual/audio feedback
+        // 6) clear existing mob targets so they stop chasing you
+        for (Entity e : world.getNearbyEntities(origin, 20, 20, 20)) {
+            if (e instanceof Mob mob && mob.getTarget() != null && mob.getTarget().equals(player)) {
+                mob.setTarget(null);
+            }
+        }
+
+        // 7) visual/audio feedback
         world.playSound(origin, Sound.ENTITY_FIREWORK_ROCKET_LAUNCH, 1f, 1f);
         world.playSound(origin, Sound.ENTITY_ILLUSIONER_CAST_SPELL, 1f, 1.2f);
         world.playSound(origin, Sound.ITEM_TOTEM_USE, 0.8f, 1f);
         world.spawnParticle(Particle.FIREWORK, origin, 30, 1, 1, 1, 0.05);
         world.spawnParticle(Particle.SMOKE,    origin, 20, 0.5, 1, 0.5, 0.02);
+    }
+
+
+    @EventHandler
+    public void onCreatureTarget(EntityTargetEvent event) {
+        // if a creature tries to target a vanished player, stop it
+        if (event.getTarget() instanceof Player p
+            && vanishedPlayers.contains(p.getUniqueId())) {
+            event.setCancelled(true);
+        }
     }
 
 
