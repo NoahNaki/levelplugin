@@ -26,6 +26,7 @@ import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.attributes.listeners.StatsMenuListener;
 import me.nakilex.levelplugin.player.classes.listeners.ClassMenuListener;
 import me.nakilex.levelplugin.player.listener.ClickComboListener;
+import me.nakilex.levelplugin.player.listener.DeathBlindnessListener;
 import me.nakilex.levelplugin.player.listener.PlayerJoinListener;
 import me.nakilex.levelplugin.player.listener.PlayerKillListener;
 import me.nakilex.levelplugin.player.utils.ArrowUtils;
@@ -109,6 +110,7 @@ public class ListenerRegistry {
         pm.registerEvents(new ProjectileFriendlyFireListener(), plugin);
         pm.registerEvents(new FieldBossListener(plugin, plugin.getBossConfig(), plugin.getItemManager(), plugin.getGemsManager()), plugin);
         pm.registerEvents(new EquipOnJoinListener(), plugin);
+        pm.registerEvents(new DeathBlindnessListener(plugin), plugin);
 
 
 

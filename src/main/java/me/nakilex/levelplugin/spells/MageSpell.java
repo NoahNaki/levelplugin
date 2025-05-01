@@ -10,6 +10,7 @@ import me.nakilex.levelplugin.player.listener.ClickComboListener;
 import me.nakilex.levelplugin.spells.utils.SpellUtils;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Fireball;
 import org.bukkit.entity.LivingEntity;
@@ -250,8 +251,16 @@ public class MageSpell implements Listener {
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(pid);
         double damage = 10.0 + 0.5 * (ps.baseIntelligence + ps.bonusIntelligence);
 
-        // Setup center & radii
-        Location center   = player.getEyeLocation().add(player.getLocation().getDirection().multiply(10));
+        // Determine center on surface of targeted block
+        Block targetBlock = player.getTargetBlockExact(20);
+        Location center;
+        if (targetBlock != null) {
+            center = targetBlock.getLocation().add(0.5, 1, 0.5);
+        } else {
+            // Fallback: 10 blocks ahead at eye level
+            center = player.getEyeLocation().add(player.getLocation().getDirection().multiply(10));
+        }
+
         double pullRadius = 5.0;
         double damageRadius = 5.0;
 
@@ -285,7 +294,7 @@ public class MageSpell implements Listener {
                     // when in range, apply damage + chat & fire once
                     if (le.getLocation().distance(center) <= damageRadius) {
                         le.setFireTicks(100);
-                        me.nakilex.levelplugin.spells.utils.SpellUtils.dealWithChat(
+                        SpellUtils.dealWithChat(
                             player,
                             le,
                             damage,
@@ -298,16 +307,18 @@ public class MageSpell implements Listener {
                 // ongoing VFX/SFX
                 for (double angle = 0; angle < 360; angle += 10) {
                     double rad = Math.toRadians(angle);
-                    double x   = pullRadius * Math.cos(rad);
-                    double z   = pullRadius * Math.sin(rad);
-                    Location dust = center.clone().add(x, 0, z)
+                    double x = pullRadius * Math.cos(rad);
+                    double z = pullRadius * Math.sin(rad);
+                    Location loc = center.clone().add(x, 0, z)
                         .add(0, Math.sin(ticks / 10.0) * 0.5, 0);
-                    center.getWorld().spawnParticle(Particle.PORTAL, dust, 1, 0, 0, 0, 0);
+                    center.getWorld().spawnParticle(Particle.PORTAL, loc, 1, 0, 0, 0, 0);
+                    center.getWorld().spawnParticle(Particle.SMOKE, loc, 1, 0, 0, 0, 0);
                 }
-                center.getWorld().playSound(center, Sound.BLOCK_BEACON_AMBIENT, 0.5f, 1.2f);
+                center.getWorld().spawnParticle(Particle.DRAGON_BREATH, center, 5, 0.2, 0.2, 0.2, 0.02);
             }
         }.runTaskTimer(plugin, 0L, 2L);
     }
+
 
 
     private void createBlackholeEffect(Location center, double radius) {
