@@ -111,7 +111,5 @@ public class StaticItemListener implements Listener {
             event.setCancelled(true);
 
         }
-        // ← NO "else if (inHand.isSimilar(STATIC_QUEST_BOOK))" block here!
-        // we let BetonQuest itself see the click and open the GUI.
     }
 }
