@@ -160,27 +160,42 @@ public class WarriorSpell {
                 if (!hasLanded && player.isOnGround()) {
                     hasLanded = true;
 
-                    // Landing VFX/SFX
+                    // Landing VFX/SFX...
                     player.getWorld().playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
                     player.getWorld().spawnParticle(Particle.EXPLOSION, player.getLocation(), 20, 0.5, 1, 0.5);
                     player.getWorld().spawnParticle(Particle.FLAME, player.getLocation(), 50, 1, 0.5, 1, 0.1);
                     player.getWorld().spawnParticle(Particle.LAVA, player.getLocation(), 20, 0.5, 0.5, 0.5);
 
-                    // Damage + knockback
+                    // --- DAMAGE + KNOCKBACK LOOP ---
                     for (Entity entity : player.getWorld().getNearbyEntities(player.getLocation(), damageRadius, damageRadius, damageRadius)) {
-                        if (entity instanceof LivingEntity && entity != player) {
-                            LivingEntity target = (LivingEntity) entity;
-                            SpellUtils.dealWithChat(player, target, damage, "Heroic Leap");
-                            Vector knockback = target.getLocation().toVector().subtract(player.getLocation().toVector()).normalize().multiply(1.5);
-                            knockback.setY(0.5);
-                            target.setVelocity(knockback);
+                        if (!(entity instanceof LivingEntity) || entity == player) continue;
+                        LivingEntity target = (LivingEntity) entity;
+
+                        // **only** hit players in your duel
+                        if (target instanceof Player) {
+                            Player pTarget = (Player) target;
+                            if (!DuelManager.getInstance().areInDuel(player.getUniqueId(), pTarget.getUniqueId())) {
+                                continue;
+                            }
                         }
+
+                        // now deal damage + knockback
+                        SpellUtils.dealWithChat(player, target, damage, "Heroic Leap");
+                        Vector knockback = target.getLocation().toVector()
+                            .subtract(player.getLocation().toVector())
+                            .normalize()
+                            .multiply(1.5);
+                        knockback.setY(0.5);
+                        target.setVelocity(knockback);
                     }
 
                     cancel();
                 }
             }
-        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 2L, 1L);
+        }.runTaskTimer(
+            Bukkit.getPluginManager().getPlugin("LevelPlugin"),
+            2L, 1L
+        );
     }
 
     // ─────────────────────────────────────────────────────
