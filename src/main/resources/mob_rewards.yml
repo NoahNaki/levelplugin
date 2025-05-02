@@ -3,88 +3,91 @@ mobs:
     exp: 100
     coins: "100-500"
     tier: 2        # 0 = no auto tier loot
-    items:
-      - itemid: 1
-        drop_rate: 0.0
-        quantity: "1-5"
-  SKELETON_SNIPER:
-    exp: 1000
-    coins: "1000-2000"
-    items:
-      - itemid: 2
-        drop_rate: 100.0
-        quantity: "1-1"
-  SKELETON_ARCHER:
-    exp: 10
-    coins: "10-20"
-    items:
-      - itemid: 2
-        drop_rate: 20.0
-        quantity: "1-1"
+
   City_Resident:
     exp: 10
     coins: "5-20"
-    tier: 2
-
-  City_Guard:
-    exp: 150
-    coins: "100-200"
-    tier: 2
-
-  City_Archer:
-    exp: 120
-    coins: "80-150"
-    tier: 2
+    tier: 1
 
   Wild_Rooster:
-    exp: 5
+    exp: 15
     coins: "2-5"
     tier: 1
 
   Flowery_Slime:
-    exp: 15
-    coins: "5-10"
+    exp: 40
+    coins: "10-40"
     tier: 1
 
   Timberbud:
-    exp: 30
-    coins: "10-20"
+    exp: 40
+    coins: "10-40"
+    tier: 2
+
+  City_Guard:
+    exp: 100
+    coins: "20-40"
+    tier: 2
+
+  City_Archer:
+    exp: 80
+    coins: "40-80"
     tier: 2
 
   Angry_Hunter:
-    exp: 50
-    coins: "20-50"
+    exp: 400
+    coins: "250-400"
     tier: 3
 
   Crazed_Bandit:
-    exp: 100
-    coins: "50-100"
+    exp: 400
+    coins: "250-400"
     tier: 3
 
   Canyon_Miner:
-    exp: 200
-    coins: "150-250"
+    exp: 400
+    coins: "450-650"
     tier: 3
 
   Drunken_Miner:
-    exp: 300
-    coins: "200-400"
-    items:
-      - itemid: 15
-        drop_rate: 10.0
-        quantity: "1-1"
-      - itemid: 17
-        drop_rate: 6.0
-        quantity: "1-1"
+    exp: 800
+    coins: "500-750"
+    tier: 4
 
   Drunken_Woodcutter:
-    exp: 250
-    coins: "180-350"
-    items:
-      - itemid: 11
-        drop_rate: 12.0
-        quantity: "1-1"
-      - itemid: 14
-        drop_rate: 8.0
-        quantity: "1-1"
+    exp: 850
+    coins: "480-850"
+    tier: 4
+
+  Terracotta_Warrior:
+    exp: 1400
+    coins: "1000-1200"
+    tier: 4
+
+  Elf_Guardian:
+    exp: 2750
+    coins: "1000-1650"
+    tier: 4
+
+  Elf_Sage:
+    exp: 1500
+    coins: "1400-1900"
+    tier: 6
+
+  SKELETON_SNIPER:
+    exp: 6000
+    coins: "1000-2000"
+    tier: 6
+
+  SKELETON_ARCHER:
+    exp: 2500
+    coins: "1000-2000"
+    tier: 6
+
+
+
+
+
+
+
 

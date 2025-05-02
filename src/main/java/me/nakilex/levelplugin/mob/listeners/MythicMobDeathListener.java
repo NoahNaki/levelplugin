@@ -128,7 +128,7 @@ public class MythicMobDeathListener implements Listener {
             // 5) Optional feedback
             player.sendMessage(
                 "§aYou earned " + exp + " XP and " + coins +
-                    " coins" + (tier > 0 ? " plus tier-" + tier + " loot!" : "!"));
+                    " coins");
         }
     }
 

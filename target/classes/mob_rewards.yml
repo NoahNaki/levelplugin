@@ -3,28 +3,21 @@ mobs:
     exp: 100
     coins: "100-500"
     tier: 2        # 0 = no auto tier loot
-    items:
-      - itemid: 1
-        drop_rate: 0.0
-        quantity: "1-5"
+
   SKELETON_SNIPER:
     exp: 1000
     coins: "1000-2000"
-    items:
-      - itemid: 2
-        drop_rate: 100.0
-        quantity: "1-1"
+    tier: 6
+
   SKELETON_ARCHER:
-    exp: 10
-    coins: "10-20"
-    items:
-      - itemid: 2
-        drop_rate: 20.0
-        quantity: "1-1"
+    exp: 1000
+    coins: "1000-2000"
+    tier: 6
+
   City_Resident:
     exp: 10
     coins: "5-20"
-    tier: 2
+    tier: 1
 
   City_Guard:
     exp: 150
@@ -37,22 +30,22 @@ mobs:
     tier: 2
 
   Wild_Rooster:
-    exp: 5
+    exp: 15
     coins: "2-5"
     tier: 1
 
   Flowery_Slime:
-    exp: 15
+    exp: 30
     coins: "5-10"
     tier: 1
 
   Timberbud:
-    exp: 30
+    exp: 40
     coins: "10-20"
     tier: 2
 
   Angry_Hunter:
-    exp: 50
+    exp: 150
     coins: "20-50"
     tier: 3
 
@@ -69,22 +62,30 @@ mobs:
   Drunken_Miner:
     exp: 300
     coins: "200-400"
-    items:
-      - itemid: 15
-        drop_rate: 10.0
-        quantity: "1-1"
-      - itemid: 17
-        drop_rate: 6.0
-        quantity: "1-1"
+    tier: 4
 
   Drunken_Woodcutter:
     exp: 250
     coins: "180-350"
-    items:
-      - itemid: 11
-        drop_rate: 12.0
-        quantity: "1-1"
-      - itemid: 14
-        drop_rate: 8.0
-        quantity: "1-1"
+    tier: 4
+
+  Elf_Guardian:
+    exp: 550
+    coins: "600-1350"
+    tier: 5
+
+  Elf_Sage:
+    exp: 450
+    coins: "400-900"
+    tier: 5
+
+  Terracotta_Warrior:
+    exp: 350
+    coins: "400-600"
+    tier: 4
+
+
+
+
+
 

@@ -5,3 +5,39 @@ mobs:
     coins: "200-600"
     gems: 20
     tier: 3
+
+  KING SLIME:
+    exp: 1000
+    coins: "200-600"
+    gems: 20
+    tier: 3
+
+  TERRACOTTA GENERAL:
+    exp: 5000
+    coins: "1200-1600"
+    gems: 50
+    tier: 4
+
+  ELF KING:
+    exp: 15000
+    coins: "5200-7600"
+    gems: 150
+    tier: 6
+
+  GORGON:
+    exp: 20000
+    coins: "6000-10000"
+    gems: 300
+    tier: 6
+
+  AUXI:
+    exp: 30000
+    coins: "16000-110000"
+    gems: 500
+    tier: 8
+
+  THE GREATEST KNIGHT:
+    exp: 55000
+    coins: "26000-310000"
+    gems: 1000
+    tier: 8

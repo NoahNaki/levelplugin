@@ -13,15 +13,34 @@ public class LevelManager {
     private static LevelManager instance;
 
     private final Main plugin;
-    private HashMap<UUID, Integer> playerLevels = new HashMap<>();
-    private HashMap<UUID, Integer> playerXp = new HashMap<>();
+    private final HashMap<UUID, Integer> playerLevels = new HashMap<>();
+    private final HashMap<UUID, Integer> playerXp     = new HashMap<>();
 
-    private final int MAX_LEVEL = 100;
+    private final int MAX_LEVEL               = 100;
     private final int XP_PER_LEVEL_MULTIPLIER = 100;
+
+    // Tier breakpoints
+    private final int TIER1_CAP = 10;   // 1–10
+    private final int TIER2_CAP = 30;   // 11–30
+    private final int TIER3_CAP = 44;   // 31–44
+    private final int TIER4_CAP = 52;   // 45–52  ← new
+    private final int TIER5_CAP = 60;   // 53–60  ← new
+    private final int TIER6_CAP = 74;   // 61–74
+    private final int TIER7_CAP = 90;   // 75–90  ← new
+
+    // Tier multipliers
+    private final double TIER1_MULT = 0.5;   // very easy
+    private final double TIER2_MULT = 1.0;
+    private final double TIER3_MULT = 1.5;
+    private final double TIER4_MULT = 2.0;
+    private final double TIER5_MULT = 2.75;
+    private final double TIER6_MULT = 3.5;
+    private final double TIER7_MULT = 4.5;
+    private final double TIER8_MULT = 7.5;
 
     public LevelManager(Main plugin) {
         this.plugin = plugin;
-        instance = this;
+        instance    = this;
     }
 
     public static LevelManager getInstance() {
@@ -34,46 +53,42 @@ public class LevelManager {
     public void initializePlayer(Player player) {
         UUID uuid = player.getUniqueId();
         playerLevels.putIfAbsent(uuid, 1);
-        playerXp.putIfAbsent(uuid, 0);
+        playerXp    .putIfAbsent(uuid, 0);
 
         XPBarHandler.updateXPBar(player, this);
-
-        StatsManager.getInstance().getPlayerStats(player.getUniqueId());
+        StatsManager.getInstance().getPlayerStats(uuid);
     }
 
-    // Add XP to a player (UUID-based version)
+    // Add XP by UUID
     public void addXP(UUID uuid, int amount) {
-        if (getLevel(uuid) >= MAX_LEVEL) return; // Player is already max level, no XP can be added.
+        if (getLevel(uuid) >= MAX_LEVEL) return;
 
         int newXP = getXP(uuid) + amount;
         playerXp.put(uuid, newXP);
 
         checkLevelUp(uuid);
 
-        // Update the XP bar if the player is online
         Player player = Bukkit.getPlayer(uuid);
         if (player != null) {
             XPBarHandler.updateXPBar(player, this);
         }
     }
 
-
-    // Add XP to a player (Player-based version)
+    // Add XP by Player
     public void addXP(Player player, int amount) {
-        if (player == null) return; // Do nothing if player is null
-        addXP(player.getUniqueId(), amount); // Delegate to UUID-based version
+        if (player == null) return;
+        addXP(player.getUniqueId(), amount);
     }
 
     private void checkLevelUp(UUID uuid) {
         int level = getLevel(uuid);
-        int xp = getXP(uuid);
+        int xp    = getXP(uuid);
 
-        int xpNeeded = level * XP_PER_LEVEL_MULTIPLIER;
+        int xpNeeded = getXpRequired(level);
         while (level < MAX_LEVEL && xp >= xpNeeded) {
             xp -= xpNeeded;
             level++;
 
-            // Apply level-up benefits if the player is online
             Player player = Bukkit.getPlayer(uuid);
             if (player != null) {
                 applyLevelUpBenefits(player, level);
@@ -81,11 +96,35 @@ public class LevelManager {
                 XPBarHandler.handleLevelUpEvent(player, level, xpNeeded);
             }
 
-            xpNeeded = level * XP_PER_LEVEL_MULTIPLIER;
+            xpNeeded = getXpRequired(level);
         }
 
         playerLevels.put(uuid, level);
-        playerXp.put(uuid, xp);
+        playerXp    .put(uuid, xp);
+    }
+
+    /** Returns XP needed to go from “level” → “level+1” */
+    private int getXpRequired(int level) {
+        int base = level * XP_PER_LEVEL_MULTIPLIER;
+
+        if (level <= TIER1_CAP) {
+            return (int)(base * TIER1_MULT);
+        } else if (level <= TIER2_CAP) {
+            return (int)(base * TIER2_MULT);
+        } else if (level <= TIER3_CAP) {
+            return (int)(base * TIER3_MULT);
+        } else if (level <= TIER4_CAP) {
+            return (int)(base * TIER4_MULT);
+        } else if (level <= TIER5_CAP) {
+            return (int)(base * TIER5_MULT);
+        } else if (level <= TIER6_CAP) {
+            return (int)(base * TIER6_MULT);
+        } else if (level <= TIER7_CAP) {
+            return (int)(base * TIER7_MULT);
+        } else {
+            // levels 91–100
+            return (int)(base * TIER8_MULT);
+        }
     }
 
     private void applyLevelUpBenefits(Player player, int newLevel) {
@@ -93,37 +132,36 @@ public class LevelManager {
         player.setMaxHealth(Math.min(newMaxHealth, 40.0));
     }
 
-    // Get level by UUID
+    // --- Getters & Setters ---
+
     public int getLevel(UUID uuid) {
         return playerLevels.getOrDefault(uuid, 1);
     }
 
-    // Get level by Player
     public int getLevel(Player player) {
-        if (player == null) return 1; // Default level for null player
+        if (player == null) return 1;
         return getLevel(player.getUniqueId());
     }
 
-    // Get XP by UUID
     public int getXP(UUID uuid) {
         return playerXp.getOrDefault(uuid, 0);
     }
 
-    // Get XP by Player
     public int getXP(Player player) {
-        if (player == null) return 0; // Default XP for null player
+        if (player == null) return 0;
         return getXP(player.getUniqueId());
     }
 
     public void setLevel(UUID uuid, int newLevel) {
         playerLevels.put(uuid, newLevel);
-        playerXp.put(uuid, 0); // Reset XP to 0 when level is set manually
+        playerXp    .put(uuid, 0);
     }
 
+    /** How much XP to next level for a Player */
     public int getXpNeededForNextLevel(Player player) {
-        int currentLevel = getLevel(player);
-        if (currentLevel >= MAX_LEVEL) return 0;
-        return currentLevel * XP_PER_LEVEL_MULTIPLIER;
+        int level = getLevel(player);
+        if (level >= MAX_LEVEL) return 0;
+        return getXpRequired(level);
     }
 
     public int getMaxLevel() {
