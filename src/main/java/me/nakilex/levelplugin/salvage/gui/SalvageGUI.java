@@ -10,26 +10,22 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 public class SalvageGUI {
 
-    private static final String GUI_TITLE = ChatColor.DARK_GREEN + "Merchant";
-    private static final int GUI_SIZE = 9; // 1 row of 9 slots
-    private static final int SELL_SLOT = 8; // Last slot in the row
+    // 3 rows of 9 = 27 slots
+    private static final int GUI_SIZE  = 27;
+    // last slot in the inventory
+    public static final int SELL_SLOT = GUI_SIZE - 1;
 
-    /**
-     * Opens the salvage GUI for the given player
-     */
+    private static final String GUI_TITLE = ChatColor.DARK_GREEN + "Merchant";
+
     public static void openMerchantGUI(Player player) {
         Inventory merchantInv = Bukkit.createInventory(null, GUI_SIZE, GUI_TITLE);
 
-        // Place the "Sell" button (emerald) in slot 8
+        // Place the "Sell" button (emerald) in slot 26
         merchantInv.setItem(SELL_SLOT, createSellItem());
 
-        // Open it for the player
         player.openInventory(merchantInv);
     }
 
-    /**
-     * Creates the emerald ItemStack representing the "Sell Items" button
-     */
     private static ItemStack createSellItem() {
         ItemStack emerald = new ItemStack(Material.EMERALD);
         ItemMeta meta = emerald.getItemMeta();

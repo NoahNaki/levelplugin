@@ -1,13 +1,7 @@
 # field_bosses.yml
 mobs:
   ALIEN:
-    exp: 100
-    coins: "100-500"
+    exp: 1000
+    coins: "200-600"
     gems: 20
-    items:
-      - itemid: 1
-        drop_rate: 100.0
-        quantity: "1-5"
-      - itemid: 40
-        drop_rate: 100.0
-        quantity: "1-1"
+    tier: 3
