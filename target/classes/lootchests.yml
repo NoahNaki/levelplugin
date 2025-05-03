@@ -22,10 +22,10 @@ loot_chests:
     tier: 3
   8:
     coordinates: 192, 52, -238
-    tier: 5
+    tier: 4
   9:
     coordinates: 370, 52, 250
-    tier: 5
+    tier: 4
   10:
     coordinates: 439, 65, 201
     tier: 4

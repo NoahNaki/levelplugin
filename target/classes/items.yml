@@ -48,8 +48,8 @@ items:
     material: BOW
     hp: 0-0
     def: 0-0
-    str: 0-0
-    agi: 2-5
+    str: 2-5
+    agi: 0-0
     intel: 0-0
     dex: 0-0
 
@@ -61,7 +61,7 @@ items:
     material: WOODEN_SWORD
     hp: 0-0
     def: 0-0
-    str: 1-3
+    str: 1-4
     agi: 1-4
     intel: 0-0
     dex: 2-5
@@ -69,7 +69,7 @@ items:
   6:
     name: "Uncommon Wooden Warrior Spear"
     rarity: UNCOMMON
-    level_requirement: 5
+    level_requirement: 1
     class_requirement: WARRIOR
     material: WOODEN_SHOVEL
     hp: 0-0
@@ -82,7 +82,7 @@ items:
   7:
     name: "Uncommon Wooden Rogue Sword"
     rarity: UNCOMMON
-    level_requirement: 5
+    level_requirement: 1
     class_requirement: ROGUE
     material: WOODEN_SWORD
     hp: 0-0
@@ -95,7 +95,7 @@ items:
   8:
     name: "Uncommon Wooden Mage Staff"
     rarity: UNCOMMON
-    level_requirement: 5
+    level_requirement: 1
     class_requirement: MAGE
     material: STICK
     hp: 0-0
@@ -108,33 +108,33 @@ items:
   9:
     name: "Uncommon Wooden Archer Bow"
     rarity: UNCOMMON
-    level_requirement: 5
+    level_requirement: 1
     class_requirement: ARCHER
     material: BOW
     hp: 0-0
     def: 0-0
-    str: 0-0
-    agi: 8-12
+    str: 8-12
+    agi: 0-6
     intel: 0-0
     dex: 2-6
 
   10:
     name: "Uncommon Wooden Rogue Dagger"
     rarity: UNCOMMON
-    level_requirement: 5
+    level_requirement: 1
     class_requirement: ROGUE
     material: WOODEN_SWORD
     hp: 0-0
     def: 0-0
-    str: 4-8
-    agi: 6-10
+    str: 6-10
+    agi: 4-8
     intel: 0-0
     dex: 4-8
 
   11:
     name: "Rare Wooden Warrior Spear"
     rarity: RARE
-    level_requirement: 10
+    level_requirement: 1
     class_requirement: WARRIOR
     material: WOODEN_SHOVEL
     hp: 0-0
@@ -147,20 +147,20 @@ items:
   12:
     name: "Rare Wooden Rogue Sword"
     rarity: RARE
-    level_requirement: 10
+    level_requirement: 1
     class_requirement: ROGUE
     material: WOODEN_SWORD
     hp: 0-0
-    def: 10-15
-    str: 0-0
-    agi: 20-30
+    def: 0-0
+    str: 15-20
+    agi: 15-20
     intel: 0-0
     dex: 5-10
 
   13:
     name: "Rare Wooden Mage Staff"
     rarity: RARE
-    level_requirement: 10
+    level_requirement: 1
     class_requirement: MAGE
     material: STICK
     hp: 0-0
@@ -173,7 +173,7 @@ items:
   14:
     name: "Rare Wooden Archer Bow"
     rarity: RARE
-    level_requirement: 10
+    level_requirement: 1
     class_requirement: ARCHER
     material: BOW
     hp: 0-0
@@ -186,7 +186,7 @@ items:
   15:
     name: "Rare Wooden Rogue Dagger"
     rarity: RARE
-    level_requirement: 10
+    level_requirement: 1
     class_requirement: ROGUE
     material: WOODEN_SWORD
     hp: 0-0
@@ -265,7 +265,7 @@ items:
   21:
     name: "Uncommon Leather Helmet"
     rarity: UNCOMMON
-    level_requirement: 5
+    level_requirement: 1
     class_requirement: ANY
     material: LEATHER_HELMET
     hp: 10-25
@@ -278,7 +278,7 @@ items:
   22:
     name: "Uncommon Leather Chestplate"
     rarity: UNCOMMON
-    level_requirement: 5
+    level_requirement: 1
     class_requirement: ANY
     material: LEATHER_CHESTPLATE
     hp: 20-60
@@ -291,7 +291,7 @@ items:
   23:
     name: "Uncommon Leather Leggings"
     rarity: UNCOMMON
-    level_requirement: 5
+    level_requirement: 1
     class_requirement: ANY
     material: LEATHER_LEGGINGS
     hp: 15-40
@@ -304,7 +304,7 @@ items:
   24:
     name: "Uncommon Leather Boots"
     rarity: UNCOMMON
-    level_requirement: 5
+    level_requirement: 1
     class_requirement: ANY
     material: LEATHER_BOOTS
     hp: 12-30
@@ -317,7 +317,7 @@ items:
   25:
     name: "Uncommon Leather Boots"
     rarity: UNCOMMON
-    level_requirement: 5
+    level_requirement: 1
     class_requirement: ANY
     material: LEATHER_BOOTS
     hp: 5-15
@@ -330,7 +330,7 @@ items:
   26:
     name: "Rare Leather Helmet"
     rarity: RARE
-    level_requirement: 10
+    level_requirement: 1
     class_requirement: ANY
     material: LEATHER_HELMET
     hp: 15-35
@@ -343,7 +343,7 @@ items:
   27:
     name: "Rare Leather Chestplate"
     rarity: RARE
-    level_requirement: 10
+    level_requirement: 1
     class_requirement: ANY
     material: LEATHER_CHESTPLATE
     hp: 30-80
@@ -356,7 +356,7 @@ items:
   28:
     name: "Rare Leather Leggings"
     rarity: RARE
-    level_requirement: 10
+    level_requirement: 1
     class_requirement: ANY
     material: LEATHER_LEGGINGS
     hp: 25-70
@@ -369,7 +369,7 @@ items:
   29:
     name: "Rare Leather Boots"
     rarity: RARE
-    level_requirement: 10
+    level_requirement: 1
     class_requirement: ANY
     material: LEATHER_BOOTS
     hp: 20-60
@@ -382,7 +382,7 @@ items:
   30:
     name: "Rare Leather Boots"
     rarity: RARE
-    level_requirement: 10
+    level_requirement: 1
     class_requirement: ANY
     material: LEATHER_BOOTS
     hp: 8-20
@@ -395,7 +395,7 @@ items:
   31:
     name: "Common Stone Warrior Spear"
     rarity: COMMON
-    level_requirement: 11
+    level_requirement: 15
     class_requirement: WARRIOR
     material: STONE_SHOVEL
     hp: 0-0
@@ -408,7 +408,7 @@ items:
   32:
     name: "Common Stone Rogue Sword"
     rarity: COMMON
-    level_requirement: 11
+    level_requirement: 15
     class_requirement: ROGUE
     material: STONE_SWORD
     hp: 0-0
@@ -421,7 +421,7 @@ items:
   33:
     name: "Common Stone Mage Stick"
     rarity: COMMON
-    level_requirement: 11
+    level_requirement: 15
     class_requirement: MAGE
     material: STICK
     hp: 0-0
@@ -434,20 +434,20 @@ items:
   34:
     name: "Common Stone Archer Bow"
     rarity: COMMON
-    level_requirement: 11
+    level_requirement: 15
     class_requirement: ARCHER
     material: BOW
     hp: 0-0
     def: 0-0
-    str: 0-0
-    agi: 5-10
+    str: 5-10
+    agi: 0-0
     intel: 0-0
     dex: 2-5
 
   35:
     name: "Common Stone Rogue Dagger"
     rarity: COMMON
-    level_requirement: 11
+    level_requirement: 15
     class_requirement: ROGUE
     material: STONE_SWORD
     hp: 0-0
@@ -460,7 +460,7 @@ items:
   36:
     name: "Uncommon Stone Warrior Spear"
     rarity: UNCOMMON
-    level_requirement: 18
+    level_requirement: 15
     class_requirement: WARRIOR
     material: STONE_SHOVEL
     hp: 0-0
@@ -473,7 +473,7 @@ items:
   37:
     name: "Uncommon Stone Rogue Sword"
     rarity: UNCOMMON
-    level_requirement: 18
+    level_requirement: 15
     class_requirement: ROGUE
     material: STONE_SWORD
     hp: 0-0
@@ -486,7 +486,7 @@ items:
   38:
     name: "Uncommon Stone Mage Stick"
     rarity: UNCOMMON
-    level_requirement: 18
+    level_requirement: 15
     class_requirement: MAGE
     material: STICK
     hp: 0-0
@@ -499,20 +499,20 @@ items:
   39:
     name: "Uncommon Stone Archer Bow"
     rarity: UNCOMMON
-    level_requirement: 18
+    level_requirement: 15
     class_requirement: ARCHER
     material: BOW
     hp: 0-0
     def: 0-0
-    str: 0-0
-    agi: 18-24
+    str: 18-24
+    agi: 0-0
     intel: 0-0
     dex: 5-10
 
   40:
     name: "Uncommon Stone Rogue Dagger"
     rarity: UNCOMMON
-    level_requirement: 18
+    level_requirement: 15
     class_requirement: ROGUE
     material: STONE_SWORD
     hp: 0-0
@@ -525,7 +525,7 @@ items:
   41:
     name: "Rare Stone Warrior Spear"
     rarity: RARE
-    level_requirement: 25
+    level_requirement: 15
     class_requirement: WARRIOR
     material: STONE_SHOVEL
     hp: 0-0
@@ -538,20 +538,20 @@ items:
   42:
     name: "Rare Stone Rogue Sword"
     rarity: RARE
-    level_requirement: 25
+    level_requirement: 15
     class_requirement: ROGUE
     material: STONE_SWORD
     hp: 0-0
-    def: 8-15
-    str: 0-0
-    agi: 30-40
+    def: 0-0
+    str: 30-40
+    agi: 8-15
     intel: 0-0
     dex: 15-20
 
   43:
     name: "Rare Stone Mage Stick"
     rarity: RARE
-    level_requirement: 25
+    level_requirement: 15
     class_requirement: MAGE
     material: STICK
     hp: 0-0
@@ -564,7 +564,7 @@ items:
   44:
     name: "Rare Stone Archer Bow"
     rarity: RARE
-    level_requirement: 25
+    level_requirement: 15
     class_requirement: ARCHER
     material: BOW
     hp: 0-0
@@ -577,7 +577,7 @@ items:
   45:
     name: "Rare Stone Rogue Dagger"
     rarity: RARE
-    level_requirement: 25
+    level_requirement: 15
     class_requirement: ROGUE
     material: STONE_SWORD
     hp: 0-0
@@ -590,7 +590,7 @@ items:
   46:
     name: "Common Chainmail Helmet"
     rarity: COMMON
-    level_requirement: 11
+    level_requirement: 15
     class_requirement: ANY
     material: CHAINMAIL_HELMET
     hp: 15-35
@@ -603,7 +603,7 @@ items:
   47:
     name: "Common Chainmail Chestplate"
     rarity: COMMON
-    level_requirement: 11
+    level_requirement: 15
     class_requirement: ANY
     material: CHAINMAIL_CHESTPLATE
     hp: 30-100
@@ -616,7 +616,7 @@ items:
   48:
     name: "Common Chainmail Leggings"
     rarity: COMMON
-    level_requirement: 11
+    level_requirement: 15
     class_requirement: ANY
     material: CHAINMAIL_LEGGINGS
     hp: 20-80
@@ -629,7 +629,7 @@ items:
   49:
     name: "Common Chainmail Boots"
     rarity: COMMON
-    level_requirement: 11
+    level_requirement: 15
     class_requirement: ANY
     material: CHAINMAIL_BOOTS
     hp: 20-60
@@ -642,7 +642,7 @@ items:
   50:
     name: "Common Chainmail Boots"
     rarity: COMMON
-    level_requirement: 11
+    level_requirement: 15
     class_requirement: ANY
     material: CHAINMAIL_BOOTS
     hp: 10-30
@@ -655,7 +655,7 @@ items:
   51:
     name: "Uncommon Chainmail Helmet"
     rarity: UNCOMMON
-    level_requirement: 18
+    level_requirement: 15
     class_requirement: ANY
     material: CHAINMAIL_HELMET
     hp: 25-60
@@ -668,7 +668,7 @@ items:
   52:
     name: "Uncommon Chainmail Chestplate"
     rarity: UNCOMMON
-    level_requirement: 18
+    level_requirement: 15
     class_requirement: ANY
     material: CHAINMAIL_CHESTPLATE
     hp: 50-150
@@ -681,7 +681,7 @@ items:
   53:
     name: "Uncommon Chainmail Leggings"
     rarity: UNCOMMON
-    level_requirement: 18
+    level_requirement: 15
     class_requirement: ANY
     material: CHAINMAIL_LEGGINGS
     hp: 40-120
@@ -694,7 +694,7 @@ items:
   54:
     name: "Uncommon Chainmail Boots"
     rarity: UNCOMMON
-    level_requirement: 18
+    level_requirement: 15
     class_requirement: ANY
     material: CHAINMAIL_BOOTS
     hp: 35-100
@@ -707,7 +707,7 @@ items:
   55:
     name: "Uncommon Chainmail Boots"
     rarity: UNCOMMON
-    level_requirement: 18
+    level_requirement: 15
     class_requirement: ANY
     material: CHAINMAIL_BOOTS
     hp: 20-60
@@ -720,7 +720,7 @@ items:
   56:
     name: "Rare Chainmail Helmet"
     rarity: RARE
-    level_requirement: 25
+    level_requirement: 15
     class_requirement: ANY
     material: CHAINMAIL_HELMET
     hp: 40-100
@@ -733,7 +733,7 @@ items:
   57:
     name: "Rare Chainmail Chestplate"
     rarity: RARE
-    level_requirement: 25
+    level_requirement: 15
     class_requirement: ANY
     material: CHAINMAIL_CHESTPLATE
     hp: 100-200
@@ -746,7 +746,7 @@ items:
   58:
     name: "Rare Chainmail Leggings"
     rarity: RARE
-    level_requirement: 25
+    level_requirement: 15
     class_requirement: ANY
     material: CHAINMAIL_LEGGINGS
     hp: 80-180
@@ -759,7 +759,7 @@ items:
   59:
     name: "Rare Chainmail Boots"
     rarity: RARE
-    level_requirement: 25
+    level_requirement: 15
     class_requirement: ANY
     material: CHAINMAIL_BOOTS
     hp: 70-150
@@ -772,7 +772,7 @@ items:
   60:
     name: "Rare Chainmail Boots"
     rarity: RARE
-    level_requirement: 25
+    level_requirement: 15
     class_requirement: ANY
     material: CHAINMAIL_BOOTS
     hp: 30-80
@@ -785,7 +785,7 @@ items:
   61:
     name: "Common Gold Warrior Spear"
     rarity: COMMON
-    level_requirement: 26
+    level_requirement: 30
     class_requirement: WARRIOR
     material: GOLDEN_SHOVEL
     hp: 0-0
@@ -798,7 +798,7 @@ items:
   62:
     name: "Common Gold Rogue Sword"
     rarity: COMMON
-    level_requirement: 26
+    level_requirement: 30
     class_requirement: ROGUE
     material: GOLDEN_SWORD
     hp: 0-0
@@ -811,7 +811,7 @@ items:
   63:
     name: "Common Gold Mage Rod"
     rarity: COMMON
-    level_requirement: 26
+    level_requirement: 30
     class_requirement: MAGE
     material: GOLDEN_ROD
     hp: 0-0
@@ -824,20 +824,20 @@ items:
   64:
     name: "Common Gold Archer Bow"
     rarity: COMMON
-    level_requirement: 26
+    level_requirement: 30
     class_requirement: ARCHER
     material: BOW
     hp: 0-0
     def: 0-0
-    str: 5-10
-    agi: 10-20
+    str: 10-20
+    agi: 5-10
     intel: 0-0
     dex: 5-10
 
   65:
     name: "Common Gold Rogue Dagger"
     rarity: COMMON
-    level_requirement: 26
+    level_requirement: 30
     class_requirement: ROGUE
     material: GOLDEN_SWORD
     hp: 0-0
@@ -882,9 +882,9 @@ items:
     hp: 0-0
     def: 0-0
     str: 0-0
-    agi: 0-10
+    agi: 10-20
     intel: 20-30
-    dex: 10-20
+    dex: 15-25
 
   69:
     name: "Uncommon Gold Archer Bow"
@@ -894,8 +894,8 @@ items:
     material: BOW
     hp: 0-0
     def: 0-0
-    str: 10-20
-    agi: 20-30
+    str: 20-30
+    agi: 15-25
     intel: 0-0
     dex: 10-20
 
@@ -915,7 +915,7 @@ items:
   71:
     name: "Rare Gold Warrior Spear"
     rarity: RARE
-    level_requirement: 35
+    level_requirement: 30
     class_requirement: WARRIOR
     material: GOLDEN_SHOVEL
     hp: 0-0
@@ -928,7 +928,7 @@ items:
   72:
     name: "Rare Gold Rogue Sword"
     rarity: RARE
-    level_requirement: 35
+    level_requirement: 30
     class_requirement: ROGUE
     material: GOLDEN_SWORD
     hp: 0-0
@@ -941,7 +941,7 @@ items:
   73:
     name: "Rare Gold Mage Rod"
     rarity: RARE
-    level_requirement: 35
+    level_requirement: 30
     class_requirement: MAGE
     material: GOLDEN_ROD
     hp: 0-0
@@ -954,33 +954,33 @@ items:
   74:
     name: "Rare Gold Archer Bow"
     rarity: RARE
-    level_requirement: 35
+    level_requirement: 30
     class_requirement: ARCHER
     material: BOW
     hp: 0-0
     def: 0-0
-    str: 20-35
-    agi: 30-50
+    str: 30-50
+    agi: 20-35
     intel: 0-0
     dex: 20-35
 
   75:
     name: "Rare Gold Rogue Dagger"
     rarity: RARE
-    level_requirement: 35
+    level_requirement: 30
     class_requirement: ROGUE
     material: GOLDEN_SWORD
     hp: 0-0
     def: 0-0
-    str: 25-40
-    agi: 30-50
+    str: 30-50
+    agi: 25-40
     intel: 0-0
     dex: 25-40
 
   76:
     name: "Epic Gold Warrior Spear"
     rarity: EPIC
-    level_requirement: 40
+    level_requirement: 30
     class_requirement: WARRIOR
     material: GOLDEN_SHOVEL
     hp: 0-0
@@ -993,7 +993,7 @@ items:
   77:
     name: "Epic Gold Rogue Sword"
     rarity: EPIC
-    level_requirement: 40
+    level_requirement: 30
     class_requirement: ROGUE
     material: GOLDEN_SWORD
     hp: 0-0
@@ -1006,7 +1006,7 @@ items:
   78:
     name: "Epic Gold Mage Rod"
     rarity: EPIC
-    level_requirement: 40
+    level_requirement: 30
     class_requirement: MAGE
     material: GOLDEN_ROD
     hp: 0-0
@@ -1019,34 +1019,34 @@ items:
   79:
     name: "Epic Gold Archer Bow"
     rarity: EPIC
-    level_requirement: 40
+    level_requirement: 30
     class_requirement: ARCHER
     material: BOW
     hp: 0-0
     def: 0-10
-    str: 30-50
-    agi: 50-80
+    str: 50-80
+    agi: 30-50
     intel: 0-10
     dex: 30-55
 
   80:
     name: "Epic Gold Rogue Dagger"
     rarity: EPIC
-    level_requirement: 40
+    level_requirement: 30
     class_requirement: ROGUE
     material: GOLDEN_SWORD
     hp: 0-0
     def: 0-10
-    str: 40-70
-    agi: 50-80
+    str: 50-80
+    agi: 30-50
     intel: 0-10
-    dex: 40-75
+    dex: 30-55
 
   # Armor (15)
   81:
     name: "Common Golden Helmet"
     rarity: COMMON
-    level_requirement: 26
+    level_requirement: 30
     class_requirement: ANY
     material: GOLDEN_HELMET
     hp: 25-60
@@ -1059,7 +1059,7 @@ items:
   82:
     name: "Common Golden Chestplate"
     rarity: COMMON
-    level_requirement: 26
+    level_requirement: 30
     class_requirement: ANY
     material: GOLDEN_CHESTPLATE
     hp: 50-150
@@ -1072,7 +1072,7 @@ items:
   83:
     name: "Common Golden Leggings"
     rarity: COMMON
-    level_requirement: 26
+    level_requirement: 30
     class_requirement: ANY
     material: GOLDEN_LEGGINGS
     hp: 40-120
@@ -1085,7 +1085,7 @@ items:
   84:
     name: "Common Golden Boots"
     rarity: COMMON
-    level_requirement: 26
+    level_requirement: 30
     class_requirement: ANY
     material: GOLDEN_BOOTS
     hp: 30-100
@@ -1098,7 +1098,7 @@ items:
   85:
     name: "Common Golden Boots"
     rarity: COMMON
-    level_requirement: 26
+    level_requirement: 30
     class_requirement: ANY
     material: GOLDEN_BOOTS
     hp: 20-80
@@ -1176,7 +1176,7 @@ items:
   91:
     name: "Rare Golden Helmet"
     rarity: RARE
-    level_requirement: 35
+    level_requirement: 30
     class_requirement: ANY
     material: GOLDEN_HELMET
     hp: 80-200
@@ -1189,7 +1189,7 @@ items:
   92:
     name: "Rare Golden Chestplate"
     rarity: RARE
-    level_requirement: 35
+    level_requirement: 30
     class_requirement: ANY
     material: GOLDEN_CHESTPLATE
     hp: 150-350
@@ -1202,7 +1202,7 @@ items:
   93:
     name: "Common Iron Warrior Spear"
     rarity: COMMON
-    level_requirement: 41
+    level_requirement: 50
     class_requirement: WARRIOR
     material: IRON_SHOVEL
     hp: 0-0
@@ -1215,7 +1215,7 @@ items:
   94:
     name: "Common Iron Rogue Sword"
     rarity: COMMON
-    level_requirement: 41
+    level_requirement: 50
     class_requirement: ROGUE
     material: IRON_SWORD
     hp: 0-0
@@ -1228,7 +1228,7 @@ items:
   95:
     name: "Common Iron Mage Stick"
     rarity: COMMON
-    level_requirement: 41
+    level_requirement: 50
     class_requirement: MAGE
     material: BLAZE_ROD
     hp: 0-0
@@ -1241,33 +1241,33 @@ items:
   96:
     name: "Common Iron Archer Bow"
     rarity: COMMON
-    level_requirement: 41
+    level_requirement: 50
     class_requirement: ARCHER
     material: BOW
     hp: 0-0
     def: 0-0
-    str: 5-15
-    agi: 10-20
+    str: 10-20
+    agi: 5-15
     intel: 0-0
     dex: 5-10
 
   97:
     name: "Common Iron Rogue Dagger"
     rarity: COMMON
-    level_requirement: 41
+    level_requirement: 50
     class_requirement: ROGUE
     material: IRON_SWORD
     hp: 0-0
     def: 0-0
-    str: 8-15
-    agi: 10-20
+    str: 10-20
+    agi: 8-15
     intel: 0-0
     dex: 8-15
 
   98:
     name: "Uncommon Iron Warrior Spear"
     rarity: UNCOMMON
-    level_requirement:  fifty-three
+    level_requirement: 50
     class_requirement: WARRIOR
     material: IRON_SHOVEL
     hp: 0-0
@@ -1280,7 +1280,7 @@ items:
   99:
     name: "Uncommon Iron Rogue Sword"
     rarity: UNCOMMON
-    level_requirement: 45
+    level_requirement: 50
     class_requirement: ROGUE
     material: IRON_SWORD
     hp: 0-0
@@ -1293,7 +1293,7 @@ items:
   100:
     name: "Uncommon Iron Mage Stick"
     rarity: UNCOMMON
-    level_requirement: 45
+    level_requirement: 50
     class_requirement: MAGE
     material: BLAZE_ROD
     hp: 0-0
@@ -1306,26 +1306,26 @@ items:
   101:
     name: "Uncommon Iron Archer Bow"
     rarity: UNCOMMON
-    level_requirement: 45
+    level_requirement: 50
     class_requirement: ARCHER
     material: BOW
     hp: 0-0
     def: 0-5
-    str: 10-20
-    agi: 20-30
+    str: 20-30
+    agi: 10-20
     intel: 0-0
     dex: 15-25
 
   102:
     name: "Uncommon Iron Rogue Dagger"
     rarity: UNCOMMON
-    level_requirement: 45
+    level_requirement: 50
     class_requirement: ROGUE
     material: IRON_SWORD
     hp: 0-0
     def: 0-5
-    str: 15-25
-    agi: 20-30
+    str: 20-30
+    agi: 10-20
     intel: 0-0
     dex: 15-25
 
@@ -1376,8 +1376,8 @@ items:
     material: BOW
     hp: 0-0
     def: 0-10
-    str: 20-40
-    agi: 30-50
+    str: 30-50
+    agi: 20-35
     intel: 0-0
     dex: 20-35
 
@@ -1397,7 +1397,7 @@ items:
   108:
     name: "Epic Iron Warrior Spear"
     rarity: EPIC
-    level_requirement: 55
+    level_requirement: 50
     class_requirement: WARRIOR
     material: IRON_SHOVEL
     hp: 0-0
@@ -1410,7 +1410,7 @@ items:
   109:
     name: "Epic Iron Rogue Sword"
     rarity: EPIC
-    level_requirement: 55
+    level_requirement: 50
     class_requirement: ROGUE
     material: IRON_SWORD
     hp: 0-0
@@ -1423,7 +1423,7 @@ items:
   110:
     name: "Epic Iron Mage Stick"
     rarity: EPIC
-    level_requirement: 55
+    level_requirement: 50
     class_requirement: MAGE
     material: BLAZE_ROD
     hp: 0-0
@@ -1436,7 +1436,7 @@ items:
   111:
     name: "Epic Iron Archer Bow"
     rarity: EPIC
-    level_requirement: 55
+    level_requirement: 50
     class_requirement: ARCHER
     material: BOW
     hp: 0-0
@@ -1449,7 +1449,7 @@ items:
   112:
     name: "Epic Iron Rogue Dagger"
     rarity: EPIC
-    level_requirement: 55
+    level_requirement: 50
     class_requirement: ROGUE
     material: IRON_SWORD
     hp: 0-0
@@ -1462,7 +1462,7 @@ items:
   113:
     name: "Legendary Iron Warrior Spear"
     rarity: LEGENDARY
-    level_requirement: 60
+    level_requirement: 50
     class_requirement: WARRIOR
     material: IRON_SHOVEL
     hp: 0-0
@@ -1475,7 +1475,7 @@ items:
   114:
     name: "Legendary Iron Rogue Sword"
     rarity: LEGENDARY
-    level_requirement: 60
+    level_requirement: 50
     class_requirement: ROGUE
     material: IRON_SWORD
     hp: 0-0
@@ -1488,7 +1488,7 @@ items:
   115:
     name: "Legendary Iron Mage Stick"
     rarity: LEGENDARY
-    level_requirement: 60
+    level_requirement: 50
     class_requirement: MAGE
     material: BLAZE_ROD
     hp: 0-0
@@ -1501,7 +1501,7 @@ items:
   116:
     name: "Legendary Iron Archer Bow"
     rarity: LEGENDARY
-    level_requirement: 60
+    level_requirement: 50
     class_requirement: ARCHER
     material: BOW
     hp: 0-0
@@ -1514,7 +1514,7 @@ items:
   117:
     name: "Legendary Iron Rogue Dagger"
     rarity: LEGENDARY
-    level_requirement: 60
+    level_requirement: 50
     class_requirement: ROGUE
     material: IRON_SWORD
     hp: 0-0
@@ -1527,7 +1527,7 @@ items:
   118:
     name: "Common Iron Helmet"
     rarity: COMMON
-    level_requirement: 41
+    level_requirement: 50
     class_requirement: ANY
     material: IRON_HELMET
     hp: 30-80
@@ -1540,7 +1540,7 @@ items:
   119:
     name: "Common Iron Chestplate"
     rarity: COMMON
-    level_requirement: 41
+    level_requirement: 50
     class_requirement: ANY
     material: IRON_CHESTPLATE
     hp: 50-150
@@ -1553,7 +1553,7 @@ items:
   120:
     name: "Common Iron Leggings"
     rarity: COMMON
-    level_requirement: 41
+    level_requirement: 50
     class_requirement: ANY
     material: IRON_LEGGINGS
     hp: 40-120
@@ -1566,7 +1566,7 @@ items:
   121:
     name: "Common Iron Boots"
     rarity: COMMON
-    level_requirement: 41
+    level_requirement: 50
     class_requirement: ANY
     material: IRON_BOOTS
     hp: 35-100
@@ -1579,7 +1579,7 @@ items:
   122:
     name: "Common Iron Boots"
     rarity: COMMON
-    level_requirement: 41
+    level_requirement: 50
     class_requirement: ANY
     material: IRON_BOOTS
     hp: 25-70
@@ -1657,7 +1657,7 @@ items:
   128:
     name: "Rare Iron Helmet"
     rarity: RARE
-    level_requirement: 55
+    level_requirement: 50
     class_requirement: ANY
     material: IRON_HELMET
     hp: 80-200
@@ -1670,7 +1670,7 @@ items:
   129:
     name: "Rare Iron Chestplate"
     rarity: RARE
-    level_requirement: 55
+    level_requirement: 50
     class_requirement: ANY
     material: IRON_CHESTPLATE
     hp: 150-350
@@ -1683,7 +1683,7 @@ items:
   130:
     name: "Rare Iron Leggings"
     rarity: RARE
-    level_requirement: 55
+    level_requirement: 50
     class_requirement: ANY
     material: IRON_LEGGINGS
     hp: 120-300
@@ -1696,7 +1696,7 @@ items:
   131:
     name: "Rare Iron Boots"
     rarity: RARE
-    level_requirement: 55
+    level_requirement: 50
     class_requirement: ANY
     material: IRON_BOOTS
     hp: 100-280
@@ -1709,7 +1709,7 @@ items:
   132:
     name: "Rare Iron Boots"
     rarity: RARE
-    level_requirement: 55
+    level_requirement: 50
     class_requirement: ANY
     material: IRON_BOOTS
     hp: 60-180
@@ -1722,7 +1722,7 @@ items:
   133:
     name: "Epic Iron Helmet"
     rarity: EPIC
-    level_requirement: 60
+    level_requirement: 50
     class_requirement: ANY
     material: IRON_HELMET
     hp: 100-300
@@ -1735,7 +1735,7 @@ items:
   134:
     name: "Epic Iron Chestplate"
     rarity: EPIC
-    level_requirement: 60
+    level_requirement: 50
     class_requirement: ANY
     material: IRON_CHESTPLATE
     hp: 200-450
@@ -1748,7 +1748,7 @@ items:
   135:
     name: "Epic Iron Leggings"
     rarity: EPIC
-    level_requirement: 60
+    level_requirement: 50
     class_requirement: ANY
     material: IRON_LEGGINGS
     hp: 180-400
@@ -1761,7 +1761,7 @@ items:
   136:
     name: "Epic Iron Boots"
     rarity: EPIC
-    level_requirement: 60
+    level_requirement: 50
     class_requirement: ANY
     material: IRON_BOOTS
     hp: 160-350
@@ -1774,7 +1774,7 @@ items:
   137:
     name: "Epic Iron Boots"
     rarity: EPIC
-    level_requirement: 60
+    level_requirement: 50
     class_requirement: ANY
     material: IRON_BOOTS
     hp: 120-300
@@ -1787,7 +1787,7 @@ items:
   138:
     name: "Legendary Iron Helmet"
     rarity: LEGENDARY
-    level_requirement: 60
+    level_requirement: 50
     class_requirement: ANY
     material: IRON_HELMET
     hp: 150-400
@@ -1800,7 +1800,7 @@ items:
   139:
     name: "Legendary Iron Chestplate"
     rarity: LEGENDARY
-    level_requirement: 60
+    level_requirement: 50
     class_requirement: ANY
     material: IRON_CHESTPLATE
     hp: 300-600
@@ -1813,7 +1813,7 @@ items:
   140:
     name: "Legendary Iron Leggings"
     rarity: LEGENDARY
-    level_requirement: 60
+    level_requirement: 50
     class_requirement: ANY
     material: IRON_LEGGINGS
     hp: 280-550
@@ -1826,7 +1826,7 @@ items:
   141:
     name: "Legendary Iron Boots"
     rarity: LEGENDARY
-    level_requirement: 60
+    level_requirement: 50
     class_requirement: ANY
     material: IRON_BOOTS
     hp: 260-500
@@ -1839,7 +1839,7 @@ items:
   142:
     name: "Legendary Iron Boots"
     rarity: LEGENDARY
-    level_requirement: 60
+    level_requirement: 50
     class_requirement: ANY
     material: IRON_BOOTS
     hp: 220-450
@@ -1852,7 +1852,7 @@ items:
   143:
     name: "Common Diamond Warrior Spear"
     rarity: COMMON
-    level_requirement: 61
+    level_requirement: 70
     class_requirement: WARRIOR
     material: DIAMOND_SHOVEL
     hp: 0-0
@@ -1865,7 +1865,7 @@ items:
   144:
     name: "Common Diamond Rogue Sword"
     rarity: COMMON
-    level_requirement: 61
+    level_requirement: 70
     class_requirement: ROGUE
     material: DIAMOND_SWORD
     hp: 0-0
@@ -1878,7 +1878,7 @@ items:
   145:
     name: "Common Diamond Mage Staff"
     rarity: COMMON
-    level_requirement: 61
+    level_requirement: 70
     class_requirement: MAGE
     material: STICK
     hp: 0-0
@@ -1891,20 +1891,20 @@ items:
   146:
     name: "Common Diamond Archer Bow"
     rarity: COMMON
-    level_requirement: 61
+    level_requirement: 70
     class_requirement: ARCHER
     material: BOW
     hp: 0-0
     def: 0-0
-    str: 10-20
-    agi: 15-30
+    str: 15-30
+    agi: 10-20
     intel: 0-0
     dex: 10-20
 
   147:
     name: "Common Diamond Rogue Dagger"
     rarity: COMMON
-    level_requirement: 61
+    level_requirement: 70
     class_requirement: ROGUE
     material: DIAMOND_SWORD
     hp: 0-0
@@ -1917,7 +1917,7 @@ items:
   148:
     name: "Uncommon Diamond Warrior Spear"
     rarity: UNCOMMON
-    level_requirement: 65
+    level_requirement: 70
     class_requirement: WARRIOR
     material: DIAMOND_SHOVEL
     hp: 0-0
@@ -1930,7 +1930,7 @@ items:
   149:
     name: "Uncommon Diamond Rogue Sword"
     rarity: UNCOMMON
-    level_requirement: 65
+    level_requirement: 70
     class_requirement: ROGUE
     material: DIAMOND_SWORD
     hp: 0-0
@@ -1943,7 +1943,7 @@ items:
   150:
     name: "Uncommon Diamond Mage Staff"
     rarity: UNCOMMON
-    level_requirement: 65
+    level_requirement: 70
     class_requirement: MAGE
     material: STICK
     hp: 0-0
@@ -1956,20 +1956,20 @@ items:
   151:
     name: "Uncommon Diamond Archer Bow"
     rarity: UNCOMMON
-    level_requirement: 65
+    level_requirement: 70
     class_requirement: ARCHER
     material: BOW
     hp: 0-0
     def: 0-10
-    str: 20-40
-    agi: 30-50
+    str: 30-50
+    agi: 20-40
     intel: 0-0
     dex: 20-35
 
   152:
     name: "Uncommon Diamond Rogue Dagger"
     rarity: UNCOMMON
-    level_requirement: 65
+    level_requirement: 70
     class_requirement: ROGUE
     material: DIAMOND_SWORD
     hp: 0-0
@@ -2026,8 +2026,8 @@ items:
     material: BOW
     hp: 0-0
     def: 0-20
-    str: 30-50
-    agi: 40-60
+    str: 40-60
+    agi: 30-55
     intel: 0-0
     dex: 30-55
 
@@ -2047,7 +2047,7 @@ items:
   158:
     name: "Epic Diamond Warrior Spear"
     rarity: EPIC
-    level_requirement: 75
+    level_requirement: 70
     class_requirement: WARRIOR
     material: DIAMOND_SHOVEL
     hp: 0-0
@@ -2060,7 +2060,7 @@ items:
   159:
     name: "Epic Diamond Rogue Sword"
     rarity: EPIC
-    level_requirement: 75
+    level_requirement: 70
     class_requirement: ROGUE
     material: DIAMOND_SWORD
     hp: 0-0
@@ -2073,7 +2073,7 @@ items:
   160:
     name: "Epic Diamond Mage Staff"
     rarity: EPIC
-    level_requirement: 75
+    level_requirement: 70
     class_requirement: MAGE
     material: BLAZE_ROD
     hp: 0-0
@@ -2086,20 +2086,20 @@ items:
   161:
     name: "Epic Diamond Archer Bow"
     rarity: EPIC
-    level_requirement: 75
+    level_requirement: 70
     class_requirement: ARCHER
     material: BOW
     hp: 0-0
     def: 0-30
-    str: 40-70
-    agi: 60-90
+    str: 60-90
+    agi: 40-70
     intel: 0-15
     dex: 40-70
 
   162:
     name: "Epic Diamond Rogue Dagger"
     rarity: EPIC
-    level_requirement: 75
+    level_requirement: 70
     class_requirement: ROGUE
     material: DIAMOND_SWORD
     hp: 0-0
@@ -2112,7 +2112,7 @@ items:
   163:
     name: "Legendary Diamond Warrior Spear"
     rarity: LEGENDARY
-    level_requirement: 80
+    level_requirement: 70
     class_requirement: WARRIOR
     material: DIAMOND_SHOVEL
     hp: 0-0
@@ -2125,7 +2125,7 @@ items:
   164:
     name: "Legendary Diamond Rogue Sword"
     rarity: LEGENDARY
-    level_requirement: 80
+    level_requirement: 70
     class_requirement: ROGUE
     material: DIAMOND_SWORD
     hp: 0-0
@@ -2138,7 +2138,7 @@ items:
   165:
     name: "Legendary Diamond Mage Staff"
     rarity: LEGENDARY
-    level_requirement: 80
+    level_requirement: 70
     class_requirement: MAGE
     material: BLAZE_ROD
     hp: 0-0
@@ -2151,20 +2151,20 @@ items:
   166:
     name: "Legendary Diamond Archer Bow"
     rarity: LEGENDARY
-    level_requirement: 80
+    level_requirement: 70
     class_requirement: ARCHER
     material: BOW
     hp: 0-0
     def: 0-40
-    str: 50-90
-    agi: 70-100
+    str: 70-100
+    agi: 50-90
     intel: 0-20
     dex: 60-100
 
   167:
     name: "Legendary Diamond Rogue Dagger"
     rarity: LEGENDARY
-    level_requirement: 80
+    level_requirement: 70
     class_requirement: ROGUE
     material: DIAMOND_SWORD
     hp: 0-0
@@ -2178,7 +2178,7 @@ items:
   168:
     name: "Common Diamond Helmet"
     rarity: COMMON
-    level_requirement: 61
+    level_requirement: 70
     class_requirement: ANY
     material: DIAMOND_HELMET
     hp: 60-150
@@ -2190,7 +2190,7 @@ items:
   169:
     name: "Common Diamond Chestplate"
     rarity: COMMON
-    level_requirement: 61
+    level_requirement: 70
     class_requirement: ANY
     material: DIAMOND_CHESTPLATE
     hp: 100-250
@@ -2203,7 +2203,7 @@ items:
   170:
     name: "Common Diamond Leggings"
     rarity: COMMON
-    level_requirement: 61
+    level_requirement: 70
     class_requirement: ANY
     material: DIAMOND_LEGGINGS
     hp: 80-200
@@ -2216,7 +2216,7 @@ items:
   171:
     name: "Common Diamond Boots"
     rarity: COMMON
-    level_requirement: 61
+    level_requirement: 70
     class_requirement: ANY
     material: DIAMOND_BOOTS
     hp: 70-180
@@ -2229,7 +2229,7 @@ items:
   172:
     name: "Common Diamond Boots"
     rarity: COMMON
-    level_requirement: 61
+    level_requirement: 70
     class_requirement: ANY
     material: DIAMOND_BOOTS
     hp: 50-150
@@ -2242,7 +2242,7 @@ items:
   173:
     name: "Uncommon Diamond Helmet"
     rarity: UNCOMMON
-    level_requirement: 65
+    level_requirement: 70
     class_requirement: ANY
     material: DIAMOND_HELMET
     hp: 80-200
@@ -2255,7 +2255,7 @@ items:
   174:
     name: "Uncommon Diamond Chestplate"
     rarity: UNCOMMON
-    level_requirement: 65
+    level_requirement: 70
     class_requirement: ANY
     material: DIAMOND_CHESTPLATE
     hp: 150-300
@@ -2268,7 +2268,7 @@ items:
   175:
     name: "Uncommon Diamond Leggings"
     rarity: UNCOMMON
-    level_requirement: 65
+    level_requirement: 70
     class_requirement: ANY
     material: DIAMOND_LEGGINGS
     hp: 120-280
@@ -2281,7 +2281,7 @@ items:
   176:
     name: "Uncommon Diamond Boots"
     rarity: UNCOMMON
-    level_requirement: 65
+    level_requirement: 70
     class_requirement: ANY
     material: DIAMOND_BOOTS
     hp: 100-260
@@ -2294,7 +2294,7 @@ items:
   177:
     name: "Uncommon Diamond Boots"
     rarity: UNCOMMON
-    level_requirement: 65
+    level_requirement: 70
     class_requirement: ANY
     material: DIAMOND_BOOTS
     hp: 80-200
@@ -2372,7 +2372,7 @@ items:
   183:
     name: "Epic Diamond Helmet"
     rarity: EPIC
-    level_requirement: 75
+    level_requirement: 70
     class_requirement: ANY
     material: DIAMOND_HELMET
     hp: 150-350
@@ -2385,7 +2385,7 @@ items:
   184:
     name: "Epic Diamond Chestplate"
     rarity: EPIC
-    level_requirement: 75
+    level_requirement: 70
     class_requirement: ANY
     material: DIAMOND_CHESTPLATE
     hp: 300-500
@@ -2398,7 +2398,7 @@ items:
   185:
     name: "Epic Diamond Leggings"
     rarity: EPIC
-    level_requirement: 75
+    level_requirement: 70
     class_requirement: ANY
     material: DIAMOND_LEGGINGS
     hp: 280-480
@@ -2411,7 +2411,7 @@ items:
   186:
     name: "Epic Diamond Boots"
     rarity: EPIC
-    level_requirement: 75
+    level_requirement: 70
     class_requirement: ANY
     material: DIAMOND_BOOTS
     hp: 260-460
@@ -2424,7 +2424,7 @@ items:
   187:
     name: "Epic Diamond Boots"
     rarity: EPIC
-    level_requirement: 75
+    level_requirement: 70
     class_requirement: ANY
     material: DIAMOND_BOOTS
     hp: 220-420
@@ -2437,7 +2437,7 @@ items:
   188:
     name: "Legendary Diamond Helmet"
     rarity: LEGENDARY
-    level_requirement: 80
+    level_requirement: 70
     class_requirement: ANY
     material: DIAMOND_HELMET
     hp: 200-450
@@ -2450,7 +2450,7 @@ items:
   189:
     name: "Legendary Diamond Chestplate"
     rarity: LEGENDARY
-    level_requirement: 80
+    level_requirement: 70
     class_requirement: ANY
     material: DIAMOND_CHESTPLATE
     hp: 400-700
@@ -2463,7 +2463,7 @@ items:
   190:
     name: "Legendary Diamond Leggings"
     rarity: LEGENDARY
-    level_requirement: 80
+    level_requirement: 70
     class_requirement: ANY
     material: DIAMOND_LEGGINGS
     hp: 380-650
@@ -2476,7 +2476,7 @@ items:
   191:
     name: "Legendary Diamond Boots"
     rarity: LEGENDARY
-    level_requirement: 80
+    level_requirement: 70
     class_requirement: ANY
     material: DIAMOND_BOOTS
     hp: 360-630
@@ -2489,7 +2489,7 @@ items:
   192:
     name: "Legendary Diamond Boots"
     rarity: LEGENDARY
-    level_requirement: 80
+    level_requirement: 70
     class_requirement: ANY
     material: DIAMOND_BOOTS
     hp: 320-580
@@ -2502,7 +2502,7 @@ items:
   193:
     name: "Coalheart Spear"
     rarity: COMMON
-    level_requirement: 81
+    level_requirement: 90
     class_requirement: WARRIOR
     material: NETHERITE_SHOVEL
     hp: 0-0
@@ -2515,7 +2515,7 @@ items:
   194:
     name: "Ironroot Blade"
     rarity: COMMON
-    level_requirement: 81
+    level_requirement: 90
     class_requirement: ROGUE
     material: NETHERITE_SWORD
     hp: 0-0
@@ -2528,7 +2528,7 @@ items:
   195:
     name: "Charwood Staff"
     rarity: COMMON
-    level_requirement: 81
+    level_requirement: 90
     class_requirement: MAGE
     material: BLAZE_ROD
     hp: 0-0
@@ -2541,20 +2541,20 @@ items:
   196:
     name: "Emberwing Bow"
     rarity: COMMON
-    level_requirement: 81
+    level_requirement: 90
     class_requirement: ARCHER
     material: BOW
     hp: 0-0
     def: 0-10
-    str: 15-30
-    agi: 30-60
+    str: 30-60
+    agi: 15-30
     intel: 0-0
     dex: 15-30
 
   197:
     name: "Nightspine Dagger"
     rarity: COMMON
-    level_requirement: 81
+    level_requirement: 90
     class_requirement: ROGUE
     material: NETHERITE_SWORD
     hp: 0-0
@@ -2567,7 +2567,7 @@ items:
   198:
     name: "Ashfall Spear"
     rarity: UNCOMMON
-    level_requirement: 85
+    level_requirement: 90
     class_requirement: WARRIOR
     material: NETHERITE_SHOVEL
     hp: 0-0
@@ -2580,7 +2580,7 @@ items:
   199:
     name: "Cinderbrand Sword"
     rarity: UNCOMMON
-    level_requirement: 85
+    level_requirement: 90
     class_requirement: ROGUE
     material: NETHERITE_SWORD
     hp: 0-0
@@ -2593,7 +2593,7 @@ items:
   200:
     name: "Smolderroot Staff"
     rarity: UNCOMMON
-    level_requirement: 85
+    level_requirement: 90
     class_requirement: MAGE
     material: BLAZE_ROD
     hp: 0-0
@@ -2606,20 +2606,20 @@ items:
   201:
     name: "Flarestrike Bow"
     rarity: UNCOMMON
-    level_requirement: 85
+    level_requirement: 90
     class_requirement: ARCHER
     material: BOW
     hp: 0-0
     def: 0-20
-    str: 30-60
-    agi: 50-90
+    str: 50-90
+    agi: 30-50
     intel: 0-5
     dex: 30-50
 
   202:
     name: "Shadowflick Dagger"
     rarity: UNCOMMON
-    level_requirement: 85
+    level_requirement: 90
     class_requirement: ROGUE
     material: NETHERITE_SWORD
     hp: 0-0
@@ -2676,8 +2676,8 @@ items:
     material: BOW
     hp: 0-0
     def: 0-30
-    str: 50-90
-    agi: 60-100
+    str: 60-100
+    agi: 50-90
     intel: 0-10
     dex: 40-70
 
@@ -2697,7 +2697,7 @@ items:
   208:
     name: "Doomrend Spear"
     rarity: EPIC
-    level_requirement: 95
+    level_requirement: 90
     class_requirement: WARRIOR
     material: NETHERITE_SHOVEL
     hp: 0-0
@@ -2710,7 +2710,7 @@ items:
   209:
     name: "Soulshard Blade"
     rarity: EPIC
-    level_requirement: 95
+    level_requirement: 90
     class_requirement: ROGUE
     material: NETHERITE_SWORD
     hp: 0-0
@@ -2723,7 +2723,7 @@ items:
   210:
     name: "Arcane Furnace"
     rarity: EPIC
-    level_requirement: 95
+    level_requirement: 90
     class_requirement: MAGE
     material: BLAZE_ROD
     hp: 0-0
@@ -2736,20 +2736,20 @@ items:
   211:
     name: "Starfire Bow"
     rarity: EPIC
-    level_requirement: 95
+    level_requirement: 90
     class_requirement: ARCHER
     material: BOW
     hp: 0-0
     def: 0-40
-    str: 70-120
-    agi: 80-120
+    str: 80-120
+    agi: 70-120
     intel: 0-20
     dex: 40-70
 
   212:
     name: "Nightfall Shiv"
     rarity: EPIC
-    level_requirement: 95
+    level_requirement: 90
     class_requirement: ROGUE
     material: NETHERITE_SWORD
     hp: 0-0
@@ -2762,7 +2762,7 @@ items:
   213:
     name: "Heartseeker's Edge"
     rarity: LEGENDARY
-    level_requirement: 100
+    level_requirement: 90
     class_requirement: WARRIOR
     material: NETHERITE_SHOVEL
     hp: 0-0
@@ -2775,7 +2775,7 @@ items:
   214:
     name: "Dragonblood Saber"
     rarity: LEGENDARY
-    level_requirement: 100
+    level_requirement: 90
     class_requirement: ROGUE
     material: NETHERITE_SWORD
     hp: 0-0
@@ -2788,7 +2788,7 @@ items:
   215:
     name: "Celestial Scepter"
     rarity: LEGENDARY
-    level_requirement: 100
+    level_requirement: 90
     class_requirement: MAGE
     material: BLAZE_ROD
     hp: 0-0
@@ -2801,20 +2801,20 @@ items:
   216:
     name: "Twilight Longbow"
     rarity: LEGENDARY
-    level_requirement: 100
+    level_requirement: 90
     class_requirement: ARCHER
     material: BOW
     hp: 0-0
     def: 0-50
-    str: 80-140
-    agi: 100-150
+    str: 100-150
+    agi: 80-140
     intel: 0-30
     dex: 60-100
 
   217:
     name: "Spectral Fang"
     rarity: LEGENDARY
-    level_requirement: 100
+    level_requirement: 90
     class_requirement: ROGUE
     material: NETHERITE_SWORD
     hp: 0-0
@@ -2827,7 +2827,7 @@ items:
   218:
     name: "Dreadwyrm Pulverizer"
     rarity: MYTHIC
-    level_requirement: 100
+    level_requirement: 90
     class_requirement: WARRIOR
     material: NETHERITE_SHOVEL
     hp: 0-0
@@ -2840,7 +2840,7 @@ items:
   219:
     name: "Voidreaver Greatblade"
     rarity: MYTHIC
-    level_requirement: 100
+    level_requirement: 90
     class_requirement: ROGUE
     material: NETHERITE_SWORD
     hp: 0-0
@@ -2853,7 +2853,7 @@ items:
   220:
     name: "Eternity's Flame"
     rarity: MYTHIC
-    level_requirement: 100
+    level_requirement: 90
     class_requirement: MAGE
     material: BLAZE_ROD
     hp: 0-0
@@ -2866,20 +2866,20 @@ items:
   221:
     name: "Aurora's Wrath"
     rarity: MYTHIC
-    level_requirement: 100
+    level_requirement: 90
     class_requirement: ARCHER
     material: BOW
     hp: 0-0
     def: 0-80
-    str: 120-250
-    agi: 140-250
+    str: 140-250
+    agi: 120-250
     intel: 0-40
     dex: 80-140
 
   222:
     name: "Soulshred Toxin"
     rarity: MYTHIC
-    level_requirement: 100
+    level_requirement: 90
     class_requirement: ROGUE
     material: NETHERITE_SWORD
     hp: 0-0
@@ -2893,7 +2893,7 @@ items:
   223:
     name: "Coalbound Helm"
     rarity: COMMON
-    level_requirement: 81
+    level_requirement: 90
     class_requirement: ANY
     material: NETHERITE_HELMET
     hp: 80-200
@@ -2906,7 +2906,7 @@ items:
   224:
     name: "Ashwoven Armor"
     rarity: COMMON
-    level_requirement: 81
+    level_requirement: 90
     class_requirement: ANY
     material: NETHERITE_CHESTPLATE
     hp: 150-300
@@ -2919,7 +2919,7 @@ items:
   225:
     name: "Charwoven Legguards"
     rarity: COMMON
-    level_requirement: 81
+    level_requirement: 90
     class_requirement: ANY
     material: NETHERITE_LEGGINGS
     hp: 120-280
@@ -2932,7 +2932,7 @@ items:
   226:
     name: "Emberstep Greaves"
     rarity: COMMON
-    level_requirement: 81
+    level_requirement: 90
     class_requirement: ANY
     material: NETHERITE_BOOTS
     hp: 100-260
@@ -2945,7 +2945,7 @@ items:
   227:
     name: "Smoldergrasp Gauntlets"
     rarity: COMMON
-    level_requirement: 81
+    level_requirement: 90
     class_requirement: ANY
     material: NETHERITE_BOOTS
     hp: 80-200
@@ -2958,7 +2958,7 @@ items:
   228:
     name: "Cinderhelm"
     rarity: UNCOMMON
-    level_requirement: 85
+    level_requirement: 90
     class_requirement: ANY
     material: NETHERITE_HELMET
     hp: 120-300
@@ -2971,7 +2971,7 @@ items:
   229:
     name: "Flameforged Plate"
     rarity: UNCOMMON
-    level_requirement: 85
+    level_requirement: 90
     class_requirement: ANY
     material: NETHERITE_CHESTPLATE
     hp: 200-400
@@ -2984,7 +2984,7 @@ items:
   230:
     name: "Scorchstride Legguards"
     rarity: UNCOMMON
-    level_requirement: 85
+    level_requirement: 90
     class_requirement: ANY
     material: NETHERITE_LEGGINGS
     hp: 180-380
@@ -2997,7 +2997,7 @@ items:
   231:
     name: "Blazebound Boots"
     rarity: UNCOMMON
-    level_requirement: 85
+    level_requirement: 90
     class_requirement: ANY
     material: NETHERITE_BOOTS
     hp: 160-360
@@ -3010,7 +3010,7 @@ items:
   232:
     name: "Infernogrip Gauntlets"
     rarity: UNCOMMON
-    level_requirement: 85
+    level_requirement: 90
     class_requirement: ANY
     material: NETHERITE_BOOTS
     hp: 140-340
@@ -3088,7 +3088,7 @@ items:
   238:
     name: "Doomshield Helm"
     rarity: EPIC
-    level_requirement: 95
+    level_requirement: 90
     class_requirement: ANY
     material: NETHERITE_HELMET
     hp: 200-450
@@ -3101,7 +3101,7 @@ items:
   239:
     name: "Soulsteel Plate"
     rarity: EPIC
-    level_requirement: 95
+    level_requirement: 90
     class_requirement: ANY
     material: NETHERITE_CHESTPLATE
     hp: 400-700
@@ -3114,7 +3114,7 @@ items:
   240:
     name: "Spiritbound Legplates"
     rarity: EPIC
-    level_requirement: 95
+    level_requirement: 90
     class_requirement: ANY
     material: NETHERITE_LEGGINGS
     hp: 380-650
@@ -3127,7 +3127,7 @@ items:
   241:
     name: "Shadowflame Boots"
     rarity: EPIC
-    level_requirement: 95
+    level_requirement: 90
     class_requirement: ANY
     material: NETHERITE_BOOTS
     hp: 360-630
@@ -3140,7 +3140,7 @@ items:
   242:
     name: "Nightforge Gauntlets"
     rarity: EPIC
-    level_requirement: 95
+    level_requirement: 90
     class_requirement: ANY
     material: NETHERITE_BOOTS
     hp: 320-600
@@ -3153,7 +3153,7 @@ items:
   243:
     name: "Dragonkind Visage"
     rarity: LEGENDARY
-    level_requirement: 100
+    level_requirement: 90
     class_requirement: ANY
     material: NETHERITE_HELMET
     hp: 300-600
@@ -3166,7 +3166,7 @@ items:
   244:
     name: "Celestial Armor"
     rarity: LEGENDARY
-    level_requirement: 100
+    level_requirement: 90
     class_requirement: ANY
     material: NETHERITE_CHESTPLATE
     hp: 600-800
@@ -3179,7 +3179,7 @@ items:
   245:
     name: "Astral Legguards"
     rarity: LEGENDARY
-    level_requirement: 100
+    level_requirement: 90
     class_requirement: ANY
     material: NETHERITE_LEGGINGS
     hp: 550-750
@@ -3192,7 +3192,7 @@ items:
   246:
     name: "Twilight Striders"
     rarity: LEGENDARY
-    level_requirement: 100
+    level_requirement: 90
     class_requirement: ANY
     material: NETHERITE_BOOTS
     hp: 520-720
@@ -3205,7 +3205,7 @@ items:
   247:
     name: "Eclipse Handwraps"
     rarity: LEGENDARY
-    level_requirement: 100
+    level_requirement: 90
     class_requirement: ANY
     material: NETHERITE_BOOTS
     hp: 480-680
@@ -3218,7 +3218,7 @@ items:
   248:
     name: "Eternity’s Crown"
     rarity: MYTHIC
-    level_requirement: 100
+    level_requirement: 90
     class_requirement: ANY
     material: NETHERITE_HELMET
     hp: 400-800
@@ -3231,7 +3231,7 @@ items:
   249:
     name: "Worldbreaker Plate"
     rarity: MYTHIC
-    level_requirement: 100
+    level_requirement: 90
     class_requirement: ANY
     material: NETHERITE_CHESTPLATE
     hp: 800-1200
@@ -3244,7 +3244,7 @@ items:
   250:
     name: "Dreadlord Greaves"
     rarity: MYTHIC
-    level_requirement: 100
+    level_requirement: 90
     class_requirement: ANY
     material: NETHERITE_LEGGINGS
     hp: 750-1100
@@ -3257,7 +3257,7 @@ items:
   251:
     name: "Voidwalker Boots"
     rarity: MYTHIC
-    level_requirement: 100
+    level_requirement: 90
     class_requirement: ANY
     material: NETHERITE_BOOTS
     hp: 720-1000
@@ -3270,7 +3270,7 @@ items:
   252:
     name: "Soulrender Gauntlets"
     rarity: MYTHIC
-    level_requirement: 100
+    level_requirement: 90
     class_requirement: ANY
     material: NETHERITE_BOOTS
     hp: 680-950
