@@ -3,86 +3,117 @@ mobs:
     exp: 100
     coins: "100-500"
     tier: 2        # 0 = no auto tier loot
+    tier_chance: 50.0
 
   City_Resident:
     exp: 10
     coins: "5-20"
     tier: 1
+    tier_chance: 30.0
 
   Wild_Rooster:
     exp: 15
     coins: "2-5"
     tier: 1
+    tier_chance: 30.0
 
   Flowery_Slime:
     exp: 40
     coins: "10-40"
     tier: 1
+    tier_chance: 100.0
+
 
   Timberbud:
     exp: 40
     coins: "10-40"
     tier: 2
+    tier_chance: 30.0
+
 
   City_Guard:
     exp: 100
     coins: "20-40"
     tier: 2
+    tier_chance: 30.0
+
 
   City_Archer:
     exp: 80
     coins: "40-80"
     tier: 2
+    tier_chance: 30.0
+
 
   Angry_Hunter:
     exp: 400
     coins: "250-400"
     tier: 3
+    tier_chance: 30.0
+
 
   Crazed_Bandit:
     exp: 400
     coins: "250-400"
     tier: 3
+    tier_chance: 30.0
+
 
   Canyon_Miner:
     exp: 400
     coins: "450-650"
     tier: 3
+    tier_chance: 30.0
+
 
   Drunken_Miner:
     exp: 800
     coins: "500-750"
     tier: 4
+    tier_chance: 30.0
+
 
   Drunken_Woodcutter:
     exp: 850
     coins: "480-850"
     tier: 4
+    tier_chance: 30.0
+
 
   Terracotta_Warrior:
     exp: 1400
     coins: "1000-1200"
     tier: 4
+    tier_chance: 30.0
+
 
   Elf_Guardian:
     exp: 2750
     coins: "1000-1650"
     tier: 4
+    tier_chance: 30.0
+
 
   Elf_Sage:
     exp: 1500
     coins: "1400-1900"
     tier: 6
+    tier_chance: 30.0
+
 
   SKELETON_SNIPER:
     exp: 6000
     coins: "1000-2000"
     tier: 6
+    tier_chance: 30.0
+
 
   SKELETON_ARCHER:
     exp: 2500
     coins: "1000-2000"
     tier: 6
+    tier_chance: 30.0
+
 
 
 

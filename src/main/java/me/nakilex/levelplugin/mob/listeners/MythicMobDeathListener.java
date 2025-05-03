@@ -77,29 +77,34 @@ public class MythicMobDeathListener implements Listener {
     // ← Modified death handler: reward each participant client-side
     @EventHandler
     public void onEntityDeath(EntityDeathEvent event) {
+        // Get the MythicMob wrapper
         ActiveMob mythicMob = mythicHelper.getMythicMobInstance(event.getEntity());
         if (mythicMob == null) return;
 
+        // Normalize the mob type and ensure it’s in our config
         String mobType = mythicMob.getMobType().replaceAll("§.", "");
         if (!mobRewardsConfig.getConfig().contains("mobs." + mobType)) return;
 
-        // Pull config once
-        ConfigurationSection node = mobRewardsConfig
+        // Load common reward values
+        ConfigurationSection node     = mobRewardsConfig
             .getConfig()
             .getConfigurationSection("mobs." + mobType);
-        int exp        = node.getInt("exp", 0);
-        String coinsSpec = node.getString("coins", "0-0");
-        int tier       = node.getInt("tier", 0);
+        int exp                      = node.getInt("exp", 0);
+        String coinsSpec             = node.getString("coins", "0-0");
+        int tier                     = node.getInt("tier", 0);
+        double tierChance            = node.getDouble("tier_chance", 100.0);
 
-        String[] sp     = coinsSpec.split("-");
-        int minCoins    = Integer.parseInt(sp[0]);
-        int maxCoins    = Integer.parseInt(sp[1]);
+        // Parse coin range
+        String[] sp      = coinsSpec.split("-");
+        int minCoins     = Integer.parseInt(sp[0]);
+        int maxCoins     = Integer.parseInt(sp[1]);
 
-        // Who participated?
+        // Determine who hit this mob
         Set<Player> participants = damageTracker
             .getOrDefault(event.getEntity().getUniqueId(), Collections.emptySet());
         damageTracker.remove(event.getEntity().getUniqueId());
 
+        // Reward each participant
         for (Player player : participants) {
             // 1) XP
             levelManager.addXP(player, exp);
@@ -108,29 +113,33 @@ public class MythicMobDeathListener implements Listener {
             int coins = ThreadLocalRandom.current().nextInt(minCoins, maxCoins + 1);
             economyManager.addCoins(player, coins);
 
-            // 3) Manual custom-item drops
+            // 3) Custom‐item drops
             dropCustomItems(player, mobType);
 
-            // 4) Tier-based loot if tier > 0
+            // 4) Tier‐loot, but only if the roll ≤ tierChance
             if (tier > 0) {
-                ItemStack loot = lootChestManager.getRandomLootForTier(tier);
-                if (loot != null) {
-                    // update tooltip for this player
-                    ItemUtil.updateCustomItemTooltip(loot, player);
-                    // give directly to inventory, fallback to drop if full
-                    Map<Integer, ItemStack> leftovers = player.getInventory().addItem(loot);
-                    leftovers.values().forEach(i ->
-                        player.getWorld().dropItemNaturally(player.getLocation(), i)
-                    );
+                double roll = ThreadLocalRandom.current().nextDouble() * 100.0;
+                if (roll <= tierChance) {
+                    ItemStack loot = lootChestManager.getRandomLootForTier(tier);
+                    if (loot != null) {
+                        ItemUtil.updateCustomItemTooltip(loot, player);
+                        Map<Integer, ItemStack> leftovers = player.getInventory().addItem(loot);
+                        leftovers.values().forEach(i ->
+                            player.getWorld().dropItemNaturally(player.getLocation(), i)
+                        );
+                    }
                 }
+                // Optional debug logging:
+                // System.out.printf("[DEBUG] Tier roll for %s: rolled=%.2f, needed≤%.2f%n",
+                //     mobType, roll, tierChance);
             }
 
-            // 5) Optional feedback
+            // 5) Feedback message
             player.sendMessage(
-                "§aYou earned " + exp + " XP and " + coins +
-                    " coins");
+                "§aYou earned " + exp + " XP and " + coins + " coins");
         }
     }
+
 
 
 
