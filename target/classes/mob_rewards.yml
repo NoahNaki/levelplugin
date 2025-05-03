@@ -4,30 +4,10 @@ mobs:
     coins: "100-500"
     tier: 2        # 0 = no auto tier loot
 
-  SKELETON_SNIPER:
-    exp: 1000
-    coins: "1000-2000"
-    tier: 6
-
-  SKELETON_ARCHER:
-    exp: 1000
-    coins: "1000-2000"
-    tier: 6
-
   City_Resident:
     exp: 10
     coins: "5-20"
     tier: 1
-
-  City_Guard:
-    exp: 150
-    coins: "100-200"
-    tier: 2
-
-  City_Archer:
-    exp: 120
-    coins: "80-150"
-    tier: 2
 
   Wild_Rooster:
     exp: 15
@@ -35,54 +15,76 @@ mobs:
     tier: 1
 
   Flowery_Slime:
-    exp: 30
-    coins: "5-10"
+    exp: 40
+    coins: "10-40"
     tier: 1
 
   Timberbud:
     exp: 40
-    coins: "10-20"
+    coins: "10-40"
+    tier: 2
+
+  City_Guard:
+    exp: 100
+    coins: "20-40"
+    tier: 2
+
+  City_Archer:
+    exp: 80
+    coins: "40-80"
     tier: 2
 
   Angry_Hunter:
-    exp: 150
-    coins: "20-50"
+    exp: 400
+    coins: "250-400"
     tier: 3
 
   Crazed_Bandit:
-    exp: 100
-    coins: "50-100"
+    exp: 400
+    coins: "250-400"
     tier: 3
 
   Canyon_Miner:
-    exp: 200
-    coins: "150-250"
+    exp: 400
+    coins: "450-650"
     tier: 3
 
   Drunken_Miner:
-    exp: 300
-    coins: "200-400"
+    exp: 800
+    coins: "500-750"
     tier: 4
 
   Drunken_Woodcutter:
-    exp: 250
-    coins: "180-350"
+    exp: 850
+    coins: "480-850"
+    tier: 4
+
+  Terracotta_Warrior:
+    exp: 1400
+    coins: "1000-1200"
     tier: 4
 
   Elf_Guardian:
-    exp: 550
-    coins: "600-1350"
-    tier: 5
+    exp: 2750
+    coins: "1000-1650"
+    tier: 4
 
   Elf_Sage:
-    exp: 450
-    coins: "400-900"
-    tier: 5
+    exp: 1500
+    coins: "1400-1900"
+    tier: 6
 
-  Terracotta_Warrior:
-    exp: 350
-    coins: "400-600"
-    tier: 4
+  SKELETON_SNIPER:
+    exp: 6000
+    coins: "1000-2000"
+    tier: 6
+
+  SKELETON_ARCHER:
+    exp: 2500
+    coins: "1000-2000"
+    tier: 6
+
+
 
 
 

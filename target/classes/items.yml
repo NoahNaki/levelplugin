@@ -3279,3 +3279,16 @@ items:
     agi: 0-40
     intel: 0-40
     dex: 0-40
+
+  253:
+    name: "Soul stealer"
+    rarity: MYTHIC
+    level_requirement: 99
+    class_requirement: ROGUE
+    material: NETHERITE_SWORD
+    hp: 999999-999999
+    def: 999999-999999
+    str: 999999-999999
+    agi: 0-40
+    intel: 999999-999999
+    dex: 999999-999999
