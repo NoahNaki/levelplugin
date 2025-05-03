@@ -58,12 +58,11 @@ mobs:
     tier: 3
     tier_chance: 10.0
 
-
   Canyon_Miner:
-    exp: 400
-    coins: "450-650"
+    exp: 500
+    coins: "550-750"
     tier: 3
-    tier_chance: 10.0
+    tier_chance: 15.0
 
 
   Drunken_Miner:
@@ -88,29 +87,29 @@ mobs:
 
 
   Elf_Guardian:
-    exp: 2750
+    exp: 2050
     coins: "1000-1650"
     tier: 4
-    tier_chance: 10.0
+    tier_chance: 5.0
 
 
   Elf_Sage:
-    exp: 1500
-    coins: "1400-1900"
+    exp: 5000
+    coins: "4400-6900"
     tier: 6
-    tier_chance: 10.0
+    tier_chance: 20.0
 
 
   SKELETON_SNIPER:
-    exp: 6000
-    coins: "1000-2000"
+    exp: 7000
+    coins: "5000-8000"
     tier: 6
     tier_chance: 10.0
 
 
   SKELETON_ARCHER:
-    exp: 2500
-    coins: "1000-2000"
+    exp: 6500
+    coins: "5000-7600"
     tier: 6
     tier_chance: 10.0
 
