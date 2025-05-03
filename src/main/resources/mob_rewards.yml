@@ -21,7 +21,7 @@ mobs:
     exp: 40
     coins: "10-40"
     tier: 1
-    tier_chance: 100.0
+    tier_chance: 10.0
 
 
   Timberbud:

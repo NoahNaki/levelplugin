@@ -223,18 +223,43 @@ public class ClickComboListener implements Listener {
 
     @EventHandler
     public void onProjectileDamage(EntityDamageByEntityEvent event) {
-        if (!(event.getEntity() instanceof Player)) return;
-        if (event.getDamager() instanceof Arrow) {
-            Arrow arrow = (Arrow) event.getDamager();
-            if ("BasicArcherArrow".equals(arrow.getCustomName()) && arrow.getShooter() instanceof Player) {
-                Player shooter = (Player) arrow.getShooter();
-                Player target = (Player) event.getEntity();
-                if (!DuelManager.getInstance().areInDuel(shooter.getUniqueId(), target.getUniqueId())) {
-                    event.setCancelled(true);
-                }
+        // Only care about players being hit by arrows
+        if (!(event.getEntity() instanceof Player target)) return;
+        if (!(event.getDamager() instanceof Arrow arrow)) return;
+        if (!(arrow.getShooter() instanceof Player shooter)) return;
+
+        String name = arrow.getCustomName();
+
+        // 1) Prevent self‑damage from your own spells (e.g. ArrowStorm, PowerShot, ExplosiveArrow)
+        //    We’re keying off the custom name, but you could also use metadata.
+        if ("ArrowStorm".equals(name) ||
+            "PowerShot".equals(name) ||
+            "ExplosiveArrow".equals(name) ||
+            "GrappleHook".equals(name) /* if that ever has self‑damage */) {
+
+            // if the shooter is the one being hit, cancel outright
+            if (target.equals(shooter)) {
+                event.setCancelled(true);
+                return;
+            }
+
+            // still enforce duel‑only damage for other players
+            if (!DuelManager.getInstance()
+                .areInDuel(shooter.getUniqueId(), target.getUniqueId())) {
+                event.setCancelled(true);
+            }
+            return;
+        }
+
+        // 2) Your existing BasicArcherArrow logic
+        if ("BasicArcherArrow".equals(name)) {
+            if (!DuelManager.getInstance()
+                .areInDuel(shooter.getUniqueId(), target.getUniqueId())) {
+                event.setCancelled(true);
             }
         }
     }
+
 
     @EventHandler
     public void onPlayerDamage(EntityDamageEvent event) {

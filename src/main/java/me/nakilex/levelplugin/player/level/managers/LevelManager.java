@@ -92,7 +92,7 @@ public class LevelManager {
             Player player = Bukkit.getPlayer(uuid);
             if (player != null) {
                 applyLevelUpBenefits(player, level);
-                StatsManager.getInstance().addSkillPoints(uuid, 5);
+                StatsManager.getInstance().addSkillPoints(uuid, 3);
                 XPBarHandler.handleLevelUpEvent(player, level, xpNeeded);
             }
 
