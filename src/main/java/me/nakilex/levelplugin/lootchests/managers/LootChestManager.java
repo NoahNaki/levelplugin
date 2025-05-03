@@ -141,7 +141,7 @@ public class LootChestManager {
         if (block.getType() == Material.CHEST) {
             block.setType(Material.AIR);
         }
-        // Remove from our tracking map & cancel the effect
+
         spawnedChests.remove(chestId);
         cancelParticleTask(chestId);
 

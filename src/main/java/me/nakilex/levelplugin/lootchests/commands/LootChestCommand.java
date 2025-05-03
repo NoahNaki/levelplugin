@@ -77,6 +77,8 @@ public class LootChestCommand implements CommandExecutor {
         }
     }
 
+    // LootChestCommand.java
+
     private void handleClear(CommandSender sender, String[] args) {
         if (args.length != 2) {
             sender.sendMessage(ChatColor.RED + "Usage: /lootchest clear <id|all>");
@@ -84,17 +86,18 @@ public class LootChestCommand implements CommandExecutor {
         }
 
         if (args[1].equalsIgnoreCase("all")) {
-            boolean any = false;
+            boolean anyRemoved = false;
             for (ChestData data : lootChestManager.getAllChestData()) {
                 int id = data.getChestId();
                 if (lootChestManager.removeChest(id)) {
-                    any = true;
+                    lootChestManager.getCooldownManager().startChestCooldown(id);
+                    anyRemoved = true;
                 }
             }
-            if (any) {
-                sender.sendMessage(ChatColor.GREEN + "Removed all loot chests.");
+            if (anyRemoved) {
+                sender.sendMessage(ChatColor.GREEN + "Cleared all loot chests (they will respawn after cooldown).");
             } else {
-                sender.sendMessage(ChatColor.RED + "No spawned loot chests to remove.");
+                sender.sendMessage(ChatColor.RED + "No spawned loot chests to clear.");
             }
             return;
         }
@@ -107,13 +110,15 @@ public class LootChestCommand implements CommandExecutor {
             return;
         }
 
-        boolean removed = lootChestManager.removeChest(id);
-        if (removed) {
-            sender.sendMessage(ChatColor.GREEN + "Removed loot chest with ID " + id + ".");
+        if (lootChestManager.removeChest(id)) {
+            // This kicks off the respawn timer
+            lootChestManager.getCooldownManager().startChestCooldown(id);
+            sender.sendMessage(ChatColor.GREEN + "Cleared loot chest " + id + " (will respawn after cooldown).");
         } else {
             sender.sendMessage(ChatColor.RED + "No spawned loot chest found with ID " + id + ".");
         }
     }
+
 
     private void sendHelp(CommandSender sender) {
         sender.sendMessage(ChatColor.YELLOW + "===== LootChest Command Help =====");
