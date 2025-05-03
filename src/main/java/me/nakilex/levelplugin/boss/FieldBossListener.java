@@ -104,10 +104,14 @@ public class FieldBossListener implements Listener {
     @EventHandler
     public void onBossDeath(MythicMobDeathEvent ev) {
         // 1) Identify boss and fetch record
-        String raw    = ev.getMob().getType().getDisplayName().get();
-        String name   = stripTags(raw).toLowerCase(Locale.ROOT);
-        String cfgKey = bossKeyMap.get(name);
+        String raw             = ev.getMob().getType().getDisplayName().get();
+        String bossDisplayName = stripTags(raw);
+        String name            = bossDisplayName.toLowerCase(Locale.ROOT);
+        String cfgKey          = bossKeyMap.get(name);
         if (cfgKey == null) return;
+
+        // Uppercase boss name for the slain message
+        final String bossNameUpper = bossDisplayName.toUpperCase(Locale.ROOT);
 
         UUID bossId = BukkitAdapter.adapt(ev.getEntity()).getUniqueId();
         Map<UUID, Double> record = damageMap.remove(bossId);
@@ -121,15 +125,18 @@ public class FieldBossListener implements Listener {
             (elapsedMs / 1000) % 60
         );
 
-        int    totalExp   = cfg.getInt("mobs." + cfgKey + ".exp", 0);
+        int totalExp    = cfg.getInt("mobs." + cfgKey + ".exp", 0);
         String coinRange  = cfg.getString("mobs." + cfgKey + ".coins", "0-0");
         String[] cr       = coinRange.split("-");
-        int    minCoins   = Integer.parseInt(cr[0]);
-        int    maxCoins   = Integer.parseInt(cr[1]);
+        int minCoins      = Integer.parseInt(cr[0]);
+        int maxCoins      = Integer.parseInt(cr[1]);
 
         @SuppressWarnings("unchecked")
         List<Map<String,Object>> items = (List<Map<String,Object>>)
             cfg.getList("mobs." + cfgKey + ".items", Collections.emptyList());
+
+        String gemStr      = cfg.getString("mobs." + cfgKey + ".gems", "0");
+        int totalGems      = Integer.parseInt(gemStr);
 
         double totalDmg = record.values().stream().mapToDouble(d -> d).sum();
 
@@ -139,9 +146,7 @@ public class FieldBossListener implements Listener {
             .limit(3)
             .toList();
 
-        String gemStr = cfg.getString("mobs." + cfgKey + ".gems", "0");
-        int totalGems = Integer.parseInt(gemStr);
-
+        // 4) Award XP, coins & gems to everyone
         for (var entry : record.entrySet()) {
             Player p = Bukkit.getPlayer(entry.getKey());
             if (p == null) continue;
@@ -149,19 +154,18 @@ public class FieldBossListener implements Listener {
             double share    = entry.getValue() / totalDmg;
             int xpAward     = (int)Math.round(totalExp * share);
             int coinsAward  = ThreadLocalRandom.current().nextInt(minCoins, maxCoins + 1);
-            int gemsAward   = (int)Math.round(totalGems * share);   // ← new!
+            int gemsAward   = (int)Math.round(totalGems * share);
 
             plugin.getLevelManager().addXP(p, xpAward);
             plugin.getEconomyManager().addCoins(p, coinsAward);
-            gemsManager.addUnits(p, gemsAward);                     // ← new!
+            gemsManager.addUnits(p, gemsAward);
         }
 
-        // 4) Award XP/coins & drop items *immediately* so level‐up fires right away
+        // 5) Award items & extra rewards to top‐3 immediately
         for (var entry : top3) {
             Player p = Bukkit.getPlayer(entry.getKey());
             if (p == null) continue;
 
-            // XP & coins
             double share   = entry.getValue() / totalDmg;
             int xpAward    = (int)Math.round(totalExp * share);
             int coinsAward = ThreadLocalRandom.current()
@@ -182,27 +186,23 @@ public class FieldBossListener implements Listener {
                 int qty = ThreadLocalRandom.current().nextInt(minQ, maxQ + 1);
 
                 ItemStack drop = null;
-
                 if (itemId.matches("\\d+")) {
                     int cid = Integer.parseInt(itemId);
-                    // >>> use your new manager helper <<<
                     CustomItem inst = itemManager.rollNewInstance(cid);
                     if (inst != null)
                         drop = ItemUtil.createItemStackFromCustomItem(inst, qty, p);
                 }
-
                 if (drop == null) {
                     Material mat = Material.matchMaterial(itemId.toUpperCase(Locale.ROOT));
                     if (mat != null)
                         drop = new ItemStack(mat, qty);
                 }
-
                 if (drop != null)
                     p.getWorld().dropItemNaturally(p.getLocation(), drop);
             }
         }
 
-        // 5) Delay only the chat output by 5 ticks
+        // 6) Delay only the chat output by 5 ticks
         final String fElapsed = elapsed;
         final List<Map.Entry<UUID, Double>> fTop3 = top3;
         new BukkitRunnable() {
@@ -212,15 +212,16 @@ public class FieldBossListener implements Listener {
                     // Centered headers
                     ChatFormatter.constructDivider(pl, " ", 45);
                     ChatFormatter.sendCenteredMessage(pl,
-                        ChatColor.GOLD + "" + ChatColor.BOLD + " FIELD BOSS SLAIN!");
+                        ChatColor.GOLD + "" + ChatColor.BOLD
+                            + " " + bossNameUpper + " SLAIN!");
                     ChatFormatter.sendCenteredMessage(pl,
                         ChatColor.GRAY + "Time Elapsed: " + ChatColor.WHITE + fElapsed);
                     ChatFormatter.constructDivider(pl, " ", 45);
 
-                    // Left‐aligned “Leaderboard”
+                    // Leaderboard header
                     pl.sendMessage(ChatColor.GREEN + "" + ChatColor.BOLD + "        Leaderboard");
 
-                    // Now the top‐3 lines with damage+percent
+                    // Top‐3 entries
                     int rank = 1;
                     for (var entry : fTop3) {
                         Player p = Bukkit.getPlayer(entry.getKey());
@@ -247,6 +248,7 @@ public class FieldBossListener implements Listener {
             }
         }.runTaskLater(plugin, 5L);
     }
+
 
 
 //    private void announceBossEngage(String name) {
