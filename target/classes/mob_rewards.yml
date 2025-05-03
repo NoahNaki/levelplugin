@@ -6,8 +6,8 @@ mobs:
     tier_chance: 50.0
 
   City_Resident:
-    exp: 10
-    coins: "5-20"
+    exp: 5
+    coins: "10-40"
     tier: 1
     tier_chance: 10.0
 
@@ -18,10 +18,10 @@ mobs:
     tier_chance: 10.0
 
   Flowery_Slime:
-    exp: 40
+    exp: 55
     coins: "10-40"
     tier: 1
-    tier_chance: 100.0
+    tier_chance: 10.0
 
 
   Timberbud:

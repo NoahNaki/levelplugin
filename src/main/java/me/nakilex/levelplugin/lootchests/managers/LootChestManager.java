@@ -130,16 +130,23 @@ public class LootChestManager {
     }
 
     // Called when we remove the chest
-    public void removeChest(int chestId) {
+    public boolean removeChest(int chestId) {
         Location loc = spawnedChests.get(chestId);
-        if (loc != null) {
-            Block block = loc.getBlock();
-            if (block.getType() == Material.CHEST) {
-                block.setType(Material.AIR);
-            }
-            spawnedChests.remove(chestId);
+        if (loc == null) {
+            plugin.getLogger().warning("[LootChestManager] No spawned chest found for ID " + chestId);
+            return false;
         }
+
+        Block block = loc.getBlock();
+        if (block.getType() == Material.CHEST) {
+            block.setType(Material.AIR);
+        }
+        // Remove from our tracking map & cancel the effect
+        spawnedChests.remove(chestId);
         cancelParticleTask(chestId);
+
+        plugin.getLogger().info("[LootChestManager] Removed chest " + chestId);
+        return true;
     }
 
     // Respawn after cooldown
@@ -185,6 +192,34 @@ public class LootChestManager {
             }
         }
         return null;
+    }
+
+    public boolean clearChest(int chestId) {
+        Location loc = spawnedChests.get(chestId);
+        if (loc == null) {
+            plugin.getLogger().warning("[LootChestManager] No spawned chest found for ID " + chestId);
+            return false;
+        }
+
+        Block block = loc.getBlock();
+        if (!(block.getState() instanceof org.bukkit.block.Chest)) {
+            plugin.getLogger().warning("[LootChestManager] Block at " + loc + " is not a chest!");
+            return false;
+        }
+
+        org.bukkit.block.Chest chestState = (org.bukkit.block.Chest) block.getState();
+        chestState.getBlockInventory().clear();
+        chestState.update(true);
+        plugin.getLogger().info("[LootChestManager] Cleared contents of chest " + chestId);
+        return true;
+    }
+
+    public void clearAllChests() {
+        // Make a copy of the IDs to avoid CME if spawn map is modified
+        List<Integer> ids = new ArrayList<>(spawnedChests.keySet());
+        for (int chestId : ids) {
+            clearChest(chestId);
+        }
     }
 
     public CooldownManager getCooldownManager() {

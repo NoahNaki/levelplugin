@@ -58,8 +58,8 @@ commands:
     usage: /party <subcommand>
     aliases: [p]
   lootchest:
-    description: LootChest management command
-    usage: /lootchest <reload|list>
+    description: Manage loot chests
+    usage: /<command> <reload|list|clear>
   addpotion:
     description: Gives a player a potion.
     usage: /addpotion <playername> <potion_id>
@@ -96,3 +96,4 @@ commands:
   itemsbrowser:
     description: Opens the custom item browser GUI.
     usage: /itemsbrowser
+

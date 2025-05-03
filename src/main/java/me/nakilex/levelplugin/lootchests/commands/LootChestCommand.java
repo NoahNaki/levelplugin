@@ -21,7 +21,6 @@ public class LootChestCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-
         if (args.length == 0) {
             sendHelp(sender);
             return true;
@@ -34,6 +33,10 @@ public class LootChestCommand implements CommandExecutor {
 
             case "list":
                 handleList(sender);
+                return true;
+
+            case "clear":
+                handleClear(sender, args);
                 return true;
 
             default:
@@ -74,12 +77,49 @@ public class LootChestCommand implements CommandExecutor {
         }
     }
 
-    /**
-     * Send a basic help message to the command sender.
-     */
+    private void handleClear(CommandSender sender, String[] args) {
+        if (args.length != 2) {
+            sender.sendMessage(ChatColor.RED + "Usage: /lootchest clear <id|all>");
+            return;
+        }
+
+        if (args[1].equalsIgnoreCase("all")) {
+            boolean any = false;
+            for (ChestData data : lootChestManager.getAllChestData()) {
+                int id = data.getChestId();
+                if (lootChestManager.removeChest(id)) {
+                    any = true;
+                }
+            }
+            if (any) {
+                sender.sendMessage(ChatColor.GREEN + "Removed all loot chests.");
+            } else {
+                sender.sendMessage(ChatColor.RED + "No spawned loot chests to remove.");
+            }
+            return;
+        }
+
+        int id;
+        try {
+            id = Integer.parseInt(args[1]);
+        } catch (NumberFormatException e) {
+            sender.sendMessage(ChatColor.RED + "'" + args[1] + "' is not a valid chest ID.");
+            return;
+        }
+
+        boolean removed = lootChestManager.removeChest(id);
+        if (removed) {
+            sender.sendMessage(ChatColor.GREEN + "Removed loot chest with ID " + id + ".");
+        } else {
+            sender.sendMessage(ChatColor.RED + "No spawned loot chest found with ID " + id + ".");
+        }
+    }
+
     private void sendHelp(CommandSender sender) {
         sender.sendMessage(ChatColor.YELLOW + "===== LootChest Command Help =====");
-        sender.sendMessage(ChatColor.YELLOW + "/lootchest reload - Reload the loot chest configuration.");
-        sender.sendMessage(ChatColor.YELLOW + "/lootchest list - List all loaded loot chests.");
+        sender.sendMessage(ChatColor.YELLOW + "/lootchest reload         - Reload the loot chest configuration.");
+        sender.sendMessage(ChatColor.YELLOW + "/lootchest list           - List all loaded loot chests.");
+        sender.sendMessage(ChatColor.YELLOW + "/lootchest clear <id>     - Clear the contents of the chest with the given ID.");
+        sender.sendMessage(ChatColor.YELLOW + "/lootchest clear all      - Clear the contents of *all* loot chests.");
     }
 }
