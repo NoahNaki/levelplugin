@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.horse.managers;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.horse.data.HorseData;
+import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.attribute.Attribute;
@@ -23,6 +24,8 @@ public class HorseManager implements Listener {
 
     private final HorseConfigManager configManager;
     private final HashMap<UUID, HorseData> horses = new HashMap<>();
+    private final HashMap<UUID, Long> lastSpawnTimestamps = new HashMap<>();
+    private static final long COOLDOWN_MS = 5_000L; // 5 seconds
 
     // Constructor to accept HorseConfigManager
     public HorseManager(HorseConfigManager configManager) {
@@ -56,16 +59,30 @@ public class HorseManager implements Listener {
     }
 
     public void spawnHorse(Player player) {
-        HorseData horseData = getHorse(player.getUniqueId());
-        if (horseData == null) {
-            player.sendMessage("You do not own a horse.");
+        UUID uuid = player.getUniqueId();
+        long now = System.currentTimeMillis();
+
+        // ── Cooldown check ───────────────────────────────────────────────────────────
+        Long last = lastSpawnTimestamps.get(uuid);
+        if (last != null && now - last < COOLDOWN_MS) {
+            long secsLeft = (COOLDOWN_MS - (now - last) + 999) / 1000;
+            player.sendMessage(ChatColor.RED +
+                "Please wait " + secsLeft + " more second" +
+                (secsLeft == 1 ? "" : "s") + " before spawning another horse.");
             return;
         }
 
-        // Define variables for horse spawning
-        org.bukkit.entity.AbstractHorse horse;
+        // record this spawn time
+        lastSpawnTimestamps.put(uuid, now);
 
-        // Handle special variants
+        // ── Existing spawn logic ──────────────────────────────────────────────────────
+        HorseData horseData = getHorse(uuid);
+        if (horseData == null) {
+            player.sendMessage(ChatColor.RED + "You do not own a horse.");
+            return;
+        }
+
+        AbstractHorse horse;
         switch (horseData.getType().toUpperCase()) {
             case "ZOMBIE":
                 horse = player.getWorld().spawn(player.getLocation(), org.bukkit.entity.ZombieHorse.class);
@@ -73,39 +90,32 @@ public class HorseManager implements Listener {
             case "SKELETON":
                 horse = player.getWorld().spawn(player.getLocation(), org.bukkit.entity.SkeletonHorse.class);
                 break;
-            default: // Handle standard horse colors
+            default:
                 Horse normalHorse = player.getWorld().spawn(player.getLocation(), Horse.class);
                 normalHorse.setColor(Horse.Color.valueOf(horseData.getType().toUpperCase()));
                 horse = normalHorse;
                 break;
         }
 
-        // Set common properties for all horses
         horse.setOwner(player);
         horse.setTamed(true);
         horse.setCustomName(player.getName() + "'s Horse");
         horse.setCustomNameVisible(true);
         horse.setInvulnerable(true);
-
-        // Set jump and speed attributes
         horse.setJumpStrength(horseData.getJumpHeight() / 10.0);
-        horse.getAttribute(Attribute.MOVEMENT_SPEED)
-            .setBaseValue(horseData.getSpeed() / 10.0);
-
-        // Equip saddle for all types
+        horse.getAttribute(Attribute.MOVEMENT_SPEED).setBaseValue(horseData.getSpeed() / 10.0);
         horse.getInventory().setSaddle(new ItemStack(Material.SADDLE));
-
-        // Mount the player
         horse.addPassenger(player);
 
-        // Handle dismount to despawn the horse
+        // despawn on dismount
         Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
             Bukkit.getPluginManager().registerEvents(new Listener() {
                 @EventHandler
                 public void onDismount(EntityDismountEvent event) {
-                    if (event.getEntity() instanceof Player && event.getDismounted().equals(horse)) {
-                        horse.remove(); // Despawn the horse
-                        HandlerList.unregisterAll(this); // Cleanup listener
+                    if (event.getEntity() instanceof Player
+                        && event.getDismounted().equals(horse)) {
+                        horse.remove();
+                        HandlerList.unregisterAll(this);
                     }
                 }
             }, Main.getInstance());
