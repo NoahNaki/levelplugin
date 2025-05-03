@@ -2,6 +2,9 @@ package me.nakilex.levelplugin.player.listener;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.duels.managers.DuelManager;
+import me.nakilex.levelplugin.items.data.CustomItem;
+import me.nakilex.levelplugin.items.managers.ItemManager;
+import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.spells.MageSpell;
 import me.nakilex.levelplugin.spells.Spell;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
@@ -48,42 +51,68 @@ public class ClickComboListener implements Listener {
         long currentTime = System.currentTimeMillis();
 
         // Prevent duplicate clicks
-        if (activeLeftClicks.containsKey(playerId) && currentTime - activeLeftClicks.get(playerId) < 100) {
+        if (activeLeftClicks.containsKey(playerId) &&
+            currentTime - activeLeftClicks.get(playerId) < 100) {
             return;
         }
         activeLeftClicks.put(playerId, currentTime);
-        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> activeLeftClicks.remove(playerId), 5L);
+        Bukkit.getScheduler().runTaskLater(Main.getInstance(),
+            () -> activeLeftClicks.remove(playerId), 5L);
 
         PlayerStats ps = StatsManager.getInstance().getPlayerStats(playerId);
         String className = ps.playerClass.name().toLowerCase();
 
         if ("mage".equals(className)) {
             ItemStack mainHand = player.getInventory().getItemInMainHand();
-            if (mainHand == null || (mainHand.getType() != Material.BLAZE_ROD && mainHand.getType() != Material.STICK)) {
+            if (mainHand == null ||
+                (mainHand.getType() != Material.BLAZE_ROD &&
+                    mainHand.getType() != Material.STICK)) {
                 return;
             }
 
+            // If already in a combo, just record it
             String activeCombo = getActiveCombo(player);
             if (!activeCombo.isEmpty()) {
                 recordComboClick(player, "L");
                 return;
             }
 
-            if (mageCooldowns.containsKey(playerId) && currentTime - mageCooldowns.get(playerId) < MAGE_ATTACK_COOLDOWN) {
+            // —— LEVEL GATE ——
+            int playerLevel = LevelManager.getInstance().getLevel(player);
+            CustomItem inst = ItemManager.getInstance()
+                .getCustomItemFromItemStack(mainHand);
+            if (inst != null) {
+                int req = inst.getLevelRequirement();
+                if (playerLevel < req) {
+                    player.sendMessage("§cYou must be level "
+                        + req + " to use that attack with your "
+                        + inst.getBaseName() + "!");
+                    return;
+                }
+            }
+
+            // Cooldown check
+            if (mageCooldowns.containsKey(playerId) &&
+                currentTime - mageCooldowns.get(playerId) < MAGE_ATTACK_COOLDOWN) {
                 return;
             }
 
+            // Finally: do the basic skill
             mageSpell.mageBasicSkill(player);
             mageCooldowns.put(playerId, currentTime);
+
         } else {
+            // non‐mage classes still use combos
             recordComboClick(player, "L");
         }
     }
 
+
     @EventHandler
     public void onRightClick(PlayerInteractEvent event) {
         if (event.getHand() != EquipmentSlot.HAND ||
-            (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK)) {
+            (event.getAction() != Action.RIGHT_CLICK_AIR &&
+                event.getAction() != Action.RIGHT_CLICK_BLOCK)) {
             return;
         }
 
@@ -91,7 +120,6 @@ public class ClickComboListener implements Listener {
         PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
         String className = ps.playerClass.name().toLowerCase();
         ItemStack mainHand = player.getInventory().getItemInMainHand();
-
         if (mainHand == null || mainHand.getType() == Material.AIR) return;
 
         if ("archer".equals(className) && mainHand.getType() == Material.BOW) {
@@ -100,11 +128,14 @@ public class ClickComboListener implements Listener {
                 event.setCancelled(true);
                 recordComboClick(player, "R");
             } else {
+                // Cancel the vanilla bow pull and do our custom shot
+                event.setCancelled(true);
                 cancelBowPullAndShootArrow(player);
             }
             return;
         }
 
+        // Spell‐combo branch for all other classes (or archer combos)
         String activeCombo = getActiveCombo(player);
         if (!activeCombo.isEmpty() && activeCombo.length() < 3) {
             recordComboClick(player, "R");
@@ -113,6 +144,8 @@ public class ClickComboListener implements Listener {
 
         recordComboClick(player, "R");
     }
+
+
 
     private void recordComboClick(Player player, String clickType) {
         long now = System.currentTimeMillis();
@@ -144,37 +177,48 @@ public class ClickComboListener implements Listener {
 
     private void cancelBowPullAndShootArrow(Player player) {
         ItemStack mainHand = player.getInventory().getItemInMainHand();
-        if (mainHand.getType() != Material.BOW) return;
+
+        // —— LEVEL GATE ——
+        int playerLevel = LevelManager.getInstance().getLevel(player);
+        CustomItem inst = ItemManager.getInstance()
+            .getCustomItemFromItemStack(mainHand);
+        if (inst != null) {
+            int req = inst.getLevelRequirement();
+            if (playerLevel < req) {
+                player.sendMessage("§cYou must be level "
+                    + req + " to use that attack with your "
+                    + inst.getBaseName() + "!");
+                return;
+            }
+        }
 
         UUID playerId = player.getUniqueId();
         long currentTime = System.currentTimeMillis();
-        if (bowCooldowns.containsKey(playerId)
-            && currentTime - bowCooldowns.get(playerId) < BOW_SHOT_COOLDOWN) {
+        if (bowCooldowns.containsKey(playerId) &&
+            currentTime - bowCooldowns.get(playerId) < BOW_SHOT_COOLDOWN) {
             return;
         }
 
-        // get and compute damage as before…
-        int strength = StatsManager.getInstance().getStatValue(player, StatsManager.StatType.STR);
+        int strength = StatsManager.getInstance()
+            .getStatValue(player, StatsManager.StatType.STR);
         double baseAtk = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue();
         double damage = baseAtk + (strength * 0.5);
 
-        // launch arrow
         Arrow arrow = player.launchProjectile(Arrow.class);
         arrow.setDamage(damage);
         arrow.setCustomName("BasicArcherArrow");
         arrow.setCustomNameVisible(false);
-
-        // <— new: tag for chat listener
         arrow.setMetadata("BasicAttack",
             new FixedMetadataValue(Main.getInstance(), playerId));
 
-        // vfx & cooldown
         player.getWorld().playSound(player.getLocation(),
             Sound.ENTITY_ARROW_SHOOT, 1f, 1f);
         player.getWorld().spawnParticle(Particle.INSTANT_EFFECT,
             player.getLocation(), 20, 0.5, 1, 0.5);
         bowCooldowns.put(playerId, currentTime);
     }
+
+
 
 
     @EventHandler
