@@ -187,13 +187,16 @@ public class StatsManager {
             PlayerStats ps = getPlayerStats(player.getUniqueId());
 
             // Base health regeneration per second
-            double baseRegenPerSec = 0.5;
+            double baseRegenPerSec = 1.0;
 
-            // HealthStat bonus – *only base stat now*
-            double healthBonus = ps.baseHealthStat * 0.03;
+            // 1 HP/s per 5 points invested in health
+            double regenFromStats = ps.baseHealthStat / 5.0;
 
-            // Total health regeneration
-            double totalRegen = baseRegenPerSec + healthBonus;
+            // 1 HP/s per 100 max HP
+            double regenFromMaxHealth = player.getMaxHealth() / 100.0;
+
+            // Total health regeneration this tick
+            double totalRegen = baseRegenPerSec + regenFromStats + regenFromMaxHealth;
 
             // Apply regeneration
             double newHealth = player.getHealth() + totalRegen;
@@ -202,6 +205,7 @@ public class StatsManager {
             player.setHealth(Math.min(newHealth, player.getMaxHealth()));
         }
     }
+
 
 
 
