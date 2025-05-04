@@ -47,14 +47,14 @@ public class BlacksmithGUI implements Listener {
         // Add Upgrade Slot (slot 13)
         gui.setItem(13, null);
 
-        // Add Upgrade Button (slot 22)
-        ItemStack upgradeButton = createUpgradeButton(0); // Pass 0 as the initial upgrade cost
-        gui.setItem(22, upgradeButton);
+        // Add Upgrade Button (slot 22) with initial cost and chance = 0
+        gui.setItem(22, createUpgradeButton(0, 0));
 
         // Track GUI
         openInventories.put(player.getUniqueId(), gui);
         player.openInventory(gui);
     }
+
 
     private ItemStack createGlassPane() {
         ItemStack glassPane = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
@@ -83,17 +83,17 @@ public class BlacksmithGUI implements Listener {
         return glassPane;
     }
 
-    private ItemStack createUpgradeButton(int upgradeCost) {
+    private ItemStack createUpgradeButton(int upgradeCost, int successChance) {
         ItemStack upgradeButton = new ItemStack(Material.ANVIL);
         ItemMeta meta = upgradeButton.getItemMeta();
         if (meta == null) return upgradeButton;
 
         meta.setDisplayName("§aUpgrade");
 
-        // Add lore to display the upgrade cost
         List<String> lore = new ArrayList<>();
         if (upgradeCost > 0) {
             lore.add("§7Cost: §6⛃ " + upgradeCost);
+            lore.add("§7Success Chance: §6" + successChance + "%");
             lore.add("§7Click to upgrade your item.");
         } else {
             lore.add("§7Place an item in the slot above.");
@@ -104,9 +104,9 @@ public class BlacksmithGUI implements Listener {
         return upgradeButton;
     }
 
-    private void updateUpgradeButton(Inventory gui, int upgradeCost) {
-        ItemStack upgradeButton = createUpgradeButton(upgradeCost);
-        gui.setItem(22, upgradeButton); // Slot 22 is the upgrade button
+    private void updateUpgradeButton(Inventory gui, int upgradeCost, int successChance) {
+        ItemStack upgradeButton = createUpgradeButton(upgradeCost, successChance);
+        gui.setItem(22, upgradeButton);
     }
 
     @EventHandler
@@ -115,75 +115,70 @@ public class BlacksmithGUI implements Listener {
 
         Player player = (Player) event.getWhoClicked();
         Inventory clickedInventory = event.getClickedInventory();
-        Inventory topInventory = event.getView().getTopInventory(); // The Blacksmith GUI
+        Inventory topInventory = event.getView().getTopInventory();
 
-        // Ensure the event is only for the Blacksmith GUI
+        // Only handle clicks in our Blacksmith GUI
         if (!openInventories.containsKey(player.getUniqueId())) return;
-
         Inventory playerGUI = openInventories.get(player.getUniqueId());
         if (!topInventory.equals(playerGUI)) return;
+        if (event.getRawSlot() >= playerGUI.getSize()) return;
 
-        if (event.getRawSlot() >= 27) return; // Ignore clicks in the player's inventory
-
-        // Prevent default behavior for all slots in the Blacksmith GUI
+        // Block default behavior
         event.setCancelled(true);
-
         int slot = event.getSlot();
 
-        // Handle shift-click behavior
+        // SHIFT‑CLICK into slot 13
         if (event.isShiftClick() && clickedInventory != null) {
             ItemStack currentItem = event.getCurrentItem();
+            if (currentItem != null && currentItem.getType() != Material.AIR && playerGUI.getItem(13) == null) {
+                playerGUI.setItem(13, currentItem);
+                clickedInventory.setItem(event.getSlot(), null);
 
-            // Ensure the item is valid
-            if (currentItem != null && currentItem.getType() != Material.AIR) {
-                // Check if slot 13 is empty
-                if (playerGUI.getItem(13) == null) {
-                    playerGUI.setItem(13, currentItem);
-                    clickedInventory.setItem(event.getSlot(), null); // Remove the item from the clicked inventory
-
-                    // Update the upgrade button based on the item in slot 13
-                    Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-                        ItemStack itemStack = playerGUI.getItem(13);
-                        if (itemStack != null) {
-                            CustomItem customItem = itemManager.getCustomItemFromItemStack(itemStack);
-                            if (customItem != null) {
-                                int upgradeCost = upgradeManager.getUpgradeCost(customItem);
-                                updateUpgradeButton(playerGUI, upgradeCost);
-                            } else {
-                                updateUpgradeButton(playerGUI, 0);
-                            }
+                // Delay a tick then refresh cost & chance
+                Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+                    ItemStack placed = playerGUI.getItem(13);
+                    if (placed != null) {
+                        CustomItem ci = itemManager.getCustomItemFromItemStack(placed);
+                        if (ci != null) {
+                            int cost   = upgradeManager.getUpgradeCost(ci);
+                            int chance = upgradeManager.getSuccessChance(ci);
+                            updateUpgradeButton(playerGUI, cost, chance);
                         } else {
-                            updateUpgradeButton(playerGUI, 0);
+                            updateUpgradeButton(playerGUI, 0, 0);
                         }
-                    }, 1L);
-                }
+                    } else {
+                        updateUpgradeButton(playerGUI, 0, 0);
+                    }
+                }, 1L);
             }
-            return; // Stop further handling as shift-click is processed
+            return;
         }
 
+        // Click directly in slot 13 to place/pickup
         if (slot == 13) {
-            // Allow item placement in the upgrade slot
             event.setCancelled(false);
-
-            // Update the upgrade button based on the item in slot 13
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-                ItemStack itemStack = playerGUI.getItem(13);
-                if (itemStack != null) {
-                    CustomItem customItem = itemManager.getCustomItemFromItemStack(itemStack);
-                    if (customItem != null) {
-                        int upgradeCost = upgradeManager.getUpgradeCost(customItem);
-                        updateUpgradeButton(playerGUI, upgradeCost);
+                ItemStack placed = playerGUI.getItem(13);
+                if (placed != null) {
+                    CustomItem ci = itemManager.getCustomItemFromItemStack(placed);
+                    if (ci != null) {
+                        int cost   = upgradeManager.getUpgradeCost(ci);
+                        int chance = upgradeManager.getSuccessChance(ci);
+                        updateUpgradeButton(playerGUI, cost, chance);
                     } else {
-                        updateUpgradeButton(playerGUI, 0);
+                        updateUpgradeButton(playerGUI, 0, 0);
                     }
                 } else {
-                    updateUpgradeButton(playerGUI, 0);
+                    updateUpgradeButton(playerGUI, 0, 0);
                 }
             }, 1L);
+
+            // Click the upgrade anvil
         } else if (slot == 22) {
             handleUpgradeButtonClick(player, playerGUI);
         }
     }
+
 
     private void handleUpgradeButtonClick(Player player, Inventory gui) {
         ItemStack itemStack = gui.getItem(13);
@@ -192,37 +187,50 @@ public class BlacksmithGUI implements Listener {
             return;
         }
 
-        // **Only accept real instances—no reroll fallback**
         CustomItem customItem = itemManager.getCustomItemFromItemStack(itemStack);
         if (customItem == null) {
             player.sendMessage("§cInvalid item! Only already‐created custom items can be upgraded.");
             return;
         }
 
-        // Now you know `customItem` is the exact same instance whose stats you saw,
-        // so calling attemptUpgrade() will strictly *increase* its existing stats.
         if (customItem.getUpgradeLevel() >= 5) {
             player.sendMessage("§cThis item has reached the maximum upgrade level!");
             return;
         }
 
-        int upgradeCost = upgradeManager.getUpgradeCost(customItem);
+        // Current cost & chance before spending
+        int cost   = upgradeManager.getUpgradeCost(customItem);
+        int chance = upgradeManager.getSuccessChance(customItem);
+
         try {
-            economyManager.deductCoins(player, upgradeCost);
+            economyManager.deductCoins(player, cost);
         } catch (IllegalArgumentException ex) {
-            player.sendMessage("§cNot enough coins! Upgrade cost: §6⛃ " + upgradeCost);
+            player.sendMessage("§cNot enough coins! Upgrade cost: §6⛃ " + cost);
             return;
         }
 
+        // Attempt upgrade
         if (upgradeManager.attemptUpgrade(player, itemStack, customItem)) {
             player.sendMessage("§aUpgrade successful!");
             setTemporaryGreenPanes(gui);
             gui.setItem(13, itemStack);
-            updateUpgradeButton(gui, upgradeManager.getUpgradeCost(customItem));
         } else {
             player.sendMessage("§cUpgrade failed!");
         }
+
+        // Refresh the button’s cost & chance (reflecting new level or unchanged on failure)
+        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+            CustomItem ci = itemManager.getCustomItemFromItemStack(itemStack);
+            if (ci != null) {
+                int newCost   = upgradeManager.getUpgradeCost(ci);
+                int newChance = upgradeManager.getSuccessChance(ci);
+                updateUpgradeButton(gui, newCost, newChance);
+            } else {
+                updateUpgradeButton(gui, 0, 0);
+            }
+        }, 1L);
     }
+
 
 
 

@@ -10,20 +10,23 @@ commands:
   addpoints:
     description: Grants skill points to a player
     usage: /addpoints <player> <amount>
+    permission: none
   addxp:
     description: Grants XP to a player
     usage: /addxp <player> <amount>
+    permission: none
   stats:
     description: Opens the stats GUI
     usage: /stats
-    permission: none
     aliases: [s]
   additem:
     description: Gives a custom item to a player
     usage: /additem <item_id> <player> <amount>
+    permission: none
   setlevel:
     description: Sets a player's level
     usage: /setlevel <player> <level>
+    permission: none
   class:
     description: Change your class
     usage: /class <Warrior|Rogue|Archer|Mage>
@@ -31,6 +34,7 @@ commands:
   addmob:
     description: Spawns custom mobs
     usage: /addmob <mobid> <amount>
+    permission: none
   balance:
     description: Shows your coin balance
     usage: /balance
@@ -38,6 +42,8 @@ commands:
   addcoins:
     description: Adds coins to your balance
     usage: /addcoins <player> <amount>
+    permission: none
+
   blacksmith:
     description: Opens the Blacksmith GUI.
     usage: /blacksmith
@@ -48,6 +54,8 @@ commands:
   effect:
     description: Toggles the sword circle effect.
     usage: /effect
+    permission: none
+
   ps:
     description: Manage personal storage.
   trade:
@@ -60,9 +68,11 @@ commands:
   lootchest:
     description: Manage loot chests
     usage: /<command> <reload|list|clear>
+    permission: none
   addpotion:
     description: Gives a player a potion.
     usage: /addpotion <playername> <potion_id>
+    permission: none
   duel:
     description: Accepts or Declines a duel request
     usage: /duel <accept|decline>
@@ -72,6 +82,7 @@ commands:
   merchant:
     description: Opens a merchant GUI.
     usage: /merchant <name>
+    permission: none
   spells:
     description: Opens the Spells GUI
     usage: /spells
@@ -86,6 +97,7 @@ commands:
     usage: /settings
   addgems:
     description: Give yourself some gems (admin).
+    permission: none
   gems:
     description: Check your gem balance.
   gemexchange:
@@ -93,7 +105,10 @@ commands:
   tipsreload:
     description: Reload auto-broadcast tips
     usage: /<command>
+    permission: none
   itemsbrowser:
     description: Opens the custom item browser GUI.
     usage: /itemsbrowser
+    permission: none
+
 

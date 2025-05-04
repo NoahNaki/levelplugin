@@ -76,4 +76,8 @@ public class ItemUpgradeManager {
         return UPGRADE_CHANCES[level];
     }
 
+    public int getSuccessChance(CustomItem item) {
+        return calculateSuccessChance(item);
+    }
+
 }
