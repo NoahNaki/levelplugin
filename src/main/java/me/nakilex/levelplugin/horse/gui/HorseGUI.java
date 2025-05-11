@@ -15,6 +15,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 public class HorseGUI implements Listener {
@@ -74,7 +76,7 @@ public class HorseGUI implements Listener {
     private ItemStack createHorseInfoItem(HorseData horseData) {
         if (horseData != null) {
             // Generate star ratings for speed and jump height
-            String speedStars = generateStars(horseData.getSpeed(), 10); // Total 10 stars
+            String speedStars = generateStars(horseData. getSpeed(), 10); // Total 10 stars
             String jumpStars = generateStars(horseData.getJumpHeight(), 10); // Total 10 stars
 
             // Format horse type (capitalize first letter)

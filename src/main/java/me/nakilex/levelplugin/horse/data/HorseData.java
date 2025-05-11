@@ -1,5 +1,7 @@
 package me.nakilex.levelplugin.horse.data;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 import java.util.Random;
 
@@ -65,23 +67,45 @@ public class HorseData {
     // Method to generate a random horse
     public static HorseData randomHorse(UUID ownerUUID) {
         Random random = new Random();
-        String[] colors = { "WHITE", "CREAMY", "CHESTNUT", "BROWN", "BLACK", "GRAY", "DARK_BROWN" }; // Colors
-        String[] variants = { "ZOMBIE", "SKELETON" }; // Variants
 
-        boolean isVariant = random.nextBoolean(); // Randomly decide if it's a variant
-        String randomType;
+        // Define your weights (must sum to 1.0)
+        Map<String, Double> weights = new LinkedHashMap<>();
+        // Common colors
+        weights.put("WHITE", 0.20);
+        weights.put("CREAMY", 0.15);
+        weights.put("CHESTNUT", 0.15);
+        weights.put("BROWN", 0.15);
+        // Rarer colors
+        weights.put("GRAY", 0.10);
+        weights.put("BLACK", 0.10);
+        weights.put("DARK_BROWN", 0.05);
+        // Very rare variants
+        weights.put("ZOMBIE", 0.05);
+        weights.put("SKELETON", 0.05);
 
-        if (isVariant) {
-            randomType = variants[random.nextInt(variants.length)];
-        } else {
-            randomType = colors[random.nextInt(colors.length)];
+        // Pick one entry by weight
+        double r = random.nextDouble();
+        double cum = 0;
+        String pickedType = null;
+        for (var entry : weights.entrySet()) {
+            cum += entry.getValue();
+            if (r <= cum) {
+                pickedType = entry.getKey();
+                break;
+            }
         }
+        // Fallback (shouldn’t happen if weights sum to 1): pick WHITE
+        if (pickedType == null) pickedType = "WHITE";
 
-        int randomSpeed = random.nextInt(10) + 1; // 1-10
-        int randomJumpHeight = random.nextInt(10) + 1; // 1-10
+        boolean isVariant = pickedType.equals("ZOMBIE") || pickedType.equals("SKELETON");
 
-        return new HorseData(randomType, isVariant, randomSpeed, randomJumpHeight, ownerUUID);
+        // Speed & jump still 1–10
+        int baseSpeed = random.nextInt(10) + 1;
+        int baseJump  = random.nextInt(10) + 1;
+
+        return new HorseData(pickedType, isVariant, baseSpeed, baseJump, ownerUUID);
     }
+
 
     // Display horse stats as a string
     @Override
