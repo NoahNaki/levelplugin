@@ -293,6 +293,9 @@ public class Main extends JavaPlugin {
             storageManager.saveAllStorages();
         }
 
+        if (dealMaker != null)
+            dealMaker.closeAllTrades();
+
         getLogger().info("LevelPlugin has been disabled!");
     }
 

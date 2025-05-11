@@ -25,7 +25,7 @@ import java.util.*;
 
 public class TradingWindow implements Listener {
 
-    private static final int PLAYER_COIN_SLOT   = 0;  // now slot 0
+    private static final int PLAYER_COIN_SLOT = 0;  // now slot 0
     private static final int OPPONENT_COIN_SLOT = 8;  // now slot 8
 
     // Tracks players waiting for sign input and their respective TradingWindow
@@ -33,7 +33,6 @@ public class TradingWindow implements Listener {
     private static final java.util.Set<UUID> activeSignInputs = new java.util.HashSet<>();
     private final Map<UUID, Location> activeSignLocations = new HashMap<>();
     private static final Set<UUID> awaitingChatInput = new HashSet<>();
-
 
 
     // Stores the coin offers for both players
@@ -73,7 +72,10 @@ public class TradingWindow implements Listener {
     boolean oppositeAcceptedDeal;
     boolean paidAfterClose;
 
-    public TradingWindow() {};
+    public TradingWindow() {
+    }
+
+    ;
 
     public TradingWindow(Player player, Player oppositeDealPartner) {
         this.player = player;
@@ -100,7 +102,7 @@ public class TradingWindow implements Listener {
         DealMaker dm = Main.getPlugin().getDealMaker();
         dm.addTradingWindow(this);
         player.openInventory(playerInventory);
-        if(!this.paidAfterClose)
+        if (!this.paidAfterClose)
             oppositeDealPartner.openInventory(oppositeInventory);
         player.playNote(player.getLocation(), Instrument.SNARE_DRUM, Note.natural(1, Note.Tone.D));
         opposite.playNote(opposite.getLocation(), Instrument.SNARE_DRUM, Note.natural(1, Note.Tone.D));
@@ -128,29 +130,33 @@ public class TradingWindow implements Listener {
 //    }
 
     private void openCoinChatInput(Player p, TradingWindow tw) {
-        // Mark that this player is in the middle of a chat input
-        awaitingChatInput.add(p.getUniqueId());
+        // 1. Snapshot the current trade‐item slots
+        tw.playerSlots = tw.projectToItemField(tw.playerInventory);
+        tw.oppositeSlots = tw.projectToItemField(tw.oppositeInventory);
 
-        // Close the inventory so that the player can see the chat clearly
+        // 1b. Debug log how many items you’ve captured
+        int playerNonNull = Arrays.stream(tw.playerSlots).filter(Objects::nonNull).toArray().length;
+        int oppNonNull = Arrays.stream(tw.oppositeSlots).filter(Objects::nonNull).toArray().length;
+        Bukkit.getLogger().info("[TradeDebug] Captured “playerSlots” count = " + playerNonNull);
+        Bukkit.getLogger().info("[TradeDebug] Captured “oppositeSlots” count = " + oppNonNull);
+
+        // 2. Mark awaiting chat so onInventoryClose won’t cancel
+        awaitingChatInput.add(p.getUniqueId());
         p.closeInventory();
 
+        // 3. Show chat prompt
         ConversationFactory factory = new ConversationFactory(Main.getPlugin())
             .withFirstPrompt(new CoinInputPrompt(tw, p))
             .withLocalEcho(false)
             .withTimeout(30)
-            .addConversationAbandonedListener(new ConversationAbandonedListener() {
-                @Override
-                public void conversationAbandoned(ConversationAbandonedEvent event) {
-                    // Remove the player from the awaiting set when conversation ends (normally or due to timeout)
-                    awaitingChatInput.remove(p.getUniqueId());
-                    // Optionally, reopen the inventories if the conversation was not abandoned manually
-                    // For example, if you want the GUI to return even on timeout:
-                    // tw.reopenInventories();
-                }
+            .addConversationAbandonedListener(event -> {
+                // Always reopen, whether they typed or timed out
+                awaitingChatInput.remove(p.getUniqueId());
+                Bukkit.getScheduler().runTask(Main.getPlugin(), tw::reopenInventories);
             });
-        Conversation conv = factory.buildConversation(p);
-        conv.begin();
+        factory.buildConversation(p).begin();
     }
+
 
     @EventHandler
     public void onSignChange(SignChangeEvent e) {
@@ -224,7 +230,6 @@ public class TradingWindow implements Listener {
     }
 
 
-
     void updateCoinOfferItems() {
         // Update the player's coin offer
         ItemStack yourCoinIngot = playerInventory.getItem(PLAYER_COIN_SLOT);
@@ -293,17 +298,14 @@ public class TradingWindow implements Listener {
         this.initGlassConfig();
 
         // 3) Fill the entire inventory layout with filler, accept fields, etc.
-        for(int i = 0; i < ROWS * 9; i++) {
-            if(isPersonalTradeAccepmentField(i)) {
+        for (int i = 0; i < ROWS * 9; i++) {
+            if (isPersonalTradeAccepmentField(i)) {
                 inv.setItem(i, ownGreenGlass);
-            }
-            else if(isOpponentsField(i)) {
+            } else if (isOpponentsField(i)) {
                 inv.setItem(i, separator);
-            }
-            else if(isOpponentsAccepmentField(i)) {
+            } else if (isOpponentsAccepmentField(i)) {
                 inv.setItem(i, oppositeRedGlass);
-            }
-            else if(isFillerIndex(i)) {
+            } else if (isFillerIndex(i)) {
                 inv.setItem(i, filler);
             }
         }
@@ -376,19 +378,19 @@ public class TradingWindow implements Listener {
     public void toggleOpponentsStatus(TradingWindow tw) {
         tw.oppositeAcceptedDeal = !tw.oppositeAcceptedDeal; // Toggle opponent acceptance
 
-        for(int i = 0; i < ROWS * 9; i++) {
-            if(tw.oppositeAcceptedDeal) {
-                if(isOpponentsAccepmentField(i)) {
+        for (int i = 0; i < ROWS * 9; i++) {
+            if (tw.oppositeAcceptedDeal) {
+                if (isOpponentsAccepmentField(i)) {
                     tw.playerInventory.setItem(i, tw.oppositeGreenGlass);
                 }
-                if(isPersonalTradeAccepmentField(i)) {
+                if (isPersonalTradeAccepmentField(i)) {
                     tw.oppositeInventory.setItem(i, tw.ownRedGlass);
                 }
             } else {
-                if(isOpponentsAccepmentField(i)) {
+                if (isOpponentsAccepmentField(i)) {
                     tw.playerInventory.setItem(i, tw.oppositeRedGlass);
                 }
-                if(isPersonalTradeAccepmentField(i)) {
+                if (isPersonalTradeAccepmentField(i)) {
                     tw.oppositeInventory.setItem(i, tw.ownGreenGlass);
                 }
             }
@@ -406,19 +408,19 @@ public class TradingWindow implements Listener {
     public void toggleOwnStatus(TradingWindow tw, Inventory inv) {
         tw.playerAcceptedDeal = !tw.playerAcceptedDeal; // Toggle acceptance status
 
-        for(int i = 0; i < ROWS * 9; i++) {
-            if(tw.playerAcceptedDeal) {
-                if(isOpponentsAccepmentField(i)) {
+        for (int i = 0; i < ROWS * 9; i++) {
+            if (tw.playerAcceptedDeal) {
+                if (isOpponentsAccepmentField(i)) {
                     tw.oppositeInventory.setItem(i, tw.oppositeGreenGlass);
                 }
-                if(isPersonalTradeAccepmentField(i)) {
+                if (isPersonalTradeAccepmentField(i)) {
                     tw.playerInventory.setItem(i, tw.ownRedGlass);
                 }
             } else {
-                if(isOpponentsAccepmentField(i)) {
+                if (isOpponentsAccepmentField(i)) {
                     tw.oppositeInventory.setItem(i, tw.oppositeRedGlass);
                 }
-                if(isPersonalTradeAccepmentField(i)) {
+                if (isPersonalTradeAccepmentField(i)) {
                     tw.playerInventory.setItem(i, tw.ownGreenGlass);
                 }
             }
@@ -440,14 +442,14 @@ public class TradingWindow implements Listener {
         Player p = tw.player;
         Player o = tw.opposite;
 
-        if(!tw.paidAfterClose) {
+        if (!tw.paidAfterClose) {
             tw.paidAfterClose = true;
-            if(tw.playerInventory.getViewers().contains(tw.player))
+            if (tw.playerInventory.getViewers().contains(tw.player))
                 tw.playerInventory.close();
-            if(tw.oppositeInventory.getViewers().contains(tw.opposite))
+            if (tw.oppositeInventory.getViewers().contains(tw.opposite))
                 tw.oppositeInventory.close();
 
-            if(tw.oppositeAcceptedDeal && tw.playerAcceptedDeal) {
+            if (tw.oppositeAcceptedDeal && tw.playerAcceptedDeal) {
                 // Both accepted the deal and the items to deal get flipped
 
                 // Deduct and add coins based on offers
@@ -457,17 +459,17 @@ public class TradingWindow implements Listener {
                 economyManager.addCoins(p, tw.opponentCoinOffer);
 
                 // Check, if the items already got moved back to the inventory
-                for(int i = 0; i < ROWS * 9; i++) {
-                    if(isOwnField(i)) {
-                        if(tw.playerInventory.getItem(i) != null) {
-                            if(tw.opposite.getInventory().firstEmpty() > -1)
+                for (int i = 0; i < ROWS * 9; i++) {
+                    if (isOwnField(i)) {
+                        if (tw.playerInventory.getItem(i) != null) {
+                            if (tw.opposite.getInventory().firstEmpty() > -1)
                                 tw.opposite.getInventory().addItem(tw.playerInventory.getItem(i));
                             else {
                                 tw.opposite.getWorld().dropItem(tw.opposite.getLocation(), tw.playerInventory.getItem(i));
                             }
                         }
-                        if(tw.oppositeInventory.getItem(i) != null) {
-                            if(tw.player.getInventory().firstEmpty() > -1)
+                        if (tw.oppositeInventory.getItem(i) != null) {
+                            if (tw.player.getInventory().firstEmpty() > -1)
                                 tw.player.getInventory().addItem(tw.oppositeInventory.getItem(i));
                             else {
                                 tw.player.getWorld().dropItem(tw.player.getLocation(), tw.oppositeInventory.getItem(i));
@@ -481,17 +483,17 @@ public class TradingWindow implements Listener {
                 dm.removeTradingWindow(tw);
             } else {
                 // Deal got declined, both players get their own items back
-                for(int i = 0; i < ROWS * 9; i++) {
-                    if(isOwnField(i)) {
-                        if(tw.playerInventory.getItem(i) != null) {
-                            if(tw.player.getInventory().firstEmpty() > -1)
+                for (int i = 0; i < ROWS * 9; i++) {
+                    if (isOwnField(i)) {
+                        if (tw.playerInventory.getItem(i) != null) {
+                            if (tw.player.getInventory().firstEmpty() > -1)
                                 tw.player.getInventory().addItem(tw.playerInventory.getItem(i));
                             else {
                                 tw.player.getWorld().dropItem(tw.player.getLocation(), tw.playerInventory.getItem(i));
                             }
                         }
-                        if(tw.oppositeInventory.getItem(i) != null) {
-                            if(tw.opposite.getInventory().firstEmpty() > -1)
+                        if (tw.oppositeInventory.getItem(i) != null) {
+                            if (tw.opposite.getInventory().firstEmpty() > -1)
                                 tw.opposite.getInventory().addItem(tw.oppositeInventory.getItem(i));
                             else {
                                 tw.opposite.getWorld().dropItem(tw.opposite.getLocation(), tw.oppositeInventory.getItem(i));
@@ -542,8 +544,8 @@ public class TradingWindow implements Listener {
 
     private int countOwnSlots() {
         int count = 0;
-        for(int i = 0; i < ROWS * 9; i++) {
-            if(isOwnField(i)) count++;
+        for (int i = 0; i < ROWS * 9; i++) {
+            if (isOwnField(i)) count++;
         }
         return count;
     }
@@ -551,9 +553,9 @@ public class TradingWindow implements Listener {
     private ItemStack[] projectToItemField(Inventory inv) {
         int pointer = 0; // keeps track of how many slots already inserted to result array
         ItemStack[] result = new ItemStack[this.slots];
-        for(int i = 0; i < ROWS * 9; i++) {
-            if(isOwnField(i)) {
-                if(inv.getItem(i) != null)
+        for (int i = 0; i < ROWS * 9; i++) {
+            if (isOwnField(i)) {
+                if (inv.getItem(i) != null)
                     result[pointer] = inv.getItem(i);
                 else
                     result[pointer] = null;
@@ -565,10 +567,10 @@ public class TradingWindow implements Listener {
 
     private void projectToOpponentField(ItemStack[] playerItems, boolean toPlayersInventory) {
         int pointer = 0;
-        for(int i = 0; i < ROWS * 9; i++) {
-            if(toPlayersInventory) {
-                if(isOpponentsField(i)) {
-                    if(playerItems[pointer] != null) {
+        for (int i = 0; i < ROWS * 9; i++) {
+            if (toPlayersInventory) {
+                if (isOpponentsField(i)) {
+                    if (playerItems[pointer] != null) {
                         ItemStack itemStack = playerItems[pointer].clone();
                         ItemMeta im = itemStack.getItemMeta();
                         ArrayList<String> meta = new ArrayList<String>();
@@ -583,8 +585,8 @@ public class TradingWindow implements Listener {
                     pointer++;
                 }
             } else {
-                if(isOpponentsField(i)) {
-                    if(playerItems[pointer] != null) {
+                if (isOpponentsField(i)) {
+                    if (playerItems[pointer] != null) {
                         ItemStack itemStack = playerItems[pointer].clone();
                         ItemMeta im = itemStack.getItemMeta();
                         ArrayList<String> meta = new ArrayList<String>();
@@ -627,13 +629,13 @@ public class TradingWindow implements Listener {
         // invert parameter makes the method to a "translateOwnSlotIndexToOpponentSlotIndex()-method
         int opponentSlot = 0;
         int ownSlot = -1;
-        for(int i = 0; i < ROWS * 9; i++) {
-            if((!invert && isOpponentsField(i)) || (invert && isOwnField(i)) && i < index) {
+        for (int i = 0; i < ROWS * 9; i++) {
+            if ((!invert && isOpponentsField(i)) || (invert && isOwnField(i)) && i < index) {
                 opponentSlot++;
             }
         }
-        for(int i = 0; i < ROWS * 9; i++) {
-            if((!invert && isOwnField(i)) || (invert && isOpponentsField(i)) && opponentSlot > 0) {
+        for (int i = 0; i < ROWS * 9; i++) {
+            if ((!invert && isOwnField(i)) || (invert && isOpponentsField(i)) && opponentSlot > 0) {
                 opponentSlot--;
                 ownSlot = i;
             }
@@ -705,8 +707,7 @@ public class TradingWindow implements Listener {
                         openCoinChatInput(p, tw);
                     }
                     return;
-                }
-                else if (e.getSlot() == OPPONENT_COIN_SLOT) {
+                } else if (e.getSlot() == OPPONENT_COIN_SLOT) {
                     e.setCancelled(true);
                     if (tw.player.equals(p)) {
                         openCoinChatInput(p, tw);
@@ -742,7 +743,7 @@ public class TradingWindow implements Listener {
                 tw.refreshInventorySwitch();
             }
         }
-}
+    }
 
 
     @EventHandler
@@ -777,13 +778,12 @@ public class TradingWindow implements Listener {
     }
 
 
-
     @EventHandler
     public void onInventoryDrag(InventoryDragEvent e) {
         DealMaker dm = Main.getPlugin().getDealMaker();
-        if(dm.isInventoryInList(e.getInventory())) {
+        if (dm.isInventoryInList(e.getInventory())) {
             TradingWindow tw = dm.getTradingWindow(e.getInventory());
-            if(tw.playerAcceptedDeal || tw.oppositeAcceptedDeal) {
+            if (tw.playerAcceptedDeal || tw.oppositeAcceptedDeal) {
                 e.setCancelled(true);
             } else {
                 tw.refreshInventorySwitch();
@@ -795,7 +795,7 @@ public class TradingWindow implements Listener {
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent e) {
         DealMaker dm = Main.getPlugin().getDealMaker();
-        if(dm.isPlayerCurrentlyDealing(e.getPlayer())) {
+        if (dm.isPlayerCurrentlyDealing(e.getPlayer())) {
             TradingWindow tw = dm.getTradingWindowByPlayer(e.getPlayer());
             tw.closeTrade(e.getPlayer());
         }
@@ -828,21 +828,46 @@ public class TradingWindow implements Listener {
      * This method encapsulates the logic you currently run after the sign input.
      */
     public void reopenInventories() {
-        Bukkit.getScheduler().runTask(Main.getPlugin(), () -> {
-            this.playerInventory = Bukkit.createInventory(null, this.CHEST_SIZE,
-                String.format(messageStrings.getTranslation(Translations.DEAL_WITH), this.opposite.getName()));
-            this.oppositeInventory = Bukkit.createInventory(null, this.CHEST_SIZE,
-                String.format(messageStrings.getTranslation(Translations.DEAL_WITH), this.player.getName()));
-            prepareInventory(this.playerInventory);
-            prepareInventory(this.oppositeInventory);
-            projectToOpponentField(this.playerSlots, false);
-            projectToOpponentField(this.oppositeSlots, true); // changed to 'oppositeSlots'
-            updateCoinOfferItems();
-            DealMaker dm = Main.getPlugin().getDealMaker();
-            dm.addTradingWindow(this);
-            this.player.openInventory(this.playerInventory);
-            this.opposite.openInventory(this.oppositeInventory);
-            refreshInventorySwitch();
-        });
+        // 1) Create fresh inventories
+        this.playerInventory = Bukkit.createInventory(null, CHEST_SIZE,
+            String.format(messageStrings.getTranslation(Translations.DEAL_WITH), this.opposite.getName()));
+        this.oppositeInventory = Bukkit.createInventory(null, CHEST_SIZE,
+            String.format(messageStrings.getTranslation(Translations.DEAL_WITH), this.player.getName()));
+        prepareInventory(this.playerInventory);
+        prepareInventory(this.oppositeInventory);
+
+        // 2) Restore each player’s _own_ items into their own fields
+        //    (playerSlots → playerInventory)
+        int pPtr = 0;
+        for (int i = 0; i < ROWS * 9; i++) {
+            if (isOwnField(i)) {
+                ItemStack stack = playerSlots[pPtr++];
+                if (stack != null) {
+                    playerInventory.setItem(i, stack);
+                }
+            }
+        }
+        //    (oppositeSlots → oppositeInventory)
+        int oPtr = 0;
+        for (int i = 0; i < ROWS * 9; i++) {
+            if (isOwnField(i)) {
+                ItemStack stack = oppositeSlots[oPtr++];
+                if (stack != null) {
+                    oppositeInventory.setItem(i, stack);
+                }
+            }
+        }
+
+        // 3) Project those same slots into the opponent-view fields
+        projectToOpponentField(this.playerSlots, false);  // your items appear in their GUI
+        projectToOpponentField(this.oppositeSlots, true); // their items appear in yours
+
+        // 4) Restore coin displays, re-register and re-open
+        updateCoinOfferItems();
+        Main.getPlugin().getDealMaker().addTradingWindow(this);
+        player.openInventory(playerInventory);
+        opposite.openInventory(oppositeInventory);
+        refreshInventorySwitch();
     }
+
 }

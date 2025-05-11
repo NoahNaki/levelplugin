@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.utils.DealMaker;
 import me.nakilex.levelplugin.trade.utils.MessageStrings;
 import me.nakilex.levelplugin.trade.utils.Translations;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -132,7 +133,7 @@ public class TradeCommand implements CommandExecutor {
                                     dm.acceptTrade(p, target);
                                 } else {
                                     p.sendMessage(Main.PREFIX
-                                        + "You must be within " + (int) MAX_DISTANCE + " blocks of that player to trade.");
+                                       , ChatColor.RED + "You must be within " + (int) MAX_DISTANCE + " blocks of that player to trade.");
                                 }
                             } else {
                                 p.sendMessage(String.format(
