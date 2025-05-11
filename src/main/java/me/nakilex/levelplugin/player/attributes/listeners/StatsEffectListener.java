@@ -89,7 +89,7 @@ public class StatsEffectListener implements Listener {
 
             // 6) Defense reduction (unchanged)
             int totalDefence = vs.baseDefenceStat + vs.bonusDefenceStat;
-            double percentReduction = (double) totalDefence / (totalDefence + 100.0);
+            double percentReduction = (double) totalDefence / (totalDefence + 200.0);
             double reducedDamage = event.getDamage() * (1.0 - percentReduction);
 
             event.setDamage(reducedDamage);
