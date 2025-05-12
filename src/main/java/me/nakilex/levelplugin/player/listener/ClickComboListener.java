@@ -53,9 +53,9 @@ public class ClickComboListener implements Listener {
     public void onLeftClick(PlayerAnimationEvent event) {
         if (event.getAnimationType() != PlayerAnimationType.ARM_SWING) return;
 
-        Player player    = event.getPlayer();
-        UUID   playerId  = player.getUniqueId();
-        long   now       = System.currentTimeMillis();
+        Player player   = event.getPlayer();
+        UUID   playerId = player.getUniqueId();
+        long   now      = System.currentTimeMillis();
 
         // — Debounce rapid swings —
         if (activeLeftClicks.containsKey(playerId) &&
@@ -66,36 +66,62 @@ public class ClickComboListener implements Listener {
         Bukkit.getScheduler().runTaskLater(Main.getInstance(),
             () -> activeLeftClicks.remove(playerId), 5L);
 
-        PlayerStats ps      = StatsManager.getInstance().getPlayerStats(playerId);
-        String      cls     = ps.playerClass.name().toLowerCase();
-        ItemStack   mainHand = player.getInventory().getItemInMainHand();
-        if (mainHand == null || mainHand.getType() == Material.AIR) return;
+        PlayerStats ps    = StatsManager.getInstance().getPlayerStats(playerId);
+        String      cls   = ps.playerClass.name().toLowerCase();
+        ItemStack   main  = player.getInventory().getItemInMainHand();
+        if (main == null || main.getType() == Material.AIR) return;
 
-        // —— MAGE BASIC ATTACK (unchanged) ——
+        // —— MAGE BASIC ATTACK ——
         if (cls.equals("mage")) {
-            // … your existing mage‐branch here …
-            return;
-        }
+            // only with rod or stick
+            if (main.getType() != Material.BLAZE_ROD && main.getType() != Material.STICK) {
+                return;
+            }
 
-        // —— ROGUE & WARRIOR: always do a cone‐AoE on click if no combo active ——
-        if (cls.equals("rogue") || cls.equals("warrior")) {
-            // if they’re in the middle of a combo, record it instead
+            // if in a combo, just record the click
             if (!getActiveCombo(player).isEmpty()) {
                 recordComboClick(player, "L");
                 return;
             }
 
-            // level-gate (same as your other skills)
-            int level = LevelManager.getInstance().getLevel(player);
-            CustomItem ci = ItemManager.getInstance()
-                .getCustomItemFromItemStack(mainHand);
-            if (ci != null && level < ci.getLevelRequirement()) {
+            // level-gate
+            int lvl = LevelManager.getInstance().getLevel(player);
+            CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(main);
+            if (ci != null && lvl < ci.getLevelRequirement()) {
                 player.sendMessage("§cYou must be level " + ci.getLevelRequirement()
                     + " to use that attack with your " + ci.getBaseName() + "!");
                 return;
             }
 
-            // perform the full‐cone sweep no matter if you “hit” or not
+            // cooldown
+            if (mageCooldowns.containsKey(playerId) &&
+                now - mageCooldowns.get(playerId) < MAGE_ATTACK_COOLDOWN) {
+                return;
+            }
+
+            // do the basic mage skill
+            mageSpell.mageBasicSkill(player);
+            mageCooldowns.put(playerId, now);
+            return;
+        }
+
+        // —— ROGUE & WARRIOR: full-cone sweep on click if no combo active ——
+        if (cls.equals("rogue") || cls.equals("warrior")) {
+            // combo takes priority
+            if (!getActiveCombo(player).isEmpty()) {
+                recordComboClick(player, "L");
+                return;
+            }
+
+            // level-gate on weapon
+            int lvl = LevelManager.getInstance().getLevel(player);
+            CustomItem ci2 = ItemManager.getInstance().getCustomItemFromItemStack(main);
+            if (ci2 != null && lvl < ci2.getLevelRequirement()) {
+                player.sendMessage("§cYou must be level " + ci2.getLevelRequirement()
+                    + " to use that attack with your " + ci2.getBaseName() + "!");
+                return;
+            }
+
             doMeleeSweep(player, cls);
             return;
         }
