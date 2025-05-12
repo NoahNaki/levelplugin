@@ -33,14 +33,12 @@ public class MageSpell implements Listener {
     private final Main plugin = Main.getInstance();
     private final Logger logger = plugin.getLogger();
 
-    private final Map<UUID, Long> mageBasicCooldown = new HashMap<>();
-    private final Map<UUID, Double> teleportManaCosts = new HashMap<>();
-    private final Map<UUID, Long> lastTeleportTimes = new HashMap<>();
-    private static final Set<UUID> activeBlackholes = new HashSet<>();
+    private final Map<UUID, BlackholeTasks> playerBlackholes = new HashMap<>();
 
-    private static final double INITIAL_TELEPORT_MANA_COST = 5.0;
-    private static final double TELEPORT_MANA_MULTIPLIER = 1.2;
-    private static final long TELEPORT_RESET_TIME = 3000L;
+    private static class BlackholeTasks {
+        BukkitRunnable pullTask;
+        BukkitRunnable effectTask;
+    }
 
     public void castMageSpell(Player player, String effectKey) {
         try {
@@ -251,91 +249,41 @@ public class MageSpell implements Listener {
     }
 
     private void castBlackhole(Player player) throws SpellCastCancelledException {
-        // Prevent overlapping blackholes
-        if (!activeBlackholes.isEmpty()) {
-            String msg = "§cA blackhole is already active!";
-            player.sendMessage(msg);
-            throw new SpellCastCancelledException(msg);
-        }
         UUID pid = player.getUniqueId();
-        activeBlackholes.add(pid);
 
-        // Compute damage
+        // Cancel any existing blackhole for this player
+        if (playerBlackholes.containsKey(pid)) {
+            BlackholeTasks old = playerBlackholes.remove(pid);
+            if (old.pullTask != null) old.pullTask.cancel();
+            if (old.effectTask != null) old.effectTask.cancel();
+        }
+
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(pid);
         double damage = 10.0 + 0.5 * (ps.baseIntelligence + ps.bonusIntelligence);
 
-        // Determine center on surface of targeted block
         Block targetBlock = player.getTargetBlockExact(20);
         Location center;
         if (targetBlock != null) {
             center = targetBlock.getLocation().add(0.5, 1, 0.5);
         } else {
-            // Fallback: 10 blocks ahead at eye level
             center = player.getEyeLocation().add(player.getLocation().getDirection().multiply(10));
         }
 
         double pullRadius = 5.0;
         double damageRadius = 5.0;
 
-        // Initial VFX/SFX
         player.getWorld().playSound(player.getLocation(), Sound.BLOCK_RESPAWN_ANCHOR_CHARGE, 1f, 1f);
-        createBlackholeEffect(center, pullRadius);
 
-        // Pull & damage loop
-        new BukkitRunnable() {
-            int ticks = 0;
+        // Start effect and pull tasks
+        BlackholeTasks tasks = new BlackholeTasks();
+        tasks.effectTask = createBlackholeEffect(center, pullRadius);
+        tasks.pullTask = createPullAndDamageTask(player, center, pullRadius, damageRadius, damage);
 
-            @Override
-            public void run() {
-                if (ticks++ >= 50) {
-                    activeBlackholes.remove(pid);
-                    cancel();
-                    return;
-                }
-
-                for (Entity e : player.getWorld().getNearbyEntities(center, pullRadius, pullRadius, pullRadius)) {
-                    if (!(e instanceof LivingEntity) || e == player) continue;
-                    if (e instanceof Player
-                        && !DuelManager.getInstance().areInDuel(pid, ((Player) e).getUniqueId())) continue;
-
-                    LivingEntity le = (LivingEntity) e;
-                    // pull them in
-                    Vector pullVec = center.toVector().subtract(le.getLocation().toVector())
-                        .normalize().multiply(0.2);
-                    le.setVelocity(pullVec);
-
-                    // when in range, apply damage + chat & fire once
-                    if (le.getLocation().distance(center) <= damageRadius) {
-                        le.setFireTicks(100);
-                        SpellUtils.dealWithChat(
-                            player,
-                            le,
-                            damage,
-                            "Blackhole"
-                        );
-                        return;
-                    }
-                }
-
-                // ongoing VFX/SFX
-                for (double angle = 0; angle < 360; angle += 10) {
-                    double rad = Math.toRadians(angle);
-                    double x = pullRadius * Math.cos(rad);
-                    double z = pullRadius * Math.sin(rad);
-                    Location loc = center.clone().add(x, 0, z)
-                        .add(0, Math.sin(ticks / 10.0) * 0.5, 0);
-                    center.getWorld().spawnParticle(Particle.PORTAL, loc, 1, 0, 0, 0, 0);
-                    center.getWorld().spawnParticle(Particle.SMOKE, loc, 1, 0, 0, 0, 0);
-                }
-                center.getWorld().spawnParticle(Particle.DRAGON_BREATH, center, 5, 0.2, 0.2, 0.2, 0.02);
-            }
-        }.runTaskTimer(plugin, 0L, 2L);
+        playerBlackholes.put(pid, tasks);
     }
 
-
-
-    private void createBlackholeEffect(Location center, double radius) {
-        new BukkitRunnable() {
+    private BukkitRunnable createBlackholeEffect(Location center, double radius) {
+        BukkitRunnable effectTask = new BukkitRunnable() {
             int ticks = 0;
 
             @Override
@@ -348,14 +296,46 @@ public class MageSpell implements Listener {
                     double rad = Math.toRadians(angle);
                     double x = radius * Math.cos(rad);
                     double z = radius * Math.sin(rad);
-                    Location loc = center.clone().add(x, 0, z);
-                    loc.add(0, Math.sin(ticks / 10.0) * 0.5, 0);
+                    Location loc = center.clone().add(x, 0, z).add(0, Math.sin(ticks / 10.0) * 0.5, 0);
                     center.getWorld().spawnParticle(Particle.PORTAL, loc, 1, 0, 0, 0, 0);
                     center.getWorld().spawnParticle(Particle.SMOKE, loc, 1, 0, 0, 0, 0);
                 }
                 center.getWorld().spawnParticle(Particle.DRAGON_BREATH, center, 5, 0.2, 0.2, 0.2, 0.02);
             }
-        }.runTaskTimer(plugin, 0L, 2L);
+        };
+        effectTask.runTaskTimer(plugin, 0L, 2L);
+        return effectTask;
+    }
+
+    private BukkitRunnable createPullAndDamageTask(Player player, Location center, double pullRadius, double damageRadius, double damage) {
+        BukkitRunnable pullTask = new BukkitRunnable() {
+            int ticks = 0;
+
+            @Override public void run() {
+                if (ticks++ >= 50) {
+                    playerBlackholes.remove(player.getUniqueId());
+                    cancel();
+                    return;
+                }
+
+                for (Entity e : player.getWorld().getNearbyEntities(center, pullRadius, pullRadius, pullRadius)) {
+                    if (!(e instanceof LivingEntity) || e == player) continue;
+                    if (e instanceof Player && !DuelManager.getInstance().areInDuel(player.getUniqueId(), ((Player) e).getUniqueId())) continue;
+
+                    LivingEntity le = (LivingEntity) e;
+                    Vector pullVec = center.toVector().subtract(le.getLocation().toVector()).normalize().multiply(0.2);
+                    le.setVelocity(pullVec);
+
+                    if (le.getLocation().distance(center) <= damageRadius) {
+                        le.setFireTicks(100);
+                        SpellUtils.dealWithChat(player, le, damage, "Blackhole");
+                        return;
+                    }
+                }
+            }
+        };
+        pullTask.runTaskTimer(plugin, 0L, 2L);
+        return pullTask;
     }
 
     /** Heals the caster and nearby party members, but never a duel opponent. */
