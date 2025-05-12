@@ -480,4 +480,54 @@ public class RogueSpell implements Listener {
         player.sendMessage("§aYou unleash a thousand cuts upon your foe!");
         return true;  // success → mana *should* be consumed
     }
+
+    /**
+     * Performs a short cone-AoE sweep in front of the rogue.
+     */
+    public void rogueBasicSweep(Player player) {
+        // 1) Compute damage
+        double baseAtk = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue();
+        int agility = StatsManager.getInstance().getStatValue(player, StatsManager.StatType.AGI);
+        // you can tweak the multiplier as desired
+        double damage = baseAtk + (agility * 0.3);
+
+        World world = player.getWorld();
+        Location eye = player.getEyeLocation();
+        Vector forward = eye.getDirection().normalize();
+
+        // 2) Parameters for the cone
+        double coneAngle = Math.toRadians(60);    // 60° wide cone
+        double range     = 4.0;                   // 4 blocks out
+
+        // 3) Visual & sound feedback at origin
+        world.spawnParticle(Particle.SWEEP_ATTACK, player.getLocation(), 1, 0, 0, 0, 0);
+        world.playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1f);
+
+        // 4) Find and hit all entities in front
+        for (Entity e : world.getNearbyEntities(player.getLocation(), range, range, range)) {
+            if (!(e instanceof LivingEntity target) || target.equals(player)) continue;
+
+            // only hit players if they're in a duel
+            if (target instanceof Player p &&
+                !DuelManager.getInstance().areInDuel(player.getUniqueId(), p.getUniqueId())) {
+                continue;
+            }
+
+            // check if target is within the forward cone
+            Vector toTarget = target.getLocation().toVector()
+                .subtract(eye.toVector())
+                .normalize();
+            double angleBetween = forward.angle(toTarget);
+            if (angleBetween <= (coneAngle / 2)) {
+                // hit!
+                // 5a) particle & sound on each hit
+                world.spawnParticle(Particle.CRIT, target.getLocation(), 10, 0.2, 0.2, 0.2, 0.02);
+                world.playSound(target.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1f);
+
+                // 5b) apply damage via your utility
+                SpellUtils.dealWithChat(player, target, damage, "Rogue Basic Sweep");
+            }
+        }
+    }
+
 }

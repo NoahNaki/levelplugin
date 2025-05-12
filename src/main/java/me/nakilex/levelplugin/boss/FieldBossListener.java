@@ -75,9 +75,9 @@ public class FieldBossListener implements Listener {
 
         String raw = mob.getType().getDisplayName().get();
         String name = stripTags(raw).toLowerCase(Locale.ROOT);
-        System.out.println("[DEBUG][FieldBoss] raw displayName: \"" + raw + "\"");
-        System.out.println("[DEBUG][FieldBoss] stripped→lowercase: \"" + name + "\"");
-        System.out.println("[DEBUG][FieldBoss] cfgKey lookup yields: " + bossKeyMap.get(name));
+//        System.out.println("[DEBUG][FieldBoss] raw displayName: \"" + raw + "\"");
+//        System.out.println("[DEBUG][FieldBoss] stripped→lowercase: \"" + name + "\"");
+//        System.out.println("[DEBUG][FieldBoss] cfgKey lookup yields: " + bossKeyMap.get(name));
 
         String cfgKey = bossKeyMap.get(name);
         if (cfgKey == null) return;

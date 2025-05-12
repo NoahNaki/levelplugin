@@ -144,7 +144,7 @@ public class MageSpell implements Listener {
             .areInDuel(caster.getUniqueId(), p.getUniqueId());
     }
 
-    private void castMeteor(Player player) {
+    public void castMeteor(Player player) {
         plugin.getLogger().info("castMeteor called by " + player.getName());
 
         // Compute damage
@@ -159,12 +159,20 @@ public class MageSpell implements Listener {
         // Determine target location
         Location target = Optional.ofNullable(player.getTargetBlockExact(20))
             .map(b -> b.getLocation().add(0.5, 1, 0.5))
-            .orElseGet(() -> player.getLocation().add(player.getLocation().getDirection().normalize().multiply(5)));
+            .orElseGet(() -> player.getLocation()
+                .add(player.getLocation().getDirection().normalize().multiply(5)));
+
+        World world = player.getWorld();
+
+        // Adjust spawn height to avoid low ceilings
+        Location spawn = target.clone().add(0, 15, 0);
+        while (spawn.getY() < world.getMaxHeight() && spawn.getBlock().getType().isSolid()) {
+            spawn.add(0, 1, 0);
+        }
 
         // Launch fireball
-        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 1f, 1f);
-        Location spawnLocation = target.clone().add(0, 15, 0);
-        Fireball fireball = player.getWorld().spawn(spawnLocation, Fireball.class);
+        world.playSound(player.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 1f, 1f);
+        Fireball fireball = world.spawn(spawn, Fireball.class);
         fireball.setShooter(player);
         fireball.setVelocity(new Vector(0, -1.5, 0));
         fireball.setIsIncendiary(false);
@@ -174,7 +182,10 @@ public class MageSpell implements Listener {
         // Trail effect
         new BukkitRunnable() {
             @Override public void run() {
-                if (!fireball.isValid()) { cancel(); return; }
+                if (!fireball.isValid()) {
+                    cancel();
+                    return;
+                }
                 Location fbLoc = fireball.getLocation();
                 fbLoc.getWorld().spawnParticle(Particle.FLAME, fbLoc, 10, 0.3, 0.3, 0.3, 0.02);
                 fbLoc.getWorld().spawnParticle(Particle.LARGE_SMOKE, fbLoc, 5, 0.2, 0.2, 0.2, 0.02);
@@ -187,7 +198,9 @@ public class MageSpell implements Listener {
             @EventHandler public void onProjectileHit(ProjectileHitEvent event) {
                 if (!(event.getEntity() instanceof Fireball fb)
                     || !fb.hasMetadata("Meteor")
-                    || !fb.equals(fireball)) return;
+                    || !fb.equals(fireball)) {
+                    return;
+                }
 
                 World w = fb.getWorld();
                 Location loc = fb.getLocation();
@@ -197,7 +210,7 @@ public class MageSpell implements Listener {
                 double radius = 4.0;
                 for (Entity e : w.getNearbyEntities(loc, radius, radius, radius)) {
                     if (!(e instanceof LivingEntity le) || le == player) continue;
-                    if (!canHit(player, le)) continue;  // ← skip non-duel players
+                    if (!canHit(player, le)) continue;
 
                     le.setFireTicks(100);
                     SpellUtils.dealWithChat(
