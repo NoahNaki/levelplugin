@@ -319,50 +319,60 @@ public class ClickComboListener implements Listener {
         Location eye       = player.getEyeLocation();
         Vector  fwd        = eye.getDirection().setY(0).normalize();
 
-        // —— 2) One singular sweep effect around your crosshair ——
+        // —— 2) Visual/sound sweep effect ——
         Location effectLoc = eye.clone().add(fwd.clone().multiply(2.0));
-        world.spawnParticle(
-            Particle.SWEEP_ATTACK,
-            effectLoc,
-            1, 0, 0, 0, 0
-        );
-        world.playSound(
-            effectLoc,
-            Sound.ENTITY_PLAYER_ATTACK_SWEEP,
-            1f, 1f
-        );
+        world.spawnParticle(Particle.SWEEP_ATTACK, effectLoc, 1, 0, 0, 0, 0);
+        world.playSound(effectLoc, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1f);
 
-        // —— 3) Damage calculation (works for both rogue & warrior) ——
+        // —— 3) Base damage calc ——
         double baseAtk = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue();
         int    stat    = cls.equals("warrior")
-            ? StatsManager.getInstance()
-            .getStatValue(player, StatsManager.StatType.STR)
-            : StatsManager.getInstance()
-            .getStatValue(player, StatsManager.StatType.AGI);
+            ? StatsManager.getInstance().getStatValue(player, StatsManager.StatType.STR)
+            : StatsManager.getInstance().getStatValue(player, StatsManager.StatType.AGI);
         double damage  = baseAtk + (stat * 0.5);
 
-        // —— 4) Cone parameters & hit detection ——
+        // —— 4) Crit roll ——
+        boolean isCrit = Math.random() < 0.10; // 10% crit chance
+        if (isCrit) {
+            damage *= 1.5;
+        }
+        String attackName = isCrit ? "Critical Sweep Attack" : "Sweep Attack";
+
+        // —— 5) Cone parameters & hit detection ——
         double range     = 4.0;
         double halfAngle = Math.toRadians(60) / 2;
-        for (Entity e : world.getNearbyEntities(
-            player.getLocation(),
-            range, range, range)) {
+        for (Entity e : world.getNearbyEntities(player.getLocation(), range, range, range)) {
             if (!(e instanceof LivingEntity target) || target.equals(player)) continue;
             if (target instanceof Player p
-                && !DuelManager.getInstance()
-                .areInDuel(player.getUniqueId(), p.getUniqueId())) {
+                && !DuelManager.getInstance().areInDuel(player.getUniqueId(), p.getUniqueId())) {
                 continue;
             }
 
             Vector toTarget = target.getLocation().toVector()
                 .subtract(player.getLocation().toVector())
-                .setY(0)
-                .normalize();
+                .setY(0).normalize();
             if (fwd.angle(toTarget) <= halfAngle) {
-                SpellUtils.dealWithChat(player, target, damage, "Sweep Attack");
+                // Deal damage & chat
+                SpellUtils.dealWithChat(player, target, damage, attackName);
+
+                // —— Combat log entry ——
+                Main.getInstance().getLogger().info(String.format(
+                    "[CombatLog] %s → %s : %s for %.1f dmg",
+                    player.getName(),
+                    (target instanceof Player
+                        ? ((Player) target).getName()
+                        : target.getType().name()),
+                    attackName,
+                    damage
+                ));
+
+                // If you only want ONE target per sweep, uncomment:
+                // break;
             }
         }
     }
+
+
 
 
     @EventHandler
