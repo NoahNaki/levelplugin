@@ -145,7 +145,7 @@ public class MageSpell implements Listener {
     public void castMeteor(Player player) {
         plugin.getLogger().info("castMeteor called by " + player.getName());
 
-        // Compute damage
+        // 1) Compute damage
         StatsManager.PlayerStats ps = StatsManager.getInstance()
             .getPlayerStats(player.getUniqueId());
         int playerInt = ps.baseIntelligence + ps.bonusIntelligence;
@@ -154,76 +154,76 @@ public class MageSpell implements Listener {
         int weaponInt = (cItem != null) ? cItem.getIntel() : 0;
         double finalDamage = 6.0 + 1.0 * (playerInt + weaponInt);
 
-        // Determine target location
-        Location target = Optional.ofNullable(player.getTargetBlockExact(20))
-            .map(b -> b.getLocation().add(0.5, 1, 0.5))
-            .orElseGet(() -> player.getLocation()
-                .add(player.getLocation().getDirection().normalize().multiply(5)));
-
         World world = player.getWorld();
 
-        // Adjust spawn height to avoid low ceilings
-        Location spawn = target.clone().add(0, 15, 0);
-        while (spawn.getY() < world.getMaxHeight() && spawn.getBlock().getType().isSolid()) {
-            spawn.add(0, 1, 0);
-        }
+        // 2) Determine true impact point
+        Block targetBlock = player.getTargetBlockExact(20);
+        Location impact = (targetBlock != null)
+            ? targetBlock.getLocation().add(0.5, 1, 0.5)
+            : player.getLocation().add(player.getLocation().getDirection().multiply(20));
 
-        // Launch fireball
+        // 3) Compute spawn location (high above)
+        Location spawn = impact.clone().add(0, 30, 0);
+
+        // 4) Play launch sound
         world.playSound(player.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 1f, 1f);
-        Fireball fireball = world.spawn(spawn, Fireball.class);
-        fireball.setShooter(player);
-        fireball.setVelocity(new Vector(0, -1.5, 0));
-        fireball.setIsIncendiary(false);
-        fireball.setYield(0f);
-        fireball.setMetadata("Meteor", new FixedMetadataValue(plugin, true));
 
-        // Trail effect
+        // 5) Animate the meteor descending
         new BukkitRunnable() {
+            final Vector step = impact.toVector()
+                .subtract(spawn.toVector())
+                .normalize()
+                .multiply(1.0); // 1 block per tick = 20 blocks/sec
+            Location loc = spawn.clone();
+            boolean exploded = false;
+
             @Override public void run() {
-                if (!fireball.isValid()) {
+                if (exploded) {
                     cancel();
                     return;
                 }
-                Location fbLoc = fireball.getLocation();
-                fbLoc.getWorld().spawnParticle(Particle.FLAME, fbLoc, 10, 0.3, 0.3, 0.3, 0.02);
-                fbLoc.getWorld().spawnParticle(Particle.LARGE_SMOKE, fbLoc, 5, 0.2, 0.2, 0.2, 0.02);
-                fbLoc.getWorld().playSound(fbLoc, Sound.ENTITY_BLAZE_SHOOT, 0.5f, 1f);
-            }
-        }.runTaskTimer(plugin, 0L, 2L);
 
-        // Impact listener
-        Bukkit.getPluginManager().registerEvents(new Listener() {
-            @EventHandler public void onProjectileHit(ProjectileHitEvent event) {
-                if (!(event.getEntity() instanceof Fireball fb)
-                    || !fb.hasMetadata("Meteor")
-                    || !fb.equals(fireball)) {
-                    return;
-                }
+                // advance
+                loc.add(step);
 
-                World w = fb.getWorld();
-                Location loc = fb.getLocation();
-                w.spawnParticle(Particle.EXPLOSION, loc, 1);
-                w.playSound(loc, Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
+                // trail effects
+                world.spawnParticle(Particle.FLAME, loc, 8, 0.2, 0.2, 0.2, 0.02);
+                world.spawnParticle(Particle.LARGE_SMOKE, loc, 5, 0.2, 0.2, 0.2, 0.02);
+                world.playSound(loc, Sound.ENTITY_BLAZE_SHOOT, 0.3f, 1f);
 
-                double radius = 4.0;
-                for (Entity e : w.getNearbyEntities(loc, radius, radius, radius)) {
+                // 6a) Entity collision?
+                for (Entity e : world.getNearbyEntities(loc, 1, 1, 1)) {
                     if (!(e instanceof LivingEntity le) || le == player) continue;
                     if (!canHit(player, le)) continue;
 
+                    explodeAt(loc);
                     le.setFireTicks(100);
-                    SpellUtils.dealWithChat(
-                        player,
-                        le,
-                        finalDamage,
-                        "Meteor"
-                    );
+                    SpellUtils.dealWithChat(player, le, finalDamage, "Meteor");
+                    exploded = true;
+                    return;
                 }
 
-                fb.remove();
-                ProjectileHitEvent.getHandlerList().unregister(this);
+                // 6b) Reached impact point?
+                if (loc.distanceSquared(impact) < 1.0) {
+                    explodeAt(impact);
+                    exploded = true;
+                }
             }
-        }, plugin);
+
+            private void explodeAt(Location here) {
+                world.spawnParticle(Particle.EXPLOSION, here, 1);
+                world.playSound(here, Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
+                double radius = 4.0;
+                for (Entity e : world.getNearbyEntities(here, radius, radius, radius)) {
+                    if (!(e instanceof LivingEntity le) || le == player) continue;
+                    if (!canHit(player, le)) continue;
+                    le.setFireTicks(100);
+                    SpellUtils.dealWithChat(player, le, finalDamage, "Meteor");
+                }
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
     }
+
 
     @EventHandler
     public void onFireballDamage(EntityDamageByEntityEvent event) {
