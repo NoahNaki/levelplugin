@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin;
 
+import de.slikey.effectlib.EffectManager;
 import io.lumine.mythic.bukkit.BukkitAPIHelper;
 import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
@@ -8,7 +9,6 @@ import me.nakilex.levelplugin.duels.listeners.ProjectileFriendlyFireListener;
 import me.nakilex.levelplugin.economy.gui.GemExchangeGUI;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.economy.managers.GemsManager;
-import me.nakilex.levelplugin.effects.managers.EffectManager;
 import me.nakilex.levelplugin.horse.gui.HorseGUI;
 import me.nakilex.levelplugin.horse.managers.HorseConfigManager;
 import me.nakilex.levelplugin.horse.managers.HorseManager;
@@ -182,12 +182,12 @@ public class Main extends JavaPlugin {
         dmgNumberToggleManager = new DmgNumberToggleManager();
         upgradeKey = new NamespacedKey(this, "upgrade_level");
         levelManager = new LevelManager(this);
+        effectManager = new EffectManager(this);
         economyManager = new EconomyManager(this);
         itemUpgradeManager = new ItemUpgradeManager(this);
         mobManager = new MobManager(this);
         spellmanager = new SpellManager(this);
         partyManager = new PartyManager();
-        effectManager = new EffectManager();
         gemsManager = new GemsManager();
         gemGui      = new GemExchangeGUI(this, gemsManager);
         this.tipsCfg     = new TipsConfigManager(this);
@@ -222,7 +222,6 @@ public class Main extends JavaPlugin {
             levelManager,
             economyManager,
             partyManager,
-            effectManager,
             potionManager,
             lootChestManager,
             configManager,
@@ -378,6 +377,8 @@ public class Main extends JavaPlugin {
     public FileConfiguration getBossConfig() {
         return bossConfig;
     }
+
+    public EffectManager getEffectManager() { return effectManager; }
 
 
     private void createCustomConfig() {

@@ -1,7 +1,6 @@
 package me.nakilex.levelplugin.spells;
 
 import me.nakilex.levelplugin.duels.managers.DuelManager;
-import me.nakilex.levelplugin.effects.utils.ParticleEffectUtil;
 import me.nakilex.levelplugin.spells.utils.SpellUtils;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
@@ -47,7 +46,7 @@ public class WarriorSpell {
     // ─────────────────────────────────────────────────────
     private void castIronFortress(Player player) {
         player.getWorld().playSound(player.getLocation(), Sound.ITEM_SHIELD_BLOCK, 1f, 1f);
-        ParticleEffectUtil.createShieldEffect(player.getLocation(), 2, Particle.BLOCK_CRUMBLE, Material.IRON_BLOCK);
+        //ParticleEffectUtil.createShieldEffect(player.getLocation(), 2, Particle.BLOCK_CRUMBLE, Material.IRON_BLOCK);
 
         List<ArmorStand> shields = new ArrayList<>();
         for (int i = 0; i < 4; i++) {

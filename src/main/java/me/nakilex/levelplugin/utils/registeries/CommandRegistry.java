@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.utils.registeries;
 
+import de.slikey.effectlib.EffectManager;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.blacksmith.commands.BlacksmithCommand;
 import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
@@ -7,7 +8,6 @@ import me.nakilex.levelplugin.duels.commands.DuelCommand;
 import me.nakilex.levelplugin.economy.commands.*;
 import me.nakilex.levelplugin.economy.gui.GemExchangeGUI;
 import me.nakilex.levelplugin.economy.managers.GemsManager;
-import me.nakilex.levelplugin.effects.commands.EffectCommand;
 import me.nakilex.levelplugin.horse.commands.HorseCommand;
 import me.nakilex.levelplugin.horse.gui.HorseGUI;
 import me.nakilex.levelplugin.items.commands.AddItemCommand;
@@ -36,7 +36,6 @@ import me.nakilex.levelplugin.tips.TipsConfigManager;
 import me.nakilex.levelplugin.tips.TipsReloadCommand;
 import me.nakilex.levelplugin.trade.commands.TradeCommand;
 import me.nakilex.levelplugin.party.PartyCommands;
-import me.nakilex.levelplugin.effects.managers.EffectManager;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.horse.managers.HorseManager;
 import me.nakilex.levelplugin.party.PartyManager;
@@ -52,7 +51,6 @@ public class CommandRegistry {
                                         LevelManager levelManager,
                                         EconomyManager economyManager,
                                         PartyManager partyManager,
-                                        EffectManager effectManager,
                                         PotionManager potionManager,
                                         LootChestManager lootChestManager,
                                         ConfigManager configManager,
@@ -77,7 +75,6 @@ public class CommandRegistry {
         plugin.getCommand("addcoins").setExecutor(new AddCoinsCommand(economyManager));
         plugin.getCommand("blacksmith").setExecutor(new BlacksmithCommand(blacksmithGUI));
         plugin.getCommand("horse").setExecutor(new HorseCommand(horseManager, horseGUI));
-        plugin.getCommand("effect").setExecutor(new EffectCommand(effectManager));
         plugin.getCommand("party").setExecutor(new PartyCommands(partyManager));
         plugin.getCommand("addpotion").setExecutor(new AddPotionCommand(potionManager, plugin));
         plugin.getCommand("lootchest").setExecutor(new LootChestCommand(configManager, lootChestManager));

@@ -1,5 +1,7 @@
 package me.nakilex.levelplugin.spells;
 
+import de.slikey.effectlib.effect.HelixEffect;
+import de.slikey.effectlib.effect.SphereEffect;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
@@ -18,9 +20,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
@@ -152,7 +152,7 @@ public class MageSpell implements Listener {
         ItemStack mainHand = player.getInventory().getItemInMainHand();
         CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(mainHand);
         int weaponInt = (cItem != null) ? cItem.getIntel() : 0;
-        double finalDamage = 6.0 + 1.0 * (playerInt + weaponInt);
+        double finalDamage = 6.0 + (playerInt + weaponInt);
 
         World world = player.getWorld();
 
@@ -162,57 +162,84 @@ public class MageSpell implements Listener {
             ? targetBlock.getLocation().add(0.5, 1, 0.5)
             : player.getLocation().add(player.getLocation().getDirection().multiply(20));
 
-        // 3) Compute spawn location (high above)
-        Location spawn = impact.clone().add(0, 30, 0);
+        // 3) Build directional spawn above-left of the impact
+        Vector look = player.getEyeLocation().getDirection().normalize();
+        Vector up = new Vector(0, 1, 0);
+        // Compute right = up × look, then left = -right
+        Vector right = up.clone().crossProduct(look).normalize();
+        Vector left = right.clone().multiply(-1);
+
+        double heightAbove = 30;
+        double horizontalOffset = 18;
+        Location spawn = impact.clone()
+            .add(up.multiply(heightAbove))
+            .add(left.multiply(horizontalOffset));
 
         // 4) Play launch sound
         world.playSound(player.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 1f, 1f);
 
-        // 5) Animate the meteor descending
+        // 5) Animate with fiery helix trails
         new BukkitRunnable() {
             final Vector step = impact.toVector()
                 .subtract(spawn.toVector())
                 .normalize()
-                .multiply(1.0); // 1 block per tick = 20 blocks/sec
+                .multiply(2.2);
             Location loc = spawn.clone();
-            boolean exploded = false;
+            int ticks = 0;
 
-            @Override public void run() {
-                if (exploded) {
+            @Override
+            public void run() {
+                ticks++;
+                loc.add(step);
+
+                // twin fiery helices
+                for (int sign : new int[]{1, -1}) {
+                    HelixEffect helix = new HelixEffect(Main.getInstance().getEffectManager());
+                    helix.setLocation(loc);
+                    helix.particle = Particle.FLAME;
+                    helix.strands = 1;
+                    helix.particles = 15;
+                    helix.radius = 0.6f;
+                    helix.curve = 1.0f;
+                    helix.rotation = sign * ticks * 0.3;
+                    helix.iterations = 1;
+                    helix.period = 1;
+                    helix.start();
+                }
+
+                world.playSound(loc, Sound.ENTITY_BLAZE_SHOOT, 0.4f, 1f);
+
+                // entity collision
+                for (Entity e : world.getNearbyEntities(loc, 1.2, 1.2, 1.2)) {
+                    if (!(e instanceof LivingEntity le) || le == player) continue;
+                    if (!canHit(player, le)) continue;
+                    impactNow(loc);
                     cancel();
                     return;
                 }
 
-                // advance
-                loc.add(step);
-
-                // trail effects
-                world.spawnParticle(Particle.FLAME, loc, 8, 0.2, 0.2, 0.2, 0.02);
-                world.spawnParticle(Particle.LARGE_SMOKE, loc, 5, 0.2, 0.2, 0.2, 0.02);
-                world.playSound(loc, Sound.ENTITY_BLAZE_SHOOT, 0.3f, 1f);
-
-                // 6a) Entity collision?
-                for (Entity e : world.getNearbyEntities(loc, 1, 1, 1)) {
-                    if (!(e instanceof LivingEntity le) || le == player) continue;
-                    if (!canHit(player, le)) continue;
-
-                    explodeAt(loc);
-                    le.setFireTicks(100);
-                    SpellUtils.dealWithChat(player, le, finalDamage, "Meteor");
-                    exploded = true;
-                    return;
-                }
-
-                // 6b) Reached impact point?
+                // reached ground
                 if (loc.distanceSquared(impact) < 1.0) {
-                    explodeAt(impact);
-                    exploded = true;
+                    impactNow(impact);
+                    cancel();
                 }
             }
 
-            private void explodeAt(Location here) {
-                world.spawnParticle(Particle.EXPLOSION, here, 1);
+            private void impactNow(Location here) {
+                // 6) Shockwave
+                SphereEffect shock = new SphereEffect(Main.getInstance().getEffectManager());
+                shock.setLocation(here);
+                shock.particle = Particle.EXPLOSION;
+                shock.particles = 20;
+                shock.radius = 3.0;
+                shock.iterations = 5;
+                shock.period = 1;
+                shock.yOffset = 0.0;
+                shock.start();
+
                 world.playSound(here, Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
+
+                // 7) Damage
                 double radius = 4.0;
                 for (Entity e : world.getNearbyEntities(here, radius, radius, radius)) {
                     if (!(e instanceof LivingEntity le) || le == player) continue;
@@ -223,6 +250,8 @@ public class MageSpell implements Listener {
             }
         }.runTaskTimer(plugin, 0L, 1L);
     }
+
+
 
 
     @EventHandler
