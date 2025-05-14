@@ -13,15 +13,15 @@ import me.nakilex.levelplugin.spells.utils.SpellUtils;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.block.Block;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.Fireball;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.EulerAngle;
 import org.bukkit.util.Vector;
 
 import java.util.*;
@@ -142,6 +142,16 @@ public class MageSpell implements Listener {
             .areInDuel(caster.getUniqueId(), p.getUniqueId());
     }
 
+    // In your main listener class (or wherever you register events):
+    @EventHandler
+    public void onMeteorPlace(EntityChangeBlockEvent evt) {
+        if (!(evt.getEntity() instanceof FallingBlock fb)) return;
+        if (!fb.hasMetadata("Meteor"))         return;
+        // Prevent placement
+        evt.setCancelled(true);
+        fb.remove();
+    }
+
     public void castMeteor(Player player) {
         plugin.getLogger().info("castMeteor called by " + player.getName());
 
@@ -162,23 +172,34 @@ public class MageSpell implements Listener {
             ? targetBlock.getLocation().add(0.5, 1, 0.5)
             : player.getLocation().add(player.getLocation().getDirection().multiply(20));
 
-        // 3) Build directional spawn above-left of the impact
+        // 3) Build directional spawn above-left
         Vector look = player.getEyeLocation().getDirection().normalize();
-        Vector up = new Vector(0, 1, 0);
-        // Compute right = up × look, then left = -right
-        Vector right = up.clone().crossProduct(look).normalize();
+        Vector up   = new Vector(0, 1, 0);
+        Vector right= up.clone().crossProduct(look).normalize();
         Vector left = right.clone().multiply(-1);
 
-        double heightAbove = 30;
-        double horizontalOffset = 18;
+        double heightAbove       = 30;
+        double horizontalOffset  = 18;
         Location spawn = impact.clone()
             .add(up.multiply(heightAbove))
             .add(left.multiply(horizontalOffset));
 
-        // 4) Play launch sound
+        // 4) Launch sound
         world.playSound(player.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 1f, 1f);
 
-        // 5) Animate with fiery helix trails
+        // 5) Spawn rotating armour-stand blocks
+        List<Vector> offsets = getSphereOffsets(0.5, 8);
+        List<ArmorStand> stands = new ArrayList<>();
+        for (Vector off : offsets) {
+            ArmorStand as = (ArmorStand) world.spawn(spawn.clone().add(off), ArmorStand.class, stand -> {
+                stand.setInvisible(true);
+                stand.setMarker(true);
+                stand.setGravity(false);
+                stand.getEquipment().setHelmet(new ItemStack(Material.MAGMA_BLOCK));
+            });
+            stands.add(as);
+        }
+
         new BukkitRunnable() {
             final Vector step = impact.toVector()
                 .subtract(spawn.toVector())
@@ -192,27 +213,40 @@ public class MageSpell implements Listener {
                 ticks++;
                 loc.add(step);
 
-                // twin fiery helices
+                // move & rotate each armour-stand
+                double spinAngle = ticks * 0.2;
+                Vector axis = step.clone().normalize();
+                for (int i = 0; i < stands.size(); i++) {
+                    ArmorStand as = stands.get(i);
+                    Vector baseOffset = offsets.get(i);
+                    Vector rotated = rotateAroundAxis(baseOffset, axis, spinAngle);
+                    as.teleport(loc.clone().add(rotated));
+                    as.setHeadPose(new EulerAngle(spinAngle, spinAngle, 0));
+                }
+
+                // fiery helices (unchanged)
                 for (int sign : new int[]{1, -1}) {
                     HelixEffect helix = new HelixEffect(Main.getInstance().getEffectManager());
                     helix.setLocation(loc);
-                    helix.particle = Particle.FLAME;
-                    helix.strands = 1;
-                    helix.particles = 15;
-                    helix.radius = 0.6f;
-                    helix.curve = 1.0f;
-                    helix.rotation = sign * ticks * 0.3;
+                    helix.particle   = Particle.FLAME;
+                    helix.strands    = 1;
+                    helix.particles  = 15;
+                    helix.radius     = 0.6f;
+                    helix.curve      = 1.0f;
+                    helix.rotation   = sign * ticks * 0.3;
                     helix.iterations = 1;
-                    helix.period = 1;
+                    helix.period     = 1;
                     helix.start();
                 }
 
                 world.playSound(loc, Sound.ENTITY_BLAZE_SHOOT, 0.4f, 1f);
 
-                // entity collision
+                // collision check: skip ArmorStands so they don't trigger it
                 for (Entity e : world.getNearbyEntities(loc, 1.2, 1.2, 1.2)) {
+                    if (e instanceof ArmorStand) continue;
                     if (!(e instanceof LivingEntity le) || le == player) continue;
                     if (!canHit(player, le)) continue;
+
                     impactNow(loc);
                     cancel();
                     return;
@@ -225,21 +259,34 @@ public class MageSpell implements Listener {
                 }
             }
 
+            /** Rotate vector v around unit‐axis by theta radians (Rodrigues’ formula) */
+            private Vector rotateAroundAxis(Vector v, Vector axis, double theta) {
+                double cos = Math.cos(theta), sin = Math.sin(theta);
+                double dot = v.dot(axis);
+                Vector term1 = v.clone().multiply(cos);
+                Vector term2 = axis.clone().multiply(dot * (1 - cos));
+                Vector term3 = axis.clone().crossProduct(v).multiply(sin);
+                return term1.add(term2).add(term3);
+            }
+
             private void impactNow(Location here) {
-                // 6) Shockwave
+                // clean up stands
+                for (ArmorStand as : stands) as.remove();
+                stands.clear();
+
+                // shockwave + damage (unchanged)
                 SphereEffect shock = new SphereEffect(Main.getInstance().getEffectManager());
                 shock.setLocation(here);
-                shock.particle = Particle.EXPLOSION;
-                shock.particles = 20;
-                shock.radius = 3.0;
+                shock.particle   = Particle.EXPLOSION;
+                shock.particles  = 20;
+                shock.radius     = 3.0;
                 shock.iterations = 5;
-                shock.period = 1;
-                shock.yOffset = 0.0;
+                shock.period     = 1;
+                shock.yOffset    = 0.0;
                 shock.start();
 
                 world.playSound(here, Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
 
-                // 7) Damage
                 double radius = 4.0;
                 for (Entity e : world.getNearbyEntities(here, radius, radius, radius)) {
                     if (!(e instanceof LivingEntity le) || le == player) continue;
@@ -251,6 +298,22 @@ public class MageSpell implements Listener {
         }.runTaskTimer(plugin, 0L, 1L);
     }
 
+
+    /**
+     * Generate up to maxPoints evenly spread offsets in a sphere of given radius.
+     */
+    private List<Vector> getSphereOffsets(double radius, int maxPoints) {
+        List<Vector> list = new ArrayList<>();
+        for (int i = 0; i < maxPoints; i++) {
+            double theta = Math.acos(2 * Math.random() - 1);
+            double phi   = 2 * Math.PI * Math.random();
+            double x = radius * Math.sin(theta) * Math.cos(phi);
+            double y = radius * Math.sin(theta) * Math.sin(phi);
+            double z = radius * Math.cos(theta);
+            list.add(new Vector(x, y, z));
+        }
+        return list;
+    }
 
 
 
