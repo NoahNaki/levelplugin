@@ -211,10 +211,23 @@ public class MageSpell implements Listener {
             @Override
             public void run() {
                 ticks++;
+                // 1) Move meteor forward
                 loc.add(step);
 
-                // move & rotate each armour-stand
-                double spinAngle = ticks * 0.2;
+                // 2) Compute a point slightly behind the meteor along its path
+                Location trailPos = loc.clone().subtract(step.clone().normalize().multiply(1.0));
+
+                // 3) Spawn your flame trail at that fixed offset
+                world.spawnParticle(
+                    Particle.FLAME,
+                    trailPos,
+                    8,             // particle count
+                    0.2, 0.2, 0.2, // random offsets
+                    0.01           // speed
+                );
+
+                // 4) Move & rotate each armour-stand block
+                double spinAngle = ticks * 0.1;
                 Vector axis = step.clone().normalize();
                 for (int i = 0; i < stands.size(); i++) {
                     ArmorStand as = stands.get(i);
@@ -224,14 +237,14 @@ public class MageSpell implements Listener {
                     as.setHeadPose(new EulerAngle(spinAngle, spinAngle, 0));
                 }
 
-                // fiery helices (unchanged)
+                // 5) Fiery helices
                 for (int sign : new int[]{1, -1}) {
                     HelixEffect helix = new HelixEffect(Main.getInstance().getEffectManager());
                     helix.setLocation(loc);
                     helix.particle   = Particle.FLAME;
                     helix.strands    = 1;
-                    helix.particles  = 15;
-                    helix.radius     = 0.6f;
+                    helix.particles  = 1;
+                    helix.radius     = 0.1f;
                     helix.curve      = 1.0f;
                     helix.rotation   = sign * ticks * 0.3;
                     helix.iterations = 1;
@@ -241,7 +254,7 @@ public class MageSpell implements Listener {
 
                 world.playSound(loc, Sound.ENTITY_BLAZE_SHOOT, 0.4f, 1f);
 
-                // collision check: skip ArmorStands so they don't trigger it
+                // 6) Collision check: skip ArmorStand entities
                 for (Entity e : world.getNearbyEntities(loc, 1.2, 1.2, 1.2)) {
                     if (e instanceof ArmorStand) continue;
                     if (!(e instanceof LivingEntity le) || le == player) continue;
@@ -252,15 +265,16 @@ public class MageSpell implements Listener {
                     return;
                 }
 
-                // reached ground
+                // 7) Impact on ground
                 if (loc.distanceSquared(impact) < 1.0) {
                     impactNow(impact);
                     cancel();
                 }
             }
 
-            /** Rotate vector v around unit‐axis by theta radians (Rodrigues’ formula) */
+            /** Rotate vector v around unit-axis by theta radians (Rodrigues’ formula) */
             private Vector rotateAroundAxis(Vector v, Vector axis, double theta) {
+                axis = axis.clone().normalize();
                 double cos = Math.cos(theta), sin = Math.sin(theta);
                 double dot = v.dot(axis);
                 Vector term1 = v.clone().multiply(cos);
@@ -270,11 +284,11 @@ public class MageSpell implements Listener {
             }
 
             private void impactNow(Location here) {
-                // clean up stands
+                // Clean up armour-stands
                 for (ArmorStand as : stands) as.remove();
                 stands.clear();
 
-                // shockwave + damage (unchanged)
+                // Shockwave + damage
                 SphereEffect shock = new SphereEffect(Main.getInstance().getEffectManager());
                 shock.setLocation(here);
                 shock.particle   = Particle.EXPLOSION;
