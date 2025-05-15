@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.economy.managers.GemsManager;
 import me.nakilex.levelplugin.party.Party;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.util.List;
@@ -105,40 +106,41 @@ public class MyCustomExpansion extends PlaceholderExpansion {
 
 
         if (identifier.startsWith("party_member_")) {
-            String slotString = identifier.substring("party_member_".length()); // e.g. "1"
+            // e.g. identifier = "party_member_2"
             int slot;
             try {
-                slot = Integer.parseInt(slotString);
+                slot = Integer.parseInt(identifier.substring("party_member_".length()));
             } catch (NumberFormatException e) {
-                return ""; // Invalid number
+                return "";
             }
 
             PartyManager partyManager = plugin.getPartyManager();
             Party party = partyManager.getParty(player.getUniqueId());
             if (party == null) {
-                // If not in a party, show "No Party" for slot 1, blank for others
                 return slot == 1 ? "No Party" : "";
             }
 
             List<UUID> members = party.getMembers();
             if (slot < 1 || slot > members.size()) {
-                return ""; // No member at this slot
-            }
-
-            UUID memberId = members.get(slot - 1);
-            Player member = plugin.getServer().getPlayer(memberId);
-            if (member == null || !member.isOnline()) {
                 return "";
             }
 
-            // Retrieve the member's level using LevelManager
-            LevelManager levelManager = LevelManager.getInstance();
-            int memberLevel = (levelManager != null) ? levelManager.getLevel(member) : 1;
-            double hp = member.getHealth();
+            UUID memberId = members.get(slot - 1);
+            Player online = Bukkit.getPlayer(memberId);
 
-            // Return string with level prefix "[Lv. X] "
-            return "&7["+memberLevel+ "]&f " + member.getName() + " &c" + (int) hp + " ❤";
+            if (online != null && online.isOnline()) {
+                // online: show level, name, health
+                LevelManager lm = LevelManager.getInstance();
+                int memberLevel = lm == null ? 1 : lm.getLevel(online);
+                int hp = (int) online.getHealth();
+                return "&7[" + memberLevel + "]&f " + online.getName() + " &c" + hp + " ❤";
+            } else {
+                // offline: show name in light gray
+                String name = Bukkit.getOfflinePlayer(memberId).getName();
+                return "&7" + (name != null ? name : "Unknown");
+            }
         }
+
         return null;
     }
 

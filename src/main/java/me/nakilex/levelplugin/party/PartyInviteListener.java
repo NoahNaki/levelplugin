@@ -18,17 +18,17 @@ public class PartyInviteListener implements Listener {
         this.partyManager = partyManager;
     }
 
-    @EventHandler
-    public void onPlayerQuit(PlayerQuitEvent event) {
-        Player player = event.getPlayer();
-        UUID playerId = player.getUniqueId();
-
-        // Remove player from the party if they are in one
-        Party party = partyManager.getParty(playerId);
-        if (party != null) {
-            partyManager.removeMember(party.getLeader(), playerId);
-        }
-    }
+//    @EventHandler
+//    public void onPlayerQuit(PlayerQuitEvent event) {
+//        Player player = event.getPlayer();
+//        UUID playerId = player.getUniqueId();
+//
+//        // Remove player from the party if they are in one
+//        Party party = partyManager.getParty(playerId);
+//        if (party != null) {
+//            partyManager.removeMember(party.getLeader(), playerId);
+//        }
+//    }
 
     @EventHandler
     public void onPlayerKick(PlayerKickEvent event) {
