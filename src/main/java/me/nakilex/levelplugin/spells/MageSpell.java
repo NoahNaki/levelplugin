@@ -301,6 +301,8 @@ public class MageSpell implements Listener {
 
                 world.playSound(here, Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
 
+                world.createExplosion(here, /*power=*/ 4.0F, /*setFire=*/ false, /*breakBlocks=*/ false);
+
                 double radius = 4.0;
                 for (Entity e : world.getNearbyEntities(here, radius, radius, radius)) {
                     if (!(e instanceof LivingEntity le) || le == player) continue;
