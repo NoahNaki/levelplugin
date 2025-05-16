@@ -284,11 +284,13 @@ public class MageSpell implements Listener {
             }
 
             private void impactNow(Location here) {
-                // Clean up armour-stands
-                for (ArmorStand as : stands) as.remove();
+                // 1) Clean up armour-stands
+                for (ArmorStand as : stands) {
+                    as.remove();
+                }
                 stands.clear();
 
-                // Shockwave + damage
+                // 2) Shockwave VFX
                 SphereEffect shock = new SphereEffect(Main.getInstance().getEffectManager());
                 shock.setLocation(here);
                 shock.particle   = Particle.EXPLOSION;
@@ -299,15 +301,25 @@ public class MageSpell implements Listener {
                 shock.yOffset    = 0.0;
                 shock.start();
 
+                // 3) Explosion sound
+                World world = here.getWorld();
                 world.playSound(here, Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
 
-                world.createExplosion(here, /*power=*/ 4.0F, /*setFire=*/ false, /*breakBlocks=*/ false);
+                // 4) Replace real explosion (knock-back & damage) with a single big particle
+                world.spawnParticle(Particle.EXPLOSION, here, 1);
 
+                // 5) Custom damage loop: only valid targets get hit
                 double radius = 4.0;
                 for (Entity e : world.getNearbyEntities(here, radius, radius, radius)) {
+                    // skip non-living, skip the caster
                     if (!(e instanceof LivingEntity le) || le == player) continue;
-                    if (!canHit(player, le)) continue;
-                    le.setFireTicks(100);
+                    // skip players not in a duel with the caster
+                    if (le instanceof Player && !DuelManager.getInstance()
+                        .areInDuel(player.getUniqueId(), le.getUniqueId())) {
+                        continue;
+                    }
+
+                    // deal custom damage (no movement applied)
                     SpellUtils.dealWithChat(player, le, finalDamage, "Meteor");
                 }
             }
