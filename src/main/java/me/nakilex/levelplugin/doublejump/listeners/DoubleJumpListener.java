@@ -22,13 +22,18 @@ public class DoubleJumpListener implements Listener {
     private static final double MAX_LIFT_VELOCITY        = 0.6;
     private static final double MAX_FORWARD_VELOCITY     = 1.2;
 
+    private boolean canDoubleJump(PlayerClass pc) {
+        return pc == PlayerClass.ARCHER
+            || pc == PlayerClass.ROGUE;
+    }
+
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         PlayerClass playerClass = StatsManager.getInstance()
             .getPlayerStats(player.getUniqueId())
             .playerClass;
-        player.setAllowFlight(playerClass == PlayerClass.ARCHER);
+        player.setAllowFlight(canDoubleJump(playerClass));
     }
 
     @EventHandler
@@ -39,7 +44,7 @@ public class DoubleJumpListener implements Listener {
         StatsManager.PlayerStats ps = StatsManager
             .getInstance()
             .getPlayerStats(player.getUniqueId());
-        if (ps.playerClass != PlayerClass.ARCHER) return;
+        if (!canDoubleJump(ps.playerClass)) return;
 
         if (!player.isFlying()) {
             event.setCancelled(true);
@@ -76,10 +81,12 @@ public class DoubleJumpListener implements Listener {
     @EventHandler
     public void onPlayerLand(PlayerMoveEvent event) {
         Player player = event.getPlayer();
-        if (player.isOnGround() &&
-            StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass == PlayerClass.ARCHER) {
+        StatsManager.PlayerStats ps = StatsManager
+            .getInstance()
+            .getPlayerStats(player.getUniqueId());
+
+        if (player.isOnGround() && canDoubleJump(ps.playerClass)) {
             player.setAllowFlight(true);
         }
     }
 }
-
