@@ -56,6 +56,12 @@ public class ClassMenuListener implements Listener {
             // ✅ Set class directly into StatsManager like old version
             StatsManager.getInstance().getPlayerStats(puuid).playerClass = selectedClass;
 
+            boolean canDJ = (selectedClass == PlayerClass.ARCHER || selectedClass == PlayerClass.ROGUE);
+            player.setAllowFlight(canDJ);
+            if (!canDJ) {
+                player.setFlying(false);
+            }
+
             player.sendMessage(ChatColor.DARK_GRAY + "[" + ChatColor.GOLD + "Class Selection" + ChatColor.DARK_GRAY + "] "
                 + ChatColor.GREEN + "You have selected " + ChatColor.AQUA + className + ChatColor.GREEN + "!");
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
