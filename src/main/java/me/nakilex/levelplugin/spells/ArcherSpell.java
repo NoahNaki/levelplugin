@@ -9,7 +9,11 @@ import net.citizensnpcs.api.npc.NPCRegistry;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.*;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.CrossbowMeta;
 import org.bukkit.metadata.FixedMetadataValue;
@@ -20,12 +24,12 @@ import org.bukkit.util.Vector;
 
 import java.util.*;
 
-public class ArcherSpell {
+public class ArcherSpell implements Listener {
 
     private static final String META_KEY = "ArcherSpell";          // <— new
     private final Main plugin = Main.getInstance();
     private final NPCRegistry npcRegistry = CitizensAPI.getNPCRegistry();
-    private final Map<UUID,NPC> activeBowDrones = plugin.getActiveBowDrones();
+    private final Map<UUID, NPC> activeBowDrones = plugin.getActiveBowDrones();
 
     public void castArcherSpell(Player player, String effectKey) {
         switch (effectKey.toUpperCase()) {
@@ -127,12 +131,12 @@ public class ArcherSpell {
         }
 
         // 2) Spawn the NPC “drone” above the player
-        Location spawnLoc = player.getLocation().add(0, 3, -2);
+        Location spawnLoc = player.getLocation().add(2, 3, 2);
         NPC drone = npcRegistry.createNPC(EntityType.PLAYER, "");
         drone.spawn(spawnLoc);
         activeBowDrones.put(pid, drone);
 
-        // 3) Make it invisible & equip a loaded Crossbow
+        // 3) Make it invisible, glowing & equip a loaded Crossbow
         LivingEntity ent = (LivingEntity) drone.getEntity();
         ent.setInvisible(true);
         ItemStack cb = new ItemStack(Material.CROSSBOW);
@@ -141,7 +145,39 @@ public class ArcherSpell {
         cb.setItemMeta(cbMeta);
         ent.getEquipment().setItemInMainHand(cb);
 
-        // 4) Follow‐task: keep hovering above the player
+        // 4) Visual-effect task: swirling particles
+        new BukkitRunnable() {
+            double angle = 0;
+            @Override
+            public void run() {
+                if (!drone.isSpawned() || !player.isOnline()) {
+                    cancel();
+                    return;
+                }
+                Location center = ent.getLocation().clone().add(0, 1, 0);
+                double radius = 1.2;
+
+                // flame on one side
+                double x = Math.cos(angle) * radius;
+                double z = Math.sin(angle) * radius;
+                center.getWorld().spawnParticle(
+                    Particle.SMOKE,
+                    center.clone().add(x, 0, z),
+                    2, 0, 0, 0, 0
+                );
+
+                // magic crit on the opposite
+                center.getWorld().spawnParticle(
+                    Particle.CRIT,
+                    center.clone().add(-x, 0, -z),
+                    2, 0, 0, 0, 0
+                );
+
+                angle += Math.PI / 16;
+            }
+        }.runTaskTimer(plugin, 0L, 2L);
+
+        // 5) Follow‐task: keep hovering above the player
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -150,12 +186,12 @@ public class ArcherSpell {
                     cancel();
                     return;
                 }
-                Location followLoc = player.getLocation().add(0, 3, 5);
+                Location followLoc = player.getLocation().add(2, 3, 2);
                 drone.teleport(followLoc, PlayerTeleportEvent.TeleportCause.PLUGIN);
             }
         }.runTaskTimer(plugin, 0L, 1L);
 
-        // 5) Shooting task: find targets & fire arrows
+        // 6) Shooting task: find targets & fire arrows
         new BukkitRunnable() {
             int ticks = 0;
             final int maxLife = 100;
@@ -163,7 +199,6 @@ public class ArcherSpell {
             @Override
             public void run() {
                 if (++ticks > maxLife || !drone.isSpawned() || !player.isOnline()) {
-                    // clean up
                     drone.despawn();
                     drone.destroy();
                     activeBowDrones.remove(pid);
@@ -172,17 +207,16 @@ public class ArcherSpell {
                 }
 
                 Location loc = ent.getEyeLocation().clone();
-
-                // find closest valid target
                 LivingEntity target = null;
                 double bestDist = Double.MAX_VALUE;
+
                 for (Entity e : loc.getWorld().getNearbyEntities(loc, 15, 15, 15)) {
                     if (!(e instanceof LivingEntity le)) continue;
                     if (le.equals(player)) continue;
                     if (le instanceof Player p
-                        && !DuelManager.getInstance().areInDuel(pid, p.getUniqueId())) {
+                        && !DuelManager.getInstance().areInDuel(pid, p.getUniqueId()))
                         continue;
-                    }
+
                     double d = le.getLocation().distanceSquared(loc);
                     if (d < bestDist) {
                         bestDist = d;
@@ -191,18 +225,16 @@ public class ArcherSpell {
                 }
                 if (target == null) return;
 
-                // spawn and aim arrow
                 Arrow shot = loc.getWorld().spawnArrow(
                     loc,
                     target.getEyeLocation().toVector().subtract(loc.toVector()).normalize(),
-                    3.0f,
-                    0.0f
+                    3.0f, 0.0f
                 );
                 shot.setShooter(player);
                 shot.setMetadata(META_KEY, new FixedMetadataValue(plugin, pid));
                 loc.getWorld().playSound(loc, Sound.ENTITY_ARROW_SHOOT, 0.7f, 1f);
 
-                // track this arrow for collision + damage-chat
+                // collision + damage-chat
                 new BukkitRunnable() {
                     @Override
                     public void run() {
@@ -214,11 +246,11 @@ public class ArcherSpell {
                             if (!(near instanceof LivingEntity le)) continue;
                             if (le.equals(player)) continue;
                             if (le instanceof Player p
-                                && !DuelManager.getInstance().areInDuel(pid, p.getUniqueId())) {
+                                && !DuelManager.getInstance().areInDuel(pid, p.getUniqueId()))
                                 continue;
-                            }
-                            // deal damage + chat, then remove arrow
-                            SpellUtils.dealWithChat(player, le,
+
+                            SpellUtils.dealWithChat(
+                                player, le,
                                 player.getAttribute(Attribute.ATTACK_DAMAGE).getValue(),
                                 "Bow Drone"
                             );
@@ -236,7 +268,7 @@ public class ArcherSpell {
     private void castExplosiveArrow(Player player) {
 
         double explosionRadius = 5.0;
-        double damage          = player.getAttribute(Attribute.ATTACK_DAMAGE)
+        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE)
             .getValue() * 2.0;
 
         player.getWorld().playSound(player.getLocation(),
@@ -268,10 +300,10 @@ public class ArcherSpell {
                     || !arrow.getLocation().getBlock().isPassable()) {
 
                     Location boom = arrow.getLocation();
-                    World    w    = boom.getWorld();
+                    World w = boom.getWorld();
 
                     /* ✨ purely-visual blast ✨ */
-                    w.spawnParticle(Particle.EXPLOSION,       boom, 1);
+                    w.spawnParticle(Particle.EXPLOSION, boom, 1);
                     w.spawnParticle(Particle.FIREWORK, boom, 100, 0.8, 0.8, 0.8, 0.05);
                     w.playSound(boom, Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
 
@@ -282,7 +314,7 @@ public class ArcherSpell {
                         explosionRadius)) {
 
                         if (!(e instanceof LivingEntity le) || le == player) continue;
-                        if (!canHit(player, e))                        continue;
+                        if (!canHit(player, e)) continue;
 
                         SpellUtils.dealWithChat(player, le, damage, "Explosive Arrow");
                         le.setFireTicks(60);
@@ -393,7 +425,9 @@ public class ArcherSpell {
         }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 10L, 1L);
     }
 
-    /** Grapple-Hook landing slam */
+    /**
+     * Grapple-Hook landing slam
+     */
     private void performSlam(Player player) {
 
         double radius = 5.0;
@@ -442,7 +476,7 @@ public class ArcherSpell {
                 Arrow arrow = player.launchProjectile(Arrow.class);
                 arrow.setDamage(0);  // prevent default damage
                 Vector dir = player.getLocation().getDirection().clone();
-                dir.add(new Vector((Math.random()-0.5)*spread, (Math.random()-0.5)*spread, (Math.random()-0.5)*spread));
+                dir.add(new Vector((Math.random() - 0.5) * spread, (Math.random() - 0.5) * spread, (Math.random() - 0.5) * spread));
                 arrow.setVelocity(dir.multiply(2));
                 arrow.setCustomName("ArrowStorm");
                 arrow.setCustomNameVisible(false);
@@ -483,12 +517,40 @@ public class ArcherSpell {
         }.runTaskTimer(Main.getInstance(), 0L, 5L);
     }
 
-    /** true = we are allowed to hurt that target */
+    /**
+     * true = we are allowed to hurt that target
+     */
     private boolean canHit(Player caster, Entity target) {
         return !(target instanceof Player p)           // mobs are always OK
             || DuelManager.getInstance()
             .areInDuel(caster.getUniqueId(), p.getUniqueId());
     }
 
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        UUID pid = event.getPlayer().getUniqueId();
+        NPC drone = activeBowDrones.remove(pid);
+        if (drone != null && drone.isSpawned()) {
+            drone.despawn();
+            drone.destroy();
+        }
+    }
 
+    /**
+     * When the plugin shuts down, clear out everything
+     */
+    @EventHandler
+    public void onPluginDisable(PluginDisableEvent event) {
+        // only react if *this* plugin is disabling
+        if (!event.getPlugin().equals(plugin)) return;
+
+        // despawn & destroy every remaining drone
+        for (NPC drone : activeBowDrones.values()) {
+            if (drone.isSpawned()) {
+                drone.despawn();
+                drone.destroy();
+            }
+        }
+        activeBowDrones.clear();
+    }
 }

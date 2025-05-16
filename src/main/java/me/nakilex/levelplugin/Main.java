@@ -29,6 +29,7 @@ import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
+import me.nakilex.levelplugin.spells.ArcherSpell;
 import me.nakilex.levelplugin.spells.MageSpell;
 import me.nakilex.levelplugin.spells.RogueSpell;
 import me.nakilex.levelplugin.spells.managers.ManaCostTracker;
@@ -98,6 +99,7 @@ public class Main extends JavaPlugin {
     private GemsManager gemsManager;
     private GemExchangeGUI gemGui;
     private MageSpell mageSpell;
+    private ArcherSpell archerSpell;
     private TipsConfigManager tipsCfg;
     private BroadcastManager broadcastMgr;
     private final Map<UUID, NPC> activeBowDrones = new HashMap<>();
@@ -259,6 +261,7 @@ public class Main extends JavaPlugin {
             projectileFriendlyFireListener,
             bossConfig,
             mageSpell,
+            archerSpell,
             gemsManager
         );
 

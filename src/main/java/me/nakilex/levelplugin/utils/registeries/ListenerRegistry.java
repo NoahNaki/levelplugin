@@ -34,6 +34,7 @@ import me.nakilex.levelplugin.potions.listeners.PotionUseListener;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.salvage.listeners.SalvageListener;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
+import me.nakilex.levelplugin.spells.ArcherSpell;
 import me.nakilex.levelplugin.spells.MageSpell;
 import me.nakilex.levelplugin.spells.RogueSpell;
 import me.nakilex.levelplugin.spells.gui.SpellGUIListener;
@@ -59,6 +60,7 @@ public class ListenerRegistry {
                                          ProjectileFriendlyFireListener projectileFriendlyFireListener,
                                          FileConfiguration bossConfig,
                                          MageSpell mageSpell,
+                                         ArcherSpell archerSpell,
                                          GemsManager gemsManager
                                          ) {
 
@@ -112,6 +114,7 @@ public class ListenerRegistry {
         pm.registerEvents(new EquipOnJoinListener(), plugin);
         pm.registerEvents(new DeathBlindnessListener(plugin), plugin);
         pm.registerEvents(new FullInventoryListener(), plugin);
+        pm.registerEvents(new ArcherSpell(), plugin);
 
 
 
