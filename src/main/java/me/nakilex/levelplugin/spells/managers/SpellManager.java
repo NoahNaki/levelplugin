@@ -158,11 +158,11 @@ public class SpellManager {
                 "POWER_SHOT", 2.0
             ),
             "LRR", new Spell(
-                "explosive_arrow", "Explosive Arrow", "LRR",
+                "bow_drone", "Sentry", "LRR",
                 15.0, defaultManaMultiplier,
                 0, 8,
                 Arrays.asList(Material.BOW, Material.CROSSBOW),
-                "EXPLOSIVE_ARROW", 1.5
+                "BOW_DRONE", 1.5
             ),
             "LLL", new Spell(
                 "grapple_hook", "Grapple Hook", "LLL",

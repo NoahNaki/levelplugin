@@ -36,7 +36,7 @@ public class SpellGUI {
         SPELL_DESCRIPTIONS.put("vanish",        "Disappear in the shadows temporarily.");
 
         SPELL_DESCRIPTIONS.put("power_shot",        "Charge up a powerful arrow shot.");
-        SPELL_DESCRIPTIONS.put("explosive_arrow",   "Fire an arrow that explodes on impact.");
+        SPELL_DESCRIPTIONS.put("bow_drone",   "Summon a sentry that shoots enemies.");
         SPELL_DESCRIPTIONS.put("grapple_hook",      "Grapple to surfaces for mobility.");
         SPELL_DESCRIPTIONS.put("arrow_storm",       "Rain down a storm of arrows.");
     }

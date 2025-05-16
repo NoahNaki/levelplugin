@@ -108,7 +108,7 @@ public class Spell {
             case "ARROW_STORM":
             case "POWER_SHOT":
             case "GRAPPLE_HOOK":
-            case "EXPLOSIVE_ARROW": {
+            case "BOW_DRONE": {
                 new ArcherSpell().castArcherSpell(player, effectKey);
                 break;
             }

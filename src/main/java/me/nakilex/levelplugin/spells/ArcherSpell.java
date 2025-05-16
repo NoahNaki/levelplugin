@@ -1,6 +1,5 @@
 package me.nakilex.levelplugin.spells;
 
-import de.slikey.effectlib.effect.HelixEffect;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.spells.utils.SpellUtils;
@@ -13,12 +12,7 @@ import org.bukkit.entity.*;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.CrossbowMeta;
-import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.metadata.FixedMetadataValue;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
-import net.citizensnpcs.api.npc.NPCRegistry;
-import org.mcmonkey.sentinel.SentinelTrait;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -27,8 +21,6 @@ import org.bukkit.util.Vector;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class ArcherSpell {
 
@@ -44,7 +36,7 @@ public class ArcherSpell {
             case "ARROW_STORM":
                 castArrowStorm(player);
                 break;
-            case "EXPLOSIVE_ARROW":
+            case "BOW_DRONE":
                 castBowDrone(player);
                 break;
             case "GRAPPLE_HOOK":
