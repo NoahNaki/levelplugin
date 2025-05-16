@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.mob.listeners;
 import io.lumine.mythic.bukkit.BukkitAPIHelper;
 import io.lumine.mythic.bukkit.MythicBukkit;
 import io.lumine.mythic.core.mobs.ActiveMob;
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
@@ -10,7 +11,10 @@ import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import org.bukkit.Location;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.ChatColor;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
@@ -19,6 +23,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,6 +36,8 @@ public class MythicMobDeathListener implements Listener {
     private final LevelManager levelManager;
     private final EconomyManager economyManager;
     private final LootChestManager lootChestManager;
+    private final Main plugin = Main.getInstance();
+
 
     // ← New field: track which players damaged each mob
     private final Map<UUID, Set<Player>> damageTracker = new ConcurrentHashMap<>();
@@ -129,18 +136,59 @@ public class MythicMobDeathListener implements Listener {
                         );
                     }
                 }
-                // Optional debug logging:
-                // System.out.printf("[DEBUG] Tier roll for %s: rolled=%.2f, needed≤%.2f%n",
-                //     mobType, roll, tierChance);
             }
 
-            // 5) Feedback message
+            Location deathLoc = event.getEntity().getLocation();
+            showRewardHologram(deathLoc, exp, coins);
             player.sendMessage(
                 "§aYou earned " + exp + " XP and " + coins + " coins");
         }
     }
 
 
+    // New signature: pass in the world location where you want the hologram
+    private void showRewardHologram(Location loc, int xp, int coins) {
+        // Base location just above the ground
+        loc = loc.clone().add(0, 1.2, 0);
+
+        // 1) XP line
+        String xpLine = ChatColor.GRAY + "["
+            + ChatColor.WHITE + "+" + xp + " "
+            + ChatColor.GREEN  + "XP"
+            + ChatColor.GRAY + "]";
+
+        ArmorStand xpStand = loc.getWorld().spawn(loc, ArmorStand.class, as -> {
+            as.setVisible(false);
+            as.setGravity(false);
+            as.setMarker(true);
+            as.setCustomNameVisible(true);
+            as.setCustomName(xpLine);
+        });
+
+        // 2) Coins line, half a block below
+        String coinLine = ChatColor.GRAY + "["
+            + ChatColor.WHITE + "+" + coins + " "
+            + ChatColor.GOLD   + "⛃"
+            + ChatColor.GRAY + "]";
+
+        Location coinLoc = loc.clone().add(0, -0.3, 0);
+        ArmorStand coinStand = coinLoc.getWorld().spawn(coinLoc, ArmorStand.class, as -> {
+            as.setVisible(false);
+            as.setGravity(false);
+            as.setMarker(true);
+            as.setCustomNameVisible(true);
+            as.setCustomName(coinLine);
+        });
+
+        // remove both after 2 seconds (40 ticks)
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (!xpStand.isDead())  xpStand.remove();
+                if (!coinStand.isDead()) coinStand.remove();
+            }
+        }.runTaskLater(plugin, 40L);
+    }
 
 
     /**
