@@ -194,7 +194,7 @@ public class ArcherSpell implements Listener {
         // 6) Shooting task: find targets & fire arrows
         new BukkitRunnable() {
             int ticks = 0;
-            final int maxLife = 100;
+            final int maxLife = 20;
 
             @Override
             public void run() {
