@@ -109,5 +109,8 @@ commands:
     description: Opens the custom item browser GUI.
     usage: /itemsbrowser
     permission: none
+  toggle:
+    description: Toggle plugin features on/off.
+    usage: /toggle <feature>
 
 

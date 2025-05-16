@@ -30,11 +30,17 @@ public class DmgNumberCommand implements CommandExecutor {
         Player player = (Player) sender;
         boolean nowEnabled = toggleManager.toggle(player);
 
-        String status = nowEnabled
-            ? ChatColor.GREEN + "Damage numbers: ON"
-            : ChatColor.RED + "Damage numbers: OFF";
-
-        player.sendMessage(status);
+        if (nowEnabled) {
+            player.sendMessage(
+                ChatColor.GRAY  + "Damage numbers: "
+                    + ChatColor.GREEN + "" + ChatColor.BOLD + "ON"
+            );
+        } else {
+            player.sendMessage(
+                ChatColor.GRAY  + "Damage numbers: "
+                    + ChatColor.RED   + "" + ChatColor.BOLD + "OFF"
+            );
+        }
         return true;
     }
 }

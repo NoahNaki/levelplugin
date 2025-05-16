@@ -14,17 +14,25 @@ public class DmgChatCommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage(ChatColor.RED + "Only players can toggle damage‑chat.");
+            sender.sendMessage(ChatColor.RED + "Only players can toggle damage-chat.");
             return true;
         }
 
         Player p = (Player) sender;
         boolean now = chatToggle.toggle(p);
-        p.sendMessage(
-            now
-                ? ChatColor.GREEN + "Damage chat: ON"
-                : ChatColor.RED   + "Damage chat: OFF"
-        );
+
+        // Styled status message
+        if (now) {
+            p.sendMessage(
+                ChatColor.GRAY  + "Damage chat: "
+                    + ChatColor.GREEN + "" + ChatColor.BOLD + "ON"
+            );
+        } else {
+            p.sendMessage(
+                ChatColor.GRAY  + "Damage chat: "
+                    + ChatColor.RED   + "" + ChatColor.BOLD + "OFF"
+            );
+        }
         return true;
     }
 }

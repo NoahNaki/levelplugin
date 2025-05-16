@@ -2,7 +2,6 @@ package me.nakilex.levelplugin.settings.gui;
 
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
 import me.nakilex.levelplugin.settings.data.PlayerSettings;
-import me.nakilex.levelplugin.Main;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -15,7 +14,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.Arrays;
-import java.util.UUID;
 
 public class SettingsGUI implements Listener {
 
@@ -30,16 +28,25 @@ public class SettingsGUI implements Listener {
 
         Inventory gui = Bukkit.createInventory(null, 27, "Settings");
 
+        // Damage Chat toggle
         gui.setItem(10, createSettingItem(
             playerSettings.isDmgChatEnabled(),
             "§bDamage Chat",
             "/dmgchat"
         ));
 
+        // Damage Numbers toggle
         gui.setItem(11, createSettingItem(
             playerSettings.isDmgNumberEnabled(),
             "§bDamage Numbers",
             "/dmgnumber"
+        ));
+
+        // Drop Details toggle
+        gui.setItem(12, createSettingItem(
+            playerSettings.isDropDetailsEnabled(),
+            "§bDrop Details",
+            "/toggle dropdetails"
         ));
 
         // Filler border
@@ -56,7 +63,12 @@ public class SettingsGUI implements Listener {
     private ItemStack createSettingItem(boolean isEnabled, String name, String command) {
         Material mat = isEnabled ? Material.SLIME_BALL : Material.FIREWORK_STAR;
         String status = isEnabled ? "§aEnabled" : "§cDisabled";
-        return createItem(mat, name, "", "§7Status: " + status, "", "§eClick to toggle and run " + command);
+        return createItem(mat, name,
+            "",
+            "§7Status: " + status,
+            "",
+            "§eClick to toggle and run " + command
+        );
     }
 
     private ItemStack createItem(Material mat, String name, String... loreLines) {
@@ -74,7 +86,6 @@ public class SettingsGUI implements Listener {
     private void updateSettingItem(Inventory inventory, int slot, boolean enabled, String name, String command) {
         inventory.setItem(slot, createSettingItem(enabled, name, command));
     }
-
 
     @EventHandler
     public void onSettingsClick(InventoryClickEvent event) {
@@ -98,6 +109,10 @@ public class SettingsGUI implements Listener {
             settings.toggleDmgNumber();
             Bukkit.dispatchCommand(player, "dmgnumber");
             updateSettingItem(event.getInventory(), 11, settings.isDmgNumberEnabled(), "§bDamage Numbers", "/dmgnumber");
+        } else if (slot == 12) {
+            settings.toggleDropDetails();
+            Bukkit.dispatchCommand(player, "toggle dropdetails");
+            updateSettingItem(event.getInventory(), 12, settings.isDropDetailsEnabled(), "§bDrop Details", "/toggle dropdetails");
         }
     }
 }

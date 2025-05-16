@@ -37,6 +37,7 @@ public class MythicMobDeathListener implements Listener {
     private final EconomyManager economyManager;
     private final LootChestManager lootChestManager;
     private final Main plugin = Main.getInstance();
+    private static final Set<UUID> dropDetailsDisabled = new HashSet<>();
 
 
     // ← New field: track which players damaged each mob
@@ -138,8 +139,10 @@ public class MythicMobDeathListener implements Listener {
                 }
             }
 
-            Location deathLoc = event.getEntity().getLocation();
-            showRewardHologram(deathLoc, exp, coins);
+            if (MythicMobDeathListener.isDropDetailsEnabled(player)) {
+                Location deathLoc = event.getEntity().getLocation();
+                showRewardHologram(deathLoc, exp, coins);
+            }
             player.sendMessage(
                 "§aYou earned " + exp + " XP and " + coins + " coins");
         }
@@ -190,6 +193,14 @@ public class MythicMobDeathListener implements Listener {
         }.runTaskLater(plugin, 40L);
     }
 
+    public static boolean isDropDetailsEnabled(Player p) {
+        return !dropDetailsDisabled.contains(p.getUniqueId());
+    }
+    public static void toggleDropDetails(Player p) {
+        UUID u = p.getUniqueId();
+        if (dropDetailsDisabled.contains(u)) dropDetailsDisabled.remove(u);
+        else dropDetailsDisabled.add(u);
+    }
 
     /**
      * Reads `mobs.<mobType>.items` from mob_rewards.yml,

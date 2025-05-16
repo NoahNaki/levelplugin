@@ -2,8 +2,9 @@ package me.nakilex.levelplugin.settings.data;
 
 public class PlayerSettings {
 
-    private boolean dmgChat = false;
-    private boolean dmgNumber = false;
+    private boolean dmgChat     = false;
+    private boolean dmgNumber   = false;
+    private boolean dropDetails = true;   // default ON
 
     public boolean isDmgChatEnabled() {
         return dmgChat;
@@ -19,5 +20,14 @@ public class PlayerSettings {
 
     public void toggleDmgNumber() {
         this.dmgNumber = !this.dmgNumber;
+    }
+
+    /** New: drop‐details holograms */
+    public boolean isDropDetailsEnabled() {
+        return dropDetails;
+    }
+
+    public void toggleDropDetails() {
+        this.dropDetails = !this.dropDetails;
     }
 }
