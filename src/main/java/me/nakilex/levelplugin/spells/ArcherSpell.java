@@ -1,13 +1,24 @@
 package me.nakilex.levelplugin.spells;
 
+import de.slikey.effectlib.effect.HelixEffect;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.spells.utils.SpellUtils;
+import net.citizensnpcs.api.CitizensAPI;
+import net.citizensnpcs.api.npc.NPC;
+import net.citizensnpcs.api.npc.NPCRegistry;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.*;
+import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.CrossbowMeta;
 import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.metadata.FixedMetadataValue;
+import net.citizensnpcs.api.CitizensAPI;
+import net.citizensnpcs.api.npc.NPC;
+import net.citizensnpcs.api.npc.NPCRegistry;
+import org.mcmonkey.sentinel.SentinelTrait;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -16,11 +27,14 @@ import org.bukkit.util.Vector;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ArcherSpell {
 
     private static final String META_KEY = "ArcherSpell";          // <— new
     private final Main plugin = Main.getInstance();
+    private final NPCRegistry npcRegistry = CitizensAPI.getNPCRegistry();
 
     public void castArcherSpell(Player player, String effectKey) {
         switch (effectKey.toUpperCase()) {
@@ -31,7 +45,7 @@ public class ArcherSpell {
                 castArrowStorm(player);
                 break;
             case "EXPLOSIVE_ARROW":
-                castExplosiveArrow(player);
+                castBowDrone(player);
                 break;
             case "GRAPPLE_HOOK":
                 castGrappleHook(player);
@@ -109,6 +123,81 @@ public class ArcherSpell {
                 arrowsSpawned++;
             }
         }.runTaskTimer(Main.getInstance(), 0L, duration / arrowCount);
+    }
+
+
+    private void castBowDrone(Player player) {
+        // 1) spawn the NPC “drone” above the player
+        Location spawnLoc = player.getLocation().add(0, 3, 0);
+        NPC drone = npcRegistry.createNPC(EntityType.PLAYER, "Drone_" + player.getUniqueId());
+        drone.spawn(spawnLoc);
+
+        // 2) make it invisible & equip a loaded Crossbow
+        LivingEntity ent = (LivingEntity) drone.getEntity();
+        ent.setInvisible(true);
+        ItemStack cb = new ItemStack(Material.CROSSBOW);
+        CrossbowMeta cbMeta = (CrossbowMeta) cb.getItemMeta();
+        cbMeta.addChargedProjectile(new ItemStack(Material.ARROW));
+        cb.setItemMeta(cbMeta);
+        ent.getEquipment().setItemInMainHand(cb);
+
+        // 3) follow the player from above
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (!drone.isSpawned() || !player.isOnline()) {
+                    cancel();
+                    return;
+                }
+                Location followLoc = player.getLocation().add(0, 3, 0);
+                drone.teleport(followLoc, PlayerTeleportEvent.TeleportCause.PLUGIN);
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
+
+        // 4) shooting task: perfect aim at the nearest valid LivingEntity every 10 ticks
+        new BukkitRunnable() {
+            int ticks = 0, maxLife = 200;
+            @Override
+            public void run() {
+                if (++ticks > maxLife || !drone.isSpawned() || !player.isOnline()) {
+                    drone.despawn();
+                    drone.destroy();
+                    cancel();
+                    return;
+                }
+
+                // find closest valid target (any LivingEntity except non-duel players)
+                Location loc = ent.getEyeLocation().clone();
+                LivingEntity target = null;
+                double bestDist = Double.MAX_VALUE;
+
+                for (Entity e : loc.getWorld().getNearbyEntities(loc, 15, 15, 15)) {
+                    if (!(e instanceof LivingEntity le)) continue;
+                    if (le.equals(player)) continue; // skip self
+
+                    // if it's a player, only allow if they're in a duel with caster
+                    if (le instanceof Player p &&
+                        !DuelManager.getInstance().areInDuel(player.getUniqueId(), p.getUniqueId())) {
+                        continue;
+                    }
+
+                    double d = le.getLocation().distanceSquared(loc);
+                    if (d < bestDist) {
+                        bestDist = d;
+                        target = le;
+                    }
+                }
+
+                if (target == null) return;
+
+                // shoot a perfectly aimed arrow at them
+                Vector dir = target.getEyeLocation().toVector().subtract(loc.toVector()).normalize();
+                Arrow shot = loc.getWorld().spawnArrow(loc, dir, 3.0f, 0.0f);
+                shot.setShooter(player);
+                shot.setMetadata(META_KEY, new FixedMetadataValue(plugin, player.getUniqueId()));
+                loc.getWorld().playSound(loc, Sound.ENTITY_ARROW_SHOOT, 0.7f, 1f);
+            }
+        }.runTaskTimer(plugin, 0L, 10L);
     }
 
 

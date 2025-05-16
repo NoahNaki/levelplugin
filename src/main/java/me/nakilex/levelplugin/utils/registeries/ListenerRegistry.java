@@ -111,6 +111,7 @@ public class ListenerRegistry {
         pm.registerEvents(new FieldBossListener(plugin, plugin.getBossConfig(), plugin.getItemManager(), plugin.getGemsManager()), plugin);
         pm.registerEvents(new EquipOnJoinListener(), plugin);
         pm.registerEvents(new DeathBlindnessListener(plugin), plugin);
+        pm.registerEvents(new FullInventoryListener(), plugin);
 
 
 
