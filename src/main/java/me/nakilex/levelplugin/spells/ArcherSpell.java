@@ -127,9 +127,12 @@ public class ArcherSpell {
 
 
     private void castBowDrone(Player player) {
+        // compute damage per shot
+        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue();
+
         // 1) spawn the NPC “drone” above the player
-        Location spawnLoc = player.getLocation().add(0, 3, 0);
-        NPC drone = npcRegistry.createNPC(EntityType.PLAYER, "Drone_" + player.getUniqueId());
+        Location spawnLoc = player.getLocation().add(0, 3, 15);
+        NPC drone = npcRegistry.createNPC(EntityType.PLAYER, "");
         drone.spawn(spawnLoc);
 
         // 2) make it invisible & equip a loaded Crossbow
@@ -154,7 +157,7 @@ public class ArcherSpell {
             }
         }.runTaskTimer(plugin, 0L, 1L);
 
-        // 4) shooting task: perfect aim at the nearest valid LivingEntity every 10 ticks
+        // 4) shooting task: perfect aim + damage-chat on hit
         new BukkitRunnable() {
             int ticks = 0, maxLife = 200;
             @Override
@@ -165,40 +168,60 @@ public class ArcherSpell {
                     cancel();
                     return;
                 }
-
-                // find closest valid target (any LivingEntity except non-duel players)
                 Location loc = ent.getEyeLocation().clone();
+                // find closest valid target
                 LivingEntity target = null;
                 double bestDist = Double.MAX_VALUE;
-
                 for (Entity e : loc.getWorld().getNearbyEntities(loc, 15, 15, 15)) {
                     if (!(e instanceof LivingEntity le)) continue;
-                    if (le.equals(player)) continue; // skip self
-
-                    // if it's a player, only allow if they're in a duel with caster
-                    if (le instanceof Player p &&
-                        !DuelManager.getInstance().areInDuel(player.getUniqueId(), p.getUniqueId())) {
+                    if (le.equals(player)) continue;
+                    if (le instanceof Player p
+                        && !DuelManager.getInstance().areInDuel(player.getUniqueId(), p.getUniqueId())) {
                         continue;
                     }
-
                     double d = le.getLocation().distanceSquared(loc);
                     if (d < bestDist) {
                         bestDist = d;
                         target = le;
                     }
                 }
-
                 if (target == null) return;
 
-                // shoot a perfectly aimed arrow at them
-                Vector dir = target.getEyeLocation().toVector().subtract(loc.toVector()).normalize();
-                Arrow shot = loc.getWorld().spawnArrow(loc, dir, 3.0f, 0.0f);
+                // spawn and aim arrow
+                Arrow shot = loc.getWorld().spawnArrow(loc,
+                    target.getEyeLocation().toVector().subtract(loc.toVector()).normalize(),
+                    3.0f, 0.0f);
                 shot.setShooter(player);
                 shot.setMetadata(META_KEY, new FixedMetadataValue(plugin, player.getUniqueId()));
                 loc.getWorld().playSound(loc, Sound.ENTITY_ARROW_SHOOT, 0.7f, 1f);
+
+                // track this arrow for collision+damage-chat
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        if (!shot.isValid() || shot.isDead()) {
+                            cancel();
+                            return;
+                        }
+                        for (Entity near : shot.getNearbyEntities(1, 1, 1)) {
+                            if (!(near instanceof LivingEntity le)) continue;
+                            if (le.equals(player)) continue;
+                            if (le instanceof Player p
+                                && !DuelManager.getInstance().areInDuel(player.getUniqueId(), p.getUniqueId())) {
+                                continue;
+                            }
+                            // deal damage + chat, then remove arrow
+                            SpellUtils.dealWithChat(player, le, damage, "Bow Drone");
+                            shot.remove();
+                            cancel();
+                            return;
+                        }
+                    }
+                }.runTaskTimer(plugin, 0L, 1L);
             }
         }.runTaskTimer(plugin, 0L, 10L);
     }
+
 
 
 
