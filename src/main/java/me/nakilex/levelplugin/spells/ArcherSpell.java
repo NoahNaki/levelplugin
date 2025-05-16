@@ -18,15 +18,14 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 public class ArcherSpell {
 
     private static final String META_KEY = "ArcherSpell";          // <— new
     private final Main plugin = Main.getInstance();
     private final NPCRegistry npcRegistry = CitizensAPI.getNPCRegistry();
+    private final Map<UUID,NPC> activeBowDrones = plugin.getActiveBowDrones();
 
     public void castArcherSpell(Player player, String effectKey) {
         switch (effectKey.toUpperCase()) {
@@ -118,16 +117,22 @@ public class ArcherSpell {
     }
 
 
-    private void castBowDrone(Player player) {
-        // compute damage per shot
-        double damage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue();
+    public void castBowDrone(Player player) {
+        UUID pid = player.getUniqueId();
 
-        // 1) spawn the NPC “drone” above the player
-        Location spawnLoc = player.getLocation().add(0, 3, 15);
+        // 1) Prevent more than one drone per player
+        if (activeBowDrones.containsKey(pid)) {
+            player.sendMessage(ChatColor.RED + "You already have a Sentry active!");
+            return;
+        }
+
+        // 2) Spawn the NPC “drone” above the player
+        Location spawnLoc = player.getLocation().add(0, 3, -2);
         NPC drone = npcRegistry.createNPC(EntityType.PLAYER, "");
         drone.spawn(spawnLoc);
+        activeBowDrones.put(pid, drone);
 
-        // 2) make it invisible & equip a loaded Crossbow
+        // 3) Make it invisible & equip a loaded Crossbow
         LivingEntity ent = (LivingEntity) drone.getEntity();
         ent.setInvisible(true);
         ItemStack cb = new ItemStack(Material.CROSSBOW);
@@ -136,31 +141,38 @@ public class ArcherSpell {
         cb.setItemMeta(cbMeta);
         ent.getEquipment().setItemInMainHand(cb);
 
-        // 3) follow the player from above
+        // 4) Follow‐task: keep hovering above the player
         new BukkitRunnable() {
             @Override
             public void run() {
                 if (!drone.isSpawned() || !player.isOnline()) {
+                    activeBowDrones.remove(pid);
                     cancel();
                     return;
                 }
-                Location followLoc = player.getLocation().add(0, 3, 0);
+                Location followLoc = player.getLocation().add(0, 3, 5);
                 drone.teleport(followLoc, PlayerTeleportEvent.TeleportCause.PLUGIN);
             }
         }.runTaskTimer(plugin, 0L, 1L);
 
-        // 4) shooting task: perfect aim + damage-chat on hit
+        // 5) Shooting task: find targets & fire arrows
         new BukkitRunnable() {
-            int ticks = 0, maxLife = 200;
+            int ticks = 0;
+            final int maxLife = 100;
+
             @Override
             public void run() {
                 if (++ticks > maxLife || !drone.isSpawned() || !player.isOnline()) {
+                    // clean up
                     drone.despawn();
                     drone.destroy();
+                    activeBowDrones.remove(pid);
                     cancel();
                     return;
                 }
+
                 Location loc = ent.getEyeLocation().clone();
+
                 // find closest valid target
                 LivingEntity target = null;
                 double bestDist = Double.MAX_VALUE;
@@ -168,7 +180,7 @@ public class ArcherSpell {
                     if (!(e instanceof LivingEntity le)) continue;
                     if (le.equals(player)) continue;
                     if (le instanceof Player p
-                        && !DuelManager.getInstance().areInDuel(player.getUniqueId(), p.getUniqueId())) {
+                        && !DuelManager.getInstance().areInDuel(pid, p.getUniqueId())) {
                         continue;
                     }
                     double d = le.getLocation().distanceSquared(loc);
@@ -180,14 +192,17 @@ public class ArcherSpell {
                 if (target == null) return;
 
                 // spawn and aim arrow
-                Arrow shot = loc.getWorld().spawnArrow(loc,
+                Arrow shot = loc.getWorld().spawnArrow(
+                    loc,
                     target.getEyeLocation().toVector().subtract(loc.toVector()).normalize(),
-                    3.0f, 0.0f);
+                    3.0f,
+                    0.0f
+                );
                 shot.setShooter(player);
-                shot.setMetadata(META_KEY, new FixedMetadataValue(plugin, player.getUniqueId()));
+                shot.setMetadata(META_KEY, new FixedMetadataValue(plugin, pid));
                 loc.getWorld().playSound(loc, Sound.ENTITY_ARROW_SHOOT, 0.7f, 1f);
 
-                // track this arrow for collision+damage-chat
+                // track this arrow for collision + damage-chat
                 new BukkitRunnable() {
                     @Override
                     public void run() {
@@ -199,11 +214,14 @@ public class ArcherSpell {
                             if (!(near instanceof LivingEntity le)) continue;
                             if (le.equals(player)) continue;
                             if (le instanceof Player p
-                                && !DuelManager.getInstance().areInDuel(player.getUniqueId(), p.getUniqueId())) {
+                                && !DuelManager.getInstance().areInDuel(pid, p.getUniqueId())) {
                                 continue;
                             }
                             // deal damage + chat, then remove arrow
-                            SpellUtils.dealWithChat(player, le, damage, "Bow Drone");
+                            SpellUtils.dealWithChat(player, le,
+                                player.getAttribute(Attribute.ATTACK_DAMAGE).getValue(),
+                                "Bow Drone"
+                            );
                             shot.remove();
                             cancel();
                             return;
@@ -213,8 +231,6 @@ public class ArcherSpell {
             }
         }.runTaskTimer(plugin, 0L, 10L);
     }
-
-
 
 
     private void castExplosiveArrow(Player player) {

@@ -44,6 +44,7 @@ import me.nakilex.levelplugin.utils.registeries.CommandRegistry;
 import me.nakilex.levelplugin.utils.registeries.ListenerRegistry;
 import me.nakilex.levelplugin.utils.registeries.TaskRegistry;
 import net.citizensnpcs.api.CitizensAPI;
+import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -52,6 +53,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 public class Main extends JavaPlugin {
 
@@ -96,6 +100,8 @@ public class Main extends JavaPlugin {
     private MageSpell mageSpell;
     private TipsConfigManager tipsCfg;
     private BroadcastManager broadcastMgr;
+    private final Map<UUID, NPC> activeBowDrones = new HashMap<>();
+    public Map<UUID, NPC> getActiveBowDrones() { return activeBowDrones; }
 
 
     @Override
