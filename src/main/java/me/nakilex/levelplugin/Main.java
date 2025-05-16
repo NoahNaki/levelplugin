@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin;
 
+import com.comphenix.protocol.PacketType;
 import de.slikey.effectlib.EffectManager;
 import io.lumine.mythic.bukkit.BukkitAPIHelper;
 import io.lumine.mythic.bukkit.MythicBukkit;
@@ -14,6 +15,7 @@ import me.nakilex.levelplugin.horse.managers.HorseConfigManager;
 import me.nakilex.levelplugin.horse.managers.HorseManager;
 import me.nakilex.levelplugin.items.config.ItemConfig;
 import me.nakilex.levelplugin.items.gui.ItemsBrowser;
+import me.nakilex.levelplugin.items.listeners.PickupCustomItemListener;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.lootchests.config.ConfigManager;
 import me.nakilex.levelplugin.lootchests.managers.CooldownManager;
@@ -79,6 +81,7 @@ public class Main extends JavaPlugin {
     private ConfigValues configValues;
     private MessageStrings messageStrings;
     private ConfigManager configManager;
+    private PickupCustomItemListener pickupCustomItemListener;
     private CooldownManager cooldownManager;
     private LootChestManager lootChestManager;
     private PotionManager potionManager;
@@ -256,6 +259,7 @@ public class Main extends JavaPlugin {
             mobConfig,
             mobRewardsConfig,
             dmgNumberToggleManager,
+            pickupCustomItemListener,
             settingsGUI,
             rogueSpell,
             projectileFriendlyFireListener,

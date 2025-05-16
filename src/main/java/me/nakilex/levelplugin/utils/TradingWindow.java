@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.utils;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.trade.utils.MessageStrings;
 import me.nakilex.levelplugin.trade.utils.Translations;
 import org.bukkit.*;
@@ -20,6 +21,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.util.*;
 
@@ -515,6 +517,17 @@ public class TradingWindow implements Listener {
                 o.sendMessage(eventPlayerIsOpponent ? YOU_DECLINED : OTHER_DECLINED);
                 dm.removeTradingWindow(tw);
             }
+        }
+        for (Player recipient : Arrays.asList(this.player, this.opposite)) {
+            for (ItemStack stack : recipient.getInventory().getContents()) {
+                if (stack != null
+                    && stack.hasItemMeta()
+                    && stack.getItemMeta().getPersistentDataContainer()
+                    .has(ItemUtil.ITEM_UUID_KEY, PersistentDataType.STRING)) {
+                    ItemUtil.updateCustomItemTooltip(stack, recipient);
+                }
+            }
+            recipient.updateInventory();
         }
     }
 

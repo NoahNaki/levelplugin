@@ -55,6 +55,7 @@ public class ListenerRegistry {
                                          FileConfiguration mobConfig,
                                          MobRewardsConfig mobRewardsConfig,
                                          DmgNumberToggleManager dmgToggleManager,
+                                         PickupCustomItemListener pickupCustomItemListener,
                                          SettingsGUI settingsGUI,
                                          RogueSpell rogueSpell,
                                          ProjectileFriendlyFireListener projectileFriendlyFireListener,
@@ -99,7 +100,7 @@ public class ListenerRegistry {
         pm.registerEvents(new FallDamageDisabler(), plugin);
         pm.registerEvents(new HungerDisabler(), plugin);
         pm.registerEvents(new DuelListener(), plugin);
-        pm.registerEvents(new InventoryOpenCustomItemListener(), plugin);
+        pm.registerEvents(new PickupCustomItemListener(plugin), plugin);
         pm.registerEvents(new CustomItemUpdateListener(), plugin);
         pm.registerEvents(new SalvageListener(economyManager, gemsManager), plugin);
         pm.registerEvents(new SpellGUIListener(), plugin);
