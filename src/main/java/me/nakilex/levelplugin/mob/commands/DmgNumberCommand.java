@@ -1,18 +1,13 @@
 package me.nakilex.levelplugin.mob.commands;
 
 import me.nakilex.levelplugin.mob.managers.DmgNumberToggleManager;
-import org.bukkit.ChatColor;
+import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-/**
- * Command executor for /dmgnumber.
- * Toggles the floating damage indicators on or off for the player.
- */
 public class DmgNumberCommand implements CommandExecutor {
-
     private final DmgNumberToggleManager toggleManager;
 
     public DmgNumberCommand(DmgNumberToggleManager toggleManager) {
@@ -20,27 +15,16 @@ public class DmgNumberCommand implements CommandExecutor {
     }
 
     @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        // Only players can use this command
+    public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage(ChatColor.RED + "Only players can toggle damage numbers.");
+            sender.sendMessage("Only players can toggle damage numbers.");
             return true;
         }
-
         Player player = (Player) sender;
         boolean nowEnabled = toggleManager.toggle(player);
 
-        if (nowEnabled) {
-            player.sendMessage(
-                ChatColor.GRAY  + "Damage numbers: "
-                    + ChatColor.GREEN + "" + ChatColor.BOLD + "ON"
-            );
-        } else {
-            player.sendMessage(
-                ChatColor.GRAY  + "Damage numbers: "
-                    + ChatColor.RED   + "" + ChatColor.BOLD + "OFF"
-            );
-        }
+        // Centralized, styled feedback:
+        ToggleFeedbackUtil.sendToggle(player, "Damage numbers", nowEnabled);
         return true;
     }
 }

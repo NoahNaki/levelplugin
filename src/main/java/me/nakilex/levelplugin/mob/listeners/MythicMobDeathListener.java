@@ -196,10 +196,11 @@ public class MythicMobDeathListener implements Listener {
     public static boolean isDropDetailsEnabled(Player p) {
         return !dropDetailsDisabled.contains(p.getUniqueId());
     }
-    public static void toggleDropDetails(Player p) {
+    public static boolean toggleDropDetails(Player p) {
         UUID u = p.getUniqueId();
         if (dropDetailsDisabled.contains(u)) dropDetailsDisabled.remove(u);
         else dropDetailsDisabled.add(u);
+        return false;
     }
 
     /**
