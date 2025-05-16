@@ -11,6 +11,7 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.server.PluginDisableEvent;
@@ -496,18 +497,13 @@ public class ArcherSpell implements Listener {
                         arrow.getWorld().spawnParticle(Particle.CRIT, arrow.getLocation(), 5, 0.1, 0.1, 0.1);
 
                         for (Entity entity : arrow.getNearbyEntities(1, 1, 1)) {
-                            if (entity instanceof LivingEntity le && le != player) {
-                                if (entity instanceof Player p
-                                    && !DuelManager.getInstance()
-                                    .areInDuel(player.getUniqueId(), p.getUniqueId())) {
-                                    continue;
-                                }
-                                // —— damage + chat here ——
-                                SpellUtils.dealWithChat(player, le, damage, "Arrow Storm");
-                                arrow.remove();
-                                cancel();
-                                return;
-                            }
+                            if (!(entity instanceof LivingEntity le)) continue;
+                            if (!canHit(player, le))       continue;   // skips self + non‐duel players
+                            // —— damage + chat here ——
+                            SpellUtils.dealWithChat(player, le, damage, "Arrow Storm");
+                            arrow.remove();
+                            cancel();
+                            return;
                         }
                     }
                 }.runTaskTimer(Main.getInstance(), 0L, 1L);
@@ -516,6 +512,26 @@ public class ArcherSpell implements Listener {
             }
         }.runTaskTimer(Main.getInstance(), 0L, 5L);
     }
+
+    @EventHandler
+    public void onArrowStormDamage(EntityDamageByEntityEvent event) {
+        if (!(event.getDamager() instanceof Arrow arrow)) return;
+        if (!arrow.hasMetadata(META_KEY))     return;   // only our custom arrows
+
+        // figure out who shot it
+        Player shooter = null;
+        if (arrow.getShooter() instanceof Player p) {
+            shooter = p;
+        }
+        if (shooter == null) return;
+
+        // if they’re not allowed to hit this target, cancel it outright
+        if (!canHit(shooter, event.getEntity())) {
+            event.setCancelled(true);
+        }
+    }
+
+
 
     /**
      * true = we are allowed to hurt that target
