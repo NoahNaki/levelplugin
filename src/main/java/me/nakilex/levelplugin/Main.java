@@ -1,9 +1,7 @@
 package me.nakilex.levelplugin;
 
-import com.comphenix.protocol.PacketType;
 import de.slikey.effectlib.EffectManager;
 import io.lumine.mythic.bukkit.BukkitAPIHelper;
-import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
 import me.nakilex.levelplugin.blacksmith.managers.ItemUpgradeManager;
 import me.nakilex.levelplugin.duels.listeners.ProjectileFriendlyFireListener;
@@ -42,7 +40,8 @@ import me.nakilex.levelplugin.tips.BroadcastManager;
 import me.nakilex.levelplugin.tips.TipsConfigManager;
 import me.nakilex.levelplugin.trade.data.ConfigValues;
 import me.nakilex.levelplugin.trade.utils.MessageStrings;
-import me.nakilex.levelplugin.utils.*;
+import me.nakilex.levelplugin.utils.DealMaker;
+import me.nakilex.levelplugin.utils.MetadataTrait;
 import me.nakilex.levelplugin.utils.registeries.CommandRegistry;
 import me.nakilex.levelplugin.utils.registeries.ListenerRegistry;
 import me.nakilex.levelplugin.utils.registeries.TaskRegistry;

@@ -4,8 +4,8 @@ public class PlayerSettings {
 
     private boolean dmgChat     = false;
     private boolean dmgNumber   = false;
-    private boolean dropDetails = true;   // default ON
-    private boolean dropDetailsChatEnabled = false;
+    private boolean dropDetails = true;
+    private boolean dropDetailsChatEnabled = true;
 
     public boolean isDmgChatEnabled() {
         return dmgChat;
@@ -23,7 +23,6 @@ public class PlayerSettings {
         this.dmgNumber = !this.dmgNumber;
     }
 
-    /** New: drop‐details holograms */
     public boolean isDropDetailsEnabled() {
         return dropDetails;
     }
