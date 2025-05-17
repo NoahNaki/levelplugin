@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.player.listener;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
+import me.nakilex.levelplugin.items.data.WeaponType;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
@@ -287,6 +288,20 @@ public class ClickComboListener implements Listener {
         ItemStack mainHand = player.getInventory().getItemInMainHand();
         if (mainHand == null || mainHand.getType() == Material.AIR) return;
 
+        // —— 0) Class-specific weapon check via WeaponType ——
+        if ("rogue".equals(cls)) {
+            if (!WeaponType.isValidRogueWeapon(mainHand)) {
+                return;
+            }
+        } else if ("warrior".equals(cls)) {
+            if (!WeaponType.isValidWarriorWeapon(mainHand)) {
+                return;
+            }
+        } else {
+            // other classes skip sweep
+            return;
+        }
+
         // —— 1) Requirement checks ——
         CustomItem inst = ItemManager.getInstance().getCustomItemFromItemStack(mainHand);
         if (inst != null) {
@@ -333,9 +348,7 @@ public class ClickComboListener implements Listener {
 
         // —— 4) Crit roll ——
         boolean isCrit = Math.random() < 0.10; // 10% crit chance
-        if (isCrit) {
-            damage *= 1.5;
-        }
+        if (isCrit) damage *= 1.5;
         String attackName = isCrit ? "Critical Sweep Attack" : "Sweep Attack";
 
         // —— 5) Cone parameters & hit detection ——
@@ -352,10 +365,7 @@ public class ClickComboListener implements Listener {
                 .subtract(player.getLocation().toVector())
                 .setY(0).normalize();
             if (fwd.angle(toTarget) <= halfAngle) {
-                // Deal damage & chat
                 SpellUtils.dealWithChat(player, target, damage, attackName);
-
-                // —— Combat log entry ——
                 Main.getInstance().getLogger().info(String.format(
                     "[CombatLog] %s → %s : %s for %.1f dmg",
                     player.getName(),
@@ -365,13 +375,9 @@ public class ClickComboListener implements Listener {
                     attackName,
                     damage
                 ));
-
-                // If you only want ONE target per sweep, uncomment:
-                // break;
             }
         }
     }
-
 
 
 
