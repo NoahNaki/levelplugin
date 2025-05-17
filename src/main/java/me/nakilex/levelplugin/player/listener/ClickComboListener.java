@@ -25,9 +25,9 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.event.player.PlayerAnimationEvent;
-import org.bukkit.event.player.PlayerAnimationType;
-import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.player.*;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.attribute.Attribute;
@@ -423,6 +423,67 @@ public class ClickComboListener implements Listener {
         long nextUse = now + (spell.getCooldown() * 1000L);
         cdMap.put(spell.getId(), nextUse);
         spellCooldowns.put(player.getUniqueId(), cdMap);
+    }
+
+    @EventHandler
+    public void onPlayerItemHeld(PlayerItemHeldEvent event) {
+        Player player = event.getPlayer();
+        UUID uuid = player.getUniqueId();
+        // clear and remove any active combo
+        ClickSequence seq = playerCombos.get(uuid);
+        if (seq != null) {
+            seq.clear();
+            playerCombos.remove(uuid);
+        }
+    }
+
+    /**
+     * Reset combo when the player swaps main/off-hand items (default “F” key).
+     */
+    @EventHandler
+    public void onSwapHandItems(PlayerSwapHandItemsEvent event) {
+        Player player = event.getPlayer();
+        UUID uuid = player.getUniqueId();
+        // clear and remove any active combo
+        ClickSequence seq = playerCombos.get(uuid);
+        if (seq != null) {
+            seq.clear();
+            playerCombos.remove(uuid);
+        }
+    }
+
+    @EventHandler
+    public void onInventoryClick(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player)) return;
+        Player player = (Player) event.getWhoClicked();
+        // only care about clicks in the player's own inventory
+        if (event.getClickedInventory() != player.getInventory()) return;
+
+        int heldSlot = player.getInventory().getHeldItemSlot();
+        if (event.getSlot() == heldSlot) {
+            ClickSequence seq = playerCombos.remove(player.getUniqueId());
+            if (seq != null) seq.clear();
+        }
+    }
+
+    /**
+     * Reset combo when the player drags items into the hotbar slot they’re holding.
+     */
+    @EventHandler
+    public void onInventoryDrag(InventoryDragEvent event) {
+        if (!(event.getWhoClicked() instanceof Player)) return;
+        Player player = (Player) event.getWhoClicked();
+
+        int heldSlot = player.getInventory().getHeldItemSlot();
+        // rawSlots are all slots affected by the drag
+        for (int raw : event.getRawSlots()) {
+            // only handle drags into the player's own inventory hotbar
+            if (raw == heldSlot) {
+                ClickSequence seq = playerCombos.remove(player.getUniqueId());
+                if (seq != null) seq.clear();
+                break;
+            }
+        }
     }
 
     public static String getActiveCombo(Player player) {
