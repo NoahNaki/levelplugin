@@ -193,7 +193,7 @@ public class WarriorSpell {
             }
         }.runTaskTimer(
             Bukkit.getPluginManager().getPlugin("LevelPlugin"),
-            2L, 1L
+            6L, 1L
         );
     }
 
