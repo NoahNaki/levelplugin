@@ -42,11 +42,18 @@ public class SettingsGUI implements Listener {
             "/dmgnumber"
         ));
 
-        // Drop Details toggle
+        // Drop Details (hologram) toggle
         gui.setItem(12, createSettingItem(
             playerSettings.isDropDetailsEnabled(),
             "§bDrop Details",
             "/toggle dropdetails"
+        ));
+
+        // Drop Details Chat toggle
+        gui.setItem(13, createSettingItem(
+            playerSettings.isDropDetailsChatEnabled(),
+            "§bDrop Details Chat",
+            "/toggle dropdetailschat"
         ));
 
         // Filler border
@@ -104,15 +111,27 @@ public class SettingsGUI implements Listener {
         if (slot == 10) {
             settings.toggleDmgChat();
             Bukkit.dispatchCommand(player, "dmgchat");
-            updateSettingItem(event.getInventory(), 10, settings.isDmgChatEnabled(), "§bDamage Chat", "/dmgchat");
+            updateSettingItem(event.getInventory(), 10,
+                settings.isDmgChatEnabled(), "§bDamage Chat", "/dmgchat");
+
         } else if (slot == 11) {
             settings.toggleDmgNumber();
             Bukkit.dispatchCommand(player, "dmgnumber");
-            updateSettingItem(event.getInventory(), 11, settings.isDmgNumberEnabled(), "§bDamage Numbers", "/dmgnumber");
+            updateSettingItem(event.getInventory(), 11,
+                settings.isDmgNumberEnabled(), "§bDamage Numbers", "/dmgnumber");
+
         } else if (slot == 12) {
             settings.toggleDropDetails();
             Bukkit.dispatchCommand(player, "toggle dropdetails");
-            updateSettingItem(event.getInventory(), 12, settings.isDropDetailsEnabled(), "§bDrop Details", "/toggle dropdetails");
+            updateSettingItem(event.getInventory(), 12,
+                settings.isDropDetailsEnabled(), "§bDrop Details", "/toggle dropdetails");
+
+        } else if (slot == 13) {
+            // new drop-details-chat toggle
+            settings.toggleDropDetailsChat();
+            Bukkit.dispatchCommand(player, "toggle dropdetailschat");
+            updateSettingItem(event.getInventory(), 13,
+                settings.isDropDetailsChatEnabled(), "§bDrop Details Chat", "/toggle dropdetailschat");
         }
     }
 }

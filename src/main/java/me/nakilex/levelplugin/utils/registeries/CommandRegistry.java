@@ -15,7 +15,7 @@ import me.nakilex.levelplugin.merchants.commands.MerchantCommand;
 import me.nakilex.levelplugin.mob.commands.AddMobCommand;
 import me.nakilex.levelplugin.mob.commands.DmgChatCommand;
 import me.nakilex.levelplugin.mob.commands.DmgNumberCommand;
-import me.nakilex.levelplugin.mob.commands.ToggleDropDetailsCommand;
+import me.nakilex.levelplugin.mob.commands.ToggleCommand;
 import me.nakilex.levelplugin.mob.managers.DmgNumberToggleManager;
 import me.nakilex.levelplugin.mob.managers.MobManager;
 import me.nakilex.levelplugin.player.attributes.commands.AddPointsCommand;
@@ -93,7 +93,7 @@ public class CommandRegistry {
         plugin.getCommand("gems").setExecutor(new GemsBalanceCommand(gemsManager));
         plugin.getCommand("gemexchange").setExecutor(new GemExchangeCommand(gemGui));
         plugin.getCommand("tipsreload").setExecutor(new TipsReloadCommand(tipsCfg, broadcastMgr));
-        plugin.getCommand("toggle").setExecutor(new ToggleDropDetailsCommand(plugin));
+        plugin.getCommand("toggle").setExecutor(new ToggleCommand(plugin));
 
 
     }

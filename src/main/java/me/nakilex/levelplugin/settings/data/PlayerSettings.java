@@ -5,6 +5,7 @@ public class PlayerSettings {
     private boolean dmgChat     = false;
     private boolean dmgNumber   = false;
     private boolean dropDetails = true;   // default ON
+    private boolean dropDetailsChatEnabled = false;
 
     public boolean isDmgChatEnabled() {
         return dmgChat;
@@ -29,5 +30,13 @@ public class PlayerSettings {
 
     public void toggleDropDetails() {
         this.dropDetails = !this.dropDetails;
+    }
+
+    public boolean isDropDetailsChatEnabled() {
+        return dropDetailsChatEnabled;
+    }
+
+    public void toggleDropDetailsChat() {
+        dropDetailsChatEnabled = !dropDetailsChatEnabled;
     }
 }

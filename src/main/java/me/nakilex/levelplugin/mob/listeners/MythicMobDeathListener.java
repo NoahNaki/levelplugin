@@ -38,6 +38,7 @@ public class MythicMobDeathListener implements Listener {
     private final LootChestManager lootChestManager;
     private final Main plugin = Main.getInstance();
     private static final Set<UUID> dropDetailsDisabled = new HashSet<>();
+    private static final Set<UUID> chatDetailsDisabled = ConcurrentHashMap.newKeySet();
 
 
     // ← New field: track which players damaged each mob
@@ -143,8 +144,12 @@ public class MythicMobDeathListener implements Listener {
                 Location deathLoc = event.getEntity().getLocation();
                 showRewardHologram(deathLoc, exp, coins);
             }
-            player.sendMessage(
-                "§aYou earned " + exp + " XP and " + coins + " coins");
+
+            if (MythicMobDeathListener.isChatEnabled(player)) {
+                player.sendMessage(
+                    "§7You earned §f+" + exp + " §aXP §7and §f+" + coins + " §e⛃"
+                );
+            }
         }
     }
 
@@ -201,6 +206,16 @@ public class MythicMobDeathListener implements Listener {
         if (dropDetailsDisabled.contains(u)) dropDetailsDisabled.remove(u);
         else dropDetailsDisabled.add(u);
         return false;
+    }
+
+    public static boolean isChatEnabled(Player p) {
+        return !chatDetailsDisabled.contains(p.getUniqueId());
+    }
+    public static boolean toggleChat(Player p) {
+        UUID id = p.getUniqueId();
+        if (chatDetailsDisabled.contains(id)) chatDetailsDisabled.remove(id);
+        else                                   chatDetailsDisabled.add(id);
+        return isChatEnabled(p);
     }
 
     /**
