@@ -11,6 +11,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
@@ -112,72 +113,88 @@ public class BlacksmithGUI implements Listener {
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player)) return;
-
         Player player = (Player) event.getWhoClicked();
-        Inventory clickedInventory = event.getClickedInventory();
-        Inventory topInventory = event.getView().getTopInventory();
 
         // Only handle clicks in our Blacksmith GUI
-        if (!openInventories.containsKey(player.getUniqueId())) return;
-        Inventory playerGUI = openInventories.get(player.getUniqueId());
-        if (!topInventory.equals(playerGUI)) return;
-        if (event.getRawSlot() >= playerGUI.getSize()) return;
+        Inventory top = event.getView().getTopInventory();
+        Inventory gui = openInventories.get(player.getUniqueId());
+        if (gui == null || !top.equals(gui)) return;
 
-        // Block default behavior
-        event.setCancelled(true);
-        int slot = event.getSlot();
+        // Detect whether the click came from the player's own inventory
+        Inventory clickedInv = event.getClickedInventory();
+        Inventory bottom = event.getView().getBottomInventory();
+        boolean fromPlayerInv = clickedInv != null && clickedInv.equals(bottom);
 
-        // SHIFT‑CLICK into slot 13
-        if (event.isShiftClick() && clickedInventory != null) {
-            ItemStack currentItem = event.getCurrentItem();
-            if (currentItem != null && currentItem.getType() != Material.AIR && playerGUI.getItem(13) == null) {
-                playerGUI.setItem(13, currentItem);
-                clickedInventory.setItem(event.getSlot(), null);
+        // 1) SHIFT-CLICK from player inventory into our GUI
+        if (event.isShiftClick()
+            && event.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY
+            && fromPlayerInv
+            && gui.getItem(13) == null) {
 
-                // Delay a tick then refresh cost & chance
-                Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-                    ItemStack placed = playerGUI.getItem(13);
-                    if (placed != null) {
-                        CustomItem ci = itemManager.getCustomItemFromItemStack(placed);
-                        if (ci != null) {
-                            int cost   = upgradeManager.getUpgradeCost(ci);
-                            int chance = upgradeManager.getSuccessChance(ci);
-                            updateUpgradeButton(playerGUI, cost, chance);
-                        } else {
-                            updateUpgradeButton(playerGUI, 0, 0);
-                        }
-                    } else {
-                        updateUpgradeButton(playerGUI, 0, 0);
-                    }
-                }, 1L);
-            }
-            return;
-        }
+            Bukkit.getLogger().info("[DEBUG][BlacksmithGUI] shift-click from player inv detected");
 
-        // Click directly in slot 13 to place/pickup
-        if (slot == 13) {
-            event.setCancelled(false);
+            // Let Bukkit place the item in slot 13, then update the button next tick
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-                ItemStack placed = playerGUI.getItem(13);
-                if (placed != null) {
+                ItemStack placed = gui.getItem(13);
+                Bukkit.getLogger().info("[DEBUG][BlacksmithGUI] 1-tick later, slot 13 has: "
+                    + (placed == null ? "null" : placed.getType().name()));
+
+                if (placed != null && !placed.getType().isAir()) {
                     CustomItem ci = itemManager.getCustomItemFromItemStack(placed);
                     if (ci != null) {
                         int cost   = upgradeManager.getUpgradeCost(ci);
                         int chance = upgradeManager.getSuccessChance(ci);
-                        updateUpgradeButton(playerGUI, cost, chance);
+                        updateUpgradeButton(gui, cost, chance);
+                        Bukkit.getLogger().info("[DEBUG][BlacksmithGUI] updated button => cost="
+                            + cost + ", chance=" + chance);
                     } else {
-                        updateUpgradeButton(playerGUI, 0, 0);
+                        updateUpgradeButton(gui, 0, 0);
+                        Bukkit.getLogger().info("[DEBUG][BlacksmithGUI] non-custom item, reset to 0/0");
                     }
-                } else {
-                    updateUpgradeButton(playerGUI, 0, 0);
                 }
             }, 1L);
 
-            // Click the upgrade anvil
-        } else if (slot == 22) {
-            handleUpgradeButtonClick(player, playerGUI);
+            // Do NOT cancel — let Bukkit handle the inventory move
+            return;
+        }
+
+        int raw = event.getRawSlot();
+        boolean inGui = raw < gui.getSize();
+
+        // 2) Clicks inside the GUI
+        if (inGui) {
+            // Slot 13: allow direct pick/place then update next tick
+            if (raw == 13) {
+                event.setCancelled(false);
+                Bukkit.getLogger().info("[DEBUG][BlacksmithGUI] Clicked slot 13 directly, scheduling update.");
+                Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+                    ItemStack placed = gui.getItem(13);
+                    Bukkit.getLogger().info("[DEBUG][BlacksmithGUI] 1-tick later on direct click: slot 13 has "
+                        + (placed == null ? "null" : placed.getType().name()));
+                    if (placed != null && !placed.getType().isAir()) {
+                        CustomItem ci = itemManager.getCustomItemFromItemStack(placed);
+                        updateUpgradeButton(gui,
+                            ci != null ? upgradeManager.getUpgradeCost(ci) : 0,
+                            ci != null ? upgradeManager.getSuccessChance(ci) : 0);
+                    } else {
+                        updateUpgradeButton(gui, 0, 0);
+                    }
+                }, 1L);
+                return;
+            }
+
+            // Slot 22: upgrade button
+            if (raw == 22) {
+                event.setCancelled(true);
+                handleUpgradeButtonClick(player, gui);
+                return;
+            }
+
+            // All other slots are decorative
+            event.setCancelled(true);
         }
     }
+
 
 
     private void handleUpgradeButtonClick(Player player, Inventory gui) {
