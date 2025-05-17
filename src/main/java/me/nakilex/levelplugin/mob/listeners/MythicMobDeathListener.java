@@ -116,28 +116,16 @@ public class MythicMobDeathListener implements Listener {
 
         // Reward each participant
         for (Player player : participants) {
-            // ── PARTY‐SIZE XP BONUS ───────────────────────────────────────────
+            // Compute party‐size XP bonus
             PartyManager pm = Main.getInstance().getPartyManager();
             Party party = pm.getParty(player.getUniqueId());
             int bonusPercent = 0;
             if (party != null) {
                 int size = party.getSize();
                 bonusPercent = Math.min(Math.max(size - 1, 0), 3) * 10; // (size−1)*10%, capped at 30%
-                plugin.getLogger().info("[XP DEBUG] "
-                    + player.getName()
-                    + " in party of " + size
-                    + " → bonus " + bonusPercent + "%");
-            } else {
-                plugin.getLogger().info("[XP DEBUG] "
-                    + player.getName()
-                    + " solo → no bonus");
             }
 
             int awardedExp = exp + (exp * bonusPercent) / 100;
-            plugin.getLogger().info("[XP DEBUG] Base=" + exp
-                + "  BonusExp=" + (awardedExp - exp)
-                + "  Final=" + awardedExp);
-            // ── end bonus ────────────────────────────────────────────────────
 
             // 1) XP (with bonus)
             levelManager.addXP(player, awardedExp);
