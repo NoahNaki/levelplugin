@@ -8,6 +8,8 @@ import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
+import me.nakilex.levelplugin.party.Party;
+import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
@@ -83,7 +85,6 @@ public class MythicMobDeathListener implements Listener {
             .add(hitter);
     }
 
-    // ← Modified death handler: reward each participant client-side
     @EventHandler
     public void onEntityDeath(EntityDeathEvent event) {
         // Get the MythicMob wrapper
@@ -95,13 +96,13 @@ public class MythicMobDeathListener implements Listener {
         if (!mobRewardsConfig.getConfig().contains("mobs." + mobType)) return;
 
         // Load common reward values
-        ConfigurationSection node     = mobRewardsConfig
+        ConfigurationSection node = mobRewardsConfig
             .getConfig()
             .getConfigurationSection("mobs." + mobType);
-        int exp                      = node.getInt("exp", 0);
-        String coinsSpec             = node.getString("coins", "0-0");
-        int tier                     = node.getInt("tier", 0);
-        double tierChance            = node.getDouble("tier_chance", 100.0);
+        int exp             = node.getInt("exp", 0);
+        String coinsSpec    = node.getString("coins", "0-0");
+        int tier            = node.getInt("tier", 0);
+        double tierChance   = node.getDouble("tier_chance", 100.0);
 
         // Parse coin range
         String[] sp      = coinsSpec.split("-");
@@ -115,8 +116,31 @@ public class MythicMobDeathListener implements Listener {
 
         // Reward each participant
         for (Player player : participants) {
-            // 1) XP
-            levelManager.addXP(player, exp);
+            // ── PARTY‐SIZE XP BONUS ───────────────────────────────────────────
+            PartyManager pm = Main.getInstance().getPartyManager();
+            Party party = pm.getParty(player.getUniqueId());
+            int bonusPercent = 0;
+            if (party != null) {
+                int size = party.getSize();
+                bonusPercent = Math.min(Math.max(size - 1, 0), 3) * 10; // (size−1)*10%, capped at 30%
+                plugin.getLogger().info("[XP DEBUG] "
+                    + player.getName()
+                    + " in party of " + size
+                    + " → bonus " + bonusPercent + "%");
+            } else {
+                plugin.getLogger().info("[XP DEBUG] "
+                    + player.getName()
+                    + " solo → no bonus");
+            }
+
+            int awardedExp = exp + (exp * bonusPercent) / 100;
+            plugin.getLogger().info("[XP DEBUG] Base=" + exp
+                + "  BonusExp=" + (awardedExp - exp)
+                + "  Final=" + awardedExp);
+            // ── end bonus ────────────────────────────────────────────────────
+
+            // 1) XP (with bonus)
+            levelManager.addXP(player, awardedExp);
 
             // 2) Coins
             int coins = ThreadLocalRandom.current().nextInt(minCoins, maxCoins + 1);
@@ -125,7 +149,7 @@ public class MythicMobDeathListener implements Listener {
             // 3) Custom‐item drops
             dropCustomItems(player, mobType);
 
-            // 4) Tier‐loot, but only if the roll ≤ tierChance
+            // 4) Tier‐loot
             if (tier > 0) {
                 double roll = ThreadLocalRandom.current().nextDouble() * 100.0;
                 if (roll <= tierChance) {
@@ -140,19 +164,20 @@ public class MythicMobDeathListener implements Listener {
                 }
             }
 
-            if (MythicMobDeathListener.isDropDetailsEnabled(player)) {
+            // 5) Hologram details
+            if (isDropDetailsEnabled(player)) {
                 Location deathLoc = event.getEntity().getLocation();
-                showRewardHologram(deathLoc, exp, coins);
+                showRewardHologram(deathLoc, awardedExp, coins);
             }
 
-            if (MythicMobDeathListener.isChatEnabled(player)) {
+            // 6) Chat message
+            if (isChatEnabled(player)) {
                 player.sendMessage(
-                    "§7You earned §f+" + exp + " §aXP §7and §f+" + coins + " §e⛃"
+                    "§7You earned §f+" + awardedExp + " §aXP §7and §f+" + coins + " §e⛃"
                 );
             }
         }
     }
-
 
     // New signature: pass in the world location where you want the hologram
     private void showRewardHologram(Location loc, int xp, int coins) {
