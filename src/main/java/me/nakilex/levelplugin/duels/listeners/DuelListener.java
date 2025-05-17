@@ -21,19 +21,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Handles the logic for sending/receiving duel requests, restricting PvP to duels, etc.
- */
 public class DuelListener implements Listener {
 
     private final Map<UUID, Long> lastRequestTime = new HashMap<>();
     private final Map<UUID, Long> lastAcceptTime = new HashMap<>();
     private final long REQUEST_COOLDOWN_MS = 5000; // 5 seconds
 
-    /**
-     * Listen for SHIFT + LEFT_CLICK in the air to send or accept a request
-     * by doing a small ray-trace for a player in front.
-     */
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
         // Must be left-click in air/block while sneaking
@@ -58,20 +51,20 @@ public class DuelListener implements Listener {
         Player target = (Player) hitEntity;
         DuelManager manager = DuelManager.getInstance();
 
-        // 1) If either player is ALREADY in a duel, don't allow new requests
+        // ← NEW: Prevent sending/receiving if either player is already in a duel
         if (manager.areInAnyDuel(player) || manager.areInAnyDuel(target)) {
-            ChatFormatter.sendCenteredMessage(player, ChatColor.RED + "Either you or they are in a duel already!");
+            ChatFormatter.sendCenteredMessage(player,
+                ChatColor.RED + "Either you or they are in a duel already!");
             return;
         }
 
         // 2) Check if there's a pending request from target -> me
         DuelRequest pendingToMe = manager.getRequest(player.getUniqueId());
         if (pendingToMe != null && pendingToMe.getRequester().equals(target.getUniqueId())) {
-            // Accept it
             boolean accepted = manager.acceptRequest(player);
             if (accepted) {
                 ChatFormatter.sendCenteredMessage(player,
-                    "§aYou accepted " + target.getName() + "'s duel request!");
+                    "§aYou accepted " + target.getName() + "’s duel request!");
                 ChatFormatter.sendCenteredMessage(target,
                     "§aYour duel request was accepted by " + player.getName() + "!");
             }
@@ -81,35 +74,30 @@ public class DuelListener implements Listener {
         // 3) Check if there's a request from me -> target
         DuelRequest pendingToTarget = manager.getRequest(target.getUniqueId());
         if (pendingToTarget != null && pendingToTarget.getRequester().equals(player.getUniqueId())) {
-            // Already sent one recently
             ChatFormatter.sendCenteredMessage(player,
                 "§cYou have already sent a duel request to " + target.getName() + "!");
             return;
         }
 
-        // 4) Check cooldown so we don't spam requests
+        // 4) Cooldown check
         long now = System.currentTimeMillis();
         long lastTime = lastRequestTime.getOrDefault(player.getUniqueId(), 0L);
         if ((now - lastTime) < REQUEST_COOLDOWN_MS) {
-            ChatFormatter.sendCenteredMessage(player, "§cWait a few seconds before sending another duel request!");
+            ChatFormatter.sendCenteredMessage(player,
+                "§cWait a few seconds before sending another duel request!");
             return;
         }
         lastRequestTime.put(player.getUniqueId(), now);
 
-        // 5) Otherwise, create new request
+        // 5) Create and notify
         manager.createRequest(player, target);
-
-        // Display one centered line to the sender
         ChatFormatter.sendCenteredMessage(player,
             "§6You have sent a duel request to " + target.getName() + "!");
-
-        // Display one centered line to the target
         ChatFormatter.sendCenteredMessage(target,
             "§e" + player.getName() + " has challenged you to a duel! Expires in 10s.");
-
-        // Provide clickable bold [ACCEPT] [DECLINE]
         sendCenteredAcceptDecline(target, player.getName());
     }
+
 
     private void sendCenteredAcceptDecline(Player target, String challengerName) {
         // Send the prompt
@@ -140,13 +128,6 @@ public class DuelListener implements Listener {
         target.spigot().sendMessage(finalMessage);
     }
 
-
-
-
-    /**
-     * Minimal approach for "/duel accept" or "/duel decline" typed in chat,
-     * fired from the clickable text or manual typing.
-     */
     @EventHandler
     public void onPlayerChat(AsyncPlayerChatEvent event) {
         Player player = event.getPlayer();
@@ -184,14 +165,6 @@ public class DuelListener implements Listener {
         }
     }
 
-    /**
-     * Minimal example of clickable Accept/Decline.
-     * Spigot's ChatComponent API does not easily center text,
-     * so we just send a centered prompt line, then the clickable line.
-     */
-    /**
-     * Send a duel request message with centered bold [ACCEPT] [DECLINE] buttons.
-     */
     public void sendDuelRequestMessage(Player target, String challengerName) {
         // Send a centered prompt line
         ChatFormatter.sendCenteredMessage(target,
@@ -261,10 +234,6 @@ public class DuelListener implements Listener {
         }
     }
 
-    /**
-     * This second EntityDamageByEntityEvent is for SHIFT+left-click as "duel request."
-     * You might not need this if your main approach is raytracing in onPlayerInteract().
-     */
     @EventHandler
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
         if (!(event.getEntity() instanceof Player) || !(event.getDamager() instanceof Player)) {
@@ -273,35 +242,34 @@ public class DuelListener implements Listener {
 
         Player victim = (Player) event.getEntity();
         Player attacker = (Player) event.getDamager();
+        DuelManager manager = DuelManager.getInstance();
 
-        // If attacker is sneaking, interpret the hit as a "duel request/accept" attempt
-        if (attacker.isSneaking()) {
-            event.setCancelled(true);
-
-            DuelManager manager = DuelManager.getInstance();
-            DuelRequest existingRequest = manager.getRequest(attacker.getUniqueId());
-
-            if (existingRequest != null && existingRequest.getRequester().equals(victim.getUniqueId())) {
-                // Attacker is accepting a request from victim
-                boolean accepted = manager.acceptRequest(attacker);
-                if (accepted) {
-                    ChatFormatter.sendCenteredMessage(attacker,
-                        "§aYou accepted " + victim.getName() + "'s duel request!");
-                    ChatFormatter.sendCenteredMessage(victim,
-                        "§aYour duel request was accepted by " + attacker.getName() + "!");
-                }
-            } else {
-                // Otherwise, create a new request
-                manager.createRequest(attacker, victim);
-
-                ChatFormatter.sendCenteredMessage(attacker,
-                    "§6You have sent a duel request to " + victim.getName() + "!");
-                ChatFormatter.sendCenteredMessage(victim,
-                    "§e" + attacker.getName() + " has challenged you to a duel! Expires in 10s.");
-
-                // Optionally send clickable chat Accept/Decline:
-                sendDuelRequestMessage(victim, attacker.getName());
-            }
+        // Only treat sneak‐hit as a duel request/accept
+        if (!attacker.isSneaking()) {
+            return;
         }
+        event.setCancelled(true);
+
+        // ← NEW: Prevent sending/receiving if either player is already in a duel
+        if (manager.areInAnyDuel(attacker) || manager.areInAnyDuel(victim)) {
+            ChatFormatter.sendCenteredMessage(attacker,
+                ChatColor.RED + "Either you or they are in a duel already!");
+            return;
+        }
+
+        // Accept an existing request?
+        DuelRequest existing = manager.getRequest(attacker.getUniqueId());
+        if (existing != null && existing.getRequester().equals(victim.getUniqueId())) {
+            manager.acceptRequest(attacker);
+            return;
+        }
+
+        // Otherwise, send a new request
+        manager.createRequest(attacker, victim);
+        ChatFormatter.sendCenteredMessage(attacker,
+            "§6You have sent a duel request to " + victim.getName() + "!");
+        ChatFormatter.sendCenteredMessage(victim,
+            "§e" + attacker.getName() + " has challenged you to a duel! Expires in 10s.");
+        sendDuelRequestMessage(victim, attacker.getName());
     }
 }
