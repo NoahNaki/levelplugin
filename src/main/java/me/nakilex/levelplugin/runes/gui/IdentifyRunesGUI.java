@@ -4,11 +4,10 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.runes.loader.RuneLoader;
 import me.nakilex.levelplugin.runes.manager.RunesManager;
 import me.nakilex.levelplugin.runes.model.Rune;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.NamespacedKey;
+import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -61,39 +60,44 @@ public class IdentifyRunesGUI implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent e) {
+        // Only care about our Identify GUI
         if (!TITLE.equals(e.getView().getTitle())) return;
 
         Player player     = (Player)e.getWhoClicked();
         Inventory top     = e.getView().getTopInventory();
-        int rawSlot       = e.getRawSlot();
         Inventory clicked = e.getClickedInventory();
-        InventoryAction action = e.getAction();
+        int rawSlot       = e.getRawSlot();
+        InventoryAction act = e.getAction();
 
-        // 1) BLOCK non-runes from going into slots 0..IDENTIFY_SLOT-1
-        if (clicked == top && rawSlot < IDENTIFY_SLOT) {
-            // allow only the identify-button pickup itself
-            if (!(rawSlot == IDENTIFY_SLOT && action == InventoryAction.PICKUP_ALL)) {
-                ItemStack toPlace = e.getCursor();             // what you're trying to put in
-                if (toPlace == null
-                    || !toPlace.hasItemMeta()
-                    || !toPlace.getItemMeta()
-                    .getPersistentDataContainer()
-                    .has(runeKey, PersistentDataType.STRING)
-                ) {
+        // 1) Prevent direct placing of invalid items into slots 0..7
+        if (clicked == top && rawSlot >= 0 && rawSlot < IDENTIFY_SLOT) {
+            if (act.name().startsWith("PLACE") || act == InventoryAction.MOVE_TO_OTHER_INVENTORY) {
+                ItemStack toPlace = e.getCursor();
+                boolean validUncarved =
+                    toPlace != null &&
+                        toPlace.getType() == Material.PAPER &&
+                        toPlace.hasItemMeta() &&
+                        toPlace.getItemMeta()
+                            .getPersistentDataContainer()
+                            .has(runeKey, PersistentDataType.STRING);
+
+                if (!validUncarved) {
                     e.setCancelled(true);
+                    player.sendMessage(ChatColor.RED + "Only unidentified runes may go into these slots!");
                     return;
                 }
             }
         }
 
-        // 2) Identify button click
-        if (rawSlot == IDENTIFY_SLOT && clicked == top && action == InventoryAction.PICKUP_ALL) {
-            e.setCancelled(true); // don’t let them pick up the anvil button
+        // 2) Identify button click at slot 8
+        if (clicked == top
+            && rawSlot == IDENTIFY_SLOT
+            && act == InventoryAction.PICKUP_ALL
+        ) {
+            e.setCancelled(true);
+
+            // we'll record each individual identified rune ID, including stacks
             List<String> identified = new ArrayList<>();
-
-            // --- debug loop omitted for brevity ---
-
-            // now actually identify
             for (int i = 0; i < IDENTIFY_SLOT; i++) {
                 ItemStack in = top.getItem(i);
                 if (in == null || !in.hasItemMeta()) continue;
@@ -105,42 +109,85 @@ public class IdentifyRunesGUI implements Listener {
                 Rune rune = runeLoader.getRune(id);
                 if (rune == null) continue;
 
+                // capture how many were in that stack
+                int count = in.getAmount();
+                // clear the slot
                 top.setItem(i, null);
-                player.getInventory().addItem(createIdentifiedRuneItem(rune));
-                identified.add(id);
+
+                // create one identified Book, then set its count
+                ItemStack out = createIdentifiedRuneItem(rune);
+                out.setAmount(count);
+
+                // give it to player
+                player.getInventory().addItem(out);
+
+                // record each individually (for message/counter)
+                for (int k = 0; k < count; k++) {
+                    identified.add(id);
+                }
             }
 
             if (identified.isEmpty()) {
                 player.sendMessage("§cYou have no unidentified runes to identify.");
             } else {
-                player.sendMessage("§aIdentified " + identified.size() + " rune(s): " + identified);
+                player.sendMessage("§aIdentified " +
+                    identified.size() + " rune(s): " + identified);
                 player.closeInventory();
             }
+            return;
         }
-        // everything else (including placing/removing runes in 0..6) is allowed
+
+        // 3) Otherwise we allow the click, but schedule a bounce‐back check in 1 tick
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            for (int i = 0; i < IDENTIFY_SLOT; i++) {
+                ItemStack in = top.getItem(i);
+                if (in == null) continue;
+
+                boolean valid =
+                    in.getType() == Material.PAPER &&
+                        in.hasItemMeta() &&
+                        in.getItemMeta()
+                            .getPersistentDataContainer()
+                            .has(runeKey, PersistentDataType.STRING);
+
+                if (!valid) {
+                    top.setItem(i, null);
+                    player.getInventory().addItem(in);
+                    player.sendMessage(ChatColor.RED +
+                        "Only unidentified runes may stay in this GUI. Returning invalid item.");
+                }
+            }
+        }, 1L);
     }
 
-    @EventHandler
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInventoryDrag(InventoryDragEvent e) {
         if (!TITLE.equals(e.getView().getTitle())) return;
-        Inventory top = e.getView().getTopInventory();
 
-        // check any of the dragged‐into slots
+        Player player = (Player) e.getWhoClicked();
         for (int raw : e.getRawSlots()) {
-            if (raw < IDENTIFY_SLOT && raw >= 0) {
-                ItemStack cursor = e.getOldCursor();  // what’s being dragged
-                if (cursor == null
-                    || !cursor.hasItemMeta()
-                    || !cursor.getItemMeta()
-                    .getPersistentDataContainer()
-                    .has(runeKey, PersistentDataType.STRING)
-                ) {
+            if (raw >= 0 && raw < IDENTIFY_SLOT) {
+                // somebody is dragging something into an input slot
+                ItemStack cursor = e.getOldCursor();
+                boolean validUncarved =
+                    cursor != null &&
+                        cursor.getType() == Material.PAPER &&
+                        cursor.hasItemMeta() &&
+                        cursor.getItemMeta()
+                            .getPersistentDataContainer()
+                            .has(runeKey, PersistentDataType.STRING);
+
+                if (!validUncarved) {
                     e.setCancelled(true);
+                    player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_LAND, 0.5f, 1f);
+                    player.sendMessage(ChatColor.RED + "Only unidentified runes may go here!");
                     return;
                 }
             }
         }
     }
+
 
     /**
      * Builds the identified rune item from a Rune.
