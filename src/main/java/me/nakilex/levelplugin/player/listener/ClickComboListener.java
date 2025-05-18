@@ -7,12 +7,13 @@ import me.nakilex.levelplugin.items.data.WeaponType;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
-import me.nakilex.levelplugin.spells.MageSpell;
-import me.nakilex.levelplugin.spells.RogueSpell;
 import me.nakilex.levelplugin.spells.Spell;
+import me.nakilex.levelplugin.spells.context.SpellCastContext;
+import me.nakilex.levelplugin.spells.effect.SpellEffect;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStats;
+import me.nakilex.levelplugin.spells.registry.EffectRegistry;
 import me.nakilex.levelplugin.spells.utils.SpellUtils;
 import org.bukkit.*;
 import org.bukkit.block.Block;
@@ -48,7 +49,6 @@ public class ClickComboListener implements Listener {
     private static final long BOW_SHOT_COOLDOWN = 500L; // 0.5 seconds
     private final Map<UUID, Long> mageCooldowns = new HashMap<>();
     private static final long MAGE_ATTACK_COOLDOWN = 500L;
-    private final MageSpell mageSpell = new MageSpell();
 
     @EventHandler
     public void onLeftClick(PlayerAnimationEvent event) {
@@ -101,7 +101,11 @@ public class ClickComboListener implements Listener {
             }
 
             // do the basic mage skill
-            mageSpell.mageBasicSkill(player);
+            SpellEffect basic = EffectRegistry.get("MAGE_BASIC");
+            basic.apply(new SpellCastContext(
+                SpellManager.getInstance().getSpell("mage", "MAGE_BASIC"),
+                player
+            ));
             mageCooldowns.put(playerId, now);
             return;
         }
@@ -420,7 +424,7 @@ public class ClickComboListener implements Listener {
         spell.castEffect(player);
         StatsManager.getInstance().recalcDerivedStats(player);
 
-        long nextUse = now + (spell.getCooldown() * 1000L);
+        long nextUse = now + (spell.getCooldownSeconds() * 1000L);
         cdMap.put(spell.getId(), nextUse);
         spellCooldowns.put(player.getUniqueId(), cdMap);
     }

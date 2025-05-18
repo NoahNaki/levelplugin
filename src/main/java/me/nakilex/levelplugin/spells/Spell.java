@@ -2,27 +2,37 @@ package me.nakilex.levelplugin.spells;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
-import me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStats;
+import me.nakilex.levelplugin.runes.manager.RunesManager;
+import me.nakilex.levelplugin.runes.model.Rune;
+import me.nakilex.levelplugin.runes.model.RuneEffect;
+import me.nakilex.levelplugin.spells.context.SpellCastContext;
+import me.nakilex.levelplugin.spells.effect.SpellEffect;
+import me.nakilex.levelplugin.spells.managers.CooldownManager;
+import me.nakilex.levelplugin.spells.managers.SpellManager;
+import me.nakilex.levelplugin.spells.registry.EffectRegistry;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
 import java.util.List;
+import java.util.UUID;
 
+/**
+ * Represents a single class spell, its cost, cooldown, and execution logic.
+ */
 public class Spell {
-
-    private final String id;             // unique spell identifier
-    private final String displayName;    // e.g. "Teleport"
-    private final String combo;          // e.g. "RRR"
-
-    // dynamic mana-cost fields
+    private final String id;
+    private final String displayName;
+    private final String combo;
     private final double baseManaCost;
     private final double manaCostMultiplier;
-
-    private final int cooldown;          // in seconds
+    private final long cooldownSeconds;     // ← renamed from int to long
     private final int levelReq;
     private final List<Material> allowedWeapons;
     private final String effectKey;
-    private final double damageMultiplier;  // e.g. 1.5 = 150%
+    private final double baseDamage;        // ← holds the pre-rune damage
+
+    // static managers
+    private static final CooldownManager cooldownMgr = CooldownManager.getInstance();
 
     public Spell(
         String id,
@@ -30,107 +40,115 @@ public class Spell {
         String combo,
         double baseManaCost,
         double manaCostMultiplier,
-        int cooldown,
+        long cooldownSeconds,          // ← now a long
         int levelReq,
         List<Material> allowedWeapons,
         String effectKey,
-        double damageMultiplier
+        double baseDamage              // ← pass in the raw dmg here
     ) {
-        this.id = id;
-        this.displayName = displayName;
-        this.combo = combo;
-        this.baseManaCost = baseManaCost;
+        this.id               = id;
+        this.displayName      = displayName;
+        this.combo            = combo;
+        this.baseManaCost     = baseManaCost;
         this.manaCostMultiplier = manaCostMultiplier;
-        this.cooldown = cooldown;
-        this.levelReq = levelReq;
-        this.allowedWeapons = allowedWeapons;
-        this.effectKey = effectKey;
-        this.damageMultiplier = damageMultiplier;
+        this.cooldownSeconds  = cooldownSeconds;
+        this.levelReq         = levelReq;
+        this.allowedWeapons   = allowedWeapons;
+        this.effectKey        = effectKey;
+        this.baseDamage       = baseDamage;
     }
 
-    // Retrieve the current dynamic cost for this player and spell
+    // getters...
+    public String getId()                { return id; }
+    public String getDisplayName()       { return displayName; }
+    public String getCombo()             { return combo; }
+    public double getBaseManaCost()      { return baseManaCost; }
+    public double getManaCostMultiplier(){ return manaCostMultiplier; }
+    public long   getCooldownSeconds()   { return cooldownSeconds; }
+    public int    getLevelReq()          { return levelReq; }
+    public List<Material> getAllowedWeapons() { return allowedWeapons; }
+    public double getBaseDamage()        { return baseDamage; }
+    public String getEffectKey()         { return effectKey; }
+    public double getDamageMultiplier() {
+        return this.baseDamage;
+    }
+
+    /** for SpellCastContext’s baseSpell.getManaCost() */
+    public double getManaCost() {
+        return this.baseManaCost;
+    }
+
+    /** for SpellCastContext’s baseSpell.getCooldown() */
+    public long getCooldown() {
+        return this.cooldownSeconds;
+    }
+
+    /** Retrieves the dynamic mana cost for this player and spell. */
     public double getCurrentManaCost(Player player) {
         return Main.getInstance()
             .getManaTracker()
             .getCost(player.getUniqueId(), id, baseManaCost);
     }
 
-    // Expose base mana cost for UI and static references
-    public double getBaseManaCost() {
-        return baseManaCost;
-    }
-
-    // Alias for compatibility with SpellGUI
-    public double getManaCost() {
-        return baseManaCost;
-    }
-
-    // After a successful cast, bump the cost and schedule reset
+    /** After a successful cast, record for dynamic cost adjustments. */
     public void recordSpellCast(Player player) {
         Main.getInstance()
             .getManaTracker()
             .recordCast(player.getUniqueId(), id, baseManaCost);
     }
 
-    // Attempt to cast: handle mana deduction and then apply effect
+    /**
+     * Handles cooldown, runes, mana deduction, and effect dispatch.
+     */
     public void castEffect(Player player) {
-        double cost = getCurrentManaCost(player);
-        PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
+        UUID pid = player.getUniqueId();
 
-        // Check mana availability
-        if (ps.getCurrentMana() < cost) {
-            player.sendMessage("§cNot enough mana to cast " + displayName + " (needs " + cost + ")");
+        // 1) Cooldown guard
+        if (cooldownMgr.isOnCooldown(pid, id)) {
+            long rem = cooldownMgr.getRemainingTime(pid, id);
+            player.sendMessage("§c" + displayName + " cooling down: " + (rem/1000) + "s left");
             return;
         }
 
-        // Deduct mana (round up to nearest int)
-        int newMana = ps.getCurrentMana() - (int) Math.ceil(cost);
-        ps.setCurrentMana(newMana);
-        recordSpellCast(player);
+        // 2) Build our context
+        SpellCastContext ctx = new SpellCastContext(this, player);
 
-        // Invoke the actual spell effect
-        switch (effectKey.toUpperCase()) {
-            case "GROUND_SLAM":
-            case "HEROIC_LEAP":
-            case "UPPERCUT":
-            case "IRON_FORTRESS": {
-                new WarriorSpell().castWarriorSpell(player, effectKey);
-                break;
-            }
-            case "METEOR":
-            case "BLACKHOLE":
-            case "HEAL":
-            case "TELEPORT":
-            case "MAGE_BASIC": {
-                new MageSpell().castMageSpell(player, effectKey);
-                break;
-            }
-            case "ARROW_STORM":
-            case "POWER_SHOT":
-            case "GRAPPLE_HOOK":
-            case "BOW_DRONE": {
-                new ArcherSpell().castArcherSpell(player, effectKey);
-                break;
-            }
-            case "VANISH":
-            case "BLADE_FURY":
-            case "ENDLESS_ASSAULT":
-            case "SHADOW_CLONE": {
-                new RogueSpell().castRogueSpell(player, effectKey);
-                break;
-            }
-            default: {
-                player.sendMessage("§eYou cast " + displayName + " (no effectKey logic)!");
+        // 3) Apply every equipped rune’s effects
+        List<Rune> runes = SpellManager.getInstance()
+            .getRunesManager()
+            .getRunesForSpell(player, id);
+
+        for (Rune rune : runes) {
+            for (RuneEffect eff : rune.getEffects()) {
+                if (eff.getType() == RuneEffect.Type.MODIFIER) {
+                    ctx.addDamagePercent(eff.getBonusDamagePercent());
+                    ctx.reduceCooldownPercent(eff.getCooldownReductionPercent());
+                } else {
+                    ctx.setEffectKey(eff.getNewEffectKey());
+                    eff.getExtraParams().forEach(ctx::putExtraParam);
+                }
             }
         }
-    }
 
-    // Standard getters
-    public String getId() { return id; }
-    public String getDisplayName() { return displayName; }
-    public String getCombo() { return combo; }
-    public int getCooldown() { return cooldown; }
-    public int getLevelReq() { return levelReq; }
-    public List<Material> getAllowedWeapons() { return allowedWeapons; }
-    public double getDamageMultiplier() { return damageMultiplier; }
+        // 4) Mana check & deduct
+        double cost = ctx.getFinalManaCost();
+        var ps    = StatsManager.getInstance().getPlayerStats(pid);
+        if (ps.getCurrentMana() < Math.ceil(cost)) {
+            player.sendMessage("§cNot enough mana (" + cost + ") to cast " + displayName);
+            return;
+        }
+        ps.setCurrentMana(ps.getCurrentMana() - (int)Math.ceil(cost));
+        recordSpellCast(player);
+
+        // 5) Start cooldown
+        cooldownMgr.setCooldown(pid, id, ctx.getFinalCooldown());
+
+        // 6) Fire off the effect with _all_ our context parameters
+        SpellEffect effect = EffectRegistry.get(ctx.getEffectKey());
+        if (effect != null) {
+            effect.apply(ctx);
+        } else {
+            player.sendMessage("§eUnknown effect: " + ctx.getEffectKey());
+        }
+    }
 }

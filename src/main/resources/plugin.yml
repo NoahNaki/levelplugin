@@ -112,5 +112,14 @@ commands:
   toggle:
     description: Toggle plugin features on/off.
     usage: /toggle <feature>
+  runes:
+    description: Opens the Rune Inventory GUI.
+    usage: /<command>
+  identifyrunes:
+    description: Opens the Runecarver identification GUI
+    usage: /<command>
+  runebrowser:
+    description: Browse all rune templates.
+    usage: /runebrowser
 
 

@@ -27,13 +27,21 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
+import me.nakilex.levelplugin.runes.commands.RunesCommand;
+import me.nakilex.levelplugin.runes.gui.IdentifyRunesGUI;
+import me.nakilex.levelplugin.runes.gui.RuneInventoryGUI;
+import me.nakilex.levelplugin.runes.manager.RunesManager;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
 import me.nakilex.levelplugin.spells.ArcherSpell;
-import me.nakilex.levelplugin.spells.MageSpell;
 import me.nakilex.levelplugin.spells.RogueSpell;
+import me.nakilex.levelplugin.spells.listener.BlackholeListener;
+import me.nakilex.levelplugin.spells.listener.HealListener;
+import me.nakilex.levelplugin.spells.listener.MeteorListener;
+import me.nakilex.levelplugin.spells.listener.TeleportListener;
 import me.nakilex.levelplugin.spells.managers.ManaCostTracker;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
+import me.nakilex.levelplugin.spells.registry.EffectRegistry;
 import me.nakilex.levelplugin.storage.StorageManager;
 import me.nakilex.levelplugin.storage.events.StorageEvents;
 import me.nakilex.levelplugin.tips.BroadcastManager;
@@ -93,19 +101,32 @@ public class Main extends JavaPlugin {
     private ItemConfig itemConfig;
     private PlayerConfig playerConfig;
     private DmgNumberToggleManager dmgNumberToggleManager;
+    private IdentifyRunesGUI identifyGui;
     private ManaCostTracker manaTracker;
     private RogueSpell rogueSpell;
     private ProjectileFriendlyFireListener projectileFriendlyFireListener;
     private FileConfiguration bossConfig;
     private File bossConfigFile;
+    private RunesManager runesManager;
+    private RuneInventoryGUI runeGui;
+    private IdentifyRunesGUI identifyRunesGUI;
     private GemsManager gemsManager;
     private GemExchangeGUI gemGui;
-    private MageSpell mageSpell;
     private ArcherSpell archerSpell;
     private TipsConfigManager tipsCfg;
     private BroadcastManager broadcastMgr;
     private final Map<UUID, NPC> activeBowDrones = new HashMap<>();
-    public Map<UUID, NPC> getActiveBowDrones() { return activeBowDrones; }
+
+    public Map<UUID, NPC> getActiveBowDrones() {
+        return activeBowDrones;
+    }
+
+    // Mage Listeners
+
+    private MeteorListener meteorListener;
+    private BlackholeListener blackholeListener;
+    private HealListener healListener;
+    private TeleportListener teleportListener;
 
 
     @Override
@@ -160,6 +181,8 @@ public class Main extends JavaPlugin {
         registerCommandsAndListeners();
         new ItemsBrowser(this);
 
+        EffectRegistry.registerAll();
+
         // Log success message
         getLogger().info("LevelPlugin has been enabled successfully!");
     }
@@ -188,7 +211,6 @@ public class Main extends JavaPlugin {
         configManager = new ConfigManager(this);
         cooldownManager = new CooldownManager(this, configManager, null);
         lootChestManager = new LootChestManager(this, configManager, cooldownManager, potionManager);
-        cooldownManager.setLootChestManager(lootChestManager);
         dmgNumberToggleManager = new DmgNumberToggleManager();
         upgradeKey = new NamespacedKey(this, "upgrade_level");
         levelManager = new LevelManager(this);
@@ -196,13 +218,20 @@ public class Main extends JavaPlugin {
         economyManager = new EconomyManager(this);
         itemUpgradeManager = new ItemUpgradeManager(this);
         mobManager = new MobManager(this);
-        spellmanager = new SpellManager(this);
+        runesManager = new RunesManager(this);
+        spellmanager = new SpellManager(this, runesManager);
         partyManager = new PartyManager();
+        runeGui = new RuneInventoryGUI(this, runesManager);
+        identifyGui = new IdentifyRunesGUI(this, runesManager);
+        runeGui = new RuneInventoryGUI(this, runesManager);
+        identifyGui = new IdentifyRunesGUI(this, runesManager);
         gemsManager = new GemsManager();
-        gemGui      = new GemExchangeGUI(this, gemsManager);
-        this.tipsCfg     = new TipsConfigManager(this);
-        this.broadcastMgr = new BroadcastManager(this, this.tipsCfg);
-        this.broadcastMgr.start();
+        gemGui = new GemExchangeGUI(this, gemsManager);
+        tipsCfg = new TipsConfigManager(this);
+        broadcastMgr = new BroadcastManager(this, this.tipsCfg);
+        broadcastMgr.start();
+        cooldownManager.setLootChestManager(lootChestManager);
+
 
         StatsManager.getInstance().setLevelManager(levelManager);
     }
@@ -243,6 +272,9 @@ public class Main extends JavaPlugin {
             gemsManager,
             gemGui,
             tipsCfg,
+            identifyGui,
+            runeGui,
+            runesManager,
             broadcastMgr
         );
 
@@ -263,9 +295,15 @@ public class Main extends JavaPlugin {
             rogueSpell,
             projectileFriendlyFireListener,
             bossConfig,
-            mageSpell,
             archerSpell,
-            gemsManager
+            meteorListener,
+            blackholeListener,
+            healListener,
+            teleportListener,
+            gemsManager,
+            runeGui,
+            identifyRunesGUI,
+            runesManager
         );
 
 
@@ -332,8 +370,16 @@ public class Main extends JavaPlugin {
         return plugin.getConfig();
     }
 
+    public PlayerConfig getPlayerConfig() {
+        return playerConfig;
+    }
+
     public MobManager getMobManager() {
         return mobManager;
+    }
+
+    public SpellManager getSpellManager() {
+        return spellmanager;
     }
 
     public FileConfiguration getCustomConfig() {
@@ -368,7 +414,9 @@ public class Main extends JavaPlugin {
         return messageStrings;
     }
 
-    public ManaCostTracker getManaTracker() { return manaTracker; }
+    public ManaCostTracker getManaTracker() {
+        return manaTracker;
+    }
 
     public void reloadConfigValues() {
         this.configValues = new ConfigValues(this.customConfigFile);
@@ -390,7 +438,9 @@ public class Main extends JavaPlugin {
         return bossConfig;
     }
 
-    public EffectManager getEffectManager() { return effectManager; }
+    public EffectManager getEffectManager() {
+        return effectManager;
+    }
 
 
     private void createCustomConfig() {

@@ -25,19 +25,19 @@ import me.nakilex.levelplugin.party.PartyInviteListener;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.attributes.listeners.StatsMenuListener;
 import me.nakilex.levelplugin.player.classes.listeners.ClassMenuListener;
-import me.nakilex.levelplugin.player.listener.ClickComboListener;
-import me.nakilex.levelplugin.player.listener.DeathBlindnessListener;
-import me.nakilex.levelplugin.player.listener.PlayerJoinListener;
-import me.nakilex.levelplugin.player.listener.PlayerKillListener;
+import me.nakilex.levelplugin.player.listener.*;
 import me.nakilex.levelplugin.player.utils.ArrowUtils;
 import me.nakilex.levelplugin.potions.listeners.PotionUseListener;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
+import me.nakilex.levelplugin.runes.gui.IdentifyRunesGUI;
+import me.nakilex.levelplugin.runes.gui.RuneInventoryGUI;
+import me.nakilex.levelplugin.runes.manager.RunesManager;
 import me.nakilex.levelplugin.salvage.listeners.SalvageListener;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
 import me.nakilex.levelplugin.spells.ArcherSpell;
-import me.nakilex.levelplugin.spells.MageSpell;
 import me.nakilex.levelplugin.spells.RogueSpell;
 import me.nakilex.levelplugin.spells.gui.SpellGUIListener;
+import me.nakilex.levelplugin.spells.listener.*;
 import me.nakilex.levelplugin.trade.listeners.PlayerRightClicksPlayerListener;
 import me.nakilex.levelplugin.utils.*;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -60,10 +60,16 @@ public class ListenerRegistry {
                                          RogueSpell rogueSpell,
                                          ProjectileFriendlyFireListener projectileFriendlyFireListener,
                                          FileConfiguration bossConfig,
-                                         MageSpell mageSpell,
                                          ArcherSpell archerSpell,
-                                         GemsManager gemsManager
-                                         ) {
+                                         MeteorListener meteorListener,
+                                         BlackholeListener blackholeListener,
+                                         HealListener healListener,
+                                         TeleportListener teleportListener,
+                                         GemsManager gemsManager,
+                                         RuneInventoryGUI runesGui,
+                                         IdentifyRunesGUI identifyRunesGUI,
+                                         RunesManager runesManager
+    ) {
 
 
         PluginManager pm = plugin.getServer().getPluginManager();
@@ -73,7 +79,8 @@ public class ListenerRegistry {
         pm.registerEvents(new MobDeathListener(plugin.getMobManager(), economyManager), plugin);
         pm.registerEvents(new PlayerKillListener(plugin.getLevelManager(), mobConfig, partyManager), plugin);
         pm.registerEvents(new MythicMobDeathListener(mobRewardsConfig, plugin.getLevelManager(), economyManager, lootChestManager), plugin);
-        pm.registerEvents(new PlayerJoinListener(plugin.getLevelManager()), plugin);
+        pm.registerEvents(new PlayerJoinListener(plugin.getLevelManager(),plugin.getPlayerConfig()),plugin);
+        pm.registerEvents(new PlayerQuitListener(plugin.getPlayerConfig()),plugin);
         pm.registerEvents(new StatsMenuListener(), plugin);
         pm.registerEvents(new StatsEffectListener(), plugin);
         pm.registerEvents(new ArmorListener(), plugin);
@@ -109,13 +116,23 @@ public class ListenerRegistry {
         pm.registerEvents(new DamageChatListener(), plugin);
         pm.registerEvents(settingsGUI, plugin); // ✅ No constructor call here
         pm.registerEvents(new RogueSpell(), plugin);
-        pm.registerEvents(new MageSpell(), plugin);
+
+        pm.registerEvents(new MeteorListener(), plugin);
+        pm.registerEvents(new BlackholeListener(), plugin);
+        pm.registerEvents(new TeleportListener(), plugin);
+        pm.registerEvents(new HealListener(), plugin);
+        pm.registerEvents(new BasicMageListener(), plugin);
+
+
+
         pm.registerEvents(new ProjectileFriendlyFireListener(), plugin);
         pm.registerEvents(new FieldBossListener(plugin, plugin.getBossConfig(), plugin.getItemManager(), plugin.getGemsManager()), plugin);
         pm.registerEvents(new EquipOnJoinListener(), plugin);
         pm.registerEvents(new DeathBlindnessListener(plugin), plugin);
         pm.registerEvents(new FullInventoryListener(), plugin);
         pm.registerEvents(new ArcherSpell(), plugin);
+        pm.registerEvents(runesGui, plugin);
+        pm.registerEvents(new IdentifyRunesGUI(plugin, runesManager), plugin);
 
 
 

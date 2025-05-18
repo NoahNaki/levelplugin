@@ -26,6 +26,12 @@ import me.nakilex.levelplugin.player.level.commands.SetLevelCommand;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.potions.commands.AddPotionCommand;
 import me.nakilex.levelplugin.lootchests.commands.LootChestCommand;
+import me.nakilex.levelplugin.runes.commands.IdentifyRunesCommand;
+import me.nakilex.levelplugin.runes.commands.RunesCommand;
+import me.nakilex.levelplugin.runes.gui.IdentifyRunesGUI;
+import me.nakilex.levelplugin.runes.gui.RuneBrowser;
+import me.nakilex.levelplugin.runes.gui.RuneInventoryGUI;
+import me.nakilex.levelplugin.runes.manager.RunesManager;
 import me.nakilex.levelplugin.salvage.commands.SalvageCommand;
 import me.nakilex.levelplugin.settings.commands.SettingsCommand;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
@@ -63,6 +69,9 @@ public class CommandRegistry {
                                         GemsManager gemsManager,
                                         GemExchangeGUI gemGui,
                                         TipsConfigManager tipsCfg,
+                                        IdentifyRunesGUI identifyGui,
+                                        RuneInventoryGUI runeGui,
+                                        RunesManager runesManager,
                                         BroadcastManager broadcastMgr) { // ✅ added here
 
 
@@ -94,6 +103,10 @@ public class CommandRegistry {
         plugin.getCommand("gemexchange").setExecutor(new GemExchangeCommand(gemGui));
         plugin.getCommand("tipsreload").setExecutor(new TipsReloadCommand(tipsCfg, broadcastMgr));
         plugin.getCommand("toggle").setExecutor(new ToggleCommand(plugin));
+        plugin.getCommand("runes").setExecutor(new RunesCommand(runeGui));
+        plugin.getCommand("identifyrunes").setExecutor(new IdentifyRunesCommand(identifyGui));
+        plugin.getCommand("runebrowser").setExecutor(new RuneBrowser(plugin, runesManager));
+
 
 
     }

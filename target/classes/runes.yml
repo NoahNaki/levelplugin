@@ -1,0 +1,28 @@
+runes:
+  - id: "mage_meteor_damage_boost"
+    name: "Spark of Fury"
+    rarity: "RARE"
+    targetClass: "MAGE"
+    targetSpell: "Meteor"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        bonusDamagePercent: 6.0
+        cooldownReductionPercent: 0.0
+        newEffectKey: null
+        extraParams: {}
+
+  - id: "mage_meteor_shower"
+    name: "Meteor Shower Rune"
+    rarity: "EPIC"
+    targetClass: "MAGE"
+    targetSpell: "Meteor"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        bonusDamagePercent: 0.0
+        cooldownReductionPercent: 0.0
+        newEffectKey: "METEOR_SHOWER_EFFECT"
+        extraParams:
+          extraProjectiles: 3
+          damageMultiplier: 0.8
