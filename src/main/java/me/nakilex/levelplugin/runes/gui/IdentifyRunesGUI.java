@@ -193,7 +193,7 @@ public class IdentifyRunesGUI implements Listener {
      * Builds the identified rune item from a Rune.
      * Adds the rune-id to PDC for later use.
      */
-    private ItemStack createIdentifiedRuneItem(Rune rune) {
+    ItemStack createIdentifiedRuneItem(Rune rune) {
         ItemStack item = new ItemStack(org.bukkit.Material.ENCHANTED_BOOK);
         ItemMeta meta = item.getItemMeta();
         meta.setDisplayName(rune.getRarity().name() + " Rune: " + rune.getDisplayName());

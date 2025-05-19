@@ -129,7 +129,7 @@ public class ListenerRegistry {
         pm.registerEvents(new FullInventoryListener(), plugin);
         pm.registerEvents(new ArcherSpell(), plugin);
         pm.registerEvents(new IdentifyRunesGUI(plugin, runesManager), plugin);
-        pm.registerEvents(new EquipRunesGUI(plugin, runesManager), plugin);
+        pm.registerEvents(new EquipRunesGUI(plugin, runesManager, identifyRunesGUI), plugin);
 
 
 

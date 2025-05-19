@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.runes.gui;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.runes.manager.RunesManager;
+import me.nakilex.levelplugin.runes.model.Rune;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -15,25 +16,34 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
 
-/**
- * GUI for equipping identified runes. Enhanced to support direct-click equipping
- * and proper cancellation only for pickup actions, with null-safe display names.
- */
 public class EquipRunesGUI implements Listener {
     private final Main plugin;
     private final RunesManager runesManager;
+    private final IdentifyRunesGUI identifyGui;
 
     public static final String TITLE = ChatColor.DARK_GRAY + "Equip Runes";
     private static final int SIZE = 9;
 
-    public EquipRunesGUI(Main plugin, RunesManager runesManager) {
+    public EquipRunesGUI(Main plugin, RunesManager runesManager, IdentifyRunesGUI identifyGui) {
         this.plugin = plugin;
         this.runesManager = runesManager;
+        if (identifyGui == null) {
+            this.identifyGui = new IdentifyRunesGUI(plugin, runesManager);
+        } else {
+            this.identifyGui = identifyGui;
+        }
     }
 
     public Inventory createInventory(Player player) {
-        return Bukkit.createInventory(null, SIZE, TITLE);
+        Inventory inv = Bukkit.createInventory(null, SIZE, TITLE);
+        var equipped = runesManager.getEquippedRunes(player);
+        for (int i = 0; i < equipped.size() && i < SIZE; i++) {
+            Rune rune = equipped.get(i);
+            inv.setItem(i, identifyGui.createIdentifiedRuneItem(rune));
+        }
+        return inv;
     }
 
     public void open(Player player) {
@@ -42,142 +52,137 @@ public class EquipRunesGUI implements Listener {
     }
 
     private boolean isIdentifiedRune(ItemStack stack) {
-        boolean identified = runesManager.isIdentified(stack);
-        plugin.getLogger().info("isIdentifiedRune? " + identified + " for stack=" + stack);
-        return identified;
+        return stack != null
+            && stack.getType() == Material.ENCHANTED_BOOK
+            && runesManager.isIdentified(stack);
     }
 
     private boolean isEquipGUI(InventoryView view) {
-        boolean correct = TITLE.equals(view.getTitle());
-        plugin.getLogger().info("isEquipGUI? " + correct + " title=" + view.getTitle());
-        return correct;
+        return TITLE.equals(view.getTitle());
     }
 
-    // Utility to get display name safely
     private String getSafeName(ItemStack item) {
         if (item == null) return "<none>";
         ItemMeta meta = item.getItemMeta();
-        if (meta != null && meta.hasDisplayName()) {
-            return meta.getDisplayName();
-        }
+        if (meta != null && meta.hasDisplayName()) return meta.getDisplayName();
         return item.getType().toString();
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onInventoryClick(InventoryClickEvent e) {
         InventoryView view = e.getView();
+        if (!isEquipGUI(view)) return;
+
+        Player p = (Player) e.getWhoClicked();
         InventoryAction action = e.getAction();
         ItemStack cursor = e.getCursor();
         ItemStack clicked = e.getCurrentItem();
 
-        plugin.getLogger().info("InventoryClickEvent: action=" + action
-            + ", slot=" + e.getSlot() + ", rawSlot=" + e.getRawSlot());
-        if (!isEquipGUI(view)) return;
-
-        // 1) Cancel any item pickup from the GUI
-        if (e.getClickedInventory() == view.getTopInventory()) {
-            if (action == InventoryAction.PICKUP_ONE
-                || action == InventoryAction.PICKUP_ALL
-                || action == InventoryAction.COLLECT_TO_CURSOR) {
-                plugin.getLogger().info("Cancelling pickup from top inventory slot=" + e.getRawSlot());
+        // 1) Handle pickups from GUI: unequip or cancel
+        if (e.getClickedInventory() == view.getTopInventory() &&
+            (action == InventoryAction.PICKUP_ONE || action == InventoryAction.PICKUP_ALL)) {
+            if (clicked != null && isIdentifiedRune(clicked)) {
                 e.setCancelled(true);
+                String id = clicked.getItemMeta()
+                    .getPersistentDataContainer()
+                    .get(runesManager.getRuneKey(), PersistentDataType.STRING);
+                Rune rune = runesManager.getRuneById(id);
+                if (rune != null) {
+                    runesManager.unequipRune(p, rune);
+                    p.getInventory().addItem(clicked.clone().asOne());
+                    p.sendMessage(ChatColor.YELLOW + "Unequipped rune: " + getSafeName(clicked));
+                }
+                open(p);
                 return;
             }
-        }
-
-        // 2) Shift-click INTO GUI: equip immediately
-        if (e.isShiftClick()) {
-            ItemStack toShift = e.getClickedInventory() == view.getBottomInventory() ? clicked : null;
-            plugin.getLogger().info("Shift-click detected, toShift=" + toShift);
-            if (toShift == null || !isIdentifiedRune(toShift)) {
-                plugin.getLogger().info("Cancelling shift-click with invalid rune");
-                e.setCancelled(true);
-            } else {
-                plugin.getLogger().info("Equipping rune via shift-click: " + toShift);
-                e.setCancelled(true);
-                Player p = (Player) e.getWhoClicked();
-                boolean equipped = runesManager.equipRune(p, toShift);
-                p.closeInventory();
-                plugin.getLogger().info("equipRune via shift-click returned " + equipped);
-                String name = getSafeName(toShift);
-                p.sendMessage(equipped
-                    ? ChatColor.GREEN + "Equipped rune: " + name
-                    : ChatColor.RED + "Failed to equip rune: " + name);
-            }
+            e.setCancelled(true);
             return;
         }
 
-        // 3) Direct click placement of rune into GUI → equip
+        // 2) Right-click on equipped rune to unequip
+        if (action == InventoryAction.PICKUP_HALF
+            && clicked != null
+            && isIdentifiedRune(clicked)
+            && e.getClickedInventory() == view.getTopInventory()) {
+            e.setCancelled(true);
+            String id = clicked.getItemMeta()
+                .getPersistentDataContainer()
+                .get(runesManager.getRuneKey(), PersistentDataType.STRING);
+            Rune rune = runesManager.getRuneById(id);
+            if (rune != null) {
+                runesManager.unequipRune(p, rune);
+                p.getInventory().addItem(clicked.clone().asOne());
+                p.sendMessage(ChatColor.YELLOW + "Unequipped rune: " + getSafeName(clicked));
+            }
+            open(p);
+            return;
+        }
+
+        // 3) Shift-click to equip
+        if (e.isShiftClick()) {
+            ItemStack toShift = e.getClickedInventory() == view.getBottomInventory() ? clicked : null;
+            e.setCancelled(true);
+            if (toShift != null && isIdentifiedRune(toShift)) {
+                boolean success = runesManager.equipRune(p, toShift);
+                if (success) {
+                    // decrement one from the clicked stack
+                    int newAmt = toShift.getAmount() - 1;
+                    if (newAmt > 0) {
+                        toShift.setAmount(newAmt);
+                        e.getClickedInventory().setItem(e.getSlot(), toShift);
+                    } else {
+                        e.getClickedInventory().setItem(e.getSlot(), null);
+                    }
+                }
+                p.sendMessage(success
+                    ? ChatColor.GREEN + "Equipped rune: " + getSafeName(toShift)
+                    : ChatColor.RED +   "Failed to equip rune: "  + getSafeName(toShift));
+            }
+            open(p);
+            return;
+        }
+
+        // 4) Direct-click placement into GUI to equip
         if (e.getClickedInventory() == view.getTopInventory()
-            && cursor != null && cursor.getType() != Material.AIR
+            && cursor != null
             && isIdentifiedRune(cursor)
             && (action == InventoryAction.PLACE_ONE
             || action == InventoryAction.PLACE_ALL
             || action == InventoryAction.PLACE_SOME)) {
-            plugin.getLogger().info("Direct-click equipping rune: " + cursor);
             e.setCancelled(true);
-            Player p = (Player) e.getWhoClicked();
-            boolean equipped = runesManager.equipRune(p, cursor);
-            p.closeInventory();
-            plugin.getLogger().info("equipRune via direct-click returned " + equipped);
-            String name = getSafeName(cursor);
-            p.sendMessage(equipped
-                ? ChatColor.GREEN + "Equipped rune: " + name
-                : ChatColor.RED + "Failed to equip rune: " + name);
-            return;
-        }
-
-        // 4) Hotbar swap (number-key) into GUI
-        if (e.getHotbarButton() != -1) {
-            ItemStack hotbarItem = view.getBottomInventory().getItem(e.getHotbarButton());
-            plugin.getLogger().info("Hotbar button swap: " + hotbarItem);
-            if (!isIdentifiedRune(hotbarItem)) {
-                plugin.getLogger().info("Cancelling hotbar swap with invalid rune");
-                e.setCancelled(true);
+            boolean success = runesManager.equipRune(p, cursor);
+            if (success) {
+                // decrement one from the cursor stack
+                int newAmt = cursor.getAmount() - 1;
+                if (newAmt > 0) {
+                    cursor.setAmount(newAmt);
+                    e.setCursor(cursor);
+                } else {
+                    e.setCursor(null);
+                }
             }
+            p.sendMessage(success
+                ? ChatColor.GREEN + "Equipped rune: " + getSafeName(cursor)
+                : ChatColor.RED +   "Failed to equip rune: "  + getSafeName(cursor));
+            open(p);
             return;
         }
 
-        // 5) Prevent placing invalid items into GUI
+        // 5) Prevent invalid placements into GUI
         if (e.getClickedInventory() == view.getTopInventory()
-            && cursor != null && cursor.getType() != Material.AIR
+            && cursor != null
             && !isIdentifiedRune(cursor)) {
-            plugin.getLogger().info("Cancelling invalid placement: " + cursor);
             e.setCancelled(true);
-            return;
-        }
-
-        // 6) Clicking on a rune already in the GUI → equip
-        if (clicked != null && clicked.getType() != Material.AIR
-            && isIdentifiedRune(clicked)
-            && e.getClickedInventory() == view.getTopInventory()
-            && (action == InventoryAction.PICKUP_ONE || action == InventoryAction.PICKUP_ALL)) {
-            plugin.getLogger().info("Equipping existing GUI rune on click: " + clicked);
-            e.setCancelled(true);
-            Player p = (Player) e.getWhoClicked();
-            boolean equipped = runesManager.equipRune(p, clicked);
-            p.closeInventory();
-            plugin.getLogger().info("equipRune on click returned " + equipped);
-            String name = getSafeName(clicked);
-            p.sendMessage(equipped
-                ? ChatColor.GREEN + "Equipped rune: " + name
-                : ChatColor.RED + "Failed to equip rune: " + name);
         }
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onInventoryDrag(InventoryDragEvent e) {
-        plugin.getLogger().info("InventoryDragEvent: rawSlots=" + e.getRawSlots()
-            + ", newItems=" + e.getNewItems().values());
         if (!isEquipGUI(e.getView())) return;
-
         e.getNewItems().forEach((slot, stack) -> {
-            if (slot < e.getView().getTopInventory().getSize()) {
-                plugin.getLogger().info("Drag into slot " + slot + ": " + stack);
-                if (!isIdentifiedRune(stack)) {
-                    plugin.getLogger().info("Cancelling drag: invalid rune " + stack);
-                    e.setCancelled(true);
-                }
+            if (slot < e.getView().getTopInventory().getSize()
+                && !isIdentifiedRune(stack)) {
+                e.setCancelled(true);
             }
         });
     }

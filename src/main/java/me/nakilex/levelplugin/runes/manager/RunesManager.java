@@ -82,6 +82,10 @@ public class RunesManager {
         return Collections.unmodifiableCollection(runeLoader.getAllRunes());
     }
 
+    public NamespacedKey getRuneKey() {
+        return runeKey;
+    }
+
     /**
      * Returns the subset of equipped runes that target the given spell ID.
      */

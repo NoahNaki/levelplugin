@@ -228,8 +228,7 @@ public class Main extends JavaPlugin {
         broadcastMgr = new BroadcastManager(this, this.tipsCfg);
         broadcastMgr.start();
         cooldownManager.setLootChestManager(lootChestManager);
-        equipGui = new EquipRunesGUI(this, runesManager);
-
+        equipGui = new EquipRunesGUI(this, runesManager, identifyRunesGUI);
 
         StatsManager.getInstance().setLevelManager(levelManager);
     }
