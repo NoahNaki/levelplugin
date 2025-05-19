@@ -47,7 +47,6 @@ public class EquipRunesGUI implements Listener {
     }
 
     public void open(Player player) {
-        plugin.getLogger().info("Opening EquipRunesGUI for " + player.getName());
         player.openInventory(createInventory(player));
     }
 
@@ -79,22 +78,38 @@ public class EquipRunesGUI implements Listener {
         ItemStack clicked = e.getCurrentItem();
 
         // 1) Handle pickups from GUI: unequip or cancel
-        if (e.getClickedInventory() == view.getTopInventory() &&
-            (action == InventoryAction.PICKUP_ONE || action == InventoryAction.PICKUP_ALL)) {
+        if (e.getClickedInventory() == view.getTopInventory()
+            && (action == InventoryAction.PICKUP_ONE || action == InventoryAction.PICKUP_ALL)) {
+
             if (clicked != null && isIdentifiedRune(clicked)) {
                 e.setCancelled(true);
+
+                // lookup the rune
                 String id = clicked.getItemMeta()
                     .getPersistentDataContainer()
                     .get(runesManager.getRuneKey(), PersistentDataType.STRING);
                 Rune rune = runesManager.getRuneById(id);
                 if (rune != null) {
+                    // remove from equipped list
                     runesManager.unequipRune(p, rune);
-                    p.getInventory().addItem(clicked.clone().asOne());
-                    p.sendMessage(ChatColor.YELLOW + "Unequipped rune: " + getSafeName(clicked));
+
+                    // give back one book, or drop if no space
+                    ItemStack oneRune = clicked.clone().asOne();
+                    int empty = p.getInventory().firstEmpty();
+                    if (empty == -1) {
+                        p.getWorld().dropItemNaturally(p.getLocation(), oneRune);
+                        p.sendMessage(ChatColor.RED + "Your inventory was full, so I dropped the rune at your feet.");
+                    } else {
+                        p.getInventory().setItem(empty, oneRune);
+                        p.sendMessage(ChatColor.YELLOW + "Unequipped rune: " + getSafeName(clicked));
+                    }
                 }
+
                 open(p);
                 return;
             }
+
+            // clicked a non-rune slot → just cancel
             e.setCancelled(true);
             return;
         }
@@ -104,16 +119,28 @@ public class EquipRunesGUI implements Listener {
             && clicked != null
             && isIdentifiedRune(clicked)
             && e.getClickedInventory() == view.getTopInventory()) {
+
             e.setCancelled(true);
+
+            // lookup the rune
             String id = clicked.getItemMeta()
                 .getPersistentDataContainer()
                 .get(runesManager.getRuneKey(), PersistentDataType.STRING);
             Rune rune = runesManager.getRuneById(id);
             if (rune != null) {
                 runesManager.unequipRune(p, rune);
-                p.getInventory().addItem(clicked.clone().asOne());
-                p.sendMessage(ChatColor.YELLOW + "Unequipped rune: " + getSafeName(clicked));
+
+                ItemStack oneRune = clicked.clone().asOne();
+                int empty = p.getInventory().firstEmpty();
+                if (empty == -1) {
+                    p.getWorld().dropItemNaturally(p.getLocation(), oneRune);
+                    p.sendMessage(ChatColor.RED + "Your inventory was full, so I dropped the rune at your feet.");
+                } else {
+                    p.getInventory().setItem(empty, oneRune);
+                    p.sendMessage(ChatColor.YELLOW + "Unequipped rune: " + getSafeName(clicked));
+                }
             }
+
             open(p);
             return;
         }
@@ -125,7 +152,6 @@ public class EquipRunesGUI implements Listener {
             if (toShift != null && isIdentifiedRune(toShift)) {
                 boolean success = runesManager.equipRune(p, toShift);
                 if (success) {
-                    // decrement one from the clicked stack
                     int newAmt = toShift.getAmount() - 1;
                     if (newAmt > 0) {
                         toShift.setAmount(newAmt);
@@ -136,7 +162,7 @@ public class EquipRunesGUI implements Listener {
                 }
                 p.sendMessage(success
                     ? ChatColor.GREEN + "Equipped rune: " + getSafeName(toShift)
-                    : ChatColor.RED +   "Failed to equip rune: "  + getSafeName(toShift));
+                    : ChatColor.RED   + "Failed to equip rune: "  + getSafeName(toShift));
             }
             open(p);
             return;
@@ -149,10 +175,10 @@ public class EquipRunesGUI implements Listener {
             && (action == InventoryAction.PLACE_ONE
             || action == InventoryAction.PLACE_ALL
             || action == InventoryAction.PLACE_SOME)) {
+
             e.setCancelled(true);
             boolean success = runesManager.equipRune(p, cursor);
             if (success) {
-                // decrement one from the cursor stack
                 int newAmt = cursor.getAmount() - 1;
                 if (newAmt > 0) {
                     cursor.setAmount(newAmt);
@@ -163,7 +189,7 @@ public class EquipRunesGUI implements Listener {
             }
             p.sendMessage(success
                 ? ChatColor.GREEN + "Equipped rune: " + getSafeName(cursor)
-                : ChatColor.RED +   "Failed to equip rune: "  + getSafeName(cursor));
+                : ChatColor.RED   + "Failed to equip rune: "  + getSafeName(cursor));
             open(p);
             return;
         }
@@ -175,6 +201,7 @@ public class EquipRunesGUI implements Listener {
             e.setCancelled(true);
         }
     }
+
 
     @EventHandler(ignoreCancelled = true)
     public void onInventoryDrag(InventoryDragEvent e) {
