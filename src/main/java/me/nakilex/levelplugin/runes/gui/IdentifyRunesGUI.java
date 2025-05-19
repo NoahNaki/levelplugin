@@ -14,6 +14,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -22,6 +23,7 @@ import org.bukkit.persistence.PersistentDataType;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 /**
@@ -190,11 +192,28 @@ public class IdentifyRunesGUI implements Listener {
         }
     }
 
+    private static final Material[] RUNE_TRIM_MATERIALS = {
+        Material.WAYFINDER_ARMOR_TRIM_SMITHING_TEMPLATE,
+        Material.HOST_ARMOR_TRIM_SMITHING_TEMPLATE,
+        Material.RAISER_ARMOR_TRIM_SMITHING_TEMPLATE,
+        Material.SHAPER_ARMOR_TRIM_SMITHING_TEMPLATE
+    };
 
     ItemStack createIdentifiedRuneItem(Rune rune) {
         // 1) Create book & grab meta
-        ItemStack item = new ItemStack(Material.ENCHANTED_BOOK);
+        Material mat = RUNE_TRIM_MATERIALS[
+            ThreadLocalRandom.current().nextInt(RUNE_TRIM_MATERIALS.length)
+            ];
+        ItemStack item = new ItemStack(mat);
         ItemMeta meta = item.getItemMeta();
+
+        meta.addItemFlags(
+            ItemFlag.HIDE_ATTRIBUTES,
+            ItemFlag.HIDE_ENCHANTS,
+            ItemFlag.HIDE_UNBREAKABLE,
+            ItemFlag.HIDE_ARMOR_TRIM,
+            ItemFlag.HIDE_ADDITIONAL_TOOLTIP
+        );
 
         // 2) Rarity → colour
         ChatColor rarityColor;
