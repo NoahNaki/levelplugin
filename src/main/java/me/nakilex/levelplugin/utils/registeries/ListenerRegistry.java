@@ -29,8 +29,8 @@ import me.nakilex.levelplugin.player.listener.*;
 import me.nakilex.levelplugin.player.utils.ArrowUtils;
 import me.nakilex.levelplugin.potions.listeners.PotionUseListener;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
+import me.nakilex.levelplugin.runes.gui.EquipRunesGUI;
 import me.nakilex.levelplugin.runes.gui.IdentifyRunesGUI;
-import me.nakilex.levelplugin.runes.gui.RuneInventoryGUI;
 import me.nakilex.levelplugin.runes.manager.RunesManager;
 import me.nakilex.levelplugin.salvage.listeners.SalvageListener;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
@@ -66,9 +66,9 @@ public class ListenerRegistry {
                                          HealListener healListener,
                                          TeleportListener teleportListener,
                                          GemsManager gemsManager,
-                                         RuneInventoryGUI runesGui,
                                          IdentifyRunesGUI identifyRunesGUI,
-                                         RunesManager runesManager
+                                         RunesManager runesManager,
+                                         EquipRunesGUI   equipGui
     ) {
 
 
@@ -116,14 +116,11 @@ public class ListenerRegistry {
         pm.registerEvents(new DamageChatListener(), plugin);
         pm.registerEvents(settingsGUI, plugin); // ✅ No constructor call here
         pm.registerEvents(new RogueSpell(), plugin);
-
         pm.registerEvents(new MeteorListener(), plugin);
         pm.registerEvents(new BlackholeListener(), plugin);
         pm.registerEvents(new TeleportListener(), plugin);
         pm.registerEvents(new HealListener(), plugin);
         pm.registerEvents(new BasicMageListener(), plugin);
-
-
 
         pm.registerEvents(new ProjectileFriendlyFireListener(), plugin);
         pm.registerEvents(new FieldBossListener(plugin, plugin.getBossConfig(), plugin.getItemManager(), plugin.getGemsManager()), plugin);
@@ -131,8 +128,8 @@ public class ListenerRegistry {
         pm.registerEvents(new DeathBlindnessListener(plugin), plugin);
         pm.registerEvents(new FullInventoryListener(), plugin);
         pm.registerEvents(new ArcherSpell(), plugin);
-        pm.registerEvents(runesGui, plugin);
         pm.registerEvents(new IdentifyRunesGUI(plugin, runesManager), plugin);
+        pm.registerEvents(new EquipRunesGUI(plugin, runesManager), plugin);
 
 
 

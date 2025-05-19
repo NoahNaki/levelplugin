@@ -27,9 +27,8 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
-import me.nakilex.levelplugin.runes.commands.RunesCommand;
+import me.nakilex.levelplugin.runes.gui.EquipRunesGUI;
 import me.nakilex.levelplugin.runes.gui.IdentifyRunesGUI;
-import me.nakilex.levelplugin.runes.gui.RuneInventoryGUI;
 import me.nakilex.levelplugin.runes.manager.RunesManager;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
@@ -108,7 +107,6 @@ public class Main extends JavaPlugin {
     private FileConfiguration bossConfig;
     private File bossConfigFile;
     private RunesManager runesManager;
-    private RuneInventoryGUI runeGui;
     private IdentifyRunesGUI identifyRunesGUI;
     private GemsManager gemsManager;
     private GemExchangeGUI gemGui;
@@ -116,6 +114,7 @@ public class Main extends JavaPlugin {
     private TipsConfigManager tipsCfg;
     private BroadcastManager broadcastMgr;
     private final Map<UUID, NPC> activeBowDrones = new HashMap<>();
+    private EquipRunesGUI equipGui;
 
     public Map<UUID, NPC> getActiveBowDrones() {
         return activeBowDrones;
@@ -221,9 +220,7 @@ public class Main extends JavaPlugin {
         runesManager = new RunesManager(this);
         spellmanager = new SpellManager(this, runesManager);
         partyManager = new PartyManager();
-        runeGui = new RuneInventoryGUI(this, runesManager);
         identifyGui = new IdentifyRunesGUI(this, runesManager);
-        runeGui = new RuneInventoryGUI(this, runesManager);
         identifyGui = new IdentifyRunesGUI(this, runesManager);
         gemsManager = new GemsManager();
         gemGui = new GemExchangeGUI(this, gemsManager);
@@ -231,6 +228,7 @@ public class Main extends JavaPlugin {
         broadcastMgr = new BroadcastManager(this, this.tipsCfg);
         broadcastMgr.start();
         cooldownManager.setLootChestManager(lootChestManager);
+        equipGui = new EquipRunesGUI(this, runesManager);
 
 
         StatsManager.getInstance().setLevelManager(levelManager);
@@ -273,8 +271,8 @@ public class Main extends JavaPlugin {
             gemGui,
             tipsCfg,
             identifyGui,
-            runeGui,
             runesManager,
+            equipGui,
             broadcastMgr
         );
 
@@ -301,9 +299,9 @@ public class Main extends JavaPlugin {
             healListener,
             teleportListener,
             gemsManager,
-            runeGui,
             identifyRunesGUI,
-            runesManager
+            runesManager,
+            equipGui
         );
 
 

@@ -8,6 +8,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.ChatColor;
@@ -104,19 +105,51 @@ public class RunesManager {
         Main.getPlugin().getLogger().info("    currently equipped: "
             + runes.stream().map(Rune::getId).toList());
 
-        // Prevent stacking of unique runes of the same ID on the same spell
-        if (rune.isUnique()) {
-            boolean already = runes.stream().anyMatch(r -> r.getId().equals(rune.getId()));
-            if (already) {
-                Main.getPlugin().getLogger().warning("    ❌ reject duplicate unique rune");
-                return false;
-            }
+        // Prevent stacking of unique runes of the same ID
+        if (rune.isUnique() && runes.stream().anyMatch(r -> r.getId().equals(rune.getId()))) {
+            Main.getPlugin().getLogger().warning("    ❌ reject duplicate unique rune");
+            return false;
         }
 
         runes.add(rune);
         Main.getPlugin().getLogger().info("    ✅ equipped! now: "
             + runes.stream().map(Rune::getId).toList());
         return true;
+    }
+
+    // —————————————————————————————————————————————
+    // 2) Your wrapper that takes an ItemStack
+    // —————————————————————————————————————————————
+    /**
+     * Identify the rune-id off the book, call equipRune(Player,Rune), and remove one book.
+     */
+    public boolean equipRune(Player player, ItemStack stack) {
+        if (!isIdentified(stack)) return false;
+        String id = stack.getItemMeta()
+            .getPersistentDataContainer()
+            .get(runeKey, PersistentDataType.STRING);
+        Rune rune = runeLoader.getRune(id);
+        if (rune == null) return false;
+
+        // Calls the Rune version above
+        boolean success = equipRune(player, rune);
+        if (!success) return false;
+
+        // consume one book
+        ItemStack one = stack.clone();
+        one.setAmount(1);
+        player.getInventory().removeItem(one);
+        return true;
+    }
+
+    /** Returns true if this book has a valid rune_id PDC entry and loads to a real Rune. */
+    public boolean isIdentified(ItemStack stack) {
+        if (stack == null || stack.getType() != Material.ENCHANTED_BOOK) return false;
+        if (!stack.hasItemMeta()) return false;
+        var pdc = stack.getItemMeta().getPersistentDataContainer();
+        if (!pdc.has(runeKey, PersistentDataType.STRING)) return false;
+        String id = pdc.get(runeKey, PersistentDataType.STRING);
+        return runeLoader.getRune(id) != null;
     }
 
 
