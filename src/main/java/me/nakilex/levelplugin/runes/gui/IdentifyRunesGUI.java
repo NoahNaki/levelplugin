@@ -20,7 +20,9 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * GUI for identifying Unidentified Runes via a chest inventory.
@@ -189,29 +191,92 @@ public class IdentifyRunesGUI implements Listener {
     }
 
 
-    /**
-     * Builds the identified rune item from a Rune.
-     * Adds the rune-id to PDC for later use.
-     */
     ItemStack createIdentifiedRuneItem(Rune rune) {
-        ItemStack item = new ItemStack(org.bukkit.Material.ENCHANTED_BOOK);
+        // 1) Create book & grab meta
+        ItemStack item = new ItemStack(Material.ENCHANTED_BOOK);
         ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(rune.getRarity().name() + " Rune: " + rune.getDisplayName());
+
+        // 2) Rarity → colour
+        ChatColor rarityColor;
+        switch (rune.getRarity()) {
+            case COMMON:    rarityColor = ChatColor.GRAY;         break;
+            case UNCOMMON:  rarityColor = ChatColor.GREEN;        break;
+            case RARE:      rarityColor = ChatColor.BLUE;         break;
+            case EPIC:      rarityColor = ChatColor.LIGHT_PURPLE; break;
+            case LEGENDARY: rarityColor = ChatColor.GOLD;         break;
+            default:        rarityColor = ChatColor.WHITE;        break;
+        }
+
+        // 3) Name in rarity colour
+        meta.setDisplayName(rarityColor + rune.getDisplayName());
+
+        // 4) Build lore
         List<String> lore = new ArrayList<>();
-        lore.add("Affects: " + rune.getTargetClass() + " - " + rune.getTargetSpell());
+
+        // 4a) blank spacer
+        lore.add("");
+
+        // 4b) effect lines: static in gray (&7), dynamic in yellow (&e)
+        // 4b) Effect lines: static in gray (&7), spell & numbers in yellow (&e)
         for (var e : rune.getEffects()) {
             switch (e.getType()) {
                 case MODIFIER:
-                    lore.add(ChatColor.GRAY + "+" + e.getBonusDamagePercent() + "% Damage");
+                    // "Increases " (gray) + Spell (yellow) + " damage by " (gray) + X% (yellow)
+                    lore.add(
+                        ChatColor.GRAY + "Increases "
+                            + ChatColor.YELLOW + rune.getTargetSpell()
+                            + ChatColor.GRAY + " damage by "
+                            + ChatColor.YELLOW + String.format("%.1f%%", e.getBonusDamagePercent())
+                    );
+                    if (e.getCooldownReductionPercent() > 0) {
+                        // "Reduces " + Spell + " cooldown by " + X%
+                        lore.add(
+                            ChatColor.GRAY + "Reduces "
+                                + ChatColor.YELLOW + rune.getTargetSpell()
+                                + ChatColor.GRAY + " cooldown by "
+                                + ChatColor.YELLOW + String.format("%.1f%%", e.getCooldownReductionPercent())
+                        );
+                    }
                     break;
+
                 case TRANSFORM:
-                    lore.add(ChatColor.GRAY + "Transforms to: " + e.getNewEffectKey());
+                    // prettify enum key
+                    String pretty = Arrays.stream(e.getNewEffectKey().split("_"))
+                        .map(s -> Character.toUpperCase(s.charAt(0)) + s.substring(1).toLowerCase())
+                        .collect(Collectors.joining(" "));
+                    // "Transforms " + Spell + " into " + NewEffect
+                    lore.add(
+                        ChatColor.GRAY + "Transforms "
+                            + ChatColor.YELLOW + rune.getTargetSpell()
+                            + ChatColor.GRAY + " into "
+                            + ChatColor.YELLOW + pretty
+                    );
                     break;
+
+                // … other effect types …
             }
         }
+
+
+        // 4c) blank spacer
+        lore.add("");
+
+        // 4d) bottom line: if unique, prefix "UNIQUE "
+        String bottomLabel = (rune.isUnique() ? "UNIQUE " : "")
+            + rune.getRarity().name()
+            + " RUNE";
+        lore.add(
+            rarityColor.toString()
+                + ChatColor.BOLD
+                + bottomLabel
+        );
+
         meta.setLore(lore);
-        // Store rune ID in PDC
-        meta.getPersistentDataContainer().set(runeKey, PersistentDataType.STRING, rune.getId());
+
+        // 5) Store rune ID in PDC
+        meta.getPersistentDataContainer()
+            .set(runeKey, PersistentDataType.STRING, rune.getId());
+
         item.setItemMeta(meta);
         return item;
     }

@@ -105,7 +105,7 @@ public class Rune {
         UNCOMMON(ChatColor.GREEN),
         RARE(ChatColor.BLUE),
         EPIC(ChatColor.DARK_PURPLE),
-        MYTHIC(ChatColor.GOLD);
+        LEGENDARY(ChatColor.GOLD);
 
         private final ChatColor color;
 
