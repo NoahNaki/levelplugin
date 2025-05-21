@@ -174,6 +174,19 @@ public class EquipRunesGUI implements Listener {
         boolean      top       = clickedInv == topInv;
         boolean      bottom    = clickedInv == bottomInv;
 
+        // 0) Block *only* placing non‐runes into your GUI
+        if (clickedInv == topInv
+            && (action == InventoryAction.PLACE_ONE
+            || action == InventoryAction.PLACE_ALL
+            || action == InventoryAction.PLACE_SOME)
+            && cursor != null
+            && !isIdentifiedRune(cursor))
+        {
+            e.setCancelled(true);
+            return;
+        }
+
+
         // --- 0) Block taking placeholders out ---
         if (top && current != null && current.hasItemMeta()) {
             String name = current.getItemMeta().getDisplayName();

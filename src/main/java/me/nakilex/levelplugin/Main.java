@@ -364,7 +364,7 @@ public class Main extends JavaPlugin {
 
     @Override
     public FileConfiguration getConfig() {
-        return plugin.getConfig();
+        return super.getConfig();   // calls JavaPlugin's implementation, not yourself
     }
 
     public PlayerConfig getPlayerConfig() {
