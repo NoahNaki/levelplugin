@@ -74,12 +74,11 @@ public class EquipRunesGUI implements Listener {
 
         // placeholders and filler
         for (int slot = 0; slot < SIZE; slot++) {
+            int req = UNLOCK_LEVELS.getOrDefault(slot, 0);
             if (UNIQUE_SLOTS.contains(slot)) {
-                int req = UNLOCK_LEVELS.get(slot);
-                if (level < req) inv.setItem(slot, createPlaceholder(Material.WHITE_STAINED_GLASS_PANE, req));
+                if (level < req) inv.setItem(slot, createPlaceholder(Material.WHITE_STAINED_GLASS_PANE, req, true));
             } else if (NORMAL_SLOTS.contains(slot)) {
-                int req = UNLOCK_LEVELS.get(slot);
-                if (level < req) inv.setItem(slot, createPlaceholder(Material.RED_STAINED_GLASS_PANE, req));
+                if (level < req) inv.setItem(slot, createPlaceholder(Material.RED_STAINED_GLASS_PANE, req, false));
             } else {
                 inv.setItem(slot, createFiller(Material.GRAY_STAINED_GLASS_PANE));
             }
@@ -130,13 +129,17 @@ public class EquipRunesGUI implements Listener {
         return (meta != null && meta.hasDisplayName()) ? meta.getDisplayName() : item.getType().toString();
     }
 
-    private ItemStack createPlaceholder(Material mat, int levelReq) {
+    private ItemStack createPlaceholder(Material mat, int levelReq, boolean unique) {
         ItemStack pane = new ItemStack(mat);
         ItemMeta meta = pane.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(ChatColor.RED + "Locked Slot");
+            String title = unique
+                ? ChatColor.RED + "Locked Unique Slot 🔒"
+                : ChatColor.RED + "Locked Slot 🔒";
+
+            meta.setDisplayName(title);
             meta.setLore(Arrays.asList(
-                ChatColor.GRAY + "🔒 Unlocks at level " + ChatColor.WHITE + levelReq,
+                ChatColor.GRAY + "Unlocks at level " + ChatColor.WHITE + levelReq,
                 ChatColor.DARK_GRAY + "Equip runes here once unlocked"
             ));
             pane.setItemMeta(meta);
