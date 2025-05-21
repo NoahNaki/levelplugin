@@ -23,6 +23,7 @@ import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -34,8 +35,8 @@ import java.util.stream.Collectors;
  */
 public class IdentifyRunesGUI implements Listener {
     private static final String TITLE = ChatColor.DARK_PURPLE + "Runecarver - Identify Runes";
-    private static final int SIZE = 9;
-    private static final int IDENTIFY_SLOT = 8;
+    private static final int SIZE          = 54;  // 5 rows × 9 cols
+    private static final int    IDENTIFY_SLOT  = 5 * 9 + 4;  // row 5, col 4 → slot 49
     private boolean animating = false;
     private BukkitTask animationTask;
 
@@ -54,181 +55,299 @@ public class IdentifyRunesGUI implements Listener {
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
-    /** Opens the Identify GUI for the player. */
     public void openInventory(Player player) {
         Inventory inv = Bukkit.createInventory(null, SIZE, TITLE);
-        // Place Identify button
-        ItemStack button = new ItemStack(org.bukkit.Material.ANVIL);
+
+        // 1) Prep our two pane-types
+        ItemStack grayPane = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+        ItemMeta gm = grayPane.getItemMeta();
+        gm.setDisplayName(" ");
+        grayPane.setItemMeta(gm);
+
+        ItemStack purplePane = new ItemStack(Material.PURPLE_STAINED_GLASS_PANE);
+        ItemMeta pm = purplePane.getItemMeta();
+        pm.setDisplayName(" ");
+        purplePane.setItemMeta(pm);
+
+        // 2) Fill rows 4 & 5 with gray
+        for (int row = 4; row <= 5; row++) {
+            for (int col = 0; col < 9; col++) {
+                inv.setItem(row * 9 + col, grayPane);
+            }
+        }
+
+        // 3) Overwrite the “+” around the eye to purple
+        //    (row 4, cols 3,4,5) and (row 5, cols 3,5)
+        int r4 = 4 * 9;
+        inv.setItem(r4 + 3, purplePane);
+        inv.setItem(r4 + 4, purplePane);
+        inv.setItem(r4 + 5, purplePane);
+
+        int r5 = 5 * 9;
+        inv.setItem(r5 + 3, purplePane);
+        inv.setItem(r5 + 5, purplePane);
+
+        // 4) Finally place the Identify-Rune eye at slot 49
+        ItemStack button = new ItemStack(Material.ENDER_EYE);
         ItemMeta bm = button.getItemMeta();
         bm.setDisplayName(ChatColor.GREEN + "Identify Runes");
         button.setItemMeta(bm);
         inv.setItem(IDENTIFY_SLOT, button);
+
         player.openInventory(inv);
     }
 
+
     @EventHandler
     public void onInventoryClick(InventoryClickEvent e) {
-        // Only care about our Identify GUI
+        // 1) Only our GUI
         if (!TITLE.equals(e.getView().getTitle())) return;
-
-        // 0) Block all interaction during the animation
+        // 2) Block during animation
         if (animating) {
             e.setCancelled(true);
             return;
         }
 
-        Player player     = (Player) e.getWhoClicked();
-        Inventory top     = e.getView().getTopInventory();
-        Inventory clicked = e.getClickedInventory();
-        int rawSlot       = e.getRawSlot();
+        Inventory top       = e.getView().getTopInventory();
+        Inventory clicked   = e.getClickedInventory();
+        int rawSlot         = e.getRawSlot();
         InventoryAction act = e.getAction();
+        Player player       = (Player)e.getWhoClicked();
 
-        // 1) Prevent direct placing of invalid items into slots 0..7
-        if (clicked == top && rawSlot >= 0 && rawSlot < IDENTIFY_SLOT) {
-            if (act.name().startsWith("PLACE") || act == InventoryAction.MOVE_TO_OTHER_INVENTORY) {
-                ItemStack toPlace = e.getCursor();
-                boolean validUncarved =
-                    toPlace != null &&
-                        toPlace.getType() == Material.PAPER &&
-                        toPlace.hasItemMeta() &&
-                        toPlace.getItemMeta()
-                            .getPersistentDataContainer()
-                            .has(runeKey, PersistentDataType.STRING);
-
-                if (!validUncarved) {
-                    e.setCancelled(true);
-                    player.sendMessage(ChatColor.RED + "Only unidentified runes may go into these slots!");
-                    return;
-                }
+        // 3) Handle shift‐click from player→GUI
+        if (clicked != top && act == InventoryAction.MOVE_TO_OTHER_INVENTORY) {
+            // only allow shift-click if item is a PAPER with your runeKey
+            ItemStack current = e.getCurrentItem();
+            boolean valid = current != null
+                && current.getType() == Material.PAPER
+                && current.hasItemMeta()
+                && current.getItemMeta().getPersistentDataContainer()
+                .has(runeKey, PersistentDataType.STRING);
+            if (!valid) {
+                e.setCancelled(true);
+                player.sendMessage(ChatColor.RED + "Only unidentified runes may be shift-clicked into this GUI!");
             }
-        }
-
-        // 2) Identify button click at slot 8
-        if (clicked == top
-            && rawSlot == IDENTIFY_SLOT
-            && act == InventoryAction.PICKUP_ALL
-        ) {
-            e.setCancelled(true);
-
-            // 2a) Collect all the identified ItemStacks (but don't give them yet)
-            List<ItemStack> outputs = collectIdentifiedItems(top);
-            if (outputs.isEmpty()) {
-                player.sendMessage(ChatColor.RED + "You have no unidentified runes to identify.");
-                return;
-            }
-
-            // 2b) Kick off the cycling animation
-            startCycleAnimation(player, top, outputs);
             return;
         }
 
-        // 3) Otherwise allow the click, but schedule a bounce‐back check in 1 tick
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            for (int i = 0; i < IDENTIFY_SLOT; i++) {
-                ItemStack in = top.getItem(i);
-                if (in == null) continue;
+        // 4) From here on, we're only dealing with clicks *inside* the GUI
+        if (clicked != top) return;
 
-                boolean valid =
-                    in.getType() == Material.PAPER &&
-                        in.hasItemMeta() &&
-                        in.getItemMeta()
-                            .getPersistentDataContainer()
-                            .has(runeKey, PersistentDataType.STRING);
+        // 5) Block double-click collect-to-cursor
+        if (act == InventoryAction.COLLECT_TO_CURSOR) {
+            e.setCancelled(true);
+            return;
+        }
 
-                if (!valid) {
-                    top.setItem(i, null);
-                    player.getInventory().addItem(in);
-                    player.sendMessage(ChatColor.RED +
-                        "Only unidentified runes may stay in this GUI. Returning invalid item.");
+        // 6) Identify-eye slot
+        if (rawSlot == IDENTIFY_SLOT) {
+            if (act == InventoryAction.PICKUP_ALL) {
+                e.setCancelled(true);
+                List<ItemStack> outs = collectIdentifiedItems(top);
+                if (outs.isEmpty()) {
+                    player.sendMessage(ChatColor.RED + "You have no unidentified runes to identify.");
+                } else {
+                    startCycleAnimation(player, top, outs);
                 }
+            } else {
+                e.setCancelled(true);
             }
-        }, 1L);
+            return;
+        }
+
+        // 7) Pane-guard
+        ItemStack clickedItem = top.getItem(rawSlot);
+        if (clickedItem != null) {
+            Material m = clickedItem.getType();
+            if (m == Material.GRAY_STAINED_GLASS_PANE ||
+                m == Material.PURPLE_STAINED_GLASS_PANE) {
+                e.setCancelled(true);
+                return;
+            }
+        }
+
+        // 8) Input slots: only allow valid PAPER runes
+        if (rawSlot >= 0 && rawSlot < IDENTIFY_SLOT) {
+            switch (act) {
+                case PLACE_ONE:
+                case PLACE_ALL:
+                case PLACE_SOME:
+                case SWAP_WITH_CURSOR:
+                case HOTBAR_SWAP:
+                case HOTBAR_MOVE_AND_READD:
+                case MOVE_TO_OTHER_INVENTORY:  // covers shift-click from within GUI
+                case CLONE_STACK:               // creative
+                    ItemStack toPlace;
+                    if (act == InventoryAction.SWAP_WITH_CURSOR || act == InventoryAction.HOTBAR_SWAP) {
+                        int hotbar = e.getHotbarButton();
+                        toPlace = player.getInventory().getItem(hotbar);
+                    } else {
+                        toPlace = e.getCursor();
+                    }
+                    boolean validRune = toPlace != null
+                        && toPlace.getType() == Material.PAPER
+                        && toPlace.hasItemMeta()
+                        && toPlace.getItemMeta().getPersistentDataContainer()
+                        .has(runeKey, PersistentDataType.STRING);
+                    if (!validRune) {
+                        e.setCancelled(true);
+                        player.sendMessage(ChatColor.RED + "Only unidentified runes may go into these slots!");
+                    }
+                    // otherwise let it through
+                    break;
+                default:
+                    // all other actions (pickup, etc.) are fine
+                    break;
+            }
+        }
     }
 
 
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInventoryDrag(InventoryDragEvent e) {
+        // 1) Only our GUI
         if (!TITLE.equals(e.getView().getTitle())) return;
+        // 2) Block during animation
+        if (animating) {
+            e.setCancelled(true);
+            return;
+        }
 
-        Player player = (Player) e.getWhoClicked();
-        for (int raw : e.getRawSlots()) {
-            if (raw >= 0 && raw < IDENTIFY_SLOT) {
-                // somebody is dragging something into an input slot
-                ItemStack cursor = e.getOldCursor();
-                boolean validUncarved =
-                    cursor != null &&
-                        cursor.getType() == Material.PAPER &&
-                        cursor.hasItemMeta() &&
-                        cursor.getItemMeta()
-                            .getPersistentDataContainer()
-                            .has(runeKey, PersistentDataType.STRING);
+        Inventory top = e.getView().getTopInventory();
+        Player player = (Player)e.getWhoClicked();
 
-                if (!validUncarved) {
+        for (int rawSlot : e.getRawSlots()) {
+            // only care about slots in our GUI
+            if (rawSlot < 0 || rawSlot >= SIZE) continue;
+
+            // 3) Block drag onto identify-button
+            if (rawSlot == IDENTIFY_SLOT) {
+                e.setCancelled(true);
+                return;
+            }
+
+            // 4) Block drag onto filler panes
+            ItemStack existing = top.getItem(rawSlot);
+            if (existing != null) {
+                Material m = existing.getType();
+                if (m == Material.GRAY_STAINED_GLASS_PANE ||
+                    m == Material.PURPLE_STAINED_GLASS_PANE) {
                     e.setCancelled(true);
-                    player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_LAND, 0.5f, 1f);
+                    return;
+                }
+            }
+
+            // 5) Input slots must only get valid runes
+            if (rawSlot >= 0 && rawSlot < IDENTIFY_SLOT) {
+                ItemStack cursor = e.getOldCursor();
+                boolean valid = cursor != null
+                    && cursor.getType() == Material.PAPER
+                    && cursor.hasItemMeta()
+                    && cursor.getItemMeta().getPersistentDataContainer()
+                    .has(runeKey, PersistentDataType.STRING);
+                if (!valid) {
+                    e.setCancelled(true);
+                    player.playSound(player.getLocation(),
+                        Sound.BLOCK_ANVIL_LAND,
+                        0.5f, 1f);
                     player.sendMessage(ChatColor.RED + "Only unidentified runes may go here!");
                     return;
                 }
             }
         }
+        // if none of the dragged slots are in the GUI we just let it through
     }
 
-    /**
-     * Read slots 0..7, turn each uncarved rune into a fresh identified ItemStack.
-     * We don’t give them to the player yet—we’ll do that after the animation.
-     */
+
     private List<ItemStack> collectIdentifiedItems(Inventory top) {
         List<ItemStack> outputs = new ArrayList<>();
+
         for (int i = 0; i < IDENTIFY_SLOT; i++) {
             ItemStack in = top.getItem(i);
-            if (in == null || !in.hasItemMeta()) continue;
-            var pdc = in.getItemMeta().getPersistentDataContainer();
+            if (in == null)                        continue;
+            if (in.getType() != Material.PAPER)    continue;  // ✦ only paper runes
+            if (!in.hasItemMeta())                 continue;
+
+            PersistentDataContainer pdc = in.getItemMeta().getPersistentDataContainer();
             if (!pdc.has(runeKey, PersistentDataType.STRING)) continue;
 
-            Rune rune = runeLoader.getRune(pdc.get(runeKey, PersistentDataType.STRING));
-            if (rune == null) continue;
+            String id = pdc.get(runeKey, PersistentDataType.STRING);
+            Rune rune = runeLoader.getRune(id);
+            if (rune == null)                      continue;
 
             int count = in.getAmount();
-            // clear now so that later you only see the cycling visuals
-            top.setItem(i, null);
+            top.setItem(i, null);                  // clear slot immediately
 
-            // create N individual books so they stack properly
             for (int k = 0; k < count; k++) {
                 outputs.add(createIdentifiedRuneItem(rune));
             }
         }
+
         return outputs;
     }
 
+
     private void startCycleAnimation(Player player, Inventory top, List<ItemStack> outputs) {
         animating = true;
-        final int totalCycles = 20;      // number of frames
-        final long tickInterval = 2L;    // every 2 ticks (~0.1s)
-        AtomicInteger frame = new AtomicInteger(0);
+        final int totalCycles   = 20;
+        final long tickInterval = 2L;  // 0.1s per frame
+        AtomicInteger frame     = new AtomicInteger(0);
+
+        // 1) build the full list of candidate slots (rows 0–3)
+        int rows         = SIZE / 9;       // e.g. 54/9 = 6
+        int fillerStart  = rows - 2;      // rows 4 & 5 are filler
+        List<Integer> inputSlots = new ArrayList<>();
+        for (int row = 0; row < fillerStart; row++) {
+            for (int col = 0; col < 9; col++) {
+                inputSlots.add(row * 9 + col);
+            }
+        }
+
+        // 2) but only animate as many as we have runes
+        int want = Math.min(outputs.size(), inputSlots.size());
+        List<Integer> slotsToAnimate = inputSlots.subList(0, want);
 
         animationTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             int f = frame.getAndIncrement();
 
-            // cycle each slot through a random trim material
-            for (int i = 0; i < IDENTIFY_SLOT; i++) {
+            // clear the old frame
+            for (int slot : slotsToAnimate) {
+                top.setItem(slot, null);
+            }
+
+            // draw only the first 'want' placeholders
+            for (int slot : slotsToAnimate) {
                 Material mat = RUNE_TRIM_MATERIALS[
                     ThreadLocalRandom.current().nextInt(RUNE_TRIM_MATERIALS.length)
                     ];
                 ItemStack fake = new ItemStack(mat);
                 ItemMeta m = fake.getItemMeta();
+
+                //  • name = "???"
                 m.setDisplayName(ChatColor.GRAY + "???");
+                //  • strip off any vanilla lore
+                m.setLore(Collections.emptyList());
+
+                m.addItemFlags(
+                    ItemFlag.HIDE_ATTRIBUTES,
+                    ItemFlag.HIDE_ENCHANTS,
+                    ItemFlag.HIDE_UNBREAKABLE,
+                    ItemFlag.HIDE_ARMOR_TRIM,
+                    ItemFlag.HIDE_ADDITIONAL_TOOLTIP
+                );
+
                 fake.setItemMeta(m);
-                top.setItem(i, fake);
+                top.setItem(slot, fake);
             }
 
-            // once we've shown enough frames, finish up
             if (f >= totalCycles) {
                 animationTask.cancel();
                 finishAnimation(player, top, outputs);
             }
         }, 0L, tickInterval);
     }
+
 
 
     /**
