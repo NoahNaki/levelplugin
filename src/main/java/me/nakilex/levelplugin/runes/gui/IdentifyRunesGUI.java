@@ -19,11 +19,13 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
@@ -34,6 +36,8 @@ public class IdentifyRunesGUI implements Listener {
     private static final String TITLE = ChatColor.DARK_PURPLE + "Runecarver - Identify Runes";
     private static final int SIZE = 9;
     private static final int IDENTIFY_SLOT = 8;
+    private boolean animating = false;
+    private BukkitTask animationTask;
 
     private final Main plugin;
     private final RuneLoader runeLoader;
@@ -67,7 +71,13 @@ public class IdentifyRunesGUI implements Listener {
         // Only care about our Identify GUI
         if (!TITLE.equals(e.getView().getTitle())) return;
 
-        Player player     = (Player)e.getWhoClicked();
+        // 0) Block all interaction during the animation
+        if (animating) {
+            e.setCancelled(true);
+            return;
+        }
+
+        Player player     = (Player) e.getWhoClicked();
         Inventory top     = e.getView().getTopInventory();
         Inventory clicked = e.getClickedInventory();
         int rawSlot       = e.getRawSlot();
@@ -100,48 +110,19 @@ public class IdentifyRunesGUI implements Listener {
         ) {
             e.setCancelled(true);
 
-            // we'll record each individual identified rune ID, including stacks
-            List<String> identified = new ArrayList<>();
-            for (int i = 0; i < IDENTIFY_SLOT; i++) {
-                ItemStack in = top.getItem(i);
-                if (in == null || !in.hasItemMeta()) continue;
-
-                var pdc = in.getItemMeta().getPersistentDataContainer();
-                if (!pdc.has(runeKey, PersistentDataType.STRING)) continue;
-
-                String id = pdc.get(runeKey, PersistentDataType.STRING);
-                Rune rune = runeLoader.getRune(id);
-                if (rune == null) continue;
-
-                // capture how many were in that stack
-                int count = in.getAmount();
-                // clear the slot
-                top.setItem(i, null);
-
-                // create one identified Book, then set its count
-                ItemStack out = createIdentifiedRuneItem(rune);
-                out.setAmount(count);
-
-                // give it to player
-                player.getInventory().addItem(out);
-
-                // record each individually (for message/counter)
-                for (int k = 0; k < count; k++) {
-                    identified.add(id);
-                }
+            // 2a) Collect all the identified ItemStacks (but don't give them yet)
+            List<ItemStack> outputs = collectIdentifiedItems(top);
+            if (outputs.isEmpty()) {
+                player.sendMessage(ChatColor.RED + "You have no unidentified runes to identify.");
+                return;
             }
 
-            if (identified.isEmpty()) {
-                player.sendMessage("§cYou have no unidentified runes to identify.");
-            } else {
-                player.sendMessage("§aIdentified " +
-                    identified.size() + " rune(s): " + identified);
-                player.closeInventory();
-            }
+            // 2b) Kick off the cycling animation
+            startCycleAnimation(player, top, outputs);
             return;
         }
 
-        // 3) Otherwise we allow the click, but schedule a bounce‐back check in 1 tick
+        // 3) Otherwise allow the click, but schedule a bounce‐back check in 1 tick
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             for (int i = 0; i < IDENTIFY_SLOT; i++) {
                 ItemStack in = top.getItem(i);
@@ -163,6 +144,7 @@ public class IdentifyRunesGUI implements Listener {
             }
         }, 1L);
     }
+
 
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -191,6 +173,88 @@ public class IdentifyRunesGUI implements Listener {
             }
         }
     }
+
+    /**
+     * Read slots 0..7, turn each uncarved rune into a fresh identified ItemStack.
+     * We don’t give them to the player yet—we’ll do that after the animation.
+     */
+    private List<ItemStack> collectIdentifiedItems(Inventory top) {
+        List<ItemStack> outputs = new ArrayList<>();
+        for (int i = 0; i < IDENTIFY_SLOT; i++) {
+            ItemStack in = top.getItem(i);
+            if (in == null || !in.hasItemMeta()) continue;
+            var pdc = in.getItemMeta().getPersistentDataContainer();
+            if (!pdc.has(runeKey, PersistentDataType.STRING)) continue;
+
+            Rune rune = runeLoader.getRune(pdc.get(runeKey, PersistentDataType.STRING));
+            if (rune == null) continue;
+
+            int count = in.getAmount();
+            // clear now so that later you only see the cycling visuals
+            top.setItem(i, null);
+
+            // create N individual books so they stack properly
+            for (int k = 0; k < count; k++) {
+                outputs.add(createIdentifiedRuneItem(rune));
+            }
+        }
+        return outputs;
+    }
+
+    private void startCycleAnimation(Player player, Inventory top, List<ItemStack> outputs) {
+        animating = true;
+        final int totalCycles = 20;      // number of frames
+        final long tickInterval = 2L;    // every 2 ticks (~0.1s)
+        AtomicInteger frame = new AtomicInteger(0);
+
+        animationTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            int f = frame.getAndIncrement();
+
+            // cycle each slot through a random trim material
+            for (int i = 0; i < IDENTIFY_SLOT; i++) {
+                Material mat = RUNE_TRIM_MATERIALS[
+                    ThreadLocalRandom.current().nextInt(RUNE_TRIM_MATERIALS.length)
+                    ];
+                ItemStack fake = new ItemStack(mat);
+                ItemMeta m = fake.getItemMeta();
+                m.setDisplayName(ChatColor.GRAY + "???");
+                fake.setItemMeta(m);
+                top.setItem(i, fake);
+            }
+
+            // once we've shown enough frames, finish up
+            if (f >= totalCycles) {
+                animationTask.cancel();
+                finishAnimation(player, top, outputs);
+            }
+        }, 0L, tickInterval);
+    }
+
+
+    /**
+     * After the cycle, give them their actual runes, send the message, and close.
+     */
+    private void finishAnimation(Player player, Inventory top, List<ItemStack> outputs) {
+        animating = false;
+
+        // clear any stragglers (should already be blank)
+        for (int i = 0; i < IDENTIFY_SLOT; i++) {
+            top.setItem(i, null);
+        }
+
+        // hand out the identified runes
+        int total = 0;
+        for (ItemStack out : outputs) {
+            player.getInventory().addItem(out);
+            total++;
+        }
+
+        player.sendMessage(ChatColor.GREEN + "Identified " + total + " rune(s)!");
+        player.closeInventory();
+    }
+
+
+
 
     private static final Material[] RUNE_TRIM_MATERIALS = {
         Material.WAYFINDER_ARMOR_TRIM_SMITHING_TEMPLATE,

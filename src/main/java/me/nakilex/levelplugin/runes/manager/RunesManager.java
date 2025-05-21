@@ -36,6 +36,14 @@ public class RunesManager {
         this.uncarvedKey   = new NamespacedKey(plugin, "rune_uncarved");
     }
 
+    public void savePlayerData(Player player) {
+        // example: write to config under players.<uuid>.runes = List<String>
+        List<String> ids = getEquippedRuneIds(player);
+        Main.getPlugin().getConfig()
+            .set("players." + player.getUniqueId() + ".runes", ids);
+        Main.getPlugin().saveConfig();
+    }
+
     /**
      * Initialize a player's equipped runes from stored rune IDs (e.g., from PlayerData).
      */
@@ -157,15 +165,22 @@ public class RunesManager {
 
 
 
-    /**
-     * Unequip (remove) a rune from the player's equipped list.
-     */
-    public void unequipRune(Player player, Rune rune) {
-        List<Rune> runes = equippedRunes.get(player.getUniqueId());
-        if (runes != null) {
-            runes.removeIf(r -> r.getId().equals(rune.getId()));
+    public boolean unequipRune(Player player, Rune target) {
+        UUID uid = player.getUniqueId();
+        List<Rune> runes = equippedRunes.get(uid);
+        if (runes == null) return false;
+
+        // find & remove first match
+        for (int i = 0; i < runes.size(); i++) {
+            if (runes.get(i).getId().equals(target.getId())) {
+                runes.remove(i);
+                savePlayerData(player);    // persist the change!
+                return true;
+            }
         }
+        return false;
     }
+
 
     /**
      * Returns a list of all rune IDs currently equipped by the player (for persistence).

@@ -157,196 +157,186 @@ public class EquipRunesGUI implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onInventoryClick(InventoryClickEvent e) {
-        // Only handle clicks in our Equip Runes GUI
+        // Only our Equip GUI
         if (!isEquipGUI(e.getView())) return;
 
-        Inventory clickedInv = e.getClickedInventory();
-        boolean top = clickedInv == e.getView().getTopInventory();
+        InventoryView view     = e.getView();
+        Inventory    topInv    = view.getTopInventory();
+        Inventory    bottomInv = view.getBottomInventory();
+        Inventory    clickedInv= e.getClickedInventory();
 
-        // Cancel only clicks in the GUI itself; allow bottom‐inventory clicks so players can pick up runes
-        if (top) {
-            e.setCancelled(true);
-        }
+        Player       p         = (Player) e.getWhoClicked();
+        int          level     = LevelManager.getInstance().getLevel(p);
+        int          rawSlot   = e.getRawSlot();
+        InventoryAction action  = e.getAction();
+        ItemStack    current   = e.getCurrentItem();
+        ItemStack    cursor    = e.getCursor();
+        boolean      top       = clickedInv == topInv;
+        boolean      bottom    = clickedInv == bottomInv;
 
-        Player p = (Player) e.getWhoClicked();
-        int level = LevelManager.getInstance().getLevel(p);
-        int slot  = e.getRawSlot();
-        InventoryAction action = e.getAction();
-        ItemStack clicked = e.getCurrentItem();
-        ItemStack cursor  = e.getCursor();
-
-        if (top
-            && (action == InventoryAction.PICKUP_ONE || action == InventoryAction.PICKUP_ALL)
-            && isIdentifiedRune(clicked)
-            && isSlotUnlocked(slot, level)) {
-
-            String id = clicked.getItemMeta()
-                .getPersistentDataContainer()
-                .get(runesManager.getRuneKey(), PersistentDataType.STRING);
-            Rune rune = runesManager.getRuneById(id);
-            if (rune != null) {
-                runesManager.unequipRune(p, rune);
-                ItemStack giveBack = clicked.clone().asOne();
-                int empty = p.getInventory().firstEmpty();
-                if (empty == -1) p.getWorld().dropItemNaturally(p.getLocation(), giveBack);
-                else p.getInventory().setItem(empty, giveBack);
-                open(p);
+        // --- 0) Block taking placeholders out ---
+        if (top && current != null && current.hasItemMeta()) {
+            String name = current.getItemMeta().getDisplayName();
+            if (name != null && name.contains("Locked")) {
+                e.setCancelled(true);
+                return;
             }
-            return;
         }
 
-        if (action == InventoryAction.MOVE_TO_OTHER_INVENTORY
-            && top
-            && isIdentifiedRune(clicked)
-            && isSlotUnlocked(slot, level)) {
+        // --- 1) UNEQUIP (any removal action on a rune in the GUI) ---
+        if (top && current != null && isIdentifiedRune(current) && isSlotUnlocked(rawSlot, level)) {
+            boolean isRemoval = switch (action) {
+                case PICKUP_ONE, PICKUP_ALL, MOVE_TO_OTHER_INVENTORY, COLLECT_TO_CURSOR -> true;
+                default -> false;
+            };
+            if (isRemoval) {
+                // Debug log
+                plugin.getLogger().info("[DBG] Unequip fired for rune: " + getSafeName(current));
 
-            String id = clicked.getItemMeta()
-                .getPersistentDataContainer()
-                .get(runesManager.getRuneKey(), PersistentDataType.STRING);
-            Rune rune = runesManager.getRuneById(id);
-            if (rune != null) {
-                runesManager.unequipRune(p, rune);
-                ItemStack giveBack = clicked.clone().asOne();
-                int empty = p.getInventory().firstEmpty();
-                if (empty == -1) p.getWorld().dropItemNaturally(p.getLocation(), giveBack);
-                else p.getInventory().setItem(empty, giveBack);
-                open(p);
+                // Perform data unequip
+                String id = current.getItemMeta()
+                    .getPersistentDataContainer()
+                    .get(runesManager.getRuneKey(), PersistentDataType.STRING);
+                Rune rune = runesManager.getRuneById(id);
+                if (rune != null) {
+                    runesManager.unequipRune(p, rune);
+                }
+                // let vanilla remove the item and put it on cursor/inv
+                return;
             }
-            return;
         }
 
-        if (action == InventoryAction.MOVE_TO_OTHER_INVENTORY
-            && clickedInv == e.getView().getBottomInventory()) {
-
-            // 3a) Always cancel the default move
-            e.setCancelled(true);
-
-            // 3b) Now only proceed if it's an identified rune
-            if (!isIdentifiedRune(clicked)) {
-                // not a rune → just drop it (we already cancelled the move)
+        // --- 2) SHIFT-CLICK EQUIP from player INV into GUI ---
+        if (bottom && action == InventoryAction.MOVE_TO_OTHER_INVENTORY) {
+            // Must be an identified rune
+            if (!isIdentifiedRune(current)) {
+                e.setCancelled(true);
                 return;
             }
 
-            // 3c) Your existing rune‐equip logic follows here...
-            String id = clicked.getItemMeta()
+            String id        = current.getItemMeta()
                 .getPersistentDataContainer()
                 .get(runesManager.getRuneKey(), PersistentDataType.STRING);
-            Rune rune = runesManager.getRuneById(id);
-            if (rune == null) return;
+            Rune   rune      = runesManager.getRuneById(id);
+            boolean unique   = rune.isUnique();
 
-            boolean unique = rune.isUnique();
-            Inventory topInv = e.getView().getTopInventory();
+            // Find first free slot of correct type
+            Set<Integer> pool    = unique ? UNIQUE_SLOTS : NORMAL_SLOTS;
+            Optional<Integer> free = pool.stream()
+                .filter(s -> isSlotUnlocked(s, level) && topInv.getItem(s) == null)
+                .findFirst();
 
-            // Type + availability check
-            if (unique) {
-                boolean hasSlot = UNIQUE_SLOTS.stream()
-                    .anyMatch(s -> isSlotUnlocked(s, level) && topInv.getItem(s) == null);
-                if (!hasSlot) {
-                    return;
-                }
-            } else {
-                boolean hasSlot = NORMAL_SLOTS.stream()
-                    .anyMatch(s -> isSlotUnlocked(s, level) && topInv.getItem(s) == null);
-                if (!hasSlot) {
-                    return;
-                }
+            if (free.isEmpty()) {
+                p.sendMessage(ChatColor.RED + (unique
+                    ? "No free unique rune slots."
+                    : "No free normal rune slots."));
+                e.setCancelled(true);
+                return;
             }
-
-            // Duplicate‐unique check
+            // Prevent duplicate unique
             if (unique && runesManager.getEquippedRunes(p).stream()
                 .anyMatch(r -> r.getId().equals(id))) {
+                p.sendMessage(ChatColor.RED + "You already have that unique rune equipped.");
+                e.setCancelled(true);
                 return;
             }
 
-            // Actually equip
-            Set<Integer> target = unique ? UNIQUE_SLOTS : NORMAL_SLOTS;
-            for (int s : target) {
-                if (isSlotUnlocked(s, level) && topInv.getItem(s) == null) {
-                    boolean success = runesManager.equipRune(p, clicked);
-                    if (success) {
-                        clicked.setAmount(clicked.getAmount() - 1);
-                        if (clicked.getAmount() <= 0)
-                            e.getClickedInventory().setItem(e.getSlot(), null);
-                        open(p);
-                    } else {
-                    }
-                    return;
-                }
+            // Debug log
+            plugin.getLogger().info("[DBG] Equip fired (shift-click) for rune: " + getSafeName(current));
+
+            // Let vanilla move one; then update data & GUI slot
+            e.setCancelled(true);
+            if (runesManager.equipRune(p, rune)) {
+                // consume one from bottomInv
+                current.setAmount(current.getAmount() - 1);
+                if (current.getAmount() == 0) bottomInv.setItem(e.getSlot(), null);
+                else bottomInv.setItem(e.getSlot(), current);
+
+                // place into the free GUI slot
+                ItemStack placed = identifyGui.createIdentifiedRuneItem(rune);
+                placed.setAmount(1);
+                topInv.setItem(free.get(), placed);
             }
+            return;
         }
 
+        // --- 3) CLICK-PLACE EQUIP (direct place) ---
         if (top
             && (action == InventoryAction.PLACE_ONE
             || action == InventoryAction.PLACE_ALL
             || action == InventoryAction.PLACE_SOME)
+            && cursor != null
             && isIdentifiedRune(cursor)
-            && isSlotUnlocked(slot, level)) {
+            && isSlotUnlocked(rawSlot, level)) {
 
-            e.setCancelled(true);
-
-            // 4b) get the Rune
-            String id = cursor.getItemMeta()
+            String id     = cursor.getItemMeta()
                 .getPersistentDataContainer()
                 .get(runesManager.getRuneKey(), PersistentDataType.STRING);
-            Rune rune = runesManager.getRuneById(id);
-            if (rune == null) return;
+            Rune   rune   = runesManager.getRuneById(id);
+            boolean unique= rune.isUnique();
 
-            // 4c) slot‐type & unique checks (same as before)…
-            boolean unique = rune.isUnique();
-            if (unique && !UNIQUE_SLOTS.contains(slot)) {
-                p.sendMessage(ChatColor.RED + "This rune can only go in a unique slot.");
-                return;
-            } else if (!unique && !NORMAL_SLOTS.contains(slot)) {
-                p.sendMessage(ChatColor.RED + "This rune can only go in a normal slot.");
-                return;
-            }
-            if (unique && runesManager.getEquippedRunes(p).stream()
-                .anyMatch(r -> r.getId().equals(id))) {
-                p.sendMessage(ChatColor.RED + "You already have that unique rune equipped.");
+            // Reject wrong slot or duplicate unique
+            if ((unique && !UNIQUE_SLOTS.contains(rawSlot))
+                || (!unique && !NORMAL_SLOTS.contains(rawSlot))
+                || (unique && runesManager.getEquippedRunes(p).stream()
+                .anyMatch(r -> r.getId().equals(id)))) {
+                e.setCancelled(true);
                 return;
             }
 
-            boolean success = runesManager.equipRune(p, cursor);
-            if (!success) {
-                return;
+            // Debug log
+            plugin.getLogger().info("[DBG] Equip fired (place) for rune: " + getSafeName(cursor));
+
+            // Perform equip
+            e.setCancelled(true);
+            if (runesManager.equipRune(p, cursor)) {
+                cursor.setAmount(cursor.getAmount() - 1);
+                e.setCursor(cursor.getAmount() > 0 ? cursor : null);
+
+                ItemStack placed = identifyGui.createIdentifiedRuneItem(rune);
+                placed.setAmount(1);
+                topInv.setItem(rawSlot, placed);
             }
-
-            cursor.setAmount(cursor.getAmount() - 1);
-            e.setCursor(cursor.getAmount() > 0 ? cursor : null);
-
-            ItemStack placed = identifyGui.createIdentifiedRuneItem(rune);
-            placed.setAmount(1);
-            e.getView().getTopInventory().setItem(slot, placed);
+            return;
         }
+
+        // Everything else (including picking up filler panes) is handled by vanilla
     }
 
 
 
+    // —— Drag support ——
     @EventHandler(ignoreCancelled = true)
     public void onInventoryDrag(InventoryDragEvent e) {
         if (!isEquipGUI(e.getView())) return;
         Player p = (Player) e.getWhoClicked();
         int level = LevelManager.getInstance().getLevel(p);
 
-        // For every slot the player is trying to drop into:
+        // if any of the target slots in the drag are illegal, cancel all of it
         for (Map.Entry<Integer, ItemStack> entry : e.getNewItems().entrySet()) {
             int slot = entry.getKey();
             ItemStack stack = entry.getValue();
-            if (!isIdentifiedRune(stack) || !isSlotUnlocked(slot, level)) {
-                e.setCancelled(true);
-                return;
-            }
-        }
 
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            Inventory top = e.getView().getTopInventory();
-            for (Map.Entry<Integer, ItemStack> entry : e.getNewItems().entrySet()) {
-                int slot = entry.getKey();
-                ItemStack item = top.getItem(slot);
-                if (isIdentifiedRune(item)) {
-                    runesManager.equipRune(p, item);
+            // only validate drags *into* our GUI
+            if (entry.getKey() < e.getView().getTopInventory().getSize()) {
+                // must be identified rune, correct slot‐type, and unlocked
+                if (!isIdentifiedRune(stack)
+                    || !isSlotUnlocked(slot, level)
+                    || (runesManager.getRuneById(
+                    stack.getItemMeta()
+                        .getPersistentDataContainer()
+                        .get(runesManager.getRuneKey(), PersistentDataType.STRING)
+                ).isUnique() && !UNIQUE_SLOTS.contains(slot))
+                    || (!runesManager.getRuneById(
+                    stack.getItemMeta()
+                        .getPersistentDataContainer()
+                        .get(runesManager.getRuneKey(), PersistentDataType.STRING)
+                ).isUnique() && !NORMAL_SLOTS.contains(slot)))
+                {
+                    e.setCancelled(true);
+                    return;
                 }
             }
-        });
+        }
     }
 }
