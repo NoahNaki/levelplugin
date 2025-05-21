@@ -177,7 +177,7 @@ public class EquipRunesGUI implements Listener {
         // --- 0) Block taking placeholders out ---
         if (top && current != null && current.hasItemMeta()) {
             String name = current.getItemMeta().getDisplayName();
-            if (name != null && name.contains("Locked")) {
+            if (name == null || name.contains("Locked") || name.trim().isEmpty()) {
                 e.setCancelled(true);
                 return;
             }
