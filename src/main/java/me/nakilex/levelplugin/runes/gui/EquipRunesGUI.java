@@ -26,7 +26,7 @@ public class EquipRunesGUI implements Listener {
     private final RunesManager runesManager;
     private final IdentifyRunesGUI identifyGui;
 
-    public static final String TITLE = ChatColor.DARK_GRAY + "Equip Runes";
+    public static final String TITLE = ChatColor.DARK_GRAY + "Runes";
     private static final int SIZE = 54;
 
     // Materials considered valid rune items
@@ -175,7 +175,6 @@ public class EquipRunesGUI implements Listener {
         ItemStack clicked = e.getCurrentItem();
         ItemStack cursor  = e.getCursor();
 
-        // 1) Unequip via normal click
         if (top
             && (action == InventoryAction.PICKUP_ONE || action == InventoryAction.PICKUP_ALL)
             && isIdentifiedRune(clicked)
@@ -191,13 +190,11 @@ public class EquipRunesGUI implements Listener {
                 int empty = p.getInventory().firstEmpty();
                 if (empty == -1) p.getWorld().dropItemNaturally(p.getLocation(), giveBack);
                 else p.getInventory().setItem(empty, giveBack);
-                p.sendMessage(ChatColor.YELLOW + "Unequipped rune: " + getSafeName(clicked));
                 open(p);
             }
             return;
         }
 
-        // 2) Unequip via shift-click
         if (action == InventoryAction.MOVE_TO_OTHER_INVENTORY
             && top
             && isIdentifiedRune(clicked)
@@ -213,14 +210,11 @@ public class EquipRunesGUI implements Listener {
                 int empty = p.getInventory().firstEmpty();
                 if (empty == -1) p.getWorld().dropItemNaturally(p.getLocation(), giveBack);
                 else p.getInventory().setItem(empty, giveBack);
-                p.sendMessage(ChatColor.YELLOW + "Unequipped rune: " + getSafeName(clicked));
                 open(p);
             }
             return;
         }
 
-        // 3) Shift-click equip from bottom into GUI
-        // 3) Shift-click equip from bottom into GUI
         if (action == InventoryAction.MOVE_TO_OTHER_INVENTORY
             && clickedInv == e.getView().getBottomInventory()) {
 
@@ -248,14 +242,12 @@ public class EquipRunesGUI implements Listener {
                 boolean hasSlot = UNIQUE_SLOTS.stream()
                     .anyMatch(s -> isSlotUnlocked(s, level) && topInv.getItem(s) == null);
                 if (!hasSlot) {
-                    p.sendMessage(ChatColor.RED + "This rune can only go in a unique rune slot.");
                     return;
                 }
             } else {
                 boolean hasSlot = NORMAL_SLOTS.stream()
                     .anyMatch(s -> isSlotUnlocked(s, level) && topInv.getItem(s) == null);
                 if (!hasSlot) {
-                    p.sendMessage(ChatColor.RED + "This rune can only go in a normal rune slot.");
                     return;
                 }
             }
@@ -263,7 +255,6 @@ public class EquipRunesGUI implements Listener {
             // Duplicate‐unique check
             if (unique && runesManager.getEquippedRunes(p).stream()
                 .anyMatch(r -> r.getId().equals(id))) {
-                p.sendMessage(ChatColor.RED + "You already have that unique rune equipped.");
                 return;
             }
 
@@ -276,18 +267,14 @@ public class EquipRunesGUI implements Listener {
                         clicked.setAmount(clicked.getAmount() - 1);
                         if (clicked.getAmount() <= 0)
                             e.getClickedInventory().setItem(e.getSlot(), null);
-                        p.sendMessage(ChatColor.GREEN + "Equipped rune: " + getSafeName(clicked));
                         open(p);
                     } else {
-                        p.sendMessage(ChatColor.RED + "Failed to equip rune.");
                     }
                     return;
                 }
             }
         }
 
-
-        // 4) Direct placement equip (click GUI slot while holding rune)
         if (top
             && (action == InventoryAction.PLACE_ONE
             || action == InventoryAction.PLACE_ALL
@@ -295,7 +282,6 @@ public class EquipRunesGUI implements Listener {
             && isIdentifiedRune(cursor)
             && isSlotUnlocked(slot, level)) {
 
-            // 4a) prevent vanilla placement
             e.setCancelled(true);
 
             // 4b) get the Rune
@@ -320,23 +306,17 @@ public class EquipRunesGUI implements Listener {
                 return;
             }
 
-            // 4d) equip in data model
             boolean success = runesManager.equipRune(p, cursor);
             if (!success) {
-                p.sendMessage(ChatColor.RED + "Failed to equip rune.");
                 return;
             }
 
-            // 4e) consume one from cursor
             cursor.setAmount(cursor.getAmount() - 1);
             e.setCursor(cursor.getAmount() > 0 ? cursor : null);
 
-            // 4f) put the rune item in *this* slot
             ItemStack placed = identifyGui.createIdentifiedRuneItem(rune);
             placed.setAmount(1);
             e.getView().getTopInventory().setItem(slot, placed);
-
-            p.sendMessage(ChatColor.GREEN + "Equipped rune: " + getSafeName(placed));
         }
     }
 
@@ -358,7 +338,6 @@ public class EquipRunesGUI implements Listener {
             }
         }
 
-        // Let the drag go through, *then* schedule a tick to equip whatever landed
         Bukkit.getScheduler().runTask(plugin, () -> {
             Inventory top = e.getView().getTopInventory();
             for (Map.Entry<Integer, ItemStack> entry : e.getNewItems().entrySet()) {
@@ -366,7 +345,6 @@ public class EquipRunesGUI implements Listener {
                 ItemStack item = top.getItem(slot);
                 if (isIdentifiedRune(item)) {
                     runesManager.equipRune(p, item);
-                    // remove one from cursor manually if needed...
                 }
             }
         });
