@@ -148,13 +148,13 @@ public class RunesManager {
 
     /** Returns true if this book has a valid rune_id PDC entry and loads to a real Rune. */
     public boolean isIdentified(ItemStack stack) {
-        if (stack == null || stack.getType() != Material.ENCHANTED_BOOK) return false;
-        if (!stack.hasItemMeta()) return false;
+        if (stack == null || !stack.hasItemMeta()) return false;
         var pdc = stack.getItemMeta().getPersistentDataContainer();
         if (!pdc.has(runeKey, PersistentDataType.STRING)) return false;
         String id = pdc.get(runeKey, PersistentDataType.STRING);
         return runeLoader.getRune(id) != null;
     }
+
 
 
     /**
