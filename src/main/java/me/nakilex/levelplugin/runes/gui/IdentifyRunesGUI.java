@@ -199,11 +199,14 @@ public class IdentifyRunesGUI implements Listener {
         Material.SHAPER_ARMOR_TRIM_SMITHING_TEMPLATE
     };
 
+    private Material chooseRuneMaterial(Rune rune) {
+        int idx = Math.abs(rune.getId().hashCode()) % RUNE_TRIM_MATERIALS.length;
+        return RUNE_TRIM_MATERIALS[idx];
+    }
+
     ItemStack createIdentifiedRuneItem(Rune rune) {
         // 1) Create book & grab meta
-        Material mat = RUNE_TRIM_MATERIALS[
-            ThreadLocalRandom.current().nextInt(RUNE_TRIM_MATERIALS.length)
-            ];
+        Material mat = chooseRuneMaterial(rune);
         ItemStack item = new ItemStack(mat);
         ItemMeta meta = item.getItemMeta();
 
