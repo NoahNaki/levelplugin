@@ -292,43 +292,48 @@ public class EquipRunesGUI implements Listener {
             && isIdentifiedRune(cursor)
             && isSlotUnlocked(slot, level)) {
 
+            // 4a) prevent vanilla placement
+            e.setCancelled(true);
+
+            // 4b) get the Rune
             String id = cursor.getItemMeta()
                 .getPersistentDataContainer()
                 .get(runesManager.getRuneKey(), PersistentDataType.STRING);
             Rune rune = runesManager.getRuneById(id);
             if (rune == null) return;
 
+            // 4c) slot‐type & unique checks (same as before)…
             boolean unique = rune.isUnique();
-            // slot type validation
             if (unique && !UNIQUE_SLOTS.contains(slot)) {
-                p.sendMessage(ChatColor.RED + "This rune can only go in a unique rune slot.");
+                p.sendMessage(ChatColor.RED + "This rune can only go in a unique slot.");
                 return;
             } else if (!unique && !NORMAL_SLOTS.contains(slot)) {
-                p.sendMessage(ChatColor.RED + "This rune can only go in a normal rune slot.");
+                p.sendMessage(ChatColor.RED + "This rune can only go in a normal slot.");
                 return;
             }
-            // unique dup check
             if (unique && runesManager.getEquippedRunes(p).stream()
                 .anyMatch(r -> r.getId().equals(id))) {
                 p.sendMessage(ChatColor.RED + "You already have that unique rune equipped.");
                 return;
             }
 
+            // 4d) equip in data model
             boolean success = runesManager.equipRune(p, cursor);
-            if (success) {
-                cursor.setAmount(cursor.getAmount() - 1);
-                e.setCursor(cursor.getAmount() > 0 ? cursor : null);
-                p.sendMessage(ChatColor.GREEN + "Equipped rune: " + getSafeName(cursor));
-                open(p);
-            } else {
+            if (!success) {
                 p.sendMessage(ChatColor.RED + "Failed to equip rune.");
+                return;
             }
-            return;
-        }
 
-        // 5) Catch-all: cancel any other leftover clicks in top
-        if (top) {
-            e.setCancelled(true);
+            // 4e) consume one from cursor
+            cursor.setAmount(cursor.getAmount() - 1);
+            e.setCursor(cursor.getAmount() > 0 ? cursor : null);
+
+            // 4f) put the rune item in *this* slot
+            ItemStack placed = identifyGui.createIdentifiedRuneItem(rune);
+            placed.setAmount(1);
+            e.getView().getTopInventory().setItem(slot, placed);
+
+            p.sendMessage(ChatColor.GREEN + "Equipped rune: " + getSafeName(placed));
         }
     }
 
