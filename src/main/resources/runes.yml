@@ -21,6 +21,7 @@ runes:
     effects:
       - type: "TRANSFORM"
         bonusDamagePercent: 0.0
+        priority: 75
         cooldownReductionPercent: 0.0
         newEffectKey: "METEOR_SHOWER_EFFECT"
         extraParams:
@@ -41,4 +42,22 @@ runes:
         bonusDamagePercent: 0.0
         cooldownReductionPercent: 0.0
         newEffectKey: "FROST_COMET_EFFECT"
+        priority: 50
         extraParams: { }
+  - id: "mage_meteor_obsidian_shard"
+    name: "Rune of the Obsidian Shard"
+    description:
+      - "Unleash a shard of obsidian"
+      - "that crashes down with hardened might."
+    rarity: "EPIC"
+    targetClass: "MAGE"
+    targetSpell: "Meteor"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        bonusDamagePercent: 0.0
+        cooldownReductionPercent: 0.0
+        newEffectKey: "OBSIDIAN_METEOR_EFFECT"
+        priority: 75
+        extraParams: {}
+

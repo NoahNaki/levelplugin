@@ -35,5 +35,6 @@ public class EffectRegistry {
         register("TELEPORT",              new TeleportEffect());
         register("METEOR_SHOWER_EFFECT", new MeteorShowerEffect());
         register("FROST_COMET_EFFECT", new FrostCometEffect());
+        register("OBSIDIAN_METEOR_EFFECT", new ObsidianMeteorEffect());
     }
 }

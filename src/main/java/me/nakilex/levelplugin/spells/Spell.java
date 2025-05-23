@@ -14,6 +14,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -133,7 +134,11 @@ public class Spell {
                     ctx.addEffectKey(eff.getNewEffectKey());
                 }
                 // pull in all extraParams (AOE, stun, projectiles, etc.)
-                eff.getExtraParams().forEach(ctx::putExtraParam);
+                // pull in all extraParams (AOE, stun, projectiles, etc.) with priority
+                for (Map.Entry<String, Object> e : eff.getExtraParams().entrySet()) {
+                    ctx.putExtraParam(e.getKey(), e.getValue(), eff.getPriority());
+                }
+
             }
         }
 

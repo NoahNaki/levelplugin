@@ -19,19 +19,21 @@ public class RuneEffect {
     private final double cooldownReductionPercent;   // e.g. 10.0 for -10%
     private final String newEffectKey;               // e.g. "METEOR_SHOWER_EFFECT" when transforming
     private final Map<String, Object> extraParams;   // any additional parameters (e.g. "extraProjectiles":3)
+    private final int priority;
 
     public RuneEffect(
         Type type,
         double bonusDamagePercent,
         double cooldownReductionPercent,
         String newEffectKey,
-        Map<String, Object> extraParams
+        Map<String, Object> extraParams, int priority
     ) {
         this.type = type;
         this.bonusDamagePercent = bonusDamagePercent;
         this.cooldownReductionPercent = cooldownReductionPercent;
         this.newEffectKey = newEffectKey;
         this.extraParams = extraParams;
+        this.priority = priority;
     }
 
     public Type getType() {
@@ -45,6 +47,8 @@ public class RuneEffect {
     public double getCooldownReductionPercent() {
         return cooldownReductionPercent;
     }
+
+    public int getPriority() { return priority; }
 
     /**
      * @return the effectKey to swap to when applying a transform effect, or null for modifiers
