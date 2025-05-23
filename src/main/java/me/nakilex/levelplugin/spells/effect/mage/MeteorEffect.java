@@ -186,12 +186,36 @@ public class MeteorEffect implements SpellEffect {
     }
 
     private Location getImpactLocation(Player player) {
-        Block block = player.getTargetBlockExact(20);
-        if (block != null) {
-            return block.getLocation().add(0.5, 1, 0.5);
+        World world = player.getWorld();
+
+        // 1) figure out where they clicked / looked
+        Block targetBlock = player.getTargetBlockExact(20);
+        double x, z;
+        if (targetBlock != null) {
+            x = targetBlock.getX() + 0.5;
+            z = targetBlock.getZ() + 0.5;
+        } else {
+            Location eye = player.getEyeLocation();
+            Vector dir = eye.getDirection().normalize().multiply(20);
+            x = eye.getX() + dir.getX();
+            z = eye.getZ() + dir.getZ();
         }
-        return player.getEyeLocation().add(player.getEyeLocation().getDirection().multiply(20));
+
+        // 2) snap Y to the top of the terrain at that X,Z
+        int groundY = world.getHighestBlockYAt(
+            // getHighestBlockYAt takes block‐coordinates
+            fastFloor(x),
+            fastFloor(z)
+        );
+        // +0.5 so the explosion is centered in the airspace just above the block
+        return new Location(world, x, groundY + 0.5, z);
     }
+
+    // helper to convert world‐coords to block‐coords without rounding up prematurely
+    private int fastFloor(double val) {
+        return (int)Math.floor(val);
+    }
+
 
     private Vector rotateAroundAxis(Vector v, Vector axis, double theta) {
         axis = axis.clone().normalize();
