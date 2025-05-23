@@ -26,8 +26,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Base MeteorEffect: spawns magma meteors, handles damage and AOE.
- * No frost or material overrides.
+ * Base MeteorEffect: spawns meteors of a configurable material, handles damage and AOE.
+ * Defaults to MAGMA_BLOCK if no projectileMaterial extraParam is set.
  */
 public class MeteorEffect implements SpellEffect {
     @Override
@@ -55,6 +55,17 @@ public class MeteorEffect implements SpellEffect {
             extraProj = ((Number) extra).intValue();
         }
 
+        // 3.5) Projectile size (radius for spread)
+        double projectileSize = 0.5;
+        Object sizeParam = ctx.getExtraParam("projectileSize");
+        if (sizeParam instanceof Number) {
+            projectileSize = ((Number) sizeParam).doubleValue();
+        } else if (sizeParam instanceof String) {
+            try {
+                projectileSize = Double.parseDouble((String) sizeParam);
+            } catch (NumberFormatException ignored) {}
+        }
+
         // 4) Impact location
         Location impact = getImpactLocation(player);
 
@@ -67,11 +78,10 @@ public class MeteorEffect implements SpellEffect {
         // 6) Launch sound
         world.playSound(player.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 1f, 1f);
 
-        // 7) Sphere offsets
-        List<Vector> offsets = getSphereOffsets(0.5, 8);
+        // 7) Sphere offsets using projectileSize
+        List<Vector> offsets = getSphereOffsets(projectileSize, 8);
 
-        // 8) Spawn meteors
-        // 8) Spawn armor stands as meteors
+        // 8) Spawn meteors with configured material
         List<ArmorStand> stands = new ArrayList<>();
         for (int round = 0; round < 1 + extraProj; round++) {
             for (Vector off : offsets) {
@@ -79,13 +89,16 @@ public class MeteorEffect implements SpellEffect {
                     stand.setInvisible(true);
                     stand.setMarker(true);
                     stand.setGravity(false);
-                    // ← read projectileMaterial (defaults to MAGMA_BLOCK)
-                    Material helmMat = Material.MAGMA_BLOCK;
+
+                    // Read projectileMaterial from context, default to MAGMA_BLOCK
                     Object matParam = ctx.getExtraParam("projectileMaterial");
+                    Material helmMat = Material.MAGMA_BLOCK;
                     if (matParam instanceof String) {
                         try {
                             helmMat = Material.valueOf((String) matParam);
-                        } catch (IllegalArgumentException ignored) {}
+                        } catch (IllegalArgumentException ignored) {
+                            // fallback remains MAGMA_BLOCK
+                        }
                     }
                     stand.getEquipment().setHelmet(new ItemStack(helmMat));
                     stand.setMetadata("Meteor", new FixedMetadataValue(plugin, true));
@@ -93,7 +106,6 @@ public class MeteorEffect implements SpellEffect {
                 stands.add(as);
             }
         }
-
 
         // 9) Animate & impact
         new BukkitRunnable() {
@@ -137,7 +149,7 @@ public class MeteorEffect implements SpellEffect {
 
                 world.playSound(loc, Sound.ENTITY_BLAZE_SHOOT, 0.4f, 1f);
 
-                // Collision check (skip our own armor stands)
+                // Collision check
                 for (Entity e : world.getNearbyEntities(loc, 1.2, 1.2, 1.2)) {
                     if (e instanceof ArmorStand) continue;
                     if (!(e instanceof LivingEntity le) || le == player) continue;
@@ -158,11 +170,9 @@ public class MeteorEffect implements SpellEffect {
     }
 
     private void impactNow(Player player, Location center, List<ArmorStand> stands, double damage) {
-        // Remove stands
         stands.forEach(ArmorStand::remove);
         stands.clear();
 
-        // Shockwave
         SphereEffect shock = new SphereEffect(Main.getInstance().getEffectManager());
         shock.setLocation(center);
         shock.particle = Particle.EXPLOSION;
@@ -176,7 +186,6 @@ public class MeteorEffect implements SpellEffect {
 
         center.getWorld().playSound(center, Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
 
-        // Deal damage
         for (Entity e : center.getWorld().getNearbyEntities(center, radius, radius, radius)) {
             if (!(e instanceof LivingEntity le)) continue;
             if (le instanceof Player p
@@ -187,8 +196,6 @@ public class MeteorEffect implements SpellEffect {
 
     private Location getImpactLocation(Player player) {
         World world = player.getWorld();
-
-        // 1) figure out where they clicked / looked
         Block targetBlock = player.getTargetBlockExact(20);
         double x, z;
         if (targetBlock != null) {
@@ -201,21 +208,13 @@ public class MeteorEffect implements SpellEffect {
             z = eye.getZ() + dir.getZ();
         }
 
-        // 2) snap Y to the top of the terrain at that X,Z
-        int groundY = world.getHighestBlockYAt(
-            // getHighestBlockYAt takes block‐coordinates
-            fastFloor(x),
-            fastFloor(z)
-        );
-        // +0.5 so the explosion is centered in the airspace just above the block
+        int groundY = world.getHighestBlockYAt(fastFloor(x), fastFloor(z));
         return new Location(world, x, groundY + 0.5, z);
     }
 
-    // helper to convert world‐coords to block‐coords without rounding up prematurely
     private int fastFloor(double val) {
-        return (int)Math.floor(val);
+        return (int) Math.floor(val);
     }
-
 
     private Vector rotateAroundAxis(Vector v, Vector axis, double theta) {
         axis = axis.clone().normalize();

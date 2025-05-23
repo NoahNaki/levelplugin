@@ -27,6 +27,7 @@ runes:
         extraParams:
           extraProjectiles: 3
           damageMultiplier: 0.8
+          projectileMaterial: "MAGMA_BLOCK"
 
   - id: "mage_meteor_frost_comet"
     name: "Rune of the Frost Comet"
@@ -44,7 +45,8 @@ runes:
         cooldownReductionPercent: 0.0
         newEffectKey: "FROST_COMET_EFFECT"
         priority: 50
-        extraParams: { }
+        extraParams:
+          projectileMaterial: "PACKED_ICE"
 
   - id: "mage_meteor_obsidian_shard"
     name: "Rune of the Obsidian Shard"
@@ -62,5 +64,7 @@ runes:
         newEffectKey: "OBSIDIAN_METEOR_EFFECT"
         priority: 75
         extraParams:
+          projectileMaterial: "GOLD_BLOCK"
           extraProjectiles: 1
+          projectileSize: 4.0
 
