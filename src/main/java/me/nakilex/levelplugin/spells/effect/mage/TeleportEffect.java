@@ -1,6 +1,5 @@
 package me.nakilex.levelplugin.spells.effect.mage;
 
-import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStats;
 import me.nakilex.levelplugin.player.listener.ClickComboListener;
@@ -17,7 +16,7 @@ import org.bukkit.entity.Player;
 public class TeleportEffect implements SpellEffect {
     @Override
     public void apply(SpellCastContext ctx) {
-        Player player = ctx.getCaster();
+        Player player = ctx.getPlayer();
         // 1) Compute scaled distance based on agility
         PlayerStats stats = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
         int totalAgi = stats.baseAgility + stats.bonusAgility;

@@ -26,3 +26,19 @@ runes:
         extraParams:
           extraProjectiles: 3
           damageMultiplier: 0.8
+  - id: "mage_meteor_frost_comet"
+    name: "Rune of the Frost Comet"
+    description:
+      - "Calls down a shard of ice that"
+      - "freezes the ground on impact"
+      - "and freezes enemies in place."
+    rarity: "EPIC"
+    targetClass: "MAGE"
+    targetSpell: "Meteor"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        bonusDamagePercent: 0.0
+        cooldownReductionPercent: 0.0
+        newEffectKey: "FROST_COMET_EFFECT"
+        extraParams: { }

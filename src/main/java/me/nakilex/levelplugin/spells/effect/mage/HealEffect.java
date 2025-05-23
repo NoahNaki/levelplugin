@@ -22,14 +22,14 @@ import java.util.UUID;
 public class HealEffect implements SpellEffect {
     @Override
     public void apply(SpellCastContext ctx) {
-        Player player = ctx.getCaster();
+        Player player = ctx.getPlayer();
         UUID pid = player.getUniqueId();
 
         // 1) Compute heal amount (base=10)
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(pid);
         int intel = ps.baseIntelligence + ps.bonusIntelligence;
         double healAmount = 10.0 + (intel * 0.5);
-        healAmount *= ctx.getFinalDamageMultiplier();
+        healAmount *= ctx.getFinalDamage()/ctx.getBaseSpell().getBaseDamage();
 
         // 2) Build target list (self + party)
         List<Player> toHeal = new ArrayList<>();

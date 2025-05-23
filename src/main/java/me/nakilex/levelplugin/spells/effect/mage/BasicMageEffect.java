@@ -15,9 +15,10 @@ import org.bukkit.util.Vector;
 public class BasicMageEffect implements SpellEffect {
     @Override
     public void apply(SpellCastContext ctx) {
-        Player player = ctx.getCaster();
+        // Updated to use new context methods
+        Player player = ctx.getPlayer();
         World world = player.getWorld();
-        double damage = ctx.getBaseDamage() * ctx.getFinalDamageMultiplier();
+        double damage = ctx.getFinalDamage();
 
         Location start = player.getEyeLocation();
         Vector dir = start.getDirection().normalize();

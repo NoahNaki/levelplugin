@@ -7,21 +7,31 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 /**
  * A “shower” of meteors: schedules multiple MeteorEffect casts
- * spaced out in time. Counts are driven by the rune’s extraProjectiles.
+ * spaced out in time. Counts and interval driven by rune params.
  */
 public class MeteorShowerEffect implements SpellEffect {
     @Override
     public void apply(SpellCastContext ctx) {
-        // how many total meteors? 1 (base) + any extra from the rune
-        int extra = (int) ctx.getExtraParams().getOrDefault("extraProjectiles", 0);
+        // Base + extra projectiles
+        int extra = 0;
+        Object extraProjParam = ctx.getExtraParam("extraProjectiles");
+        if (extraProjParam instanceof Number) {
+            extra = ((Number) extraProjParam).intValue();
+        }
         int total = 1 + extra;
 
-        long delayBetween = 10L; // ticks between each meteor (~0.5s)
+        // Delay between meteors (in ticks); default 10 (~0.5s)
+        long delayBetween = 10L;
+        Object intervalParam = ctx.getExtraParam("showerInterval");
+        if (intervalParam instanceof Number) {
+            delayBetween = ((Number) intervalParam).longValue();
+        }
+
         for (int i = 0; i < total; i++) {
             new BukkitRunnable() {
                 @Override
                 public void run() {
-                    // just delegate back to your normal MeteorEffect
+                    // Delegate to MeteorEffect, which itself respects rune params
                     new MeteorEffect().apply(ctx);
                 }
             }.runTaskLater(Main.getInstance(), i * delayBetween);

@@ -426,7 +426,6 @@ public class IdentifyRunesGUI implements Listener {
         for (var e : rune.getEffects()) {
             switch (e.getType()) {
                 case MODIFIER:
-                    // "Increases " (gray) + Spell (yellow) + " damage by " (gray) + X% (yellow)
                     lore.add(
                         ChatColor.GRAY + "Increases "
                             + ChatColor.YELLOW + rune.getTargetSpell()
@@ -434,7 +433,6 @@ public class IdentifyRunesGUI implements Listener {
                             + ChatColor.YELLOW + String.format("%.1f%%", e.getBonusDamagePercent())
                     );
                     if (e.getCooldownReductionPercent() > 0) {
-                        // "Reduces " + Spell + " cooldown by " + X%
                         lore.add(
                             ChatColor.GRAY + "Reduces "
                                 + ChatColor.YELLOW + rune.getTargetSpell()
@@ -445,17 +443,19 @@ public class IdentifyRunesGUI implements Listener {
                     break;
 
                 case TRANSFORM:
-                    // prettify enum key
-                    String pretty = Arrays.stream(e.getNewEffectKey().split("_"))
-                        .map(s -> Character.toUpperCase(s.charAt(0)) + s.substring(1).toLowerCase())
-                        .collect(Collectors.joining(" "));
-                    // "Transforms " + Spell + " into " + NewEffect
-                    lore.add(
-                        ChatColor.GRAY + "Transforms "
-                            + ChatColor.YELLOW + rune.getTargetSpell()
-                            + ChatColor.GRAY + " into "
-                            + ChatColor.YELLOW + pretty
-                    );
+                    // only prettify if there’s actually a key
+                    String key = e.getNewEffectKey();
+                    if (key != null && !key.isEmpty()) {
+                        String pretty = Arrays.stream(key.split("_"))
+                            .map(s -> Character.toUpperCase(s.charAt(0)) + s.substring(1).toLowerCase())
+                            .collect(Collectors.joining(" "));
+                        lore.add(
+                            ChatColor.GRAY + "Transforms "
+                                + ChatColor.YELLOW + rune.getTargetSpell()
+                                + ChatColor.GRAY + " into "
+                                + ChatColor.YELLOW + pretty
+                        );
+                    }
                     break;
 
                 // … other effect types …

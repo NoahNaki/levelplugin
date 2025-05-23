@@ -34,5 +34,6 @@ public class EffectRegistry {
         register("HEAL",                  new HealEffect());
         register("TELEPORT",              new TeleportEffect());
         register("METEOR_SHOWER_EFFECT", new MeteorShowerEffect());
+        register("FROST_COMET_EFFECT", new FrostCometEffect());
     }
 }

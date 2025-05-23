@@ -23,7 +23,7 @@ import java.util.UUID;
 public class BlackholeEffect implements SpellEffect {
     @Override
     public void apply(SpellCastContext ctx) {
-        Player player = ctx.getCaster();
+        Player player = ctx.getPlayer();
         Main plugin = Main.getInstance();
         UUID pid = player.getUniqueId();
 
@@ -33,7 +33,7 @@ public class BlackholeEffect implements SpellEffect {
         // Compute damage
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(pid);
         double damage = 10.0 + 0.5 * (ps.baseIntelligence + ps.bonusIntelligence);
-        damage *= ctx.getFinalDamageMultiplier();
+        damage *= ctx.getFinalDamage()/ctx.getBaseSpell().getBaseDamage();
 
         // Determine center
         Location center = Optional.ofNullable(player.getTargetBlockExact(20))

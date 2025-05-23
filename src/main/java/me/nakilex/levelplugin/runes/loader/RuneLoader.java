@@ -5,16 +5,16 @@ import me.nakilex.levelplugin.runes.model.Rune;
 import me.nakilex.levelplugin.runes.model.Rune.Rarity;
 import me.nakilex.levelplugin.runes.model.RuneEffect;
 import me.nakilex.levelplugin.runes.model.RuneEffect.Type;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.util.*;
 
-/**
- * Loads runes from runes.yml into memory on plugin startup.
- */
+@SuppressWarnings("unchecked")
 public class RuneLoader {
     private final Plugin plugin;
     private final Map<String, Rune> runes = new HashMap<>();
@@ -24,9 +24,15 @@ public class RuneLoader {
     }
 
     /**
-     * Call during your plugin's onEnable to load (and generate if missing) the runes.yml file.
+     * Read runes.yml, parse every field (including description and extraParams) and cache in memory.
+     * Supports both:
+     *   runes: [ { id: "...", ... }, { id: "...", ... } ]
+     * and
+     *   runes:
+     *     key1:
+     *       id: "..."
+     *       ...
      */
-    @SuppressWarnings("unchecked")
     public void loadRunes() {
         File file = new File(plugin.getDataFolder(), "runes.yml");
         if (!file.exists()) {
@@ -34,82 +40,76 @@ public class RuneLoader {
         }
 
         FileConfiguration config = YamlConfiguration.loadConfiguration(file);
-        List<Map<?, ?>> list = config.getMapList("runes");
+        runes.clear();
 
-        for (Map<?, ?> data : list) {
-            String id          = (String) data.get("id");
-            String displayName = (String) data.get("name");
-            Rarity rarity      = Rarity.valueOf(((String) data.get("rarity")).toUpperCase());
-            String targetClass = (String) data.get("targetClass");
-            String targetSpell = (String) data.get("targetSpell");
-            boolean unique     = Boolean.TRUE.equals(data.get("unique"));
-
-            // **NEW**: parse description block (list of strings)
-            List<String> description = new ArrayList<>();
-            Object rawDesc = data.get("description");
-            if (rawDesc instanceof List<?>) {
-                for (Object line : (List<?>) rawDesc) {
-                    if (line != null) description.add(line.toString());
-                }
+        // 1) If runes is defined as a List of Maps:
+        if (config.isList("runes")) {
+            @NotNull List<Map<?, ?>> list = config.getMapList("runes");
+            for (Map<?, ?> map : list) {
+                parseAndAddRune((Map<String, Object>) map);
             }
-
-            // parse effects
-            List<RuneEffect> effectsList = new ArrayList<>();
-            List<Map<?, ?>> effectsData = (List<Map<?, ?>>) data.get("effects");
-            if (effectsData != null) {
-                for (Map<?, ?> edata : effectsData) {
-                    Type type = Type.valueOf(((String) edata.get("type")).toUpperCase());
-                    double bonusDamage = edata.get("bonusDamagePercent") instanceof Number
-                        ? ((Number) edata.get("bonusDamagePercent")).doubleValue()
-                        : 0.0;
-                    double cooldownRed = edata.get("cooldownReductionPercent") instanceof Number
-                        ? ((Number) edata.get("cooldownReductionPercent")).doubleValue()
-                        : 0.0;
-                    String newEffectKey = edata.get("newEffectKey") != null
-                        ? edata.get("newEffectKey").toString()
-                        : null;
-
-                    // extraParams may be null or a map
-                    Map<String, Object> extraParams = new HashMap<>();
-                    Object rawParams = edata.get("extraParams");
-                    if (rawParams instanceof Map<?, ?>) {
-                        ((Map<?, ?>) rawParams).forEach((k, v) -> extraParams.put(k.toString(), v));
-                    }
-
-                    effectsList.add(new RuneEffect(
-                        type, bonusDamage, cooldownRed, newEffectKey, extraParams
-                    ));
-                }
-            }
-
-            // construct and store the rune
-            Rune rune = new Rune(
-                id,
-                displayName,
-                description,
-                rarity,
-                targetClass,
-                targetSpell,
-                unique,
-                effectsList
-            );
-            runes.put(id, rune);
         }
-
-        plugin.getLogger().info("Loaded " + runes.size() + " runes from runes.yml");
+        // 2) Else if runes is a section of named entries:
+        else if (config.isConfigurationSection("runes")) {
+            ConfigurationSection root = config.getConfigurationSection("runes");
+            for (String key : root.getKeys(false)) {
+                ConfigurationSection rs = root.getConfigurationSection(key);
+                Map<String, Object> map = rs.getValues(true);
+                parseAndAddRune(map);
+            }
+        }
+        // else: nothing to load
     }
 
-    /**
-     * Retrieve a rune by its unique ID.
-     */
+    private void parseAndAddRune(Map<String, Object> map) {
+        String id          = Objects.toString(map.get("id"), UUID.randomUUID().toString());
+        String displayName = Objects.toString(map.get("name"), "Unnamed Rune");
+        List<String> description = (List<String>) map.getOrDefault("description", Collections.emptyList());
+        Rarity rarity      = Rarity.valueOf(
+            Objects.toString(map.get("rarity"), "COMMON").toUpperCase()
+        );
+        String cls         = Objects.toString(map.get("targetClass"), "");
+        String spell       = Objects.toString(map.get("targetSpell"), "");
+        boolean unique     = Boolean.parseBoolean(Objects.toString(map.get("unique"), "false"));
+
+        // Effects
+        List<RuneEffect> effects = new ArrayList<>();
+        List<Map<String, Object>> effList =
+            (List<Map<String, Object>>) map.getOrDefault("effects", Collections.emptyList());
+        for (Map<String, Object> em : effList) {
+            Type type = Type.valueOf(
+                Objects.toString(em.get("type"), "MODIFIER").toUpperCase()
+            );
+            double bonusDmg  = ((Number) em.getOrDefault("bonusDamagePercent", 0)).doubleValue();
+            double cdReduct  = ((Number) em.getOrDefault("cooldownReductionPercent", 0)).doubleValue();
+            String newKey    = Objects.toString(em.get("newEffectKey"), null);
+
+            // extraParams may be null or a Map
+            Map<String, Object> extraParams = Collections.emptyMap();
+            Object xp = em.get("extraParams");
+            if (xp instanceof Map<?, ?>) {
+                extraParams = (Map<String, Object>) xp;
+            }
+
+            effects.add(new RuneEffect(type, bonusDmg, cdReduct, newKey, extraParams));
+        }
+
+        runes.put(id, new Rune(
+            id,
+            displayName,
+            description,
+            rarity,
+            cls,
+            spell,
+            unique,
+            effects
+        ));
+    }
+
     public Rune getRune(String id) {
         return runes.get(id);
     }
 
-    /**
-     * Get all loaded runes as an unmodifiable list.
-     * Used by RuneBrowser to display every template.
-     */
     public List<Rune> getAllRunes() {
         return Collections.unmodifiableList(new ArrayList<>(runes.values()));
     }

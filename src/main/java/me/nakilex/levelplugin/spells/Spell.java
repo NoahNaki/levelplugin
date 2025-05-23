@@ -30,6 +30,10 @@ public class Spell {
     private final List<Material> allowedWeapons;
     private final String effectKey;
     private final double baseDamage;        // ← holds the pre-rune damage
+    private double aoeRadius = 0.0;
+    private double stunDuration = 0.0;
+    private boolean applyCooldown = true;
+    private double manaCostModifier = 0.0;
 
     // static managers
     private static final CooldownManager cooldownMgr = CooldownManager.getInstance();
@@ -110,23 +114,26 @@ public class Spell {
             return;
         }
 
-        // 2) Build our context
+        // 2) Build our context (starts with default effectKey)
         SpellCastContext ctx = new SpellCastContext(this, player);
 
-        // 3) Apply every equipped rune’s effects
+        // 3) Apply every equipped rune’s effects (MODIFIER + TRANSFORM params)
         List<Rune> runes = SpellManager.getInstance()
             .getRunesManager()
             .getRunesForSpell(player, id);
 
         for (Rune rune : runes) {
             for (RuneEffect eff : rune.getEffects()) {
-                if (eff.getType() == RuneEffect.Type.MODIFIER) {
-                    ctx.addDamagePercent(eff.getBonusDamagePercent());
-                    ctx.reduceCooldownPercent(eff.getCooldownReductionPercent());
-                } else {
-                    ctx.setEffectKey(eff.getNewEffectKey());
-                    eff.getExtraParams().forEach(ctx::putExtraParam);
+                // always modify damage/cooldown
+                ctx.addDamagePercent(eff.getBonusDamagePercent());
+                ctx.reduceCooldownPercent(eff.getCooldownReductionPercent());
+
+                // stack any newEffectKey
+                if (eff.getNewEffectKey() != null) {
+                    ctx.addEffectKey(eff.getNewEffectKey());
                 }
+                // pull in all extraParams (AOE, stun, projectiles, etc.)
+                eff.getExtraParams().forEach(ctx::putExtraParam);
             }
         }
 
@@ -140,15 +147,51 @@ public class Spell {
         ps.setCurrentMana(ps.getCurrentMana() - (int)Math.ceil(cost));
         recordSpellCast(player);
 
-        // 5) Start cooldown
+        // 5) Start cooldown (ctx.getFinalCooldown returns 0 if applyCooldown==false)
         cooldownMgr.setCooldown(pid, id, ctx.getFinalCooldown());
 
-        // 6) Fire off the effect with _all_ our context parameters
-        SpellEffect effect = EffectRegistry.get(ctx.getEffectKey());
-        if (effect != null) {
-            effect.apply(ctx);
-        } else {
-            player.sendMessage("§eUnknown effect: " + ctx.getEffectKey());
+        // 6) Fire off every configured effect in order
+        for (String key : ctx.getEffectKeys()) {
+            SpellEffect effect = EffectRegistry.get(key);
+            if (effect != null) {
+                effect.apply(ctx);
+            } else {
+                player.sendMessage("§eUnknown effect: " + key);
+            }
         }
     }
+
+    public double getManaCostModifier() {
+        return manaCostModifier;
+    }
+
+    public void setManaCostModifier(double manaCostModifier) {
+        this.manaCostModifier = manaCostModifier;
+    }
+
+    public boolean isApplyCooldown() {
+        return applyCooldown;
+    }
+
+    public void setApplyCooldown(boolean applyCooldown) {
+        this.applyCooldown = applyCooldown;
+    }
+
+    public double getStunDuration() {
+        return stunDuration;
+    }
+
+    public void setStunDuration(double stunDuration) {
+        this.stunDuration = stunDuration;
+    }
+
+    public double getAoeRadius() {
+        return aoeRadius;
+    }
+
+    public void setAoeRadius(double aoeRadius) {
+        this.aoeRadius = aoeRadius;
+    }
+
+
 }

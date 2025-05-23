@@ -60,6 +60,7 @@ public class RuneEffect {
         return extraParams;
     }
 
+
     @Override
     public String toString() {
         return String.format("RuneEffect[type=%s, bonusDamage=%.2f%%, cooldownRed=%.2f%%, newEffectKey=%s, params=%s]",
