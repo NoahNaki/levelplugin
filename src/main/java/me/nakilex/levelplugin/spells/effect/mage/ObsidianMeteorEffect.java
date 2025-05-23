@@ -11,7 +11,7 @@ public class ObsidianMeteorEffect implements SpellEffect {
     @Override
     public void apply(SpellCastContext ctx) {
         // Ensure obsidian meteor heads
-        ctx.putExtraParam("projectileMaterial", "OBSIDIAN");
+        ctx.putExtraParam("projectileMaterial", "GOLD_BLOCK");
         // Delegate to the shared MeteorEffect
         new MeteorEffect().apply(ctx);
     }
