@@ -21,12 +21,13 @@ runes:
     effects:
       - type: "TRANSFORM"
         bonusDamagePercent: 0.0
-        priority: 75
+        priority: 50
         cooldownReductionPercent: 0.0
         newEffectKey: "METEOR_SHOWER_EFFECT"
         extraParams:
           extraProjectiles: 3
           damageMultiplier: 0.8
+
   - id: "mage_meteor_frost_comet"
     name: "Rune of the Frost Comet"
     description:
@@ -44,6 +45,7 @@ runes:
         newEffectKey: "FROST_COMET_EFFECT"
         priority: 50
         extraParams: { }
+
   - id: "mage_meteor_obsidian_shard"
     name: "Rune of the Obsidian Shard"
     description:
@@ -59,5 +61,6 @@ runes:
         cooldownReductionPercent: 0.0
         newEffectKey: "OBSIDIAN_METEOR_EFFECT"
         priority: 75
-        extraParams: {}
+        extraParams:
+          extraProjectiles: 1
 
