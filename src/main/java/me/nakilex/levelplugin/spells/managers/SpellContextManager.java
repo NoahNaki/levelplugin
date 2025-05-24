@@ -15,15 +15,15 @@ public class SpellContextManager {
     private static final Map<UUID, Context> pending = new ConcurrentHashMap<>();
 
     public static void setPending(UUID playerId, String spellName, boolean isCrit) {
-        Main.getInstance().getLogger()
-            .info("[SpellContext] setPending for " + playerId + " -> " + spellName + " crit=" + isCrit);
+        Main.getInstance().getLogger();
+           // .info("[SpellContext] setPending for " + playerId + " -> " + spellName + " crit=" + isCrit);
         pending.put(playerId, new Context(spellName, isCrit));
     }
 
     public static Context consume(UUID playerId) {
         Context ctx = pending.remove(playerId);
-        Main.getInstance().getLogger()
-            .info("[SpellContext] consume for " + playerId + " -> " + (ctx == null ? "null" : ctx.spellName));
+        Main.getInstance().getLogger();
+            //.info("[SpellContext] consume for " + playerId + " -> " + (ctx == null ? "null" : ctx.spellName));
         return ctx;
     }
 

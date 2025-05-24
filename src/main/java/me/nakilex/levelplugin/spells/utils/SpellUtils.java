@@ -44,13 +44,13 @@ public class SpellUtils {
         ChatToggleManager chatMgr = ChatToggleManager.getInstance();
         boolean wasChatOn = chatMgr.isEnabled(caster);
 
-        // ONLY suppress vanilla chat if it was on
-        if (wasChatOn) {
-            logger.info("dealWithChat: [" + caster.getName() + "] chat ON, suppressing it");
-            chatMgr.setEnabled(caster, false);
-        } else {
-            logger.info("dealWithChat: [" + caster.getName() + "] chat already OFF, skipping suppress");
-        }
+//        // ONLY suppress vanilla chat if it was on
+//        if (wasChatOn) {
+//            logger.info("dealWithChat: [" + caster.getName() + "] chat ON, suppressing it");
+//            chatMgr.setEnabled(caster, false);
+//        } else {
+//            logger.info("dealWithChat: [" + caster.getName() + "] chat already OFF, skipping suppress");
+//        }
 
         // Prepare the one-off damage listener
         Listener damageListener = new Listener() {
@@ -91,13 +91,13 @@ public class SpellUtils {
             }
         };
         Bukkit.getPluginManager().registerEvents(damageListener, Main.getInstance());
-        logger.info("dealWithChat: listener registered for " + caster.getName());
+        //logger.info("dealWithChat: listener registered for " + caster.getName());
 
         // Apply the damage
         SpellContextManager.applySpellDamage(
             caster, target, rawDamage, spellName, false
         );
-        logger.info("dealWithChat: applySpellDamage called for " + caster.getName());
+        //logger.info("dealWithChat: applySpellDamage called for " + caster.getName());
 
         // Fallback: if we suppressed chat but the listener never fired, restore next tick
         if (wasChatOn) {

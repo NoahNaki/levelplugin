@@ -53,16 +53,9 @@ public class MeteorEffect implements SpellEffect {
         Object extra = ctx.getExtraParam("extraProjectiles");
         if (extra instanceof Number) {
             extraProj = ((Number) extra).intValue();
-        }
-
-        // 3.5) Projectile size (radius for spread)
-        double projectileSize = 0.5;
-        Object sizeParam = ctx.getExtraParam("projectileSize");
-        if (sizeParam instanceof Number) {
-            projectileSize = ((Number) sizeParam).doubleValue();
-        } else if (sizeParam instanceof String) {
+        } else if (extra instanceof String) {
             try {
-                projectileSize = Double.parseDouble((String) sizeParam);
+                extraProj = Integer.parseInt((String) extra);
             } catch (NumberFormatException ignored) {}
         }
 
@@ -79,11 +72,38 @@ public class MeteorEffect implements SpellEffect {
         world.playSound(player.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 1f, 1f);
 
         // 7) Sphere offsets using projectileSize
-        List<Vector> offsets = getSphereOffsets(projectileSize, 8);
+        double projectileSize = 0.5;
+        Object sizeParam = ctx.getExtraParam("projectileSize");
+        if (sizeParam instanceof Number) {
+            projectileSize = ((Number) sizeParam).doubleValue();
+        } else if (sizeParam instanceof String) {
+            try {
+                projectileSize = Double.parseDouble((String) sizeParam);
+            } catch (NumberFormatException ignored) {}
+        }
 
-        // 8) Spawn meteors with configured material
+        // 7) Generate hollow sphere offsets (thin shell) for better performance
+        List<Vector> offsets = new ArrayList<>();
+        double spacing = 0.5;
+        double radius  = projectileSize;
+        double r2      = radius * radius;
+        double innerR  = radius - spacing;      // one “layer” inside
+
+        for (double x = -radius; x <= radius; x += spacing) {
+            for (double y = -radius; y <= radius; y += spacing) {
+                for (double z = -radius; z <= radius; z += spacing) {
+                    double d2 = x*x + y*y + z*z;
+                    if (d2 <= r2 && d2 >= innerR*innerR) {
+                        offsets.add(new Vector(x, y, z));
+                    }
+                }
+            }
+        }
+
+        // 8) Spawn meteors with configured material, count each “round” separately
         List<ArmorStand> stands = new ArrayList<>();
         for (int round = 0; round < 1 + extraProj; round++) {
+            List<ArmorStand> roundStands = new ArrayList<>();
             for (Vector off : offsets) {
                 ArmorStand as = world.spawn(spawn.clone().add(off), ArmorStand.class, stand -> {
                     stand.setInvisible(true);
@@ -103,8 +123,14 @@ public class MeteorEffect implements SpellEffect {
                     stand.getEquipment().setHelmet(new ItemStack(helmMat));
                     stand.setMetadata("Meteor", new FixedMetadataValue(plugin, true));
                 });
-                stands.add(as);
+                roundStands.add(as);
             }
+            // DEBUG: log how many “blocks” this particular meteor spawned
+            plugin.getLogger().info(
+                String.format("[MeteorEffect] Meteor #%d spawned %d blocks",
+                    round + 1, roundStands.size())
+            );
+            stands.addAll(roundStands);
         }
 
         // 9) Animate & impact
@@ -143,8 +169,7 @@ public class MeteorEffect implements SpellEffect {
                     helix.curve = 1.0f;
                     helix.rotation = sign * spin * 0.3;
                     helix.iterations = 1;
-                    helix.period = 1;
-                    helix.start();
+                    helix.run();
                 }
 
                 world.playSound(loc, Sound.ENTITY_BLAZE_SHOOT, 0.4f, 1f);
@@ -168,6 +193,7 @@ public class MeteorEffect implements SpellEffect {
             }
         }.runTaskTimer(plugin, 0L, 1L);
     }
+
 
     private void impactNow(Player player, Location center, List<ArmorStand> stands, double damage) {
         stands.forEach(ArmorStand::remove);

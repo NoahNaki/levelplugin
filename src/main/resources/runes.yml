@@ -66,5 +66,5 @@ runes:
         extraParams:
           projectileMaterial: "GOLD_BLOCK"
           extraProjectiles: 1
-          projectileSize: 4.0
+          projectileSize: 1.0
 
