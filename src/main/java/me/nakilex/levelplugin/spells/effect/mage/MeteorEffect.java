@@ -20,6 +20,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.EulerAngle;
+import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
@@ -133,21 +134,22 @@ public class MeteorEffect implements SpellEffect {
             stands.addAll(roundStands);
         }
 
-        // 9) Animate & impact
         new BukkitRunnable() {
-            final Vector step = impact.toVector().subtract(spawn.toVector()).normalize().multiply(2.2);
+            final Vector step = impact.toVector()
+                .subtract(spawn.toVector())
+                .normalize()
+                .multiply(2.2);
             Location loc = spawn.clone();
             int ticks = 0;
 
             @Override
             public void run() {
                 ticks++;
+                // 1) Move the meteor forward
                 loc.add(step);
 
-                // Flame trail
+                // 2) Flame‐trail, spinning blocks, helix, sound… exactly as before
                 world.spawnParticle(Particle.FLAME, loc, 8, 0.2, 0.2, 0.2, 0.01);
-
-                // Rotate meteors
                 double spin = ticks * 0.1;
                 Vector axis = step.clone().normalize();
                 for (int i = 0; i < stands.size(); i++) {
@@ -157,35 +159,33 @@ public class MeteorEffect implements SpellEffect {
                     as.teleport(loc.clone().add(rotated));
                     as.setHeadPose(new EulerAngle(spin, spin, 0));
                 }
-
-                // Helix effects
                 for (int sign : new int[]{1, -1}) {
                     HelixEffect helix = new HelixEffect(plugin.getEffectManager());
                     helix.setLocation(loc);
-                    helix.particle = Particle.FLAME;
-                    helix.strands = 1;
-                    helix.particles = 1;
-                    helix.radius = 0.1f;
-                    helix.curve = 1.0f;
-                    helix.rotation = sign * spin * 0.3;
+                    helix.particle   = Particle.FLAME;
+                    helix.strands    = 1;
+                    helix.particles  = 1;
+                    helix.radius     = 0.1f;
+                    helix.curve      = 1.0f;
+                    helix.rotation   = sign * spin * 0.3;
                     helix.iterations = 1;
                     helix.run();
                 }
-
                 world.playSound(loc, Sound.ENTITY_BLAZE_SHOOT, 0.4f, 1f);
 
-                // Collision check
+                // 3) Entity collision—unchanged
                 for (Entity e : world.getNearbyEntities(loc, 1.2, 1.2, 1.2)) {
                     if (e instanceof ArmorStand) continue;
                     if (!(e instanceof LivingEntity le) || le == player) continue;
                     if (le instanceof Player p
-                        && !DuelManager.getInstance().areInDuel(player.getUniqueId(), p.getUniqueId())) continue;
+                        && !DuelManager.getInstance()
+                        .areInDuel(player.getUniqueId(), p.getUniqueId())) continue;
                     impactNow(player, loc, stands, finalDamage);
                     cancel();
                     return;
                 }
 
-                // Ground impact
+                // 4) Ground collision only at the pre-computed impact point
                 if (loc.distanceSquared(impact) < 1.0) {
                     impactNow(player, impact, stands, finalDamage);
                     cancel();
@@ -221,22 +221,15 @@ public class MeteorEffect implements SpellEffect {
     }
 
     private Location getImpactLocation(Player player) {
-        World world = player.getWorld();
-        Block targetBlock = player.getTargetBlockExact(20);
-        double x, z;
-        if (targetBlock != null) {
-            x = targetBlock.getX() + 0.5;
-            z = targetBlock.getZ() + 0.5;
+        Block target = player.getTargetBlockExact(20);
+        if (target != null) {
+            return target.getLocation().add(0.5, 1, 0.5);
         } else {
-            Location eye = player.getEyeLocation();
-            Vector dir = eye.getDirection().normalize().multiply(20);
-            x = eye.getX() + dir.getX();
-            z = eye.getZ() + dir.getZ();
+            return player.getEyeLocation()
+                .add(player.getEyeLocation().getDirection().multiply(20));
         }
-
-        int groundY = world.getHighestBlockYAt(fastFloor(x), fastFloor(z));
-        return new Location(world, x, groundY + 0.5, z);
     }
+
 
     private int fastFloor(double val) {
         return (int) Math.floor(val);
@@ -253,16 +246,4 @@ public class MeteorEffect implements SpellEffect {
         return term1.add(term2).add(term3);
     }
 
-    private List<Vector> getSphereOffsets(double radius, int max) {
-        List<Vector> list = new ArrayList<>();
-        for (int i = 0; i < max; i++) {
-            double theta = Math.acos(2 * Math.random() - 1);
-            double phi = 2 * Math.PI * Math.random();
-            double x = radius * Math.sin(theta) * Math.cos(phi);
-            double y = radius * Math.sin(theta) * Math.sin(phi);
-            double z = radius * Math.cos(theta);
-            list.add(new Vector(x, y, z));
-        }
-        return list;
-    }
 }
