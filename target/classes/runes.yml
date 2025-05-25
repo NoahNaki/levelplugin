@@ -10,7 +10,7 @@ runes:
         bonusDamagePercent: 6.0
         cooldownReductionPercent: 0.0
         newEffectKey: null
-        extraParams: {}
+        extraParams: { }
 
   - id: "mage_meteor_shower"
     name: "Meteor Shower Rune"
@@ -124,9 +124,9 @@ runes:
     unique: true
     effects:
       - type: "TRANSFORM"
-        bonusDamagePercent:      0.0
+        bonusDamagePercent: 0.0
         cooldownReductionPercent: 0.0
-        newEffectKey:            null
+        newEffectKey: null
         # this flag flips on the allowMultiple behavior in BlackholeEffect
         extraParams:
           allowMultiple: true
@@ -143,9 +143,9 @@ runes:
     unique: true
     effects:
       - type: "TRANSFORM"
-        bonusDamagePercent:      0.0
+        bonusDamagePercent: 0.0
         cooldownReductionPercent: 0.0
-        newEffectKey:            null
+        newEffectKey: null
         # this flag flips on the allowMove behavior in BlackholeEffect
         extraParams:
           allowMove: true
@@ -161,9 +161,9 @@ runes:
     unique: false
     effects:
       - type: "MODIFIER"
-        bonusDamagePercent:       0.0
+        bonusDamagePercent: 0.0
         cooldownReductionPercent: 0.0
-        newEffectKey:             null
+        newEffectKey: null
         extraParams:
           maxDistance: 5
 
@@ -178,9 +178,9 @@ runes:
     unique: false
     effects:
       - type: "MODIFIER"
-        bonusDamagePercent:       0.0
+        bonusDamagePercent: 0.0
         cooldownReductionPercent: 0.0
-        newEffectKey:             null
+        newEffectKey: null
         extraParams:
           agiMultiplier: 0.02
 
@@ -196,10 +196,10 @@ runes:
     unique: true
     effects:
       - type: "TRANSFORM"
-        bonusDamagePercent:       0.0
+        bonusDamagePercent: 0.0
         cooldownReductionPercent: 0.0
-        newEffectKey:             "TELEPORT"
-        priority:                 40
+        newEffectKey: "TELEPORT"
+        priority: 40
         extraParams:
           damageTrail: 3.0
 
@@ -215,13 +215,13 @@ runes:
     unique: true
     effects:
       - type: "TRANSFORM"
-        bonusDamagePercent:       0.0
+        bonusDamagePercent: 0.0
         cooldownReductionPercent: 0.0
-        newEffectKey:             "TELEPORT"
-        priority:                 50
+        newEffectKey: "TELEPORT"
+        priority: 50
         extraParams:
           explosionOnArrive: true
-          explosionPower:    4.0
+          explosionPower: 4.0
 
   # ─── TRANSFORM: Chain Teleport ────────────────────────────────────────────────
   - id: "mage_teleport_chain"
@@ -235,13 +235,112 @@ runes:
     unique: true
     effects:
       - type: "TRANSFORM"
-        bonusDamagePercent:       0.0
+        bonusDamagePercent: 0.0
         cooldownReductionPercent: 0.0
-        newEffectKey:             "TELEPORT"
-        priority:                 60
+        newEffectKey: "TELEPORT"
+        priority: 60
         extraParams:
           chainTeleports: 2
-          chainInterval:  15
+          chainInterval: 15
+
+  # ─── TRANSFORM: Regenerative Pulse ─────────────────────────────────────────────
+  - id: "mage_heal_overgrowth"
+    name: "Rune of Overgrowth"
+    description:
+      - "Converts your instant heal"
+      - "into a regenerative pulse"
+      - "that wounds nearby foes each tick."
+    rarity: "EPIC"
+    targetClass: "MAGE"
+    targetSpell: "Heal"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        bonusDamagePercent: 0.0
+        cooldownReductionPercent: 0.0
+        newEffectKey: "HEAL"
+        priority: 40
+        extraParams:
+          healOverTime: true
+          hotDuration: 5      # lasts 10 seconds
+          hotInterval: 25      # ticks between heals
+          aoeDamage: 2.0       # damage per tick
+          aoeRange: 3.0        # radius of damage AoE
+
+  # ─── TRANSFORM: Purification ─────────────────────────────────────────────────
+  - id: "mage_heal_purification"
+    name: "Rune of Purification"
+    description:
+      - "Cleanses negative effects"
+      - "from allies before healing."
+    rarity: "EPIC"
+    targetClass: "MAGE"
+    targetSpell: "Heal"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        bonusDamagePercent: 0.0
+        cooldownReductionPercent: 0.0
+        newEffectKey: "HEAL"
+        priority: 50
+        extraParams:
+          cleanseDebuffs: true
+
+  # ─── MODIFIER: Vitality Amplifier ──────────────────────────────────────────────
+  - id: "mage_heal_vitality"
+    name: "Rune of Vitality"
+    description:
+      - "Extends the duration of"
+      - "your regenerative pulse."
+    rarity: "RARE"
+    targetClass: "MAGE"
+    targetSpell: "Heal"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        bonusDamagePercent: 0.0
+        cooldownReductionPercent: 0.0
+        newEffectKey: "HEAL"
+        extraParams:
+          hotDuration: 2
+
+  # ─── MODIFIER: Ardor Infusion ─────────────────────────────────────────────────
+  - id: "mage_heal_ardor"
+    name: "Rune of Ardor"
+    description:
+      - "Boosts the damage dealt"
+      - "by your healing pulse."
+    rarity: "UNCOMMON"
+    targetClass: "MAGE"
+    targetSpell: "Heal"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        bonusDamagePercent: 0.0
+        cooldownReductionPercent: 0.0
+        newEffectKey: "HEAL"
+        extraParams:
+          aoeDamage: 1.0
+
+  - id: "mage_heal_spread"
+    name: "Rune of Spreading Thorns"
+    description:
+      - "Increases the reach"
+      - "of your regenerative pulse."
+    rarity: "UNCOMMON"
+    targetClass: "MAGE"
+    targetSpell: "Heal"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        bonusDamagePercent: 0.0
+        cooldownReductionPercent: 0.0
+        newEffectKey: "HEAL"
+        priority: 41
+        extraParams:
+          aoeRange: 5.5   # increases pulse radius by 1.5 blocks
+
+
 
 
 

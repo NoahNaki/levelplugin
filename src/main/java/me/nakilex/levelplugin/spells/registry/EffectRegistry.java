@@ -43,6 +43,7 @@ public class EffectRegistry {
         register("SINGULARITY_BLACKHOLE_EFFECT", new SingularityBlackholeEffect());
         register("TEMPORAL_BLACKHOLE_EFFECT",    new TemporalStasisBlackholeEffect());
         register("CHAOS_BLACKHOLE_EFFECT",       new ChaosBlackholeEffect());
+        register("HEAL",       new HealEffect());
 
     }
 }

@@ -73,11 +73,30 @@ public class SpellCastContext {
     /**
      * Injects generic parameters by name, only if this effect's priority >= existing priority.
      */
+    /**
+     * Injects generic parameters by name, accumulating duplicate keys into a list,
+     * and only applies priority rules for transforming vs. modifiers.
+     */
     public void putExtraParam(String key, Object value, int priority) {
         switch (key) {
             case "aoeRadius":
-                this.aoeRadius = ((Number) value).doubleValue();
+            case "aoeRange":
+                // always accumulate aoe ranges
+                Object existingRange = extraParams.get(key) != null ? extraParams.get(key).value : null;
+                List<Object> rangeList;
+                if (existingRange instanceof List) {
+                    rangeList = (List<Object>) existingRange;
+                } else {
+                    rangeList = new ArrayList<>();
+                    if (existingRange != null) rangeList.add(existingRange);
+                }
+                rangeList.add(value);
+                Param pRange = new Param();
+                pRange.value = rangeList;
+                pRange.priority = priority; // priority largely irrelevant for stacking
+                extraParams.put(key, pRange);
                 break;
+
             case "stunDuration":
                 this.stunDuration = ((Number) value).doubleValue();
                 break;
@@ -87,7 +106,9 @@ public class SpellCastContext {
             case "manaCostIncrease":
                 this.manaCostModifier += ((Number) value).doubleValue();
                 break;
+
             default:
+                // for all other keys, keep old priority logic
                 Param prev = extraParams.get(key);
                 if (prev == null || priority >= prev.priority) {
                     Param p = new Param();
@@ -97,6 +118,7 @@ public class SpellCastContext {
                 }
         }
     }
+
 
 
     /** Retrieves the final value (highest priority) for this key, or null. */
