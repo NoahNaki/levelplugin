@@ -44,9 +44,10 @@ runes:
         bonusDamagePercent: 0.0
         cooldownReductionPercent: 0.0
         newEffectKey: "FROST_COMET_EFFECT"
-        priority: 50
+        priority: 51
         extraParams:
           projectileMaterial: "PACKED_ICE"
+          projectileSize: 3.0
 
   - id: "mage_meteor_obsidian_shard"
     name: "Rune of the Obsidian Shard"
@@ -66,5 +67,88 @@ runes:
         extraParams:
           projectileMaterial: "GOLD_BLOCK"
           extraProjectiles: 1
-          projectileSize: 1.0
+          projectileSize: 2.0
+
+  # ─── Modifier Rune ──────────────────────────────────────────────────────────
+  - id: "mage_blackhole_gravity_well"
+    name: "Rune of the Gravity Well"
+    description:
+      - "Expands the reach"
+      - "of your blackhole."
+    rarity: "UNCOMMON"
+    targetClass: "MAGE"
+    targetSpell: "Blackhole"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        bonusDamagePercent: 0.0
+        cooldownReductionPercent: 0.0
+        newEffectKey: null
+        extraParams:
+          pullRadius: 1.0
+
+  # ─── Transform Rune: Singularity ─────────────────────────────────────────────
+  - id: "mage_blackhole_singularity"
+    name: "Rune of Singularity"
+    description:
+      - "Concentrates the blackhole"
+      - "into a devastating core."
+    rarity: "EPIC"
+    targetClass: "MAGE"
+    targetSpell: "Blackhole"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        bonusDamagePercent: 0.0
+        cooldownReductionPercent: 0.0
+        newEffectKey: "SINGULARITY_BLACKHOLE_EFFECT"
+        priority: 50
+        extraParams:
+          endExplosion: true
+          explosionPower: 3.5
+          explosionRadius: 4.0
+
+  # ─── Transform Rune: Temporal Stasis ────────────────────────────────────────
+  - id: "mage_blackhole_temporal_stasis"
+    name: "Rune of Temporal Stasis"
+    description:
+      - "Infuses the blackhole"
+      - "with time-dilating magic."
+    rarity: "EPIC"
+    targetClass: "MAGE"
+    targetSpell: "Blackhole"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        bonusDamagePercent: 0.0
+        cooldownReductionPercent: 0.0
+        newEffectKey: "TEMPORAL_BLACKHOLE_EFFECT"
+        priority: 60
+        extraParams:
+          slowAmplifier: 2.0
+          stunDuration: 20
+
+  # ─── Transform Rune: Cataclysm ──────────────────────────────────────────────
+  - id: "mage_blackhole_cataclysm"
+    name: "Rune of the Cataclysm"
+    description:
+      - "Unleashes wild chaos"
+      - "through the event horizon."
+    rarity: "LEGENDARY"
+    targetClass: "MAGE"
+    targetSpell: "Blackhole"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        bonusDamagePercent: 0.0
+        cooldownReductionPercent: 0.0
+        newEffectKey: "CHAOS_BLACKHOLE_EFFECT"
+        priority: 75
+        extraParams:
+          radiusGrowthRate: 0.3
+          pullCurveExp: 2.5
+          particleType: "END_ROD"
+          particlesPerRing: 2
+
+
 

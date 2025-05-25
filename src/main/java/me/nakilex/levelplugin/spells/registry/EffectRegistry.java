@@ -1,6 +1,6 @@
-// File: src/main/java/me/nakilex/levelplugin/spells/registry/EffectRegistry.java
 package me.nakilex.levelplugin.spells.registry;
 
+import me.nakilex.levelplugin.spells.ArcherSpell;
 import me.nakilex.levelplugin.spells.effect.SpellEffect;
 import me.nakilex.levelplugin.spells.effect.mage.*;
 
@@ -33,8 +33,16 @@ public class EffectRegistry {
         register("BLACKHOLE",             new BlackholeEffect());
         register("HEAL",                  new HealEffect());
         register("TELEPORT",              new TeleportEffect());
+
+        // --- Meteor Runes ---
         register("METEOR_SHOWER_EFFECT", new MeteorShowerEffect());
         register("FROST_COMET_EFFECT", new FrostCometEffect());
         register("OBSIDIAN_METEOR_EFFECT", new ObsidianMeteorEffect());
+
+        // --- Blackhole Runes
+        register("SINGULARITY_BLACKHOLE_EFFECT", new SingularityBlackholeEffect());
+        register("TEMPORAL_BLACKHOLE_EFFECT",    new TemporalStasisBlackholeEffect());
+        register("CHAOS_BLACKHOLE_EFFECT",       new ChaosBlackholeEffect());
+
     }
 }
