@@ -29,6 +29,8 @@ public class EffectRegistry {
     /** Register every built‐in effect. Call this once in onEnable(). */
     public static void registerAll() {
         // --- Mage spells ---
+
+        register("BASIC_MAGE_ATTACK", new BasicMageEffect());
         register("METEOR",                new MeteorEffect());
         register("BLACKHOLE",             new BlackholeEffect());
         register("HEAL",                  new HealEffect());

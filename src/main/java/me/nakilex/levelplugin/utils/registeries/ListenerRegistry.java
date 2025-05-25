@@ -122,6 +122,13 @@ public class ListenerRegistry {
         pm.registerEvents(new HealListener(), plugin);
         pm.registerEvents(new BasicMageListener(), plugin);
 
+        pm.registerEvents(new MeteorListener(), plugin);
+        pm.registerEvents(new BlackholeListener(), plugin);
+        pm.registerEvents(new HealListener(), plugin);
+        pm.registerEvents(new TeleportListener(), plugin);
+        pm.registerEvents(new RogueSpell(), plugin);
+        pm.registerEvents(new ArcherSpell(), plugin);
+
         pm.registerEvents(new ProjectileFriendlyFireListener(), plugin);
         pm.registerEvents(new FieldBossListener(plugin, plugin.getBossConfig(), plugin.getItemManager(), plugin.getGemsManager()), plugin);
         pm.registerEvents(new EquipOnJoinListener(), plugin);

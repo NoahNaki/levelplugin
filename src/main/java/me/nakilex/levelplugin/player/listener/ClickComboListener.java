@@ -58,6 +58,8 @@ public class ClickComboListener implements Listener {
         UUID   playerId = player.getUniqueId();
         long   now      = System.currentTimeMillis();
 
+        Bukkit.getLogger().info("[ClickCombo] " + player.getName()
+            + " swung arm with “" + player.getInventory().getItemInMainHand().getType() + "” in hand");
         // — Debounce rapid swings —
         if (activeLeftClicks.containsKey(playerId) &&
             now - activeLeftClicks.get(playerId) < 100) {
@@ -101,9 +103,9 @@ public class ClickComboListener implements Listener {
             }
 
             // do the basic mage skill
-            SpellEffect basic = EffectRegistry.get("MAGE_BASIC");
+            SpellEffect basic = EffectRegistry.get("BASIC_MAGE_ATTACK");
             basic.apply(new SpellCastContext(
-                SpellManager.getInstance().getSpell("mage", "MAGE_BASIC"),
+                SpellManager.getInstance().getSpell("mage", "BASIC_MAGE_ATTACK"),
                 player
             ));
             mageCooldowns.put(playerId, now);
