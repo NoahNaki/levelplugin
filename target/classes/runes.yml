@@ -14,6 +14,9 @@ runes:
 
   - id: "mage_meteor_shower"
     name: "Meteor Shower Rune"
+    description:
+      - "Converts Meteor into a"
+      - "Meteor Shower."
     rarity: "EPIC"
     targetClass: "MAGE"
     targetSpell: "Meteor"
@@ -87,47 +90,6 @@ runes:
         extraParams:
           pullRadius: 1.0
 
-  # ─── Transform Rune: Singularity ─────────────────────────────────────────────
-  - id: "mage_blackhole_singularity"
-    name: "Rune of Singularity"
-    description:
-      - "Concentrates the blackhole"
-      - "into a devastating core."
-    rarity: "EPIC"
-    targetClass: "MAGE"
-    targetSpell: "Blackhole"
-    unique: true
-    effects:
-      - type: "TRANSFORM"
-        bonusDamagePercent: 0.0
-        cooldownReductionPercent: 0.0
-        newEffectKey: "SINGULARITY_BLACKHOLE_EFFECT"
-        priority: 50
-        extraParams:
-          endExplosion: true
-          explosionPower: 3.5
-          explosionRadius: 4.0
-
-  # ─── Transform Rune: Temporal Stasis ────────────────────────────────────────
-  - id: "mage_blackhole_temporal_stasis"
-    name: "Rune of Temporal Stasis"
-    description:
-      - "Infuses the blackhole"
-      - "with time-dilating magic."
-    rarity: "EPIC"
-    targetClass: "MAGE"
-    targetSpell: "Blackhole"
-    unique: true
-    effects:
-      - type: "TRANSFORM"
-        bonusDamagePercent: 0.0
-        cooldownReductionPercent: 0.0
-        newEffectKey: "TEMPORAL_BLACKHOLE_EFFECT"
-        priority: 60
-        extraParams:
-          slowAmplifier: 2.0
-          stunDuration: 20
-
   # ─── Transform Rune: Cataclysm ──────────────────────────────────────────────
   - id: "mage_blackhole_cataclysm"
     name: "Rune of the Cataclysm"
@@ -149,6 +111,138 @@ runes:
           pullCurveExp: 2.5
           particleType: "END_ROD"
           particlesPerRing: 2
+
+  # ─── Allows more than one blackhole ────────────────────────────────────────────
+  - id: "mage_blackhole_multiplicity"
+    name: "Rune of Multiplicity"
+    description:
+      - "You may conjure multiple"
+      - "blackholes at once."
+    rarity: "EPIC"
+    targetClass: "MAGE"
+    targetSpell: "Blackhole"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        bonusDamagePercent:      0.0
+        cooldownReductionPercent: 0.0
+        newEffectKey:            null
+        # this flag flips on the allowMultiple behavior in BlackholeEffect
+        extraParams:
+          allowMultiple: true
+
+  # ─── Allows moving your blackhole after you cast ───────────────────────────────
+  - id: "mage_blackhole_relocation"
+    name: "Rune of Relocation"
+    description:
+      - "Shift your blackhole’s"
+      - "position at will."
+    rarity: "EPIC"
+    targetClass: "MAGE"
+    targetSpell: "Blackhole"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        bonusDamagePercent:      0.0
+        cooldownReductionPercent: 0.0
+        newEffectKey:            null
+        # this flag flips on the allowMove behavior in BlackholeEffect
+        extraParams:
+          allowMove: true
+
+  # ─── MODIFIER Runes (stackable) ─────────────────────────────────────────────
+  - id: "mage_teleport_range"
+    name: "Rune of Leaping"
+    description:
+      - "Extends your blink range."
+    rarity: "UNCOMMON"
+    targetClass: "MAGE"
+    targetSpell: "Teleport"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        bonusDamagePercent:       0.0
+        cooldownReductionPercent: 0.0
+        newEffectKey:             null
+        extraParams:
+          maxDistance: 5
+
+  - id: "mage_teleport_swiftness"
+    name: "Rune of Swiftness"
+    description:
+      - "Increases how much agility"
+      - "boosts your teleport distance."
+    rarity: "RARE"
+    targetClass: "MAGE"
+    targetSpell: "Teleport"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        bonusDamagePercent:       0.0
+        cooldownReductionPercent: 0.0
+        newEffectKey:             null
+        extraParams:
+          agiMultiplier: 0.02
+
+  # ─── TRANSFORM: Damage Along the Path ─────────────────────────────────────────
+  - id: "mage_teleport_aftershock"
+    name: "Rune of Aftershock"
+    description:
+      - "Erupts arcane energy along"
+      - "the path you blinked, damaging foes."
+    rarity: "EPIC"
+    targetClass: "MAGE"
+    targetSpell: "Teleport"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        bonusDamagePercent:       0.0
+        cooldownReductionPercent: 0.0
+        newEffectKey:             "TELEPORT"
+        priority:                 40
+        extraParams:
+          damageTrail: 3.0
+
+  # ─── TRANSFORM: Explosion on Arrival ──────────────────────────────────────────
+  - id: "mage_teleport_burst"
+    name: "Rune of Impact"
+    description:
+      - "Triggers a concussive burst"
+      - "at your destination."
+    rarity: "EPIC"
+    targetClass: "MAGE"
+    targetSpell: "Teleport"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        bonusDamagePercent:       0.0
+        cooldownReductionPercent: 0.0
+        newEffectKey:             "TELEPORT"
+        priority:                 50
+        extraParams:
+          explosionOnArrive: true
+          explosionPower:    4.0
+
+  # ─── TRANSFORM: Chain Teleport ────────────────────────────────────────────────
+  - id: "mage_teleport_chain"
+    name: "Rune of Chaining"
+    description:
+      - "Automatically blink again"
+      - "shortly after the first."
+    rarity: "LEGENDARY"
+    targetClass: "MAGE"
+    targetSpell: "Teleport"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        bonusDamagePercent:       0.0
+        cooldownReductionPercent: 0.0
+        newEffectKey:             "TELEPORT"
+        priority:                 60
+        extraParams:
+          chainTeleports: 2
+          chainInterval:  15
+
 
 
 

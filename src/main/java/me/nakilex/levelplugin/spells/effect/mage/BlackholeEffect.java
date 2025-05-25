@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
 import me.nakilex.levelplugin.spells.effect.SpellEffect;
 import me.nakilex.levelplugin.spells.utils.SpellUtils;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.block.Block;
@@ -29,14 +30,14 @@ public class BlackholeEffect implements SpellEffect {
         Main plugin = Main.getInstance();
         UUID pid = player.getUniqueId();
 
-        // 1) Compute damage once from ctx.getFinalDamage()
+        // 1) Compute damage
         double finalDamage = ctx.getFinalDamage();
 
-        // 2) Read rune flags
+        // 2) Rune flags
         boolean allowMultiple = parseBoolean(ctx.getExtraParam("allowMultiple"), false);
         boolean allowMove     = parseBoolean(ctx.getExtraParam("allowMove"), false);
 
-        // 3) Determine center (snapped to ground + 1.5 up)
+        // 3) Determine & snap center to ground + 1.5 up
         Location raw = Optional.ofNullable(player.getTargetBlockExact(20))
             .map(b -> b.getLocation().add(0.5, 0, 0.5))
             .orElseGet(() -> player.getEyeLocation()
@@ -44,22 +45,21 @@ public class BlackholeEffect implements SpellEffect {
         int groundY = raw.getWorld().getHighestBlockYAt(raw);
         Location center = new Location(raw.getWorld(), raw.getX(), groundY + 1.5, raw.getZ());
 
-        // 4) If there's an existing blackhole for this player...
+        // 4) Enforce single-instance logic
         BlackholeTask existing = activeBlackholes.get(pid);
         if (existing != null) {
             if (allowMove) {
-                // just move its center and preserve its lifecycle
                 existing.setCenter(center);
+                //player.sendMessage("Your blackhole has been relocated.");
+                return;
+            } else if (!allowMultiple) {
+                player.sendMessage(ChatColor.RED + "You can only have one blackhole at a time.");
                 return;
             }
-            if (!allowMultiple) {
-                // cancel old one before spawning a new
-                existing.cancel();
-                activeBlackholes.remove(pid);
-            }
+            // if allowMultiple==true, fall through and spawn another
         }
 
-        // 5) Read all other rune‐driven parameters
+        // 5) Read rest of rune-driven parameters
         double pullRadius       = parseDouble(ctx.getExtraParam("pullRadius"), 5.0);
         double radiusGrowthRate = parseDouble(ctx.getExtraParam("radiusGrowthRate"), 0.0);
         double rotationSpeed    = parseDouble(ctx.getExtraParam("rotationSpeed"), 0.0);
@@ -67,7 +67,7 @@ public class BlackholeEffect implements SpellEffect {
         boolean endExplosion    = parseBoolean(ctx.getExtraParam("endExplosion"), false);
         double explosionPower   = parseDouble(ctx.getExtraParam("explosionPower"), 2.0);
 
-        // 6) Spawn & register new task
+        // 6) Spawn & register new blackhole task
         BlackholeTask task = new BlackholeTask(
             plugin, player, center,
             finalDamage,
