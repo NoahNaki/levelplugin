@@ -230,11 +230,6 @@ public class MeteorEffect implements SpellEffect {
         }
     }
 
-
-    private int fastFloor(double val) {
-        return (int) Math.floor(val);
-    }
-
     private Vector rotateAroundAxis(Vector v, Vector axis, double theta) {
         axis = axis.clone().normalize();
         double cos = Math.cos(theta);
