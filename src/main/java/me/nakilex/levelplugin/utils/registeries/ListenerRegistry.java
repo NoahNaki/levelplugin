@@ -120,7 +120,6 @@ public class ListenerRegistry {
         pm.registerEvents(new BlackholeListener(), plugin);
         pm.registerEvents(new TeleportListener(), plugin);
         pm.registerEvents(new HealListener(), plugin);
-        pm.registerEvents(new BasicMageListener(), plugin);
 
         pm.registerEvents(new MeteorListener(), plugin);
         pm.registerEvents(new BlackholeListener(), plugin);

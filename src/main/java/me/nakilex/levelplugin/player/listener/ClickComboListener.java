@@ -47,8 +47,7 @@ public class ClickComboListener implements Listener {
     private final Map<UUID, Long> activeLeftClicks = new HashMap<>();
     private final Map<UUID, Long> bowCooldowns = new HashMap<>();
     private static final long BOW_SHOT_COOLDOWN = 500L; // 0.5 seconds
-    private final Map<UUID, Long> mageCooldowns = new HashMap<>();
-    private static final long MAGE_ATTACK_COOLDOWN = 500L;
+
 
     @EventHandler
     public void onLeftClick(PlayerAnimationEvent event) {
@@ -58,8 +57,6 @@ public class ClickComboListener implements Listener {
         UUID   playerId = player.getUniqueId();
         long   now      = System.currentTimeMillis();
 
-        Bukkit.getLogger().info("[ClickCombo] " + player.getName()
-            + " swung arm with “" + player.getInventory().getItemInMainHand().getType() + "” in hand");
         if (activeLeftClicks.containsKey(playerId) &&
             now - activeLeftClicks.get(playerId) < 100) {
             return;
@@ -72,38 +69,6 @@ public class ClickComboListener implements Listener {
         String      cls   = ps.playerClass.name().toLowerCase();
         ItemStack   main  = player.getInventory().getItemInMainHand();
         if (main == null || main.getType() == Material.AIR) return;
-
-        if (cls.equals("mage")) {
-            if (main.getType() != Material.BLAZE_ROD && main.getType() != Material.STICK) {
-                return;
-            }
-
-            if (!getActiveCombo(player).isEmpty()) {
-                recordComboClick(player, "L");
-                return;
-            }
-
-            int lvl = LevelManager.getInstance().getLevel(player);
-            CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(main);
-            if (ci != null && lvl < ci.getLevelRequirement()) {
-                player.sendMessage("§cYou must be level " + ci.getLevelRequirement()
-                    + " to use that attack with your " + ci.getBaseName() + "!");
-                return;
-            }
-
-            if (mageCooldowns.containsKey(playerId) &&
-                now - mageCooldowns.get(playerId) < MAGE_ATTACK_COOLDOWN) {
-                return;
-            }
-
-            SpellEffect basic = EffectRegistry.get("BASIC_MAGE_ATTACK");
-            basic.apply(new SpellCastContext(
-                SpellManager.getInstance().getSpell("mage", "BASIC_MAGE_ATTACK"),
-                player
-            ));
-            mageCooldowns.put(playerId, now);
-            return;
-        }
 
         if (cls.equals("rogue") || cls.equals("warrior")) {
             if (!getActiveCombo(player).isEmpty()) {
@@ -123,9 +88,9 @@ public class ClickComboListener implements Listener {
             return;
         }
 
+        // For all other classes and cases, record combo click
         recordComboClick(player, "L");
     }
-
 
     @EventHandler
     public void onRightClick(PlayerInteractEvent event) {

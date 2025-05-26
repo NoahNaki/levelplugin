@@ -79,19 +79,6 @@ public class SpellManager {
 
         // — MAGE SPELLS (including BASIC_MAGE_ATTACK) —
         Map<String, Spell> mageMap = new HashMap<>();
-        // Basic auto-attack
-        mageMap.put("BASIC_MAGE_ATTACK", new Spell(
-            "basic_mage_attack",   // internal id
-            "Basic Mage Attack",   // display name
-            "BASIC_MAGE_ATTACK",   // combo key & effect key
-            5.0,                   // base damage
-            1.0,                   // mana multiplier
-            0,                     // min level
-            0,                     // cooldown seconds
-            me.nakilex.levelplugin.items.data.WeaponType.WAND.getMaterials(),
-            "BASIC_MAGE_ATTACK",   // effectKey
-            0.0                    // rune cost
-        ));
         // Combo spells
         mageMap.put("RLL", new Spell(
             "meteor", "Meteor", "RLL",
