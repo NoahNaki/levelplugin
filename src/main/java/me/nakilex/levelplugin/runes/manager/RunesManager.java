@@ -114,27 +114,21 @@ public class RunesManager {
         equippedRunes.putIfAbsent(uid, new ArrayList<>());
         List<Rune> runes = equippedRunes.get(uid);
 
-        Main.getPlugin().getLogger().info("    currently equipped: "
+        Main.getPlugin().getLogger().info("currently equipped: "
             + runes.stream().map(Rune::getId).toList());
 
         // Prevent stacking of unique runes of the same ID
         if (rune.isUnique() && runes.stream().anyMatch(r -> r.getId().equals(rune.getId()))) {
-            Main.getPlugin().getLogger().warning("    ❌ reject duplicate unique rune");
+            Main.getPlugin().getLogger().warning("❌ reject duplicate unique rune");
             return false;
         }
 
         runes.add(rune);
-        Main.getPlugin().getLogger().info("    ✅ equipped! now: "
+        Main.getPlugin().getLogger().info("✅ equipped! now: "
             + runes.stream().map(Rune::getId).toList());
         return true;
     }
 
-    // —————————————————————————————————————————————
-    // 2) Your wrapper that takes an ItemStack
-    // —————————————————————————————————————————————
-    /**
-     * Identify the rune-id off the book, call equipRune(Player,Rune), and remove one book.
-     */
     public boolean equipRune(Player player, ItemStack stack) {
         if (!isIdentified(stack)) return false;
         String id = stack.getItemMeta()
@@ -143,18 +137,15 @@ public class RunesManager {
         Rune rune = runeLoader.getRune(id);
         if (rune == null) return false;
 
-        // Calls the Rune version above
         boolean success = equipRune(player, rune);
         if (!success) return false;
 
-        // consume one book
         ItemStack one = stack.clone();
         one.setAmount(1);
         player.getInventory().removeItem(one);
         return true;
     }
 
-    /** Returns true if this book has a valid rune_id PDC entry and loads to a real Rune. */
     public boolean isIdentified(ItemStack stack) {
         if (stack == null || !stack.hasItemMeta()) return false;
         var pdc = stack.getItemMeta().getPersistentDataContainer();
@@ -162,8 +153,6 @@ public class RunesManager {
         String id = pdc.get(runeKey, PersistentDataType.STRING);
         return runeLoader.getRune(id) != null;
     }
-
-
 
     public boolean unequipRune(Player player, Rune target) {
         UUID uid = player.getUniqueId();
@@ -181,10 +170,6 @@ public class RunesManager {
         return false;
     }
 
-
-    /**
-     * Returns a list of all rune IDs currently equipped by the player (for persistence).
-     */
     public List<String> getEquippedRuneIds(Player player) {
         return getEquippedRunes(player).stream()
             .map(Rune::getId)
@@ -194,5 +179,4 @@ public class RunesManager {
     public Rune getRuneById(String id) {
         return runeLoader.getRune(id);
     }
-
 }

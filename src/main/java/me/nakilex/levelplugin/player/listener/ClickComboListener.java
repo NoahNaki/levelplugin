@@ -60,7 +60,6 @@ public class ClickComboListener implements Listener {
 
         Bukkit.getLogger().info("[ClickCombo] " + player.getName()
             + " swung arm with “" + player.getInventory().getItemInMainHand().getType() + "” in hand");
-        // — Debounce rapid swings —
         if (activeLeftClicks.containsKey(playerId) &&
             now - activeLeftClicks.get(playerId) < 100) {
             return;
@@ -74,20 +73,16 @@ public class ClickComboListener implements Listener {
         ItemStack   main  = player.getInventory().getItemInMainHand();
         if (main == null || main.getType() == Material.AIR) return;
 
-        // —— MAGE BASIC ATTACK ——
         if (cls.equals("mage")) {
-            // only with rod or stick
             if (main.getType() != Material.BLAZE_ROD && main.getType() != Material.STICK) {
                 return;
             }
 
-            // if in a combo, just record the click
             if (!getActiveCombo(player).isEmpty()) {
                 recordComboClick(player, "L");
                 return;
             }
 
-            // level-gate
             int lvl = LevelManager.getInstance().getLevel(player);
             CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(main);
             if (ci != null && lvl < ci.getLevelRequirement()) {
@@ -96,13 +91,11 @@ public class ClickComboListener implements Listener {
                 return;
             }
 
-            // cooldown
             if (mageCooldowns.containsKey(playerId) &&
                 now - mageCooldowns.get(playerId) < MAGE_ATTACK_COOLDOWN) {
                 return;
             }
 
-            // do the basic mage skill
             SpellEffect basic = EffectRegistry.get("BASIC_MAGE_ATTACK");
             basic.apply(new SpellCastContext(
                 SpellManager.getInstance().getSpell("mage", "BASIC_MAGE_ATTACK"),
@@ -112,15 +105,12 @@ public class ClickComboListener implements Listener {
             return;
         }
 
-        // —— ROGUE & WARRIOR: full-cone sweep on click if no combo active ——
         if (cls.equals("rogue") || cls.equals("warrior")) {
-            // combo takes priority
             if (!getActiveCombo(player).isEmpty()) {
                 recordComboClick(player, "L");
                 return;
             }
 
-            // level-gate on weapon
             int lvl = LevelManager.getInstance().getLevel(player);
             CustomItem ci2 = ItemManager.getInstance().getCustomItemFromItemStack(main);
             if (ci2 != null && lvl < ci2.getLevelRequirement()) {
@@ -133,7 +123,6 @@ public class ClickComboListener implements Listener {
             return;
         }
 
-        // —— everyone else just builds combos ——
         recordComboClick(player, "L");
     }
 
@@ -158,14 +147,12 @@ public class ClickComboListener implements Listener {
                 event.setCancelled(true);
                 recordComboClick(player, "R");
             } else {
-                // Cancel the vanilla bow pull and do our custom shot
                 event.setCancelled(true);
                 cancelBowPullAndShootArrow(player);
             }
             return;
         }
 
-        // Spell‐combo branch for all other classes (or archer combos)
         String activeCombo = getActiveCombo(player);
         if (!activeCombo.isEmpty() && activeCombo.length() < 3) {
             recordComboClick(player, "R");
@@ -208,7 +195,6 @@ public class ClickComboListener implements Listener {
     private void cancelBowPullAndShootArrow(Player player) {
         ItemStack mainHand = player.getInventory().getItemInMainHand();
 
-        // —— LEVEL GATE ——
         int playerLevel = LevelManager.getInstance().getLevel(player);
         CustomItem inst = ItemManager.getInstance()
             .getCustomItemFromItemStack(mainHand);
@@ -253,27 +239,23 @@ public class ClickComboListener implements Listener {
 
     @EventHandler
     public void onProjectileDamage(EntityDamageByEntityEvent event) {
-        // Only care about players being hit by arrows
         if (!(event.getEntity() instanceof Player target)) return;
         if (!(event.getDamager() instanceof Arrow arrow)) return;
         if (!(arrow.getShooter() instanceof Player shooter)) return;
 
         String name = arrow.getCustomName();
 
-        // 1) Prevent self‑damage from your own spells (e.g. ArrowStorm, PowerShot, ExplosiveArrow)
-        //    We’re keying off the custom name, but you could also use metadata.
+
         if ("ArrowStorm".equals(name) ||
             "PowerShot".equals(name) ||
             "ExplosiveArrow".equals(name) ||
             "GrappleHook".equals(name) /* if that ever has self‑damage */) {
 
-            // if the shooter is the one being hit, cancel outright
             if (target.equals(shooter)) {
                 event.setCancelled(true);
                 return;
             }
 
-            // still enforce duel‑only damage for other players
             if (!DuelManager.getInstance()
                 .areInDuel(shooter.getUniqueId(), target.getUniqueId())) {
                 event.setCancelled(true);
@@ -281,7 +263,6 @@ public class ClickComboListener implements Listener {
             return;
         }
 
-        // 2) Your existing BasicArcherArrow logic
         if ("BasicArcherArrow".equals(name)) {
             if (!DuelManager.getInstance()
                 .areInDuel(shooter.getUniqueId(), target.getUniqueId())) {
@@ -294,7 +275,6 @@ public class ClickComboListener implements Listener {
         ItemStack mainHand = player.getInventory().getItemInMainHand();
         if (mainHand == null || mainHand.getType() == Material.AIR) return;
 
-        // —— 0) Class-specific weapon check via WeaponType ——
         if ("rogue".equals(cls)) {
             if (!WeaponType.isValidRogueWeapon(mainHand)) {
                 return;
@@ -304,11 +284,9 @@ public class ClickComboListener implements Listener {
                 return;
             }
         } else {
-            // other classes skip sweep
             return;
         }
 
-        // —— 1) Requirement checks ——
         CustomItem inst = ItemManager.getInstance().getCustomItemFromItemStack(mainHand);
         if (inst != null) {
             int playerLevel = LevelManager.getInstance().getLevel(player);
@@ -340,24 +318,20 @@ public class ClickComboListener implements Listener {
         Location eye       = player.getEyeLocation();
         Vector  fwd        = eye.getDirection().setY(0).normalize();
 
-        // —— 2) Visual/sound sweep effect ——
         Location effectLoc = eye.clone().add(fwd.clone().multiply(2.0));
         world.spawnParticle(Particle.SWEEP_ATTACK, effectLoc, 1, 0, 0, 0, 0);
         world.playSound(effectLoc, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1f);
 
-        // —— 3) Base damage calc ——
         double baseAtk = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue();
         int    stat    = cls.equals("warrior")
             ? StatsManager.getInstance().getStatValue(player, StatsManager.StatType.STR)
             : StatsManager.getInstance().getStatValue(player, StatsManager.StatType.AGI);
         double damage  = baseAtk + (stat * 0.5);
 
-        // —— 4) Crit roll ——
         boolean isCrit = Math.random() < 0.10; // 10% crit chance
         if (isCrit) damage *= 1.5;
         String attackName = isCrit ? "Critical Sweep Attack" : "Sweep Attack";
 
-        // —— 5) Cone parameters & hit detection ——
         double range     = 4.0;
         double halfAngle = Math.toRadians(60) / 2;
         for (Entity e : world.getNearbyEntities(player.getLocation(), range, range, range)) {
@@ -384,8 +358,6 @@ public class ClickComboListener implements Listener {
             }
         }
     }
-
-
 
     @EventHandler
     public void onPlayerDamage(EntityDamageEvent event) {
@@ -422,7 +394,6 @@ public class ClickComboListener implements Listener {
             return;
         }
 
-        // Cast with dynamic mana cost handling
         spell.castEffect(player);
         StatsManager.getInstance().recalcDerivedStats(player);
 
@@ -435,7 +406,6 @@ public class ClickComboListener implements Listener {
     public void onPlayerItemHeld(PlayerItemHeldEvent event) {
         Player player = event.getPlayer();
         UUID uuid = player.getUniqueId();
-        // clear and remove any active combo
         ClickSequence seq = playerCombos.get(uuid);
         if (seq != null) {
             seq.clear();
@@ -443,9 +413,6 @@ public class ClickComboListener implements Listener {
         }
     }
 
-    /**
-     * Reset combo when the player swaps main/off-hand items (default “F” key).
-     */
     @EventHandler
     public void onSwapHandItems(PlayerSwapHandItemsEvent event) {
         Player player = event.getPlayer();
@@ -472,18 +439,13 @@ public class ClickComboListener implements Listener {
         }
     }
 
-    /**
-     * Reset combo when the player drags items into the hotbar slot they’re holding.
-     */
     @EventHandler
     public void onInventoryDrag(InventoryDragEvent event) {
         if (!(event.getWhoClicked() instanceof Player)) return;
         Player player = (Player) event.getWhoClicked();
 
         int heldSlot = player.getInventory().getHeldItemSlot();
-        // rawSlots are all slots affected by the drag
         for (int raw : event.getRawSlots()) {
-            // only handle drags into the player's own inventory hotbar
             if (raw == heldSlot) {
                 ClickSequence seq = playerCombos.remove(player.getUniqueId());
                 if (seq != null) seq.clear();
@@ -500,7 +462,6 @@ public class ClickComboListener implements Listener {
 
         long now = System.currentTimeMillis();
         if (now - seq.getLastClickTime() > MAX_COMBO_TIME) {
-            // combo expired → clear and remove so next action‐bar tick sees ""
             seq.clear();
             playerCombos.remove(player.getUniqueId());
             return "";

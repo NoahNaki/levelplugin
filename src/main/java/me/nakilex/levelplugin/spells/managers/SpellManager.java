@@ -30,42 +30,6 @@ public class SpellManager {
         loadSpells();
     }
 
-    // ← NEW helper: pull the Spell object by class/combo
-    private Spell lookupSpell(Player p, String spellKey) {
-        String cls = p.getMetadata("playerClass") /* or however you know “mage”, “rogue”… */
-            .get(0).asString().toLowerCase();
-        return spellsByClass.getOrDefault(cls, Map.of()).get(spellKey);
-    }
-
-    // ← NEW helper: base damage before runes
-    public double computeBaseDamage(Player p, String spellKey) {
-        Spell s = lookupSpell(p, spellKey);
-        return (s == null ? 0 : s.getBaseDamage());
-    }
-
-    // ← NEW helper: base cooldown before runes
-    public long computeBaseCooldown(Player p, String spellKey) {
-        Spell s = lookupSpell(p, spellKey);
-        return (s == null ? 0L : s.getCooldownSeconds());
-    }
-
-    // File: src/main/java/me/nakilex/levelplugin/spells/managers/SpellManager.java
-
-    public void castSpell(Player player, String spellKey) {
-        // 1) lookup the Spell object
-        Spell spell = getSpell(
-            StatsManager.getInstance()
-                .getPlayerStats(player.getUniqueId())
-                .playerClass.name().toLowerCase(),
-            spellKey
-        );
-        if (spell == null) return;
-
-        // 2) let the Spell handle everything (runes, mana, cooldown, effect)
-        spell.castEffect(player);
-    }
-
-
     public Spell getSpell(String className, String combo) {
         Map<String, Spell> classMap = spellsByClass.get(className.toLowerCase());
         if (classMap == null) return null;
