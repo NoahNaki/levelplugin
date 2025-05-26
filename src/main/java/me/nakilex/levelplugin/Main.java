@@ -439,6 +439,9 @@ public class Main extends JavaPlugin {
         return effectManager;
     }
 
+    public RunesManager getRunesManager() {
+        return runesManager;
+    }
 
     private void createCustomConfig() {
         customConfigFile = new File(getDataFolder(), "config.yml");

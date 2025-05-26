@@ -7,6 +7,9 @@ import me.nakilex.levelplugin.items.data.WeaponType;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
+import me.nakilex.levelplugin.runes.manager.RunesManager;
+import me.nakilex.levelplugin.runes.model.Rune;
+import me.nakilex.levelplugin.runes.model.RuneEffect;
 import me.nakilex.levelplugin.spells.Spell;
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
 import me.nakilex.levelplugin.spells.effect.SpellEffect;
@@ -47,6 +50,7 @@ public class ClickComboListener implements Listener {
     private final Map<UUID, Long> activeLeftClicks = new HashMap<>();
     private final Map<UUID, Long> bowCooldowns = new HashMap<>();
     private static final long BOW_SHOT_COOLDOWN = 500L; // 0.5 seconds
+    private RunesManager runeManager;
 
 
     @EventHandler
@@ -57,6 +61,7 @@ public class ClickComboListener implements Listener {
         UUID   playerId = player.getUniqueId();
         long   now      = System.currentTimeMillis();
 
+        // Throttle rapid swings
         if (activeLeftClicks.containsKey(playerId) &&
             now - activeLeftClicks.get(playerId) < 100) {
             return;
@@ -65,12 +70,37 @@ public class ClickComboListener implements Listener {
         Bukkit.getScheduler().runTaskLater(Main.getInstance(),
             () -> activeLeftClicks.remove(playerId), 5L);
 
-        PlayerStats ps    = StatsManager.getInstance().getPlayerStats(playerId);
-        String      cls   = ps.playerClass.name().toLowerCase();
-        ItemStack   main  = player.getInventory().getItemInMainHand();
+        // Class, level, and held‐item check
+        PlayerStats ps  = StatsManager.getInstance().getPlayerStats(playerId);
+        String      cls = ps.playerClass.name().toLowerCase();
+        ItemStack   main = player.getInventory().getItemInMainHand();
         if (main == null || main.getType() == Material.AIR) return;
 
-        if (cls.equals("rogue") || cls.equals("warrior")) {
+        // —— MAGE BASIC RAY ——
+        if ("mage".equals(cls) &&
+            WeaponType.WAND.getMaterials().contains(main.getType())) {
+
+            // Level requirement on the wand
+            CustomItem wand = ItemManager.getInstance().getCustomItemFromItemStack(main);
+            if (wand != null && LevelManager.getInstance().getLevel(player) < wand.getLevelRequirement()) {
+                player.sendMessage("§cYou must be level " + wand.getLevelRequirement()
+                    + " to use that attack with your " + wand.getBaseName() + "!");
+                return;
+            }
+
+            // If in the middle of any combo, let combo logic handle it
+            if (!getActiveCombo(player).isEmpty()) {
+                recordComboClick(player, "L");
+                return;
+            }
+
+            // **NEW**: Fire through your spell‐casting pipeline so runes are applied
+            handleSpellCast(player, "L");
+            return;
+        }
+
+        // —— ROGUE / WARRIOR melee sweep ——
+        if ("rogue".equals(cls) || "warrior".equals(cls)) {
             if (!getActiveCombo(player).isEmpty()) {
                 recordComboClick(player, "L");
                 return;
@@ -88,9 +118,10 @@ public class ClickComboListener implements Listener {
             return;
         }
 
-        // For all other classes and cases, record combo click
+        // —— All other classes build combos ——
         recordComboClick(player, "L");
     }
+
 
     @EventHandler
     public void onRightClick(PlayerInteractEvent event) {
@@ -333,39 +364,91 @@ public class ClickComboListener implements Listener {
     }
 
     private void handleSpellCast(Player player, String combo) {
-        PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
-        String className = ps.playerClass.name().toLowerCase();
-
+        // 1) Determine class name and lookup Spell
+        String className = StatsManager
+            .getInstance()
+            .getPlayerStats(player.getUniqueId())
+            .playerClass
+            .name()
+            .toLowerCase();
         Spell spell = SpellManager.getInstance().getSpell(className, combo);
         if (spell == null) return;
 
+        // 2) Build the context
+        SpellCastContext ctx = new SpellCastContext(spell, player);
+
+        // 3) Apply each equipped rune’s effects to the context
+        List<Rune> runes = Main
+            .getInstance()
+            .getRunesManager()
+            .getRunesForSpell(player, spell.getId());
+        for (Rune rune : runes) {
+            for (RuneEffect eff : rune.getEffects()) {
+                // handle modifier runes
+                if (eff.getType() == RuneEffect.Type.MODIFIER) {
+                    ctx.addDamagePercent(eff.getBonusDamagePercent());
+                    ctx.reduceCooldownPercent(eff.getCooldownReductionPercent());
+                    for (var entry : eff.getExtraParams().entrySet()) {
+                        ctx.putExtraParam(entry.getKey(), entry.getValue(), eff.getPriority());
+                    }
+                }
+                // handle transform runes
+                else if (eff.getType() == RuneEffect.Type.TRANSFORM) {
+                    if (eff.getNewEffectKey() != null) {
+                        ctx.addEffectKey(eff.getNewEffectKey());
+                    }
+                    for (var entry : eff.getExtraParams().entrySet()) {
+                        ctx.putExtraParam(entry.getKey(), entry.getValue(), eff.getPriority());
+                    }
+                }
+            }
+        }
+
+        // 4) Log for debugging
+        List<String> runeIds = runes.stream().map(Rune::getId).toList();
+        Bukkit.getLogger().info("[DBG] Casting " + spell.getId()
+            + " with runes=" + runeIds
+            + " extraEffects=" + ctx.getEffectKeys()
+        );
+
+        // 5) Weapon, level, cooldown checks (unchanged)...
         ItemStack mainHand = player.getInventory().getItemInMainHand();
         if (!spell.getAllowedWeapons().contains(mainHand.getType())) {
-            player.sendMessage("§cYou must hold a valid " + className + " weapon to cast spells!");
+            player.sendMessage("§cYou must hold a valid " +
+                className + " weapon!");
             return;
         }
-
         int playerLevel = StatsManager.getInstance().getLevel(player);
         if (playerLevel < spell.getLevelReq()) {
-            player.sendMessage("§cYou are not high enough level to cast " + spell.getDisplayName());
+            player.sendMessage("§cYou are not high enough level for " +
+                spell.getDisplayName());
             return;
         }
-
         long now = System.currentTimeMillis();
-        Map<String, Long> cdMap = spellCooldowns.computeIfAbsent(player.getUniqueId(), k -> new HashMap<>());
+        Map<String, Long> cdMap = spellCooldowns
+            .computeIfAbsent(player.getUniqueId(), k -> new HashMap<>());
         if (cdMap.containsKey(spell.getId()) && now < cdMap.get(spell.getId())) {
             long secsLeft = (cdMap.get(spell.getId()) - now) / 1000;
             player.sendMessage("§cSpell on cooldown for " + secsLeft + "s");
             return;
         }
 
-        spell.castEffect(player);
-        StatsManager.getInstance().recalcDerivedStats(player);
+        // 6) Finally, apply each effect in order
+        for (String key : ctx.getEffectKeys()) {
+            SpellEffect effect = EffectRegistry.get(key);
+            if (effect != null) {
+                effect.apply(ctx);
+            }
+        }
 
-        long nextUse = now + (spell.getCooldownSeconds() * 1000L);
+        // 7) Recalculate stats and set cooldown
+        StatsManager.getInstance().recalcDerivedStats(player);
+        long nextUse = now + spell.getCooldownSeconds() * 1000L;
         cdMap.put(spell.getId(), nextUse);
-        spellCooldowns.put(player.getUniqueId(), cdMap);
     }
+
+
+
 
     @EventHandler
     public void onPlayerItemHeld(PlayerItemHeldEvent event) {

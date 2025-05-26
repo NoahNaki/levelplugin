@@ -1,5 +1,7 @@
 package me.nakilex.levelplugin.spells.managers;
 
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.items.data.WeaponType;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.runes.manager.RunesManager;
 import me.nakilex.levelplugin.runes.model.Rune;
@@ -17,14 +19,16 @@ public class SpellManager {
     private final RunesManager runesManager;               // ← add this
     private final EffectRegistry effectRegistry;
     private final Map<String, Map<String, Spell>> spellsByClass = new HashMap<>();
+    private Main plugin;
 
     public static SpellManager getInstance() {
         if (instance == null) throw new IllegalStateException("SpellManager not init’d!");
         return instance;
     }
 
-    public SpellManager(Plugin plugin, RunesManager runesManager) {
+    public SpellManager(Main plugin, RunesManager runesManager) {
         instance         = this;
+        this.plugin      = plugin;
         this.runesManager = runesManager;            // ← now assigning the real one
         this.effectRegistry = EffectRegistry.getInstance();
         loadSpells();
@@ -79,6 +83,22 @@ public class SpellManager {
 
         // — MAGE SPELLS (including BASIC_MAGE_ATTACK) —
         Map<String, Spell> mageMap = new HashMap<>();
+
+        mageMap.put(
+            "L",
+            new Spell(
+                "basic_ray",           // internal id
+                "Basic Ray",           // display name
+                "L",                   // combo string
+                5.0,                   // base damage
+                defaultManaMultiplier, // mana multiplier
+                1,                     // level requirement
+                0,                     // cooldown seconds
+                WeaponType.WAND.getMaterials(),
+                "BASIC_RAY",           // effect key
+                0.0                    // extra mana cost
+            )
+        );
         // Combo spells
         mageMap.put("RLL", new Spell(
             "meteor", "Meteor", "RLL",
@@ -108,7 +128,11 @@ public class SpellManager {
             me.nakilex.levelplugin.items.data.WeaponType.WAND.getMaterials(),
             "TELEPORT", 0.0
         ));
+
         spellsByClass.put("mage", Collections.unmodifiableMap(mageMap));
+        plugin.getLogger().info("[SPELLS] Mage combos: " + mageMap.keySet());
+
+
 
         // — ROGUE SPELLS —
         Map<String, Spell> rogueMap = new HashMap<>();

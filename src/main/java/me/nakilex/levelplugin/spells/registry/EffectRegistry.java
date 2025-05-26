@@ -40,6 +40,7 @@ public class EffectRegistry {
         register("BLACKHOLE", new BlackholeEffect());
         register("HEAL", new HealEffect());
         register("TELEPORT", new TeleportEffect());
+        register("BASIC_RAY", new BasicRayEffect());
 
         // --- Meteor Runes ---
         register("METEOR_SHOWER_EFFECT", new MeteorShowerEffect());

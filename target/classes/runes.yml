@@ -341,6 +341,16 @@ runes:
           aoeRange: 5.5   # increases pulse radius by 1.5 blocks
 
 
+  - id: "mage_basic_ray_twin"
+    name: "Rune of Twin Rays"
+    targetClass: "MAGE"
+    targetSpell: "basic_ray"
+    unique: false
+    effects:
+      - type: "TRANSFORM"
+        newEffectKey: null   # same effect key
+        extraParams:
+          extraProjectiles: 3
 
 
 
