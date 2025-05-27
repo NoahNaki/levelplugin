@@ -429,7 +429,7 @@ public class ClickComboListener implements Listener {
             .computeIfAbsent(player.getUniqueId(), k -> new HashMap<>());
         if (cdMap.containsKey(spell.getId()) && now < cdMap.get(spell.getId())) {
             long secsLeft = (cdMap.get(spell.getId()) - now) / 1000;
-            player.sendMessage("§cSpell on cooldown for " + secsLeft + "s");
+            //player.sendMessage("§cSpell on cooldown for " + secsLeft + "s");
             return;
         }
 
