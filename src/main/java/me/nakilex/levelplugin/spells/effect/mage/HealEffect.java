@@ -68,8 +68,8 @@ public class HealEffect implements SpellEffect {
         }
 
         // ── DEBUG OUTPUT ─────────────────────────────────────────────────────────
-        plugin.getLogger().info(String.format("[HealEffect] summed aoeRange=%.2f, aoeDamage=%.2f", aoeRange, aoeDamage));
-        caster.sendMessage(String.format("§e[DEBUG] HealEffect summed aoeRange = %.2f, damage = %.2f", aoeRange, aoeDamage));
+        //plugin.getLogger().info(String.format("[HealEffect] summed aoeRange=%.2f, aoeDamage=%.2f", aoeRange, aoeDamage));
+        //caster.sendMessage(String.format("§e[DEBUG] HealEffect summed aoeRange = %.2f, damage = %.2f", aoeRange, aoeDamage));
         // ──────────────────────────────────────────────────────────────────────────
 
         // final heal amount
@@ -173,7 +173,7 @@ public class HealEffect implements SpellEffect {
                 t.playSound(t.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_HIT, 1f, 1f);
 
                 t.sendMessage(String.format(
-                    "§a%s healed you for %d health!",
+                    "§a%s §fhealed you for §a%d §fhealth!",
                     spellName, Math.round(after - before)
                 ));
             }

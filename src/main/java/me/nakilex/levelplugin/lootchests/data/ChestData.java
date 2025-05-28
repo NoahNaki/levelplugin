@@ -3,6 +3,11 @@ package me.nakilex.levelplugin.lootchests.data;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.entity.ArmorStand;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 public class ChestData {
 
@@ -13,6 +18,10 @@ public class ChestData {
     private final double y;
     private final double z;
     private final int tier;
+    private String customName; // Optional
+    private String contentType; // Optional, like "Weapon", "Armor", etc.
+    private final List<ArmorStand> holograms = new ArrayList<>();
+
 
     public ChestData(int chestId, double x, double y, double z, int tier) {
         this.chestId = chestId;
@@ -42,6 +51,19 @@ public class ChestData {
     public double getZ() {
         return z;
     }
+
+    public Optional<String> getCustomName() {
+        return Optional.ofNullable(customName);
+    }
+
+    public Optional<String> getContentType() {
+        return Optional.ofNullable(contentType);
+    }
+
+    public List<org.bukkit.entity.ArmorStand> getHolograms() {
+        return holograms;
+    }
+
 
     public Location toLocation() {
         World world = Bukkit.getWorld(WORLD_NAME);

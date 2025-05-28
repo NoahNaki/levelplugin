@@ -9,6 +9,7 @@ import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.potions.data.PotionInstance;
 import me.nakilex.levelplugin.potions.data.PotionTemplate;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
+import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -104,7 +105,95 @@ public class LootChestManager {
         // Start particle effect
         startParticleTask(data.getChestId(), loc, data.getTier());
         chestState.getBlockInventory().setItem(randomSlot, loot);
+        spawnHologramAboveChest(loc, data);
+
     }
+
+    private void spawnHologramAboveChest(Location baseLoc, ChestData data) {
+        Location hologramLoc1 = baseLoc.clone().add(0.5, 1.2, 0.5); // Line 1
+        Location hologramLoc2 = baseLoc.clone().add(0.5, 0.95, 0.5); // Line 2
+        Location hologramLoc3 = baseLoc.clone().add(0.5, 0.7, 0.5); // Line 3 (optional)
+
+        String namePrefix = data.getCustomName().orElse("Loot Chest");
+        String tierText = "Tier " + toRoman(data.getTier());
+        String line1 = formatTierLine(namePrefix, tierText, data.getTier());
+
+        String line2 = "§fRight-Click §7to open";
+        String line3 = data.getContentType().map(type -> "§7[Contains: " + type + "]").orElse(null);
+
+        spawnArmorStand(hologramLoc1, line1, data);
+        spawnArmorStand(hologramLoc2, line2, data);
+        if (line3 != null) spawnArmorStand(hologramLoc3, line3, data);
+    }
+
+
+    private void spawnArmorStand(Location loc, String text, ChestData data) {
+        org.bukkit.entity.ArmorStand stand = loc.getWorld().spawn(loc, org.bukkit.entity.ArmorStand.class);
+        stand.setVisible(false);
+        stand.setMarker(true);
+        stand.setGravity(false);
+        stand.setCustomName(text);
+        stand.setCustomNameVisible(true);
+        stand.setSilent(true);
+        stand.setSmall(true);
+
+        data.getHolograms().add(stand); // Track it
+    }
+
+
+    private String formatTierLine(String name, String tierText, int tier) {
+        String fullPrefix = name; // just "Loot Chest" by default
+
+        // Gradient from left to right (smooth), over Loot Chest
+        ChatColor[] gradient = getSmoothGradientForTier(tier, fullPrefix.length());
+
+        StringBuilder sb = new StringBuilder();
+
+        // Apply gradient to Loot Chest
+        for (int i = 0; i < fullPrefix.length(); i++) {
+            sb.append(gradient[i]).append(fullPrefix.charAt(i));
+        }
+
+        // Append non-bold bracket + tier
+        sb.append(ChatColor.RESET).append(" ").append(ChatColor.DARK_GRAY).append("[").append(ChatColor.GRAY)
+            .append(tierText).append(ChatColor.DARK_GRAY).append("]");
+
+        return sb.toString();
+    }
+
+
+    private ChatColor[] getSmoothGradientForTier(int tier, int length) {
+        java.awt.Color start, end;
+
+        switch (tier) {
+            case 1: start = new java.awt.Color(255, 255, 255); end = new java.awt.Color(180, 180, 180); break;
+            case 2: start = new java.awt.Color(0, 255, 0);     end = new java.awt.Color(0, 150, 0);     break;
+            case 3: start = new java.awt.Color(0, 255, 255);   end = new java.awt.Color(0, 100, 255);   break;
+            case 4: start = new java.awt.Color(255, 0, 255);   end = new java.awt.Color(100, 0, 150);   break;
+            case 5: start = new java.awt.Color(255, 215, 0);   end = new java.awt.Color(255, 140, 0);   break;
+            case 6: start = new java.awt.Color(255, 0, 0);     end = new java.awt.Color(150, 0, 0);     break;
+            default: start = new java.awt.Color(200, 200, 200); end = new java.awt.Color(100, 100, 100); break;
+        }
+
+        ChatColor[] result = new ChatColor[length];
+        for (int i = 0; i < length; i++) {
+            float ratio = (float) i / (length - 1);
+            int r = (int) (start.getRed() * (1 - ratio) + end.getRed() * ratio);
+            int g = (int) (start.getGreen() * (1 - ratio) + end.getGreen() * ratio);
+            int b = (int) (start.getBlue() * (1 - ratio) + end.getBlue() * ratio);
+            result[i] = ChatColor.of(new java.awt.Color(r, g, b));
+        }
+        return result;
+    }
+
+
+    private String toRoman(int number) {
+        String[] romanNumerals = {
+            "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"
+        };
+        return (number >= 1 && number <= 10) ? romanNumerals[number - 1] : String.valueOf(number);
+    }
+
 
     private void startParticleTask(int chestId, Location loc, int tier) {
         cancelParticleTask(chestId);
@@ -140,6 +229,18 @@ public class LootChestManager {
         Block block = loc.getBlock();
         if (block.getType() == Material.CHEST) {
             block.setType(Material.AIR);
+        }
+
+        for (ChestData data : chestDataList) {
+            if (data.getChestId() == chestId) {
+                for (org.bukkit.entity.ArmorStand stand : data.getHolograms()) {
+                    if (!stand.isDead()) {
+                        stand.remove();
+                    }
+                }
+                data.getHolograms().clear();
+                break;
+            }
         }
 
         spawnedChests.remove(chestId);
