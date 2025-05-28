@@ -295,6 +295,14 @@ public class LootChestManager {
         return null;
     }
 
+    public void removeAllChests() {
+        List<Integer> ids = new ArrayList<>(spawnedChests.keySet());
+        for (int chestId : ids) {
+            removeChest(chestId);
+        }
+    }
+
+
     public boolean clearChest(int chestId) {
         Location loc = spawnedChests.get(chestId);
         if (loc == null) {

@@ -339,6 +339,11 @@ public class Main extends JavaPlugin {
             storageManager.saveAllStorages();
         }
 
+        if (lootChestManager != null) {
+            lootChestManager.removeAllChests(); // Remove holograms and clean up
+        }
+
+
         if (dealMaker != null)
             dealMaker.closeAllTrades();
 
