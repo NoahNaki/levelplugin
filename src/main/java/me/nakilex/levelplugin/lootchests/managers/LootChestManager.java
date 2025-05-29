@@ -85,6 +85,7 @@ public class LootChestManager {
         }
     }
 
+
     public void spawnChest(ChestData data) {
         Location loc = data.toLocation();
         Block block = loc.getBlock();
@@ -99,36 +100,40 @@ public class LootChestManager {
         Random random = new Random();
         int randomSlot = random.nextInt(chestState.getBlockInventory().getSize());
 
-        // Force the inventory to update to reflect changes visually
         chestState.update(true);
 
         // Start particle effect
         startParticleTask(data.getChestId(), loc, data.getTier());
         chestState.getBlockInventory().setItem(randomSlot, loot);
-        spawnHologramAboveChest(loc, data);
-
+        spawnHologramForChest(data);
     }
 
-    private void spawnHologramAboveChest(Location baseLoc, ChestData data) {
-        Location hologramLoc1 = baseLoc.clone().add(0.5, 1.2, 0.5); // Line 1
-        Location hologramLoc2 = baseLoc.clone().add(0.5, 0.95, 0.5); // Line 2
-        Location hologramLoc3 = baseLoc.clone().add(0.5, 0.7, 0.5); // Line 3 (optional)
+    public void spawnHologramForChest(ChestData data) {
+        Location base = data.toLocation();
+        if (base == null) return;
+
+        Location line1Loc = base.clone().add(0.5, 1.2, 0.5);
+        Location line2Loc = base.clone().add(0.5, 0.95,  0.5);
+        Location line3Loc = base.clone().add(0.5, 0.70,  0.5);
 
         String namePrefix = data.getCustomName().orElse("Loot Chest");
-        String tierText = "Tier " + toRoman(data.getTier());
-        String line1 = formatTierLine(namePrefix, tierText, data.getTier());
+        String tierText   = "Tier " + toRoman(data.getTier());
+        String text1      = formatTierLine(namePrefix, tierText, data.getTier());
+        String text2      = "§fRight-Click §7to open";
+        String text3      = data.getContentType()
+            .map(t -> "§7[Contains: " + t + "]")
+            .orElse(null);
 
-        String line2 = "§fRight-Click §7to open";
-        String line3 = data.getContentType().map(type -> "§7[Contains: " + type + "]").orElse(null);
-
-        spawnArmorStand(hologramLoc1, line1, data);
-        spawnArmorStand(hologramLoc2, line2, data);
-        if (line3 != null) spawnArmorStand(hologramLoc3, line3, data);
+        spawnArmorStand(line1Loc, text1, data);
+        spawnArmorStand(line2Loc, text2, data);
+        if (text3 != null) spawnArmorStand(line3Loc, text3, data);
     }
-
 
     private void spawnArmorStand(Location loc, String text, ChestData data) {
         org.bukkit.entity.ArmorStand stand = loc.getWorld().spawn(loc, org.bukkit.entity.ArmorStand.class);
+        // Tag it so we can find and kill it later, even if its chunk was unloaded
+        stand.addScoreboardTag("loot_hologram");
+
         stand.setVisible(false);
         stand.setMarker(true);
         stand.setGravity(false);
@@ -137,8 +142,24 @@ public class LootChestManager {
         stand.setSilent(true);
         stand.setSmall(true);
 
-        data.getHolograms().add(stand); // Track it
+        data.getHolograms().add(stand); // Track it in-memory
     }
+
+    public void killAllHologramArmorStands() {
+        // Loop through every world
+        for (org.bukkit.World world : plugin.getServer().getWorlds()) {
+            // Only loaded chunks are visible; unloaded ones will get cleaned when they load if you also use the ChunkLoad listener
+            for (org.bukkit.Chunk chunk : world.getLoadedChunks()) {
+                for (org.bukkit.entity.Entity e : chunk.getEntities()) {
+                    if (e instanceof org.bukkit.entity.ArmorStand stand
+                        && stand.getScoreboardTags().contains("loot_hologram")) {
+                        stand.remove();
+                    }
+                }
+            }
+        }
+    }
+
 
 
     private String formatTierLine(String name, String tierText, int tier) {
@@ -244,6 +265,7 @@ public class LootChestManager {
         }
 
         spawnedChests.remove(chestId);
+        killAllHologramArmorStands();
         cancelParticleTask(chestId);
 
         plugin.getLogger().info("[LootChestManager] Removed chest " + chestId);
