@@ -15,6 +15,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -135,8 +136,6 @@ public class LootChestManager {
         }
         boolean chunkLoaded = base.getChunk().isLoaded();
         boolean isChest    = base.getBlock().getType() == Material.CHEST;
-        plugin.getLogger().info(String.format("[Holo] Trying to spawn hologram for %d @ %s — chunkLoaded=%b, isChest=%b",
-            data.getChestId(), base, chunkLoaded, isChest));
 
         // guard: valid location, chunk loaded, and block is still a CHEST
         if (!chunkLoaded || !isChest) {
@@ -276,7 +275,6 @@ public class LootChestManager {
         }
     }
 
-    // Called when we remove the chest
     public boolean removeChest(int chestId) {
         Location loc = spawnedChests.get(chestId);
         if (loc == null) {
@@ -284,14 +282,16 @@ public class LootChestManager {
             return false;
         }
 
+        // Remove the block itself
         Block block = loc.getBlock();
         if (block.getType() == Material.CHEST) {
             block.setType(Material.AIR);
         }
 
+        // 1) Remove only this chest’s own holograms
         for (ChestData data : chestDataList) {
             if (data.getChestId() == chestId) {
-                for (org.bukkit.entity.ArmorStand stand : data.getHolograms()) {
+                for (ArmorStand stand : data.getHolograms()) {
                     if (!stand.isDead()) {
                         stand.remove();
                     }
@@ -301,13 +301,16 @@ public class LootChestManager {
             }
         }
 
+        // 2) Remove from the spawned map
         spawnedChests.remove(chestId);
-        killAllHologramArmorStands();
+
+        // 3) Cancel its particle task
         cancelParticleTask(chestId);
 
         plugin.getLogger().info("[LootChestManager] Removed chest " + chestId);
         return true;
     }
+
 
     // Respawn after cooldown
     public void respawnChest(int chestId) {
