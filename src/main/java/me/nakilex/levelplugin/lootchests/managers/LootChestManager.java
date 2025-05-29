@@ -47,6 +47,15 @@ public class LootChestManager {
 
         loadChestDataFromConfig();
         spawnAllChestsOnStartup();
+
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            for (ChestData data : chestDataList) {
+                Location loc = data.toLocation();
+                if (loc != null && loc.getChunk().isLoaded()) {
+                    spawnHologramForChest(data);
+                }
+            }
+        }, 1L);
     }
 
     public void setCooldownManager(CooldownManager manager) {
@@ -110,11 +119,17 @@ public class LootChestManager {
 
     public void spawnHologramForChest(ChestData data) {
         Location base = data.toLocation();
-        if (base == null) return;
+        // guard: valid location, chunk loaded, and block is still a CHEST
+        if (base == null
+            || !base.getChunk().isLoaded()
+            || base.getBlock().getType() != Material.CHEST) {
+            return;
+        }
 
+        // positions for each hologram line
         Location line1Loc = base.clone().add(0.5, 1.2, 0.5);
-        Location line2Loc = base.clone().add(0.5, 0.95,  0.5);
-        Location line3Loc = base.clone().add(0.5, 0.70,  0.5);
+        Location line2Loc = base.clone().add(0.5, 0.95, 0.5);
+        Location line3Loc = base.clone().add(0.5, 0.70, 0.5);
 
         String namePrefix = data.getCustomName().orElse("Loot Chest");
         String tierText   = "Tier " + toRoman(data.getTier());
@@ -126,8 +141,13 @@ public class LootChestManager {
 
         spawnArmorStand(line1Loc, text1, data);
         spawnArmorStand(line2Loc, text2, data);
-        if (text3 != null) spawnArmorStand(line3Loc, text3, data);
+
+        if (text3 != null) {
+            spawnArmorStand(line3Loc, text3, data);
+        }
     }
+
+
 
     private void spawnArmorStand(Location loc, String text, ChestData data) {
         org.bukkit.entity.ArmorStand stand = loc.getWorld().spawn(loc, org.bukkit.entity.ArmorStand.class);
