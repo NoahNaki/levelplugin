@@ -69,7 +69,8 @@ public class ListenerRegistry {
                                          GemsManager gemsManager,
                                          IdentifyRunesGUI identifyRunesGUI,
                                          RunesManager runesManager,
-                                         EquipRunesGUI   equipGui
+                                         EquipRunesGUI   equipGui,
+                                         ChestHologramListener chestHologramListener
     ) {
 
 

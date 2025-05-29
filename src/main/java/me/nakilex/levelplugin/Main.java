@@ -16,6 +16,7 @@ import me.nakilex.levelplugin.items.gui.ItemsBrowser;
 import me.nakilex.levelplugin.items.listeners.PickupCustomItemListener;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.lootchests.config.ConfigManager;
+import me.nakilex.levelplugin.lootchests.listeners.ChestHologramListener;
 import me.nakilex.levelplugin.lootchests.managers.CooldownManager;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
@@ -115,6 +116,7 @@ public class Main extends JavaPlugin {
     private TipsConfigManager tipsCfg;
     private BroadcastManager broadcastMgr;
     private final Map<UUID, NPC> activeBowDrones = new HashMap<>();
+    private ChestHologramListener chestHologramListener;
     private EquipRunesGUI equipGui;
 
     public Map<UUID, NPC> getActiveBowDrones() {
@@ -302,7 +304,8 @@ public class Main extends JavaPlugin {
             gemsManager,
             identifyRunesGUI,
             runesManager,
-            equipGui
+            equipGui,
+            chestHologramListener
         );
 
 

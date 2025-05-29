@@ -95,6 +95,8 @@ public class LootChestManager {
     }
 
 
+    // Inside LootChestManager.java
+
     public void spawnChest(ChestData data) {
         Location loc = data.toLocation();
         Block block = loc.getBlock();
@@ -105,7 +107,7 @@ public class LootChestManager {
 
         ItemStack loot = getRandomLootForTier(data.getTier());
 
-        // Add the item into a random slot within the chest's inventory
+        // Add the item into a random slot
         Random random = new Random();
         int randomSlot = random.nextInt(chestState.getBlockInventory().getSize());
 
@@ -114,15 +116,30 @@ public class LootChestManager {
         // Start particle effect
         startParticleTask(data.getChestId(), loc, data.getTier());
         chestState.getBlockInventory().setItem(randomSlot, loot);
-        spawnHologramForChest(data);
+
+        // DEFER hologram spawn by 1 tick (ensures chunk is loaded)
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            plugin.getLogger().info("[LootChest] Deferred hologram spawn for chest " + data.getChestId());
+            spawnHologramForChest(data);
+        }, 1L);
     }
+
+
+    // Still in LootChestManager.java
 
     public void spawnHologramForChest(ChestData data) {
         Location base = data.toLocation();
+        if (base == null) {
+            plugin.getLogger().warning("[Holo] No location for chest " + data.getChestId());
+            return;
+        }
+        boolean chunkLoaded = base.getChunk().isLoaded();
+        boolean isChest    = base.getBlock().getType() == Material.CHEST;
+        plugin.getLogger().info(String.format("[Holo] Trying to spawn hologram for %d @ %s — chunkLoaded=%b, isChest=%b",
+            data.getChestId(), base, chunkLoaded, isChest));
+
         // guard: valid location, chunk loaded, and block is still a CHEST
-        if (base == null
-            || !base.getChunk().isLoaded()
-            || base.getBlock().getType() != Material.CHEST) {
+        if (!chunkLoaded || !isChest) {
             return;
         }
 
@@ -141,11 +158,11 @@ public class LootChestManager {
 
         spawnArmorStand(line1Loc, text1, data);
         spawnArmorStand(line2Loc, text2, data);
-
         if (text3 != null) {
             spawnArmorStand(line3Loc, text3, data);
         }
     }
+
 
 
 
