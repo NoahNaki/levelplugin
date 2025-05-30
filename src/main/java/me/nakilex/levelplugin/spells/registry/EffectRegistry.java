@@ -2,6 +2,10 @@ package me.nakilex.levelplugin.spells.registry;
 
 import me.nakilex.levelplugin.spells.ArcherSpell;
 import me.nakilex.levelplugin.spells.effect.SpellEffect;
+import me.nakilex.levelplugin.spells.effect.archer.ArrowStormEffect;
+import me.nakilex.levelplugin.spells.effect.archer.BowDroneEffect;
+import me.nakilex.levelplugin.spells.effect.archer.GrappleHookEffect;
+import me.nakilex.levelplugin.spells.effect.archer.PowerShotEffect;
 import me.nakilex.levelplugin.spells.effect.mage.*;
 
 
@@ -52,6 +56,13 @@ public class EffectRegistry {
         register("TEMPORAL_BLACKHOLE_EFFECT", new TemporalStasisBlackholeEffect());
         register("CHAOS_BLACKHOLE_EFFECT", new ChaosBlackholeEffect());
         register("HEAL", new HealEffect());
+
+        // --- Archer Spells
+
+        register("POWER_SHOT", new PowerShotEffect());
+        register("BOW_DRONE", new BowDroneEffect());
+        register("GRAPPLE_HOOK", new GrappleHookEffect());
+        register("ARROW_STORM", new ArrowStormEffect());
 
     }
 }

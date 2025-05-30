@@ -63,9 +63,6 @@ public class ListenerRegistry {
                                          FileConfiguration bossConfig,
                                          ArcherSpell archerSpell,
                                          MeteorListener meteorListener,
-                                         BlackholeListener blackholeListener,
-                                         HealListener healListener,
-                                         TeleportListener teleportListener,
                                          GemsManager gemsManager,
                                          IdentifyRunesGUI identifyRunesGUI,
                                          RunesManager runesManager,
@@ -119,13 +116,6 @@ public class ListenerRegistry {
         pm.registerEvents(settingsGUI, plugin); // ✅ No constructor call here
         pm.registerEvents(new RogueSpell(), plugin);
         pm.registerEvents(new MeteorListener(), plugin);
-        pm.registerEvents(new BlackholeListener(), plugin);
-        pm.registerEvents(new TeleportListener(), plugin);
-        pm.registerEvents(new HealListener(), plugin);
-
-        pm.registerEvents(new BlackholeListener(), plugin);
-        pm.registerEvents(new HealListener(), plugin);
-        pm.registerEvents(new TeleportListener(), plugin);
         pm.registerEvents(new RogueSpell(), plugin);
         pm.registerEvents(new ArcherSpell(), plugin);
         pm.registerEvents(new ChestHologramListener(lootChestManager), plugin);

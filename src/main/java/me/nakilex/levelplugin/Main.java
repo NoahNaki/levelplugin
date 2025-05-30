@@ -35,10 +35,7 @@ import me.nakilex.levelplugin.settings.gui.SettingsGUI;
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
 import me.nakilex.levelplugin.spells.ArcherSpell;
 import me.nakilex.levelplugin.spells.RogueSpell;
-import me.nakilex.levelplugin.spells.listener.BlackholeListener;
-import me.nakilex.levelplugin.spells.listener.HealListener;
 import me.nakilex.levelplugin.spells.listener.MeteorListener;
-import me.nakilex.levelplugin.spells.listener.TeleportListener;
 import me.nakilex.levelplugin.spells.managers.ManaCostTracker;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.spells.registry.EffectRegistry;
@@ -126,10 +123,6 @@ public class Main extends JavaPlugin {
     // Mage Listeners
 
     private MeteorListener meteorListener;
-    private BlackholeListener blackholeListener;
-    private HealListener healListener;
-    private TeleportListener teleportListener;
-
 
     @Override
     public void onEnable() {
@@ -298,9 +291,6 @@ public class Main extends JavaPlugin {
             bossConfig,
             archerSpell,
             meteorListener,
-            blackholeListener,
-            healListener,
-            teleportListener,
             gemsManager,
             identifyRunesGUI,
             runesManager,

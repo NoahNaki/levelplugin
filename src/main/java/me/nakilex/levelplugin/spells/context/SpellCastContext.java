@@ -45,6 +45,10 @@ public class SpellCastContext {
         this.damagePercent += percent;
     }
 
+    public double getDamagePercent() {
+        return damagePercent;
+    }
+
     /** Add cooldown reduction% bonuses. */
     public void reduceCooldownPercent(double percent) {
         this.cooldownReductionPercent += percent;
