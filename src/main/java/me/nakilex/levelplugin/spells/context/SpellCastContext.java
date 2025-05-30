@@ -85,20 +85,25 @@ public class SpellCastContext {
         switch (key) {
             case "aoeRadius":
             case "aoeRange":
-                // always accumulate aoe ranges
-                Object existingRange = extraParams.get(key) != null ? extraParams.get(key).value : null;
-                List<Object> rangeList;
-                if (existingRange instanceof List) {
-                    rangeList = (List<Object>) existingRange;
+            case "extraProjectiles":
+                // always accumulate these params into a list
+                Param existingParam = extraParams.get(key);
+                List<Object> list;
+                if (existingParam != null && existingParam.value instanceof List<?>) {
+                    @SuppressWarnings("unchecked")
+                    List<Object> existingList = (List<Object>) existingParam.value;
+                    list = existingList;
                 } else {
-                    rangeList = new ArrayList<>();
-                    if (existingRange != null) rangeList.add(existingRange);
+                    list = new ArrayList<>();
+                    if (existingParam != null) {
+                        list.add(existingParam.value);
+                    }
                 }
-                rangeList.add(value);
-                Param pRange = new Param();
-                pRange.value = rangeList;
-                pRange.priority = priority; // priority largely irrelevant for stacking
-                extraParams.put(key, pRange);
+                list.add(value);
+                Param newParam = new Param();
+                newParam.value = list;
+                newParam.priority = priority; // priority less relevant for stacking
+                extraParams.put(key, newParam);
                 break;
 
             case "stunDuration":
@@ -112,7 +117,7 @@ public class SpellCastContext {
                 break;
 
             default:
-                // for all other keys, keep old priority logic
+                // for other keys, highest-priority wins
                 Param prev = extraParams.get(key);
                 if (prev == null || priority >= prev.priority) {
                     Param p = new Param();
@@ -122,7 +127,6 @@ public class SpellCastContext {
                 }
         }
     }
-
 
 
     /** Retrieves the final value (highest priority) for this key, or null. */

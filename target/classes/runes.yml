@@ -352,6 +352,23 @@ runes:
         extraParams:
           extraProjectiles: 3
 
+  - id: "archer_basic_shot_twin"
+    name: "Rune of Twin Arrows"
+    description:
+      - "Fires an additional arrow with your basic shot."
+    rarity: "UNCOMMON"
+    targetClass: "ARCHER"
+    targetSpell: "basic_arrow"
+    unique: false
+    effects:
+      - type: "TRANSFORM"
+        bonusDamagePercent: 0.0
+        cooldownReductionPercent: 0.0
+        newEffectKey: null
+        extraParams:
+          extraProjectiles: 1
+
+
 
 
 
