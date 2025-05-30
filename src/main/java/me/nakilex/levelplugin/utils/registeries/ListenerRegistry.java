@@ -102,7 +102,7 @@ public class ListenerRegistry {
         pm.registerEvents(new PartyChatListener(partyManager), plugin);
         pm.registerEvents(new PartyInviteListener(partyManager), plugin);
         pm.registerEvents(new LootChestListener(lootChestManager), plugin);
-        pm.registerEvents(new LootChestCloseListener(lootChestManager), plugin);
+        pm.registerEvents(new LootChestCloseListener(lootChestManager, economyManager), plugin);
         pm.registerEvents(new PotionUseListener(potionManager, plugin), plugin);
         pm.registerEvents(new MythicMobNameManager(plugin), plugin);
         pm.registerEvents(new MythicMobDamageListener(), plugin);

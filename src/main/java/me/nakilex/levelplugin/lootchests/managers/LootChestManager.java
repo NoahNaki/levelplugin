@@ -357,6 +357,16 @@ public class LootChestManager {
         return null;
     }
 
+    public int getTierForChest(int chestId) {
+        for (ChestData data : chestDataList) {
+            if (data.getChestId() == chestId) {
+                return data.getTier();
+            }
+        }
+        return -1;
+    }
+
+
     public void removeAllChests() {
         List<Integer> ids = new ArrayList<>(spawnedChests.keySet());
         for (int chestId : ids) {
