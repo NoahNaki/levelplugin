@@ -3,8 +3,8 @@ package me.nakilex.levelplugin.salvage.listeners;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.economy.managers.GemsManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
+import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.managers.ItemManager;
-import me.nakilex.levelplugin.salvage.gui.SalvageGUI;
 import me.nakilex.levelplugin.salvage.managers.SalvageManager;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -22,16 +22,19 @@ import java.util.HashMap;
 public class SalvageListener implements Listener {
 
     private final EconomyManager economyManager;
-    private final GemsManager    gemsManager;
+    private final GemsManager gemsManager;
 
     public SalvageListener(EconomyManager economyManager, GemsManager gemsManager) {
         this.economyManager = economyManager;
-        this.gemsManager    = gemsManager;
+        this.gemsManager = gemsManager;
     }
 
     private boolean isMerchant(InventoryView view) {
-        return view != null
-            && ChatColor.stripColor(view.getTitle()).equalsIgnoreCase("Merchant");
+        return view != null && ChatColor.stripColor(view.getTitle()).equalsIgnoreCase("Salvage Items");
+    }
+
+    private boolean isInputSlot(int slot) {
+        return slot >= 0 && slot < 54 && !(slot < 9 || slot >= 45 || slot % 9 == 0 || slot % 9 == 8);
     }
 
     @EventHandler
@@ -40,35 +43,42 @@ public class SalvageListener implements Listener {
 
         Inventory topInv = event.getView().getTopInventory();
         int slot = event.getRawSlot();
+        Player player = (Player) event.getWhoClicked();
 
-        // SHIFT‑click protection for non‑custom items
         if (event.isShiftClick() && event.getCurrentItem() != null) {
-            CustomItem cItem = ItemManager.getInstance()
-                .getCustomItemFromItemStack(event.getCurrentItem());
+            CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(event.getCurrentItem());
             if (cItem == null) {
                 event.setCancelled(true);
             }
             return;
         }
 
-        // Clicking inside the salvage GUI
-        if (event.getClickedInventory() != null
-            && event.getClickedInventory().equals(topInv)) {
-
-            // Sell‑button
-            if (slot == SalvageGUI.SELL_SLOT) {
+        if (event.getClickedInventory() != null && event.getClickedInventory().equals(topInv)) {
+            if (slot == 53) {
                 event.setCancelled(true);
                 handleSellButtonClick(event);
+                return;
             }
-            // Only allow placing CustomItems into slots 0–25
-            else if (slot >= 0 && slot < SalvageGUI.SELL_SLOT) {
-                ItemStack cursor = event.getCursor();
-                if (cursor != null && cursor.getType() != Material.AIR) {
-                    CustomItem cItem = ItemManager.getInstance()
-                        .getCustomItemFromItemStack(cursor);
-                    if (cItem == null) {
-                        event.setCancelled(true);
-                    }
+            if (slot == 45) {
+                event.setCancelled(true);
+                player.closeInventory();
+                return;
+            }
+            if (slot >= 46 && slot <= 52) {
+                event.setCancelled(true);
+                handleQuickSellClick(player, slot);
+                return;
+            }
+            if (!isInputSlot(slot)) {
+                event.setCancelled(true);
+                return;
+            }
+
+            ItemStack cursor = event.getCursor();
+            if (cursor != null && cursor.getType() != Material.AIR) {
+                CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(cursor);
+                if (cItem == null) {
+                    event.setCancelled(true);
                 }
             }
         }
@@ -79,11 +89,10 @@ public class SalvageListener implements Listener {
         if (!isMerchant(event.getView())) return;
 
         for (int slot : event.getRawSlots()) {
-            if (slot >= 0 && slot < SalvageGUI.SELL_SLOT) {
+            if (isInputSlot(slot)) {
                 ItemStack dragged = event.getOldCursor();
                 if (dragged != null && dragged.getType() != Material.AIR) {
-                    CustomItem cItem = ItemManager.getInstance()
-                        .getCustomItemFromItemStack(dragged);
+                    CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(dragged);
                     if (cItem == null) {
                         event.setCancelled(true);
                         return;
@@ -93,9 +102,6 @@ public class SalvageListener implements Listener {
         }
     }
 
-    /**
-     * Prevent any ground‑pickup while the salvage GUI is open.
-     */
     @EventHandler
     public void onEntityPickup(EntityPickupItemEvent event) {
         if (!(event.getEntity() instanceof Player)) return;
@@ -112,16 +118,12 @@ public class SalvageListener implements Listener {
         Player player = (Player) event.getPlayer();
         Inventory topInv = event.getView().getTopInventory();
 
-        // Return any leftover items in slots 0–25
-        for (int i = 0; i < SalvageGUI.SELL_SLOT; i++) {
+        for (int i = 0; i < 54; i++) {
+            if (!isInputSlot(i)) continue;
             ItemStack leftover = topInv.getItem(i);
             if (leftover != null && leftover.getType() != Material.AIR) {
-                HashMap<Integer, ItemStack> overflow =
-                    player.getInventory().addItem(leftover);
-                // drop anything that still wouldn't fit
-                overflow.values().forEach(drop ->
-                    player.getWorld().dropItemNaturally(player.getLocation(), drop)
-                );
+                HashMap<Integer, ItemStack> overflow = player.getInventory().addItem(leftover);
+                overflow.values().forEach(drop -> player.getWorld().dropItemNaturally(player.getLocation(), drop));
                 topInv.setItem(i, null);
             }
         }
@@ -129,19 +131,20 @@ public class SalvageListener implements Listener {
 
     private void handleSellButtonClick(InventoryClickEvent event) {
         Player player = (Player) event.getWhoClicked();
-        Inventory inv  = event.getInventory();
+        Inventory inv = event.getInventory();
 
         int totalCoins = 0, totalGems = 0;
-        for (int i = 0; i < SalvageGUI.SELL_SLOT; i++) {
+        for (int i = 0; i < 54; i++) {
+            if (!isInputSlot(i)) continue;
             ItemStack item = inv.getItem(i);
             if (item == null || item.getType() == Material.AIR) continue;
-            CustomItem cItem = ItemManager.getInstance()
-                .getCustomItemFromItemStack(item);
+
+            CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(item);
             if (cItem != null) {
                 totalCoins += SalvageManager.getInstance().getSellPrice(cItem);
-                totalGems  += SalvageManager.getInstance().getGemReward(cItem);
+                totalGems += SalvageManager.getInstance().getGemReward(cItem);
+                inv.setItem(i, null);
             }
-            inv.setItem(i, null);
         }
 
         economyManager.addCoins(player, totalCoins);
@@ -149,15 +152,69 @@ public class SalvageListener implements Listener {
 
         if (totalCoins > 0 || totalGems > 0) {
             StringBuilder msg = new StringBuilder(ChatColor.GREEN + "You received ");
-            if (totalCoins > 0) {
-                msg.append(totalCoins).append(" coins");
-                if (totalGems > 0) msg.append(" and ");
-            }
+            if (totalCoins > 0) msg.append(totalCoins).append(" coins");
+            if (totalCoins > 0 && totalGems > 0) msg.append(" and ");
             if (totalGems > 0) msg.append(totalGems).append(" gems");
             msg.append("!");
             player.sendMessage(msg.toString());
         } else {
             player.sendMessage(ChatColor.YELLOW + "No valid items to salvage.");
+        }
+    }
+
+    private void handleQuickSellClick(Player player, int slot) {
+        ItemRarity[] rarities = {
+            ItemRarity.COMMON, ItemRarity.UNCOMMON, ItemRarity.RARE,
+            ItemRarity.EPIC, ItemRarity.LEGENDARY
+        };
+        int index = slot - 47;
+        if (index < 0 || index >= rarities.length) return;
+        ItemRarity targetRarity = rarities[index];
+
+        Inventory gui = player.getOpenInventory().getTopInventory();
+        Inventory inv = player.getInventory();
+
+        int coins = 0, gems = 0;
+
+        // From GUI
+        for (int i = 0; i < 54; i++) {
+            if (!isInputSlot(i)) continue;
+            ItemStack item = gui.getItem(i);
+            if (item == null || item.getType() == Material.AIR) continue;
+
+            CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(item);
+            if (cItem != null && cItem.getRarity() == targetRarity) {
+                coins += SalvageManager.getInstance().getSellPrice(cItem);
+                gems += SalvageManager.getInstance().getGemReward(cItem);
+                gui.setItem(i, null);
+            }
+        }
+
+        // From player's main inventory
+        for (int i = 0; i < inv.getSize(); i++) {
+            ItemStack item = inv.getItem(i);
+            if (item == null || item.getType() == Material.AIR) continue;
+
+            CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(item);
+            if (cItem != null && cItem.getRarity() == targetRarity) {
+                coins += SalvageManager.getInstance().getSellPrice(cItem);
+                gems += SalvageManager.getInstance().getGemReward(cItem);
+                inv.setItem(i, null);
+            }
+        }
+
+        economyManager.addCoins(player, coins);
+        if (gems > 0) gemsManager.addUnits(player, gems);
+
+        if (coins > 0 || gems > 0) {
+            StringBuilder msg = new StringBuilder(ChatColor.GREEN + "You salvaged ");
+            if (coins > 0) msg.append(coins).append(" coins");
+            if (coins > 0 && gems > 0) msg.append(" and ");
+            if (gems > 0) msg.append(gems).append(" gems");
+            msg.append(".");
+            player.sendMessage(msg.toString());
+        } else {
+            player.sendMessage(ChatColor.YELLOW + "No " + targetRarity.name().toLowerCase() + " items to salvage.");
         }
     }
 }

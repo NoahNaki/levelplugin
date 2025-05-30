@@ -13,6 +13,7 @@ import me.nakilex.levelplugin.utils.ChatFormatter;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.boss.BossBar;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -34,11 +35,8 @@ public class FieldBossListener implements Listener {
     private final ItemManager itemManager;
     private final GemsManager gemsManager;
 
-    // lowercase→YAML key
     private final Map<String, String> bossKeyMap = new HashMap<>();
-    // boss UUID → (player UUID → damage)
     private final Map<UUID, Map<UUID, Double>> damageMap = new ConcurrentHashMap<>();
-    // boss UUID → start timestamp (ms)
     private final Map<UUID, Long> bossStartTime = new ConcurrentHashMap<>();
 
     public FieldBossListener(Main plugin,
