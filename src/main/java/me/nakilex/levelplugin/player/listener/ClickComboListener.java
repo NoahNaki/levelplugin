@@ -125,6 +125,26 @@ public class ClickComboListener implements Listener {
 
     @EventHandler
     public void onRightClick(PlayerInteractEvent event) {
+        // Debug: log click event details
+        Player dbgPlayer = event.getPlayer();
+        String dbgClassName = StatsManager.getInstance()
+            .getPlayerStats(dbgPlayer.getUniqueId())
+            .playerClass.name().toLowerCase();
+        ItemStack dbgMain = dbgPlayer.getInventory().getItemInMainHand();
+        String dbgItem = (dbgMain != null && dbgMain.getType() != Material.AIR)
+            ? dbgMain.getType().name() : "none";
+        String dbgCombo = getActiveCombo(dbgPlayer);
+        Bukkit.getLogger().info(
+            "[DBG] onRightClick -> class=" + dbgClassName +
+                ", item=" + dbgItem +
+                ", activeCombo=" + dbgCombo
+        );
+
+        // Debug: list all valid combos for this class
+        Map<String, Spell> available = SpellManager.getInstance().getSpellsByClass(dbgClassName);
+        Bukkit.getLogger().info("[DBG] Valid combos for class=" + dbgClassName + ": " + available.keySet());
+
+        // Only handle main-hand right-clicks
         if (event.getHand() != EquipmentSlot.HAND ||
             (event.getAction() != Action.RIGHT_CLICK_AIR &&
                 event.getAction() != Action.RIGHT_CLICK_BLOCK)) {
@@ -137,24 +157,26 @@ public class ClickComboListener implements Listener {
         ItemStack mainHand = player.getInventory().getItemInMainHand();
         if (mainHand == null || mainHand.getType() == Material.AIR) return;
 
+        String activeCombo = getActiveCombo(player);
+
+        // —— Archer bow logic ——
         if ("archer".equals(className) && mainHand.getType() == Material.BOW) {
-            String activeCombo = getActiveCombo(player);
+            event.setCancelled(true);
             if (!activeCombo.isEmpty()) {
-                event.setCancelled(true);
+                Bukkit.getLogger().info(
+                    "[DBG] Archer combo detected: " + activeCombo +
+                        ", recording click"
+                );
                 recordComboClick(player, "R");
             } else {
-                event.setCancelled(true);
-                cancelBowPullAndShootArrow(player);
+                Bukkit.getLogger().info("[DBG] No combo: invoking BASIC_ATTACK effect");
+                handleSpellCast(player, "BASIC_ATTACK");
             }
             return;
         }
 
-        String activeCombo = getActiveCombo(player);
-        if (!activeCombo.isEmpty() && activeCombo.length() < 3) {
-            recordComboClick(player, "R");
-            return;
-        }
-
+        // Default: record combo
+        Bukkit.getLogger().info("[DBG] Not an archer bow click, recording combo R");
         recordComboClick(player, "R");
     }
 
@@ -187,51 +209,6 @@ public class ClickComboListener implements Listener {
             handleSpellCast(player, combo);
         }
     }
-
-    private void cancelBowPullAndShootArrow(Player player) {
-        ItemStack mainHand = player.getInventory().getItemInMainHand();
-
-        int playerLevel = LevelManager.getInstance().getLevel(player);
-        CustomItem inst = ItemManager.getInstance()
-            .getCustomItemFromItemStack(mainHand);
-        if (inst != null) {
-            int req = inst.getLevelRequirement();
-            if (playerLevel < req) {
-                player.sendMessage("§cYou must be level "
-                    + req + " to use that attack with your "
-                    + inst.getBaseName() + "!");
-                return;
-            }
-        }
-
-        UUID playerId = player.getUniqueId();
-        long currentTime = System.currentTimeMillis();
-        if (bowCooldowns.containsKey(playerId) &&
-            currentTime - bowCooldowns.get(playerId) < BOW_SHOT_COOLDOWN) {
-            return;
-        }
-
-        int strength = StatsManager.getInstance()
-            .getStatValue(player, StatsManager.StatType.STR);
-        double baseAtk = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue();
-        double damage = baseAtk + (strength * 0.5);
-
-        Arrow arrow = player.launchProjectile(Arrow.class);
-        arrow.setDamage(damage);
-        arrow.setCustomName("BasicArcherArrow");
-        arrow.setCustomNameVisible(false);
-        arrow.setMetadata("BasicAttack",
-            new FixedMetadataValue(Main.getInstance(), playerId));
-
-        player.getWorld().playSound(player.getLocation(),
-            Sound.ENTITY_ARROW_SHOOT, 1f, 1f);
-        player.getWorld().spawnParticle(Particle.INSTANT_EFFECT,
-            player.getLocation(), 20, 0.5, 1, 0.5);
-        bowCooldowns.put(playerId, currentTime);
-    }
-
-
-
 
     @EventHandler
     public void onProjectileDamage(EntityDamageByEntityEvent event) {
@@ -364,64 +341,72 @@ public class ClickComboListener implements Listener {
     }
 
     private void handleSpellCast(Player player, String combo) {
-        // 1) Determine class name and lookup Spell
-        String className = StatsManager
-            .getInstance()
+        // Debug: incoming combo and class
+        String className = StatsManager.getInstance()
             .getPlayerStats(player.getUniqueId())
             .playerClass
             .name()
             .toLowerCase();
+        Bukkit.getLogger().info(String.format(
+            "[DBG] handleSpellCast -> class=%s, combo=%s",
+            className, combo
+        ));
+
+        // 1) Lookup the Spell
         Spell spell = SpellManager.getInstance().getSpell(className, combo);
-        if (spell == null) return;
+        if (spell == null) {
+            Bukkit.getLogger().warning(String.format(
+                "[DBG] No Spell found for class=%s, combo=%s",
+                className, combo
+            ));
+            return;
+        }
+        Bukkit.getLogger().info(String.format(
+            "[DBG] Found Spell id=%s, allowedWeapons=%s, levelReq=%d, cooldown=%ds",
+            spell.getId(), spell.getAllowedWeapons(), spell.getLevelReq(), spell.getCooldownSeconds()
+        ));
 
         // 2) Build the context
         SpellCastContext ctx = new SpellCastContext(spell, player);
 
-        // 3) Apply each equipped rune’s effects to the context
-        List<Rune> runes = Main
-            .getInstance()
+        // 3) Apply rune modifiers/transforms
+        List<Rune> runes = Main.getInstance()
             .getRunesManager()
             .getRunesForSpell(player, spell.getId());
+        List<String> runeIds = runes.stream().map(Rune::getId).toList();
+        Bukkit.getLogger().info(String.format(
+            "[DBG] Equipped runes for %s: %s",
+            spell.getId(), runeIds
+        ));
         for (Rune rune : runes) {
             for (RuneEffect eff : rune.getEffects()) {
-                // handle modifier runes
                 if (eff.getType() == RuneEffect.Type.MODIFIER) {
                     ctx.addDamagePercent(eff.getBonusDamagePercent());
                     ctx.reduceCooldownPercent(eff.getCooldownReductionPercent());
-                    for (var entry : eff.getExtraParams().entrySet()) {
-                        ctx.putExtraParam(entry.getKey(), entry.getValue(), eff.getPriority());
-                    }
-                }
-                // handle transform runes
-                else if (eff.getType() == RuneEffect.Type.TRANSFORM) {
-                    if (eff.getNewEffectKey() != null) {
-                        ctx.addEffectKey(eff.getNewEffectKey());
-                    }
-                    for (var entry : eff.getExtraParams().entrySet()) {
-                        ctx.putExtraParam(entry.getKey(), entry.getValue(), eff.getPriority());
-                    }
+                    eff.getExtraParams().forEach((k,v) -> ctx.putExtraParam(k, v, eff.getPriority()));
+                } else if (eff.getType() == RuneEffect.Type.TRANSFORM) {
+                    if (eff.getNewEffectKey() != null) ctx.addEffectKey(eff.getNewEffectKey());
+                    eff.getExtraParams().forEach((k,v) -> ctx.putExtraParam(k, v, eff.getPriority()));
                 }
             }
         }
 
-        // 4) Log for debugging
-        List<String> runeIds = runes.stream().map(Rune::getId).toList();
-        Bukkit.getLogger().info("[DBG] Casting " + spell.getId()
-            + " with runes=" + runeIds
-            + " extraEffects=" + ctx.getEffectKeys()
-        );
+        // 4) Debug: final effect keys
+        List<String> effectKeys = ctx.getEffectKeys();
+        Bukkit.getLogger().info(String.format(
+            "[DBG] Effect keys to apply: %s",
+            effectKeys
+        ));
 
-        // 5) Weapon, level, cooldown checks (unchanged)...
+        // 5) Pre-cast checks: weapon, level, cooldown
         ItemStack mainHand = player.getInventory().getItemInMainHand();
         if (!spell.getAllowedWeapons().contains(mainHand.getType())) {
-            player.sendMessage("§cYou must hold a valid " +
-                className + " weapon!");
+            player.sendMessage("§cYou must hold a valid " + className + " weapon!");
             return;
         }
         int playerLevel = StatsManager.getInstance().getLevel(player);
         if (playerLevel < spell.getLevelReq()) {
-            player.sendMessage("§cYou are not high enough level for " +
-                spell.getDisplayName());
+            player.sendMessage("§cYou are not high enough level for " + spell.getDisplayName());
             return;
         }
         long now = System.currentTimeMillis();
@@ -429,23 +414,27 @@ public class ClickComboListener implements Listener {
             .computeIfAbsent(player.getUniqueId(), k -> new HashMap<>());
         if (cdMap.containsKey(spell.getId()) && now < cdMap.get(spell.getId())) {
             long secsLeft = (cdMap.get(spell.getId()) - now) / 1000;
-            //player.sendMessage("§cSpell on cooldown for " + secsLeft + "s");
+            Bukkit.getLogger().info("[DBG] Spell on cooldown for " + secsLeft + "s");
             return;
         }
 
-        // 6) Finally, apply each effect in order
-        for (String key : ctx.getEffectKeys()) {
+        // 6) Apply effects in order
+        for (String key : effectKeys) {
+            Bukkit.getLogger().info("[DBG] Applying effect -> " + key);
             SpellEffect effect = EffectRegistry.get(key);
-            if (effect != null) {
+            if (effect == null) {
+                Bukkit.getLogger().warning("[DBG] No SpellEffect found for key -> " + key);
+            } else {
                 effect.apply(ctx);
             }
         }
 
-        // 7) Recalculate stats and set cooldown
+        // 7) Recalculate stats & set cooldown
         StatsManager.getInstance().recalcDerivedStats(player);
         long nextUse = now + spell.getCooldownSeconds() * 1000L;
         cdMap.put(spell.getId(), nextUse);
     }
+
 
 
 

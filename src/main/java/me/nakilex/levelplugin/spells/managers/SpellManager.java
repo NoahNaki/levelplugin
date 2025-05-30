@@ -27,8 +27,8 @@ public class SpellManager {
     }
 
     public SpellManager(Main plugin, RunesManager runesManager) {
-        instance         = this;
-        this.plugin      = plugin;
+        instance = this;
+        this.plugin = plugin;
         this.runesManager = runesManager;            // ← now assigning the real one
         this.effectRegistry = EffectRegistry.getInstance();
         loadSpells();
@@ -44,7 +44,9 @@ public class SpellManager {
         return spellsByClass.getOrDefault(className.toLowerCase(), Collections.emptyMap());
     }
 
-    public RunesManager getRunesManager() { return runesManager; }
+    public RunesManager getRunesManager() {
+        return runesManager;
+    }
 
     private void loadSpells() {
         final double defaultManaMultiplier = 1.2;
@@ -87,16 +89,16 @@ public class SpellManager {
         mageMap.put(
             "L",
             new Spell(
-                "basic_ray",           // internal id
-                "Basic Ray",           // display name
-                "L",                   // combo string
-                5.0,                   // base damage
-                defaultManaMultiplier, // mana multiplier
-                1,                     // level requirement
-                0,                     // cooldown seconds
+                "basic_ray",
+                "Basic Ray",
+                "L",
+                0,
+                defaultManaMultiplier,
+                1,
+                0,
                 WeaponType.WAND.getMaterials(),
-                "BASIC_RAY",           // effect key
-                0.0                    // extra mana cost
+                "BASIC_RAY",
+                0.0
             )
         );
         // Combo spells
@@ -133,7 +135,6 @@ public class SpellManager {
         plugin.getLogger().info("[SPELLS] Mage combos: " + mageMap.keySet());
 
 
-
         // — ROGUE SPELLS —
         Map<String, Spell> rogueMap = new HashMap<>();
         rogueMap.put("RRL", new Spell(
@@ -168,6 +169,19 @@ public class SpellManager {
 
         // — ARCHER SPELLS —
         Map<String, Spell> archerMap = new HashMap<>();
+
+        archerMap.put("BASIC_ATTACK", new Spell(
+            "basic_arrow",
+            "Basic Shot",
+            "BASIC_ATTACK",
+            0.0,
+            1.0,
+            1,
+            1,
+            WeaponType.BOW.getMaterials(),
+            "BASIC_ATTACK",
+            1.0
+        ));
         archerMap.put("LLR", new Spell(
             "power_shot", "Power Shot", "LLR",
             12.0, defaultManaMultiplier,
