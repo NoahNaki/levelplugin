@@ -1,11 +1,13 @@
 package me.nakilex.levelplugin.lootchests.managers;
 
-import me.nakilex.levelplugin.lootchests.config.ConfigManager;
-import me.nakilex.levelplugin.lootchests.data.ChestData;
-import me.nakilex.levelplugin.lootchests.utils.ParticleUtils;
+import io.th0rgal.oraxen.api.OraxenFurniture;
+import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureMechanic;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.lootchests.config.ConfigManager;
+import me.nakilex.levelplugin.lootchests.data.ChestData;
+import me.nakilex.levelplugin.lootchests.utils.ParticleUtils;
 import me.nakilex.levelplugin.potions.data.PotionInstance;
 import me.nakilex.levelplugin.potions.data.PotionTemplate;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
@@ -14,10 +16,15 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitTask;
+
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -95,54 +102,78 @@ public class LootChestManager {
         }
     }
 
-
-    // Inside LootChestManager.java
-
     public void spawnChest(ChestData data) {
         Location loc = data.toLocation();
-        Block block = loc.getBlock();
-        block.setType(Material.CHEST);
+        if (loc == null) {
+            plugin.getLogger().warning(
+                "[LootChestManager] Cannot spawn chest; location is null for ID " + data.getChestId()
+            );
+            return;
+        }
+
+        // 1) Place our “crate_lvl1” Oraxen furniture instead of a vanilla CHEST block.
+        //    We must supply a yaw (float) and a BlockFace (choose whichever facing you want).
+        //    Here we use yaw = 0f, facing = NORTH (you can rotate if desired).
+        FurnitureMechanic mech = OraxenFurniture.getFurnitureMechanic("crate_lvl1");
+        if (mech == null) {
+            plugin.getLogger().severe(
+                "[LootChestManager] Could not find FurnitureMechanic for ID 'crate_lvl1'. Did your YAML register it?"
+            );
+            return;
+        }
+        // The place(...) call returns the spawned Entity; we ignore it here.
+        OraxenFurniture.place("crate_lvl1", loc, 0f, BlockFace.NORTH);
+
+        // 2) Remember this location so getChestIdAtLocation(loc) will still work:
         spawnedChests.put(data.getChestId(), loc);
-        org.bukkit.block.Chest chestState = (org.bukkit.block.Chest) block.getState();
-        chestState.getBlockInventory().clear();
 
+        // 3) Pre-buffer one random loot ItemStack (we’ll place it into the GUI when a player opens it)
+        //    NOTE: ChestData must have a method setBufferedLootItem(ItemStack).
+        //          Add that setter to ChestData if it's missing.
         ItemStack loot = getRandomLootForTier(data.getTier());
+        data.setBufferedLootItem(loot);
 
-        // Add the item into a random slot
-        Random random = new Random();
-        int randomSlot = random.nextInt(chestState.getBlockInventory().getSize());
-
-        chestState.update(true);
-
-        // Start particle effect
+        // 4) Start the particle task (see the updated method below)
         startParticleTask(data.getChestId(), loc, data.getTier());
-        chestState.getBlockInventory().setItem(randomSlot, loot);
 
-        // DEFER hologram spawn by 1 tick (ensures chunk is loaded)
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-            plugin.getLogger().info("[LootChest] Deferred hologram spawn for chest " + data.getChestId());
-            spawnHologramForChest(data);
-        }, 1L);
+        // 5) Defer spawning the hologram by 1 tick, so the chunk is fully loaded
+        plugin.getServer().getScheduler().runTaskLater(
+            plugin,
+            () -> {
+                plugin.getLogger().info(
+                    "[LootChestManager] Deferred hologram spawn for chest " + data.getChestId()
+                );
+                spawnHologramForChest(data);
+            },
+            1L
+        );
     }
 
 
-    // Still in LootChestManager.java
+    public Location getLocationForChestId(int chestId) {
+        return spawnedChests.get(chestId);
+    }
 
     public void spawnHologramForChest(ChestData data) {
         Location base = data.toLocation();
         if (base == null) {
-            plugin.getLogger().warning("[Holo] No location for chest " + data.getChestId());
+            plugin.getLogger().warning(
+                "[LootChestManager] No location for chest " + data.getChestId()
+            );
             return;
         }
+
         boolean chunkLoaded = base.getChunk().isLoaded();
-        boolean isChest    = base.getBlock().getType() == Material.CHEST;
 
-        // guard: valid location, chunk loaded, and block is still a CHEST
-        if (!chunkLoaded || !isChest) {
+        // Check if there is STILL a crate_lvl1 at that Location:
+        FurnitureMechanic mechAtLoc = OraxenFurniture.getFurnitureMechanic(base.getBlock());
+        boolean isCrate = (mechAtLoc != null && mechAtLoc.getItemID().equals("crate_lvl1"));
+
+        if (!chunkLoaded || !isCrate) {
             return;
         }
 
-        // positions for each hologram line
+        // Positions for the three lines of text above the crate:
         Location line1Loc = base.clone().add(0.5, 1.2, 0.5);
         Location line2Loc = base.clone().add(0.5, 0.95, 0.5);
         Location line3Loc = base.clone().add(0.5, 0.70, 0.5);
@@ -162,7 +193,31 @@ public class LootChestManager {
         }
     }
 
+    public Inventory buildLootInventory(int chestId, Player player) {
+        // 1) Grab the ChestData for this ID:
+        ChestData data = null;
+        for (ChestData cd : chestDataList) {
+            if (cd.getChestId() == chestId) {
+                data = cd;
+                break;
+            }
+        }
+        if (data == null) {
+            return Bukkit.createInventory(null, 27, "Loot Chest #" + chestId);
+        }
 
+        // 2) Create a new Inventory (size depends on your design; here 27 = 3 rows of 9):
+        Inventory inv = Bukkit.createInventory(null, 27, "Loot Chest #" + chestId);
+
+        // 3) Put in the single buffered item:
+        ItemStack loot = data.getBufferedLootItem();
+        if (loot != null) {
+            inv.setItem(13, loot); // put it in the center slot, for example
+        }
+
+        // 4) You can add placeholders or cancelable events, etc.
+        return inv;
+    }
 
 
     private void spawnArmorStand(Location loc, String text, ChestData data) {
@@ -254,11 +309,13 @@ public class LootChestManager {
 
     private void startParticleTask(int chestId, Location loc, int tier) {
         cancelParticleTask(chestId);
-        // Repeat every 20 ticks
-        org.bukkit.scheduler.BukkitTask task = plugin.getServer().getScheduler().runTaskTimer(
+
+        BukkitTask task = plugin.getServer().getScheduler().runTaskTimer(
             plugin,
             () -> {
-                if (loc.getBlock().getType() == Material.CHEST) {
+                // Check if there is still a “crate_lvl1” Oraxen furniture at that Location:
+                FurnitureMechanic mechAtLoc = OraxenFurniture.getFurnitureMechanic(loc.getBlock());
+                if (mechAtLoc != null && mechAtLoc.getItemID().equals("crate_lvl1")) {
                     ParticleUtils.displayTierParticles(loc, tier);
                 }
             },
@@ -268,6 +325,8 @@ public class LootChestManager {
         chestParticleTasks.put(chestId, task);
     }
 
+
+
     private void cancelParticleTask(int chestId) {
         if (chestParticleTasks.containsKey(chestId)) {
             chestParticleTasks.get(chestId).cancel();
@@ -276,19 +335,22 @@ public class LootChestManager {
     }
 
     public boolean removeChest(int chestId) {
+        // 1) Look up the stored Location for this chestId
         Location loc = spawnedChests.get(chestId);
         if (loc == null) {
             plugin.getLogger().warning("[LootChestManager] No spawned chest found for ID " + chestId);
             return false;
         }
 
-        // Remove the block itself
-        Block block = loc.getBlock();
-        if (block.getType() == Material.CHEST) {
-            block.setType(Material.AIR);
+        // 2) Attempt to remove the Oraxen furniture at that Location
+        //    The remove(...) call will find the barrier entity / display entity combo and delete them.
+        boolean removed = OraxenFurniture.remove(loc, null);
+        if (!removed) {
+            plugin.getLogger().warning("[LootChestManager] Could not remove Oraxen furniture at " + loc +
+                " (ID " + chestId + "). Maybe it's already gone?");
         }
 
-        // 1) Remove only this chest’s own holograms
+        // 3) Remove only this chest’s holograms (ArmorStands)
         for (ChestData data : chestDataList) {
             if (data.getChestId() == chestId) {
                 for (ArmorStand stand : data.getHolograms()) {
@@ -301,13 +363,13 @@ public class LootChestManager {
             }
         }
 
-        // 2) Remove from the spawned map
-        spawnedChests.remove(chestId);
-
-        // 3) Cancel its particle task
+        // 4) Cancel its particle task, if one is running
         cancelParticleTask(chestId);
 
-        plugin.getLogger().info("[LootChestManager] Removed chest " + chestId);
+        // 5) Remove from our spawned‐map so that future lookups no longer think it exists
+        spawnedChests.remove(chestId);
+
+        plugin.getLogger().info("[LootChestManager] Removed crate with ID " + chestId + " at " + loc);
         return true;
     }
 

@@ -1,15 +1,15 @@
 package me.nakilex.levelplugin.lootchests.listeners;
 
+import io.th0rgal.oraxen.api.OraxenFurniture;
+import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureMechanic;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
-import org.bukkit.Material;
-import org.bukkit.block.Block;
-import org.bukkit.block.Chest;
+import net.md_5.bungee.api.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryCloseEvent;
-import org.bukkit.inventory.InventoryHolder;
 
 import java.util.Random;
 
@@ -30,54 +30,53 @@ public class LootChestCloseListener implements Listener {
 
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
-        InventoryHolder holder = event.getInventory().getHolder();
-        if (!(holder instanceof Chest)) return;
-
-        Chest chest = (Chest) holder;
-        Block block = chest.getBlock();
-        if (block.getType() != Material.CHEST) return;
-
-        Integer chestId = lootChestManager.getChestIdAtLocation(block.getLocation());
-        if (chestId != null) {
-            Player player = (Player) event.getPlayer();
-
-            // --- NEW: roll for coins ---
-            if (Math.random() < COIN_CHANCE) {
-                int tier = lootChestManager.getTierForChest(chestId);
-                int min, max;
-                switch (tier) {
-                    case 1: min = 5;   max = 10;  break;
-                    case 2: min = 20;  max = 40;  break;
-                    case 3: min = 50;  max = 135;  break;
-                    case 4: min = 135;  max = 250;  break;
-                    case 5: min = 350;  max = 575;  break;
-                    case 6: min = 575;  max = 1100; break;
-                    case 7: min = 1575;  max = 2100; break;
-                    case 8: min = 2575;  max = 3100; break;
-                    case 9: min = 3575;  max = 4100; break;
-                    case 10: min = 4575;  max = 5100; break;
-                    default:
-                        min = 10; max = 20;
-                }
-                int coins = random.nextInt(max - min + 1) + min;
-                economyManager.addCoins(player, coins);
-                player.sendMessage("§6You found §e" + coins + " ⛃ coins §6in the chest!");
-            }
-            // --- end coin logic ---
-
-            lootChestManager.getPlugin().getLogger().info(
-                "[LootChestCloseListener] Chest " + chestId +
-                    " was closed. Removing chest & starting cooldown."
-            );
-
-            lootChestManager.removeChest(chestId);
-            lootChestManager.getCooldownManager().startChestCooldown(chestId);
-
-        } else {
-            lootChestManager.getPlugin().getLogger().info(
-                "[LootChestCloseListener] InventoryCloseEvent for a chest block, " +
-                    "but it's not in spawnedChests map."
-            );
+        // 1) Only proceed if the inventory title is "Loot Chest #<id>"
+        String title = event.getView().getTitle();
+        if (!title.startsWith("Loot Chest #")) {
+            return;
         }
+
+        // 2) Parse out chestId
+        int chestId;
+        try {
+            chestId = Integer.parseInt(title.split("#")[1]);
+        } catch (NumberFormatException ex) {
+            return;
+        }
+
+        // 3) Verify crate still exists at stored location
+        Location loc = lootChestManager.getLocationForChestId(chestId);
+        if (loc == null) {
+            return;
+        }
+        FurnitureMechanic mechAtLoc = OraxenFurniture.getFurnitureMechanic(loc.getBlock());
+        if (mechAtLoc == null || !mechAtLoc.getItemID().equals("crate_lvl1")) {
+            return; // no crate there
+        }
+
+        // 4) Drop random coins (using the instance of EconomyManager we were given)
+        Player player = (Player) event.getPlayer();
+        if (Math.random() < COIN_CHANCE) {
+            int tier = lootChestManager.getTierForChest(chestId);
+            int min, max;
+            if (tier <= 2) {
+                min = 10; max = 20;
+            } else if (tier <= 4) {
+                min = 25; max = 40;
+            } else {
+                min = 50; max = 75;
+            }
+            int coinAmount = random.nextInt(max - min + 1) + min;
+            economyManager.addCoins(player, coinAmount);
+            player.sendMessage(ChatColor.GOLD + "You found " + coinAmount + " coins!");
+        }
+
+        // 5) Remove the crate & start cooldown
+        lootChestManager.getPlugin().getLogger().info(
+            "[LootChestCloseListener] Chest " + chestId +
+                " was closed. Removing crate & starting cooldown."
+        );
+        lootChestManager.removeChest(chestId);
+        lootChestManager.getCooldownManager().startChestCooldown(chestId);
     }
 }

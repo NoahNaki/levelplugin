@@ -4,6 +4,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.ArmorStand;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +22,7 @@ public class ChestData {
     private String customName; // Optional
     private String contentType; // Optional, like "Weapon", "Armor", etc.
     private final List<ArmorStand> holograms = new ArrayList<>();
+    private ItemStack bufferedLootItem;
 
 
     public ChestData(int chestId, double x, double y, double z, int tier) {
@@ -29,6 +31,7 @@ public class ChestData {
         this.y = y;
         this.z = z;
         this.tier = tier;
+        this.bufferedLootItem = null;
     }
 
     public int getChestId() {
@@ -69,5 +72,14 @@ public class ChestData {
         World world = Bukkit.getWorld(WORLD_NAME);
         if (world == null) return null;
         return new Location(world, x, y, z);
+    }
+
+    public void setBufferedLootItem(ItemStack item) {
+        this.bufferedLootItem = item;
+    }
+
+    // ADD THIS getter if you need it when building the GUI:
+    public ItemStack getBufferedLootItem() {
+        return bufferedLootItem;
     }
 }
