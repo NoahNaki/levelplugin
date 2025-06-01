@@ -47,6 +47,10 @@ public class LootChestManager {
     // For continuous particles: chestId -> repeating task
     private final java.util.Map<Integer, org.bukkit.scheduler.BukkitTask> chestParticleTasks = new java.util.HashMap<>();
 
+    // NEW: remember which chest each player opened
+    private final java.util.Map<java.util.UUID, Integer> openChestByPlayer = new java.util.HashMap<>();
+
+
     public LootChestManager(JavaPlugin plugin, ConfigManager configManager, CooldownManager cooldownManager, PotionManager potionManager) {
         this.plugin = plugin;
         this.configManager = configManager;
@@ -452,6 +456,17 @@ public class LootChestManager {
             removeChest(chestId);
         }
     }
+
+    // NEW: call this when a player opens a chest GUI
+    public void markPlayerViewingChest(java.util.UUID playerUUID, int chestId) {
+        openChestByPlayer.put(playerUUID, chestId);
+    }
+
+    // NEW: call this when a player closes a chest GUI
+    public Integer unmarkPlayerViewingChest(java.util.UUID playerUUID) {
+        return openChestByPlayer.remove(playerUUID);
+    }
+
 
 
     public boolean clearChest(int chestId) {

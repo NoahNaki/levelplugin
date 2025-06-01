@@ -47,5 +47,8 @@ public class LootChestListener implements Listener {
         Player player = event.getPlayer();
         Inventory lootGui = lootChestManager.buildLootInventory(chestId, player);
         player.openInventory(lootGui);
+// NEW: remember which chest this player just opened
+        lootChestManager.markPlayerViewingChest(player.getUniqueId(), chestId);
+
     }
 }

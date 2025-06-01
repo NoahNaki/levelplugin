@@ -30,32 +30,24 @@ public class LootChestCloseListener implements Listener {
 
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
-        // 1) Only proceed if the inventory title is "Loot Chest #<id>"
-        String title = event.getView().getTitle();
-        if (!title.startsWith("Loot Chest #")) {
-            return;
+        // 1) Look up which chest the player was viewing
+        Player player = (Player) event.getPlayer();
+        Integer chestId = lootChestManager.unmarkPlayerViewingChest(player.getUniqueId());
+        if (chestId == null) {
+            return; // Player wasn’t viewing a loot‐chest GUI
         }
 
-        // 2) Parse out chestId
-        int chestId;
-        try {
-            chestId = Integer.parseInt(title.split("#")[1]);
-        } catch (NumberFormatException ex) {
-            return;
-        }
-
-        // 3) Verify crate still exists at stored location
+        // 2) Verify the crate still exists at its stored location
         Location loc = lootChestManager.getLocationForChestId(chestId);
         if (loc == null) {
             return;
         }
         FurnitureMechanic mechAtLoc = OraxenFurniture.getFurnitureMechanic(loc.getBlock());
         if (mechAtLoc == null || !mechAtLoc.getItemID().equals("crate_lvl1")) {
-            return; // no crate there
+            return; // No crate there anymore
         }
 
-        // 4) Drop random coins (using the instance of EconomyManager we were given)
-        Player player = (Player) event.getPlayer();
+        // 3) Drop random coins (using the EconomyManager instance)
         if (Math.random() < COIN_CHANCE) {
             int tier = lootChestManager.getTierForChest(chestId);
             int min, max;
@@ -68,10 +60,12 @@ public class LootChestCloseListener implements Listener {
             }
             int coinAmount = random.nextInt(max - min + 1) + min;
             economyManager.addCoins(player, coinAmount);
-            player.sendMessage(ChatColor.GOLD + "You found " + ChatColor.YELLOW + coinAmount + " ⛃" + ChatColor.GOLD + " coins!");
+            player.sendMessage(ChatColor.GOLD +
+                "You found " + ChatColor.YELLOW + coinAmount + " ⛃" +
+                ChatColor.GOLD + " coins!");
         }
 
-        // 5) Remove the crate & start cooldown
+        // 4) Remove the crate and start its cooldown
         lootChestManager.getPlugin().getLogger().info(
             "[LootChestCloseListener] Chest " + chestId +
                 " was closed. Removing crate & starting cooldown."
