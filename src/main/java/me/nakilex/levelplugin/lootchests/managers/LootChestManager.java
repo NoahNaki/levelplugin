@@ -193,8 +193,13 @@ public class LootChestManager {
         }
     }
 
+    /**
+     * Builds and returns a new Inventory for the player, where:
+     * - The title is "Loot Chest <RomanTier>" (e.g. "Loot Chest IV")
+     * - The single buffered loot item is placed in a random slot within the 27‐slot GUI.
+     */
     public Inventory buildLootInventory(int chestId, Player player) {
-        // 1) Grab the ChestData for this ID:
+        // 1) Find the ChestData for this ID
         ChestData data = null;
         for (ChestData cd : chestDataList) {
             if (cd.getChestId() == chestId) {
@@ -202,22 +207,34 @@ public class LootChestManager {
                 break;
             }
         }
+
+        // 2) If somehow we didn’t find it (shouldn’t happen), fall back to an empty GUI with a generic title
         if (data == null) {
-            return Bukkit.createInventory(null, 27, "Loot Chest #" + chestId);
+            return Bukkit.createInventory(null, 27, "Loot Chest");
         }
 
-        // 2) Create a new Inventory (size depends on your design; here 27 = 3 rows of 9):
-        Inventory inv = Bukkit.createInventory(null, 27, "Loot Chest #" + chestId);
+        // 3) Determine the tier and convert it to Roman numerals.
+        int tier = data.getTier();
+        String romanTier = toRoman(tier);
 
-        // 3) Put in the single buffered item:
+        // 4) Create a new 27‐slot inventory, titled "Loot Chest <RomanTier>"
+        Inventory inv = Bukkit.createInventory(null, 27, "Loot Chest " + romanTier);
+
+        // 5) Grab the buffered loot item from ChestData
         ItemStack loot = data.getBufferedLootItem();
         if (loot != null) {
-            inv.setItem(13, loot); // put it in the center slot, for example
+            // 6) Choose a random slot between 0 (inclusive) and inv.getSize() (exclusive).
+            int size = inv.getSize(); // 27
+            int randomSlot = new Random().nextInt(size);
+
+            // 7) Place the loot in that random slot
+            inv.setItem(randomSlot, loot);
         }
 
-        // 4) You can add placeholders or cancelable events, etc.
+        // 8) Return the newly built Inventory
         return inv;
     }
+
 
 
     private void spawnArmorStand(Location loc, String text, ChestData data) {

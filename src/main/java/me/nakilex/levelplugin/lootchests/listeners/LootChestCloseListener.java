@@ -68,7 +68,7 @@ public class LootChestCloseListener implements Listener {
             }
             int coinAmount = random.nextInt(max - min + 1) + min;
             economyManager.addCoins(player, coinAmount);
-            player.sendMessage(ChatColor.GOLD + "You found " + coinAmount + " coins!");
+            player.sendMessage(ChatColor.GOLD + "You found " + ChatColor.YELLOW + coinAmount + " ⛃" + ChatColor.GOLD + " coins!");
         }
 
         // 5) Remove the crate & start cooldown
