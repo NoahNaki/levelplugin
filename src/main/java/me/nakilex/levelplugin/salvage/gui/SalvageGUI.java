@@ -36,7 +36,7 @@ public class SalvageGUI {
         ItemMeta infoMeta = info.getItemMeta();
         if (infoMeta != null) {
             infoMeta.setLore(Arrays.asList(
-                ChatColor.GRAY + "  Place unwanted items into the center.",
+                ChatColor.GRAY + "  Place ꐗ unwanted items into the center.",
                 ChatColor.GRAY + "  Only valid custom items can be salvaged.",
                 "",
                 ChatColor.GREEN + "✔ Confirm Salvage:",

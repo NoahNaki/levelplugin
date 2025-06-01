@@ -103,7 +103,7 @@ public class ItemUtil {
         lore.add(""); // Blank line before rarity
 
         // --- Rarity ---
-        lore.add(rarityColor + "" + ChatColor.BOLD + cItem.getRarity().name());
+        lore.add(ChatColor.WHITE + "" + ChatColor.BOLD + cItem.getRarity().getSymbol());
 
         meta.setLore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES); // Hide item attributes
@@ -202,8 +202,7 @@ public class ItemUtil {
 
         lore.add(""); // Blank line before rarity
 
-        ChatColor rarityColor = cItem.getRarity().getColor();
-        lore.add(rarityColor + "" + ChatColor.BOLD + cItem.getRarity().name());
+        lore.add(ChatColor.WHITE + "" + ChatColor.BOLD + cItem.getRarity().getSymbol());
 
         // Update the item meta with the new lore.
         meta.setLore(lore);
