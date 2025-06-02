@@ -1,3 +1,4 @@
+// File: src/me/nakilex/levelplugin/items/listeners/WeaponStatsListener.java
 package me.nakilex.levelplugin.items.listeners;
 
 import me.nakilex.levelplugin.items.data.WeaponType;
@@ -8,10 +9,12 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.Set;
@@ -21,10 +24,11 @@ public class WeaponStatsListener implements Listener {
 
     private final StatsManager statsManager = StatsManager.getInstance();
     private final PlayerClassManager classManager = PlayerClassManager.getInstance();
+    private final ItemManager itemManager = ItemManager.getInstance();
 
     @EventHandler
     public void onWeaponEquip(WeaponEquipEvent event) {
-        // 0) ignore canceled or non-weapon events
+        // 0) Ignore canceled events or if neither old nor new is a weapon
         if (event.isCancelled()) return;
         if (WeaponType.matchType(event.getOldWeapon()) == null
             && WeaponType.matchType(event.getNewWeapon()) == null) {
@@ -36,69 +40,265 @@ public class WeaponStatsListener implements Listener {
         StatsManager stats = StatsManager.getInstance();
         Set<Integer> equipped = stats.getEquippedItems(puuid);
 
-        // 1) Remove old weapon stats
+        //
+        // 1) REMOVE OLD WEAPON’S STATS (only if it’s still in “equipped” AND wasn’t broken)
+        //
         ItemStack oldWeap = event.getOldWeapon();
         if (oldWeap != null && !oldWeap.getType().isAir()) {
-            CustomItem inst = ItemManager.getInstance().getCustomItemFromItemStack(oldWeap);
+            CustomItem inst = itemManager.getCustomItemFromItemStack(oldWeap);
             if (inst != null && equipped.contains(inst.getId())) {
-                removeWeaponStats(player, inst);
-                equipped.remove(inst.getId());
+                boolean wasBroken = inst.isBroken();
+                StatsManager.PlayerStats ps = statsManager.getPlayerStats(puuid);
+
+                Bukkit.getLogger().info(
+                    "[WeaponStats] Removing old weapon (ID=" + inst.getId() +
+                        ", broken=" + wasBroken + ") for player " + player.getName()
+                );
+                logPlayerStats("Before removal", puuid, ps);
+
+                if (!wasBroken) {
+                    // Subtract its stats now
+                    removeWeaponStats(player, inst);
+                    // Remove from the “equipped” set
+                    equipped.remove(inst.getId());
+                    // Unregister from holderMap so reduceDurability() can’t find it later
+                    itemManager.unregisterHolder(inst.getId());
+                    Bukkit.getLogger().info(
+                        "[WeaponStats] Removed stats for weapon ID=" + inst.getId()
+                    );
+                } else {
+                    Bukkit.getLogger().info(
+                        "[WeaponStats] Skipped removal because weapon was already broken."
+                    );
+                }
+
+                logPlayerStats("After removal", puuid, ps);
             }
         }
 
-        // 2) Add new weapon stats with level and class requirement check
+        //
+        // 2) ADD NEW WEAPON’S STATS (only if not already in “equipped,” not broken, and meets reqs)
+        //
         ItemStack newWeap = event.getNewWeapon();
         if (newWeap != null && !newWeap.getType().isAir()) {
-            CustomItem inst = ItemManager.getInstance().getCustomItemFromItemStack(newWeap);
+            CustomItem inst = itemManager.getCustomItemFromItemStack(newWeap);
             if (inst != null && !equipped.contains(inst.getId())) {
-                int playerLevel = LevelManager.getInstance().getLevel(player);
-                int requiredLevel = inst.getLevelRequirement();
+                boolean isBroken   = inst.isBroken();
+                int playerLevel    = LevelManager.getInstance().getLevel(player);
+                int requiredLevel  = inst.getLevelRequirement();
                 PlayerClass requiredClass;
-
                 try {
                     requiredClass = PlayerClass.valueOf(inst.getClassRequirement().toUpperCase());
                 } catch (IllegalArgumentException e) {
                     requiredClass = PlayerClass.VILLAGER;
                 }
+                PlayerClass playerClass = statsManager.getPlayerStats(puuid).playerClass;
+                StatsManager.PlayerStats ps = statsManager.getPlayerStats(puuid);
 
-                PlayerClass playerClass = StatsManager.getInstance()
-                    .getPlayerStats(puuid).playerClass;
+                Bukkit.getLogger().info(
+                    "[WeaponStats] Attempting to add new weapon (ID=" + inst.getId() +
+                        ", broken=" + isBroken + ") for player " + player.getName()
+                );
+                logPlayerStats("Before addition", puuid, ps);
 
-                if (playerLevel < requiredLevel) {
-                    player.sendMessage(ChatColor.RED + "You can hold "
-                        + inst.getBaseName() + " but lack the level to gain its stats.");
-                } else if (requiredClass != PlayerClass.VILLAGER
-                    && requiredClass != playerClass) {
-                    player.sendMessage(ChatColor.RED + "You can hold "
-                        + inst.getBaseName() + " but lack the required class to gain its stats.");
-                } else {
-                    addWeaponStats(player, inst);
-                    equipped.add(inst.getId());
+                if (isBroken) {
+                    Bukkit.getLogger().info("[WeaponStats] Skipped addition because weapon is broken.");
+                    player.sendMessage(ChatColor.YELLOW
+                        + inst.getBaseName()
+                        + " is broken and grants no bonuses."
+                    );
                 }
+                else if (playerLevel < requiredLevel) {
+                    Bukkit.getLogger().info(
+                        "[WeaponStats] Skipped addition: player level "
+                            + playerLevel + " < required level " + requiredLevel + "."
+                    );
+                    player.sendMessage(ChatColor.RED
+                        + "You can hold "
+                        + inst.getBaseName()
+                        + " but lack the level to gain its stats."
+                    );
+                }
+                else if (requiredClass != PlayerClass.VILLAGER
+                    && requiredClass != playerClass) {
+                    Bukkit.getLogger().info(
+                        "[WeaponStats] Skipped addition: player class "
+                            + playerClass + " != required class " + requiredClass + "."
+                    );
+                    player.sendMessage(ChatColor.RED
+                        + "You can hold "
+                        + inst.getBaseName()
+                        + " but lack the required class to gain its stats."
+                    );
+                }
+                else {
+                    // Add stats now
+                    addWeaponStats(player, inst);
+                    // Put it into the “equipped” set
+                    equipped.add(inst.getId());
+                    // Register in holderMap so CustomItem.reduceDurability can find it
+                    itemManager.registerHolder(inst.getId(), puuid);
+                    Bukkit.getLogger().info(
+                        "[WeaponStats] Added stats for weapon ID=" + inst.getId()
+                    );
+                }
+
+                logPlayerStats("After addition", puuid, ps);
             }
         }
 
-        // 3) Recalculate derived stats
+        //
+        // 3) Always recalc derived stats so changes are immediate
+        //
         stats.recalcDerivedStats(player);
     }
 
-    private void addWeaponStats(Player player, CustomItem customItem) {
-        StatsManager.PlayerStats ps = statsManager.getPlayerStats(player.getUniqueId());
-        ps.bonusHealthStat += customItem.getHp();
-        ps.bonusDefenceStat += customItem.getDef();
-        ps.bonusStrength += customItem.getStr();
-        ps.bonusAgility += customItem.getAgi();
-        ps.bonusIntelligence += customItem.getIntel();
-        ps.bonusDexterity += customItem.getDex();
+
+    @EventHandler
+    public void onPlayerRespawn(PlayerRespawnEvent event) {
+        Player player = event.getPlayer();
+        UUID puuid = player.getUniqueId();
+        Set<Integer> equipped = statsManager.getEquippedItems(puuid);
+
+        // DEBUG
+        Bukkit.getLogger().info("[WeaponStats] onPlayerRespawn fired for player " + player.getName());
+        Bukkit.getLogger().info("[WeaponStats] Equipped IDs before respawn‐cleanup: " + equipped);
+
+        // 1) Check the CustomItem in main hand (if any)
+        ItemStack inHand = player.getInventory().getItemInMainHand();
+        if (inHand == null || inHand.getType().isAir()) {
+            Bukkit.getLogger().info("[WeaponStats] onPlayerRespawn: main hand empty or air.");
+            return;
+        }
+
+        CustomItem inst = itemManager.getCustomItemFromItemStack(inHand);
+        if (inst == null) {
+            Bukkit.getLogger().info("[WeaponStats] onPlayerRespawn: not a CustomItem.");
+            return;
+        }
+
+        int id = inst.getId();
+        boolean broken = inst.isBroken();
+
+        // DEBUG
+        Bukkit.getLogger().info("[WeaponStats] onPlayerRespawn: found ID=" + id + ", isBroken=" + broken);
+
+        // 2) If the item is broken, check if its stats are still applied
+        if (broken) {
+            StatsManager.PlayerStats ps = statsManager.getPlayerStats(puuid);
+
+            int hpVal  = inst.getHp();
+            int defVal = inst.getDef();
+            int strVal = inst.getStr();
+            int agiVal = inst.getAgi();
+            int intVal = inst.getIntel();
+            int dexVal = inst.getDex();
+
+            boolean hasHpBonus  = ps.bonusHealthStat   >= hpVal;
+            boolean hasDefBonus = ps.bonusDefenceStat  >= defVal;
+            boolean hasStrBonus = ps.bonusStrength     >= strVal;
+            boolean hasAgiBonus = ps.bonusAgility      >= agiVal;
+            boolean hasIntBonus = ps.bonusIntelligence >= intVal;
+            boolean hasDexBonus = ps.bonusDexterity    >= dexVal;
+
+            // If the player still has at least all of the item's bonuses, subtract them once.
+            if (hasHpBonus && hasDefBonus && hasStrBonus && hasAgiBonus && hasIntBonus && hasDexBonus) {
+                Bukkit.getLogger().info(
+                    "[WeaponStats] onPlayerRespawn: Removing stats for broken weapon ID=" + id
+                        + " (player=" + player.getName() + ")"
+                );
+                removeWeaponStats(player, inst);
+
+                // Also remove from equipped set (if present) and unregister holder
+                if (equipped.contains(id)) {
+                    equipped.remove(id);
+                    itemManager.unregisterHolder(id);
+                }
+
+                // Log “after” and recalc
+                logPlayerStats("After respawn removal", puuid, ps);
+                statsManager.recalcDerivedStats(player);
+            } else {
+                Bukkit.getLogger().info(
+                    "[WeaponStats] onPlayerRespawn: Broken weapon ID=" + id
+                        + " but stats not present (cannot remove). ps="
+                        + "{hp="  + ps.bonusHealthStat
+                        + ", def="   + ps.bonusDefenceStat
+                        + ", str="   + ps.bonusStrength
+                        + ", agi="   + ps.bonusAgility
+                        + ", intel="+ ps.bonusIntelligence
+                        + ", dex="   + ps.bonusDexterity + "}"
+                );
+            }
+        } else {
+            // DEBUG
+            Bukkit.getLogger().info(
+                "[WeaponStats] onPlayerRespawn: ID=" + id
+                    + " is NOT broken → no action."
+            );
+        }
     }
 
-    private void removeWeaponStats(Player player, CustomItem customItem) {
+
+
+
+    private void addWeaponStats(Player player, CustomItem customItem) {
         StatsManager.PlayerStats ps = statsManager.getPlayerStats(player.getUniqueId());
-        ps.bonusHealthStat -= customItem.getHp();
-        ps.bonusDefenceStat -= customItem.getDef();
-        ps.bonusStrength -= customItem.getStr();
-        ps.bonusAgility -= customItem.getAgi();
+        ps.bonusHealthStat   += customItem.getHp();
+        ps.bonusDefenceStat  += customItem.getDef();
+        ps.bonusStrength     += customItem.getStr();
+        ps.bonusAgility      += customItem.getAgi();
+        ps.bonusIntelligence += customItem.getIntel();
+        ps.bonusDexterity    += customItem.getDex();
+    }
+
+    public void removeWeaponStats(Player player, CustomItem customItem) {
+        // DEBUG: log exactly when removeWeaponStats is invoked
+        Bukkit.getLogger().info("[WeaponStats] removeWeaponStats() called for player="
+            + player.getName() + ", itemID=" + customItem.getId());
+
+        StatsManager.PlayerStats ps = statsManager.getPlayerStats(player.getUniqueId());
+        ps.bonusHealthStat   -= customItem.getHp();
+        ps.bonusDefenceStat  -= customItem.getDef();
+        ps.bonusStrength     -= customItem.getStr();
+        ps.bonusAgility      -= customItem.getAgi();
         ps.bonusIntelligence -= customItem.getIntel();
-        ps.bonusDexterity -= customItem.getDex();
+        ps.bonusDexterity    -= customItem.getDex();
+
+        // DEBUG: log the new stats immediately after subtraction
+        Bukkit.getLogger().info("[WeaponStats] After removeWeaponStats, stats => "
+            + "bonusHealth="       + ps.bonusHealthStat
+            + ", bonusDefence="    + ps.bonusDefenceStat
+            + ", bonusStrength="   + ps.bonusStrength
+            + ", bonusAgility="    + ps.bonusAgility
+            + ", bonusIntelligence="+ ps.bonusIntelligence
+            + ", bonusDexterity="  + ps.bonusDexterity
+        );
+    }
+
+
+
+    /**
+     * Logs every bonus‐stat field on a player's PlayerStats.
+     */
+    private void logPlayerStats(String prefix, UUID puuid, StatsManager.PlayerStats ps) {
+        Bukkit.getLogger().info(
+            "[WeaponStats] "
+                + prefix
+                + " stats for player UUID="
+                + puuid
+                + " => bonusHealth="
+                + ps.bonusHealthStat
+                + ", bonusDefence="
+                + ps.bonusDefenceStat
+                + ", bonusStrength="
+                + ps.bonusStrength
+                + ", bonusAgility="
+                + ps.bonusAgility
+                + ", bonusIntelligence="
+                + ps.bonusIntelligence
+                + ", bonusDexterity="
+                + ps.bonusDexterity
+        );
     }
 }

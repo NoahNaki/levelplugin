@@ -5,9 +5,11 @@ import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.data.StatRange;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
@@ -28,6 +30,7 @@ public class ItemManager {
 
     private final Map<Integer, CustomItem> templatesMap = new HashMap<>(); // Templates by ID
     private final Map<UUID, CustomItem> itemsMap     = new HashMap<>(); // Instances by UUID
+    private final Map<Integer, UUID> holderMap = new HashMap<>();
 
     private FileConfiguration itemsConfig;
 
@@ -182,8 +185,21 @@ public class ItemManager {
         return getTemplateById(id);
     }
 
-    /** Return all active instances */
     public Map<UUID, CustomItem> getAllItems() {
         return new HashMap<>(itemsMap);
+    }
+
+    public void registerHolder(int itemID, UUID puuid) {
+        holderMap.put(itemID, puuid);
+    }
+
+    public void unregisterHolder(int itemID) {
+        holderMap.remove(itemID);
+    }
+
+    public Player getHolderOf(int itemID) {
+        UUID puuid = holderMap.get(itemID);
+        if (puuid == null) return null;
+        return Bukkit.getPlayer(puuid);
     }
 }

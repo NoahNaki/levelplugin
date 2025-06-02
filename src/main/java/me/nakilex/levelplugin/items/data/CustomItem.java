@@ -1,7 +1,13 @@
 package me.nakilex.levelplugin.items.data;
 
+import me.nakilex.levelplugin.items.listeners.WeaponStatsListener;
+import me.nakilex.levelplugin.items.managers.ItemManager;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
 
+import java.util.Set;
 import java.util.UUID;
 
 public class CustomItem {
@@ -16,6 +22,11 @@ public class CustomItem {
     private final int levelRequirement;
     private final String classRequirement;
     private final Material material;
+
+    private int currentDurability;
+    private static final int MAX_DURABILITY = 100;
+    private boolean broken;
+
 
     // The ranges from which we roll each stat exactly once
     private final StatRange hpRange;
@@ -86,6 +97,9 @@ public class CustomItem {
         this.baseDex   = dexRange.roll();
 
         this.upgradeLevel = upgradeLevel;
+
+        this.currentDurability = MAX_DURABILITY;
+        this.broken            = false;
     }
 
     /**
@@ -136,6 +150,20 @@ public class CustomItem {
 
     public int getUpgradeLevel() { return upgradeLevel; }
 
+    public int getCurrentDurability() {
+        return currentDurability;
+    }
+
+    /** Returns the hard cap (always 100). */
+    public int getMaxDurability() {
+        return MAX_DURABILITY;
+    }
+
+    /** Returns true if this item’s durability has dropped to 0 (i.e. “broken”). */
+    public boolean isBroken() {
+        return broken;
+    }
+
     /** Display name with stars for upgrades. */
     public String getName() {
         return baseName + "★".repeat(upgradeLevel);
@@ -177,6 +205,48 @@ public class CustomItem {
             upgradeLevel++;
             increaseStats();
         }
+    }
+
+    public void reduceDurability(int amount) {
+        if (broken) return; // Already broken—nothing more to do.
+
+        currentDurability = Math.max(0, currentDurability - amount);
+        if (currentDurability == 0) {
+            broken = true;
+
+            // 1) Look up who currently “holds” this item by its ID.
+            ItemManager im = ItemManager.getInstance();
+            Player holder = im.getHolderOf(this.id);
+
+            if (holder != null) {
+                UUID puuid = holder.getUniqueId();
+                StatsManager statsMgr = StatsManager.getInstance();
+
+                // 2) Only strip stats if that player’s equipped‐set still contains this ID
+                Set<Integer> equipped = statsMgr.getEquippedItems(puuid);
+                if (equipped.contains(this.id)) {
+                    Bukkit.getLogger().info(
+                        "[CustomItem] WeaponID=" + this.id
+                            + " broke while equipped by " + holder.getName()
+                            + ". Stripping stats now."
+                    );
+
+                    // 3) Call removeWeaponStats(...) (now public) to subtract all the bonuses
+                    new WeaponStatsListener().removeWeaponStats(holder, this);
+
+                    // 4) Remove that ID so WeaponStatsListener never tries again on death/respawn
+                    equipped.remove(this.id);
+
+                    // 5) Unregister from ItemManager’s holderMap
+                    im.unregisterHolder(this.id);
+                }
+            }
+        }
+    }
+
+    public void repair(int amount) {
+        if (broken) return;
+        currentDurability = Math.min(MAX_DURABILITY, currentDurability + amount);
     }
 
     /** Multiplies each base stat by the combined upgrade & rarity multiplier. */

@@ -100,6 +100,16 @@ public class ItemUtil {
             lore.add(ChatColor.AQUA + "♦ " + ChatColor.GRAY + "Intelligence: " + ChatColor.WHITE + "+" + cItem.getIntel());
         if (cItem.getDex() != 0)
             lore.add(ChatColor.YELLOW + "➹ " + ChatColor.GRAY + "Dexterity: " + ChatColor.WHITE + "+" + cItem.getDex());
+
+        lore.add(""); // Blank line before rarity
+
+        if (cItem.isBroken()) {
+            lore.add(ChatColor.GRAY + "Durability: " + ChatColor.RED + "Broken");
+        } else {
+            lore.add(ChatColor.YELLOW + "Durability: "
+                + ChatColor.WHITE + cItem.getCurrentDurability()
+                + "/" + cItem.getMaxDurability());
+        }
         lore.add(""); // Blank line before rarity
 
         // --- Rarity ---
@@ -200,6 +210,15 @@ public class ItemUtil {
         if (cItem.getDex() != 0)
             lore.add(ChatColor.YELLOW + "➹ " + ChatColor.GRAY + "Dexterity: " + ChatColor.WHITE + "+" + cItem.getDex());
 
+        lore.add(""); // Blank line before rarity
+
+        if (cItem.isBroken()) {
+            lore.add(ChatColor.GRAY + "Durability: " + ChatColor.RED + "Broken");
+        } else {
+            lore.add(ChatColor.YELLOW + "Durability: "
+                + ChatColor.WHITE + cItem.getCurrentDurability()
+                + "/" + cItem.getMaxDurability());
+        }
         lore.add(""); // Blank line before rarity
 
         lore.add(ChatColor.WHITE + "" + ChatColor.BOLD + cItem.getRarity().getSymbol());
