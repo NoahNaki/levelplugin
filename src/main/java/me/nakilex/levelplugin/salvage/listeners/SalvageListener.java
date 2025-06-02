@@ -16,6 +16,7 @@ import org.bukkit.event.inventory.*;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 
 import java.util.HashMap;
 
@@ -164,47 +165,56 @@ public class SalvageListener implements Listener {
 
     private void handleQuickSellClick(Player player, int slot) {
         ItemRarity[] rarities = {
-            ItemRarity.COMMON, ItemRarity.UNCOMMON, ItemRarity.RARE,
-            ItemRarity.EPIC, ItemRarity.LEGENDARY
+            ItemRarity.COMMON,
+            ItemRarity.UNCOMMON,
+            ItemRarity.RARE,
+            ItemRarity.EPIC,
+            ItemRarity.LEGENDARY
         };
         int index = slot - 47;
         if (index < 0 || index >= rarities.length) return;
         ItemRarity targetRarity = rarities[index];
 
         Inventory gui = player.getOpenInventory().getTopInventory();
-        Inventory inv = player.getInventory();
+        PlayerInventory playerInv = player.getInventory();
 
         int coins = 0, gems = 0;
 
-        // From GUI
+        // 1) First, remove from any matching items sitting in the GUI slots
         for (int i = 0; i < 54; i++) {
             if (!isInputSlot(i)) continue;
-            ItemStack item = gui.getItem(i);
-            if (item == null || item.getType() == Material.AIR) continue;
+            ItemStack guiItem = gui.getItem(i);
+            if (guiItem == null || guiItem.getType() == Material.AIR) continue;
 
-            CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(item);
-            if (cItem != null && cItem.getRarity() == targetRarity) {
-                coins += SalvageManager.getInstance().getSellPrice(cItem);
-                gems += SalvageManager.getInstance().getGemReward(cItem);
+            CustomItem cItemGui = ItemManager.getInstance().getCustomItemFromItemStack(guiItem);
+            if (cItemGui != null && cItemGui.getRarity() == targetRarity) {
+                coins += SalvageManager.getInstance().getSellPrice(cItemGui);
+                gems += SalvageManager.getInstance().getGemReward(cItemGui);
                 gui.setItem(i, null);
             }
         }
 
-        // From player's main inventory
-        for (int i = 0; i < inv.getSize(); i++) {
-            ItemStack item = inv.getItem(i);
-            if (item == null || item.getType() == Material.AIR) continue;
+        // 2) Now, only loop through the “storage” contents (main inventory + hotbar),
+        //    ignoring any armor or off-hand slots.
+        ItemStack[] storageContents = playerInv.getStorageContents(); // length = 36 (slots 0–35)
+        for (int i = 0; i < storageContents.length; i++) {
+            ItemStack invItem = storageContents[i];
+            if (invItem == null || invItem.getType() == Material.AIR) continue;
 
-            CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(item);
-            if (cItem != null && cItem.getRarity() == targetRarity) {
-                coins += SalvageManager.getInstance().getSellPrice(cItem);
-                gems += SalvageManager.getInstance().getGemReward(cItem);
-                inv.setItem(i, null);
+            CustomItem cItemInv = ItemManager.getInstance().getCustomItemFromItemStack(invItem);
+            if (cItemInv != null && cItemInv.getRarity() == targetRarity) {
+                coins += SalvageManager.getInstance().getSellPrice(cItemInv);
+                gems += SalvageManager.getInstance().getGemReward(cItemInv);
+                // Clear exactly this slot in the player’s storage:
+                playerInv.setItem(i, null);
             }
         }
 
+        // 3) Finally, grant currency and send a message
         economyManager.addCoins(player, coins);
-        if (gems > 0) gemsManager.addUnits(player, gems);
+        if (gems > 0) {
+            gemsManager.addUnits(player, gems);
+        }
 
         if (coins > 0 || gems > 0) {
             StringBuilder msg = new StringBuilder(ChatColor.GREEN + "You salvaged ");
