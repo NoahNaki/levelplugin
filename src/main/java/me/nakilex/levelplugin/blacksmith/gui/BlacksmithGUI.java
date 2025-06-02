@@ -165,8 +165,13 @@ public class BlacksmithGUI implements Listener {
 // Allow placing into slot 13 only manually
         if (event.getRawSlot() == 13) {
             event.setCancelled(false);
+            Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+                Inventory updatedGui = openInventories.get(player.getUniqueId());
+                if (updatedGui != null) updateActionButton(player, updatedGui, title);
+            }, 1L);
             return;
         }
+
 
 // Allow dragging into slot 13
         if (event.getAction() == InventoryAction.PLACE_ALL ||
@@ -297,6 +302,33 @@ public class BlacksmithGUI implements Listener {
         }
         player.sendMessage("§aAll items repaired! Total cost: §6⛃ " + totalCost);
     }
+
+    private void updateActionButton(Player player, Inventory gui, String title) {
+        ItemStack current = gui.getItem(13);
+        if (current == null || current.getType().isAir()) {
+            gui.setItem(22, title.equals(GUI_TITLE_UPGRADE)
+                ? createUpgradeButton(0, 0)
+                : createRepairButton(0));
+            return;
+        }
+
+        CustomItem ci = itemManager.getCustomItemFromItemStack(current);
+        if (ci == null) {
+            gui.setItem(22, title.equals(GUI_TITLE_UPGRADE)
+                ? createUpgradeButton(0, 0)
+                : createRepairButton(0));
+            return;
+        }
+
+        if (title.equals(GUI_TITLE_UPGRADE)) {
+            gui.setItem(22, createUpgradeButton(
+                upgradeManager.getUpgradeCost(ci),
+                upgradeManager.getSuccessChance(ci)));
+        } else {
+            gui.setItem(22, createRepairButton(repairManager.getRepairCost(ci)));
+        }
+    }
+
 
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
