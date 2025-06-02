@@ -1,12 +1,16 @@
 package me.nakilex.levelplugin.blacksmith.gui;
 
+import io.th0rgal.oraxen.api.OraxenItems;
+import io.th0rgal.oraxen.items.ItemBuilder;
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.blacksmith.managers.ItemRepairManager;
+import me.nakilex.levelplugin.blacksmith.managers.ItemUpgradeManager;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
-import me.nakilex.levelplugin.blacksmith.managers.ItemUpgradeManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -22,273 +26,286 @@ import java.util.*;
 
 public class BlacksmithGUI implements Listener {
 
+    private static final int GUI_SIZE = 27;
+    private static final String GUI_TITLE_UPGRADE = ChatColor.DARK_GRAY + "Blacksmith: Upgrade";
+    private static final String GUI_TITLE_REPAIR = ChatColor.DARK_GRAY + "Blacksmith: Repair";
+
     private final EconomyManager economyManager;
     private final ItemUpgradeManager upgradeManager;
+    private final ItemRepairManager repairManager;
     private final ItemManager itemManager;
-    private final Map<UUID, Inventory> openInventories = new HashMap<>(); // Tracks open GUIs by player UUID
+    private final Map<UUID, Inventory> openInventories = new HashMap<>();
 
-    public BlacksmithGUI(EconomyManager economyManager, ItemUpgradeManager upgradeManager, ItemManager itemManager) {
+    public BlacksmithGUI(EconomyManager economyManager, ItemUpgradeManager upgradeManager, ItemManager itemManager, ItemRepairManager repairManager) {
         this.economyManager = economyManager;
         this.upgradeManager = upgradeManager;
+        this.repairManager = repairManager;
         this.itemManager = itemManager;
     }
 
-    public void open(Player player) {
-        Inventory gui = Bukkit.createInventory(player, 27, "Blacksmith");
-
-        // Fill GUI with decorative panes
-        for (int i = 0; i < gui.getSize(); i++) {
-            if (i == 0 || i == 8 || i == 9 || i == 17 || i == 18 || i == 26) {
-                gui.setItem(i, createRedGlassPane());
-            } else {
-                gui.setItem(i, createGlassPane());
-            }
-        }
-
-        // Add Upgrade Slot (slot 13)
+    public void openUpgradeGUI(Player player) {
+        Inventory gui = Bukkit.createInventory(player, GUI_SIZE, GUI_TITLE_UPGRADE);
+        fillGuiWithFiller(gui);
+        gui.setItem(11, getOraxenItem("arrow_left", ChatColor.GRAY + "Go to Repair"));
+        gui.setItem(15, getOraxenItem("arrow_right", ChatColor.GRAY + "Go to Repair"));
         gui.setItem(13, null);
-
-        // Add Upgrade Button (slot 22) with initial cost and chance = 0
         gui.setItem(22, createUpgradeButton(0, 0));
-
-        // Track GUI
         openInventories.put(player.getUniqueId(), gui);
         player.openInventory(gui);
     }
 
-
-    private ItemStack createGlassPane() {
-        ItemStack glassPane = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
-        ItemMeta meta = glassPane.getItemMeta();
-        if (meta == null) return glassPane;
-        meta.setDisplayName(" ");
-        glassPane.setItemMeta(meta);
-        return glassPane;
+    public void openRepairGUI(Player player) {
+        Inventory gui = Bukkit.createInventory(player, GUI_SIZE, GUI_TITLE_REPAIR);
+        fillGuiWithFiller(gui);
+        gui.setItem(11, getOraxenItem("arrow_left", ChatColor.GRAY + "Go to Upgrade"));
+        gui.setItem(15, getOraxenItem("arrow_right", ChatColor.GRAY + "Go to Upgrade"));
+        gui.setItem(0, createRepairAllButton(calculateTotalRepairCost(player)));
+        gui.setItem(13, null);
+        gui.setItem(22, createRepairButton(0));
+        openInventories.put(player.getUniqueId(), gui);
+        player.openInventory(gui);
     }
 
-    private ItemStack createRedGlassPane() {
-        ItemStack glassPane = new ItemStack(Material.RED_STAINED_GLASS_PANE);
-        ItemMeta meta = glassPane.getItemMeta();
-        if (meta == null) return glassPane;
-        meta.setDisplayName(" ");
-        glassPane.setItemMeta(meta);
-        return glassPane;
+    private void fillGuiWithFiller(Inventory gui) {
+        ItemStack filler = createFiller();
+        for (int i = 0; i < GUI_SIZE; i++) gui.setItem(i, filler);
     }
 
-    private ItemStack createGreenGlassPane() {
-        ItemStack glassPane = new ItemStack(Material.GREEN_STAINED_GLASS_PANE);
-        ItemMeta meta = glassPane.getItemMeta();
-        if (meta == null) return glassPane;
-        meta.setDisplayName(" ");
-        glassPane.setItemMeta(meta);
-        return glassPane;
+    private ItemStack createFiller() {
+        ItemStack glass = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+        ItemMeta meta = glass.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(" ");
+            glass.setItemMeta(meta);
+        }
+        return glass;
+    }
+
+    private ItemStack getOraxenItem(String id, String name) {
+        ItemBuilder builder = OraxenItems.getItemById(id);
+        if (builder == null) return new ItemStack(Material.BARRIER);
+        ItemStack item = builder.build();
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(name);
+            item.setItemMeta(meta);
+        }
+        return item;
     }
 
     private ItemStack createUpgradeButton(int upgradeCost, int successChance) {
-        ItemStack upgradeButton = new ItemStack(Material.ANVIL);
-        ItemMeta meta = upgradeButton.getItemMeta();
-        if (meta == null) return upgradeButton;
-
+        ItemStack upgrade = new ItemStack(Material.ANVIL);
+        ItemMeta meta = upgrade.getItemMeta();
         meta.setDisplayName("§aUpgrade");
-
         List<String> lore = new ArrayList<>();
         if (upgradeCost > 0) {
             lore.add("§7Cost: §6⛃ " + upgradeCost);
             lore.add("§7Success Chance: §6" + successChance + "%");
-            lore.add("§7Click to upgrade your item.");
         } else {
-            lore.add("§7Place an item in the slot above.");
+            lore.add("§7Place an item in slot 13.");
         }
         meta.setLore(lore);
-
-        upgradeButton.setItemMeta(meta);
-        return upgradeButton;
+        upgrade.setItemMeta(meta);
+        return upgrade;
     }
 
-    private void updateUpgradeButton(Inventory gui, int upgradeCost, int successChance) {
-        ItemStack upgradeButton = createUpgradeButton(upgradeCost, successChance);
-        gui.setItem(22, upgradeButton);
+    private ItemStack createRepairButton(int cost) {
+        ItemStack repair = new ItemStack(Material.IRON_NUGGET);
+        ItemMeta meta = repair.getItemMeta();
+        meta.setDisplayName("§bRepair Item");
+        List<String> lore = new ArrayList<>();
+        if (cost > 0) {
+            lore.add("§7Cost: §6⛃ " + cost);
+        } else {
+            lore.add("§7Place an item in slot 13.");
+        }
+        meta.setLore(lore);
+        repair.setItemMeta(meta);
+        return repair;
+    }
+
+    private ItemStack createRepairAllButton(int totalCost) {
+        ItemStack repairAll = new ItemStack(Material.ANVIL);
+        ItemMeta meta = repairAll.getItemMeta();
+        meta.setDisplayName("§cRepair All Items");
+        List<String> lore = new ArrayList<>();
+        if (totalCost > 0) {
+            lore.add("§7Total Cost: §6⛃ " + totalCost);
+        } else {
+            lore.add("§7No damaged custom items found.");
+        }
+        meta.setLore(lore);
+        repairAll.setItemMeta(meta);
+        return repairAll;
+    }
+
+    private int calculateTotalRepairCost(Player player) {
+        int total = 0;
+        for (ItemStack item : player.getInventory().getContents()) {
+            if (item == null || item.getType().isAir()) continue;
+            CustomItem ci = itemManager.getCustomItemFromItemStack(item);
+            if (ci != null && ci.getCurrentDurability() < ci.getMaxDurability()) {
+                total += repairManager.getRepairCost(ci);
+            }
+        }
+        return total;
     }
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!(event.getWhoClicked() instanceof Player)) return;
-        Player player = (Player) event.getWhoClicked();
-
-        // Only handle clicks in our Blacksmith GUI
-        Inventory top = event.getView().getTopInventory();
+        if (!(event.getWhoClicked() instanceof Player player)) return;
         Inventory gui = openInventories.get(player.getUniqueId());
-        if (gui == null || !top.equals(gui)) return;
+        if (gui == null || !event.getView().getTopInventory().equals(gui)) return;
 
-        // Detect whether the click came from the player's own inventory
-        Inventory clickedInv = event.getClickedInventory();
-        Inventory bottom = event.getView().getBottomInventory();
-        boolean fromPlayerInv = clickedInv != null && clickedInv.equals(bottom);
+        int rawSlot = event.getRawSlot();
+        int clickedSlot = event.getSlot();
 
-        // 1) SHIFT-CLICK from player inventory into our GUI
-        if (event.isShiftClick()
-            && event.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY
-            && fromPlayerInv
-            && gui.getItem(13) == null) {
+        String title = event.getView().getTitle();
 
-            Bukkit.getLogger().info("[DEBUG][BlacksmithGUI] shift-click from player inv detected");
+// Allow placing into slot 13 only manually
+        if (event.getRawSlot() == 13) {
+            event.setCancelled(false);
+            return;
+        }
 
-            // Let Bukkit place the item in slot 13, then update the button next tick
+// Allow dragging into slot 13
+        if (event.getAction() == InventoryAction.PLACE_ALL ||
+            event.getAction() == InventoryAction.PLACE_SOME ||
+            event.getAction() == InventoryAction.PLACE_ONE ||
+            event.getAction() == InventoryAction.SWAP_WITH_CURSOR ||
+            event.getAction() == InventoryAction.HOTBAR_SWAP &&
+                event.getSlot() == 13) {
+            event.setCancelled(false);
+            return;
+        }
+
+// Cancel all interactions outside the GUI
+        if (event.getRawSlot() >= event.getView().getTopInventory().getSize()) {
+            return; // allow interactions with the player's inventory
+        }
+
+        event.setCancelled(true);
+
+
+        if (rawSlot == 11 || rawSlot == 15) {
+            ItemStack carriedItem = gui.getItem(13); // Save item before switching
+            if (title.equals(GUI_TITLE_UPGRADE)) {
+                openRepairGUI(player);
+            } else {
+                openUpgradeGUI(player);
+            }
+            // Restore the carried item into the new GUI
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-                ItemStack placed = gui.getItem(13);
-                Bukkit.getLogger().info("[DEBUG][BlacksmithGUI] 1-tick later, slot 13 has: "
-                    + (placed == null ? "null" : placed.getType().name()));
-
-                if (placed != null && !placed.getType().isAir()) {
-                    CustomItem ci = itemManager.getCustomItemFromItemStack(placed);
-                    if (ci != null) {
-                        int cost   = upgradeManager.getUpgradeCost(ci);
-                        int chance = upgradeManager.getSuccessChance(ci);
-                        updateUpgradeButton(gui, cost, chance);
-                        Bukkit.getLogger().info("[DEBUG][BlacksmithGUI] updated button => cost="
-                            + cost + ", chance=" + chance);
-                    } else {
-                        updateUpgradeButton(gui, 0, 0);
-                        Bukkit.getLogger().info("[DEBUG][BlacksmithGUI] non-custom item, reset to 0/0");
-                    }
+                Inventory newGui = openInventories.get(player.getUniqueId());
+                if (newGui != null) {
+                    newGui.setItem(13, carriedItem);
                 }
             }, 1L);
-
-            // Do NOT cancel — let Bukkit handle the inventory move
             return;
         }
 
-        int raw = event.getRawSlot();
-        boolean inGui = raw < gui.getSize();
 
-        // 2) Clicks inside the GUI
-        if (inGui) {
-            // Slot 13: allow direct pick/place then update next tick
-            if (raw == 13) {
-                event.setCancelled(false);
-                Bukkit.getLogger().info("[DEBUG][BlacksmithGUI] Clicked slot 13 directly, scheduling update.");
-                Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-                    ItemStack placed = gui.getItem(13);
-                    Bukkit.getLogger().info("[DEBUG][BlacksmithGUI] 1-tick later on direct click: slot 13 has "
-                        + (placed == null ? "null" : placed.getType().name()));
-                    if (placed != null && !placed.getType().isAir()) {
-                        CustomItem ci = itemManager.getCustomItemFromItemStack(placed);
-                        updateUpgradeButton(gui,
-                            ci != null ? upgradeManager.getUpgradeCost(ci) : 0,
-                            ci != null ? upgradeManager.getSuccessChance(ci) : 0);
-                    } else {
-                        updateUpgradeButton(gui, 0, 0);
-                    }
-                }, 1L);
-                return;
+        if (rawSlot == 0 && title.equals(GUI_TITLE_REPAIR)) {
+            handleRepairAllClick(player);
+            gui.setItem(0, createRepairAllButton(calculateTotalRepairCost(player)));
+            return;
+        }
+
+        if (rawSlot == 22) {
+            ItemStack item = gui.getItem(13);
+            if (item == null || item.getType().isAir()) return;
+            CustomItem ci = itemManager.getCustomItemFromItemStack(item);
+            if (ci == null) return;
+
+            if (title.equals(GUI_TITLE_UPGRADE)) {
+                int cost = upgradeManager.getUpgradeCost(ci);
+                int chance = upgradeManager.getSuccessChance(ci);
+                try {
+                    economyManager.deductCoins(player, cost);
+                } catch (IllegalArgumentException ex) {
+                    player.sendMessage("§cNot enough coins! Upgrade cost: §6⛃ " + cost);
+                    return;
+                }
+                if (upgradeManager.attemptUpgrade(player, item, ci)) {
+                    player.sendMessage("§aUpgrade successful!");
+                    gui.setItem(13, item);
+                } else {
+                    player.sendMessage("§cUpgrade failed!");
+                }
+                gui.setItem(22, createUpgradeButton(upgradeManager.getUpgradeCost(ci), upgradeManager.getSuccessChance(ci)));
+            } else if (title.equals(GUI_TITLE_REPAIR)) {
+                int cost = repairManager.getRepairCost(ci);
+                try {
+                    economyManager.deductCoins(player, cost);
+                } catch (IllegalArgumentException ex) {
+                    player.sendMessage("§cNot enough coins to repair! Cost: §6⛃ " + cost);
+                    return;
+                }
+                if (repairManager.repairItem(player, item, ci)) {
+                    player.sendMessage("§aItem repaired!");
+                    gui.setItem(13, item);
+                    ItemUtil.updateCustomItemTooltip(item, player);
+                }
+                gui.setItem(22, createRepairButton(0));
             }
-
-            // Slot 22: upgrade button
-            if (raw == 22) {
-                event.setCancelled(true);
-                handleUpgradeButtonClick(player, gui);
-                return;
-            }
-
-            // All other slots are decorative
-            event.setCancelled(true);
-        }
-    }
-
-
-
-    private void handleUpgradeButtonClick(Player player, Inventory gui) {
-        ItemStack itemStack = gui.getItem(13);
-        if (itemStack == null || itemStack.getType() == Material.AIR) {
-            player.sendMessage("§cNo item in the upgrade slot!");
-            return;
         }
 
-        CustomItem customItem = itemManager.getCustomItemFromItemStack(itemStack);
-        if (customItem == null) {
-            player.sendMessage("§cInvalid item! Only already‐created custom items can be upgraded.");
-            return;
-        }
-
-        if (customItem.getUpgradeLevel() >= 5) {
-            player.sendMessage("§cThis item has reached the maximum upgrade level!");
-            return;
-        }
-
-        // Current cost & chance before spending
-        int cost   = upgradeManager.getUpgradeCost(customItem);
-        int chance = upgradeManager.getSuccessChance(customItem);
-
-        try {
-            economyManager.deductCoins(player, cost);
-        } catch (IllegalArgumentException ex) {
-            player.sendMessage("§cNot enough coins! Upgrade cost: §6⛃ " + cost);
-            return;
-        }
-
-        // Attempt upgrade
-        if (upgradeManager.attemptUpgrade(player, itemStack, customItem)) {
-            player.sendMessage("§aUpgrade successful!");
-            setTemporaryGreenPanes(gui);
-            gui.setItem(13, itemStack);
-        } else {
-            player.sendMessage("§cUpgrade failed!");
-        }
-
-        // Refresh the button’s cost & chance (reflecting new level or unchanged on failure)
         Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-            CustomItem ci = itemManager.getCustomItemFromItemStack(itemStack);
+            ItemStack current = gui.getItem(13);
+            if (current == null || current.getType().isAir()) {
+                gui.setItem(22, title.equals(GUI_TITLE_UPGRADE) ? createUpgradeButton(0, 0) : createRepairButton(0));
+                return;
+            }
+            CustomItem ci = itemManager.getCustomItemFromItemStack(current);
             if (ci != null) {
-                int newCost   = upgradeManager.getUpgradeCost(ci);
-                int newChance = upgradeManager.getSuccessChance(ci);
-                updateUpgradeButton(gui, newCost, newChance);
-            } else {
-                updateUpgradeButton(gui, 0, 0);
+                if (title.equals(GUI_TITLE_UPGRADE)) {
+                    gui.setItem(22, createUpgradeButton(upgradeManager.getUpgradeCost(ci), upgradeManager.getSuccessChance(ci)));
+                } else if (title.equals(GUI_TITLE_REPAIR)) {
+                    gui.setItem(22, createRepairButton(repairManager.getRepairCost(ci)));
+                }
             }
         }, 1L);
     }
 
-
-
-
-    private void setTemporaryGreenPanes(Inventory gui) {
-        int[] slots = {0, 8, 9, 17, 18, 26};
-
-        // Set green panes
-        for (int slot : slots) {
-            gui.setItem(slot, createGreenGlassPane());
-        }
-
-        // Reset to red panes after 1 second
-        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-            for (int slot : slots) {
-                gui.setItem(slot, createRedGlassPane());
+    private void handleRepairAllClick(Player player) {
+        int totalCost = 0;
+        List<ItemStack> toRepair = new ArrayList<>();
+        for (ItemStack item : player.getInventory().getContents()) {
+            if (item == null || item.getType().isAir()) continue;
+            CustomItem ci = itemManager.getCustomItemFromItemStack(item);
+            if (ci != null && ci.getCurrentDurability() < ci.getMaxDurability()) {
+                totalCost += repairManager.getRepairCost(ci);
+                toRepair.add(item);
             }
-        }, 20L); // 20 ticks = 1 second
+        }
+        if (totalCost == 0) {
+            player.sendMessage("§7No damaged custom items found.");
+            return;
+        }
+        try {
+            economyManager.deductCoins(player, totalCost);
+        } catch (IllegalArgumentException ex) {
+            player.sendMessage("§cYou need §6⛃ " + totalCost + " §cto repair all items.");
+            return;
+        }
+        for (ItemStack item : toRepair) {
+            CustomItem ci = itemManager.getCustomItemFromItemStack(item);
+            if (ci != null) {
+                repairManager.repairItem(player, item, ci);
+                ItemUtil.updateCustomItemTooltip(item, player);
+            }
+        }
+        player.sendMessage("§aAll items repaired! Total cost: §6⛃ " + totalCost);
     }
 
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
         if (!(event.getPlayer() instanceof Player)) return;
-
         Player player = (Player) event.getPlayer();
-        Inventory closedInventory = event.getInventory();
-
-        // Check if the closed inventory is tracked
-        if (!openInventories.containsKey(player.getUniqueId())) return;
-
-        Inventory playerGUI = openInventories.get(player.getUniqueId());
-
-        // Ensure we are dealing with the correct GUI
-        if (!closedInventory.equals(playerGUI)) return;
-
-        // Handle returning the item in the upgrade slot
-        ItemStack itemInSlot = playerGUI.getItem(13); // Slot 13 is the upgrade slot
-        if (itemInSlot != null) {
-            player.getInventory().addItem(itemInSlot);
-        }
-
-        // Remove the player from the tracking map
+        Inventory gui = openInventories.get(player.getUniqueId());
+        if (gui == null || !event.getInventory().equals(gui)) return;
+        ItemStack item = gui.getItem(13);
+        if (item != null) player.getInventory().addItem(item);
         openInventories.remove(player.getUniqueId());
     }
 }

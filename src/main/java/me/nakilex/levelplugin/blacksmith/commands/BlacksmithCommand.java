@@ -24,7 +24,7 @@ public class BlacksmithCommand implements CommandExecutor {
         Player player = (Player) sender;
 
         // Open the Blacksmith GUI for the player
-        blacksmithGUI.open(player);
+        blacksmithGUI.openUpgradeGUI(player);
         //player.sendMessage("§aBlacksmith GUI opened!");
 
         return true;

@@ -244,10 +244,11 @@ public class CustomItem {
         }
     }
 
-    public void repair(int amount) {
-        if (broken) return;
-        currentDurability = Math.min(MAX_DURABILITY, currentDurability + amount);
+    public void setDurability(int durability) {
+        this.currentDurability = Math.max(0, Math.min(MAX_DURABILITY, durability));
+        this.broken = (this.currentDurability == 0);
     }
+
 
     /** Multiplies each base stat by the combined upgrade & rarity multiplier. */
     public void increaseStats() {

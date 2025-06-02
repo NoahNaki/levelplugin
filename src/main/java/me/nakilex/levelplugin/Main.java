@@ -3,6 +3,7 @@ package me.nakilex.levelplugin;
 import de.slikey.effectlib.EffectManager;
 import io.lumine.mythic.bukkit.BukkitAPIHelper;
 import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
+import me.nakilex.levelplugin.blacksmith.managers.ItemRepairManager;
 import me.nakilex.levelplugin.blacksmith.managers.ItemUpgradeManager;
 import me.nakilex.levelplugin.duels.listeners.ProjectileFriendlyFireListener;
 import me.nakilex.levelplugin.economy.gui.GemExchangeGUI;
@@ -74,6 +75,7 @@ public class Main extends JavaPlugin {
     private EconomyManager economyManager;
     private ItemManager itemManager;
     private ItemUpgradeManager itemUpgradeManager;
+    private ItemRepairManager itemRepairManager;
     private SpellManager spellmanager;
     private HorseManager horseManager;
     private EffectManager effectManager;
@@ -213,6 +215,7 @@ public class Main extends JavaPlugin {
         effectManager = new EffectManager(this);
         economyManager = new EconomyManager(this);
         itemUpgradeManager = new ItemUpgradeManager(this);
+        itemRepairManager = new ItemRepairManager();
         mobManager = new MobManager(this);
         runesManager = new RunesManager(this);
         spellmanager = new SpellManager(this, runesManager);
@@ -238,7 +241,7 @@ public class Main extends JavaPlugin {
     }
 
     private void registerCommandsAndListeners() {
-        BlacksmithGUI blacksmithGUI = new BlacksmithGUI(economyManager, itemUpgradeManager, itemManager);
+        BlacksmithGUI blacksmithGUI = new BlacksmithGUI(economyManager, itemUpgradeManager, itemManager, itemRepairManager);
         horseManager = new HorseManager(horseConfigManager);
         HorseGUI horseGUI = new HorseGUI(horseManager, economyManager);
         SettingsManager settingsManager = new SettingsManager();

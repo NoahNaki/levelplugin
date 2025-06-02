@@ -26,6 +26,8 @@ public class ItemUtil {
     public static final NamespacedKey UPGRADE_LEVEL_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "upgrade_level");
     public static final NamespacedKey ITEM_ID_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "custom_item_id");
     public static final NamespacedKey ITEM_UUID_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "custom_item_uuid");
+    public static final NamespacedKey DURABILITY_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "custom_item_durability");
+
 
     /**
      * Creates an ItemStack from a CustomItem while including dynamic tooltip information.
@@ -125,6 +127,7 @@ public class ItemUtil {
         pdc.set(ITEM_ID_KEY, PersistentDataType.INTEGER, cItem.getId());
         pdc.set(UPGRADE_LEVEL_KEY, PersistentDataType.INTEGER, cItem.getUpgradeLevel());
         pdc.set(ITEM_UUID_KEY, PersistentDataType.STRING, cItem.getUuid().toString());
+        pdc.set(DURABILITY_KEY, PersistentDataType.INTEGER, cItem.getCurrentDurability());
 
         stack.setItemMeta(meta);
         return stack;
@@ -242,6 +245,21 @@ public class ItemUtil {
         ItemMeta meta = stack.getItemMeta();
         return meta.getPersistentDataContainer().getOrDefault(UPGRADE_LEVEL_KEY, PersistentDataType.INTEGER, 0);
     }
+
+    public static void updateDurability(ItemStack stack, int durability) {
+        if (stack == null || !stack.hasItemMeta()) return;
+        ItemMeta meta = stack.getItemMeta();
+        meta.getPersistentDataContainer().set(DURABILITY_KEY, PersistentDataType.INTEGER, durability);
+        stack.setItemMeta(meta);
+    }
+
+    public static int getDurability(ItemStack stack) {
+        if (stack == null || !stack.hasItemMeta()) return 100;
+        ItemMeta meta = stack.getItemMeta();
+        return meta.getPersistentDataContainer().getOrDefault(DURABILITY_KEY, PersistentDataType.INTEGER, 100);
+    }
+
+
 
     public static void updateUpgradeLevel(ItemStack stack, int upgradeLevel) {
         if (stack == null || !stack.hasItemMeta()) return;
