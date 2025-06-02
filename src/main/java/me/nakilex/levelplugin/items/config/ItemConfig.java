@@ -51,6 +51,9 @@ public class ItemConfig {
             config.set(path + ".dex",   item.getDex());
 
             config.set(path + ".upgradeLevel", item.getUpgradeLevel());
+
+            // Persist current durability (maxDurability is static, so no need to save it)
+            config.set(path + ".currentDurability", item.getCurrentDurability());
         }
 
         try {
@@ -59,7 +62,6 @@ public class ItemConfig {
             plugin.getLogger().severe("Failed to save custom_items.yml: " + e.getMessage());
         }
     }
-
 
     public void loadItems() {
         if (!config.contains("items")) return;
@@ -78,25 +80,32 @@ public class ItemConfig {
                 int upgLvl         = config.getInt(base + "upgradeLevel", 0);
 
                 // Parse each rolled int as a single-value range:
-                    int hpValue    = config.getInt(base + "hp",    0);
-                    int defValue   = config.getInt(base + "def",   0);
-                    int strValue   = config.getInt(base + "str",   0);
-                    int agiValue   = config.getInt(base + "agi",   0);
-                    int intelValue = config.getInt(base + "intel", 0);
-                    int dexValue   = config.getInt(base + "dex",   0);
+                int hpValue    = config.getInt(base + "hp",    0);
+                int defValue   = config.getInt(base + "def",   0);
+                int strValue   = config.getInt(base + "str",   0);
+                int agiValue   = config.getInt(base + "agi",   0);
+                int intelValue = config.getInt(base + "intel", 0);
+                int dexValue   = config.getInt(base + "dex",   0);
 
                 StatRange hpRange    = new StatRange(hpValue,    hpValue);
-                    StatRange defRange   = new StatRange(defValue,   defValue);
-                    StatRange strRange   = new StatRange(strValue,   strValue);
-                    StatRange agiRange   = new StatRange(agiValue,   agiValue);
-                    StatRange intelRange = new StatRange(intelValue, intelValue);
-                    StatRange dexRange   = new StatRange(dexValue,   dexValue);
+                StatRange defRange   = new StatRange(defValue,   defValue);
+                StatRange strRange   = new StatRange(strValue,   strValue);
+                StatRange agiRange   = new StatRange(agiValue,   agiValue);
+                StatRange intelRange = new StatRange(intelValue, intelValue);
+                StatRange dexRange   = new StatRange(dexValue,   dexValue);
 
                 CustomItem instance = new CustomItem(
                     uuid, id, baseName, rarity, lvlReq, clsReq, material,
                     hpRange, defRange, strRange, agiRange, intelRange, dexRange,
                     upgLvl
                 );
+
+                // Restore saved current durability (default to max if not present)
+                int savedDurability = config.getInt(base + "currentDurability", instance.getMaxDurability());
+                int toReduce = instance.getMaxDurability() - savedDurability;
+                if (toReduce > 0) {
+                    instance.reduceDurability(toReduce);
+                }
 
                 ItemManager.getInstance().addInstance(instance);
 
@@ -110,5 +119,4 @@ public class ItemConfig {
                 + " custom items from custom_items.yml."
         );
     }
-
 }
