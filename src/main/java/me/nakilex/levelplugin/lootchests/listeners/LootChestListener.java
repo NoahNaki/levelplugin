@@ -5,17 +5,11 @@ import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureMechanic
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import org.bukkit.Location;
-import org.bukkit.block.Block;
-import org.bukkit.block.Chest;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
-import org.bukkit.event.inventory.InventoryOpenEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.persistence.PersistentDataType;
 
 public class LootChestListener implements Listener {
 
@@ -43,12 +37,25 @@ public class LootChestListener implements Listener {
             return; // not one of our managed chests
         }
 
-        // 4) Open the custom loot GUI
+        // 4) Build the custom loot GUI
         Player player = event.getPlayer();
         Inventory lootGui = lootChestManager.buildLootInventory(chestId, player);
-        player.openInventory(lootGui);
-// NEW: remember which chest this player just opened
-        lootChestManager.markPlayerViewingChest(player.getUniqueId(), chestId);
 
+        // ─────────────────────────────────────────────────────────────────────
+        // 5) Update each ItemStack’s tooltip (lore) before the player sees it
+        for (int slot = 0; slot < lootGui.getSize(); slot++) {
+            ItemStack stack = lootGui.getItem(slot);
+            if (stack == null || stack.getType().isAir()) continue;
+
+            // This mutates the ItemStack’s lore in place based on the player’s stats:
+            ItemUtil.updateCustomItemTooltip(stack, player);
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
+        // 6) Open the inventory
+        player.openInventory(lootGui);
+
+        // 7) Remember which chest this player just opened
+        lootChestManager.markPlayerViewingChest(player.getUniqueId(), chestId);
     }
 }
