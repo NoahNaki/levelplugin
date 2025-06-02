@@ -50,14 +50,21 @@ public class ArmorStatsListener implements Listener {
                     player.sendMessage(ChatColor.RED + "You must be Level " + req + " to wear this armor!");
                     return;
                 }
-                addItemStats(player, inst);
-                equipped.add(inst.getId());
+
+                // ← ADDED: If the armor is broken, do not apply stats
+                if (inst.isBroken()) {
+                    player.sendMessage(ChatColor.RED + "This armor is broken and grants no bonuses.");
+                } else {
+                    addItemStats(player, inst);
+                    equipped.add(inst.getId());
+                }
             }
         }
 
-        // 3) Recalculate
+        // 3) Recalculate derived stats (HP/mana will update whether or not we added stats)
         stats.recalcDerivedStats(player);
     }
+
 
 
 
@@ -71,7 +78,7 @@ public class ArmorStatsListener implements Listener {
         ps.bonusDexterity    += customItem.getDex();
     }
 
-    private void removeItemStats(Player player, CustomItem customItem) {
+    public void removeItemStats(Player player, CustomItem customItem) {
         StatsManager.PlayerStats ps = statsManager.getPlayerStats(player.getUniqueId());
         ps.bonusHealthStat   -= customItem.getHp();
         ps.bonusDefenceStat  -= customItem.getDef();
@@ -79,5 +86,7 @@ public class ArmorStatsListener implements Listener {
         ps.bonusAgility      -= customItem.getAgi();
         ps.bonusIntelligence -= customItem.getIntel();
         ps.bonusDexterity    -= customItem.getDex();
+
+        StatsManager.getInstance().recalcDerivedStats(player);
     }
 }

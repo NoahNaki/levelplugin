@@ -160,9 +160,7 @@ public class StatsManager {
         player.setMaxHealth(newMaxHealth);
 
         // Adjust the player's current health so the percentage stays the same.
-        // If the player was at full health, this sets them to full health.
         double newHealth = newMaxHealth * healthRatio;
-        // Ensure newHealth is at least 1 (avoid setting to 0)
         player.setHealth(Math.max(1.0, newHealth));
 
         // Apply health scaling so the visual health bar remains at 20 health (10 hearts)
@@ -179,8 +177,6 @@ public class StatsManager {
         if (newWalkSpeed > 1.0f) newWalkSpeed = 1.0f;
         player.setWalkSpeed(newWalkSpeed);
     }
-
-
 
     public void regenHealthForAllPlayers() {
         for (Player player : Bukkit.getOnlinePlayers()) {

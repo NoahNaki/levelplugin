@@ -265,6 +265,11 @@ public class WeaponStatsListener implements Listener {
         ps.bonusIntelligence -= customItem.getIntel();
         ps.bonusDexterity    -= customItem.getDex();
 
+        // IMMEDIATELY recalc all derived stats (this will:
+        //  • recompute maxHealth → setMaxHealth(...)
+        //  • recompute maxMana  → (and clamp currentMana if needed)
+        StatsManager.getInstance().recalcDerivedStats(player);
+
         // DEBUG: log the new stats immediately after subtraction
         Bukkit.getLogger().info("[WeaponStats] After removeWeaponStats, stats => "
             + "bonusHealth="       + ps.bonusHealthStat
@@ -275,8 +280,6 @@ public class WeaponStatsListener implements Listener {
             + ", bonusDexterity="  + ps.bonusDexterity
         );
     }
-
-
 
     /**
      * Logs every bonus‐stat field on a player's PlayerStats.

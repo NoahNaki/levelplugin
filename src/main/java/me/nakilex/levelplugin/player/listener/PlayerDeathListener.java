@@ -2,6 +2,7 @@
 package me.nakilex.levelplugin.player.listener;
 
 import me.nakilex.levelplugin.items.data.CustomItem;
+import me.nakilex.levelplugin.items.listeners.ArmorStatsListener;
 import me.nakilex.levelplugin.items.listeners.WeaponStatsListener;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
@@ -72,7 +73,7 @@ public class PlayerDeathListener implements Listener {
                     equipped.remove(itemId);
                     ItemManager.getInstance().unregisterHolder(itemId);
 
-                    // Recalculate derived stats immediately
+                    // Recalculate derived stats immediately (HP, mana will update)
                     statsMgr.recalcDerivedStats(player);
 
                     // (Optional) Log “after” stats for debugging
@@ -99,6 +100,114 @@ public class PlayerDeathListener implements Listener {
                             + "” has broken!"
                     );
                 }
+
+                // ───────────────────────────────────────────────────────────────────────────────
+                // 7) Reduce durability of each equipped armor piece (helmet, chestplate, leggings, boots).
+                //    If any break, strip their stats and recalc immediately so HP/mana update.
+                // ───────────────────────────────────────────────────────────────────────────────
+
+                // (a) HELMET
+                ItemStack helmet = player.getInventory().getHelmet();
+                if (helmet != null && !helmet.getType().isAir()) {
+                    CustomItem armorItem = ItemManager.getInstance().getCustomItemFromItemStack(helmet);
+                    if (armorItem != null) {
+                        int armorId = armorItem.getId();
+                        int reduceAmtArmor = armorItem.getMaxDurability() / 10;
+                        armorItem.reduceDurability(reduceAmtArmor);
+
+                        // Re‐build the helmet ItemStack to reflect new durability
+                        ItemStack updatedHelmet = ItemUtil.createItemStackFromCustomItem(armorItem, 1, player);
+                        player.getInventory().setHelmet(updatedHelmet);
+
+                        if (armorItem.isBroken()) {
+                            // Strip armor stats, unregister holder, and recalc immediately
+                            new ArmorStatsListener().removeItemStats(player, armorItem);
+                            ItemManager.getInstance().unregisterHolder(armorId);
+                            statsMgr.recalcDerivedStats(player);
+
+                            player.sendMessage(
+                                ChatColor.RED + "Your “" + ChatColor.BOLD
+                                    + armorItem.getBaseName() + ChatColor.RED + "” has broken!"
+                            );
+                        }
+                    }
+                }
+
+                // (b) CHESTPLATE
+                ItemStack chest = player.getInventory().getChestplate();
+                if (chest != null && !chest.getType().isAir()) {
+                    CustomItem armorItem = ItemManager.getInstance().getCustomItemFromItemStack(chest);
+                    if (armorItem != null) {
+                        int armorId = armorItem.getId();
+                        int reduceAmtArmor = armorItem.getMaxDurability() / 10;
+                        armorItem.reduceDurability(reduceAmtArmor);
+
+                        ItemStack updatedChest = ItemUtil.createItemStackFromCustomItem(armorItem, 1, player);
+                        player.getInventory().setChestplate(updatedChest);
+
+                        if (armorItem.isBroken()) {
+                            new ArmorStatsListener().removeItemStats(player, armorItem);
+                            ItemManager.getInstance().unregisterHolder(armorId);
+                            statsMgr.recalcDerivedStats(player);
+
+                            player.sendMessage(
+                                ChatColor.RED + "Your “" + ChatColor.BOLD
+                                    + armorItem.getBaseName() + ChatColor.RED + "” has broken!"
+                            );
+                        }
+                    }
+                }
+
+                // (c) LEGGINGS
+                ItemStack legs = player.getInventory().getLeggings();
+                if (legs != null && !legs.getType().isAir()) {
+                    CustomItem armorItem = ItemManager.getInstance().getCustomItemFromItemStack(legs);
+                    if (armorItem != null) {
+                        int armorId = armorItem.getId();
+                        int reduceAmtArmor = armorItem.getMaxDurability() / 10;
+                        armorItem.reduceDurability(reduceAmtArmor);
+
+                        ItemStack updatedLegs = ItemUtil.createItemStackFromCustomItem(armorItem, 1, player);
+                        player.getInventory().setLeggings(updatedLegs);
+
+                        if (armorItem.isBroken()) {
+                            new ArmorStatsListener().removeItemStats(player, armorItem);
+                            ItemManager.getInstance().unregisterHolder(armorId);
+                            statsMgr.recalcDerivedStats(player);
+
+                            player.sendMessage(
+                                ChatColor.RED + "Your “" + ChatColor.BOLD
+                                    + armorItem.getBaseName() + ChatColor.RED + "” has broken!"
+                            );
+                        }
+                    }
+                }
+
+                // (d) BOOTS
+                ItemStack boots = player.getInventory().getBoots();
+                if (boots != null && !boots.getType().isAir()) {
+                    CustomItem armorItem = ItemManager.getInstance().getCustomItemFromItemStack(boots);
+                    if (armorItem != null) {
+                        int armorId = armorItem.getId();
+                        int reduceAmtArmor = armorItem.getMaxDurability() / 10;
+                        armorItem.reduceDurability(reduceAmtArmor);
+
+                        ItemStack updatedBoots = ItemUtil.createItemStackFromCustomItem(armorItem, 1, player);
+                        player.getInventory().setBoots(updatedBoots);
+
+                        if (armorItem.isBroken()) {
+                            new ArmorStatsListener().removeItemStats(player, armorItem);
+                            ItemManager.getInstance().unregisterHolder(armorId);
+                            statsMgr.recalcDerivedStats(player);
+
+                            player.sendMessage(
+                                ChatColor.RED + "Your “" + ChatColor.BOLD
+                                    + armorItem.getBaseName() + ChatColor.RED + "” has broken!"
+                            );
+                        }
+                    }
+                }
+                // ───────────────────────────────────────────────────────────────────────────────
             }
         }.runTaskLater(plugin, 1L);
     }
