@@ -11,6 +11,7 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Player;
 import org.bukkit.metadata.FixedMetadataValue;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 import java.util.List;
@@ -22,6 +23,20 @@ import java.util.UUID;
  */
 public class BasicArrowShotEffect implements SpellEffect {
     private static final String META_KEY = "BasicAttack";
+
+    private boolean parseBoolean(Object obj, boolean def) {
+        if (obj instanceof Boolean b) return b;
+        if (obj instanceof String s) return Boolean.parseBoolean(s);
+        return def;
+    }
+
+    private int parseInt(Object obj, int def) {
+        if (obj instanceof Number n) return n.intValue();
+        if (obj instanceof String s) {
+            try { return Integer.parseInt(s); } catch (NumberFormatException ignored) {}
+        }
+        return def;
+    }
 
     @Override
     public void apply(SpellCastContext ctx) {
@@ -57,6 +72,9 @@ public class BasicArrowShotEffect implements SpellEffect {
         int totalArrows = 1 + extra;
         Bukkit.getLogger().info("[DBG] BasicArrowShotEffect -> totalArrows=" + totalArrows);
 
+        boolean instantShot = parseBoolean(ctx.getExtraParam("instantShot"), false);
+        int pierceLevel     = parseInt(ctx.getExtraParam("pierceLevel"), 0);
+
         // Calculate damage per arrow: weapon base + STR modifier
         double baseAtk = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue();
         int str = me.nakilex.levelplugin.player.attributes.managers.StatsManager
@@ -64,26 +82,36 @@ public class BasicArrowShotEffect implements SpellEffect {
             .getStatValue(player, me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType.STR);
         double damage = baseAtk + (str * 0.5);
 
-        // Fire each arrow with slight spread
-        for (int i = 0; i < totalArrows; i++) {
-            Vector dir = player.getLocation().getDirection().clone();
-            if (i > 0) {
-                double spread = 0.1;
-                dir.add(new Vector(
-                    (Math.random() - 0.5) * spread,
-                    (Math.random() - 0.5) * spread,
-                    (Math.random() - 0.5) * spread
-                ));
+        Runnable shootArrows = () -> {
+            for (int i = 0; i < totalArrows; i++) {
+                Vector dir = player.getLocation().getDirection().clone();
+                if (i > 0) {
+                    double spread = 0.1;
+                    dir.add(new Vector(
+                        (Math.random() - 0.5) * spread,
+                        (Math.random() - 0.5) * spread,
+                        (Math.random() - 0.5) * spread
+                    ));
+                }
+                Arrow arrow = player.launchProjectile(Arrow.class, dir.multiply(2));
+                arrow.setDamage(damage);
+                arrow.setCustomName("BasicArcherArrow");
+                arrow.setCustomNameVisible(false);
+                arrow.setPierceLevel(Math.max(0, pierceLevel));
+                arrow.setMetadata(META_KEY, new FixedMetadataValue(Main.getInstance(), pid));
             }
-            Arrow arrow = player.launchProjectile(Arrow.class, dir.multiply(2));
-            arrow.setDamage(damage);
-            arrow.setCustomName("BasicArcherArrow");
-            arrow.setCustomNameVisible(false);
-            arrow.setMetadata(META_KEY, new FixedMetadataValue(Main.getInstance(), pid));
-        }
 
-        // Effects
-        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ARROW_SHOOT, 1f, 1f);
-        player.getWorld().spawnParticle(Particle.INSTANT_EFFECT, player.getLocation(), 20, 0.5, 1, 0.5);
+            player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ARROW_SHOOT, 1f, 1f);
+            player.getWorld().spawnParticle(Particle.INSTANT_EFFECT, player.getLocation(), 20, 0.5, 1, 0.5);
+        };
+
+        if (instantShot) {
+            shootArrows.run();
+        } else {
+            player.getWorld().playSound(player.getLocation(), Sound.ITEM_CROSSBOW_LOADING_START, 1f, 1f);
+            new BukkitRunnable() {
+                @Override public void run() { shootArrows.run(); }
+            }.runTaskLater(Main.getInstance(), 10L);
+        }
     }
 }
