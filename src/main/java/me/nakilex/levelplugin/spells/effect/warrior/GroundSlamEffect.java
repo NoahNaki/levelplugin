@@ -40,7 +40,7 @@ public class GroundSlamEffect implements SpellEffect {
                     double z = Math.sin(rad) * current;
                     Location loc = player.getLocation().clone().add(x, 0, z);
 
-                    loc.getWorld().spawnParticle(Particle.BLOCK_CRACK, loc, 10, 0.2, 0.2, 0.2, 0.1, Material.DIRT.createBlockData());
+                    loc.getWorld().spawnParticle(Particle.BLOCK_CRUMBLE, loc, 10, 0.2, 0.2, 0.2, 0.1, Material.DIRT.createBlockData());
                     loc.getWorld().spawnParticle(Particle.CRIT, loc, 5, 0.2, 0.2, 0.2);
 
                     for (Entity e : loc.getWorld().getNearbyEntities(loc, 1, 1, 1)) {
