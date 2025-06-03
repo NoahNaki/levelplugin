@@ -186,6 +186,12 @@ public class BlacksmithGUI implements Listener {
 
 // Cancel all interactions outside the GUI
         if (event.getRawSlot() >= event.getView().getTopInventory().getSize()) {
+            if (event.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY) {
+                Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+                    Inventory updatedGui = openInventories.get(player.getUniqueId());
+                    if (updatedGui != null) updateActionButton(player, updatedGui, title);
+                }, 1L);
+            }
             return; // allow interactions with the player's inventory
         }
 
@@ -194,16 +200,19 @@ public class BlacksmithGUI implements Listener {
 
         if (rawSlot == 11 || rawSlot == 15) {
             ItemStack carriedItem = gui.getItem(13); // Save item before switching
-            if (title.equals(GUI_TITLE_UPGRADE)) {
+            boolean switchingToRepair = title.equals(GUI_TITLE_UPGRADE);
+            if (switchingToRepair) {
                 openRepairGUI(player);
             } else {
                 openUpgradeGUI(player);
             }
-            // Restore the carried item into the new GUI
+            // Restore the carried item into the new GUI and update the button
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
                 Inventory newGui = openInventories.get(player.getUniqueId());
                 if (newGui != null) {
                     newGui.setItem(13, carriedItem);
+                    String newTitle = switchingToRepair ? GUI_TITLE_REPAIR : GUI_TITLE_UPGRADE;
+                    updateActionButton(player, newGui, newTitle);
                 }
             }, 1L);
             return;
