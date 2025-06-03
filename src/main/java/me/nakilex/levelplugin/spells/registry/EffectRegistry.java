@@ -4,6 +4,8 @@ import me.nakilex.levelplugin.spells.ArcherSpell;
 import me.nakilex.levelplugin.spells.effect.SpellEffect;
 import me.nakilex.levelplugin.spells.effect.archer.*;
 import me.nakilex.levelplugin.spells.effect.mage.*;
+import me.nakilex.levelplugin.spells.effect.warrior.*;
+import me.nakilex.levelplugin.spells.effect.rogue.*;
 
 
 import java.util.Map;
@@ -61,6 +63,18 @@ public class EffectRegistry {
         register("BOW_DRONE", new BowDroneEffect());
         register("GRAPPLE_HOOK", new GrappleHookEffect());
         register("ARROW_STORM", new ArrowStormEffect());
+
+        // --- Warrior Spells
+        register("IRON_FORTRESS", new IronFortressEffect());
+        register("HEROIC_LEAP", new HeroicLeapEffect());
+        register("UPPERCUT", new UppercutEffect());
+        register("GROUND_SLAM", new GroundSlamEffect());
+
+        // --- Rogue Spells
+        register("ENDLESS_ASSAULT", new EndlessAssaultEffect());
+        register("BLADE_FURY", new BladeFuryEffect());
+        register("SHADOW_CLONE", new ShadowCloneEffect());
+        register("VANISH", new VanishEffect());
 
     }
 }
