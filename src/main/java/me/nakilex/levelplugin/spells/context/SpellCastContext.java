@@ -87,6 +87,7 @@ public class SpellCastContext {
             case "aoeRange":
             case "extraProjectiles":
             case "pierceLevel":
+            case "extraDrones":
                 // always accumulate these params into a list
                 Param existingParam = extraParams.get(key);
                 List<Object> list;

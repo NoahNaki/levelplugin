@@ -30,7 +30,11 @@ public class ArcherSpell implements Listener {
     private static final String META_KEY = "ArcherSpell";          // <— new
     private final Main plugin = Main.getInstance();
     private final NPCRegistry npcRegistry = CitizensAPI.getNPCRegistry();
-    private final Map<UUID, NPC> activeBowDrones = plugin.getActiveBowDrones();
+    /**
+     * Map of player id to all active drone NPCs. Supports multiple drones per
+     * player when runes are used.
+     */
+    private final Map<UUID, List<NPC>> activeBowDrones = plugin.getActiveBowDrones();
 
     public void castArcherSpell(Player player, String effectKey) {
         switch (effectKey.toUpperCase()) {
@@ -126,7 +130,8 @@ public class ArcherSpell implements Listener {
         UUID pid = player.getUniqueId();
 
         // 1) Prevent more than one drone per player
-        if (activeBowDrones.containsKey(pid)) {
+        List<NPC> existing = activeBowDrones.get(pid);
+        if (existing != null && !existing.isEmpty()) {
             player.sendMessage(ChatColor.RED + "You already have a Sentry active!");
             return;
         }
@@ -135,7 +140,7 @@ public class ArcherSpell implements Listener {
         Location spawnLoc = player.getLocation().add(2, 3, 2);
         NPC drone = npcRegistry.createNPC(EntityType.PLAYER, "");
         drone.spawn(spawnLoc);
-        activeBowDrones.put(pid, drone);
+        activeBowDrones.computeIfAbsent(pid, k -> new ArrayList<>()).add(drone);
 
         // 3) Make it invisible, glowing & equip a loaded Crossbow
         LivingEntity ent = (LivingEntity) drone.getEntity();
@@ -183,7 +188,13 @@ public class ArcherSpell implements Listener {
             @Override
             public void run() {
                 if (!drone.isSpawned() || !player.isOnline()) {
-                    activeBowDrones.remove(pid);
+                    List<NPC> list = activeBowDrones.get(pid);
+                    if (list != null) {
+                        list.remove(drone);
+                        if (list.isEmpty()) {
+                            activeBowDrones.remove(pid);
+                        }
+                    }
                     cancel();
                     return;
                 }
@@ -202,7 +213,13 @@ public class ArcherSpell implements Listener {
                 if (++ticks > maxLife || !drone.isSpawned() || !player.isOnline()) {
                     drone.despawn();
                     drone.destroy();
-                    activeBowDrones.remove(pid);
+                    List<NPC> list = activeBowDrones.get(pid);
+                    if (list != null) {
+                        list.remove(drone);
+                        if (list.isEmpty()) {
+                            activeBowDrones.remove(pid);
+                        }
+                    }
                     cancel();
                     return;
                 }
@@ -481,10 +498,14 @@ public class ArcherSpell implements Listener {
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         UUID pid = event.getPlayer().getUniqueId();
-        NPC drone = activeBowDrones.remove(pid);
-        if (drone != null && drone.isSpawned()) {
-            drone.despawn();
-            drone.destroy();
+        List<NPC> drones = activeBowDrones.remove(pid);
+        if (drones != null) {
+            for (NPC d : drones) {
+                if (d.isSpawned()) {
+                    d.despawn();
+                    d.destroy();
+                }
+            }
         }
     }
 
@@ -497,10 +518,12 @@ public class ArcherSpell implements Listener {
         if (!event.getPlugin().equals(plugin)) return;
 
         // despawn & destroy every remaining drone
-        for (NPC drone : activeBowDrones.values()) {
-            if (drone.isSpawned()) {
-                drone.despawn();
-                drone.destroy();
+        for (List<NPC> list : activeBowDrones.values()) {
+            for (NPC drone : list) {
+                if (drone.isSpawned()) {
+                    drone.despawn();
+                    drone.destroy();
+                }
             }
         }
         activeBowDrones.clear();
