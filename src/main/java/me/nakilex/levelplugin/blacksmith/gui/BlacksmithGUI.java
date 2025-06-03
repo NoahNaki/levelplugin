@@ -46,6 +46,7 @@ public class BlacksmithGUI implements Listener {
     public void openUpgradeGUI(Player player) {
         Inventory gui = Bukkit.createInventory(player, GUI_SIZE, GUI_TITLE_UPGRADE);
         fillGuiWithFiller(gui);
+        gui.setItem(8, createInfoItem());
         gui.setItem(11, getOraxenItem("arrow_left", ChatColor.GRAY + "Go to Repair"));
         gui.setItem(15, getOraxenItem("arrow_right", ChatColor.GRAY + "Go to Repair"));
         gui.setItem(13, null);
@@ -57,6 +58,7 @@ public class BlacksmithGUI implements Listener {
     public void openRepairGUI(Player player) {
         Inventory gui = Bukkit.createInventory(player, GUI_SIZE, GUI_TITLE_REPAIR);
         fillGuiWithFiller(gui);
+        gui.setItem(8, createInfoItem());
         gui.setItem(11, getOraxenItem("arrow_left", ChatColor.GRAY + "Go to Upgrade"));
         gui.setItem(15, getOraxenItem("arrow_right", ChatColor.GRAY + "Go to Upgrade"));
         gui.setItem(0, createRepairAllButton(calculateTotalRepairCost(player)));
@@ -91,6 +93,29 @@ public class BlacksmithGUI implements Listener {
             item.setItemMeta(meta);
         }
         return item;
+    }
+
+    private ItemStack createInfoItem() {
+        ItemStack info = getOraxenItem("info", ChatColor.YELLOW + "Information");
+        ItemMeta meta = info.getItemMeta();
+        if (meta != null) {
+            meta.setLore(Arrays.asList(
+                ChatColor.GRAY + "Upgrade Success Rates:",
+                ChatColor.GRAY + "  +0➜+1: 33%  +1➜+2: 15%",
+                ChatColor.GRAY + "  +2➜+3: 10%  +3➜+4: 5%",
+                ChatColor.GRAY + "  +4➜+5: 2%",
+                "",
+                ChatColor.GRAY + "To upgrade or repair, place",
+                ChatColor.GRAY + "  a valid item in the center.",
+                "",
+                ChatColor.GRAY + "Upgrade costs rise with rarity",
+                ChatColor.GRAY + "  and current upgrade tier.",
+                ChatColor.GRAY + "Repair costs depend on how",
+                ChatColor.GRAY + "  much durability is lost."
+            ));
+            info.setItemMeta(meta);
+        }
+        return info;
     }
 
     private ItemStack createUpgradeButton(int upgradeCost, int successChance) {
