@@ -220,8 +220,8 @@ public class Main extends JavaPlugin {
         runesManager = new RunesManager(this);
         spellmanager = new SpellManager(this, runesManager);
         partyManager = new PartyManager();
-        identifyGui = new IdentifyRunesGUI(this, runesManager);
-        identifyGui = new IdentifyRunesGUI(this, runesManager);
+        identifyRunesGUI = new IdentifyRunesGUI(this, runesManager);
+        identifyGui = identifyRunesGUI;
         gemsManager = new GemsManager();
         gemGui = new GemExchangeGUI(this, gemsManager);
         tipsCfg = new TipsConfigManager(this);
@@ -269,7 +269,7 @@ public class Main extends JavaPlugin {
             gemsManager,
             gemGui,
             tipsCfg,
-            identifyGui,
+            identifyRunesGUI,
             runesManager,
             equipGui,
             broadcastMgr
