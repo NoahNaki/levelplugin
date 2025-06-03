@@ -68,18 +68,18 @@ public class SpellManager {
             "HEROIC_LEAP", 1.2
         ));
         warriorMap.put("RRL", new Spell(
-            "uppercut", "Uppercut", "RRL",
-            15.0, defaultManaMultiplier,
+            "judgement", "Judgement", "RRL",
+            16.0, defaultManaMultiplier,
             0, 15,
             me.nakilex.levelplugin.items.data.WeaponType.SHOVEL.getMaterials(),
-            "UPPERCUT", 1.3
+            "JUDGEMENT", 2.0
         ));
         warriorMap.put("RLL", new Spell(
-            "ground_slam", "Ground Slam", "RLL",
+            "shockwave", "Shockwave", "RLL",
             14.0, defaultManaMultiplier,
             0, 3,
             me.nakilex.levelplugin.items.data.WeaponType.SHOVEL.getMaterials(),
-            "GROUND_SLAM", 1.5
+            "SHOCKWAVE", 1.5
         ));
         spellsByClass.put("warrior", Collections.unmodifiableMap(warriorMap));
 
