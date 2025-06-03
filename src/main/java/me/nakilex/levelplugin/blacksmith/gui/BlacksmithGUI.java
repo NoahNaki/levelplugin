@@ -100,15 +100,17 @@ public class BlacksmithGUI implements Listener {
         ItemMeta meta = info.getItemMeta();
         if (meta != null) {
             meta.setLore(Arrays.asList(
+                ChatColor.GRAY + "",
                 ChatColor.GRAY + "Upgrade Success Rates:",
-                ChatColor.GRAY + "  +0➜+1: " + ChatColor.GOLD + "33%" + ChatColor.GRAY + "  +1➜+2: " + ChatColor.GOLD + "15%",
-                ChatColor.GRAY + "  +2➜+3: " + ChatColor.GOLD + "10%" + ChatColor.GRAY + "  +3➜+4: " + ChatColor.GOLD + "5%",
-                ChatColor.GRAY + "  +4➜+5: " + ChatColor.GOLD + "2%",
+                ChatColor.GRAY + "",
+                ChatColor.GRAY + "  +0 ➜ +1: " + ChatColor.WHITE + "33%",
+                ChatColor.GRAY + "  +1 ➜ +2: " + ChatColor.WHITE + "15%",
+                ChatColor.GRAY + "  +2 ➜ +3: " + ChatColor.WHITE + "10%",
+                ChatColor.GRAY + "  +3 ➜ +4: " + ChatColor.WHITE + "5%",
+                ChatColor.GRAY + "  +4 ➜ +5: " + ChatColor.WHITE + "2%",
                 "",
                 ChatColor.GRAY + "Upgrade costs scale with " + ChatColor.AQUA + "rarity" + ChatColor.GRAY + " and",
-                ChatColor.GRAY + "  current upgrade " + ChatColor.AQUA + "tier" + ChatColor.GRAY + ".",
-                "",
-                ChatColor.GRAY + "Place a valid item in the center."
+                ChatColor.GRAY + "current upgrade " + ChatColor.AQUA + "tier" + ChatColor.GRAY + "."
             ));
             info.setItemMeta(meta);
         }
@@ -120,13 +122,13 @@ public class BlacksmithGUI implements Listener {
         ItemMeta meta = info.getItemMeta();
         if (meta != null) {
             meta.setLore(Arrays.asList(
-                ChatColor.GRAY + "Repair Information:",
-                ChatColor.GRAY + "  Costs increase with item " + ChatColor.AQUA + "rarity",
-                ChatColor.GRAY + "  and " + ChatColor.AQUA + "durability" + ChatColor.GRAY + " lost.",
+                ChatColor.GRAY + "",
+                ChatColor.GRAY + "Costs increase with item " + ChatColor.AQUA + "rarity",
+                ChatColor.GRAY + "and " + ChatColor.AQUA + "durability" + ChatColor.GRAY + " lost.",
                 "",
                 ChatColor.GRAY + "Place a damaged item in the center.",
                 ChatColor.GRAY + "Use " + ChatColor.GREEN + "Repair Item" + ChatColor.GRAY + " or",
-                ChatColor.GRAY + ChatColor.GREEN + "  Repair All Items" + ChatColor.GRAY + " to fix it."
+                ChatColor.GREEN + "Repair All Items" + ChatColor.GRAY + " to fix it."
             ));
             info.setItemMeta(meta);
         }
@@ -150,7 +152,7 @@ public class BlacksmithGUI implements Listener {
     }
 
     private ItemStack createRepairButton(int cost) {
-        ItemStack repair = new ItemStack(Material.IRON_NUGGET);
+        ItemStack repair = new ItemStack(Material.ANVIL);
         ItemMeta meta = repair.getItemMeta();
         meta.setDisplayName("§bRepair Item");
         List<String> lore = new ArrayList<>();
@@ -165,7 +167,7 @@ public class BlacksmithGUI implements Listener {
     }
 
     private ItemStack createRepairAllButton(int totalCost) {
-        ItemStack repairAll = new ItemStack(Material.ANVIL);
+        ItemStack repairAll = new ItemStack(Material.GRINDSTONE);
         ItemMeta meta = repairAll.getItemMeta();
         meta.setDisplayName("§cRepair All Items");
         List<String> lore = new ArrayList<>();
