@@ -67,8 +67,11 @@ public class EffectRegistry {
         // --- Warrior Spells
         register("IRON_FORTRESS", new IronFortressEffect());
         register("HEROIC_LEAP", new HeroicLeapEffect());
-        register("UPPERCUT", new UppercutEffect());
-        register("GROUND_SLAM", new GroundSlamEffect());
+        register("SHOCKWAVE", new ShockwaveEffect());
+        register("VOLCANIC_BLAST_EFFECT", new VolcanicBlastEffect());
+        register("VORTEX_LEAP_EFFECT", new VortexLeapEffect());
+        register("JUDGEMENT", new JudgementEffect());
+        register("GATE_OF_RUIN_EFFECT", new GateOfRuinEffect());
 
         // --- Rogue Spells
         register("ENDLESS_ASSAULT", new EndlessAssaultEffect());

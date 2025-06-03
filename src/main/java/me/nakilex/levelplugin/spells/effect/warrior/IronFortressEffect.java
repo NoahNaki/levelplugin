@@ -30,17 +30,19 @@ public class IronFortressEffect implements SpellEffect {
         Player player = ctx.getPlayer();
         player.getWorld().playSound(player.getLocation(), Sound.ITEM_SHIELD_BLOCK, 1f, 1f);
 
+        boolean explosive = Boolean.TRUE.equals(ctx.getExtraParam("explosiveShields"));
+        boolean share = Boolean.TRUE.equals(ctx.getExtraParam("shieldAllies"));
+
         List<ArmorStand> shields = new ArrayList<>();
-        for (int i = 0; i < 4; i++) {
-            ArmorStand stand = (ArmorStand) player.getWorld().spawnEntity(player.getLocation(), EntityType.ARMOR_STAND);
-            stand.setInvisible(true);
-            stand.setMarker(true);
-            stand.setSmall(true);
-            stand.setGravity(false);
-            stand.setArms(true);
-            stand.setRightArmPose(new EulerAngle(Math.toRadians(-90), 0, 0));
-            stand.getEquipment().setItemInMainHand(new org.bukkit.inventory.ItemStack(Material.SHIELD));
-            shields.add(stand);
+
+        spawnShields(player, shields);
+
+        if (share) {
+            for (Player ally : player.getWorld().getPlayers()) {
+                if (!ally.equals(player) && ally.getLocation().distanceSquared(player.getLocation()) <= 9) {
+                    spawnShields(ally, shields);
+                }
+            }
         }
 
         new BukkitRunnable() {
@@ -84,10 +86,27 @@ public class IronFortressEffect implements SpellEffect {
                 event.setCancelled(true);
                 ArmorStand shield = shields.remove(0);
                 shield.getWorld().playSound(shield.getLocation(), Sound.ITEM_SHIELD_BREAK, 1f, 1f);
+                if (explosive) {
+                    shield.getWorld().createExplosion(shield.getLocation(), 2f, false, false);
+                }
                 shield.remove();
 
                 if (shields.isEmpty()) HandlerList.unregisterAll(this);
             }
         }, Bukkit.getPluginManager().getPlugin("LevelPlugin"));
+    }
+
+    private void spawnShields(Player target, List<ArmorStand> list) {
+        for (int i = 0; i < 4; i++) {
+            ArmorStand stand = (ArmorStand) target.getWorld().spawnEntity(target.getLocation(), EntityType.ARMOR_STAND);
+            stand.setInvisible(true);
+            stand.setMarker(true);
+            stand.setSmall(true);
+            stand.setGravity(false);
+            stand.setArms(true);
+            stand.setRightArmPose(new EulerAngle(Math.toRadians(-90), 0, 0));
+            stand.getEquipment().setItemInMainHand(new org.bukkit.inventory.ItemStack(Material.SHIELD));
+            list.add(stand);
+        }
     }
 }
