@@ -401,6 +401,22 @@ runes:
         extraParams:
           pierceLevel: 1
 
+  - id: "archer_bow_drone_swarm"
+    name: "Rune of the Swarm"
+    description:
+      - "Deploys an additional Bow Drone."
+    rarity: "UNCOMMON"
+    targetClass: "ARCHER"
+    targetSpell: "bow_drone"
+    unique: false
+    effects:
+      - type: "TRANSFORM"
+        bonusDamagePercent: 0.0
+        cooldownReductionPercent: 0.0
+        newEffectKey: null
+        extraParams:
+          extraDrones: 1
+
 
 
 

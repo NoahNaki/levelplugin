@@ -114,11 +114,15 @@ public class Main extends JavaPlugin {
     private ArcherSpell archerSpell;
     private TipsConfigManager tipsCfg;
     private BroadcastManager broadcastMgr;
-    private final Map<UUID, NPC> activeBowDrones = new HashMap<>();
+    /**
+     * Tracks all active bow drone NPCs for each player. Some runes can add
+     * additional drones so we store a list rather than a single instance.
+     */
+    private final Map<UUID, List<NPC>> activeBowDrones = new HashMap<>();
     private ChestHologramListener chestHologramListener;
     private EquipRunesGUI equipGui;
 
-    public Map<UUID, NPC> getActiveBowDrones() {
+    public Map<UUID, List<NPC>> getActiveBowDrones() {
         return activeBowDrones;
     }
 
