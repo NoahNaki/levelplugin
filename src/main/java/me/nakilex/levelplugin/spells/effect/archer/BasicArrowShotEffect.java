@@ -9,6 +9,7 @@ import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Arrow;
+import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.Player;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -34,6 +35,13 @@ public class BasicArrowShotEffect implements SpellEffect {
         if (obj instanceof Number n) return n.intValue();
         if (obj instanceof String s) {
             try { return Integer.parseInt(s); } catch (NumberFormatException ignored) {}
+        }
+        if (obj instanceof List<?> list) {
+            int sum = 0;
+            for (Object o : list) {
+                if (o instanceof Number n) sum += n.intValue();
+            }
+            return sum;
         }
         return def;
     }
@@ -98,6 +106,7 @@ public class BasicArrowShotEffect implements SpellEffect {
                 arrow.setCustomName("BasicArcherArrow");
                 arrow.setCustomNameVisible(false);
                 arrow.setPierceLevel(Math.max(0, pierceLevel));
+                arrow.setPickupStatus(AbstractArrow.PickupStatus.DISALLOWED);
                 arrow.setMetadata(META_KEY, new FixedMetadataValue(Main.getInstance(), pid));
             }
 
