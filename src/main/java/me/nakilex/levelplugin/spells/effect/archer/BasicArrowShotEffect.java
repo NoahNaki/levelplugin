@@ -4,7 +4,6 @@ package me.nakilex.levelplugin.spells.effect.archer;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
 import me.nakilex.levelplugin.spells.effect.SpellEffect;
-import org.bukkit.Bukkit;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.attribute.Attribute;
@@ -12,7 +11,6 @@ import org.bukkit.entity.Arrow;
 import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.Player;
 import org.bukkit.metadata.FixedMetadataValue;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 import java.util.List;
@@ -24,12 +22,6 @@ import java.util.UUID;
  */
 public class BasicArrowShotEffect implements SpellEffect {
     private static final String META_KEY = "BasicAttack";
-
-    private boolean parseBoolean(Object obj, boolean def) {
-        if (obj instanceof Boolean b) return b;
-        if (obj instanceof String s) return Boolean.parseBoolean(s);
-        return def;
-    }
 
     private int parseInt(Object obj, int def) {
         if (obj instanceof Number n) return n.intValue();
@@ -51,13 +43,7 @@ public class BasicArrowShotEffect implements SpellEffect {
         Player player = ctx.getPlayer();
         UUID pid = player.getUniqueId();
 
-        // Debug: list all raw extraProjectiles entries from context
         Object rawExtra = ctx.getExtraParam("extraProjectiles");
-        if (rawExtra == null) {
-            Bukkit.getLogger().info("[DBG] BasicArrowShotEffect -> rawExtra is null");
-        } else {
-            Bukkit.getLogger().info("[DBG] BasicArrowShotEffect -> rawExtra class=" + rawExtra.getClass().getSimpleName() + ", value=" + rawExtra);
-        }
 
         // Determine number of arrows: base 1 + extraProjectiles from runes
         int extra = 0;
@@ -70,18 +56,13 @@ public class BasicArrowShotEffect implements SpellEffect {
                 if (n instanceof Number) {
                     int val = ((Number) n).intValue();
                     sum += val;
-                    Bukkit.getLogger().info("[DBG] BasicArrowShotEffect -> list entry=" + val);
                 }
             }
             extra = sum;
         }
-        // Debug: log total extra projectiles
-        Bukkit.getLogger().info("[DBG] BasicArrowShotEffect -> total extraProjectiles=" + extra);
         int totalArrows = 1 + extra;
-        Bukkit.getLogger().info("[DBG] BasicArrowShotEffect -> totalArrows=" + totalArrows);
 
-        boolean instantShot = parseBoolean(ctx.getExtraParam("instantShot"), false);
-        int pierceLevel     = parseInt(ctx.getExtraParam("pierceLevel"), 0);
+        int pierceLevel = parseInt(ctx.getExtraParam("pierceLevel"), 0);
 
         // Calculate damage per arrow: weapon base + STR modifier
         double baseAtk = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue();
@@ -114,13 +95,6 @@ public class BasicArrowShotEffect implements SpellEffect {
             player.getWorld().spawnParticle(Particle.INSTANT_EFFECT, player.getLocation(), 20, 0.5, 1, 0.5);
         };
 
-        if (instantShot) {
-            shootArrows.run();
-        } else {
-            player.getWorld().playSound(player.getLocation(), Sound.ITEM_CROSSBOW_LOADING_START, 1f, 1f);
-            new BukkitRunnable() {
-                @Override public void run() { shootArrows.run(); }
-            }.runTaskLater(Main.getInstance(), 10L);
-        }
+        shootArrows.run();
     }
 }

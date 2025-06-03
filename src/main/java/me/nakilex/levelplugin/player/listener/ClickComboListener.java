@@ -32,6 +32,7 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.*;
+import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.attribute.Attribute;
@@ -161,23 +162,44 @@ public class ClickComboListener implements Listener {
 
         // —— Archer bow logic ——
         if ("archer".equals(className) && mainHand.getType() == Material.BOW) {
-            event.setCancelled(true);
             if (!activeCombo.isEmpty()) {
-                Bukkit.getLogger().info(
-                    "[DBG] Archer combo detected: " + activeCombo +
-                        ", recording click"
-                );
+                event.setCancelled(true);
                 recordComboClick(player, "R");
-            } else {
-                Bukkit.getLogger().info("[DBG] No combo: invoking BASIC_ATTACK effect");
+                return;
+            }
+
+            if (hasQuickdrawRune(player)) {
+                event.setCancelled(true);
                 handleSpellCast(player, "BASIC_ATTACK");
             }
+            // else allow vanilla drawing; shot handled in EntityShootBowEvent
             return;
         }
 
         // Default: record combo
         Bukkit.getLogger().info("[DBG] Not an archer bow click, recording combo R");
         recordComboClick(player, "R");
+    }
+
+    @EventHandler
+    public void onBowShoot(EntityShootBowEvent event) {
+        if (!(event.getEntity() instanceof Player player)) return;
+        ItemStack bow = event.getBow();
+        if (bow == null || bow.getType() != Material.BOW) return;
+
+        PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
+        if (ps.playerClass != PlayerClass.ARCHER) return;
+
+        String activeCombo = getActiveCombo(player);
+        event.setConsumeItem(false);
+
+        if (!activeCombo.isEmpty()) {
+            event.setCancelled(true);
+            return;
+        }
+
+        event.setCancelled(true);
+        handleSpellCast(player, "BASIC_ATTACK");
     }
 
 
@@ -433,6 +455,18 @@ public class ClickComboListener implements Listener {
         StatsManager.getInstance().recalcDerivedStats(player);
         long nextUse = now + spell.getCooldownSeconds() * 1000L;
         cdMap.put(spell.getId(), nextUse);
+    }
+
+    private boolean hasQuickdrawRune(Player player) {
+        List<Rune> runes = Main.getInstance()
+            .getRunesManager()
+            .getRunesForSpell(player, "basic_arrow");
+        for (Rune r : runes) {
+            if ("archer_basic_shot_quickdraw".equalsIgnoreCase(r.getId())) {
+                return true;
+            }
+        }
+        return false;
     }
 
 
