@@ -102,7 +102,7 @@ public class BlacksmithGUI implements Listener {
             lore.add("§7Cost: §6⛃ " + upgradeCost);
             lore.add("§7Success Chance: §6" + successChance + "%");
         } else {
-            lore.add("§7Place an item in slot 13.");
+            lore.add("§7Place an item in upgrade slot.");
         }
         meta.setLore(lore);
         upgrade.setItemMeta(meta);
@@ -117,7 +117,7 @@ public class BlacksmithGUI implements Listener {
         if (cost > 0) {
             lore.add("§7Cost: §6⛃ " + cost);
         } else {
-            lore.add("§7Place an item in slot 13.");
+            lore.add("§7Place an item in the repair slot.");
         }
         meta.setLore(lore);
         repair.setItemMeta(meta);
@@ -132,7 +132,7 @@ public class BlacksmithGUI implements Listener {
         if (totalCost > 0) {
             lore.add("§7Total Cost: §6⛃ " + totalCost);
         } else {
-            lore.add("§7No damaged custom items found.");
+            lore.add("§7No damaged items found.");
         }
         meta.setLore(lore);
         repairAll.setItemMeta(meta);
@@ -293,7 +293,7 @@ public class BlacksmithGUI implements Listener {
             }
         }
         if (totalCost == 0) {
-            player.sendMessage("§7No damaged custom items found.");
+            player.sendMessage("§7No damaged items found.");
             return;
         }
         try {
