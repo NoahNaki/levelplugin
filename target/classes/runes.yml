@@ -368,6 +368,55 @@ runes:
         extraParams:
           extraProjectiles: 1
 
+  - id: "archer_basic_shot_quickdraw"
+    name: "Rune of Quickdraw"
+    description:
+      - "Removes the draw animation"
+      - "allowing instant shots."
+    rarity: "RARE"
+    targetClass: "ARCHER"
+    targetSpell: "basic_arrow"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        bonusDamagePercent: 0.0
+        cooldownReductionPercent: 0.0
+        newEffectKey: null
+        extraParams:
+          instantShot: true
+
+  - id: "archer_basic_shot_piercing"
+    name: "Rune of Piercing"
+    description:
+      - "Arrows pierce one additional target."
+    rarity: "UNCOMMON"
+    targetClass: "ARCHER"
+    targetSpell: "basic_arrow"
+    unique: false
+    effects:
+      - type: "TRANSFORM"
+        bonusDamagePercent: 0.0
+        cooldownReductionPercent: 0.0
+        newEffectKey: null
+        extraParams:
+          pierceLevel: 1
+
+  - id: "archer_bow_drone_swarm"
+    name: "Rune of the Swarm"
+    description:
+      - "Deploys an additional Bow Drone."
+    rarity: "UNCOMMON"
+    targetClass: "ARCHER"
+    targetSpell: "bow_drone"
+    unique: false
+    effects:
+      - type: "TRANSFORM"
+        bonusDamagePercent: 0.0
+        cooldownReductionPercent: 0.0
+        newEffectKey: null
+        extraParams:
+          extraDrones: 1
+
 
 
 
