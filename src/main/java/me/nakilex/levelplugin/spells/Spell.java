@@ -151,6 +151,7 @@ public class Spell {
         }
         ps.setCurrentMana(ps.getCurrentMana() - (int)Math.ceil(cost));
         recordSpellCast(player);
+        Main.getInstance().getQuestManager().handleCast(player, id);
 
         // 5) Start cooldown (ctx.getFinalCooldown returns 0 if applyCooldown==false)
         cooldownMgr.setCooldown(pid, id, ctx.getFinalCooldown());

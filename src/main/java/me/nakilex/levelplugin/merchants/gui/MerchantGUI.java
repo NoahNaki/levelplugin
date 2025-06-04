@@ -319,6 +319,7 @@ public class MerchantGUI implements Listener {
                 ItemManager.getInstance().addInstance(newInstance);
                 ItemStack purchasedItem = ItemUtil.createItemStackFromCustomItem(newInstance, mItem.getAmount(), player);
                 player.getInventory().addItem(purchasedItem);
+                Main.getInstance().getQuestManager().handleBuy(player, String.valueOf(mItem.getItemId()));
                 player.sendMessage(ChatColor.GREEN +
                     "You purchased " +
                     purchasedItem.getItemMeta().getDisplayName() +

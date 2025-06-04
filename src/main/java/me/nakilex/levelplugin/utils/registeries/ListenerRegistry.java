@@ -21,6 +21,7 @@ import me.nakilex.levelplugin.mob.managers.DmgNumberToggleManager;
 import me.nakilex.levelplugin.mob.managers.MythicMobNameManager;
 import me.nakilex.levelplugin.npc.listeners.NPCClickListener;
 import me.nakilex.levelplugin.npc.listeners.NPCCommandListener;
+import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
 import me.nakilex.levelplugin.party.PartyChatListener;
 import me.nakilex.levelplugin.party.PartyInviteListener;
 import me.nakilex.levelplugin.party.PartyManager;
@@ -34,6 +35,7 @@ import me.nakilex.levelplugin.runes.gui.EquipRunesGUI;
 import me.nakilex.levelplugin.runes.gui.IdentifyRunesGUI;
 import me.nakilex.levelplugin.runes.manager.RunesManager;
 import me.nakilex.levelplugin.salvage.listeners.SalvageListener;
+import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
 import me.nakilex.levelplugin.spells.ArcherSpell;
 import me.nakilex.levelplugin.spells.RogueSpell;
@@ -41,6 +43,11 @@ import me.nakilex.levelplugin.spells.gui.SpellGUIListener;
 import me.nakilex.levelplugin.spells.listener.*;
 import me.nakilex.levelplugin.trade.listeners.PlayerRightClicksPlayerListener;
 import me.nakilex.levelplugin.utils.*;
+import me.nakilex.levelplugin.quests.listeners.QuestKillListener;
+import me.nakilex.levelplugin.quests.listeners.QuestCraftListener;
+import me.nakilex.levelplugin.quests.gui.QuestGUIListener;
+import me.nakilex.levelplugin.npc.listeners.NPCDialogMoveListener;
+import me.nakilex.levelplugin.quests.managers.QuestManager;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.PluginManager;
 
@@ -67,8 +74,10 @@ public class ListenerRegistry {
                                          IdentifyRunesGUI identifyRunesGUI,
                                          RunesManager runesManager,
                                          EquipRunesGUI   equipGui,
-                                         ChestHologramListener chestHologramListener
-    ) {
+                                         ChestHologramListener chestHologramListener,
+                                         QuestManager questManager,
+                                        NPCDialogManager dialogManager,
+                                         PlayerScoreboardManager scoreboardManager) {
 
 
         PluginManager pm = plugin.getServer().getPluginManager();
@@ -92,7 +101,7 @@ public class ListenerRegistry {
         pm.registerEvents(new ClassMenuListener(), plugin);
         pm.registerEvents(blacksmithGUI, plugin);
         pm.registerEvents(horseGUI, plugin);
-        pm.registerEvents(new NPCClickListener(economyManager), plugin);
+        pm.registerEvents(new NPCClickListener(economyManager, questManager, dialogManager), plugin);
         pm.registerEvents(new NPCCommandListener(), plugin);
         pm.registerEvents(new PlayerRightClicksPlayerListener(), plugin);
         pm.registerEvents(new TradingWindow(), plugin);
@@ -128,6 +137,11 @@ public class ListenerRegistry {
         pm.registerEvents(new ArcherSpell(), plugin);
         pm.registerEvents(new IdentifyRunesGUI(plugin, runesManager), plugin);
         pm.registerEvents(new EquipRunesGUI(plugin, runesManager, identifyRunesGUI), plugin);
+        pm.registerEvents(new QuestKillListener(questManager), plugin);
+        pm.registerEvents(new QuestCraftListener(questManager), plugin);
+        pm.registerEvents(new QuestGUIListener(questManager), plugin);
+        pm.registerEvents(new NPCDialogMoveListener(dialogManager), plugin);
+        pm.registerEvents(plugin.getScoreboardManager(), plugin);
 
 
 

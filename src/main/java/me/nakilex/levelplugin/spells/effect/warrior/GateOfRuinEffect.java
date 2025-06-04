@@ -41,7 +41,7 @@ public class GateOfRuinEffect implements SpellEffect {
                     world.spawnParticle(Particle.SWEEP_ATTACK, loc, 1, 0,0,0,0);
                     if (loc.getY() <= base.getY()+1) {
                         world.playSound(loc, Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
-                        world.spawnParticle(Particle.EXPLOSION_LARGE, loc, 1);
+                        world.spawnParticle(Particle.EXPLOSION, loc, 1);
                         for (Entity e : world.getNearbyEntities(loc, 2,2,2)) {
                             if (e instanceof LivingEntity le && !le.equals(player)) {
                                 if (le instanceof Player p && !DuelManager.getInstance().areInDuel(player.getUniqueId(), p.getUniqueId()))

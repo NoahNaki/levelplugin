@@ -66,6 +66,7 @@ public class ClassMenuListener implements Listener {
                 + ChatColor.GREEN + "You have selected " + ChatColor.AQUA + className + ChatColor.GREEN + "!");
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
             player.closeInventory();
+            me.nakilex.levelplugin.Main.getInstance().getQuestManager().handleClassSelect(player);
         }
 
         // After setting class, handle weapon stats and refresh tooltips

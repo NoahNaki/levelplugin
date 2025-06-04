@@ -44,6 +44,7 @@ import me.nakilex.levelplugin.storage.StorageManager;
 import me.nakilex.levelplugin.storage.events.StorageEvents;
 import me.nakilex.levelplugin.tips.BroadcastManager;
 import me.nakilex.levelplugin.tips.TipsConfigManager;
+import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.trade.data.ConfigValues;
 import me.nakilex.levelplugin.trade.utils.MessageStrings;
 import me.nakilex.levelplugin.utils.DealMaker;
@@ -115,6 +116,9 @@ public class Main extends JavaPlugin {
     private ArcherSpell archerSpell;
     private TipsConfigManager tipsCfg;
     private BroadcastManager broadcastMgr;
+    private me.nakilex.levelplugin.quests.managers.QuestManager questManager;
+    private me.nakilex.levelplugin.npc.dialog.NPCDialogManager dialogManager;
+    private me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager scoreboardManager;
     /**
      * Tracks all active bow drone NPCs for each player. Some runes can add
      * additional drones so we store a list rather than a single instance.
@@ -232,6 +236,10 @@ public class Main extends JavaPlugin {
         tipsCfg = new TipsConfigManager(this);
         broadcastMgr = new BroadcastManager(this, this.tipsCfg);
         broadcastMgr.start();
+        questManager = new QuestManager(this, partyManager);
+        dialogManager = new me.nakilex.levelplugin.npc.dialog.NPCDialogManager();
+        scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(
+                this, economyManager, gemsManager, partyManager, questManager);
         cooldownManager.setLootChestManager(lootChestManager);
         equipGui = new EquipRunesGUI(this, runesManager, identifyRunesGUI);
 
@@ -277,7 +285,8 @@ public class Main extends JavaPlugin {
             identifyRunesGUI,
             runesManager,
             equipGui,
-            broadcastMgr
+            broadcastMgr,
+            questManager
         );
 
 
@@ -303,7 +312,10 @@ public class Main extends JavaPlugin {
             identifyRunesGUI,
             runesManager,
             equipGui,
-            chestHologramListener
+            chestHologramListener,
+            questManager,
+            dialogManager,
+            scoreboardManager
         );
 
 
@@ -344,6 +356,10 @@ public class Main extends JavaPlugin {
 
         if (lootChestManager != null) {
             lootChestManager.removeAllChests(); // Remove holograms and clean up
+        }
+
+        if (questManager != null) {
+            questManager.saveProgress();
         }
 
 
@@ -449,6 +465,14 @@ public class Main extends JavaPlugin {
 
     public RunesManager getRunesManager() {
         return runesManager;
+    }
+
+    public QuestManager getQuestManager() {
+        return questManager;
+    }
+
+    public me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager getScoreboardManager() {
+        return scoreboardManager;
     }
 
     private void createCustomConfig() {

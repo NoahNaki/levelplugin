@@ -49,6 +49,8 @@ import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.lootchests.config.ConfigManager;
+import me.nakilex.levelplugin.quests.commands.QuestCommand;
+import me.nakilex.levelplugin.quests.managers.QuestManager;
 
 public class CommandRegistry {
 
@@ -72,7 +74,8 @@ public class CommandRegistry {
                                         IdentifyRunesGUI identifyGui,
                                         RunesManager runesManager,
                                         EquipRunesGUI equipGui,
-                                        BroadcastManager broadcastMgr) { // ✅ added here
+                                        BroadcastManager broadcastMgr,
+                                        QuestManager questManager) {
 
 
         plugin.getCommand("addpoints").setExecutor(new AddPointsCommand());
@@ -106,6 +109,7 @@ public class CommandRegistry {
         plugin.getCommand("identifyrunes").setExecutor(new IdentifyRunesCommand(identifyGui));
         plugin.getCommand("runebrowser").setExecutor(new RuneBrowser(plugin, runesManager));
         plugin.getCommand("equiprunes").setExecutor(new EquipRunesCommand(equipGui));
+        plugin.getCommand("quest").setExecutor(new QuestCommand(questManager));
 
 
 

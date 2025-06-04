@@ -110,6 +110,11 @@ public class StaticItemListener implements Listener {
             player.performCommand("horse spawn");
             event.setCancelled(true);
 
+        } else if (inHand != null && inHand.isSimilar(STATIC_QUEST_BOOK)) {
+            player.performCommand("quest");
+            event.setCancelled(true);
+
         }
+
     }
 }

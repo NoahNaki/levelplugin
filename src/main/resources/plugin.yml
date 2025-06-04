@@ -123,3 +123,6 @@ commands:
     usage: /runebrowser
 
 
+  quest:
+    description: Manage quests
+    usage: /quest [start|reset|complete|status|debug]

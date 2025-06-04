@@ -8,6 +8,9 @@ import me.nakilex.levelplugin.player.attributes.managers.HealthRegenTask;
 import me.nakilex.levelplugin.player.attributes.managers.ManaRegenTask;
 import me.nakilex.levelplugin.horse.utils.HorseSaverTask;
 import me.nakilex.levelplugin.spells.managers.ManaCostTracker;
+import me.nakilex.levelplugin.scoreboard.ScoreboardTask;
+import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
+import me.nakilex.levelplugin.quests.tasks.QuestNPCEffectTask;
 
 public class TaskRegistry {
 
@@ -17,5 +20,12 @@ public class TaskRegistry {
         new HealthRegenTask().runTaskTimer(plugin, 20L, 20L);
         new ManaRegenTask().runTaskTimer(plugin, 20L, 20L);
         new HorseSaverTask(horseManager, horseConfigManager).runTaskTimer(plugin, 20L, 20L);
+
+        PlayerScoreboardManager sbManager = plugin.getScoreboardManager();
+        if (sbManager != null) {
+            new ScoreboardTask(sbManager).runTaskTimer(plugin, 20L, 20L);
+        }
+
+        new QuestNPCEffectTask(plugin.getQuestManager()).runTaskTimer(plugin, 20L, 20L);
     }
 }
