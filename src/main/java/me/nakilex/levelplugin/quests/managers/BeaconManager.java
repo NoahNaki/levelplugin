@@ -24,15 +24,12 @@ public class BeaconManager implements Listener {
         if (player == null || location == null) return;
 
         Color rgb = color.getColor();
-        // Slightly larger size for a thicker beam
         Particle.DustOptions dust = new Particle.DustOptions(rgb, 1.5f);
         Location temp = location.clone();
         temp.add(0.5, 0, 0.5);
         for (double y = 0; y <= 10; y += 0.5) {
             temp.setY(location.getY() + y);
-            player.spawnParticle(Particle.CLOUD, temp, 0, 0, 0, 0, 1, dust, true);
-        }
-    }
+            player.spawnParticle(Particle.REDSTONE, temp, 0, 0, 0, 0, 1, dust, true);
 
     public void removeBeam(Player player) {
         // no persistent state; nothing to clean up

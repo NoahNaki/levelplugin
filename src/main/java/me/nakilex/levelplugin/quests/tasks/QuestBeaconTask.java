@@ -57,11 +57,10 @@ public class QuestBeaconTask extends BukkitRunnable {
                 if (dist > 64) {
                     org.bukkit.util.Vector dir = loc.toVector().subtract(playerLoc.toVector());
                     dir.setY(0).normalize();
-                    // Place the temporary beam further ahead when the destination is far away
-                    target = playerLoc.clone().add(dir.multiply(40));
+                    target = playerLoc.clone().add(dir.multiply(20));
                     target.setY(playerLoc.getY());
                 }
-                beaconManager.showBeam(player, target, DyeColor.WHITE);
+                beaconManager.showBeam(player, target, DyeColor.LIGHT_BLUE);
             }
         }
     }

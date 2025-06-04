@@ -124,7 +124,7 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
                 if (member != null && member.isOnline()) {
                     int lvl = levelManager.getLevel(member);
                     String hp = (int) member.getHealth() + "/" + (int) member.getMaxHealth();
-                    Score s = obj.getScore(ChatColor.GRAY + "[" + lvl + "]" + " " + ChatColor.WHITE + member.getName() + " " + ChatColor.GRAY + hp + " " + ChatColor.RED + "\u2764");
+                    Score s = obj.getScore(ChatColor.GRAY + "[" + lvl + " " + ChatColor.WHITE + member.getName() + " " + ChatColor.GRAY + hp + " " + ChatColor.RED + "\u2764");
                     s.setScore(line--);
                 } else {
                     String name = Bukkit.getOfflinePlayer(memberId).getName();
