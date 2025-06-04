@@ -57,13 +57,14 @@ public class QuestManager {
         // Register quests here manually.
         Quest tutorial = new me.nakilex.levelplugin.quests.def.TutorialQuest();
         registerQuest(tutorial);
-        // NPC ID 273 is the tutorial quest giver
-        registerNpcQuest(273, tutorial.getId());
         plugin.getLogger().info("Registered " + quests.size() + " quests.");
     }
 
     public void registerQuest(Quest quest) {
         quests.put(quest.getId(), quest);
+        if (quest.getNpcGiverId() != null) {
+            npcQuestMap.put(quest.getNpcGiverId(), quest.getId());
+        }
     }
 
     public void registerNpcQuest(int npcId, String questId) {

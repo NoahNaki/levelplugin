@@ -24,7 +24,13 @@ public class TutorialQuest extends Quest {
                 1,
                 List.of(),
                 null,
-                new QuestReward(0, 500, 0, List.of(), List.of())
+                new QuestReward(0, 500, 0, List.of(), List.of()),
+                273,
+                List.of(
+                        "Altan: Hello, accept my quest please?",
+                        "Altan: If you do, I'll give you many rewards!",
+                        "Altan: Such as 100 coins and 100 xp!"
+                )
         );
     }
 }

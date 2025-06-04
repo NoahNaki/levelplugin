@@ -21,6 +21,7 @@ import me.nakilex.levelplugin.mob.managers.DmgNumberToggleManager;
 import me.nakilex.levelplugin.mob.managers.MythicMobNameManager;
 import me.nakilex.levelplugin.npc.listeners.NPCClickListener;
 import me.nakilex.levelplugin.npc.listeners.NPCCommandListener;
+import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
 import me.nakilex.levelplugin.party.PartyChatListener;
 import me.nakilex.levelplugin.party.PartyInviteListener;
 import me.nakilex.levelplugin.party.PartyManager;
@@ -72,7 +73,8 @@ public class ListenerRegistry {
                                          RunesManager runesManager,
                                          EquipRunesGUI   equipGui,
                                          ChestHologramListener chestHologramListener,
-                                         QuestManager questManager
+                                         QuestManager questManager,
+                                         NPCDialogManager dialogManager
     ) {
 
 
@@ -97,7 +99,7 @@ public class ListenerRegistry {
         pm.registerEvents(new ClassMenuListener(), plugin);
         pm.registerEvents(blacksmithGUI, plugin);
         pm.registerEvents(horseGUI, plugin);
-        pm.registerEvents(new NPCClickListener(economyManager), plugin);
+        pm.registerEvents(new NPCClickListener(economyManager, questManager, dialogManager), plugin);
         pm.registerEvents(new NPCCommandListener(), plugin);
         pm.registerEvents(new PlayerRightClicksPlayerListener(), plugin);
         pm.registerEvents(new TradingWindow(), plugin);
