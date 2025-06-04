@@ -4,14 +4,13 @@ import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.data.QuestObjective;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.quests.managers.BeaconManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Particle;
+import org.bukkit.DyeColor;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import java.util.UUID;
 
 /**
  * Periodically displays a temporary beacon beam for players at the location of
@@ -20,9 +19,11 @@ import java.util.UUID;
  */
 public class QuestBeaconTask extends BukkitRunnable {
     private final QuestManager questManager;
+    private final BeaconManager beaconManager;
 
-    public QuestBeaconTask(QuestManager questManager) {
+    public QuestBeaconTask(QuestManager questManager, BeaconManager beaconManager) {
         this.questManager = questManager;
+        this.beaconManager = beaconManager;
     }
 
     @Override
@@ -50,9 +51,9 @@ public class QuestBeaconTask extends BukkitRunnable {
                 loc = obj.getBeaconLocation();
             }
             if (loc != null) {
-                Location beamLoc = loc.clone().add(0.5, 0, 0.5);
-                player.spawnParticle(Particle.DUST_PILLAR, beamLoc, 0, 0, 0, 0, 0,
-                        Material.LIGHT_BLUE_STAINED_GLASS.createBlockData());
+                beaconManager.showBeam(player, loc, DyeColor.LIGHT_BLUE);
+            } else {
+                beaconManager.removeBeam(player);
             }
         }
     }
