@@ -284,6 +284,7 @@ public class BlacksmithGUI implements Listener {
                 }
                 if (upgradeManager.attemptUpgrade(player, item, ci)) {
                     player.sendMessage("§aUpgrade successful!");
+                    Main.getInstance().getQuestManager().handleUpgrade(player, String.valueOf(ci.getId()));
                     gui.setItem(13, item);
                 } else {
                     player.sendMessage("§cUpgrade failed!");

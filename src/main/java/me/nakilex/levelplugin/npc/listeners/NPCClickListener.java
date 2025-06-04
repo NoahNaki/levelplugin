@@ -38,6 +38,7 @@ public class NPCClickListener implements Listener {
 
                 // Give the player 10 coins when interacting with this NPC
                 economyManager.addCoins(player, 10);
+                me.nakilex.levelplugin.Main.getInstance().getQuestManager().handleTalk(player, "npc1");
 
                 // Notify the player
                 player.sendMessage("You received 10 coins for interacting with NPC ID " + npc.getId() + "!");

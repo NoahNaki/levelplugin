@@ -41,6 +41,10 @@ import me.nakilex.levelplugin.spells.gui.SpellGUIListener;
 import me.nakilex.levelplugin.spells.listener.*;
 import me.nakilex.levelplugin.trade.listeners.PlayerRightClicksPlayerListener;
 import me.nakilex.levelplugin.utils.*;
+import me.nakilex.levelplugin.quests.listeners.QuestKillListener;
+import me.nakilex.levelplugin.quests.listeners.QuestCraftListener;
+import me.nakilex.levelplugin.quests.gui.QuestGUIListener;
+import me.nakilex.levelplugin.quests.managers.QuestManager;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.PluginManager;
 
@@ -67,7 +71,8 @@ public class ListenerRegistry {
                                          IdentifyRunesGUI identifyRunesGUI,
                                          RunesManager runesManager,
                                          EquipRunesGUI   equipGui,
-                                         ChestHologramListener chestHologramListener
+                                         ChestHologramListener chestHologramListener,
+                                         QuestManager questManager
     ) {
 
 
@@ -128,6 +133,9 @@ public class ListenerRegistry {
         pm.registerEvents(new ArcherSpell(), plugin);
         pm.registerEvents(new IdentifyRunesGUI(plugin, runesManager), plugin);
         pm.registerEvents(new EquipRunesGUI(plugin, runesManager, identifyRunesGUI), plugin);
+        pm.registerEvents(new QuestKillListener(questManager), plugin);
+        pm.registerEvents(new QuestCraftListener(questManager), plugin);
+        pm.registerEvents(new QuestGUIListener(questManager), plugin);
 
 
 

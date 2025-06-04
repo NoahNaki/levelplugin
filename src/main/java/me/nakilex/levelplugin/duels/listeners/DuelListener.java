@@ -229,6 +229,8 @@ public class DuelListener implements Listener {
             ChatFormatter.sendCenteredMessage(damager,
                 "§aYou have won the duel against " + victim.getName() + "!");
 
+            me.nakilex.levelplugin.Main.getInstance().getQuestManager().handleDuel(damager);
+
             // Prevent actual death
             event.setCancelled(true);
         }
