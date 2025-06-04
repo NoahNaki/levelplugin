@@ -11,5 +11,6 @@ public enum QuestObjectiveType {
     DUEL,
     ESCORT,
     TALK,
-    EXPLORE
+    EXPLORE,
+    SELECT_CLASS
 }

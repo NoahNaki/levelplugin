@@ -1,6 +1,9 @@
 package me.nakilex.levelplugin.npc.listeners;
 
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
+import me.nakilex.levelplugin.quests.data.Quest;
+import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.quests.gui.QuestState;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.entity.Player;
@@ -33,15 +36,13 @@ public class NPCClickListener implements Listener {
             // Retrieve the NPC that was clicked
             NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
 
-            // Check for a specific NPC by ID
-            if (npc.getId() == 1) { // Replace '1' with your NPC ID
-
-                // Give the player 10 coins when interacting with this NPC
-                economyManager.addCoins(player, 10);
-                me.nakilex.levelplugin.Main.getInstance().getQuestManager().handleTalk(player, "npc1");
-
-                // Notify the player
-                player.sendMessage("You received 10 coins for interacting with NPC ID " + npc.getId() + "!");
+            QuestManager qm = me.nakilex.levelplugin.Main.getInstance().getQuestManager();
+            Quest quest = qm.getQuestByNpcId(npc.getId());
+            if (quest != null) {
+                qm.handleTalk(player, "npc" + npc.getId());
+                if (qm.getQuestState(player, quest) == QuestState.AVAILABLE) {
+                    qm.startQuest(player, quest.getId());
+                }
             }
         }
     }

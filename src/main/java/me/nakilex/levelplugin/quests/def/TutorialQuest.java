@@ -1,0 +1,30 @@
+package me.nakilex.levelplugin.quests.def;
+
+import me.nakilex.levelplugin.quests.data.*;
+
+import java.util.Arrays;
+import java.util.List;
+
+public class TutorialQuest extends Quest {
+
+    private static List<QuestObjective> createObjectives() {
+        return Arrays.asList(
+                new QuestObjective(QuestObjectiveType.SELECT_CLASS, "ANY", 1),
+                new QuestObjective(QuestObjectiveType.BUY, "class_weapon", 1),
+                new QuestObjective(QuestObjectiveType.CAST, "any_spell", 1)
+        );
+    }
+
+    public TutorialQuest() {
+        super(
+                "tutorial",
+                "First Steps",
+                "Learn the basics of the game.",
+                createObjectives(),
+                1,
+                List.of(),
+                null,
+                new QuestReward(0, 500, 0, List.of(), List.of())
+        );
+    }
+}

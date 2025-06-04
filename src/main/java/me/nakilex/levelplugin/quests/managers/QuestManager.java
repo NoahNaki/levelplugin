@@ -4,7 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.party.Party;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
-import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.quests.data.*;
 import me.nakilex.levelplugin.quests.gui.QuestState;
@@ -23,10 +23,10 @@ public class QuestManager {
     private final PartyManager partyManager;
     private final LevelManager levelManager;
     private final Map<String, Quest> quests = new HashMap<>();
+    private final Map<Integer, String> npcQuestMap = new HashMap<>();
     private final Map<UUID, PlayerQuestProgress> activeQuests = new HashMap<>();
     private final Map<UUID, Set<String>> completedQuests = new HashMap<>();
     private boolean debug = false;
-    private FileConfiguration questConfig;
     private FileConfiguration progressConfig;
     private File progressFile;
 
@@ -34,19 +34,11 @@ public class QuestManager {
         this.plugin = plugin;
         this.partyManager = partyManager;
         this.levelManager = plugin.getLevelManager();
-        loadQuestFile();
-        loadQuests();
+        registerDefaultQuests();
         loadProgressFile();
         loadProgress();
     }
 
-    private void loadQuestFile() {
-        File file = new File(plugin.getDataFolder(), "quests.yml");
-        if (!file.exists()) {
-            plugin.saveResource("quests.yml", false);
-        }
-        questConfig = YamlConfiguration.loadConfiguration(file);
-    }
 
     private void loadProgressFile() {
         progressFile = new File(plugin.getDataFolder(), "player_quests.yml");
@@ -60,50 +52,26 @@ public class QuestManager {
         progressConfig = YamlConfiguration.loadConfiguration(progressFile);
     }
 
-    private void loadQuests() {
+    private void registerDefaultQuests() {
         quests.clear();
-        ConfigurationSection qs = questConfig.getConfigurationSection("quests");
-        if (qs == null) return;
-        for (String key : qs.getKeys(false)) {
-            ConfigurationSection sec = qs.getConfigurationSection(key);
-            if (sec == null) continue;
-            String name = sec.getString("name", key);
-            String desc = sec.getString("description", "");
-            int levelReq = sec.getInt("level", 1);
-            String classStr = sec.getString("class", "ANY");
-            PlayerClass classReq = "ANY".equalsIgnoreCase(classStr) ? null : PlayerClass.valueOf(classStr.toUpperCase());
-            List<String> questReq = sec.getStringList("requires");
-            List<QuestObjective> objList = new ArrayList<>();
-            List<Map<?, ?>> objs = sec.getMapList("objectives");
-            for (Map<?, ?> o : objs) {
-                try {
-                    QuestObjectiveType type = QuestObjectiveType.valueOf(o.get("type").toString());
-                    String target = o.get("target").toString();
-                    int amount = Integer.parseInt(o.get("amount").toString());
-                    objList.add(new QuestObjective(type, target, amount));
-                } catch (Exception e) {
-                    plugin.getLogger().warning("Failed to load objective in quest " + key + ": " + e.getMessage());
-                }
-            }
-            ConfigurationSection rewardSec = sec.getConfigurationSection("rewards");
-            QuestReward reward = null;
-            if (rewardSec != null) {
-                int xp = rewardSec.getInt("xp", 0);
-                int coins = rewardSec.getInt("coins", 0);
-                int gems = rewardSec.getInt("gems", 0);
-                List<Integer> items = new ArrayList<>();
-                for (Object obj : rewardSec.getIntegerList("items")) {
-                    items.add((Integer) obj);
-                }
-                List<String> runes = rewardSec.getStringList("runes");
-                reward = new QuestReward(xp, coins, gems, items, runes);
-            } else {
-                reward = new QuestReward(0,0,0,null,null);
-            }
-            Quest quest = new Quest(key, name, desc, objList, levelReq, questReq, classReq, reward);
-            quests.put(key, quest);
-        }
-        plugin.getLogger().info("Loaded " + quests.size() + " quests.");
+        // Register quests here manually.
+        Quest tutorial = new me.nakilex.levelplugin.quests.def.TutorialQuest();
+        registerQuest(tutorial);
+        registerNpcQuest(1, tutorial.getId());
+        plugin.getLogger().info("Registered " + quests.size() + " quests.");
+    }
+
+    public void registerQuest(Quest quest) {
+        quests.put(quest.getId(), quest);
+    }
+
+    public void registerNpcQuest(int npcId, String questId) {
+        npcQuestMap.put(npcId, questId);
+    }
+
+    public Quest getQuestByNpcId(int npcId) {
+        String id = npcQuestMap.get(npcId);
+        return id == null ? null : quests.get(id);
     }
 
     private void loadProgress() {
@@ -318,6 +286,13 @@ public class QuestManager {
         updateObjective(player, QuestObjectiveType.EXPLORE, regionId, 1);
     }
 
+    public void handleClassSelect(Player player) {
+        if (debug) {
+            plugin.getLogger().info("[QuestDebug] " + player.getName() + " selected a class");
+        }
+        updateObjective(player, QuestObjectiveType.SELECT_CLASS, "ANY", 1);
+    }
+
     private boolean requirementsMet(Player player, Quest quest) {
         return checkRequirements(player, quest, true);
     }
@@ -336,7 +311,7 @@ public class QuestManager {
 
         PlayerClass required = quest.getClassRequirement();
         if (required != null) {
-            PlayerClass current = PlayerClassManager.getInstance().getPlayerClass(player);
+            PlayerClass current = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass;
             if (current != required) {
                 if (sendMsg)
                     player.sendMessage("§cThis quest requires the " + required.name() + " class.");
