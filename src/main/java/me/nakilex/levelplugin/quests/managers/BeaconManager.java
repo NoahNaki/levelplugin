@@ -4,35 +4,48 @@ import org.bukkit.Color;
 import org.bukkit.DyeColor;
 import org.bukkit.Location;
 import org.bukkit.Particle;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 
 /**
- * Manages temporary particle "beacon" beams for navigation.
- * The effects are client side only and do not modify the world.
+ * Client-side, lime-green, rectangular beacon beam.
  */
 public class BeaconManager implements Listener {
 
     /**
-     * Show a colored beacon beam to a single player without modifying the world.
+     * Draw a constant rectangular lime beam for {@code player}.
      *
-     * @param player   the viewer
-     * @param location the beacon base location
-     * @param color    the beam color
+     * @param player   viewer
+     * @param location centre of the block that defines the X/Z of the column
      */
-    public void showBeam(Player player, Location location, DyeColor color) {
+    public void showBeam(Player player, Location location) {
         if (player == null || location == null) return;
 
-        Color rgb = color.getColor();
-        Particle.DustOptions dust = new Particle.DustOptions(rgb, 1.5f);
-        Location temp = location.clone();
-        temp.add(0.5, 0, 0.5);
-        for (double y = 0; y <= 10; y += 0.5) {
-            temp.setY(location.getY() + y);
-            player.spawnParticle(Particle.REDSTONE, temp, 0, 0, 0, 0, 1, dust, true);
+        World world = location.getWorld();
+        if (world == null) return;
 
-    public void removeBeam(Player player) {
-        // no persistent state; nothing to clean up
+        Color rgb = DyeColor.LIME.getColor();
+        Particle.DustOptions dust = new Particle.DustOptions(rgb, 1.8f); // slimmer line
+
+        int minY = world.getMinHeight();
+        int maxY = world.getMaxHeight() - 1;    // safety – never above build height
+
+        double baseX = location.getX() + 0.5;   // block centre
+        double baseZ = location.getZ() + 0.5;
+
+        // Offsets so the four lines form a square “frame”
+        double off = 0.25;
+
+        for (double y = minY; y <= maxY; y += 1) {       // 1-block increments ⇒ fewer particles
+            // NW, NE, SW, SE corners of the block
+            player.spawnParticle(Particle.DUST, baseX - off, y, baseZ - off, 0, 0, 0, 0, 1, dust, true);
+            player.spawnParticle(Particle.DUST, baseX + off, y, baseZ - off, 0, 0, 0, 0, 1, dust, true);
+            player.spawnParticle(Particle.DUST, baseX - off, y, baseZ + off, 0, 0, 0, 0, 1, dust, true);
+            player.spawnParticle(Particle.DUST, baseX + off, y, baseZ + off, 0, 0, 0, 0, 1, dust, true);
+        }
     }
-}
 
+    // still stateless
+    public void removeBeam(Player ignored) {}
+}
