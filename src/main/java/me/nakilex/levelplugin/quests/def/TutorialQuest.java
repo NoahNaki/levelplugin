@@ -1,6 +1,9 @@
 package me.nakilex.levelplugin.quests.def;
 
 import me.nakilex.levelplugin.quests.data.*;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.World;
 
 import java.util.Arrays;
 import java.util.List;
@@ -8,10 +11,14 @@ import java.util.List;
 public class TutorialQuest extends Quest {
 
     private static List<QuestObjective> createObjectives() {
+        World world = Bukkit.getWorld("world");
         return Arrays.asList(
-                new QuestObjective(QuestObjectiveType.SELECT_CLASS, "ANY", 1),
-                new QuestObjective(QuestObjectiveType.BUY, "class_weapon", 1),
-                new QuestObjective(QuestObjectiveType.CAST, "any_spell", 1)
+                new QuestObjective(QuestObjectiveType.SELECT_CLASS, "ANY", 1,
+                        new Location(world, 0, 65, 0)),
+                new QuestObjective(QuestObjectiveType.BUY, "class_weapon", 1,
+                        new Location(world, 10, 65, 0)),
+                new QuestObjective(QuestObjectiveType.CAST, "any_spell", 1,
+                        new Location(world, 20, 65, 0))
         );
     }
 

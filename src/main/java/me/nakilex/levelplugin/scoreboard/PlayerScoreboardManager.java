@@ -83,9 +83,9 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         board.getEntries().forEach(board::resetScores);
 
         int line = 15;
-        Score coins = obj.getScore(ChatColor.GOLD + "Coins: " + economyManager.getBalance(player));
+        Score coins = obj.getScore(ChatColor.YELLOW + "⛃ " + ChatColor.WHITE + "Coins: " + ChatColor.YELLOW + economyManager.getBalance(player));
         coins.setScore(line--);
-        Score gems = obj.getScore(ChatColor.LIGHT_PURPLE + "Gems: " + gemsManager.getTotalUnits(player));
+        Score gems = obj.getScore(ChatColor.LIGHT_PURPLE + "✦ " + ChatColor.WHITE + "Gems: " + ChatColor.LIGHT_PURPLE + gemsManager.getTotalUnits(player));
         gems.setScore(line--);
 
         PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId());
@@ -96,9 +96,10 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
             if (other != null) quest = other;
         }
         if (quest != null) {
-            Score qName = obj.getScore(ChatColor.AQUA + "Quest: " + quest.getName());
-            qName.setScore(line--);
+            Score qTitle = obj.getScore(ChatColor.GREEN + "Quest Progress:");
+            qTitle.setScore(line--);
             int progIndex = 0;
+            int progValue = 0;
             if (progress != null && progress.getQuest().getId().equals(quest.getId())) {
                 for (int i = 0; i < quest.getObjectives().size(); i++) {
                     if (progress.getProgress(i) < quest.getObjectives().get(i).getAmount()) {
@@ -106,23 +107,29 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
                         break;
                     }
                 }
-                Score qProg = obj.getScore(ChatColor.YELLOW + "Progress: " +
-                        progress.getProgress(progIndex) + "/" + quest.getObjectives().get(progIndex).getAmount());
-                qProg.setScore(line--);
+                progValue = progress.getProgress(progIndex);
             }
+            Score qProg = obj.getScore(ChatColor.GRAY + "- " + progValue + "/" + quest.getObjectives().get(progIndex).getAmount());
+            qProg.setScore(line--);
         }
 
         Party party = partyManager.getParty(player.getUniqueId());
         if (party != null) {
-            Score partyTitle = obj.getScore(ChatColor.AQUA + "Party Members:");
+            Score partyTitle = obj.getScore(ChatColor.AQUA + "Party:");
             partyTitle.setScore(line--);
             for (UUID memberId : party.getMembers()) {
                 Player member = Bukkit.getPlayer(memberId);
-                if (member == null) continue;
-                int lvl = levelManager.getLevel(member);
-                String hp = (int) member.getHealth() + "/" + (int) member.getMaxHealth();
-                Score s = obj.getScore(ChatColor.GRAY + "- Lv" + lvl + " " + member.getName() + " " + hp);
-                s.setScore(line--);
+                if (member != null && member.isOnline()) {
+                    int lvl = levelManager.getLevel(member);
+                    String hp = (int) member.getHealth() + "/" + (int) member.getMaxHealth();
+                    Score s = obj.getScore(ChatColor.GRAY + "[" + lvl + " " + ChatColor.WHITE + member.getName() + " " + ChatColor.GRAY + hp + " " + ChatColor.RED + "\u2764");
+                    s.setScore(line--);
+                } else {
+                    String name = Bukkit.getOfflinePlayer(memberId).getName();
+                    if (name == null) name = "Unknown";
+                    Score s = obj.getScore(ChatColor.GRAY + "- " + name);
+                    s.setScore(line--);
+                }
                 if (line <= 1) break;
             }
         }
