@@ -22,8 +22,13 @@ public class PlayerQuestProgress {
         return objectiveProgress.getOrDefault(objectiveIndex, 0);
     }
 
-    public void incrementProgress(int objectiveIndex, int amount) {
-        objectiveProgress.put(objectiveIndex, getProgress(objectiveIndex) + amount);
+    public void incrementProgress(int objectiveIndex, int amount, boolean allowOverflow, int max) {
+        int current = getProgress(objectiveIndex);
+        int newValue = current + amount;
+        if (!allowOverflow) {
+            newValue = Math.min(newValue, max);
+        }
+        objectiveProgress.put(objectiveIndex, newValue);
     }
 
     /**

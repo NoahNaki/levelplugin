@@ -57,7 +57,8 @@ public class QuestManager {
         // Register quests here manually.
         Quest tutorial = new me.nakilex.levelplugin.quests.def.TutorialQuest();
         registerQuest(tutorial);
-        registerNpcQuest(1, tutorial.getId());
+        // NPC ID 273 is the tutorial quest giver
+        registerNpcQuest(273, tutorial.getId());
         plugin.getLogger().info("Registered " + quests.size() + " quests.");
     }
 
@@ -235,6 +236,19 @@ public class QuestManager {
             plugin.getLogger().info("[QuestDebug] " + player.getName() + " bought " + itemId);
         }
         updateObjective(player, QuestObjectiveType.BUY, itemId, 1);
+
+        try {
+            int id = Integer.parseInt(itemId);
+            me.nakilex.levelplugin.items.data.CustomItem tpl = plugin.getItemManager().getTemplateById(id);
+            if (tpl != null) {
+                String classReq = tpl.getClassRequirement();
+                PlayerClass playerClass = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass;
+                if (classReq != null && playerClass.name().equalsIgnoreCase(classReq)) {
+                    updateObjective(player, QuestObjectiveType.BUY, "class_weapon", 1);
+                }
+            }
+        } catch (NumberFormatException ignore) {
+        }
     }
 
     public void handleUpgrade(Player player, String itemId) {
@@ -339,7 +353,7 @@ public class QuestManager {
         for (int i = 0; i < quest.getObjectives().size(); i++) {
             QuestObjective obj = quest.getObjectives().get(i);
             if (obj.getType() == type && obj.getTarget().equalsIgnoreCase(target)) {
-                progress.incrementProgress(i, amount);
+                progress.incrementProgress(i, amount, obj.isAllowOverflow(), obj.getAmount());
                 if (debug) {
                     plugin.getLogger().info("[QuestDebug] " + player.getName() + " progressed " + quest.getId()
                             + " objective " + i + " -> " + progress.getProgress(i) + "/" + obj.getAmount());
@@ -367,13 +381,13 @@ public class QuestManager {
             if (memberId.equals(player.getUniqueId())) continue;
             PlayerQuestProgress other = activeQuests.get(memberId);
             if (other != null && other.getQuest().getId().equals(progress.getQuest().getId())) {
-                other.incrementProgress(objectiveIndex, amount);
+                QuestObjective obj = progress.getQuest().getObjectives().get(objectiveIndex);
+                other.incrementProgress(objectiveIndex, amount, obj.isAllowOverflow(), obj.getAmount());
                 if (debug) {
                     plugin.getLogger().info("[QuestDebug] Shared progress " + progress.getQuest().getId() + " to " + memberId);
                 }
                 Player p = Bukkit.getPlayer(memberId);
                 if (p != null) {
-                    QuestObjective obj = progress.getQuest().getObjectives().get(objectiveIndex);
                     p.sendMessage("§e[Party Quest] " + obj.getTarget() + ": " + other.getProgress(objectiveIndex) + "/" + obj.getAmount());
                     if (other.isComplete()) {
                         p.sendMessage("§bQuest complete: " + other.getQuest().getName());
