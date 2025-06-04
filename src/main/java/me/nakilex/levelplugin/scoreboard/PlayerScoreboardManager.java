@@ -83,9 +83,11 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         board.getEntries().forEach(board::resetScores);
 
         int line = 15;
-        Score coins = obj.getScore(ChatColor.YELLOW + "⛃ " + ChatColor.WHITE + "Coins: " + ChatColor.YELLOW + economyManager.getBalance(player));
+        String coinStr = java.text.NumberFormat.getIntegerInstance().format(economyManager.getBalance(player));
+        Score coins = obj.getScore(ChatColor.YELLOW + "⛃ " + ChatColor.WHITE + "Coins: " + ChatColor.YELLOW + coinStr);
         coins.setScore(line--);
-        Score gems = obj.getScore(ChatColor.LIGHT_PURPLE + "✦ " + ChatColor.WHITE + "Gems: " + ChatColor.LIGHT_PURPLE + gemsManager.getTotalUnits(player));
+        String gemStr = java.text.NumberFormat.getIntegerInstance().format(gemsManager.getTotalUnits(player));
+        Score gems = obj.getScore(ChatColor.LIGHT_PURPLE + "✦ " + ChatColor.WHITE + "Gems: " + ChatColor.LIGHT_PURPLE + gemStr);
         gems.setScore(line--);
 
         PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId());
@@ -122,7 +124,7 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
                 if (member != null && member.isOnline()) {
                     int lvl = levelManager.getLevel(member);
                     String hp = (int) member.getHealth() + "/" + (int) member.getMaxHealth();
-                    Score s = obj.getScore(ChatColor.GRAY + "[" + lvl + "]" + " " + ChatColor.WHITE + member.getName() + " " + ChatColor.GRAY + hp + " " + ChatColor.RED + "\u2764");
+                    Score s = obj.getScore(ChatColor.GRAY + "[" + lvl + " " + ChatColor.WHITE + member.getName() + " " + ChatColor.GRAY + hp + " " + ChatColor.RED + "\u2764");
                     s.setScore(line--);
                 } else {
                     String name = Bukkit.getOfflinePlayer(memberId).getName();

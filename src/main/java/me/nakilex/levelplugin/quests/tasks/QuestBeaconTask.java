@@ -1,66 +1,68 @@
 package me.nakilex.levelplugin.quests.tasks;
 
-import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
-import me.nakilex.levelplugin.quests.data.Quest;
-import me.nakilex.levelplugin.quests.data.QuestObjective;
-import me.nakilex.levelplugin.quests.managers.QuestManager;
-import me.nakilex.levelplugin.quests.managers.BeaconManager;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.DyeColor;
+import me.nakilex.levelplugin.quests.data.*;
+import me.nakilex.levelplugin.quests.managers.*;
+import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
-
+import org.bukkit.util.Vector;
 
 /**
- * Periodically displays a temporary beacon beam for players at the location of
- * their next quest objective. The effect is client side only and acts as a
- * navigation aid similar to Wynncraft's quest beacons.
+ * Runs once a tick to keep the rectangular lime beacon “solid”.
  */
 public class QuestBeaconTask extends BukkitRunnable {
-    private final QuestManager questManager;
+
+    private final QuestManager  questManager;
     private final BeaconManager beaconManager;
 
     public QuestBeaconTask(QuestManager questManager, BeaconManager beaconManager) {
-        this.questManager = questManager;
+        this.questManager  = questManager;
         this.beaconManager = beaconManager;
     }
 
     @Override
     public void run() {
         for (Player player : Bukkit.getOnlinePlayers()) {
+
+            // --- pick quest -------------------------------------------------
             PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId());
             Quest quest = progress != null ? progress.getQuest() : null;
-            String trackedId = questManager.getTrackedQuest(player.getUniqueId());
-            if (trackedId != null && (quest == null || !quest.getId().equals(trackedId))) {
-                Quest other = questManager.getQuest(trackedId);
-                if (other != null) quest = other;
+
+            String tracked = questManager.getTrackedQuest(player.getUniqueId());
+            if (tracked != null && (quest == null || !quest.getId().equals(tracked))) {
+                quest = questManager.getQuest(tracked);
             }
+
+            // --- pick objective ---------------------------------------------
             Location loc = null;
             if (quest != null) {
-                int index = 0;
-                if (progress != null && progress.getQuest().getId().equals(quest.getId())) {
+                int idx = 0;
+                if (progress != null && quest.getId().equals(progress.getQuest().getId())) {
+                    // first unfinished objective
                     for (int i = 0; i < quest.getObjectives().size(); i++) {
                         if (progress.getProgress(i) < quest.getObjectives().get(i).getAmount()) {
-                            index = i;
+                            idx = i;
                             break;
                         }
                     }
                 }
-                QuestObjective obj = quest.getObjectives().get(index);
-                loc = obj.getBeaconLocation();
+                loc = quest.getObjectives().get(idx).getBeaconLocation();
             }
-            if (loc != null && player.getWorld().equals(loc.getWorld())) {
-                Location playerLoc = player.getLocation();
-                double dist = playerLoc.distance(loc);
+
+            if (loc != null && loc.getWorld().equals(player.getWorld())) {
+                Location pLoc = player.getLocation();
+                double dist = pLoc.distance(loc);
+
+                // --- dynamic “lead” distance --------------------------------
                 Location target = loc;
-                if (dist > 64) {
-                    org.bukkit.util.Vector dir = loc.toVector().subtract(playerLoc.toVector());
-                    dir.setY(0).normalize();
-                    target = playerLoc.clone().add(dir.multiply(20));
-                    target.setY(playerLoc.getY());
+                if (dist > 64) {                       // far away – point ahead of the player
+                    double lead = Math.min(80, dist * 0.6); // between 40 and 80 m
+                    Vector dir = loc.toVector().subtract(pLoc.toVector()).setY(0).normalize();
+                    target = pLoc.clone().add(dir.multiply(lead));
+                    target.setY(pLoc.getY());          // keep beam foot at eye-level terrain
                 }
-                beaconManager.showBeam(player, target, DyeColor.LIGHT_BLUE);
+
+                beaconManager.showBeam(player, target); // rectangular, lime, full height
             }
         }
     }

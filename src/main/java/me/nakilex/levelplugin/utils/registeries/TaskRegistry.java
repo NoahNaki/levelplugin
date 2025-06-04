@@ -30,6 +30,6 @@ public class TaskRegistry {
 
         new QuestNPCEffectTask(plugin.getQuestManager()).runTaskTimer(plugin, 20L, 20L);
         BeaconManager beaconMgr = plugin.getBeaconManager();
-        new QuestBeaconTask(plugin.getQuestManager(), beaconMgr).runTaskTimer(plugin, 20L, 40L);
+        new QuestBeaconTask(plugin.getQuestManager(), beaconMgr).runTaskTimer(plugin, 10L, 20L);
     }
 }
