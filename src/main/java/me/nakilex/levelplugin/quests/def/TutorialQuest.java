@@ -11,14 +11,14 @@ import java.util.List;
 public class TutorialQuest extends Quest {
 
     private static List<QuestObjective> createObjectives() {
-        World world = Bukkit.getWorld("world");
+        World world = Bukkit.getWorld("mmorpg");
         return Arrays.asList(
                 new QuestObjective(QuestObjectiveType.SELECT_CLASS, "ANY", 1,
                         new Location(world, 0, 65, 0)),
                 new QuestObjective(QuestObjectiveType.BUY, "class_weapon", 1,
-                        new Location(world, 10, 65, 0)),
+                        new Location(world, 753, 98, -176)),
                 new QuestObjective(QuestObjectiveType.CAST, "any_spell", 1,
-                        new Location(world, 20, 65, 0))
+                        new Location(world, 763, 100, 0))
         );
     }
 

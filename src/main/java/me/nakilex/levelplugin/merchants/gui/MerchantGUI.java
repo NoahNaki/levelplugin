@@ -324,7 +324,7 @@ public class MerchantGUI implements Listener {
                     "You purchased " +
                     purchasedItem.getItemMeta().getDisplayName() +
                     ChatColor.GREEN + " for " +
-                    ChatColor.GOLD + coinCost + "⛃" +
+                    ChatColor.YELLOW + coinCost + " ⛃ coins" +
                     (gemCost > 0 ? ChatColor.GRAY + " and " + ChatColor.LIGHT_PURPLE + gemCost + "✦" : "") +
                     ChatColor.GREEN + ".");
             }

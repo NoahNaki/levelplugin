@@ -29,7 +29,7 @@ public class BeaconManager implements Listener {
         temp.add(0.5, 0, 0.5);
         for (double y = 0; y <= 10; y += 0.5) {
             temp.setY(location.getY() + y);
-            player.spawnParticle(Particle.REDSTONE, temp, 0, 0, 0, 0, 1, dust, true);
+            player.spawnParticle(Particle.CLOUD, temp, 0, 0, 0, 0, 1, dust, true);
         }
     }
 

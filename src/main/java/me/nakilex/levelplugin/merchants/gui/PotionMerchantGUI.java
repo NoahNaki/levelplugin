@@ -163,7 +163,7 @@ public class PotionMerchantGUI implements Listener {
             player.getInventory().addItem(purchasedPotion);
             player.sendMessage(ChatColor.GREEN + "You purchased " +
                 purchasedPotion.getItemMeta().getDisplayName() + ChatColor.GREEN +
-                " for " + cost + " coins.");
+                "for " + cost + " coins.");
         }
     }
 
