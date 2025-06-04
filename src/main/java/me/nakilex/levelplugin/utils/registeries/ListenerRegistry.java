@@ -116,7 +116,6 @@ public class ListenerRegistry {
         pm.registerEvents(settingsGUI, plugin); // ✅ No constructor call here
         pm.registerEvents(new RogueSpell(), plugin);
         pm.registerEvents(new MeteorListener(), plugin);
-        pm.registerEvents(new RogueSpell(), plugin);
         pm.registerEvents(new ArcherSpell(), plugin);
         pm.registerEvents(new ChestHologramListener(lootChestManager), plugin);
 
@@ -125,7 +124,6 @@ public class ListenerRegistry {
         pm.registerEvents(new EquipOnJoinListener(), plugin);
         pm.registerEvents(new PlayerDeathListener(plugin), plugin);
         pm.registerEvents(new FullInventoryListener(), plugin);
-        pm.registerEvents(new ArcherSpell(), plugin);
         pm.registerEvents(new IdentifyRunesGUI(plugin, runesManager), plugin);
         pm.registerEvents(new EquipRunesGUI(plugin, runesManager, identifyRunesGUI), plugin);
 
