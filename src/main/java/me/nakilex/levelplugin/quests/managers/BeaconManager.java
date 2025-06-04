@@ -1,36 +1,17 @@
 package me.nakilex.levelplugin.quests.managers;
 
+import org.bukkit.Color;
 import org.bukkit.DyeColor;
 import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.block.data.BlockData;
+import org.bukkit.Particle;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerQuitEvent;
-
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Manages client-side beacon beams shown only to specific players.
- * Uses block change packets to fake a beacon and colored glass above it.
+ * Manages temporary particle "beacon" beams for navigation.
+ * The effects are client side only and do not modify the world.
  */
 public class BeaconManager implements Listener {
-
-    private static class BeamData {
-        final Location base;
-        final BlockData baseOrig;
-        final BlockData glassOrig;
-        BeamData(Location base, BlockData baseOrig, BlockData glassOrig) {
-            this.base = base;
-            this.baseOrig = baseOrig;
-            this.glassOrig = glassOrig;
-        }
-    }
-
-    private final Map<UUID, BeamData> beams = new ConcurrentHashMap<>();
 
     /**
      * Show a colored beacon beam to a single player without modifying the world.
@@ -39,36 +20,21 @@ public class BeaconManager implements Listener {
      * @param location the beacon base location
      * @param color    the beam color
      */
-    public synchronized void showBeam(Player player, Location location, DyeColor color) {
+    public void showBeam(Player player, Location location, DyeColor color) {
         if (player == null || location == null) return;
-        removeBeam(player);
-        Location base = location.getBlock().getLocation();
-        Location above = base.clone().add(0, 1, 0);
 
-        beams.put(player.getUniqueId(), new BeamData(
-                base,
-                base.getBlock().getBlockData(),
-                above.getBlock().getBlockData()
-        ));
-
-        player.sendBlockChange(base, Material.BEACON.createBlockData());
-        Material glass = Material.valueOf(color.name() + "_STAINED_GLASS");
-        player.sendBlockChange(above, glass.createBlockData());
-    }
-
-    /**
-     * Remove any active beam for the player, restoring original blocks.
-     */
-    public synchronized void removeBeam(Player player) {
-        BeamData data = beams.remove(player.getUniqueId());
-        if (data != null) {
-            player.sendBlockChange(data.base, data.baseOrig);
-            player.sendBlockChange(data.base.clone().add(0, 1, 0), data.glassOrig);
+        Color rgb = color.getColor();
+        Particle.DustOptions dust = new Particle.DustOptions(rgb, 1.5f);
+        Location temp = location.clone();
+        temp.add(0.5, 0, 0.5);
+        for (double y = 0; y <= 10; y += 0.5) {
+            temp.setY(location.getY() + y);
+            player.spawnParticle(Particle.REDSTONE, temp, 0, 0, 0, 0, 1, dust, true);
         }
     }
 
-    @EventHandler
-    public void onQuit(PlayerQuitEvent event) {
-        removeBeam(event.getPlayer());
+    public void removeBeam(Player player) {
+        // no persistent state; nothing to clean up
     }
 }
+

@@ -50,10 +50,17 @@ public class QuestBeaconTask extends BukkitRunnable {
                 QuestObjective obj = quest.getObjectives().get(index);
                 loc = obj.getBeaconLocation();
             }
-            if (loc != null) {
-                beaconManager.showBeam(player, loc, DyeColor.LIGHT_BLUE);
-            } else {
-                beaconManager.removeBeam(player);
+            if (loc != null && player.getWorld().equals(loc.getWorld())) {
+                Location playerLoc = player.getLocation();
+                double dist = playerLoc.distance(loc);
+                Location target = loc;
+                if (dist > 64) {
+                    org.bukkit.util.Vector dir = loc.toVector().subtract(playerLoc.toVector());
+                    dir.setY(0).normalize();
+                    target = playerLoc.clone().add(dir.multiply(20));
+                    target.setY(playerLoc.getY());
+                }
+                beaconManager.showBeam(player, target, DyeColor.LIGHT_BLUE);
             }
         }
     }
