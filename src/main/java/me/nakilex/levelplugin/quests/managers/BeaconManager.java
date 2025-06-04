@@ -25,14 +25,12 @@ public class BeaconManager implements Listener {
 
         Color rgb = color.getColor();
         // Slightly larger size for a thicker beam
-        Particle.DustOptions dust = new Particle.DustOptions(rgb, 2.5f);
-
-        Location temp = location.clone().add(0.5, 0, 0.5);
-        int max = location.getWorld().getMaxHeight();
-        for (double y = location.getY(); y <= max; y += 0.5) {
-            temp.setY(y);
-            // Spawn a single DUST particle at each step to create a solid beam
-            player.spawnParticle(Particle.DUST, temp, 0, 0, 0, 0, dust, true);
+        Particle.DustOptions dust = new Particle.DustOptions(rgb, 1.5f);
+        Location temp = location.clone();
+        temp.add(0.5, 0, 0.5);
+        for (double y = 0; y <= 10; y += 0.5) {
+            temp.setY(location.getY() + y);
+            player.spawnParticle(Particle.CLOUD, temp, 0, 0, 0, 0, 1, dust, true);
         }
     }
 
