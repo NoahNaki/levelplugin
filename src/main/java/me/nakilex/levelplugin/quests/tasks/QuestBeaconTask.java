@@ -7,21 +7,19 @@ import me.nakilex.levelplugin.quests.managers.QuestManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Particle;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 /**
- * Periodically sends temporary beacon blocks to players at the location of
- * their next quest objective. This is purely client side and acts as a
- * navigation aid similar to Wynncraft's compass beacons.
+ * Periodically displays a temporary beacon beam for players at the location of
+ * their next quest objective. The effect is client side only and acts as a
+ * navigation aid similar to Wynncraft's quest beacons.
  */
 public class QuestBeaconTask extends BukkitRunnable {
     private final QuestManager questManager;
-    private final Map<UUID, Location> last = new HashMap<>();
 
     public QuestBeaconTask(QuestManager questManager) {
         this.questManager = questManager;
@@ -51,18 +49,10 @@ public class QuestBeaconTask extends BukkitRunnable {
                 QuestObjective obj = quest.getObjectives().get(index);
                 loc = obj.getBeaconLocation();
             }
-            Location old = last.get(player.getUniqueId());
-            if (old != null && (loc == null || !old.equals(loc))) {
-                player.sendBlockChange(old, old.getBlock().getBlockData());
-                Location base = old.clone().add(0, -1, 0);
-                player.sendBlockChange(base, base.getBlock().getBlockData());
-                last.remove(player.getUniqueId());
-            }
             if (loc != null) {
-                last.put(player.getUniqueId(), loc);
-                player.sendBlockChange(loc, Material.BEACON.createBlockData());
-                Location base = loc.clone().add(0, -1, 0);
-                player.sendBlockChange(base, Material.IRON_BLOCK.createBlockData());
+                Location beamLoc = loc.clone().add(0.5, 0, 0.5);
+                player.spawnParticle(Particle.DUST_PILLAR, beamLoc, 0, 0, 0, 0, 0,
+                        Material.LIGHT_BLUE_STAINED_GLASS.createBlockData());
             }
         }
     }
