@@ -11,6 +11,8 @@ import me.nakilex.levelplugin.spells.managers.ManaCostTracker;
 import me.nakilex.levelplugin.scoreboard.ScoreboardTask;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
 import me.nakilex.levelplugin.quests.tasks.QuestNPCEffectTask;
+import me.nakilex.levelplugin.quests.tasks.QuestBeaconTask;
+import me.nakilex.levelplugin.quests.managers.BeaconManager;
 
 public class TaskRegistry {
 
@@ -27,5 +29,7 @@ public class TaskRegistry {
         }
 
         new QuestNPCEffectTask(plugin.getQuestManager()).runTaskTimer(plugin, 20L, 20L);
+        BeaconManager beaconMgr = plugin.getBeaconManager();
+        new QuestBeaconTask(plugin.getQuestManager(), beaconMgr).runTaskTimer(plugin, 20L, 40L);
     }
 }
