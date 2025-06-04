@@ -40,12 +40,13 @@ public class VolcanicBlastEffect implements SpellEffect {
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 1f, 1f);
         player.getWorld().spawnParticle(Particle.LAVA, player.getLocation(), 10, 0.5, 0.5, 0.5);
 
+        double finalMaxRadius = maxRadius;
         new BukkitRunnable() {
             double current = 0;
             @Override
             public void run() {
-                if (current >= maxRadius) { cancel(); return; }
-                current += maxRadius / steps;
+                if (current >= finalMaxRadius) { cancel(); return; }
+                current += finalMaxRadius / steps;
 
                 for (double angle = 0; angle < 360; angle += 10) {
                     double rad = Math.toRadians(angle);

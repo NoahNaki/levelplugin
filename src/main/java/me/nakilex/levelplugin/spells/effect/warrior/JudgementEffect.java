@@ -50,7 +50,7 @@ public class JudgementEffect implements SpellEffect {
                 sword.teleport(spawn);
                 if (spawn.getY() <= target.getY() + 1) {
                     world.playSound(target, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1f, 1f);
-                    world.spawnParticle(Particle.EXPLOSION_LARGE, target, 1);
+                    world.spawnParticle(Particle.EXPLOSION, target, 1);
                     for (Entity e : world.getNearbyEntities(target, 3, 3, 3)) {
                         if (e instanceof LivingEntity le && !le.equals(player)) {
                             if (le instanceof Player p && !DuelManager.getInstance().areInDuel(player.getUniqueId(), p.getUniqueId()))

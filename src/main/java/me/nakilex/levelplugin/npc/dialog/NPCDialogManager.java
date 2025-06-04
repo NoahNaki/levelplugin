@@ -43,7 +43,7 @@ public class NPCDialogManager {
         List<String> lines = quest.getDialogLines();
         if (lines == null || lines.isEmpty()) return;
         player.setInvulnerable(true);
-        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 20 * 60, 4, false, false, false));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20 * 60, 4, false, false, false));
         DialogSession session = new DialogSession(quest, lines, npc);
         sessions.put(player.getUniqueId(), session);
         sendLine(player, session);
@@ -70,7 +70,7 @@ public class NPCDialogManager {
     }
 
     private void endDialog(Player player) {
-        player.removePotionEffect(PotionEffectType.SLOW);
+        player.removePotionEffect(PotionEffectType.SLOWNESS);
         player.setInvulnerable(false);
         sessions.remove(player.getUniqueId());
     }

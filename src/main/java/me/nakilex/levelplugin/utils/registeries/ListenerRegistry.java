@@ -35,6 +35,7 @@ import me.nakilex.levelplugin.runes.gui.EquipRunesGUI;
 import me.nakilex.levelplugin.runes.gui.IdentifyRunesGUI;
 import me.nakilex.levelplugin.runes.manager.RunesManager;
 import me.nakilex.levelplugin.salvage.listeners.SalvageListener;
+import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
 import me.nakilex.levelplugin.spells.ArcherSpell;
 import me.nakilex.levelplugin.spells.RogueSpell;
@@ -75,8 +76,8 @@ public class ListenerRegistry {
                                          EquipRunesGUI   equipGui,
                                          ChestHologramListener chestHologramListener,
                                          QuestManager questManager,
-                                        NPCDialogManager dialogManager
-    ) {
+                                        NPCDialogManager dialogManager,
+                                         PlayerScoreboardManager scoreboardManager) {
 
 
         PluginManager pm = plugin.getServer().getPluginManager();

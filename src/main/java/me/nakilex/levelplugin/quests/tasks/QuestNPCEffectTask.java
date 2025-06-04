@@ -27,7 +27,7 @@ public class QuestNPCEffectTask extends BukkitRunnable {
                 var quest = questManager.getQuest(entry.getValue());
                 QuestState state = questManager.getQuestState(player, quest);
                 if (state == QuestState.AVAILABLE || state == QuestState.TURN_IN_READY) {
-                    player.spawnParticle(Particle.VILLAGER_HAPPY, npc.getEntity().getLocation().add(0,2,0), 1, 0,0,0,0);
+                    player.spawnParticle(Particle.HAPPY_VILLAGER, npc.getEntity().getLocation().add(0,2,0), 1, 0,0,0,0);
                 }
             }
         }
