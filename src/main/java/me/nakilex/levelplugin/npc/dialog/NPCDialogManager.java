@@ -2,7 +2,9 @@ package me.nakilex.levelplugin.npc.dialog;
 
 import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
+import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -20,11 +22,13 @@ public class NPCDialogManager {
     private static class DialogSession {
         final Quest quest;
         final List<String> lines;
+        final NPC npc;
         int index = 0;
 
-        DialogSession(Quest quest, List<String> lines) {
+        DialogSession(Quest quest, List<String> lines, NPC npc) {
             this.quest = quest;
             this.lines = lines;
+            this.npc = npc;
         }
     }
 
@@ -35,12 +39,12 @@ public class NPCDialogManager {
     }
 
     /** Start a dialog sequence for a quest. */
-    public void startDialog(Player player, Quest quest) {
+    public void startDialog(Player player, Quest quest, NPC npc) {
         List<String> lines = quest.getDialogLines();
         if (lines == null || lines.isEmpty()) return;
         player.setInvulnerable(true);
         player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 20 * 60, 4, false, false, false));
-        DialogSession session = new DialogSession(quest, lines);
+        DialogSession session = new DialogSession(quest, lines, npc);
         sessions.put(player.getUniqueId(), session);
         sendLine(player, session);
     }
@@ -69,5 +73,16 @@ public class NPCDialogManager {
         player.removePotionEffect(PotionEffectType.SLOW);
         player.setInvulnerable(false);
         sessions.remove(player.getUniqueId());
+    }
+
+    /** Cancel dialog if player walks too far from the NPC. */
+    public void checkDistance(Player player, double maxDistanceSquared) {
+        DialogSession session = sessions.get(player.getUniqueId());
+        if (session == null) return;
+        if (session.npc == null || !session.npc.isSpawned()) return;
+        if (player.getLocation().distanceSquared(session.npc.getEntity().getLocation()) > maxDistanceSquared) {
+            player.sendMessage(ChatColor.RED + "You walked away from the NPC.");
+            endDialog(player);
+        }
     }
 }

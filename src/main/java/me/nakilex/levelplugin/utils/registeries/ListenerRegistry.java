@@ -45,6 +45,7 @@ import me.nakilex.levelplugin.utils.*;
 import me.nakilex.levelplugin.quests.listeners.QuestKillListener;
 import me.nakilex.levelplugin.quests.listeners.QuestCraftListener;
 import me.nakilex.levelplugin.quests.gui.QuestGUIListener;
+import me.nakilex.levelplugin.npc.listeners.NPCDialogMoveListener;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.PluginManager;
@@ -74,7 +75,7 @@ public class ListenerRegistry {
                                          EquipRunesGUI   equipGui,
                                          ChestHologramListener chestHologramListener,
                                          QuestManager questManager,
-                                         NPCDialogManager dialogManager
+                                        NPCDialogManager dialogManager
     ) {
 
 
@@ -138,6 +139,8 @@ public class ListenerRegistry {
         pm.registerEvents(new QuestKillListener(questManager), plugin);
         pm.registerEvents(new QuestCraftListener(questManager), plugin);
         pm.registerEvents(new QuestGUIListener(questManager), plugin);
+        pm.registerEvents(new NPCDialogMoveListener(dialogManager), plugin);
+        pm.registerEvents(plugin.getScoreboardManager(), plugin);
 
 
 

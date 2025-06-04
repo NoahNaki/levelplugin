@@ -46,5 +46,10 @@ public class QuestGUIListener implements Listener {
         if (event.getClick() == ClickType.LEFT) {
             player.sendMessage(ChatColor.AQUA + "Quest: " + id);
         }
+
+        if (event.getClick() == ClickType.SHIFT_LEFT) {
+            questManager.setTrackedQuest(player, id);
+            player.sendMessage(ChatColor.GREEN + "Now tracking " + id);
+        }
     }
 }

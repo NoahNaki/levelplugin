@@ -26,6 +26,7 @@ public class QuestManager {
     private final Map<Integer, String> npcQuestMap = new HashMap<>();
     private final Map<UUID, PlayerQuestProgress> activeQuests = new HashMap<>();
     private final Map<UUID, Set<String>> completedQuests = new HashMap<>();
+    private final Map<UUID, String> trackedQuests = new HashMap<>();
     private boolean debug = false;
     private FileConfiguration progressConfig;
     private File progressFile;
@@ -76,6 +77,10 @@ public class QuestManager {
         return id == null ? null : quests.get(id);
     }
 
+    public Map<Integer, String> getNpcQuestMap() {
+        return npcQuestMap;
+    }
+
     private void loadProgress() {
         activeQuests.clear();
         completedQuests.clear();
@@ -105,6 +110,10 @@ public class QuestManager {
                     activeQuests.put(uuid, progress);
                 }
             }
+            String tracked = sec.getString("tracked");
+            if (tracked != null) {
+                trackedQuests.put(uuid, tracked);
+            }
         }
     }
 
@@ -126,6 +135,10 @@ public class QuestManager {
                 for (int i = 0; i < progress.getQuest().getObjectives().size(); i++) {
                     sec.set("active.progress." + i, progress.getProgress(i));
                 }
+            }
+            String tracked = trackedQuests.get(uuid);
+            if (tracked != null) {
+                sec.set("tracked", tracked);
             }
         }
         try {
@@ -174,11 +187,20 @@ public class QuestManager {
             return;
         }
         activeQuests.put(player.getUniqueId(), new PlayerQuestProgress(quest));
+        trackedQuests.putIfAbsent(player.getUniqueId(), quest.getId());
         player.sendMessage("§aStarted quest: " + quest.getName());
     }
 
     public PlayerQuestProgress getProgress(UUID player) {
         return activeQuests.get(player);
+    }
+
+    public void setTrackedQuest(Player player, String questId) {
+        trackedQuests.put(player.getUniqueId(), questId);
+    }
+
+    public String getTrackedQuest(UUID player) {
+        return trackedQuests.get(player);
     }
 
     public void resetQuest(UUID player, String questId) {
@@ -368,6 +390,9 @@ public class QuestManager {
                     }
                     activeQuests.remove(uuid);
                     completedQuests.computeIfAbsent(uuid, k -> new HashSet<>()).add(quest.getId());
+                    if (quest.getId().equals(trackedQuests.get(uuid))) {
+                        trackedQuests.remove(uuid);
+                    }
                     giveRewards(player, quest);
                 }
                 break;

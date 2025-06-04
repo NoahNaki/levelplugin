@@ -118,6 +118,7 @@ public class Main extends JavaPlugin {
     private BroadcastManager broadcastMgr;
     private me.nakilex.levelplugin.quests.managers.QuestManager questManager;
     private me.nakilex.levelplugin.npc.dialog.NPCDialogManager dialogManager;
+    private me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager scoreboardManager;
     /**
      * Tracks all active bow drone NPCs for each player. Some runes can add
      * additional drones so we store a list rather than a single instance.
@@ -237,6 +238,8 @@ public class Main extends JavaPlugin {
         broadcastMgr.start();
         questManager = new QuestManager(this, partyManager);
         dialogManager = new me.nakilex.levelplugin.npc.dialog.NPCDialogManager();
+        scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(
+                this, economyManager, gemsManager, partyManager, questManager);
         cooldownManager.setLootChestManager(lootChestManager);
         equipGui = new EquipRunesGUI(this, runesManager, identifyRunesGUI);
 
@@ -311,7 +314,8 @@ public class Main extends JavaPlugin {
             equipGui,
             chestHologramListener,
             questManager,
-            dialogManager
+            dialogManager,
+            scoreboardManager
         );
 
 
@@ -465,6 +469,10 @@ public class Main extends JavaPlugin {
 
     public QuestManager getQuestManager() {
         return questManager;
+    }
+
+    public me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager getScoreboardManager() {
+        return scoreboardManager;
     }
 
     private void createCustomConfig() {

@@ -44,8 +44,12 @@ public class NPCClickListener implements Listener {
             Quest quest = questManager.getQuestByNpcId(npc.getId());
             if (quest != null) {
                 questManager.handleTalk(player, "npc" + npc.getId());
-                if (questManager.getQuestState(player, quest) == QuestState.AVAILABLE) {
-                    dialogManager.startDialog(player, quest);
+                QuestState state = questManager.getQuestState(player, quest);
+                switch (state) {
+                    case AVAILABLE -> dialogManager.startDialog(player, quest, npc);
+                    case LOCKED -> questManager.meetsRequirements(player, quest);
+                    case ACCEPTED, IN_PROGRESS -> player.sendMessage("§cComplete the quest first!");
+                    default -> {}
                 }
             }
         }
