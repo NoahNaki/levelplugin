@@ -31,14 +31,18 @@ public class AuctionCommand implements CommandExecutor {
 
         if (args[0].equalsIgnoreCase("sell")) {
             if (args.length < 2) {
-                player.sendMessage(ChatColor.RED + "Usage: /auctionhouse sell <price>");
+                player.sendMessage(ChatColor.RED + "Usage: /auctionhouse sell <start> [bin] [hours]");
                 return true;
             }
-            int price;
+            int start;
+            int bin = 0;
+            long hours = 6;
             try {
-                price = Integer.parseInt(args[1]);
+                start = Integer.parseInt(args[1]);
+                if (args.length > 2) bin = Integer.parseInt(args[2]);
+                if (args.length > 3) hours = Long.parseLong(args[3]);
             } catch (NumberFormatException e) {
-                player.sendMessage(ChatColor.RED + "Invalid price.");
+                player.sendMessage(ChatColor.RED + "Invalid number.");
                 return true;
             }
             ItemStack item = player.getInventory().getItemInMainHand();
@@ -47,12 +51,29 @@ public class AuctionCommand implements CommandExecutor {
                 return true;
             }
             player.getInventory().setItemInMainHand(null);
-            manager.listItem(player, item, price);
-            player.sendMessage(ChatColor.GREEN + "Item listed for " + price + " coins.");
+            manager.listItem(player, item, start, bin, hours);
+            player.sendMessage(ChatColor.GREEN + "Item listed.");
             return true;
         }
 
-        player.sendMessage(ChatColor.RED + "Usage: /auctionhouse [open|sell <price>]");
+        if (args[0].equalsIgnoreCase("bid")) {
+            if (args.length < 3) {
+                player.sendMessage(ChatColor.RED + "Usage: /auctionhouse bid <index> <amount>");
+                return true;
+            }
+            try {
+                int index = Integer.parseInt(args[1]);
+                int amount = Integer.parseInt(args[2]);
+                if (manager.bid(player, index, amount)) {
+                    player.sendMessage(ChatColor.GREEN + "Bid placed.");
+                }
+            } catch (NumberFormatException e) {
+                player.sendMessage(ChatColor.RED + "Invalid number.");
+            }
+            return true;
+        }
+
+        player.sendMessage(ChatColor.RED + "Usage: /auctionhouse [open|sell|bid]");
         return true;
     }
 }

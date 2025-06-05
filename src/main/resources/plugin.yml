@@ -123,8 +123,8 @@ commands:
     usage: /runebrowser
 
   auctionhouse:
-    description: Open the auction house or sell the item in your hand.
-    usage: /auctionhouse [open|sell <price>]
+    description: Open the auction house, sell items or place bids.
+    usage: /auctionhouse [open|sell <start> [bin] [hours]|bid <index> <amount>]
     aliases: [ah]
 
   quest:
