@@ -152,7 +152,8 @@ public class AuctionHouseManager {
             String bidderStr = config.getString(base + "bidder");
             long startTime = config.getLong(base + "startTime");
             long endTime = config.getLong(base + "endTime");
-            AuctionStatus status = AuctionStatus.valueOf(config.getString(base + "status"));
+            String statusStr = config.getString(base + "status");
+            AuctionStatus status = statusStr != null ? AuctionStatus.valueOf(statusStr) : AuctionStatus.ACTIVE;
             ItemStack item = config.getItemStack(base + "item");
             AuctionItem ai = new AuctionItem(seller, item, start, bin, 1); // duration ignored
             ai.setCurrentBid(currentBid);
@@ -173,7 +174,7 @@ public class AuctionHouseManager {
         }
     }
 
-    private synchronized void saveAuctions() {
+    public synchronized void saveAuctions() {
         config.set("auctions", null);
         for (int i = 0; i < auctions.size(); i++) {
             AuctionItem ai = auctions.get(i);
