@@ -127,6 +127,8 @@ public class Main extends JavaPlugin {
     private final Map<UUID, List<NPC>> activeBowDrones = new HashMap<>();
     private ChestHologramListener chestHologramListener;
     private EquipRunesGUI equipGui;
+    private me.nakilex.levelplugin.auctionhouse.AuctionHouseManager auctionHouseManager;
+    private me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI auctionHouseGUI;
 
     public Map<UUID, List<NPC>> getActiveBowDrones() {
         return activeBowDrones;
@@ -234,6 +236,8 @@ public class Main extends JavaPlugin {
         identifyGui = identifyRunesGUI;
         gemsManager = new GemsManager();
         gemGui = new GemExchangeGUI(this, gemsManager);
+        auctionHouseManager = new me.nakilex.levelplugin.auctionhouse.AuctionHouseManager(this, economyManager);
+        auctionHouseGUI = new me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI(this, auctionHouseManager, economyManager);
         tipsCfg = new TipsConfigManager(this);
         broadcastMgr = new BroadcastManager(this, this.tipsCfg);
         broadcastMgr.start();
@@ -283,6 +287,8 @@ public class Main extends JavaPlugin {
             settingsGUI,
             gemsManager,
             gemGui,
+            auctionHouseManager,
+            auctionHouseGUI,
             tipsCfg,
             identifyRunesGUI,
             runesManager,
@@ -356,6 +362,10 @@ public class Main extends JavaPlugin {
 
         if (storageManager != null) {
             storageManager.saveAllStorages();
+        }
+
+        if (auctionHouseManager != null) {
+            auctionHouseManager.saveAuctions();
         }
 
         if (lootChestManager != null) {
@@ -457,6 +467,10 @@ public class Main extends JavaPlugin {
 
     public ItemManager getItemManager() {
         return itemManager;
+    }
+
+    public me.nakilex.levelplugin.auctionhouse.AuctionHouseManager getAuctionHouseManager() {
+        return auctionHouseManager;
     }
 
     public FileConfiguration getBossConfig() {

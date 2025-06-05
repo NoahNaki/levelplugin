@@ -42,6 +42,9 @@ import me.nakilex.levelplugin.tips.BroadcastManager;
 import me.nakilex.levelplugin.tips.TipsConfigManager;
 import me.nakilex.levelplugin.tips.TipsReloadCommand;
 import me.nakilex.levelplugin.trade.commands.TradeCommand;
+import me.nakilex.levelplugin.auctionhouse.AuctionCommand;
+import me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI;
+import me.nakilex.levelplugin.auctionhouse.AuctionHouseManager;
 import me.nakilex.levelplugin.party.PartyCommands;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.horse.managers.HorseManager;
@@ -70,6 +73,8 @@ public class CommandRegistry {
                                         SettingsGUI settingsGUI,
                                         GemsManager gemsManager,
                                         GemExchangeGUI gemGui,
+                                        AuctionHouseManager auctionMgr,
+                                        AuctionHouseGUI auctionGui,
                                         TipsConfigManager tipsCfg,
                                         IdentifyRunesGUI identifyGui,
                                         RunesManager runesManager,
@@ -108,6 +113,7 @@ public class CommandRegistry {
         plugin.getCommand("toggle").setExecutor(new ToggleCommand(plugin));
         plugin.getCommand("identifyrunes").setExecutor(new IdentifyRunesCommand(identifyGui));
         plugin.getCommand("runebrowser").setExecutor(new RuneBrowser(plugin, runesManager));
+        plugin.getCommand("auctionhouse").setExecutor(new AuctionCommand(auctionMgr, auctionGui));
         plugin.getCommand("equiprunes").setExecutor(new EquipRunesCommand(equipGui));
         plugin.getCommand("quest").setExecutor(new QuestCommand(questManager));
 
