@@ -65,7 +65,17 @@ public class SalvageListener implements Listener {
                 player.closeInventory();
                 return;
             }
-            if (slot >= 46 && slot <= 52) {
+            if (slot == 46) {
+                event.setCancelled(true);
+                depositAllFromInventory(player, topInv);
+                return;
+            }
+            if (slot == 52) {
+                event.setCancelled(true);
+                withdrawAllToInventory(player, topInv);
+                return;
+            }
+            if (slot >= 47 && slot <= 51) {
                 event.setCancelled(true);
                 handleQuickSellClick(player, slot);
                 return;
@@ -225,6 +235,42 @@ public class SalvageListener implements Listener {
             player.sendMessage(msg.toString());
         } else {
             player.sendMessage(ChatColor.YELLOW + "No " + targetRarity.name().toLowerCase() + " items to salvage.");
+        }
+    }
+
+    private void depositAllFromInventory(Player player, Inventory gui) {
+        PlayerInventory inv = player.getInventory();
+        ItemStack[] contents = inv.getStorageContents();
+        for (int i = 0; i < contents.length; i++) {
+            ItemStack item = contents[i];
+            if (item == null || item.getType() == Material.AIR) continue;
+            CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(item);
+            if (cItem == null) continue;
+
+            int target = -1;
+            for (int slot = 0; slot < 54; slot++) {
+                if (isInputSlot(slot)) {
+                    ItemStack cur = gui.getItem(slot);
+                    if (cur == null || cur.getType() == Material.AIR) {
+                        target = slot;
+                        break;
+                    }
+                }
+            }
+            if (target == -1) break;
+            gui.setItem(target, item);
+            inv.setItem(i, null);
+        }
+    }
+
+    private void withdrawAllToInventory(Player player, Inventory gui) {
+        for (int i = 0; i < 54; i++) {
+            if (!isInputSlot(i)) continue;
+            ItemStack item = gui.getItem(i);
+            if (item == null || item.getType() == Material.AIR) continue;
+            HashMap<Integer, ItemStack> overflow = player.getInventory().addItem(item);
+            overflow.values().forEach(drop -> player.getWorld().dropItemNaturally(player.getLocation(), drop));
+            gui.setItem(i, null);
         }
     }
 }

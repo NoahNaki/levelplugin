@@ -57,8 +57,10 @@ public class SalvageGUI {
 
         // Bottom-left close button
         gui.setItem(45, getOraxenItem("cross", ChatColor.RED + "Cancel"));
+        gui.setItem(46, getOraxenItem("arrow_left", ChatColor.GRAY + "Deposit All"));
 
         // Bottom-right confirm button
+        gui.setItem(52, getOraxenItem("arrow_right", ChatColor.GRAY + "Return All"));
         gui.setItem(53, getOraxenItem("check", ChatColor.GREEN + "Confirm Salvage"));
 
         // Center visually for 5 items (slots 46–50)

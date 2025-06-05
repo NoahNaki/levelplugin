@@ -75,7 +75,8 @@ public class CommandRegistry {
                                         RunesManager runesManager,
                                         EquipRunesGUI equipGui,
                                         BroadcastManager broadcastMgr,
-                                        QuestManager questManager) {
+                                        QuestManager questManager,
+                                        me.nakilex.levelplugin.auctionhouse.AuctionHouseManager auctionManager) {
 
 
         plugin.getCommand("addpoints").setExecutor(new AddPointsCommand());
@@ -110,6 +111,7 @@ public class CommandRegistry {
         plugin.getCommand("runebrowser").setExecutor(new RuneBrowser(plugin, runesManager));
         plugin.getCommand("equiprunes").setExecutor(new EquipRunesCommand(equipGui));
         plugin.getCommand("quest").setExecutor(new QuestCommand(questManager));
+        plugin.getCommand("ah").setExecutor(new me.nakilex.levelplugin.auctionhouse.commands.AuctionCommand(auctionManager));
 
 
 

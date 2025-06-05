@@ -100,6 +100,7 @@ public class Main extends JavaPlugin {
     private MobRewardsConfig mobRewardsConfig;
     private StorageEvents storageEvents; // Single, shared instance
     private StorageManager storageManager;
+    private me.nakilex.levelplugin.auctionhouse.AuctionHouseManager auctionHouseManager;
     private ItemConfig itemConfig;
     private PlayerConfig playerConfig;
     private DmgNumberToggleManager dmgNumberToggleManager;
@@ -224,6 +225,7 @@ public class Main extends JavaPlugin {
         levelManager = new LevelManager(this);
         effectManager = new EffectManager(this);
         economyManager = new EconomyManager(this);
+        auctionHouseManager = new me.nakilex.levelplugin.auctionhouse.AuctionHouseManager(this, economyManager);
         itemUpgradeManager = new ItemUpgradeManager(this);
         itemRepairManager = new ItemRepairManager();
         mobManager = new MobManager(this);
@@ -265,6 +267,7 @@ public class Main extends JavaPlugin {
 
         // 1) Assign the field so it’s not null.
         this.storageManager = new StorageManager();
+        this.auctionHouseManager.init();
 
         CommandRegistry.registerCommands(
             this,
@@ -288,7 +291,8 @@ public class Main extends JavaPlugin {
             runesManager,
             equipGui,
             broadcastMgr,
-            questManager
+            questManager,
+            auctionHouseManager
         );
 
 
@@ -317,7 +321,8 @@ public class Main extends JavaPlugin {
             chestHologramListener,
             questManager,
             dialogManager,
-            scoreboardManager
+            scoreboardManager,
+            auctionHouseManager
         );
 
         getServer().getPluginManager().registerEvents(beaconManager, this);
@@ -364,6 +369,10 @@ public class Main extends JavaPlugin {
 
         if (questManager != null) {
             questManager.saveProgress();
+        }
+
+        if (auctionHouseManager != null) {
+            auctionHouseManager.shutdown();
         }
 
 

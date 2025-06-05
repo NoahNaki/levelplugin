@@ -49,6 +49,7 @@ public class BlacksmithGUI implements Listener {
         gui.setItem(8, createUpgradeInfoItem());
         gui.setItem(11, getOraxenItem("arrow_left", ChatColor.GRAY + "Go to Repair"));
         gui.setItem(15, getOraxenItem("arrow_right", ChatColor.GRAY + "Go to Repair"));
+        gui.setItem(18, getOraxenItem("cross", ChatColor.RED + "Cancel"));
         gui.setItem(13, null);
         gui.setItem(22, createUpgradeButton(0, 0));
         openInventories.put(player.getUniqueId(), gui);
@@ -61,6 +62,7 @@ public class BlacksmithGUI implements Listener {
         gui.setItem(8, createRepairInfoItem());
         gui.setItem(11, getOraxenItem("arrow_left", ChatColor.GRAY + "Go to Upgrade"));
         gui.setItem(15, getOraxenItem("arrow_right", ChatColor.GRAY + "Go to Upgrade"));
+        gui.setItem(18, getOraxenItem("cross", ChatColor.RED + "Cancel"));
         gui.setItem(0, createRepairAllButton(calculateTotalRepairCost(player)));
         gui.setItem(13, null);
         gui.setItem(22, createRepairButton(0));
@@ -136,9 +138,8 @@ public class BlacksmithGUI implements Listener {
     }
 
     private ItemStack createUpgradeButton(int upgradeCost, int successChance) {
-        ItemStack upgrade = new ItemStack(Material.ANVIL);
+        ItemStack upgrade = getOraxenItem("check", ChatColor.GREEN + "Upgrade");
         ItemMeta meta = upgrade.getItemMeta();
-        meta.setDisplayName("§aUpgrade");
         List<String> lore = new ArrayList<>();
         if (upgradeCost > 0) {
             lore.add("§7Cost: §6⛃ " + upgradeCost);
@@ -152,9 +153,8 @@ public class BlacksmithGUI implements Listener {
     }
 
     private ItemStack createRepairButton(int cost) {
-        ItemStack repair = new ItemStack(Material.ANVIL);
+        ItemStack repair = getOraxenItem("check", ChatColor.GREEN + "Repair Item");
         ItemMeta meta = repair.getItemMeta();
-        meta.setDisplayName("§bRepair Item");
         List<String> lore = new ArrayList<>();
         if (cost > 0) {
             lore.add("§7Cost: §6⛃ " + cost);
@@ -264,6 +264,11 @@ public class BlacksmithGUI implements Listener {
         if (rawSlot == 0 && title.equals(GUI_TITLE_REPAIR)) {
             handleRepairAllClick(player);
             gui.setItem(0, createRepairAllButton(calculateTotalRepairCost(player)));
+            return;
+        }
+
+        if (rawSlot == 18) {
+            player.closeInventory();
             return;
         }
 

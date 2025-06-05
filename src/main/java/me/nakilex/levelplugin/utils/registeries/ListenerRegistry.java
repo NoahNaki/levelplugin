@@ -74,10 +74,11 @@ public class ListenerRegistry {
                                          IdentifyRunesGUI identifyRunesGUI,
                                          RunesManager runesManager,
                                          EquipRunesGUI   equipGui,
-                                         ChestHologramListener chestHologramListener,
-                                         QuestManager questManager,
-                                        NPCDialogManager dialogManager,
-                                         PlayerScoreboardManager scoreboardManager) {
+                                        ChestHologramListener chestHologramListener,
+                                        QuestManager questManager,
+                                       NPCDialogManager dialogManager,
+                                         PlayerScoreboardManager scoreboardManager,
+                                         me.nakilex.levelplugin.auctionhouse.AuctionHouseManager auctionManager) {
 
 
         PluginManager pm = plugin.getServer().getPluginManager();
@@ -140,6 +141,7 @@ public class ListenerRegistry {
         pm.registerEvents(new QuestGUIListener(questManager), plugin);
         pm.registerEvents(new NPCDialogMoveListener(dialogManager), plugin);
         pm.registerEvents(plugin.getScoreboardManager(), plugin);
+        pm.registerEvents(new me.nakilex.levelplugin.auctionhouse.listeners.AuctionListener(auctionManager), plugin);
 
 
 
