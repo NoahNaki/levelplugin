@@ -4,6 +4,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
+import java.util.UUID;
 
 import java.io.File;
 import java.io.IOException;
@@ -44,8 +45,19 @@ public class EconomyManager {
         return balanceConfig.getInt(path, 0);
     }
 
+    public int getBalance(UUID playerId) {
+        String path = "balances." + playerId.toString();
+        return balanceConfig.getInt(path, 0);
+    }
+
     public void setBalance(Player player, int amount) {
         String path = "balances." + player.getUniqueId().toString();
+        balanceConfig.set(path, amount);
+        saveBalances();
+    }
+
+    public void setBalance(UUID playerId, int amount) {
+        String path = "balances." + playerId.toString();
         balanceConfig.set(path, amount);
         saveBalances();
     }
@@ -55,10 +67,24 @@ public class EconomyManager {
         setBalance(player, current + amount);
     }
 
+    public void addCoins(UUID playerId, int amount) {
+        int current = getBalance(playerId);
+        setBalance(playerId, current + amount);
+    }
+
     public void deductCoins(Player player, int amount) {
         int current = getBalance(player);
         if (current >= amount) {
             setBalance(player, current - amount);
+        } else {
+            throw new IllegalArgumentException("Not enough coins to deduct!");
+        }
+    }
+
+    public void deductCoins(UUID playerId, int amount) {
+        int current = getBalance(playerId);
+        if (current >= amount) {
+            setBalance(playerId, current - amount);
         } else {
             throw new IllegalArgumentException("Not enough coins to deduct!");
         }
