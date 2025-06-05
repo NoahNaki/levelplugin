@@ -40,8 +40,10 @@ public class AuctionListener implements Listener {
                 binGUI.open(player);
             }
         } else if (view.getTitle().equals(ListingMenu.TITLE)) {
-            event.setCancelled(true);
-            listingMenu.handleClick(player, event.getRawSlot());
+            if (event.getRawSlot() < view.getTopInventory().getSize()) {
+                event.setCancelled(true);
+                listingMenu.handleClick(player, event.getRawSlot());
+            }
         } else if (view.getTitle().equals(CollectionBinGUI.TITLE)) {
             if (event.getRawSlot() == 53) {
                 event.setCancelled(true);

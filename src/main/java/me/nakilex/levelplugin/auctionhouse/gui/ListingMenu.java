@@ -94,6 +94,7 @@ public class ListingMenu {
     }
 
     private void openPriceChatInput(Player player) {
+        player.closeInventory();
         conversationFactory.withFirstPrompt(new PriceInputPrompt(this, player))
                 .addConversationAbandonedListener(new ConversationAbandonedListener() {
                     @Override
