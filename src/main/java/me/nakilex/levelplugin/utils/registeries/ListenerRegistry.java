@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.duels.listeners.DuelListener;
 import me.nakilex.levelplugin.duels.listeners.ProjectileFriendlyFireListener;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.economy.managers.GemsManager;
+import me.nakilex.levelplugin.auction.gui.AuctionHouseGUI;
 import me.nakilex.levelplugin.lootchests.listeners.ChestHologramListener;
 import me.nakilex.levelplugin.player.attributes.listeners.StatsEffectListener;
 import me.nakilex.levelplugin.horse.gui.HorseGUI;
@@ -72,9 +73,10 @@ public class ListenerRegistry {
                                          MeteorListener meteorListener,
                                          GemsManager gemsManager,
                                          IdentifyRunesGUI identifyRunesGUI,
-                                         RunesManager runesManager,
-                                         EquipRunesGUI   equipGui,
-                                         ChestHologramListener chestHologramListener,
+                                        RunesManager runesManager,
+                                        EquipRunesGUI   equipGui,
+                                        AuctionHouseGUI auctionGui,
+                                        ChestHologramListener chestHologramListener,
                                          QuestManager questManager,
                                         NPCDialogManager dialogManager,
                                          PlayerScoreboardManager scoreboardManager) {
@@ -118,6 +120,7 @@ public class ListenerRegistry {
         pm.registerEvents(new PickupCustomItemListener(plugin), plugin);
         pm.registerEvents(new CustomItemUpdateListener(), plugin);
         pm.registerEvents(new SalvageListener(economyManager, gemsManager), plugin);
+        pm.registerEvents(auctionGui, plugin);
         pm.registerEvents(new SpellGUIListener(), plugin);
         pm.registerEvents(new DoubleJumpListener(), plugin);
         pm.registerEvents(new DamageIndicatorListener(dmgToggleManager), plugin);

@@ -9,6 +9,8 @@ import me.nakilex.levelplugin.duels.listeners.ProjectileFriendlyFireListener;
 import me.nakilex.levelplugin.economy.gui.GemExchangeGUI;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.economy.managers.GemsManager;
+import me.nakilex.levelplugin.auction.managers.AuctionManager;
+import me.nakilex.levelplugin.auction.gui.AuctionHouseGUI;
 import me.nakilex.levelplugin.horse.gui.HorseGUI;
 import me.nakilex.levelplugin.horse.managers.HorseConfigManager;
 import me.nakilex.levelplugin.horse.managers.HorseManager;
@@ -113,6 +115,8 @@ public class Main extends JavaPlugin {
     private IdentifyRunesGUI identifyRunesGUI;
     private GemsManager gemsManager;
     private GemExchangeGUI gemGui;
+    private me.nakilex.levelplugin.auction.managers.AuctionManager auctionManager;
+    private me.nakilex.levelplugin.auction.gui.AuctionHouseGUI auctionGui;
     private ArcherSpell archerSpell;
     private TipsConfigManager tipsCfg;
     private BroadcastManager broadcastMgr;
@@ -234,6 +238,8 @@ public class Main extends JavaPlugin {
         identifyGui = identifyRunesGUI;
         gemsManager = new GemsManager();
         gemGui = new GemExchangeGUI(this, gemsManager);
+        auctionManager = new me.nakilex.levelplugin.auction.managers.AuctionManager(this);
+        auctionGui = new me.nakilex.levelplugin.auction.gui.AuctionHouseGUI(this, auctionManager, economyManager);
         tipsCfg = new TipsConfigManager(this);
         broadcastMgr = new BroadcastManager(this, this.tipsCfg);
         broadcastMgr.start();
@@ -283,6 +289,8 @@ public class Main extends JavaPlugin {
             settingsGUI,
             gemsManager,
             gemGui,
+            auctionManager,
+            auctionGui,
             tipsCfg,
             identifyRunesGUI,
             runesManager,
@@ -314,6 +322,7 @@ public class Main extends JavaPlugin {
             identifyRunesGUI,
             runesManager,
             equipGui,
+            auctionGui,
             chestHologramListener,
             questManager,
             dialogManager,
@@ -364,6 +373,10 @@ public class Main extends JavaPlugin {
 
         if (questManager != null) {
             questManager.saveProgress();
+        }
+
+        if (auctionManager != null) {
+            auctionManager.saveAuctions();
         }
 
 
@@ -481,6 +494,14 @@ public class Main extends JavaPlugin {
 
     public me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager getScoreboardManager() {
         return scoreboardManager;
+    }
+
+    public me.nakilex.levelplugin.auction.managers.AuctionManager getAuctionManager() {
+        return auctionManager;
+    }
+
+    public me.nakilex.levelplugin.auction.gui.AuctionHouseGUI getAuctionGui() {
+        return auctionGui;
     }
 
     private void createCustomConfig() {
