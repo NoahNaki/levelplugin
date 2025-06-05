@@ -59,9 +59,6 @@ public class AuctionGUI {
         }
         gui.setItem(8, info);
         gui.setItem(45, getOraxenItem("cross", ChatColor.RED + "Close"));
-        gui.setItem(46, create(Material.NETHER_STAR, ChatColor.YELLOW + "Filter"));
-        gui.setItem(47, create(Material.COMPASS, ChatColor.YELLOW + "Search"));
-        gui.setItem(48, create(Material.CLOCK, ChatColor.YELLOW + "Sort"));
         gui.setItem(49, create(Material.PLAYER_HEAD, ChatColor.YELLOW + "Your Listings"));
         gui.setItem(50, create(Material.ENDER_CHEST, ChatColor.YELLOW + "Collection Bin"));
         gui.setItem(51, create(Material.ANVIL, ChatColor.GREEN + "List Item"));

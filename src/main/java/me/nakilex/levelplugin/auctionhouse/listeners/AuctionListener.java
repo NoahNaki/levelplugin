@@ -4,7 +4,6 @@ import me.nakilex.levelplugin.auctionhouse.AuctionHouseManager;
 import me.nakilex.levelplugin.auctionhouse.gui.AuctionGUI;
 import me.nakilex.levelplugin.auctionhouse.gui.CollectionBinGUI;
 import me.nakilex.levelplugin.auctionhouse.gui.ListingMenu;
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -42,7 +41,7 @@ public class AuctionListener implements Listener {
             }
         } else if (view.getTitle().equals(ListingMenu.TITLE)) {
             event.setCancelled(true);
-            listingMenu.handleClick(player, event.getRawSlot(), event.isShiftClick(), event.isRightClick());
+            listingMenu.handleClick(player, event.getRawSlot());
         } else if (view.getTitle().equals(CollectionBinGUI.TITLE)) {
             if (event.getRawSlot() == 53) {
                 event.setCancelled(true);

@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.auctionhouse;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.auctionhouse.data.AuctionStorageProvider;
+import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -31,6 +32,10 @@ public class AuctionHouseManager {
         this.maxListings = plugin.getConfig().getInt("auction.max-listings", 5);
     }
 
+    public JavaPlugin getPlugin() {
+        return plugin;
+    }
+
     public void init() {
         storage.init();
         for (AuctionListing l : storage.loadActiveListings()) {
@@ -56,6 +61,14 @@ public class AuctionHouseManager {
     }
 
     public boolean listItem(Player seller, ItemStack item, double price) {
+        if (ItemManager.getInstance().getCustomItemFromItemStack(item) == null) {
+            seller.sendMessage(ChatColor.RED + "Only custom items can be listed.");
+            return false;
+        }
+        if (item.getEnchantments().keySet().stream().anyMatch(e -> e.getKey().getKey().contains("curse"))) {
+            seller.sendMessage(ChatColor.RED + "Cannot list cursed items.");
+            return false;
+        }
         List<AuctionListing> own = getPlayerListings(seller.getUniqueId());
         if (own.size() >= maxListings) {
             seller.sendMessage(ChatColor.RED + "You reached max listings.");
