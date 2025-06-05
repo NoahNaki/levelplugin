@@ -122,6 +122,10 @@ commands:
     description: Browse all rune templates.
     usage: /runebrowser
 
+  auctionhouse:
+    description: Open the auction house, sell items or place bids.
+    usage: /auctionhouse [open|sell <start> [bin] [hours]|bid <index> <amount>]
+    aliases: [ah]
 
   quest:
     description: Manage quests
