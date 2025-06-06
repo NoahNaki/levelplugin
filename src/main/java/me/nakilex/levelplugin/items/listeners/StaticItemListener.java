@@ -51,6 +51,16 @@ public class StaticItemListener implements Listener {
         }
     }
 
+    /**
+     * Determine if the provided item is one of the static menu items.
+     */
+    public static boolean isStaticItem(ItemStack item) {
+        if (item == null) return false;
+        return item.isSimilar(STATIC_ITEM)
+                || item.isSimilar(STATIC_HORSE_SADDLE)
+                || item.isSimilar(STATIC_QUEST_BOOK);
+    }
+
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player p = event.getPlayer();

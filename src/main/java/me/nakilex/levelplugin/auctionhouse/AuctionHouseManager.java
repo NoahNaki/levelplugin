@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.auctionhouse;
 
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -105,7 +106,10 @@ public class AuctionHouseManager {
         saveAuctions();
         Player seller = Bukkit.getPlayer(ai.getSeller());
         if (seller != null) {
-            seller.sendMessage(buyer.getName() + " bought your item for " + price + " coins.");
+            String name = ai.getItem().hasItemMeta() && ai.getItem().getItemMeta().hasDisplayName()
+                    ? ChatColor.stripColor(ai.getItem().getItemMeta().getDisplayName())
+                    : ai.getItem().getType().name().toLowerCase().replace('_', ' ');
+            seller.sendMessage("Your " + name + " sold for " + price + " coins!");
         }
         return true;
     }
