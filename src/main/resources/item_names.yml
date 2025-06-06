@@ -13,10 +13,28 @@ prefixes:
     - Old
 suffixes:
   default:
-    - Power
     - Doom
-    - the Fox
     - Death
+  strength:
+    - Power
+    - the Bear
+    - Might
+  agility:
+    - the Fox
+    - Swiftness
+    - the Wind
+  dexterity:
+    - Precision
+    - Accuracy
+    - the Hawk
+  intelligence:
+    - Wisdom
+    - Insight
+    - the Owl
+  defense:
+    - Fortitude
+    - Protection
+    - the Turtle
 weapon_types:
   ROGUE:
     - Dagger

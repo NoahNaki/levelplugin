@@ -39,39 +39,58 @@ public class ProceduralItemGenerator {
 
         boolean createArmor = random.nextBoolean();
         String base = pickBaseName(clazz, createArmor);
-        String name = buildName(mobType, base, rarity);
-        Material material = createArmor ? pickArmorMaterial(level, base) : pickWeaponMaterial(clazz, level);
-
         int baseVal = Math.max(1, level);
-        int hp = 0, def = 0, str = 0, intel = 0, dex = 0;
+        
+        int hp = 0, def = 0, str = 0, agi = 0, intel = 0, dex = 0;
 
         if (createArmor) {
-            hp = baseVal * 2;
+            hp  = baseVal * 2;
             def = baseVal;
+            str   = random.nextInt(baseVal + 1);
+            agi   = random.nextInt(baseVal + 1);
+            intel = random.nextInt(baseVal + 1);
+            dex   = random.nextInt(baseVal + 1);
         } else {
+            def = random.nextInt(baseVal + 1);
             switch (clazz) {
                 case "WARRIOR":
                     str = baseVal * 2;
+                    agi = random.nextInt(baseVal + 1);
+                    dex = random.nextInt(baseVal + 1);
+                    intel = random.nextInt(baseVal + 1);
                     break;
                 case "ROGUE":
-                    str = baseVal;
-                    dex = baseVal;
+                    dex = baseVal * 2;
+                    agi = baseVal;
+                    str = random.nextInt(baseVal + 1);
+                    intel = random.nextInt(baseVal + 1);
                     break;
                 case "ARCHER":
                     dex = baseVal * 2;
+                    agi = baseVal;
+                    str = random.nextInt(baseVal + 1);
+                    intel = random.nextInt(baseVal + 1);
                     break;
                 case "MAGE":
                     intel = baseVal * 2;
+                    agi = random.nextInt(baseVal + 1);
+                    dex = random.nextInt(baseVal + 1);
+                    str = random.nextInt(baseVal + 1);
                     break;
             }
         }
 
         double mult = 1.0 + rarityBonus(rarity);
-        hp = (int) (hp * mult);
-        def = (int) (def * mult);
-        str = (int) (str * mult);
-        dex = (int) (dex * mult);
+        hp    = (int) (hp * mult);
+        def   = (int) (def * mult);
+        str   = (int) (str * mult);
+        agi   = (int) (agi * mult);
+        dex   = (int) (dex * mult);
         intel = (int) (intel * mult);
+
+        String dominant = getDominantStat(str, agi, intel, dex, def);
+        String name = buildName(mobType, base, rarity, dominant);
+        Material material = createArmor ? pickArmorMaterial(level, base) : pickWeaponMaterial(clazz, level);
 
         String classReq = createArmor ? "ANY" : clazz;
 
@@ -85,7 +104,7 @@ public class ProceduralItemGenerator {
             new StatRange(hp, hp),
             new StatRange(def, def),
             new StatRange(str, str),
-            new StatRange(0, 0),
+            new StatRange(agi, agi),
             new StatRange(intel, intel),
             new StatRange(dex, dex)
         );
@@ -94,22 +113,35 @@ public class ProceduralItemGenerator {
         return item;
     }
 
-    private String buildName(String mobType, String base, ItemRarity rarity) {
+    private String buildName(String mobType, String base, ItemRarity rarity, String statKey) {
         List<String> prefixes = config.getStringList("prefixes." + mobType.toLowerCase());
         if (prefixes.isEmpty()) {
             prefixes = config.getStringList("prefixes.default");
         }
-        List<String> suffixes = config.getStringList("suffixes." + mobType.toLowerCase());
-        if (suffixes.isEmpty()) {
-            suffixes = config.getStringList("suffixes.default");
-        }
-        String prefix = prefixes.get(random.nextInt(prefixes.size()));
-        String name = prefix + " " + base;
-        if (rarity.ordinal() >= ItemRarity.RARE.ordinal() && !suffixes.isEmpty()) {
-            String suffix = suffixes.get(random.nextInt(suffixes.size()));
-            name += " of " + suffix;
+        String prefix = prefixes.isEmpty() ? "" : prefixes.get(random.nextInt(prefixes.size()));
+        String name = prefix.isEmpty() ? base : prefix + " " + base;
+
+        if (rarity.ordinal() >= ItemRarity.RARE.ordinal()) {
+            List<String> suffixes = config.getStringList("suffixes." + statKey);
+            if (suffixes.isEmpty()) {
+                suffixes = config.getStringList("suffixes.default");
+            }
+            if (!suffixes.isEmpty()) {
+                String suffix = suffixes.get(random.nextInt(suffixes.size()));
+                name += " of " + suffix;
+            }
         }
         return name;
+    }
+
+    private String getDominantStat(int str, int agi, int intel, int dex, int def) {
+        int max = str;
+        String key = "strength";
+        if (agi > max) { max = agi; key = "agility"; }
+        if (intel > max) { max = intel; key = "intelligence"; }
+        if (dex > max) { max = dex; key = "dexterity"; }
+        if (def > max) { key = "defense"; }
+        return key;
     }
 
     private String pickClassForMob(String mobType) {
