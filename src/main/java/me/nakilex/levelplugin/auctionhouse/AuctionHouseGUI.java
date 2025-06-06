@@ -34,6 +34,9 @@ public class AuctionHouseGUI implements Listener {
     private static final int FILTER_SLOT = 50;
     private static final int RARITY_FILTER_SLOT = 51;
     private static final int SORT_SLOT = 52;
+    private static final int MY_LISTINGS_SLOT = 48;
+    private static final int BACK_SLOT = 46;
+    private static final String MY_LISTINGS_TITLE = "Your Listings";
     private static final int INFO_SLOT = 8;
     private static final int CONFIRM_SIZE = 27;
     private static final String CONFIRM_TITLE = "Confirm Purchase";
@@ -67,6 +70,7 @@ public class AuctionHouseGUI implements Listener {
     private final Set<UUID> awaitingSearch = new HashSet<>();
     private final Map<UUID, Integer> awaitingBid = new HashMap<>();
     private final Map<UUID, Integer> confirmPurchase = new HashMap<>();
+    private final Map<UUID, Integer> myPageMap = new HashMap<>();
 
     public AuctionHouseGUI(JavaPlugin plugin, AuctionHouseManager manager, EconomyManager economy) {
         this.plugin = plugin;
@@ -112,17 +116,14 @@ public class AuctionHouseGUI implements Listener {
             if (meta != null) {
                 List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
                 lore.add(" ");
-                lore.add(ChatColor.YELLOW + "Start: " + ai.getStartingPrice());
-                if (ai.getCurrentBid() > 0) {
-                    lore.add(ChatColor.AQUA + "Current bid: " + ai.getCurrentBid());
-                }
+                int bid = ai.getCurrentBid() > 0 ? ai.getCurrentBid() : ai.getStartingPrice();
+                lore.add(ChatColor.GOLD + "" + ChatColor.BOLD + "Bid " + ChatColor.WHITE + ": " + bid);
                 if (ai.getBinPrice() > 0) {
-                    lore.add(ChatColor.GREEN + "BIN: " + ai.getBinPrice());
+                    lore.add(ChatColor.GOLD + "" + ChatColor.BOLD + "BIN " + ChatColor.WHITE + ": " + ai.getBinPrice());
                 }
                 long left = (ai.getEndTime() - System.currentTimeMillis()) / 1000;
                 long mins = left / 60;
-                lore.add(ChatColor.GRAY + "Time left: " + mins + "m");
-                lore.add(ChatColor.GRAY + "Category: " + ai.getCategory().name());
+                lore.add(ChatColor.GOLD + "" + ChatColor.BOLD + "Duration " + ChatColor.WHITE + ": " + mins + "m");
                 if (ai.getSeller().equals(player.getUniqueId())) {
                     lore.add(ChatColor.RED + "Click to cancel listing");
                 } else {
@@ -140,6 +141,7 @@ public class AuctionHouseGUI implements Listener {
         if (page > 0) inv.setItem(PREV_PAGE, createArrow(ChatColor.RED + "Previous", false));
         if (list.size() > (page + 1) * ITEMS_PER_PAGE) inv.setItem(NEXT_PAGE, createArrow(ChatColor.GREEN + "Next", true));
         inv.setItem(SELL_SLOT, createSellButton());
+        inv.setItem(MY_LISTINGS_SLOT, createMyListingsButton());
         inv.setItem(SEARCH_SLOT, createSearchButton(term));
         inv.setItem(FILTER_SLOT, createLevelFilterButton(filter));
         inv.setItem(RARITY_FILTER_SLOT, createRarityFilterButton(rarityFilter));
@@ -168,6 +170,11 @@ public class AuctionHouseGUI implements Listener {
             return;
         }
 
+        if (e.getView().getTitle().equals(MY_LISTINGS_TITLE)) {
+            handleMyListingsClick(e);
+            return;
+        }
+
         if (!e.getView().getTitle().equals(TITLE)) return;
         e.setCancelled(true);
         ItemStack clicked = e.getCurrentItem();
@@ -191,6 +198,11 @@ public class AuctionHouseGUI implements Listener {
             player.getInventory().setItemInMainHand(null);
             player.closeInventory();
             player.sendMessage(ChatColor.YELLOW + "Enter starting price or 'cancel'.");
+            return;
+        }
+
+        if (rawSlot == MY_LISTINGS_SLOT) {
+            openMyListings(player);
             return;
         }
 
@@ -399,6 +411,17 @@ public class AuctionHouseGUI implements Listener {
         return it;
     }
 
+    private ItemStack createMyListingsButton() {
+        ItemStack it = new ItemStack(Material.BOOK);
+        ItemMeta meta = it.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.GOLD + "My Listings");
+            meta.setLore(Collections.singletonList(ChatColor.GRAY + "View and cancel your listings."));
+            it.setItemMeta(meta);
+        }
+        return it;
+    }
+
     private ItemStack createArrow(String name, boolean right) {
         return getOraxenItem(right ? "arrow_right" : "arrow_left", name);
     }
@@ -514,6 +537,113 @@ public class AuctionHouseGUI implements Listener {
             item.setItemMeta(meta);
         }
         return item;
+    }
+
+    public void openMyListings(Player player) {
+        openMyListings(player, myPageMap.getOrDefault(player.getUniqueId(), 0));
+    }
+
+    private void openMyListings(Player player, int page) {
+        myPageMap.put(player.getUniqueId(), page);
+        Inventory inv = Bukkit.createInventory(null, SIZE, MY_LISTINGS_TITLE);
+        ItemStack filler = createFiller();
+        for (int i = 0; i < SIZE; i++) {
+            if (i < 9 || i >= 45 || i % 9 == 0 || i % 9 == 8) {
+                inv.setItem(i, filler);
+            }
+        }
+        List<AuctionItem> list = new ArrayList<>();
+        List<Integer> indices = new ArrayList<>();
+        List<AuctionItem> all = manager.getAuctions();
+        for (int i = 0; i < all.size(); i++) {
+            AuctionItem ai = all.get(i);
+            if (ai.getSeller().equals(player.getUniqueId())) {
+                list.add(ai);
+                indices.add(i);
+            }
+        }
+        int startIndex = page * ITEMS_PER_PAGE;
+        int slot = 0;
+        for (int i = startIndex; i < list.size() && slot < ITEMS_PER_PAGE; i++) {
+            AuctionItem ai = list.get(i);
+            int globalIdx = indices.get(i);
+            ItemStack stack = ai.getItem().clone();
+            ItemMeta meta = stack.getItemMeta();
+            if (meta != null) {
+                List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+                lore.add(" ");
+                int bid = ai.getCurrentBid() > 0 ? ai.getCurrentBid() : ai.getStartingPrice();
+                lore.add(ChatColor.GOLD + "" + ChatColor.BOLD + "Bid " + ChatColor.WHITE + ": " + bid);
+                if (ai.getBinPrice() > 0) {
+                    lore.add(ChatColor.GOLD + "" + ChatColor.BOLD + "BIN " + ChatColor.WHITE + ": " + ai.getBinPrice());
+                }
+                long left = (ai.getEndTime() - System.currentTimeMillis()) / 1000;
+                long mins = left / 60;
+                lore.add(ChatColor.GOLD + "" + ChatColor.BOLD + "Duration " + ChatColor.WHITE + ": " + mins + "m");
+                lore.add(ChatColor.RED + "Click to cancel listing");
+                meta.setLore(lore);
+                meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+                meta.getPersistentDataContainer().set(indexKey, PersistentDataType.INTEGER, globalIdx);
+                stack.setItemMeta(meta);
+            }
+            inv.setItem(LISTING_SLOTS[slot++], stack);
+        }
+        if (page > 0) inv.setItem(PREV_PAGE, createArrow(ChatColor.RED + "Previous", false));
+        if (list.size() > (page + 1) * ITEMS_PER_PAGE) inv.setItem(NEXT_PAGE, createArrow(ChatColor.GREEN + "Next", true));
+        inv.setItem(BACK_SLOT, createArrow(ChatColor.RED + "Back", false));
+        inv.setItem(SELL_SLOT, createSellButton());
+        player.openInventory(inv);
+    }
+
+    private void handleMyListingsClick(InventoryClickEvent e) {
+        e.setCancelled(true);
+        Player player = (Player) e.getWhoClicked();
+        ItemStack clicked = e.getCurrentItem();
+        if (clicked == null || !clicked.hasItemMeta()) return;
+        int raw = e.getRawSlot();
+
+        if (raw == BACK_SLOT && isArrow(clicked, "Back")) {
+            open(player, pageMap.getOrDefault(player.getUniqueId(), 0));
+            return;
+        }
+
+        if (raw == SELL_SLOT) {
+            ItemStack hand = player.getInventory().getItemInMainHand();
+            if (hand == null || hand.getType().isAir()) {
+                player.sendMessage(ChatColor.RED + "Hold the item you wish to sell in your hand.");
+                return;
+            }
+            if (me.nakilex.levelplugin.items.listeners.StaticItemListener.isStaticItem(hand)) {
+                player.sendMessage(ChatColor.RED + "You cannot list that item.");
+                return;
+            }
+            ListingData data = new ListingData();
+            data.item = hand.clone();
+            pending.put(player.getUniqueId(), data);
+            player.getInventory().setItemInMainHand(null);
+            player.closeInventory();
+            player.sendMessage(ChatColor.YELLOW + "Enter starting price or 'cancel'.");
+            return;
+        }
+
+        if (raw == NEXT_PAGE && isArrow(clicked, "Next")) {
+            int page = myPageMap.getOrDefault(player.getUniqueId(), 0) + 1;
+            openMyListings(player, page);
+            return;
+        }
+
+        if (raw == PREV_PAGE && isArrow(clicked, "Previous")) {
+            int page = Math.max(0, myPageMap.getOrDefault(player.getUniqueId(), 0) - 1);
+            openMyListings(player, page);
+            return;
+        }
+
+        Integer idx = clicked.getItemMeta().getPersistentDataContainer().get(indexKey, PersistentDataType.INTEGER);
+        if (idx == null) return;
+        if (manager.cancelListing(player, idx)) {
+            player.sendMessage(ChatColor.RED + "Listing cancelled.");
+        }
+        Bukkit.getScheduler().runTaskLater(plugin, () -> openMyListings(player, myPageMap.getOrDefault(player.getUniqueId(), 0)), 1L);
     }
 
     private void openConfirmGUI(Player player, int index) {
