@@ -72,13 +72,35 @@ public class SetBonusManager {
         }
     }
 
-    /** Re-scan a player's equipped armor and update any set bonuses. */
+    /**
+     * Re-scan a player's equipped armor and update any set bonuses.
+     * Messages are only sent when the bonus actually changes.
+     */
     public void updatePlayer(Player player) {
         UUID uuid = player.getUniqueId();
-        BonusStats old = activeBonuses.remove(uuid);
-        if (old != null) removeBonus(player, old);
 
         ItemStack[] armor = player.getInventory().getArmorContents();
+        BonusStats oldBonus = activeBonuses.get(uuid);
+        BonusStats newBonus = calculateBonus(player, armor);
+
+        if (bonusEquals(oldBonus, newBonus)) {
+            return; // nothing changed
+        }
+
+        if (oldBonus != null) {
+            removeBonus(player, oldBonus);
+        }
+
+        if (!newBonus.isZero()) {
+            applyBonus(player, newBonus);
+            activeBonuses.put(uuid, newBonus);
+        } else {
+            activeBonuses.remove(uuid);
+        }
+        StatsManager.getInstance().recalcDerivedStats(player);
+    }
+
+    private BonusStats calculateBonus(Player player, ItemStack[] armor) {
         Map<String,Integer> prefixCount = new HashMap<>();
         Map<String,Integer> suffixCount = new HashMap<>();
         Map<String,Integer> pairCount   = new HashMap<>();
@@ -131,12 +153,15 @@ public class SetBonusManager {
             addPercentBonus(player, total, st, pct, pairBest.getValue());
         }
 
-        if (!total.isZero()) {
-            applyBonus(player, total);
-            activeBonuses.put(uuid, total);
-        }
+        return total;
+    }
 
-        StatsManager.getInstance().recalcDerivedStats(player);
+    private boolean bonusEquals(BonusStats a, BonusStats b) {
+        if (a == b) return true;
+        if (a == null || b == null) return false;
+        return a.str == b.str && a.agi == b.agi && a.intel == b.intel &&
+               a.dex == b.dex && a.def == b.def && a.hp == b.hp &&
+               a.percents.equals(b.percents) && a.counts.equals(b.counts);
     }
 
     private Map.Entry<String,Integer> maxEntry(Map<String,Integer> map) {
