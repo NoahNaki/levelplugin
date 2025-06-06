@@ -16,6 +16,7 @@ import org.bukkit.ChatColor;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 /**
@@ -92,6 +93,19 @@ public class RunesManager {
 
     public NamespacedKey getRuneKey() {
         return runeKey;
+    }
+
+    /**
+     * Pick a random rune that matches the given rarity.
+     * Returns {@code null} if no runes of that rarity exist.
+     */
+    public Rune getRandomRuneByRarity(Rune.Rarity rarity) {
+        List<Rune> filtered = runeLoader.getAllRunes().stream()
+            .filter(r -> r.getRarity() == rarity)
+            .toList();
+        if (filtered.isEmpty()) return null;
+        int idx = ThreadLocalRandom.current().nextInt(filtered.size());
+        return filtered.get(idx);
     }
 
     /**
