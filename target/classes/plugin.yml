@@ -136,3 +136,6 @@ commands:
   quest:
     description: Manage quests
     usage: /quest [start|reset|complete|status|debug]
+  wipeprofile:
+    description: Wipe a player's profile
+    usage: /wipeprofile <player>

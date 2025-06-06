@@ -20,6 +20,7 @@ import me.nakilex.levelplugin.mob.managers.DmgNumberToggleManager;
 import me.nakilex.levelplugin.mob.managers.MobManager;
 import me.nakilex.levelplugin.player.attributes.commands.AddPointsCommand;
 import me.nakilex.levelplugin.player.attributes.commands.StatsCommand;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.commands.ClassCommand;
 import me.nakilex.levelplugin.player.level.commands.AddXPCommand;
 import me.nakilex.levelplugin.player.level.commands.SetLevelCommand;
