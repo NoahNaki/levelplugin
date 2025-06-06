@@ -5,11 +5,13 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.event.player.PlayerAttemptPickupItemEvent;
 import org.bukkit.inventory.InventoryView;
 
 public class FullInventoryListener implements Listener {
 
-    private static final String SALVAGE_TITLE = "Merchant";
+    // Title of the salvage GUI, stripped of color codes
+    private static final String SALVAGE_TITLE = "Salvage Items";
 
     @EventHandler
     public void onEntityPickup(EntityPickupItemEvent event) {
@@ -31,6 +33,23 @@ public class FullInventoryListener implements Listener {
             sendFullInventoryTitle(player);
         }
         // else: let the pickup proceed normally
+    }
+
+    @EventHandler
+    public void onAttemptPickup(PlayerAttemptPickupItemEvent event) {
+        Player player = event.getPlayer();
+
+        InventoryView openView = player.getOpenInventory();
+        if (openView != null &&
+            ChatColor.stripColor(openView.getTitle()).equalsIgnoreCase(SALVAGE_TITLE)) {
+            event.setCancelled(true);
+            return;
+        }
+
+        if (player.getInventory().firstEmpty() == -1) {
+            event.setCancelled(true);
+            sendFullInventoryTitle(player);
+        }
     }
 
     /**

@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.salvage.managers.SalvageManager;
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.potions.data.PotionInstance;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -152,9 +153,12 @@ public class SalvageListener implements Listener {
                 totalCoins += SalvageManager.getInstance().getSellPrice(cItem);
                 totalGems += SalvageManager.getInstance().getGemReward(cItem);
                 inv.setItem(i, null);
-            } else if (Main.getInstance().getPotionManager().getInstanceFromItem(item) != null) {
-                // Potions yield no rewards but should still be removed
-                inv.setItem(i, null);
+            } else {
+                PotionInstance pInst = Main.getInstance().getPotionManager().getInstanceFromItem(item);
+                if (pInst != null) {
+                    totalCoins += SalvageManager.getInstance().getPotionSellPrice(pInst);
+                    inv.setItem(i, null);
+                }
             }
         }
 
