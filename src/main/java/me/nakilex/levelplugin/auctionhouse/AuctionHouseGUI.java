@@ -11,6 +11,9 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -238,13 +241,13 @@ public class AuctionHouseGUI implements Listener {
             return;
         }
 
-        if (rawSlot == NEXT_PAGE) {
+        if (rawSlot == NEXT_PAGE && isArrow(clicked, "Next")) {
             int page = pageMap.getOrDefault(player.getUniqueId(), 0) + 1;
             open(player, page);
             return;
         }
 
-        if (rawSlot == PREV_PAGE) {
+        if (rawSlot == PREV_PAGE && isArrow(clicked, "Previous")) {
             int page = Math.max(0, pageMap.getOrDefault(player.getUniqueId(), 0) - 1);
             open(player, page);
             return;
@@ -351,6 +354,28 @@ public class AuctionHouseGUI implements Listener {
         }
     }
 
+    @EventHandler
+    public void onMove(PlayerMoveEvent e) {
+        if (!pending.containsKey(e.getPlayer().getUniqueId())) return;
+        if (e.getFrom().getBlockX() != e.getTo().getBlockX() ||
+                e.getFrom().getBlockY() != e.getTo().getBlockY() ||
+                e.getFrom().getBlockZ() != e.getTo().getBlockZ()) {
+            cancelPending(e.getPlayer());
+        }
+    }
+
+    @EventHandler
+    public void onInventoryOpen(InventoryOpenEvent e) {
+        if (pending.containsKey(e.getPlayer().getUniqueId())) {
+            cancelPending((Player) e.getPlayer());
+        }
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent e) {
+        cancelPending(e.getPlayer());
+    }
+
     private ItemStack createFiller() {
         ItemStack it = new ItemStack(Material.GRAY_STAINED_GLASS_PANE, 1);
         ItemMeta meta = it.getItemMeta();
@@ -379,10 +404,9 @@ public class AuctionHouseGUI implements Listener {
     }
 
     private ItemStack createSearchButton(String term) {
-        ItemStack it = new ItemStack(Material.OAK_SIGN);
+        ItemStack it = getOraxenItem("search", ChatColor.GOLD + "Search");
         ItemMeta meta = it.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(ChatColor.GOLD + "Search");
             List<String> lore = new ArrayList<>();
             if (term != null && !term.isEmpty()) {
                 lore.add(ChatColor.GRAY + "Current: " + ChatColor.WHITE + term);
@@ -504,10 +528,26 @@ public class AuctionHouseGUI implements Listener {
         player.openInventory(inv);
     }
 
+    private void cancelPending(Player player) {
+        ListingData data = pending.remove(player.getUniqueId());
+        if (data != null) {
+            player.getInventory().addItem(data.item);
+            player.sendMessage(ChatColor.RED + "Listing cancelled.");
+        }
+    }
+
     private String rangeLine(int index, int current, String label) {
         ChatColor color = (index == current) ? ChatColor.WHITE : ChatColor.GRAY;
         ChatColor bullet = (index == current) ? ChatColor.GREEN : ChatColor.DARK_GRAY;
         return bullet + "- " + color + label;
+    }
+
+    private boolean isArrow(ItemStack item, String name) {
+        if (item == null || !item.hasItemMeta()) return false;
+        ItemMeta meta = item.getItemMeta();
+        if (!meta.hasDisplayName()) return false;
+        String disp = ChatColor.stripColor(meta.getDisplayName());
+        return disp.equalsIgnoreCase(name);
     }
 
     private boolean matchesSearch(AuctionItem ai, String term) {
