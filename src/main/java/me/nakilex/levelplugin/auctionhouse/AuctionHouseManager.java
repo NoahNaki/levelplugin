@@ -110,6 +110,21 @@ public class AuctionHouseManager {
         return true;
     }
 
+    /**
+     * Cancel an active listing owned by the given player.
+     * The item is returned to the seller's inventory.
+     */
+    public synchronized boolean cancelListing(Player seller, int index) {
+        if (index < 0 || index >= auctions.size()) return false;
+        AuctionItem ai = auctions.get(index);
+        if (!ai.getSeller().equals(seller.getUniqueId())) return false;
+        if (ai.getStatus() != AuctionStatus.ACTIVE) return false;
+        seller.getInventory().addItem(ai.getItem());
+        auctions.remove(index);
+        saveAuctions();
+        return true;
+    }
+
     private synchronized void checkExpired() {
         long now = System.currentTimeMillis();
         Iterator<AuctionItem> it = auctions.iterator();

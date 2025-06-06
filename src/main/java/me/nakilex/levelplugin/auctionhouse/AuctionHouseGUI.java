@@ -25,6 +25,8 @@ public class AuctionHouseGUI implements Listener {
     private static final int SELL_SLOT = 49;
     private static final int PREV_PAGE = 45;
     private static final int NEXT_PAGE = 53;
+    private static final int SEARCH_SLOT = 47;
+    private static final int FILTER_SLOT = 50;
 
     private final JavaPlugin plugin;
     private final AuctionHouseManager manager;
@@ -41,6 +43,9 @@ public class AuctionHouseGUI implements Listener {
 
     private final Map<UUID, ListingData> pending = new HashMap<>();
     private final Map<UUID, Integer> pageMap = new HashMap<>();
+    private final Map<UUID, String> searchTerms = new HashMap<>();
+    private final Map<UUID, Integer> levelFilters = new HashMap<>();
+    private final Set<UUID> awaitingSearch = new HashSet<>();
 
     public AuctionHouseGUI(JavaPlugin plugin, AuctionHouseManager manager, EconomyManager economy) {
         this.plugin = plugin;
@@ -56,11 +61,18 @@ public class AuctionHouseGUI implements Listener {
 
     private void open(Player player, int page) {
         pageMap.put(player.getUniqueId(), page);
+        levelFilters.putIfAbsent(player.getUniqueId(), 5);
         Inventory inv = Bukkit.createInventory(null, SIZE, TITLE);
         ItemStack filler = createFiller();
         for (int i = 0; i < SIZE; i++) inv.setItem(i, filler);
-
-        List<AuctionItem> list = manager.getAuctions();
+        String term = searchTerms.getOrDefault(player.getUniqueId(), "");
+        int filter = levelFilters.getOrDefault(player.getUniqueId(), 5);
+        List<AuctionItem> list = new ArrayList<>();
+        for (AuctionItem ai : manager.getAuctions()) {
+            if (!matchesSearch(ai, term)) continue;
+            if (!matchesLevelFilter(ai, filter)) continue;
+            list.add(ai);
+        }
         int startIndex = page * 45;
         int slot = 0;
         for (int i = startIndex; i < list.size() && slot < 45; i++) {
@@ -81,7 +93,11 @@ public class AuctionHouseGUI implements Listener {
                 long mins = left / 60;
                 lore.add(ChatColor.GRAY + "Time left: " + mins + "m");
                 lore.add(ChatColor.GRAY + "Category: " + ai.getCategory().name());
-                lore.add(ChatColor.GRAY + "Click to buy (BIN) or /ah bid " + i + " <amount>");
+                if (ai.getSeller().equals(player.getUniqueId())) {
+                    lore.add(ChatColor.RED + "Click to cancel listing");
+                } else {
+                    lore.add(ChatColor.GRAY + "Click to buy (BIN) or /ah bid " + i + " <amount>");
+                }
                 meta.setLore(lore);
                 meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
                 meta.getPersistentDataContainer().set(indexKey, PersistentDataType.INTEGER, i);
@@ -93,6 +109,8 @@ public class AuctionHouseGUI implements Listener {
         if (page > 0) inv.setItem(PREV_PAGE, createArrow(ChatColor.RED + "Previous"));
         if (list.size() > (page + 1) * 45) inv.setItem(NEXT_PAGE, createArrow(ChatColor.GREEN + "Next"));
         inv.setItem(SELL_SLOT, createSellButton());
+        inv.setItem(SEARCH_SLOT, createSearchButton(term));
+        inv.setItem(FILTER_SLOT, createLevelFilterButton(filter));
 
         player.openInventory(inv);
     }
@@ -121,6 +139,24 @@ public class AuctionHouseGUI implements Listener {
             return;
         }
 
+        if (rawSlot == SEARCH_SLOT) {
+            awaitingSearch.add(player.getUniqueId());
+            player.closeInventory();
+            player.sendMessage(ChatColor.YELLOW + "Enter search term or 'cancel'.");
+            return;
+        }
+
+        if (rawSlot == FILTER_SLOT) {
+            int filter = levelFilters.getOrDefault(player.getUniqueId(), 5);
+            switch (e.getClick()) {
+                case RIGHT -> filter = (filter + 5) % 6;
+                default -> filter = (filter + 1) % 6;
+            }
+            levelFilters.put(player.getUniqueId(), filter);
+            open(player, pageMap.getOrDefault(player.getUniqueId(), 0));
+            return;
+        }
+
         if (rawSlot == NEXT_PAGE) {
             int page = pageMap.getOrDefault(player.getUniqueId(), 0) + 1;
             open(player, page);
@@ -136,6 +172,13 @@ public class AuctionHouseGUI implements Listener {
         Integer idx = clicked.getItemMeta().getPersistentDataContainer().get(indexKey, PersistentDataType.INTEGER);
         if (idx == null) return;
         AuctionItem ai = manager.getAuctions().get(idx);
+        if (ai.getSeller().equals(player.getUniqueId())) {
+            if (manager.cancelListing(player, idx)) {
+                player.sendMessage(ChatColor.RED + "Listing cancelled.");
+            }
+            Bukkit.getScheduler().runTaskLater(plugin, () -> open(player, pageMap.getOrDefault(player.getUniqueId(), 0)), 1L);
+            return;
+        }
         if (ai.getBinPrice() > 0) {
             manager.buyNow(player, idx);
             Bukkit.getScheduler().runTaskLater(plugin, () -> open(player, pageMap.getOrDefault(player.getUniqueId(), 0)), 1L);
@@ -147,6 +190,17 @@ public class AuctionHouseGUI implements Listener {
     @EventHandler
     public void onChat(AsyncPlayerChatEvent e) {
         UUID id = e.getPlayer().getUniqueId();
+        if (awaitingSearch.remove(id)) {
+            e.setCancelled(true);
+            String msg = e.getMessage();
+            if (msg.equalsIgnoreCase("cancel")) {
+                searchTerms.remove(id);
+            } else {
+                searchTerms.put(id, msg.trim());
+            }
+            Bukkit.getScheduler().runTask(plugin, () -> open(e.getPlayer(), pageMap.getOrDefault(id, 0)));
+            return;
+        }
         ListingData data = pending.get(id);
         if (data == null) return;
         e.setCancelled(true);
@@ -216,5 +270,77 @@ public class AuctionHouseGUI implements Listener {
             it.setItemMeta(meta);
         }
         return it;
+    }
+
+    private ItemStack createSearchButton(String term) {
+        ItemStack it = new ItemStack(Material.OAK_SIGN);
+        ItemMeta meta = it.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.GOLD + "Search");
+            List<String> lore = new ArrayList<>();
+            if (term != null && !term.isEmpty()) {
+                lore.add(ChatColor.GRAY + "Current: " + ChatColor.WHITE + term);
+            } else {
+                lore.add(ChatColor.GRAY + "Click to enter a term");
+            }
+            meta.setLore(lore);
+            it.setItemMeta(meta);
+        }
+        return it;
+    }
+
+    private ItemStack createLevelFilterButton(int filter) {
+        ItemStack it = new ItemStack(Material.EXPERIENCE_BOTTLE);
+        ItemMeta meta = it.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.AQUA + "Level Filter");
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Filters the content of the page by the item level range");
+            lore.add(" ");
+            lore.add(rangeLine(0, filter, "Lv. 1-19"));
+            lore.add(rangeLine(1, filter, "Lv. 20-39"));
+            lore.add(rangeLine(2, filter, "Lv. 40-59"));
+            lore.add(rangeLine(3, filter, "Lv. 60-79"));
+            lore.add(rangeLine(4, filter, "Lv. 80+"));
+            lore.add(rangeLine(5, filter, "Show All"));
+            lore.add(" ");
+            lore.add(ChatColor.GRAY + "Left click to go forward");
+            lore.add(ChatColor.GRAY + "Right click to go backward");
+            meta.setLore(lore);
+            it.setItemMeta(meta);
+        }
+        return it;
+    }
+
+    private String rangeLine(int index, int current, String label) {
+        ChatColor color = (index == 3) ? ChatColor.WHITE : ChatColor.GRAY;
+        ChatColor bullet = (index == current) ? ChatColor.GREEN : ChatColor.DARK_GRAY;
+        return bullet + "- " + color + label;
+    }
+
+    private boolean matchesSearch(AuctionItem ai, String term) {
+        if (term == null || term.isEmpty()) return true;
+        ItemStack stack = ai.getItem();
+        String name = stack.hasItemMeta() && stack.getItemMeta().hasDisplayName() ?
+                ChatColor.stripColor(stack.getItemMeta().getDisplayName()) : stack.getType().name();
+        return name.toLowerCase().contains(term.toLowerCase());
+    }
+
+    private boolean matchesLevelFilter(AuctionItem ai, int filter) {
+        if (filter == 5) return true;
+        int level = 0;
+        try {
+            me.nakilex.levelplugin.items.data.CustomItem ci = me.nakilex.levelplugin.items.managers.ItemManager.getInstance()
+                    .getCustomItemFromItemStack(ai.getItem());
+            if (ci != null) level = ci.getLevelRequirement();
+        } catch (Exception ignored) {}
+        return switch (filter) {
+            case 0 -> level >= 1 && level <= 19;
+            case 1 -> level >= 20 && level <= 39;
+            case 2 -> level >= 40 && level <= 59;
+            case 3 -> level >= 60 && level <= 79;
+            case 4 -> level >= 80;
+            default -> true;
+        };
     }
 }
