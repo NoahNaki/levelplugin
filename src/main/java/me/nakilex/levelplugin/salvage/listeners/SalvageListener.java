@@ -201,6 +201,7 @@ public class SalvageListener implements Listener {
 
         Inventory gui = player.getOpenInventory().getTopInventory();
         PlayerInventory playerInv = player.getInventory();
+        int handSlot = playerInv.getHeldItemSlot();
 
         int coins = 0, gems = 0;
 
@@ -222,6 +223,7 @@ public class SalvageListener implements Listener {
         //    ignoring any armor or off-hand slots.
         ItemStack[] storageContents = playerInv.getStorageContents(); // length = 36 (slots 0–35)
         for (int i = 0; i < storageContents.length; i++) {
+            if (i == handSlot) continue;
             ItemStack invItem = storageContents[i];
             if (invItem == null || invItem.getType() == Material.AIR) continue;
 

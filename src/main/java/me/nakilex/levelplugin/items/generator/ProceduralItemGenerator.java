@@ -73,12 +73,14 @@ public class ProceduralItemGenerator {
         dex = (int) (dex * mult);
         intel = (int) (intel * mult);
 
+        String classReq = createArmor ? "ANY" : clazz;
+
         CustomItem item = new CustomItem(
             -1,
             name,
             rarity,
             level,
-            clazz,
+            classReq,
             material,
             new StatRange(hp, hp),
             new StatRange(def, def),
@@ -135,7 +137,7 @@ public class ProceduralItemGenerator {
             switch (clazz) {
                 case "ROGUE": return Material.NETHERITE_SWORD;
                 case "MAGE":  return Material.NETHERITE_HOE;
-                case "ARCHER":return Material.CROSSBOW;
+                case "ARCHER":return Material.BOW;
                 case "WARRIOR":default: return Material.NETHERITE_SHOVEL;
             }
         } else if (level >= 61) {
