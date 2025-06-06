@@ -8,6 +8,8 @@ import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
+import me.nakilex.levelplugin.runes.manager.RunesManager;
+import me.nakilex.levelplugin.runes.model.Rune;
 import me.nakilex.levelplugin.party.Party;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
@@ -25,6 +27,9 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.ItemMeta;
+import org.bukkit.inventory.ItemFlag;
+import org.bukkit.Material;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
@@ -38,6 +43,7 @@ public class MythicMobDeathListener implements Listener {
     private final LevelManager levelManager;
     private final EconomyManager economyManager;
     private final LootChestManager lootChestManager;
+    private final RunesManager runesManager;
     private final Main plugin = Main.getInstance();
     private static final Set<UUID> dropDetailsDisabled = new HashSet<>();
     private static final Set<UUID> chatDetailsDisabled = ConcurrentHashMap.newKeySet();
@@ -55,6 +61,7 @@ public class MythicMobDeathListener implements Listener {
         this.levelManager      = levelManager;
         this.economyManager    = economyManager;
         this.lootChestManager  = lootChestManager;
+        this.runesManager      = Main.getInstance().getRunesManager();
     }
 
     // ← New method: record every player who hits a mob
@@ -151,6 +158,10 @@ public class MythicMobDeathListener implements Listener {
                     }
                 }
             }
+
+            // 4b) Special drops: reroll scrolls & runes
+            maybeDropRerollScroll(player);
+            maybeDropRandomRune(player);
 
             // 5) Hologram details
             if (isDropDetailsEnabled(player)) {
@@ -325,5 +336,60 @@ public class MythicMobDeathListener implements Listener {
                 player.getWorld().dropItemNaturally(player.getLocation(), dropStack);
             }
         }
+    }
+
+    /** Chance to drop a random reroll scroll (0.1%) */
+    private void maybeDropRerollScroll(Player player) {
+        double chance = 0.001; // 0.1%
+        if (ThreadLocalRandom.current().nextDouble() < chance) {
+            ItemStack scroll = createRandomRerollScroll();
+            player.getWorld().dropItemNaturally(player.getLocation(), scroll);
+        }
+    }
+
+    /** Roll for rune drops of varying rarities */
+    private void maybeDropRandomRune(Player player) {
+        rollRune(player, Rune.Rarity.COMMON, 0.01);
+        rollRune(player, Rune.Rarity.UNCOMMON, 0.005);
+        rollRune(player, Rune.Rarity.RARE, 0.001);
+        rollRune(player, Rune.Rarity.EPIC, 0.0005);
+    }
+
+    private void rollRune(Player player, Rune.Rarity rarity, double chance) {
+        if (ThreadLocalRandom.current().nextDouble() < chance) {
+            Rune rune = runesManager.getRandomRuneByRarity(rarity);
+            if (rune != null) {
+                ItemStack item = runesManager.createUncarvedRuneItem(rune);
+                player.getWorld().dropItemNaturally(player.getLocation(), item);
+            }
+        }
+    }
+
+    private ItemStack createRandomRerollScroll() {
+        Material[] mats = {
+            Material.BORDURE_INDENTED_BANNER_PATTERN,
+            Material.FLOWER_BANNER_PATTERN,
+            Material.FLOW_BANNER_PATTERN,
+            Material.SKULL_BANNER_PATTERN,
+            Material.GUSTER_BANNER_PATTERN,
+            Material.GLOBE_BANNER_PATTERN
+        };
+        String[] names = {
+            ChatColor.GREEN + "Scroll of Might",
+            ChatColor.AQUA + "Scroll of Wisdom",
+            ChatColor.LIGHT_PURPLE + "Scroll of Swiftness",
+            ChatColor.RED + "Scroll of Vitality",
+            ChatColor.YELLOW + "Scroll of Precision",
+            ChatColor.BLUE + "Scroll of Fortitude"
+        };
+        int idx = ThreadLocalRandom.current().nextInt(mats.length);
+        ItemStack item = new ItemStack(mats[idx]);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(names[idx]);
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            item.setItemMeta(meta);
+        }
+        return item;
     }
 }

@@ -95,6 +95,19 @@ public class RunesManager {
     }
 
     /**
+     * Pick a random rune that matches the given rarity.
+     * Returns {@code null} if no runes of that rarity exist.
+     */
+    public Rune getRandomRuneByRarity(Rune.Rarity rarity) {
+        List<Rune> filtered = runeLoader.getAllRunes().stream()
+            .filter(r -> r.getRarity() == rarity)
+            .toList();
+        if (filtered.isEmpty()) return null;
+        int idx = ThreadLocalRandom.current().nextInt(filtered.size());
+        return filtered.get(idx);
+    }
+
+    /**
      * Returns the subset of equipped runes that target the given spell ID.
      */
     public List<Rune> getRunesForSpell(Player player, String spellId) {
