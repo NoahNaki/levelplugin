@@ -1,0 +1,12 @@
+skeleton:
+  - Bone
+  - Skeletal
+slime:
+  - Gooey
+  - Sticky
+zombie:
+  - Rotten
+  - Decayed
+default:
+  - Rusty
+  - Old

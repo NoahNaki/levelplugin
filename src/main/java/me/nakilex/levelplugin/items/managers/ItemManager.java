@@ -13,6 +13,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
+import me.nakilex.levelplugin.items.generator.ProceduralItemGenerator;
 
 import java.io.File;
 import java.io.InputStream;
@@ -32,12 +33,22 @@ public class ItemManager {
     private final Map<UUID, CustomItem> itemsMap     = new HashMap<>(); // Instances by UUID
     private final Map<Integer, UUID> holderMap = new HashMap<>();
 
+    /**
+     * Procedurally generated items all receive unique negative IDs. We keep a
+     * counter that starts at -1 and decrements for each generated item so the
+     * IDs never collide with the positive template IDs from items.yml.
+     */
+    private int nextGeneratedId = -1;
+
+    private final ProceduralItemGenerator generator;
+
     private FileConfiguration itemsConfig;
 
     public ItemManager(Plugin plugin) {
         instance = this;
         loadItemsConfig(plugin);
         loadItems();
+        generator = new ProceduralItemGenerator(Main.getInstance());
     }
 
     private void loadItemsConfig(Plugin plugin) {
@@ -179,6 +190,21 @@ public class ItemManager {
         );
         addInstance(inst);
         return inst;
+    }
+
+    /**
+     * Obtain the next unique ID for a procedurally generated item. IDs start at
+     * -1 and move downward to avoid colliding with positive template IDs.
+     */
+    public synchronized int getNextGeneratedId() {
+        return nextGeneratedId--;
+    }
+
+    /**
+     * Generate a brand new procedural item using the generator utility.
+     */
+    public CustomItem generateItem(String mobType, int level) {
+        return generator.generate(mobType, level);
     }
 
     public CustomItem getCustomItem(int id) {

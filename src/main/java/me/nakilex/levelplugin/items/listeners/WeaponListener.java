@@ -22,6 +22,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import me.nakilex.levelplugin.items.data.ArmorType;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.Material;
 
 import java.util.Set;
 
@@ -172,10 +173,15 @@ public class WeaponListener implements Listener {
         Bukkit.getLogger().info("  offItem=" + debugItem(offItem)
             + " cursor=" + debugItem(cursor));
 
-        // Placing an item into off-hand
-        if (event.getAction() == InventoryAction.PLACE_ALL
-            || event.getAction() == InventoryAction.PLACE_ONE
-            || event.getAction() == InventoryAction.PLACE_SOME) {
+        InventoryAction act = event.getAction();
+
+        // ------------------------------------------------------------------
+        // Placement INTO the off-hand slot
+        // ------------------------------------------------------------------
+        if (act == InventoryAction.PLACE_ALL
+            || act == InventoryAction.PLACE_ONE
+            || act == InventoryAction.PLACE_SOME
+            || act == InventoryAction.SWAP_WITH_CURSOR) {
 
             if (!isSameItem(offItem, cursor)) {
                 WeaponType newType = WeaponType.matchType(cursor);
@@ -186,6 +192,33 @@ public class WeaponListener implements Listener {
                     HandSlot.OFF_HAND,
                     offItem,
                     cursor
+                );
+                Bukkit.getPluginManager().callEvent(we);
+                if (we.isCancelled()) {
+                    event.setCancelled(true);
+                }
+            }
+
+            return;
+        }
+
+        // ------------------------------------------------------------------
+        // Removal FROM the off-hand slot (pickup/shift-click/etc.)
+        // ------------------------------------------------------------------
+        if (act == InventoryAction.PICKUP_ALL
+            || act == InventoryAction.PICKUP_ONE
+            || act == InventoryAction.PICKUP_SOME
+            || act == InventoryAction.MOVE_TO_OTHER_INVENTORY
+            || act == InventoryAction.HOTBAR_SWAP) {
+
+            if (offItem != null && offItem.getType() != Material.AIR) {
+                WeaponEquipEvent we = new WeaponEquipEvent(
+                    player,
+                    EquipMethod.MANUAL,
+                    WeaponType.matchType(null),
+                    HandSlot.OFF_HAND,
+                    offItem,
+                    null
                 );
                 Bukkit.getPluginManager().callEvent(we);
                 if (we.isCancelled()) {
