@@ -11,6 +11,12 @@ prefixes:
   default:
     - Rusty
     - Old
+suffixes:
+  default:
+    - Power
+    - Doom
+    - the Fox
+    - Death
 weapon_types:
   ROGUE:
     - Dagger
@@ -24,3 +30,9 @@ weapon_types:
   WARRIOR:
     - Spear
     - Greatsword
+armor_types:
+  general:
+    - Helmet
+    - Chestplate
+    - Leggings
+    - Boots

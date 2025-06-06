@@ -148,7 +148,7 @@ public class MythicMobDeathListener implements Listener {
             if (tier > 0) {
                 double roll = ThreadLocalRandom.current().nextDouble() * 100.0;
                 if (roll <= tierChance) {
-                    ItemStack loot = lootChestManager.getRandomLootForTier(tier);
+                    ItemStack loot = lootChestManager.getRandomLootForTier(tier, mobType);
                     if (loot != null) {
                         ItemUtil.updateCustomItemTooltip(loot, player);
                         Map<Integer, ItemStack> leftovers = player.getInventory().addItem(loot);
@@ -299,6 +299,17 @@ public class MythicMobDeathListener implements Listener {
             int minQty = Integer.parseInt(rangeSplit[0]);
             int maxQty = Integer.parseInt(rangeSplit[1]);
             int quantity = ThreadLocalRandom.current().nextInt(minQty, maxQty + 1);
+
+            if (itemId == -1) {
+                for (int i = 0; i < quantity; i++) {
+                    int lvl = levelManager.getLevel(player);
+                    CustomItem ci = ItemManager.getInstance().generateItem(mobType, lvl);
+                    ItemStack stack = ItemUtil.createItemStackFromCustomItem(ci, 1, player);
+                    ItemUtil.updateCustomItemTooltip(stack, player);
+                    player.getWorld().dropItemNaturally(player.getLocation(), stack);
+                }
+                continue;
+            }
             //System.out.println("[DEBUG] Chosen quantity=" + quantity + " for itemId=" + itemId);
 
             // Fetch the base template from ItemManager

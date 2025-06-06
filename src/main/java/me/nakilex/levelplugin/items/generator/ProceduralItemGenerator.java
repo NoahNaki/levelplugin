@@ -15,7 +15,7 @@ import java.util.Random;
 
 /**
  * Simple procedural item generator used for testing. It builds item names
- * from prefix lists and rolls basic stats based on mob level and rarity.
+ * from prefix/suffix lists and rolls basic stats based on mob level and rarity.
  */
 public class ProceduralItemGenerator {
 
@@ -36,64 +36,78 @@ public class ProceduralItemGenerator {
     public CustomItem generate(String mobType, int level) {
         ItemRarity rarity = rollRarity(level);
         String clazz = pickClassForMob(mobType);
-        String name = buildName(mobType, clazz);
-        Material material = pickMaterial(clazz);
+
+        boolean createArmor = random.nextBoolean();
+        String base = pickBaseName(clazz, createArmor);
+        String name = buildName(mobType, base, rarity);
+        Material material = createArmor ? pickArmorMaterial(level, base) : pickWeaponMaterial(clazz, level);
 
         int base = Math.max(1, level);
-        int hp = (int) (base * 1.2);
-        int str = 0, intel = 0, dex = 0;
-        switch (clazz) {
-            case "WARRIOR":
-                str = base * 2;
-                break;
-            case "ROGUE":
-                str = base;
-                dex = base;
-                break;
-            case "ARCHER":
-                dex = base * 2;
-                break;
-            case "MAGE":
-                intel = base * 2;
-                break;
+        int hp = 0, def = 0, str = 0, intel = 0, dex = 0;
+
+        if (createArmor) {
+            hp = base * 2;
+            def = base;
+        } else {
+            switch (clazz) {
+                case "WARRIOR":
+                    str = base * 2;
+                    break;
+                case "ROGUE":
+                    str = base;
+                    dex = base;
+                    break;
+                case "ARCHER":
+                    dex = base * 2;
+                    break;
+                case "MAGE":
+                    intel = base * 2;
+                    break;
+            }
         }
+
         double mult = 1.0 + rarityBonus(rarity);
         hp = (int) (hp * mult);
+        def = (int) (def * mult);
         str = (int) (str * mult);
         dex = (int) (dex * mult);
         intel = (int) (intel * mult);
 
         CustomItem item = new CustomItem(
-                -1,
-                name,
-                rarity,
-                level,
-                clazz,
-                material,
-                new StatRange(hp, hp),
-                new StatRange(0, 0),
-                new StatRange(str, str),
-                new StatRange(0, 0),
-                new StatRange(intel, intel),
-                new StatRange(dex, dex)
+            -1,
+            name,
+            rarity,
+            level,
+            clazz,
+            material,
+            new StatRange(hp, hp),
+            new StatRange(def, def),
+            new StatRange(str, str),
+            new StatRange(0, 0),
+            new StatRange(intel, intel),
+            new StatRange(dex, dex)
         );
 
         ItemManager.getInstance().addInstance(item);
         return item;
     }
 
-    private String buildName(String mobType, String clazz) {
+    private String buildName(String mobType, String base, ItemRarity rarity) {
         List<String> prefixes = config.getStringList("prefixes." + mobType.toLowerCase());
         if (prefixes.isEmpty()) {
             prefixes = config.getStringList("prefixes.default");
         }
-        List<String> bases = config.getStringList("weapon_types." + clazz);
-        if (bases.isEmpty()) {
-            bases.add("Item");
+        List<String> suffixes = config.getStringList("suffixes." + mobType.toLowerCase());
+        if (suffixes.isEmpty()) {
+            suffixes = config.getStringList("suffixes.default");
         }
         String prefix = prefixes.get(random.nextInt(prefixes.size()));
-        String base = bases.get(random.nextInt(bases.size()));
-        return prefix + " " + base;
+        String name = prefix + " " + base;
+        if (rarity.ordinal() >= ItemRarity.RARE.ordinal() && !suffixes.isEmpty()) {
+            String suffix = suffixes.get(random.nextInt(suffixes.size()));
+            name += " of " + suffix;
+        }
+        return name;
     }
 
     private String pickClassForMob(String mobType) {
@@ -106,17 +120,77 @@ public class ProceduralItemGenerator {
         return classes[random.nextInt(classes.length)];
     }
 
-    private Material pickMaterial(String clazz) {
+    private String pickBaseName(String clazz, boolean armor) {
+        List<String> list = armor ?
+                config.getStringList("armor_types.general") :
+                config.getStringList("weapon_types." + clazz);
+        if (list.isEmpty()) {
+            list.add(armor ? "Boots" : "Item");
+        }
+        return list.get(random.nextInt(list.size()));
+    }
+
+    private Material pickWeaponMaterial(String clazz, int level) {
+        if (level >= 76) {
+            switch (clazz) {
+                case "ROGUE": return Material.NETHERITE_SWORD;
+                case "MAGE":  return Material.NETHERITE_HOE;
+                case "ARCHER":return Material.CROSSBOW;
+                case "WARRIOR":default: return Material.NETHERITE_SHOVEL;
+            }
+        } else if (level >= 61) {
+            switch (clazz) {
+                case "ROGUE": return Material.DIAMOND_SWORD;
+                case "MAGE":  return Material.DIAMOND_HOE;
+                case "ARCHER":return Material.BOW;
+                case "WARRIOR":default: return Material.DIAMOND_SHOVEL;
+            }
+        } else if (level >= 41) {
+            switch (clazz) {
+                case "ROGUE": return Material.IRON_SWORD;
+                case "MAGE":  return Material.IRON_HOE;
+                case "ARCHER":return Material.BOW;
+                case "WARRIOR":default: return Material.IRON_SHOVEL;
+            }
+        } else if (level >= 21) {
+            switch (clazz) {
+                case "ROGUE": return Material.GOLDEN_SWORD;
+                case "MAGE":  return Material.GOLDEN_HOE;
+                case "ARCHER":return Material.BOW;
+                case "WARRIOR":default: return Material.GOLDEN_SHOVEL;
+            }
+        } else if (level >= 11) {
+            switch (clazz) {
+                case "ROGUE": return Material.STONE_SWORD;
+                case "MAGE":  return Material.STONE_HOE;
+                case "ARCHER":return Material.BOW;
+                case "WARRIOR":default: return Material.STONE_SHOVEL;
+            }
+        }
         switch (clazz) {
-            case "ROGUE":
-                return Material.WOODEN_SWORD;
-            case "MAGE":
-                return Material.STICK;
-            case "ARCHER":
-                return Material.BOW;
-            case "WARRIOR":
-            default:
-                return Material.WOODEN_SHOVEL;
+            case "ROGUE": return Material.WOODEN_SWORD;
+            case "MAGE":  return Material.WOODEN_HOE;
+            case "ARCHER":return Material.BOW;
+            case "WARRIOR":default: return Material.WOODEN_SHOVEL;
+        }
+    }
+
+    private Material pickArmorMaterial(int level, String partName) {
+        partName = partName.toUpperCase();
+        String suffix;
+        if (level >= 76)      suffix = "NETHERITE_";
+        else if (level >= 61) suffix = "DIAMOND_";
+        else if (level >= 41) suffix = "IRON_";
+        else if (level >= 21) suffix = "GOLDEN_";
+        else if (level >= 11) suffix = "CHAINMAIL_";
+        else                  suffix = "LEATHER_";
+
+        String matName = suffix + partName.toUpperCase().replace(' ', '_');
+        try {
+            return Material.valueOf(matName);
+        } catch (IllegalArgumentException ex) {
+            // Fallback to LEATHER_BOOTS if invalid
+            return Material.LEATHER_BOOTS;
         }
     }
 
