@@ -141,4 +141,4 @@ commands:
     usage: /wipeprofile <player>
   genitem:
     description: Gives a procedurally generated item
-    usage: /genitem <player> <mobType> <level>
+    usage: /genitem [player] <mobType> <level> [amount]

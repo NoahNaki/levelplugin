@@ -162,6 +162,7 @@ public class SetBonusManager {
             case DEF: total.def += bonus; break;
             case HP:  total.hp  += bonus; break;
         }
+        total.percents.put(stat, percent);
     }
 
     private void applyBonus(Player player, BonusStats b) {
@@ -172,7 +173,17 @@ public class SetBonusManager {
         ps.bonusDexterity    += b.dex;
         ps.bonusDefenceStat  += b.def;
         ps.bonusHealthStat   += b.hp;
-        player.sendMessage("§aSet bonus applied!");
+
+        if (!b.percents.isEmpty()) {
+            StringBuilder msg = new StringBuilder("§aSet bonus applied:");
+            for (Map.Entry<StatType,Integer> e : b.percents.entrySet()) {
+                msg.append(" +").append(e.getValue()).append("% ")
+                   .append(e.getKey().name().toLowerCase());
+            }
+            player.sendMessage(msg.toString());
+        } else {
+            player.sendMessage("§aSet bonus applied!");
+        }
     }
 
     private void removeBonus(Player player, BonusStats b) {
@@ -183,7 +194,16 @@ public class SetBonusManager {
         ps.bonusDexterity    -= b.dex;
         ps.bonusDefenceStat  -= b.def;
         ps.bonusHealthStat   -= b.hp;
-        player.sendMessage("§cSet bonus lost.");
+        if (!b.percents.isEmpty()) {
+            StringBuilder msg = new StringBuilder("§cSet bonus lost:");
+            for (Map.Entry<StatType,Integer> e : b.percents.entrySet()) {
+                msg.append(" -").append(e.getValue()).append("% ")
+                   .append(e.getKey().name().toLowerCase());
+            }
+            player.sendMessage(msg.toString());
+        } else {
+            player.sendMessage("§cSet bonus lost.");
+        }
     }
 
     private String parsePrefix(String name) {
@@ -205,6 +225,10 @@ public class SetBonusManager {
 
     private static class BonusStats {
         int str, agi, intel, dex, def, hp;
-        boolean isZero() { return str==0 && agi==0 && intel==0 && dex==0 && def==0 && hp==0; }
+        final Map<StatType,Integer> percents = new LinkedHashMap<>();
+
+        boolean isZero() {
+            return str==0 && agi==0 && intel==0 && dex==0 && def==0 && hp==0;
+        }
     }
 }
