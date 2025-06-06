@@ -8,6 +8,8 @@ import org.bukkit.inventory.ItemStack;
 
 public class ItemRerollManager {
 
+    private static final int BASE_COST = 100;
+
     /**
      * Reroll a specific stat on the given item based on its range.
      * The ItemStack is updated in-place to reflect the new value.
@@ -36,6 +38,15 @@ public class ItemRerollManager {
 
         int after = getValue(item, stat);
         return after - before;
+    }
+
+    /**
+     * Calculate the coin cost to reroll a single stat based on item rarity.
+     */
+    public int getRerollCost(CustomItem item) {
+        if (item == null) return BASE_COST;
+        int rarityMultiplier = item.getRarity().ordinal() + 1;
+        return BASE_COST * rarityMultiplier;
     }
 
     private int getValue(CustomItem item, StatType stat) {

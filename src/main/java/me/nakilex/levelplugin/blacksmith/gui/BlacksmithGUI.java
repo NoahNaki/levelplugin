@@ -82,7 +82,7 @@ public class BlacksmithGUI implements Listener {
         gui.setItem(11, null); // item slot
         gui.setItem(13, null); // result
         gui.setItem(15, null); // placeholder
-        gui.setItem(22, createRerollButton());
+        gui.setItem(22, createRerollButton(0));
         openInventories.put(player.getUniqueId(), gui);
         player.openInventory(gui);
     }
@@ -185,8 +185,20 @@ public class BlacksmithGUI implements Listener {
         return repair;
     }
 
-    private ItemStack createRerollButton() {
-        return getOraxenItem("check", ChatColor.GREEN + "Reroll Stat");
+    private ItemStack createRerollButton(int cost) {
+        ItemStack reroll = getOraxenItem("check", ChatColor.GREEN + "Reroll Stat");
+        ItemMeta meta = reroll.getItemMeta();
+        if (meta != null) {
+            List<String> lore = new ArrayList<>();
+            if (cost > 0) {
+                lore.add("§7Cost: §6⛃ " + cost);
+            } else {
+                lore.add("§7Place item and placeholder.");
+            }
+            meta.setLore(lore);
+            reroll.setItemMeta(meta);
+        }
+        return reroll;
     }
 
     private ItemStack createRepairAllButton(int totalCost) {
@@ -382,31 +394,30 @@ public class BlacksmithGUI implements Listener {
                     player.sendMessage("§cInvalid placeholder item!");
                     return;
                 }
+
+                int cost = rerollManager.getRerollCost(ci);
+                try {
+                    economyManager.deductCoins(player, cost);
+                } catch (IllegalArgumentException ex) {
+                    player.sendMessage("§cNot enough coins to reroll! Cost: §6⛃" + cost);
+                    return;
+                }
+
                 int diff = rerollManager.rerollStat(player, item, ci, stat);
                 gui.setItem(13, item.clone());
                 gui.setItem(11, null);
                 placeholder.setAmount(placeholder.getAmount() - 1);
                 if (placeholder.getAmount() <= 0) gui.setItem(15, null);
-                player.sendMessage("§aStat rerolled! " + statDisplayName(stat) +
-                        (diff >= 0 ? " increased by " + ChatColor.GREEN + "+" + diff
-                                        : " decreased by " + ChatColor.RED + diff));
+                String message = ChatColor.GOLD + "" + ChatColor.BOLD + "STAT REROLLED! "
+                        + ChatColor.YELLOW + statDisplayName(stat) + (diff >= 0
+                        ? " increased by " + ChatColor.GREEN + "+" + diff
+                        : " decreased by " + ChatColor.RED + diff);
+                player.sendMessage(message);
             }
         }
 
         Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-            ItemStack current = title.equals(GUI_TITLE_REROLL) ? gui.getItem(11) : gui.getItem(13);
-            if (current == null || current.getType().isAir()) {
-                gui.setItem(22, title.equals(GUI_TITLE_UPGRADE) ? createUpgradeButton(0, 0) : createRepairButton(0));
-                return;
-            }
-            CustomItem ci = itemManager.getCustomItemFromItemStack(current);
-            if (ci != null) {
-                if (title.equals(GUI_TITLE_UPGRADE)) {
-                    gui.setItem(22, createUpgradeButton(upgradeManager.getUpgradeCost(ci), upgradeManager.getSuccessChance(ci)));
-                } else if (title.equals(GUI_TITLE_REPAIR)) {
-                    gui.setItem(22, createRepairButton(repairManager.getRepairCost(ci)));
-                }
-            }
+            updateActionButton(player, gui, title);
         }, 1L);
     }
 
@@ -445,7 +456,7 @@ public class BlacksmithGUI implements Listener {
         ItemStack current = title.equals(GUI_TITLE_REROLL) ? gui.getItem(11) : gui.getItem(13);
         if (current == null || current.getType().isAir()) {
             if (title.equals(GUI_TITLE_REROLL)) {
-                gui.setItem(22, createRerollButton());
+                gui.setItem(22, createRerollButton(0));
             } else {
                 gui.setItem(22, title.equals(GUI_TITLE_UPGRADE)
                     ? createUpgradeButton(0, 0)
@@ -457,7 +468,7 @@ public class BlacksmithGUI implements Listener {
         CustomItem ci = itemManager.getCustomItemFromItemStack(current);
         if (ci == null) {
             if (title.equals(GUI_TITLE_REROLL)) {
-                gui.setItem(22, createRerollButton());
+                gui.setItem(22, createRerollButton(0));
             } else {
                 gui.setItem(22, title.equals(GUI_TITLE_UPGRADE)
                     ? createUpgradeButton(0, 0)
@@ -473,7 +484,7 @@ public class BlacksmithGUI implements Listener {
         } else if (title.equals(GUI_TITLE_REPAIR)) {
             gui.setItem(22, createRepairButton(repairManager.getRepairCost(ci)));
         } else {
-            gui.setItem(22, createRerollButton());
+            gui.setItem(22, createRerollButton(rerollManager.getRerollCost(ci)));
         }
     }
 
