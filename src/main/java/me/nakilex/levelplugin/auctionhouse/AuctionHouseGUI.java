@@ -117,16 +117,18 @@ public class AuctionHouseGUI implements Listener {
                 List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
                 lore.add(" ");
                 int bid = ai.getCurrentBid() > 0 ? ai.getCurrentBid() : ai.getStartingPrice();
-                lore.add(ChatColor.GOLD + "" + ChatColor.BOLD + "Bid " + ChatColor.WHITE + ": " + bid);
+                lore.add(ChatColor.GOLD + "" + ChatColor.BOLD + "Bid" + ChatColor.WHITE + ": " + bid + ChatColor.YELLOW + " ⛃");
                 if (ai.getBinPrice() > 0) {
-                    lore.add(ChatColor.GOLD + "" + ChatColor.BOLD + "BIN " + ChatColor.WHITE + ": " + ai.getBinPrice());
+                    lore.add(ChatColor.GOLD + "" + ChatColor.BOLD + "BIN" + ChatColor.WHITE + ": " + ai.getBinPrice() + ChatColor.YELLOW + " ⛃");
                 }
                 long left = (ai.getEndTime() - System.currentTimeMillis()) / 1000;
                 long mins = left / 60;
-                lore.add(ChatColor.GOLD + "" + ChatColor.BOLD + "Duration " + ChatColor.WHITE + ": " + mins + "m");
+                lore.add(ChatColor.GOLD + "" + ChatColor.BOLD + "Duration" + ChatColor.WHITE + ": " + mins + "m");
+                lore.add("");
                 if (ai.getSeller().equals(player.getUniqueId())) {
                     lore.add(ChatColor.RED + "Click to cancel listing");
                 } else {
+                    lore.add("");
                     lore.add(ChatColor.GRAY + "Left-click to buy");
                     lore.add(ChatColor.GRAY + "Right-click to bid");
                 }
@@ -573,13 +575,14 @@ public class AuctionHouseGUI implements Listener {
                 List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
                 lore.add(" ");
                 int bid = ai.getCurrentBid() > 0 ? ai.getCurrentBid() : ai.getStartingPrice();
-                lore.add(ChatColor.GOLD + "" + ChatColor.BOLD + "Bid " + ChatColor.WHITE + ": " + bid);
+                lore.add(ChatColor.GOLD + "" + ChatColor.BOLD + "Bid" + ChatColor.WHITE + ": " + bid + ChatColor.YELLOW + " ⛃");
                 if (ai.getBinPrice() > 0) {
-                    lore.add(ChatColor.GOLD + "" + ChatColor.BOLD + "BIN " + ChatColor.WHITE + ": " + ai.getBinPrice());
+                    lore.add(ChatColor.GOLD + "" + ChatColor.BOLD + "BIN" + ChatColor.WHITE + ": " + ai.getBinPrice() + ChatColor.YELLOW + " ⛃");
                 }
                 long left = (ai.getEndTime() - System.currentTimeMillis()) / 1000;
                 long mins = left / 60;
-                lore.add(ChatColor.GOLD + "" + ChatColor.BOLD + "Duration " + ChatColor.WHITE + ": " + mins + "m");
+                lore.add(ChatColor.GOLD + "" + ChatColor.BOLD + "Duration" + ChatColor.WHITE + ": " + mins + "m");
+                lore.add("");
                 lore.add(ChatColor.RED + "Click to cancel listing");
                 meta.setLore(lore);
                 meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
