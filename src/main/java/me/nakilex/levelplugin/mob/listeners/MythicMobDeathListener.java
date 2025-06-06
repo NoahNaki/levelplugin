@@ -27,9 +27,9 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.ItemMeta;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.Material;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
@@ -350,9 +350,9 @@ public class MythicMobDeathListener implements Listener {
     /** Roll for rune drops of varying rarities */
     private void maybeDropRandomRune(Player player) {
         rollRune(player, Rune.Rarity.COMMON, 0.01);
-        rollRune(player, Rune.Rarity.UNCOMMON, 0.005);
-        rollRune(player, Rune.Rarity.RARE, 0.001);
-        rollRune(player, Rune.Rarity.EPIC, 0.0005);
+        rollRune(player, Rune.Rarity.UNCOMMON, 0.01);
+        rollRune(player, Rune.Rarity.RARE, 0.005);
+        rollRune(player, Rune.Rarity.EPIC, 0.001);
     }
 
     private void rollRune(Player player, Rune.Rarity rarity, double chance) {
