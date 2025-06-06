@@ -22,7 +22,7 @@ import me.nakilex.levelplugin.items.data.ItemRarity;
 import java.util.*;
 
 public class AuctionHouseGUI implements Listener {
-    private static final String TITLE = ChatColor.GOLD + "Auction House";
+    private static final String TITLE = "Auction House";
     private static final int SIZE = 54;
     private static final int SELL_SLOT = 49;
     private static final int PREV_PAGE = 45;
@@ -32,7 +32,7 @@ public class AuctionHouseGUI implements Listener {
     private static final int RARITY_FILTER_SLOT = 51;
     private static final int INFO_SLOT = 8;
     private static final int CONFIRM_SIZE = 27;
-    private static final String CONFIRM_TITLE = ChatColor.GREEN + "Confirm Purchase";
+    private static final String CONFIRM_TITLE = "Confirm Purchase";
     private static final int[] LISTING_SLOTS = {
             10,11,12,13,14,15,16,
             19,20,21,22,23,24,25,
@@ -390,7 +390,8 @@ public class AuctionHouseGUI implements Listener {
         if (meta != null) {
             meta.setDisplayName(ChatColor.AQUA + "Level Filter");
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Filters the content of the page by the item level range");
+            lore.add(ChatColor.GRAY + "");
+            lore.add(ChatColor.DARK_GRAY + "Filters the content of the page by the item level range");
             lore.add(" ");
             lore.add(rangeLine(0, filter, "Lv. 1-19"));
             lore.add(rangeLine(1, filter, "Lv. 20-39"));
@@ -399,8 +400,8 @@ public class AuctionHouseGUI implements Listener {
             lore.add(rangeLine(4, filter, "Lv. 80+"));
             lore.add(rangeLine(5, filter, "Show All"));
             lore.add(" ");
-            lore.add(ChatColor.GRAY + "Left click to go forward");
-            lore.add(ChatColor.GRAY + "Right click to go backward");
+            lore.add(ChatColor.WHITE + "Left-Click " + ChatColor.GRAY + "to go forward");
+            lore.add(ChatColor.WHITE + "Right-Click " + ChatColor.GRAY + "to go backward");
             meta.setLore(lore);
             it.setItemMeta(meta);
         }
@@ -413,7 +414,8 @@ public class AuctionHouseGUI implements Listener {
         if (meta != null) {
             meta.setDisplayName(ChatColor.AQUA + "Rarity Filter");
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Filters the content of the page by item rarity");
+            lore.add(ChatColor.GRAY + "");
+            lore.add(ChatColor.DARK_GRAY + "Filters the content of the page by item rarity");
             lore.add(" ");
             ItemRarity[] arr = ItemRarity.values();
             for (int i = 0; i < arr.length; i++) {
@@ -422,8 +424,8 @@ public class AuctionHouseGUI implements Listener {
             }
             lore.add(rangeLine(arr.length, filter, "Show All"));
             lore.add(" ");
-            lore.add(ChatColor.GRAY + "Left click to go forward");
-            lore.add(ChatColor.GRAY + "Right click to go backward");
+            lore.add(ChatColor.WHITE + "Left-Click " + ChatColor.GRAY + "to go forward");
+            lore.add(ChatColor.WHITE + "Right-Click " + ChatColor.GRAY + "to go backward");
             meta.setLore(lore);
             it.setItemMeta(meta);
         }
@@ -435,8 +437,10 @@ public class AuctionHouseGUI implements Listener {
         ItemMeta meta = info.getItemMeta();
         if (meta != null) {
             meta.setLore(Arrays.asList(
-                    ChatColor.GRAY + "Left-click items to buy (if BIN set).",
-                    ChatColor.GRAY + "Right-click items to place a bid.",
+                    ChatColor.GRAY + "",
+                    ChatColor.WHITE + "Left-Click " + ChatColor.GRAY + "items to buy (if BIN set).",
+                    ChatColor.WHITE + "Right-click " + ChatColor.GRAY + "items to place a bid.",
+                    ChatColor.GRAY + "",
                     ChatColor.GRAY + "Use search and filters below."));
             info.setItemMeta(meta);
         }
