@@ -93,14 +93,32 @@ public class PartyCommands implements CommandExecutor {
                     player.sendMessage(ChatColor.RED + "Usage: /party kick <player>");
                     return true;
                 }
-                Player kickTarget = Bukkit.getPlayer(args[1]);
-                if (kickTarget == null) {
-                    player.sendMessage(ChatColor.RED + "Player not found.");
+                String targetName = args[1];
+                Party party = partyManager.getParty(playerId);
+                if (party == null) {
+                    player.sendMessage(ChatColor.RED + "You are not in a party.");
                     return true;
                 }
-                UUID kickId = kickTarget.getUniqueId();
+
+                UUID kickId = null;
+                for (UUID memberId : party.getMembers()) {
+                    String name = Bukkit.getOfflinePlayer(memberId).getName();
+                    if (name != null && name.equalsIgnoreCase(targetName)) {
+                        kickId = memberId;
+                        break;
+                    }
+                }
+
+                if (kickId == null) {
+                    player.sendMessage(ChatColor.RED + "Player not found in your party.");
+                    return true;
+                }
+
                 if (partyManager.removeMember(playerId, kickId)) {
-                    kickTarget.sendMessage(ChatColor.RED + "You have been kicked from the party.");
+                    Player online = Bukkit.getPlayer(kickId);
+                    if (online != null) {
+                        online.sendMessage(ChatColor.RED + "You have been kicked from the party.");
+                    }
                     player.sendMessage(ChatColor.GREEN + "Player kicked successfully.");
                 } else {
                     player.sendMessage(ChatColor.RED + "Failed to kick player.");

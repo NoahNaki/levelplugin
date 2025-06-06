@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.salvage.managers.SalvageManager;
+import me.nakilex.levelplugin.Main;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -38,6 +39,15 @@ public class SalvageListener implements Listener {
         return slot >= 0 && slot < 54 && !(slot < 9 || slot >= 45 || slot % 9 == 0 || slot % 9 == 8);
     }
 
+    private boolean isSalvageable(ItemStack stack) {
+        if (stack == null || stack.getType() == Material.AIR) return false;
+        CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(stack);
+        if (cItem != null) return true;
+        return Main.getInstance()
+            .getPotionManager()
+            .getInstanceFromItem(stack) != null;
+    }
+
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         if (!isMerchant(event.getView())) return;
@@ -47,8 +57,7 @@ public class SalvageListener implements Listener {
         Player player = (Player) event.getWhoClicked();
 
         if (event.isShiftClick() && event.getCurrentItem() != null) {
-            CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(event.getCurrentItem());
-            if (cItem == null) {
+            if (!isSalvageable(event.getCurrentItem())) {
                 event.setCancelled(true);
             }
             return;
@@ -77,8 +86,7 @@ public class SalvageListener implements Listener {
 
             ItemStack cursor = event.getCursor();
             if (cursor != null && cursor.getType() != Material.AIR) {
-                CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(cursor);
-                if (cItem == null) {
+                if (!isSalvageable(cursor)) {
                     event.setCancelled(true);
                 }
             }
@@ -93,8 +101,7 @@ public class SalvageListener implements Listener {
             if (isInputSlot(slot)) {
                 ItemStack dragged = event.getOldCursor();
                 if (dragged != null && dragged.getType() != Material.AIR) {
-                    CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(dragged);
-                    if (cItem == null) {
+                    if (!isSalvageable(dragged)) {
                         event.setCancelled(true);
                         return;
                     }
@@ -144,6 +151,9 @@ public class SalvageListener implements Listener {
             if (cItem != null) {
                 totalCoins += SalvageManager.getInstance().getSellPrice(cItem);
                 totalGems += SalvageManager.getInstance().getGemReward(cItem);
+                inv.setItem(i, null);
+            } else if (Main.getInstance().getPotionManager().getInstanceFromItem(item) != null) {
+                // Potions yield no rewards but should still be removed
                 inv.setItem(i, null);
             }
         }

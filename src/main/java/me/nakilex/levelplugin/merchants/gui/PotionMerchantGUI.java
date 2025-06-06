@@ -151,6 +151,11 @@ public class PotionMerchantGUI implements Listener {
                 return;
             }
 
+            if (player.getInventory().firstEmpty() == -1) {
+                player.sendTitle(ChatColor.RED + "Inventory full!", "", 10, 70, 20);
+                return;
+            }
+
             try {
                 economyManager.deductCoins(player, cost);
             } catch (IllegalArgumentException ex) {
