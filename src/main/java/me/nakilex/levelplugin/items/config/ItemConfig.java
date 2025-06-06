@@ -79,7 +79,7 @@ public class ItemConfig {
                 Material material  = Material.valueOf(config.getString(base + "material"));
                 int upgLvl         = config.getInt(base + "upgradeLevel", 0);
 
-                // Parse each rolled int as a single-value range:
+                // Restore the rolled values and original template ranges.
                 int hpValue    = config.getInt(base + "hp",    0);
                 int defValue   = config.getInt(base + "def",   0);
                 int strValue   = config.getInt(base + "str",   0);
@@ -87,18 +87,43 @@ public class ItemConfig {
                 int intelValue = config.getInt(base + "intel", 0);
                 int dexValue   = config.getInt(base + "dex",   0);
 
-                StatRange hpRange    = new StatRange(hpValue,    hpValue);
-                StatRange defRange   = new StatRange(defValue,   defValue);
-                StatRange strRange   = new StatRange(strValue,   strValue);
-                StatRange agiRange   = new StatRange(agiValue,   agiValue);
-                StatRange intelRange = new StatRange(intelValue, intelValue);
-                StatRange dexRange   = new StatRange(dexValue,   dexValue);
+                CustomItem template = ItemManager.getInstance().getTemplateById(id);
+                StatRange hpRange;
+                StatRange defRange;
+                StatRange strRange;
+                StatRange agiRange;
+                StatRange intelRange;
+                StatRange dexRange;
+                if (template != null) {
+                    hpRange    = template.getHpRange();
+                    defRange   = template.getDefRange();
+                    strRange   = template.getStrRange();
+                    agiRange   = template.getAgiRange();
+                    intelRange = template.getIntelRange();
+                    dexRange   = template.getDexRange();
+                } else {
+                    // Fallback if template is missing
+                    hpRange    = new StatRange(hpValue,    hpValue);
+                    defRange   = new StatRange(defValue,   defValue);
+                    strRange   = new StatRange(strValue,   strValue);
+                    agiRange   = new StatRange(agiValue,   agiValue);
+                    intelRange = new StatRange(intelValue, intelValue);
+                    dexRange   = new StatRange(dexValue,   dexValue);
+                }
 
                 CustomItem instance = new CustomItem(
                     uuid, id, baseName, rarity, lvlReq, clsReq, material,
                     hpRange, defRange, strRange, agiRange, intelRange, dexRange,
                     upgLvl
                 );
+
+                // Overwrite rolled stats with the saved values
+                instance.setBaseHp(hpValue);
+                instance.setBaseDef(defValue);
+                instance.setBaseStr(strValue);
+                instance.setBaseAgi(agiValue);
+                instance.setBaseIntel(intelValue);
+                instance.setBaseDex(dexValue);
 
                 // Restore saved current durability (default to max if not present)
                 int savedDurability = config.getInt(base + "currentDurability", instance.getMaxDurability());

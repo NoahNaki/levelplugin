@@ -5,10 +5,12 @@ import io.th0rgal.oraxen.items.ItemBuilder;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.blacksmith.managers.ItemRepairManager;
 import me.nakilex.levelplugin.blacksmith.managers.ItemUpgradeManager;
+import me.nakilex.levelplugin.blacksmith.managers.ItemRerollManager;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -28,27 +30,31 @@ public class BlacksmithGUI implements Listener {
 
     private static final int GUI_SIZE = 27;
     private static final String GUI_TITLE_UPGRADE = ChatColor.DARK_GRAY + "Blacksmith: Upgrade";
-    private static final String GUI_TITLE_REPAIR = ChatColor.DARK_GRAY + "Blacksmith: Repair";
+    private static final String GUI_TITLE_REPAIR  = ChatColor.DARK_GRAY + "Blacksmith: Repair";
+    private static final String GUI_TITLE_REROLL = ChatColor.DARK_GRAY + "Blacksmith: Reroll";
 
     private final EconomyManager economyManager;
     private final ItemUpgradeManager upgradeManager;
     private final ItemRepairManager repairManager;
+    private final ItemRerollManager rerollManager;
     private final ItemManager itemManager;
     private final Map<UUID, Inventory> openInventories = new HashMap<>();
 
-    public BlacksmithGUI(EconomyManager economyManager, ItemUpgradeManager upgradeManager, ItemManager itemManager, ItemRepairManager repairManager) {
+    public BlacksmithGUI(EconomyManager economyManager, ItemUpgradeManager upgradeManager,
+                         ItemManager itemManager, ItemRepairManager repairManager) {
         this.economyManager = economyManager;
         this.upgradeManager = upgradeManager;
         this.repairManager = repairManager;
         this.itemManager = itemManager;
+        this.rerollManager = new ItemRerollManager();
     }
 
     public void openUpgradeGUI(Player player) {
         Inventory gui = Bukkit.createInventory(player, GUI_SIZE, GUI_TITLE_UPGRADE);
         fillGuiWithFiller(gui);
         gui.setItem(8, createUpgradeInfoItem());
-        gui.setItem(11, getOraxenItem("arrow_left", ChatColor.GRAY + "Go to Repair"));
-        gui.setItem(15, getOraxenItem("arrow_right", ChatColor.GRAY + "Go to Repair"));
+        gui.setItem(9, getOraxenItem("arrow_left", ChatColor.GRAY + "Go to Reroll"));
+        gui.setItem(17, getOraxenItem("arrow_right", ChatColor.GRAY + "Go to Repair"));
         gui.setItem(13, null);
         gui.setItem(22, createUpgradeButton(0, 0));
         openInventories.put(player.getUniqueId(), gui);
@@ -59,11 +65,25 @@ public class BlacksmithGUI implements Listener {
         Inventory gui = Bukkit.createInventory(player, GUI_SIZE, GUI_TITLE_REPAIR);
         fillGuiWithFiller(gui);
         gui.setItem(8, createRepairInfoItem());
-        gui.setItem(11, getOraxenItem("arrow_left", ChatColor.GRAY + "Go to Upgrade"));
-        gui.setItem(15, getOraxenItem("arrow_right", ChatColor.GRAY + "Go to Upgrade"));
+        gui.setItem(9, getOraxenItem("arrow_left", ChatColor.GRAY + "Go to Upgrade"));
+        gui.setItem(17, getOraxenItem("arrow_right", ChatColor.GRAY + "Go to Reroll"));
         gui.setItem(0, createRepairAllButton(calculateTotalRepairCost(player)));
         gui.setItem(13, null);
         gui.setItem(22, createRepairButton(0));
+        openInventories.put(player.getUniqueId(), gui);
+        player.openInventory(gui);
+    }
+
+    public void openRerollGUI(Player player) {
+        Inventory gui = Bukkit.createInventory(player, GUI_SIZE, GUI_TITLE_REROLL);
+        fillGuiWithFiller(gui);
+        gui.setItem(8, createRerollInfoItem());
+        gui.setItem(9, getOraxenItem("arrow_left", ChatColor.GRAY + "Go to Repair"));
+        gui.setItem(17, getOraxenItem("arrow_right", ChatColor.GRAY + "Go to Upgrade"));
+        gui.setItem(11, null); // item slot
+        gui.setItem(13, null); // result
+        gui.setItem(15, null); // placeholder
+        gui.setItem(22, createRerollButton(0));
         openInventories.put(player.getUniqueId(), gui);
         player.openInventory(gui);
     }
@@ -135,6 +155,21 @@ public class BlacksmithGUI implements Listener {
         return info;
     }
 
+    private ItemStack createRerollInfoItem() {
+        ItemStack info = getOraxenItem("info", ChatColor.YELLOW + "Information");
+        ItemMeta meta = info.getItemMeta();
+        if (meta != null) {
+            meta.setLore(Arrays.asList(
+                ChatColor.GRAY + "",
+                ChatColor.GRAY + "Use the left slot for your item and",
+                ChatColor.GRAY + "the right slot for a stat placeholder.",
+                ChatColor.GRAY + "Press the check mark to reroll that stat."
+            ));
+            info.setItemMeta(meta);
+        }
+        return info;
+    }
+
     private ItemStack createUpgradeButton(int upgradeCost, int successChance) {
         ItemStack upgrade = new ItemStack(Material.ANVIL);
         ItemMeta meta = upgrade.getItemMeta();
@@ -164,6 +199,22 @@ public class BlacksmithGUI implements Listener {
         meta.setLore(lore);
         repair.setItemMeta(meta);
         return repair;
+    }
+
+    private ItemStack createRerollButton(int cost) {
+        ItemStack reroll = getOraxenItem("check", ChatColor.GREEN + "Reroll Stat");
+        ItemMeta meta = reroll.getItemMeta();
+        if (meta != null) {
+            List<String> lore = new ArrayList<>();
+            if (cost > 0) {
+                lore.add("§7Cost: §6⛃ " + cost);
+            } else {
+                lore.add("§7Place item and placeholder.");
+            }
+            meta.setLore(lore);
+            reroll.setItemMeta(meta);
+        }
+        return reroll;
     }
 
     private ItemStack createRepairAllButton(int totalCost) {
@@ -204,8 +255,27 @@ public class BlacksmithGUI implements Listener {
 
         String title = event.getView().getTitle();
 
-// Allow placing into slot 13 only manually
-        if (event.getRawSlot() == 13) {
+// Allow placing item/placeholder in reroll slots
+        if (title.equals(GUI_TITLE_REROLL) && (rawSlot == 11 || rawSlot == 15)) {
+            event.setCancelled(false);
+            Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+                Inventory updatedGui = openInventories.get(player.getUniqueId());
+                if (updatedGui != null) updateActionButton(player, updatedGui, title);
+            }, 1L);
+            return;
+        }
+
+        if (title.equals(GUI_TITLE_REROLL) && rawSlot == 13) {
+            if (event.getCursor() == null || event.getCursor().getType().isAir()) {
+                event.setCancelled(false); // allow taking result item
+            } else {
+                event.setCancelled(true); // prevent placing items here
+            }
+            return;
+        }
+
+// Allow placing into slot 13 only manually on upgrade/repair
+        if (event.getRawSlot() == 13 && !title.equals(GUI_TITLE_REROLL)) {
             event.setCancelled(false);
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
                 Inventory updatedGui = openInventories.get(player.getUniqueId());
@@ -215,15 +285,23 @@ public class BlacksmithGUI implements Listener {
         }
 
 
-// Allow dragging into slot 13
+// Allow dragging items into appropriate slots
         if (event.getAction() == InventoryAction.PLACE_ALL ||
             event.getAction() == InventoryAction.PLACE_SOME ||
             event.getAction() == InventoryAction.PLACE_ONE ||
             event.getAction() == InventoryAction.SWAP_WITH_CURSOR ||
-            event.getAction() == InventoryAction.HOTBAR_SWAP &&
-                event.getSlot() == 13) {
-            event.setCancelled(false);
-            return;
+            event.getAction() == InventoryAction.HOTBAR_SWAP) {
+            if (title.equals(GUI_TITLE_REROLL) && (event.getSlot() == 11 || event.getSlot() == 15)) {
+                event.setCancelled(false);
+                Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+                    Inventory updatedGui = openInventories.get(player.getUniqueId());
+                    if (updatedGui != null) updateActionButton(player, updatedGui, title);
+                }, 1L);
+                return;
+            } else if (!title.equals(GUI_TITLE_REROLL) && event.getSlot() == 13) {
+                event.setCancelled(false);
+                return;
+            }
         }
 
 // Cancel all interactions outside the GUI
@@ -240,21 +318,46 @@ public class BlacksmithGUI implements Listener {
         event.setCancelled(true);
 
 
-        if (rawSlot == 11 || rawSlot == 15) {
-            ItemStack carriedItem = gui.getItem(13); // Save item before switching
-            boolean switchingToRepair = title.equals(GUI_TITLE_UPGRADE);
-            if (switchingToRepair) {
-                openRepairGUI(player);
-            } else {
-                openUpgradeGUI(player);
+        if (rawSlot == 9 || rawSlot == 17) {
+            ItemStack carriedItem = title.equals(GUI_TITLE_REROLL) ? gui.getItem(11) : gui.getItem(13);
+            ItemStack placeholder = title.equals(GUI_TITLE_REROLL) ? gui.getItem(15) : null;
+            String newTitle;
+            if (title.equals(GUI_TITLE_UPGRADE)) {
+                if (rawSlot == 9) { // left -> reroll
+                    newTitle = GUI_TITLE_REROLL;
+                    openRerollGUI(player);
+                } else {
+                    newTitle = GUI_TITLE_REPAIR;
+                    openRepairGUI(player);
+                }
+            } else if (title.equals(GUI_TITLE_REPAIR)) {
+                if (rawSlot == 9) { // left -> upgrade
+                    newTitle = GUI_TITLE_UPGRADE;
+                    openUpgradeGUI(player);
+                } else {
+                    newTitle = GUI_TITLE_REROLL;
+                    openRerollGUI(player);
+                }
+            } else { // REROLL
+                if (rawSlot == 9) { // left -> repair
+                    newTitle = GUI_TITLE_REPAIR;
+                    openRepairGUI(player);
+                } else {
+                    newTitle = GUI_TITLE_UPGRADE;
+                    openUpgradeGUI(player);
+                }
             }
-            // Restore the carried item into the new GUI and update the button
+
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
                 Inventory newGui = openInventories.get(player.getUniqueId());
                 if (newGui != null) {
-                    newGui.setItem(13, carriedItem);
-                    String newTitle = switchingToRepair ? GUI_TITLE_REPAIR : GUI_TITLE_UPGRADE;
-                    updateActionButton(player, newGui, newTitle);
+                    if (newTitle.equals(GUI_TITLE_REROLL)) {
+                        newGui.setItem(11, carriedItem);
+                        newGui.setItem(15, placeholder);
+                    } else {
+                        newGui.setItem(13, carriedItem);
+                        updateActionButton(player, newGui, newTitle);
+                    }
                 }
             }, 1L);
             return;
@@ -268,7 +371,7 @@ public class BlacksmithGUI implements Listener {
         }
 
         if (rawSlot == 22) {
-            ItemStack item = gui.getItem(13);
+            ItemStack item = title.equals(GUI_TITLE_REROLL) ? gui.getItem(11) : gui.getItem(13);
             if (item == null || item.getType().isAir()) return;
             CustomItem ci = itemManager.getCustomItemFromItemStack(item);
             if (ci == null) return;
@@ -304,23 +407,46 @@ public class BlacksmithGUI implements Listener {
                     ItemUtil.updateCustomItemTooltip(item, player);
                 }
                 gui.setItem(22, createRepairButton(0));
+            } else if (title.equals(GUI_TITLE_REROLL)) {
+                ItemStack placeholder = gui.getItem(15);
+                if (placeholder == null || placeholder.getType().isAir()) {
+                    player.sendMessage("§cPlace a stat placeholder on the right.");
+                    return;
+                }
+                StatType stat = materialToStat(placeholder.getType());
+                if (stat == null) {
+                    player.sendMessage("§cInvalid placeholder item!");
+                    return;
+                }
+
+                if (!rerollManager.hasStat(ci, stat)) {
+                    player.sendMessage("§cThis item does not have " + statDisplayName(stat) + "!");
+                    return;
+                }
+
+                int cost = rerollManager.getRerollCost(ci);
+                try {
+                    economyManager.deductCoins(player, cost);
+                } catch (IllegalArgumentException ex) {
+                    player.sendMessage("§cNot enough coins to reroll! Cost: §6⛃" + cost);
+                    return;
+                }
+
+                int diff = rerollManager.rerollStat(player, item, ci, stat);
+                gui.setItem(13, item.clone());
+                gui.setItem(11, null);
+                placeholder.setAmount(placeholder.getAmount() - 1);
+                if (placeholder.getAmount() <= 0) gui.setItem(15, null);
+                String message = ChatColor.GOLD + "" + ChatColor.BOLD + "STAT REROLLED! "
+                        + ChatColor.YELLOW + statDisplayName(stat) + (diff >= 0
+                        ? " increased by " + ChatColor.GREEN + "+" + diff
+                        : " decreased by " + ChatColor.RED + diff);
+                player.sendMessage(message);
             }
         }
 
         Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-            ItemStack current = gui.getItem(13);
-            if (current == null || current.getType().isAir()) {
-                gui.setItem(22, title.equals(GUI_TITLE_UPGRADE) ? createUpgradeButton(0, 0) : createRepairButton(0));
-                return;
-            }
-            CustomItem ci = itemManager.getCustomItemFromItemStack(current);
-            if (ci != null) {
-                if (title.equals(GUI_TITLE_UPGRADE)) {
-                    gui.setItem(22, createUpgradeButton(upgradeManager.getUpgradeCost(ci), upgradeManager.getSuccessChance(ci)));
-                } else if (title.equals(GUI_TITLE_REPAIR)) {
-                    gui.setItem(22, createRepairButton(repairManager.getRepairCost(ci)));
-                }
-            }
+            updateActionButton(player, gui, title);
         }, 1L);
     }
 
@@ -356,19 +482,27 @@ public class BlacksmithGUI implements Listener {
     }
 
     private void updateActionButton(Player player, Inventory gui, String title) {
-        ItemStack current = gui.getItem(13);
+        ItemStack current = title.equals(GUI_TITLE_REROLL) ? gui.getItem(11) : gui.getItem(13);
         if (current == null || current.getType().isAir()) {
-            gui.setItem(22, title.equals(GUI_TITLE_UPGRADE)
-                ? createUpgradeButton(0, 0)
-                : createRepairButton(0));
+            if (title.equals(GUI_TITLE_REROLL)) {
+                gui.setItem(22, createRerollButton(0));
+            } else {
+                gui.setItem(22, title.equals(GUI_TITLE_UPGRADE)
+                    ? createUpgradeButton(0, 0)
+                    : createRepairButton(0));
+            }
             return;
         }
 
         CustomItem ci = itemManager.getCustomItemFromItemStack(current);
         if (ci == null) {
-            gui.setItem(22, title.equals(GUI_TITLE_UPGRADE)
-                ? createUpgradeButton(0, 0)
-                : createRepairButton(0));
+            if (title.equals(GUI_TITLE_REROLL)) {
+                gui.setItem(22, createRerollButton(0));
+            } else {
+                gui.setItem(22, title.equals(GUI_TITLE_UPGRADE)
+                    ? createUpgradeButton(0, 0)
+                    : createRepairButton(0));
+            }
             return;
         }
 
@@ -376,9 +510,34 @@ public class BlacksmithGUI implements Listener {
             gui.setItem(22, createUpgradeButton(
                 upgradeManager.getUpgradeCost(ci),
                 upgradeManager.getSuccessChance(ci)));
-        } else {
+        } else if (title.equals(GUI_TITLE_REPAIR)) {
             gui.setItem(22, createRepairButton(repairManager.getRepairCost(ci)));
+        } else {
+            gui.setItem(22, createRerollButton(rerollManager.getRerollCost(ci)));
         }
+    }
+
+    private StatType materialToStat(Material mat) {
+        return switch (mat) {
+            case BORDURE_INDENTED_BANNER_PATTERN -> StatType.STR;
+            case FLOWER_BANNER_PATTERN -> StatType.INT;
+            case FLOW_BANNER_PATTERN -> StatType.AGI;
+            case SKULL_BANNER_PATTERN -> StatType.HP;
+            case GUSTER_BANNER_PATTERN -> StatType.DEX;
+            case GLOBE_BANNER_PATTERN -> StatType.DEF;
+            default -> null;
+        };
+    }
+
+    private String statDisplayName(StatType stat) {
+        return switch (stat) {
+            case STR -> "Strength";
+            case INT -> "Intelligence";
+            case AGI -> "Agility";
+            case DEX -> "Dexterity";
+            case HP  -> "Health";
+            case DEF -> "Defence";
+        };
     }
 
 
@@ -388,8 +547,18 @@ public class BlacksmithGUI implements Listener {
         Player player = (Player) event.getPlayer();
         Inventory gui = openInventories.get(player.getUniqueId());
         if (gui == null || !event.getInventory().equals(gui)) return;
-        ItemStack item = gui.getItem(13);
-        if (item != null) player.getInventory().addItem(item);
+        String title = event.getView().getTitle();
+        if (title.equals(GUI_TITLE_REROLL)) {
+            ItemStack left = gui.getItem(11);
+            ItemStack result = gui.getItem(13);
+            ItemStack placeholder = gui.getItem(15);
+            if (left != null && !left.getType().isAir()) player.getInventory().addItem(left);
+            if (result != null && !result.getType().isAir()) player.getInventory().addItem(result);
+            if (placeholder != null && !placeholder.getType().isAir()) player.getInventory().addItem(placeholder);
+        } else {
+            ItemStack item = gui.getItem(13);
+            if (item != null && !item.getType().isAir()) player.getInventory().addItem(item);
+        }
         openInventories.remove(player.getUniqueId());
     }
 }
