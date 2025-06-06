@@ -54,7 +54,7 @@ public class ProceduralItemGenerator {
         boolean createArmor = random.nextBoolean();
         String base = pickBaseName(clazz, createArmor);
         int baseVal = Math.max(1, level);
-        
+
         int hp = 0, def = 0, str = 0, agi = 0, intel = 0, dex = 0;
 
         if (createArmor) {
@@ -115,12 +115,12 @@ public class ProceduralItemGenerator {
             level,
             classReq,
             material,
-            new StatRange(hp, hp),
-            new StatRange(def, def),
-            new StatRange(str, str),
-            new StatRange(agi, agi),
-            new StatRange(intel, intel),
-            new StatRange(dex, dex)
+            createRange(hp),
+            createRange(def),
+            createRange(str),
+            createRange(agi),
+            createRange(intel),
+            createRange(dex)
         );
 
         ItemManager.getInstance().addInstance(item);
@@ -150,6 +150,19 @@ public class ProceduralItemGenerator {
             }
         }
         return name;
+    }
+
+    /**
+     * Build a rollable range around a target value so generated items
+     * can be rerolled later on. The range is roughly ±20% of the value.
+     */
+    private StatRange createRange(int value) {
+        if (value <= 0) {
+            return new StatRange(0, 0);
+        }
+        int min = Math.max(0, (int) Math.round(value * 0.8));
+        int max = Math.max(min + 1, (int) Math.round(value * 1.2));
+        return new StatRange(min, max);
     }
 
     private String getDominantStat(int str, int agi, int intel, int dex, int def) {
