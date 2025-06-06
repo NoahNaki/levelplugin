@@ -1,0 +1,19 @@
+weapon_types:
+  ROGUE:
+    - Dagger
+    - Shortsword
+  MAGE:
+    - Wand
+    - Staff
+  ARCHER:
+    - Bow
+    - Longbow
+  WARRIOR:
+    - Spear
+    - Greatsword
+armor_types:
+  general:
+    - Helmet
+    - Chestplate
+    - Leggings
+    - Boots
