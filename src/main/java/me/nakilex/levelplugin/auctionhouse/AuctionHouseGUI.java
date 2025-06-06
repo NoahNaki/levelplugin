@@ -9,6 +9,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
@@ -140,9 +141,14 @@ public class AuctionHouseGUI implements Listener {
         }
 
         if (rawSlot == SEARCH_SLOT) {
-            awaitingSearch.add(player.getUniqueId());
-            player.closeInventory();
-            player.sendMessage(ChatColor.YELLOW + "Enter search term or 'cancel'.");
+            if (e.getClick() == ClickType.RIGHT) {
+                searchTerms.remove(player.getUniqueId());
+                open(player, pageMap.getOrDefault(player.getUniqueId(), 0));
+            } else {
+                awaitingSearch.add(player.getUniqueId());
+                player.closeInventory();
+                player.sendMessage(ChatColor.YELLOW + "Enter search term or 'cancel'.");
+            }
             return;
         }
 
@@ -231,6 +237,7 @@ public class AuctionHouseGUI implements Listener {
                     Bukkit.getScheduler().runTask(plugin, () -> {
                         manager.listItem(e.getPlayer(), item, data.start, data.bin, data.duration);
                         e.getPlayer().sendMessage(ChatColor.GREEN + "Item listed.");
+                        open(e.getPlayer(), pageMap.getOrDefault(id, 0));
                     });
                 }
             }
@@ -313,7 +320,7 @@ public class AuctionHouseGUI implements Listener {
     }
 
     private String rangeLine(int index, int current, String label) {
-        ChatColor color = (index == 3) ? ChatColor.WHITE : ChatColor.GRAY;
+        ChatColor color = (index == current) ? ChatColor.WHITE : ChatColor.GRAY;
         ChatColor bullet = (index == current) ? ChatColor.GREEN : ChatColor.DARK_GRAY;
         return bullet + "- " + color + label;
     }
