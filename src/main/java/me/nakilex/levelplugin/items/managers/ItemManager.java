@@ -13,6 +13,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
+import me.nakilex.levelplugin.items.generator.ProceduralItemGenerator;
 
 import java.io.File;
 import java.io.InputStream;
@@ -32,12 +33,15 @@ public class ItemManager {
     private final Map<UUID, CustomItem> itemsMap     = new HashMap<>(); // Instances by UUID
     private final Map<Integer, UUID> holderMap = new HashMap<>();
 
+    private final ProceduralItemGenerator generator;
+
     private FileConfiguration itemsConfig;
 
     public ItemManager(Plugin plugin) {
         instance = this;
         loadItemsConfig(plugin);
         loadItems();
+        generator = new ProceduralItemGenerator(Main.getInstance());
     }
 
     private void loadItemsConfig(Plugin plugin) {
@@ -179,6 +183,13 @@ public class ItemManager {
         );
         addInstance(inst);
         return inst;
+    }
+
+    /**
+     * Generate a brand new procedural item using the generator utility.
+     */
+    public CustomItem generateItem(String mobType, int level) {
+        return generator.generate(mobType, level);
     }
 
     public CustomItem getCustomItem(int id) {

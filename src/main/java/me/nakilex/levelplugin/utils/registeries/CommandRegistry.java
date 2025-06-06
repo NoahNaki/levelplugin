@@ -90,6 +90,7 @@ public class CommandRegistry {
         plugin.getCommand("addxp").setExecutor(new AddXPCommand(levelManager));
         plugin.getCommand("stats").setExecutor(new StatsCommand());
         plugin.getCommand("additem").setExecutor(new AddItemCommand());
+        plugin.getCommand("genitem").setExecutor(new me.nakilex.levelplugin.items.commands.GenerateItemCommand());
         plugin.getCommand("setlevel").setExecutor(new SetLevelCommand(plugin));
         plugin.getCommand("class").setExecutor(new ClassCommand());
         plugin.getCommand("balance").setExecutor(new BalanceCommand(economyManager));

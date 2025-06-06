@@ -1,0 +1,26 @@
+prefixes:
+  skeleton:
+    - Bone
+    - Skeletal
+  slime:
+    - Gooey
+    - Sticky
+  zombie:
+    - Rotten
+    - Decayed
+  default:
+    - Rusty
+    - Old
+weapon_types:
+  ROGUE:
+    - Dagger
+    - Shortsword
+  MAGE:
+    - Wand
+    - Staff
+  ARCHER:
+    - Bow
+    - Longbow
+  WARRIOR:
+    - Spear
+    - Greatsword

@@ -139,3 +139,6 @@ commands:
   wipeprofile:
     description: Wipe a player's profile
     usage: /wipeprofile <player>
+  genitem:
+    description: Gives a procedurally generated item
+    usage: /genitem <player> <mobType> <level>
