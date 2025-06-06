@@ -63,6 +63,9 @@ public class ArmorStatsListener implements Listener {
 
         // 3) Recalculate derived stats (HP/mana will update whether or not we added stats)
         stats.recalcDerivedStats(player);
+
+        // 4) Update armor set bonuses based on current equipment
+        me.nakilex.levelplugin.items.managers.SetBonusManager.getInstance().updatePlayer(player);
     }
 
 
