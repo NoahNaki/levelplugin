@@ -199,42 +199,42 @@ public class ProceduralItemGenerator {
         if (level >= 76) {
             switch (clazz) {
                 case "ROGUE": return Material.NETHERITE_SWORD;
-                case "MAGE":  return Material.NETHERITE_HOE;
+                case "MAGE":  return Material.STICK;
                 case "ARCHER":return Material.BOW;
                 case "WARRIOR":default: return Material.NETHERITE_SHOVEL;
             }
         } else if (level >= 61) {
             switch (clazz) {
                 case "ROGUE": return Material.DIAMOND_SWORD;
-                case "MAGE":  return Material.DIAMOND_HOE;
+                case "MAGE":  return Material.STICK;
                 case "ARCHER":return Material.BOW;
                 case "WARRIOR":default: return Material.DIAMOND_SHOVEL;
             }
         } else if (level >= 41) {
             switch (clazz) {
                 case "ROGUE": return Material.IRON_SWORD;
-                case "MAGE":  return Material.IRON_HOE;
+                case "MAGE":  return Material.STICK;
                 case "ARCHER":return Material.BOW;
                 case "WARRIOR":default: return Material.IRON_SHOVEL;
             }
         } else if (level >= 21) {
             switch (clazz) {
                 case "ROGUE": return Material.GOLDEN_SWORD;
-                case "MAGE":  return Material.GOLDEN_HOE;
+                case "MAGE":  return Material.STICK;
                 case "ARCHER":return Material.BOW;
                 case "WARRIOR":default: return Material.GOLDEN_SHOVEL;
             }
         } else if (level >= 11) {
             switch (clazz) {
                 case "ROGUE": return Material.STONE_SWORD;
-                case "MAGE":  return Material.STONE_HOE;
+                case "MAGE":  return Material.STICK;
                 case "ARCHER":return Material.BOW;
                 case "WARRIOR":default: return Material.STONE_SHOVEL;
             }
         }
         switch (clazz) {
             case "ROGUE": return Material.WOODEN_SWORD;
-            case "MAGE":  return Material.WOODEN_HOE;
+            case "MAGE":  return Material.STICK;
             case "ARCHER":return Material.BOW;
             case "WARRIOR":default: return Material.WOODEN_SHOVEL;
         }
