@@ -42,26 +42,26 @@ public class ProceduralItemGenerator {
         String name = buildName(mobType, base, rarity);
         Material material = createArmor ? pickArmorMaterial(level, base) : pickWeaponMaterial(clazz, level);
 
-        int base = Math.max(1, level);
+        int baseVal = Math.max(1, level);
         int hp = 0, def = 0, str = 0, intel = 0, dex = 0;
 
         if (createArmor) {
-            hp = base * 2;
-            def = base;
+            hp = baseVal * 2;
+            def = baseVal;
         } else {
             switch (clazz) {
                 case "WARRIOR":
-                    str = base * 2;
+                    str = baseVal * 2;
                     break;
                 case "ROGUE":
-                    str = base;
-                    dex = base;
+                    str = baseVal;
+                    dex = baseVal;
                     break;
                 case "ARCHER":
-                    dex = base * 2;
+                    dex = baseVal * 2;
                     break;
                 case "MAGE":
-                    intel = base * 2;
+                    intel = baseVal * 2;
                     break;
             }
         }
