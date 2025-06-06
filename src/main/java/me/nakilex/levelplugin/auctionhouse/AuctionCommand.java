@@ -50,6 +50,10 @@ public class AuctionCommand implements CommandExecutor {
                 player.sendMessage(ChatColor.RED + "Hold the item you wish to sell in your hand.");
                 return true;
             }
+            if (me.nakilex.levelplugin.items.listeners.StaticItemListener.isStaticItem(item)) {
+                player.sendMessage(ChatColor.RED + "You cannot list that item.");
+                return true;
+            }
             player.getInventory().setItemInMainHand(null);
             manager.listItem(player, item, start, bin, hours);
             player.sendMessage(ChatColor.GREEN + "Item listed.");

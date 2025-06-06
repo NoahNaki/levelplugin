@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.auctionhouse;
 
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -105,8 +106,26 @@ public class AuctionHouseManager {
         saveAuctions();
         Player seller = Bukkit.getPlayer(ai.getSeller());
         if (seller != null) {
-            seller.sendMessage(buyer.getName() + " bought your item for " + price + " coins.");
+            String name = ai.getItem().hasItemMeta() && ai.getItem().getItemMeta().hasDisplayName()
+                    ? ChatColor.stripColor(ai.getItem().getItemMeta().getDisplayName())
+                    : ai.getItem().getType().name().toLowerCase().replace('_', ' ');
+            seller.sendMessage("Your " + name + " sold for " + price + " coins!");
         }
+        return true;
+    }
+
+    /**
+     * Cancel an active listing owned by the given player.
+     * The item is returned to the seller's inventory.
+     */
+    public synchronized boolean cancelListing(Player seller, int index) {
+        if (index < 0 || index >= auctions.size()) return false;
+        AuctionItem ai = auctions.get(index);
+        if (!ai.getSeller().equals(seller.getUniqueId())) return false;
+        if (ai.getStatus() != AuctionStatus.ACTIVE) return false;
+        seller.getInventory().addItem(ai.getItem());
+        auctions.remove(index);
+        saveAuctions();
         return true;
     }
 
