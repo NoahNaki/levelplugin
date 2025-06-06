@@ -54,6 +54,8 @@ import me.nakilex.levelplugin.utils.MetadataTrait;
 import me.nakilex.levelplugin.utils.registeries.CommandRegistry;
 import me.nakilex.levelplugin.utils.registeries.ListenerRegistry;
 import me.nakilex.levelplugin.utils.registeries.TaskRegistry;
+import me.nakilex.levelplugin.fasttravel.FastTravelManager;
+import me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
@@ -123,6 +125,8 @@ public class Main extends JavaPlugin {
     private me.nakilex.levelplugin.npc.dialog.NPCDialogManager dialogManager;
     private me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager scoreboardManager;
     private me.nakilex.levelplugin.quests.managers.BeaconManager beaconManager;
+    private me.nakilex.levelplugin.fasttravel.FastTravelManager fastTravelManager;
+    private me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI fastTravelGUI;
     /**
      * Tracks all active bow drone NPCs for each player. Some runes can add
      * additional drones so we store a list rather than a single instance.
@@ -251,6 +255,8 @@ public class Main extends JavaPlugin {
                 this, economyManager, gemsManager, partyManager, questManager);
         partyGlowManager = new PartyGlowManager(this, partyManager, scoreboardManager::getBoard);
         beaconManager = new me.nakilex.levelplugin.quests.managers.BeaconManager();
+        fastTravelManager = new me.nakilex.levelplugin.fasttravel.FastTravelManager(this);
+        fastTravelGUI = new me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI(fastTravelManager, economyManager);
         cooldownManager.setLootChestManager(lootChestManager);
         equipGui = new EquipRunesGUI(this, runesManager, identifyRunesGUI);
 
@@ -299,7 +305,8 @@ public class Main extends JavaPlugin {
             runesManager,
             equipGui,
             broadcastMgr,
-            questManager
+            questManager,
+            fastTravelManager
         );
 
 
@@ -328,7 +335,9 @@ public class Main extends JavaPlugin {
             chestHologramListener,
             questManager,
             dialogManager,
-            scoreboardManager
+            scoreboardManager,
+            fastTravelManager,
+            fastTravelGUI
         );
 
         getServer().getPluginManager().registerEvents(beaconManager, this);
@@ -496,6 +505,14 @@ public class Main extends JavaPlugin {
 
     public me.nakilex.levelplugin.quests.managers.BeaconManager getBeaconManager() {
         return beaconManager;
+    }
+
+    public me.nakilex.levelplugin.fasttravel.FastTravelManager getFastTravelManager() {
+        return fastTravelManager;
+    }
+
+    public me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI getFastTravelGUI() {
+        return fastTravelGUI;
     }
 
     public me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager getScoreboardManager() {
