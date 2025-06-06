@@ -24,6 +24,7 @@ import me.nakilex.levelplugin.player.classes.commands.ClassCommand;
 import me.nakilex.levelplugin.player.level.commands.AddXPCommand;
 import me.nakilex.levelplugin.player.level.commands.SetLevelCommand;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
+import me.nakilex.levelplugin.player.commands.WipeProfileCommand;
 import me.nakilex.levelplugin.potions.commands.AddPotionCommand;
 import me.nakilex.levelplugin.lootchests.commands.LootChestCommand;
 import me.nakilex.levelplugin.runes.commands.EquipRunesCommand;
@@ -118,6 +119,7 @@ public class CommandRegistry {
         plugin.getCommand("auctionhouse").setExecutor(new AuctionCommand(auctionMgr, auctionGui));
         plugin.getCommand("equiprunes").setExecutor(new EquipRunesCommand(equipGui));
         plugin.getCommand("quest").setExecutor(new QuestCommand(questManager));
+        plugin.getCommand("wipeprofile").setExecutor(new WipeProfileCommand(levelManager, StatsManager.getInstance(), economyManager, gemsManager));
 
 
 

@@ -76,6 +76,10 @@ public class SalvageGUI {
             int actualSlot = logicalStart + i; // 46–50
             gui.setItem(actualSlot, createRaritySellButton(rarities[i]));
         }
+
+        // Deposit/Return buttons
+        gui.setItem(51, getOraxenItem("arrow_up", ChatColor.YELLOW + "Deposit All"));
+        gui.setItem(52, getOraxenItem("arrow_down", ChatColor.YELLOW + "Return All"));
         player.openInventory(gui);
     }
 
