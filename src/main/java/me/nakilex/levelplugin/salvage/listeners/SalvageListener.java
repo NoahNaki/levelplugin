@@ -75,17 +75,17 @@ public class SalvageListener implements Listener {
                 player.closeInventory();
                 return;
             }
-            if (slot >= 46 && slot <= 50) {
+            if (slot >= 47 && slot <= 51) {
                 event.setCancelled(true);
                 handleQuickSellClick(player, slot);
                 return;
             }
-            if (slot == 51) {
+            if (slot == 52) {
                 event.setCancelled(true);
                 depositAllItems(player, topInv);
                 return;
             }
-            if (slot == 52) {
+            if (slot == 46) {
                 event.setCancelled(true);
                 returnAllItems(player, topInv);
                 return;

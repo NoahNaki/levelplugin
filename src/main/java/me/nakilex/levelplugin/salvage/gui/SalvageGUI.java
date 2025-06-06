@@ -78,8 +78,8 @@ public class SalvageGUI {
         }
 
         // Deposit/Return buttons
-        gui.setItem(51, getOraxenItem("arrow_up", ChatColor.YELLOW + "Deposit All"));
-        gui.setItem(52, getOraxenItem("arrow_down", ChatColor.YELLOW + "Return All"));
+        gui.setItem(46, getOraxenItem("arrow_down", ChatColor.YELLOW + "Return All"));
+        gui.setItem(52, getOraxenItem("arrow_up", ChatColor.YELLOW + "Deposit All"));
         player.openInventory(gui);
     }
 
