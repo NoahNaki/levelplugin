@@ -34,7 +34,11 @@ public class PartyGlowManager implements Listener {
     private final PartyManager partyManager;
     private final PlayerScoreboardManagerAccessor scoreboardAccessor;
     private final ProtocolManager protocol;
-    private final Set<UUID> enabled = ConcurrentHashMap.newKeySet();
+    /**
+     * Tracks players that have the party glow feature disabled. Absent = enabled
+     * because the glow should be on by default.
+     */
+    private final Set<UUID> disabled = ConcurrentHashMap.newKeySet();
 
     public PartyGlowManager(Main plugin, PartyManager partyManager, PlayerScoreboardManagerAccessor accessor) {
         this.plugin = plugin;
@@ -53,7 +57,7 @@ public class PartyGlowManager implements Listener {
 
     private void handleMetadata(PacketEvent event) {
         Player viewer = event.getPlayer();
-        if (!enabled.contains(viewer.getUniqueId())) return;
+        if (!isEnabled(viewer)) return;
 
         Entity entity = event.getPacket().getEntityModifier(viewer.getWorld()).read(0);
         if (!(entity instanceof Player target)) return;
@@ -115,15 +119,20 @@ public class PartyGlowManager implements Listener {
     /** Toggle glow for a player. */
     public boolean toggle(Player player) {
         UUID id = player.getUniqueId();
-        boolean now = !enabled.contains(id);
-        if (now) enabled.add(id); else enabled.remove(id);
-        player.sendMessage(ChatColor.GRAY + "Party glow: " + (now ? ChatColor.GREEN + "ON" : ChatColor.RED + "OFF"));
+        boolean nowEnabled;
+        if (disabled.contains(id)) {
+            disabled.remove(id);
+            nowEnabled = true;
+        } else {
+            disabled.add(id);
+            nowEnabled = false;
+        }
         applyGlowScoreboard(player);
-        return now;
+        return nowEnabled;
     }
 
     public boolean isEnabled(Player player) {
-        return enabled.contains(player.getUniqueId());
+        return !disabled.contains(player.getUniqueId());
     }
 
     /**
@@ -145,7 +154,7 @@ public class PartyGlowManager implements Listener {
             return;
         }
 
-        boolean glow = enabled.contains(viewer.getUniqueId());
+        boolean glow = isEnabled(viewer);
         for (UUID memberId : party.getMembers()) {
             if (memberId.equals(viewer.getUniqueId())) continue;
             Player member = Bukkit.getPlayer(memberId);
@@ -186,7 +195,7 @@ public class PartyGlowManager implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        enabled.remove(event.getPlayer().getUniqueId());
+        disabled.remove(event.getPlayer().getUniqueId());
     }
 
     /** Interface to access PlayerScoreboardManager boards without exposing the class. */
