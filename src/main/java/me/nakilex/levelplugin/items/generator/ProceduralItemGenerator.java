@@ -19,15 +19,29 @@ import java.util.Random;
  */
 public class ProceduralItemGenerator {
 
-    private final FileConfiguration config;
+    private final FileConfiguration namesConfig;
+    private final FileConfiguration prefixesConfig;
+    private final FileConfiguration suffixesConfig;
     private final Random random = new Random();
 
     public ProceduralItemGenerator(Main plugin) {
-        File file = new File(plugin.getDataFolder(), "item_names.yml");
-        if (!file.exists()) {
+        File namesFile = new File(plugin.getDataFolder(), "item_names.yml");
+        if (!namesFile.exists()) {
             plugin.saveResource("item_names.yml", true);
         }
-        config = YamlConfiguration.loadConfiguration(file);
+        namesConfig = YamlConfiguration.loadConfiguration(namesFile);
+
+        File prefixesFile = new File(plugin.getDataFolder(), "prefixes.yml");
+        if (!prefixesFile.exists()) {
+            plugin.saveResource("prefixes.yml", true);
+        }
+        prefixesConfig = YamlConfiguration.loadConfiguration(prefixesFile);
+
+        File suffixesFile = new File(plugin.getDataFolder(), "suffixes.yml");
+        if (!suffixesFile.exists()) {
+            plugin.saveResource("suffixes.yml", true);
+        }
+        suffixesConfig = YamlConfiguration.loadConfiguration(suffixesFile);
     }
 
     /**
@@ -114,21 +128,25 @@ public class ProceduralItemGenerator {
     }
 
     private String buildName(String mobType, String base, ItemRarity rarity, String statKey) {
-        List<String> prefixes = config.getStringList("prefixes." + mobType.toLowerCase());
+        List<String> prefixes = prefixesConfig.getStringList(mobType.toLowerCase());
         if (prefixes.isEmpty()) {
-            prefixes = config.getStringList("prefixes.default");
+            prefixes = prefixesConfig.getStringList("default");
         }
         String prefix = prefixes.isEmpty() ? "" : prefixes.get(random.nextInt(prefixes.size()));
         String name = prefix.isEmpty() ? base : prefix + " " + base;
 
         if (rarity.ordinal() >= ItemRarity.RARE.ordinal()) {
-            List<String> suffixes = config.getStringList("suffixes." + statKey);
+            List<String> suffixes = suffixesConfig.getStringList(statKey);
             if (suffixes.isEmpty()) {
-                suffixes = config.getStringList("suffixes.default");
+                suffixes = suffixesConfig.getStringList("default");
             }
             if (!suffixes.isEmpty()) {
                 String suffix = suffixes.get(random.nextInt(suffixes.size()));
-                name += " of " + suffix;
+                if (suffix.startsWith("of")) {
+                    name += " " + suffix;
+                } else {
+                    name += " of " + suffix;
+                }
             }
         }
         return name;
@@ -156,8 +174,8 @@ public class ProceduralItemGenerator {
 
     private String pickBaseName(String clazz, boolean armor) {
         List<String> list = armor ?
-                config.getStringList("armor_types.general") :
-                config.getStringList("weapon_types." + clazz);
+                namesConfig.getStringList("armor_types.general") :
+                namesConfig.getStringList("weapon_types." + clazz);
         if (list.isEmpty()) {
             list.add(armor ? "Boots" : "Item");
         }

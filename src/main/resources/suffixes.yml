@@ -1,0 +1,58 @@
+default:
+  - Doom
+  - Death
+strength:
+  - of Fury
+  - of the Mountain
+  - of Brutality
+  - of Might
+  - of Titans
+  - of Iron
+  - of the Colossus
+  - of Power
+  - of Wrath
+  - of Giants
+agility:
+  - of the Wind
+  - of Haste
+  - of Quickness
+  - of the Fox
+  - of Momentum
+  - of Dash
+  - of the Gale
+  - of Zeal
+  - of Speed
+  - of Whispers
+dexterity:
+  - of Precision
+  - of the Serpent
+  - of Accuracy
+  - of Finesse
+  - of Trickery
+  - of the Shadow
+  - of Reflex
+  - of Balance
+  - of the Blade
+  - of Grace
+intelligence:
+  - of Wisdom
+  - of the Owl
+  - of Insight
+  - of the Arcane
+  - of Thought
+  - of Focus
+  - of Sorcery
+  - of Knowledge
+  - of the Mind
+  - of Clarity
+defense:
+  - of Fortitude
+  - of the Turtle
+  - of Endurance
+  - of the Wall
+  - of Bulwark
+  - of Stone
+  - of the Guardian
+  - of Steel
+  - of Aegis
+  - of Protection
