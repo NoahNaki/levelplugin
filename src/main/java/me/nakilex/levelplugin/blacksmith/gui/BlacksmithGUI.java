@@ -53,8 +53,8 @@ public class BlacksmithGUI implements Listener {
         Inventory gui = Bukkit.createInventory(player, GUI_SIZE, GUI_TITLE_UPGRADE);
         fillGuiWithFiller(gui);
         gui.setItem(8, createUpgradeInfoItem());
-        gui.setItem(11, getOraxenItem("arrow_left", ChatColor.GRAY + "Go to Repair"));
-        gui.setItem(15, getOraxenItem("arrow_right", ChatColor.GRAY + "Go to Reroll"));
+        gui.setItem(11, getOraxenItem("arrow_left", ChatColor.GRAY + "Go to Reroll"));
+        gui.setItem(15, getOraxenItem("arrow_right", ChatColor.GRAY + "Go to Repair"));
         gui.setItem(13, null);
         gui.setItem(22, createUpgradeButton(0, 0));
         openInventories.put(player.getUniqueId(), gui);
@@ -77,8 +77,8 @@ public class BlacksmithGUI implements Listener {
     public void openRerollGUI(Player player) {
         Inventory gui = Bukkit.createInventory(player, GUI_SIZE, GUI_TITLE_REROLL);
         fillGuiWithFiller(gui);
-        gui.setItem(9, getOraxenItem("arrow_left", ChatColor.GRAY + "Go to Upgrade"));
-        gui.setItem(17, getOraxenItem("arrow_right", ChatColor.GRAY + "Go to Repair"));
+        gui.setItem(9, getOraxenItem("arrow_left", ChatColor.GRAY + "Go to Repair"));
+        gui.setItem(17, getOraxenItem("arrow_right", ChatColor.GRAY + "Go to Upgrade"));
         gui.setItem(11, null); // item slot
         gui.setItem(13, null); // result
         gui.setItem(15, null); // placeholder
@@ -279,14 +279,29 @@ public class BlacksmithGUI implements Listener {
             ItemStack placeholder = title.equals(GUI_TITLE_REROLL) ? gui.getItem(15) : null;
             String newTitle;
             if (title.equals(GUI_TITLE_UPGRADE)) {
-                newTitle = (rawSlot == 11) ? GUI_TITLE_REPAIR : GUI_TITLE_REROLL;
-                if (rawSlot == 11) openRepairGUI(player); else openRerollGUI(player);
+                if (rawSlot == 11) { // left -> reroll
+                    newTitle = GUI_TITLE_REROLL;
+                    openRerollGUI(player);
+                } else {
+                    newTitle = GUI_TITLE_REPAIR;
+                    openRepairGUI(player);
+                }
             } else if (title.equals(GUI_TITLE_REPAIR)) {
-                newTitle = (rawSlot == 11) ? GUI_TITLE_UPGRADE : GUI_TITLE_REROLL;
-                if (rawSlot == 11) openUpgradeGUI(player); else openRerollGUI(player);
+                if (rawSlot == 11) { // left -> upgrade
+                    newTitle = GUI_TITLE_UPGRADE;
+                    openUpgradeGUI(player);
+                } else {
+                    newTitle = GUI_TITLE_REROLL;
+                    openRerollGUI(player);
+                }
             } else { // REROLL
-                newTitle = (rawSlot == 9) ? GUI_TITLE_UPGRADE : GUI_TITLE_REPAIR;
-                if (rawSlot == 9) openUpgradeGUI(player); else openRepairGUI(player);
+                if (rawSlot == 9) { // left -> repair
+                    newTitle = GUI_TITLE_REPAIR;
+                    openRepairGUI(player);
+                } else {
+                    newTitle = GUI_TITLE_UPGRADE;
+                    openUpgradeGUI(player);
+                }
             }
 
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
