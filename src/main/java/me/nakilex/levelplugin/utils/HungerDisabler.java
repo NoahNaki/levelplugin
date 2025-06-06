@@ -11,11 +11,8 @@ public class HungerDisabler implements Listener {
     @EventHandler
     public void onFoodLevelChange(FoodLevelChangeEvent event) {
         if (event.getEntity() instanceof Player) {
+            // Prevent vanilla hunger mechanics from changing the bar
             event.setCancelled(true);
-
-            Player player = (Player) event.getEntity();
-            player.setFoodLevel(20);
-            player.setSaturation(20.0f);
         }
     }
 

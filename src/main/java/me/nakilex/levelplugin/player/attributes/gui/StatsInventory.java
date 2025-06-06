@@ -76,8 +76,8 @@ public class StatsInventory {
         ));
 
         inv.setItem(15, createStatBook(
-            "Health", StatType.HP, ps.baseHealthStat, ps.bonusHealthStat, ps.skillPoints,
-            "Increases your maximum health.",
+            "Vitality", StatType.HP, ps.baseHealthStat, ps.bonusHealthStat, ps.skillPoints,
+            "Increases your maximum health and stamina.",
             new String[]{
                 "Each point increases max health by 2 HP.",
                 "Current HP bonus: " + ChatColor.YELLOW + ((ps.baseHealthStat + ps.bonusHealthStat) * 2) + " HP."

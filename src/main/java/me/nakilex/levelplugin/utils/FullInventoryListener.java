@@ -8,10 +8,15 @@ import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.player.PlayerAttemptPickupItemEvent;
 import org.bukkit.inventory.InventoryView;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 public class FullInventoryListener implements Listener {
 
     // Title of the salvage GUI, stripped of color codes
     private static final String SALVAGE_TITLE = "Salvage Items";
+    private final Map<UUID, Long> lastAlert = new HashMap<>();
 
     @EventHandler
     public void onEntityPickup(EntityPickupItemEvent event) {
@@ -56,6 +61,13 @@ public class FullInventoryListener implements Listener {
      * Sends a big red "Inventory full!" title to the player.
      */
     private void sendFullInventoryTitle(Player player) {
+        long now = System.currentTimeMillis();
+        UUID id = player.getUniqueId();
+        Long last = lastAlert.get(id);
+        if (last != null && now - last < 10_000) {
+            return;
+        }
+        lastAlert.put(id, now);
         String title    = ChatColor.RED + "Inventory full!";
         String subtitle = "";
         int fadeIn  = 10;  // ticks (0.5s)

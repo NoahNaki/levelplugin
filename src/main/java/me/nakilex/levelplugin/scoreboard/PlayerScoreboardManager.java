@@ -17,6 +17,7 @@ import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Score;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.ScoreboardManager;
+import org.bukkit.scoreboard.Team;
 
 import java.util.*;
 
@@ -29,6 +30,7 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
     private final LevelManager levelManager;
 
     private final Map<UUID, Scoreboard> boards = new HashMap<>();
+    private final String[] entries = new String[15];
 
     /**
      * Exposes the internal scoreboard instance for other managers.
@@ -82,6 +84,24 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         }
     }
 
+    private void setLine(Scoreboard board, Objective obj, int index, int score, String text) {
+        if (index < 0 || index >= entries.length) return;
+
+        String entry = entries[index];
+        if (entry == null) {
+            entry = ChatColor.values()[index].toString();
+            entries[index] = entry;
+        }
+
+        Team team = board.getTeam("line" + index);
+        if (team == null) {
+            team = board.registerNewTeam("line" + index);
+            team.addEntry(entry);
+        }
+        team.setPrefix(text);
+        obj.getScore(entry).setScore(score);
+    }
+
     public void updateBoard(Player player) {
         Scoreboard board = boards.get(player.getUniqueId());
         if (board == null) return;
@@ -90,14 +110,12 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         board.getEntries().forEach(board::resetScores);
 
         int line = 15;
+        int idx = 0;
         String coinStr = java.text.NumberFormat.getIntegerInstance().format(economyManager.getBalance(player));
-        Score coins = obj.getScore(ChatColor.YELLOW + "⛃ " + ChatColor.WHITE + "Coins: " + ChatColor.YELLOW + coinStr);
-        coins.setScore(0);
-        line--;
+        setLine(board, obj, idx++, line--, ChatColor.YELLOW + "⛃ " + ChatColor.WHITE + "Coins: " + ChatColor.YELLOW + coinStr);
+
         String gemStr = java.text.NumberFormat.getIntegerInstance().format(gemsManager.getTotalUnits(player));
-        Score gems = obj.getScore(ChatColor.LIGHT_PURPLE + "✦ " + ChatColor.WHITE + "Gems: " + ChatColor.LIGHT_PURPLE + gemStr);
-        gems.setScore(0);
-        line--;
+        setLine(board, obj, idx++, line--, ChatColor.LIGHT_PURPLE + "✦ " + ChatColor.WHITE + "Gems: " + ChatColor.LIGHT_PURPLE + gemStr);
 
         PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId());
         Quest quest = progress != null ? progress.getQuest() : null;
@@ -107,9 +125,7 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
             if (other != null) quest = other;
         }
         if (quest != null) {
-            Score qTitle = obj.getScore(ChatColor.GREEN + "Quest Progress:");
-            qTitle.setScore(0);
-            line--;
+            setLine(board, obj, idx++, line--, ChatColor.GREEN + "Quest Progress:");
             int progIndex = 0;
             int progValue = 0;
             if (progress != null && progress.getQuest().getId().equals(quest.getId())) {
@@ -121,30 +137,22 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
                 }
                 progValue = progress.getProgress(progIndex);
             }
-            Score qProg = obj.getScore(ChatColor.GRAY + "- " + progValue + "/" + quest.getObjectives().get(progIndex).getAmount());
-            qProg.setScore(0);
-            line--;
+            setLine(board, obj, idx++, line--, ChatColor.GRAY + "- " + progValue + "/" + quest.getObjectives().get(progIndex).getAmount());
         }
 
         Party party = partyManager.getParty(player.getUniqueId());
         if (party != null) {
-            Score partyTitle = obj.getScore(ChatColor.AQUA + "Party:");
-            partyTitle.setScore(0);
-            line--;
+            setLine(board, obj, idx++, line--, ChatColor.AQUA + "Party:");
             for (UUID memberId : party.getMembers()) {
                 Player member = Bukkit.getPlayer(memberId);
                 if (member != null && member.isOnline()) {
                     int lvl = levelManager.getLevel(member);
                     String hp = (int) member.getHealth() + "/" + (int) member.getMaxHealth();
-                    Score s = obj.getScore(ChatColor.GRAY + "[" + lvl + " " + ChatColor.WHITE + member.getName() + " " + ChatColor.GRAY + hp + " " + ChatColor.RED + "\u2764");
-                    s.setScore(0);
-                    line--;
+                    setLine(board, obj, idx++, line--, ChatColor.GRAY + "[" + lvl + " " + ChatColor.WHITE + member.getName() + " " + ChatColor.GRAY + hp + " " + ChatColor.RED + "\u2764");
                 } else {
                     String name = Bukkit.getOfflinePlayer(memberId).getName();
                     if (name == null) name = "Unknown";
-                    Score s = obj.getScore(ChatColor.GRAY + "- " + name);
-                    s.setScore(0);
-                    line--;
+                    setLine(board, obj, idx++, line--, ChatColor.GRAY + "- " + name);
                 }
                 if (line <= 1) break;
             }
