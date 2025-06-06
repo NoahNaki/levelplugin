@@ -8,6 +8,8 @@ import com.comphenix.protocol.events.ListenerPriority;
 import com.comphenix.protocol.wrappers.WrappedDataWatcher;
 import com.comphenix.protocol.wrappers.WrappedDataValue;
 import com.comphenix.protocol.wrappers.WrappedDataWatcher.Registry;
+import com.comphenix.protocol.wrappers.WrappedWatchableObject;
+import com.comphenix.protocol.reflect.StructureModifier;
 import me.nakilex.levelplugin.Main;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -56,23 +58,51 @@ public class PartyGlowManager implements Listener {
 
         if (!areInSameParty(viewer.getUniqueId(), target.getUniqueId())) return;
 
-        List<WrappedDataValue> values = new ArrayList<>(event.getPacket().getDataValueCollectionModifier().read(0));
+        try {
+            // ProtocolLib 5.x and above
+            StructureModifier<List<WrappedDataValue>> mod =
+                    (StructureModifier<List<WrappedDataValue>>) event.getPacket()
+                            .getClass()
+                            .getMethod("getDataValueCollectionModifier")
+                            .invoke(event.getPacket());
+            List<WrappedDataValue> values = new ArrayList<>(mod.read(0));
+            boolean found = false;
+            for (int i = 0; i < values.size(); i++) {
+                WrappedDataValue val = values.get(i);
+                if (val.getIndex() == 0 && val.getValue() instanceof Byte) {
+                    byte flags = (byte) val.getValue();
+                    flags |= 0x40; // glowing bit
+                    values.set(i, new WrappedDataValue(0, val.getSerializer(), flags));
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                WrappedDataWatcher.Serializer ser = Registry.get(Byte.class);
+                values.add(new WrappedDataValue(0, ser, (byte) 0x40));
+            }
+            mod.write(0, values);
+            return;
+        } catch (Exception ignore) {
+            // fall back to older API
+        }
+
+        List<WrappedWatchableObject> watchables = new ArrayList<>(event.getPacket().getWatchableCollectionModifier().read(0));
         boolean found = false;
-        for (int i = 0; i < values.size(); i++) {
-            WrappedDataValue val = values.get(i);
+        for (int i = 0; i < watchables.size(); i++) {
+            WrappedWatchableObject val = watchables.get(i);
             if (val.getIndex() == 0 && val.getValue() instanceof Byte) {
                 byte flags = (byte) val.getValue();
-                flags |= 0x40; // glowing bit
-                values.set(i, new WrappedDataValue(0, val.getSerializer(), flags));
+                flags |= 0x40;
+                watchables.set(i, new WrappedWatchableObject(0, flags));
                 found = true;
                 break;
             }
         }
         if (!found) {
-            WrappedDataWatcher.Serializer ser = Registry.get(Byte.class);
-            values.add(new WrappedDataValue(0, ser, (byte) 0x40));
+            watchables.add(new WrappedWatchableObject(0, (byte) 0x40));
         }
-        event.getPacket().getDataValueCollectionModifier().write(0, values);
+        event.getPacket().getWatchableCollectionModifier().write(0, watchables);
     }
 
     private boolean areInSameParty(UUID a, UUID b) {
