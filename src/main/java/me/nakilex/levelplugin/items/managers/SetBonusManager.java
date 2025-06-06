@@ -114,21 +114,21 @@ public class SetBonusManager {
         if (preBest != null && preBest.getValue() >= 2) {
             int pct = calcPct(preBest.getValue(), false);
             StatType st = prefixType.get(preBest.getKey());
-            addPercentBonus(player, total, st, pct);
+            addPercentBonus(player, total, st, pct, preBest.getValue());
         }
 
         Map.Entry<String,Integer> sufBest = maxEntry(suffixCount);
         if (sufBest != null && sufBest.getValue() >= 2) {
             int pct = calcPct(sufBest.getValue(), false);
             StatType st = suffixType.get(sufBest.getKey());
-            addPercentBonus(player, total, st, pct);
+            addPercentBonus(player, total, st, pct, sufBest.getValue());
         }
 
         Map.Entry<String,Integer> pairBest = maxEntry(pairCount);
         if (pairBest != null && pairBest.getValue() >= 2) {
             int pct = calcPct(pairBest.getValue(), true);
             StatType st = pairType.get(pairBest.getKey());
-            addPercentBonus(player, total, st, pct);
+            addPercentBonus(player, total, st, pct, pairBest.getValue());
         }
 
         if (!total.isZero()) {
@@ -151,7 +151,7 @@ public class SetBonusManager {
         }
     }
 
-    private void addPercentBonus(Player player, BonusStats total, StatType stat, int percent) {
+    private void addPercentBonus(Player player, BonusStats total, StatType stat, int percent, int pieces) {
         int current = StatsManager.getInstance().getStatValue(player, stat);
         int bonus = (int)Math.round(current * (percent / 100.0));
         switch (stat) {
@@ -162,7 +162,8 @@ public class SetBonusManager {
             case DEF: total.def += bonus; break;
             case HP:  total.hp  += bonus; break;
         }
-        total.percents.put(stat, percent);
+        total.percents.merge(stat, percent, Integer::sum);
+        total.counts.merge(stat, pieces, Math::max);
     }
 
     private void applyBonus(Player player, BonusStats b) {
@@ -175,14 +176,11 @@ public class SetBonusManager {
         ps.bonusHealthStat   += b.hp;
 
         if (!b.percents.isEmpty()) {
-            StringBuilder msg = new StringBuilder("§aSet bonus applied:");
             for (Map.Entry<StatType,Integer> e : b.percents.entrySet()) {
-                msg.append(" +").append(e.getValue()).append("% ")
-                   .append(e.getKey().name().toLowerCase());
+                int pieces = b.counts.getOrDefault(e.getKey(), 0);
+                String statName = e.getKey().name().toLowerCase();
+                player.sendMessage("§7[" + pieces + "/4] §6§lSET BONUS APPLIED §a+" + e.getValue() + "% " + statName);
             }
-            player.sendMessage(msg.toString());
-        } else {
-            player.sendMessage("§aSet bonus applied!");
         }
     }
 
@@ -195,14 +193,10 @@ public class SetBonusManager {
         ps.bonusDefenceStat  -= b.def;
         ps.bonusHealthStat   -= b.hp;
         if (!b.percents.isEmpty()) {
-            StringBuilder msg = new StringBuilder("§cSet bonus lost:");
             for (Map.Entry<StatType,Integer> e : b.percents.entrySet()) {
-                msg.append(" -").append(e.getValue()).append("% ")
-                   .append(e.getKey().name().toLowerCase());
+                String statName = e.getKey().name().toLowerCase();
+                player.sendMessage("§6§lSET BONUS REMOVED §c-" + e.getValue() + "% " + statName);
             }
-            player.sendMessage(msg.toString());
-        } else {
-            player.sendMessage("§cSet bonus lost.");
         }
     }
 
@@ -226,6 +220,7 @@ public class SetBonusManager {
     private static class BonusStats {
         int str, agi, intel, dex, def, hp;
         final Map<StatType,Integer> percents = new LinkedHashMap<>();
+        final Map<StatType,Integer> counts   = new HashMap<>();
 
         boolean isZero() {
             return str==0 && agi==0 && intel==0 && dex==0 && def==0 && hp==0;
