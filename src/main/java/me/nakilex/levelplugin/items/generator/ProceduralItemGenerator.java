@@ -108,8 +108,11 @@ public class ProceduralItemGenerator {
 
         String classReq = createArmor ? "ANY" : clazz;
 
+        // Assign a unique negative ID so each generated item can be tracked
+        int genId = ItemManager.getInstance().getNextGeneratedId();
+
         CustomItem item = new CustomItem(
-            -1,
+            genId,
             name,
             rarity,
             level,

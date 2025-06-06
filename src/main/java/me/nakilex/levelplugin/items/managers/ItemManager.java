@@ -33,6 +33,13 @@ public class ItemManager {
     private final Map<UUID, CustomItem> itemsMap     = new HashMap<>(); // Instances by UUID
     private final Map<Integer, UUID> holderMap = new HashMap<>();
 
+    /**
+     * Procedurally generated items all receive unique negative IDs. We keep a
+     * counter that starts at -1 and decrements for each generated item so the
+     * IDs never collide with the positive template IDs from items.yml.
+     */
+    private int nextGeneratedId = -1;
+
     private final ProceduralItemGenerator generator;
 
     private FileConfiguration itemsConfig;
@@ -183,6 +190,14 @@ public class ItemManager {
         );
         addInstance(inst);
         return inst;
+    }
+
+    /**
+     * Obtain the next unique ID for a procedurally generated item. IDs start at
+     * -1 and move downward to avoid colliding with positive template IDs.
+     */
+    public synchronized int getNextGeneratedId() {
+        return nextGeneratedId--;
     }
 
     /**
