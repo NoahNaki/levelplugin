@@ -46,12 +46,12 @@ public class RerollBrowser implements CommandExecutor, Listener {
         ItemStack filler = menuItem(Material.LIGHT_GRAY_STAINED_GLASS_PANE, " ");
         for (int i = 0; i < SIZE; i++) gui.setItem(i, filler);
 
-        gui.setItem(10, menuItem(Material.BORDURE_INDENTED_BANNER_PATTERN, ChatColor.GREEN + "STR Placeholder"));
-        gui.setItem(11, menuItem(Material.FLOWER_BANNER_PATTERN, ChatColor.GREEN + "INT Placeholder"));
-        gui.setItem(12, menuItem(Material.FLOW_BANNER_PATTERN, ChatColor.GREEN + "AGI Placeholder"));
-        gui.setItem(14, menuItem(Material.SKULL_BANNER_PATTERN, ChatColor.GREEN + "HEALTH Placeholder"));
-        gui.setItem(15, menuItem(Material.GUSTER_BANNER_PATTERN, ChatColor.GREEN + "DEX Placeholder"));
-        gui.setItem(16, menuItem(Material.GLOBE_BANNER_PATTERN, ChatColor.GREEN + "DEF Placeholder"));
+        gui.setItem(10, menuItem(Material.BORDURE_INDENTED_BANNER_PATTERN, ChatColor.GREEN + "Scroll of Might"));
+        gui.setItem(11, menuItem(Material.FLOWER_BANNER_PATTERN, ChatColor.AQUA + "Scroll of Wisdom"));
+        gui.setItem(12, menuItem(Material.FLOW_BANNER_PATTERN, ChatColor.LIGHT_PURPLE + "Scroll of Swiftness"));
+        gui.setItem(14, menuItem(Material.SKULL_BANNER_PATTERN, ChatColor.RED + "Scroll of Vitality"));
+        gui.setItem(15, menuItem(Material.GUSTER_BANNER_PATTERN, ChatColor.YELLOW + "Scroll of Precision"));
+        gui.setItem(16, menuItem(Material.GLOBE_BANNER_PATTERN, ChatColor.BLUE + "Scroll of Fortitude"));
 
         player.openInventory(gui);
     }
