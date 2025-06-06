@@ -176,10 +176,10 @@ public class SalvageListener implements Listener {
         if (totalGems > 0) gemsManager.addUnits(player, totalGems);
 
         if (totalCoins > 0 || totalGems > 0) {
-            StringBuilder msg = new StringBuilder(ChatColor.GREEN + "You received ");
-            if (totalCoins > 0) msg.append(totalCoins).append(" coins");
-            if (totalCoins > 0 && totalGems > 0) msg.append(" and ");
-            if (totalGems > 0) msg.append(totalGems).append(" gems");
+            StringBuilder msg = new StringBuilder(ChatColor.GOLD + "You received ");
+            if (totalCoins > 0) msg.append(ChatColor.YELLOW).append(totalCoins).append(" ⛃ " + ChatColor.GOLD + "coins");
+            if (totalCoins > 0 && totalGems > 0) msg.append(ChatColor.GOLD + " and ");
+            if (totalGems > 0) msg.append(ChatColor.LIGHT_PURPLE).append(totalGems).append(ChatColor.LIGHT_PURPLE + " ✦ "  + ChatColor.GOLD + "gems");
             msg.append("!");
             player.sendMessage(msg.toString());
         } else {
@@ -241,11 +241,14 @@ public class SalvageListener implements Listener {
         }
 
         if (coins > 0 || gems > 0) {
-            StringBuilder msg = new StringBuilder(ChatColor.GREEN + "You salvaged ");
-            if (coins > 0) msg.append(coins).append(" coins");
-            if (coins > 0 && gems > 0) msg.append(" and ");
-            if (gems > 0) msg.append(gems).append(" gems");
-            msg.append(".");
+            StringBuilder msg = new StringBuilder(ChatColor.GOLD + "You received ");
+            if (coins > 0)
+                msg.append(ChatColor.YELLOW).append(coins).append(" ⛃" + ChatColor.GOLD + " coins");
+            if (coins > 0 && gems > 0)
+                msg.append(ChatColor.GOLD + " and ");
+            if (gems > 0)
+                msg.append(ChatColor.LIGHT_PURPLE).append(gems).append(ChatColor.LIGHT_PURPLE + " ✦ "  + ChatColor.GOLD + "gems");
+            msg.append("!");
             player.sendMessage(msg.toString());
         } else {
             player.sendMessage(ChatColor.YELLOW + "No " + targetRarity.name().toLowerCase() + " items to salvage.");
