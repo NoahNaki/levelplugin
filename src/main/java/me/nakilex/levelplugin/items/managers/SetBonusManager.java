@@ -88,7 +88,9 @@ public class SetBonusManager {
         }
 
         if (oldBonus != null) {
-            removeBonus(player, oldBonus);
+            // Only show removal message when the bonus actually disappears
+            boolean showMsg = newBonus.isZero();
+            removeBonus(player, oldBonus, showMsg);
         }
 
         if (!newBonus.isZero()) {
@@ -203,13 +205,13 @@ public class SetBonusManager {
         if (!b.percents.isEmpty()) {
             for (Map.Entry<StatType,Integer> e : b.percents.entrySet()) {
                 int pieces = b.counts.getOrDefault(e.getKey(), 0);
-                String statName = e.getKey().name().toLowerCase();
+                String statName = getDisplayName(e.getKey());
                 player.sendMessage("§7[" + pieces + "/4] §6§lSET BONUS APPLIED §a+" + e.getValue() + "% " + statName);
             }
         }
     }
 
-    private void removeBonus(Player player, BonusStats b) {
+    private void removeBonus(Player player, BonusStats b, boolean showMsg) {
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
         ps.bonusStrength     -= b.str;
         ps.bonusAgility      -= b.agi;
@@ -217,9 +219,9 @@ public class SetBonusManager {
         ps.bonusDexterity    -= b.dex;
         ps.bonusDefenceStat  -= b.def;
         ps.bonusHealthStat   -= b.hp;
-        if (!b.percents.isEmpty()) {
+        if (showMsg && !b.percents.isEmpty()) {
             for (Map.Entry<StatType,Integer> e : b.percents.entrySet()) {
-                String statName = e.getKey().name().toLowerCase();
+                String statName = getDisplayName(e.getKey());
                 player.sendMessage("§6§lSET BONUS REMOVED §c-" + e.getValue() + "% " + statName);
             }
         }
@@ -240,6 +242,18 @@ public class SetBonusManager {
             if (name.endsWith(" " + s.replace("of ", ""))) return s;
         }
         return null;
+    }
+
+    private String getDisplayName(StatType type) {
+        switch (type) {
+            case STR:  return "Strength";
+            case AGI:  return "Agility";
+            case INT:  return "Intelligence";
+            case DEX:  return "Dexterity";
+            case DEF:  return "Defense";
+            case HP:   return "Health";
+            default:   return type.name();
+        }
     }
 
     private static class BonusStats {
