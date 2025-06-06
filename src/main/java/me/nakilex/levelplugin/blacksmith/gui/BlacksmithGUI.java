@@ -233,6 +233,15 @@ public class BlacksmithGUI implements Listener {
             return;
         }
 
+        if (title.equals(GUI_TITLE_REROLL) && rawSlot == 13) {
+            if (event.getCursor() == null || event.getCursor().getType().isAir()) {
+                event.setCancelled(false); // allow taking result item
+            } else {
+                event.setCancelled(true); // prevent placing items here
+            }
+            return;
+        }
+
 // Allow placing into slot 13 only manually on upgrade/repair
         if (event.getRawSlot() == 13 && !title.equals(GUI_TITLE_REROLL)) {
             event.setCancelled(false);
@@ -373,12 +382,14 @@ public class BlacksmithGUI implements Listener {
                     player.sendMessage("§cInvalid placeholder item!");
                     return;
                 }
-                rerollManager.rerollStat(player, item, ci, stat);
+                int diff = rerollManager.rerollStat(player, item, ci, stat);
                 gui.setItem(13, item.clone());
                 gui.setItem(11, null);
                 placeholder.setAmount(placeholder.getAmount() - 1);
                 if (placeholder.getAmount() <= 0) gui.setItem(15, null);
-                player.sendMessage("§aStat rerolled!");
+                player.sendMessage("§aStat rerolled! " + statDisplayName(stat) +
+                        (diff >= 0 ? " increased by " + ChatColor.GREEN + "+" + diff
+                                        : " decreased by " + ChatColor.RED + diff));
             }
         }
 
@@ -475,6 +486,17 @@ public class BlacksmithGUI implements Listener {
             case GUSTER_BANNER_PATTERN -> StatType.DEX;
             case GLOBE_BANNER_PATTERN -> StatType.DEF;
             default -> null;
+        };
+    }
+
+    private String statDisplayName(StatType stat) {
+        return switch (stat) {
+            case STR -> "Strength";
+            case INT -> "Intelligence";
+            case AGI -> "Agility";
+            case DEX -> "Dexterity";
+            case HP  -> "Health";
+            case DEF -> "Defence";
         };
     }
 
