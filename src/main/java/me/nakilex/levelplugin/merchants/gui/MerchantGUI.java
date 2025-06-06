@@ -286,6 +286,11 @@ public class MerchantGUI implements Listener {
                 return;
             }
 
+            if (player.getInventory().firstEmpty() == -1) {
+                player.sendTitle(ChatColor.RED + "Inventory full!", "", 10, 70, 20);
+                return;
+            }
+
             // Deduct coins
             try {
                 economyManager.deductCoins(player, coinCost);

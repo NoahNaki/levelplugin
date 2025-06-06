@@ -1,11 +1,17 @@
 package me.nakilex.levelplugin.potions.managers;
 
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.potions.data.PotionInstance;
 import me.nakilex.levelplugin.potions.data.PotionTemplate;
 import me.nakilex.levelplugin.potions.utils.PotionCooldownManager;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.util.*;
 
@@ -60,5 +66,26 @@ public class PotionManager {
 
     public void startCooldown(UUID uuid, int seconds) {
         cooldownManager.startCooldown(uuid, seconds);
+    }
+
+    /**
+     * Retrieve the PotionInstance associated with an ItemStack.
+     * Returns null if the stack is not one of our custom potions.
+     */
+    public PotionInstance getInstanceFromItem(ItemStack stack) {
+        if (stack == null || !stack.hasItemMeta()) return null;
+
+        ItemMeta meta = stack.getItemMeta();
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        NamespacedKey key = new NamespacedKey(Main.getInstance(), "potion_uuid");
+
+        if (!pdc.has(key, PersistentDataType.STRING)) return null;
+
+        try {
+            UUID uuid = UUID.fromString(pdc.get(key, PersistentDataType.STRING));
+            return instances.get(uuid);
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
     }
 }

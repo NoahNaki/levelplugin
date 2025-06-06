@@ -46,6 +46,11 @@ public class StatsManager {
         statsMap.putIfAbsent(uuid, new PlayerStats());
     }
 
+    /** Completely resets a player's stats to defaults. */
+    public void resetPlayer(UUID uuid) {
+        statsMap.put(uuid, new PlayerStats());
+    }
+
     public PlayerStats getPlayerStats(UUID uuid) {
         return statsMap.computeIfAbsent(uuid, k -> new PlayerStats());
     }

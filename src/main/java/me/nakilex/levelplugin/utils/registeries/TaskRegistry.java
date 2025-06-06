@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.horse.managers.HorseManager;
 import me.nakilex.levelplugin.player.attributes.managers.ActionBarTask;
 import me.nakilex.levelplugin.player.attributes.managers.HealthRegenTask;
 import me.nakilex.levelplugin.player.attributes.managers.ManaRegenTask;
+import me.nakilex.levelplugin.player.attributes.managers.StaminaTask;
 import me.nakilex.levelplugin.horse.utils.HorseSaverTask;
 import me.nakilex.levelplugin.spells.managers.ManaCostTracker;
 import me.nakilex.levelplugin.scoreboard.ScoreboardTask;
@@ -21,6 +22,7 @@ public class TaskRegistry {
         new ActionBarTask().runTaskTimer(plugin, 1L, 1L);
         new HealthRegenTask().runTaskTimer(plugin, 20L, 20L);
         new ManaRegenTask().runTaskTimer(plugin, 20L, 20L);
+        new StaminaTask().runTaskTimer(plugin, 2L, 2L);
         new HorseSaverTask(horseManager, horseConfigManager).runTaskTimer(plugin, 20L, 20L);
 
         PlayerScoreboardManager sbManager = plugin.getScoreboardManager();

@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.salvage.managers;
 
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.data.ItemRarity;
+import me.nakilex.levelplugin.potions.data.PotionInstance;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -62,6 +63,14 @@ public class SalvageManager {
         return multiplier > 0
             ? Math.max(1, rawGems / 10)
             : 0;
+    }
+
+    /**
+     * Coins returned when salvaging potions.
+     * Currently 1 coin per remaining charge.
+     */
+    public int getPotionSellPrice(PotionInstance potion) {
+        return potion.getCharges();
     }
 
 }

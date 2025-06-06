@@ -176,6 +176,10 @@ public class IdentifyRunesGUI implements Listener {
                 case HOTBAR_SWAP:
                 case HOTBAR_MOVE_AND_READD:
                 case MOVE_TO_OTHER_INVENTORY:  // covers shift-click from within GUI
+                    if (clicked == top) {
+                        // allow taking items out without validation
+                        break;
+                    }
                 case CLONE_STACK:               // creative
                     ItemStack toPlace;
                     if (act == InventoryAction.SWAP_WITH_CURSOR || act == InventoryAction.HOTBAR_SWAP) {

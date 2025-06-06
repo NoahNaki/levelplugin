@@ -6,6 +6,8 @@ import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.salvage.managers.SalvageManager;
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.potions.data.PotionInstance;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -38,6 +40,15 @@ public class SalvageListener implements Listener {
         return slot >= 0 && slot < 54 && !(slot < 9 || slot >= 45 || slot % 9 == 0 || slot % 9 == 8);
     }
 
+    private boolean isSalvageable(ItemStack stack) {
+        if (stack == null || stack.getType() == Material.AIR) return false;
+        CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(stack);
+        if (cItem != null) return true;
+        return Main.getInstance()
+            .getPotionManager()
+            .getInstanceFromItem(stack) != null;
+    }
+
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         if (!isMerchant(event.getView())) return;
@@ -47,8 +58,7 @@ public class SalvageListener implements Listener {
         Player player = (Player) event.getWhoClicked();
 
         if (event.isShiftClick() && event.getCurrentItem() != null) {
-            CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(event.getCurrentItem());
-            if (cItem == null) {
+            if (!isSalvageable(event.getCurrentItem())) {
                 event.setCancelled(true);
             }
             return;
@@ -65,9 +75,19 @@ public class SalvageListener implements Listener {
                 player.closeInventory();
                 return;
             }
-            if (slot >= 46 && slot <= 52) {
+            if (slot >= 47 && slot <= 51) {
                 event.setCancelled(true);
                 handleQuickSellClick(player, slot);
+                return;
+            }
+            if (slot == 52) {
+                event.setCancelled(true);
+                depositAllItems(player, topInv);
+                return;
+            }
+            if (slot == 46) {
+                event.setCancelled(true);
+                returnAllItems(player, topInv);
                 return;
             }
             if (!isInputSlot(slot)) {
@@ -77,8 +97,7 @@ public class SalvageListener implements Listener {
 
             ItemStack cursor = event.getCursor();
             if (cursor != null && cursor.getType() != Material.AIR) {
-                CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(cursor);
-                if (cItem == null) {
+                if (!isSalvageable(cursor)) {
                     event.setCancelled(true);
                 }
             }
@@ -93,8 +112,7 @@ public class SalvageListener implements Listener {
             if (isInputSlot(slot)) {
                 ItemStack dragged = event.getOldCursor();
                 if (dragged != null && dragged.getType() != Material.AIR) {
-                    CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(dragged);
-                    if (cItem == null) {
+                    if (!isSalvageable(dragged)) {
                         event.setCancelled(true);
                         return;
                     }
@@ -145,6 +163,12 @@ public class SalvageListener implements Listener {
                 totalCoins += SalvageManager.getInstance().getSellPrice(cItem);
                 totalGems += SalvageManager.getInstance().getGemReward(cItem);
                 inv.setItem(i, null);
+            } else {
+                PotionInstance pInst = Main.getInstance().getPotionManager().getInstanceFromItem(item);
+                if (pInst != null) {
+                    totalCoins += SalvageManager.getInstance().getPotionSellPrice(pInst);
+                    inv.setItem(i, null);
+                }
             }
         }
 
@@ -226,5 +250,60 @@ public class SalvageListener implements Listener {
         } else {
             player.sendMessage(ChatColor.YELLOW + "No " + targetRarity.name().toLowerCase() + " items to salvage.");
         }
+    }
+
+    /** Moves all salvageable items from the player's inventory into the GUI. */
+    private void depositAllItems(Player player, Inventory gui) {
+        PlayerInventory inv = player.getInventory();
+        int handSlot = inv.getHeldItemSlot();
+
+        for (int i = 0; i < inv.getSize(); i++) {
+            // skip armor slots
+            if (i >= 36 && i <= 39) continue;
+            // skip item in hand
+            if (i == handSlot) continue;
+
+            ItemStack item = inv.getItem(i);
+            if (item == null || item.getType() == Material.AIR) continue;
+            if (!isSalvageable(item)) continue;
+
+            int dest = firstEmptyInputSlot(gui);
+            if (dest == -1) break; // no space left
+
+            inv.setItem(i, null);
+            gui.setItem(dest, item);
+        }
+
+        ItemStack off = inv.getItemInOffHand();
+        if (off != null && off.getType() != Material.AIR && isSalvageable(off)) {
+            int dest = firstEmptyInputSlot(gui);
+            if (dest != -1) {
+                inv.setItemInOffHand(null);
+                gui.setItem(dest, off);
+            }
+        }
+    }
+
+    /** Returns all items in the GUI back to the player's inventory. */
+    private void returnAllItems(Player player, Inventory gui) {
+        for (int i = 0; i < 54; i++) {
+            if (!isInputSlot(i)) continue;
+            ItemStack item = gui.getItem(i);
+            if (item == null || item.getType() == Material.AIR) continue;
+
+            HashMap<Integer, ItemStack> overflow = player.getInventory().addItem(item);
+            overflow.values().forEach(drop -> player.getWorld().dropItemNaturally(player.getLocation(), drop));
+            gui.setItem(i, null);
+        }
+    }
+
+    /** Finds the first empty input slot in the GUI. */
+    private int firstEmptyInputSlot(Inventory gui) {
+        for (int i = 0; i < 54; i++) {
+            if (!isInputSlot(i)) continue;
+            ItemStack item = gui.getItem(i);
+            if (item == null || item.getType() == Material.AIR) return i;
+        }
+        return -1;
     }
 }
