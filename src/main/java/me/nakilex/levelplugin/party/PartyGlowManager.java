@@ -2,8 +2,10 @@ package me.nakilex.levelplugin.party;
 
 import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.ProtocolManager;
+import com.comphenix.protocol.PacketType;
 import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketEvent;
+import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.events.ListenerPriority;
 import com.comphenix.protocol.wrappers.WrappedDataWatcher;
 import com.comphenix.protocol.wrappers.WrappedDataValue;
@@ -137,15 +139,48 @@ public class PartyGlowManager implements Listener {
             team.setOption(Team.Option.COLLISION_RULE, Team.OptionStatus.NEVER);
         }
         team.getEntries().forEach(team::removeEntry);
-        if (!enabled.contains(viewer.getUniqueId())) return;
+
         Party party = partyManager.getParty(viewer.getUniqueId());
-        if (party == null) return;
+        if (party == null) {
+            return;
+        }
+
+        boolean glow = enabled.contains(viewer.getUniqueId());
         for (UUID memberId : party.getMembers()) {
             if (memberId.equals(viewer.getUniqueId())) continue;
             Player member = Bukkit.getPlayer(memberId);
             String entry = member != null ? member.getName() : Bukkit.getOfflinePlayer(memberId).getName();
             if (entry == null) entry = memberId.toString();
             team.addEntry(entry);
+            if (member != null && member.isOnline()) {
+                sendGlow(viewer, member, glow);
+            }
+        }
+    }
+
+    private void sendGlow(Player viewer, Player target, boolean glowing) {
+        PacketContainer packet = protocol.createPacket(PacketType.Play.Server.ENTITY_METADATA);
+        packet.getIntegers().write(0, target.getEntityId());
+
+        try {
+            StructureModifier<List<WrappedDataValue>> mod =
+                    (StructureModifier<List<WrappedDataValue>>) packet.getClass()
+                            .getMethod("getDataValueCollectionModifier")
+                            .invoke(packet);
+            WrappedDataWatcher.Serializer ser = Registry.get(Byte.class);
+            byte flags = (byte) (glowing ? 0x40 : 0);
+            mod.write(0, Collections.singletonList(new WrappedDataValue(0, ser, flags)));
+        } catch (Exception ex) {
+            WrappedDataWatcher watcher = new WrappedDataWatcher();
+            WrappedDataWatcher.Serializer ser = WrappedDataWatcher.Registry.get(Byte.class);
+            watcher.setObject(new WrappedDataWatcher.WrappedDataWatcherObject(0, ser), (byte) (glowing ? 0x40 : 0));
+            packet.getWatchableCollectionModifier().write(0, watcher.getWatchableObjects());
+        }
+
+        try {
+            protocol.sendServerPacket(viewer, packet);
+        } catch (Exception e) {
+            // ignore
         }
     }
 
