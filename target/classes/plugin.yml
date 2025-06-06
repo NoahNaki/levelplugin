@@ -65,6 +65,9 @@ commands:
     description: Manage your party
     usage: /party <subcommand>
     aliases: [p]
+  partyglow:
+    description: Toggle party member glow
+    usage: /partyglow
   lootchest:
     description: Manage loot chests
     usage: /<command> <reload|list|clear>
@@ -121,6 +124,9 @@ commands:
   runebrowser:
     description: Browse all rune templates.
     usage: /runebrowser
+  rerollbrowser:
+    description: Browse reroll placeholder items.
+    usage: /rerollbrowser
 
   auctionhouse:
     description: Open the auction house, sell items or place bids.

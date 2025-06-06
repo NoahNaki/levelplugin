@@ -19,7 +19,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 public class RerollBrowser implements CommandExecutor, Listener {
 
     private static final int SIZE = 27;
-    private static final String TITLE = ChatColor.GRAY + "Reroll Items";
+    private static final String TITLE = "Reroll Items";
 
     private final JavaPlugin plugin;
 
