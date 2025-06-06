@@ -56,6 +56,13 @@ public class SettingsGUI implements Listener {
             "/toggle dropdetailschat"
         ));
 
+        // Party Glow toggle
+        gui.setItem(14, createSettingItem(
+            playerSettings.isPartyGlowEnabled(),
+            "§bParty Glow",
+            "/partyglow"
+        ));
+
         // Filler border
         ItemStack filler = createItem(Material.GRAY_STAINED_GLASS_PANE, " ", " ");
         for (int i = 0; i < gui.getSize(); i++) {
@@ -132,6 +139,11 @@ public class SettingsGUI implements Listener {
             Bukkit.dispatchCommand(player, "toggle dropdetailschat");
             updateSettingItem(event.getInventory(), 13,
                 settings.isDropDetailsChatEnabled(), "§bDrop Details Chat", "/toggle dropdetailschat");
+        } else if (slot == 14) {
+            settings.togglePartyGlow();
+            Bukkit.dispatchCommand(player, "partyglow");
+            updateSettingItem(event.getInventory(), 14,
+                settings.isPartyGlowEnabled(), "§bParty Glow", "/partyglow");
         }
     }
 }

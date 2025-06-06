@@ -140,6 +140,7 @@ public class ListenerRegistry {
         pm.registerEvents(new QuestGUIListener(questManager), plugin);
         pm.registerEvents(new NPCDialogMoveListener(dialogManager), plugin);
         pm.registerEvents(plugin.getScoreboardManager(), plugin);
+        pm.registerEvents(plugin.getPartyGlowManager(), plugin);
 
 
 

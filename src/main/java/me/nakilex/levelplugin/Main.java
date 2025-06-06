@@ -24,6 +24,7 @@ import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.mob.managers.DmgNumberToggleManager;
 import me.nakilex.levelplugin.mob.managers.MobManager;
 import me.nakilex.levelplugin.party.PartyManager;
+import me.nakilex.levelplugin.party.PartyGlowManager;
 import me.nakilex.levelplugin.placeholders.MyCustomExpansion;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
@@ -82,6 +83,7 @@ public class Main extends JavaPlugin {
     private HorseManager horseManager;
     private EffectManager effectManager;
     private PartyManager partyManager;
+    private PartyGlowManager partyGlowManager;
     public static final String PREFIX = "";
     private static Main plugin;
     private DealMaker dealMaker;
@@ -245,6 +247,7 @@ public class Main extends JavaPlugin {
         dialogManager = new me.nakilex.levelplugin.npc.dialog.NPCDialogManager();
         scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(
                 this, economyManager, gemsManager, partyManager, questManager);
+        partyGlowManager = new PartyGlowManager(this, partyManager, scoreboardManager::getBoard);
         beaconManager = new me.nakilex.levelplugin.quests.managers.BeaconManager();
         cooldownManager.setLootChestManager(lootChestManager);
         equipGui = new EquipRunesGUI(this, runesManager, identifyRunesGUI);
@@ -495,6 +498,10 @@ public class Main extends JavaPlugin {
 
     public me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager getScoreboardManager() {
         return scoreboardManager;
+    }
+
+    public PartyGlowManager getPartyGlowManager() {
+        return partyGlowManager;
     }
 
     private void createCustomConfig() {
