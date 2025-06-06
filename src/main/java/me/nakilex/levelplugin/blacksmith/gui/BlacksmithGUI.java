@@ -53,8 +53,8 @@ public class BlacksmithGUI implements Listener {
         Inventory gui = Bukkit.createInventory(player, GUI_SIZE, GUI_TITLE_UPGRADE);
         fillGuiWithFiller(gui);
         gui.setItem(8, createUpgradeInfoItem());
-        gui.setItem(11, getOraxenItem("arrow_left", ChatColor.GRAY + "Go to Reroll"));
-        gui.setItem(15, getOraxenItem("arrow_right", ChatColor.GRAY + "Go to Repair"));
+        gui.setItem(9, getOraxenItem("arrow_left", ChatColor.GRAY + "Go to Reroll"));
+        gui.setItem(17, getOraxenItem("arrow_right", ChatColor.GRAY + "Go to Repair"));
         gui.setItem(13, null);
         gui.setItem(22, createUpgradeButton(0, 0));
         openInventories.put(player.getUniqueId(), gui);
@@ -65,8 +65,8 @@ public class BlacksmithGUI implements Listener {
         Inventory gui = Bukkit.createInventory(player, GUI_SIZE, GUI_TITLE_REPAIR);
         fillGuiWithFiller(gui);
         gui.setItem(8, createRepairInfoItem());
-        gui.setItem(11, getOraxenItem("arrow_left", ChatColor.GRAY + "Go to Upgrade"));
-        gui.setItem(15, getOraxenItem("arrow_right", ChatColor.GRAY + "Go to Reroll"));
+        gui.setItem(9, getOraxenItem("arrow_left", ChatColor.GRAY + "Go to Upgrade"));
+        gui.setItem(17, getOraxenItem("arrow_right", ChatColor.GRAY + "Go to Reroll"));
         gui.setItem(0, createRepairAllButton(calculateTotalRepairCost(player)));
         gui.setItem(13, null);
         gui.setItem(22, createRepairButton(0));
@@ -273,13 +273,12 @@ public class BlacksmithGUI implements Listener {
         event.setCancelled(true);
 
 
-        if ((title.equals(GUI_TITLE_REROLL) && (rawSlot == 9 || rawSlot == 17)) ||
-            (!title.equals(GUI_TITLE_REROLL) && (rawSlot == 11 || rawSlot == 15))) {
+        if (rawSlot == 9 || rawSlot == 17) {
             ItemStack carriedItem = title.equals(GUI_TITLE_REROLL) ? gui.getItem(11) : gui.getItem(13);
             ItemStack placeholder = title.equals(GUI_TITLE_REROLL) ? gui.getItem(15) : null;
             String newTitle;
             if (title.equals(GUI_TITLE_UPGRADE)) {
-                if (rawSlot == 11) { // left -> reroll
+                if (rawSlot == 9) { // left -> reroll
                     newTitle = GUI_TITLE_REROLL;
                     openRerollGUI(player);
                 } else {
@@ -287,7 +286,7 @@ public class BlacksmithGUI implements Listener {
                     openRepairGUI(player);
                 }
             } else if (title.equals(GUI_TITLE_REPAIR)) {
-                if (rawSlot == 11) { // left -> upgrade
+                if (rawSlot == 9) { // left -> upgrade
                     newTitle = GUI_TITLE_UPGRADE;
                     openUpgradeGUI(player);
                 } else {
@@ -327,7 +326,7 @@ public class BlacksmithGUI implements Listener {
         }
 
         if (rawSlot == 22) {
-            ItemStack item = gui.getItem(13);
+            ItemStack item = title.equals(GUI_TITLE_REROLL) ? gui.getItem(11) : gui.getItem(13);
             if (item == null || item.getType().isAir()) return;
             CustomItem ci = itemManager.getCustomItemFromItemStack(item);
             if (ci == null) return;
@@ -376,6 +375,7 @@ public class BlacksmithGUI implements Listener {
                 }
                 rerollManager.rerollStat(player, item, ci, stat);
                 gui.setItem(13, item.clone());
+                gui.setItem(11, null);
                 placeholder.setAmount(placeholder.getAmount() - 1);
                 if (placeholder.getAmount() <= 0) gui.setItem(15, null);
                 player.sendMessage("§aStat rerolled!");
@@ -383,7 +383,7 @@ public class BlacksmithGUI implements Listener {
         }
 
         Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-            ItemStack current = gui.getItem(13);
+            ItemStack current = title.equals(GUI_TITLE_REROLL) ? gui.getItem(11) : gui.getItem(13);
             if (current == null || current.getType().isAir()) {
                 gui.setItem(22, title.equals(GUI_TITLE_UPGRADE) ? createUpgradeButton(0, 0) : createRepairButton(0));
                 return;
