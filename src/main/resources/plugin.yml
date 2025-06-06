@@ -124,6 +124,9 @@ commands:
   runebrowser:
     description: Browse all rune templates.
     usage: /runebrowser
+  rerollbrowser:
+    description: Browse reroll placeholder items.
+    usage: /rerollbrowser
 
   auctionhouse:
     description: Open the auction house, sell items or place bids.

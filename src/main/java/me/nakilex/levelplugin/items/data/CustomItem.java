@@ -196,6 +196,14 @@ public class CustomItem {
         this.bonusDex   -= dex;
     }
 
+    // Setters used for stat rerolls
+    public void setBaseHp(int value)    { this.baseHp = value; }
+    public void setBaseDef(int value)   { this.baseDef = value; }
+    public void setBaseStr(int value)   { this.baseStr = value; }
+    public void setBaseAgi(int value)   { this.baseAgi = value; }
+    public void setBaseIntel(int value) { this.baseIntel = value; }
+    public void setBaseDex(int value)   { this.baseDex = value; }
+
     /**
      * Increases upgradeLevel by 1 (up to 5) and then scales base stats
      * by (1 + 0.1×upgradeLevel + rarityBonus).
