@@ -46,6 +46,7 @@ import me.nakilex.levelplugin.auctionhouse.AuctionCommand;
 import me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI;
 import me.nakilex.levelplugin.auctionhouse.AuctionHouseManager;
 import me.nakilex.levelplugin.party.PartyCommands;
+import me.nakilex.levelplugin.party.PartyGlowCommand;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.horse.managers.HorseManager;
 import me.nakilex.levelplugin.party.PartyManager;
@@ -94,6 +95,7 @@ public class CommandRegistry {
         plugin.getCommand("blacksmith").setExecutor(new BlacksmithCommand(blacksmithGUI));
         plugin.getCommand("horse").setExecutor(new HorseCommand(horseManager, horseGUI));
         plugin.getCommand("party").setExecutor(new PartyCommands(partyManager));
+        plugin.getCommand("partyglow").setExecutor(new PartyGlowCommand(plugin.getPartyGlowManager()));
         plugin.getCommand("addpotion").setExecutor(new AddPotionCommand(potionManager, plugin));
         plugin.getCommand("lootchest").setExecutor(new LootChestCommand(configManager, lootChestManager));
         plugin.getCommand("trade").setExecutor(new TradeCommand());

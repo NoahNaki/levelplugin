@@ -30,6 +30,13 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
 
     private final Map<UUID, Scoreboard> boards = new HashMap<>();
 
+    /**
+     * Exposes the internal scoreboard instance for other managers.
+     */
+    public Scoreboard getBoard(Player player) {
+        return boards.get(player.getUniqueId());
+    }
+
     @org.bukkit.event.EventHandler
     public void onJoin(org.bukkit.event.player.PlayerJoinEvent event) {
         createBoard(event.getPlayer());
@@ -135,5 +142,8 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
                 if (line <= 1) break;
             }
         }
+
+        // Apply party glow scoreboard entries if feature is enabled
+        plugin.getPartyGlowManager().applyGlowScoreboard(player);
     }
 }
