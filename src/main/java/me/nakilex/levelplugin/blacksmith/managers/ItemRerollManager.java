@@ -49,6 +49,21 @@ public class ItemRerollManager {
         return BASE_COST * rarityMultiplier;
     }
 
+    /**
+     * Check if the item actually has the given stat available to reroll.
+     */
+    public boolean hasStat(CustomItem item, StatType stat) {
+        if (item == null) return false;
+        return switch (stat) {
+            case STR -> item.getStrRange().getMax() > 0;
+            case INT -> item.getIntelRange().getMax() > 0;
+            case AGI -> item.getAgiRange().getMax() > 0;
+            case DEX -> item.getDexRange().getMax() > 0;
+            case HP  -> item.getHpRange().getMax() > 0;
+            case DEF -> item.getDefRange().getMax() > 0;
+        };
+    }
+
     private int getValue(CustomItem item, StatType stat) {
         return switch (stat) {
             case STR -> item.getStr();

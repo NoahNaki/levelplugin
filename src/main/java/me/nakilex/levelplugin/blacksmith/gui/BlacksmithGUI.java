@@ -77,6 +77,7 @@ public class BlacksmithGUI implements Listener {
     public void openRerollGUI(Player player) {
         Inventory gui = Bukkit.createInventory(player, GUI_SIZE, GUI_TITLE_REROLL);
         fillGuiWithFiller(gui);
+        gui.setItem(8, createRerollInfoItem());
         gui.setItem(9, getOraxenItem("arrow_left", ChatColor.GRAY + "Go to Repair"));
         gui.setItem(17, getOraxenItem("arrow_right", ChatColor.GRAY + "Go to Upgrade"));
         gui.setItem(11, null); // item slot
@@ -148,6 +149,21 @@ public class BlacksmithGUI implements Listener {
                 ChatColor.GRAY + "Place a damaged item in the center.",
                 ChatColor.GRAY + "Use " + ChatColor.GREEN + "Repair Item" + ChatColor.GRAY + " or",
                 ChatColor.GREEN + "Repair All Items" + ChatColor.GRAY + " to fix it."
+            ));
+            info.setItemMeta(meta);
+        }
+        return info;
+    }
+
+    private ItemStack createRerollInfoItem() {
+        ItemStack info = getOraxenItem("info", ChatColor.YELLOW + "Information");
+        ItemMeta meta = info.getItemMeta();
+        if (meta != null) {
+            meta.setLore(Arrays.asList(
+                ChatColor.GRAY + "",
+                ChatColor.GRAY + "Use the left slot for your item and",
+                ChatColor.GRAY + "the right slot for a stat placeholder.",
+                ChatColor.GRAY + "Press the check mark to reroll that stat."
             ));
             info.setItemMeta(meta);
         }
@@ -242,6 +258,10 @@ public class BlacksmithGUI implements Listener {
 // Allow placing item/placeholder in reroll slots
         if (title.equals(GUI_TITLE_REROLL) && (rawSlot == 11 || rawSlot == 15)) {
             event.setCancelled(false);
+            Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+                Inventory updatedGui = openInventories.get(player.getUniqueId());
+                if (updatedGui != null) updateActionButton(player, updatedGui, title);
+            }, 1L);
             return;
         }
 
@@ -273,6 +293,10 @@ public class BlacksmithGUI implements Listener {
             event.getAction() == InventoryAction.HOTBAR_SWAP) {
             if (title.equals(GUI_TITLE_REROLL) && (event.getSlot() == 11 || event.getSlot() == 15)) {
                 event.setCancelled(false);
+                Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+                    Inventory updatedGui = openInventories.get(player.getUniqueId());
+                    if (updatedGui != null) updateActionButton(player, updatedGui, title);
+                }, 1L);
                 return;
             } else if (!title.equals(GUI_TITLE_REROLL) && event.getSlot() == 13) {
                 event.setCancelled(false);
@@ -392,6 +416,11 @@ public class BlacksmithGUI implements Listener {
                 StatType stat = materialToStat(placeholder.getType());
                 if (stat == null) {
                     player.sendMessage("§cInvalid placeholder item!");
+                    return;
+                }
+
+                if (!rerollManager.hasStat(ci, stat)) {
+                    player.sendMessage("§cThis item does not have " + statDisplayName(stat) + "!");
                     return;
                 }
 
