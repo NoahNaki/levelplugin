@@ -6,7 +6,11 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import com.ticxo.modelengine.api.ModelEngineAPI;
+import com.ticxo.modelengine.api.entity.ModelEntity;
+import com.ticxo.modelengine.api.model.ActiveModel;
 
 import java.io.File;
 import java.io.IOException;
@@ -16,6 +20,7 @@ public class FastTravelManager {
     private final Main plugin;
     private final Map<String, FastTravelPoint> points = new HashMap<>();
     private final Map<UUID, Set<String>> unlocked = new HashMap<>();
+    private final Map<String, ModelEntity> waystones = new HashMap<>();
     private File file;
     private FileConfiguration config;
 
@@ -45,6 +50,7 @@ public class FastTravelManager {
                 Location loc = new Location(plugin.getServer().getWorld(world), x, y, z);
                 FastTravelPoint pt = new FastTravelPoint(key, ChatColor.valueOf(colorName), desc, loc, radius, town);
                 points.put(key.toLowerCase(), pt);
+                if (town) spawnWaystone(pt);
             }
         }
 
@@ -77,7 +83,9 @@ public class FastTravelManager {
     }
 
     public void addLocation(String name, ChatColor color, String desc, Location loc, double radius, boolean town) {
-        points.put(name.toLowerCase(), new FastTravelPoint(name, color, desc, loc, radius, town));
+        FastTravelPoint pt = new FastTravelPoint(name, color, desc, loc, radius, town);
+        points.put(name.toLowerCase(), pt);
+        if (town) spawnWaystone(pt);
         save();
     }
 
@@ -85,12 +93,17 @@ public class FastTravelManager {
         FastTravelPoint pt = points.get(name.toLowerCase());
         if (pt != null) {
             pt.setLocation(loc);
+            if (pt.isTown()) {
+                removeWaystone(pt.getName());
+                spawnWaystone(pt);
+            }
             save();
         }
     }
 
     public void removeLocation(String name) {
-        points.remove(name.toLowerCase());
+        FastTravelPoint pt = points.remove(name.toLowerCase());
+        if (pt != null && pt.isTown()) removeWaystone(pt.getName());
         save();
     }
 
@@ -109,5 +122,26 @@ public class FastTravelManager {
 
     public Set<String> getUnlocked(Player player) {
         return unlocked.getOrDefault(player.getUniqueId(), Collections.emptySet());
+    }
+
+    private void spawnWaystone(FastTravelPoint pt) {
+        ModelEntity entity = ModelEngineAPI.createModelEntity(pt.getLocation());
+        ActiveModel model = ModelEngineAPI.createActiveModel("base_beacon_cyan");
+        entity.addModel(model, true);
+        waystones.put(pt.getName().toLowerCase(), entity);
+    }
+
+    private void removeWaystone(String name) {
+        ModelEntity ent = waystones.remove(name.toLowerCase());
+        if (ent != null) {
+            ModelEngineAPI.destroyModelEntity(ent);
+        }
+    }
+
+    public boolean isWaystoneEntity(Entity entity) {
+        for (ModelEntity me : waystones.values()) {
+            if (me.getBase().equals(entity)) return true;
+        }
+        return false;
     }
 }
