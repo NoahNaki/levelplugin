@@ -84,16 +84,20 @@ public class ArmorListener implements Listener {
 
         // If still not cancelled, physically equip
         if (!equipEvent.isCancelled()) {
-            // 1) Get the old item (the one currently equipped)
+            // 1) Grab whatever is currently in the armor slot
             ItemStack oldArmor = getArmorSlotItem(player, type);
 
-            // 2) Equip the new item from hand
+            // 2) Move the item from the player's hand into that slot
             setArmorSlotItem(player, type, inHand);
 
-            // 3) Put the old item into the player's hand
-            player.getInventory().setItemInMainHand(oldArmor);
+            // 3) Place the previous armor (or air) into the hand
+            if (oldArmor == null || oldArmor.getType() == Material.AIR) {
+                player.getInventory().setItemInMainHand(new ItemStack(Material.AIR));
+            } else {
+                player.getInventory().setItemInMainHand(oldArmor);
+            }
 
-            // Force an inventory update
+            // Force an inventory update to prevent ghost items
             player.updateInventory();
         }
     }

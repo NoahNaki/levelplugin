@@ -73,6 +73,15 @@ public class ArmorStatsListener implements Listener {
                 1L);
 
         player.updateInventory();
+
+        // Refresh tooltips one tick later so item moves are finished
+        org.bukkit.Bukkit.getScheduler().runTaskLater(
+                me.nakilex.levelplugin.Main.getInstance(),
+                () -> {
+                    if (oldItem != null) ItemUtil.updateCustomItemTooltip(oldItem, player);
+                    if (newItem != null) ItemUtil.updateCustomItemTooltip(newItem, player);
+                },
+                1L);
     }
 
 

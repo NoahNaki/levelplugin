@@ -154,6 +154,15 @@ public class WeaponStatsListener implements Listener {
         //
         stats.recalcDerivedStats(player);
         player.updateInventory();
+
+        // Ensure tooltips reflect the latest stats after the swap
+        org.bukkit.Bukkit.getScheduler().runTaskLater(
+                me.nakilex.levelplugin.Main.getInstance(),
+                () -> {
+                    if (oldWeap != null) ItemUtil.updateCustomItemTooltip(oldWeap, player);
+                    if (newWeap != null) ItemUtil.updateCustomItemTooltip(newWeap, player);
+                },
+                1L);
     }
 
 
