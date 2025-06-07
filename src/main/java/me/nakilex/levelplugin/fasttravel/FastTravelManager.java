@@ -37,6 +37,8 @@ public class FastTravelManager {
         }
         config = YamlConfiguration.loadConfiguration(file);
 
+        debugAvailableModels();
+
         if (config.isConfigurationSection("locations")) {
             for (String key : config.getConfigurationSection("locations").getKeys(false)) {
                 String path = "locations." + key;
@@ -132,8 +134,12 @@ public class FastTravelManager {
             as.setGravity(false);
         });
         ModeledEntity entity = ModelEngineAPI.createModeledEntity(stand);
-        ActiveModel model = ModelEngineAPI.createActiveModel("base_beacon_cyan");
-        entity.addModel(model, true);
+        try {
+            ActiveModel model = ModelEngineAPI.createActiveModel("base_beacon_cyan");
+            entity.addModel(model, true);
+        } catch (Exception ex) {
+            plugin.getLogger().warning("Failed to create ModelEngine model 'base_beacon_cyan': " + ex.getMessage());
+        }
         waystones.put(pt.getName().toLowerCase(), entity);
     }
 
@@ -149,5 +155,17 @@ public class FastTravelManager {
             if (me.getBase().equals(entity)) return true;
         }
         return false;
+    }
+
+    /**
+     * Logs all registered ModelEngine model IDs to help with debugging.
+     */
+    private void debugAvailableModels() {
+        try {
+            Set<String> ids = ModelEngineAPI.getModelRegistry().keySet();
+            plugin.getLogger().info("Available ModelEngine models: " + ids);
+        } catch (Exception ex) {
+            plugin.getLogger().warning("Unable to list ModelEngine models: " + ex.getMessage());
+        }
     }
 }
