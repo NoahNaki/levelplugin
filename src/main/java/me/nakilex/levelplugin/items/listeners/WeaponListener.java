@@ -49,12 +49,11 @@ public class WeaponListener implements Listener {
             return;
         }
 
-        // Skip if either item is recognized as armor
-        if ((oldItem != null && ArmorType.matchType(oldItem) != null) ||
-            (newItem != null && ArmorType.matchType(newItem) != null)) {
-            Bukkit.getLogger().info("  Skipping event because one of the items is recognized as armor.");
-            return;
-        }
+        // Previously this handler ignored hotbar changes when either slot held
+        // armor to avoid conflicts with ArmorListener. However, this prevented
+        // weapon stats from being removed when switching from a weapon to an
+        // armor item in the hotbar.  We now allow the event to continue and
+        // let WeaponStatsListener decide whether anything needs to be done.
 
         // Declare these variables so they can be used later.
         WeaponType oldWeapon = WeaponType.matchType(oldItem);

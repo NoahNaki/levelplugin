@@ -56,11 +56,18 @@ public class EnchantManager {
     /** Apply a random prefix to the item, replacing any existing one. */
     public boolean enchant(Player player, ItemStack stack, CustomItem item) {
         if (item == null || stack == null) return false;
+        // Strip any existing prefixes before applying a new one. In some cases
+        // multiple prefixes may have been applied by older versions, so we
+        // keep removing until none remain.
         String oldPrefix = getCurrentPrefix(item.getBaseName());
-        if (oldPrefix != null) {
+        while (oldPrefix != null) {
             StatType st = prefixMap.get(oldPrefix);
-            if (st != null) applyBonus(item, st, -20);
+            if (st != null) {
+                // remove the old bonus before stripping the text
+                applyBonus(item, st, -20);
+            }
             item.setBaseName(item.getBaseName().substring(oldPrefix.length()).trim());
+            oldPrefix = getCurrentPrefix(item.getBaseName());
         }
         String prefix = prefixList.get(random.nextInt(prefixList.size()));
         StatType stat = prefixMap.get(prefix);
