@@ -479,26 +479,27 @@ public class QuestManager {
         QuestReward reward = quest.getReward();
         if (reward != null) {
             if (reward.getXp() > 0) {
-                me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§a- §7" + reward.getXp() + " XP");
+                player.sendMessage("§a- §7" + reward.getXp() + " XP");
             }
             if (reward.getCoins() > 0) {
-                me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§a- §7" + reward.getCoins() + " Coins");
+                player.sendMessage("§a- §7" + reward.getCoins() + " Coins");
             }
             if (reward.getGems() > 0) {
-                me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§a- §7" + reward.getGems() + " Gems");
+                player.sendMessage("§a- §7" + reward.getGems() + " Gems");
             }
             for (int id : reward.getItemIds()) {
                 me.nakilex.levelplugin.items.data.CustomItem tpl = plugin.getItemManager().getTemplateById(id);
                 String name = tpl != null ? tpl.getBaseName() : ("Item " + id);
-                me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§a- §7" + name);
+                player.sendMessage("§a- §7" + name);
             }
             for (String runeId : reward.getRuneIds()) {
                 me.nakilex.levelplugin.runes.model.Rune rune = plugin.getRunesManager().getRuneById(runeId);
                 String name = rune != null ? rune.getDisplayName() : runeId;
-                me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§a- §7" + name);
+                player.sendMessage("§a- §7" + name);
             }
         }
         me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§a§l-", 45);
+        player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
     }
 
     /**
@@ -507,7 +508,7 @@ public class QuestManager {
     public String describeObjective(QuestObjective obj) {
         switch (obj.getType()) {
             case KILL:
-                return "Kill " + obj.getTarget();
+                return "Kill " + beautifyName(obj.getTarget());
             case COLLECT:
                 return "Collect " + obj.getTarget();
             case INTERACT:
@@ -528,7 +529,7 @@ public class QuestManager {
             case ESCORT:
                 return "Escort " + obj.getTarget();
             case TALK:
-                return "Talk to " + obj.getTarget();
+                return "Talk to " + resolveNpcName(obj.getTarget());
             case EXPLORE:
                 return "Explore " + obj.getTarget();
             case SELECT_CLASS:
@@ -536,6 +537,38 @@ public class QuestManager {
             default:
                 return obj.getTarget();
         }
+    }
+
+    private String beautifyName(String raw) {
+        String name = raw;
+        try {
+            org.bukkit.entity.EntityType type = org.bukkit.entity.EntityType.valueOf(raw.toUpperCase());
+            String key = type.getKey().getKey();
+            name = key.replace('_', ' ');
+        } catch (IllegalArgumentException ignored) {}
+        String[] parts = name.toLowerCase().split(" ");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < parts.length; i++) {
+            if (parts[i].isEmpty()) continue;
+            sb.append(Character.toUpperCase(parts[i].charAt(0))).append(parts[i].substring(1));
+            if (i < parts.length - 1) sb.append(' ');
+        }
+        return sb.toString();
+    }
+
+    private String resolveNpcName(String raw) {
+        String idStr = raw;
+        if (raw.toLowerCase().startsWith("npc")) {
+            idStr = raw.substring(3);
+        }
+        try {
+            int id = Integer.parseInt(idStr);
+            net.citizensnpcs.api.npc.NPC npc = net.citizensnpcs.api.CitizensAPI.getNPCRegistry().getById(id);
+            if (npc != null) {
+                return npc.getName();
+            }
+        } catch (NumberFormatException ignored) {}
+        return raw;
     }
 
     public Set<String> getQuestIds() {
