@@ -1,5 +1,7 @@
 package me.nakilex.levelplugin.fasttravel.gui;
 
+import io.th0rgal.oraxen.api.OraxenItems;
+import io.th0rgal.oraxen.items.ItemBuilder;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.fasttravel.FastTravelManager;
 import me.nakilex.levelplugin.fasttravel.data.FastTravelPoint;
@@ -14,13 +16,25 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class FastTravelGUI implements Listener {
+    public static final String TITLE = ChatColor.DARK_AQUA + "Fast Travel";
+    private static final int SIZE = 54;
+    private static final int[] SLOTS = {
+            10,11,12,13,14,15,16,
+            19,20,21,22,23,24,25,
+            28,29,30,31,32,33,34,
+            37,38,39,40,41,42,43
+    };
+    private static final int ITEMS_PER_PAGE = SLOTS.length;
+    private static final int PREV_PAGE = 45;
+    private static final int NEXT_PAGE = 53;
+
     private final FastTravelManager manager;
     private final EconomyManager economy;
-    private final Map<Player, Inventory> open = new HashMap<>();
+    private final Map<UUID, Integer> pageMap = new HashMap<>();
 
     public FastTravelGUI(FastTravelManager manager, EconomyManager economy) {
         this.manager = manager;
@@ -28,40 +42,85 @@ public class FastTravelGUI implements Listener {
     }
 
     public void open(Player player) {
-        int size = 9 * Math.max(1, (int) Math.ceil(manager.getPoints().size() / 9.0));
-        Inventory gui = Bukkit.createInventory(null, size, "Fast Travel");
-        for (FastTravelPoint pt : manager.getPoints()) {
+        int page = pageMap.getOrDefault(player.getUniqueId(), 0);
+        open(player, page);
+    }
+
+    private void open(Player player, int page) {
+        pageMap.put(player.getUniqueId(), page);
+        Inventory gui = Bukkit.createInventory(null, SIZE, TITLE);
+        ItemStack filler = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+        ItemMeta meta = filler.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(" ");
+            filler.setItemMeta(meta);
+        }
+        for (int i = 0; i < SIZE; i++) {
+            if (i < 9 || i >= 45 || i % 9 == 0 || i % 9 == 8) gui.setItem(i, filler);
+        }
+
+        List<FastTravelPoint> list = manager.getPoints().stream()
+                .filter(FastTravelPoint::isTown)
+                .sorted(Comparator.comparing(FastTravelPoint::getName, String.CASE_INSENSITIVE_ORDER))
+                .collect(Collectors.toList());
+
+        int start = page * ITEMS_PER_PAGE;
+        int slot = 0;
+        for (int i = start; i < list.size() && slot < ITEMS_PER_PAGE; i++) {
+            FastTravelPoint pt = list.get(i);
             boolean unlocked = manager.isUnlocked(player, pt.getName());
             ItemStack item = new ItemStack(unlocked ? Material.LODESTONE : Material.BARRIER);
-            ItemMeta meta = item.getItemMeta();
-            if (meta != null) {
-                meta.setDisplayName(pt.getColor() + pt.getName());
+            ItemMeta im = item.getItemMeta();
+            if (im != null) {
+                im.setDisplayName(pt.getColor() + pt.getName());
                 if (unlocked) {
                     int cost = (int) player.getLocation().distance(pt.getLocation());
-                    meta.setLore(java.util.List.of(ChatColor.GRAY + pt.getDescription(), ChatColor.YELLOW + "Cost: " + cost + " coins"));
+                    im.setLore(List.of(ChatColor.GRAY + pt.getDescription(), ChatColor.YELLOW + "Cost: " + cost + " coins"));
                 } else {
-                    meta.setLore(java.util.List.of(ChatColor.DARK_GRAY + "Locked"));
+                    im.setLore(List.of(ChatColor.DARK_GRAY + "Locked"));
                 }
-                item.setItemMeta(meta);
+                im.setLocalizedName(pt.getName());
+                item.setItemMeta(im);
             }
-            gui.addItem(item);
+            gui.setItem(SLOTS[slot++], item);
         }
-        open.put(player, gui);
+
+        if (page > 0) gui.setItem(PREV_PAGE, getOraxenItem("arrow_left", ChatColor.GREEN + "Previous"));
+        if (list.size() > (page + 1) * ITEMS_PER_PAGE) gui.setItem(NEXT_PAGE, getOraxenItem("arrow_right", ChatColor.GREEN + "Next"));
+
         player.openInventory(gui);
     }
 
     @EventHandler
     public void onClick(InventoryClickEvent event) {
-        Player player = (Player) event.getWhoClicked();
-        Inventory inv = open.get(player);
-        if (inv == null || !inv.equals(event.getInventory())) return;
+        if (!event.getView().getTitle().equals(TITLE)) return;
         event.setCancelled(true);
-        int slot = event.getRawSlot();
-        if (slot < 0 || slot >= inv.getSize()) return;
-        ItemStack clicked = inv.getItem(slot);
-        if (clicked == null || clicked.getType() == Material.BARRIER) return;
+        if (!(event.getWhoClicked() instanceof Player player)) return;
 
-        FastTravelPoint target = (FastTravelPoint) manager.getPoints().toArray()[slot];
+        int rawSlot = event.getRawSlot();
+        if (rawSlot == PREV_PAGE) {
+            int page = Math.max(0, pageMap.getOrDefault(player.getUniqueId(), 0) - 1);
+            open(player, page);
+            return;
+        }
+        if (rawSlot == NEXT_PAGE) {
+            int page = pageMap.getOrDefault(player.getUniqueId(), 0) + 1;
+            open(player, page);
+            return;
+        }
+        int index = -1;
+        for (int i = 0; i < SLOTS.length; i++) {
+            if (SLOTS[i] == rawSlot) { index = i; break; }
+        }
+        if (index == -1) return;
+        List<FastTravelPoint> list = manager.getPoints().stream()
+                .filter(FastTravelPoint::isTown)
+                .sorted(Comparator.comparing(FastTravelPoint::getName, String.CASE_INSENSITIVE_ORDER))
+                .collect(Collectors.toList());
+        int page = pageMap.getOrDefault(player.getUniqueId(), 0);
+        int globalIndex = page * ITEMS_PER_PAGE + index;
+        if (globalIndex >= list.size()) return;
+        FastTravelPoint target = list.get(globalIndex);
         if (!manager.isUnlocked(player, target.getName())) return;
         int cost = (int) player.getLocation().distance(target.getLocation());
         if (economy.getBalance(player) < cost) {
@@ -72,5 +131,16 @@ public class FastTravelGUI implements Listener {
         player.teleport(target.getLocation());
         player.sendMessage(ChatColor.GREEN + "Fast traveled to " + target.getName() + " for " + cost + " coins.");
         player.closeInventory();
+    }
+
+    private ItemStack getOraxenItem(String id, String name) {
+        ItemBuilder builder = OraxenItems.getItemById(id);
+        ItemStack item = builder == null ? new ItemStack(Material.BARRIER) : builder.build();
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(name);
+            item.setItemMeta(meta);
+        }
+        return item;
     }
 }

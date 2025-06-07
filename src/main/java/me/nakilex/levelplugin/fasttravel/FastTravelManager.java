@@ -41,8 +41,9 @@ public class FastTravelManager {
                 String colorName = config.getString(path + ".color", "WHITE");
                 String desc = config.getString(path + ".desc", "");
                 double radius = config.getDouble(path + ".radius", 10);
+                boolean town = config.getBoolean(path + ".town", false);
                 Location loc = new Location(plugin.getServer().getWorld(world), x, y, z);
-                FastTravelPoint pt = new FastTravelPoint(key, ChatColor.valueOf(colorName), desc, loc, radius);
+                FastTravelPoint pt = new FastTravelPoint(key, ChatColor.valueOf(colorName), desc, loc, radius, town);
                 points.put(key.toLowerCase(), pt);
             }
         }
@@ -67,6 +68,7 @@ public class FastTravelManager {
             config.set(path + ".color", pt.getColor().name());
             config.set(path + ".desc", pt.getDescription());
             config.set(path + ".radius", pt.getRadius());
+            config.set(path + ".town", pt.isTown());
         }
         for (Map.Entry<UUID, Set<String>> e : unlocked.entrySet()) {
             config.set("players." + e.getKey(), new ArrayList<>(e.getValue()));
@@ -74,8 +76,8 @@ public class FastTravelManager {
         try { config.save(file); } catch (IOException e) { e.printStackTrace(); }
     }
 
-    public void addLocation(String name, ChatColor color, String desc, Location loc, double radius) {
-        points.put(name.toLowerCase(), new FastTravelPoint(name, color, desc, loc, radius));
+    public void addLocation(String name, ChatColor color, String desc, Location loc, double radius, boolean town) {
+        points.put(name.toLowerCase(), new FastTravelPoint(name, color, desc, loc, radius, town));
         save();
     }
 
