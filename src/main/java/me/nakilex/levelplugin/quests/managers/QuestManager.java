@@ -474,28 +474,28 @@ public class QuestManager {
         me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§6§lQuest Complete!");
         me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§e" + quest.getName());
         me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§a§l-", 45);
-        me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§aRewards:");
+        me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§aRewards:");
 
         QuestReward reward = quest.getReward();
         if (reward != null) {
             if (reward.getXp() > 0) {
-                player.sendMessage("§a- §7" + reward.getXp() + " XP");
+                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + reward.getXp() + " XP");
             }
             if (reward.getCoins() > 0) {
-                player.sendMessage("§a- §7" + reward.getCoins() + " Coins");
+                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + reward.getCoins() + " Coins");
             }
             if (reward.getGems() > 0) {
-                player.sendMessage("§a- §7" + reward.getGems() + " Gems");
+                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + reward.getGems() + " Gems");
             }
             for (int id : reward.getItemIds()) {
                 me.nakilex.levelplugin.items.data.CustomItem tpl = plugin.getItemManager().getTemplateById(id);
                 String name = tpl != null ? tpl.getBaseName() : ("Item " + id);
-                player.sendMessage("§a- §7" + name);
+                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + name);
             }
             for (String runeId : reward.getRuneIds()) {
                 me.nakilex.levelplugin.runes.model.Rune rune = plugin.getRunesManager().getRuneById(runeId);
                 String name = rune != null ? rune.getDisplayName() : runeId;
-                player.sendMessage("§a- §7" + name);
+                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + name);
             }
         }
         me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§a§l-", 45);

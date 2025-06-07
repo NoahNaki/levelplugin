@@ -32,6 +32,34 @@ public class QuestGUIListener implements Listener {
         ItemMeta meta = clicked.getItemMeta();
         if (meta == null) return;
         String id = meta.getLocalizedName();
+        String name = meta.getDisplayName();
+        if (name != null) {
+            String stripped = ChatColor.stripColor(name);
+            if (stripped.equalsIgnoreCase("Previous")) {
+                int page = QuestGUI.pageMap.getOrDefault(player.getUniqueId(), 0);
+                QuestGUI.openQuestGUI(player, questManager, Math.max(0, page - 1));
+                return;
+            }
+            if (stripped.equalsIgnoreCase("Next")) {
+                int page = QuestGUI.pageMap.getOrDefault(player.getUniqueId(), 0);
+                QuestGUI.openQuestGUI(player, questManager, page + 1);
+                return;
+            }
+            if (stripped.startsWith("Filter")) {
+                int mode = QuestGUI.filterMap.getOrDefault(player.getUniqueId(), 0);
+                mode = (mode + 1) % 4;
+                QuestGUI.filterMap.put(player.getUniqueId(), mode);
+                QuestGUI.openQuestGUI(player, questManager, QuestGUI.pageMap.getOrDefault(player.getUniqueId(),0));
+                return;
+            }
+            if (stripped.startsWith("Sort")) {
+                int mode = QuestGUI.sortMap.getOrDefault(player.getUniqueId(), 0);
+                mode = (mode + 1) % 2;
+                QuestGUI.sortMap.put(player.getUniqueId(), mode);
+                QuestGUI.openQuestGUI(player, questManager, QuestGUI.pageMap.getOrDefault(player.getUniqueId(),0));
+                return;
+            }
+        }
         if (id == null || id.isEmpty()) return;
 
         QuestState state = questManager.getQuestState(player, questManager.getQuest(id));
