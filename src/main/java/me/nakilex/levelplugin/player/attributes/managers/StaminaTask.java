@@ -10,8 +10,12 @@ import org.bukkit.scheduler.BukkitRunnable;
  */
 public class StaminaTask extends BukkitRunnable {
     private static final double DRAIN_RATE = 1.0;   // per run while sprinting
-    // 10 stamina per second (10%) regardless of Vitality
-    private static final double REGEN_RATE = 1.0;   // per run while not sprinting
+
+    // Regeneration percentages per second
+    private static final double WALKING_REGEN_PCT  = 0.10; // walking
+    private static final double STANDING_REGEN_PCT = 0.15; // standing still
+
+    private final java.util.Map<java.util.UUID, org.bukkit.Location> lastLocations = new java.util.HashMap<>();
 
     @Override
     public void run() {
@@ -29,6 +33,15 @@ public class StaminaTask extends BukkitRunnable {
                 continue;
             }
 
+            org.bukkit.Location last = lastLocations.get(player.getUniqueId());
+            org.bukkit.Location now  = player.getLocation();
+
+            boolean standing = false;
+            if (last != null && last.getWorld().equals(now.getWorld())) {
+                standing = last.distanceSquared(now) < 0.003; // barely moved
+            }
+            lastLocations.put(player.getUniqueId(), now);
+
             if (player.isSprinting()) {
                 current -= DRAIN_RATE;
                 if (current <= 0) {
@@ -36,7 +49,9 @@ public class StaminaTask extends BukkitRunnable {
                     player.setSprinting(false);
                 }
             } else {
-                current += REGEN_RATE;
+                double pct = standing ? STANDING_REGEN_PCT : WALKING_REGEN_PCT;
+                double perRun = (max * pct) / 10.0; // task runs 10x per sec
+                current += perRun;
             }
 
             if (current > max) current = max;

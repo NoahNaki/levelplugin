@@ -382,9 +382,9 @@ public class QuestManager {
                             + " objective " + i + " -> " + progress.getProgress(i) + "/" + obj.getAmount());
                 }
                 shareProgress(player, progress, i, amount);
-                player.sendMessage("§e[Quest] " + obj.getTarget() + ": " + progress.getProgress(i) + "/" + obj.getAmount());
+                player.sendMessage("§e[Quest] " + describeObjective(obj) + ": "
+                        + progress.getProgress(i) + "/" + obj.getAmount());
                 if (progress.isComplete()) {
-                    player.sendMessage("§bQuest complete: " + quest.getName());
                     if (debug) {
                         plugin.getLogger().info("[QuestDebug] " + player.getName() + " completed " + quest.getId());
                     }
@@ -393,6 +393,7 @@ public class QuestManager {
                     if (quest.getId().equals(trackedQuests.get(uuid))) {
                         trackedQuests.remove(uuid);
                     }
+                    sendCompletionMessage(player, quest);
                     giveRewards(player, quest);
                 }
                 break;
@@ -414,14 +415,15 @@ public class QuestManager {
                 }
                 Player p = Bukkit.getPlayer(memberId);
                 if (p != null) {
-                    p.sendMessage("§e[Party Quest] " + obj.getTarget() + ": " + other.getProgress(objectiveIndex) + "/" + obj.getAmount());
+                    p.sendMessage("§e[Party Quest] " + describeObjective(obj) + ": "
+                            + other.getProgress(objectiveIndex) + "/" + obj.getAmount());
                     if (other.isComplete()) {
-                        p.sendMessage("§bQuest complete: " + other.getQuest().getName());
                         if (debug) {
                             plugin.getLogger().info("[QuestDebug] Party member " + p.getName() + " completed " + other.getQuest().getId());
                         }
                         activeQuests.remove(memberId);
                         completedQuests.computeIfAbsent(memberId, k -> new HashSet<>()).add(other.getQuest().getId());
+                        sendCompletionMessage(p, other.getQuest());
                         giveRewards(p, other.getQuest());
                     }
                 }
@@ -462,6 +464,112 @@ public class QuestManager {
                 }
             }
         }
+    }
+
+    /**
+     * Display a styled quest completion message to the player.
+     */
+    private void sendCompletionMessage(Player player, Quest quest) {
+        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "", 45);
+        me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§6§lQuest Complete!");
+        me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§e" + quest.getName());
+        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "", 45);
+        me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§aRewards:");
+
+        QuestReward reward = quest.getReward();
+        if (reward != null) {
+            if (reward.getXp() > 0) {
+                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + reward.getXp() + " §aXP");
+            }
+            if (reward.getCoins() > 0) {
+                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + reward.getCoins() + " §e⛃");
+            }
+            if (reward.getGems() > 0) {
+                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + reward.getGems() + " §d✦");
+            }
+            for (int id : reward.getItemIds()) {
+                me.nakilex.levelplugin.items.data.CustomItem tpl = plugin.getItemManager().getTemplateById(id);
+                String name = tpl != null ? tpl.getBaseName() : ("Item " + id);
+                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + name);
+            }
+            for (String runeId : reward.getRuneIds()) {
+                me.nakilex.levelplugin.runes.model.Rune rune = plugin.getRunesManager().getRuneById(runeId);
+                String name = rune != null ? rune.getDisplayName() : runeId;
+                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + name);
+                me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "", 45);
+
+            }
+        }
+        player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
+    }
+
+    /**
+     * Provide a short description of a quest objective.
+     */
+    public String describeObjective(QuestObjective obj) {
+        switch (obj.getType()) {
+            case KILL:
+                return "Kill " + beautifyName(obj.getTarget());
+            case COLLECT:
+                return "Collect " + obj.getTarget();
+            case INTERACT:
+                return "Interact " + obj.getTarget();
+            case BUY:
+                if ("class_weapon".equalsIgnoreCase(obj.getTarget())) {
+                    return "Buy class weapon";
+                }
+                return "Buy " + obj.getTarget();
+            case UPGRADE:
+                return "Upgrade " + obj.getTarget();
+            case CAST:
+                return "Cast " + obj.getTarget();
+            case CRAFT:
+                return "Craft " + obj.getTarget();
+            case DUEL:
+                return "Win a duel";
+            case ESCORT:
+                return "Escort " + obj.getTarget();
+            case TALK:
+                return "Talk to " + resolveNpcName(obj.getTarget());
+            case EXPLORE:
+                return "Explore " + obj.getTarget();
+            case SELECT_CLASS:
+                return "Select a class";
+            default:
+                return obj.getTarget();
+        }
+    }
+
+    private String beautifyName(String raw) {
+        String name = raw;
+        try {
+            org.bukkit.entity.EntityType type = org.bukkit.entity.EntityType.valueOf(raw.toUpperCase());
+            String key = type.getKey().getKey();
+            name = key.replace('_', ' ');
+        } catch (IllegalArgumentException ignored) {}
+        String[] parts = name.toLowerCase().split(" ");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < parts.length; i++) {
+            if (parts[i].isEmpty()) continue;
+            sb.append(Character.toUpperCase(parts[i].charAt(0))).append(parts[i].substring(1));
+            if (i < parts.length - 1) sb.append(' ');
+        }
+        return sb.toString();
+    }
+
+    private String resolveNpcName(String raw) {
+        String idStr = raw;
+        if (raw.toLowerCase().startsWith("npc")) {
+            idStr = raw.substring(3);
+        }
+        try {
+            int id = Integer.parseInt(idStr);
+            net.citizensnpcs.api.npc.NPC npc = net.citizensnpcs.api.CitizensAPI.getNPCRegistry().getById(id);
+            if (npc != null) {
+                return npc.getName();
+            }
+        } catch (NumberFormatException ignored) {}
+        return raw;
     }
 
     public Set<String> getQuestIds() {

@@ -51,4 +51,12 @@ public class ChatFormatter {
         player.sendMessage(divider.toString());
     }
 
+    /**
+     * Send a line of chat with a small indentation.
+     */
+    public static void sendIndentedMessage(Player player, String message) {
+        if (message == null) return;
+        player.sendMessage("        " + message);
+    }
+
 }

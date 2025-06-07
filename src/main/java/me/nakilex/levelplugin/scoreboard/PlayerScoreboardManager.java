@@ -9,6 +9,7 @@ import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.quests.data.QuestObjective;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -125,7 +126,9 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
             if (other != null) quest = other;
         }
         if (quest != null) {
-            setLine(board, obj, idx++, line--, ChatColor.GREEN + "Quest Progress:");
+            setLine(board, obj, idx++, line--,
+                    ChatColor.GREEN + "Quest: " + ChatColor.WHITE + quest.getName());
+            setLine(board, obj, idx++, line--, ChatColor.GREEN + "Progress:");
             int progIndex = 0;
             int progValue = 0;
             if (progress != null && progress.getQuest().getId().equals(quest.getId())) {
@@ -137,7 +140,10 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
                 }
                 progValue = progress.getProgress(progIndex);
             }
-            setLine(board, obj, idx++, line--, ChatColor.GRAY + "- " + progValue + "/" + quest.getObjectives().get(progIndex).getAmount());
+            QuestObjective currentObj = quest.getObjectives().get(progIndex);
+            String desc = questManager.describeObjective(currentObj);
+            setLine(board, obj, idx++, line--,
+                    ChatColor.GRAY + "- " + desc + ": " + progValue + "/" + currentObj.getAmount());
         }
 
         Party party = partyManager.getParty(player.getUniqueId());
