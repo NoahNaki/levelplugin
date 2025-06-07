@@ -470,22 +470,22 @@ public class QuestManager {
      * Display a styled quest completion message to the player.
      */
     private void sendCompletionMessage(Player player, Quest quest) {
-        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§a§l-", 45);
+        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "", 45);
         me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§6§lQuest Complete!");
         me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§e" + quest.getName());
-        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§a§l-", 45);
+        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "", 45);
         me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§aRewards:");
 
         QuestReward reward = quest.getReward();
         if (reward != null) {
             if (reward.getXp() > 0) {
-                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + reward.getXp() + " XP");
+                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + reward.getXp() + " §aXP");
             }
             if (reward.getCoins() > 0) {
-                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + reward.getCoins() + " Coins");
+                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + reward.getCoins() + " §e⛃");
             }
             if (reward.getGems() > 0) {
-                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + reward.getGems() + " Gems");
+                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + reward.getGems() + " §d✦");
             }
             for (int id : reward.getItemIds()) {
                 me.nakilex.levelplugin.items.data.CustomItem tpl = plugin.getItemManager().getTemplateById(id);
@@ -496,9 +496,10 @@ public class QuestManager {
                 me.nakilex.levelplugin.runes.model.Rune rune = plugin.getRunesManager().getRuneById(runeId);
                 String name = rune != null ? rune.getDisplayName() : runeId;
                 me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + name);
+                me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "", 45);
+
             }
         }
-        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§a§l-", 45);
         player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
     }
 

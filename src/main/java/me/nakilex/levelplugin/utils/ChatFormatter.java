@@ -56,7 +56,7 @@ public class ChatFormatter {
      */
     public static void sendIndentedMessage(Player player, String message) {
         if (message == null) return;
-        player.sendMessage("  " + message);
+        player.sendMessage("        " + message);
     }
 
 }
