@@ -117,9 +117,10 @@ public class EnchantGUI implements Listener {
                 p.sendMessage(ChatColor.RED + "Not enough coins! Cost: " + cost);
                 return;
             }
-            manager.enchant(p, item, ci);
+            String prefix = manager.enchant(p, item, ci);
             gui.setItem(13, item);
-            p.sendMessage(ChatColor.GREEN + "Item enchanted!");
+            ItemUtil.updateCustomItemTooltip(item, p);
+            p.sendMessage(ChatColor.GREEN + "Item enchanted with " + ChatColor.LIGHT_PURPLE + prefix + ChatColor.GREEN + "!");
             update(p, gui);
         }
     }
