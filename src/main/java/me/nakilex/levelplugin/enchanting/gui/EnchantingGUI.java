@@ -13,7 +13,9 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -22,6 +24,7 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class EnchantingGUI implements Listener {
     public static final String TITLE = ChatColor.DARK_PURPLE + "Enchant Item";
@@ -29,7 +32,8 @@ public class EnchantingGUI implements Listener {
 
     private final ItemManager itemManager;
     private final Map<StatType, String> prefixes = new HashMap<>();
-    private final Map<Integer, StatType> slotMap = new HashMap<>();
+    private final java.util.List<StatType> prefixList = new java.util.ArrayList<>();
+    private final Map<Player, Inventory> openInventories = new HashMap<>();
 
     public EnchantingGUI(Main plugin, ItemManager itemManager) {
         this.itemManager = itemManager;
@@ -42,25 +46,8 @@ public class EnchantingGUI implements Listener {
         prefixes.put(StatType.INT, cfg.getString("intelligence", "Wise"));
         prefixes.put(StatType.DEX, cfg.getString("dexterity", "Precise"));
 
-        // Slot setup for buttons
-        slotMap.put(10, StatType.HP);
-        slotMap.put(11, StatType.DEF);
-        slotMap.put(12, StatType.STR);
-        slotMap.put(14, StatType.AGI);
-        slotMap.put(15, StatType.INT);
-        slotMap.put(16, StatType.DEX);
-
+        prefixList.addAll(prefixes.keySet());
         Bukkit.getPluginManager().registerEvents(this, plugin);
-    }
-
-    private ItemStack createButton(Material mat, String name) {
-        ItemStack item = new ItemStack(mat);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(ChatColor.GREEN + name);
-            item.setItemMeta(meta);
-        }
-        return item;
     }
 
     private ItemStack filler() {
@@ -74,30 +61,42 @@ public class EnchantingGUI implements Listener {
         Inventory inv = Bukkit.createInventory(player, SIZE, TITLE);
         for (int i = 0; i < SIZE; i++) inv.setItem(i, filler());
         inv.setItem(13, null);
+        inv.setItem(22, createEnchantButton(false));
+        inv.setItem(8, createInfoItem());
 
-        inv.setItem(10, createButton(Material.RED_DYE, prefixes.get(StatType.HP)));
-        inv.setItem(11, createButton(Material.SHIELD, prefixes.get(StatType.DEF)));
-        inv.setItem(12, createButton(Material.IRON_SWORD, prefixes.get(StatType.STR)));
-        inv.setItem(14, createButton(Material.FEATHER, prefixes.get(StatType.AGI)));
-        inv.setItem(15, createButton(Material.BOOK, prefixes.get(StatType.INT)));
-        inv.setItem(16, createButton(Material.ARROW, prefixes.get(StatType.DEX)));
-
+        openInventories.put(player, inv);
         player.openInventory(inv);
     }
 
     @EventHandler
     public void onClick(InventoryClickEvent e) {
         if (!TITLE.equals(e.getView().getTitle())) return;
-        int slot = e.getRawSlot();
-        if (slot == 13) return; // allow placing item
+        Player player = (Player) e.getWhoClicked();
+        Inventory gui = openInventories.get(player);
+        if (gui == null || !gui.equals(e.getView().getTopInventory())) return;
+
+        int raw = e.getRawSlot();
+
+        // bottom inventory actions allowed; update after shift-click
+        if (raw >= gui.getSize()) {
+            if (e.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY) {
+                Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> updateButton(player, gui), 1L);
+            }
+            return;
+        }
+
+        // allow place/remove in slot 13
+        if (raw == 13) {
+            e.setCancelled(false);
+            Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> updateButton(player, gui), 1L);
+            return;
+        }
+
         e.setCancelled(true);
 
-        StatType type = slotMap.get(slot);
-        if (type == null) return;
+        if (raw != 22) return;
 
-        Inventory inv = e.getInventory();
-        ItemStack stack = inv.getItem(13);
-        Player player = (Player) e.getWhoClicked();
+        ItemStack stack = gui.getItem(13);
         if (stack == null || stack.getType() == Material.AIR) {
             player.sendMessage(ChatColor.RED + "Place an item in the center first.");
             return;
@@ -109,20 +108,51 @@ public class EnchantingGUI implements Listener {
             return;
         }
 
-        // Prevent double prefixes
-        Set<String> all = Set.copyOf(prefixes.values());
-        for (String pre : all) {
+        for (String pre : prefixes.values()) {
             if (cItem.getBaseName().startsWith(pre + " ")) {
                 player.sendMessage(ChatColor.RED + "Item already has a prefix.");
                 return;
             }
         }
 
-        applyPrefix(player, stack, cItem, type);
-        player.closeInventory();
+        applyRandomPrefix(player, stack, cItem);
+        updateButton(player, gui);
     }
 
-    private void applyPrefix(Player player, ItemStack stack, CustomItem item, StatType type) {
+    private ItemStack createEnchantButton(boolean ready) {
+        ItemStack item = new ItemStack(Material.ENCHANTING_TABLE);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            if (ready) {
+                meta.setDisplayName(ChatColor.GREEN + "Apply Random Prefix");
+                meta.setLore(java.util.List.of(
+                        ChatColor.GRAY + "Adds +20 to a random stat",
+                        ChatColor.GRAY + "and appends a prefix to the name."));
+            } else {
+                meta.setDisplayName(ChatColor.GRAY + "Place an item");
+                meta.setLore(java.util.List.of(ChatColor.DARK_GRAY + "Insert an item in the center."));
+            }
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private ItemStack createInfoItem() {
+        ItemStack info = new ItemStack(Material.BOOK);
+        ItemMeta meta = info.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.YELLOW + "Information");
+            meta.setLore(java.util.List.of(
+                    ChatColor.GRAY + "Place an item in the center slot",
+                    ChatColor.GRAY + "Click the enchant table to roll",
+                    ChatColor.GRAY + "a random stat prefix."));
+            info.setItemMeta(meta);
+        }
+        return info;
+    }
+
+    private void applyRandomPrefix(Player player, ItemStack stack, CustomItem item) {
+        StatType type = prefixList.get(ThreadLocalRandom.current().nextInt(prefixList.size()));
         String prefix = prefixes.get(type);
         item.setBaseName(prefix + " " + item.getBaseName());
         int bonus = 20;
@@ -137,6 +167,28 @@ public class EnchantingGUI implements Listener {
         ItemStack updated = ItemUtil.createItemStackFromCustomItem(item, stack.getAmount(), player);
         stack.setType(updated.getType());
         stack.setItemMeta(updated.getItemMeta());
-        player.sendMessage(ChatColor.GREEN + "Enchanted with " + prefix + "!");
+        player.sendMessage(ChatColor.GREEN + "Item enchanted with " + prefix + "!");
+    }
+
+    private void updateButton(Player player, Inventory gui) {
+        ItemStack current = gui.getItem(13);
+        boolean ready = false;
+        if (current != null && !current.getType().isAir()) {
+            CustomItem ci = itemManager.getCustomItemFromItemStack(current);
+            if (ci != null) {
+                ready = prefixes.values().stream().noneMatch(p -> ci.getBaseName().startsWith(p + " "));
+            }
+        }
+        gui.setItem(22, createEnchantButton(ready));
+    }
+
+    @EventHandler
+    public void onClose(InventoryCloseEvent e) {
+        Inventory gui = openInventories.remove(e.getPlayer());
+        if (gui == null || !gui.equals(e.getInventory())) return;
+        ItemStack center = gui.getItem(13);
+        if (center != null && !center.getType().isAir()) {
+            e.getPlayer().getInventory().addItem(center);
+        }
     }
 }
