@@ -162,7 +162,7 @@ public class FastTravelManager {
      */
     private void debugAvailableModels() {
         try {
-            Set<String> ids = ModelEngineAPI.getModelRegistry().keySet();
+            Set<String> ids = ModelEngineAPI.getAPI().getModelRegistry().keySet();
             plugin.getLogger().info("Available ModelEngine models: " + ids);
         } catch (Exception ex) {
             plugin.getLogger().warning("Unable to list ModelEngine models: " + ex.getMessage());
