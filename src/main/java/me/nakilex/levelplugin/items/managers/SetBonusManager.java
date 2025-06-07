@@ -36,20 +36,12 @@ public class SetBonusManager {
         FileConfiguration preCfg = YamlConfiguration.loadConfiguration(preFile);
         FileConfiguration sufCfg = YamlConfiguration.loadConfiguration(sufFile);
 
-        // Map prefix categories to stats (rough heuristic)
-        Map<String, StatType> catMap = new HashMap<>();
-        catMap.put("skeleton", StatType.DEX);
-        catMap.put("zombie", StatType.STR);
-        catMap.put("slime", StatType.INT);
-        catMap.put("default", StatType.DEF);
-
-        for (String cat : preCfg.getKeys(false)) {
-            List<String> list = preCfg.getStringList(cat);
-            prefixStrings.addAll(list);
-            StatType st = catMap.getOrDefault(cat.toLowerCase(), StatType.DEF);
-            for (String p : list) {
-                prefixStat.put(p, st);
-            }
+        for (String key : preCfg.getKeys(false)) {
+            String prefix = preCfg.getString(key);
+            if (prefix == null) continue;
+            prefixStrings.add(prefix);
+            StatType st = mapPrefixKey(key);
+            prefixStat.put(prefix, st);
         }
 
         for (String key : sufCfg.getKeys(false)) {
@@ -58,6 +50,18 @@ public class SetBonusManager {
                 suffixStrings.add(s);
                 suffixStat.put(s, st);
             }
+        }
+    }
+
+    private StatType mapPrefixKey(String key) {
+        switch (key.toLowerCase()) {
+            case "strength": return StatType.STR;
+            case "agility": return StatType.AGI;
+            case "dexterity": return StatType.DEX;
+            case "intelligence": return StatType.INT;
+            case "defense": return StatType.DEF;
+            case "hp": return StatType.HP;
+            default: return StatType.DEF;
         }
     }
 

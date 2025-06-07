@@ -131,28 +131,9 @@ public class ProceduralItemGenerator {
     }
 
     private String buildName(String mobType, String base, ItemRarity rarity, String statKey) {
-        List<String> prefixes = prefixesConfig.getStringList(mobType.toLowerCase());
-        if (prefixes.isEmpty()) {
-            prefixes = prefixesConfig.getStringList("default");
-        }
-        String prefix = prefixes.isEmpty() ? "" : prefixes.get(random.nextInt(prefixes.size()));
-        String name = prefix.isEmpty() ? base : prefix + " " + base;
-
-        if (rarity.ordinal() >= ItemRarity.RARE.ordinal()) {
-            List<String> suffixes = suffixesConfig.getStringList(statKey);
-            if (suffixes.isEmpty()) {
-                suffixes = suffixesConfig.getStringList("default");
-            }
-            if (!suffixes.isEmpty()) {
-                String suffix = suffixes.get(random.nextInt(suffixes.size()));
-                if (suffix.startsWith("of")) {
-                    name += " " + suffix;
-                } else {
-                    name += " of " + suffix;
-                }
-            }
-        }
-        return name;
+        // Prefixes and suffixes are no longer applied during generation.
+        // Items start without any enchantments and can be enchanted later.
+        return base;
     }
 
     /**

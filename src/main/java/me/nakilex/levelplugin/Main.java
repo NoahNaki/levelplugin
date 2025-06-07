@@ -134,6 +134,7 @@ public class Main extends JavaPlugin {
     private final Map<UUID, List<NPC>> activeBowDrones = new HashMap<>();
     private ChestHologramListener chestHologramListener;
     private EquipRunesGUI equipGui;
+    private me.nakilex.levelplugin.enchanting.gui.EnchantingGUI enchantGui;
     private me.nakilex.levelplugin.auctionhouse.AuctionHouseManager auctionHouseManager;
     private me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI auctionHouseGUI;
 
@@ -259,6 +260,7 @@ public class Main extends JavaPlugin {
         fastTravelGUI = new me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI(fastTravelManager, economyManager);
         cooldownManager.setLootChestManager(lootChestManager);
         equipGui = new EquipRunesGUI(this, runesManager, identifyRunesGUI);
+        enchantGui = new me.nakilex.levelplugin.enchanting.gui.EnchantingGUI(this, itemManager);
 
         StatsManager.getInstance().setLevelManager(levelManager);
     }
@@ -304,6 +306,7 @@ public class Main extends JavaPlugin {
             identifyRunesGUI,
             runesManager,
             equipGui,
+            enchantGui,
             broadcastMgr,
             questManager,
             fastTravelManager

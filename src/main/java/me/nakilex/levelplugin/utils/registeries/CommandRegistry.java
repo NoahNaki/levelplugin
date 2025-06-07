@@ -4,6 +4,8 @@ import de.slikey.effectlib.EffectManager;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.blacksmith.commands.BlacksmithCommand;
 import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
+import me.nakilex.levelplugin.enchanting.commands.EnchantCommand;
+import me.nakilex.levelplugin.enchanting.gui.EnchantingGUI;
 import me.nakilex.levelplugin.duels.commands.DuelCommand;
 import me.nakilex.levelplugin.economy.commands.*;
 import me.nakilex.levelplugin.economy.gui.GemExchangeGUI;
@@ -84,6 +86,7 @@ public class CommandRegistry {
                                         IdentifyRunesGUI identifyGui,
                                         RunesManager runesManager,
                                         EquipRunesGUI equipGui,
+                                        EnchantingGUI enchantGui,
                                         BroadcastManager broadcastMgr,
                                         QuestManager questManager,
                                         FastTravelManager fastTravelManager) {
@@ -99,6 +102,7 @@ public class CommandRegistry {
         plugin.getCommand("balance").setExecutor(new BalanceCommand(economyManager));
         plugin.getCommand("addcoins").setExecutor(new AddCoinsCommand(economyManager));
         plugin.getCommand("blacksmith").setExecutor(new BlacksmithCommand(blacksmithGUI));
+        plugin.getCommand("enchant").setExecutor(new EnchantCommand(enchantGui));
         plugin.getCommand("horse").setExecutor(new HorseCommand(horseManager, horseGUI));
         plugin.getCommand("party").setExecutor(new PartyCommands(partyManager));
         plugin.getCommand("partyglow").setExecutor(new PartyGlowCommand(plugin.getPartyGlowManager()));

@@ -47,6 +47,9 @@ commands:
   blacksmith:
     description: Opens the Blacksmith GUI.
     usage: /blacksmith
+  enchant:
+    description: Opens the Enchanting GUI.
+    usage: /enchant
   horse:
     description: Manage your horse
     usage: /horse [reroll]

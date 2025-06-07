@@ -17,7 +17,7 @@ public class CustomItem {
 
     // Template metadata
     private final int id;
-    private final String baseName;
+    private String baseName;
     private final ItemRarity rarity;
     private final int levelRequirement;
     private final String classRequirement;
@@ -152,6 +152,11 @@ public class CustomItem {
 
     public int getCurrentDurability() {
         return currentDurability;
+    }
+
+    /** Set a new base name (used when enchanting prefixes). */
+    public void setBaseName(String baseName) {
+        this.baseName = baseName;
     }
 
     /** Returns the hard cap (always 100). */
