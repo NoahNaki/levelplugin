@@ -473,7 +473,7 @@ public class QuestManager {
         me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "", 45);
         me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§6§lQuest Complete!");
         me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§e" + quest.getName());
-        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "", 45);
+        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, " ", 45);
         me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§aRewards:");
 
         QuestReward reward = quest.getReward();
@@ -496,9 +496,8 @@ public class QuestManager {
                 me.nakilex.levelplugin.runes.model.Rune rune = plugin.getRunesManager().getRuneById(runeId);
                 String name = rune != null ? rune.getDisplayName() : runeId;
                 me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + name);
-                me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "", 45);
-
             }
+            me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, " ", 45);
         }
         player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
     }
