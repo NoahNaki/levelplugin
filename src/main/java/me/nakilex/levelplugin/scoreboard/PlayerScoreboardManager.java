@@ -9,6 +9,7 @@ import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.quests.data.QuestObjective;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -139,9 +140,10 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
                 }
                 progValue = progress.getProgress(progIndex);
             }
+            QuestObjective currentObj = quest.getObjectives().get(progIndex);
+            String desc = questManager.describeObjective(currentObj);
             setLine(board, obj, idx++, line--,
-                    ChatColor.GRAY + "- " + progValue + "/" +
-                            quest.getObjectives().get(progIndex).getAmount());
+                    ChatColor.GRAY + "- " + desc + ": " + progValue + "/" + currentObj.getAmount());
         }
 
         Party party = partyManager.getParty(player.getUniqueId());
