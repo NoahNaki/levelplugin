@@ -8,8 +8,9 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.ArmorStand;
 import com.ticxo.modelengine.api.ModelEngineAPI;
-import com.ticxo.modelengine.api.entity.ModelEntity;
+import com.ticxo.modelengine.api.model.ModeledEntity;
 import com.ticxo.modelengine.api.model.ActiveModel;
 
 import java.io.File;
@@ -20,7 +21,7 @@ public class FastTravelManager {
     private final Main plugin;
     private final Map<String, FastTravelPoint> points = new HashMap<>();
     private final Map<UUID, Set<String>> unlocked = new HashMap<>();
-    private final Map<String, ModelEntity> waystones = new HashMap<>();
+    private final Map<String, ModeledEntity> waystones = new HashMap<>();
     private File file;
     private FileConfiguration config;
 
@@ -125,21 +126,26 @@ public class FastTravelManager {
     }
 
     private void spawnWaystone(FastTravelPoint pt) {
-        ModelEntity entity = ModelEngineAPI.createModelEntity(pt.getLocation());
+        ArmorStand stand = pt.getLocation().getWorld().spawn(pt.getLocation(), ArmorStand.class, as -> {
+            as.setInvisible(true);
+            as.setMarker(true);
+            as.setGravity(false);
+        });
+        ModeledEntity entity = ModelEngineAPI.createModeledEntity(stand);
         ActiveModel model = ModelEngineAPI.createActiveModel("base_beacon_cyan");
         entity.addModel(model, true);
         waystones.put(pt.getName().toLowerCase(), entity);
     }
 
     private void removeWaystone(String name) {
-        ModelEntity ent = waystones.remove(name.toLowerCase());
+        ModeledEntity ent = waystones.remove(name.toLowerCase());
         if (ent != null) {
-            ModelEngineAPI.destroyModelEntity(ent);
+            ModelEngineAPI.removeModeledEntity(ent.getBase().getUniqueId());
         }
     }
 
     public boolean isWaystoneEntity(Entity entity) {
-        for (ModelEntity me : waystones.values()) {
+        for (ModeledEntity me : waystones.values()) {
             if (me.getBase().equals(entity)) return true;
         }
         return false;
