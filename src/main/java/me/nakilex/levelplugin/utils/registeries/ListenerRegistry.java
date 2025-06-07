@@ -150,6 +150,7 @@ public class ListenerRegistry {
         pm.registerEvents(new NPCDialogMoveListener(dialogManager), plugin);
         pm.registerEvents(plugin.getScoreboardManager(), plugin);
         pm.registerEvents(plugin.getPartyGlowManager(), plugin);
+        pm.registerEvents(fastTravelGUI, plugin);
         pm.registerEvents(new WaystoneListener(fastTravelGUI), plugin);
         pm.registerEvents(new ExplorationListener(fastTravelManager), plugin);
         pm.registerEvents(new RespawnListener(fastTravelManager), plugin);

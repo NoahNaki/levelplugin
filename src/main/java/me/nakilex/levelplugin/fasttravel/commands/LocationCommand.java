@@ -41,9 +41,15 @@ public class LocationCommand implements CommandExecutor {
             if (Bukkit.getPluginManager().isPluginEnabled("ModelEngine")) {
                 try {
                     Class<?> api = Class.forName("com.ticxo.modelengine.api.ModelEngineAPI");
-                    java.lang.reflect.Method m = api.getMethod("addEntityModel", org.bukkit.entity.LivingEntity.class, String.class);
-                    m.invoke(null, npc.getEntity(), "base_beacon_blue");
-                } catch (Exception ignored) {}
+                    try {
+                        java.lang.reflect.Method apply = api.getMethod("applyModel", org.bukkit.entity.LivingEntity.class, String.class);
+                        apply.invoke(null, npc.getEntity(), "base_beacon_blue");
+                    } catch (NoSuchMethodException ex) {
+                        java.lang.reflect.Method add = api.getMethod("addEntityModel", org.bukkit.entity.LivingEntity.class, String.class);
+                        add.invoke(null, npc.getEntity(), "base_beacon_blue");
+                    }
+                } catch (Exception ignored) {
+                }
             }
         } else if (sub.equals("move") && args.length >= 2) {
             manager.moveLocation(args[1], player.getLocation());

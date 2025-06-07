@@ -141,7 +141,7 @@ commands:
     usage: /fasttravel
   location:
     description: Manage fast travel locations
-    usage: /location set <name> <color> <description_with_underscores> <radius> <town_true/false>
+    usage: /location set <name> <color> <description_with_underscores> <radius> <true/false> | /location move <name> | /location remove <name>
   wipeprofile:
     description: Wipe a player's profile
     usage: /wipeprofile <player>
