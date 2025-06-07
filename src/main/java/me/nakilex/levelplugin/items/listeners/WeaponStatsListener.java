@@ -81,12 +81,18 @@ public class WeaponStatsListener implements Listener {
         //
         ItemStack newWeap = event.getNewWeapon();
         if (newWeap != null && !newWeap.getType().isAir()) {
-            CustomItem inst = itemManager.getCustomItemFromItemStack(newWeap);
-            if (inst != null && !equipped.contains(inst.getId())) {
-                boolean isBroken   = inst.isBroken();
-                int playerLevel    = LevelManager.getInstance().getLevel(player);
-                int requiredLevel  = inst.getLevelRequirement();
-                PlayerClass requiredClass;
+            // Skip applying stats if the item being held is actually armor.
+            // Armor bonuses should only apply when equipped via ArmorListener,
+            // not just by holding the piece in hand.
+            if (me.nakilex.levelplugin.items.data.ArmorType.matchType(newWeap) != null) {
+                Bukkit.getLogger().info("[WeaponStats] Skipping addition because new item is armor.");
+            } else {
+                CustomItem inst = itemManager.getCustomItemFromItemStack(newWeap);
+                if (inst != null && !equipped.contains(inst.getId())) {
+                    boolean isBroken   = inst.isBroken();
+                    int playerLevel    = LevelManager.getInstance().getLevel(player);
+                    int requiredLevel  = inst.getLevelRequirement();
+                    PlayerClass requiredClass;
                 try {
                     requiredClass = PlayerClass.valueOf(inst.getClassRequirement().toUpperCase());
                 } catch (IllegalArgumentException e) {
@@ -143,7 +149,8 @@ public class WeaponStatsListener implements Listener {
                     );
                 }
 
-                logPlayerStats("After addition", puuid, ps);
+                    logPlayerStats("After addition", puuid, ps);
+                }
             }
         }
 

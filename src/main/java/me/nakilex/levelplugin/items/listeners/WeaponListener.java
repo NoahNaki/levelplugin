@@ -98,12 +98,7 @@ public class WeaponListener implements Listener {
         Bukkit.getLogger().info("  mainItem=" + debugItem(mainItem)
             + " offItem=" + debugItem(offItem));
 
-        // *** NEW CHECKS: Skip if either item is recognized as armor ***
-        if ((mainItem != null && ArmorType.matchType(mainItem) != null) ||
-            (offItem != null && ArmorType.matchType(offItem) != null)) {
-            Bukkit.getLogger().info("  Skipping swap event because one of the items is recognized as armor.");
-            return;
-        }
+
 
         // Also skip if neither item is a weapon.
         WeaponType mainWeapon = WeaponType.matchType(mainItem);
