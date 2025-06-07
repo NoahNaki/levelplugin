@@ -130,8 +130,9 @@ public class FastTravelManager {
     private void spawnWaystone(FastTravelPoint pt) {
         ArmorStand stand = pt.getLocation().getWorld().spawn(pt.getLocation(), ArmorStand.class, as -> {
             as.setInvisible(true);
-            as.setMarker(true);
+            as.setMarker(false); // allow interaction by keeping a hitbox
             as.setGravity(false);
+            as.setInvulnerable(true);
         });
         ModeledEntity entity = ModelEngineAPI.createModeledEntity(stand);
         try {
