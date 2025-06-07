@@ -54,7 +54,7 @@ public class EnchantManager {
     }
 
     /** Apply a random prefix to the item, replacing any existing one. */
-    public boolean enchant(Player player, ItemStack stack, CustomItem item) {
+    public String enchant(Player player, ItemStack stack, CustomItem item) {
         if (item == null || stack == null) return false;
         // Strip any existing prefixes before applying a new one. In some cases
         // multiple prefixes may have been applied by older versions, so we
@@ -79,7 +79,7 @@ public class EnchantManager {
         stack.setType(updated.getType());
         stack.setItemMeta(updated.getItemMeta());
         ItemManager.getInstance().addInstance(item);
-        return true;
+        return prefix;
     }
 
     private void applyBonus(CustomItem item, StatType stat, int amount) {
