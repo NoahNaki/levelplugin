@@ -84,6 +84,7 @@ public class CommandRegistry {
                                         IdentifyRunesGUI identifyGui,
                                         RunesManager runesManager,
                                         EquipRunesGUI equipGui,
+                                        me.nakilex.levelplugin.enchanting.gui.EnchantGUI enchantGUI,
                                         BroadcastManager broadcastMgr,
                                         QuestManager questManager,
                                         FastTravelManager fastTravelManager) {
@@ -110,6 +111,7 @@ public class CommandRegistry {
         plugin.getCommand("ps").setExecutor(new StorageCommand(storageManager));
         plugin.getCommand("merchant").setExecutor(new MerchantCommand(plugin));
         plugin.getCommand("salvage").setExecutor(new SalvageCommand(plugin));
+        plugin.getCommand("enchant").setExecutor(new me.nakilex.levelplugin.enchanting.commands.EnchantCommand(enchantGUI));
         plugin.getCommand("spells").setExecutor(new SpellCommand());
         plugin.getCommand("dmgnumber").setExecutor(new DmgNumberCommand(dmgToggleManager));
         plugin.getCommand("dmgchat").setExecutor(new DmgChatCommand());

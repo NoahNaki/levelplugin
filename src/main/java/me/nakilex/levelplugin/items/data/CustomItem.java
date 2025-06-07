@@ -54,6 +54,8 @@ public class CustomItem {
 
     // How many times this item has been upgraded (max 5)
     private int upgradeLevel = 0;
+    // How many times the item has been enchanted
+    private int enchantCount = 0;
 
     /**
      * Primary constructor: loads an existing item instance (with a fixed UUID and upgradeLevel),
@@ -149,6 +151,7 @@ public class CustomItem {
     public int getDex()   { return baseDex   + bonusDex; }
 
     public int getUpgradeLevel() { return upgradeLevel; }
+    public int getEnchantCount() { return enchantCount; }
 
     public int getCurrentDurability() {
         return currentDurability;
@@ -178,6 +181,12 @@ public class CustomItem {
         this.upgradeLevel = Math.min(5, Math.max(0, upgradeLevel));
     }
 
+    public void setEnchantCount(int enchantCount) {
+        this.enchantCount = Math.max(0, enchantCount);
+    }
+
+    public void incrementEnchantCount() { this.enchantCount++; }
+
     public void addBonusStats(int hp, int def, int str, int agi, int intel, int dex) {
         this.bonusHp    += hp;
         this.bonusDef   += def;
@@ -203,6 +212,8 @@ public class CustomItem {
     public void setBaseAgi(int value)   { this.baseAgi = value; }
     public void setBaseIntel(int value) { this.baseIntel = value; }
     public void setBaseDex(int value)   { this.baseDex = value; }
+
+    public void setBaseName(String name) { this.baseName = name; }
 
     /**
      * Increases upgradeLevel by 1 (up to 5) and then scales base stats

@@ -131,12 +131,7 @@ public class ProceduralItemGenerator {
     }
 
     private String buildName(String mobType, String base, ItemRarity rarity, String statKey) {
-        List<String> prefixes = prefixesConfig.getStringList(mobType.toLowerCase());
-        if (prefixes.isEmpty()) {
-            prefixes = prefixesConfig.getStringList("default");
-        }
-        String prefix = prefixes.isEmpty() ? "" : prefixes.get(random.nextInt(prefixes.size()));
-        String name = prefix.isEmpty() ? base : prefix + " " + base;
+        String name = base;
 
         if (rarity.ordinal() >= ItemRarity.RARE.ordinal()) {
             List<String> suffixes = suffixesConfig.getStringList(statKey);

@@ -1,0 +1,96 @@
+package me.nakilex.levelplugin.enchanting.managers;
+
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.items.data.CustomItem;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+
+import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.items.managers.ItemManager;
+
+import java.io.File;
+import java.util.*;
+
+/**
+ * Handles applying random stat prefixes to items via the enchanting GUI.
+ */
+public class EnchantManager {
+    private static final int BASE_COST = 200;
+
+    private final Map<String, StatType> prefixMap = new HashMap<>();
+    private final List<String> prefixList = new ArrayList<>();
+    private final Random random = new Random();
+
+    public EnchantManager() {
+        File file = new File(Main.getInstance().getDataFolder(), "prefixes.yml");
+        FileConfiguration cfg = YamlConfiguration.loadConfiguration(file);
+        for (String key : cfg.getKeys(false)) {
+            String prefix = cfg.getString(key);
+            if (prefix == null) continue;
+            StatType st = mapKey(key);
+            prefixMap.put(prefix, st);
+            prefixList.add(prefix);
+        }
+    }
+
+    private StatType mapKey(String key) {
+        return switch (key.toLowerCase()) {
+            case "strength" -> StatType.STR;
+            case "agility" -> StatType.AGI;
+            case "dexterity" -> StatType.DEX;
+            case "intelligence" -> StatType.INT;
+            case "defense" -> StatType.DEF;
+            case "hp" -> StatType.HP;
+            default -> StatType.DEF;
+        };
+    }
+
+    public int getEnchantCost(CustomItem item) {
+        int count = item.getEnchantCount();
+        return BASE_COST * (int) Math.pow(2, count);
+    }
+
+    /** Apply a random prefix to the item, replacing any existing one. */
+    public boolean enchant(Player player, ItemStack stack, CustomItem item) {
+        if (item == null || stack == null) return false;
+        String oldPrefix = getCurrentPrefix(item.getBaseName());
+        if (oldPrefix != null) {
+            StatType st = prefixMap.get(oldPrefix);
+            if (st != null) applyBonus(item, st, -20);
+            item.setBaseName(item.getBaseName().substring(oldPrefix.length()).trim());
+        }
+        String prefix = prefixList.get(random.nextInt(prefixList.size()));
+        StatType stat = prefixMap.get(prefix);
+        applyBonus(item, stat, 20);
+        item.setBaseName(prefix + " " + item.getBaseName());
+        item.incrementEnchantCount();
+
+        ItemStack updated = ItemUtil.createItemStackFromCustomItem(item, stack.getAmount(), player);
+        stack.setType(updated.getType());
+        stack.setItemMeta(updated.getItemMeta());
+        ItemManager.getInstance().addInstance(item);
+        return true;
+    }
+
+    private void applyBonus(CustomItem item, StatType stat, int amount) {
+        switch (stat) {
+            case STR -> item.addBonusStats(0,0,amount,0,0,0);
+            case AGI -> item.addBonusStats(0,0,0,amount,0,0);
+            case INT -> item.addBonusStats(0,0,0,0,amount,0);
+            case DEX -> item.addBonusStats(0,0,0,0,0,amount);
+            case HP  -> item.addBonusStats(amount,0,0,0,0,0);
+            case DEF -> item.addBonusStats(0,amount,0,0,0,0);
+        }
+    }
+
+    private String getCurrentPrefix(String name) {
+        for (String pre : prefixList) {
+            if (name.startsWith(pre + " ")) return pre;
+            if (name.equals(pre)) return pre;
+        }
+        return null;
+    }
+}

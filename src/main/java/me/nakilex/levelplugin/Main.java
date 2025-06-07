@@ -118,6 +118,8 @@ public class Main extends JavaPlugin {
     private IdentifyRunesGUI identifyRunesGUI;
     private GemsManager gemsManager;
     private GemExchangeGUI gemGui;
+    private me.nakilex.levelplugin.enchanting.managers.EnchantManager enchantManager;
+    private me.nakilex.levelplugin.enchanting.gui.EnchantGUI enchantGUI;
     private ArcherSpell archerSpell;
     private TipsConfigManager tipsCfg;
     private BroadcastManager broadcastMgr;
@@ -259,6 +261,8 @@ public class Main extends JavaPlugin {
         fastTravelGUI = new me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI(fastTravelManager, economyManager);
         cooldownManager.setLootChestManager(lootChestManager);
         equipGui = new EquipRunesGUI(this, runesManager, identifyRunesGUI);
+        enchantManager = new me.nakilex.levelplugin.enchanting.managers.EnchantManager();
+        enchantGUI = new me.nakilex.levelplugin.enchanting.gui.EnchantGUI(enchantManager, economyManager);
 
         StatsManager.getInstance().setLevelManager(levelManager);
     }
@@ -304,6 +308,7 @@ public class Main extends JavaPlugin {
             identifyRunesGUI,
             runesManager,
             equipGui,
+            enchantGUI,
             broadcastMgr,
             questManager,
             fastTravelManager
@@ -332,6 +337,7 @@ public class Main extends JavaPlugin {
             identifyRunesGUI,
             runesManager,
             equipGui,
+            enchantGUI,
             chestHologramListener,
             questManager,
             dialogManager,

@@ -51,6 +51,7 @@ public class ItemConfig {
             config.set(path + ".dex",   item.getDex());
 
             config.set(path + ".upgradeLevel", item.getUpgradeLevel());
+            config.set(path + ".enchantCount", item.getEnchantCount());
 
             // Persist current durability (maxDurability is static, so no need to save it)
             config.set(path + ".currentDurability", item.getCurrentDurability());
@@ -78,6 +79,7 @@ public class ItemConfig {
                 String clsReq      = config.getString(base + "classRequirement");
                 Material material  = Material.valueOf(config.getString(base + "material"));
                 int upgLvl         = config.getInt(base + "upgradeLevel", 0);
+                int enchCnt        = config.getInt(base + "enchantCount", 0);
 
                 // Restore the rolled values and original template ranges.
                 int hpValue    = config.getInt(base + "hp",    0);
@@ -116,6 +118,7 @@ public class ItemConfig {
                     hpRange, defRange, strRange, agiRange, intelRange, dexRange,
                     upgLvl
                 );
+                instance.setEnchantCount(enchCnt);
 
                 // Overwrite rolled stats with the saved values
                 instance.setBaseHp(hpValue);
