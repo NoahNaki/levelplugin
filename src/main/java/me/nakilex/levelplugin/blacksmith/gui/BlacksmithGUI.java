@@ -175,7 +175,9 @@ public class BlacksmithGUI implements Listener {
         ItemMeta meta = upgrade.getItemMeta();
         meta.setDisplayName("§aUpgrade");
         List<String> lore = new ArrayList<>();
-        if (upgradeCost > 0) {
+        if (upgradeCost < 0) {
+            lore.add("§eMax level reached.");
+        } else if (upgradeCost > 0) {
             lore.add("§7Cost: §6⛃ " + upgradeCost);
             lore.add("§7Success Chance: §6" + successChance + "%");
         } else {
@@ -377,6 +379,11 @@ public class BlacksmithGUI implements Listener {
             if (ci == null) return;
 
             if (title.equals(GUI_TITLE_UPGRADE)) {
+                if (ci.getUpgradeLevel() >= 5) {
+                    player.sendMessage("§cItem is already at maximum upgrade.");
+                    return;
+                }
+
                 int cost = upgradeManager.getUpgradeCost(ci);
                 int chance = upgradeManager.getSuccessChance(ci);
                 try {
@@ -392,7 +399,7 @@ public class BlacksmithGUI implements Listener {
                 } else {
                     player.sendMessage("§cUpgrade failed!");
                 }
-                gui.setItem(22, createUpgradeButton(upgradeManager.getUpgradeCost(ci), upgradeManager.getSuccessChance(ci)));
+                updateActionButton(player, gui, title);
             } else if (title.equals(GUI_TITLE_REPAIR)) {
                 int cost = repairManager.getRepairCost(ci);
                 try {
@@ -507,9 +514,13 @@ public class BlacksmithGUI implements Listener {
         }
 
         if (title.equals(GUI_TITLE_UPGRADE)) {
-            gui.setItem(22, createUpgradeButton(
-                upgradeManager.getUpgradeCost(ci),
-                upgradeManager.getSuccessChance(ci)));
+            if (ci.getUpgradeLevel() >= 5) {
+                gui.setItem(22, createUpgradeButton(-1, 0));
+            } else {
+                gui.setItem(22, createUpgradeButton(
+                    upgradeManager.getUpgradeCost(ci),
+                    upgradeManager.getSuccessChance(ci)));
+            }
         } else if (title.equals(GUI_TITLE_REPAIR)) {
             gui.setItem(22, createRepairButton(repairManager.getRepairCost(ci)));
         } else {
