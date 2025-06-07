@@ -22,6 +22,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class FastTravelGUI implements Listener {
     private static final String TITLE = ChatColor.DARK_AQUA + "Fast Travel";
