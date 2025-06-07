@@ -136,6 +136,9 @@ commands:
   quest:
     description: Manage quests
     usage: /quest [start|reset|complete|status|debug]
+  location:
+    description: Manage fast travel locations
+    usage: /location <set|move|remove>
   wipeprofile:
     description: Wipe a player's profile
     usage: /wipeprofile <player>

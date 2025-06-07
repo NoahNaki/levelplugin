@@ -399,6 +399,10 @@ public class MythicMobDeathListener implements Listener {
         if (meta != null) {
             meta.setDisplayName(names[idx]);
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            String statName = names[idx].replace("Scroll of ", "");
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Reroll the " + statName + " of your item at a blacksmith");
+            meta.setLore(lore);
             item.setItemMeta(meta);
         }
         return item;

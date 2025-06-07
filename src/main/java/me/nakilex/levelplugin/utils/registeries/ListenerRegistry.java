@@ -48,6 +48,10 @@ import me.nakilex.levelplugin.quests.listeners.QuestCraftListener;
 import me.nakilex.levelplugin.quests.gui.QuestGUIListener;
 import me.nakilex.levelplugin.npc.listeners.NPCDialogMoveListener;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.fasttravel.listeners.WaystoneListener;
+import me.nakilex.levelplugin.fasttravel.listeners.ExplorationListener;
+import me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI;
+import me.nakilex.levelplugin.fasttravel.FastTravelManager;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.PluginManager;
 
@@ -75,9 +79,11 @@ public class ListenerRegistry {
                                          RunesManager runesManager,
                                          EquipRunesGUI   equipGui,
                                          ChestHologramListener chestHologramListener,
-                                         QuestManager questManager,
+                                        QuestManager questManager,
                                         NPCDialogManager dialogManager,
-                                         PlayerScoreboardManager scoreboardManager) {
+                                         PlayerScoreboardManager scoreboardManager,
+                                         FastTravelManager fastTravelManager,
+                                         FastTravelGUI fastTravelGUI) {
 
 
         PluginManager pm = plugin.getServer().getPluginManager();
@@ -141,6 +147,8 @@ public class ListenerRegistry {
         pm.registerEvents(new NPCDialogMoveListener(dialogManager), plugin);
         pm.registerEvents(plugin.getScoreboardManager(), plugin);
         pm.registerEvents(plugin.getPartyGlowManager(), plugin);
+        pm.registerEvents(new WaystoneListener(fastTravelGUI), plugin);
+        pm.registerEvents(new ExplorationListener(fastTravelManager), plugin);
 
 
 

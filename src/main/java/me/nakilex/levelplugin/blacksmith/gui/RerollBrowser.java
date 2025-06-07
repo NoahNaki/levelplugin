@@ -15,6 +15,8 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
+import java.util.ArrayList;
+import java.util.List;
 
 public class RerollBrowser implements CommandExecutor, Listener {
 
@@ -35,6 +37,10 @@ public class RerollBrowser implements CommandExecutor, Listener {
         if (meta != null) {
             meta.setDisplayName(name);
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            String statName = name.replace("Scroll of ", "");
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Reroll the " + statName + " of your item at a blacksmith");
+            meta.setLore(lore);
             item.setItemMeta(meta);
         }
         return item;

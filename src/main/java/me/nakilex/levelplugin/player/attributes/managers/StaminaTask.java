@@ -10,7 +10,8 @@ import org.bukkit.scheduler.BukkitRunnable;
  */
 public class StaminaTask extends BukkitRunnable {
     private static final double DRAIN_RATE = 1.0;   // per run while sprinting
-    private static final double REGEN_RATE = 0.5;   // per run while not sprinting
+    // 10 stamina per second (10%) regardless of Vitality
+    private static final double REGEN_RATE = 1.0;   // per run while not sprinting
 
     @Override
     public void run() {
