@@ -51,6 +51,7 @@ import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.fasttravel.listeners.WaystoneListener;
 import me.nakilex.levelplugin.fasttravel.listeners.ExplorationListener;
 import me.nakilex.levelplugin.fasttravel.listeners.RespawnListener;
+import me.nakilex.levelplugin.fasttravel.listeners.NexoItemListener;
 import me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI;
 import me.nakilex.levelplugin.fasttravel.FastTravelManager;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -152,6 +153,7 @@ public class ListenerRegistry {
         pm.registerEvents(plugin.getPartyGlowManager(), plugin);
         pm.registerEvents(fastTravelGUI, plugin);
         pm.registerEvents(new WaystoneListener(fastTravelGUI), plugin);
+        pm.registerEvents(new NexoItemListener(fastTravelGUI), plugin);
         pm.registerEvents(new ExplorationListener(fastTravelManager), plugin);
         pm.registerEvents(new RespawnListener(fastTravelManager), plugin);
 
