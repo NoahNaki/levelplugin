@@ -55,7 +55,7 @@ public class EnchantManager {
 
     /** Apply a random prefix to the item, replacing any existing one. */
     public String enchant(Player player, ItemStack stack, CustomItem item) {
-        if (item == null || stack == null) return false;
+        if (item == null || stack == null) return null;
         // Strip any existing prefixes before applying a new one. In some cases
         // multiple prefixes may have been applied by older versions, so we
         // keep removing until none remain.
