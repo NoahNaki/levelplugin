@@ -6,6 +6,8 @@ import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.Main;
+import io.th0rgal.oraxen.api.OraxenItems;
+import io.th0rgal.oraxen.items.ItemBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -22,6 +24,7 @@ import java.util.*;
 
 public class EnchantGUI implements Listener {
     private static final int SIZE = 27;
+    private static final int INFO_SLOT = 8;
     private static final String TITLE = ChatColor.DARK_PURPLE + "Enchant";
 
     private final EnchantManager manager;
@@ -37,6 +40,7 @@ public class EnchantGUI implements Listener {
         Inventory gui = Bukkit.createInventory(player, SIZE, TITLE);
         ItemStack filler = createFiller();
         for (int i = 0; i < SIZE; i++) gui.setItem(i, filler);
+        gui.setItem(INFO_SLOT, createInfoItem());
         gui.setItem(13, null);
         gui.setItem(22, createButton(0));
         open.put(player.getUniqueId(), gui);
@@ -48,6 +52,23 @@ public class EnchantGUI implements Listener {
         ItemMeta meta = pane.getItemMeta();
         if (meta != null) { meta.setDisplayName(" "); pane.setItemMeta(meta); }
         return pane;
+    }
+
+    private ItemStack createInfoItem() {
+        ItemBuilder builder = OraxenItems.getItemById("info");
+        ItemStack item = builder == null ? new ItemStack(Material.BOOK) : builder.build();
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.YELLOW + "Information");
+            meta.setLore(Arrays.asList(
+                    ChatColor.GRAY + "Place a custom item in the center.",
+                    ChatColor.GRAY + "Click " + ChatColor.LIGHT_PURPLE + "Enchant" + ChatColor.GRAY + " to add",
+                    ChatColor.GRAY + "a random prefix giving +20 to one stat.",
+                    ChatColor.GRAY + "Cost doubles every enchant.")
+            );
+            item.setItemMeta(meta);
+        }
+        return item;
     }
 
     private ItemStack createButton(int cost) {
@@ -66,14 +87,25 @@ public class EnchantGUI implements Listener {
         Player p = (Player) e.getWhoClicked();
         Inventory gui = open.get(p.getUniqueId());
         if (gui == null || !e.getView().getTopInventory().equals(gui)) return;
-        int slot = e.getRawSlot();
-        if (slot == 13) {
+        int rawSlot = e.getRawSlot();
+        if (rawSlot == 13) {
             e.setCancelled(false);
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> update(p, gui), 1L);
             return;
         }
+
+        // Allow shift-clicking items from player inventory into slot 13
+        if (rawSlot >= gui.getSize()) {
+            if (e.getAction() == org.bukkit.event.inventory.InventoryAction.MOVE_TO_OTHER_INVENTORY
+                    && (gui.getItem(13) == null || gui.getItem(13).getType().isAir())) {
+                e.setCancelled(false);
+                Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> update(p, gui), 1L);
+            }
+            return;
+        }
+
         e.setCancelled(true);
-        if (slot == 22) {
+        if (rawSlot == 22) {
             ItemStack item = gui.getItem(13);
             if (item == null || item.getType().isAir()) return;
             CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(item);
