@@ -2,12 +2,16 @@ package me.nakilex.levelplugin.fasttravel.gui;
 
 import io.th0rgal.oraxen.api.OraxenItems;
 import io.th0rgal.oraxen.items.ItemBuilder;
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.fasttravel.FastTravelManager;
 import me.nakilex.levelplugin.fasttravel.data.FastTravelPoint;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -15,6 +19,9 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -35,6 +42,7 @@ public class FastTravelGUI implements Listener {
     private final FastTravelManager manager;
     private final EconomyManager economy;
     private final Map<UUID, Integer> pageMap = new HashMap<>();
+    private final Map<UUID, BukkitRunnable> castTasks = new HashMap<>();
 
     public FastTravelGUI(FastTravelManager manager, EconomyManager economy) {
         this.manager = manager;
@@ -127,10 +135,8 @@ public class FastTravelGUI implements Listener {
             player.sendMessage(ChatColor.RED + "You need " + cost + " coins to travel.");
             return;
         }
-        economy.deductCoins(player, cost);
-        player.teleport(target.getLocation());
-        player.sendMessage(ChatColor.GREEN + "Fast traveled to " + target.getName() + " for " + cost + " coins.");
         player.closeInventory();
+        startCast(player, target, cost);
     }
 
     private ItemStack getOraxenItem(String id, String name) {
@@ -142,5 +148,48 @@ public class FastTravelGUI implements Listener {
             item.setItemMeta(meta);
         }
         return item;
+    }
+
+    private void startCast(Player player, FastTravelPoint target, int cost) {
+        if (castTasks.containsKey(player.getUniqueId())) return;
+
+        Location startLoc = player.getLocation();
+        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 60, 4, false, false, false));
+        player.sendMessage(ChatColor.AQUA + "Hold still to fast travel...");
+
+        BukkitRunnable task = new BukkitRunnable() {
+            int ticks = 60;
+
+            @Override
+            public void run() {
+                if (!player.isOnline()) { cancel(); return; }
+
+                if (player.getLocation().distanceSquared(startLoc) > 0.25) {
+                    player.sendMessage(ChatColor.RED + "Fast travel cancelled.");
+                    player.removePotionEffect(PotionEffectType.SLOW);
+                    cancel();
+                    castTasks.remove(player.getUniqueId());
+                    return;
+                }
+
+                player.getWorld().spawnParticle(Particle.ENCHANTMENT_TABLE, player.getLocation().add(0,1,0), 5, 0.5,0.5,0.5,0);
+
+                ticks -= 20;
+                if (ticks <= 0) {
+                    player.removePotionEffect(PotionEffectType.SLOW);
+                    economy.deductCoins(player, cost);
+                    player.teleport(target.getLocation());
+                    player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 40, 0, false, false, false));
+                    target.getLocation().getWorld().playSound(target.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 1f);
+                    target.getLocation().getWorld().spawnParticle(Particle.PORTAL, target.getLocation(), 80, 1,1,1,0.5);
+                    player.sendMessage(ChatColor.GREEN + "Fast traveled to " + target.getName() + " for " + cost + " coins.");
+                    cancel();
+                    castTasks.remove(player.getUniqueId());
+                }
+            }
+        };
+
+        castTasks.put(player.getUniqueId(), task);
+        task.runTaskTimer(Main.getInstance(), 0L, 20L);
     }
 }

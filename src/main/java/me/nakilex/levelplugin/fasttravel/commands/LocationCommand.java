@@ -22,7 +22,7 @@ public class LocationCommand implements CommandExecutor {
         if (args.length < 1) return false;
         String sub = args[0].toLowerCase();
         if (sub.equals("set") && args.length >= 6) {
-            String name = args[1];
+            String name = args[1].replace('_', ' ');
             ChatColor color = ChatColor.valueOf(args[2].toUpperCase());
             String desc = args[3].replace('_', ' ');
             double radius = Double.parseDouble(args[4]);

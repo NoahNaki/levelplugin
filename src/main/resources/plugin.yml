@@ -138,7 +138,7 @@ commands:
     usage: /quest [start|reset|complete|status|debug]
   location:
     description: Manage fast travel locations
-    usage: /location set <name> <color> <description> <radius> <true/false>
+    usage: /location set <name_with_underscores> <color> <description_with_underscores> <radius> <true/false>
   fasttravel:
     description: Opens the fast travel menu
     usage: /fasttravel
