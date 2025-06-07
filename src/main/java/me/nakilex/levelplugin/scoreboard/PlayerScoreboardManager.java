@@ -125,7 +125,9 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
             if (other != null) quest = other;
         }
         if (quest != null) {
-            setLine(board, obj, idx++, line--, ChatColor.GREEN + "Quest Progress:");
+            setLine(board, obj, idx++, line--,
+                    ChatColor.GREEN + "Quest: " + ChatColor.WHITE + quest.getName());
+            setLine(board, obj, idx++, line--, ChatColor.GREEN + "Progress:");
             int progIndex = 0;
             int progValue = 0;
             if (progress != null && progress.getQuest().getId().equals(quest.getId())) {
@@ -137,7 +139,9 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
                 }
                 progValue = progress.getProgress(progIndex);
             }
-            setLine(board, obj, idx++, line--, ChatColor.GRAY + "- " + progValue + "/" + quest.getObjectives().get(progIndex).getAmount());
+            setLine(board, obj, idx++, line--,
+                    ChatColor.GRAY + "- " + progValue + "/" +
+                            quest.getObjectives().get(progIndex).getAmount());
         }
 
         Party party = partyManager.getParty(player.getUniqueId());

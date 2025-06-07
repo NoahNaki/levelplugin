@@ -65,7 +65,11 @@ public class NPCDialogManager {
 
     private void sendLine(Player player, DialogSession session) {
         String line = session.lines.get(session.index);
-        player.sendMessage(ChatColor.GOLD + "[" + (session.index + 1) + "/" + session.lines.size() + "] " + line);
+        String msg = ChatColor.DARK_GRAY + "[" + ChatColor.GRAY + (session.index + 1)
+                + "/" + session.lines.size() + ChatColor.DARK_GRAY + "] "
+                + ChatColor.GREEN + session.npc.getName()
+                + ChatColor.WHITE + ": " + line;
+        player.sendMessage(msg);
         session.index++;
     }
 

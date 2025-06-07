@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.runes.manager.RunesManager;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
+import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
@@ -42,6 +43,12 @@ public class PlayerJoinListener implements Listener {
             levelManager.initializePlayer(player);
             player.setHealthScaled(true);
             player.setHealthScale(20.0);
+
+            EconomyManager eco = Main.getInstance().getEconomyManager();
+            if (eco.getBalance(player) == 0) {
+                eco.addCoins(player, 20);
+                player.sendMessage(org.bukkit.ChatColor.YELLOW + "You received 20 coins to get started!");
+            }
 
             // 2) Load equipped runes from PlayerConfig
             List<String> storedRunes = Main.getInstance()

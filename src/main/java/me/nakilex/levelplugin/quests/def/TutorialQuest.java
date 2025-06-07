@@ -17,8 +17,10 @@ public class TutorialQuest extends Quest {
                         new Location(world, 0, 65, 0)),
                 new QuestObjective(QuestObjectiveType.BUY, "class_weapon", 1,
                         new Location(world, 753, 98, -176)),
-                new QuestObjective(QuestObjectiveType.CAST, "any_spell", 1,
-                        new Location(world, 763, 100, 0))
+                new QuestObjective(QuestObjectiveType.KILL, "ZOMBIE", 1,
+                        new Location(world, 763, 100, 0)),
+                new QuestObjective(QuestObjectiveType.TALK, "npc273", 1,
+                        new Location(world, 0, 65, 0))
         );
     }
 
@@ -34,9 +36,9 @@ public class TutorialQuest extends Quest {
                 new QuestReward(0, 500, 0, List.of(), List.of()),
                 273,
                 List.of(
-                        "Altan: Hello, accept my quest please?",
-                        "Altan: If you do, I'll give you many rewards!",
-                        "Altan: Such as 100 coins and 100 xp!"
+                        "Hello there! Welcome to the realm.",
+                        "Choose a class and buy your first weapon.",
+                        "Slay a zombie nearby then speak with me again."
                 )
         );
     }
