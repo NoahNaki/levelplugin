@@ -58,7 +58,9 @@ import me.nakilex.levelplugin.lootchests.config.ConfigManager;
 import me.nakilex.levelplugin.quests.commands.QuestCommand;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.fasttravel.commands.LocationCommand;
+import me.nakilex.levelplugin.fasttravel.commands.FastTravelCommand;
 import me.nakilex.levelplugin.fasttravel.FastTravelManager;
+import me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI;
 
 public class CommandRegistry {
 
@@ -87,7 +89,8 @@ public class CommandRegistry {
                                         me.nakilex.levelplugin.enchanting.gui.EnchantGUI enchantGUI,
                                         BroadcastManager broadcastMgr,
                                         QuestManager questManager,
-                                        FastTravelManager fastTravelManager) {
+                                        FastTravelManager fastTravelManager,
+                                        FastTravelGUI fastTravelGUI) {
 
 
         plugin.getCommand("addpoints").setExecutor(new AddPointsCommand());
@@ -127,6 +130,7 @@ public class CommandRegistry {
         plugin.getCommand("equiprunes").setExecutor(new EquipRunesCommand(equipGui));
         plugin.getCommand("quest").setExecutor(new QuestCommand(questManager));
         plugin.getCommand("location").setExecutor(new LocationCommand(fastTravelManager));
+        plugin.getCommand("fasttravel").setExecutor(new FastTravelCommand(fastTravelGUI));
         plugin.getCommand("wipeprofile").setExecutor(new WipeProfileCommand(levelManager, StatsManager.getInstance(), economyManager, gemsManager));
 
 

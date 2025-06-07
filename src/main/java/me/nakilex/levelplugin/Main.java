@@ -311,7 +311,8 @@ public class Main extends JavaPlugin {
             enchantGUI,
             broadcastMgr,
             questManager,
-            fastTravelManager
+            fastTravelManager,
+            fastTravelGUI
         );
 
 
