@@ -26,6 +26,7 @@ import me.nakilex.levelplugin.party.PartyChatListener;
 import me.nakilex.levelplugin.party.PartyInviteListener;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.attributes.listeners.StatsMenuListener;
+import me.nakilex.levelplugin.player.attributes.listeners.StaminaSprintListener;
 import me.nakilex.levelplugin.player.classes.listeners.ClassMenuListener;
 import me.nakilex.levelplugin.player.listener.*;
 import me.nakilex.levelplugin.player.utils.ArrowUtils;
@@ -120,6 +121,7 @@ public class ListenerRegistry {
         pm.registerEvents(new MythicMobDamageListener(), plugin);
         pm.registerEvents(new FallDamageDisabler(), plugin);
         pm.registerEvents(new HungerDisabler(), plugin);
+        pm.registerEvents(new me.nakilex.levelplugin.player.attributes.listeners.StaminaSprintListener(), plugin);
         pm.registerEvents(new DuelListener(), plugin);
         pm.registerEvents(new PickupCustomItemListener(plugin), plugin);
         pm.registerEvents(new CustomItemUpdateListener(), plugin);

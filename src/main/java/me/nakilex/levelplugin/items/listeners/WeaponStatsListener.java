@@ -74,6 +74,7 @@ public class WeaponStatsListener implements Listener {
 
                 logPlayerStats("After removal", puuid, ps);
             }
+            ItemUtil.updateCustomItemTooltip(oldWeap, player);
         }
 
         //
@@ -145,12 +146,14 @@ public class WeaponStatsListener implements Listener {
 
                 logPlayerStats("After addition", puuid, ps);
             }
+            ItemUtil.updateCustomItemTooltip(newWeap, player);
         }
 
         //
         // 3) Always recalc derived stats so changes are immediate
         //
         stats.recalcDerivedStats(player);
+        player.updateInventory();
     }
 
 

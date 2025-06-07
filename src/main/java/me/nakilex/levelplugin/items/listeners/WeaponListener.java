@@ -49,10 +49,13 @@ public class WeaponListener implements Listener {
             return;
         }
 
-        // Skip if either item is recognized as armor
-        if ((oldItem != null && ArmorType.matchType(oldItem) != null) ||
-            (newItem != null && ArmorType.matchType(newItem) != null)) {
-            Bukkit.getLogger().info("  Skipping event because one of the items is recognized as armor.");
+        // Skip only if *both* items are armor. If the old item is a weapon and
+        // the new one is armor, we still need to fire the event so the old
+        // weapon's stats are removed.
+        boolean oldIsArmor = oldItem != null && ArmorType.matchType(oldItem) != null;
+        boolean newIsArmor = newItem != null && ArmorType.matchType(newItem) != null;
+        if (oldIsArmor && newIsArmor) {
+            Bukkit.getLogger().info("  Skipping event because both items are armor.");
             return;
         }
 

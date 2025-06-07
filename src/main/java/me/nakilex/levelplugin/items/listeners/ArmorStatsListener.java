@@ -36,6 +36,7 @@ public class ArmorStatsListener implements Listener {
                 removeItemStats(player, inst);
                 equipped.remove(inst.getId());
             }
+            ItemUtil.updateCustomItemTooltip(oldItem, player);
         }
 
         // 2) Equip new piece
@@ -59,6 +60,7 @@ public class ArmorStatsListener implements Listener {
                     equipped.add(inst.getId());
                 }
             }
+            ItemUtil.updateCustomItemTooltip(newItem, player);
         }
 
         // 3) Recalculate derived stats (HP/mana will update whether or not we added stats)
@@ -69,6 +71,8 @@ public class ArmorStatsListener implements Listener {
                 me.nakilex.levelplugin.Main.getInstance(),
                 () -> me.nakilex.levelplugin.items.managers.SetBonusManager.getInstance().updatePlayer(player),
                 1L);
+
+        player.updateInventory();
     }
 
 
