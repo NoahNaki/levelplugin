@@ -16,6 +16,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -38,11 +39,14 @@ public class FastTravelGUI implements Listener {
     private static final int ITEMS_PER_PAGE = SLOTS.length;
     private static final int PREV_PAGE = 45;
     private static final int NEXT_PAGE = 53;
+    private static final int SORT_SLOT = 50;
 
     private final FastTravelManager manager;
     private final EconomyManager economy;
     private final Map<UUID, Integer> pageMap = new HashMap<>();
     private final Map<UUID, BukkitRunnable> castTasks = new HashMap<>();
+    private final Map<UUID, Integer> sortMap = new HashMap<>();
+    private final Map<UUID, Map<String, Long>> lastUsed = new HashMap<>();
 
     public FastTravelGUI(FastTravelManager manager, EconomyManager economy) {
         this.manager = manager;
@@ -51,6 +55,7 @@ public class FastTravelGUI implements Listener {
 
     public void open(Player player) {
         int page = pageMap.getOrDefault(player.getUniqueId(), 0);
+        sortMap.putIfAbsent(player.getUniqueId(), 2); // default A-Z
         open(player, page);
     }
 
@@ -67,10 +72,19 @@ public class FastTravelGUI implements Listener {
             if (i < 9 || i >= 45 || i % 9 == 0 || i % 9 == 8) gui.setItem(i, filler);
         }
 
+        int sort = sortMap.getOrDefault(player.getUniqueId(), 0);
         List<FastTravelPoint> list = manager.getPoints().stream()
                 .filter(FastTravelPoint::isTown)
-                .sorted(Comparator.comparing(FastTravelPoint::getName, String.CASE_INSENSITIVE_ORDER))
                 .collect(Collectors.toList());
+
+        Comparator<FastTravelPoint> comp = switch (sort) {
+            case 0 -> Comparator.comparingDouble((FastTravelPoint pt) -> player.getLocation().distance(pt.getLocation())).reversed();
+            case 1 -> Comparator.comparingDouble(pt -> player.getLocation().distance(pt.getLocation()));
+            case 2 -> Comparator.comparing(FastTravelPoint::getName, String.CASE_INSENSITIVE_ORDER);
+            case 3 -> Comparator.comparingLong((FastTravelPoint pt) -> getLastUsed(player, pt.getName())).reversed();
+            default -> Comparator.comparing(FastTravelPoint::getName, String.CASE_INSENSITIVE_ORDER);
+        };
+        list.sort(comp);
 
         int start = page * ITEMS_PER_PAGE;
         int slot = 0;
@@ -80,10 +94,14 @@ public class FastTravelGUI implements Listener {
             ItemStack item = new ItemStack(unlocked ? Material.LODESTONE : Material.BARRIER);
             ItemMeta im = item.getItemMeta();
             if (im != null) {
-                im.setDisplayName(pt.getColor() + pt.getName());
+                im.setDisplayName(pt.getColor() + "" + ChatColor.BOLD + pt.getName());
                 if (unlocked) {
                     int cost = (int) player.getLocation().distance(pt.getLocation());
-                    im.setLore(List.of(ChatColor.GRAY + pt.getDescription(), ChatColor.YELLOW + "Cost: " + cost + " coins"));
+                    im.setLore(List.of(
+                            ChatColor.GRAY + pt.getDescription(),
+                            ChatColor.GRAY + "Teleportation Cost:",
+                            ChatColor.WHITE + String.valueOf(cost) + ChatColor.YELLOW + " ⛃"
+                    ));
                 } else {
                     im.setLore(List.of(ChatColor.DARK_GRAY + "Locked"));
                 }
@@ -95,6 +113,7 @@ public class FastTravelGUI implements Listener {
 
         if (page > 0) gui.setItem(PREV_PAGE, getOraxenItem("arrow_left", ChatColor.GREEN + "Previous"));
         if (list.size() > (page + 1) * ITEMS_PER_PAGE) gui.setItem(NEXT_PAGE, getOraxenItem("arrow_right", ChatColor.GREEN + "Next"));
+        gui.setItem(SORT_SLOT, createSortButton(sort));
 
         player.openInventory(gui);
     }
@@ -116,15 +135,36 @@ public class FastTravelGUI implements Listener {
             open(player, page);
             return;
         }
+        if (rawSlot == SORT_SLOT) {
+            int mode = sortMap.getOrDefault(player.getUniqueId(), 0);
+            int total = 4;
+            if (event.getClick() == ClickType.RIGHT) {
+                mode = (mode + total - 1) % total;
+            } else {
+                mode = (mode + 1) % total;
+            }
+            sortMap.put(player.getUniqueId(), mode);
+            open(player, pageMap.getOrDefault(player.getUniqueId(), 0));
+            return;
+        }
+
         int index = -1;
         for (int i = 0; i < SLOTS.length; i++) {
             if (SLOTS[i] == rawSlot) { index = i; break; }
         }
         if (index == -1) return;
+        int sort = sortMap.getOrDefault(player.getUniqueId(), 0);
         List<FastTravelPoint> list = manager.getPoints().stream()
                 .filter(FastTravelPoint::isTown)
-                .sorted(Comparator.comparing(FastTravelPoint::getName, String.CASE_INSENSITIVE_ORDER))
                 .collect(Collectors.toList());
+        Comparator<FastTravelPoint> comp = switch (sort) {
+            case 0 -> Comparator.comparingDouble((FastTravelPoint pt) -> player.getLocation().distance(pt.getLocation())).reversed();
+            case 1 -> Comparator.comparingDouble(pt -> player.getLocation().distance(pt.getLocation()));
+            case 2 -> Comparator.comparing(FastTravelPoint::getName, String.CASE_INSENSITIVE_ORDER);
+            case 3 -> Comparator.comparingLong((FastTravelPoint pt) -> getLastUsed(player, pt.getName())).reversed();
+            default -> Comparator.comparing(FastTravelPoint::getName, String.CASE_INSENSITIVE_ORDER);
+        };
+        list.sort(comp);
         int page = pageMap.getOrDefault(player.getUniqueId(), 0);
         int globalIndex = page * ITEMS_PER_PAGE + index;
         if (globalIndex >= list.size()) return;
@@ -150,6 +190,29 @@ public class FastTravelGUI implements Listener {
         return item;
     }
 
+    private ItemStack createSortButton(int mode) {
+        ItemStack it = new ItemStack(Material.COMPARATOR);
+        ItemMeta meta = it.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.AQUA + "Sort");
+            List<String> lore = new ArrayList<>();
+            String[] opts = {"Distance Far", "Distance Close", "A-Z", "Last Used"};
+            for (int i = 0; i < opts.length; i++) {
+                String pre = i == mode ? ChatColor.GREEN + "➤ " : ChatColor.GRAY + "  ";
+                lore.add(pre + opts[i]);
+            }
+            meta.setLore(lore);
+            it.setItemMeta(meta);
+        }
+        return it;
+    }
+
+    private long getLastUsed(Player player, String name) {
+        Map<String, Long> map = lastUsed.get(player.getUniqueId());
+        if (map == null) return 0L;
+        return map.getOrDefault(name.toLowerCase(), 0L);
+    }
+
     private void startCast(Player player, FastTravelPoint target, int cost) {
         if (castTasks.containsKey(player.getUniqueId())) return;
 
@@ -172,17 +235,26 @@ public class FastTravelGUI implements Listener {
                     return;
                 }
 
-                player.getWorld().spawnParticle(Particle.ENCHANTMENT_TABLE, player.getLocation().add(0,1,0), 5, 0.5,0.5,0.5,0);
+                double radius = 2.5 * ticks / 60.0;
+                Location base = player.getLocation().add(0, 1, 0);
+                for (int i = 0; i < 16; i++) {
+                    double angle = 2 * Math.PI * i / 16;
+                    double x = base.getX() + radius * Math.cos(angle);
+                    double z = base.getZ() + radius * Math.sin(angle);
+                    base.getWorld().spawnParticle(Particle.DRAGON_BREATH, x, base.getY(), z, 0, 0, 0, 0);
+                }
 
-                ticks -= 20;
+                ticks--;
                 if (ticks <= 0) {
                     player.removePotionEffect(PotionEffectType.SLOW);
                     economy.deductCoins(player, cost);
                     player.teleport(target.getLocation());
                     player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 40, 0, false, false, false));
                     target.getLocation().getWorld().playSound(target.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 1f);
-                    target.getLocation().getWorld().spawnParticle(Particle.PORTAL, target.getLocation(), 80, 1,1,1,0.5);
+                    target.getLocation().getWorld().spawnParticle(Particle.PORTAL, target.getLocation(), 80, 1, 1, 1, 0.5);
                     player.sendMessage(ChatColor.GREEN + "Fast traveled to " + target.getName() + " for " + cost + " coins.");
+                    lastUsed.computeIfAbsent(player.getUniqueId(), k -> new HashMap<>())
+                            .put(target.getName().toLowerCase(), System.currentTimeMillis());
                     cancel();
                     castTasks.remove(player.getUniqueId());
                 }
@@ -190,6 +262,6 @@ public class FastTravelGUI implements Listener {
         };
 
         castTasks.put(player.getUniqueId(), task);
-        task.runTaskTimer(Main.getInstance(), 0L, 20L);
+        task.runTaskTimer(Main.getInstance(), 0L, 1L);
     }
 }
