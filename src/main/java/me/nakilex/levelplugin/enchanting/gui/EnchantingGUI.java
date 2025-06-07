@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -31,12 +32,16 @@ public class EnchantingGUI implements Listener {
     private static final int SIZE = 27;
 
     private final ItemManager itemManager;
+    private final EconomyManager economy;
+    private static final int BASE_COST = 150;
     private final Map<StatType, String> prefixes = new HashMap<>();
+    private final Map<String, StatType> prefixToStat = new HashMap<>();
     private final java.util.List<StatType> prefixList = new java.util.ArrayList<>();
     private final Map<Player, Inventory> openInventories = new HashMap<>();
 
     public EnchantingGUI(Main plugin, ItemManager itemManager) {
         this.itemManager = itemManager;
+        this.economy = plugin.getEconomyManager();
         File file = new File(plugin.getDataFolder(), "prefixes.yml");
         FileConfiguration cfg = YamlConfiguration.loadConfiguration(file);
         prefixes.put(StatType.HP, cfg.getString("hp", "Hearty"));
@@ -45,6 +50,10 @@ public class EnchantingGUI implements Listener {
         prefixes.put(StatType.AGI, cfg.getString("agility", "Nimble"));
         prefixes.put(StatType.INT, cfg.getString("intelligence", "Wise"));
         prefixes.put(StatType.DEX, cfg.getString("dexterity", "Precise"));
+
+        for (Map.Entry<StatType,String> e : prefixes.entrySet()) {
+            prefixToStat.put(e.getValue(), e.getKey());
+        }
 
         prefixList.addAll(prefixes.keySet());
         Bukkit.getPluginManager().registerEvents(this, plugin);
@@ -61,7 +70,7 @@ public class EnchantingGUI implements Listener {
         Inventory inv = Bukkit.createInventory(player, SIZE, TITLE);
         for (int i = 0; i < SIZE; i++) inv.setItem(i, filler());
         inv.setItem(13, null);
-        inv.setItem(22, createEnchantButton(false));
+        inv.setItem(22, createEnchantButton(false, 0));
         inv.setItem(8, createInfoItem());
 
         openInventories.put(player, inv);
@@ -108,18 +117,18 @@ public class EnchantingGUI implements Listener {
             return;
         }
 
-        for (String pre : prefixes.values()) {
-            if (cItem.getBaseName().startsWith(pre + " ")) {
-                player.sendMessage(ChatColor.RED + "Item already has a prefix.");
-                return;
-            }
+        int cost = getEnchantCost(cItem.getEnchantCount());
+        if (economy.getBalance(player) < cost) {
+            player.sendMessage(ChatColor.RED + "You need " + cost + " coins to enchant.");
+            return;
         }
 
+        economy.deductCoins(player, cost);
         applyRandomPrefix(player, stack, cItem);
         updateButton(player, gui);
     }
 
-    private ItemStack createEnchantButton(boolean ready) {
+    private ItemStack createEnchantButton(boolean ready, int cost) {
         ItemStack item = new ItemStack(Material.ENCHANTING_TABLE);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
@@ -127,7 +136,8 @@ public class EnchantingGUI implements Listener {
                 meta.setDisplayName(ChatColor.GREEN + "Apply Random Prefix");
                 meta.setLore(java.util.List.of(
                         ChatColor.GRAY + "Adds +20 to a random stat",
-                        ChatColor.GRAY + "and appends a prefix to the name."));
+                        ChatColor.GRAY + "and appends a prefix to the name.",
+                        ChatColor.GRAY + "Cost: " + ChatColor.GOLD + cost + " coins"));
             } else {
                 meta.setDisplayName(ChatColor.GRAY + "Place an item");
                 meta.setLore(java.util.List.of(ChatColor.DARK_GRAY + "Insert an item in the center."));
@@ -154,6 +164,24 @@ public class EnchantingGUI implements Listener {
     private void applyRandomPrefix(Player player, ItemStack stack, CustomItem item) {
         StatType type = prefixList.get(ThreadLocalRandom.current().nextInt(prefixList.size()));
         String prefix = prefixes.get(type);
+
+        for (Map.Entry<String, StatType> ent : prefixToStat.entrySet()) {
+            String pre = ent.getKey();
+            if (item.getBaseName().startsWith(pre + " ")) {
+                StatType old = ent.getValue();
+                switch (old) {
+                    case HP -> item.setBaseHp(item.getHp() - 20);
+                    case DEF -> item.setBaseDef(item.getDef() - 20);
+                    case STR -> item.setBaseStr(item.getStr() - 20);
+                    case AGI -> item.setBaseAgi(item.getAgi() - 20);
+                    case INT -> item.setBaseIntel(item.getIntel() - 20);
+                    case DEX -> item.setBaseDex(item.getDex() - 20);
+                }
+                item.setBaseName(item.getBaseName().substring(pre.length() + 1));
+                break;
+            }
+        }
+
         item.setBaseName(prefix + " " + item.getBaseName());
         int bonus = 20;
         switch (type) {
@@ -168,6 +196,8 @@ public class EnchantingGUI implements Listener {
         stack.setType(updated.getType());
         stack.setItemMeta(updated.getItemMeta());
         player.sendMessage(ChatColor.GREEN + "Item enchanted with " + prefix + "!");
+        item.incrementEnchantCount();
+        ItemUtil.updateEnchantCount(stack, item.getEnchantCount());
     }
 
     private void updateButton(Player player, Inventory gui) {
@@ -176,10 +206,21 @@ public class EnchantingGUI implements Listener {
         if (current != null && !current.getType().isAir()) {
             CustomItem ci = itemManager.getCustomItemFromItemStack(current);
             if (ci != null) {
-                ready = prefixes.values().stream().noneMatch(p -> ci.getBaseName().startsWith(p + " "));
+                ready = true;
             }
         }
-        gui.setItem(22, createEnchantButton(ready));
+        int cost = 0;
+        if (ready && current != null) {
+            CustomItem ci = itemManager.getCustomItemFromItemStack(current);
+            if (ci != null) {
+                cost = getEnchantCost(ci.getEnchantCount());
+            }
+        }
+        gui.setItem(22, createEnchantButton(ready, cost));
+    }
+
+    private int getEnchantCost(int count) {
+        return (int) (BASE_COST * Math.pow(2, count));
     }
 
     @EventHandler

@@ -55,6 +55,9 @@ public class CustomItem {
     // How many times this item has been upgraded (max 5)
     private int upgradeLevel = 0;
 
+    // How many times this item has been enchanted with a prefix
+    private int enchantCount = 0;
+
     /**
      * Primary constructor: loads an existing item instance (with a fixed UUID and upgradeLevel),
      * rolling its base stats once from the given ranges.
@@ -72,7 +75,8 @@ public class CustomItem {
                       StatRange agiRange,
                       StatRange intelRange,
                       StatRange dexRange,
-                      int upgradeLevel) {
+                      int upgradeLevel,
+                      int enchantCount) {
         this.uuid             = uuid;
         this.id               = id;
         this.baseName         = baseName;
@@ -97,6 +101,7 @@ public class CustomItem {
         this.baseDex   = dexRange.roll();
 
         this.upgradeLevel = upgradeLevel;
+        this.enchantCount = enchantCount;
 
         this.currentDurability = MAX_DURABILITY;
         this.broken            = false;
@@ -121,7 +126,7 @@ public class CustomItem {
         this(UUID.randomUUID(),
             id, baseName, rarity, levelRequirement, classRequirement, material,
             hpRange, defRange, strRange, agiRange, intelRange, dexRange,
-            0);
+            0, 0);
     }
 
     // ─── Getters ───────────────────────────────────────────────────────────────
@@ -149,6 +154,7 @@ public class CustomItem {
     public int getDex()   { return baseDex   + bonusDex; }
 
     public int getUpgradeLevel() { return upgradeLevel; }
+    public int getEnchantCount() { return enchantCount; }
 
     public int getCurrentDurability() {
         return currentDurability;
@@ -181,6 +187,14 @@ public class CustomItem {
 
     public void setUpgradeLevel(int upgradeLevel) {
         this.upgradeLevel = Math.min(5, Math.max(0, upgradeLevel));
+    }
+
+    public void setEnchantCount(int enchantCount) {
+        this.enchantCount = Math.max(0, enchantCount);
+    }
+
+    public void incrementEnchantCount() {
+        this.enchantCount++;
     }
 
     public void addBonusStats(int hp, int def, int str, int agi, int intel, int dex) {

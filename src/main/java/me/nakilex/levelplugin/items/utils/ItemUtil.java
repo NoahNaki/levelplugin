@@ -27,6 +27,7 @@ public class ItemUtil {
     public static final NamespacedKey ITEM_ID_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "custom_item_id");
     public static final NamespacedKey ITEM_UUID_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "custom_item_uuid");
     public static final NamespacedKey DURABILITY_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "custom_item_durability");
+    public static final NamespacedKey ENCHANT_COUNT_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "enchant_count");
 
 
     /**
@@ -128,6 +129,7 @@ public class ItemUtil {
         pdc.set(UPGRADE_LEVEL_KEY, PersistentDataType.INTEGER, cItem.getUpgradeLevel());
         pdc.set(ITEM_UUID_KEY, PersistentDataType.STRING, cItem.getUuid().toString());
         pdc.set(DURABILITY_KEY, PersistentDataType.INTEGER, cItem.getCurrentDurability());
+        pdc.set(ENCHANT_COUNT_KEY, PersistentDataType.INTEGER, cItem.getEnchantCount());
 
         stack.setItemMeta(meta);
         return stack;
@@ -253,10 +255,23 @@ public class ItemUtil {
         stack.setItemMeta(meta);
     }
 
+    public static void updateEnchantCount(ItemStack stack, int count) {
+        if (stack == null || !stack.hasItemMeta()) return;
+        ItemMeta meta = stack.getItemMeta();
+        meta.getPersistentDataContainer().set(ENCHANT_COUNT_KEY, PersistentDataType.INTEGER, count);
+        stack.setItemMeta(meta);
+    }
+
     public static int getDurability(ItemStack stack) {
         if (stack == null || !stack.hasItemMeta()) return 100;
         ItemMeta meta = stack.getItemMeta();
         return meta.getPersistentDataContainer().getOrDefault(DURABILITY_KEY, PersistentDataType.INTEGER, 100);
+    }
+
+    public static int getEnchantCount(ItemStack stack) {
+        if (stack == null || !stack.hasItemMeta()) return 0;
+        ItemMeta meta = stack.getItemMeta();
+        return meta.getPersistentDataContainer().getOrDefault(ENCHANT_COUNT_KEY, PersistentDataType.INTEGER, 0);
     }
 
 
