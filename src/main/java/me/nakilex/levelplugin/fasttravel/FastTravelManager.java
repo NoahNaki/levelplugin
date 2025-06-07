@@ -16,6 +16,7 @@ public class FastTravelManager {
     private final Main plugin;
     private final Map<String, FastTravelPoint> points = new HashMap<>();
     private final Map<UUID, Set<String>> unlocked = new HashMap<>();
+    private final Map<UUID, Map<String, Long>> lastUsed = new HashMap<>();
     private File file;
     private FileConfiguration config;
 
@@ -41,8 +42,9 @@ public class FastTravelManager {
                 String colorName = config.getString(path + ".color", "WHITE");
                 String desc = config.getString(path + ".desc", "");
                 double radius = config.getDouble(path + ".radius", 10);
+                boolean town = config.getBoolean(path + ".town", false);
                 Location loc = new Location(plugin.getServer().getWorld(world), x, y, z);
-                FastTravelPoint pt = new FastTravelPoint(key, ChatColor.valueOf(colorName), desc, loc, radius);
+                FastTravelPoint pt = new FastTravelPoint(key, ChatColor.valueOf(colorName), desc, loc, radius, town);
                 points.put(key.toLowerCase(), pt);
             }
         }
@@ -67,6 +69,7 @@ public class FastTravelManager {
             config.set(path + ".color", pt.getColor().name());
             config.set(path + ".desc", pt.getDescription());
             config.set(path + ".radius", pt.getRadius());
+            config.set(path + ".town", pt.isTown());
         }
         for (Map.Entry<UUID, Set<String>> e : unlocked.entrySet()) {
             config.set("players." + e.getKey(), new ArrayList<>(e.getValue()));
@@ -74,8 +77,8 @@ public class FastTravelManager {
         try { config.save(file); } catch (IOException e) { e.printStackTrace(); }
     }
 
-    public void addLocation(String name, ChatColor color, String desc, Location loc, double radius) {
-        points.put(name.toLowerCase(), new FastTravelPoint(name, color, desc, loc, radius));
+    public void addLocation(String name, ChatColor color, String desc, Location loc, double radius, boolean town) {
+        points.put(name.toLowerCase(), new FastTravelPoint(name, color, desc, loc, radius, town));
         save();
     }
 
@@ -95,6 +98,32 @@ public class FastTravelManager {
     public Collection<FastTravelPoint> getPoints() { return points.values(); }
 
     public FastTravelPoint getPoint(String name) { return points.get(name.toLowerCase()); }
+
+    public void recordUse(Player player, String name) {
+        lastUsed.computeIfAbsent(player.getUniqueId(), k -> new HashMap<>())
+                .put(name.toLowerCase(), System.currentTimeMillis());
+    }
+
+    public long getLastUse(Player player, String name) {
+        return lastUsed.getOrDefault(player.getUniqueId(), Collections.emptyMap())
+                .getOrDefault(name.toLowerCase(), 0L);
+    }
+
+    public FastTravelPoint getNearestTown(Player player) {
+        Location from = player.getLocation();
+        FastTravelPoint best = null;
+        double bestDist = Double.MAX_VALUE;
+        for (FastTravelPoint pt : points.values()) {
+            if (!pt.isTown()) continue;
+            if (!isUnlocked(player, pt.getName())) continue;
+            if (!pt.getLocation().getWorld().equals(from.getWorld())) continue;
+            double d = from.distance(pt.getLocation());
+            if (d < bestDist) { bestDist = d; best = pt; }
+        }
+        return best;
+    }
+
+    public Main getPlugin() { return plugin; }
 
     public void unlock(Player player, String name) {
         unlocked.computeIfAbsent(player.getUniqueId(), k -> new HashSet<>()).add(name.toLowerCase());
