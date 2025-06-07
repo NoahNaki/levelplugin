@@ -58,6 +58,9 @@ public class QuestManager {
         // Register quests here manually.
         Quest tutorial = new me.nakilex.levelplugin.quests.def.TutorialQuest();
         registerQuest(tutorial);
+        registerQuest(new me.nakilex.levelplugin.quests.def.RoosterRoundupQuest());
+        registerQuest(new me.nakilex.levelplugin.quests.def.TimberTroubleQuest());
+        registerQuest(new me.nakilex.levelplugin.quests.def.CanyonCleanupQuest());
         plugin.getLogger().info("Registered " + quests.size() + " quests.");
     }
 
