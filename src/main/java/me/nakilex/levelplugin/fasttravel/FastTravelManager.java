@@ -158,12 +158,16 @@ public class FastTravelManager {
     }
 
     /**
-     * Logs all registered ModelEngine model IDs to help with debugging.
+     * Logs each registered ModelEngine model ID on startup to help administrators
+     * know which identifiers are available for spawning waystones.
      */
     private void debugAvailableModels() {
         try {
             Set<String> ids = ModelEngineAPI.getAPI().getModelRegistry().keySet();
-            plugin.getLogger().info("Available ModelEngine models: " + ids);
+            plugin.getLogger().info("=== Available ModelEngine Models ===");
+            for (String id : ids) {
+                plugin.getLogger().info(" - " + id);
+            }
         } catch (Exception ex) {
             plugin.getLogger().warning("Unable to list ModelEngine models: " + ex.getMessage());
         }
