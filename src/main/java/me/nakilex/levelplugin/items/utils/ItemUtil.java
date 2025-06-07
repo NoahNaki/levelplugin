@@ -1,10 +1,16 @@
 package me.nakilex.levelplugin.items.utils;
 
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.data.CustomItem;
+import me.nakilex.levelplugin.items.data.ArmorType;
+import me.nakilex.levelplugin.items.data.WeaponType;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -28,6 +34,72 @@ public class ItemUtil {
     public static final NamespacedKey ITEM_UUID_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "custom_item_uuid");
     public static final NamespacedKey DURABILITY_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "custom_item_durability");
     public static final NamespacedKey ENCHANT_COUNT_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "enchant_count");
+
+    private static final int PREFIX_BONUS = 20;
+    private static java.util.Map<String, StatType> prefixMap;
+
+    private static void ensurePrefixMap() {
+        if (prefixMap != null) return;
+        prefixMap = new java.util.HashMap<>();
+        try {
+            java.io.File file = new java.io.File(Main.getInstance().getDataFolder(), "prefixes.yml");
+            FileConfiguration cfg = YamlConfiguration.loadConfiguration(file);
+            for (String key : cfg.getKeys(false)) {
+                String pre = cfg.getString(key);
+                if (pre == null) continue;
+                prefixMap.put(pre, mapPrefixKey(key));
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
+    private static StatType mapPrefixKey(String key) {
+        switch (key.toLowerCase()) {
+            case "strength": return StatType.STR;
+            case "agility": return StatType.AGI;
+            case "dexterity": return StatType.DEX;
+            case "intelligence": return StatType.INT;
+            case "defense": return StatType.DEF;
+            case "hp": return StatType.HP;
+            default: return StatType.DEF;
+        }
+    }
+
+    private static PrefixData getPrefixData(CustomItem item) {
+        ensurePrefixMap();
+        String name = item.getBaseName();
+        for (java.util.Map.Entry<String, StatType> e : prefixMap.entrySet()) {
+            String pre = e.getKey();
+            if (name.startsWith(pre + " ") || name.equals(pre)) {
+                return new PrefixData(e.getValue(), PREFIX_BONUS);
+            }
+        }
+        return null;
+    }
+
+    private static class PrefixData {
+        final StatType stat;
+        final int bonus;
+        PrefixData(StatType s, int b) { this.stat = s; this.bonus = b; }
+    }
+
+    private static CustomItem getComparisonItem(Player player, ItemStack newItem) {
+        if (player == null || newItem == null) return null;
+        ItemStack equipped = null;
+        ArmorType armor = ArmorType.matchType(newItem);
+        if (armor != null) {
+            switch (armor) {
+                case HELMET -> equipped = player.getInventory().getHelmet();
+                case CHESTPLATE -> equipped = player.getInventory().getChestplate();
+                case LEGGINGS -> equipped = player.getInventory().getLeggings();
+                case BOOTS -> equipped = player.getInventory().getBoots();
+            }
+        } else if (WeaponType.matchType(newItem) != null) {
+            equipped = player.getInventory().getItemInMainHand();
+        }
+        if (equipped == null || equipped.getType() == Material.AIR) return null;
+        return ItemManager.getInstance().getCustomItemFromItemStack(equipped);
+    }
 
 
     /**
@@ -91,18 +163,63 @@ public class ItemUtil {
         lore.add(""); // Another blank line for spacing
 
         // --- Stats Information ---
-        if (cItem.getHp() != 0)
-            lore.add(ChatColor.RED + "❤ " + ChatColor.GRAY + "Health: " + ChatColor.RED + "+" + cItem.getHp());
-        if (cItem.getDef() != 0)
-            lore.add(ChatColor.GRAY + "⛂ " + ChatColor.GRAY + "Defence: " + ChatColor.WHITE + "+" + cItem.getDef());
-        if (cItem.getStr() != 0)
-            lore.add(ChatColor.BLUE + "☠ " + ChatColor.GRAY + "Strength: " + ChatColor.WHITE + "+" + cItem.getStr());
-        if (cItem.getAgi() != 0)
-            lore.add(ChatColor.GREEN + "≈ " + ChatColor.GRAY + "Agility: " + ChatColor.WHITE + "+" + cItem.getAgi());
-        if (cItem.getIntel() != 0)
-            lore.add(ChatColor.AQUA + "♦ " + ChatColor.GRAY + "Intelligence: " + ChatColor.WHITE + "+" + cItem.getIntel());
-        if (cItem.getDex() != 0)
-            lore.add(ChatColor.YELLOW + "➹ " + ChatColor.GRAY + "Dexterity: " + ChatColor.WHITE + "+" + cItem.getDex());
+        PrefixData pre = getPrefixData(cItem);
+        CustomItem compare = getComparisonItem(player, stack);
+
+        if (cItem.getHp() != 0) {
+            String line = ChatColor.RED + "❤ " + ChatColor.GRAY + "Health: " + ChatColor.RED + "+" + cItem.getHp();
+            if (pre != null && pre.stat == StatType.HP)
+                line += ChatColor.LIGHT_PURPLE + " (+" + pre.bonus + ")";
+            int diff = compare != null ? cItem.getHp() - compare.getHp() : 0;
+            if (diff != 0)
+                line += (diff > 0 ? ChatColor.GREEN : ChatColor.RED) + " (" + (diff > 0 ? "+" : "") + diff + ")";
+            lore.add(line);
+        }
+        if (cItem.getDef() != 0) {
+            String line = ChatColor.GRAY + "⛂ " + ChatColor.GRAY + "Defence: " + ChatColor.WHITE + "+" + cItem.getDef();
+            if (pre != null && pre.stat == StatType.DEF)
+                line += ChatColor.LIGHT_PURPLE + " (+" + pre.bonus + ")";
+            int diff = compare != null ? cItem.getDef() - compare.getDef() : 0;
+            if (diff != 0)
+                line += (diff > 0 ? ChatColor.GREEN : ChatColor.RED) + " (" + (diff > 0 ? "+" : "") + diff + ")";
+            lore.add(line);
+        }
+        if (cItem.getStr() != 0) {
+            String line = ChatColor.BLUE + "☠ " + ChatColor.GRAY + "Strength: " + ChatColor.WHITE + "+" + cItem.getStr();
+            if (pre != null && pre.stat == StatType.STR)
+                line += ChatColor.LIGHT_PURPLE + " (+" + pre.bonus + ")";
+            int diff = compare != null ? cItem.getStr() - compare.getStr() : 0;
+            if (diff != 0)
+                line += (diff > 0 ? ChatColor.GREEN : ChatColor.RED) + " (" + (diff > 0 ? "+" : "") + diff + ")";
+            lore.add(line);
+        }
+        if (cItem.getAgi() != 0) {
+            String line = ChatColor.GREEN + "≈ " + ChatColor.GRAY + "Agility: " + ChatColor.WHITE + "+" + cItem.getAgi();
+            if (pre != null && pre.stat == StatType.AGI)
+                line += ChatColor.LIGHT_PURPLE + " (+" + pre.bonus + ")";
+            int diff = compare != null ? cItem.getAgi() - compare.getAgi() : 0;
+            if (diff != 0)
+                line += (diff > 0 ? ChatColor.GREEN : ChatColor.RED) + " (" + (diff > 0 ? "+" : "") + diff + ")";
+            lore.add(line);
+        }
+        if (cItem.getIntel() != 0) {
+            String line = ChatColor.AQUA + "♦ " + ChatColor.GRAY + "Intelligence: " + ChatColor.WHITE + "+" + cItem.getIntel();
+            if (pre != null && pre.stat == StatType.INT)
+                line += ChatColor.LIGHT_PURPLE + " (+" + pre.bonus + ")";
+            int diff = compare != null ? cItem.getIntel() - compare.getIntel() : 0;
+            if (diff != 0)
+                line += (diff > 0 ? ChatColor.GREEN : ChatColor.RED) + " (" + (diff > 0 ? "+" : "") + diff + ")";
+            lore.add(line);
+        }
+        if (cItem.getDex() != 0) {
+            String line = ChatColor.YELLOW + "➹ " + ChatColor.GRAY + "Dexterity: " + ChatColor.WHITE + "+" + cItem.getDex();
+            if (pre != null && pre.stat == StatType.DEX)
+                line += ChatColor.LIGHT_PURPLE + " (+" + pre.bonus + ")";
+            int diff = compare != null ? cItem.getDex() - compare.getDex() : 0;
+            if (diff != 0)
+                line += (diff > 0 ? ChatColor.GREEN : ChatColor.RED) + " (" + (diff > 0 ? "+" : "") + diff + ")";
+            lore.add(line);
+        }
 
         lore.add(""); // Blank line before rarity
 
@@ -202,18 +319,63 @@ public class ItemUtil {
         lore.add(""); // Blank line for spacing
 
         // --- Stats Information ---
-        if (cItem.getHp() != 0)
-            lore.add(ChatColor.RED + "❤ " + ChatColor.GRAY + "Health: " + ChatColor.RED + "+" + cItem.getHp());
-        if (cItem.getDef() != 0)
-            lore.add(ChatColor.GRAY + "⛂ " + ChatColor.GRAY + "Defence: " + ChatColor.WHITE + "+" + cItem.getDef());
-        if (cItem.getStr() != 0)
-            lore.add(ChatColor.BLUE + "☠ " + ChatColor.GRAY + "Strength: " + ChatColor.WHITE + "+" + cItem.getStr());
-        if (cItem.getAgi() != 0)
-            lore.add(ChatColor.GREEN + "≈ " + ChatColor.GRAY + "Agility: " + ChatColor.WHITE + "+" + cItem.getAgi());
-        if (cItem.getIntel() != 0)
-            lore.add(ChatColor.AQUA + "♦ " + ChatColor.GRAY + "Intelligence: " + ChatColor.WHITE + "+" + cItem.getIntel());
-        if (cItem.getDex() != 0)
-            lore.add(ChatColor.YELLOW + "➹ " + ChatColor.GRAY + "Dexterity: " + ChatColor.WHITE + "+" + cItem.getDex());
+        PrefixData pre = getPrefixData(cItem);
+        CustomItem compare = getComparisonItem(player, stack);
+
+        if (cItem.getHp() != 0) {
+            String line = ChatColor.RED + "❤ " + ChatColor.GRAY + "Health: " + ChatColor.RED + "+" + cItem.getHp();
+            if (pre != null && pre.stat == StatType.HP)
+                line += ChatColor.LIGHT_PURPLE + " (+" + pre.bonus + ")";
+            int diff = compare != null ? cItem.getHp() - compare.getHp() : 0;
+            if (diff != 0)
+                line += (diff > 0 ? ChatColor.GREEN : ChatColor.RED) + " (" + (diff > 0 ? "+" : "") + diff + ")";
+            lore.add(line);
+        }
+        if (cItem.getDef() != 0) {
+            String line = ChatColor.GRAY + "⛂ " + ChatColor.GRAY + "Defence: " + ChatColor.WHITE + "+" + cItem.getDef();
+            if (pre != null && pre.stat == StatType.DEF)
+                line += ChatColor.LIGHT_PURPLE + " (+" + pre.bonus + ")";
+            int diff = compare != null ? cItem.getDef() - compare.getDef() : 0;
+            if (diff != 0)
+                line += (diff > 0 ? ChatColor.GREEN : ChatColor.RED) + " (" + (diff > 0 ? "+" : "") + diff + ")";
+            lore.add(line);
+        }
+        if (cItem.getStr() != 0) {
+            String line = ChatColor.BLUE + "☠ " + ChatColor.GRAY + "Strength: " + ChatColor.WHITE + "+" + cItem.getStr();
+            if (pre != null && pre.stat == StatType.STR)
+                line += ChatColor.LIGHT_PURPLE + " (+" + pre.bonus + ")";
+            int diff = compare != null ? cItem.getStr() - compare.getStr() : 0;
+            if (diff != 0)
+                line += (diff > 0 ? ChatColor.GREEN : ChatColor.RED) + " (" + (diff > 0 ? "+" : "") + diff + ")";
+            lore.add(line);
+        }
+        if (cItem.getAgi() != 0) {
+            String line = ChatColor.GREEN + "≈ " + ChatColor.GRAY + "Agility: " + ChatColor.WHITE + "+" + cItem.getAgi();
+            if (pre != null && pre.stat == StatType.AGI)
+                line += ChatColor.LIGHT_PURPLE + " (+" + pre.bonus + ")";
+            int diff = compare != null ? cItem.getAgi() - compare.getAgi() : 0;
+            if (diff != 0)
+                line += (diff > 0 ? ChatColor.GREEN : ChatColor.RED) + " (" + (diff > 0 ? "+" : "") + diff + ")";
+            lore.add(line);
+        }
+        if (cItem.getIntel() != 0) {
+            String line = ChatColor.AQUA + "♦ " + ChatColor.GRAY + "Intelligence: " + ChatColor.WHITE + "+" + cItem.getIntel();
+            if (pre != null && pre.stat == StatType.INT)
+                line += ChatColor.LIGHT_PURPLE + " (+" + pre.bonus + ")";
+            int diff = compare != null ? cItem.getIntel() - compare.getIntel() : 0;
+            if (diff != 0)
+                line += (diff > 0 ? ChatColor.GREEN : ChatColor.RED) + " (" + (diff > 0 ? "+" : "") + diff + ")";
+            lore.add(line);
+        }
+        if (cItem.getDex() != 0) {
+            String line = ChatColor.YELLOW + "➹ " + ChatColor.GRAY + "Dexterity: " + ChatColor.WHITE + "+" + cItem.getDex();
+            if (pre != null && pre.stat == StatType.DEX)
+                line += ChatColor.LIGHT_PURPLE + " (+" + pre.bonus + ")";
+            int diff = compare != null ? cItem.getDex() - compare.getDex() : 0;
+            if (diff != 0)
+                line += (diff > 0 ? ChatColor.GREEN : ChatColor.RED) + " (" + (diff > 0 ? "+" : "") + diff + ")";
+            lore.add(line);
+        }
 
         lore.add(""); // Blank line before rarity
 
