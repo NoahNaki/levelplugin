@@ -8,7 +8,6 @@ import me.nakilex.levelplugin.player.attributes.managers.HealthRegenTask;
 import me.nakilex.levelplugin.player.attributes.managers.ManaRegenTask;
 import me.nakilex.levelplugin.player.attributes.managers.StaminaTask;
 import me.nakilex.levelplugin.horse.utils.HorseSaverTask;
-import me.nakilex.levelplugin.spells.managers.ManaCostTracker;
 import me.nakilex.levelplugin.scoreboard.ScoreboardTask;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
 import me.nakilex.levelplugin.quests.tasks.QuestNPCEffectTask;

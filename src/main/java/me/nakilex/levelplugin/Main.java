@@ -153,7 +153,12 @@ public class Main extends JavaPlugin {
         instance = this;
         plugin = this;
 
-        manaTracker = new ManaCostTracker(1.5, 5_000L);
+        try {
+            manaTracker = new ManaCostTracker(1.5, 5_000L);
+        } catch (NoClassDefFoundError err) {
+            getLogger().severe("Failed to load ManaCostTracker class: " + err.getMessage());
+            manaTracker = null;
+        }
 
         if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
             new MyCustomExpansion(this).register();
