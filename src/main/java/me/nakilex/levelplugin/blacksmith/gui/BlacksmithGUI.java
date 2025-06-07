@@ -173,14 +173,22 @@ public class BlacksmithGUI implements Listener {
     private ItemStack createUpgradeButton(int upgradeCost, int successChance) {
         ItemStack upgrade = new ItemStack(Material.ANVIL);
         ItemMeta meta = upgrade.getItemMeta();
-        meta.setDisplayName("§aUpgrade");
         List<String> lore = new ArrayList<>();
-        if (upgradeCost > 0) {
-            lore.add("§7Cost: §6⛃ " + upgradeCost);
-            lore.add("§7Success Chance: §6" + successChance + "%");
+
+        if (upgradeCost < 0) {
+            // Negative cost indicates the item reached the upgrade cap
+            meta.setDisplayName("§cMax Level");
+            lore.add("§7This item cannot be upgraded further.");
         } else {
-            lore.add("§7Place an item in upgrade slot.");
+            meta.setDisplayName("§aUpgrade");
+            if (upgradeCost > 0) {
+                lore.add("§7Cost: §6⛃ " + upgradeCost);
+                lore.add("§7Success Chance: §6" + successChance + "%");
+            } else {
+                lore.add("§7Place an item in upgrade slot.");
+            }
         }
+
         meta.setLore(lore);
         upgrade.setItemMeta(meta);
         return upgrade;
@@ -377,6 +385,10 @@ public class BlacksmithGUI implements Listener {
             if (ci == null) return;
 
             if (title.equals(GUI_TITLE_UPGRADE)) {
+                if (ci.getUpgradeLevel() >= 5) {
+                    player.sendMessage("§cItem has reached the maximum upgrade level.");
+                    return;
+                }
                 int cost = upgradeManager.getUpgradeCost(ci);
                 int chance = upgradeManager.getSuccessChance(ci);
                 try {
@@ -392,7 +404,13 @@ public class BlacksmithGUI implements Listener {
                 } else {
                     player.sendMessage("§cUpgrade failed!");
                 }
-                gui.setItem(22, createUpgradeButton(upgradeManager.getUpgradeCost(ci), upgradeManager.getSuccessChance(ci)));
+                if (ci.getUpgradeLevel() >= 5) {
+                    gui.setItem(22, createUpgradeButton(-1, 0));
+                } else {
+                    gui.setItem(22, createUpgradeButton(
+                            upgradeManager.getUpgradeCost(ci),
+                            upgradeManager.getSuccessChance(ci)));
+                }
             } else if (title.equals(GUI_TITLE_REPAIR)) {
                 int cost = repairManager.getRepairCost(ci);
                 try {
@@ -507,9 +525,13 @@ public class BlacksmithGUI implements Listener {
         }
 
         if (title.equals(GUI_TITLE_UPGRADE)) {
-            gui.setItem(22, createUpgradeButton(
-                upgradeManager.getUpgradeCost(ci),
-                upgradeManager.getSuccessChance(ci)));
+            if (ci.getUpgradeLevel() >= 5) {
+                gui.setItem(22, createUpgradeButton(-1, 0));
+            } else {
+                gui.setItem(22, createUpgradeButton(
+                    upgradeManager.getUpgradeCost(ci),
+                    upgradeManager.getSuccessChance(ci)));
+            }
         } else if (title.equals(GUI_TITLE_REPAIR)) {
             gui.setItem(22, createRepairButton(repairManager.getRepairCost(ci)));
         } else {

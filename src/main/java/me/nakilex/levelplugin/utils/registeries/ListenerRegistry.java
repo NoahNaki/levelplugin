@@ -76,9 +76,10 @@ public class ListenerRegistry {
                                          MeteorListener meteorListener,
                                          GemsManager gemsManager,
                                          IdentifyRunesGUI identifyRunesGUI,
-                                         RunesManager runesManager,
-                                         EquipRunesGUI   equipGui,
-                                         ChestHologramListener chestHologramListener,
+                                        RunesManager runesManager,
+                                        EquipRunesGUI   equipGui,
+                                        me.nakilex.levelplugin.enchanting.gui.EnchantGUI enchantGUI,
+                                        ChestHologramListener chestHologramListener,
                                         QuestManager questManager,
                                         NPCDialogManager dialogManager,
                                          PlayerScoreboardManager scoreboardManager,
@@ -141,6 +142,7 @@ public class ListenerRegistry {
         pm.registerEvents(new FullInventoryListener(), plugin);
         pm.registerEvents(new IdentifyRunesGUI(plugin, runesManager), plugin);
         pm.registerEvents(new EquipRunesGUI(plugin, runesManager, identifyRunesGUI), plugin);
+        pm.registerEvents(enchantGUI, plugin);
         pm.registerEvents(new QuestKillListener(questManager), plugin);
         pm.registerEvents(new QuestCraftListener(questManager), plugin);
         pm.registerEvents(new QuestGUIListener(questManager), plugin);

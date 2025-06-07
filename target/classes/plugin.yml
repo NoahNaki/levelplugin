@@ -136,9 +136,15 @@ commands:
   quest:
     description: Manage quests
     usage: /quest [start|reset|complete|status|debug]
+  location:
+    description: Manage fast travel locations
+    usage: /location <set|move|remove>
   wipeprofile:
     description: Wipe a player's profile
     usage: /wipeprofile <player>
   genitem:
     description: Gives a procedurally generated item
     usage: /genitem [player] <mobType> <level> [amount]
+  enchant:
+    description: Opens the enchanting GUI
+    usage: /enchant

@@ -22,6 +22,7 @@ public class ItemUpgradeManager {
      * Calculate the coins cost to upgrade an item.
      */
     public int getUpgradeCost(CustomItem item) {
+        if (item.getUpgradeLevel() >= 5) return -1;
         int baseCost = 200;
         int rarityMultiplier = item.getRarity().ordinal() + 1;
         return baseCost + (item.getUpgradeLevel() * 250 * rarityMultiplier);

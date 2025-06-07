@@ -84,6 +84,11 @@ public class EquipOnJoinListener implements Listener {
     private void applyWeaponIfNeeded(Player player, UUID puuid, Set<Integer> equipped, ItemStack item) {
         if (item == null || item.getType().isAir()) return;
 
+        // Skip applying weapon stats if the item is actually armor being held
+        // in the player's hand. This prevents armor bonuses from activating
+        // merely by logging in while holding an armor piece.
+        if (ArmorType.matchType(item) != null) return;
+
         WeaponType type = WeaponType.matchType(item);
         CustomItem ci = itemManager.getCustomItemFromItemStack(item);
         if (type == null && ci == null) return;
