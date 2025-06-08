@@ -89,7 +89,8 @@ public class CommandRegistry {
                                         me.nakilex.levelplugin.enchanting.gui.EnchantGUI enchantGUI,
                                         BroadcastManager broadcastMgr,
                                         QuestManager questManager,
-                                        FastTravelManager fastTravelManager) {
+                                        FastTravelManager fastTravelManager,
+                                        me.nakilex.levelplugin.motd.MotdManager motdManager) {
 
 
         plugin.getCommand("addpoints").setExecutor(new AddPointsCommand());
@@ -132,8 +133,7 @@ public class CommandRegistry {
         plugin.getCommand("fasttravel").setExecutor(new FastTravelCommand(plugin.getFastTravelGUI()));
         plugin.getCommand("wipeprofile").setExecutor(new WipeProfileCommand(levelManager, StatsManager.getInstance(), economyManager, gemsManager));
         plugin.getCommand("nexoscan").setExecutor(new NexoScanCommand());
-
-
+        plugin.getCommand("motd").setExecutor(new me.nakilex.levelplugin.motd.MotdCommand(motdManager));
 
     }
 }
