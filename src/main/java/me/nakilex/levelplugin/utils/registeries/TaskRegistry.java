@@ -14,6 +14,7 @@ import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
 import me.nakilex.levelplugin.quests.tasks.QuestNPCEffectTask;
 import me.nakilex.levelplugin.quests.tasks.QuestBeaconTask;
 import me.nakilex.levelplugin.quests.managers.BeaconManager;
+import me.nakilex.levelplugin.world.LeafParticleTask;
 
 public class TaskRegistry {
 
@@ -29,6 +30,8 @@ public class TaskRegistry {
         if (sbManager != null) {
             new ScoreboardTask(sbManager).runTaskTimer(plugin, 20L, 20L);
         }
+
+        new LeafParticleTask(plugin).runTaskTimer(plugin, 20L, 20L);
 
         new QuestNPCEffectTask(plugin.getQuestManager()).runTaskTimer(plugin, 20L, 20L);
         BeaconManager beaconMgr = plugin.getBeaconManager();
