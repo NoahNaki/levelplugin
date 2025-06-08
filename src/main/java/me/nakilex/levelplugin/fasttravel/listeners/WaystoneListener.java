@@ -1,7 +1,7 @@
 package me.nakilex.levelplugin.fasttravel.listeners;
 
-import io.th0rgal.oraxen.api.events.furniture.OraxenFurnitureInteractEvent;
-import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureMechanic;
+import com.nexomc.nexo.api.events.furniture.NexoFurnitureInteractEvent;
+import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
 import me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -14,9 +14,11 @@ public class WaystoneListener implements Listener {
     }
 
     @EventHandler
-    public void onInteract(OraxenFurnitureInteractEvent event) {
+    public void onInteract(NexoFurnitureInteractEvent event) {
         FurnitureMechanic mech = event.getMechanic();
-        if (!"base_beacon_blue".equals(mech.getItemID())) return;
+        //event.getPlayer().sendMessage("Debug clicked id: " + mech.getItemID());
+        if (!"base_beacon_blue".equals(mech.getItemID()) &&
+            !"base_beacon_blue_inventory".equals(mech.getItemID())) return;
         event.setCancelled(true);
         gui.open(event.getPlayer());
     }
