@@ -119,7 +119,7 @@ public class LootChestManager {
         // 1) Place our "crate_lvl1" Nexo furniture instead of a vanilla CHEST block.
         //    We must supply a yaw (float) and a BlockFace (choose whichever facing you want).
         //    Here we use yaw = 0f, facing = NORTH (you can rotate if desired).
-        FurnitureMechanic mech = NexoFurniture.getFurnitureMechanic("crate_lvl1");
+        FurnitureMechanic mech = NexoFurniture.furnitureMechanic("crate_lvl1");
         if (mech == null) {
             plugin.getLogger().severe(
                 "[LootChestManager] Could not find FurnitureMechanic for ID 'crate_lvl1'. Did your YAML register it?"
@@ -171,7 +171,7 @@ public class LootChestManager {
         boolean chunkLoaded = base.getChunk().isLoaded();
 
         // Check if there is STILL a crate_lvl1 at that Location:
-        FurnitureMechanic mechAtLoc = NexoFurniture.getFurnitureMechanic(base.getBlock());
+        FurnitureMechanic mechAtLoc = NexoFurniture.furnitureMechanic(base.getBlock());
         boolean isCrate = (mechAtLoc != null && mechAtLoc.getItemID().equals("crate_lvl1"));
 
         if (!chunkLoaded || !isCrate) {
@@ -336,7 +336,7 @@ public class LootChestManager {
             plugin,
             () -> {
                 // Check if there is still a "crate_lvl1" Nexo furniture at that Location:
-                FurnitureMechanic mechAtLoc = NexoFurniture.getFurnitureMechanic(loc.getBlock());
+                FurnitureMechanic mechAtLoc = NexoFurniture.furnitureMechanic(loc.getBlock());
                 if (mechAtLoc != null && mechAtLoc.getItemID().equals("crate_lvl1")) {
                     ParticleUtils.displayTierParticles(loc, tier);
                 }
