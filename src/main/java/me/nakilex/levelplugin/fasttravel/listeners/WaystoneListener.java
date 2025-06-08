@@ -5,8 +5,7 @@ import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
 import me.nakilex.levelplugin.fasttravel.FastTravelManager;
 import me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI;
 import me.nakilex.levelplugin.fasttravel.data.WaystoneType;
-import com.nexomc.nexo.api.NexoFurniture;
-import org.bukkit.block.BlockFace;
+import me.nakilex.levelplugin.fasttravel.display.ClientWaystoneManager;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
@@ -15,10 +14,12 @@ import org.bukkit.event.Listener;
 public class WaystoneListener implements Listener {
     private final FastTravelGUI gui;
     private final FastTravelManager manager;
+    private final ClientWaystoneManager display;
 
-    public WaystoneListener(FastTravelGUI gui, FastTravelManager manager) {
+    public WaystoneListener(FastTravelGUI gui, FastTravelManager manager, ClientWaystoneManager display) {
         this.gui = gui;
         this.manager = manager;
+        this.display = display;
     }
 
     @EventHandler
@@ -35,18 +36,9 @@ public class WaystoneListener implements Listener {
             if(ws != null && !manager.isUnlocked(event.getPlayer(), ws.getName())) {
                 manager.getPlugin().getLogger().info("[WaystoneListener] Unlocking " + ws.getName() + " for " + event.getPlayer().getName());
                 manager.unlock(event.getPlayer(), ws.getName());
+                display.show(event.getPlayer(), ws);
                 String color = ws.getType() == WaystoneType.TOWN ? ChatColor.BLUE.toString() : ChatColor.RED.toString();
-                boolean removed = NexoFurniture.remove(loc, null);
-                manager.getPlugin().getLogger().info("[WaystoneListener] remove inert at " + loc + " -> " + removed);
-                String newId = ws.getType() == WaystoneType.TOWN ? "base_beacon_blue" : "base_beacon_red";
-                FurnitureMechanic newMech = NexoFurniture.furnitureMechanic(newId);
-                if(newMech == null){
-                    manager.getPlugin().getLogger().severe("[WaystoneListener] Furniture ID '"+newId+"' not registered");
-                } else {
-                    NexoFurniture.place(newId, loc, 0f, BlockFace.NORTH);
-                    manager.getPlugin().getLogger().info("[WaystoneListener] placed " + newId + " at " + loc);
-                    event.getPlayer().sendMessage(color + "Waystone unlocked!");
-                }
+                event.getPlayer().sendMessage(color + "Waystone unlocked!");
             }
         }
 
