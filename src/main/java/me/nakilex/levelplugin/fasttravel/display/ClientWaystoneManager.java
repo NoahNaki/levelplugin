@@ -61,6 +61,7 @@ public class ClientWaystoneManager implements Listener {
         }
 
         ItemDisplay disp = spawnDisplay(loc, item, ws.getName());
+        // ensure only the given player can see and interact with this display
         for (Player p : Bukkit.getOnlinePlayers()) if (!p.equals(player)) p.hideEntity(manager.getPlugin(), disp);
         map.put(loc, new DisplayInfo(prev, disp));
     }
@@ -94,7 +95,8 @@ public class ClientWaystoneManager implements Listener {
         return loc.getWorld().spawn(loc.clone().add(0.5, 0, 0.5), ItemDisplay.class, d -> {
             d.setItemStack(item);
             d.setBillboard(org.bukkit.entity.Display.Billboard.FIXED);
-            Transformation tf = new Transformation(new Vector3f(0f, 1f, 0f), new Quaternionf(), new Vector3f(1f,1f,1f), new Quaternionf());
+            // enlarge hitbox slightly so players can click it easily
+            Transformation tf = new Transformation(new Vector3f(0f, 0f, 0f), new Quaternionf(), new Vector3f(2f,2f,2f), new Quaternionf());
             d.setTransformation(tf);
             d.setPersistent(false);
             d.getPersistentDataContainer().set(KEY, PersistentDataType.STRING, name);

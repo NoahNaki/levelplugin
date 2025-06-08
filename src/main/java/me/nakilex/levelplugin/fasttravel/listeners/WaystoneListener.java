@@ -11,6 +11,9 @@ import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.block.Action;
+import org.bukkit.util.Vector;
 import org.bukkit.persistence.PersistentDataType;
 
 public class WaystoneListener implements Listener {
@@ -51,5 +54,36 @@ public class WaystoneListener implements Listener {
             event.getPlayer().sendMessage(color + "Waystone unlocked!");
         }
         gui.open(event.getPlayer());
+    }
+
+    @EventHandler
+    public void onRightClick(PlayerInteractEvent event) {
+        if (event.getHand() != org.bukkit.inventory.EquipmentSlot.HAND) return;
+        Action action = event.getAction();
+        if (action != Action.RIGHT_CLICK_BLOCK && action != Action.RIGHT_CLICK_AIR) return;
+        var player = event.getPlayer();
+        var eye = player.getEyeLocation();
+        Vector dir = eye.getDirection().normalize();
+        Waystone closest = null;
+        double best = 2.0;
+        for (var ws : manager.getWaystones()) {
+            if (!ws.getLocation().getWorld().equals(eye.getWorld())) continue;
+            Location center = ws.getLocation().clone().add(0.5, 1, 0.5);
+            double dist = center.distance(eye);
+            if (dist > best) continue;
+            Vector to = center.toVector().subtract(eye.toVector()).normalize();
+            if (to.dot(dir) < 0.95) continue;
+            best = dist;
+            closest = ws;
+        }
+        if (closest == null) return;
+        event.setCancelled(true);
+        if (!manager.isUnlocked(player, closest.getName())) {
+            manager.unlock(player, closest.getName());
+            display.unlock(player, closest);
+            String color = closest.getType() == WaystoneType.TOWN ? ChatColor.BLUE.toString() : ChatColor.RED.toString();
+            player.sendMessage(color + "Waystone unlocked!");
+        }
+        gui.open(player);
     }
 }
