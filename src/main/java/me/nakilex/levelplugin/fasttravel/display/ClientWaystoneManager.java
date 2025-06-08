@@ -24,6 +24,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.util.Transformation;
 import org.joml.Vector3f;
+import org.joml.Quaternionf;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -82,7 +83,7 @@ public class ClientWaystoneManager implements Listener {
         ItemDisplay disp = loc.getWorld().spawn(loc.clone().add(0.5, 0, 0.5), ItemDisplay.class, d -> {
             d.setItemStack(item);
             d.setBillboard(org.bukkit.entity.Display.Billboard.FIXED);
-            d.setTransformation(new Transformation(new Vector3f(), new Vector3f(), new Vector3f(1,1,1), new Vector3f()));
+            d.setTransformation(new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(1,1,1), new Quaternionf()));
             d.setPersistent(false);
             d.getPersistentDataContainer().set(KEY, PersistentDataType.STRING, ws.getName());
         });
