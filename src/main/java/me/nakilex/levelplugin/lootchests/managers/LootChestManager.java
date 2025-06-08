@@ -1,7 +1,7 @@
 package me.nakilex.levelplugin.lootchests.managers;
 
-import com.nexomc.nexo.api.NexoFurniture;
-import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
+import io.th0rgal.oraxen.api.OraxenFurniture;
+import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureMechanic;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
@@ -120,7 +120,7 @@ public class LootChestManager {
         //    We must supply a yaw (float) and a BlockFace (choose whichever facing you want).
         //    Here we use yaw = 0f, facing = NORTH (you can rotate if desired).
         String crateId = getCrateIdForTier(data.getTier());
-        FurnitureMechanic mech = NexoFurniture.furnitureMechanic(crateId);
+        FurnitureMechanic mech = OraxenFurniture.getFurnitureMechanic(crateId);
         if (mech == null) {
             plugin.getLogger().severe(
                 "[LootChestManager] Could not find FurnitureMechanic for ID '" + crateId + "'. Did your YAML register it?"
@@ -129,7 +129,7 @@ public class LootChestManager {
             return;
         }
         // The place(...) call returns the spawned Entity; we ignore it here.
-        NexoFurniture.place(crateId, loc, 0f, BlockFace.NORTH);
+        OraxenFurniture.place(crateId, loc, 0f, BlockFace.NORTH);
 
         // 2) Remember this location so getChestIdAtLocation(loc) will still work:
         spawnedChests.put(data.getChestId(), loc);
@@ -174,7 +174,7 @@ public class LootChestManager {
 
         // Check if there is STILL the correct crate furniture at that Location:
         String crateId = getCrateIdForTier(data.getTier());
-        FurnitureMechanic mechAtLoc = NexoFurniture.furnitureMechanic(base.getBlock());
+        FurnitureMechanic mechAtLoc = OraxenFurniture.getFurnitureMechanic(base.getBlock());
         boolean isCrate = (mechAtLoc != null && mechAtLoc.getItemID().equals(crateId));
 
         if (!chunkLoaded || !isCrate) {
@@ -340,7 +340,7 @@ public class LootChestManager {
             () -> {
                 // Check if there is still the correct crate furniture at that Location:
                 String crateId = getCrateIdForTier(tier);
-                FurnitureMechanic mechAtLoc = NexoFurniture.furnitureMechanic(loc.getBlock());
+                FurnitureMechanic mechAtLoc = OraxenFurniture.getFurnitureMechanic(loc.getBlock());
                 if (mechAtLoc != null && mechAtLoc.getItemID().equals(crateId)) {
                     ParticleUtils.displayTierParticles(loc, tier);
                 }
@@ -368,11 +368,11 @@ public class LootChestManager {
             return false;
         }
 
-        // 2) Attempt to remove the Nexo furniture at that Location
+        // 2) Attempt to remove the Oraxen furniture at that Location
         //    The remove(...) call will find the barrier entity / display entity combo and delete them.
-        boolean removed = NexoFurniture.remove(loc, null);
+        boolean removed = OraxenFurniture.remove(loc, null);
         if (!removed) {
-            plugin.getLogger().warning("[LootChestManager] Could not remove Nexo furniture at " + loc +
+            plugin.getLogger().warning("[LootChestManager] Could not remove Oraxen furniture at " + loc +
                 " (ID " + chestId + "). Maybe it's already gone?");
         }
 
@@ -462,12 +462,12 @@ public class LootChestManager {
     }
 
     /**
-     * Logs all furniture IDs currently registered by the Nexo plugin.
+     * Logs all furniture IDs currently registered by the Oraxen plugin.
      * Uses reflection as the API does not expose a public accessor.
      */
     private void debugRegisteredFurnitureIds() {
         try {
-            for (java.lang.reflect.Field field : NexoFurniture.class.getDeclaredFields()) {
+            for (java.lang.reflect.Field field : OraxenFurniture.class.getDeclaredFields()) {
                 if (!java.util.Map.class.isAssignableFrom(field.getType()) &&
                     !java.util.Set.class.isAssignableFrom(field.getType())) {
                     continue;
