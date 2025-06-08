@@ -27,8 +27,8 @@ public class LeafParticleTask extends BukkitRunnable {
     public void run() {
         for (World world : plugin.getServer().getWorlds()) {
             for (Chunk chunk : world.getLoadedChunks()) {
-                // Only a couple of attempts per chunk to keep the effect subtle
-                for (int i = 0; i < 2; i++) {
+                // Increase attempts so the effect is clearly visible while testing
+                for (int i = 0; i < 5; i++) {
                     int x = random.nextInt(16);
                     int z = random.nextInt(16);
                     int worldX = (chunk.getX() << 4) + x;
@@ -62,6 +62,7 @@ public class LeafParticleTask extends BukkitRunnable {
             // Generic leaf particle
             particle = Particle.CHERRY_LEAVES;
         }
-        world.spawnParticle(particle, loc, 1, 0.1, 0.0, 0.1, 0);
+        // Spawn a few particles to exaggerate the effect for testing
+        world.spawnParticle(particle, loc, 3, 0.1, 0.0, 0.1, 0);
     }
 }
