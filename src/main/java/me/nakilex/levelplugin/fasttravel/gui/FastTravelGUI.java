@@ -2,14 +2,15 @@ package me.nakilex.levelplugin.fasttravel.gui;
 
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.fasttravel.FastTravelManager;
-import me.nakilex.levelplugin.fasttravel.data.FastTravelPoint;
+import me.nakilex.levelplugin.fasttravel.data.Waystone;
+import me.nakilex.levelplugin.fasttravel.data.WaystoneType;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -62,24 +63,23 @@ public class FastTravelGUI implements Listener {
         for(int i=0;i<SIZE;i++){
             if(i<9 || i>=45 || i%9==0 || i%9==8){ gui.setItem(i,filler); }
         }
-        List<FastTravelPoint> list = new ArrayList<>();
-        for (FastTravelPoint pt : manager.getPoints()) {
-            if (manager.isUnlocked(player, pt.getName())) list.add(pt);
+        List<Waystone> list = new ArrayList<>();
+        for (Waystone ws : manager.getWaystones()) {
+            if (manager.isUnlocked(player, ws.getName())) list.add(ws);
         }
         int mode = sortMap.getOrDefault(player.getUniqueId(),0);
         list.sort(getComparator(mode,player));
         int start = page*ITEMS_PER_PAGE;
         int slot=0;
         for(int i=start;i<list.size() && slot<ITEMS_PER_PAGE;i++){
-            FastTravelPoint pt=list.get(i);
+            Waystone ws=list.get(i);
             ItemStack item = new ItemStack(Material.LODESTONE);
             ItemMeta meta=item.getItemMeta();
             if(meta!=null){
-                meta.setDisplayName(pt.getColor()+""+ChatColor.BOLD+pt.getName());
+                ChatColor c = ws.getType()== WaystoneType.TOWN ? ChatColor.BLUE : ChatColor.RED;
+                meta.setDisplayName(c+""+ChatColor.BOLD+ws.getName());
                 List<String> lore=new ArrayList<>();
-                int cost=(int)player.getLocation().distance(pt.getLocation());
-                lore.add(ChatColor.GRAY+pt.getDescription());
-                lore.add(" ");
+                int cost=(int)player.getLocation().distance(ws.getLocation());
                 lore.add(ChatColor.GRAY+"Teleportation Cost:");
                 lore.add(ChatColor.WHITE+""+cost+ChatColor.YELLOW+" ⛃");
                 meta.setLore(lore);
@@ -93,11 +93,11 @@ public class FastTravelGUI implements Listener {
         player.openInventory(gui);
     }
 
-    private Comparator<FastTravelPoint> getComparator(int mode, Player player){
+    private Comparator<Waystone> getComparator(int mode, Player player){
         return switch (mode){
-            case 0 -> Comparator.comparing((FastTravelPoint p)-> p.getLocation().distanceSquared(player.getLocation())).reversed();
-            case 1 -> Comparator.comparing(p-> p.getLocation().distanceSquared(player.getLocation()));
-            case 2 -> Comparator.comparing(FastTravelPoint::getName,String.CASE_INSENSITIVE_ORDER);
+            case 0 -> Comparator.comparing((Waystone w)-> w.getLocation().distanceSquared(player.getLocation())).reversed();
+            case 1 -> Comparator.comparing(w-> w.getLocation().distanceSquared(player.getLocation()));
+            case 2 -> Comparator.comparing(Waystone::getName,String.CASE_INSENSITIVE_ORDER);
             default -> {
                 String last = manager.getLastUsed(player);
                 yield (a,b)->{
@@ -124,9 +124,9 @@ public class FastTravelGUI implements Listener {
         if(slot==SORT_SLOT){
             int m=sortMap.getOrDefault(player.getUniqueId(),0); m=(m+1)%4; sortMap.put(player.getUniqueId(),m); open(player,pageMap.getOrDefault(player.getUniqueId(),0)); return; }
         // find point
-        List<FastTravelPoint> list = new ArrayList<>();
-        for (FastTravelPoint pt : manager.getPoints()) {
-            if (manager.isUnlocked(player, pt.getName())) list.add(pt);
+        List<Waystone> list = new ArrayList<>();
+        for (Waystone ws : manager.getWaystones()) {
+            if (manager.isUnlocked(player, ws.getName())) list.add(ws);
         }
         list.sort(getComparator(sortMap.getOrDefault(player.getUniqueId(),0),player));
         int index= Arrays.binarySearch(POINT_SLOTS, slot);
@@ -134,7 +134,7 @@ public class FastTravelGUI implements Listener {
         int start=pageMap.getOrDefault(player.getUniqueId(),0)*ITEMS_PER_PAGE;
         int actual=start+index;
         if(actual>=list.size()) return;
-        FastTravelPoint target=list.get(actual);
+        Waystone target=list.get(actual);
         int cost=(int)player.getLocation().distance(target.getLocation());
         if(economy.getBalance(player)<cost){
             player.sendMessage(ChatColor.RED+"You need "+cost+" coins to travel.");
@@ -144,7 +144,7 @@ public class FastTravelGUI implements Listener {
         startCast(player,target,cost);
     }
 
-    private void startCast(Player player, FastTravelPoint target, int cost){
+    private void startCast(Player player, Waystone target, int cost){
         economy.deductCoins(player,cost);
         manager.recordUse(player,target.getName());
         var startLoc=player.getLocation().clone();
@@ -160,7 +160,11 @@ public class FastTravelGUI implements Listener {
                     player.getWorld().spawnParticle(org.bukkit.Particle.DRAGON_BREATH,startLoc.clone().add(x,1,z),0,0,0,0,0);
                 }
                 if(--t<=0){
-                    player.teleport(target.getLocation());
+                    Location dest = target.getLocation().clone();
+                    double offX = (Math.random()*6)-3;
+                    double offZ = (Math.random()*6)-3;
+                    dest.add(offX, 0, offZ);
+                    player.teleport(dest);
                     player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS,40,0,false,false));
                     player.getWorld().spawnParticle(org.bukkit.Particle.FLASH,player.getLocation(),20,0.5,0.5,0.5,0);
                     cancel();
