@@ -28,13 +28,6 @@ public class ChestHologramListener implements Listener {
             }
         }
 
-        // 2) spawn fresh holograms for any chests whose Location is in here
-        for (ChestData data : lootChestManager.getAllChestData()) {
-            var loc = data.toLocation();
-            if (loc != null && loc.getChunk().equals(chunk)) {
-                lootChestManager.spawnHologramForChest(data);
-            }
-        }
     }
 
     @EventHandler

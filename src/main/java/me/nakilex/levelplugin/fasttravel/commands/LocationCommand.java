@@ -21,13 +21,14 @@ public class LocationCommand implements CommandExecutor {
         }
         if (args.length < 1) return false;
         String sub = args[0].toLowerCase();
-        if (sub.equals("set") && args.length >= 5) {
-            String name = args[1];
+        if (sub.equals("set") && args.length >= 6) {
+            String name = args[1].replace('_',' ');
             ChatColor color = ChatColor.valueOf(args[2].toUpperCase());
             String desc = args[3].replace('_', ' ');
             double radius = Double.parseDouble(args[4]);
+            boolean town = Boolean.parseBoolean(args[5]);
             Location loc = player.getLocation();
-            manager.addLocation(name, color, desc, loc, radius);
+            manager.addLocation(name, color, desc, loc, radius, town);
             player.sendMessage(ChatColor.GREEN + "Location " + name + " added.");
         } else if (sub.equals("move") && args.length >= 2) {
             manager.moveLocation(args[1], player.getLocation());
@@ -36,7 +37,7 @@ public class LocationCommand implements CommandExecutor {
             manager.removeLocation(args[1]);
             player.sendMessage(ChatColor.RED + "Location removed.");
         } else {
-            player.sendMessage(ChatColor.RED + "Usage: /location set|move|remove ...");
+            player.sendMessage(ChatColor.RED + "Usage: /location set <name> <color> <description_with_underscores> <radius> <true/false>");
         }
         return true;
     }

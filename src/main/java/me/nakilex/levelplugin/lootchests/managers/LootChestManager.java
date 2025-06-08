@@ -64,12 +64,6 @@ public class LootChestManager {
         // the Nexo plugin time to finish registering furniture IDs.
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             spawnAllChestsOnStartup();
-            for (ChestData data : chestDataList) {
-                Location loc = data.toLocation();
-                if (loc != null && loc.getChunk().isLoaded()) {
-                    spawnHologramForChest(data);
-                }
-            }
         }, 20L); // ~1 second after startup
     }
 
@@ -142,20 +136,8 @@ public class LootChestManager {
         ItemStack loot = getRandomLootForTier(data.getTier(), "default");
         data.setBufferedLootItem(loot);
 
-        // 4) Start the particle task (see the updated method below)
-        startParticleTask(data.getChestId(), loc, data.getTier());
-
-        // 5) Defer spawning the hologram by 1 tick, so the chunk is fully loaded
-        plugin.getServer().getScheduler().runTaskLater(
-            plugin,
-            () -> {
-                plugin.getLogger().info(
-                    "[LootChestManager] Deferred hologram spawn for chest " + data.getChestId()
-                );
-                spawnHologramForChest(data);
-            },
-            1L
-        );
+        // 4) Start the particle task (handles hologram spawning based on player proximity)
+        startParticleTask(data.getChestId(), loc, data.getTier(), data);
     }
 
 
@@ -170,6 +152,10 @@ public class LootChestManager {
                 "[LootChestManager] No location for chest " + data.getChestId()
             );
             return;
+        }
+
+        if (!data.getHolograms().isEmpty()) {
+            return; // already spawned
         }
 
         boolean chunkLoaded = base.getChunk().isLoaded();
@@ -334,23 +320,43 @@ public class LootChestManager {
     }
 
 
-    private void startParticleTask(int chestId, Location loc, int tier) {
+    private void startParticleTask(int chestId, Location loc, int tier, ChestData data) {
         cancelParticleTask(chestId);
 
         BukkitTask task = plugin.getServer().getScheduler().runTaskTimer(
             plugin,
             () -> {
-                // Check if there is still the correct crate furniture at that Location:
                 String crateId = getCrateIdForTier(tier);
                 FurnitureMechanic mechAtLoc = NexoFurniture.furnitureMechanic(loc.getBlock());
-                if (mechAtLoc != null && mechAtLoc.getItemID().equals(crateId)) {
+                boolean hasCrate = mechAtLoc != null && mechAtLoc.getItemID().equals(crateId);
+                if (!hasCrate) {
+                    removeHolograms(data);
+                    return;
+                }
+
+                boolean playerNearby = loc.getWorld().getPlayers().stream()
+                        .anyMatch(p -> p.getLocation().distanceSquared(loc) <= 20 * 20);
+
+                if (playerNearby) {
+                    if (data.getHolograms().isEmpty()) {
+                        spawnHologramForChest(data);
+                    }
                     ParticleUtils.displayTierParticles(loc, tier);
+                } else {
+                    removeHolograms(data);
                 }
             },
             0L,
             20L
         );
         chestParticleTasks.put(chestId, task);
+    }
+
+    private void removeHolograms(ChestData data) {
+        data.getHolograms().removeIf(stand -> {
+            if (!stand.isDead()) stand.remove();
+            return true;
+        });
     }
 
 
