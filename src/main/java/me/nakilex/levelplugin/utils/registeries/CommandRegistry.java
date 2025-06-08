@@ -59,6 +59,7 @@ import me.nakilex.levelplugin.quests.commands.QuestCommand;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.fasttravel.commands.LocationCommand;
 import me.nakilex.levelplugin.fasttravel.FastTravelManager;
+import me.nakilex.levelplugin.debug.commands.NexoScanCommand;
 
 public class CommandRegistry {
 
@@ -128,6 +129,7 @@ public class CommandRegistry {
         plugin.getCommand("quest").setExecutor(new QuestCommand(questManager));
         plugin.getCommand("location").setExecutor(new LocationCommand(fastTravelManager));
         plugin.getCommand("wipeprofile").setExecutor(new WipeProfileCommand(levelManager, StatsManager.getInstance(), economyManager, gemsManager));
+        plugin.getCommand("nexoscan").setExecutor(new NexoScanCommand());
 
 
 
