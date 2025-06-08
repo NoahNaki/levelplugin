@@ -32,7 +32,8 @@ public class NexoScanCommand implements CommandExecutor {
             int maxY = world.getMaxHeight();
             for (int x = 0; x < 16; x++) {
                 for (int z = 0; z < 16; z++) {
-                    for (int y = minY; y <= maxY; y++) {
+                    // getBlock requires y within the world's valid range
+                    for (int y = minY; y < maxY; y++) {
                         Block block = chunk.getBlock(x, y, z);
                         FurnitureMechanic mech = NexoFurniture.furnitureMechanic(block);
                         if (mech != null) {
