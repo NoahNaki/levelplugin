@@ -64,8 +64,11 @@ public class FastTravelGUI implements Listener {
             if(i<9 || i>=45 || i%9==0 || i%9==8){ gui.setItem(i,filler); }
         }
         List<Waystone> list = new ArrayList<>();
+        Waystone here = manager.getNearestWaystone(player.getLocation(), 3.0);
         for (Waystone ws : manager.getWaystones()) {
-            if (manager.isUnlocked(player, ws.getName())) list.add(ws);
+            if (!manager.isUnlocked(player, ws.getName())) continue;
+            if (here != null && ws.getName().equalsIgnoreCase(here.getName())) continue;
+            list.add(ws);
         }
         int mode = sortMap.getOrDefault(player.getUniqueId(),0);
         list.sort(getComparator(mode,player));
@@ -125,8 +128,11 @@ public class FastTravelGUI implements Listener {
             int m=sortMap.getOrDefault(player.getUniqueId(),0); m=(m+1)%4; sortMap.put(player.getUniqueId(),m); open(player,pageMap.getOrDefault(player.getUniqueId(),0)); return; }
         // find point
         List<Waystone> list = new ArrayList<>();
+        Waystone here = manager.getNearestWaystone(player.getLocation(), 3.0);
         for (Waystone ws : manager.getWaystones()) {
-            if (manager.isUnlocked(player, ws.getName())) list.add(ws);
+            if (!manager.isUnlocked(player, ws.getName())) continue;
+            if (here != null && ws.getName().equalsIgnoreCase(here.getName())) continue;
+            list.add(ws);
         }
         list.sort(getComparator(sortMap.getOrDefault(player.getUniqueId(),0),player));
         int index= Arrays.binarySearch(POINT_SLOTS, slot);

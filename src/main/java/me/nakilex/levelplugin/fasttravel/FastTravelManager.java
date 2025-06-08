@@ -184,6 +184,7 @@ public class FastTravelManager {
             plugin.getLogger().warning("[FastTravelManager] Waystone '" + ws.getName() + "' has null world");
             return;
         }
+        if(!loc.getChunk().isLoaded()) loc.getChunk().load();
         FurnitureMechanic existing = NexoFurniture.furnitureMechanic(loc.getBlock());
         if (existing != null) {
             plugin.getLogger().info("[FastTravelManager] Waystone '" + ws.getName() + "' already present at "

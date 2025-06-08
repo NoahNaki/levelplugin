@@ -33,12 +33,20 @@ public class WaystoneListener implements Listener {
             Location loc = event.getBaseEntity().getLocation();
             var ws = manager.getNearestWaystone(loc, 5.0);
             if(ws != null && !manager.isUnlocked(event.getPlayer(), ws.getName())) {
+                manager.getPlugin().getLogger().info("[WaystoneListener] Unlocking " + ws.getName() + " for " + event.getPlayer().getName());
                 manager.unlock(event.getPlayer(), ws.getName());
                 String color = ws.getType() == WaystoneType.TOWN ? ChatColor.BLUE.toString() : ChatColor.RED.toString();
-                NexoFurniture.remove(loc, null);
+                boolean removed = NexoFurniture.remove(loc, null);
+                manager.getPlugin().getLogger().info("[WaystoneListener] remove inert at " + loc + " -> " + removed);
                 String newId = ws.getType() == WaystoneType.TOWN ? "base_beacon_blue" : "base_beacon_red";
-                NexoFurniture.place(newId, loc, 0f, BlockFace.NORTH);
-                event.getPlayer().sendMessage(color + "Waystone unlocked!");
+                FurnitureMechanic newMech = NexoFurniture.furnitureMechanic(newId);
+                if(newMech == null){
+                    manager.getPlugin().getLogger().severe("[WaystoneListener] Furniture ID '"+newId+"' not registered");
+                } else {
+                    NexoFurniture.place(newId, loc, 0f, BlockFace.NORTH);
+                    manager.getPlugin().getLogger().info("[WaystoneListener] placed " + newId + " at " + loc);
+                    event.getPlayer().sendMessage(color + "Waystone unlocked!");
+                }
             }
         }
 
