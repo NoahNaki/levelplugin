@@ -26,7 +26,6 @@ import me.nakilex.levelplugin.mob.managers.DmgNumberToggleManager;
 import me.nakilex.levelplugin.mob.managers.MobManager;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.party.PartyGlowManager;
-import me.nakilex.levelplugin.placeholders.MyCustomExpansion;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
@@ -154,13 +153,6 @@ public class Main extends JavaPlugin {
         plugin = this;
 
         manaTracker = new ManaCostTracker(1.5, 5_000L);
-
-        if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
-            new MyCustomExpansion(this).register();
-            getLogger().info("MyCustomExpansion registered with PlaceholderAPI!");
-        } else {
-            getLogger().warning("PlaceholderAPI not found! Custom placeholders will not work.");
-        }
 
 
         // Load configuration files
