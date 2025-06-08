@@ -51,7 +51,6 @@ public class LootChestCloseListener implements Listener {
 
         // 3) Drop random coins (using the EconomyManager instance)
         if (Math.random() < COIN_CHANCE) {
-            int tier = lootChestManager.getTierForChest(chestId);
             int min, max;
             if (tier <= 2) {
                 min = 10; max = 20;
