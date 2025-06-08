@@ -99,6 +99,17 @@ public class FastTravelManager {
 
     public FastTravelPoint getPoint(String name) { return points.get(name.toLowerCase()); }
 
+    public FastTravelPoint getNearestPoint(Location loc, double maxDistance) {
+        double best = maxDistance * maxDistance;
+        FastTravelPoint bestPt = null;
+        for (FastTravelPoint pt : points.values()) {
+            if (!pt.getLocation().getWorld().equals(loc.getWorld())) continue;
+            double d = pt.getLocation().distanceSquared(loc);
+            if (d < best) { best = d; bestPt = pt; }
+        }
+        return bestPt;
+    }
+
     public void recordUse(Player player, String name) {
         lastUsed.put(player.getUniqueId(), name.toLowerCase());
     }

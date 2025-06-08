@@ -45,6 +45,10 @@ public class FastTravelGUI implements Listener {
         Bukkit.getPluginManager().registerEvents(this, manager.getPlugin());
     }
 
+    public FastTravelManager getManager() {
+        return manager;
+    }
+
     public void open(Player player) {
         open(player, pageMap.getOrDefault(player.getUniqueId(),0));
     }
@@ -59,28 +63,25 @@ public class FastTravelGUI implements Listener {
             if(i<9 || i>=45 || i%9==0 || i%9==8){ gui.setItem(i,filler); }
         }
         List<FastTravelPoint> list = new ArrayList<>();
-        for(FastTravelPoint pt: manager.getPoints()) if(pt.isTown()) list.add(pt);
+        for (FastTravelPoint pt : manager.getPoints()) {
+            if (manager.isUnlocked(player, pt.getName())) list.add(pt);
+        }
         int mode = sortMap.getOrDefault(player.getUniqueId(),0);
         list.sort(getComparator(mode,player));
         int start = page*ITEMS_PER_PAGE;
         int slot=0;
         for(int i=start;i<list.size() && slot<ITEMS_PER_PAGE;i++){
             FastTravelPoint pt=list.get(i);
-            boolean unlocked = manager.isUnlocked(player, pt.getName());
-            ItemStack item = new ItemStack(unlocked?Material.LODESTONE:Material.BARRIER);
+            ItemStack item = new ItemStack(Material.LODESTONE);
             ItemMeta meta=item.getItemMeta();
             if(meta!=null){
                 meta.setDisplayName(pt.getColor()+""+ChatColor.BOLD+pt.getName());
                 List<String> lore=new ArrayList<>();
-                if(unlocked){
-                    int cost=(int)player.getLocation().distance(pt.getLocation());
-                    lore.add(ChatColor.GRAY+pt.getDescription());
-                    lore.add(" ");
-                    lore.add(ChatColor.GRAY+"Teleportation Cost:");
-                    lore.add(ChatColor.WHITE+""+cost+ChatColor.YELLOW+" ⛃");
-                } else {
-                    lore.add(ChatColor.DARK_GRAY+"Locked");
-                }
+                int cost=(int)player.getLocation().distance(pt.getLocation());
+                lore.add(ChatColor.GRAY+pt.getDescription());
+                lore.add(" ");
+                lore.add(ChatColor.GRAY+"Teleportation Cost:");
+                lore.add(ChatColor.WHITE+""+cost+ChatColor.YELLOW+" ⛃");
                 meta.setLore(lore);
                 item.setItemMeta(meta);
             }
@@ -123,8 +124,10 @@ public class FastTravelGUI implements Listener {
         if(slot==SORT_SLOT){
             int m=sortMap.getOrDefault(player.getUniqueId(),0); m=(m+1)%4; sortMap.put(player.getUniqueId(),m); open(player,pageMap.getOrDefault(player.getUniqueId(),0)); return; }
         // find point
-        List<FastTravelPoint> list=new ArrayList<>();
-        for(FastTravelPoint pt: manager.getPoints()) if(pt.isTown()) list.add(pt);
+        List<FastTravelPoint> list = new ArrayList<>();
+        for (FastTravelPoint pt : manager.getPoints()) {
+            if (manager.isUnlocked(player, pt.getName())) list.add(pt);
+        }
         list.sort(getComparator(sortMap.getOrDefault(player.getUniqueId(),0),player));
         int index= Arrays.binarySearch(POINT_SLOTS, slot);
         if(index<0) return;
@@ -132,7 +135,6 @@ public class FastTravelGUI implements Listener {
         int actual=start+index;
         if(actual>=list.size()) return;
         FastTravelPoint target=list.get(actual);
-        if(!manager.isUnlocked(player,target.getName())) return;
         int cost=(int)player.getLocation().distance(target.getLocation());
         if(economy.getBalance(player)<cost){
             player.sendMessage(ChatColor.RED+"You need "+cost+" coins to travel.");
