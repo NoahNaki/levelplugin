@@ -125,6 +125,7 @@ public class LootChestManager {
             plugin.getLogger().severe(
                 "[LootChestManager] Could not find FurnitureMechanic for ID '" + crateId + "'. Did your YAML register it?"
             );
+            debugRegisteredFurnitureIds();
             return;
         }
         // The place(...) call returns the spawned Entity; we ignore it here.
@@ -458,6 +459,34 @@ public class LootChestManager {
      */
     public String getCrateIdForTier(int tier) {
         return "crate_lvl" + tier;
+    }
+
+    /**
+     * Logs all furniture IDs currently registered by the Nexo plugin.
+     * Uses reflection as the API does not expose a public accessor.
+     */
+    private void debugRegisteredFurnitureIds() {
+        try {
+            for (java.lang.reflect.Field field : NexoFurniture.class.getDeclaredFields()) {
+                if (!java.util.Map.class.isAssignableFrom(field.getType()) &&
+                    !java.util.Set.class.isAssignableFrom(field.getType())) {
+                    continue;
+                }
+                field.setAccessible(true);
+                Object value = field.get(null);
+                java.util.Collection<?> keys;
+                if (value instanceof java.util.Map<?,?> map) {
+                    keys = map.keySet();
+                } else if (value instanceof java.util.Set<?> set) {
+                    keys = set;
+                } else {
+                    continue;
+                }
+                plugin.getLogger().info("[LootChestManager] Available IDs from field '" + field.getName() + "': " + keys);
+            }
+        } catch (Exception ex) {
+            plugin.getLogger().warning("[LootChestManager] Failed to list furniture IDs: " + ex.getMessage());
+        }
     }
 
 
