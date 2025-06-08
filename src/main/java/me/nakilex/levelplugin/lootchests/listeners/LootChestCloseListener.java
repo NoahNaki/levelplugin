@@ -43,7 +43,9 @@ public class LootChestCloseListener implements Listener {
             return;
         }
         FurnitureMechanic mechAtLoc = NexoFurniture.furnitureMechanic(loc.getBlock());
-        if (mechAtLoc == null || !mechAtLoc.getItemID().equals("crate_lvl1")) {
+        int tier = lootChestManager.getTierForChest(chestId);
+        String expectedId = lootChestManager.getCrateIdForTier(tier);
+        if (mechAtLoc == null || !mechAtLoc.getItemID().equals(expectedId)) {
             return; // No crate there anymore
         }
 

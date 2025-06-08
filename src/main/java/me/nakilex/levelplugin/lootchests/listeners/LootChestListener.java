@@ -23,8 +23,10 @@ public class LootChestListener implements Listener {
     public void onFurnitureInteract(NexoFurnitureInteractEvent event) {
         // 1) Which furniture did the player click?
         FurnitureMechanic mech = event.getMechanic();
-        if (!"crate_lvl1".equals(mech.getItemID())) {
-            return; // not our crate, ignore
+
+        // Only handle our crate furniture
+        if (!mech.getItemID().startsWith("crate_lvl")) {
+            return;
         }
 
         // 2) Cancel default behavior (so the barrier block doesn’t break/open itself)
@@ -35,6 +37,13 @@ public class LootChestListener implements Listener {
         Integer chestId = lootChestManager.getChestIdAtLocation(loc);
         if (chestId == null) {
             return; // not one of our managed chests
+        }
+
+        // Verify the mechanic ID matches the tier for this chest
+        int tier = lootChestManager.getTierForChest(chestId);
+        String expectedId = lootChestManager.getCrateIdForTier(tier);
+        if (!mech.getItemID().equals(expectedId)) {
+            return;
         }
 
         // 4) Build the custom loot GUI

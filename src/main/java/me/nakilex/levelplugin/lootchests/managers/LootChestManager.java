@@ -116,18 +116,19 @@ public class LootChestManager {
             return;
         }
 
-        // 1) Place our "crate_lvl1" Nexo furniture instead of a vanilla CHEST block.
+        // 1) Place our tier specific crate furniture instead of a vanilla CHEST block.
         //    We must supply a yaw (float) and a BlockFace (choose whichever facing you want).
         //    Here we use yaw = 0f, facing = NORTH (you can rotate if desired).
-        FurnitureMechanic mech = NexoFurniture.furnitureMechanic("crate_lvl1");
+        String crateId = getCrateIdForTier(data.getTier());
+        FurnitureMechanic mech = NexoFurniture.furnitureMechanic(crateId);
         if (mech == null) {
             plugin.getLogger().severe(
-                "[LootChestManager] Could not find FurnitureMechanic for ID 'crate_lvl1'. Did your YAML register it?"
+                "[LootChestManager] Could not find FurnitureMechanic for ID '" + crateId + "'. Did your YAML register it?"
             );
             return;
         }
         // The place(...) call returns the spawned Entity; we ignore it here.
-        NexoFurniture.place("crate_lvl1", loc, 0f, BlockFace.NORTH);
+        NexoFurniture.place(crateId, loc, 0f, BlockFace.NORTH);
 
         // 2) Remember this location so getChestIdAtLocation(loc) will still work:
         spawnedChests.put(data.getChestId(), loc);
@@ -170,9 +171,10 @@ public class LootChestManager {
 
         boolean chunkLoaded = base.getChunk().isLoaded();
 
-        // Check if there is STILL a crate_lvl1 at that Location:
+        // Check if there is STILL the correct crate furniture at that Location:
+        String crateId = getCrateIdForTier(data.getTier());
         FurnitureMechanic mechAtLoc = NexoFurniture.furnitureMechanic(base.getBlock());
-        boolean isCrate = (mechAtLoc != null && mechAtLoc.getItemID().equals("crate_lvl1"));
+        boolean isCrate = (mechAtLoc != null && mechAtLoc.getItemID().equals(crateId));
 
         if (!chunkLoaded || !isCrate) {
             return;
@@ -335,9 +337,10 @@ public class LootChestManager {
         BukkitTask task = plugin.getServer().getScheduler().runTaskTimer(
             plugin,
             () -> {
-                // Check if there is still a "crate_lvl1" Nexo furniture at that Location:
+                // Check if there is still the correct crate furniture at that Location:
+                String crateId = getCrateIdForTier(tier);
                 FurnitureMechanic mechAtLoc = NexoFurniture.furnitureMechanic(loc.getBlock());
-                if (mechAtLoc != null && mechAtLoc.getItemID().equals("crate_lvl1")) {
+                if (mechAtLoc != null && mechAtLoc.getItemID().equals(crateId)) {
                     ParticleUtils.displayTierParticles(loc, tier);
                 }
             },
@@ -448,6 +451,13 @@ public class LootChestManager {
             }
         }
         return -1;
+    }
+
+    /**
+     * Convenience method to map a chest tier to its furniture ID.
+     */
+    public String getCrateIdForTier(int tier) {
+        return "crate_lvl" + tier;
     }
 
 
