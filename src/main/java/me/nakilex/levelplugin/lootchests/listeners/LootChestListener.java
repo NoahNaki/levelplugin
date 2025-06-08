@@ -30,8 +30,8 @@ public class LootChestListener implements Listener {
         // 2) Cancel default behavior (so the barrier block doesn’t break/open itself)
         event.setCancelled(true);
 
-        // 3) Locate our chestId from the clicked block’s location
-        Location loc = event.getBlock().getLocation();
+        // 3) Locate our chestId from the clicked furniture's base block
+        Location loc = event.getBaseEntity().getLocation().getBlock().getLocation();
         Integer chestId = lootChestManager.getChestIdAtLocation(loc);
         if (chestId == null) {
             return; // not one of our managed chests
