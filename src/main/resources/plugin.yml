@@ -55,7 +55,6 @@ commands:
     description: Toggles the sword circle effect.
     usage: /effect
     permission: none
-
   ps:
     description: Manage personal storage.
   trade:
@@ -127,12 +126,10 @@ commands:
   rerollbrowser:
     description: Browse reroll placeholder items.
     usage: /rerollbrowser
-
   auctionhouse:
     description: Open the auction house, sell items or place bids.
     usage: /auctionhouse [open|sell <start> [bin] [hours]|bid <index> <amount>]
     aliases: [ah]
-
   quest:
     description: Manage quests
     usage: /quest [start|reset|complete|status|debug]
@@ -151,6 +148,3 @@ commands:
   enchant:
     description: Opens the enchanting GUI
     usage: /enchant
-  nexoscan:
-    description: List all Nexo furniture in the mmorpg world
-    usage: /nexoscan
