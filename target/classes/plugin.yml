@@ -4,7 +4,7 @@ version: 1.0
 author: Nakilex
 api-version: 1.19
 description: A simple MMORPG leveling system plugin for Minecraft
-depend: [ProtocolLib, Citizens, Vault, MythicMobs, PlaceholderAPI]
+depend: [ProtocolLib, Citizens, Vault, MythicMobs, PlaceholderAPI, Nexo]
 
 commands:
   addpoints:
@@ -148,3 +148,6 @@ commands:
   enchant:
     description: Opens the enchanting GUI
     usage: /enchant
+  nexoscan:
+    description: List all Nexo furniture in the mmorpg world
+    usage: /nexoscan
