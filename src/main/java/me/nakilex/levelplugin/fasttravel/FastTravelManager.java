@@ -2,6 +2,8 @@ package me.nakilex.levelplugin.fasttravel;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.fasttravel.data.FastTravelPoint;
+import me.nakilex.levelplugin.fasttravel.data.Waystone;
+import me.nakilex.levelplugin.fasttravel.data.WaystoneType;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -15,10 +17,13 @@ import java.util.*;
 public class FastTravelManager {
     private final Main plugin;
     private final Map<String, FastTravelPoint> points = new HashMap<>();
+    private final Map<String, Waystone> waystones = new HashMap<>();
     private final Map<UUID, Set<String>> unlocked = new HashMap<>();
     private final Map<UUID, String> lastUsed = new HashMap<>();
     private File file;
     private FileConfiguration config;
+    private File wsFile;
+    private FileConfiguration wsConfig;
 
     public FastTravelManager(Main plugin) {
         this.plugin = plugin;
@@ -31,6 +36,12 @@ public class FastTravelManager {
             try { file.createNewFile(); } catch (IOException e) { e.printStackTrace(); }
         }
         config = YamlConfiguration.loadConfiguration(file);
+
+        wsFile = new File(plugin.getDataFolder(), "waystones.yml");
+        if (!wsFile.exists()) {
+            try { wsFile.createNewFile(); } catch (IOException e) { e.printStackTrace(); }
+        }
+        wsConfig = YamlConfiguration.loadConfiguration(wsFile);
 
         if (config.isConfigurationSection("locations")) {
             for (String key : config.getConfigurationSection("locations").getKeys(false)) {
@@ -46,6 +57,20 @@ public class FastTravelManager {
                 Location loc = new Location(plugin.getServer().getWorld(world), x, y, z);
                 FastTravelPoint pt = new FastTravelPoint(key, ChatColor.valueOf(colorName), desc, loc, radius, town);
                 points.put(key.toLowerCase(), pt);
+            }
+        }
+
+        if (wsConfig.isConfigurationSection("waystones")) {
+            for (String key : wsConfig.getConfigurationSection("waystones").getKeys(false)) {
+                String path = "waystones." + key;
+                String world = wsConfig.getString(path + ".world");
+                double x = wsConfig.getDouble(path + ".x");
+                double y = wsConfig.getDouble(path + ".y");
+                double z = wsConfig.getDouble(path + ".z");
+                String typeName = wsConfig.getString(path + ".type", "TOWN");
+                Location loc = new Location(plugin.getServer().getWorld(world), x, y, z);
+                WaystoneType type = WaystoneType.valueOf(typeName.toUpperCase());
+                waystones.put(key.toLowerCase(), new Waystone(key, loc, type));
             }
         }
 
@@ -75,6 +100,18 @@ public class FastTravelManager {
             config.set("players." + e.getKey(), new ArrayList<>(e.getValue()));
         }
         try { config.save(file); } catch (IOException e) { e.printStackTrace(); }
+
+        for (Map.Entry<String, Waystone> e : waystones.entrySet()) {
+            Waystone ws = e.getValue();
+            String path = "waystones." + e.getKey();
+            Location loc = ws.getLocation();
+            wsConfig.set(path + ".world", loc.getWorld().getName());
+            wsConfig.set(path + ".x", loc.getX());
+            wsConfig.set(path + ".y", loc.getY());
+            wsConfig.set(path + ".z", loc.getZ());
+            wsConfig.set(path + ".type", ws.getType().name());
+        }
+        try { wsConfig.save(wsFile); } catch (IOException e) { e.printStackTrace(); }
     }
 
     public void addLocation(String name, ChatColor color, String desc, Location loc, double radius, boolean town) {
@@ -95,9 +132,31 @@ public class FastTravelManager {
         save();
     }
 
+    public void addWaystone(String name, Location loc, WaystoneType type) {
+        waystones.put(name.toLowerCase(), new Waystone(name, loc, type));
+        save();
+    }
+
+    public void moveWaystone(String name, Location loc) {
+        Waystone ws = waystones.get(name.toLowerCase());
+        if (ws != null) {
+            waystones.put(name.toLowerCase(), new Waystone(ws.getName(), loc, ws.getType()));
+            save();
+        }
+    }
+
+    public void removeWaystone(String name) {
+        waystones.remove(name.toLowerCase());
+        save();
+    }
+
     public Collection<FastTravelPoint> getPoints() { return points.values(); }
 
     public FastTravelPoint getPoint(String name) { return points.get(name.toLowerCase()); }
+
+    public Collection<Waystone> getWaystones() { return waystones.values(); }
+
+    public Waystone getWaystone(String name) { return waystones.get(name.toLowerCase()); }
 
     public FastTravelPoint getNearestPoint(Location loc, double maxDistance) {
         double best = maxDistance * maxDistance;
@@ -108,6 +167,17 @@ public class FastTravelManager {
             if (d < best) { best = d; bestPt = pt; }
         }
         return bestPt;
+    }
+
+    public Waystone getNearestWaystone(Location loc, double maxDistance) {
+        double best = maxDistance * maxDistance;
+        Waystone bestWs = null;
+        for (Waystone ws : waystones.values()) {
+            if (!ws.getLocation().getWorld().equals(loc.getWorld())) continue;
+            double d = ws.getLocation().distanceSquared(loc);
+            if (d < best) { best = d; bestWs = ws; }
+        }
+        return bestWs;
     }
 
     public void recordUse(Player player, String name) {

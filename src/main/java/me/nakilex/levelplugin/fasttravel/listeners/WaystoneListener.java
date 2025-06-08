@@ -4,6 +4,7 @@ import com.nexomc.nexo.api.events.furniture.NexoFurnitureInteractEvent;
 import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
 import me.nakilex.levelplugin.fasttravel.FastTravelManager;
 import me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI;
+import me.nakilex.levelplugin.fasttravel.data.WaystoneType;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
@@ -28,10 +29,11 @@ public class WaystoneListener implements Listener {
 
         if("base_beacon_inert".equals(id)) {
             Location loc = event.getBaseEntity().getLocation();
-            var pt = manager.getNearestPoint(loc, 5.0);
-            if(pt != null && !manager.isUnlocked(event.getPlayer(), pt.getName())) {
-                manager.unlock(event.getPlayer(), pt.getName());
-                event.getPlayer().sendMessage(ChatColor.GREEN + "Waystone unlocked!");
+            var ws = manager.getNearestWaystone(loc, 5.0);
+            if(ws != null && !manager.isUnlocked(event.getPlayer(), ws.getName())) {
+                manager.unlock(event.getPlayer(), ws.getName());
+                String color = ws.getType() == WaystoneType.TOWN ? ChatColor.BLUE.toString() : ChatColor.RED.toString();
+                event.getPlayer().sendMessage(color + "Waystone unlocked!");
             }
         }
 
