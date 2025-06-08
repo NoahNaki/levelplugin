@@ -59,16 +59,18 @@ public class LootChestManager {
         this.potionManager = potionManager; // assign it here
 
         loadChestDataFromConfig();
-        spawnAllChestsOnStartup();
 
+        // Delay spawning chests until the server has fully started. This gives
+        // the Nexo plugin time to finish registering furniture IDs.
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            spawnAllChestsOnStartup();
             for (ChestData data : chestDataList) {
                 Location loc = data.toLocation();
                 if (loc != null && loc.getChunk().isLoaded()) {
                     spawnHologramForChest(data);
                 }
             }
-        }, 1L);
+        }, 20L); // ~1 second after startup
     }
 
     public void setCooldownManager(CooldownManager manager) {
