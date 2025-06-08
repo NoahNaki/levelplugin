@@ -30,7 +30,7 @@ public class ItemChatListener implements Listener {
 
         event.setCancelled(true);
 
-        Component itemComponent = Bukkit.getItemFactory().displayName(stack);
+        Component itemComponent = stack.displayName().hoverEvent(stack.asHoverEvent());
         String[] parts = msg.split("(?i)\\[item\\]", -1);
         Component combined = Component.empty();
         for (int i = 0; i < parts.length; i++) {
