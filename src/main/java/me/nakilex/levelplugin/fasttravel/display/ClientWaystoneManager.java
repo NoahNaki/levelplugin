@@ -3,10 +3,15 @@ package me.nakilex.levelplugin.fasttravel.display;
 import me.nakilex.levelplugin.fasttravel.FastTravelManager;
 import me.nakilex.levelplugin.fasttravel.data.Waystone;
 import me.nakilex.levelplugin.fasttravel.data.WaystoneType;
+import com.comphenix.protocol.ProtocolLibrary;
+import com.comphenix.protocol.ProtocolManager;
+import com.comphenix.protocol.PacketType;
+import com.comphenix.protocol.events.PacketContainer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -22,15 +27,28 @@ import java.util.UUID;
  */
 public class ClientWaystoneManager implements Listener {
     private final FastTravelManager manager;
+    private final ProtocolManager protocol;
     private final Map<UUID, Map<Location, BlockData>> shown = new HashMap<>();
 
     public ClientWaystoneManager(FastTravelManager manager) {
         this.manager = manager;
+        this.protocol = ProtocolLibrary.getProtocolManager();
     }
 
     /** Show the active waystone block to a single player. */
     public void show(Player player, Waystone ws) {
         Location loc = ws.getLocation();
+
+        // Hide any furniture entities at this location for this player
+        for (Entity ent : loc.getWorld().getNearbyEntities(loc, 1.0, 1.5, 1.0)) {
+            if (ent instanceof Player) continue;
+            try {
+                PacketContainer destroy = protocol.createPacket(PacketType.Play.Server.ENTITY_DESTROY);
+                destroy.getIntLists().write(0, java.util.Collections.singletonList(ent.getEntityId()));
+                protocol.sendServerPacket(player, destroy);
+            } catch (Exception ignore) {}
+        }
+
         BlockData prev = loc.getBlock().getBlockData();
         BlockData data = getData(ws.getType());
         player.sendBlockChange(loc, data);
