@@ -151,3 +151,6 @@ commands:
   nexoscan:
     description: List all Nexo furniture in the mmorpg world
     usage: /nexoscan
+  motd:
+    description: Reload or preview the server MOTD
+    usage: /motd <reload|preview>

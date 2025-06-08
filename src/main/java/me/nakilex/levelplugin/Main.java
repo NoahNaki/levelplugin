@@ -128,6 +128,7 @@ public class Main extends JavaPlugin {
     private me.nakilex.levelplugin.quests.managers.BeaconManager beaconManager;
     private me.nakilex.levelplugin.fasttravel.FastTravelManager fastTravelManager;
     private me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI fastTravelGUI;
+    private me.nakilex.levelplugin.motd.MotdManager motdManager;
     /**
      * Tracks all active bow drone NPCs for each player. Some runes can add
      * additional drones so we store a list rather than a single instance.
@@ -251,6 +252,7 @@ public class Main extends JavaPlugin {
         beaconManager = new me.nakilex.levelplugin.quests.managers.BeaconManager();
         fastTravelManager = new me.nakilex.levelplugin.fasttravel.FastTravelManager(this);
         fastTravelGUI = new me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI(fastTravelManager, economyManager);
+        motdManager = new me.nakilex.levelplugin.motd.MotdManager(this);
         cooldownManager.setLootChestManager(lootChestManager);
         equipGui = new EquipRunesGUI(this, runesManager, identifyRunesGUI);
         enchantManager = new me.nakilex.levelplugin.enchanting.managers.EnchantManager();
@@ -303,7 +305,8 @@ public class Main extends JavaPlugin {
             enchantGUI,
             broadcastMgr,
             questManager,
-            fastTravelManager
+            fastTravelManager,
+            motdManager
         );
 
 
@@ -335,7 +338,8 @@ public class Main extends JavaPlugin {
             dialogManager,
             scoreboardManager,
             fastTravelManager,
-            fastTravelGUI
+            fastTravelGUI,
+            motdManager
         );
 
         getServer().getPluginManager().registerEvents(beaconManager, this);
@@ -511,6 +515,10 @@ public class Main extends JavaPlugin {
 
     public me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI getFastTravelGUI() {
         return fastTravelGUI;
+    }
+
+    public me.nakilex.levelplugin.motd.MotdManager getMotdManager() {
+        return motdManager;
     }
 
     public me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager getScoreboardManager() {

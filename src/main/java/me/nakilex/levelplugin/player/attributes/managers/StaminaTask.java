@@ -5,6 +5,7 @@ import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
+
 /**
  * Periodically drains or regenerates stamina depending on player movement.
  */
@@ -42,11 +43,14 @@ public class StaminaTask extends BukkitRunnable {
             }
             lastLocations.put(player.getUniqueId(), now);
 
-            if (player.isSprinting()) {
+            boolean wantsSprint = SprintManager.getInstance().wantsSprint(player);
+            if (wantsSprint) {
+                player.setSprinting(true); // force sprint even if hunger low
                 current -= DRAIN_RATE;
                 if (current <= 0) {
                     current = 0;
                     player.setSprinting(false);
+                    SprintManager.getInstance().setWantsSprint(player, false);
                 }
             } else {
                 double pct = standing ? STANDING_REGEN_PCT : WALKING_REGEN_PCT;
