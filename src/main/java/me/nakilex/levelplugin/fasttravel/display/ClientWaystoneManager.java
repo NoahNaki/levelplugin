@@ -10,13 +10,20 @@ import com.comphenix.protocol.events.PacketContainer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.util.Transformation;
+import org.joml.Vector3f;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -26,9 +33,13 @@ import java.util.UUID;
  * Handles client-side display of unlocked waystones using simple block changes.
  */
 public class ClientWaystoneManager implements Listener {
+    public static final NamespacedKey KEY = new NamespacedKey("levelplugin", "waystone-id");
+
     private final FastTravelManager manager;
     private final ProtocolManager protocol;
-    private final Map<UUID, Map<Location, BlockData>> shown = new HashMap<>();
+    private final Map<UUID, Map<Location, DisplayInfo>> shown = new HashMap<>();
+
+    private record DisplayInfo(BlockData previous, ItemDisplay display) {}
 
     public ClientWaystoneManager(FastTravelManager manager) {
         this.manager = manager;
@@ -39,7 +50,7 @@ public class ClientWaystoneManager implements Listener {
     public void show(Player player, Waystone ws) {
         Location loc = ws.getLocation();
 
-        // Hide any furniture entities at this location for this player
+        // Hide the inert furniture entity from this player only
         for (Entity ent : loc.getWorld().getNearbyEntities(loc, 1.0, 1.5, 1.0)) {
             if (ent instanceof Player) continue;
             try {
@@ -49,10 +60,39 @@ public class ClientWaystoneManager implements Listener {
             } catch (Exception ignore) {}
         }
 
+        // Remove any previous display we spawned here for this player
+        Map<Location, DisplayInfo> map = shown.computeIfAbsent(player.getUniqueId(), k -> new HashMap<>());
+        DisplayInfo old = map.get(loc);
+        if (old != null) {
+            old.display.remove();
+            player.sendBlockChange(loc, old.previous);
+        }
+
         BlockData prev = loc.getBlock().getBlockData();
-        BlockData data = getData(ws.getType());
-        player.sendBlockChange(loc, data);
-        shown.computeIfAbsent(player.getUniqueId(), k -> new HashMap<>()).put(loc, prev);
+        player.sendBlockChange(loc, Material.AIR.createBlockData());
+
+        ItemStack item = new ItemStack(Material.PAPER);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            int cmd = ws.getType() == WaystoneType.TOWN ? 40001 : 40015;
+            meta.setCustomModelData(cmd);
+            item.setItemMeta(meta);
+        }
+
+        ItemDisplay disp = loc.getWorld().spawn(loc.clone().add(0.5, 0, 0.5), ItemDisplay.class, d -> {
+            d.setItemStack(item);
+            d.setBillboard(org.bukkit.entity.Display.Billboard.FIXED);
+            d.setTransformation(new Transformation(new Vector3f(), new Vector3f(), new Vector3f(1,1,1), new Vector3f()));
+            d.setPersistent(false);
+            d.getPersistentDataContainer().set(KEY, PersistentDataType.STRING, ws.getName());
+        });
+
+        // Hide from all other players
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (!p.equals(player)) p.hideEntity(manager.getPlugin(), disp);
+        }
+
+        map.put(loc, new DisplayInfo(prev, disp));
     }
 
     /** Re-send unlocked waystones to the player. */
@@ -77,10 +117,11 @@ public class ClientWaystoneManager implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        Map<Location, BlockData> map = shown.remove(event.getPlayer().getUniqueId());
+        Map<Location, DisplayInfo> map = shown.remove(event.getPlayer().getUniqueId());
         if (map != null) {
-            for (Map.Entry<Location, BlockData> e : map.entrySet()) {
-                event.getPlayer().sendBlockChange(e.getKey(), e.getValue());
+            for (Map.Entry<Location, DisplayInfo> e : map.entrySet()) {
+                event.getPlayer().sendBlockChange(e.getKey(), e.getValue().previous);
+                e.getValue().display.remove();
             }
         }
     }

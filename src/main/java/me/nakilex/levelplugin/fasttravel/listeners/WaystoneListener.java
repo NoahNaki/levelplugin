@@ -10,6 +10,8 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerInteractAtEntityEvent;
+import org.bukkit.persistence.PersistentDataType;
 
 public class WaystoneListener implements Listener {
     private final FastTravelGUI gui;
@@ -42,6 +44,15 @@ public class WaystoneListener implements Listener {
             }
         }
 
+        gui.open(event.getPlayer());
+    }
+
+    @EventHandler
+    public void onDisplayInteract(PlayerInteractAtEntityEvent event) {
+        if (!(event.getRightClicked() instanceof org.bukkit.entity.ItemDisplay disp)) return;
+        String name = disp.getPersistentDataContainer().get(ClientWaystoneManager.KEY, PersistentDataType.STRING);
+        if (name == null) return;
+        event.setCancelled(true);
         gui.open(event.getPlayer());
     }
 }
