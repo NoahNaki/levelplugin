@@ -148,3 +148,6 @@ commands:
   enchant:
     description: Opens the enchanting GUI
     usage: /enchant
+  nexoscan:
+    description: List all Nexo furniture in the mmorpg world
+    usage: /nexoscan
