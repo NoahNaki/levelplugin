@@ -175,7 +175,7 @@ public class FastTravelManager {
     }
 
     /**
-     * Places the inert beacon furniture for a single waystone if it does not
+     * Places the active beacon furniture for a single waystone if it does not
      * already exist at the target location.
      */
     public void spawnWaystone(Waystone ws) {
@@ -192,12 +192,13 @@ public class FastTravelManager {
                     + " (" + existing.getItemID() + ")");
             return;
         }
-        FurnitureMechanic mech = NexoFurniture.furnitureMechanic("base_beacon_inert");
+        String id = ws.getType() == WaystoneType.TOWN ? "base_beacon_blue" : "base_beacon_red";
+        FurnitureMechanic mech = NexoFurniture.furnitureMechanic(id);
         if (mech == null) {
-            plugin.getLogger().severe("[FastTravelManager] Furniture ID 'base_beacon_inert' not registered!");
+            plugin.getLogger().severe("[FastTravelManager] Furniture ID '" + id + "' not registered!");
             return;
         }
-        NexoFurniture.place("base_beacon_inert", loc, 0f, BlockFace.NORTH);
+        NexoFurniture.place(id, loc, 0f, BlockFace.NORTH);
         plugin.getLogger().info("[FastTravelManager] Placed waystone '" + ws.getName() + "' at "
                 + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ());
     }

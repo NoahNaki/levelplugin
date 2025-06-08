@@ -32,19 +32,9 @@ public class WaystoneListener implements Listener {
 
         event.setCancelled(true);
 
-        if("base_beacon_inert".equals(id)) {
-            Location loc = event.getBaseEntity().getLocation();
-            var ws = manager.getNearestWaystone(loc, 5.0);
-            if(ws != null && !manager.isUnlocked(event.getPlayer(), ws.getName())) {
-                manager.getPlugin().getLogger().info("[WaystoneListener] Unlocking " + ws.getName() + " for " + event.getPlayer().getName());
-                manager.unlock(event.getPlayer(), ws.getName());
-                display.show(event.getPlayer(), ws);
-                String color = ws.getType() == WaystoneType.TOWN ? ChatColor.BLUE.toString() : ChatColor.RED.toString();
-                event.getPlayer().sendMessage(color + "Waystone unlocked!");
-            }
+        if("base_beacon_blue".equals(id) || "base_beacon_red".equals(id)) {
+            gui.open(event.getPlayer());
         }
-
-        gui.open(event.getPlayer());
     }
 
     @EventHandler
@@ -53,6 +43,13 @@ public class WaystoneListener implements Listener {
         String name = disp.getPersistentDataContainer().get(ClientWaystoneManager.KEY, PersistentDataType.STRING);
         if (name == null) return;
         event.setCancelled(true);
+        var ws = manager.getWaystone(name);
+        if(ws != null && !manager.isUnlocked(event.getPlayer(), name)) {
+            manager.unlock(event.getPlayer(), name);
+            display.unlock(event.getPlayer(), ws);
+            String color = ws.getType() == WaystoneType.TOWN ? ChatColor.BLUE.toString() : ChatColor.RED.toString();
+            event.getPlayer().sendMessage(color + "Waystone unlocked!");
+        }
         gui.open(event.getPlayer());
     }
 }
