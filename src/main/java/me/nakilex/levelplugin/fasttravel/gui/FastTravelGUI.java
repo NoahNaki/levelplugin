@@ -74,7 +74,7 @@ public class FastTravelGUI implements Listener {
                 List<String> lore=new ArrayList<>();
                 if(unlocked){
                     int cost=(int)player.getLocation().distance(pt.getLocation());
-                    lore.add(ChatColor.LIGHT_GRAY+pt.getDescription());
+                    lore.add(ChatColor.GRAY+pt.getDescription());
                     lore.add(" ");
                     lore.add(ChatColor.GRAY+"Teleportation Cost:");
                     lore.add(ChatColor.WHITE+""+cost+ChatColor.YELLOW+" ⛃");

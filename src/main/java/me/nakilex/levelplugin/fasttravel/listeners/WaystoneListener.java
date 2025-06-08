@@ -16,7 +16,7 @@ public class WaystoneListener implements Listener {
     @EventHandler
     public void onInteract(NexoFurnitureInteractEvent event) {
         FurnitureMechanic mech = event.getMechanic();
-        event.getPlayer().sendMessage("Debug clicked id: " + mech.getItemID());
+        //event.getPlayer().sendMessage("Debug clicked id: " + mech.getItemID());
         if (!"base_beacon_blue".equals(mech.getItemID()) &&
             !"base_beacon_blue_inventory".equals(mech.getItemID())) return;
         event.setCancelled(true);

@@ -139,6 +139,9 @@ commands:
   location:
     description: Manage fast travel locations
     usage: /location <set|move|remove>
+  fasttravel:
+    description: Open the fast travel menu
+    usage: /fasttravel
   wipeprofile:
     description: Wipe a player's profile
     usage: /wipeprofile <player>
