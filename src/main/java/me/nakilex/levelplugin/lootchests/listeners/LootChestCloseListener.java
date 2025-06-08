@@ -1,7 +1,7 @@
 package me.nakilex.levelplugin.lootchests.listeners;
 
-import io.th0rgal.oraxen.api.OraxenFurniture;
-import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureMechanic;
+import com.nexomc.nexo.api.NexoFurniture;
+import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import net.md_5.bungee.api.ChatColor;
@@ -42,7 +42,7 @@ public class LootChestCloseListener implements Listener {
         if (loc == null) {
             return;
         }
-        FurnitureMechanic mechAtLoc = OraxenFurniture.getFurnitureMechanic(loc.getBlock());
+        FurnitureMechanic mechAtLoc = NexoFurniture.furnitureMechanic(loc.getBlock());
         int tier = lootChestManager.getTierForChest(chestId);
         String expectedId = lootChestManager.getCrateIdForTier(tier);
         if (mechAtLoc == null || !mechAtLoc.getItemID().equals(expectedId)) {
