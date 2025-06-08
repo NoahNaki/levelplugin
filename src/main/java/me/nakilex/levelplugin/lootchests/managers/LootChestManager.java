@@ -1,7 +1,7 @@
 package me.nakilex.levelplugin.lootchests.managers;
 
-import io.th0rgal.oraxen.api.OraxenFurniture;
-import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureMechanic;
+import com.nexomc.nexo.api.NexoFurniture;
+import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
@@ -116,10 +116,10 @@ public class LootChestManager {
             return;
         }
 
-        // 1) Place our “crate_lvl1” Oraxen furniture instead of a vanilla CHEST block.
+        // 1) Place our "crate_lvl1" Nexo furniture instead of a vanilla CHEST block.
         //    We must supply a yaw (float) and a BlockFace (choose whichever facing you want).
         //    Here we use yaw = 0f, facing = NORTH (you can rotate if desired).
-        FurnitureMechanic mech = OraxenFurniture.getFurnitureMechanic("crate_lvl1");
+        FurnitureMechanic mech = NexoFurniture.getFurnitureMechanic("crate_lvl1");
         if (mech == null) {
             plugin.getLogger().severe(
                 "[LootChestManager] Could not find FurnitureMechanic for ID 'crate_lvl1'. Did your YAML register it?"
@@ -127,7 +127,7 @@ public class LootChestManager {
             return;
         }
         // The place(...) call returns the spawned Entity; we ignore it here.
-        OraxenFurniture.place("crate_lvl1", loc, 0f, BlockFace.NORTH);
+        NexoFurniture.place("crate_lvl1", loc, 0f, BlockFace.NORTH);
 
         // 2) Remember this location so getChestIdAtLocation(loc) will still work:
         spawnedChests.put(data.getChestId(), loc);
@@ -171,7 +171,7 @@ public class LootChestManager {
         boolean chunkLoaded = base.getChunk().isLoaded();
 
         // Check if there is STILL a crate_lvl1 at that Location:
-        FurnitureMechanic mechAtLoc = OraxenFurniture.getFurnitureMechanic(base.getBlock());
+        FurnitureMechanic mechAtLoc = NexoFurniture.getFurnitureMechanic(base.getBlock());
         boolean isCrate = (mechAtLoc != null && mechAtLoc.getItemID().equals("crate_lvl1"));
 
         if (!chunkLoaded || !isCrate) {
@@ -335,8 +335,8 @@ public class LootChestManager {
         BukkitTask task = plugin.getServer().getScheduler().runTaskTimer(
             plugin,
             () -> {
-                // Check if there is still a “crate_lvl1” Oraxen furniture at that Location:
-                FurnitureMechanic mechAtLoc = OraxenFurniture.getFurnitureMechanic(loc.getBlock());
+                // Check if there is still a "crate_lvl1" Nexo furniture at that Location:
+                FurnitureMechanic mechAtLoc = NexoFurniture.getFurnitureMechanic(loc.getBlock());
                 if (mechAtLoc != null && mechAtLoc.getItemID().equals("crate_lvl1")) {
                     ParticleUtils.displayTierParticles(loc, tier);
                 }
@@ -364,11 +364,11 @@ public class LootChestManager {
             return false;
         }
 
-        // 2) Attempt to remove the Oraxen furniture at that Location
+        // 2) Attempt to remove the Nexo furniture at that Location
         //    The remove(...) call will find the barrier entity / display entity combo and delete them.
-        boolean removed = OraxenFurniture.remove(loc, null);
+        boolean removed = NexoFurniture.remove(loc, null);
         if (!removed) {
-            plugin.getLogger().warning("[LootChestManager] Could not remove Oraxen furniture at " + loc +
+            plugin.getLogger().warning("[LootChestManager] Could not remove Nexo furniture at " + loc +
                 " (ID " + chestId + "). Maybe it's already gone?");
         }
 
