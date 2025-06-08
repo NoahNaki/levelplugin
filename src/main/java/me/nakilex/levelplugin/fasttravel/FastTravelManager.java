@@ -4,6 +4,9 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.fasttravel.data.FastTravelPoint;
 import me.nakilex.levelplugin.fasttravel.data.Waystone;
 import me.nakilex.levelplugin.fasttravel.data.WaystoneType;
+import com.nexomc.nexo.api.NexoFurniture;
+import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
+import org.bukkit.block.BlockFace;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -28,6 +31,9 @@ public class FastTravelManager {
     public FastTravelManager(Main plugin) {
         this.plugin = plugin;
         load();
+        // Spawn all waystones shortly after startup so the Nexo plugin has time
+        // to register its furniture items.
+        plugin.getServer().getScheduler().runTaskLater(plugin, this::spawnAllWaystones, 20L);
     }
 
     private void load() {
@@ -71,6 +77,8 @@ public class FastTravelManager {
                 Location loc = new Location(plugin.getServer().getWorld(world), x, y, z);
                 WaystoneType type = WaystoneType.valueOf(typeName.toUpperCase());
                 waystones.put(key.toLowerCase(), new Waystone(key, loc, type));
+                plugin.getLogger().info("[FastTravelManager] Loaded waystone '" + key + "' @ "
+                        + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ() + " type=" + type);
             }
         }
 
@@ -157,6 +165,41 @@ public class FastTravelManager {
     public Collection<Waystone> getWaystones() { return waystones.values(); }
 
     public Waystone getWaystone(String name) { return waystones.get(name.toLowerCase()); }
+
+    /** Spawn every waystone defined in waystones.yml. */
+    public void spawnAllWaystones() {
+        plugin.getLogger().info("[FastTravelManager] Spawning " + waystones.size() + " waystones...");
+        for (Waystone ws : waystones.values()) {
+            spawnWaystone(ws);
+        }
+    }
+
+    /**
+     * Places the inert beacon furniture for a single waystone if it does not
+     * already exist at the target location.
+     */
+    public void spawnWaystone(Waystone ws) {
+        Location loc = ws.getLocation();
+        if (loc.getWorld() == null) {
+            plugin.getLogger().warning("[FastTravelManager] Waystone '" + ws.getName() + "' has null world");
+            return;
+        }
+        FurnitureMechanic existing = NexoFurniture.furnitureMechanic(loc.getBlock());
+        if (existing != null) {
+            plugin.getLogger().info("[FastTravelManager] Waystone '" + ws.getName() + "' already present at "
+                    + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ()
+                    + " (" + existing.getItemID() + ")");
+            return;
+        }
+        FurnitureMechanic mech = NexoFurniture.furnitureMechanic("base_beacon_inert");
+        if (mech == null) {
+            plugin.getLogger().severe("[FastTravelManager] Furniture ID 'base_beacon_inert' not registered!");
+            return;
+        }
+        NexoFurniture.place("base_beacon_inert", loc, 0f, BlockFace.NORTH);
+        plugin.getLogger().info("[FastTravelManager] Placed waystone '" + ws.getName() + "' at "
+                + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ());
+    }
 
     public FastTravelPoint getNearestPoint(Location loc, double maxDistance) {
         double best = maxDistance * maxDistance;
