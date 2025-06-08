@@ -84,10 +84,12 @@ public class ClientWaystoneManager implements Listener {
             d.setItemStack(item);
             d.setBillboard(org.bukkit.entity.Display.Billboard.FIXED);
             // Scale the model to two blocks tall so the full waystone is visible
+            // The custom model is already two blocks tall. Only translate it so
+            // the base sits flush with the ground rather than stretching it.
             Transformation tf = new Transformation(
                     new Vector3f(0f, 1f, 0f),
                     new Quaternionf(),
-                    new Vector3f(1f, 2f, 1f),
+                    new Vector3f(1f, 1f, 1f),
                     new Quaternionf()
             );
             d.setTransformation(tf);
