@@ -421,3 +421,88 @@ runes:
 
 
 
+
+  # --- Warrior Shockwave Runes ---
+  - id: "warrior_shockwave_volcanic"
+    name: "Volcanic Blast"
+    rarity: "EPIC"
+    targetClass: "WARRIOR"
+    targetSpell: "shockwave"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        bonusDamagePercent: 0.0
+        cooldownReductionPercent: 0.0
+        newEffectKey: "VOLCANIC_BLAST_EFFECT"
+        extraParams: { }
+
+  - id: "warrior_shockwave_aoe"
+    name: "+1 AOE Size"
+    rarity: "UNCOMMON"
+    targetClass: "WARRIOR"
+    targetSpell: "shockwave"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        bonusDamagePercent: 0.0
+        cooldownReductionPercent: 0.0
+        newEffectKey: null
+        extraParams:
+          aoeRadius: 1.0
+
+  # --- Warrior Heroic Leap Rune ---
+  - id: "warrior_heroic_leap_vortex"
+    name: "Vortex Leap"
+    rarity: "EPIC"
+    targetClass: "WARRIOR"
+    targetSpell: "heroic_leap"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        bonusDamagePercent: 0.0
+        cooldownReductionPercent: 0.0
+        newEffectKey: "VORTEX_LEAP_EFFECT"
+        extraParams: { }
+
+  # --- Warrior Iron Fortress Runes ---
+  - id: "warrior_iron_fortress_explosive"
+    name: "Explosive Shields"
+    rarity: "EPIC"
+    targetClass: "WARRIOR"
+    targetSpell: "iron_fortress"
+    unique: true
+    effects:
+      - type: "MODIFIER"
+        bonusDamagePercent: 0.0
+        cooldownReductionPercent: 0.0
+        newEffectKey: null
+        extraParams:
+          explosiveShields: true
+
+  - id: "warrior_iron_fortress_share"
+    name: "Also Shield Allies"
+    rarity: "RARE"
+    targetClass: "WARRIOR"
+    targetSpell: "iron_fortress"
+    unique: true
+    effects:
+      - type: "MODIFIER"
+        bonusDamagePercent: 0.0
+        cooldownReductionPercent: 0.0
+        newEffectKey: null
+        extraParams:
+          shieldAllies: true
+
+  # --- Warrior Judgement Rune ---
+  - id: "warrior_judgement_gate"
+    name: "Gate of Ruin"
+    rarity: "EPIC"
+    targetClass: "WARRIOR"
+    targetSpell: "judgement"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        bonusDamagePercent: 0.0
+        cooldownReductionPercent: 0.0
+        newEffectKey: "GATE_OF_RUIN_EFFECT"
+        extraParams: { }

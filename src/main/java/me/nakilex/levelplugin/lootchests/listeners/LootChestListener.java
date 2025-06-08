@@ -1,7 +1,7 @@
 package me.nakilex.levelplugin.lootchests.listeners;
 
-import io.th0rgal.oraxen.api.events.furniture.OraxenFurnitureInteractEvent;
-import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureMechanic;
+import com.nexomc.nexo.api.events.furniture.NexoFurnitureInteractEvent;
+import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import org.bukkit.Location;
@@ -20,7 +20,7 @@ public class LootChestListener implements Listener {
     }
 
     @EventHandler
-    public void onFurnitureInteract(OraxenFurnitureInteractEvent event) {
+    public void onFurnitureInteract(NexoFurnitureInteractEvent event) {
         // 1) Which furniture did the player click?
         FurnitureMechanic mech = event.getMechanic();
         if (!"crate_lvl1".equals(mech.getItemID())) {
@@ -30,8 +30,8 @@ public class LootChestListener implements Listener {
         // 2) Cancel default behavior (so the barrier block doesn’t break/open itself)
         event.setCancelled(true);
 
-        // 3) Locate our chestId from the clicked block’s location
-        Location loc = event.getBlock().getLocation();
+        // 3) Locate our chestId from the clicked furniture's base block
+        Location loc = event.getBaseEntity().getLocation().getBlock().getLocation();
         Integer chestId = lootChestManager.getChestIdAtLocation(loc);
         if (chestId == null) {
             return; // not one of our managed chests

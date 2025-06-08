@@ -1,8 +1,8 @@
 
 package me.nakilex.levelplugin.salvage.gui;
 
-import io.th0rgal.oraxen.api.OraxenItems;
-import io.th0rgal.oraxen.items.ItemBuilder;
+import com.nexomc.nexo.api.NexoItems;
+import com.nexomc.nexo.items.ItemBuilder;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -32,7 +32,7 @@ public class SalvageGUI {
 
         // Top-right info icon
         // Top-right info icon
-        ItemStack info = getOraxenItem("info", ChatColor.YELLOW + "Information");
+        ItemStack info = getNexoItem("info", ChatColor.YELLOW + "Information");
         ItemMeta infoMeta = info.getItemMeta();
         if (infoMeta != null) {
             infoMeta.setLore(Arrays.asList(
@@ -56,10 +56,10 @@ public class SalvageGUI {
 
 
         // Bottom-left close button
-        gui.setItem(45, getOraxenItem("cross", ChatColor.RED + "Cancel"));
+        gui.setItem(45, getNexoItem("cross", ChatColor.RED + "Cancel"));
 
         // Bottom-right confirm button
-        gui.setItem(53, getOraxenItem("check", ChatColor.GREEN + "Confirm Salvage"));
+        gui.setItem(53, getNexoItem("check", ChatColor.GREEN + "Confirm Salvage"));
 
         // Center visually for 5 items (slots 46–50)
         ItemRarity[] rarities = {
@@ -78,8 +78,8 @@ public class SalvageGUI {
         }
 
         // Deposit/Return buttons
-        gui.setItem(46, getOraxenItem("arrow_down", ChatColor.YELLOW + "Return All"));
-        gui.setItem(52, getOraxenItem("arrow_up", ChatColor.YELLOW + "Deposit All"));
+        gui.setItem(46, getNexoItem("arrow_down", ChatColor.YELLOW + "Return All"));
+        gui.setItem(52, getNexoItem("arrow_up", ChatColor.YELLOW + "Deposit All"));
         player.openInventory(gui);
     }
 
@@ -93,8 +93,8 @@ public class SalvageGUI {
         return glass;
     }
 
-    private static ItemStack getOraxenItem(String id, String name) {
-        ItemBuilder builder = OraxenItems.getItemById(id);
+    private static ItemStack getNexoItem(String id, String name) {
+        ItemBuilder builder = NexoItems.itemFromId(id);
         if (builder == null) return new ItemStack(Material.BARRIER);
         ItemStack item = builder.build();
         ItemMeta meta = item.getItemMeta();

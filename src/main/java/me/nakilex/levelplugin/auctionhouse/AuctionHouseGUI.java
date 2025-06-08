@@ -425,11 +425,11 @@ public class AuctionHouseGUI implements Listener {
     }
 
     private ItemStack createArrow(String name, boolean right) {
-        return getOraxenItem(right ? "arrow_right" : "arrow_left", name);
+        return getNexoItem(right ? "arrow_right" : "arrow_left", name);
     }
 
     private ItemStack createSearchButton(String term) {
-        ItemStack it = getOraxenItem("search", ChatColor.GOLD + "Search");
+        ItemStack it = getNexoItem("search", ChatColor.GOLD + "Search");
         ItemMeta meta = it.getItemMeta();
         if (meta != null) {
             List<String> lore = new ArrayList<>();
@@ -515,7 +515,7 @@ public class AuctionHouseGUI implements Listener {
     }
 
     private ItemStack createInfoItem() {
-        ItemStack info = getOraxenItem("info", ChatColor.YELLOW + "Information");
+        ItemStack info = getNexoItem("info", ChatColor.YELLOW + "Information");
         ItemMeta meta = info.getItemMeta();
         if (meta != null) {
             meta.setLore(Arrays.asList(
@@ -529,8 +529,8 @@ public class AuctionHouseGUI implements Listener {
         return info;
     }
 
-    private ItemStack getOraxenItem(String id, String name) {
-        io.th0rgal.oraxen.items.ItemBuilder builder = io.th0rgal.oraxen.api.OraxenItems.getItemById(id);
+    private ItemStack getNexoItem(String id, String name) {
+        com.nexomc.nexo.items.ItemBuilder builder = com.nexomc.nexo.api.NexoItems.itemFromId(id);
         if (builder == null) return new ItemStack(Material.BARRIER);
         ItemStack item = builder.build();
         ItemMeta meta = item.getItemMeta();
@@ -654,9 +654,9 @@ public class AuctionHouseGUI implements Listener {
         ItemStack filler = createFiller();
         for (int i = 0; i < CONFIRM_SIZE; i++) inv.setItem(i, filler);
         AuctionItem ai = manager.getAuctions().get(index);
-        inv.setItem(11, getOraxenItem("check", ChatColor.GREEN + "Confirm"));
+        inv.setItem(11, getNexoItem("check", ChatColor.GREEN + "Confirm"));
         inv.setItem(13, ai.getItem().clone());
-        inv.setItem(15, getOraxenItem("cross", ChatColor.RED + "Cancel"));
+        inv.setItem(15, getNexoItem("cross", ChatColor.RED + "Cancel"));
         confirmPurchase.put(player.getUniqueId(), index);
         player.openInventory(inv);
     }

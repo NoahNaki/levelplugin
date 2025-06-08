@@ -3,8 +3,8 @@ package me.nakilex.levelplugin.quests.gui;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
-import io.th0rgal.oraxen.api.OraxenItems;
-import io.th0rgal.oraxen.items.ItemBuilder;
+import com.nexomc.nexo.api.NexoItems;
+import com.nexomc.nexo.items.ItemBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -86,11 +86,11 @@ public class QuestGUI {
             gui.setItem(QUEST_SLOTS[slot++], item);
         }
 
-        if (page > 0) gui.setItem(PREV_PAGE, getOraxenItem("arrow_left", ChatColor.GREEN + "Previous"));
-        if (list.size() > (page + 1) * ITEMS_PER_PAGE) gui.setItem(NEXT_PAGE, getOraxenItem("arrow_right", ChatColor.GREEN + "Next"));
+        if (page > 0) gui.setItem(PREV_PAGE, getNexoItem("arrow_left", ChatColor.GREEN + "Previous"));
+        if (list.size() > (page + 1) * ITEMS_PER_PAGE) gui.setItem(NEXT_PAGE, getNexoItem("arrow_right", ChatColor.GREEN + "Next"));
         gui.setItem(FILTER_SLOT, createFilterButton(filter));
         gui.setItem(SORT_SLOT, createSortButton(sort));
-        gui.setItem(INFO_SLOT, getOraxenItem("info", ChatColor.YELLOW + "Information"));
+        gui.setItem(INFO_SLOT, getNexoItem("info", ChatColor.YELLOW + "Information"));
 
         player.openInventory(gui);
     }
@@ -114,8 +114,8 @@ public class QuestGUI {
         return item;
     }
 
-    private static ItemStack getOraxenItem(String id, String name) {
-        ItemBuilder b = OraxenItems.getItemById(id);
+    private static ItemStack getNexoItem(String id, String name) {
+        ItemBuilder b = NexoItems.itemFromId(id);
         ItemStack it = b == null ? new ItemStack(Material.BARRIER) : b.build();
         ItemMeta meta = it.getItemMeta();
         if (meta != null) { meta.setDisplayName(name); it.setItemMeta(meta); }

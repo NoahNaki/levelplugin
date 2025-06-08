@@ -1,7 +1,7 @@
 package me.nakilex.levelplugin.blacksmith.gui;
 
-import io.th0rgal.oraxen.api.OraxenItems;
-import io.th0rgal.oraxen.items.ItemBuilder;
+import com.nexomc.nexo.api.NexoItems;
+import com.nexomc.nexo.items.ItemBuilder;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.blacksmith.managers.ItemRepairManager;
 import me.nakilex.levelplugin.blacksmith.managers.ItemUpgradeManager;
@@ -53,8 +53,8 @@ public class BlacksmithGUI implements Listener {
         Inventory gui = Bukkit.createInventory(player, GUI_SIZE, GUI_TITLE_UPGRADE);
         fillGuiWithFiller(gui);
         gui.setItem(8, createUpgradeInfoItem());
-        gui.setItem(9, getOraxenItem("arrow_left", ChatColor.GRAY + "Go to Reroll"));
-        gui.setItem(17, getOraxenItem("arrow_right", ChatColor.GRAY + "Go to Repair"));
+        gui.setItem(9, getNexoItem("arrow_left", ChatColor.GRAY + "Go to Reroll"));
+        gui.setItem(17, getNexoItem("arrow_right", ChatColor.GRAY + "Go to Repair"));
         gui.setItem(13, null);
         gui.setItem(22, createUpgradeButton(0, 0));
         openInventories.put(player.getUniqueId(), gui);
@@ -65,8 +65,8 @@ public class BlacksmithGUI implements Listener {
         Inventory gui = Bukkit.createInventory(player, GUI_SIZE, GUI_TITLE_REPAIR);
         fillGuiWithFiller(gui);
         gui.setItem(8, createRepairInfoItem());
-        gui.setItem(9, getOraxenItem("arrow_left", ChatColor.GRAY + "Go to Upgrade"));
-        gui.setItem(17, getOraxenItem("arrow_right", ChatColor.GRAY + "Go to Reroll"));
+        gui.setItem(9, getNexoItem("arrow_left", ChatColor.GRAY + "Go to Upgrade"));
+        gui.setItem(17, getNexoItem("arrow_right", ChatColor.GRAY + "Go to Reroll"));
         gui.setItem(0, createRepairAllButton(calculateTotalRepairCost(player)));
         gui.setItem(13, null);
         gui.setItem(22, createRepairButton(0));
@@ -78,8 +78,8 @@ public class BlacksmithGUI implements Listener {
         Inventory gui = Bukkit.createInventory(player, GUI_SIZE, GUI_TITLE_REROLL);
         fillGuiWithFiller(gui);
         gui.setItem(8, createRerollInfoItem());
-        gui.setItem(9, getOraxenItem("arrow_left", ChatColor.GRAY + "Go to Repair"));
-        gui.setItem(17, getOraxenItem("arrow_right", ChatColor.GRAY + "Go to Upgrade"));
+        gui.setItem(9, getNexoItem("arrow_left", ChatColor.GRAY + "Go to Repair"));
+        gui.setItem(17, getNexoItem("arrow_right", ChatColor.GRAY + "Go to Upgrade"));
         gui.setItem(11, null); // item slot
         gui.setItem(13, null); // result
         gui.setItem(15, null); // placeholder
@@ -103,8 +103,8 @@ public class BlacksmithGUI implements Listener {
         return glass;
     }
 
-    private ItemStack getOraxenItem(String id, String name) {
-        ItemBuilder builder = OraxenItems.getItemById(id);
+    private ItemStack getNexoItem(String id, String name) {
+        ItemBuilder builder = NexoItems.itemFromId(id);
         if (builder == null) return new ItemStack(Material.BARRIER);
         ItemStack item = builder.build();
         ItemMeta meta = item.getItemMeta();
@@ -116,7 +116,7 @@ public class BlacksmithGUI implements Listener {
     }
 
     private ItemStack createUpgradeInfoItem() {
-        ItemStack info = getOraxenItem("info", ChatColor.YELLOW + "Information");
+        ItemStack info = getNexoItem("info", ChatColor.YELLOW + "Information");
         ItemMeta meta = info.getItemMeta();
         if (meta != null) {
             meta.setLore(Arrays.asList(
@@ -138,7 +138,7 @@ public class BlacksmithGUI implements Listener {
     }
 
     private ItemStack createRepairInfoItem() {
-        ItemStack info = getOraxenItem("info", ChatColor.YELLOW + "Information");
+        ItemStack info = getNexoItem("info", ChatColor.YELLOW + "Information");
         ItemMeta meta = info.getItemMeta();
         if (meta != null) {
             meta.setLore(Arrays.asList(
@@ -156,7 +156,7 @@ public class BlacksmithGUI implements Listener {
     }
 
     private ItemStack createRerollInfoItem() {
-        ItemStack info = getOraxenItem("info", ChatColor.YELLOW + "Information");
+        ItemStack info = getNexoItem("info", ChatColor.YELLOW + "Information");
         ItemMeta meta = info.getItemMeta();
         if (meta != null) {
             meta.setLore(Arrays.asList(
@@ -210,7 +210,7 @@ public class BlacksmithGUI implements Listener {
     }
 
     private ItemStack createRerollButton(int cost) {
-        ItemStack reroll = getOraxenItem("check", ChatColor.GREEN + "Reroll Stat");
+        ItemStack reroll = getNexoItem("check", ChatColor.GREEN + "Reroll Stat");
         ItemMeta meta = reroll.getItemMeta();
         if (meta != null) {
             List<String> lore = new ArrayList<>();
