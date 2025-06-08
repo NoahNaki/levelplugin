@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.utils;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextReplacementConfig;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -31,16 +32,13 @@ public class ItemChatListener implements Listener {
         event.setCancelled(true);
 
         Component itemComponent = stack.displayName().hoverEvent(stack.asHoverEvent());
-        String[] parts = msg.split("(?i)\\[item\\]", -1);
-        Component combined = Component.empty();
-        for (int i = 0; i < parts.length; i++) {
-            if (!parts[i].isEmpty()) {
-                combined = combined.append(LEGACY.deserialize(parts[i]));
-            }
-            if (i < parts.length - 1) {
-                combined = combined.append(itemComponent);
-            }
-        }
+        Component message = LEGACY.deserialize(msg);
+        Component combined = message.replaceText(
+                TextReplacementConfig.builder()
+                        .match(java.util.regex.Pattern.compile("(?i)\\[item\\]"))
+                        .replacement(itemComponent)
+                        .build()
+        );
 
         Component finalMsg = Component.text()
                 .append(player.displayName())
