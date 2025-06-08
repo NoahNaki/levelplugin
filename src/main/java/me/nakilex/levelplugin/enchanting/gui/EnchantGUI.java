@@ -6,8 +6,8 @@ import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.Main;
-import io.th0rgal.oraxen.api.OraxenItems;
-import io.th0rgal.oraxen.items.ItemBuilder;
+import com.nexomc.nexo.api.NexoItems;
+import com.nexomc.nexo.items.ItemBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -55,7 +55,7 @@ public class EnchantGUI implements Listener {
     }
 
     private ItemStack createInfoItem() {
-        ItemBuilder builder = OraxenItems.getItemById("info");
+        ItemBuilder builder = NexoItems.getItemById("info");
         ItemStack item = builder == null ? new ItemStack(Material.BOOK) : builder.build();
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
