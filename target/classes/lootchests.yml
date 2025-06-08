@@ -41,5 +41,9 @@ loot_chests:
   14:
     coordinates: -437, 68, 389
     tier: 4
+  15:
+    coordinates: -412, 70 , 384
+    tier: 4
+
 cooldowns:
-  default: 60
+  default: 20
