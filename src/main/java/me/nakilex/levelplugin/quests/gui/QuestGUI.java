@@ -115,7 +115,7 @@ public class QuestGUI {
     }
 
     private static ItemStack getNexoItem(String id, String name) {
-        ItemBuilder b = NexoItems.getItemById(id);
+        ItemBuilder b = NexoItems.itemFromId(id);
         ItemStack it = b == null ? new ItemStack(Material.BARRIER) : b.build();
         ItemMeta meta = it.getItemMeta();
         if (meta != null) { meta.setDisplayName(name); it.setItemMeta(meta); }

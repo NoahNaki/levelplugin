@@ -530,7 +530,7 @@ public class AuctionHouseGUI implements Listener {
     }
 
     private ItemStack getNexoItem(String id, String name) {
-        com.nexomc.nexo.items.ItemBuilder builder = com.nexomc.nexo.api.NexoItems.getItemById(id);
+        com.nexomc.nexo.items.ItemBuilder builder = com.nexomc.nexo.api.NexoItems.itemFromId(id);
         if (builder == null) return new ItemStack(Material.BARRIER);
         ItemStack item = builder.build();
         ItemMeta meta = item.getItemMeta();

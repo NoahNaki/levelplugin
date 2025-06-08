@@ -94,7 +94,7 @@ public class SalvageGUI {
     }
 
     private static ItemStack getNexoItem(String id, String name) {
-        ItemBuilder builder = NexoItems.getItemById(id);
+        ItemBuilder builder = NexoItems.itemFromId(id);
         if (builder == null) return new ItemStack(Material.BARRIER);
         ItemStack item = builder.build();
         ItemMeta meta = item.getItemMeta();

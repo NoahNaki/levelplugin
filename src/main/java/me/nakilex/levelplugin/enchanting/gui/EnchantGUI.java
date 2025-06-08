@@ -55,7 +55,7 @@ public class EnchantGUI implements Listener {
     }
 
     private ItemStack createInfoItem() {
-        ItemBuilder builder = NexoItems.getItemById("info");
+        ItemBuilder builder = NexoItems.itemFromId("info");
         ItemStack item = builder == null ? new ItemStack(Material.BOOK) : builder.build();
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
