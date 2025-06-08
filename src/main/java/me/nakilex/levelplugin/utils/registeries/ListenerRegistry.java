@@ -114,6 +114,7 @@ public class ListenerRegistry {
         pm.registerEvents(new PlayerRightClicksPlayerListener(), plugin);
         pm.registerEvents(new TradingWindow(), plugin);
         pm.registerEvents(new PartyChatListener(partyManager), plugin);
+        pm.registerEvents(new ItemChatListener(), plugin);
         pm.registerEvents(new PartyInviteListener(partyManager), plugin);
         pm.registerEvents(new LootChestListener(lootChestManager), plugin);
         pm.registerEvents(new LootChestCloseListener(lootChestManager, economyManager), plugin);
