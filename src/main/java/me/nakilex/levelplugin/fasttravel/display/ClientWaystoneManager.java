@@ -83,7 +83,14 @@ public class ClientWaystoneManager implements Listener {
         ItemDisplay disp = loc.getWorld().spawn(loc.clone().add(0.5, 0, 0.5), ItemDisplay.class, d -> {
             d.setItemStack(item);
             d.setBillboard(org.bukkit.entity.Display.Billboard.FIXED);
-            d.setTransformation(new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(1,1,1), new Quaternionf()));
+            // Scale the model to two blocks tall so the full waystone is visible
+            Transformation tf = new Transformation(
+                    new Vector3f(0f, 1f, 0f),
+                    new Quaternionf(),
+                    new Vector3f(1f, 2f, 1f),
+                    new Quaternionf()
+            );
+            d.setTransformation(tf);
             d.setPersistent(false);
             d.getPersistentDataContainer().set(KEY, PersistentDataType.STRING, ws.getName());
         });
