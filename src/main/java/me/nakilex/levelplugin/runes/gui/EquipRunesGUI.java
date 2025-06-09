@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.runes.gui;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
+import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
 import me.nakilex.levelplugin.runes.manager.RunesManager;
 import me.nakilex.levelplugin.runes.model.Rune;
 import org.bukkit.Bukkit;
@@ -351,5 +352,14 @@ public class EquipRunesGUI implements Listener {
                 }
             }
         }
+    }
+
+    @EventHandler
+    public void onInventoryClose(org.bukkit.event.inventory.InventoryCloseEvent e) {
+        if (!isEquipGUI(e.getView())) return;
+        Player p = (Player) e.getPlayer();
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (p.isOnline()) p.openInventory(StatsInventory.getStatsMenu(p));
+        }, 1L);
     }
 }
