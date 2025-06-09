@@ -32,7 +32,10 @@ public class ModelGateCommand implements CommandExecutor {
         String sub = args[0].toLowerCase();
         switch (sub) {
             case "create":
-                if (args.length < 4) return false;
+                if (args.length < 4) {
+                    player.sendMessage(ChatColor.RED + "Usage: /modelgate create <id> <openModel> <closedModel>");
+                    return true;
+                }
                 Block target = player.getTargetBlockExact(5);
                 if (target == null) {
                     player.sendMessage(ChatColor.RED + "Look at a block within 5 blocks.");
@@ -47,7 +50,10 @@ public class ModelGateCommand implements CommandExecutor {
                 player.sendMessage(ChatColor.YELLOW + "Model gate " + id + " created.");
                 return true;
             case "toggle":
-                if (args.length < 2) return false;
+                if (args.length < 2) {
+                    player.sendMessage(ChatColor.RED + "Usage: /modelgate toggle <id>");
+                    return true;
+                }
                 if (manager.toggleGate(player, args[1])) {
                     player.sendMessage(ChatColor.GREEN + "Toggled gate " + args[1] + ".");
                 } else {
@@ -55,7 +61,10 @@ public class ModelGateCommand implements CommandExecutor {
                 }
                 return true;
             case "remove":
-                if (args.length < 2) return false;
+                if (args.length < 2) {
+                    player.sendMessage(ChatColor.RED + "Usage: /modelgate remove <id>");
+                    return true;
+                }
                 if (manager.removeGate(args[1])) {
                     player.sendMessage(ChatColor.GREEN + "Gate removed.");
                 } else {
