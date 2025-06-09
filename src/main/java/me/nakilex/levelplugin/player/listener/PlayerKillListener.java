@@ -103,10 +103,6 @@ public class PlayerKillListener implements Listener {
                         percentage, mobID, xpAward
                     ));
 
-                    System.out.println(String.format(
-                        "Player %s dealt %.1f%% of the damage to mob %s and earned %d XP.",
-                        contributor.getName(), percentage, mobID, xpAward
-                    ));
                 }
             }
 

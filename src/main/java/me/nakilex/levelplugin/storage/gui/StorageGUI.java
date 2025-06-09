@@ -172,11 +172,6 @@ public class StorageGUI {
         currentPage = 0;
     }
 
-    // This method left unimplemented; replace with your actual lookup if needed.
-    @SuppressWarnings("unused")
-    private StorageEvents getStorageEvents() {
-        return null;
-    }
 
     // standard getters
     public UUID getOwnerId() {

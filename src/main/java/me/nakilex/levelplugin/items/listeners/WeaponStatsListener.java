@@ -167,7 +167,6 @@ public class WeaponStatsListener implements Listener {
         UUID puuid = player.getUniqueId();
         Set<Integer> equipped = statsManager.getEquippedItems(puuid);
 
-        // DEBUG
         Bukkit.getLogger().info("[WeaponStats] onPlayerRespawn fired for player " + player.getName());
         Bukkit.getLogger().info("[WeaponStats] Equipped IDs before respawn‐cleanup: " + equipped);
 
@@ -187,7 +186,6 @@ public class WeaponStatsListener implements Listener {
         int id = inst.getId();
         boolean broken = inst.isBroken();
 
-        // DEBUG
         Bukkit.getLogger().info("[WeaponStats] onPlayerRespawn: found ID=" + id + ", isBroken=" + broken);
 
         // 2) If the item is broken, check if its stats are still applied
@@ -238,7 +236,6 @@ public class WeaponStatsListener implements Listener {
                 );
             }
         } else {
-            // DEBUG
             Bukkit.getLogger().info(
                 "[WeaponStats] onPlayerRespawn: ID=" + id
                     + " is NOT broken → no action."
@@ -260,7 +257,6 @@ public class WeaponStatsListener implements Listener {
     }
 
     public void removeWeaponStats(Player player, CustomItem customItem) {
-        // DEBUG: log exactly when removeWeaponStats is invoked
         Bukkit.getLogger().info("[WeaponStats] removeWeaponStats() called for player="
             + player.getName() + ", itemID=" + customItem.getId());
 
@@ -277,7 +273,6 @@ public class WeaponStatsListener implements Listener {
         //  • recompute maxMana  → (and clamp currentMana if needed)
         StatsManager.getInstance().recalcDerivedStats(player);
 
-        // DEBUG: log the new stats immediately after subtraction
         Bukkit.getLogger().info("[WeaponStats] After removeWeaponStats, stats => "
             + "bonusHealth="       + ps.bonusHealthStat
             + ", bonusDefence="    + ps.bonusDefenceStat

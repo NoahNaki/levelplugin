@@ -34,16 +34,11 @@ public class PlayerClassManager {
 
     public void setPlayerClass(UUID uuid, PlayerClass playerClass) {
         classMap.put(uuid, playerClass);
-        // Debug
-        Bukkit.getLogger().info("[PlayerClassManager] Set UUID " + uuid + " to " + playerClass.name());
     }
 
     public void setPlayerClass(Player player, PlayerClass playerClass) {
         if (player == null) return;
         setPlayerClass(player.getUniqueId(), playerClass);
-        // Debug log
-        Bukkit.getLogger().info("[PlayerClassManager] Set " + player.getName() +
-            " (" + player.getUniqueId() + ") to " + playerClass.name());
 
         // Update flight permission based on the new class.
         // If the new class is ARCHER, allow flight; otherwise, disable it.

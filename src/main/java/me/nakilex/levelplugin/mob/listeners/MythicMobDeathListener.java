@@ -245,36 +245,23 @@ public class MythicMobDeathListener implements Listener {
     /**
      * Reads `mobs.<mobType>.items` from mob_rewards.yml,
      * and drops items based on drop_rate and quantity ranges.
-     * This version includes DEBUG logs to help troubleshoot issues.
      */
     private void dropCustomItems(Player player, String mobType) {
-        String path = "mobs." + mobType + ".items";
 
-        // Debug #1: Check if the path is in config
-        System.out.println("[DEBUG] Checking config path: " + path
-            + " => " + mobRewardsConfig.getConfig().contains(path));
         if (!mobRewardsConfig.getConfig().contains(path)) {
-            //System.out.println("[DEBUG] Path not found for: " + path);
             return;
         }
 
         // Retrieve list of drop entries (maps)
         List<Map<?, ?>> itemList = mobRewardsConfig.getConfig().getMapList(path);
 
-        // Debug #2: Print the raw list we got from config
-        System.out.println("[DEBUG] itemList for '" + mobType + "' => " + itemList);
         if (itemList == null || itemList.isEmpty()) {
-            //System.out.println("[DEBUG] itemList is null/empty. No drops to process.");
             return;
         }
 
         // Loop over each item entry in the list
         for (Map<?, ?> entry : itemList) {
-            // Debug #3: Show each entry from config
-            System.out.println("[DEBUG] Processing drop entry: " + entry);
-
             if (!entry.containsKey("itemid")) {
-                //System.out.println("[DEBUG] 'itemid' key missing in entry: " + entry);
                 continue;
             }
             int itemId = (int) entry.get("itemid");
@@ -283,17 +270,13 @@ public class MythicMobDeathListener implements Listener {
             double dropRate = entry.containsKey("drop_rate")
                 ? (double) entry.get("drop_rate") : 100.0;
             double roll = ThreadLocalRandom.current().nextDouble() * 100.0;
-            //System.out.println("[DEBUG] dropRate=" + dropRate + ", roll=" + roll);
             if (roll > dropRate) {
-                // Skip if random roll doesn't meet drop_rate
-                //System.out.println("[DEBUG] Skipping drop since roll (" + roll + ") > dropRate (" + dropRate + ")");
                 continue;
             }
 
             // quantity
             String qtyRange = entry.containsKey("quantity")
                 ? (String) entry.get("quantity") : "1-1";
-            //System.out.println("[DEBUG] quantity range=" + qtyRange);
 
             String[] rangeSplit = qtyRange.split("-");
             int minQty = Integer.parseInt(rangeSplit[0]);
@@ -310,13 +293,11 @@ public class MythicMobDeathListener implements Listener {
                 }
                 continue;
             }
-            //System.out.println("[DEBUG] Chosen quantity=" + quantity + " for itemId=" + itemId);
 
             // Fetch the base template from ItemManager
             CustomItem template = ItemManager.getInstance().getTemplateById(itemId);
             if (template == null) {
                 player.sendMessage("§c[Warning] No CustomItem found with ID: " + itemId);
-                //System.out.println("[DEBUG] Template not found in ItemManager for itemId=" + itemId);
                 continue;
             }
 

@@ -126,11 +126,7 @@ public class MeteorEffect implements SpellEffect {
                 });
                 roundStands.add(as);
             }
-            // DEBUG: log how many “blocks” this particular meteor spawned
-            plugin.getLogger().info(
-                String.format("[MeteorEffect] Meteor #%d spawned %d blocks",
-                    round + 1, roundStands.size())
-            );
+            // Track spawned armor stands for cleanup
             stands.addAll(roundStands);
         }
 

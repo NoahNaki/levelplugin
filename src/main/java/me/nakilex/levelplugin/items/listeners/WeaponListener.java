@@ -37,15 +37,10 @@ public class WeaponListener implements Listener {
         ItemStack oldItem = player.getInventory().getItem(oldSlot);
         ItemStack newItem = player.getInventory().getItem(newSlot);
 
-        // DEBUG logging
-        Bukkit.getLogger().info("[DEBUG][WeaponListener] onHotbarSlotChange fired.");
-        Bukkit.getLogger().info("  OldSlot=" + oldSlot + " NewSlot=" + newSlot
-            + " OldItem=" + debugItem(oldItem)
-            + " NewItem=" + debugItem(newItem));
 
         // If the items are effectively the same, skip
         if (isSameItem(oldItem, newItem)) {
-            Bukkit.getLogger().info("  Skipping event because items are the same (or both null).");
+            // Nothing to do if items haven't changed
             return;
         }
 
@@ -63,7 +58,6 @@ public class WeaponListener implements Listener {
 
         // If neither item is recognized as a weapon and neither has custom data, skip the event.
         if (oldWeapon == null && newWeapon == null && customOld == null && customNew == null) {
-            Bukkit.getLogger().info("  Skipping event because neither item is recognized as a weapon or custom weapon.");
             return;
         }
 
@@ -77,12 +71,10 @@ public class WeaponListener implements Listener {
             newItem
         );
 
-        Bukkit.getLogger().info("  Calling WeaponEquipEvent: old=" + debugItem(oldItem)
             + " new=" + debugItem(newItem));
         Bukkit.getPluginManager().callEvent(equipEvent);
 
         if (equipEvent.isCancelled()) {
-            Bukkit.getLogger().info("  WeaponEquipEvent was cancelled by something else.");
             event.setCancelled(true);
         }
     }
@@ -94,9 +86,7 @@ public class WeaponListener implements Listener {
         ItemStack mainItem = event.getMainHandItem();
         ItemStack offItem  = event.getOffHandItem();
 
-        Bukkit.getLogger().info("[DEBUG][WeaponListener] onSwapHand fired.");
-        Bukkit.getLogger().info("  mainItem=" + debugItem(mainItem)
-            + " offItem=" + debugItem(offItem));
+        // Removed verbose swap logging
 
 
 
@@ -104,7 +94,7 @@ public class WeaponListener implements Listener {
         WeaponType mainWeapon = WeaponType.matchType(mainItem);
         WeaponType offWeapon = WeaponType.matchType(offItem);
         if (mainWeapon == null && offWeapon == null) {
-            Bukkit.getLogger().info("  Skipping swap event because neither item is recognized as a weapon.");
+            // Skip event if neither item is a weapon
             return;
         }
 
@@ -118,16 +108,13 @@ public class WeaponListener implements Listener {
             mainItem,
             offItem
         );
-        Bukkit.getLogger().info("  Calling main-hand swap event: old=" + debugItem(mainItem)
-            + " new=" + debugItem(offItem));
+        // Fire swap events
         Bukkit.getPluginManager().callEvent(mainSwapEvent);
         if (mainSwapEvent.isCancelled()) {
-            Bukkit.getLogger().info("  mainSwapEvent was cancelled => stopping swap.");
             event.setCancelled(true);
             return;
         }
 
-        Bukkit.getLogger().info("[DEBUG] Main hand swap event completed successfully."); // DEBUG
 
         // Fire for off-hand: old = offItem, new = mainItem.
         WeaponType offNewType = WeaponType.matchType(mainItem);
@@ -139,15 +126,12 @@ public class WeaponListener implements Listener {
             offItem,
             mainItem
         );
-        Bukkit.getLogger().info("  Calling off-hand swap event: old=" + debugItem(offItem)
             + " new=" + debugItem(mainItem));
         Bukkit.getPluginManager().callEvent(offSwapEvent);
         if (offSwapEvent.isCancelled()) {
-            Bukkit.getLogger().info("  offSwapEvent was cancelled => stopping swap.");
             event.setCancelled(true);
         }
 
-        Bukkit.getLogger().info("[DEBUG] Off-hand swap event completed successfully."); // DEBUG
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -158,13 +142,10 @@ public class WeaponListener implements Listener {
         // Typically off-hand is slot 40
         if (event.getSlot() != 40) return;
 
-        Bukkit.getLogger().info("[DEBUG][WeaponListener] onInventoryClick fired for off-hand (slot=40).");
-        Bukkit.getLogger().info("  action=" + event.getAction());
 
         ItemStack cursor = event.getCursor();
         ItemStack offItem = event.getCurrentItem();
 
-        Bukkit.getLogger().info("  offItem=" + debugItem(offItem)
             + " cursor=" + debugItem(cursor));
 
         InventoryAction act = event.getAction();

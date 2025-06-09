@@ -52,13 +52,11 @@ public class PotionInstance {
         if (template.getId().equals("healing_potion")) {
             meta.setDisplayName("§cHealing Potion §4[" + charges + "/" + template.getCharges() + "]");
             List<String> lore = Collections.emptyList();
-            System.out.println("Setting lore: " + lore); // Check lore before setting
             meta.setLore(lore);
             meta.setLore(Arrays.asList("§4- §7Recover §f10% §c❤"));
         } else if (template.getId().equals("mana_potion")) {
             meta.setDisplayName("§bMana Potion §3[" + charges + "/" + template.getCharges() + "]");
             List<String> lore = Collections.emptyList();
-            System.out.println("Setting lore: " + lore); // Check lore before setting
             meta.setLore(lore);
             meta.setLore(Arrays.asList("§3- §7Recover §f10% §b✨"));
         }

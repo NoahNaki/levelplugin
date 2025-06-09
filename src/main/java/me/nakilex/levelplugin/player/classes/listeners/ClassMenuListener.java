@@ -111,12 +111,6 @@ public class ClassMenuListener implements Listener {
 
         PlayerClass currentClass = StatsManager.getInstance().getPlayerStats(puuid).playerClass;
 
-        // 🐛 DEBUGGING OUTPUT
-//        player.sendMessage(ChatColor.YELLOW + "[DEBUG] Your class: " + currentClass);
-//        player.sendMessage(ChatColor.YELLOW + "[DEBUG] Weapon requires: " + reqClass);
-//        player.sendMessage(ChatColor.YELLOW + "[DEBUG] Weapon name: " + ci.getBaseName());
-//        player.sendMessage(ChatColor.YELLOW + "[DEBUG] Raw class requirement string: " + clsReqRaw);
-//        player.sendMessage(ChatColor.YELLOW + "[DEBUG] Player Level: " + playerLevel + " / Required Level: " + reqLevel);
 
         boolean meetsClassReq = (reqClass == PlayerClass.VILLAGER || reqClass == currentClass);
         boolean meetsLevelReq = (playerLevel >= reqLevel);

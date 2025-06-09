@@ -114,8 +114,6 @@ public class PotionUseListener implements Listener {
 
     @EventHandler
     public void onPotionConsume(PlayerItemConsumeEvent event) {
-        // Debug log for consume event
-        System.out.println("PlayerItemConsumeEvent triggered");
         event.setCancelled(true); // Always cancel consume animation
     }
 }
