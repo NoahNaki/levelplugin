@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.fakeblock;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.fasttravel.FastTravelManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -25,11 +26,13 @@ public class ModelGateManager implements Listener {
     private final Map<java.util.UUID, ModelGate> entityMap = new HashMap<>();
     /** Map of block locations to their gate for quick lookup from interact events. */
     private final Map<org.bukkit.Location, ModelGate> locationMap = new HashMap<>();
+    private final FastTravelManager fastTravelManager;
     private File file;
     private FileConfiguration config;
 
     public ModelGateManager(Main plugin) {
         this.plugin = plugin;
+        this.fastTravelManager = plugin.getFastTravelManager();
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
         loadFromConfig();
     }
@@ -152,6 +155,8 @@ public class ModelGateManager implements Listener {
 
     public void updatePlayer(Player player) {
         for (ModelGate gate : gates.values()) {
+            boolean unlocked = fastTravelManager.isUnlocked(player, gate.getId());
+            gate.setClosed(player.getUniqueId(), !unlocked);
             gate.apply(player, plugin);
         }
     }

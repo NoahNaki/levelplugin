@@ -6,8 +6,10 @@ import me.nakilex.levelplugin.fasttravel.FastTravelManager;
 import me.nakilex.levelplugin.fakeblock.ModelGate;
 import me.nakilex.levelplugin.fakeblock.ModelGateManager;
 import me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI;
-import org.bukkit.ChatColor;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import org.bukkit.Location;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -40,12 +42,24 @@ public class WaystoneListener implements Listener {
                 gate.setClosed(player.getUniqueId(), false);
                 gate.apply(player, gateManager.getPlugin());
                 manager.unlock(player, gate.getId());
-                player.sendMessage(ChatColor.GOLD + "Waystone unlocked!");
+                sendUnlockMessage(player, gate.getLocation(), gate.getId());
             }
             gui.open(player);
             return;
         }
         event.setCancelled(true);
         gui.open(player);
+    }
+
+    /**
+     * Display a styled unlock message and play effects when a player activates a waystone.
+     */
+    private void sendUnlockMessage(Player player, Location loc, String id) {
+        ChatFormatter.constructDivider(player, "", 45);
+        ChatFormatter.sendCenteredMessage(player, "§6§lWaystone Unlocked!");
+        ChatFormatter.sendCenteredMessage(player, "§e" + id);
+        ChatFormatter.constructDivider(player, " ", 45);
+        player.playSound(loc, Sound.ENTITY_PLAYER_LEVELUP, 1f, 1f);
+        player.spawnParticle(Particle.FIREWORKS_SPARK, loc.add(0.5, 1, 0.5), 30, 0.3, 0.5, 0.3, 0.02);
     }
 }
