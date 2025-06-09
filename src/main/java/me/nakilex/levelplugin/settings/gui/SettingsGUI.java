@@ -2,6 +2,9 @@ package me.nakilex.levelplugin.settings.gui;
 
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
 import me.nakilex.levelplugin.settings.data.PlayerSettings;
+import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
+import com.nexomc.nexo.api.NexoItems;
+import com.nexomc.nexo.items.ItemBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -27,6 +30,9 @@ public class SettingsGUI implements Listener {
         PlayerSettings playerSettings = settingsManager.getSettings(player);
 
         Inventory gui = Bukkit.createInventory(null, 27, "Settings");
+
+        // Back button
+        gui.setItem(0, getNexoItem("arrow_left2", "§7Back"));
 
         // Damage Chat toggle
         gui.setItem(10, createSettingItem(
@@ -97,6 +103,18 @@ public class SettingsGUI implements Listener {
         return item;
     }
 
+    private ItemStack getNexoItem(String id, String name) {
+        ItemBuilder builder = NexoItems.itemFromId(id);
+        if (builder == null) return new ItemStack(Material.BARRIER);
+        ItemStack item = builder.build();
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(name);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
     private void updateSettingItem(Inventory inventory, int slot, boolean enabled, String name, String command) {
         inventory.setItem(slot, createSettingItem(enabled, name, command));
     }
@@ -114,6 +132,11 @@ public class SettingsGUI implements Listener {
         if (clicked == null || clicked.getType() == Material.GRAY_STAINED_GLASS_PANE) return;
 
         int slot = event.getSlot();
+
+        if (slot == 0) {
+            player.openInventory(StatsInventory.getStatsMenu(player));
+            return;
+        }
 
         if (slot == 10) {
             settings.toggleDmgChat();

@@ -33,7 +33,7 @@ public class StatsMenuListener implements Listener {
             String displayName = ChatColor.stripColor(clickedItem.getItemMeta().getDisplayName());
 
             // Handle Refund All Skill Points Confirmation
-            if (clickedItem.getType() == Material.ENDER_EYE) {
+            if (displayName.equalsIgnoreCase("Refund All Skill Points")) {
                 if (refundConfirmations.contains(player)) {
                     statsManager.refundAllStats(player);
                     refundConfirmations.remove(player);
@@ -45,6 +45,16 @@ public class StatsMenuListener implements Listener {
                 }
                 // Refresh the inventory to reflect changes
                 player.openInventory(StatsInventory.getStatsMenu(player));
+                return;
+            }
+
+            if (displayName.equalsIgnoreCase("Equip Runes")) {
+                player.performCommand("equiprunes");
+                return;
+            }
+
+            if (displayName.equalsIgnoreCase("Settings")) {
+                player.performCommand("settings");
                 return;
             }
 

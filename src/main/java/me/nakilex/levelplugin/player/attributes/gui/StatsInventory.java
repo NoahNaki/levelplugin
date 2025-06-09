@@ -1,5 +1,7 @@
 package me.nakilex.levelplugin.player.attributes.gui;
 
+import com.nexomc.nexo.api.NexoItems;
+import com.nexomc.nexo.items.ItemBuilder;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStats;
@@ -15,7 +17,6 @@ import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.inventory.ItemFlag;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class StatsInventory {
@@ -24,12 +25,12 @@ public class StatsInventory {
         PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
         Inventory inv = Bukkit.createInventory(
             null,
-            27,
+            54,
             ps.skillPoints + " skill points remaining"
         );
 
         // Stat books with base and bonus stats
-        inv.setItem(10, createStatBook(
+        inv.setItem(19, createStatBook(
             "Strength", StatType.STR, ps.baseStrength, ps.bonusStrength, ps.skillPoints,
             "Increases your melee damage.",
             new String[]{
@@ -43,7 +44,7 @@ public class StatsInventory {
         double dodgePercent = totalAgility / (totalAgility + 200.0) * 100.0;
         dodgePercent = Math.round(dodgePercent * 10.0) / 10.0;  // 1-decimal precision
 
-        inv.setItem(11, createStatBook(
+        inv.setItem(20, createStatBook(
             "Agility", StatType.AGI, ps.baseAgility, ps.bonusAgility, ps.skillPoints,
             "Improves your speed and dodge chance.",
             new String[]{
@@ -53,7 +54,7 @@ public class StatsInventory {
             }
         ));
 
-        inv.setItem(12, createStatBook(
+        inv.setItem(21, createStatBook(
             "Intelligence", StatType.INT, ps.baseIntelligence, ps.bonusIntelligence, ps.skillPoints,
             "Increases your max mana and mana regeneration.",
             new String[]{
@@ -66,7 +67,7 @@ public class StatsInventory {
         int totalDexterity = ps.baseDexterity + ps.bonusDexterity;
         double critPercent  = totalDexterity / (totalDexterity + 100.0) * 100.0;
         critPercent = Math.round(critPercent * 10.0) / 10.0;
-        inv.setItem(14, createStatBook(
+        inv.setItem(23, createStatBook(
             "Dexterity", StatType.DEX, ps.baseDexterity, ps.bonusDexterity, ps.skillPoints,
             "Improves crit chance and subtracts from enemy dodge based on your DEX.",
             new String[]{
@@ -75,7 +76,7 @@ public class StatsInventory {
             }
         ));
 
-        inv.setItem(15, createStatBook(
+        inv.setItem(24, createStatBook(
             "Vitality", StatType.HP, ps.baseHealthStat, ps.bonusHealthStat, ps.skillPoints,
             "Increases your maximum health and stamina.",
             new String[]{
@@ -90,7 +91,7 @@ public class StatsInventory {
         percentReduction *= 100.0; // convert to percentage
         percentReduction = Math.round(percentReduction * 10.0) / 10.0; // round to 1 decimal
 
-        inv.setItem(16, createStatBook(
+        inv.setItem(25, createStatBook(
             "Defense", StatType.DEF, ps.baseDefenceStat, ps.bonusDefenceStat, ps.skillPoints,
             "Reduces incoming damage.",
             new String[]{
@@ -100,13 +101,16 @@ public class StatsInventory {
         ));
 
         // Refund Skill Points Button
-        inv.setItem(22, createMenuItem(Material.ENDER_EYE,
-            ChatColor.RED + "" + ChatColor.BOLD + "Refund All Skill Points",
-            ChatColor.YELLOW + "Click twice to confirm."
-        ));
+        inv.setItem(13, getNexoItem("refresh", ChatColor.RED + "Refund All Skill Points"));
 
         // Player head with overall summary
-        inv.setItem(26, createPlayerHead(player, ps));
+        inv.setItem(8, createPlayerHead(player, ps));
+
+        // Navigation and extra buttons
+        inv.setItem(37, getNexoItem("arrow_left", ChatColor.GRAY + "Equip Runes"));
+        inv.setItem(43, getNexoItem("arrow_right", ChatColor.GRAY + "Equip Runes"));
+        inv.setItem(48, getNexoItem("camera", ChatColor.YELLOW + "Coming Soon"));
+        inv.setItem(50, getNexoItem("settings", ChatColor.AQUA + "Settings"));
 
         // Fill empty slots with gray stained glass panes
         ItemStack filler = createFillerItem(Material.GRAY_STAINED_GLASS_PANE, " ");
@@ -174,21 +178,23 @@ public class StatsInventory {
         return head;
     }
 
-    private static ItemStack createMenuItem(Material mat, String name, String loreText) {
-        ItemStack item = new ItemStack(mat);
-        ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(name);
-        meta.setLore(Collections.singletonList(loreText));
-        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-        item.setItemMeta(meta);
-        return item;
-    }
-
     private static ItemStack createFillerItem(Material material, String space) {
         ItemStack filler = new ItemStack(material);
         ItemMeta meta = filler.getItemMeta();
         meta.setDisplayName(space);
         filler.setItemMeta(meta);
         return filler;
+    }
+
+    private static ItemStack getNexoItem(String id, String name) {
+        ItemBuilder builder = NexoItems.itemFromId(id);
+        if (builder == null) return new ItemStack(Material.BARRIER);
+        ItemStack item = builder.build();
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(name);
+            item.setItemMeta(meta);
+        }
+        return item;
     }
 }
