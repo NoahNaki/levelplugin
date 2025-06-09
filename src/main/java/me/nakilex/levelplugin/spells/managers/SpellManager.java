@@ -175,7 +175,6 @@ public class SpellManager {
             0.0,
             1,
             1,
-            1,
             WeaponType.BOW.getMaterials(),
             "BASIC_ATTACK",
             1.0
