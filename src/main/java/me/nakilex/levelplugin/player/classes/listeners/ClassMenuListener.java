@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -62,8 +63,12 @@ public class ClassMenuListener implements Listener {
                 player.setFlying(false);
             }
 
-            player.sendMessage(ChatColor.DARK_GRAY + "[" + ChatColor.GOLD + "Class Selection" + ChatColor.DARK_GRAY + "] "
-                + ChatColor.GREEN + "You have selected " + ChatColor.AQUA + className + ChatColor.GREEN + "!");
+            ChatFormatter.constructDivider(player, "§6§l-", 45);
+            ChatFormatter.sendCenteredMessage(player, "§6§lCLASS SELECTED!");
+            ChatFormatter.sendCenteredMessage(player, "");
+            ChatFormatter.sendCenteredMessage(player,
+                "§7You have chosen the §e§l" + className + " §7class!");
+            ChatFormatter.constructDivider(player, "§6§l-", 45);
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
             player.closeInventory();
             me.nakilex.levelplugin.Main.getInstance().getQuestManager().handleClassSelect(player);

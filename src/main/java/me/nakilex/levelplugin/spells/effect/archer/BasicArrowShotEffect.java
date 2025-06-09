@@ -38,6 +38,14 @@ public class BasicArrowShotEffect implements SpellEffect {
         return def;
     }
 
+    private double parseDouble(Object obj, double def) {
+        if (obj instanceof Number n) return n.doubleValue();
+        if (obj instanceof String s) {
+            try { return Double.parseDouble(s); } catch (NumberFormatException ignored) {}
+        }
+        return def;
+    }
+
     @Override
     public void apply(SpellCastContext ctx) {
         Player player = ctx.getPlayer();
@@ -72,6 +80,7 @@ public class BasicArrowShotEffect implements SpellEffect {
         double damage = baseAtk + (str * 0.5);
 
         Runnable shootArrows = () -> {
+            double speedMultiplier = parseDouble(ctx.getExtraParam("velocityMultiplier"), 1.0);
             for (int i = 0; i < totalArrows; i++) {
                 Vector dir = player.getLocation().getDirection().clone();
                 if (i > 0) {
@@ -82,7 +91,7 @@ public class BasicArrowShotEffect implements SpellEffect {
                         (Math.random() - 0.5) * spread
                     ));
                 }
-                Arrow arrow = player.launchProjectile(Arrow.class, dir.multiply(2));
+                Arrow arrow = player.launchProjectile(Arrow.class, dir.multiply(2 * speedMultiplier));
                 arrow.setDamage(damage);
                 arrow.setCustomName("BasicArcherArrow");
                 arrow.setCustomNameVisible(false);

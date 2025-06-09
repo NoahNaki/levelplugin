@@ -9,15 +9,15 @@ import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.runes.manager.RunesManager;
 import me.nakilex.levelplugin.runes.model.Rune;
-import me.nakilex.levelplugin.runes.model.RuneEffect;
 import me.nakilex.levelplugin.spells.Spell;
-import me.nakilex.levelplugin.spells.context.SpellCastContext;
-import me.nakilex.levelplugin.spells.effect.SpellEffect;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStats;
-import me.nakilex.levelplugin.spells.registry.EffectRegistry;
 import me.nakilex.levelplugin.spells.utils.SpellUtils;
+import com.comphenix.protocol.ProtocolLibrary;
+import com.comphenix.protocol.ProtocolManager;
+import com.comphenix.protocol.PacketType;
+import com.comphenix.protocol.events.PacketContainer;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Arrow;
@@ -29,6 +29,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.*;
@@ -47,11 +48,13 @@ public class ClickComboListener implements Listener {
 
     private static final long MAX_COMBO_TIME = 2000L; // 2 seconds
     private static final Map<UUID, ClickSequence> playerCombos = new HashMap<>();
-    private final Map<UUID, Map<String, Long>> spellCooldowns = new HashMap<>();
     private final Map<UUID, Long> activeLeftClicks = new HashMap<>();
     private final Map<UUID, Long> bowCooldowns = new HashMap<>();
     private static final long BOW_SHOT_COOLDOWN = 500L; // 0.5 seconds
-    private RunesManager runeManager;
+    private final Map<UUID, Long> quickdrawCooldowns = new HashMap<>();
+    private final Map<UUID, ItemStack> offhandBackups = new HashMap<>();
+    private final ProtocolManager protocol = ProtocolLibrary.getProtocolManager();
+    private static final int OFFHAND_SLOT = 45;
 
 
     @EventHandler
@@ -126,24 +129,6 @@ public class ClickComboListener implements Listener {
 
     @EventHandler
     public void onRightClick(PlayerInteractEvent event) {
-        // Debug: log click event details
-        Player dbgPlayer = event.getPlayer();
-        String dbgClassName = StatsManager.getInstance()
-            .getPlayerStats(dbgPlayer.getUniqueId())
-            .playerClass.name().toLowerCase();
-        ItemStack dbgMain = dbgPlayer.getInventory().getItemInMainHand();
-        String dbgItem = (dbgMain != null && dbgMain.getType() != Material.AIR)
-            ? dbgMain.getType().name() : "none";
-        String dbgCombo = getActiveCombo(dbgPlayer);
-        Bukkit.getLogger().info(
-            "[DBG] onRightClick -> class=" + dbgClassName +
-                ", item=" + dbgItem +
-                ", activeCombo=" + dbgCombo
-        );
-
-        // Debug: list all valid combos for this class
-        Map<String, Spell> available = SpellManager.getInstance().getSpellsByClass(dbgClassName);
-        Bukkit.getLogger().info("[DBG] Valid combos for class=" + dbgClassName + ": " + available.keySet());
 
         // Only handle main-hand right-clicks
         if (event.getHand() != EquipmentSlot.HAND ||
@@ -161,7 +146,9 @@ public class ClickComboListener implements Listener {
         String activeCombo = getActiveCombo(player);
 
         // —— Archer bow logic ——
-        if ("archer".equals(className) && mainHand.getType() == Material.BOW) {
+        if ("archer".equals(className) &&
+            me.nakilex.levelplugin.items.data.WeaponType.BOW
+                .getMaterials().contains(mainHand.getType())) {
             if (!activeCombo.isEmpty()) {
                 event.setCancelled(true);
                 recordComboClick(player, "R");
@@ -169,15 +156,25 @@ public class ClickComboListener implements Listener {
             }
 
             if (hasQuickdrawRune(player)) {
-                event.setCancelled(true);
-                handleSpellCast(player, "BASIC_ATTACK");
+                if (quickdrawReady(player)) {
+                    event.setCancelled(true);
+                    handleSpellCast(player, "BASIC_ATTACK");
+                    setQuickdrawUsed(player);
+                } else {
+                    event.setCancelled(true);
+                }
+                return;
             }
-            // else allow vanilla drawing; shot handled in EntityShootBowEvent
+
+            if (!player.getInventory().contains(Material.ARROW)) {
+                giveTempArrow(player);
+            }
+
+            // allow vanilla drawing; shot handled in EntityShootBowEvent
             return;
         }
 
         // Default: record combo
-        Bukkit.getLogger().info("[DBG] Not an archer bow click, recording combo R");
         recordComboClick(player, "R");
     }
 
@@ -185,7 +182,9 @@ public class ClickComboListener implements Listener {
     public void onBowShoot(EntityShootBowEvent event) {
         if (!(event.getEntity() instanceof Player player)) return;
         ItemStack bow = event.getBow();
-        if (bow == null || bow.getType() != Material.BOW) return;
+        if (bow == null ||
+            !me.nakilex.levelplugin.items.data.WeaponType.BOW
+                .getMaterials().contains(bow.getType())) return;
 
         PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
         if (ps.playerClass != PlayerClass.ARCHER) return;
@@ -195,11 +194,13 @@ public class ClickComboListener implements Listener {
 
         if (!activeCombo.isEmpty()) {
             event.setCancelled(true);
+            removeTempArrow(player);
             return;
         }
 
         event.setCancelled(true);
         handleSpellCast(player, "BASIC_ATTACK");
+        removeTempArrow(player);
     }
 
 
@@ -363,64 +364,18 @@ public class ClickComboListener implements Listener {
     }
 
     private void handleSpellCast(Player player, String combo) {
-        // Debug: incoming combo and class
         String className = StatsManager.getInstance()
             .getPlayerStats(player.getUniqueId())
-            .playerClass
-            .name()
-            .toLowerCase();
-        Bukkit.getLogger().info(String.format(
-            "[DBG] handleSpellCast -> class=%s, combo=%s",
-            className, combo
-        ));
+            .playerClass.name().toLowerCase();
 
-        // 1) Lookup the Spell
         Spell spell = SpellManager.getInstance().getSpell(className, combo);
         if (spell == null) {
             Bukkit.getLogger().warning(String.format(
-                "[DBG] No Spell found for class=%s, combo=%s",
-                className, combo
-            ));
+                "No Spell found for class=%s, combo=%s", className, combo));
             return;
         }
-        Bukkit.getLogger().info(String.format(
-            "[DBG] Found Spell id=%s, allowedWeapons=%s, levelReq=%d, cooldown=%ds",
-            spell.getId(), spell.getAllowedWeapons(), spell.getLevelReq(), spell.getCooldownSeconds()
-        ));
 
-        // 2) Build the context
-        SpellCastContext ctx = new SpellCastContext(spell, player);
-
-        // 3) Apply rune modifiers/transforms
-        List<Rune> runes = Main.getInstance()
-            .getRunesManager()
-            .getRunesForSpell(player, spell.getId());
-        List<String> runeIds = runes.stream().map(Rune::getId).toList();
-        Bukkit.getLogger().info(String.format(
-            "[DBG] Equipped runes for %s: %s",
-            spell.getId(), runeIds
-        ));
-        for (Rune rune : runes) {
-            for (RuneEffect eff : rune.getEffects()) {
-                if (eff.getType() == RuneEffect.Type.MODIFIER) {
-                    ctx.addDamagePercent(eff.getBonusDamagePercent());
-                    ctx.reduceCooldownPercent(eff.getCooldownReductionPercent());
-                    eff.getExtraParams().forEach((k,v) -> ctx.putExtraParam(k, v, eff.getPriority()));
-                } else if (eff.getType() == RuneEffect.Type.TRANSFORM) {
-                    if (eff.getNewEffectKey() != null) ctx.addEffectKey(eff.getNewEffectKey());
-                    eff.getExtraParams().forEach((k,v) -> ctx.putExtraParam(k, v, eff.getPriority()));
-                }
-            }
-        }
-
-        // 4) Debug: final effect keys
-        List<String> effectKeys = ctx.getEffectKeys();
-        Bukkit.getLogger().info(String.format(
-            "[DBG] Effect keys to apply: %s",
-            effectKeys
-        ));
-
-        // 5) Pre-cast checks: weapon, level, cooldown
+        // Pre-cast checks for weapon and level
         ItemStack mainHand = player.getInventory().getItemInMainHand();
         if (!spell.getAllowedWeapons().contains(mainHand.getType())) {
             player.sendMessage("§cYou must hold a valid " + className + " weapon!");
@@ -431,30 +386,12 @@ public class ClickComboListener implements Listener {
             player.sendMessage("§cYou are not high enough level for " + spell.getDisplayName());
             return;
         }
-        long now = System.currentTimeMillis();
-        Map<String, Long> cdMap = spellCooldowns
-            .computeIfAbsent(player.getUniqueId(), k -> new HashMap<>());
-        if (cdMap.containsKey(spell.getId()) && now < cdMap.get(spell.getId())) {
-            long secsLeft = (cdMap.get(spell.getId()) - now) / 1000;
-            Bukkit.getLogger().info("[DBG] Spell on cooldown for " + secsLeft + "s");
-            return;
-        }
 
-        // 6) Apply effects in order
-        for (String key : effectKeys) {
-            Bukkit.getLogger().info("[DBG] Applying effect -> " + key);
-            SpellEffect effect = EffectRegistry.get(key);
-            if (effect == null) {
-                Bukkit.getLogger().warning("[DBG] No SpellEffect found for key -> " + key);
-            } else {
-                effect.apply(ctx);
-            }
-        }
+        // Delegate casting logic to Spell which handles mana, runes and cooldown
+        spell.castEffect(player);
 
-        // 7) Recalculate stats & set cooldown
+        // Recalculate derived stats to reflect mana changes
         StatsManager.getInstance().recalcDerivedStats(player);
-        long nextUse = now + spell.getCooldownSeconds() * 1000L;
-        cdMap.put(spell.getId(), nextUse);
     }
 
     private boolean hasQuickdrawRune(Player player) {
@@ -467,6 +404,42 @@ public class ClickComboListener implements Listener {
             }
         }
         return false;
+    }
+
+    private boolean quickdrawReady(Player player) {
+        Long last = quickdrawCooldowns.get(player.getUniqueId());
+        return last == null || System.currentTimeMillis() - last >= 1L;
+    }
+
+    private void setQuickdrawUsed(Player player) {
+        quickdrawCooldowns.put(player.getUniqueId(), System.currentTimeMillis());
+    }
+
+    private void giveTempArrow(Player player) {
+        UUID id = player.getUniqueId();
+        if (offhandBackups.containsKey(id)) return;
+        ItemStack prev = player.getInventory().getItemInOffHand();
+        offhandBackups.put(id, prev);
+        player.getInventory().setItemInOffHand(new ItemStack(Material.ARROW, 1));
+        sendOffhandVisual(player, prev);
+    }
+
+    private void removeTempArrow(Player player) {
+        UUID id = player.getUniqueId();
+        ItemStack prev = offhandBackups.remove(id);
+        if (prev == null) return;
+        player.getInventory().setItemInOffHand(prev);
+        sendOffhandVisual(player, prev);
+    }
+
+    private void sendOffhandVisual(Player player, ItemStack item) {
+        PacketContainer pkt = protocol.createPacket(PacketType.Play.Server.SET_SLOT);
+        pkt.getIntegers().write(0, 0); // window id
+        pkt.getIntegers().write(1, OFFHAND_SLOT);
+        pkt.getItemModifier().write(0, item);
+        try {
+            protocol.sendServerPacket(player, pkt);
+        } catch (Exception ignored) {}
     }
 
 
@@ -482,6 +455,7 @@ public class ClickComboListener implements Listener {
             seq.clear();
             playerCombos.remove(uuid);
         }
+        removeTempArrow(player);
     }
 
     @EventHandler
@@ -494,6 +468,7 @@ public class ClickComboListener implements Listener {
             seq.clear();
             playerCombos.remove(uuid);
         }
+        removeTempArrow(player);
     }
 
     @EventHandler
@@ -508,6 +483,7 @@ public class ClickComboListener implements Listener {
             ClickSequence seq = playerCombos.remove(player.getUniqueId());
             if (seq != null) seq.clear();
         }
+        removeTempArrow(player);
     }
 
     @EventHandler
@@ -520,8 +496,29 @@ public class ClickComboListener implements Listener {
             if (raw == heldSlot) {
                 ClickSequence seq = playerCombos.remove(player.getUniqueId());
                 if (seq != null) seq.clear();
+                removeTempArrow(player);
                 break;
             }
+        }
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        removeTempArrow(event.getPlayer());
+    }
+
+    @EventHandler
+    public void onPlayerDeath(PlayerDeathEvent event) {
+        Player player = event.getEntity();
+        removeTempArrow(player);
+    }
+
+    @EventHandler
+    public void onItemDrop(PlayerDropItemEvent event) {
+        Player player = event.getPlayer();
+        if (offhandBackups.containsKey(player.getUniqueId())) {
+            event.setCancelled(true);
+            removeTempArrow(player);
         }
     }
 
