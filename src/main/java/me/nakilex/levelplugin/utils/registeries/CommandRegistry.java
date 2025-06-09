@@ -135,6 +135,7 @@ public class CommandRegistry {
         plugin.getCommand("nexoscan").setExecutor(new NexoScanCommand());
         plugin.getCommand("motd").setExecutor(new me.nakilex.levelplugin.motd.MotdCommand(motdManager));
         plugin.getCommand("fakegate").setExecutor(new me.nakilex.levelplugin.fakeblock.FakeGateCommand(plugin));
+        plugin.getCommand("modelgate").setExecutor(new me.nakilex.levelplugin.fakeblock.ModelGateCommand(plugin));
 
     }
 }

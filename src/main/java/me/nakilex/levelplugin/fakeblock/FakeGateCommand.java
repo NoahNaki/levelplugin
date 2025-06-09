@@ -49,6 +49,14 @@ public class FakeGateCommand implements CommandExecutor, Listener {
                 player.getInventory().addItem(wand.clone());
                 player.sendMessage(ChatColor.GREEN + "Wand given.");
                 return true;
+            case "list":
+                var ids = manager.getGateIds();
+                if (ids.isEmpty()) {
+                    player.sendMessage(ChatColor.YELLOW + "No gates defined.");
+                } else {
+                    player.sendMessage(ChatColor.YELLOW + "Gates: " + String.join(", ", ids));
+                }
+                return true;
             case "create":
                 if (args.length < 3) return false;
                 Selection sel = selections.get(player.getUniqueId());

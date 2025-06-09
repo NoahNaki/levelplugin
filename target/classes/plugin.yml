@@ -156,4 +156,7 @@ commands:
     usage: /motd <reload|preview>
   fakegate:
     description: Manage fake block gates
-    usage: /fakegate <wand|create|toggle|remove>
+    usage: /fakegate <wand|create|toggle|remove|list>
+  modelgate:
+    description: Toggle Nexo model gates
+    usage: /modelgate <create|toggle|remove|list>

@@ -40,6 +40,11 @@ public class QuestGateManager implements Listener {
         gates.put(gate.getId().toLowerCase(), gate);
     }
 
+    /** Returns the set of registered gate ids. */
+    public Set<String> getGateIds() {
+        return new HashSet<>(gates.keySet());
+    }
+
     /** Remove a gate and persist changes. */
     public boolean removeGate(String id) {
         if (gates.remove(id.toLowerCase()) != null) {
