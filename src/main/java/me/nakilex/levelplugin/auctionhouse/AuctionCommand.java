@@ -45,6 +45,10 @@ public class AuctionCommand implements CommandExecutor {
                 player.sendMessage(ChatColor.RED + "Invalid number.");
                 return true;
             }
+            if (hours > AuctionHouseManager.MAX_DURATION_HOURS) {
+                hours = AuctionHouseManager.MAX_DURATION_HOURS;
+                player.sendMessage(ChatColor.YELLOW + "Duration capped at " + AuctionHouseManager.MAX_DURATION_HOURS + "h.");
+            }
             ItemStack item = player.getInventory().getItemInMainHand();
             if (item == null || item.getType().isAir()) {
                 player.sendMessage(ChatColor.RED + "Hold the item you wish to sell in your hand.");
@@ -55,8 +59,9 @@ public class AuctionCommand implements CommandExecutor {
                 return true;
             }
             player.getInventory().setItemInMainHand(null);
-            manager.listItem(player, item, start, bin, hours);
-            player.sendMessage(ChatColor.GREEN + "Item listed.");
+            if (!manager.listItem(player, item, start, bin, hours)) {
+                player.getInventory().setItemInMainHand(item);
+            }
             return true;
         }
 

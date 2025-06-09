@@ -354,11 +354,16 @@ public class AuctionHouseGUI implements Listener {
                 }
                 case 2 -> {
                     data.duration = Long.parseLong(msg);
+                    if (data.duration > AuctionHouseManager.MAX_DURATION_HOURS) {
+                        data.duration = AuctionHouseManager.MAX_DURATION_HOURS;
+                        e.getPlayer().sendMessage(ChatColor.YELLOW + "Duration capped at " + AuctionHouseManager.MAX_DURATION_HOURS + "h.");
+                    }
                     ItemStack item = data.item;
                     pending.remove(id);
                     Bukkit.getScheduler().runTask(plugin, () -> {
-                        manager.listItem(e.getPlayer(), item, data.start, data.bin, data.duration);
-                        e.getPlayer().sendMessage(ChatColor.GREEN + "Item listed.");
+                        if (!manager.listItem(e.getPlayer(), item, data.start, data.bin, data.duration)) {
+                            e.getPlayer().getInventory().addItem(item);
+                        }
                         open(e.getPlayer(), pageMap.getOrDefault(id, 0));
                     });
                 }

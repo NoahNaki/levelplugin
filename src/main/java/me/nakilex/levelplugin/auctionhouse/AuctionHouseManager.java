@@ -1,6 +1,9 @@
 package me.nakilex.levelplugin.auctionhouse;
 
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextReplacementConfig;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -22,11 +25,22 @@ import java.util.UUID;
  */
 public class AuctionHouseManager {
 
+    /** Maximum hours a listing may stay active. */
+    public static final long MAX_DURATION_HOURS = 24;
+
+    /** Tax percentage applied per hour of listing. (e.g. 0.01 = 1% per hour) */
+    private static final double TAX_PER_HOUR = 0.01;
+
+    /** Maximum percentage that can be charged as tax. */
+    private static final double MAX_TAX_PERCENT = 0.10;
+
     private final Plugin plugin;
     private final EconomyManager economyManager;
     private final File file;
     private final FileConfiguration config;
     private final List<AuctionItem> auctions = new ArrayList<>();
+
+    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
     public AuctionHouseManager(Plugin plugin, EconomyManager economyManager) {
         this.plugin = plugin;
@@ -51,13 +65,36 @@ public class AuctionHouseManager {
         }.runTaskTimer(plugin, 20L, 1200L); // every minute
     }
 
+    private void sendItemMessage(Player player, ItemStack item, String template) {
+        Component itemComponent = item.displayName().hoverEvent(item.asHoverEvent());
+        String placeholder = "<item>";
+        String replaced = template.replace("<item>", placeholder);
+        Component msg = LEGACY.deserialize(replaced).replaceText(TextReplacementConfig.builder()
+                .match(placeholder)
+                .replacement(itemComponent)
+                .build());
+        player.sendMessage(msg);
+    }
+
     public synchronized List<AuctionItem> getAuctions() {
         return auctions;
     }
 
-    public synchronized void listItem(Player seller, ItemStack item, int startPrice, int binPrice, long durationHours) {
-        auctions.add(new AuctionItem(seller.getUniqueId(), item.clone(), startPrice, binPrice, durationHours));
+    /**
+     * Adds a new listing. A tax based on the duration will be deducted from the
+     * seller's earnings when the item is sold.
+     */
+    public synchronized boolean listItem(Player seller, ItemStack item, int startPrice, int binPrice, long durationHours) {
+        long hours = Math.min(durationHours, MAX_DURATION_HOURS);
+        int priceBasis = binPrice > 0 ? binPrice : startPrice;
+        double rate = Math.min(hours * TAX_PER_HOUR, MAX_TAX_PERCENT);
+        int tax = (int) Math.ceil(priceBasis * rate);
+        auctions.add(new AuctionItem(seller.getUniqueId(), item.clone(), startPrice, binPrice, hours, tax));
         saveAuctions();
+        sendItemMessage(seller, item, ChatColor.GOLD + "Your <item> has been listed for "
+                + ChatColor.YELLOW + priceBasis + " ⛃" + ChatColor.GOLD + ".");
+        seller.sendMessage(ChatColor.GRAY + "Tax on sale: " + ChatColor.YELLOW + tax + " ⛃" + ChatColor.GRAY + ".");
+        return true;
     }
 
     public synchronized boolean bid(Player bidder, int index, int amount) {
@@ -66,11 +103,12 @@ public class AuctionHouseManager {
         if (ai.getStatus() != AuctionStatus.ACTIVE) return false;
         int minBid = Math.max(ai.getStartingPrice(), ai.getCurrentBid() + 1);
         if (amount < minBid) {
-            bidder.sendMessage("Bid must be at least " + minBid + " coins.");
+            bidder.sendMessage(ChatColor.RED + "Bid must be at least "
+                    + ChatColor.YELLOW + minBid + " ⛃");
             return false;
         }
         if (economyManager.getBalance(bidder) < amount) {
-            bidder.sendMessage("Not enough coins!");
+            bidder.sendMessage(ChatColor.RED + "Not enough " + ChatColor.YELLOW + "⛃" + ChatColor.RED + "!");
             return false;
         }
         // refund previous bidder
@@ -95,22 +133,24 @@ public class AuctionHouseManager {
         int price = ai.getBinPrice();
         if (price <= 0) return false;
         if (economyManager.getBalance(buyer) < price) {
-            buyer.sendMessage("Not enough coins!");
+            buyer.sendMessage(ChatColor.RED + "Not enough " + ChatColor.YELLOW + "⛃" + ChatColor.RED + "!");
             return false;
         }
         economyManager.deductCoins(buyer, price);
-        economyManager.addCoins(ai.getSeller(), price);
+        int payout = price - ai.getListingTax();
+        if (payout < 0) payout = 0;
+        economyManager.addCoins(ai.getSeller(), payout);
         buyer.getInventory().addItem(ai.getItem());
         ai.setStatus(AuctionStatus.SOLD);
         auctions.remove(index);
         saveAuctions();
         Player seller = Bukkit.getPlayer(ai.getSeller());
         if (seller != null) {
-            String name = ai.getItem().hasItemMeta() && ai.getItem().getItemMeta().hasDisplayName()
-                    ? ChatColor.stripColor(ai.getItem().getItemMeta().getDisplayName())
-                    : ai.getItem().getType().name().toLowerCase().replace('_', ' ');
-            seller.sendMessage("Your " + name + " sold for " + price + " coins!");
+            sendItemMessage(seller, ai.getItem(), ChatColor.GOLD + "Your <item> sold for "
+                    + ChatColor.YELLOW + payout + " ⛃" + ChatColor.GOLD + ".");
         }
+        sendItemMessage(buyer, ai.getItem(), ChatColor.GREEN + "You bought <item> for "
+                + ChatColor.YELLOW + price + " ⛃" + ChatColor.GREEN + ".");
         return true;
     }
 
@@ -138,18 +178,26 @@ public class AuctionHouseManager {
             if (now >= ai.getEndTime()) {
                 if (ai.getHighestBidder() != null) {
                     // give item to highest bidder and coins to seller
-                    economyManager.addCoins(ai.getSeller(), ai.getCurrentBid());
+                    int payout = ai.getCurrentBid() - ai.getListingTax();
+                    if (payout < 0) payout = 0;
+                    economyManager.addCoins(ai.getSeller(), payout);
                     Player buyer = Bukkit.getPlayer(ai.getHighestBidder());
                     if (buyer != null) {
                         buyer.getInventory().addItem(ai.getItem());
-                        buyer.sendMessage("You won an auction!");
+                        sendItemMessage(buyer, ai.getItem(), ChatColor.GREEN + "You won <item> for "
+                                + ChatColor.YELLOW + ai.getCurrentBid() + " ⛃" + ChatColor.GREEN + ".");
+                    }
+                    Player seller = Bukkit.getPlayer(ai.getSeller());
+                    if (seller != null) {
+                        sendItemMessage(seller, ai.getItem(), ChatColor.GOLD + "Your <item> sold for "
+                                + ChatColor.YELLOW + payout + " ⛃" + ChatColor.GOLD + ".");
                     }
                 } else {
                     // return item to seller
                     Player seller = Bukkit.getPlayer(ai.getSeller());
                     if (seller != null) {
                         seller.getInventory().addItem(ai.getItem());
-                        seller.sendMessage("Your auction expired without bids.");
+                        seller.sendMessage(ChatColor.RED + "Your auction expired without bids.");
                     }
                 }
                 ai.setStatus(AuctionStatus.EXPIRED);
@@ -174,7 +222,8 @@ public class AuctionHouseManager {
             String statusStr = config.getString(base + "status");
             AuctionStatus status = statusStr != null ? AuctionStatus.valueOf(statusStr) : AuctionStatus.ACTIVE;
             ItemStack item = config.getItemStack(base + "item");
-            AuctionItem ai = new AuctionItem(seller, item, start, bin, 1); // duration ignored
+            int tax = config.getInt(base + "tax", 0);
+            AuctionItem ai = new AuctionItem(seller, item, start, bin, 1, tax); // duration ignored
             ai.setCurrentBid(currentBid);
             if (bidderStr != null) ai.setHighestBidder(UUID.fromString(bidderStr));
             // overwrite times and status
@@ -206,6 +255,7 @@ public class AuctionHouseManager {
             config.set(base + "startTime", ai.getStartTime());
             config.set(base + "endTime", ai.getEndTime());
             config.set(base + "status", ai.getStatus().name());
+            config.set(base + "tax", ai.getListingTax());
             config.set(base + "item", ai.getItem());
         }
         try {

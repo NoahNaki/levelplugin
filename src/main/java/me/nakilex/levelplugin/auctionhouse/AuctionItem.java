@@ -17,9 +17,10 @@ public class AuctionItem {
     private final long startTime;
     private final long endTime;
     private AuctionStatus status;
+    private final int listingTax;
     private final AuctionCategory category;
 
-    public AuctionItem(UUID seller, ItemStack item, int startingPrice, int binPrice, long durationHours) {
+    public AuctionItem(UUID seller, ItemStack item, int startingPrice, int binPrice, long durationHours, int listingTax) {
         this.seller = seller;
         this.item = item;
         this.startingPrice = startingPrice;
@@ -29,6 +30,7 @@ public class AuctionItem {
         this.startTime = System.currentTimeMillis();
         this.endTime = startTime + (durationHours * 3600000L);
         this.status = AuctionStatus.ACTIVE;
+        this.listingTax = listingTax;
         this.category = AuctionCategory.fromItem(item);
     }
 
@@ -82,5 +84,9 @@ public class AuctionItem {
 
     public AuctionCategory getCategory() {
         return category;
+    }
+
+    public int getListingTax() {
+        return listingTax;
     }
 }

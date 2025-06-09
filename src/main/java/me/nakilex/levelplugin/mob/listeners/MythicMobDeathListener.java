@@ -387,7 +387,7 @@ public class MythicMobDeathListener implements Listener {
         };
         String[] names = {
             ChatColor.GREEN + "Scroll of Might",
-            ChatColor.AQUA + "Scroll of Wisdom",
+            ChatColor.AQUA + "Scroll of Knowledge",
             ChatColor.LIGHT_PURPLE + "Scroll of Swiftness",
             ChatColor.RED + "Scroll of Vitality",
             ChatColor.YELLOW + "Scroll of Precision",
