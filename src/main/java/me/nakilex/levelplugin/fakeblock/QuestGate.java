@@ -6,6 +6,9 @@ import org.bukkit.block.data.BlockData;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * Represents a region of blocks that should appear closed until a quest is
@@ -21,16 +24,20 @@ public class QuestGate {
     private final BlockData closedData;
     private final List<Location> blocks = new ArrayList<>();
 
-    /** Whether the gate is currently closed. When closed players will see the
-     * fake blocks and be prevented from entering. */
-    private boolean closed;
+    /** Whether the gate is closed by default for new players. */
+    private boolean defaultClosed;
+
+    /** Individual player gate states. True means the gate is closed for that
+     * player. If a player is not present in the map, {@code defaultClosed} is
+     * used. */
+    private final Map<UUID, Boolean> playerStates = new HashMap<>();
 
     public QuestGate(String id, Location pos1, Location pos2, BlockData closedData, boolean closed) {
         this.id = id;
         this.pos1 = pos1;
         this.pos2 = pos2;
         this.closedData = closedData;
-        this.closed = closed;
+        this.defaultClosed = closed;
         precomputeBlocks();
     }
 
@@ -65,9 +72,25 @@ public class QuestGate {
 
     public List<Location> getBlocks() { return blocks; }
 
-    public boolean isClosed() { return closed; }
+    /**
+     * Returns the default closed state used for players that have no
+     * personalised setting.
+     */
+    public boolean isDefaultClosed() { return defaultClosed; }
 
-    public void setClosed(boolean closed) { this.closed = closed; }
+    public void setDefaultClosed(boolean closed) { this.defaultClosed = closed; }
+
+    public boolean isClosed(UUID player) {
+        return playerStates.getOrDefault(player, defaultClosed);
+    }
+
+    public void setClosed(UUID player, boolean closed) {
+        playerStates.put(player, closed);
+    }
+
+    public void toggle(UUID player) {
+        setClosed(player, !isClosed(player));
+    }
 
     public boolean isInside(Location loc) {
         if (!loc.getWorld().equals(pos1.getWorld())) return false;

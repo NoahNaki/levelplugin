@@ -156,4 +156,4 @@ commands:
     usage: /motd <reload|preview>
   fakegate:
     description: Manage fake block gates
-    usage: /fakegate <wand|create|toggle>
+    usage: /fakegate <wand|create|toggle|remove>

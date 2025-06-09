@@ -40,6 +40,16 @@ public class QuestGateManager implements Listener {
         gates.put(gate.getId().toLowerCase(), gate);
     }
 
+    /** Remove a gate and persist changes. */
+    public boolean removeGate(String id) {
+        if (gates.remove(id.toLowerCase()) != null) {
+            saveConfig();
+            updateAll();
+            return true;
+        }
+        return false;
+    }
+
     /** Create and register a new gate and persist it to disk. */
     public void createGate(QuestGate gate) {
         addGate(gate);
@@ -85,7 +95,7 @@ public class QuestGateManager implements Listener {
             config.set(base + "pos2.y", p2.getBlockY());
             config.set(base + "pos2.z", p2.getBlockZ());
             config.set(base + "block", gate.getClosedData().getMaterial().name());
-            config.set(base + "closed", gate.isClosed());
+            config.set(base + "closed", gate.isDefaultClosed());
         }
         try { config.save(file); } catch (Exception e) { e.printStackTrace(); }
     }
@@ -98,13 +108,12 @@ public class QuestGateManager implements Listener {
         return new Location(world, x, y, z);
     }
 
-    /** Toggle the closed state of a gate by id. */
-    public boolean toggleGate(String id) {
+    /** Toggle the closed state of a gate for a specific player. */
+    public boolean toggleGate(Player player, String id) {
         QuestGate gate = gates.get(id.toLowerCase());
         if (gate == null) return false;
-        gate.setClosed(!gate.isClosed());
-        saveConfig();
-        updateAll();
+        gate.toggle(player.getUniqueId());
+        updatePlayer(player);
         return true;
     }
 
@@ -118,7 +127,7 @@ public class QuestGateManager implements Listener {
     /** Update all gates for a specific player */
     public void updatePlayer(Player player) {
         for (QuestGate gate : gates.values()) {
-            if (gate.isClosed()) {
+            if (gate.isClosed(player.getUniqueId())) {
                 for (var loc : gate.getBlocks()) {
                     blockManager.showFakeBlock(player, loc, gate.getClosedData());
                 }
@@ -139,7 +148,7 @@ public class QuestGateManager implements Listener {
     public void onMove(PlayerMoveEvent event) {
         Player player = event.getPlayer();
         for (QuestGate gate : gates.values()) {
-            if (gate.isClosed()) {
+            if (gate.isClosed(player.getUniqueId())) {
                 if (!gate.isInside(event.getFrom()) && gate.isInside(event.getTo())) {
                     event.setCancelled(true);
                     return;

@@ -25,10 +25,10 @@ public class FakeGateCommand implements CommandExecutor, Listener {
     public FakeGateCommand(Main plugin) {
         this.manager = plugin.getQuestGateManager();
         // Configure wand item
-        wand = new ItemStack(Material.WOODEN_AXE);
+        wand = new ItemStack(Material.MACE);
         ItemMeta meta = wand.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(ChatColor.GOLD + "Fake Gate Wand");
+            meta.setDisplayName(ChatColor.GOLD + "Fake Gate Mace");
             wand.setItemMeta(meta);
         }
 
@@ -65,8 +65,16 @@ public class FakeGateCommand implements CommandExecutor, Listener {
                 return true;
             case "toggle":
                 if (args.length < 2) return false;
-                if (manager.toggleGate(args[1])) {
+                if (manager.toggleGate(player, args[1])) {
                     player.sendMessage(ChatColor.YELLOW + "Toggled gate " + args[1] + ".");
+                } else {
+                    player.sendMessage(ChatColor.RED + "Gate not found.");
+                }
+                return true;
+            case "remove":
+                if (args.length < 2) return false;
+                if (manager.removeGate(args[1])) {
+                    player.sendMessage(ChatColor.GREEN + "Gate removed.");
                 } else {
                     player.sendMessage(ChatColor.RED + "Gate not found.");
                 }
