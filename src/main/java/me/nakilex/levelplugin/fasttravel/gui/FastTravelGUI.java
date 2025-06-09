@@ -34,12 +34,14 @@ public class FastTravelGUI implements Listener {
     private static final int PREV_PAGE = 45;
     private static final int NEXT_PAGE = 53;
     private static final int SORT_SLOT = 50;
+    private static final int FILTER_SLOT = 49;
 
     private final FastTravelManager manager;
     private final EconomyManager economy;
     private final ModelGateManager gateManager;
     private final Map<UUID,Integer> pageMap = new HashMap<>();
     private final Map<UUID,Integer> sortMap = new HashMap<>();
+    private final Map<UUID,Integer> typeMap = new HashMap<>();
 
     public FastTravelGUI(FastTravelManager manager, EconomyManager economy, ModelGateManager gateManager) {
         this.manager = manager;
@@ -61,7 +63,10 @@ public class FastTravelGUI implements Listener {
         for(int i=0;i<SIZE;i++){
             if(i<9 || i>=45 || i%9==0 || i%9==8){ gui.setItem(i,filler); }
         }
+        int filter = typeMap.getOrDefault(player.getUniqueId(),0);
         List<ModelGate> list = new ArrayList<>(gateManager.getGates());
+        if(filter==1) list.removeIf(g->!g.isTown());
+        else if(filter==2) list.removeIf(ModelGate::isTown);
         int mode = sortMap.getOrDefault(player.getUniqueId(),0);
         list.sort(getComparator(mode,player));
         int start = page*ITEMS_PER_PAGE;
@@ -72,7 +77,8 @@ public class FastTravelGUI implements Listener {
             ItemStack item = new ItemStack(unlocked?Material.LODESTONE:Material.BARRIER);
             ItemMeta meta=item.getItemMeta();
             if(meta!=null){
-                meta.setDisplayName(ChatColor.AQUA+""+ChatColor.BOLD+formatName(pt.getId()));
+                ChatColor col = pt.isTown() ? ChatColor.AQUA : ChatColor.RED;
+                meta.setDisplayName(col+""+ChatColor.BOLD+formatName(pt.getId()));
                 List<String> lore=new ArrayList<>();
                 if(unlocked){
                     int cost=(int)player.getLocation().distance(pt.getLocation());
@@ -89,6 +95,7 @@ public class FastTravelGUI implements Listener {
         if(page>0) gui.setItem(PREV_PAGE, createArrow(ChatColor.GREEN+"Previous"));
         if(list.size()> (page+1)*ITEMS_PER_PAGE) gui.setItem(NEXT_PAGE, createArrow(ChatColor.GREEN+"Next"));
         gui.setItem(SORT_SLOT, createSortButton(mode));
+        gui.setItem(FILTER_SLOT, createFilterButton(filter));
         player.openInventory(gui);
     }
 
@@ -122,8 +129,13 @@ public class FastTravelGUI implements Listener {
             int p=pageMap.getOrDefault(player.getUniqueId(),0); open(player,p+1); return; }
         if(slot==SORT_SLOT){
             int m=sortMap.getOrDefault(player.getUniqueId(),0); m=(m+1)%4; sortMap.put(player.getUniqueId(),m); open(player,pageMap.getOrDefault(player.getUniqueId(),0)); return; }
+        if(slot==FILTER_SLOT){
+            int f=typeMap.getOrDefault(player.getUniqueId(),0); f=(f+1)%3; typeMap.put(player.getUniqueId(),f); open(player,pageMap.getOrDefault(player.getUniqueId(),0)); return; }
         // find point
+        int filter=typeMap.getOrDefault(player.getUniqueId(),0);
         List<ModelGate> list=new ArrayList<>(gateManager.getGates());
+        if(filter==1) list.removeIf(g->!g.isTown());
+        else if(filter==2) list.removeIf(ModelGate::isTown);
         list.sort(getComparator(sortMap.getOrDefault(player.getUniqueId(),0),player));
         int index= Arrays.binarySearch(POINT_SLOTS, slot);
         if(index<0) return;
@@ -187,6 +199,27 @@ public class FastTravelGUI implements Listener {
             meta.setLore(lore); it.setItemMeta(meta);
         }
         return it;
+    }
+
+    private ItemStack createFilterButton(int mode){
+        ItemStack it=new ItemStack(Material.BOOK);
+        ItemMeta meta=it.getItemMeta();
+        if(meta!=null){
+            meta.setDisplayName(ChatColor.AQUA+"Type Filter");
+            List<String> lore=new ArrayList<>();
+            String[] opts={"Show All","Towns","Dungeons"};
+            for(int i=0;i<opts.length;i++){
+                lore.add(rangeLine(i,mode,opts[i]));
+            }
+            meta.setLore(lore); it.setItemMeta(meta);
+        }
+        return it;
+    }
+
+    private String rangeLine(int index,int current,String label){
+        ChatColor color=index==current?ChatColor.WHITE:ChatColor.GRAY;
+        ChatColor bullet=index==current?ChatColor.GREEN:ChatColor.DARK_GRAY;
+        return bullet+"- "+color+label;
     }
 
     /**

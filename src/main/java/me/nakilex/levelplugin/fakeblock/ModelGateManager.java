@@ -77,8 +77,9 @@ public class ModelGateManager implements Listener {
             double z = config.getDouble(base + "z");
             String open = config.getString(base + "open_model", "");
             String closed = config.getString(base + "closed_model", "");
+            boolean town = config.getBoolean(base + "town", false);
             boolean state = config.getBoolean(base + "closed", true);
-            ModelGate gate = new ModelGate(key, new Location(world, x, y, z), open, closed, state);
+            ModelGate gate = new ModelGate(key, new Location(world, x, y, z), open, closed, town, state);
             gate.spawnEntities();
             registerEntities(gate);
             gates.put(key.toLowerCase(), gate);
@@ -97,6 +98,7 @@ public class ModelGateManager implements Listener {
             config.set(base + "z", loc.getZ());
             config.set(base + "open_model", gate.getOpenModel());
             config.set(base + "closed_model", gate.getClosedModel());
+            config.set(base + "town", gate.isTown());
             config.set(base + "closed", gate.isDefaultClosed());
         }
         try { config.save(file); } catch (Exception e) { e.printStackTrace(); }

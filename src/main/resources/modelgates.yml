@@ -6,6 +6,7 @@ gates:
     z: -32
     open_model: base_beacon_blue_inventory
     closed_model: base_beacon_inert
+    town: true
     closed: false
   example2_model_gate:
     world: flatland
@@ -14,6 +15,7 @@ gates:
     z: -32
     open_model: base_beacon_red_inventory
     closed_model: base_beacon_inert
+    town: false
     closed: false
   example3_model_gate:
     world: flatland
@@ -22,6 +24,7 @@ gates:
     z: -38
     open_model: base_beacon_blue_inventory
     closed_model: base_beacon_inert
+    town: true
     closed: false
   example4_model_gate:
     world: flatland
@@ -30,6 +33,7 @@ gates:
     z: -38
     open_model: base_beacon_red_inventory
     closed_model: base_beacon_inert
+    town: false
     closed: false
 
 
