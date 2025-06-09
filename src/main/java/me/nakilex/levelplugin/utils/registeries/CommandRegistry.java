@@ -134,6 +134,7 @@ public class CommandRegistry {
         plugin.getCommand("wipeprofile").setExecutor(new WipeProfileCommand(levelManager, StatsManager.getInstance(), economyManager, gemsManager));
         plugin.getCommand("nexoscan").setExecutor(new NexoScanCommand());
         plugin.getCommand("motd").setExecutor(new me.nakilex.levelplugin.motd.MotdCommand(motdManager));
+        plugin.getCommand("fakegate").setExecutor(new me.nakilex.levelplugin.fakeblock.FakeGateCommand(plugin));
 
     }
 }

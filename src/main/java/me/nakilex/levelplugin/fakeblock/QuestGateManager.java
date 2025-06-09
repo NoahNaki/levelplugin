@@ -1,7 +1,6 @@
 package me.nakilex.levelplugin.fakeblock;
 
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.quests.managers.QuestManager;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
@@ -15,8 +14,7 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.Location;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * Handles quest gated fake blocks. When a player hasn't completed the
@@ -26,44 +24,70 @@ import java.util.List;
 public class QuestGateManager implements Listener {
 
     private final Main plugin;
-    private final QuestManager questManager;
     private final FakeBlockManager blockManager;
-    private final List<QuestGate> gates = new ArrayList<>();
+    private final Map<String, QuestGate> gates = new HashMap<>();
+    private File file;
+    private FileConfiguration config;
 
-    public QuestGateManager(Main plugin, QuestManager questManager, FakeBlockManager blockManager) {
+    public QuestGateManager(Main plugin, FakeBlockManager blockManager) {
         this.plugin = plugin;
-        this.questManager = questManager;
         this.blockManager = blockManager;
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
         loadFromConfig();
     }
 
     public void addGate(QuestGate gate) {
-        gates.add(gate);
+        gates.put(gate.getId().toLowerCase(), gate);
+    }
+
+    /** Create and register a new gate and persist it to disk. */
+    public void createGate(QuestGate gate) {
+        addGate(gate);
+        saveConfig();
+        updateAll();
     }
 
     private void loadFromConfig() {
-        File file = new File(plugin.getDataFolder(), "gates.yml");
+        file = new File(plugin.getDataFolder(), "gates.yml");
         if (!file.exists()) {
             plugin.saveResource("gates.yml", false);
         }
-        FileConfiguration cfg = YamlConfiguration.loadConfiguration(file);
-        if (!cfg.isConfigurationSection("gates")) return;
-        for (String key : cfg.getConfigurationSection("gates").getKeys(false)) {
+        config = YamlConfiguration.loadConfiguration(file);
+        if (!config.isConfigurationSection("gates")) return;
+        for (String key : config.getConfigurationSection("gates").getKeys(false)) {
             String base = "gates." + key + ".";
-            String quest = cfg.getString(base + "quest");
-            String worldName = cfg.getString(base + "world");
+            String worldName = config.getString(base + "world");
             World world = plugin.getServer().getWorld(worldName);
-            if (quest == null || world == null) continue;
+            if (world == null) continue;
 
-            Location p1 = readLocation(world, cfg, base + "pos1");
-            Location p2 = readLocation(world, cfg, base + "pos2");
+            Location p1 = readLocation(world, config, base + "pos1");
+            Location p2 = readLocation(world, config, base + "pos2");
             if (p1 == null || p2 == null) continue;
-            Material mat = Material.matchMaterial(cfg.getString(base + "block", "BARRIER"));
+            Material mat = Material.matchMaterial(config.getString(base + "block", "BARRIER"));
             if (mat == null) mat = Material.BARRIER;
             BlockData data = mat.createBlockData();
-            addGate(new QuestGate(quest, p1, p2, data));
+            boolean closed = config.getBoolean(base + "closed", true);
+            addGate(new QuestGate(key.toLowerCase(), p1, p2, data, closed));
         }
+    }
+
+    private void saveConfig() {
+        config.set("gates", null);
+        for (QuestGate gate : gates.values()) {
+            String base = "gates." + gate.getId() + ".";
+            Location p1 = gate.getPos1();
+            Location p2 = gate.getPos2();
+            config.set(base + "world", p1.getWorld().getName());
+            config.set(base + "pos1.x", p1.getBlockX());
+            config.set(base + "pos1.y", p1.getBlockY());
+            config.set(base + "pos1.z", p1.getBlockZ());
+            config.set(base + "pos2.x", p2.getBlockX());
+            config.set(base + "pos2.y", p2.getBlockY());
+            config.set(base + "pos2.z", p2.getBlockZ());
+            config.set(base + "block", gate.getClosedData().getMaterial().name());
+            config.set(base + "closed", gate.isClosed());
+        }
+        try { config.save(file); } catch (Exception e) { e.printStackTrace(); }
     }
 
     private Location readLocation(World world, FileConfiguration cfg, String path) {
@@ -74,16 +98,33 @@ public class QuestGateManager implements Listener {
         return new Location(world, x, y, z);
     }
 
+    /** Toggle the closed state of a gate by id. */
+    public boolean toggleGate(String id) {
+        QuestGate gate = gates.get(id.toLowerCase());
+        if (gate == null) return false;
+        gate.setClosed(!gate.isClosed());
+        saveConfig();
+        updateAll();
+        return true;
+    }
+
+    /** Update all players currently online. */
+    public void updateAll() {
+        for (Player p : plugin.getServer().getOnlinePlayers()) {
+            updatePlayer(p);
+        }
+    }
+
     /** Update all gates for a specific player */
     public void updatePlayer(Player player) {
-        for (QuestGate gate : gates) {
-            if (questManager.hasCompleted(player.getUniqueId(), gate.getQuestId())) {
+        for (QuestGate gate : gates.values()) {
+            if (gate.isClosed()) {
                 for (var loc : gate.getBlocks()) {
-                    blockManager.hideFakeBlock(player, loc);
+                    blockManager.showFakeBlock(player, loc, gate.getClosedData());
                 }
             } else {
                 for (var loc : gate.getBlocks()) {
-                    blockManager.showFakeBlock(player, loc, gate.getClosedData());
+                    blockManager.hideFakeBlock(player, loc);
                 }
             }
         }
@@ -97,8 +138,8 @@ public class QuestGateManager implements Listener {
     @EventHandler
     public void onMove(PlayerMoveEvent event) {
         Player player = event.getPlayer();
-        for (QuestGate gate : gates) {
-            if (!questManager.hasCompleted(player.getUniqueId(), gate.getQuestId())) {
+        for (QuestGate gate : gates.values()) {
+            if (gate.isClosed()) {
                 if (!gate.isInside(event.getFrom()) && gate.isInside(event.getTo())) {
                     event.setCancelled(true);
                     return;

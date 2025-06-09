@@ -1,6 +1,5 @@
 gates:
   example_gate:
-    quest: tutorial
     world: world
     pos1:
       x: 0
@@ -11,3 +10,4 @@ gates:
       y: 65
       z: 2
     block: IRON_BARS
+    closed: true

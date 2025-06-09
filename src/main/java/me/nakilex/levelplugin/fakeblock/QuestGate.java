@@ -12,17 +12,25 @@ import java.util.List;
  * completed.
  */
 public class QuestGate {
-    private final String questId;
+    /** Identifier for this gate. Originally intended to be a quest id but for
+     * now it simply acts as a unique name. */
+    private final String id;
+
     private final Location pos1;
     private final Location pos2;
     private final BlockData closedData;
     private final List<Location> blocks = new ArrayList<>();
 
-    public QuestGate(String questId, Location pos1, Location pos2, BlockData closedData) {
-        this.questId = questId;
+    /** Whether the gate is currently closed. When closed players will see the
+     * fake blocks and be prevented from entering. */
+    private boolean closed;
+
+    public QuestGate(String id, Location pos1, Location pos2, BlockData closedData, boolean closed) {
+        this.id = id;
         this.pos1 = pos1;
         this.pos2 = pos2;
         this.closedData = closedData;
+        this.closed = closed;
         precomputeBlocks();
     }
 
@@ -43,17 +51,23 @@ public class QuestGate {
         }
     }
 
-    public String getQuestId() {
-        return questId;
+    public String getId() {
+        return id;
     }
 
     public BlockData getClosedData() {
         return closedData;
     }
 
-    public List<Location> getBlocks() {
-        return blocks;
-    }
+    public Location getPos1() { return pos1; }
+
+    public Location getPos2() { return pos2; }
+
+    public List<Location> getBlocks() { return blocks; }
+
+    public boolean isClosed() { return closed; }
+
+    public void setClosed(boolean closed) { this.closed = closed; }
 
     public boolean isInside(Location loc) {
         if (!loc.getWorld().equals(pos1.getWorld())) return false;

@@ -256,7 +256,7 @@ public class Main extends JavaPlugin {
         fastTravelGUI = new me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI(fastTravelManager, economyManager);
         motdManager = new me.nakilex.levelplugin.motd.MotdManager(this);
         fakeBlockManager = new me.nakilex.levelplugin.fakeblock.FakeBlockManager();
-        questGateManager = new me.nakilex.levelplugin.fakeblock.QuestGateManager(this, questManager, fakeBlockManager);
+        questGateManager = new me.nakilex.levelplugin.fakeblock.QuestGateManager(this, fakeBlockManager);
         cooldownManager.setLootChestManager(lootChestManager);
         equipGui = new EquipRunesGUI(this, runesManager, identifyRunesGUI);
         enchantManager = new me.nakilex.levelplugin.enchanting.managers.EnchantManager();
