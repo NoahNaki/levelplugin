@@ -49,6 +49,7 @@ public class ModelGateManager implements Listener {
             String closed = config.getString(base + "closed_model", "");
             boolean state = config.getBoolean(base + "closed", true);
             ModelGate gate = new ModelGate(key, new Location(world, x, y, z), open, closed, state);
+            gate.spawnEntities();
             gates.put(key.toLowerCase(), gate);
         }
         updateAll();
@@ -72,6 +73,7 @@ public class ModelGateManager implements Listener {
 
     public void createGate(ModelGate gate) {
         gates.put(gate.getId(), gate);
+        gate.spawnEntities();
         saveConfig();
         updateAll();
     }
@@ -80,7 +82,7 @@ public class ModelGateManager implements Listener {
         ModelGate gate = gates.get(id.toLowerCase());
         if (gate == null) return false;
         gate.toggle(player.getUniqueId());
-        gate.spawn(player);
+        gate.apply(player, plugin);
         return true;
     }
 
@@ -89,6 +91,7 @@ public class ModelGateManager implements Listener {
         if (gate == null) return false;
         gate.removeAll();
         saveConfig();
+        updateAll();
         return true;
     }
 
@@ -99,7 +102,7 @@ public class ModelGateManager implements Listener {
 
     public void updatePlayer(Player player) {
         for (ModelGate gate : gates.values()) {
-            gate.spawn(player);
+            gate.apply(player, plugin);
         }
     }
 

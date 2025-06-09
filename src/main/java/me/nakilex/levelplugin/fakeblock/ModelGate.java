@@ -4,7 +4,9 @@ import com.nexomc.nexo.api.NexoFurniture;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,6 +26,9 @@ public class ModelGate {
 
     /** Per-player gate states. True means closed. */
     private final Map<UUID, Boolean> playerStates = new HashMap<>();
+
+    private ItemDisplay openEntity;
+    private ItemDisplay closedEntity;
 
     public ModelGate(String id, Location location, String openModel, String closedModel, boolean closed) {
         this.id = id.toLowerCase();
@@ -70,33 +75,42 @@ public class ModelGate {
         setClosed(player, !isClosed(player));
     }
 
-    /** Spawn the appropriate model for a specific player. */
-    public void spawn(Player player) {
-        NexoFurniture.remove(location, player);
-        String model = isClosed(player.getUniqueId()) ? closedModel : openModel;
-        // The Nexo API does not expose a stable per-player spawn method in all
-        // versions.  Try reflection first and fall back to a global spawn.
-        try {
-            var method = NexoFurniture.class.getMethod(
-                "place", String.class, Location.class, float.class,
-                BlockFace.class, Player.class);
-            method.invoke(null, model, location, 0f, BlockFace.NORTH, player);
-        } catch (NoSuchMethodException ignored) {
-            // Older API - spawn globally as a fallback
-            NexoFurniture.place(model, location, 0f, BlockFace.NORTH);
-        } catch (Exception ex) {
-            ex.printStackTrace();
+    /** Spawn the underlying entities for the open and closed models. */
+    public void spawnEntities() {
+        removeAll();
+        openEntity = NexoFurniture.place(openModel, location, 0f, BlockFace.NORTH);
+        closedEntity = NexoFurniture.place(closedModel, location, 0f, BlockFace.NORTH);
+    }
+
+    /** Update which entity the player can see based on their state. */
+    public void apply(Player player, Plugin plugin) {
+        if (openEntity == null || closedEntity == null) {
+            spawnEntities();
+        }
+        boolean closed = isClosed(player.getUniqueId());
+        if (openEntity != null) {
+            if (closed) player.hideEntity(plugin, openEntity); else player.showEntity(plugin, openEntity);
+        }
+        if (closedEntity != null) {
+            if (closed) player.showEntity(plugin, closedEntity); else player.hideEntity(plugin, closedEntity);
         }
     }
 
     /** Spawn for all currently online players. */
-    public void spawnAll() {
+    public void applyAll(Plugin plugin) {
         for (Player p : Bukkit.getOnlinePlayers()) {
-            spawn(p);
+            apply(p, plugin);
         }
     }
 
     public void removeAll() {
-        NexoFurniture.remove(location, null);
+        if (openEntity != null) {
+            NexoFurniture.remove(openEntity);
+            openEntity = null;
+        }
+        if (closedEntity != null) {
+            NexoFurniture.remove(closedEntity);
+            closedEntity = null;
+        }
     }
 }
