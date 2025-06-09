@@ -74,7 +74,19 @@ public class ModelGate {
     public void spawn(Player player) {
         NexoFurniture.remove(location, player);
         String model = isClosed(player.getUniqueId()) ? closedModel : openModel;
-        NexoFurniture.place(model, location, 0f, BlockFace.NORTH, player);
+        // The Nexo API does not expose a stable per-player spawn method in all
+        // versions.  Try reflection first and fall back to a global spawn.
+        try {
+            var method = NexoFurniture.class.getMethod(
+                "place", String.class, Location.class, float.class,
+                BlockFace.class, Player.class);
+            method.invoke(null, model, location, 0f, BlockFace.NORTH, player);
+        } catch (NoSuchMethodException ignored) {
+            // Older API - spawn globally as a fallback
+            NexoFurniture.place(model, location, 0f, BlockFace.NORTH);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
     }
 
     /** Spawn for all currently online players. */
