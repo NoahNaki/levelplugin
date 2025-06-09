@@ -384,6 +384,7 @@ runes:
         newEffectKey: null
         extraParams:
           instantShot: true
+          velocityMultiplier: 1.5
 
   - id: "archer_basic_shot_piercing"
     name: "Rune of Piercing"
