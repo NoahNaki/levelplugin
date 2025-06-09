@@ -398,6 +398,10 @@ public class Main extends JavaPlugin {
             questManager.saveProgress();
         }
 
+        if (modelGateManager != null) {
+            modelGateManager.removeAllGates();
+        }
+
 
         if (dealMaker != null)
             dealMaker.closeAllTrades();

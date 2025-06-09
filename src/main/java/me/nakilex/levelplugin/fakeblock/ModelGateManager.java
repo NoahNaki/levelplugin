@@ -95,6 +95,13 @@ public class ModelGateManager implements Listener {
         return true;
     }
 
+    /** Remove all gates and despawn their entities. */
+    public void removeAllGates() {
+        for (ModelGate gate : gates.values()) {
+            gate.removeAll();
+        }
+    }
+
     /** Returns the ids of all defined gates. */
     public java.util.Set<String> getGateIds() {
         return new java.util.HashSet<>(gates.keySet());

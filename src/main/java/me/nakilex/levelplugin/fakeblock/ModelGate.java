@@ -78,6 +78,8 @@ public class ModelGate {
     /** Spawn the underlying entities for the open and closed models. */
     public void spawnEntities() {
         removeAll();
+        // ensure any lingering furniture from previous sessions is removed
+        NexoFurniture.remove(location);
         openEntity = NexoFurniture.place(openModel, location, 0f, BlockFace.NORTH);
         closedEntity = NexoFurniture.place(closedModel, location, 0f, BlockFace.NORTH);
     }
