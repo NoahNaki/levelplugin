@@ -361,9 +361,7 @@ public class AuctionHouseGUI implements Listener {
                     ItemStack item = data.item;
                     pending.remove(id);
                     Bukkit.getScheduler().runTask(plugin, () -> {
-                        if (manager.listItem(e.getPlayer(), item, data.start, data.bin, data.duration)) {
-                            e.getPlayer().sendMessage(ChatColor.GREEN + "Item listed.");
-                        } else {
+                        if (!manager.listItem(e.getPlayer(), item, data.start, data.bin, data.duration)) {
                             e.getPlayer().getInventory().addItem(item);
                         }
                         open(e.getPlayer(), pageMap.getOrDefault(id, 0));

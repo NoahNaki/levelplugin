@@ -1,6 +1,9 @@
 package me.nakilex.levelplugin.auctionhouse;
 
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextReplacementConfig;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -37,6 +40,8 @@ public class AuctionHouseManager {
     private final FileConfiguration config;
     private final List<AuctionItem> auctions = new ArrayList<>();
 
+    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
+
     public AuctionHouseManager(Plugin plugin, EconomyManager economyManager) {
         this.plugin = plugin;
         this.economyManager = economyManager;
@@ -60,6 +65,17 @@ public class AuctionHouseManager {
         }.runTaskTimer(plugin, 20L, 1200L); // every minute
     }
 
+    private void sendItemMessage(Player player, ItemStack item, String template) {
+        Component itemComponent = item.displayName().hoverEvent(item.asHoverEvent());
+        String placeholder = "<item>";
+        String replaced = template.replace("<item>", placeholder);
+        Component msg = LEGACY.deserialize(replaced).replaceText(TextReplacementConfig.builder()
+                .match(placeholder)
+                .replacement(itemComponent)
+                .build());
+        player.sendMessage(msg);
+    }
+
     public synchronized List<AuctionItem> getAuctions() {
         return auctions;
     }
@@ -75,9 +91,9 @@ public class AuctionHouseManager {
         int tax = (int) Math.ceil(priceBasis * rate);
         auctions.add(new AuctionItem(seller.getUniqueId(), item.clone(), startPrice, binPrice, hours, tax));
         saveAuctions();
-        seller.sendMessage(ChatColor.GOLD + "Listing created. "
-                + ChatColor.GRAY + "Tax on sale: "
-                + ChatColor.YELLOW + tax + " ⛃" + ChatColor.GRAY + ".");
+        sendItemMessage(seller, item, ChatColor.GOLD + "Your <item> has been listed for "
+                + ChatColor.YELLOW + priceBasis + " ⛃" + ChatColor.GOLD + ".");
+        seller.sendMessage(ChatColor.GRAY + "Tax on sale: " + ChatColor.YELLOW + tax + " ⛃" + ChatColor.GRAY + ".");
         return true;
     }
 
@@ -130,13 +146,11 @@ public class AuctionHouseManager {
         saveAuctions();
         Player seller = Bukkit.getPlayer(ai.getSeller());
         if (seller != null) {
-            String name = ai.getItem().hasItemMeta() && ai.getItem().getItemMeta().hasDisplayName()
-                    ? ChatColor.stripColor(ai.getItem().getItemMeta().getDisplayName())
-                    : ai.getItem().getType().name().toLowerCase().replace('_', ' ');
-            seller.sendMessage(ChatColor.GOLD + "Your " + name
-                    + ChatColor.GOLD + " sold for " + ChatColor.YELLOW + price + " ⛃"
-                    + ChatColor.GOLD + ". Tax: " + ChatColor.YELLOW + ai.getListingTax() + " ⛃");
+            sendItemMessage(seller, ai.getItem(), ChatColor.GOLD + "Your <item> sold for "
+                    + ChatColor.YELLOW + payout + " ⛃" + ChatColor.GOLD + ".");
         }
+        sendItemMessage(buyer, ai.getItem(), ChatColor.GREEN + "You bought <item> for "
+                + ChatColor.YELLOW + price + " ⛃" + ChatColor.GREEN + ".");
         return true;
     }
 
@@ -170,7 +184,13 @@ public class AuctionHouseManager {
                     Player buyer = Bukkit.getPlayer(ai.getHighestBidder());
                     if (buyer != null) {
                         buyer.getInventory().addItem(ai.getItem());
-                        buyer.sendMessage(ChatColor.GREEN + "You won the auction!");
+                        sendItemMessage(buyer, ai.getItem(), ChatColor.GREEN + "You won <item> for "
+                                + ChatColor.YELLOW + ai.getCurrentBid() + " ⛃" + ChatColor.GREEN + ".");
+                    }
+                    Player seller = Bukkit.getPlayer(ai.getSeller());
+                    if (seller != null) {
+                        sendItemMessage(seller, ai.getItem(), ChatColor.GOLD + "Your <item> sold for "
+                                + ChatColor.YELLOW + payout + " ⛃" + ChatColor.GOLD + ".");
                     }
                 } else {
                     // return item to seller

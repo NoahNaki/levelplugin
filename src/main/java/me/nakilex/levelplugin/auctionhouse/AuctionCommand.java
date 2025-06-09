@@ -59,9 +59,7 @@ public class AuctionCommand implements CommandExecutor {
                 return true;
             }
             player.getInventory().setItemInMainHand(null);
-            if (manager.listItem(player, item, start, bin, hours)) {
-                player.sendMessage(ChatColor.GREEN + "Item listed.");
-            } else {
+            if (!manager.listItem(player, item, start, bin, hours)) {
                 player.getInventory().setItemInMainHand(item);
             }
             return true;
