@@ -1,0 +1,5 @@
+leaderboards:
+  example:
+    world: world
+    location: 0,100,0
+    type: level

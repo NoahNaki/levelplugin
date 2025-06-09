@@ -9,6 +9,7 @@ import me.nakilex.levelplugin.duels.listeners.ProjectileFriendlyFireListener;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.economy.managers.GemsManager;
 import me.nakilex.levelplugin.lootchests.listeners.ChestHologramListener;
+import me.nakilex.levelplugin.leaderboard.LeaderboardHologramListener;
 import me.nakilex.levelplugin.player.attributes.listeners.StatsEffectListener;
 import me.nakilex.levelplugin.horse.gui.HorseGUI;
 import me.nakilex.levelplugin.items.listeners.*;
@@ -142,6 +143,7 @@ public class ListenerRegistry {
         pm.registerEvents(new MeteorListener(), plugin);
         pm.registerEvents(new ArcherSpell(), plugin);
         pm.registerEvents(new ChestHologramListener(lootChestManager), plugin);
+        pm.registerEvents(new LeaderboardHologramListener(), plugin);
 
         pm.registerEvents(new ProjectileFriendlyFireListener(), plugin);
         pm.registerEvents(new FieldBossListener(plugin, plugin.getBossConfig(), plugin.getItemManager(), plugin.getGemsManager()), plugin);

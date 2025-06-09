@@ -33,6 +33,8 @@ import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.runes.gui.EquipRunesGUI;
 import me.nakilex.levelplugin.runes.gui.IdentifyRunesGUI;
 import me.nakilex.levelplugin.runes.manager.RunesManager;
+import me.nakilex.levelplugin.leaderboard.LeaderboardManager;
+import me.nakilex.levelplugin.leaderboard.DuelStatsManager;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
 import me.nakilex.levelplugin.spells.ArcherSpell;
@@ -141,6 +143,8 @@ public class Main extends JavaPlugin {
     private EquipRunesGUI equipGui;
     private me.nakilex.levelplugin.auctionhouse.AuctionHouseManager auctionHouseManager;
     private me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI auctionHouseGUI;
+    private me.nakilex.levelplugin.leaderboard.LeaderboardManager leaderboardManager;
+    private me.nakilex.levelplugin.leaderboard.DuelStatsManager duelStatsManager;
 
     public Map<UUID, List<NPC>> getActiveBowDrones() {
         return activeBowDrones;
@@ -263,6 +267,10 @@ public class Main extends JavaPlugin {
         equipGui = new EquipRunesGUI(this, runesManager, identifyRunesGUI);
         enchantManager = new me.nakilex.levelplugin.enchanting.managers.EnchantManager();
         enchantGUI = new me.nakilex.levelplugin.enchanting.gui.EnchantGUI(enchantManager, economyManager);
+
+        duelStatsManager = new me.nakilex.levelplugin.leaderboard.DuelStatsManager(this);
+        leaderboardManager = new me.nakilex.levelplugin.leaderboard.LeaderboardManager(
+                this, levelManager, economyManager, duelStatsManager);
 
         StatsManager.getInstance().setLevelManager(levelManager);
     }
@@ -400,6 +408,13 @@ public class Main extends JavaPlugin {
 
         if (modelGateManager != null) {
             modelGateManager.removeAllGates();
+        }
+
+        if (leaderboardManager != null) {
+            leaderboardManager.removeAll();
+        }
+        if (duelStatsManager != null) {
+            duelStatsManager.save();
         }
 
 
@@ -549,6 +564,14 @@ public class Main extends JavaPlugin {
 
     public PartyGlowManager getPartyGlowManager() {
         return partyGlowManager;
+    }
+
+    public LeaderboardManager getLeaderboardManager() {
+        return leaderboardManager;
+    }
+
+    public DuelStatsManager getDuelStatsManager() {
+        return duelStatsManager;
     }
 
     private void createCustomConfig() {

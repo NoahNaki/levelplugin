@@ -230,6 +230,11 @@ public class DuelListener implements Listener {
                 "§aYou have won the duel against " + victim.getName() + "!");
 
             me.nakilex.levelplugin.Main.getInstance().getQuestManager().handleDuel(damager);
+            me.nakilex.levelplugin.Main plugin = me.nakilex.levelplugin.Main.getInstance();
+            if (plugin.getLeaderboardManager() != null) {
+                plugin.getLeaderboardManager().getDuelStats().addWin(damager.getUniqueId());
+                plugin.getLeaderboardManager().updateAll();
+            }
 
             // Prevent actual death
             event.setCancelled(true);
