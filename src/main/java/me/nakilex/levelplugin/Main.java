@@ -129,6 +129,8 @@ public class Main extends JavaPlugin {
     private me.nakilex.levelplugin.fasttravel.FastTravelManager fastTravelManager;
     private me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI fastTravelGUI;
     private me.nakilex.levelplugin.motd.MotdManager motdManager;
+    private me.nakilex.levelplugin.fakeblock.FakeBlockManager fakeBlockManager;
+    private me.nakilex.levelplugin.fakeblock.QuestGateManager questGateManager;
     /**
      * Tracks all active bow drone NPCs for each player. Some runes can add
      * additional drones so we store a list rather than a single instance.
@@ -253,6 +255,8 @@ public class Main extends JavaPlugin {
         fastTravelManager = new me.nakilex.levelplugin.fasttravel.FastTravelManager(this);
         fastTravelGUI = new me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI(fastTravelManager, economyManager);
         motdManager = new me.nakilex.levelplugin.motd.MotdManager(this);
+        fakeBlockManager = new me.nakilex.levelplugin.fakeblock.FakeBlockManager();
+        questGateManager = new me.nakilex.levelplugin.fakeblock.QuestGateManager(this, questManager, fakeBlockManager);
         cooldownManager.setLootChestManager(lootChestManager);
         equipGui = new EquipRunesGUI(this, runesManager, identifyRunesGUI);
         enchantManager = new me.nakilex.levelplugin.enchanting.managers.EnchantManager();
@@ -519,6 +523,14 @@ public class Main extends JavaPlugin {
 
     public me.nakilex.levelplugin.motd.MotdManager getMotdManager() {
         return motdManager;
+    }
+
+    public me.nakilex.levelplugin.fakeblock.QuestGateManager getQuestGateManager() {
+        return questGateManager;
+    }
+
+    public me.nakilex.levelplugin.fakeblock.FakeBlockManager getFakeBlockManager() {
+        return fakeBlockManager;
     }
 
     public me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager getScoreboardManager() {
