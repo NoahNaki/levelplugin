@@ -169,7 +169,17 @@ public class FastTravelGUI implements Listener {
                     player.getWorld().spawnParticle(org.bukkit.Particle.DRAGON_BREATH,startLoc.clone().add(x,1,z),0,0,0,0,0);
                 }
                 if(--t<=0){
-                    player.teleport(target.getLocation());
+                    // Teleport slightly away from the gate so the player doesn't
+                    // spawn inside the beacon model. Offset two blocks in the
+                    // direction from the gate to the player's starting point.
+                    org.bukkit.Location dest = target.getLocation().clone();
+                    org.bukkit.util.Vector offset = startLoc.toVector().subtract(dest.toVector());
+                    offset.setY(0);
+                    if(offset.lengthSquared() > 0.0001){
+                        offset.normalize().multiply(2);
+                        dest.add(offset);
+                    }
+                    player.teleport(dest);
                     player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS,40,0,false,false));
                     player.getWorld().spawnParticle(org.bukkit.Particle.FLASH,player.getLocation(),20,0.5,0.5,0.5,0);
                     cancel();
