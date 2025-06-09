@@ -12,12 +12,10 @@ import me.nakilex.levelplugin.horse.commands.HorseCommand;
 import me.nakilex.levelplugin.horse.gui.HorseGUI;
 import me.nakilex.levelplugin.items.commands.AddItemCommand;
 import me.nakilex.levelplugin.merchants.commands.MerchantCommand;
-import me.nakilex.levelplugin.mob.commands.AddMobCommand;
 import me.nakilex.levelplugin.mob.commands.DmgChatCommand;
 import me.nakilex.levelplugin.mob.commands.DmgNumberCommand;
 import me.nakilex.levelplugin.mob.commands.ToggleCommand;
 import me.nakilex.levelplugin.mob.managers.DmgNumberToggleManager;
-import me.nakilex.levelplugin.mob.managers.MobManager;
 import me.nakilex.levelplugin.player.attributes.commands.AddPointsCommand;
 import me.nakilex.levelplugin.player.attributes.commands.StatsCommand;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
@@ -74,7 +72,6 @@ public class CommandRegistry {
                                         LootChestManager lootChestManager,
                                         ConfigManager configManager,
                                         HorseManager horseManager,
-                                        MobManager mobManager,
                                         StorageManager storageManager,
                                         DmgNumberToggleManager dmgToggleManager,
                                         SettingsGUI settingsGUI,
@@ -109,7 +106,6 @@ public class CommandRegistry {
         plugin.getCommand("addpotion").setExecutor(new AddPotionCommand(potionManager, plugin));
         plugin.getCommand("lootchest").setExecutor(new LootChestCommand(configManager, lootChestManager));
         plugin.getCommand("trade").setExecutor(new TradeCommand());
-        plugin. getCommand("addmob").setExecutor(new AddMobCommand(mobManager));
         plugin.getCommand("duel").setExecutor(new DuelCommand());
         plugin.getCommand("ps").setExecutor(new StorageCommand(storageManager));
         plugin.getCommand("merchant").setExecutor(new MerchantCommand(plugin));

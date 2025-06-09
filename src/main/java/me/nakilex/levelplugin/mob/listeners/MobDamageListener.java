@@ -2,7 +2,6 @@ package me.nakilex.levelplugin.mob.listeners;
 
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
-import me.nakilex.levelplugin.mob.data.CustomMob;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
@@ -14,8 +13,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.persistence.PersistentDataContainer;
-import org.bukkit.persistence.PersistentDataType;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -101,27 +98,18 @@ public class MobDamageListener implements Listener {
             playerDamage.getOrDefault(player.getUniqueId(), 0.0) + damage
         );
 
-        // —— Update mob health display for custom mobs ——
+        // —— Optionally update mob health display ——
         if (entity instanceof LivingEntity livingEntity) {
-            PersistentDataContainer pdc = livingEntity.getPersistentDataContainer();
-            if (!pdc.has(CustomMob.MOB_ID_KEY, PersistentDataType.STRING)) return;
-
-            String level = pdc.has(CustomMob.LEVEL_KEY, PersistentDataType.INTEGER)
-                ? String.valueOf(pdc.get(CustomMob.LEVEL_KEY, PersistentDataType.INTEGER))
-                : "1";
-
             double currentHealth = Math.max(livingEntity.getHealth() - damage, 0);
             double maxHealth = livingEntity.getMaxHealth();
 
-            String levelPrefix = ChatColor.GRAY + "[Lv " + level + "]  ";
-            String mobName = ChatColor.WHITE + getMobName(livingEntity.getCustomName()) + "  ";
             String healthText = ChatColor.RED +
                 String.format("%.0f", currentHealth) +
                 "/" +
                 String.format("%.0f", maxHealth) +
                 " ♥";
 
-            livingEntity.setCustomName(levelPrefix + mobName + healthText);
+            livingEntity.setCustomName(getMobName(livingEntity.getCustomName()) + "  " + healthText);
         }
     }
 

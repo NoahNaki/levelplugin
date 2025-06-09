@@ -68,7 +68,6 @@ public class ListenerRegistry {
                                          PotionManager potionManager,
                                          PartyManager partyManager,
                                          EconomyManager economyManager,
-                                         FileConfiguration mobConfig,
                                          MobRewardsConfig mobRewardsConfig,
                                          DmgNumberToggleManager dmgToggleManager,
                                          PickupCustomItemListener pickupCustomItemListener,
@@ -96,8 +95,6 @@ public class ListenerRegistry {
 
         // Register all listeners
         pm.registerEvents(new MobDamageListener(), plugin);
-        pm.registerEvents(new MobDeathListener(plugin.getMobManager(), economyManager), plugin);
-        pm.registerEvents(new PlayerKillListener(plugin.getLevelManager(), mobConfig, partyManager), plugin);
         pm.registerEvents(new MythicMobDeathListener(mobRewardsConfig, plugin.getLevelManager(), economyManager, lootChestManager), plugin);
         pm.registerEvents(new PlayerJoinListener(plugin.getLevelManager(),plugin.getPlayerConfig()),plugin);
         pm.registerEvents(new PlayerQuitListener(plugin.getPlayerConfig()),plugin);

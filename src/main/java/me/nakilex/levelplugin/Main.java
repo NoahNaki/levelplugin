@@ -23,7 +23,6 @@ import me.nakilex.levelplugin.lootchests.managers.CooldownManager;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.mob.managers.DmgNumberToggleManager;
-import me.nakilex.levelplugin.mob.managers.MobManager;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.party.PartyGlowManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
@@ -76,7 +75,6 @@ public class Main extends JavaPlugin {
     private static Main instance;
     private BukkitAPIHelper mythicHelper;
     private LevelManager levelManager;
-    private MobManager mobManager;
     private EconomyManager economyManager;
     private ItemManager itemManager;
     private ItemUpgradeManager itemUpgradeManager;
@@ -98,7 +96,6 @@ public class Main extends JavaPlugin {
     private CooldownManager cooldownManager;
     private LootChestManager lootChestManager;
     private PotionManager potionManager;
-    private FileConfiguration mobConfig;
     private HorseConfigManager horseConfigManager;
     private NamespacedKey upgradeKey;
     private MobRewardsConfig mobRewardsConfig;
@@ -210,9 +207,6 @@ public class Main extends JavaPlugin {
         FileConfiguration config = YamlConfiguration.loadConfiguration(configFile);
         potionManager = new PotionManager(config);
 
-        saveResource("custommobs.yml", false);
-        mobConfig = YamlConfiguration.loadConfiguration(new File(getDataFolder(), "custommobs.yml"));
-
         horseConfigManager = new HorseConfigManager(getDataFolder());
 
         saveResource("field_bosses.yml", false);
@@ -234,7 +228,6 @@ public class Main extends JavaPlugin {
         economyManager = new EconomyManager(this);
         itemUpgradeManager = new ItemUpgradeManager(this);
         itemRepairManager = new ItemRepairManager();
-        mobManager = new MobManager(this);
         runesManager = new RunesManager(this);
         spellmanager = new SpellManager(this, runesManager);
         partyManager = new PartyManager();
@@ -296,7 +289,6 @@ public class Main extends JavaPlugin {
             lootChestManager,
             configManager,
             horseManager,
-            mobManager,
             storageManager,
             dmgNumberToggleManager,
             settingsGUI,
@@ -324,7 +316,6 @@ public class Main extends JavaPlugin {
             potionManager,
             partyManager,
             economyManager,
-            mobConfig,
             mobRewardsConfig,
             dmgNumberToggleManager,
             pickupCustomItemListener,
@@ -433,10 +424,6 @@ public class Main extends JavaPlugin {
 
     public PlayerConfig getPlayerConfig() {
         return playerConfig;
-    }
-
-    public MobManager getMobManager() {
-        return mobManager;
     }
 
     public SpellManager getSpellManager() {
