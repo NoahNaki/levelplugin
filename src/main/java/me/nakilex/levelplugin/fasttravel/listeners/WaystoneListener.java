@@ -59,7 +59,7 @@ public class WaystoneListener implements Listener {
         ChatFormatter.sendCenteredMessage(player, "§6§lWaystone Unlocked!");
         ChatFormatter.sendCenteredMessage(player, "§e" + id);
         ChatFormatter.constructDivider(player, " ", 45);
-        player.playSound(loc, Sound.BLOCK_RESPAWN_ANCHOR_CHARGE, 1f, 1f);
-        player.spawnParticle(Particle.DRAGON_BREATH, loc.add(0.5, 1, 0.5), 30, 0.3, 0.5, 0.3, 0.02);
+        player.playSound(loc, Sound.BLOCK_RESPAWN_ANCHOR_SET_SPAWN, 1f, 1f);
+        player.spawnParticle(Particle.FIREWORK, loc.add(0.5, 1, 0.5), 30, 0.3, 0.5, 0.3, 0.02);
     }
 }

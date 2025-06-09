@@ -1,9 +1,35 @@
 gates:
   example_model_gate:
-    world: world
-    x: 0
-    y: 64
-    z: 0
+    world: flatland
+    x: -82
+    y: -60
+    z: -32
     open_model: base_beacon_blue_inventory
     closed_model: base_beacon_inert
-    closed: true
+    closed: false
+  example2_model_gate:
+    world: flatland
+    x: -86
+    y: -60
+    z: -32
+    open_model: base_beacon_red_inventory
+    closed_model: base_beacon_inert
+    closed: false
+  example3_model_gate:
+    world: flatland
+    x: -82
+    y: -60
+    z: -38
+    open_model: base_beacon_blue_inventory
+    closed_model: base_beacon_inert
+    closed: false
+  example4_model_gate:
+    world: flatland
+    x: -86
+    y: -60
+    z: -38
+    open_model: base_beacon_red_inventory
+    closed_model: base_beacon_inert
+    closed: false
+
+
