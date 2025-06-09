@@ -2,7 +2,8 @@ package me.nakilex.levelplugin.fasttravel.gui;
 
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.fasttravel.FastTravelManager;
-import me.nakilex.levelplugin.fasttravel.data.FastTravelPoint;
+import me.nakilex.levelplugin.fakeblock.ModelGate;
+import me.nakilex.levelplugin.fakeblock.ModelGateManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -36,12 +37,14 @@ public class FastTravelGUI implements Listener {
 
     private final FastTravelManager manager;
     private final EconomyManager economy;
+    private final ModelGateManager gateManager;
     private final Map<UUID,Integer> pageMap = new HashMap<>();
     private final Map<UUID,Integer> sortMap = new HashMap<>();
 
-    public FastTravelGUI(FastTravelManager manager, EconomyManager economy) {
+    public FastTravelGUI(FastTravelManager manager, EconomyManager economy, ModelGateManager gateManager) {
         this.manager = manager;
         this.economy = economy;
+        this.gateManager = gateManager;
         Bukkit.getPluginManager().registerEvents(this, manager.getPlugin());
     }
 
@@ -58,24 +61,21 @@ public class FastTravelGUI implements Listener {
         for(int i=0;i<SIZE;i++){
             if(i<9 || i>=45 || i%9==0 || i%9==8){ gui.setItem(i,filler); }
         }
-        List<FastTravelPoint> list = new ArrayList<>();
-        for(FastTravelPoint pt: manager.getPoints()) if(pt.isTown()) list.add(pt);
+        List<ModelGate> list = new ArrayList<>(gateManager.getGates());
         int mode = sortMap.getOrDefault(player.getUniqueId(),0);
         list.sort(getComparator(mode,player));
         int start = page*ITEMS_PER_PAGE;
         int slot=0;
         for(int i=start;i<list.size() && slot<ITEMS_PER_PAGE;i++){
-            FastTravelPoint pt=list.get(i);
-            boolean unlocked = manager.isUnlocked(player, pt.getName());
+            ModelGate pt=list.get(i);
+            boolean unlocked = manager.isUnlocked(player, pt.getId());
             ItemStack item = new ItemStack(unlocked?Material.LODESTONE:Material.BARRIER);
             ItemMeta meta=item.getItemMeta();
             if(meta!=null){
-                meta.setDisplayName(pt.getColor()+""+ChatColor.BOLD+pt.getName());
+                meta.setDisplayName(ChatColor.AQUA+""+ChatColor.BOLD+formatName(pt.getId()));
                 List<String> lore=new ArrayList<>();
                 if(unlocked){
                     int cost=(int)player.getLocation().distance(pt.getLocation());
-                    lore.add(ChatColor.GRAY+pt.getDescription());
-                    lore.add(" ");
                     lore.add(ChatColor.GRAY+"Teleportation Cost:");
                     lore.add(ChatColor.WHITE+""+cost+ChatColor.YELLOW+" ⛃");
                 } else {
@@ -92,18 +92,18 @@ public class FastTravelGUI implements Listener {
         player.openInventory(gui);
     }
 
-    private Comparator<FastTravelPoint> getComparator(int mode, Player player){
+    private Comparator<ModelGate> getComparator(int mode, Player player){
         return switch (mode){
-            case 0 -> Comparator.comparing((FastTravelPoint p)-> p.getLocation().distanceSquared(player.getLocation())).reversed();
-            case 1 -> Comparator.comparing(p-> p.getLocation().distanceSquared(player.getLocation()));
-            case 2 -> Comparator.comparing(FastTravelPoint::getName,String.CASE_INSENSITIVE_ORDER);
+            case 0 -> Comparator.comparing((ModelGate g)-> g.getLocation().distanceSquared(player.getLocation())).reversed();
+            case 1 -> Comparator.comparing(g-> g.getLocation().distanceSquared(player.getLocation()));
+            case 2 -> Comparator.comparing(ModelGate::getId,String.CASE_INSENSITIVE_ORDER);
             default -> {
                 String last = manager.getLastUsed(player);
                 yield (a,b)->{
-                    if(last==null) return a.getName().compareToIgnoreCase(b.getName());
-                    if(a.getName().equalsIgnoreCase(last)) return -1;
-                    if(b.getName().equalsIgnoreCase(last)) return 1;
-                    return a.getName().compareToIgnoreCase(b.getName());
+                    if(last==null) return a.getId().compareToIgnoreCase(b.getId());
+                    if(a.getId().equalsIgnoreCase(last)) return -1;
+                    if(b.getId().equalsIgnoreCase(last)) return 1;
+                    return a.getId().compareToIgnoreCase(b.getId());
                 };}
         };
     }
@@ -123,16 +123,15 @@ public class FastTravelGUI implements Listener {
         if(slot==SORT_SLOT){
             int m=sortMap.getOrDefault(player.getUniqueId(),0); m=(m+1)%4; sortMap.put(player.getUniqueId(),m); open(player,pageMap.getOrDefault(player.getUniqueId(),0)); return; }
         // find point
-        List<FastTravelPoint> list=new ArrayList<>();
-        for(FastTravelPoint pt: manager.getPoints()) if(pt.isTown()) list.add(pt);
+        List<ModelGate> list=new ArrayList<>(gateManager.getGates());
         list.sort(getComparator(sortMap.getOrDefault(player.getUniqueId(),0),player));
         int index= Arrays.binarySearch(POINT_SLOTS, slot);
         if(index<0) return;
         int start=pageMap.getOrDefault(player.getUniqueId(),0)*ITEMS_PER_PAGE;
         int actual=start+index;
         if(actual>=list.size()) return;
-        FastTravelPoint target=list.get(actual);
-        if(!manager.isUnlocked(player,target.getName())) return;
+        ModelGate target=list.get(actual);
+        if(!manager.isUnlocked(player,target.getId())) return;
         int cost=(int)player.getLocation().distance(target.getLocation());
         if(economy.getBalance(player)<cost){
             player.sendMessage(ChatColor.RED+"You need "+cost+" coins to travel.");
@@ -142,9 +141,9 @@ public class FastTravelGUI implements Listener {
         startCast(player,target,cost);
     }
 
-    private void startCast(Player player, FastTravelPoint target, int cost){
+    private void startCast(Player player, ModelGate target, int cost){
         economy.deductCoins(player,cost);
-        manager.recordUse(player,target.getName());
+        manager.recordUse(player,target.getId());
         var startLoc=player.getLocation().clone();
         new BukkitRunnable(){
             int t=60;
@@ -188,5 +187,19 @@ public class FastTravelGUI implements Listener {
             meta.setLore(lore); it.setItemMeta(meta);
         }
         return it;
+    }
+
+    /**
+     * Format a gate id into a nicer display name.
+     */
+    private String formatName(String id){
+        if(id==null) return "";
+        String[] parts=id.split("[_-]");
+        StringBuilder sb=new StringBuilder();
+        for(String p:parts){
+            if(p.isEmpty()) continue;
+            sb.append(Character.toUpperCase(p.charAt(0))).append(p.substring(1)).append(" ");
+        }
+        return sb.toString().trim();
     }
 }

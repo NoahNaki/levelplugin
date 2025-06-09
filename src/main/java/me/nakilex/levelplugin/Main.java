@@ -254,11 +254,11 @@ public class Main extends JavaPlugin {
         partyGlowManager = new PartyGlowManager(this, partyManager, scoreboardManager::getBoard);
         beaconManager = new me.nakilex.levelplugin.quests.managers.BeaconManager();
         fastTravelManager = new me.nakilex.levelplugin.fasttravel.FastTravelManager(this);
-        fastTravelGUI = new me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI(fastTravelManager, economyManager);
+        modelGateManager = new me.nakilex.levelplugin.fakeblock.ModelGateManager(this);
+        fastTravelGUI = new me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI(fastTravelManager, economyManager, modelGateManager);
         motdManager = new me.nakilex.levelplugin.motd.MotdManager(this);
         fakeBlockManager = new me.nakilex.levelplugin.fakeblock.FakeBlockManager();
         questGateManager = new me.nakilex.levelplugin.fakeblock.QuestGateManager(this, fakeBlockManager);
-        modelGateManager = new me.nakilex.levelplugin.fakeblock.ModelGateManager(this);
         cooldownManager.setLootChestManager(lootChestManager);
         equipGui = new EquipRunesGUI(this, runesManager, identifyRunesGUI);
         enchantManager = new me.nakilex.levelplugin.enchanting.managers.EnchantManager();

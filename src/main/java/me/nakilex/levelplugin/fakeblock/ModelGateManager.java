@@ -143,6 +143,17 @@ public class ModelGateManager implements Listener {
         return new java.util.HashSet<>(gates.keySet());
     }
 
+    /** Returns all defined gates. */
+    public java.util.Collection<ModelGate> getGates() {
+        return new java.util.ArrayList<>(gates.values());
+    }
+
+    /** Get gate by id or null if it doesn't exist. */
+    public ModelGate getGate(String id) {
+        if (id == null) return null;
+        return gates.get(id.toLowerCase());
+    }
+
     /** Returns the gate associated with this entity or null. */
     public ModelGate getGateByEntity(org.bukkit.entity.Entity entity) {
         return entityMap.get(entity.getUniqueId());
