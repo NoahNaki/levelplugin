@@ -75,7 +75,9 @@ public class AuctionHouseManager {
         int tax = (int) Math.ceil(priceBasis * rate);
         auctions.add(new AuctionItem(seller.getUniqueId(), item.clone(), startPrice, binPrice, hours, tax));
         saveAuctions();
-        seller.sendMessage(ChatColor.YELLOW + "Listing created. If sold, a tax of " + tax + " coins will be deducted.");
+        seller.sendMessage(ChatColor.GOLD + "Listing created. "
+                + ChatColor.GRAY + "Tax on sale: "
+                + ChatColor.YELLOW + tax + " ⛃" + ChatColor.GRAY + ".");
         return true;
     }
 
@@ -85,11 +87,12 @@ public class AuctionHouseManager {
         if (ai.getStatus() != AuctionStatus.ACTIVE) return false;
         int minBid = Math.max(ai.getStartingPrice(), ai.getCurrentBid() + 1);
         if (amount < minBid) {
-            bidder.sendMessage("Bid must be at least " + minBid + " coins.");
+            bidder.sendMessage(ChatColor.RED + "Bid must be at least "
+                    + ChatColor.YELLOW + minBid + " ⛃");
             return false;
         }
         if (economyManager.getBalance(bidder) < amount) {
-            bidder.sendMessage("Not enough coins!");
+            bidder.sendMessage(ChatColor.RED + "Not enough " + ChatColor.YELLOW + "⛃" + ChatColor.RED + "!");
             return false;
         }
         // refund previous bidder
@@ -114,7 +117,7 @@ public class AuctionHouseManager {
         int price = ai.getBinPrice();
         if (price <= 0) return false;
         if (economyManager.getBalance(buyer) < price) {
-            buyer.sendMessage("Not enough coins!");
+            buyer.sendMessage(ChatColor.RED + "Not enough " + ChatColor.YELLOW + "⛃" + ChatColor.RED + "!");
             return false;
         }
         economyManager.deductCoins(buyer, price);
@@ -130,7 +133,9 @@ public class AuctionHouseManager {
             String name = ai.getItem().hasItemMeta() && ai.getItem().getItemMeta().hasDisplayName()
                     ? ChatColor.stripColor(ai.getItem().getItemMeta().getDisplayName())
                     : ai.getItem().getType().name().toLowerCase().replace('_', ' ');
-            seller.sendMessage("Your " + name + " sold for " + price + " coins. Tax: " + ai.getListingTax() + " coins.");
+            seller.sendMessage(ChatColor.GOLD + "Your " + name
+                    + ChatColor.GOLD + " sold for " + ChatColor.YELLOW + price + " ⛃"
+                    + ChatColor.GOLD + ". Tax: " + ChatColor.YELLOW + ai.getListingTax() + " ⛃");
         }
         return true;
     }
@@ -165,14 +170,14 @@ public class AuctionHouseManager {
                     Player buyer = Bukkit.getPlayer(ai.getHighestBidder());
                     if (buyer != null) {
                         buyer.getInventory().addItem(ai.getItem());
-                        buyer.sendMessage("You won an auction!");
+                        buyer.sendMessage(ChatColor.GREEN + "You won the auction!");
                     }
                 } else {
                     // return item to seller
                     Player seller = Bukkit.getPlayer(ai.getSeller());
                     if (seller != null) {
                         seller.getInventory().addItem(ai.getItem());
-                        seller.sendMessage("Your auction expired without bids.");
+                        seller.sendMessage(ChatColor.RED + "Your auction expired without bids.");
                     }
                 }
                 ai.setStatus(AuctionStatus.EXPIRED);
