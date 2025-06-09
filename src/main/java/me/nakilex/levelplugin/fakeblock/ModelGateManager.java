@@ -169,7 +169,12 @@ public class ModelGateManager implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        updatePlayer(event.getPlayer());
+        // delay the update a few ticks so the player's client has time to
+        // track the spawned furniture entities. Otherwise hideEntity may not
+        // take effect and they would still see the open model.
+        Player player = event.getPlayer();
+        plugin.getServer().getScheduler().runTaskLater(plugin,
+                () -> updatePlayer(player), 5L);
     }
 
     public Main getPlugin() {
