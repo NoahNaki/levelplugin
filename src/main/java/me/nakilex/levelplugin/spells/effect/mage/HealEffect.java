@@ -67,10 +67,6 @@ public class HealEffect implements SpellEffect {
             aoeRange = parseDouble(rangeObj, 0.0);
         }
 
-        // ── DEBUG OUTPUT ─────────────────────────────────────────────────────────
-        //plugin.getLogger().info(String.format("[HealEffect] summed aoeRange=%.2f, aoeDamage=%.2f", aoeRange, aoeDamage));
-        //caster.sendMessage(String.format("§e[DEBUG] HealEffect summed aoeRange = %.2f, damage = %.2f", aoeRange, aoeDamage));
-        // ──────────────────────────────────────────────────────────────────────────
 
         // final heal amount
         double healAmount = baseHeal * (1.0 + bonusHealPercent/100.0);

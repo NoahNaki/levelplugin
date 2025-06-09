@@ -32,15 +32,10 @@ public class ArrowUtils implements Listener {
             public void run() {
                 // Loop through all worlds and collect arrows
                 for (World world : plugin.getServer().getWorlds()) {
-                    for (Entity entity : world.getEntities()) {
-                        // Check if the entity is an arrow
-                        if (entity instanceof Arrow) {
-                            Arrow arrow = (Arrow) entity;
-
-                            // If the arrow is on the ground or stuck in a block, remove it
-                            if (arrow.isOnGround() || arrow.isInBlock()) {
-                                arrow.remove();  // Remove arrow from the world
-                            }
+                    for (Arrow arrow : world.getEntitiesByClass(Arrow.class)) {
+                        // If the arrow is on the ground or stuck in a block, remove it
+                        if (arrow.isOnGround() || arrow.isInBlock()) {
+                            arrow.remove();
                         }
                     }
                 }

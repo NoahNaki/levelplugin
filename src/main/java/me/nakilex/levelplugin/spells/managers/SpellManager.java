@@ -49,34 +49,33 @@ public class SpellManager {
     }
 
     private void loadSpells() {
-        final double defaultManaMultiplier = 1.2;
 
         // — WARRIOR SPELLS —
         Map<String, Spell> warriorMap = new HashMap<>();
         warriorMap.put("RLR", new Spell(
             "iron_fortress", "Iron Fortress", "RLR",
-            15.0, defaultManaMultiplier,
+            15.0, 
             0, 10,
             me.nakilex.levelplugin.items.data.WeaponType.SHOVEL.getMaterials(),
             "IRON_FORTRESS", 0.0
         ));
         warriorMap.put("RRR", new Spell(
             "heroic_leap", "Heroic Leap", "RRR",
-            10.0, defaultManaMultiplier,
+            10.0, 
             0, 8,
             me.nakilex.levelplugin.items.data.WeaponType.SHOVEL.getMaterials(),
             "HEROIC_LEAP", 1.2
         ));
         warriorMap.put("RRL", new Spell(
             "judgement", "Judgement", "RRL",
-            16.0, defaultManaMultiplier,
+            16.0, 
             0, 15,
             me.nakilex.levelplugin.items.data.WeaponType.SHOVEL.getMaterials(),
             "JUDGEMENT", 2.0
         ));
         warriorMap.put("RLL", new Spell(
             "shockwave", "Shockwave", "RLL",
-            14.0, defaultManaMultiplier,
+            14.0, 
             0, 3,
             me.nakilex.levelplugin.items.data.WeaponType.SHOVEL.getMaterials(),
             "SHOCKWAVE", 1.5
@@ -92,8 +91,7 @@ public class SpellManager {
                 "basic_ray",
                 "Basic Ray",
                 "L",
-                0,
-                defaultManaMultiplier,
+                0, 
                 1,
                 0,
                 WeaponType.WAND.getMaterials(),
@@ -104,28 +102,28 @@ public class SpellManager {
         // Combo spells
         mageMap.put("RLL", new Spell(
             "meteor", "Meteor", "RLL",
-            20.0, defaultManaMultiplier,
+            20.0, 
             0, 3,
             me.nakilex.levelplugin.items.data.WeaponType.WAND.getMaterials(),
             "METEOR", 5.5
         ));
         mageMap.put("RRL", new Spell(
             "blackhole", "Blackhole", "RRL",
-            18.0, defaultManaMultiplier,
+            18.0, 
             0, 15,
             me.nakilex.levelplugin.items.data.WeaponType.WAND.getMaterials(),
             "BLACKHOLE", 0.0
         ));
         mageMap.put("RLR", new Spell(
             "heal", "Heal", "RLR",
-            15.0, defaultManaMultiplier,
+            15.0, 
             0, 8,
             me.nakilex.levelplugin.items.data.WeaponType.WAND.getMaterials(),
             "HEAL", 0.0
         ));
         mageMap.put("RRR", new Spell(
             "teleport", "Teleport", "RRR",
-            10.0, defaultManaMultiplier,
+            10.0, 
             0, 10,
             me.nakilex.levelplugin.items.data.WeaponType.WAND.getMaterials(),
             "TELEPORT", 0.0
@@ -139,28 +137,28 @@ public class SpellManager {
         Map<String, Spell> rogueMap = new HashMap<>();
         rogueMap.put("RRL", new Spell(
             "endless_assault", "Endless Assault", "RRL",
-            12.0, defaultManaMultiplier,
+            12.0, 
             0, 15,
             me.nakilex.levelplugin.items.data.WeaponType.SWORD.getMaterials(),
             "ENDLESS_ASSAULT", 3.3
         ));
         rogueMap.put("RLL", new Spell(
             "blade_fury", "Blade Fury", "RLL",
-            15.0, defaultManaMultiplier,
+            15.0, 
             0, 3,
             me.nakilex.levelplugin.items.data.WeaponType.SWORD.getMaterials(),
             "BLADE_FURY", 2.5
         ));
         rogueMap.put("RLR", new Spell(
             "shadow_clone", "Shadow Clone", "RLR",
-            10.0, defaultManaMultiplier,
+            10.0, 
             0, 10,
             me.nakilex.levelplugin.items.data.WeaponType.SWORD.getMaterials(),
             "SHADOW_CLONE", 0.0
         ));
         rogueMap.put("RRR", new Spell(
             "vanish", "Vanish", "RRR",
-            8.0, defaultManaMultiplier,
+            8.0, 
             0, 8,
             me.nakilex.levelplugin.items.data.WeaponType.SWORD.getMaterials(),
             "VANISH", 0.0
@@ -175,7 +173,6 @@ public class SpellManager {
             "Basic Shot",
             "BASIC_ATTACK",
             0.0,
-            1.0,
             1,
             1,
             WeaponType.BOW.getMaterials(),
@@ -184,28 +181,28 @@ public class SpellManager {
         ));
         archerMap.put("LLR", new Spell(
             "power_shot", "Power Shot", "LLR",
-            12.0, defaultManaMultiplier,
+            12.0, 
             0, 3,
             me.nakilex.levelplugin.items.data.WeaponType.BOW.getMaterials(),
             "POWER_SHOT", 2.0
         ));
         archerMap.put("LRR", new Spell(
             "bow_drone", "Sentry", "LRR",
-            15.0, defaultManaMultiplier,
+            15.0, 
             0, 8,
             me.nakilex.levelplugin.items.data.WeaponType.BOW.getMaterials(),
             "BOW_DRONE", 1.5
         ));
         archerMap.put("LLL", new Spell(
             "grapple_hook", "Grapple Hook", "LLL",
-            8.0, defaultManaMultiplier,
+            8.0, 
             0, 10,
             me.nakilex.levelplugin.items.data.WeaponType.BOW.getMaterials(),
             "GRAPPLE_HOOK", 0.0
         ));
         archerMap.put("LRL", new Spell(
             "arrow_storm", "Arrow Storm", "LRL",
-            20.0, defaultManaMultiplier,
+            20.0, 
             0, 15,
             me.nakilex.levelplugin.items.data.WeaponType.BOW.getMaterials(),
             "ARROW_STORM", 0.5
