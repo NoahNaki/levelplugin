@@ -189,14 +189,14 @@ public class FastTravelGUI implements Listener {
         ItemStack it=new ItemStack(Material.COMPARATOR);
         ItemMeta meta=it.getItemMeta();
         if(meta!=null){
-            meta.setDisplayName(ChatColor.AQUA+"Sort");
+            meta.setDisplayName(ChatColor.AQUA+"Sort By");
             List<String> lore=new ArrayList<>();
             String[] opts={"Distance Far","Distance Close","A-Z","Last Used"};
             for(int i=0;i<opts.length;i++){
-                String pre=i==mode?ChatColor.GREEN+"➤ ":ChatColor.GRAY+"  ";
-                lore.add(pre+opts[i]);
+                lore.add(rangeLine(i,mode,opts[i]));
             }
-            meta.setLore(lore); it.setItemMeta(meta);
+            meta.setLore(lore);
+            it.setItemMeta(meta);
         }
         return it;
     }
