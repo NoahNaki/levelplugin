@@ -47,6 +47,7 @@ public class ClickComboListener implements Listener {
     private final Map<UUID, Long> bowCooldowns = new HashMap<>();
     private static final long BOW_SHOT_COOLDOWN = 500L; // 0.5 seconds
     private final Map<UUID, Long> quickdrawCooldowns = new HashMap<>();
+    private final Map<UUID, Integer> tempArrowSlots = new HashMap<>();
 
 
     @EventHandler
@@ -170,14 +171,14 @@ public class ClickComboListener implements Listener {
                     event.setCancelled(true);
                     handleSpellCast(player, "BASIC_ATTACK");
                     setQuickdrawUsed(player);
+                } else {
+                    event.setCancelled(true);
                 }
                 return;
             }
 
             if (!player.getInventory().contains(Material.ARROW)) {
-                event.setCancelled(true);
-                handleSpellCast(player, "BASIC_ATTACK");
-                return;
+                giveTempArrow(player);
             }
 
             // allow vanilla drawing; shot handled in EntityShootBowEvent
@@ -205,11 +206,13 @@ public class ClickComboListener implements Listener {
 
         if (!activeCombo.isEmpty()) {
             event.setCancelled(true);
+            removeTempArrow(player);
             return;
         }
 
         event.setCancelled(true);
         handleSpellCast(player, "BASIC_ATTACK");
+        removeTempArrow(player);
     }
 
 
@@ -425,6 +428,25 @@ public class ClickComboListener implements Listener {
         quickdrawCooldowns.put(player.getUniqueId(), System.currentTimeMillis());
     }
 
+    private void giveTempArrow(Player player) {
+        if (tempArrowSlots.containsKey(player.getUniqueId())) return;
+        int slot = player.getInventory().firstEmpty();
+        if (slot == -1) return;
+        player.getInventory().setItem(slot, new ItemStack(Material.ARROW, 1));
+        player.updateInventory();
+        tempArrowSlots.put(player.getUniqueId(), slot);
+    }
+
+    private void removeTempArrow(Player player) {
+        Integer slot = tempArrowSlots.remove(player.getUniqueId());
+        if (slot == null) return;
+        ItemStack item = player.getInventory().getItem(slot);
+        if (item != null && item.getType() == Material.ARROW && item.getAmount() == 1) {
+            player.getInventory().setItem(slot, null);
+            player.updateInventory();
+        }
+    }
+
 
 
 
@@ -438,6 +460,7 @@ public class ClickComboListener implements Listener {
             seq.clear();
             playerCombos.remove(uuid);
         }
+        removeTempArrow(player);
     }
 
     @EventHandler
@@ -450,6 +473,7 @@ public class ClickComboListener implements Listener {
             seq.clear();
             playerCombos.remove(uuid);
         }
+        removeTempArrow(player);
     }
 
     @EventHandler
@@ -464,6 +488,7 @@ public class ClickComboListener implements Listener {
             ClickSequence seq = playerCombos.remove(player.getUniqueId());
             if (seq != null) seq.clear();
         }
+        removeTempArrow(player);
     }
 
     @EventHandler
@@ -476,6 +501,7 @@ public class ClickComboListener implements Listener {
             if (raw == heldSlot) {
                 ClickSequence seq = playerCombos.remove(player.getUniqueId());
                 if (seq != null) seq.clear();
+                removeTempArrow(player);
                 break;
             }
         }
