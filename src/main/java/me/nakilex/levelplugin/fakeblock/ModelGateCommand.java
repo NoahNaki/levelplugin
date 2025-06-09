@@ -44,9 +44,8 @@ public class ModelGateCommand implements CommandExecutor {
                 String id = args[1].toLowerCase();
                 String open = args[2];
                 String closed = args[3];
-                boolean town = args.length >= 5 && Boolean.parseBoolean(args[4]);
                 Location loc = target.getLocation();
-                ModelGate gate = new ModelGate(id, loc, open, closed, town, true);
+                ModelGate gate = new ModelGate(id, loc, open, closed, true);
                 manager.createGate(gate);
                 player.sendMessage(ChatColor.YELLOW + "Model gate " + id + " created.");
                 return true;

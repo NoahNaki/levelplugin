@@ -20,8 +20,6 @@ public class ModelGate {
     private final Location location;
     private final String openModel;
     private final String closedModel;
-    /** Whether this gate is located in a town (true) or a dungeon (false). */
-    private final boolean town;
     /** Whether the gate is closed by default for players that have no
      * personalised setting. */
     private boolean defaultClosed;
@@ -45,12 +43,11 @@ public class ModelGate {
         return closedEntity != null && closedEntity.getUniqueId().equals(e.getUniqueId());
     }
 
-    public ModelGate(String id, Location location, String openModel, String closedModel, boolean town, boolean closed) {
+    public ModelGate(String id, Location location, String openModel, String closedModel, boolean closed) {
         this.id = id.toLowerCase();
         this.location = location;
         this.openModel = openModel;
         this.closedModel = closedModel;
-        this.town = town;
         this.defaultClosed = closed;
     }
 
@@ -70,9 +67,10 @@ public class ModelGate {
         return closedModel;
     }
 
-    /** Returns true if this gate is considered a town waystone. */
+    /** Returns true if this gate is considered a town waystone.
+     * A blue beacon indicates a town, red indicates a dungeon. */
     public boolean isTown() {
-        return town;
+        return openModel.toLowerCase().contains("blue");
     }
 
     public boolean isDefaultClosed() {
