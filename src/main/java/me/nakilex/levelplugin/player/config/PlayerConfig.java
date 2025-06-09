@@ -42,8 +42,9 @@ public class PlayerConfig {
         LevelManager levelManager = LevelManager.getInstance();
 
         String path = "players." + uuid.toString();
-        config.set(path + ".level", levelManager.getLevel(Bukkit.getPlayer(uuid)));
-        config.set(path + ".xp", levelManager.getXP(Bukkit.getPlayer(uuid)));
+        // Use UUID-based lookups so offline players save correctly
+        config.set(path + ".level", levelManager.getLevel(uuid));
+        config.set(path + ".xp",    levelManager.getXP(uuid));
         config.set(path + ".skill_points", stats.skillPoints);
         config.set(path + ".stats.base_strength", stats.baseStrength);
         config.set(path + ".stats.base_agility", stats.baseAgility);

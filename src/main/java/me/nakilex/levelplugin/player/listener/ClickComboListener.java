@@ -56,7 +56,6 @@ public class ClickComboListener implements Listener {
     private final ProtocolManager protocol = ProtocolLibrary.getProtocolManager();
     private static final int OFFHAND_SLOT = 45;
 
-
     @EventHandler
     public void onLeftClick(PlayerAnimationEvent event) {
         if (event.getAnimationType() != PlayerAnimationType.ARM_SWING) return;
@@ -125,7 +124,6 @@ public class ClickComboListener implements Listener {
         // —— All other classes build combos ——
         recordComboClick(player, "L");
     }
-
 
     @EventHandler
     public void onRightClick(PlayerInteractEvent event) {
@@ -352,14 +350,6 @@ public class ClickComboListener implements Listener {
                     damage
                 ));
             }
-        }
-    }
-
-    @EventHandler
-    public void onPlayerDamage(EntityDamageEvent event) {
-        if (event.getEntity() instanceof Player) {
-            Player player = (Player) event.getEntity();
-            Bukkit.getLogger().info("Player " + player.getName() + " was damaged. Cause: " + event.getCause());
         }
     }
 

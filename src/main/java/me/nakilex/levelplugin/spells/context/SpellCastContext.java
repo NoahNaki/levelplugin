@@ -18,7 +18,6 @@ public class SpellCastContext {
     private double cooldownReductionPercent = 0.0;
 
     // Mapped extra params
-    private double aoeRadius = 0.0;
     private double stunDuration = 0.0;
     private boolean applyCooldown = true;
     private double manaCostModifier = 0.0;
@@ -138,7 +137,6 @@ public class SpellCastContext {
     }
 
     // --- Getters for mapped params ---
-    public double getAoeRadius() { return aoeRadius; }
     public double getStunDuration() { return stunDuration; }
     public boolean isApplyCooldown() { return applyCooldown; }
     public double getManaCostModifier() { return manaCostModifier; }

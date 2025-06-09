@@ -25,16 +25,11 @@ public class Spell {
     private final String displayName;
     private final String combo;
     private final double baseManaCost;
-    private final double manaCostMultiplier;
     private final long cooldownSeconds;     // ← renamed from int to long
     private final int levelReq;
     private final List<Material> allowedWeapons;
     private final String effectKey;
     private final double baseDamage;        // ← holds the pre-rune damage
-    private double aoeRadius = 0.0;
-    private double stunDuration = 0.0;
-    private boolean applyCooldown = true;
-    private double manaCostModifier = 0.0;
 
     // static managers
     private static final CooldownManager cooldownMgr = CooldownManager.getInstance();
@@ -44,7 +39,6 @@ public class Spell {
         String displayName,
         String combo,
         double baseManaCost,
-        double manaCostMultiplier,
         long cooldownSeconds,          // ← now a long
         int levelReq,
         List<Material> allowedWeapons,
@@ -55,7 +49,6 @@ public class Spell {
         this.displayName      = displayName;
         this.combo            = combo;
         this.baseManaCost     = baseManaCost;
-        this.manaCostMultiplier = manaCostMultiplier;
         this.cooldownSeconds  = cooldownSeconds;
         this.levelReq         = levelReq;
         this.allowedWeapons   = allowedWeapons;
@@ -68,15 +61,11 @@ public class Spell {
     public String getDisplayName()       { return displayName; }
     public String getCombo()             { return combo; }
     public double getBaseManaCost()      { return baseManaCost; }
-    public double getManaCostMultiplier(){ return manaCostMultiplier; }
     public long   getCooldownSeconds()   { return cooldownSeconds; }
     public int    getLevelReq()          { return levelReq; }
     public List<Material> getAllowedWeapons() { return allowedWeapons; }
     public double getBaseDamage()        { return baseDamage; }
     public String getEffectKey()         { return effectKey; }
-    public double getDamageMultiplier() {
-        return this.baseDamage;
-    }
 
     /** for SpellCastContext’s baseSpell.getManaCost() */
     public double getManaCost() {
@@ -165,38 +154,6 @@ public class Spell {
                 player.sendMessage("§eUnknown effect: " + key);
             }
         }
-    }
-
-    public double getManaCostModifier() {
-        return manaCostModifier;
-    }
-
-    public void setManaCostModifier(double manaCostModifier) {
-        this.manaCostModifier = manaCostModifier;
-    }
-
-    public boolean isApplyCooldown() {
-        return applyCooldown;
-    }
-
-    public void setApplyCooldown(boolean applyCooldown) {
-        this.applyCooldown = applyCooldown;
-    }
-
-    public double getStunDuration() {
-        return stunDuration;
-    }
-
-    public void setStunDuration(double stunDuration) {
-        this.stunDuration = stunDuration;
-    }
-
-    public double getAoeRadius() {
-        return aoeRadius;
-    }
-
-    public void setAoeRadius(double aoeRadius) {
-        this.aoeRadius = aoeRadius;
     }
 
 
