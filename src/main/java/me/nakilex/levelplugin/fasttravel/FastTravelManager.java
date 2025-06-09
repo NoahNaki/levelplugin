@@ -133,5 +133,21 @@ public class FastTravelManager {
         return unlocked.getOrDefault(player.getUniqueId(), Collections.emptySet());
     }
 
+    /**
+     * Returns the unlocked fast travel point the player is currently standing at.
+     *
+     * @param player the player to check
+     * @return the {@link FastTravelPoint} if one is found within its radius, otherwise {@code null}
+     */
+    public FastTravelPoint getNearbyUnlockedPoint(Player player) {
+        Location loc = player.getLocation();
+        for (FastTravelPoint pt : points.values()) {
+            if (!isUnlocked(player, pt.getName())) continue;
+            if (!pt.getLocation().getWorld().equals(loc.getWorld())) continue;
+            if (loc.distance(pt.getLocation()) <= pt.getRadius()) return pt;
+        }
+        return null;
+    }
+
     public Main getPlugin() { return plugin; }
 }
