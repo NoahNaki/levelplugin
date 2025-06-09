@@ -111,7 +111,7 @@ public class Spell {
         // 1) Cooldown guard
         if (cooldownMgr.isOnCooldown(pid, id)) {
             long rem = cooldownMgr.getRemainingTime(pid, id);
-            player.sendMessage("§c" + displayName + " cooling down: " + (rem/1000) + "s left");
+            //player.sendMessage("§c" + displayName + " cooling down: " + (rem/1000) + "s left");
             return;
         }
 

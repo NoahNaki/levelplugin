@@ -408,7 +408,7 @@ public class ClickComboListener implements Listener {
 
     private boolean quickdrawReady(Player player) {
         Long last = quickdrawCooldowns.get(player.getUniqueId());
-        return last == null || System.currentTimeMillis() - last >= 1000L;
+        return last == null || System.currentTimeMillis() - last >= 1L;
     }
 
     private void setQuickdrawUsed(Player player) {
