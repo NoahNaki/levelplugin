@@ -46,6 +46,7 @@ public class ClickComboListener implements Listener {
     private final Map<UUID, Long> activeLeftClicks = new HashMap<>();
     private final Map<UUID, Long> bowCooldowns = new HashMap<>();
     private static final long BOW_SHOT_COOLDOWN = 500L; // 0.5 seconds
+    private final Map<UUID, Long> quickdrawCooldowns = new HashMap<>();
 
 
     @EventHandler
@@ -165,10 +166,21 @@ public class ClickComboListener implements Listener {
             }
 
             if (hasQuickdrawRune(player)) {
+                if (quickdrawReady(player)) {
+                    event.setCancelled(true);
+                    handleSpellCast(player, "BASIC_ATTACK");
+                    setQuickdrawUsed(player);
+                }
+                return;
+            }
+
+            if (!player.getInventory().contains(Material.ARROW)) {
                 event.setCancelled(true);
                 handleSpellCast(player, "BASIC_ATTACK");
+                return;
             }
-            // else allow vanilla drawing; shot handled in EntityShootBowEvent
+
+            // allow vanilla drawing; shot handled in EntityShootBowEvent
             return;
         }
 
@@ -402,6 +414,15 @@ public class ClickComboListener implements Listener {
             }
         }
         return false;
+    }
+
+    private boolean quickdrawReady(Player player) {
+        Long last = quickdrawCooldowns.get(player.getUniqueId());
+        return last == null || System.currentTimeMillis() - last >= 1000L;
+    }
+
+    private void setQuickdrawUsed(Player player) {
+        quickdrawCooldowns.put(player.getUniqueId(), System.currentTimeMillis());
     }
 
 
