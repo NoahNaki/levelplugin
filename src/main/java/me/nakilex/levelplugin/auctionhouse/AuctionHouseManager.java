@@ -28,6 +28,9 @@ public class AuctionHouseManager {
     /** Tax percentage applied per hour of listing. (e.g. 0.01 = 1% per hour) */
     private static final double TAX_PER_HOUR = 0.01;
 
+    /** Maximum percentage that can be charged as tax. */
+    private static final double MAX_TAX_PERCENT = 0.10;
+
     private final Plugin plugin;
     private final EconomyManager economyManager;
     private final File file;
@@ -62,22 +65,17 @@ public class AuctionHouseManager {
     }
 
     /**
-     * Adds a new listing and charges the seller a tax based on the duration.
-     *
-     * @return true if the item was listed, false if the seller couldn't afford the tax
+     * Adds a new listing. A tax based on the duration will be deducted from the
+     * seller's earnings when the item is sold.
      */
     public synchronized boolean listItem(Player seller, ItemStack item, int startPrice, int binPrice, long durationHours) {
         long hours = Math.min(durationHours, MAX_DURATION_HOURS);
         int priceBasis = binPrice > 0 ? binPrice : startPrice;
-        int tax = (int) Math.ceil(priceBasis * (hours * TAX_PER_HOUR));
-        if (economyManager.getBalance(seller) < tax) {
-            seller.sendMessage(ChatColor.RED + "Not enough coins to cover the listing tax of " + tax + ".");
-            return false;
-        }
-        economyManager.deductCoins(seller, tax);
-        auctions.add(new AuctionItem(seller.getUniqueId(), item.clone(), startPrice, binPrice, hours));
+        double rate = Math.min(hours * TAX_PER_HOUR, MAX_TAX_PERCENT);
+        int tax = (int) Math.ceil(priceBasis * rate);
+        auctions.add(new AuctionItem(seller.getUniqueId(), item.clone(), startPrice, binPrice, hours, tax));
         saveAuctions();
-        seller.sendMessage(ChatColor.YELLOW + "Listing tax paid: " + tax + " coins.");
+        seller.sendMessage(ChatColor.YELLOW + "Listing created. If sold, a tax of " + tax + " coins will be deducted.");
         return true;
     }
 
@@ -120,7 +118,9 @@ public class AuctionHouseManager {
             return false;
         }
         economyManager.deductCoins(buyer, price);
-        economyManager.addCoins(ai.getSeller(), price);
+        int payout = price - ai.getListingTax();
+        if (payout < 0) payout = 0;
+        economyManager.addCoins(ai.getSeller(), payout);
         buyer.getInventory().addItem(ai.getItem());
         ai.setStatus(AuctionStatus.SOLD);
         auctions.remove(index);
@@ -130,7 +130,7 @@ public class AuctionHouseManager {
             String name = ai.getItem().hasItemMeta() && ai.getItem().getItemMeta().hasDisplayName()
                     ? ChatColor.stripColor(ai.getItem().getItemMeta().getDisplayName())
                     : ai.getItem().getType().name().toLowerCase().replace('_', ' ');
-            seller.sendMessage("Your " + name + " sold for " + price + " coins!");
+            seller.sendMessage("Your " + name + " sold for " + price + " coins. Tax: " + ai.getListingTax() + " coins.");
         }
         return true;
     }
@@ -159,7 +159,9 @@ public class AuctionHouseManager {
             if (now >= ai.getEndTime()) {
                 if (ai.getHighestBidder() != null) {
                     // give item to highest bidder and coins to seller
-                    economyManager.addCoins(ai.getSeller(), ai.getCurrentBid());
+                    int payout = ai.getCurrentBid() - ai.getListingTax();
+                    if (payout < 0) payout = 0;
+                    economyManager.addCoins(ai.getSeller(), payout);
                     Player buyer = Bukkit.getPlayer(ai.getHighestBidder());
                     if (buyer != null) {
                         buyer.getInventory().addItem(ai.getItem());
@@ -195,7 +197,8 @@ public class AuctionHouseManager {
             String statusStr = config.getString(base + "status");
             AuctionStatus status = statusStr != null ? AuctionStatus.valueOf(statusStr) : AuctionStatus.ACTIVE;
             ItemStack item = config.getItemStack(base + "item");
-            AuctionItem ai = new AuctionItem(seller, item, start, bin, 1); // duration ignored
+            int tax = config.getInt(base + "tax", 0);
+            AuctionItem ai = new AuctionItem(seller, item, start, bin, 1, tax); // duration ignored
             ai.setCurrentBid(currentBid);
             if (bidderStr != null) ai.setHighestBidder(UUID.fromString(bidderStr));
             // overwrite times and status
@@ -227,6 +230,7 @@ public class AuctionHouseManager {
             config.set(base + "startTime", ai.getStartTime());
             config.set(base + "endTime", ai.getEndTime());
             config.set(base + "status", ai.getStatus().name());
+            config.set(base + "tax", ai.getListingTax());
             config.set(base + "item", ai.getItem());
         }
         try {
