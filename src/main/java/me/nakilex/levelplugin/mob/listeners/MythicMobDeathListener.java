@@ -248,6 +248,8 @@ public class MythicMobDeathListener implements Listener {
      */
     private void dropCustomItems(Player player, String mobType) {
 
+        String path = "mobs." + mobType + ".items";
+
         if (!mobRewardsConfig.getConfig().contains(path)) {
             return;
         }
