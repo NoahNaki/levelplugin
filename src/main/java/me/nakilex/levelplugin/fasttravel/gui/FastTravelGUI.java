@@ -42,6 +42,8 @@ public class FastTravelGUI implements Listener {
     private final Map<UUID,Integer> pageMap = new HashMap<>();
     private final Map<UUID,Integer> sortMap = new HashMap<>();
     private final Map<UUID,Integer> typeMap = new HashMap<>();
+    /** Gate id to exclude when showing options for each player. */
+    private final Map<UUID,String> excludeMap = new HashMap<>();
 
     public FastTravelGUI(FastTravelManager manager, EconomyManager economy, ModelGateManager gateManager) {
         this.manager = manager;
@@ -50,7 +52,23 @@ public class FastTravelGUI implements Listener {
         Bukkit.getPluginManager().registerEvents(this, manager.getPlugin());
     }
 
+    /**
+     * Open the fast travel menu for the player without excluding any gate.
+     */
     public void open(Player player) {
+        excludeMap.remove(player.getUniqueId());
+        open(player, pageMap.getOrDefault(player.getUniqueId(),0));
+    }
+
+    /**
+     * Open the fast travel menu while excluding the given gate from the list.
+     */
+    public void open(Player player, ModelGate currentGate) {
+        if(currentGate != null){
+            excludeMap.put(player.getUniqueId(), currentGate.getId().toLowerCase());
+        } else {
+            excludeMap.remove(player.getUniqueId());
+        }
         open(player, pageMap.getOrDefault(player.getUniqueId(),0));
     }
 
@@ -65,6 +83,10 @@ public class FastTravelGUI implements Listener {
         }
         int filter = typeMap.getOrDefault(player.getUniqueId(),0);
         List<ModelGate> list = new ArrayList<>(gateManager.getGates());
+        String exclude = excludeMap.get(player.getUniqueId());
+        if(exclude != null){
+            list.removeIf(g -> g.getId().equalsIgnoreCase(exclude));
+        }
         if(filter==1) list.removeIf(g->!g.isTown());
         else if(filter==2) list.removeIf(ModelGate::isTown);
         int mode = sortMap.getOrDefault(player.getUniqueId(),0);
