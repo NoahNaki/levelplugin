@@ -154,3 +154,6 @@ commands:
   motd:
     description: Reload or preview the server MOTD
     usage: /motd <reload|preview>
+  fakegate:
+    description: Manage fake block gates
+    usage: /fakegate <wand|create|toggle|remove>
