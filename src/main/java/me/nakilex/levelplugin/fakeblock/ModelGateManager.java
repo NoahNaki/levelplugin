@@ -22,6 +22,7 @@ public class ModelGateManager implements Listener {
 
     private final Main plugin;
     private final Map<String, ModelGate> gates = new HashMap<>();
+    private final Map<java.util.UUID, ModelGate> entityMap = new HashMap<>();
     private File file;
     private FileConfiguration config;
 
@@ -29,6 +30,24 @@ public class ModelGateManager implements Listener {
         this.plugin = plugin;
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
         loadFromConfig();
+    }
+
+    private void registerEntities(ModelGate gate) {
+        if (gate.getOpenEntity() != null) {
+            entityMap.put(gate.getOpenEntity().getUniqueId(), gate);
+        }
+        if (gate.getClosedEntity() != null) {
+            entityMap.put(gate.getClosedEntity().getUniqueId(), gate);
+        }
+    }
+
+    private void unregisterEntities(ModelGate gate) {
+        if (gate.getOpenEntity() != null) {
+            entityMap.remove(gate.getOpenEntity().getUniqueId());
+        }
+        if (gate.getClosedEntity() != null) {
+            entityMap.remove(gate.getClosedEntity().getUniqueId());
+        }
     }
 
     private void loadFromConfig() {
@@ -50,6 +69,7 @@ public class ModelGateManager implements Listener {
             boolean state = config.getBoolean(base + "closed", true);
             ModelGate gate = new ModelGate(key, new Location(world, x, y, z), open, closed, state);
             gate.spawnEntities();
+            registerEntities(gate);
             gates.put(key.toLowerCase(), gate);
         }
         updateAll();
@@ -74,6 +94,7 @@ public class ModelGateManager implements Listener {
     public void createGate(ModelGate gate) {
         gates.put(gate.getId(), gate);
         gate.spawnEntities();
+        registerEntities(gate);
         saveConfig();
         updateAll();
     }
@@ -89,6 +110,7 @@ public class ModelGateManager implements Listener {
     public boolean removeGate(String id) {
         ModelGate gate = gates.remove(id.toLowerCase());
         if (gate == null) return false;
+        unregisterEntities(gate);
         gate.removeAll();
         saveConfig();
         updateAll();
@@ -98,6 +120,7 @@ public class ModelGateManager implements Listener {
     /** Remove all gates and despawn their entities. */
     public void removeAllGates() {
         for (ModelGate gate : gates.values()) {
+            unregisterEntities(gate);
             gate.removeAll();
         }
     }
@@ -105,6 +128,11 @@ public class ModelGateManager implements Listener {
     /** Returns the ids of all defined gates. */
     public java.util.Set<String> getGateIds() {
         return new java.util.HashSet<>(gates.keySet());
+    }
+
+    /** Returns the gate associated with this entity or null. */
+    public ModelGate getGateByEntity(org.bukkit.entity.Entity entity) {
+        return entityMap.get(entity.getUniqueId());
     }
 
     public void updatePlayer(Player player) {
@@ -122,5 +150,9 @@ public class ModelGateManager implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         updatePlayer(event.getPlayer());
+    }
+
+    public Main getPlugin() {
+        return plugin;
     }
 }

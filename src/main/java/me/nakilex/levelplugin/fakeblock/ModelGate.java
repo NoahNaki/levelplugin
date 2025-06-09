@@ -30,6 +30,19 @@ public class ModelGate {
     private ItemDisplay openEntity;
     private ItemDisplay closedEntity;
 
+    /** Access the spawned open model entity. */
+    public ItemDisplay getOpenEntity() { return openEntity; }
+
+    /** Access the spawned closed model entity. */
+    public ItemDisplay getClosedEntity() { return closedEntity; }
+
+    /** Returns true if the given entity is part of this gate. */
+    public boolean matchesEntity(org.bukkit.entity.Entity e) {
+        if (e == null) return false;
+        if (openEntity != null && openEntity.getUniqueId().equals(e.getUniqueId())) return true;
+        return closedEntity != null && closedEntity.getUniqueId().equals(e.getUniqueId());
+    }
+
     public ModelGate(String id, Location location, String openModel, String closedModel, boolean closed) {
         this.id = id.toLowerCase();
         this.location = location;
