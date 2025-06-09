@@ -23,6 +23,8 @@ public class ModelGateManager implements Listener {
     private final Main plugin;
     private final Map<String, ModelGate> gates = new HashMap<>();
     private final Map<java.util.UUID, ModelGate> entityMap = new HashMap<>();
+    /** Map of block locations to their gate for quick lookup from interact events. */
+    private final Map<org.bukkit.Location, ModelGate> locationMap = new HashMap<>();
     private File file;
     private FileConfiguration config;
 
@@ -32,6 +34,10 @@ public class ModelGateManager implements Listener {
         loadFromConfig();
     }
 
+    private static org.bukkit.Location blockLoc(org.bukkit.Location loc) {
+        return new org.bukkit.Location(loc.getWorld(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
+    }
+
     private void registerEntities(ModelGate gate) {
         if (gate.getOpenEntity() != null) {
             entityMap.put(gate.getOpenEntity().getUniqueId(), gate);
@@ -39,6 +45,7 @@ public class ModelGateManager implements Listener {
         if (gate.getClosedEntity() != null) {
             entityMap.put(gate.getClosedEntity().getUniqueId(), gate);
         }
+        locationMap.put(blockLoc(gate.getLocation()), gate);
     }
 
     private void unregisterEntities(ModelGate gate) {
@@ -48,6 +55,7 @@ public class ModelGateManager implements Listener {
         if (gate.getClosedEntity() != null) {
             entityMap.remove(gate.getClosedEntity().getUniqueId());
         }
+        locationMap.remove(blockLoc(gate.getLocation()));
     }
 
     private void loadFromConfig() {
@@ -112,6 +120,7 @@ public class ModelGateManager implements Listener {
         if (gate == null) return false;
         unregisterEntities(gate);
         gate.removeAll();
+        locationMap.remove(blockLoc(gate.getLocation()));
         saveConfig();
         updateAll();
         return true;
@@ -123,6 +132,7 @@ public class ModelGateManager implements Listener {
             unregisterEntities(gate);
             gate.removeAll();
         }
+        locationMap.clear();
     }
 
     /** Returns the ids of all defined gates. */
@@ -133,6 +143,11 @@ public class ModelGateManager implements Listener {
     /** Returns the gate associated with this entity or null. */
     public ModelGate getGateByEntity(org.bukkit.entity.Entity entity) {
         return entityMap.get(entity.getUniqueId());
+    }
+
+    /** Get gate located at the given block location. */
+    public ModelGate getGateAt(org.bukkit.Location location) {
+        return locationMap.get(blockLoc(location));
     }
 
     public void updatePlayer(Player player) {

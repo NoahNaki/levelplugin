@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.fakeblock.ModelGate;
 import me.nakilex.levelplugin.fakeblock.ModelGateManager;
 import me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -25,7 +26,8 @@ public class WaystoneListener implements Listener {
     @EventHandler
     public void onInteract(NexoFurnitureInteractEvent event) {
         Player player = event.getPlayer();
-        ModelGate gate = gateManager.getGateByEntity(event.getBaseEntity());
+        Location blockLoc = event.getBaseEntity().getLocation().getBlock().getLocation();
+        ModelGate gate = gateManager.getGateAt(blockLoc);
         if (gate == null) {
             FurnitureMechanic mech = event.getMechanic();
             if (!"base_beacon_blue".equals(mech.getItemID()) && !"base_beacon_blue_inventory".equals(mech.getItemID())) {
