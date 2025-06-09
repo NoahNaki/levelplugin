@@ -70,8 +70,6 @@ public class WeaponListener implements Listener {
             oldItem,
             newItem
         );
-
-            + " new=" + debugItem(newItem));
         Bukkit.getPluginManager().callEvent(equipEvent);
 
         if (equipEvent.isCancelled()) {
@@ -126,7 +124,6 @@ public class WeaponListener implements Listener {
             offItem,
             mainItem
         );
-            + " new=" + debugItem(mainItem));
         Bukkit.getPluginManager().callEvent(offSwapEvent);
         if (offSwapEvent.isCancelled()) {
             event.setCancelled(true);
@@ -145,8 +142,6 @@ public class WeaponListener implements Listener {
 
         ItemStack cursor = event.getCursor();
         ItemStack offItem = event.getCurrentItem();
-
-            + " cursor=" + debugItem(cursor));
 
         InventoryAction act = event.getAction();
 
@@ -416,8 +411,4 @@ public class WeaponListener implements Listener {
         return (item == null || item.getType().isAir());
     }
 
-    private String debugItem(ItemStack item) {
-        if (isAirOrNull(item)) return "(null)";
-        return item.getType().name() + " x" + item.getAmount();
-    }
 }
