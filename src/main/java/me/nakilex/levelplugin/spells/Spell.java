@@ -154,7 +154,7 @@ public class Spell {
         Main.getInstance().getQuestManager().handleCast(player, id);
 
         // 5) Start cooldown (ctx.getFinalCooldown returns 0 if applyCooldown==false)
-        cooldownMgr.setCooldown(pid, id, ctx.getFinalCooldown());
+        cooldownMgr.setCooldown(pid, id, ctx.getFinalCooldown() / 1000.0);
 
         // 6) Fire off every configured effect in order
         for (String key : ctx.getEffectKeys()) {

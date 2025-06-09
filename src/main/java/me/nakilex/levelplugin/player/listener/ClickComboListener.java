@@ -14,6 +14,10 @@ import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStats;
 import me.nakilex.levelplugin.spells.utils.SpellUtils;
+import com.comphenix.protocol.ProtocolLibrary;
+import com.comphenix.protocol.ProtocolManager;
+import com.comphenix.protocol.PacketType;
+import com.comphenix.protocol.events.PacketContainer;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Arrow;
@@ -47,7 +51,9 @@ public class ClickComboListener implements Listener {
     private final Map<UUID, Long> bowCooldowns = new HashMap<>();
     private static final long BOW_SHOT_COOLDOWN = 500L; // 0.5 seconds
     private final Map<UUID, Long> quickdrawCooldowns = new HashMap<>();
-    private final Map<UUID, Integer> tempArrowSlots = new HashMap<>();
+    private final Map<UUID, ItemStack> offhandBackups = new HashMap<>();
+    private final ProtocolManager protocol = ProtocolLibrary.getProtocolManager();
+    private static final int OFFHAND_SLOT = 45;
 
 
     @EventHandler
@@ -122,24 +128,6 @@ public class ClickComboListener implements Listener {
 
     @EventHandler
     public void onRightClick(PlayerInteractEvent event) {
-        // Debug: log click event details
-        Player dbgPlayer = event.getPlayer();
-        String dbgClassName = StatsManager.getInstance()
-            .getPlayerStats(dbgPlayer.getUniqueId())
-            .playerClass.name().toLowerCase();
-        ItemStack dbgMain = dbgPlayer.getInventory().getItemInMainHand();
-        String dbgItem = (dbgMain != null && dbgMain.getType() != Material.AIR)
-            ? dbgMain.getType().name() : "none";
-        String dbgCombo = getActiveCombo(dbgPlayer);
-        Bukkit.getLogger().info(
-            "[DBG] onRightClick -> class=" + dbgClassName +
-                ", item=" + dbgItem +
-                ", activeCombo=" + dbgCombo
-        );
-
-        // Debug: list all valid combos for this class
-        Map<String, Spell> available = SpellManager.getInstance().getSpellsByClass(dbgClassName);
-        Bukkit.getLogger().info("[DBG] Valid combos for class=" + dbgClassName + ": " + available.keySet());
 
         // Only handle main-hand right-clicks
         if (event.getHand() != EquipmentSlot.HAND ||
@@ -186,7 +174,6 @@ public class ClickComboListener implements Listener {
         }
 
         // Default: record combo
-        Bukkit.getLogger().info("[DBG] Not an archer bow click, recording combo R");
         recordComboClick(player, "R");
     }
 
@@ -382,9 +369,8 @@ public class ClickComboListener implements Listener {
 
         Spell spell = SpellManager.getInstance().getSpell(className, combo);
         if (spell == null) {
-            Bukkit.getLogger().warning(
-                String.format("[DBG] No Spell found for class=%s, combo=%s", className, combo)
-            );
+            Bukkit.getLogger().warning(String.format(
+                "No Spell found for class=%s, combo=%s", className, combo));
             return;
         }
 
@@ -429,22 +415,30 @@ public class ClickComboListener implements Listener {
     }
 
     private void giveTempArrow(Player player) {
-        if (tempArrowSlots.containsKey(player.getUniqueId())) return;
-        int slot = player.getInventory().firstEmpty();
-        if (slot == -1) return;
-        player.getInventory().setItem(slot, new ItemStack(Material.ARROW, 1));
-        player.updateInventory();
-        tempArrowSlots.put(player.getUniqueId(), slot);
+        UUID id = player.getUniqueId();
+        if (offhandBackups.containsKey(id)) return;
+        ItemStack prev = player.getInventory().getItemInOffHand();
+        offhandBackups.put(id, prev);
+        player.getInventory().setItemInOffHand(new ItemStack(Material.ARROW, 1));
+        sendOffhandVisual(player, prev);
     }
 
     private void removeTempArrow(Player player) {
-        Integer slot = tempArrowSlots.remove(player.getUniqueId());
-        if (slot == null) return;
-        ItemStack item = player.getInventory().getItem(slot);
-        if (item != null && item.getType() == Material.ARROW && item.getAmount() == 1) {
-            player.getInventory().setItem(slot, null);
-            player.updateInventory();
-        }
+        UUID id = player.getUniqueId();
+        ItemStack prev = offhandBackups.remove(id);
+        if (prev == null) return;
+        player.getInventory().setItemInOffHand(prev);
+        sendOffhandVisual(player, prev);
+    }
+
+    private void sendOffhandVisual(Player player, ItemStack item) {
+        PacketContainer pkt = protocol.createPacket(PacketType.Play.Server.SET_SLOT);
+        pkt.getIntegers().write(0, 0); // window id
+        pkt.getIntegers().write(1, OFFHAND_SLOT);
+        pkt.getItemModifier().write(0, item);
+        try {
+            protocol.sendServerPacket(player, pkt);
+        } catch (Exception ignored) {}
     }
 
 
