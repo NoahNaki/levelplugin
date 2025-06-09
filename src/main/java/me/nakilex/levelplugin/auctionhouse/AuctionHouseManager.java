@@ -22,6 +22,12 @@ import java.util.UUID;
  */
 public class AuctionHouseManager {
 
+    /** Maximum hours a listing may stay active. */
+    public static final long MAX_DURATION_HOURS = 24;
+
+    /** Tax percentage applied per hour of listing. (e.g. 0.01 = 1% per hour) */
+    private static final double TAX_PER_HOUR = 0.01;
+
     private final Plugin plugin;
     private final EconomyManager economyManager;
     private final File file;
@@ -55,9 +61,24 @@ public class AuctionHouseManager {
         return auctions;
     }
 
-    public synchronized void listItem(Player seller, ItemStack item, int startPrice, int binPrice, long durationHours) {
-        auctions.add(new AuctionItem(seller.getUniqueId(), item.clone(), startPrice, binPrice, durationHours));
+    /**
+     * Adds a new listing and charges the seller a tax based on the duration.
+     *
+     * @return true if the item was listed, false if the seller couldn't afford the tax
+     */
+    public synchronized boolean listItem(Player seller, ItemStack item, int startPrice, int binPrice, long durationHours) {
+        long hours = Math.min(durationHours, MAX_DURATION_HOURS);
+        int priceBasis = binPrice > 0 ? binPrice : startPrice;
+        int tax = (int) Math.ceil(priceBasis * (hours * TAX_PER_HOUR));
+        if (economyManager.getBalance(seller) < tax) {
+            seller.sendMessage(ChatColor.RED + "Not enough coins to cover the listing tax of " + tax + ".");
+            return false;
+        }
+        economyManager.deductCoins(seller, tax);
+        auctions.add(new AuctionItem(seller.getUniqueId(), item.clone(), startPrice, binPrice, hours));
         saveAuctions();
+        seller.sendMessage(ChatColor.YELLOW + "Listing tax paid: " + tax + " coins.");
+        return true;
     }
 
     public synchronized boolean bid(Player bidder, int index, int amount) {
