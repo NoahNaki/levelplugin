@@ -67,6 +67,12 @@ public class ModelGate {
         return closedModel;
     }
 
+    /** Returns true if this gate is considered a town waystone.
+     * A blue beacon indicates a town, red indicates a dungeon. */
+    public boolean isTown() {
+        return openModel.toLowerCase().contains("blue");
+    }
+
     public boolean isDefaultClosed() {
         return defaultClosed;
     }

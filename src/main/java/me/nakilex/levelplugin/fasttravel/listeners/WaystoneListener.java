@@ -44,7 +44,7 @@ public class WaystoneListener implements Listener {
                 manager.unlock(player, gate.getId());
                 sendUnlockMessage(player, gate.getLocation(), gate.getId());
             }
-            gui.open(player);
+            gui.open(player, gate);
             return;
         }
         event.setCancelled(true);
