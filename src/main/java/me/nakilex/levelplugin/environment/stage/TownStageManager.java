@@ -123,7 +123,7 @@ public class TownStageManager {
             if (template == null) continue;
             // Use Citizens API clone support to copy all traits/metadata
             NPC clone = template.copy();
-            Location loc = origin.clone().add(ns.x, ns.y, ns.z);
+            Location loc = origin.clone().add(ns.x, ns.y + 1, ns.z);
             loc.setYaw(ns.yaw);
             loc.setPitch(ns.pitch);
             clone.spawn(loc);
