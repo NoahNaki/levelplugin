@@ -16,6 +16,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -33,11 +34,16 @@ public class RuneBrowser implements CommandExecutor, Listener {
     private static final int COLS = 9;
     private static final int SIZE = ROWS * COLS;
     private static final int PAGE_SIZE = 28; // 4 rows × 7 cols of content
+    private static final int RARITY_FILTER_SLOT = 48;
+    private static final int CLASS_FILTER_SLOT = 50;
+    private static final String[] CLASS_NAMES = {"MAGE", "ARCHER", "WARRIOR", "ROGUE", "ALL"};
     private static final String TITLE_PREFIX = ChatColor.GRAY + "Runes Browser - Page ";
 
     private final JavaPlugin plugin;
     private final RunesManager runesManager;
     private final NamespacedKey runeIdKey;
+    private final java.util.Map<java.util.UUID, Integer> rarityFilters = new java.util.HashMap<>();
+    private final java.util.Map<java.util.UUID, Integer> classFilters = new java.util.HashMap<>();
 
     public RuneBrowser(JavaPlugin plugin, RunesManager runesManager) {
         this.plugin = plugin;
@@ -65,6 +71,40 @@ public class RuneBrowser implements CommandExecutor, Listener {
         return item;
     }
 
+    private ItemStack createRarityButton(int filter) {
+        ItemStack it = new ItemStack(Material.NETHER_STAR);
+        ItemMeta meta = it.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.AQUA + "Rarity Filter");
+            java.util.List<String> lore = new java.util.ArrayList<>();
+            Rune.Rarity[] arr = Rune.Rarity.values();
+            for (int i = 0; i < arr.length; i++) {
+                String line = (i == filter ? ChatColor.GREEN : ChatColor.GRAY) + arr[i].name();
+                lore.add(line);
+            }
+            lore.add((arr.length == filter ? ChatColor.GREEN : ChatColor.GRAY) + "ALL");
+            meta.setLore(lore);
+            it.setItemMeta(meta);
+        }
+        return it;
+    }
+
+    private ItemStack createClassButton(int filter) {
+        ItemStack it = new ItemStack(Material.BOOK);
+        ItemMeta meta = it.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.AQUA + "Class Filter");
+            java.util.List<String> lore = new java.util.ArrayList<>();
+            for (int i = 0; i < CLASS_NAMES.length; i++) {
+                String line = (i == filter ? ChatColor.GREEN : ChatColor.GRAY) + CLASS_NAMES[i];
+                lore.add(line);
+            }
+            meta.setLore(lore);
+            it.setItemMeta(meta);
+        }
+        return it;
+    }
+
     private void openPage(Player player, int page) {
         Inventory gui = Bukkit.createInventory(null, SIZE, title(page));
 
@@ -74,6 +114,10 @@ public class RuneBrowser implements CommandExecutor, Listener {
 
         // 2) Gather & sort all runes
         List<Rune> runes = new ArrayList<>(runesManager.getAllRunes());
+        int rFilter = rarityFilters.getOrDefault(player.getUniqueId(), Rune.Rarity.values().length);
+        int cFilter = classFilters.getOrDefault(player.getUniqueId(), CLASS_NAMES.length - 1);
+        runes.removeIf(r -> (rFilter < Rune.Rarity.values().length && r.getRarity() != Rune.Rarity.values()[rFilter])
+                || (cFilter < CLASS_NAMES.length - 1 && !r.getTargetClass().equalsIgnoreCase(CLASS_NAMES[cFilter])));
         runes.sort(Comparator.comparing((Rune r) -> r.getRarity().ordinal())
             .thenComparing(Rune::getDisplayName));
         int start = page * PAGE_SIZE;
@@ -119,6 +163,9 @@ public class RuneBrowser implements CommandExecutor, Listener {
         ItemStack next = createMenuItem(Material.ARROW, ChatColor.GREEN + "Next Page");
         gui.setItem(SIZE - 1, next);
 
+        gui.setItem(RARITY_FILTER_SLOT, createRarityButton(rFilter));
+        gui.setItem(CLASS_FILTER_SLOT, createClassButton(cFilter));
+
         // 5) Open
         player.openInventory(gui);
     }
@@ -145,10 +192,34 @@ public class RuneBrowser implements CommandExecutor, Listener {
         if (clicked == null || !clicked.hasItemMeta()) return;
 
         String name = clicked.getItemMeta().getDisplayName();
-        // Pagination buttons
-        if (name.equals(ChatColor.GREEN + "Next Page")  ||
-            name.equals(ChatColor.GREEN + "Previous Page")) {
-            // handle pages here...
+        int page = Integer.parseInt(e.getView().getTitle().substring(TITLE_PREFIX.length())) - 1;
+
+        if (e.getRawSlot() == RARITY_FILTER_SLOT) {
+            int f = rarityFilters.getOrDefault(player.getUniqueId(), Rune.Rarity.values().length);
+            if (e.getClick() == ClickType.RIGHT) f--; else f++;
+            int max = Rune.Rarity.values().length;
+            if (f < 0) f = max; if (f > max) f = 0;
+            rarityFilters.put(player.getUniqueId(), f);
+            openPage(player, 0);
+            return;
+        }
+
+        if (e.getRawSlot() == CLASS_FILTER_SLOT) {
+            int f = classFilters.getOrDefault(player.getUniqueId(), CLASS_NAMES.length - 1);
+            if (e.getClick() == ClickType.RIGHT) f--; else f++;
+            int max = CLASS_NAMES.length - 1;
+            if (f < 0) f = max; if (f > max) f = 0;
+            classFilters.put(player.getUniqueId(), f);
+            openPage(player, 0);
+            return;
+        }
+
+        if (name.equals(ChatColor.GREEN + "Next Page")) {
+            openPage(player, page + 1);
+            return;
+        }
+        if (name.equals(ChatColor.GREEN + "Previous Page")) {
+            if (page > 0) openPage(player, page - 1);
             return;
         }
 

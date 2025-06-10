@@ -75,10 +75,17 @@ public class SpellManager {
         ));
         warriorMap.put("RLL", new Spell(
             "shockwave", "Shockwave", "RLL",
-            14.0, 
+            14.0,
             0, 3,
             me.nakilex.levelplugin.items.data.WeaponType.SHOVEL.getMaterials(),
             "SHOCKWAVE", 1.5
+        ));
+        warriorMap.put("LRL", new Spell(
+            "war_cry", "War Cry", "LRL",
+            12.0,
+            0, 5,
+            me.nakilex.levelplugin.items.data.WeaponType.SHOVEL.getMaterials(),
+            "WAR_CRY", 0.0
         ));
         spellsByClass.put("warrior", Collections.unmodifiableMap(warriorMap));
 
@@ -158,10 +165,17 @@ public class SpellManager {
         ));
         rogueMap.put("RRR", new Spell(
             "vanish", "Vanish", "RRR",
-            8.0, 
+            8.0,
             0, 8,
             me.nakilex.levelplugin.items.data.WeaponType.SWORD.getMaterials(),
             "VANISH", 0.0
+        ));
+        rogueMap.put("LLR", new Spell(
+            "shadow_step", "Shadow Step", "LLR",
+            8.0,
+            0, 5,
+            me.nakilex.levelplugin.items.data.WeaponType.SWORD.getMaterials(),
+            "SHADOW_STEP", 0.0
         ));
         spellsByClass.put("rogue", Collections.unmodifiableMap(rogueMap));
 
