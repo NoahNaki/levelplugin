@@ -17,6 +17,8 @@ runes:
     description:
       - "Converts Meteor into a"
       - "Meteor Shower."
+      - "Multiple meteors rain down"
+      - "blanketing a wide area."
     rarity: "EPIC"
     targetClass: "MAGE"
     targetSpell: "Meteor"
@@ -38,6 +40,8 @@ runes:
       - "Calls down a shard of ice that"
       - "freezes the ground on impact"
       - "and freezes enemies in place."
+      - "A chilling blast slows foes"
+      - "and leaves them vulnerable."
     rarity: "EPIC"
     targetClass: "MAGE"
     targetSpell: "Meteor"
@@ -57,6 +61,8 @@ runes:
     description:
       - "Unleash a shard of obsidian"
       - "that crashes down with hardened might."
+      - "Fragments erupt on impact,"
+      - "pelting nearby enemies."
     rarity: "EPIC"
     targetClass: "MAGE"
     targetSpell: "Meteor"
@@ -78,6 +84,8 @@ runes:
     description:
       - "Expands the reach"
       - "of your blackhole."
+      - "Distant enemies are pulled"
+      - "toward its crushing center."
     rarity: "UNCOMMON"
     targetClass: "MAGE"
     targetSpell: "Blackhole"
