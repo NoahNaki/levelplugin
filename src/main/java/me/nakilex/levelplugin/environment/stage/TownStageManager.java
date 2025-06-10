@@ -120,12 +120,18 @@ public class TownStageManager {
         list.clear();
         for (NPCSpawn ns : ts.npcs) {
             NPC template = CitizensAPI.getNPCRegistry().getById(ns.id);
-            if (template == null) continue;
+            if (template == null) {
+                plugin.getLogger().warning("NPC template with ID " + ns.id + " not found while spawning stage NPCs");
+                continue;
+            }
             // Use Citizens API clone support to copy all traits/metadata
             NPC clone = template.copy();
             Location loc = origin.clone().add(ns.x, ns.y + 1, ns.z);
             loc.setYaw(ns.yaw);
             loc.setPitch(ns.pitch);
+            plugin.getLogger().info("Spawning NPC clone from template " + ns.id + " at "
+                    + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ()
+                    + " for " + viewer.getName());
             clone.spawn(loc);
             for (org.bukkit.entity.Player p : Bukkit.getOnlinePlayers()) {
                 if (!p.equals(viewer)) {
