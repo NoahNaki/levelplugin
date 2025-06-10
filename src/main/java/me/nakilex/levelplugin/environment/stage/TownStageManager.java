@@ -23,7 +23,7 @@ public class TownStageManager {
     private final Main plugin;
     /** Map of town -> level -> stage -> data */
     private final Map<String, Map<Integer, Map<Integer, TownStage>>> stages = new HashMap<>();
-    private final Map<String, java.util.List<NPC>> spawnedNPCs = new HashMap<>();
+    private final Map<java.util.UUID, Map<String, java.util.List<NPC>>> spawnedNPCs = new HashMap<>();
     private File file;
     private FileConfiguration config;
 
@@ -106,45 +106,73 @@ public class TownStageManager {
         return false;
     }
 
-    public void spawnForStage(String town, int level, int stage, Location origin) {
+    public void spawnForStage(org.bukkit.entity.Player viewer, String town, int level, int stage, Location origin) {
         TownStage ts = getStage(town, level, stage);
-        if (ts == null || origin == null) return;
+        if (ts == null || origin == null || viewer == null) return;
+        java.util.UUID id = viewer.getUniqueId();
+        var map = spawnedNPCs.computeIfAbsent(id, k -> new java.util.HashMap<>());
         String key = town.toLowerCase() + ":" + level + ":" + stage;
-        var list = spawnedNPCs.computeIfAbsent(key, k -> new java.util.ArrayList<>());
-        // move existing NPCs if already spawned
+        var list = map.computeIfAbsent(key, k -> new java.util.ArrayList<>());
         for (NPC npc : list) {
             if (npc.isSpawned()) npc.despawn();
+            npc.destroy();
         }
         list.clear();
         for (NPCSpawn ns : ts.npcs) {
-            NPC npc = CitizensAPI.getNPCRegistry().getById(ns.id);
-            if (npc != null) {
-                Location loc = origin.clone().add(ns.x, ns.y, ns.z);
-                loc.setYaw(ns.yaw);
-                loc.setPitch(ns.pitch);
-                npc.spawn(loc);
-                list.add(npc);
+            NPC template = CitizensAPI.getNPCRegistry().getById(ns.id);
+            if (template == null) continue;
+            NPC clone = CitizensAPI.getNPCRegistry().createNPC(template.getEntityType(), template.getName());
+            Location loc = origin.clone().add(ns.x, ns.y, ns.z);
+            loc.setYaw(ns.yaw);
+            loc.setPitch(ns.pitch);
+            clone.spawn(loc);
+            for (org.bukkit.entity.Player p : Bukkit.getOnlinePlayers()) {
+                if (!p.equals(viewer)) {
+                    p.hideEntity(plugin, clone.getEntity());
+                }
             }
+            list.add(clone);
         }
     }
 
-    public void despawnForStage(String town, int level, int stage) {
+    public void despawnForStage(java.util.UUID viewerId, String town, int level, int stage) {
+        var map = spawnedNPCs.get(viewerId);
+        if (map == null) return;
         String key = town.toLowerCase() + ":" + level + ":" + stage;
-        var list = spawnedNPCs.remove(key);
+        var list = map.remove(key);
         if (list != null) {
             for (NPC npc : list) {
                 if (npc.isSpawned()) npc.despawn();
+                npc.destroy();
             }
         }
+        if (map.isEmpty()) spawnedNPCs.remove(viewerId);
     }
 
     public void despawnAll() {
-        for (var list : spawnedNPCs.values()) {
-            for (NPC npc : list) {
-                if (npc.isSpawned()) npc.despawn();
+        for (var map : spawnedNPCs.values()) {
+            for (var list : map.values()) {
+                for (NPC npc : list) {
+                    if (npc.isSpawned()) npc.despawn();
+                    npc.destroy();
+                }
             }
         }
         spawnedNPCs.clear();
+    }
+
+    /** Hide any player-specific NPCs from the given viewer. */
+    public void hideNPCsFrom(org.bukkit.entity.Player viewer) {
+        if (viewer == null) return;
+        for (var map : spawnedNPCs.values()) {
+            for (var list : map.values()) {
+                for (NPC npc : list) {
+                    if (npc.isSpawned()) {
+                        viewer.hideEntity(plugin, npc.getEntity());
+                    }
+                }
+            }
+        }
     }
 
     private void loadFromConfig() {

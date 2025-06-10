@@ -45,6 +45,14 @@ public class EnvironmentManager {
         this.fakeBlockManager = blockManager;
     }
 
+    public TownStageManager getStageManager() {
+        return stageManager;
+    }
+
+    public String getTown(UUID uuid) {
+        return towns.get(uuid);
+    }
+
     /** Load state for player if not present and spawn their structures/NPCs. */
     public void initializePlayer(Player player) {
         UUID uuid = player.getUniqueId();
@@ -120,7 +128,7 @@ public class EnvironmentManager {
             String town = towns.get(player.getUniqueId());
             Location origin = origins.get(player.getUniqueId());
             if (town != null && origin != null) {
-                stageManager.despawnForStage(town, oldLevel, oldStage);
+                stageManager.despawnForStage(player.getUniqueId(), town, oldLevel, oldStage);
                 spawnStructure(player, origin, state.level, state.stage);
             }
         } else {
@@ -172,7 +180,7 @@ public class EnvironmentManager {
         String town = towns.remove(uuid);
         origins.remove(uuid);
         if (town != null && st != null) {
-            stageManager.despawnForStage(town, st.level, st.stage);
+            stageManager.despawnForStage(uuid, town, st.level, st.stage);
         }
         playerConfig.clearEnvironmentData(uuid);
         playerConfig.saveConfigFile();
@@ -214,7 +222,7 @@ public class EnvironmentManager {
         int finalDelay = delay;
         BukkitTask finalTask = Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
             player.playSound(origin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
-            stageManager.spawnForStage(town, level, stage, origin);
+            stageManager.spawnForStage(player, town, level, stage, origin);
         }, finalDelay);
         tasks.add(finalTask);
         buildTasks.put(uuid, tasks);

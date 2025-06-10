@@ -18,10 +18,12 @@ public class PlayerQuitListener implements Listener {
     private final PlayerConfig  playerConfig;
     private final RunesManager  runesManager;
     private final EnvironmentManager environmentManager;
+    private final me.nakilex.levelplugin.environment.stage.TownStageManager stageManager;
 
     public PlayerQuitListener(PlayerConfig playerConfig, EnvironmentManager envManager) {
         this.playerConfig = playerConfig;
         this.environmentManager = envManager;
+        this.stageManager = envManager.getStageManager();
         this.runesManager = SpellManager.getInstance().getRunesManager();
     }
 
@@ -38,6 +40,11 @@ public class PlayerQuitListener implements Listener {
         Main.getInstance()
             .getPlayerConfig()
             .savePlayer(pid);
+        EnvironmentManager.EnvironmentState st = environmentManager.getState(pid);
+        String town = st != null ? environmentManager.getTown(pid) : null;
         environmentManager.saveState(pid);
+        if (st != null && town != null) {
+            stageManager.despawnForStage(pid, town, st.level, st.stage);
+        }
     }
 }

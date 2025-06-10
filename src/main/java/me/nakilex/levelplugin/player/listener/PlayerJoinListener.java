@@ -25,11 +25,13 @@ public class PlayerJoinListener implements Listener {
     private final PlayerConfig playerConfig;
     private final RunesManager runesManager;
     private final EnvironmentManager environmentManager;
+    private final me.nakilex.levelplugin.environment.stage.TownStageManager stageManager;
 
     public PlayerJoinListener(LevelManager levelManager, PlayerConfig playerConfig, EnvironmentManager envManager) {
         this.levelManager  = levelManager;
         this.playerConfig  = playerConfig;
         this.environmentManager = envManager;
+        this.stageManager = envManager.getStageManager();
         this.runesManager  = SpellManager.getInstance().getRunesManager();
     }
 
@@ -45,6 +47,7 @@ public class PlayerJoinListener implements Listener {
             StatsManager.getInstance().recalcDerivedStats(player);
             levelManager.initializePlayer(player);
             environmentManager.initializePlayer(player);
+            stageManager.hideNPCsFrom(player);
             player.setHealthScaled(true);
             player.setHealthScale(20.0);
 
