@@ -128,18 +128,25 @@ public class TownStageManager {
             // Use Citizens API clone support to copy all traits/metadata
             NPC clone = template.copy();
 
-            // Translate original NPC position by the player's town origin offset
-            // Use the player's world so clones spawn in the correct dimension
-            Location loc = origin.clone().add(ns.x, ns.y, ns.z);
-            loc.add(0, 1, 0); // spawn one block higher so they don't clip
-            loc.setYaw(ns.yaw);
-            loc.setPitch(ns.pitch);
+            // Translate original NPC position relative to the player's town
+            // origin and spawn one block higher so they don't clip.
+            Location loc = new Location(
+                    origin.getWorld(),
+                    origin.getX() + ns.x + 0.5,
+                    origin.getY() + ns.y + 1,
+                    origin.getZ() + ns.z + 0.5,
+                    ns.yaw,
+                    ns.pitch
+            );
 
             clone.getOrAddTrait(CurrentLocation.class).setLocation(loc);
             plugin.getLogger().info("Spawning NPC clone from template " + ns.id + " at "
                     + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ()
                     + " for " + viewer.getName());
             clone.spawn(loc);
+            if (clone.isSpawned()) {
+                clone.getEntity().teleport(loc, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN);
+            }
             for (org.bukkit.entity.Player p : Bukkit.getOnlinePlayers()) {
                 if (!p.equals(viewer)) {
                     p.hideEntity(plugin, clone.getEntity());
