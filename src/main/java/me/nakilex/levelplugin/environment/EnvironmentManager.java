@@ -2,7 +2,11 @@ package me.nakilex.levelplugin.environment;
 
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.environment.stage.TownStageManager;
+import me.nakilex.levelplugin.fakeblock.FakeBlockManager;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
@@ -17,7 +21,9 @@ public class EnvironmentManager {
     private static final int STAGES_PER_LEVEL = 3;
     private final PlayerConfig playerConfig;
     private final TownStageManager stageManager;
+    private final FakeBlockManager fakeBlockManager;
     private final Map<UUID, EnvironmentState> states = new HashMap<>();
+    private final Map<UUID, Location> origins = new HashMap<>();
 
     public static class EnvironmentState {
         public int level;
@@ -29,22 +35,35 @@ public class EnvironmentManager {
         }
     }
 
-    public EnvironmentManager(PlayerConfig config, TownStageManager stageManager) {
+    public EnvironmentManager(PlayerConfig config, TownStageManager stageManager, FakeBlockManager blockManager) {
         this.playerConfig = config;
         this.stageManager = stageManager;
+        this.fakeBlockManager = blockManager;
     }
 
-    /** Load state for player if not present. */
-    public void initializePlayer(UUID uuid) {
-        states.computeIfAbsent(uuid, id -> {
+    /** Load state for player if not present and spawn their structures/NPCs. */
+    public void initializePlayer(Player player) {
+        UUID uuid = player.getUniqueId();
+        EnvironmentState es = states.computeIfAbsent(uuid, id -> {
             int lvl = playerConfig.getEnvironmentLevel(id);
             int stg = playerConfig.getEnvironmentStage(id);
             if (lvl <= 0) lvl = 1;
             if (stg <= 0) stg = 1;
-            EnvironmentState es = new EnvironmentState(lvl, stg);
-            stageManager.spawnForStage(es.level, es.stage);
-            return es;
+            return new EnvironmentState(lvl, stg);
         });
+
+        Location origin = origins.get(uuid);
+        if (origin == null) {
+            origin = playerConfig.getEnvironmentOrigin(uuid);
+            if (origin != null) {
+                origins.put(uuid, origin);
+            }
+        }
+
+        stageManager.spawnForStage(es.level, es.stage);
+        if (origin != null) {
+            spawnStructure(player, origin, es.level, es.stage);
+        }
     }
 
     public EnvironmentState getState(UUID uuid) {
@@ -69,7 +88,7 @@ public class EnvironmentManager {
      * Invest materials towards the next upgrade. Currently costs 1 oak log.
      */
     public void invest(Player player, int amount) {
-        initializePlayer(player.getUniqueId());
+        initializePlayer(player);
         EnvironmentState state = states.get(player.getUniqueId());
         state.invested += amount;
         if (state.invested >= 1) {
@@ -78,6 +97,10 @@ public class EnvironmentManager {
             player.sendMessage(ChatColor.GREEN + "Settlement upgraded to Level "
                     + state.level + " Stage " + state.stage + "!");
             stageManager.spawnForStage(state.level, state.stage);
+            Location origin = origins.get(player.getUniqueId());
+            if (origin != null) {
+                spawnStructure(player, origin, state.level, state.stage);
+            }
         } else {
             player.sendMessage(ChatColor.GREEN + "Invested " + amount + " oak log.");
         }
@@ -94,4 +117,67 @@ public class EnvironmentManager {
             }
         }
     }
+
+    /** Start a settlement for the player at their current location. */
+    public void startTown(Player player) {
+        UUID uuid = player.getUniqueId();
+        if (origins.containsKey(uuid)) {
+            player.sendMessage(ChatColor.RED + "You already started a settlement.");
+            return;
+        }
+        Location origin = player.getLocation().getBlock().getLocation();
+        origins.put(uuid, origin);
+        playerConfig.setEnvironmentOrigin(uuid, origin);
+        playerConfig.saveConfigFile();
+        initializePlayer(player); // ensure state
+        EnvironmentState s = states.get(uuid);
+        spawnStructure(player, origin, s.level, s.stage);
+        player.sendMessage(ChatColor.YELLOW + "Settlement created at " + origin.getBlockX()+","+origin.getBlockY()+","+origin.getBlockZ());
+    }
+
+    /** Spawn the structure for the given player and stage. */
+    private void spawnStructure(Player player, Location origin, int level, int stage) {
+        fakeBlockManager.clear(player);
+        BlockDef[] blocks = getLayout(level, stage);
+        if (blocks == null) return;
+        for (BlockDef b : blocks) {
+            Location loc = origin.clone().add(b.x, b.y, b.z);
+            fakeBlockManager.showFakeBlock(player, loc, b.data);
+        }
+    }
+
+    /** Minimal hard-coded layouts for demo purposes. */
+    private BlockDef[] getLayout(int level, int stage) {
+        if (level == 1 && stage == 1) {
+            return new BlockDef[] {
+                block(0,0,0, Material.OAK_PLANKS),
+                block(1,0,0, Material.OAK_PLANKS),
+                block(0,0,1, Material.OAK_PLANKS),
+                block(1,0,1, Material.CRAFTING_TABLE)
+            };
+        }
+        if (level == 1 && stage == 2) {
+            return new BlockDef[] {
+                block(0,0,0, Material.COBBLESTONE),
+                block(1,0,0, Material.COBBLESTONE),
+                block(0,0,1, Material.COBBLESTONE),
+                block(1,0,1, Material.FURNACE)
+            };
+        }
+        if (level == 1 && stage == 3) {
+            return new BlockDef[] {
+                block(0,0,0, Material.STONE_BRICKS),
+                block(1,0,0, Material.STONE_BRICKS),
+                block(0,0,1, Material.STONE_BRICKS),
+                block(1,0,1, Material.ANVIL)
+            };
+        }
+        return null;
+    }
+
+    private static BlockDef block(int x, int y, int z, Material mat) {
+        return new BlockDef(x, y, z, mat.createBlockData());
+    }
+
+    private record BlockDef(int x, int y, int z, BlockData data) {}
 }

@@ -130,6 +130,27 @@ public class PlayerConfig {
         config.set(base + "stage", stage);
     }
 
+    /** Get the stored origin location of a player's settlement or null if not set. */
+    public org.bukkit.Location getEnvironmentOrigin(UUID uuid) {
+        String base = "players." + uuid + ".environment.origin.";
+        if (!config.contains(base + "world")) return null;
+        org.bukkit.World world = Bukkit.getWorld(config.getString(base + "world"));
+        if (world == null) return null;
+        int x = config.getInt(base + "x", 0);
+        int y = config.getInt(base + "y", 0);
+        int z = config.getInt(base + "z", 0);
+        return new org.bukkit.Location(world, x, y, z);
+    }
+
+    /** Store the origin location of a player's settlement. */
+    public void setEnvironmentOrigin(UUID uuid, org.bukkit.Location loc) {
+        String base = "players." + uuid + ".environment.origin.";
+        config.set(base + "world", loc.getWorld().getName());
+        config.set(base + "x", loc.getBlockX());
+        config.set(base + "y", loc.getBlockY());
+        config.set(base + "z", loc.getBlockZ());
+    }
+
     /** Allows external classes to persist config changes. */
     public void saveConfigFile() {
         saveConfig();

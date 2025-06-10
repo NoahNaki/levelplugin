@@ -256,7 +256,7 @@ public class Main extends JavaPlugin {
         fakeBlockManager = new me.nakilex.levelplugin.fakeblock.FakeBlockManager();
         questGateManager = new me.nakilex.levelplugin.fakeblock.QuestGateManager(this, fakeBlockManager);
         townStageManager = new me.nakilex.levelplugin.environment.stage.TownStageManager(this);
-        environmentManager = new me.nakilex.levelplugin.environment.EnvironmentManager(playerConfig, townStageManager);
+        environmentManager = new me.nakilex.levelplugin.environment.EnvironmentManager(playerConfig, townStageManager, fakeBlockManager);
         upgradeGUI = new me.nakilex.levelplugin.environment.UpgradeGUI(environmentManager);
         cooldownManager.setLootChestManager(lootChestManager);
         equipGui = new EquipRunesGUI(this, runesManager, identifyRunesGUI);

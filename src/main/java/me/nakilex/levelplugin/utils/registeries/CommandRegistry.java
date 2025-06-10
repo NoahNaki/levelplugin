@@ -136,7 +136,7 @@ public class CommandRegistry {
         plugin.getCommand("motd").setExecutor(new me.nakilex.levelplugin.motd.MotdCommand(motdManager));
         plugin.getCommand("fakegate").setExecutor(new me.nakilex.levelplugin.fakeblock.FakeGateCommand(plugin));
         plugin.getCommand("modelgate").setExecutor(new me.nakilex.levelplugin.fakeblock.ModelGateCommand(plugin));
-        plugin.getCommand("town").setExecutor(new TownCommand(upgradeGUI));
+        plugin.getCommand("town").setExecutor(new TownCommand(upgradeGUI, plugin.getEnvironmentManager()));
         plugin.getCommand("townstage").setExecutor(new TownStageCommand(plugin, plugin.getTownStageManager()));
 
     }

@@ -44,7 +44,7 @@ public class PlayerJoinListener implements Listener {
             player.setGameMode(GameMode.ADVENTURE);
             StatsManager.getInstance().recalcDerivedStats(player);
             levelManager.initializePlayer(player);
-            environmentManager.initializePlayer(pid);
+            environmentManager.initializePlayer(player);
             player.setHealthScaled(true);
             player.setHealthScale(20.0);
 
