@@ -69,7 +69,8 @@ public class RuneLoader {
             Objects.toString(map.get("rarity"), "COMMON").toUpperCase()
         );
         String cls         = Objects.toString(map.get("targetClass"), "");
-        String spell       = Objects.toString(map.get("targetSpell"), "");
+        // Normalize spell id to lowercase so lookups match Spell ids
+        String spell       = Objects.toString(map.get("targetSpell"), "").toLowerCase();
         boolean unique     = Boolean.parseBoolean(Objects.toString(map.get("unique"), "false"));
 
         // Effects

@@ -3,7 +3,7 @@ runes:
     name: "Spark of Fury"
     rarity: "RARE"
     targetClass: "MAGE"
-    targetSpell: "Meteor"
+    targetSpell: "meteor"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -21,7 +21,7 @@ runes:
       - "blanketing a wide area."
     rarity: "EPIC"
     targetClass: "MAGE"
-    targetSpell: "Meteor"
+    targetSpell: "meteor"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -44,7 +44,7 @@ runes:
       - "and leaves them vulnerable."
     rarity: "EPIC"
     targetClass: "MAGE"
-    targetSpell: "Meteor"
+    targetSpell: "meteor"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -65,7 +65,7 @@ runes:
       - "pelting nearby enemies."
     rarity: "EPIC"
     targetClass: "MAGE"
-    targetSpell: "Meteor"
+    targetSpell: "meteor"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -88,7 +88,7 @@ runes:
       - "toward its crushing center."
     rarity: "UNCOMMON"
     targetClass: "MAGE"
-    targetSpell: "Blackhole"
+    targetSpell: "blackhole"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -106,7 +106,7 @@ runes:
       - "through the event horizon."
     rarity: "LEGENDARY"
     targetClass: "MAGE"
-    targetSpell: "Blackhole"
+    targetSpell: "blackhole"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -128,7 +128,7 @@ runes:
       - "blackholes at once."
     rarity: "EPIC"
     targetClass: "MAGE"
-    targetSpell: "Blackhole"
+    targetSpell: "blackhole"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -147,7 +147,7 @@ runes:
       - "position at will."
     rarity: "EPIC"
     targetClass: "MAGE"
-    targetSpell: "Blackhole"
+    targetSpell: "blackhole"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -165,7 +165,7 @@ runes:
       - "Extends your blink range."
     rarity: "UNCOMMON"
     targetClass: "MAGE"
-    targetSpell: "Teleport"
+    targetSpell: "teleport"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -182,7 +182,7 @@ runes:
       - "boosts your teleport distance."
     rarity: "RARE"
     targetClass: "MAGE"
-    targetSpell: "Teleport"
+    targetSpell: "teleport"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -200,7 +200,7 @@ runes:
       - "the path you blinked, damaging foes."
     rarity: "EPIC"
     targetClass: "MAGE"
-    targetSpell: "Teleport"
+    targetSpell: "teleport"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -219,7 +219,7 @@ runes:
       - "at your destination."
     rarity: "EPIC"
     targetClass: "MAGE"
-    targetSpell: "Teleport"
+    targetSpell: "teleport"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -239,7 +239,7 @@ runes:
       - "shortly after the first."
     rarity: "LEGENDARY"
     targetClass: "MAGE"
-    targetSpell: "Teleport"
+    targetSpell: "teleport"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -260,7 +260,7 @@ runes:
       - "that wounds nearby foes each tick."
     rarity: "EPIC"
     targetClass: "MAGE"
-    targetSpell: "Heal"
+    targetSpell: "heal"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -283,7 +283,7 @@ runes:
       - "from allies before healing."
     rarity: "EPIC"
     targetClass: "MAGE"
-    targetSpell: "Heal"
+    targetSpell: "heal"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -302,7 +302,7 @@ runes:
       - "your regenerative pulse."
     rarity: "RARE"
     targetClass: "MAGE"
-    targetSpell: "Heal"
+    targetSpell: "heal"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -320,7 +320,7 @@ runes:
       - "by your healing pulse."
     rarity: "UNCOMMON"
     targetClass: "MAGE"
-    targetSpell: "Heal"
+    targetSpell: "heal"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -337,7 +337,7 @@ runes:
       - "of your regenerative pulse."
     rarity: "UNCOMMON"
     targetClass: "MAGE"
-    targetSpell: "Heal"
+    targetSpell: "heal"
     unique: false
     effects:
       - type: "MODIFIER"
