@@ -16,7 +16,7 @@ public class EnvironmentManager {
     public static final int MAX_LEVEL = 3;
     private static final int STAGES_PER_LEVEL = 3;
     private final PlayerConfig playerConfig;
-    private final stage.TownStageManager stageManager;
+    private final TownStageManager stageManager;
     private final Map<UUID, EnvironmentState> states = new HashMap<>();
 
     public static class EnvironmentState {
