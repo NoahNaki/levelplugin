@@ -9,6 +9,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -26,6 +27,7 @@ public class EnvironmentManager {
     private final Map<UUID, EnvironmentState> states = new HashMap<>();
     private final Map<UUID, Location> origins = new HashMap<>();
     private final Map<UUID, String> towns = new HashMap<>();
+    private final Map<UUID, java.util.List<BukkitTask>> buildTasks = new HashMap<>();
 
     public static class EnvironmentState {
         public int level;
@@ -79,6 +81,15 @@ public class EnvironmentManager {
         return states.get(uuid);
     }
 
+    private void cancelTasks(UUID uuid) {
+        java.util.List<BukkitTask> tasks = buildTasks.remove(uuid);
+        if (tasks != null) {
+            for (BukkitTask t : tasks) {
+                t.cancel();
+            }
+        }
+    }
+
     public void saveState(UUID uuid) {
         EnvironmentState s = states.get(uuid);
         if (s != null) {
@@ -104,11 +115,14 @@ public class EnvironmentManager {
         state.invested += amount;
         if (state.invested >= 1) {
             state.invested = 0;
+            int oldLevel = state.level;
+            int oldStage = state.stage;
             advance(state);
             player.sendMessage(ChatColor.GREEN + "Settlement upgraded to Level "
                     + state.level + " Stage " + state.stage + "!");
             String town = towns.get(player.getUniqueId());
             if (town != null) {
+                stageManager.despawnForStage(town, oldLevel, oldStage);
                 stageManager.spawnForStage(town, state.level, state.stage);
             }
             Location origin = origins.get(player.getUniqueId());
@@ -159,10 +173,14 @@ public class EnvironmentManager {
     /** Remove the player's settlement so they can start over. */
     public void resetTown(Player player) {
         UUID uuid = player.getUniqueId();
+        cancelTasks(uuid);
         fakeBlockManager.clear(player);
-        states.remove(uuid);
+        EnvironmentState st = states.remove(uuid);
+        String town = towns.remove(uuid);
         origins.remove(uuid);
-        towns.remove(uuid);
+        if (town != null && st != null) {
+            stageManager.despawnForStage(town, st.level, st.stage);
+        }
         playerConfig.clearEnvironmentData(uuid);
         playerConfig.saveConfigFile();
         player.sendMessage(ChatColor.RED + "Your settlement has been reset.");
@@ -173,24 +191,30 @@ public class EnvironmentManager {
      * animation and sound effects.
      */
     private void spawnStructure(Player player, Location origin, int level, int stage) {
+        UUID uuid = player.getUniqueId();
+        cancelTasks(uuid);
         fakeBlockManager.clear(player);
         String town = towns.get(player.getUniqueId());
         if (town == null) return;
         var stageData = stageManager.getStage(town, level, stage);
         if (stageData == null) return;
 
+        java.util.List<BukkitTask> tasks = new java.util.ArrayList<>();
         int delay = 0;
         for (TownStageManager.BlockDef b : stageData.blocks) {
             Location loc = origin.clone().add(b.x, b.y, b.z);
-            Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+            BukkitTask task = Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
                 fakeBlockManager.showFakeBlock(player, loc, b.data);
                 player.getWorld().playSound(loc, Sound.BLOCK_STONE_BREAK, 0.7f, 1f);
                 player.getWorld().playSound(loc, Sound.BLOCK_STONE_PLACE, 0.7f, 1f);
             }, delay);
+            tasks.add(task);
             delay += 2;
         }
 
-        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () ->
+        BukkitTask finalTask = Bukkit.getScheduler().runTaskLater(Main.getInstance(), () ->
                 player.playSound(origin, Sound.BLOCK_ANVIL_USE, 1f, 1f), delay);
+        tasks.add(finalTask);
+        buildTasks.put(uuid, tasks);
     }
 }

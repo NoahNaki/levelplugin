@@ -63,7 +63,7 @@ public class TownStageManager {
             int y = l.getBlockY();
             int z = l.getBlockZ();
             if (x >= boxMinX && x <= boxMaxX && y >= boxMinY && y <= boxMaxY && z >= boxMinZ && z <= boxMaxZ) {
-                npcs.add(new NPCSpawn(npc.getId(), l));
+                npcs.add(new NPCSpawn(npc.getId(), l.clone()));
             }
         }
 
@@ -110,6 +110,16 @@ public class TownStageManager {
             if (npc != null && !npc.isSpawned()) {
                 npc.spawn(ns.location);
                 list.add(npc);
+            }
+        }
+    }
+
+    public void despawnForStage(String town, int level, int stage) {
+        String key = town.toLowerCase() + ":" + level + ":" + stage;
+        var list = spawnedNPCs.remove(key);
+        if (list != null) {
+            for (NPC npc : list) {
+                if (npc.isSpawned()) npc.despawn();
             }
         }
     }
@@ -162,13 +172,16 @@ public class TownStageManager {
                         for (var o : config.getList(base + "npcs")) {
                             if (!(o instanceof String s)) continue;
                             String[] parts = s.split(";");
-                            if (parts.length != 4) continue;
+                            if (parts.length < 4) continue;
                             try {
                                 int id = Integer.parseInt(parts[0]);
                                 int x = Integer.parseInt(parts[1]);
                                 int y = Integer.parseInt(parts[2]);
                                 int z = Integer.parseInt(parts[3]);
-                                npcs.add(new NPCSpawn(id, new Location(world, x, y, z)));
+                                float yaw = parts.length > 4 ? Float.parseFloat(parts[4]) : 0f;
+                                float pitch = parts.length > 5 ? Float.parseFloat(parts[5]) : 0f;
+                                Location loc = new Location(world, x, y, z, yaw, pitch);
+                                npcs.add(new NPCSpawn(id, loc));
                             } catch (NumberFormatException ignored) {}
                         }
                     }
@@ -223,7 +236,9 @@ public class TownStageManager {
                     config.set(base + "pos2.z", p2.getBlockZ());
                     java.util.List<String> list = new java.util.ArrayList<>();
                     for (NPCSpawn npc : st.npcs) {
-                        list.add(npc.id + ";" + npc.location.getBlockX() + ";" + npc.location.getBlockY() + ";" + npc.location.getBlockZ());
+                        list.add(npc.id + ";" + npc.location.getBlockX() + ";" +
+                                npc.location.getBlockY() + ";" + npc.location.getBlockZ() +
+                                ";" + npc.location.getYaw() + ";" + npc.location.getPitch());
                     }
                     config.set(base + "npcs", list);
                     java.util.List<String> blockLines = new java.util.ArrayList<>();
