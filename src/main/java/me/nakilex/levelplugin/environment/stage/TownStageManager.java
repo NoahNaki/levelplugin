@@ -121,7 +121,8 @@ public class TownStageManager {
         for (NPCSpawn ns : ts.npcs) {
             NPC template = CitizensAPI.getNPCRegistry().getById(ns.id);
             if (template == null) continue;
-            NPC clone = CitizensAPI.getNPCRegistry().createNPC(template.getEntityType(), template.getName());
+            // Use Citizens API clone support to copy all traits/metadata
+            NPC clone = template.copy();
             Location loc = origin.clone().add(ns.x, ns.y, ns.z);
             loc.setYaw(ns.yaw);
             loc.setPitch(ns.pitch);
