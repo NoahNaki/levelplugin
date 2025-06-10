@@ -69,9 +69,6 @@ public class EnvironmentManager {
             if (town != null) towns.put(uuid, town);
         }
 
-        if (town != null && origin != null) {
-            stageManager.spawnForStage(town, es.level, es.stage, origin);
-        }
         if (origin != null) {
             spawnStructure(player, origin, es.level, es.stage);
         }
@@ -124,7 +121,6 @@ public class EnvironmentManager {
             Location origin = origins.get(player.getUniqueId());
             if (town != null && origin != null) {
                 stageManager.despawnForStage(town, oldLevel, oldStage);
-                stageManager.spawnForStage(town, state.level, state.stage, origin);
                 spawnStructure(player, origin, state.level, state.stage);
             }
         } else {
@@ -164,7 +160,6 @@ public class EnvironmentManager {
         initializePlayer(player); // ensure state
         EnvironmentState s = states.get(uuid);
         spawnStructure(player, origin, s.level, s.stage);
-        stageManager.spawnForStage(townName, s.level, s.stage, origin);
         player.sendMessage(ChatColor.YELLOW + "Settlement created at " + origin.getBlockX()+","+origin.getBlockY()+","+origin.getBlockZ());
     }
 
@@ -199,19 +194,28 @@ public class EnvironmentManager {
 
         java.util.List<BukkitTask> tasks = new java.util.ArrayList<>();
         int delay = 0;
+        java.util.Random rand = new java.util.Random();
+        Sound[] breakSounds = { Sound.BLOCK_STONE_BREAK, Sound.BLOCK_DEEPSLATE_BREAK, Sound.BLOCK_WOOD_BREAK };
+        Sound[] placeSounds = { Sound.BLOCK_STONE_PLACE, Sound.BLOCK_DEEPSLATE_PLACE, Sound.BLOCK_WOOD_PLACE };
+
         for (TownStageManager.BlockDef b : stageData.blocks) {
             Location loc = origin.clone().add(b.x, b.y, b.z);
             BukkitTask task = Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
                 fakeBlockManager.showFakeBlock(player, loc, b.data);
-                player.getWorld().playSound(loc, Sound.BLOCK_STONE_BREAK, 0.7f, 1f);
-                player.getWorld().playSound(loc, Sound.BLOCK_STONE_PLACE, 0.7f, 1f);
+                Sound breakS = breakSounds[rand.nextInt(breakSounds.length)];
+                Sound placeS = placeSounds[rand.nextInt(placeSounds.length)];
+                player.getWorld().playSound(loc, breakS, 0.7f, 1f);
+                player.getWorld().playSound(loc, placeS, 0.7f, 1f);
             }, delay);
             tasks.add(task);
             delay += 2;
         }
 
-        BukkitTask finalTask = Bukkit.getScheduler().runTaskLater(Main.getInstance(), () ->
-                player.playSound(origin, Sound.BLOCK_ANVIL_USE, 1f, 1f), delay);
+        int finalDelay = delay;
+        BukkitTask finalTask = Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+            player.playSound(origin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
+            stageManager.spawnForStage(town, level, stage, origin);
+        }, finalDelay);
         tasks.add(finalTask);
         buildTasks.put(uuid, tasks);
     }
