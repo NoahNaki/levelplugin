@@ -6,6 +6,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
+import net.citizensnpcs.trait.CurrentLocation;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -129,6 +130,7 @@ public class TownStageManager {
             Location loc = origin.clone().add(ns.x, ns.y + 1, ns.z);
             loc.setYaw(ns.yaw);
             loc.setPitch(ns.pitch);
+            clone.getOrAddTrait(CurrentLocation.class).setLocation(loc);
             plugin.getLogger().info("Spawning NPC clone from template " + ns.id + " at "
                     + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ()
                     + " for " + viewer.getName());
