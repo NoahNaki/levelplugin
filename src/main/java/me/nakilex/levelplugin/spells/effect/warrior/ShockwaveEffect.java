@@ -28,7 +28,7 @@ public class ShockwaveEffect implements SpellEffect {
         double damage = ctx.getFinalDamage();
 
         // Base radius
-        double maxRadius = 8.0;
+        double maxRadius = 10.0;
         Object radiusParam = ctx.getExtraParam("aoeRadius");
         if (radiusParam instanceof Number n) {
             maxRadius += n.doubleValue();

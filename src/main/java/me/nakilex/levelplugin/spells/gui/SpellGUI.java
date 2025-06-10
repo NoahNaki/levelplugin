@@ -5,6 +5,8 @@ import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.spells.Spell;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
+import me.nakilex.levelplugin.runes.manager.RunesManager;
+import me.nakilex.levelplugin.runes.model.Rune;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -34,6 +36,8 @@ public class SpellGUI {
         SPELL_DESCRIPTIONS.put("blade_fury",    "Spin furiously, slicing nearby enemies.");
         SPELL_DESCRIPTIONS.put("shadow_clone",  "Spawn a shadow clone that you can swap places with.");
         SPELL_DESCRIPTIONS.put("vanish",        "Disappear in the shadows temporarily.");
+        SPELL_DESCRIPTIONS.put("war_cry",       "Let out a furious cry to empower allies.");
+        SPELL_DESCRIPTIONS.put("shadow_step",   "Step through the shadows to a new spot.");
 
         SPELL_DESCRIPTIONS.put("power_shot",        "Charge up a powerful arrow shot.");
         SPELL_DESCRIPTIONS.put("bow_drone",   "Summon a sentry that shoots enemies.");
@@ -42,7 +46,7 @@ public class SpellGUI {
     }
 
     // The slots where we will place the spells in a 27-slot inventory.
-    private static final int[] SPELL_SLOTS = { 10, 12, 14, 16 };
+    private static final int[] SPELL_SLOTS = { 10, 12, 14, 16, 22 };
 
     /**
      * Opens the Spell GUI for the given player. It fills all slots with filler and places the class spells
@@ -97,7 +101,7 @@ public class SpellGUI {
         // Place up to 4 spells in the designated slots.
         for (int i = 0; i < SPELL_SLOTS.length && i < spells.size(); i++) {
             Spell spell = spells.get(i);
-            ItemStack spellItem = createSpellItem(spell, playerLevel);
+            ItemStack spellItem = createSpellItem(player, spell, playerLevel);
             gui.setItem(SPELL_SLOTS[i], spellItem);
             Bukkit.getLogger().info("[SpellGUI] Placed spell '" + spell.getDisplayName() + "' in slot " + SPELL_SLOTS[i]);
         }
@@ -120,7 +124,7 @@ public class SpellGUI {
      * Creates the ItemStack that represents a spell in the GUI.
      * If the player’s level is lower than the spell's requirement, the spell is considered locked.
      */
-    private static ItemStack createSpellItem(Spell spell, int playerLevel) {
+    private static ItemStack createSpellItem(Player player, Spell spell, int playerLevel) {
         boolean unlocked = (playerLevel >= spell.getLevelReq());
         Material material = unlocked ? Material.SLIME_BALL : Material.FIREWORK_STAR;
         ItemStack item = new ItemStack(material);
@@ -136,8 +140,21 @@ public class SpellGUI {
 
         if (unlocked) {
             lore.add(ChatColor.DARK_GRAY + "" + ChatColor.STRIKETHROUGH + "--------------------");
-            String description = SPELL_DESCRIPTIONS.getOrDefault(spell.getId(), "No description available.");
-            lore.add(ChatColor.GRAY + "Description: " + ChatColor.WHITE + description);
+            String desc = SPELL_DESCRIPTIONS.getOrDefault(spell.getId(), "No description available.");
+            lore.add(ChatColor.GRAY + "Description: " + ChatColor.WHITE + desc);
+
+            RunesManager rm = SpellManager.getInstance().getRunesManager();
+            List<Rune> runes = rm.getRunesForSpell(player, spell.getId());
+            if (!runes.isEmpty()) {
+                lore.add(" ");
+                lore.add(ChatColor.GOLD + "Runes:");
+                for (Rune r : runes) {
+                    lore.add(ChatColor.YELLOW + "- " + r.getDisplayName());
+                    for (String line : r.getDescription()) {
+                        lore.add(ChatColor.GRAY + "  " + line);
+                    }
+                }
+            }
         }
 
         meta.setLore(lore);

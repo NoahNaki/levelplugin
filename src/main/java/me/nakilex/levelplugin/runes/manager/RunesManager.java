@@ -24,7 +24,8 @@ import java.util.stream.Collectors;
  */
 public class RunesManager {
     private final RuneLoader runeLoader;
-    private final Map<UUID, List<Rune>> equippedRunes = new ConcurrentHashMap<>();
+    // Map of player -> (spellId -> list of runes targeting that spell)
+    private final Map<UUID, Map<String, List<Rune>>> equippedRunes = new ConcurrentHashMap<>();
 
     private final NamespacedKey runeKey;
     private final NamespacedKey uncarvedKey;
@@ -38,25 +39,24 @@ public class RunesManager {
     }
 
     public void savePlayerData(Player player) {
-        // example: write to config under players.<uuid>.runes = List<String>
         List<String> ids = getEquippedRuneIds(player);
-        Main.getPlugin().getConfig()
-            .set("players." + player.getUniqueId() + ".runes", ids);
-        Main.getPlugin().saveConfig();
+        Main.getInstance()
+            .getPlayerConfig()
+            .setEquippedRunes(player.getUniqueId(), ids);
     }
 
     /**
      * Initialize a player's equipped runes from stored rune IDs (e.g., from PlayerData).
      */
     public void loadPlayerRunes(UUID playerId, List<String> storedRuneIds) {
-        List<Rune> runes = new ArrayList<>();
+        Map<String, List<Rune>> map = new HashMap<>();
         for (String id : storedRuneIds) {
             Rune rune = runeLoader.getRune(id);
-            if (rune != null) {
-                runes.add(rune);
-            }
+            if (rune == null) continue;
+            map.computeIfAbsent(rune.getTargetSpell(), k -> new ArrayList<>())
+                .add(rune);
         }
-        equippedRunes.put(playerId, runes);
+        equippedRunes.put(playerId, map);
     }
 
     // in RunesManager.java
@@ -82,9 +82,11 @@ public class RunesManager {
      * Returns the list of all runes currently equipped by the player.
      */
     public List<Rune> getEquippedRunes(Player player) {
-        return Collections.unmodifiableList(
-            equippedRunes.getOrDefault(player.getUniqueId(), Collections.emptyList())
-        );
+        Map<String, List<Rune>> map = equippedRunes.get(player.getUniqueId());
+        if (map == null) return Collections.emptyList();
+        List<Rune> all = new ArrayList<>();
+        for (List<Rune> list : map.values()) all.addAll(list);
+        return Collections.unmodifiableList(all);
     }
 
     public Collection<Rune> getAllRunes() {
@@ -112,9 +114,9 @@ public class RunesManager {
      * Returns the subset of equipped runes that target the given spell ID.
      */
     public List<Rune> getRunesForSpell(Player player, String spellId) {
-        return getEquippedRunes(player).stream()
-            .filter(r -> r.getTargetSpell().equalsIgnoreCase(spellId))
-            .collect(Collectors.toList());
+        Map<String, List<Rune>> map = equippedRunes.get(player.getUniqueId());
+        if (map == null) return Collections.emptyList();
+        return map.getOrDefault(spellId, Collections.emptyList());
     }
 
     /**
@@ -125,8 +127,9 @@ public class RunesManager {
         Main.getPlugin().getLogger().info("[RunesManager] equipRune: player="
             + player.getName() + " trying to equip rune=" + rune.getId());
         UUID uid = player.getUniqueId();
-        equippedRunes.putIfAbsent(uid, new ArrayList<>());
-        List<Rune> runes = equippedRunes.get(uid);
+        equippedRunes.putIfAbsent(uid, new HashMap<>());
+        Map<String, List<Rune>> map = equippedRunes.get(uid);
+        List<Rune> runes = map.computeIfAbsent(rune.getTargetSpell(), k -> new ArrayList<>());
 
         Main.getPlugin().getLogger().info("currently equipped: "
             + runes.stream().map(Rune::getId).toList());
@@ -138,8 +141,9 @@ public class RunesManager {
         }
 
         runes.add(rune);
+        savePlayerData(player);
         Main.getPlugin().getLogger().info("✅ equipped! now: "
-            + runes.stream().map(Rune::getId).toList());
+            + getEquippedRuneIds(player));
         return true;
     }
 
@@ -170,14 +174,15 @@ public class RunesManager {
 
     public boolean unequipRune(Player player, Rune target) {
         UUID uid = player.getUniqueId();
-        List<Rune> runes = equippedRunes.get(uid);
-        if (runes == null) return false;
+        Map<String, List<Rune>> map = equippedRunes.get(uid);
+        if (map == null) return false;
 
-        // find & remove first match
-        for (int i = 0; i < runes.size(); i++) {
-            if (runes.get(i).getId().equals(target.getId())) {
-                runes.remove(i);
-                savePlayerData(player);    // persist the change!
+        List<Rune> list = map.get(target.getTargetSpell());
+        if (list == null) return false;
+        for (int i = 0; i < list.size(); i++) {
+            if (list.get(i).getId().equals(target.getId())) {
+                list.remove(i);
+                savePlayerData(player);
                 return true;
             }
         }

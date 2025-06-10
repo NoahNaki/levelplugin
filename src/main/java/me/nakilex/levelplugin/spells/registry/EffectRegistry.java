@@ -63,6 +63,7 @@ public class EffectRegistry {
         register("BOW_DRONE", new BowDroneEffect());
         register("GRAPPLE_HOOK", new GrappleHookEffect());
         register("ARROW_STORM", new ArrowStormEffect());
+        register("EXPLOSIVE_ARROW", new ExplosiveArrowShotEffect());
 
         // --- Warrior Spells
         register("IRON_FORTRESS", new IronFortressEffect());
@@ -70,6 +71,8 @@ public class EffectRegistry {
         register("SHOCKWAVE", new ShockwaveEffect());
         register("VOLCANIC_BLAST_EFFECT", new VolcanicBlastEffect());
         register("VORTEX_LEAP_EFFECT", new VortexLeapEffect());
+        register("STUNNING_LEAP_EFFECT", new StunningLeapEffect());
+        register("WAR_CRY", new WarCryEffect());
         register("JUDGEMENT", new JudgementEffect());
         register("GATE_OF_RUIN_EFFECT", new GateOfRuinEffect());
 
@@ -77,6 +80,8 @@ public class EffectRegistry {
         register("ENDLESS_ASSAULT", new EndlessAssaultEffect());
         register("BLADE_FURY", new BladeFuryEffect());
         register("SHADOW_CLONE", new ShadowCloneEffect());
+        register("MOVING_SHADOW_CLONE_EFFECT", new MovingShadowCloneEffect());
+        register("SHADOW_STEP", new ShadowStepEffect());
         register("VANISH", new VanishEffect());
 
     }

@@ -9,6 +9,7 @@ import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
@@ -32,6 +33,7 @@ public class IronFortressEffect implements SpellEffect {
 
         boolean explosive = Boolean.TRUE.equals(ctx.getExtraParam("explosiveShields"));
         boolean share = Boolean.TRUE.equals(ctx.getExtraParam("shieldAllies"));
+        boolean reflect = true;
 
         List<ArmorStand> shields = new ArrayList<>();
 
@@ -88,6 +90,9 @@ public class IronFortressEffect implements SpellEffect {
                 shield.getWorld().playSound(shield.getLocation(), Sound.ITEM_SHIELD_BREAK, 1f, 1f);
                 if (explosive) {
                     shield.getWorld().createExplosion(shield.getLocation(), 2f, false, false);
+                }
+                if (reflect && event.getDamager() instanceof LivingEntity attacker) {
+                    attacker.damage(event.getDamage() * 0.3, player);
                 }
                 shield.remove();
 

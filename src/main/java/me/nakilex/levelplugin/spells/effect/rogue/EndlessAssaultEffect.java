@@ -31,7 +31,7 @@ public class EndlessAssaultEffect implements SpellEffect {
         }
 
         World world = target.getWorld();
-        double damage = ctx.getFinalDamage();
+        double damage = ctx.getFinalDamage() * 1.2; // slight buff
         Vector[] dirs = new Vector[10];
         int idx = 0;
         for (int i = 0; i < 8; i++) {
