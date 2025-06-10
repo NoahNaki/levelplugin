@@ -129,9 +129,8 @@ public class TownStageManager {
             NPC clone = template.copy();
 
             // Translate original NPC position by the player's town origin offset
-            Location base = ts.pos1;
-            Location loc = base.clone().add(ns.x, ns.y, ns.z);
-            loc.add(origin.getX() - base.getBlockX(), origin.getY() - base.getBlockY(), origin.getZ() - base.getBlockZ());
+            // Use the player's world so clones spawn in the correct dimension
+            Location loc = origin.clone().add(ns.x, ns.y, ns.z);
             loc.add(0, 1, 0); // spawn one block higher so they don't clip
             loc.setYaw(ns.yaw);
             loc.setPitch(ns.pitch);
