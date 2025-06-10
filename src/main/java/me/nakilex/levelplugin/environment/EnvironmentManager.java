@@ -1,10 +1,13 @@
 package me.nakilex.levelplugin.environment;
 
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.environment.stage.TownStageManager;
 import me.nakilex.levelplugin.fakeblock.FakeBlockManager;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
@@ -165,16 +168,29 @@ public class EnvironmentManager {
         player.sendMessage(ChatColor.RED + "Your settlement has been reset.");
     }
 
-    /** Spawn the structure for the given player and stage. */
+    /**
+     * Spawn the structure for the given player and stage with a simple build
+     * animation and sound effects.
+     */
     private void spawnStructure(Player player, Location origin, int level, int stage) {
         fakeBlockManager.clear(player);
         String town = towns.get(player.getUniqueId());
         if (town == null) return;
         var stageData = stageManager.getStage(town, level, stage);
         if (stageData == null) return;
+
+        int delay = 0;
         for (TownStageManager.BlockDef b : stageData.blocks) {
             Location loc = origin.clone().add(b.x, b.y, b.z);
-            fakeBlockManager.showFakeBlock(player, loc, b.data);
+            Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+                fakeBlockManager.showFakeBlock(player, loc, b.data);
+                player.getWorld().playSound(loc, Sound.BLOCK_STONE_BREAK, 0.7f, 1f);
+                player.getWorld().playSound(loc, Sound.BLOCK_STONE_PLACE, 0.7f, 1f);
+            }, delay);
+            delay += 2;
         }
+
+        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () ->
+                player.playSound(origin, Sound.BLOCK_ANVIL_USE, 1f, 1f), delay);
     }
 }
