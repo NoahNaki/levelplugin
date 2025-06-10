@@ -91,7 +91,7 @@ public class IronFortressEffect implements SpellEffect {
                 if (explosive) {
                     shield.getWorld().createExplosion(shield.getLocation(), 2f, false, false);
                 }
-                if (reflect && event.getDamager() instanceof LivingEntity attacker) {
+                if (reflect && event.getDamageSource() instanceof LivingEntity attacker) {
                     attacker.damage(event.getDamage() * 0.3, player);
                 }
                 shield.remove();
