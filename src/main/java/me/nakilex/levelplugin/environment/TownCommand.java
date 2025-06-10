@@ -21,13 +21,18 @@ public class TownCommand implements CommandExecutor {
             sender.sendMessage("Only players can use this command.");
             return true;
         }
-        if (args.length > 0 && args[0].equalsIgnoreCase("start")) {
-            if (args.length < 2) {
-                p.sendMessage(ChatColor.RED + "Usage: /town start <name>");
+        if (args.length > 0) {
+            if (args[0].equalsIgnoreCase("start")) {
+                if (args.length < 2) {
+                    p.sendMessage(ChatColor.RED + "Usage: /town start <name>");
+                    return true;
+                }
+                manager.startTown(p, args[1].toLowerCase());
+                return true;
+            } else if (args[0].equalsIgnoreCase("reset")) {
+                manager.resetTown(p);
                 return true;
             }
-            manager.startTown(p, args[1].toLowerCase());
-            return true;
         }
         gui.open(p);
         return true;

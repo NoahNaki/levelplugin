@@ -5,8 +5,6 @@ import me.nakilex.levelplugin.environment.stage.TownStageManager;
 import me.nakilex.levelplugin.fakeblock.FakeBlockManager;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
@@ -155,49 +153,28 @@ public class EnvironmentManager {
         player.sendMessage(ChatColor.YELLOW + "Settlement created at " + origin.getBlockX()+","+origin.getBlockY()+","+origin.getBlockZ());
     }
 
+    /** Remove the player's settlement so they can start over. */
+    public void resetTown(Player player) {
+        UUID uuid = player.getUniqueId();
+        fakeBlockManager.clear(player);
+        states.remove(uuid);
+        origins.remove(uuid);
+        towns.remove(uuid);
+        playerConfig.clearEnvironmentData(uuid);
+        playerConfig.saveConfigFile();
+        player.sendMessage(ChatColor.RED + "Your settlement has been reset.");
+    }
+
     /** Spawn the structure for the given player and stage. */
     private void spawnStructure(Player player, Location origin, int level, int stage) {
         fakeBlockManager.clear(player);
-        BlockDef[] blocks = getLayout(level, stage);
-        if (blocks == null) return;
-        for (BlockDef b : blocks) {
+        String town = towns.get(player.getUniqueId());
+        if (town == null) return;
+        var stageData = stageManager.getStage(town, level, stage);
+        if (stageData == null) return;
+        for (TownStageManager.BlockDef b : stageData.blocks) {
             Location loc = origin.clone().add(b.x, b.y, b.z);
             fakeBlockManager.showFakeBlock(player, loc, b.data);
         }
     }
-
-    /** Minimal hard-coded layouts for demo purposes. */
-    private BlockDef[] getLayout(int level, int stage) {
-        if (level == 1 && stage == 1) {
-            return new BlockDef[] {
-                block(0,0,0, Material.OAK_PLANKS),
-                block(1,0,0, Material.OAK_PLANKS),
-                block(0,0,1, Material.OAK_PLANKS),
-                block(1,0,1, Material.CRAFTING_TABLE)
-            };
-        }
-        if (level == 1 && stage == 2) {
-            return new BlockDef[] {
-                block(0,0,0, Material.COBBLESTONE),
-                block(1,0,0, Material.COBBLESTONE),
-                block(0,0,1, Material.COBBLESTONE),
-                block(1,0,1, Material.FURNACE)
-            };
-        }
-        if (level == 1 && stage == 3) {
-            return new BlockDef[] {
-                block(0,0,0, Material.STONE_BRICKS),
-                block(1,0,0, Material.STONE_BRICKS),
-                block(0,0,1, Material.STONE_BRICKS),
-                block(1,0,1, Material.ANVIL)
-            };
-        }
-        return null;
-    }
-
-    private static BlockDef block(int x, int y, int z, Material mat) {
-        return new BlockDef(x, y, z, mat.createBlockData());
-    }
-
-    private record BlockDef(int x, int y, int z, BlockData data) {}
 }

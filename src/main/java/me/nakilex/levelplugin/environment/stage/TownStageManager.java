@@ -6,6 +6,8 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
+import org.bukkit.Material;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
@@ -46,6 +48,7 @@ public class TownStageManager {
 
     public void createStage(String name, int level, int stage, Location p1, Location p2) {
         java.util.List<NPCSpawn> npcs = new java.util.ArrayList<>();
+        java.util.List<BlockDef> blocks = new java.util.ArrayList<>();
         var boxMinX = Math.min(p1.getBlockX(), p2.getBlockX());
         var boxMaxX = Math.max(p1.getBlockX(), p2.getBlockX());
         var boxMinY = Math.min(p1.getBlockY(), p2.getBlockY());
@@ -63,10 +66,22 @@ public class TownStageManager {
                 npcs.add(new NPCSpawn(npc.getId(), l));
             }
         }
+
+        var world = p1.getWorld();
+        for (int x = boxMinX; x <= boxMaxX; x++) {
+            for (int y = boxMinY; y <= boxMaxY; y++) {
+                for (int z = boxMinZ; z <= boxMaxZ; z++) {
+                    var block = world.getBlockAt(x, y, z);
+                    if (block.getType() == Material.AIR) continue;
+                    BlockData data = block.getBlockData();
+                    blocks.add(new BlockDef(x - boxMinX, y - boxMinY, z - boxMinZ, data));
+                }
+            }
+        }
         stages
             .computeIfAbsent(name.toLowerCase(), k -> new java.util.HashMap<>())
             .computeIfAbsent(level, k -> new java.util.HashMap<>())
-            .put(stage, new TownStage(name.toLowerCase(), level, stage, p1, p2, npcs));
+            .put(stage, new TownStage(name.toLowerCase(), level, stage, p1, p2, npcs, blocks));
         saveConfig();
     }
 
@@ -142,6 +157,7 @@ public class TownStageManager {
                     Location p2 = readLocation(world, base + "pos2");
                     if (p1 == null || p2 == null) continue;
                     java.util.List<NPCSpawn> npcs = new java.util.ArrayList<>();
+                    java.util.List<BlockDef> blocks = new java.util.ArrayList<>();
                     if (config.isList(base + "npcs")) {
                         for (var o : config.getList(base + "npcs")) {
                             if (!(o instanceof String s)) continue;
@@ -156,10 +172,23 @@ public class TownStageManager {
                             } catch (NumberFormatException ignored) {}
                         }
                     }
+                    if (config.isList(base + "blocks")) {
+                        for (String line : config.getStringList(base + "blocks")) {
+                            String[] parts = line.split(";");
+                            if (parts.length < 4) continue;
+                            try {
+                                int dx = Integer.parseInt(parts[0]);
+                                int dy = Integer.parseInt(parts[1]);
+                                int dz = Integer.parseInt(parts[2]);
+                                BlockData data = Bukkit.createBlockData(parts[3]);
+                                blocks.add(new BlockDef(dx, dy, dz, data));
+                            } catch (Exception ignored) {}
+                        }
+                    }
                     stages
                         .computeIfAbsent(town.toLowerCase(), k -> new java.util.HashMap<>())
                         .computeIfAbsent(level, k -> new java.util.HashMap<>())
-                        .put(stage, new TownStage(town.toLowerCase(), level, stage, p1, p2, npcs));
+                        .put(stage, new TownStage(town.toLowerCase(), level, stage, p1, p2, npcs, blocks));
                 }
             }
         }
@@ -197,6 +226,11 @@ public class TownStageManager {
                         list.add(npc.id + ";" + npc.location.getBlockX() + ";" + npc.location.getBlockY() + ";" + npc.location.getBlockZ());
                     }
                     config.set(base + "npcs", list);
+                    java.util.List<String> blockLines = new java.util.ArrayList<>();
+                    for (BlockDef b : st.blocks) {
+                        blockLines.add(b.x + ";" + b.y + ";" + b.z + ";" + b.data.getAsString());
+                    }
+                    config.set(base + "blocks", blockLines);
                 }
             }
         }
@@ -221,15 +255,29 @@ public class TownStageManager {
         public final Location pos1;
         public final Location pos2;
         public final java.util.List<NPCSpawn> npcs;
+        public final java.util.List<BlockDef> blocks;
 
         public TownStage(String name, int level, int stage, Location pos1, Location pos2,
-                         java.util.List<NPCSpawn> npcs) {
+                         java.util.List<NPCSpawn> npcs, java.util.List<BlockDef> blocks) {
             this.name = name;
             this.level = level;
             this.stage = stage;
             this.pos1 = pos1;
             this.pos2 = pos2;
             this.npcs = npcs == null ? java.util.Collections.emptyList() : npcs;
+            this.blocks = blocks == null ? java.util.Collections.emptyList() : blocks;
+        }
+    }
+
+    /** Represents a single block inside a stage structure. */
+    public static class BlockDef {
+        public final int x, y, z;
+        public final BlockData data;
+        public BlockDef(int x, int y, int z, BlockData data) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.data = data;
         }
     }
 }

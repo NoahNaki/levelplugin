@@ -145,10 +145,17 @@ public class PlayerConfig {
     /** Store the origin location of a player's settlement. */
     public void setEnvironmentOrigin(UUID uuid, org.bukkit.Location loc) {
         String base = "players." + uuid + ".environment.origin.";
-        config.set(base + "world", loc.getWorld().getName());
-        config.set(base + "x", loc.getBlockX());
-        config.set(base + "y", loc.getBlockY());
-        config.set(base + "z", loc.getBlockZ());
+        if (loc == null) {
+            config.set(base + "world", null);
+            config.set(base + "x", null);
+            config.set(base + "y", null);
+            config.set(base + "z", null);
+        } else {
+            config.set(base + "world", loc.getWorld().getName());
+            config.set(base + "x", loc.getBlockX());
+            config.set(base + "y", loc.getBlockY());
+            config.set(base + "z", loc.getBlockZ());
+        }
     }
 
     public String getEnvironmentTown(UUID uuid) {
@@ -157,6 +164,17 @@ public class PlayerConfig {
 
     public void setEnvironmentTown(UUID uuid, String town) {
         config.set("players." + uuid + ".environment.town", town);
+    }
+
+    public void clearEnvironmentData(UUID uuid) {
+        String base = "players." + uuid + ".environment.";
+        config.set(base + "level", null);
+        config.set(base + "stage", null);
+        config.set(base + "town", null);
+        config.set(base + "origin.world", null);
+        config.set(base + "origin.x", null);
+        config.set(base + "origin.y", null);
+        config.set(base + "origin.z", null);
     }
 
     /** Allows external classes to persist config changes. */
