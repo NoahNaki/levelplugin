@@ -69,8 +69,8 @@ public class EnvironmentManager {
             if (town != null) towns.put(uuid, town);
         }
 
-        if (town != null) {
-            stageManager.spawnForStage(town, es.level, es.stage);
+        if (town != null && origin != null) {
+            stageManager.spawnForStage(town, es.level, es.stage, origin);
         }
         if (origin != null) {
             spawnStructure(player, origin, es.level, es.stage);
@@ -121,12 +121,10 @@ public class EnvironmentManager {
             player.sendMessage(ChatColor.GREEN + "Settlement upgraded to Level "
                     + state.level + " Stage " + state.stage + "!");
             String town = towns.get(player.getUniqueId());
-            if (town != null) {
-                stageManager.despawnForStage(town, oldLevel, oldStage);
-                stageManager.spawnForStage(town, state.level, state.stage);
-            }
             Location origin = origins.get(player.getUniqueId());
-            if (origin != null) {
+            if (town != null && origin != null) {
+                stageManager.despawnForStage(town, oldLevel, oldStage);
+                stageManager.spawnForStage(town, state.level, state.stage, origin);
                 spawnStructure(player, origin, state.level, state.stage);
             }
         } else {
@@ -166,7 +164,7 @@ public class EnvironmentManager {
         initializePlayer(player); // ensure state
         EnvironmentState s = states.get(uuid);
         spawnStructure(player, origin, s.level, s.stage);
-        stageManager.spawnForStage(townName, s.level, s.stage);
+        stageManager.spawnForStage(townName, s.level, s.stage, origin);
         player.sendMessage(ChatColor.YELLOW + "Settlement created at " + origin.getBlockX()+","+origin.getBlockY()+","+origin.getBlockZ());
     }
 
