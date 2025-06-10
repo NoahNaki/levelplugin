@@ -37,13 +37,15 @@ public class BlackholeEffect implements SpellEffect {
         boolean allowMultiple = parseBoolean(ctx.getExtraParam("allowMultiple"), false);
         boolean allowMove     = parseBoolean(ctx.getExtraParam("allowMove"), false);
 
-        // 3) Determine & snap center to ground + 1.5 up
-        Location raw = Optional.ofNullable(player.getTargetBlockExact(20))
-            .map(b -> b.getLocation().add(0.5, 0, 0.5))
-            .orElseGet(() -> player.getEyeLocation()
-                .add(player.getLocation().getDirection().multiply(10)));
-        int groundY = raw.getWorld().getHighestBlockYAt(raw);
-        Location center = new Location(raw.getWorld(), raw.getX(), groundY + 1.5, raw.getZ());
+        // 3) Determine center point for the blackhole
+        Block target = player.getTargetBlockExact(20);
+        Location center;
+        if (target != null) {
+            center = target.getLocation().add(0.5, 1.5, 0.5);
+        } else {
+            center = player.getEyeLocation()
+                .add(player.getLocation().getDirection().multiply(10));
+        }
 
         // 4) Enforce single-instance logic
         BlackholeTask existing = activeBlackholes.get(pid);
