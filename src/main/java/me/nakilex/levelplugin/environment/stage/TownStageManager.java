@@ -107,6 +107,8 @@ public class TownStageManager {
         return false;
     }
 
+    private static final double NPC_SPAWN_Y_OFFSET = 1.0; // prevent clipping
+
     public void spawnForStage(org.bukkit.entity.Player viewer, String town, int level, int stage, Location origin) {
         TownStage ts = getStage(town, level, stage);
         if (ts == null || origin == null || viewer == null) return;
@@ -129,15 +131,14 @@ public class TownStageManager {
             NPC clone = template.copy();
 
             // Translate original NPC position relative to the player's town
-            // origin and spawn one block higher so they don't clip.
-            Location loc = new Location(
-                    origin.getWorld(),
-                    origin.getX() + ns.x + 0.5,
-                    origin.getY() + ns.y + 1,
-                    origin.getZ() + ns.z + 0.5,
-                    ns.yaw,
-                    ns.pitch
+            // origin. Add a Y offset so the NPC doesn't spawn partially in the ground.
+            Location loc = origin.clone().add(
+                    ns.x + 0.5,
+                    ns.y + NPC_SPAWN_Y_OFFSET,
+                    ns.z + 0.5
             );
+            loc.setYaw(ns.yaw);
+            loc.setPitch(ns.pitch);
 
             clone.getOrAddTrait(CurrentLocation.class).setLocation(loc);
             plugin.getLogger().info("Spawning NPC clone from template " + ns.id + " at "
