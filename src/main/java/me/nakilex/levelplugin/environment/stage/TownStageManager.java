@@ -119,12 +119,22 @@ public class TownStageManager {
             var townSec = config.getConfigurationSection("stages." + town);
             if (townSec == null) continue;
             for (String lvlKey : townSec.getKeys(false)) {
+                int level;
+                try {
+                    level = Integer.parseInt(lvlKey);
+                } catch (NumberFormatException ex) {
+                    continue; // skip non-numeric keys
+                }
                 var lvlSec = config.getConfigurationSection("stages." + town + "." + lvlKey);
                 if (lvlSec == null) continue;
-                int level = Integer.parseInt(lvlKey);
                 for (String stKey : lvlSec.getKeys(false)) {
+                    int stage;
+                    try {
+                        stage = Integer.parseInt(stKey);
+                    } catch (NumberFormatException ex) {
+                        continue; // skip invalid stage keys
+                    }
                     String base = "stages." + town + "." + lvlKey + "." + stKey + ".";
-                    int stage = Integer.parseInt(stKey);
                     String worldName = config.getString(base + "world");
                     World world = Bukkit.getWorld(worldName);
                     if (world == null) continue;
