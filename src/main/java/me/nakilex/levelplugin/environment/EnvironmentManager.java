@@ -201,12 +201,21 @@ public class EnvironmentManager {
         if (stageData == null) return;
 
         java.util.List<BukkitTask> tasks = new java.util.ArrayList<>();
-        int delay = 0;
+
+        java.util.List<TownStageManager.BlockDef> blocks = new java.util.ArrayList<>(stageData.blocks);
+        blocks.sort(java.util.Comparator.comparingInt(b -> b.y));
+
+        final int totalTime = 20 * 20; // 20 seconds in ticks
+        double step = blocks.isEmpty() ? totalTime : (double) totalTime / blocks.size();
+        double current = 0;
+
         java.util.Random rand = new java.util.Random();
         Sound[] breakSounds = { Sound.BLOCK_STONE_BREAK, Sound.BLOCK_DEEPSLATE_BREAK, Sound.BLOCK_WOOD_BREAK };
         Sound[] placeSounds = { Sound.BLOCK_STONE_PLACE, Sound.BLOCK_DEEPSLATE_PLACE, Sound.BLOCK_WOOD_PLACE };
 
-        for (TownStageManager.BlockDef b : stageData.blocks) {
+        for (TownStageManager.BlockDef b : blocks) {
+            long delay = Math.round(current);
+            current += step;
             Location loc = origin.clone().add(b.x, b.y, b.z);
             BukkitTask task = Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
                 fakeBlockManager.showFakeBlock(player, loc, b.data);
@@ -216,14 +225,12 @@ public class EnvironmentManager {
                 player.getWorld().playSound(loc, placeS, 0.7f, 1f);
             }, delay);
             tasks.add(task);
-            delay += 2;
         }
 
-        int finalDelay = delay;
         BukkitTask finalTask = Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
             player.playSound(origin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
             stageManager.spawnForStage(player, town, level, stage, origin);
-        }, finalDelay);
+        }, Math.round(current));
         tasks.add(finalTask);
         buildTasks.put(uuid, tasks);
     }
