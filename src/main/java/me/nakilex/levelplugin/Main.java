@@ -129,6 +129,9 @@ public class Main extends JavaPlugin {
     private me.nakilex.levelplugin.fakeblock.FakeBlockManager fakeBlockManager;
     private me.nakilex.levelplugin.fakeblock.QuestGateManager questGateManager;
     private me.nakilex.levelplugin.fakeblock.ModelGateManager modelGateManager;
+    private me.nakilex.levelplugin.environment.EnvironmentManager environmentManager;
+    private me.nakilex.levelplugin.environment.UpgradeGUI upgradeGUI;
+    private me.nakilex.levelplugin.environment.stage.TownStageManager townStageManager;
     /**
      * Tracks all active bow drone NPCs for each player. Some runes can add
      * additional drones so we store a list rather than a single instance.
@@ -252,6 +255,9 @@ public class Main extends JavaPlugin {
         motdManager = new me.nakilex.levelplugin.motd.MotdManager(this);
         fakeBlockManager = new me.nakilex.levelplugin.fakeblock.FakeBlockManager();
         questGateManager = new me.nakilex.levelplugin.fakeblock.QuestGateManager(this, fakeBlockManager);
+        townStageManager = new me.nakilex.levelplugin.environment.stage.TownStageManager(this);
+        environmentManager = new me.nakilex.levelplugin.environment.EnvironmentManager(playerConfig, townStageManager);
+        upgradeGUI = new me.nakilex.levelplugin.environment.UpgradeGUI(environmentManager);
         cooldownManager.setLootChestManager(lootChestManager);
         equipGui = new EquipRunesGUI(this, runesManager, identifyRunesGUI);
         enchantManager = new me.nakilex.levelplugin.enchanting.managers.EnchantManager();
@@ -304,7 +310,8 @@ public class Main extends JavaPlugin {
             broadcastMgr,
             questManager,
             fastTravelManager,
-            motdManager
+            motdManager,
+            upgradeGUI
         );
 
 
@@ -336,7 +343,8 @@ public class Main extends JavaPlugin {
             scoreboardManager,
             fastTravelManager,
             fastTravelGUI,
-            motdManager
+            motdManager,
+            upgradeGUI
         );
 
         getServer().getPluginManager().registerEvents(beaconManager, this);
@@ -391,6 +399,14 @@ public class Main extends JavaPlugin {
 
         if (modelGateManager != null) {
             modelGateManager.removeAllGates();
+        }
+
+        if (environmentManager != null) {
+            environmentManager.saveAll();
+        }
+
+        if (townStageManager != null) {
+            townStageManager.despawnAll();
         }
 
 
@@ -536,6 +552,14 @@ public class Main extends JavaPlugin {
 
     public PartyGlowManager getPartyGlowManager() {
         return partyGlowManager;
+    }
+
+    public me.nakilex.levelplugin.environment.EnvironmentManager getEnvironmentManager() {
+        return environmentManager;
+    }
+
+    public me.nakilex.levelplugin.environment.stage.TownStageManager getTownStageManager() {
+        return townStageManager;
     }
 
     private void createCustomConfig() {

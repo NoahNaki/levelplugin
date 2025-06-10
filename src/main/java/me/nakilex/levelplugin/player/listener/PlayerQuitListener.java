@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.runes.manager.RunesManager;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
+import me.nakilex.levelplugin.environment.EnvironmentManager;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -16,9 +17,11 @@ public class PlayerQuitListener implements Listener {
 
     private final PlayerConfig  playerConfig;
     private final RunesManager  runesManager;
+    private final EnvironmentManager environmentManager;
 
-    public PlayerQuitListener(PlayerConfig playerConfig) {
+    public PlayerQuitListener(PlayerConfig playerConfig, EnvironmentManager envManager) {
         this.playerConfig = playerConfig;
+        this.environmentManager = envManager;
         this.runesManager = SpellManager.getInstance().getRunesManager();
     }
 
@@ -35,5 +38,6 @@ public class PlayerQuitListener implements Listener {
         Main.getInstance()
             .getPlayerConfig()
             .savePlayer(pid);
+        environmentManager.saveState(pid);
     }
 }

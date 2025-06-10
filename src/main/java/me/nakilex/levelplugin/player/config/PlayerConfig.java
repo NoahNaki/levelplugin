@@ -112,6 +112,29 @@ public class PlayerConfig {
         saveConfig();
     }
 
+    // ----- Environment Progress -----
+
+    public int getEnvironmentLevel(UUID uuid) {
+        String path = "players." + uuid + ".environment.level";
+        return config.getInt(path, 1);
+    }
+
+    public int getEnvironmentStage(UUID uuid) {
+        String path = "players." + uuid + ".environment.stage";
+        return config.getInt(path, 1);
+    }
+
+    public void setEnvironmentState(UUID uuid, int level, int stage) {
+        String base = "players." + uuid + ".environment.";
+        config.set(base + "level", level);
+        config.set(base + "stage", stage);
+    }
+
+    /** Allows external classes to persist config changes. */
+    public void saveConfigFile() {
+        saveConfig();
+    }
+
     private void saveConfig() {
         try {
             config.save(file);

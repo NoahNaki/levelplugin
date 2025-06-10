@@ -1,0 +1,121 @@
+package me.nakilex.levelplugin.environment.stage;
+
+import me.nakilex.levelplugin.Main;
+import org.bukkit.ChatColor;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Provides an editor for defining town stage areas using a wand.
+ */
+public class TownStageCommand implements CommandExecutor, Listener {
+    private final TownStageManager manager;
+    private final Map<UUID, Selection> selections = new HashMap<>();
+    private final ItemStack wand;
+
+    public TownStageCommand(Main plugin, TownStageManager manager) {
+        this.manager = manager;
+        wand = new ItemStack(Material.MACE);
+        ItemMeta meta = wand.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.GOLD + "Town Stage Wand");
+            wand.setItemMeta(meta);
+        }
+        plugin.getCommand("townstage").setExecutor(this);
+        plugin.getServer().getPluginManager().registerEvents(this, plugin);
+    }
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (!(sender instanceof Player p)) {
+            sender.sendMessage("Only players can use this command.");
+            return true;
+        }
+        if (args.length == 0) return false;
+        String sub = args[0].toLowerCase();
+        switch (sub) {
+            case "wand":
+                p.getInventory().addItem(wand.clone());
+                p.sendMessage(ChatColor.GREEN + "Wand given.");
+                return true;
+            case "list":
+                var names = manager.getStageNames();
+                if (names.isEmpty()) {
+                    p.sendMessage(ChatColor.YELLOW + "No stages defined.");
+                } else {
+                    p.sendMessage(ChatColor.YELLOW + "Stages: " + String.join(", ", names));
+                }
+                return true;
+            case "create":
+                if (args.length < 4) return false;
+                Selection sel = selections.get(p.getUniqueId());
+                if (sel == null || sel.pos1 == null || sel.pos2 == null) {
+                    p.sendMessage(ChatColor.RED + "Select two positions first.");
+                    return true;
+                }
+                String name = args[1].toLowerCase();
+                int level = parseInt(args[2], 1);
+                int stage = parseInt(args[3], 1);
+                manager.createStage(name, level, stage, sel.pos1, sel.pos2);
+                p.sendMessage(ChatColor.GREEN + "Stage " + name + " created.");
+                return true;
+            case "remove":
+                if (args.length < 2) return false;
+                if (manager.removeStage(args[1])) {
+                    p.sendMessage(ChatColor.GREEN + "Stage removed.");
+                } else {
+                    p.sendMessage(ChatColor.RED + "Stage not found.");
+                }
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    @EventHandler
+    public void onInteract(PlayerInteractEvent event) {
+        ItemStack inHand = event.getItem();
+        if (inHand == null || !inHand.isSimilar(wand)) return;
+        if (event.getClickedBlock() == null) return;
+        event.setCancelled(true);
+        Player player = event.getPlayer();
+        Selection sel = selections.computeIfAbsent(player.getUniqueId(), k -> new Selection());
+        if (event.getAction().name().contains("LEFT")) {
+            sel.pos1 = event.getClickedBlock().getLocation();
+            player.sendMessage(ChatColor.AQUA + "Pos1 set " + format(sel.pos1));
+        } else if (event.getAction().name().contains("RIGHT")) {
+            sel.pos2 = event.getClickedBlock().getLocation();
+            player.sendMessage(ChatColor.AQUA + "Pos2 set " + format(sel.pos2));
+        }
+    }
+
+    private static int parseInt(String s, int def) {
+        try {
+            return Integer.parseInt(s);
+        } catch (NumberFormatException e) {
+            return def;
+        }
+    }
+
+    private static String format(Location loc) {
+        return loc.getBlockX()+","+loc.getBlockY()+","+loc.getBlockZ();
+    }
+
+    private static class Selection {
+        Location pos1;
+        Location pos2;
+    }
+}
