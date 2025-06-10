@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
+import me.nakilex.levelplugin.environment.EnvironmentManager;
 import me.nakilex.levelplugin.runes.manager.RunesManager;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
@@ -23,10 +24,14 @@ public class PlayerJoinListener implements Listener {
     private final LevelManager levelManager;
     private final PlayerConfig playerConfig;
     private final RunesManager runesManager;
+    private final EnvironmentManager environmentManager;
+    private final me.nakilex.levelplugin.environment.stage.TownStageManager stageManager;
 
-    public PlayerJoinListener(LevelManager levelManager, PlayerConfig playerConfig) {
+    public PlayerJoinListener(LevelManager levelManager, PlayerConfig playerConfig, EnvironmentManager envManager) {
         this.levelManager  = levelManager;
         this.playerConfig  = playerConfig;
+        this.environmentManager = envManager;
+        this.stageManager = envManager.getStageManager();
         this.runesManager  = SpellManager.getInstance().getRunesManager();
     }
 
@@ -41,6 +46,8 @@ public class PlayerJoinListener implements Listener {
             player.setGameMode(GameMode.ADVENTURE);
             StatsManager.getInstance().recalcDerivedStats(player);
             levelManager.initializePlayer(player);
+            environmentManager.initializePlayer(player);
+            stageManager.hideNPCsFrom(player);
             player.setHealthScaled(true);
             player.setHealthScale(20.0);
 

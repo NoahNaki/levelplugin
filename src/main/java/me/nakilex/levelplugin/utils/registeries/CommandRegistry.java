@@ -59,6 +59,9 @@ import me.nakilex.levelplugin.fasttravel.commands.LocationCommand;
 import me.nakilex.levelplugin.fasttravel.commands.FastTravelCommand;
 import me.nakilex.levelplugin.fasttravel.FastTravelManager;
 import me.nakilex.levelplugin.debug.commands.NexoScanCommand;
+import me.nakilex.levelplugin.environment.TownCommand;
+import me.nakilex.levelplugin.environment.UpgradeGUI;
+import me.nakilex.levelplugin.environment.stage.TownStageCommand;
 
 public class CommandRegistry {
 
@@ -87,7 +90,8 @@ public class CommandRegistry {
                                         BroadcastManager broadcastMgr,
                                         QuestManager questManager,
                                         FastTravelManager fastTravelManager,
-                                        me.nakilex.levelplugin.motd.MotdManager motdManager) {
+                                        me.nakilex.levelplugin.motd.MotdManager motdManager,
+                                        UpgradeGUI upgradeGUI) {
 
 
         plugin.getCommand("addpoints").setExecutor(new AddPointsCommand());
@@ -132,6 +136,8 @@ public class CommandRegistry {
         plugin.getCommand("motd").setExecutor(new me.nakilex.levelplugin.motd.MotdCommand(motdManager));
         plugin.getCommand("fakegate").setExecutor(new me.nakilex.levelplugin.fakeblock.FakeGateCommand(plugin));
         plugin.getCommand("modelgate").setExecutor(new me.nakilex.levelplugin.fakeblock.ModelGateCommand(plugin));
+        plugin.getCommand("town").setExecutor(new TownCommand(upgradeGUI, plugin.getEnvironmentManager()));
+        plugin.getCommand("townstage").setExecutor(new TownStageCommand(plugin, plugin.getTownStageManager()));
 
     }
 }

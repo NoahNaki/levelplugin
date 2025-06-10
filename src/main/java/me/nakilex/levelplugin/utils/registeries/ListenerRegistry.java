@@ -56,6 +56,7 @@ import me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI;
 import me.nakilex.levelplugin.fasttravel.FastTravelManager;
 import me.nakilex.levelplugin.fakeblock.ModelGateManager;
 import me.nakilex.levelplugin.motd.MotdManager;
+import me.nakilex.levelplugin.environment.UpgradeGUI;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.PluginManager;
 
@@ -86,9 +87,10 @@ public class ListenerRegistry {
                                         QuestManager questManager,
                                         NPCDialogManager dialogManager,
                                          PlayerScoreboardManager scoreboardManager,
-                                         FastTravelManager fastTravelManager,
-                                         FastTravelGUI fastTravelGUI,
-                                         MotdManager motdManager) {
+                                        FastTravelManager fastTravelManager,
+                                        FastTravelGUI fastTravelGUI,
+                                        MotdManager motdManager,
+                                        UpgradeGUI upgradeGUI) {
 
 
         PluginManager pm = plugin.getServer().getPluginManager();
@@ -96,8 +98,8 @@ public class ListenerRegistry {
         // Register all listeners
         pm.registerEvents(new MobDamageListener(), plugin);
         pm.registerEvents(new MythicMobDeathListener(mobRewardsConfig, plugin.getLevelManager(), economyManager, lootChestManager), plugin);
-        pm.registerEvents(new PlayerJoinListener(plugin.getLevelManager(),plugin.getPlayerConfig()),plugin);
-        pm.registerEvents(new PlayerQuitListener(plugin.getPlayerConfig()),plugin);
+        pm.registerEvents(new PlayerJoinListener(plugin.getLevelManager(), plugin.getPlayerConfig(), plugin.getEnvironmentManager()), plugin);
+        pm.registerEvents(new PlayerQuitListener(plugin.getPlayerConfig(), plugin.getEnvironmentManager()), plugin);
         pm.registerEvents(new StatsMenuListener(), plugin);
         pm.registerEvents(new StatsEffectListener(), plugin);
         pm.registerEvents(new ArmorListener(), plugin);
@@ -158,6 +160,7 @@ public class ListenerRegistry {
         pm.registerEvents(new ExplorationListener(fastTravelManager), plugin);
         pm.registerEvents(new FastTravelRespawnListener(fastTravelManager), plugin);
         pm.registerEvents(motdManager, plugin);
+        pm.registerEvents(upgradeGUI, plugin);
 
 
 

@@ -112,6 +112,76 @@ public class PlayerConfig {
         saveConfig();
     }
 
+    // ----- Environment Progress -----
+
+    public int getEnvironmentLevel(UUID uuid) {
+        String path = "players." + uuid + ".environment.level";
+        return config.getInt(path, 1);
+    }
+
+    public int getEnvironmentStage(UUID uuid) {
+        String path = "players." + uuid + ".environment.stage";
+        return config.getInt(path, 1);
+    }
+
+    public void setEnvironmentState(UUID uuid, int level, int stage) {
+        String base = "players." + uuid + ".environment.";
+        config.set(base + "level", level);
+        config.set(base + "stage", stage);
+    }
+
+    /** Get the stored origin location of a player's settlement or null if not set. */
+    public org.bukkit.Location getEnvironmentOrigin(UUID uuid) {
+        String base = "players." + uuid + ".environment.origin.";
+        if (!config.contains(base + "world")) return null;
+        org.bukkit.World world = Bukkit.getWorld(config.getString(base + "world"));
+        if (world == null) return null;
+        int x = config.getInt(base + "x", 0);
+        int y = config.getInt(base + "y", 0);
+        int z = config.getInt(base + "z", 0);
+        return new org.bukkit.Location(world, x, y, z);
+    }
+
+    /** Store the origin location of a player's settlement. */
+    public void setEnvironmentOrigin(UUID uuid, org.bukkit.Location loc) {
+        String base = "players." + uuid + ".environment.origin.";
+        if (loc == null) {
+            config.set(base + "world", null);
+            config.set(base + "x", null);
+            config.set(base + "y", null);
+            config.set(base + "z", null);
+        } else {
+            config.set(base + "world", loc.getWorld().getName());
+            config.set(base + "x", loc.getBlockX());
+            config.set(base + "y", loc.getBlockY());
+            config.set(base + "z", loc.getBlockZ());
+        }
+    }
+
+    public String getEnvironmentTown(UUID uuid) {
+        return config.getString("players." + uuid + ".environment.town", null);
+    }
+
+    public void setEnvironmentTown(UUID uuid, String town) {
+        config.set("players." + uuid + ".environment.town", town);
+    }
+
+    public void clearEnvironmentData(UUID uuid) {
+        String base = "players." + uuid + ".environment.";
+        config.set(base + "level", null);
+        config.set(base + "stage", null);
+        config.set(base + "town", null);
+        config.set(base + "origin.world", null);
+        config.set(base + "origin.x", null);
+        config.set(base + "origin.y", null);
+        config.set(base + "origin.z", null);
+    }
+
+    /** Allows external classes to persist config changes. */
+    public void saveConfigFile() {
+        saveConfig();
+    }
+
     private void saveConfig() {
         try {
             config.save(file);

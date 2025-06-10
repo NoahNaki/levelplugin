@@ -160,3 +160,9 @@ commands:
   modelgate:
     description: Toggle Nexo model gates
     usage: /modelgate <create|toggle|remove|list>
+  town:
+    description: Manage your settlement upgrades
+    usage: /town [start <name>|reset]
+  townstage:
+    description: Define settlement stage regions
+    usage: /townstage <wand|create|remove|list>
