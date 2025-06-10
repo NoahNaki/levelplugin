@@ -73,8 +73,11 @@ public class TownStageCommand implements CommandExecutor, Listener {
                 p.sendMessage(ChatColor.GREEN + "Stage " + name + " created.");
                 return true;
             case "remove":
-                if (args.length < 2) return false;
-                if (manager.removeStage(args[1])) {
+                if (args.length < 4) return false;
+                String rName = args[1].toLowerCase();
+                int rLevel = parseInt(args[2], 1);
+                int rStage = parseInt(args[3], 1);
+                if (manager.removeStage(rName, rLevel, rStage)) {
                     p.sendMessage(ChatColor.GREEN + "Stage removed.");
                 } else {
                     p.sendMessage(ChatColor.RED + "Stage not found.");

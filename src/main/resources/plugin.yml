@@ -162,7 +162,7 @@ commands:
     usage: /modelgate <create|toggle|remove|list>
   town:
     description: Manage your settlement upgrades
-    usage: /town [start]
+    usage: /town [start <name>]
   townstage:
     description: Define settlement stage regions
     usage: /townstage <wand|create|remove|list>

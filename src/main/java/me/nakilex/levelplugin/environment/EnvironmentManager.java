@@ -24,6 +24,7 @@ public class EnvironmentManager {
     private final FakeBlockManager fakeBlockManager;
     private final Map<UUID, EnvironmentState> states = new HashMap<>();
     private final Map<UUID, Location> origins = new HashMap<>();
+    private final Map<UUID, String> towns = new HashMap<>();
 
     public static class EnvironmentState {
         public int level;
@@ -59,8 +60,15 @@ public class EnvironmentManager {
                 origins.put(uuid, origin);
             }
         }
+        String town = towns.get(uuid);
+        if (town == null) {
+            town = playerConfig.getEnvironmentTown(uuid);
+            if (town != null) towns.put(uuid, town);
+        }
 
-        stageManager.spawnForStage(es.level, es.stage);
+        if (town != null) {
+            stageManager.spawnForStage(town, es.level, es.stage);
+        }
         if (origin != null) {
             spawnStructure(player, origin, es.level, es.stage);
         }
@@ -74,6 +82,8 @@ public class EnvironmentManager {
         EnvironmentState s = states.get(uuid);
         if (s != null) {
             playerConfig.setEnvironmentState(uuid, s.level, s.stage);
+            String town = towns.get(uuid);
+            if (town != null) playerConfig.setEnvironmentTown(uuid, town);
             playerConfig.saveConfigFile();
         }
     }
@@ -96,7 +106,10 @@ public class EnvironmentManager {
             advance(state);
             player.sendMessage(ChatColor.GREEN + "Settlement upgraded to Level "
                     + state.level + " Stage " + state.stage + "!");
-            stageManager.spawnForStage(state.level, state.stage);
+            String town = towns.get(player.getUniqueId());
+            if (town != null) {
+                stageManager.spawnForStage(town, state.level, state.stage);
+            }
             Location origin = origins.get(player.getUniqueId());
             if (origin != null) {
                 spawnStructure(player, origin, state.level, state.stage);
@@ -118,20 +131,27 @@ public class EnvironmentManager {
         }
     }
 
-    /** Start a settlement for the player at their current location. */
-    public void startTown(Player player) {
+    /** Start a settlement for the player at their current location using the given town name. */
+    public void startTown(Player player, String townName) {
         UUID uuid = player.getUniqueId();
         if (origins.containsKey(uuid)) {
             player.sendMessage(ChatColor.RED + "You already started a settlement.");
             return;
         }
+        if (townName == null || stageManager.getStage(townName, 1, 1) == null) {
+            player.sendMessage(ChatColor.RED + "Unknown town type.");
+            return;
+        }
         Location origin = player.getLocation().getBlock().getLocation();
         origins.put(uuid, origin);
+        towns.put(uuid, townName.toLowerCase());
         playerConfig.setEnvironmentOrigin(uuid, origin);
+        playerConfig.setEnvironmentTown(uuid, townName.toLowerCase());
         playerConfig.saveConfigFile();
         initializePlayer(player); // ensure state
         EnvironmentState s = states.get(uuid);
         spawnStructure(player, origin, s.level, s.stage);
+        stageManager.spawnForStage(townName, s.level, s.stage);
         player.sendMessage(ChatColor.YELLOW + "Settlement created at " + origin.getBlockX()+","+origin.getBlockY()+","+origin.getBlockZ());
     }
 

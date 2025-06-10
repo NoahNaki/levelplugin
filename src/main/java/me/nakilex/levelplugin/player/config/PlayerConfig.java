@@ -151,6 +151,14 @@ public class PlayerConfig {
         config.set(base + "z", loc.getBlockZ());
     }
 
+    public String getEnvironmentTown(UUID uuid) {
+        return config.getString("players." + uuid + ".environment.town", null);
+    }
+
+    public void setEnvironmentTown(UUID uuid, String town) {
+        config.set("players." + uuid + ".environment.town", town);
+    }
+
     /** Allows external classes to persist config changes. */
     public void saveConfigFile() {
         saveConfig();
