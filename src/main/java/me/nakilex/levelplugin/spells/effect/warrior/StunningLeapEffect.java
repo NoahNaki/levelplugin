@@ -46,7 +46,7 @@ public class StunningLeapEffect implements SpellEffect {
                         if (le instanceof Player p && !DuelManager.getInstance().areInDuel(player.getUniqueId(), p.getUniqueId()))
                             continue;
                         SpellUtils.dealWithChat(player, le, damage, "Stunning Leap");
-                        le.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, stunTicks, 2));
+                        le.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, stunTicks, 2));
                     }
                     cancel();
                 }

@@ -38,6 +38,7 @@ public class AuctionHouseGUI implements Listener {
     private static final int BACK_SLOT = 46;
     private static final String MY_LISTINGS_TITLE = "Your Listings";
     private static final int INFO_SLOT = 8;
+    private static final int REFRESH_SLOT = 0;
     private static final int CONFIRM_SIZE = 27;
     private static final String CONFIRM_TITLE = "Confirm Purchase";
     private static final int[] LISTING_SLOTS = {
@@ -144,6 +145,7 @@ public class AuctionHouseGUI implements Listener {
         if (list.size() > (page + 1) * ITEMS_PER_PAGE) inv.setItem(NEXT_PAGE, createArrow(ChatColor.GREEN + "Next", true));
         inv.setItem(SELL_SLOT, createSellButton());
         inv.setItem(MY_LISTINGS_SLOT, createMyListingsButton());
+        inv.setItem(REFRESH_SLOT, createRefreshButton());
         inv.setItem(SEARCH_SLOT, createSearchButton(term));
         inv.setItem(FILTER_SLOT, createLevelFilterButton(filter));
         inv.setItem(RARITY_FILTER_SLOT, createRarityFilterButton(rarityFilter));
@@ -184,6 +186,10 @@ public class AuctionHouseGUI implements Listener {
         Player player = (Player) e.getWhoClicked();
 
         int rawSlot = e.getRawSlot();
+        if (rawSlot == REFRESH_SLOT) {
+            open(player, pageMap.getOrDefault(player.getUniqueId(), 0));
+            return;
+        }
         if (rawSlot == SELL_SLOT) {
             ItemStack hand = player.getInventory().getItemInMainHand();
             if (hand == null || hand.getType().isAir()) {
@@ -427,6 +433,10 @@ public class AuctionHouseGUI implements Listener {
             it.setItemMeta(meta);
         }
         return it;
+    }
+
+    private ItemStack createRefreshButton() {
+        return getNexoItem("refresh", ChatColor.GREEN + "Refresh");
     }
 
     private ItemStack createArrow(String name, boolean right) {

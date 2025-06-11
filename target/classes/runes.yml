@@ -3,23 +3,27 @@ runes:
     name: "Spark of Fury"
     rarity: "RARE"
     targetClass: "MAGE"
-    targetSpell: "Meteor"
+    targetSpell: "meteor"
     unique: false
     effects:
       - type: "MODIFIER"
         bonusDamagePercent: 6.0
         cooldownReductionPercent: 0.0
-        newEffectKey: null
-        extraParams: { }
+        newEffectKey:
+        extraParams: {}
 
+    description:
+      - "Boosts the damage of Meteor."
   - id: "mage_meteor_shower"
     name: "Meteor Shower Rune"
     description:
       - "Converts Meteor into a"
       - "Meteor Shower."
+      - "Multiple meteors rain down"
+      - "blanketing a wide area."
     rarity: "EPIC"
     targetClass: "MAGE"
-    targetSpell: "Meteor"
+    targetSpell: "meteor"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -38,9 +42,11 @@ runes:
       - "Calls down a shard of ice that"
       - "freezes the ground on impact"
       - "and freezes enemies in place."
+      - "A chilling blast slows foes"
+      - "and leaves them vulnerable."
     rarity: "EPIC"
     targetClass: "MAGE"
-    targetSpell: "Meteor"
+    targetSpell: "meteor"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -57,9 +63,11 @@ runes:
     description:
       - "Unleash a shard of obsidian"
       - "that crashes down with hardened might."
+      - "Fragments erupt on impact,"
+      - "pelting nearby enemies."
     rarity: "EPIC"
     targetClass: "MAGE"
-    targetSpell: "Meteor"
+    targetSpell: "meteor"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -78,15 +86,17 @@ runes:
     description:
       - "Expands the reach"
       - "of your blackhole."
+      - "Distant enemies are pulled"
+      - "toward its crushing center."
     rarity: "UNCOMMON"
     targetClass: "MAGE"
-    targetSpell: "Blackhole"
+    targetSpell: "blackhole"
     unique: false
     effects:
       - type: "MODIFIER"
         bonusDamagePercent: 0.0
         cooldownReductionPercent: 0.0
-        newEffectKey: null
+        newEffectKey:
         extraParams:
           pullRadius: 1.0
 
@@ -98,7 +108,7 @@ runes:
       - "through the event horizon."
     rarity: "LEGENDARY"
     targetClass: "MAGE"
-    targetSpell: "Blackhole"
+    targetSpell: "blackhole"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -120,13 +130,13 @@ runes:
       - "blackholes at once."
     rarity: "EPIC"
     targetClass: "MAGE"
-    targetSpell: "Blackhole"
+    targetSpell: "blackhole"
     unique: true
     effects:
       - type: "TRANSFORM"
         bonusDamagePercent: 0.0
         cooldownReductionPercent: 0.0
-        newEffectKey: null
+        newEffectKey:
         # this flag flips on the allowMultiple behavior in BlackholeEffect
         extraParams:
           allowMultiple: true
@@ -139,13 +149,13 @@ runes:
       - "position at will."
     rarity: "EPIC"
     targetClass: "MAGE"
-    targetSpell: "Blackhole"
+    targetSpell: "blackhole"
     unique: true
     effects:
       - type: "TRANSFORM"
         bonusDamagePercent: 0.0
         cooldownReductionPercent: 0.0
-        newEffectKey: null
+        newEffectKey:
         # this flag flips on the allowMove behavior in BlackholeEffect
         extraParams:
           allowMove: true
@@ -157,13 +167,13 @@ runes:
       - "Extends your blink range."
     rarity: "UNCOMMON"
     targetClass: "MAGE"
-    targetSpell: "Teleport"
+    targetSpell: "teleport"
     unique: false
     effects:
       - type: "MODIFIER"
         bonusDamagePercent: 0.0
         cooldownReductionPercent: 0.0
-        newEffectKey: null
+        newEffectKey:
         extraParams:
           maxDistance: 5
 
@@ -174,13 +184,13 @@ runes:
       - "boosts your teleport distance."
     rarity: "RARE"
     targetClass: "MAGE"
-    targetSpell: "Teleport"
+    targetSpell: "teleport"
     unique: false
     effects:
       - type: "MODIFIER"
         bonusDamagePercent: 0.0
         cooldownReductionPercent: 0.0
-        newEffectKey: null
+        newEffectKey:
         extraParams:
           agiMultiplier: 0.02
 
@@ -192,7 +202,7 @@ runes:
       - "the path you blinked, damaging foes."
     rarity: "EPIC"
     targetClass: "MAGE"
-    targetSpell: "Teleport"
+    targetSpell: "teleport"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -211,7 +221,7 @@ runes:
       - "at your destination."
     rarity: "EPIC"
     targetClass: "MAGE"
-    targetSpell: "Teleport"
+    targetSpell: "teleport"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -231,7 +241,7 @@ runes:
       - "shortly after the first."
     rarity: "LEGENDARY"
     targetClass: "MAGE"
-    targetSpell: "Teleport"
+    targetSpell: "teleport"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -252,7 +262,7 @@ runes:
       - "that wounds nearby foes each tick."
     rarity: "EPIC"
     targetClass: "MAGE"
-    targetSpell: "Heal"
+    targetSpell: "heal"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -275,7 +285,7 @@ runes:
       - "from allies before healing."
     rarity: "EPIC"
     targetClass: "MAGE"
-    targetSpell: "Heal"
+    targetSpell: "heal"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -294,7 +304,7 @@ runes:
       - "your regenerative pulse."
     rarity: "RARE"
     targetClass: "MAGE"
-    targetSpell: "Heal"
+    targetSpell: "heal"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -312,7 +322,7 @@ runes:
       - "by your healing pulse."
     rarity: "UNCOMMON"
     targetClass: "MAGE"
-    targetSpell: "Heal"
+    targetSpell: "heal"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -329,7 +339,7 @@ runes:
       - "of your regenerative pulse."
     rarity: "UNCOMMON"
     targetClass: "MAGE"
-    targetSpell: "Heal"
+    targetSpell: "heal"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -343,12 +353,15 @@ runes:
 
   - id: "mage_basic_ray_twin"
     name: "Rune of Twin Rays"
+    description:
+      - "Splits your basic ray"
+      - "into two beams."
     targetClass: "MAGE"
     targetSpell: "basic_ray"
     unique: false
     effects:
       - type: "TRANSFORM"
-        newEffectKey: null   # same effect key
+        newEffectKey:        # same effect key
         extraParams:
           extraProjectiles: 3
 
@@ -364,7 +377,7 @@ runes:
       - type: "TRANSFORM"
         bonusDamagePercent: 0.0
         cooldownReductionPercent: 0.0
-        newEffectKey: null
+        newEffectKey:
         extraParams:
           extraProjectiles: 1
 
@@ -381,7 +394,7 @@ runes:
       - type: "TRANSFORM"
         bonusDamagePercent: 0.0
         cooldownReductionPercent: 0.0
-        newEffectKey: null
+        newEffectKey:
         extraParams:
           instantShot: true
           velocityMultiplier: 1.5
@@ -398,10 +411,226 @@ runes:
       - type: "TRANSFORM"
         bonusDamagePercent: 0.0
         cooldownReductionPercent: 0.0
-        newEffectKey: null
+        newEffectKey:
         extraParams:
           pierceLevel: 1
 
+  - id: "archer_basic_shot_scatter"
+    name: "Rune of Scattershot"
+    description:
+      - "Fires three arrows in a spread."
+    rarity: "RARE"
+    targetClass: "ARCHER"
+    targetSpell: "basic_arrow"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        newEffectKey:
+        extraParams:
+          extraProjectiles: 2
+
+  - id: "archer_basic_shot_explosive"
+    name: "Rune of Explosive Arrows"
+    description:
+      - "Arrows explode on impact."
+    rarity: "EPIC"
+    targetClass: "ARCHER"
+    targetSpell: "basic_arrow"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        newEffectKey: "EXPLOSIVE_ARROW"
+        extraParams:
+          explosionPower: 2.0
+
+  # --- Power Shot Runes ---
+  - id: "archer_power_shot_precision"
+    name: "Rune of Precision"
+    rarity: "UNCOMMON"
+    targetClass: "ARCHER"
+    targetSpell: "power_shot"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        bonusDamagePercent: 20.0
+        cooldownReductionPercent: 0.0
+        newEffectKey:
+        extraParams: {}
+
+    description:
+      - "Increases Power Shot damage."
+  - id: "archer_power_shot_rapidity"
+    name: "Rune of Rapidity"
+    rarity: "RARE"
+    targetClass: "ARCHER"
+    targetSpell: "power_shot"
+    unique: true
+    effects:
+      - type: "MODIFIER"
+        bonusDamagePercent: 0.0
+        cooldownReductionPercent: 25.0
+        newEffectKey:
+        extraParams: {}
+
+    description:
+      - "Reduces Power Shot cooldown."
+  - id: "archer_power_shot_shock"
+    name: "Rune of Thunderstorm"
+    rarity: "EPIC"
+    targetClass: "ARCHER"
+    targetSpell: "power_shot"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        newEffectKey: "POWER_SHOT"
+        extraParams:
+          lightning: true
+
+  # --- Bow Drone Runes ---
+    description:
+      - "Power Shot summons lightning."
+  - id: "archer_bow_drone_duration"
+    name: "Rune of Lasting Drones"
+    rarity: "UNCOMMON"
+    targetClass: "ARCHER"
+    targetSpell: "bow_drone"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        newEffectKey:
+        extraParams:
+          droneDuration: 40
+
+    description:
+      - "Increases Bow Drone duration."
+  - id: "archer_bow_drone_frost"
+    name: "Rune of Frost Drones"
+    rarity: "RARE"
+    targetClass: "ARCHER"
+    targetSpell: "bow_drone"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        newEffectKey: "BOW_DRONE"
+        extraParams:
+          slowOnHit: true
+
+    description:
+      - "Bow Drones slow enemies."
+  - id: "archer_bow_drone_explosive"
+    name: "Rune of Bombardment"
+    rarity: "EPIC"
+    targetClass: "ARCHER"
+    targetSpell: "bow_drone"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        newEffectKey: "BOW_DRONE"
+        extraParams:
+          explosiveArrows: true
+
+  # --- Grapple Hook Runes ---
+    description:
+      - "Bow Drones shoot explosive arrows."
+  - id: "archer_grapple_hook_poison"
+    name: "Rune of Toxic Hook"
+    rarity: "RARE"
+    targetClass: "ARCHER"
+    targetSpell: "grapple_hook"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        newEffectKey: "GRAPPLE_HOOK"
+        extraParams:
+          poisonTarget: true
+
+    description:
+      - "Poison grappled enemies."
+  - id: "archer_grapple_hook_reel"
+    name: "Rune of Reeling"
+    rarity: "UNCOMMON"
+    targetClass: "ARCHER"
+    targetSpell: "grapple_hook"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        newEffectKey:
+        extraParams:
+          pullStrength: 1.5
+
+    description:
+      - "Increases grapple pull strength."
+  - id: "archer_grapple_hook_burst"
+    name: "Rune of Impact Hook"
+    rarity: "EPIC"
+    targetClass: "ARCHER"
+    targetSpell: "grapple_hook"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        newEffectKey: "GRAPPLE_HOOK"
+        extraParams:
+          explosionOnHit: true
+
+  # --- Arrow Storm Runes ---
+    description:
+      - "Grapple impact causes explosion."
+  - id: "archer_arrow_storm_fire"
+    name: "Rune of Blazing Rain"
+    rarity: "RARE"
+    targetClass: "ARCHER"
+    targetSpell: "arrow_storm"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        newEffectKey: "ARROW_STORM"
+        extraParams:
+          igniteTargets: true
+
+    description:
+      - "Arrows ignite targets."
+  - id: "archer_arrow_storm_heal"
+    name: "Rune of Restoring Storm"
+    rarity: "UNCOMMON"
+    targetClass: "ARCHER"
+    targetSpell: "arrow_storm"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        newEffectKey:
+        extraParams:
+          healAllies: 4.0
+
+    description:
+      - "Arrows heal allies on hit."
+  - id: "archer_arrow_storm_knockback"
+    name: "Rune of Gust"
+    rarity: "UNCOMMON"
+    targetClass: "ARCHER"
+    targetSpell: "arrow_storm"
+    unique: false
+    effects:
+      - type: "TRANSFORM"
+        newEffectKey: "ARROW_STORM"
+        extraParams:
+          knockback: 1.2
+
+    description:
+      - "Arrows knock enemies back."
+  - id: "archer_arrow_storm_deluge"
+    name: "Rune of Endless Rain"
+    rarity: "EPIC"
+    targetClass: "ARCHER"
+    targetSpell: "arrow_storm"
+    unique: true
+    effects:
+      - type: "MODIFIER"
+        newEffectKey:
+        extraParams:
+          arrowCountBonus: 10
+
+    description:
+      - "Fires many more arrows."
   - id: "archer_bow_drone_swarm"
     name: "Rune of the Swarm"
     description:
@@ -414,7 +643,7 @@ runes:
       - type: "TRANSFORM"
         bonusDamagePercent: 0.0
         cooldownReductionPercent: 0.0
-        newEffectKey: null
+        newEffectKey:
         extraParams:
           extraDrones: 1
 
@@ -435,8 +664,10 @@ runes:
         bonusDamagePercent: 0.0
         cooldownReductionPercent: 0.0
         newEffectKey: "VOLCANIC_BLAST_EFFECT"
-        extraParams: { }
+        extraParams: {}
 
+    description:
+      - "Shockwave erupts with magma."
   - id: "warrior_shockwave_aoe"
     name: "+1 AOE Size"
     rarity: "UNCOMMON"
@@ -447,11 +678,13 @@ runes:
       - type: "MODIFIER"
         bonusDamagePercent: 0.0
         cooldownReductionPercent: 0.0
-        newEffectKey: null
+        newEffectKey:
         extraParams:
           aoeRadius: 1.0
 
   # --- Warrior Heroic Leap Rune ---
+    description:
+      - "Increases Shockwave radius."
   - id: "warrior_heroic_leap_vortex"
     name: "Vortex Leap"
     rarity: "EPIC"
@@ -463,9 +696,11 @@ runes:
         bonusDamagePercent: 0.0
         cooldownReductionPercent: 0.0
         newEffectKey: "VORTEX_LEAP_EFFECT"
-        extraParams: { }
+        extraParams: {}
 
   # --- Warrior Iron Fortress Runes ---
+    description:
+      - "Landing pulls enemies inward."
   - id: "warrior_iron_fortress_explosive"
     name: "Explosive Shields"
     rarity: "EPIC"
@@ -476,10 +711,12 @@ runes:
       - type: "MODIFIER"
         bonusDamagePercent: 0.0
         cooldownReductionPercent: 0.0
-        newEffectKey: null
+        newEffectKey:
         extraParams:
           explosiveShields: true
 
+    description:
+      - "Shields explode on expire."
   - id: "warrior_iron_fortress_share"
     name: "Also Shield Allies"
     rarity: "RARE"
@@ -490,11 +727,13 @@ runes:
       - type: "MODIFIER"
         bonusDamagePercent: 0.0
         cooldownReductionPercent: 0.0
-        newEffectKey: null
+        newEffectKey:
         extraParams:
           shieldAllies: true
 
   # --- Warrior Judgement Rune ---
+    description:
+      - "Also shields nearby allies."
   - id: "warrior_judgement_gate"
     name: "Gate of Ruin"
     rarity: "EPIC"
@@ -506,4 +745,509 @@ runes:
         bonusDamagePercent: 0.0
         cooldownReductionPercent: 0.0
         newEffectKey: "GATE_OF_RUIN_EFFECT"
-        extraParams: { }
+        extraParams: {}
+
+    description:
+      - "Opens a devastating gate."
+  - id: "warrior_shockwave_knockback"
+    name: "Rune of Tremor"
+    rarity: "UNCOMMON"
+    targetClass: "WARRIOR"
+    targetSpell: "shockwave"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        newEffectKey:
+        extraParams:
+          knockback: 1.2
+
+    description:
+      - "Shockwave knocks enemies away."
+  - id: "warrior_shockwave_lava"
+    name: "Rune of Lava Wave"
+    rarity: "EPIC"
+    targetClass: "WARRIOR"
+    targetSpell: "shockwave"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        newEffectKey: "VOLCANIC_BLAST_EFFECT"
+        extraParams:
+          fireDuration: 60
+
+    description:
+      - "Shockwave leaves lava behind."
+  - id: "warrior_shockwave_range"
+    name: "Rune of Far Reach"
+    rarity: "UNCOMMON"
+    targetClass: "WARRIOR"
+    targetSpell: "shockwave"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        newEffectKey:
+        extraParams:
+          aoeRadius: 2.0
+
+    description:
+      - "Extends Shockwave reach."
+  - id: "warrior_heroic_leap_stun"
+    name: "Rune of Stunning Leap"
+    rarity: "EPIC"
+    targetClass: "WARRIOR"
+    targetSpell: "heroic_leap"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        newEffectKey: "STUNNING_LEAP_EFFECT"
+        extraParams: {}
+
+    description:
+      - "Stuns foes on landing."
+  - id: "warrior_heroic_leap_distance"
+    name: "Rune of Great Leap"
+    rarity: "UNCOMMON"
+    targetClass: "WARRIOR"
+    targetSpell: "heroic_leap"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        newEffectKey:
+        extraParams:
+          leapBoost: 0.5
+
+    description:
+      - "Leap farther than normal."
+  - id: "warrior_heroic_leap_flame"
+    name: "Rune of Flame Leap"
+    rarity: "RARE"
+    targetClass: "WARRIOR"
+    targetSpell: "heroic_leap"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        newEffectKey: "HEROIC_LEAP"
+        extraParams:
+          igniteLand: true
+
+    description:
+      - "Ignites ground on landing."
+  - id: "warrior_iron_fortress_reinforce"
+    name: "Rune of Reinforcement"
+    rarity: "UNCOMMON"
+    targetClass: "WARRIOR"
+    targetSpell: "iron_fortress"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        newEffectKey:
+        extraParams:
+          extraShields: 2
+
+    description:
+      - "Creates extra shields."
+  - id: "warrior_iron_fortress_reflect"
+    name: "Rune of Reflection"
+    rarity: "RARE"
+    targetClass: "WARRIOR"
+    targetSpell: "iron_fortress"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        newEffectKey: "IRON_FORTRESS"
+        extraParams:
+          reflectProjectiles: true
+
+    description:
+      - "Reflects projectiles."
+  - id: "warrior_iron_fortress_heal"
+    name: "Rune of Fortified Spirit"
+    rarity: "UNCOMMON"
+    targetClass: "WARRIOR"
+    targetSpell: "iron_fortress"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        newEffectKey:
+        extraParams:
+          healOnExpire: 4.0
+
+    description:
+      - "Heals when shields expire."
+  - id: "warrior_judgement_holy"
+    name: "Rune of Holy Judgement"
+    rarity: "RARE"
+    targetClass: "WARRIOR"
+    targetSpell: "judgement"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        newEffectKey: "JUDGEMENT"
+        extraParams:
+          smite: true
+
+    description:
+      - "Calls down holy smite."
+  - id: "warrior_judgement_chain"
+    name: "Rune of Chained Judgement"
+    rarity: "EPIC"
+    targetClass: "WARRIOR"
+    targetSpell: "judgement"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        newEffectKey: "JUDGEMENT"
+        extraParams:
+          chainTargets: 3
+
+    description:
+      - "Chains Judgement to others."
+  - id: "warrior_judgement_speed"
+    name: "Rune of Swift Judgement"
+    rarity: "UNCOMMON"
+    targetClass: "WARRIOR"
+    targetSpell: "judgement"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        bonusDamagePercent: 0.0
+        cooldownReductionPercent: 20.0
+        newEffectKey:
+        extraParams: {}
+
+    description:
+      - "Reduces Judgement cooldown."
+  - id: "warrior_judgement_lifesteal"
+    name: "Rune of Vampiric Judgement"
+    rarity: "EPIC"
+    targetClass: "WARRIOR"
+    targetSpell: "judgement"
+    unique: true
+    effects:
+      - type: "MODIFIER"
+        newEffectKey:
+        extraParams:
+          lifesteal: 0.15
+
+  # --- Rogue Runes ---
+    description:
+      - "Judgement heals you."
+  - id: "rogue_endless_assault_speed"
+    name: "Rune of Relentless Strikes"
+    description:
+      - "Increases attack speed during"
+      - "Endless Assault."
+    rarity: "UNCOMMON"
+    targetClass: "ROGUE"
+    targetSpell: "endless_assault"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        extraParams:
+          attackSpeed: 0.2
+
+  - id: "rogue_blade_fury_bleed"
+    name: "Rune of Bleeding Blades"
+    description:
+      - "Blade Fury causes enemies"
+      - "to bleed over time."
+    rarity: "RARE"
+    targetClass: "ROGUE"
+    targetSpell: "blade_fury"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        priority: 10
+        extraParams:
+          applyBleed: true
+
+  - id: "rogue_endless_assault_damage"
+    name: "Rune of Brutality"
+    rarity: "RARE"
+    targetClass: "ROGUE"
+    targetSpell: "endless_assault"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        bonusDamagePercent: 15.0
+        cooldownReductionPercent: 0.0
+        newEffectKey:
+        extraParams: {}
+
+    description:
+      - "Increases Endless Assault damage."
+  - id: "rogue_endless_assault_dash"
+    name: "Rune of Whirlwind"
+    rarity: "EPIC"
+    targetClass: "ROGUE"
+    targetSpell: "endless_assault"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        newEffectKey: "ENDLESS_ASSAULT"
+        extraParams:
+          dashBetweenTargets: true
+
+    description:
+      - "Dash between targets."
+  - id: "rogue_endless_assault_extended"
+    name: "Rune of Endless Rage"
+    rarity: "UNCOMMON"
+    targetClass: "ROGUE"
+    targetSpell: "endless_assault"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        newEffectKey:
+        extraParams:
+          durationBonus: 40
+
+    description:
+      - "Extends Endless Assault duration."
+  - id: "rogue_endless_assault_mana"
+    name: "Rune of Efficient Assault"
+    rarity: "UNCOMMON"
+    targetClass: "ROGUE"
+    targetSpell: "endless_assault"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        newEffectKey:
+        extraParams:
+          manaCostIncrease: -5
+
+    description:
+      - "Lowers Endless Assault mana cost."
+  - id: "rogue_blade_fury_spread"
+    name: "Rune of Wide Swings"
+    rarity: "UNCOMMON"
+    targetClass: "ROGUE"
+    targetSpell: "blade_fury"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        newEffectKey:
+        extraParams:
+          aoeRadius: 2.0
+
+    description:
+      - "Wider Blade Fury radius."
+  - id: "rogue_blade_fury_stun"
+    name: "Rune of Stunning Fury"
+    rarity: "RARE"
+    targetClass: "ROGUE"
+    targetSpell: "blade_fury"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        newEffectKey: "BLADE_FURY"
+        extraParams:
+          stunDuration: 40
+
+    description:
+      - "Blade Fury stuns foes."
+  - id: "rogue_blade_fury_rapid"
+    name: "Rune of Rapid Slashes"
+    rarity: "UNCOMMON"
+    targetClass: "ROGUE"
+    targetSpell: "blade_fury"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        bonusDamagePercent: 0.0
+        cooldownReductionPercent: 20.0
+        newEffectKey:
+        extraParams: {}
+
+    description:
+      - "Blade Fury cooldown reduced."
+  - id: "rogue_shadow_clone_swap"
+    name: "Rune of Shadow Swap"
+    rarity: "RARE"
+    targetClass: "ROGUE"
+    targetSpell: "shadow_clone"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        newEffectKey: "SHADOW_CLONE"
+        extraParams:
+          allowSwap: true
+
+    description:
+      - "Swap places with your clone."
+  - id: "rogue_shadow_clone_explosive"
+    name: "Rune of Explosive Clone"
+    rarity: "EPIC"
+    targetClass: "ROGUE"
+    targetSpell: "shadow_clone"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        newEffectKey: "SHADOW_CLONE"
+        extraParams:
+          explodeOnDeath: true
+
+    description:
+      - "Clones explode on death."
+  - id: "rogue_shadow_clone_mimic"
+    name: "Rune of Mimicry"
+    rarity: "EPIC"
+    targetClass: "ROGUE"
+    targetSpell: "shadow_clone"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        newEffectKey: "MOVING_SHADOW_CLONE_EFFECT"
+        extraParams: {}
+
+    description:
+      - "Clone mimics your attacks."
+  - id: "rogue_shadow_clone_duration"
+    name: "Rune of Lingering Echo"
+    rarity: "UNCOMMON"
+    targetClass: "ROGUE"
+    targetSpell: "shadow_clone"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        newEffectKey:
+        extraParams:
+          durationBonus: 100
+
+    description:
+      - "Clone lasts longer."
+  - id: "rogue_vanish_duration"
+    name: "Rune of Lasting Veil"
+    rarity: "UNCOMMON"
+    targetClass: "ROGUE"
+    targetSpell: "vanish"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        newEffectKey:
+        extraParams:
+          durationBonus: 40
+
+    description:
+      - "Increases Vanish duration."
+  - id: "rogue_vanish_smoke"
+    name: "Rune of Smoke Trail"
+    rarity: "RARE"
+    targetClass: "ROGUE"
+    targetSpell: "vanish"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        newEffectKey: "VANISH"
+        extraParams:
+          leaveTrail: true
+
+    description:
+      - "Leave a smoke trail behind."
+  - id: "rogue_vanish_speed"
+    name: "Rune of Quick Escape"
+    rarity: "UNCOMMON"
+    targetClass: "ROGUE"
+    targetSpell: "vanish"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        newEffectKey:
+        extraParams:
+          speedBoost: 0.2
+
+    description:
+      - "Move faster while vanished."
+  - id: "rogue_vanish_blind"
+    name: "Rune of Blinding Smoke"
+    rarity: "EPIC"
+    targetClass: "ROGUE"
+    targetSpell: "vanish"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        newEffectKey: "VANISH"
+        extraParams:
+          blindEnemies: true
+
+    description:
+      - "Blinds nearby foes when vanishing."
+  - id: "rogue_vanish_poison"
+    name: "Rune of Toxic Exit"
+    rarity: "RARE"
+    targetClass: "ROGUE"
+    targetSpell: "vanish"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        newEffectKey: "VANISH"
+        extraParams:
+          poisonNearby: true
+
+    description:
+      - "Poisons enemies when vanishing."
+  - id: "rogue_blade_fury_shadow"
+    name: "Rune of Shadowed Fury"
+    rarity: "EPIC"
+    targetClass: "ROGUE"
+    targetSpell: "blade_fury"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        newEffectKey: "BLADE_FURY"
+        extraParams:
+          summonClones: true
+    description:
+      - "Summons shadow clones on cast."
+  - id: "warrior_war_cry_intimidate"
+    name: "Rune of Intimidation"
+    rarity: "UNCOMMON"
+    targetClass: "WARRIOR"
+    targetSpell: "war_cry"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        extraParams:
+          weakenEnemies: true
+
+    description:
+      - "Weakens nearby enemies."
+  - id: "warrior_war_cry_rally"
+    name: "Rune of Rallying"
+    rarity: "RARE"
+    targetClass: "WARRIOR"
+    targetSpell: "war_cry"
+    unique: true
+    effects:
+      - type: "MODIFIER"
+        extraParams:
+          durationBonus: 100
+
+    description:
+      - "Extends War Cry duration."
+  - id: "rogue_shadow_step_backstab"
+    name: "Rune of Backstab"
+    rarity: "RARE"
+    targetClass: "ROGUE"
+    targetSpell: "shadow_step"
+    unique: true
+    effects:
+      - type: "MODIFIER"
+        extraParams:
+          bonusDamagePercent: 30.0
+
+    description:
+      - "Backstab deals more damage."
+  - id: "rogue_shadow_step_smoke"
+    name: "Rune of Smoke Step"
+    rarity: "UNCOMMON"
+    targetClass: "ROGUE"
+    targetSpell: "shadow_step"
+    unique: false
+    effects:
+      - type: "TRANSFORM"
+        newEffectKey: "SHADOW_STEP"
+        extraParams:
+          leaveSmoke: true
+    description:
+      - "Arrive in a cloud of smoke."

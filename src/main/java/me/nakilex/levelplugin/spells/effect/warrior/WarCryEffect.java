@@ -25,12 +25,12 @@ public class WarCryEffect implements SpellEffect {
 
         for (Entity entity : player.getNearbyEntities(radius, radius, radius)) {
             if (entity instanceof Player p) {
-                p.addPotionEffect(new PotionEffect(PotionEffectType.INCREASE_DAMAGE, duration, 1));
+                p.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, duration, 1));
                 p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, duration, 0));
             }
         }
         // buff caster too
-        player.addPotionEffect(new PotionEffect(PotionEffectType.INCREASE_DAMAGE, duration, 1));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, duration, 1));
         player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, duration, 0));
     }
 }

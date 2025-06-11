@@ -166,3 +166,12 @@ commands:
   townstage:
     description: Define settlement stage regions
     usage: /townstage <wand|create|remove|list>
+  buildingstage:
+    description: Define building stage regions
+    usage: /buildingstage <wand|create|remove|list>
+  townpos1:
+    description: Set first selection position for towns
+    usage: /townpos1
+  townpos2:
+    description: Set second selection position for towns
+    usage: /townpos2

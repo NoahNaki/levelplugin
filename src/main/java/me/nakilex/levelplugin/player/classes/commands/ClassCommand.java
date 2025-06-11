@@ -34,7 +34,7 @@ public class ClassCommand implements CommandExecutor {
         } else {
             // Debug: log to console that this command was used
             Bukkit.getLogger().info("[ClassCommand] " + player.getName() + " used /class. Opening class selection menu.");
-            player.openInventory(ClassMenu.getClassSelectionMenu());
+            player.openInventory(ClassMenu.getClassSelectionMenu(player));
         }
         return true;
     }

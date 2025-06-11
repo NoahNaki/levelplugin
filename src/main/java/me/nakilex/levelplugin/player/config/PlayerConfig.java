@@ -166,6 +166,28 @@ public class PlayerConfig {
         config.set("players." + uuid + ".environment.town", town);
     }
 
+    public int getBuildingLevel(UUID uuid, String building) {
+        String path = "players." + uuid + ".environment.buildings." + building + ".level";
+        return config.getInt(path, 1);
+    }
+
+    public int getBuildingStage(UUID uuid, String building) {
+        String path = "players." + uuid + ".environment.buildings." + building + ".stage";
+        return config.getInt(path, 1);
+    }
+
+    public void setBuildingState(UUID uuid, String building, int level, int stage) {
+        String base = "players." + uuid + ".environment.buildings." + building + ".";
+        config.set(base + "level", level);
+        config.set(base + "stage", stage);
+    }
+
+    public java.util.Set<String> getStoredBuildings(UUID uuid) {
+        String base = "players." + uuid + ".environment.buildings";
+        if (!config.isConfigurationSection(base)) return java.util.Collections.emptySet();
+        return config.getConfigurationSection(base).getKeys(false);
+    }
+
     public void clearEnvironmentData(UUID uuid) {
         String base = "players." + uuid + ".environment.";
         config.set(base + "level", null);
@@ -175,6 +197,7 @@ public class PlayerConfig {
         config.set(base + "origin.x", null);
         config.set(base + "origin.y", null);
         config.set(base + "origin.z", null);
+        config.set(base + "buildings", null);
     }
 
     /** Allows external classes to persist config changes. */

@@ -202,26 +202,8 @@ public class SalvageListener implements Listener {
         Inventory gui = player.getOpenInventory().getTopInventory();
         PlayerInventory playerInv = player.getInventory();
         int handSlot = playerInv.getHeldItemSlot();
-
-        int coins = 0, gems = 0;
-
-        // 1) First, remove from any matching items sitting in the GUI slots
-        for (int i = 0; i < 54; i++) {
-            if (!isInputSlot(i)) continue;
-            ItemStack guiItem = gui.getItem(i);
-            if (guiItem == null || guiItem.getType() == Material.AIR) continue;
-
-            CustomItem cItemGui = ItemManager.getInstance().getCustomItemFromItemStack(guiItem);
-            if (cItemGui != null && cItemGui.getRarity() == targetRarity) {
-                coins += SalvageManager.getInstance().getSellPrice(cItemGui);
-                gems += SalvageManager.getInstance().getGemReward(cItemGui);
-                gui.setItem(i, null);
-            }
-        }
-
-        // 2) Now, only loop through the “storage” contents (main inventory + hotbar),
-        //    ignoring any armor or off-hand slots.
-        ItemStack[] storageContents = playerInv.getStorageContents(); // length = 36 (slots 0–35)
+        // move matching items from the player's inventory into the GUI
+        ItemStack[] storageContents = playerInv.getStorageContents();
         for (int i = 0; i < storageContents.length; i++) {
             if (i == handSlot) continue;
             ItemStack invItem = storageContents[i];
@@ -229,32 +211,25 @@ public class SalvageListener implements Listener {
 
             CustomItem cItemInv = ItemManager.getInstance().getCustomItemFromItemStack(invItem);
             if (cItemInv != null && cItemInv.getRarity() == targetRarity) {
-                coins += SalvageManager.getInstance().getSellPrice(cItemInv);
-                gems += SalvageManager.getInstance().getGemReward(cItemInv);
-                // Clear exactly this slot in the player’s storage:
+                int dest = firstEmptyInputSlot(gui);
+                if (dest == -1) break;
                 playerInv.setItem(i, null);
+                gui.setItem(dest, invItem);
             }
         }
 
-        // 3) Finally, grant currency and send a message
-        economyManager.addCoins(player, coins);
-        if (gems > 0) {
-            gemsManager.addUnits(player, gems);
+        ItemStack off = playerInv.getItemInOffHand();
+        if (off != null && off.getType() != Material.AIR) {
+            CustomItem cOff = ItemManager.getInstance().getCustomItemFromItemStack(off);
+            if (cOff != null && cOff.getRarity() == targetRarity) {
+                int dest = firstEmptyInputSlot(gui);
+                if (dest != -1) {
+                    playerInv.setItemInOffHand(null);
+                    gui.setItem(dest, off);
+                }
+            }
         }
-
-        if (coins > 0 || gems > 0) {
-            StringBuilder msg = new StringBuilder(ChatColor.GOLD + "You received ");
-            if (coins > 0)
-                msg.append(ChatColor.YELLOW).append(coins).append(" ⛃" + ChatColor.GOLD + " coins");
-            if (coins > 0 && gems > 0)
-                msg.append(ChatColor.GOLD + " and ");
-            if (gems > 0)
-                msg.append(ChatColor.LIGHT_PURPLE).append(gems).append(ChatColor.LIGHT_PURPLE + " ✦ "  + ChatColor.GOLD + "gems");
-            msg.append("!");
-            player.sendMessage(msg.toString());
-        } else {
-            player.sendMessage(ChatColor.YELLOW + "No " + targetRarity.name().toLowerCase() + " items to salvage.");
-        }
+        player.sendMessage(ChatColor.YELLOW + "Moved all " + targetRarity.name().toLowerCase() + " items.");
     }
 
     /** Moves all salvageable items from the player's inventory into the GUI. */

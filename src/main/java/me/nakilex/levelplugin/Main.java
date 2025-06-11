@@ -132,6 +132,7 @@ public class Main extends JavaPlugin {
     private me.nakilex.levelplugin.environment.EnvironmentManager environmentManager;
     private me.nakilex.levelplugin.environment.UpgradeGUI upgradeGUI;
     private me.nakilex.levelplugin.environment.stage.TownStageManager townStageManager;
+    private me.nakilex.levelplugin.environment.stage.BuildingStageManager buildingStageManager;
     /**
      * Tracks all active bow drone NPCs for each player. Some runes can add
      * additional drones so we store a list rather than a single instance.
@@ -177,7 +178,7 @@ public class Main extends JavaPlugin {
         playerConfig.loadAllPlayers();
 
         // Managers that depend on PlayerConfig
-        environmentManager = new me.nakilex.levelplugin.environment.EnvironmentManager(playerConfig, townStageManager, fakeBlockManager);
+        environmentManager = new me.nakilex.levelplugin.environment.EnvironmentManager(playerConfig, townStageManager, buildingStageManager, fakeBlockManager);
         upgradeGUI = new me.nakilex.levelplugin.environment.UpgradeGUI(environmentManager);
 
 
@@ -260,6 +261,7 @@ public class Main extends JavaPlugin {
         fakeBlockManager = new me.nakilex.levelplugin.fakeblock.FakeBlockManager();
         questGateManager = new me.nakilex.levelplugin.fakeblock.QuestGateManager(this, fakeBlockManager);
         townStageManager = new me.nakilex.levelplugin.environment.stage.TownStageManager(this);
+        buildingStageManager = new me.nakilex.levelplugin.environment.stage.BuildingStageManager(this);
         cooldownManager.setLootChestManager(lootChestManager);
         equipGui = new EquipRunesGUI(this, runesManager, identifyRunesGUI);
         enchantManager = new me.nakilex.levelplugin.enchanting.managers.EnchantManager();
@@ -409,6 +411,9 @@ public class Main extends JavaPlugin {
 
         if (townStageManager != null) {
             townStageManager.despawnAll();
+        }
+        if (buildingStageManager != null) {
+            buildingStageManager.despawnAll();
         }
 
 
@@ -562,6 +567,10 @@ public class Main extends JavaPlugin {
 
     public me.nakilex.levelplugin.environment.stage.TownStageManager getTownStageManager() {
         return townStageManager;
+    }
+
+    public me.nakilex.levelplugin.environment.stage.BuildingStageManager getBuildingStageManager() {
+        return buildingStageManager;
     }
 
     private void createCustomConfig() {

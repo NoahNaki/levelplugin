@@ -45,9 +45,9 @@ public class SalvageGUI {
                 ChatColor.RED + "✖ Cancel:",
                 ChatColor.GRAY + "  Closes the salvage menu safely.",
                 "",
-                ChatColor.GOLD + "Quick-Sell Buttons:",
-                ChatColor.GRAY + "  Instantly salvage all items of a given rarity",
-                ChatColor.GRAY + "  from both the GUI and your inventory."
+                ChatColor.GOLD + "Deposit Buttons:",
+                ChatColor.GRAY + "  Move all items of a chosen rarity",
+                ChatColor.GRAY + "  from your inventory into this menu."
             ));
             info.setItemMeta(infoMeta);
         }
@@ -74,7 +74,7 @@ public class SalvageGUI {
 
         for (int i = 0; i < rarities.length; i++) {
             int actualSlot = logicalStart + i; // 46–50
-            gui.setItem(actualSlot, createRaritySellButton(rarities[i]));
+            gui.setItem(actualSlot, createRarityDepositButton(rarities[i]));
         }
 
         // Deposit/Return buttons
@@ -105,25 +105,18 @@ public class SalvageGUI {
         return item;
     }
 
-    private static ItemStack createRaritySellButton(ItemRarity rarity) {
-        Material material;
+    private static ItemStack createRarityDepositButton(ItemRarity rarity) {
+        String id;
         switch (rarity) {
-            case COMMON: material = Material.LIGHT_GRAY_CONCRETE; break;
-            case UNCOMMON: material = Material.LIME_CONCRETE; break;
-            case RARE: material = Material.CYAN_CONCRETE; break;
-            case EPIC: material = Material.MAGENTA_CONCRETE; break;
-            case LEGENDARY: material = Material.ORANGE_CONCRETE; break;
-            default: material = Material.BARRIER; break;
+            case COMMON: id = "arrow_common"; break;
+            case UNCOMMON: id = "arrow_uncommon"; break;
+            case RARE: id = "arrow_rare"; break;
+            case EPIC: id = "arrow_epic"; break;
+            case LEGENDARY: id = "arrow_legendary"; break;
+            default: id = "arrow_common"; break;
         }
 
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            String rarityName = rarity.name().charAt(0) + rarity.name().substring(1).toLowerCase();
-            meta.setDisplayName(rarity.getColor() + "Salvage " + rarityName + " Items");
-            item.setItemMeta(meta);
-        }
-
-        return item;
+        String rarityName = rarity.name().charAt(0) + rarity.name().substring(1).toLowerCase();
+        return getNexoItem(id, rarity.getColor() + "Deposit " + rarityName + " Items");
     }
 }
