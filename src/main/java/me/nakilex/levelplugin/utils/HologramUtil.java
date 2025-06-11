@@ -7,13 +7,18 @@ import org.bukkit.World;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.TextDisplay;
+import org.bukkit.entity.Display;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
- * Utility for spawning floating damage numbers with zero‑flash via an ArmorStand pool.
+ * Utility for spawning floating damage numbers. Originally used an ArmorStand
+ * pool to minimise flashes; now leverages lightweight TextDisplay entities.
  */
 public class HologramUtil {
 
@@ -68,23 +73,19 @@ public class HologramUtil {
             "[HologramUtil] spawnOneOff viewer=" + viewer.getName()
         );
         Location spawnLoc = loc.clone().add(0, START_Y_OFFSET, 0);
-        ArmorStand stand = (ArmorStand) loc.getWorld().spawnEntity(spawnLoc, EntityType.ARMOR_STAND);
-        stand.setVisible(false);
-        stand.setInvisible(true);
-        stand.setMarker(true);
-        stand.setGravity(false);
-        stand.setBasePlate(false);
-        stand.setSmall(true);
-        stand.setCustomNameVisible(true);
-        stand.setCustomName(text);
+        TextDisplay display = (TextDisplay) loc.getWorld().spawnEntity(spawnLoc, EntityType.TEXT_DISPLAY);
+        display.setBillboard(Display.Billboard.CENTER);
+        display.setText(LegacyComponentSerializer.legacySection().deserialize(text));
+        display.setShadowRadius(0);
+        display.setShadowStrength(0);
 
         // Hide from everyone except viewer (after one tick to ensure spawn packet)
         Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
             for (Player p : Bukkit.getOnlinePlayers()) {
                 if (p.equals(viewer)) {
-                    p.showEntity(Main.getInstance(), stand);
+                    p.showEntity(Main.getInstance(), display);
                 } else {
-                    p.hideEntity(Main.getInstance(), stand);
+                    p.hideEntity(Main.getInstance(), display);
                 }
             }
         }, 1L);
@@ -93,14 +94,14 @@ public class HologramUtil {
         new BukkitRunnable() {
             @Override
             public void run() {
-                if (!stand.isDead()) {
+                if (!display.isDead()) {
                     for (Player p : Bukkit.getOnlinePlayers()) {
-                        p.hideEntity(Main.getInstance(), stand);
+                        p.hideEntity(Main.getInstance(), display);
                     }
                     Main.getInstance().getLogger().info(
-                        "[HologramUtil] remove one-off stand id=" + stand.getEntityId()
+                        "[HologramUtil] remove one-off display id=" + display.getEntityId()
                     );
-                    stand.remove();
+                    display.remove();
                 }
             }
         }.runTaskLater(Main.getInstance(), LIFETIME_TICKS);
