@@ -65,25 +65,26 @@ public class PotionInstance {
         List<String> lore = new java.util.ArrayList<>();
         boolean mana = template.getId().startsWith("mana");
         if (mana) {
+            lore.add(ChatColor.AQUA + "Potion of " + ChatColor.DARK_AQUA + ChatColor.BOLD + "Mana Regeneration");
             if (template.getHealAmount() > 0) {
-                lore.add(ChatColor.DARK_AQUA + "↣ " + ChatColor.GRAY + "Recover "
-                        + ChatColor.WHITE + (int) template.getHealAmount() + ChatColor.AQUA + " ✨");
+                lore.add(ChatColor.GRAY + "- " + ChatColor.WHITE + "Restore " + ChatColor.AQUA
+                        + (int) template.getHealAmount() + ChatColor.AQUA + " ✨");
             } else {
-                lore.add(ChatColor.DARK_AQUA + "↣ " + ChatColor.GRAY + "Recover "
-                        + ChatColor.WHITE + (int) (template.getHealPercent() * 100) + "% "
-                        + ChatColor.AQUA + "✨");
+                lore.add(ChatColor.GRAY + "- " + ChatColor.WHITE + "Restore " + ChatColor.AQUA
+                        + (int) (template.getHealPercent() * 100) + "% " + ChatColor.AQUA + "✨");
             }
         } else {
+            lore.add(ChatColor.RED + "Potion of " + ChatColor.DARK_RED + ChatColor.BOLD + "Healing");
             if (template.getHealAmount() > 0) {
-                lore.add(ChatColor.DARK_RED + "↣ " + ChatColor.GRAY + "Recover "
-                        + ChatColor.WHITE + (int) template.getHealAmount() + ChatColor.RED + " ❤");
+                lore.add(ChatColor.GRAY + "- " + ChatColor.WHITE + "Heal " + ChatColor.RED
+                        + (int) template.getHealAmount() + ChatColor.RED + " ❤");
             } else if (template.getHealPercent() > 0) {
-                lore.add(ChatColor.DARK_RED + "↣ " + ChatColor.GRAY + "Recover "
-                        + ChatColor.WHITE + (int) (template.getHealPercent() * 100) + "% "
-                        + ChatColor.RED + " ❤");
+                lore.add(ChatColor.GRAY + "- " + ChatColor.WHITE + "Heal " + ChatColor.RED
+                        + (int) (template.getHealPercent() * 100) + "% " + ChatColor.RED + "❤");
             }
         }
-        lore.add(ChatColor.GRAY + "Right-click to drink");
+        lore.add(ChatColor.GRAY + "Tier " + ChatColor.WHITE + toRoman(template.getTier()));
+        lore.add(ChatColor.GRAY + "Right-click to consume");
         meta.setLore(lore);
 
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
@@ -96,5 +97,10 @@ public class PotionInstance {
 
         item.setItemMeta(meta);
         return item;
+    }
+
+    private String toRoman(int number) {
+        String[] numerals = {"I","II","III","IV","V","VI","VII","VIII","IX","X"};
+        return (number >= 1 && number <= 10) ? numerals[number-1] : String.valueOf(number);
     }
 }

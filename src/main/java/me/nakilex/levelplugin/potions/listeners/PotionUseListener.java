@@ -72,10 +72,17 @@ public class PotionUseListener implements Listener {
 
         String potionId = instance.getTemplate().getId();
 
-        // Check if it's a healing potion and if the player's health is already full.
-        if (!potionId.startsWith("mana")) {
+        // Prevent using healing potions at full health or mana potions at full mana
+        if (potionId.startsWith("mana")) {
+            int currentMana = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).getCurrentMana();
+            int maxMana = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).getMaxMana();
+            if (currentMana >= maxMana) {
+                player.sendMessage(ChatColor.AQUA + "Your mana is already full!");
+                return;
+            }
+        } else {
             if (player.getHealth() >= player.getMaxHealth()) {
-                player.sendMessage("Your health is already full!");
+                player.sendMessage(ChatColor.RED + "Your health is already full!");
                 return;
             }
         }
@@ -89,26 +96,31 @@ public class PotionUseListener implements Listener {
             int currentMana = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).getCurrentMana();
             int maxMana = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).getMaxMana();
 
-            int manaRestore;
-            if (instance.getTemplate().getHealAmount() > 0) {
-                manaRestore = (int) instance.getTemplate().getHealAmount();
-            } else {
-                manaRestore = (int) (maxMana * instance.getTemplate().getHealPercent());
-            }
-            int newMana = Math.min(currentMana + manaRestore, maxMana);
+            int manaRestore = (instance.getTemplate().getHealAmount() > 0)
+                    ? (int) instance.getTemplate().getHealAmount()
+                    : (int) (maxMana * instance.getTemplate().getHealPercent());
 
+            int newMana = Math.min(currentMana + manaRestore, maxMana);
             StatsManager.getInstance().getPlayerStats(player.getUniqueId()).setCurrentMana(newMana);
+
             meta.setDisplayName(instance.getTemplate().getName() + ChatColor.DARK_GRAY + " ["
                     + ChatColor.AQUA + instance.getCharges() + ChatColor.GRAY + "/" + ChatColor.AQUA
                     + instance.getTemplate().getCharges() + ChatColor.DARK_GRAY + "]");
+
             if (instance.getTemplate().getHealAmount() > 0) {
-                meta.setLore(Arrays.asList(ChatColor.DARK_AQUA + "↣ " + ChatColor.GRAY + "Recover "
-                        + ChatColor.WHITE + (int) instance.getTemplate().getHealAmount() + ChatColor.AQUA + " ✨",
-                        ChatColor.GRAY + "Right-click to drink"));
+                meta.setLore(Arrays.asList(
+                        ChatColor.AQUA + "Potion of " + ChatColor.DARK_AQUA + ChatColor.BOLD + "Mana Regeneration",
+                        ChatColor.GRAY + "- " + ChatColor.WHITE + "Restore " + ChatColor.AQUA
+                                + (int) instance.getTemplate().getHealAmount() + ChatColor.AQUA + " ✨",
+                        ChatColor.GRAY + "Tier " + ChatColor.WHITE + toRoman(instance.getTemplate().getTier()),
+                        ChatColor.GRAY + "Right-click to consume"));
             } else {
-                meta.setLore(Arrays.asList(ChatColor.DARK_AQUA + "↣ " + ChatColor.GRAY + "Recover "
-                        + ChatColor.WHITE + (int) (instance.getTemplate().getHealPercent()*100) + "% " + ChatColor.AQUA + "✨",
-                        ChatColor.GRAY + "Right-click to drink"));
+                meta.setLore(Arrays.asList(
+                        ChatColor.AQUA + "Potion of " + ChatColor.DARK_AQUA + ChatColor.BOLD + "Mana Regeneration",
+                        ChatColor.GRAY + "- " + ChatColor.WHITE + "Restore " + ChatColor.AQUA
+                                + (int) (instance.getTemplate().getHealPercent() * 100) + "% " + ChatColor.AQUA + "✨",
+                        ChatColor.GRAY + "Tier " + ChatColor.WHITE + toRoman(instance.getTemplate().getTier()),
+                        ChatColor.GRAY + "Right-click to consume"));
             }
         } else {
             double healAmt = instance.getTemplate().getHealAmount();
@@ -119,13 +131,17 @@ public class PotionUseListener implements Listener {
                     + ChatColor.AQUA + instance.getCharges() + ChatColor.GRAY + "/" + ChatColor.AQUA
                     + instance.getTemplate().getCharges() + ChatColor.DARK_GRAY + "]");
             if (healAmt > 0) {
-                meta.setLore(Arrays.asList(ChatColor.DARK_RED + "↣ " + ChatColor.GRAY + "Recover "
-                        + ChatColor.WHITE + (int) healAmt + ChatColor.RED + " ❤",
-                        ChatColor.GRAY + "Right-click to drink"));
+                meta.setLore(Arrays.asList(
+                        ChatColor.RED + "Potion of " + ChatColor.DARK_RED + ChatColor.BOLD + "Healing",
+                        ChatColor.GRAY + "- " + ChatColor.WHITE + "Heal " + ChatColor.RED + (int) healAmt + ChatColor.RED + " ❤",
+                        ChatColor.GRAY + "Tier " + ChatColor.WHITE + toRoman(instance.getTemplate().getTier()),
+                        ChatColor.GRAY + "Right-click to consume"));
             } else {
-                meta.setLore(Arrays.asList(ChatColor.DARK_RED + "↣ " + ChatColor.GRAY + "Recover "
-                        + ChatColor.WHITE + (int) (healPct*100) + "% " + ChatColor.RED + " ❤",
-                        ChatColor.GRAY + "Right-click to drink"));
+                meta.setLore(Arrays.asList(
+                        ChatColor.RED + "Potion of " + ChatColor.DARK_RED + ChatColor.BOLD + "Healing",
+                        ChatColor.GRAY + "- " + ChatColor.WHITE + "Heal " + ChatColor.RED + (int) (healPct * 100) + "% " + ChatColor.RED + "❤",
+                        ChatColor.GRAY + "Tier " + ChatColor.WHITE + toRoman(instance.getTemplate().getTier()),
+                        ChatColor.GRAY + "Right-click to consume"));
             }
         }
 
@@ -140,5 +156,10 @@ public class PotionUseListener implements Listener {
     @EventHandler
     public void onPotionConsume(PlayerItemConsumeEvent event) {
         event.setCancelled(true); // Always cancel consume animation
+    }
+
+    private String toRoman(int number) {
+        String[] numerals = {"I","II","III","IV","V","VI","VII","VIII","IX","X"};
+        return (number >= 1 && number <= 10) ? numerals[number-1] : String.valueOf(number);
     }
 }
