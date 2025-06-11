@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.spells.listener;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.FallingBlock;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -14,6 +15,12 @@ public class ShockwaveListener implements Listener {
         if (!(event.getEntity() instanceof FallingBlock fb)) return;
         if (!fb.hasMetadata("Shockwave")) return;
         event.setCancelled(true);
-        fb.remove();
+        // Let the block fall slightly through the ground before removing
+        fb.setVelocity(fb.getVelocity().setY(-0.4));
+        Bukkit.getScheduler().runTaskLater(
+                Bukkit.getPluginManager().getPlugin("LevelPlugin"),
+                fb::remove,
+                10L
+        );
     }
 }
