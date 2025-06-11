@@ -106,24 +106,17 @@ public class SalvageGUI {
     }
 
     private static ItemStack createRarityDepositButton(ItemRarity rarity) {
-        Material material;
+        String id;
         switch (rarity) {
-            case COMMON: material = Material.LIGHT_GRAY_CONCRETE; break;
-            case UNCOMMON: material = Material.LIME_CONCRETE; break;
-            case RARE: material = Material.CYAN_CONCRETE; break;
-            case EPIC: material = Material.MAGENTA_CONCRETE; break;
-            case LEGENDARY: material = Material.ORANGE_CONCRETE; break;
-            default: material = Material.BARRIER; break;
+            case COMMON: id = "arrow_common"; break;
+            case UNCOMMON: id = "arrow_uncommon"; break;
+            case RARE: id = "arrow_rare"; break;
+            case EPIC: id = "arrow_epic"; break;
+            case LEGENDARY: id = "arrow_legendary"; break;
+            default: id = "arrow_common"; break;
         }
 
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            String rarityName = rarity.name().charAt(0) + rarity.name().substring(1).toLowerCase();
-            meta.setDisplayName(rarity.getColor() + "Deposit " + rarityName + " Items");
-            item.setItemMeta(meta);
-        }
-
-        return item;
+        String rarityName = rarity.name().charAt(0) + rarity.name().substring(1).toLowerCase();
+        return getNexoItem(id, rarity.getColor() + "Deposit " + rarityName + " Items");
     }
 }

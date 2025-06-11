@@ -436,7 +436,7 @@ public class AuctionHouseGUI implements Listener {
     }
 
     private ItemStack createRefreshButton() {
-        return getNexoItem("reset", ChatColor.GREEN + "Refresh");
+        return getNexoItem("refresh", ChatColor.GREEN + "Refresh");
     }
 
     private ItemStack createArrow(String name, boolean right) {
