@@ -56,35 +56,27 @@ public class PotionInstance {
         }
         ItemMeta meta = item.getItemMeta();
 
-        // Set Display Name with Charges using nicer colors
-        String display = template.getName() + ChatColor.DARK_GRAY + " [" + ChatColor.AQUA
-                + charges + ChatColor.GRAY + "/" + ChatColor.AQUA + template.getCharges()
-                + ChatColor.DARK_GRAY + "]";
+        String baseName = ChatColor.translateAlternateColorCodes('&', template.getName());
+        String display = baseName + ChatColor.DARK_GRAY + "[" + ChatColor.GRAY + charges
+                + ChatColor.WHITE + "/" + ChatColor.GRAY + template.getCharges() + ChatColor.DARK_GRAY + "]";
         meta.setDisplayName(display);
 
         List<String> lore = new java.util.ArrayList<>();
         boolean mana = template.getId().startsWith("mana");
-        if (mana) {
-            lore.add(ChatColor.AQUA + "Potion of " + ChatColor.DARK_AQUA + ChatColor.BOLD + "Mana Regeneration");
-            if (template.getHealAmount() > 0) {
-                lore.add(ChatColor.GRAY + "- " + ChatColor.WHITE + "Restore " + ChatColor.AQUA
-                        + (int) template.getHealAmount() + ChatColor.AQUA + " ✨");
-            } else {
-                lore.add(ChatColor.GRAY + "- " + ChatColor.WHITE + "Restore " + ChatColor.AQUA
-                        + (int) (template.getHealPercent() * 100) + "% " + ChatColor.AQUA + "✨");
-            }
+        lore.add(ChatColor.WHITE + "Effect:");
+        String bulletColor = mana ? ChatColor.AQUA.toString() : ChatColor.RED.toString();
+        String amountStr;
+        if (template.getHealAmount() > 0) {
+            amountStr = String.valueOf((int) template.getHealAmount());
         } else {
-            lore.add(ChatColor.RED + "Potion of " + ChatColor.DARK_RED + ChatColor.BOLD + "Healing");
-            if (template.getHealAmount() > 0) {
-                lore.add(ChatColor.GRAY + "- " + ChatColor.WHITE + "Heal " + ChatColor.RED
-                        + (int) template.getHealAmount() + ChatColor.RED + " ❤");
-            } else if (template.getHealPercent() > 0) {
-                lore.add(ChatColor.GRAY + "- " + ChatColor.WHITE + "Heal " + ChatColor.RED
-                        + (int) (template.getHealPercent() * 100) + "% " + ChatColor.RED + "❤");
-            }
+            amountStr = (int) (template.getHealPercent() * 100) + "%";
         }
-        lore.add(ChatColor.GRAY + "Tier " + ChatColor.WHITE + toRoman(template.getTier()));
-        lore.add(ChatColor.GRAY + "Right-click to consume");
+        String symbol = mana ? " ✨" : " ❤";
+        String action = mana ? "Restore " : "Heal ";
+        lore.add(bulletColor + "- " + ChatColor.GRAY + action + ChatColor.WHITE + amountStr + bulletColor + symbol);
+        lore.add(bulletColor + "- " + ChatColor.GRAY + "Cooldown: " + ChatColor.GRAY + template.getCooldownSeconds());
+        lore.add(" ");
+        lore.add(ChatColor.WHITE + "Right-click " + ChatColor.GRAY + "to consume");
         meta.setLore(lore);
 
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);

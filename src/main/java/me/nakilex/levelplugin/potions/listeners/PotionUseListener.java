@@ -21,6 +21,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.UUID;
 
 public class PotionUseListener implements Listener {
@@ -103,46 +104,37 @@ public class PotionUseListener implements Listener {
             int newMana = Math.min(currentMana + manaRestore, maxMana);
             StatsManager.getInstance().getPlayerStats(player.getUniqueId()).setCurrentMana(newMana);
 
-            meta.setDisplayName(instance.getTemplate().getName() + ChatColor.DARK_GRAY + " ["
-                    + ChatColor.AQUA + instance.getCharges() + ChatColor.GRAY + "/" + ChatColor.AQUA
-                    + instance.getTemplate().getCharges() + ChatColor.DARK_GRAY + "]");
+            String baseName = ChatColor.translateAlternateColorCodes('&', instance.getTemplate().getName());
+            meta.setDisplayName(baseName + ChatColor.DARK_GRAY + "[" + ChatColor.GRAY + instance.getCharges()
+                    + ChatColor.WHITE + "/" + ChatColor.GRAY + instance.getTemplate().getCharges() + ChatColor.DARK_GRAY + "]");
 
-            if (instance.getTemplate().getHealAmount() > 0) {
-                meta.setLore(Arrays.asList(
-                        ChatColor.AQUA + "Potion of " + ChatColor.DARK_AQUA + ChatColor.BOLD + "Mana Regeneration",
-                        ChatColor.GRAY + "- " + ChatColor.WHITE + "Restore " + ChatColor.AQUA
-                                + (int) instance.getTemplate().getHealAmount() + ChatColor.AQUA + " ✨",
-                        ChatColor.GRAY + "Tier " + ChatColor.WHITE + toRoman(instance.getTemplate().getTier()),
-                        ChatColor.GRAY + "Right-click to consume"));
-            } else {
-                meta.setLore(Arrays.asList(
-                        ChatColor.AQUA + "Potion of " + ChatColor.DARK_AQUA + ChatColor.BOLD + "Mana Regeneration",
-                        ChatColor.GRAY + "- " + ChatColor.WHITE + "Restore " + ChatColor.AQUA
-                                + (int) (instance.getTemplate().getHealPercent() * 100) + "% " + ChatColor.AQUA + "✨",
-                        ChatColor.GRAY + "Tier " + ChatColor.WHITE + toRoman(instance.getTemplate().getTier()),
-                        ChatColor.GRAY + "Right-click to consume"));
-            }
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.WHITE + "Effect:");
+            String amount = instance.getTemplate().getHealAmount() > 0
+                    ? String.valueOf((int) instance.getTemplate().getHealAmount())
+                    : (int) (instance.getTemplate().getHealPercent() * 100) + "%";
+            lore.add(ChatColor.AQUA + "- " + ChatColor.GRAY + "Restore " + ChatColor.WHITE + amount + ChatColor.AQUA + " ✨");
+            lore.add(ChatColor.AQUA + "- " + ChatColor.GRAY + "Cooldown: " + ChatColor.GRAY + instance.getTemplate().getCooldownSeconds());
+            lore.add(" ");
+            lore.add(ChatColor.WHITE + "Right-click " + ChatColor.GRAY + "to consume");
+            meta.setLore(lore);
         } else {
             double healAmt = instance.getTemplate().getHealAmount();
             double healPct = instance.getTemplate().getHealPercent();
             double heal = healAmt > 0 ? healAmt : player.getMaxHealth() * healPct;
             player.setHealth(Math.min(player.getHealth() + heal, player.getMaxHealth()));
-            meta.setDisplayName(instance.getTemplate().getName() + ChatColor.DARK_GRAY + " ["
-                    + ChatColor.AQUA + instance.getCharges() + ChatColor.GRAY + "/" + ChatColor.AQUA
-                    + instance.getTemplate().getCharges() + ChatColor.DARK_GRAY + "]");
-            if (healAmt > 0) {
-                meta.setLore(Arrays.asList(
-                        ChatColor.RED + "Potion of " + ChatColor.DARK_RED + ChatColor.BOLD + "Healing",
-                        ChatColor.GRAY + "- " + ChatColor.WHITE + "Heal " + ChatColor.RED + (int) healAmt + ChatColor.RED + " ❤",
-                        ChatColor.GRAY + "Tier " + ChatColor.WHITE + toRoman(instance.getTemplate().getTier()),
-                        ChatColor.GRAY + "Right-click to consume"));
-            } else {
-                meta.setLore(Arrays.asList(
-                        ChatColor.RED + "Potion of " + ChatColor.DARK_RED + ChatColor.BOLD + "Healing",
-                        ChatColor.GRAY + "- " + ChatColor.WHITE + "Heal " + ChatColor.RED + (int) (healPct * 100) + "% " + ChatColor.RED + "❤",
-                        ChatColor.GRAY + "Tier " + ChatColor.WHITE + toRoman(instance.getTemplate().getTier()),
-                        ChatColor.GRAY + "Right-click to consume"));
-            }
+            String baseName = ChatColor.translateAlternateColorCodes('&', instance.getTemplate().getName());
+            meta.setDisplayName(baseName + ChatColor.DARK_GRAY + "[" + ChatColor.GRAY + instance.getCharges()
+                    + ChatColor.WHITE + "/" + ChatColor.GRAY + instance.getTemplate().getCharges() + ChatColor.DARK_GRAY + "]");
+
+            String amount = healAmt > 0 ? String.valueOf((int) healAmt) : (int) (healPct * 100) + "%";
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.WHITE + "Effect:");
+            lore.add(ChatColor.RED + "- " + ChatColor.GRAY + "Heal " + ChatColor.WHITE + amount + ChatColor.RED + " ❤");
+            lore.add(ChatColor.RED + "- " + ChatColor.GRAY + "Cooldown: " + ChatColor.GRAY + instance.getTemplate().getCooldownSeconds());
+            lore.add(" ");
+            lore.add(ChatColor.WHITE + "Right-click " + ChatColor.GRAY + "to consume");
+            meta.setLore(lore);
         }
 
         player.sendMessage("Potion consumed! Remaining charges: " + instance.getCharges());
