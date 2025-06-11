@@ -81,6 +81,10 @@ public class PotionManager {
         cooldownManager.startCooldown(uuid, seconds);
     }
 
+    public long getRemainingCooldown(UUID uuid) {
+        return cooldownManager.getRemainingSeconds(uuid);
+    }
+
     /**
      * Retrieve the PotionInstance associated with an ItemStack.
      * Returns null if the stack is not one of our custom potions.

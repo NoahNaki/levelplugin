@@ -63,8 +63,15 @@ public class PotionUseListener implements Listener {
         }
 
         PotionInstance instance = potionManager.getPotionInstance(uuid);
-        if (instance == null || potionManager.isOnCooldown(uuid)) {
-            player.sendMessage("Potion is on cooldown!");
+        if (instance == null) {
+            return;
+        }
+
+        if (potionManager.isOnCooldown(uuid)) {
+            long remain = potionManager.getRemainingCooldown(uuid);
+            String baseName = ChatColor.translateAlternateColorCodes('&', instance.getTemplate().getName());
+            player.sendMessage(ChatColor.RED + baseName + ChatColor.GRAY + " is on cooldown. "
+                    + ChatColor.WHITE + "Remaining duration: " + ChatColor.GRAY + remain + "s");
             return;
         }
 
@@ -72,8 +79,10 @@ public class PotionUseListener implements Listener {
         event.setCancelled(true);
 
         String potionId = instance.getTemplate().getId();
+        String baseName = ChatColor.translateAlternateColorCodes('&', instance.getTemplate().getName());
 
         // Prevent using healing potions at full health or mana potions at full mana
+        double restored = 0;
         if (potionId.startsWith("mana")) {
             int currentMana = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).getCurrentMana();
             int maxMana = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).getMaxMana();
@@ -103,12 +112,13 @@ public class PotionUseListener implements Listener {
 
             int newMana = Math.min(currentMana + manaRestore, maxMana);
             StatsManager.getInstance().getPlayerStats(player.getUniqueId()).setCurrentMana(newMana);
+            restored = newMana - currentMana;
 
-            String baseName = ChatColor.translateAlternateColorCodes('&', instance.getTemplate().getName());
             meta.setDisplayName(baseName + " " + ChatColor.DARK_GRAY + "[" + ChatColor.GRAY + instance.getCharges()
                     + ChatColor.WHITE + "/" + ChatColor.GRAY + instance.getTemplate().getCharges() + ChatColor.DARK_GRAY + "]");
 
             List<String> lore = new ArrayList<>();
+            lore.add(" ");
             lore.add(ChatColor.WHITE + "Effect:");
             String amount = instance.getTemplate().getHealAmount() > 0
                     ? String.valueOf((int) instance.getTemplate().getHealAmount())
@@ -122,13 +132,15 @@ public class PotionUseListener implements Listener {
             double healAmt = instance.getTemplate().getHealAmount();
             double healPct = instance.getTemplate().getHealPercent();
             double heal = healAmt > 0 ? healAmt : player.getMaxHealth() * healPct;
-            player.setHealth(Math.min(player.getHealth() + heal, player.getMaxHealth()));
-            String baseName = ChatColor.translateAlternateColorCodes('&', instance.getTemplate().getName());
+            double newHealth = Math.min(player.getHealth() + heal, player.getMaxHealth());
+            restored = newHealth - player.getHealth();
+            player.setHealth(newHealth);
             meta.setDisplayName(baseName + " " + ChatColor.DARK_GRAY + "[" + ChatColor.GRAY + instance.getCharges()
                     + ChatColor.WHITE + "/" + ChatColor.GRAY + instance.getTemplate().getCharges() + ChatColor.DARK_GRAY + "]");
 
             String amount = healAmt > 0 ? String.valueOf((int) healAmt) : (int) (healPct * 100) + "%";
             List<String> lore = new ArrayList<>();
+            lore.add(" ");
             lore.add(ChatColor.WHITE + "Effect:");
             lore.add(ChatColor.RED + "- " + ChatColor.GRAY + "Heal " + ChatColor.WHITE + amount + ChatColor.RED + " ❤");
             lore.add(ChatColor.RED + "- " + ChatColor.GRAY + "Cooldown: " + ChatColor.GRAY + instance.getTemplate().getCooldownSeconds() + " seconds");
@@ -137,7 +149,10 @@ public class PotionUseListener implements Listener {
             meta.setLore(lore);
         }
 
-        player.sendMessage("Potion consumed! Remaining charges: " + instance.getCharges());
+        player.sendMessage(ChatColor.GREEN + baseName + ChatColor.GRAY + " used. "
+                + ChatColor.WHITE + "Recovered " + ChatColor.GRAY + (int) restored
+                + (potionId.startsWith("mana") ? " mana" : " health") + ChatColor.GRAY + ". "
+                + ChatColor.WHITE + "Remaining charges: " + ChatColor.GRAY + instance.getCharges());
         item.setItemMeta(meta);
 
         if (instance.getCharges() <= 0) {
