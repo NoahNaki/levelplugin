@@ -46,71 +46,18 @@ public class HologramUtil {
     }
 
     /**
-     * Grab a stand, teleport it to above the target, show the text, animate & return it to the pool.
+     * Spawn a short lived ArmorStand showing the given damage text. The
+     * previous pooled implementation proved unreliable on some servers, so we
+     * now simply spawn a temporary stand every time.
      */
     public static void spawnDamageHologram(Player viewer, Location at, String text) {
-        if (!initialized) initPool(at.getWorld());
-
-        Main.getInstance().getLogger().info(
-            "[HologramUtil] spawnDamageHologram viewer=" + viewer.getName() +
-            " text=" + org.bukkit.ChatColor.stripColor(text)
-        );
-
-        ArmorStand stand = pool.poll();
-        if (stand == null) {
-            Main.getInstance().getLogger().info("[HologramUtil] Pool empty -> spawnOneOff");
-            // fallback to one‑off spawn if pool is exhausted
-            spawnOneOff(viewer, at, text);
-            return;
+        // Ensure the pool is initialised in case other parts of the plugin rely
+        // on it, but delegate to the simple one-off spawn for reliability.
+        if (!initialized) {
+            initPool(at.getWorld());
         }
 
-        Main.getInstance().getLogger().info(
-            "[HologramUtil] Using pooled stand, remaining=" + pool.size()
-        );
-
-        // Position & name
-        stand.setCustomName(text);
-        stand.teleport(at.clone().add(0, START_Y_OFFSET, 0));
-
-        // Hide from everyone except the viewer (after one tick so the spawn
-        // packet is processed first)
-        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-            Main.getInstance().getLogger().info(
-                "[HologramUtil] Updating visibility for " + viewer.getName()
-            );
-            for (Player p : Bukkit.getOnlinePlayers()) {
-                if (p.equals(viewer)) {
-                    p.showEntity(Main.getInstance(), stand);
-                } else {
-                    p.hideEntity(Main.getInstance(), stand);
-                }
-            }
-        }, 1L);
-
-        // Animate & recycle
-        new BukkitRunnable() {
-            private int age = 0;
-
-            @Override
-            public void run() {
-                if (age++ >= LIFETIME_TICKS || stand.isDead()) {
-                    // hide from all players so next usage starts clean
-                    for (Player p : Bukkit.getOnlinePlayers()) {
-                        p.hideEntity(Main.getInstance(), stand);
-                    }
-                    Main.getInstance().getLogger().info(
-                        "[HologramUtil] Recycle stand id=" + stand.getEntityId()
-                    );
-                    // send it offscreen and recycle
-                    stand.teleport(new Location(at.getWorld(), 0, POOL_Y, 0));
-                    stand.setCustomName("");
-                    pool.offer(stand);
-                    cancel();
-                    return;
-                }
-                stand.teleport(stand.getLocation().add(0, RISE_PER_TICK, 0));
-            }
-        }.runTaskTimer(Main.getInstance(), 0L, 1L);
+        spawnOneOff(viewer, at, text);
     }
 
     /**
