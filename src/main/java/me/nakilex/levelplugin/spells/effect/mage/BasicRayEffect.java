@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.spells.effect.mage;
 import me.nakilex.levelplugin.spells.effect.SpellEffect;
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
 import org.bukkit.*;
+import me.nakilex.levelplugin.spells.utils.SpellUtils;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
@@ -96,7 +97,7 @@ public class BasicRayEffect implements SpellEffect {
             loc.add(dir.clone().multiply(STEP));
             for (var ent : world.getNearbyEntities(loc, 0.5, 0.5, 0.5)) {
                 if (ent instanceof LivingEntity target && !target.equals(caster)) {
-                    target.damage(damage, caster);
+                    SpellUtils.dealWithChat(caster, target, damage, "Basic Attack");
                     return;
                 }
             }

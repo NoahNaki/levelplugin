@@ -6,6 +6,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.Queue;
@@ -47,19 +48,28 @@ public class HologramUtil {
     /**
      * Grab a stand, teleport it to above the target, show the text, animate & return it to the pool.
      */
-    public static void spawnDamageHologram(Location at, String text) {
+    public static void spawnDamageHologram(Player viewer, Location at, String text) {
         if (!initialized) initPool(at.getWorld());
 
         ArmorStand stand = pool.poll();
         if (stand == null) {
             // fallback to one‑off spawn if pool is exhausted
-            spawnOneOff(at, text);
+            spawnOneOff(viewer, at, text);
             return;
         }
 
         // Position & name
         stand.setCustomName(text);
         stand.teleport(at.clone().add(0, START_Y_OFFSET, 0));
+
+        // Hide from everyone except the viewer
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (p.equals(viewer)) {
+                p.showEntity(Main.getInstance(), stand);
+            } else {
+                p.hideEntity(Main.getInstance(), stand);
+            }
+        }
 
         // Animate & recycle
         new BukkitRunnable() {
@@ -82,7 +92,7 @@ public class HologramUtil {
     /**
      * In the unlikely event the pool is empty, fall back to a temporary stand.
      */
-    private static void spawnOneOff(Location loc, String text) {
+    private static void spawnOneOff(Player viewer, Location loc, String text) {
         Location spawnLoc = loc.clone().add(0, START_Y_OFFSET, 0);
         ArmorStand stand = (ArmorStand) loc.getWorld().spawnEntity(spawnLoc, EntityType.ARMOR_STAND);
         stand.setVisible(false);
@@ -93,6 +103,15 @@ public class HologramUtil {
         stand.setSmall(true);
         stand.setCustomNameVisible(true);
         stand.setCustomName(text);
+
+        // Hide from everyone except viewer
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (p.equals(viewer)) {
+                p.showEntity(Main.getInstance(), stand);
+            } else {
+                p.hideEntity(Main.getInstance(), stand);
+            }
+        }
 
         // remove after LIFETIME_TICKS
         new BukkitRunnable() {
