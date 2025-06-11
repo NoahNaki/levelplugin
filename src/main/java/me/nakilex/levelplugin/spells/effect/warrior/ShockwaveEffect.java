@@ -71,8 +71,8 @@ public class ShockwaveEffect implements SpellEffect {
                             Location bLoc = ground.getLocation().add(0.5, 1.0, 0.5);
                             FallingBlock fb = loc.getWorld().spawnFallingBlock(bLoc, ground.getBlockData());
                             fb.setDropItem(false);
-                            // Slightly lower upward velocity so blocks don't fly as high
-                            fb.setVelocity(new Vector(Math.cos(rad) * 0.2, 0.25, Math.sin(rad) * 0.2));
+                            // Reduce upward velocity so blocks stay closer to the ground
+                            fb.setVelocity(new Vector(Math.cos(rad) * 0.2, 0.15, Math.sin(rad) * 0.2));
                             fb.setMetadata("Shockwave", new FixedMetadataValue(plugin, true));
                             Bukkit.getScheduler().runTaskLater(plugin, fb::remove, 40L);
                         }
