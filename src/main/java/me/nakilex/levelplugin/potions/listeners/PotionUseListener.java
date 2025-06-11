@@ -149,9 +149,10 @@ public class PotionUseListener implements Listener {
             meta.setLore(lore);
         }
 
-        player.sendMessage(ChatColor.AQUA + "+" + ChatColor.GOLD + (int) restored
-                + (potionId.startsWith("mana") ? " mana" : " HP") + ChatColor.GRAY
-                + " (" + instance.getCharges() + " left)");
+        String symbol = potionId.startsWith("mana") ? "\u2728" : "\u2764"; // ✨ or ❤
+        ChatColor symColor = potionId.startsWith("mana") ? ChatColor.AQUA : ChatColor.RED;
+        player.sendMessage(ChatColor.GREEN + "+" + ChatColor.WHITE + (int) restored + " "
+                + symColor + symbol + ChatColor.GRAY + " (" + instance.getCharges() + " left)");
         item.setItemMeta(meta);
 
         if (instance.getCharges() <= 0) {
