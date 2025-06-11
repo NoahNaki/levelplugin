@@ -3,6 +3,9 @@ package me.nakilex.levelplugin.spells.effect.mage;
 import me.nakilex.levelplugin.spells.effect.SpellEffect;
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
 import org.bukkit.*;
+import me.nakilex.levelplugin.items.data.CustomItem;
+import me.nakilex.levelplugin.items.managers.ItemManager;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.spells.utils.SpellUtils;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -28,6 +31,18 @@ public class BasicRayEffect implements SpellEffect {
         Player caster   = ctx.getPlayer();
         Vector baseDir  = caster.getEyeLocation().getDirection().normalize();
         Location eyeLoc = caster.getEyeLocation().clone();
+
+        // ---- Damage scaling like Meteor ----
+        StatsManager.PlayerStats stats =
+            StatsManager.getInstance().getPlayerStats(caster.getUniqueId());
+        int playerInt = stats.baseIntelligence + stats.bonusIntelligence;
+        CustomItem cItem = ItemManager.getInstance()
+            .getCustomItemFromItemStack(caster.getInventory().getItemInMainHand());
+        int weaponInt = cItem != null ? cItem.getIntel() : 0;
+
+        double rawDamage = ctx.getBaseSpell().getBaseDamage() + playerInt + weaponInt;
+        double dmgMultiplier = ctx.getFinalDamage() / ctx.getBaseSpell().getBaseDamage();
+        double scaledBaseDamage = rawDamage * dmgMultiplier;
 
         // Debug: what extraProjectiles and damageMultiplier do we have?
         Object rawExtra = ctx.getExtraParam("extraProjectiles");
@@ -61,19 +76,18 @@ public class BasicRayEffect implements SpellEffect {
                 offsetDeg = SPREAD_ANGLE_DEG * band * (i % 2 == 1 ? 1 : -1);
             }
             Vector dir = rotateY(baseDir, Math.toRadians(offsetDeg));
-            castBeam(ctx, caster, eyeLoc.clone(), dir, dmgMult);
+            castBeam(caster, eyeLoc.clone(), dir, scaledBaseDamage, dmgMult);
         }
     }
 
 
-    private void castBeam(SpellCastContext ctx,
-                          Player caster,
+    private void castBeam(Player caster,
                           Location start,
                           Vector dir,
+                          double baseDamage,
                           double dmgMult) {
         World world = start.getWorld();
-        double baseDamage = ctx.getFinalDamage();
-        double damage     = baseDamage * dmgMult;
+        double damage = baseDamage * dmgMult;
 
         // 1) Draw the beam in one go:
         //    count = 0 → use the offset vector as the “direction and length” of the effect
