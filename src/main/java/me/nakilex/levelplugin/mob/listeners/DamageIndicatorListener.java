@@ -31,7 +31,6 @@ public class DamageIndicatorListener implements Listener {
         if (!toggleManager.isEnabled(damager)) return;
 
         double damage = event.getFinalDamage();
-        damager.sendMessage("[Debug] dmg=" + damage);
 
         // —— Manual crit detection ——
         boolean falling     = damager.getFallDistance() > 0.0F;
@@ -54,7 +53,6 @@ public class DamageIndicatorListener implements Listener {
 
         // Spawn the floating text
         LivingEntity mob = (LivingEntity) target;
-        damager.sendMessage("[Debug] spawn hologram text=" + text);
         HologramUtil.spawnDamageHologram(damager, mob.getEyeLocation(), text);
     }
 }
