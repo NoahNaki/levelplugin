@@ -64,7 +64,6 @@ public class PotionInstance {
         List<String> lore = new java.util.ArrayList<>();
         boolean mana = template.getId().startsWith("mana");
         lore.add(" ");
-        lore.add("");
         lore.add(ChatColor.WHITE + "Effect:");
         String bulletColor = mana ? ChatColor.AQUA.toString() : ChatColor.RED.toString();
         String amountStr;
