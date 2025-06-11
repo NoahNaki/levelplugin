@@ -75,7 +75,8 @@ public class ShockwaveEffect implements SpellEffect {
                             // Reduce upward velocity so blocks stay closer to the ground
                             fb.setVelocity(new Vector(Math.cos(rad) * 0.2, 0.15, Math.sin(rad) * 0.2));
                             fb.setMetadata("Shockwave", new FixedMetadataValue(plugin, true));
-                            Bukkit.getScheduler().runTaskLater(plugin, fb::remove, 40L);
+                            // Give the block plenty of time to fall before it despawns
+                            Bukkit.getScheduler().runTaskLater(plugin, fb::remove, 80L);
                         }
                     }
 
