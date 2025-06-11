@@ -83,6 +83,8 @@ public class Main extends JavaPlugin {
     private HorseManager horseManager;
     private EffectManager effectManager;
     private PartyManager partyManager;
+    private me.nakilex.levelplugin.guild.GuildManager guildManager;
+    private me.nakilex.levelplugin.guild.GuildGUI guildGUI;
     private PartyGlowManager partyGlowManager;
     public static final String PREFIX = "";
     private static Main plugin;
@@ -239,6 +241,8 @@ public class Main extends JavaPlugin {
         runesManager = new RunesManager(this);
         spellmanager = new SpellManager(this, runesManager);
         partyManager = new PartyManager();
+        guildManager = me.nakilex.levelplugin.guild.GuildManager.getInstance();
+        guildGUI = new me.nakilex.levelplugin.guild.GuildGUI(guildManager);
         identifyRunesGUI = new IdentifyRunesGUI(this, runesManager);
         identifyGui = identifyRunesGUI;
         gemsManager = new GemsManager();
@@ -295,6 +299,8 @@ public class Main extends JavaPlugin {
             levelManager,
             economyManager,
             partyManager,
+            guildManager,
+            guildGUI,
             potionManager,
             lootChestManager,
             configManager,

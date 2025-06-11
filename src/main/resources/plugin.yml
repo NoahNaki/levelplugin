@@ -64,6 +64,9 @@ commands:
     description: Manage your party
     usage: /party <subcommand>
     aliases: [p]
+  guild:
+    description: Manage your guild
+    usage: /guild <subcommand>
   partyglow:
     description: Toggle party member glow
     usage: /partyglow

@@ -73,6 +73,8 @@ public class CommandRegistry {
                                         LevelManager levelManager,
                                         EconomyManager economyManager,
                                         PartyManager partyManager,
+                                        me.nakilex.levelplugin.guild.GuildManager guildManager,
+                                        me.nakilex.levelplugin.guild.GuildGUI guildGui,
                                         PotionManager potionManager,
                                         LootChestManager lootChestManager,
                                         ConfigManager configManager,
@@ -108,6 +110,7 @@ public class CommandRegistry {
         plugin.getCommand("blacksmith").setExecutor(new BlacksmithCommand(blacksmithGUI));
         plugin.getCommand("horse").setExecutor(new HorseCommand(horseManager, horseGUI));
         plugin.getCommand("party").setExecutor(new PartyCommands(partyManager));
+        plugin.getCommand("guild").setExecutor(new me.nakilex.levelplugin.guild.GuildCommand(guildManager, guildGui));
         plugin.getCommand("partyglow").setExecutor(new PartyGlowCommand(plugin.getPartyGlowManager()));
         plugin.getCommand("addpotion").setExecutor(new AddPotionCommand(potionManager, plugin));
         plugin.getCommand("lootchest").setExecutor(new LootChestCommand(configManager, lootChestManager));
