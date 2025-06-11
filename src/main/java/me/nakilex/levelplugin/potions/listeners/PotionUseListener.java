@@ -70,8 +70,8 @@ public class PotionUseListener implements Listener {
         if (potionManager.isOnCooldown(uuid)) {
             long remain = potionManager.getRemainingCooldown(uuid);
             String baseName = ChatColor.translateAlternateColorCodes('&', instance.getTemplate().getName());
-            player.sendMessage(ChatColor.RED + baseName + ChatColor.GRAY + " is on cooldown. "
-                    + ChatColor.WHITE + "Remaining duration: " + ChatColor.GRAY + remain + "s");
+            player.sendMessage(ChatColor.RED + "You must wait " + ChatColor.GOLD + remain + "s "
+                    + ChatColor.RED + "before using " + ChatColor.YELLOW + baseName + ChatColor.RED + " again.");
             return;
         }
 
@@ -149,10 +149,10 @@ public class PotionUseListener implements Listener {
             meta.setLore(lore);
         }
 
-        player.sendMessage(ChatColor.GREEN + baseName + ChatColor.GRAY + " used. "
-                + ChatColor.WHITE + "Recovered " + ChatColor.GRAY + (int) restored
-                + (potionId.startsWith("mana") ? " mana" : " health") + ChatColor.GRAY + ". "
-                + ChatColor.WHITE + "Remaining charges: " + ChatColor.GRAY + instance.getCharges());
+        player.sendMessage(ChatColor.AQUA + "You drink the " + ChatColor.YELLOW + baseName
+                + ChatColor.AQUA + " and restore " + ChatColor.GOLD + (int) restored
+                + (potionId.startsWith("mana") ? " mana" : " health") + ChatColor.AQUA
+                + ". " + ChatColor.GRAY + "(" + instance.getCharges() + " charges left)");
         item.setItemMeta(meta);
 
         if (instance.getCharges() <= 0) {
