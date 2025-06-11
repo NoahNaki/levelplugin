@@ -1,43 +1,42 @@
 package me.nakilex.levelplugin.environment.stage;
 
 import me.nakilex.levelplugin.Main;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.World;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.trait.CurrentLocation;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
- * Handles storage of building stage areas for towns.
+ * Stores building stage data and handles spawning the stage structures/NPCs.
  */
 public class BuildingStageManager {
     private final Main plugin;
     /** Map of town -> building -> level -> stage -> data */
     private final Map<String, Map<String, Map<Integer, Map<Integer, BuildingStage>>>> stages = new HashMap<>();
-    private final Map<java.util.UUID, Map<String, java.util.List<NPC>>> spawnedNPCs = new HashMap<>();
+    private final Map<java.util.UUID, Map<String, List<NPC>>> spawnedNPCs = new HashMap<>();
     private File file;
     private FileConfiguration config;
 
     public BuildingStageManager(Main plugin) {
         this.plugin = plugin;
-        loadFromConfig();
+        loadConfig();
     }
 
-    /** Returns all defined building names. */
+    /** All defined stage names across all towns. */
     public Set<String> getStageNames() {
-        java.util.Set<String> names = new java.util.HashSet<>();
-        for (var townEntry : stages.values()) {
-            names.addAll(townEntry.keySet());
+        Set<String> names = new HashSet<>();
+        for (Map<String, Map<Integer, Map<Integer, BuildingStage>>> town : stages.values()) {
+            names.addAll(town.keySet());
         }
         return names;
     }
@@ -46,64 +45,30 @@ public class BuildingStageManager {
         if (town == null) return null;
         var townMap = stages.get(town.toLowerCase());
         if (townMap == null) return null;
-        var buildingMap = townMap.get(building.toLowerCase());
-        if (buildingMap == null) return null;
-        var levelMap = buildingMap.get(level);
+        var buildMap = townMap.get(building.toLowerCase());
+        if (buildMap == null) return null;
+        var levelMap = buildMap.get(level);
         if (levelMap == null) return null;
         return levelMap.get(stage);
     }
 
-    /** Get all building names defined for a town. */
-    public java.util.Set<String> getBuildings(String town) {
+    /** Return all building names defined for a town. */
+    public Set<String> getBuildings(String town) {
         var map = stages.get(town.toLowerCase());
-        if (map == null) return java.util.Collections.emptySet();
-        return new java.util.HashSet<>(map.keySet());
+        if (map == null) return Collections.emptySet();
+        return new HashSet<>(map.keySet());
     }
 
-    public void createStage(String town, String building, int level, int stage, Location p1, Location p2) {
-        java.util.List<NPCSpawn> npcs = new java.util.ArrayList<>();
-        java.util.List<BlockDef> blocks = new java.util.ArrayList<>();
-        var boxMinX = Math.min(p1.getBlockX(), p2.getBlockX());
-        var boxMaxX = Math.max(p1.getBlockX(), p2.getBlockX());
-        var boxMinY = Math.min(p1.getBlockY(), p2.getBlockY());
-        var boxMaxY = Math.max(p1.getBlockY(), p2.getBlockY());
-        var boxMinZ = Math.min(p1.getBlockZ(), p2.getBlockZ());
-        var boxMaxZ = Math.max(p1.getBlockZ(), p2.getBlockZ());
-        for (NPC npc : CitizensAPI.getNPCRegistry()) {
-            Location l = npc.isSpawned() ? npc.getEntity().getLocation() : npc.getStoredLocation();
-            if (l == null) continue;
-            if (!l.getWorld().equals(p1.getWorld())) continue;
-            int x = l.getBlockX();
-            int y = l.getBlockY();
-            int z = l.getBlockZ();
-            if (x >= boxMinX && x <= boxMaxX && y >= boxMinY && y <= boxMaxY && z >= boxMinZ && z <= boxMaxZ) {
-                npcs.add(new NPCSpawn(
-                        npc.getId(),
-                        x - boxMinX,
-                        y - boxMinY,
-                        z - boxMinZ,
-                        l.getYaw(),
-                        l.getPitch()
-                ));
-            }
-        }
-
-        var world = p1.getWorld();
-        for (int x = boxMinX; x <= boxMaxX; x++) {
-            for (int y = boxMinY; y <= boxMaxY; y++) {
-                for (int z = boxMinZ; z <= boxMaxZ; z++) {
-                    var block = world.getBlockAt(x, y, z);
-                    if (block.getType() == Material.AIR) continue;
-                    BlockData data = block.getBlockData();
-                    blocks.add(new BlockDef(x - boxMinX, y - boxMinY, z - boxMinZ, data));
-                }
-            }
-        }
+    /** Create a new stage from the selected area. */
+    public void createStage(String town, String building, int level, int stage,
+                            Location pos1, Location pos2) {
+        List<NPCSpawn> npcs = captureNPCs(pos1, pos2);
+        List<BlockDef> blocks = captureBlocks(pos1, pos2);
         stages
-            .computeIfAbsent(town.toLowerCase(), k -> new java.util.HashMap<>())
-            .computeIfAbsent(building.toLowerCase(), k -> new java.util.HashMap<>())
-            .computeIfAbsent(level, k -> new java.util.HashMap<>())
-            .put(stage, new BuildingStage(building.toLowerCase(), level, stage, p1, p2, npcs, blocks));
+            .computeIfAbsent(town.toLowerCase(), k -> new HashMap<>())
+            .computeIfAbsent(building.toLowerCase(), k -> new HashMap<>())
+            .computeIfAbsent(level, k -> new HashMap<>())
+            .put(stage, new BuildingStage(building.toLowerCase(), level, stage, pos1, pos2, npcs, blocks));
         saveConfig();
     }
 
@@ -124,48 +89,34 @@ public class BuildingStageManager {
         return false;
     }
 
-    private static final double NPC_SPAWN_Y_OFFSET = 1.0; // prevent clipping
+    private static final double NPC_SPAWN_Y_OFFSET = 1.0;
 
-    public void spawnForStage(org.bukkit.entity.Player viewer, String town, String building, int level, int stage, Location origin) {
-        BuildingStage ts = getStage(town, building, level, stage);
-        if (ts == null || origin == null || viewer == null) return;
-        java.util.UUID id = viewer.getUniqueId();
-        var map = spawnedNPCs.computeIfAbsent(id, k -> new java.util.HashMap<>());
+    public void spawnForStage(Player viewer, String town, String building, int level,
+                              int stage, Location origin) {
+        BuildingStage st = getStage(town, building, level, stage);
+        if (st == null || origin == null || viewer == null) return;
+        UUID id = viewer.getUniqueId();
+        var map = spawnedNPCs.computeIfAbsent(id, k -> new HashMap<>());
         String key = town.toLowerCase() + ":" + building.toLowerCase() + ":" + level + ":" + stage;
-        var list = map.computeIfAbsent(key, k -> new java.util.ArrayList<>());
+        List<NPC> list = map.computeIfAbsent(key, k -> new ArrayList<>());
         for (NPC npc : list) {
             if (npc.isSpawned()) npc.despawn();
             npc.destroy();
         }
         list.clear();
-        for (NPCSpawn ns : ts.npcs) {
-            NPC template = CitizensAPI.getNPCRegistry().getById(ns.id);
-            if (template == null) {
-                plugin.getLogger().warning("NPC template with ID " + ns.id + " not found while spawning stage NPCs");
-                continue;
-            }
-            // Use Citizens API clone support to copy all traits/metadata
+        for (NPCSpawn spawn : st.npcs) {
+            NPC template = CitizensAPI.getNPCRegistry().getById(spawn.id);
+            if (template == null) continue;
             NPC clone = template.copy();
-
-            // Translate original NPC position relative to the player's town
-            // origin. Add a Y offset so the NPC doesn't spawn partially in the ground.
-            Location loc = origin.clone().add(
-                    ns.x + 0.5,
-                    ns.y + NPC_SPAWN_Y_OFFSET,
-                    ns.z + 0.5
-            );
-            loc.setYaw(ns.yaw);
-            loc.setPitch(ns.pitch);
-
+            Location loc = origin.clone().add(spawn.x + 0.5, spawn.y + NPC_SPAWN_Y_OFFSET, spawn.z + 0.5);
+            loc.setYaw(spawn.yaw);
+            loc.setPitch(spawn.pitch);
             clone.getOrAddTrait(CurrentLocation.class).setLocation(loc);
-            plugin.getLogger().info("Spawning NPC clone from template " + ns.id + " at "
-                    + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ()
-                    + " for " + viewer.getName());
             clone.spawn(loc);
             if (clone.isSpawned()) {
                 clone.getEntity().teleport(loc, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN);
             }
-            for (org.bukkit.entity.Player p : Bukkit.getOnlinePlayers()) {
+            for (Player p : Bukkit.getOnlinePlayers()) {
                 if (!p.equals(viewer)) {
                     p.hideEntity(plugin, clone.getEntity());
                 }
@@ -174,11 +125,11 @@ public class BuildingStageManager {
         }
     }
 
-    public void despawnForStage(java.util.UUID viewerId, String town, String building, int level, int stage) {
+    public void despawnForStage(UUID viewerId, String town, String building, int level, int stage) {
         var map = spawnedNPCs.get(viewerId);
         if (map == null) return;
         String key = town.toLowerCase() + ":" + building.toLowerCase() + ":" + level + ":" + stage;
-        var list = map.remove(key);
+        List<NPC> list = map.remove(key);
         if (list != null) {
             for (NPC npc : list) {
                 if (npc.isSpawned()) npc.despawn();
@@ -200,21 +151,60 @@ public class BuildingStageManager {
         spawnedNPCs.clear();
     }
 
-    /** Hide any player-specific NPCs from the given viewer. */
-    public void hideNPCsFrom(org.bukkit.entity.Player viewer) {
+    public void hideNPCsFrom(Player viewer) {
         if (viewer == null) return;
         for (var map : spawnedNPCs.values()) {
             for (var list : map.values()) {
                 for (NPC npc : list) {
-                    if (npc.isSpawned()) {
-                        viewer.hideEntity(plugin, npc.getEntity());
-                    }
+                    if (npc.isSpawned()) viewer.hideEntity(plugin, npc.getEntity());
                 }
             }
         }
     }
 
-    private void loadFromConfig() {
+    private List<NPCSpawn> captureNPCs(Location p1, Location p2) {
+        List<NPCSpawn> list = new ArrayList<>();
+        int minX = Math.min(p1.getBlockX(), p2.getBlockX());
+        int maxX = Math.max(p1.getBlockX(), p2.getBlockX());
+        int minY = Math.min(p1.getBlockY(), p2.getBlockY());
+        int maxY = Math.max(p1.getBlockY(), p2.getBlockY());
+        int minZ = Math.min(p1.getBlockZ(), p2.getBlockZ());
+        int maxZ = Math.max(p1.getBlockZ(), p2.getBlockZ());
+        for (NPC npc : CitizensAPI.getNPCRegistry()) {
+            Location l = npc.isSpawned() ? npc.getEntity().getLocation() : npc.getStoredLocation();
+            if (l == null || !l.getWorld().equals(p1.getWorld())) continue;
+            int x = l.getBlockX();
+            int y = l.getBlockY();
+            int z = l.getBlockZ();
+            if (x >= minX && x <= maxX && y >= minY && y <= maxY && z >= minZ && z <= maxZ) {
+                list.add(new NPCSpawn(npc.getId(), x - minX, y - minY, z - minZ, l.getYaw(), l.getPitch()));
+            }
+        }
+        return list;
+    }
+
+    private List<BlockDef> captureBlocks(Location p1, Location p2) {
+        List<BlockDef> blocks = new ArrayList<>();
+        int minX = Math.min(p1.getBlockX(), p2.getBlockX());
+        int maxX = Math.max(p1.getBlockX(), p2.getBlockX());
+        int minY = Math.min(p1.getBlockY(), p2.getBlockY());
+        int maxY = Math.max(p1.getBlockY(), p2.getBlockY());
+        int minZ = Math.min(p1.getBlockZ(), p2.getBlockZ());
+        int maxZ = Math.max(p1.getBlockZ(), p2.getBlockZ());
+        World world = p1.getWorld();
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    var block = world.getBlockAt(x, y, z);
+                    if (block.getType() == Material.AIR) continue;
+                    blocks.add(new BlockDef(x - minX, y - minY, z - minZ, block.getBlockData()));
+                }
+            }
+        }
+        return blocks;
+    }
+
+    private void loadConfig() {
         file = new File(plugin.getDataFolder(), "buildingstages.yml");
         if (!file.exists()) {
             plugin.saveResource("buildingstages.yml", false);
@@ -232,60 +222,60 @@ public class BuildingStageManager {
                     try {
                         level = Integer.parseInt(lvlKey);
                     } catch (NumberFormatException ex) {
-                        continue; // skip non-numeric keys
+                        continue;
                     }
                     var lvlSec = config.getConfigurationSection("stages." + town + "." + building + "." + lvlKey);
                     if (lvlSec == null) continue;
-                    for (String stKey : lvlSec.getKeys(false)) {
+                    for (String stageKey : lvlSec.getKeys(false)) {
                         int stage;
                         try {
-                            stage = Integer.parseInt(stKey);
+                            stage = Integer.parseInt(stageKey);
                         } catch (NumberFormatException ex) {
-                            continue; // skip invalid stage keys
+                            continue;
                         }
-                        String base = "stages." + town + "." + building + "." + lvlKey + "." + stKey + ".";
-                        String worldName = config.getString(base + "world");
-                        World world = Bukkit.getWorld(worldName);
+                        String base = "stages." + town + "." + building + "." + lvlKey + "." + stageKey + ".";
+                        World world = Bukkit.getWorld(config.getString(base + "world"));
                         if (world == null) continue;
-                        Location p1 = readLocation(world, base + "pos1");
-                        Location p2 = readLocation(world, base + "pos2");
-                        if (p1 == null || p2 == null) continue;
-                    java.util.List<NPCSpawn> npcs = new java.util.ArrayList<>();
-                    java.util.List<BlockDef> blocks = new java.util.ArrayList<>();
-                    if (config.isList(base + "npcs")) {
-                        for (var o : config.getList(base + "npcs")) {
-                            if (!(o instanceof String s)) continue;
-                            String[] parts = s.split(";");
-                            if (parts.length < 6) continue;
-                            try {
-                                int id = Integer.parseInt(parts[0]);
-                                int dx = Integer.parseInt(parts[1]);
-                                int dy = Integer.parseInt(parts[2]);
-                                int dz = Integer.parseInt(parts[3]);
-                                float yaw = Float.parseFloat(parts[4]);
-                                float pitch = Float.parseFloat(parts[5]);
-                                npcs.add(new NPCSpawn(id, dx, dy, dz, yaw, pitch));
-                            } catch (NumberFormatException ignored) {}
+                        Location pos1 = readLocation(world, base + "pos1");
+                        Location pos2 = readLocation(world, base + "pos2");
+                        if (pos1 == null || pos2 == null) continue;
+                        List<NPCSpawn> npcList = new ArrayList<>();
+                        if (config.isList(base + "npcs")) {
+                            for (Object o : config.getList(base + "npcs")) {
+                                if (!(o instanceof String s)) continue;
+                                String[] parts = s.split(";");
+                                if (parts.length < 6) continue;
+                                try {
+                                    int id = Integer.parseInt(parts[0]);
+                                    int dx = Integer.parseInt(parts[1]);
+                                    int dy = Integer.parseInt(parts[2]);
+                                    int dz = Integer.parseInt(parts[3]);
+                                    float yaw = Float.parseFloat(parts[4]);
+                                    float pitch = Float.parseFloat(parts[5]);
+                                    npcList.add(new NPCSpawn(id, dx, dy, dz, yaw, pitch));
+                                } catch (Exception ignore) {}
+                            }
                         }
-                    }
-                    if (config.isList(base + "blocks")) {
-                        for (String line : config.getStringList(base + "blocks")) {
-                            String[] parts = line.split(";");
-                            if (parts.length < 4) continue;
-                            try {
-                                int dx = Integer.parseInt(parts[0]);
-                                int dy = Integer.parseInt(parts[1]);
-                                int dz = Integer.parseInt(parts[2]);
-                                BlockData data = Bukkit.createBlockData(parts[3]);
-                                blocks.add(new BlockDef(dx, dy, dz, data));
-                            } catch (Exception ignored) {}
+                        List<BlockDef> blockList = new ArrayList<>();
+                        if (config.isList(base + "blocks")) {
+                            for (String line : config.getStringList(base + "blocks")) {
+                                String[] parts = line.split(";");
+                                if (parts.length < 4) continue;
+                                try {
+                                    int dx = Integer.parseInt(parts[0]);
+                                    int dy = Integer.parseInt(parts[1]);
+                                    int dz = Integer.parseInt(parts[2]);
+                                    BlockData data = Bukkit.createBlockData(parts[3]);
+                                    blockList.add(new BlockDef(dx, dy, dz, data));
+                                } catch (Exception ignore) {}
+                            }
                         }
+                        stages
+                            .computeIfAbsent(town.toLowerCase(), k -> new HashMap<>())
+                            .computeIfAbsent(building.toLowerCase(), k -> new HashMap<>())
+                            .computeIfAbsent(level, k -> new HashMap<>())
+                            .put(stage, new BuildingStage(building.toLowerCase(), level, stage, pos1, pos2, npcList, blockList));
                     }
-                    stages
-                        .computeIfAbsent(town.toLowerCase(), k -> new java.util.HashMap<>())
-                        .computeIfAbsent(building.toLowerCase(), k -> new java.util.HashMap<>())
-                        .computeIfAbsent(level, k -> new java.util.HashMap<>())
-                        .put(stage, new BuildingStage(building.toLowerCase(), level, stage, p1, p2, npcs, blocks));
                 }
             }
         }
@@ -301,49 +291,51 @@ public class BuildingStageManager {
 
     private void saveConfig() {
         config.set("stages", null);
-        for (var entryTown : stages.entrySet()) {
-            String town = entryTown.getKey();
-            for (var entryBuilding : entryTown.getValue().entrySet()) {
-                String building = entryBuilding.getKey();
-                for (var entryLevel : entryBuilding.getValue().entrySet()) {
-                    int level = entryLevel.getKey();
-                    for (var entryStage : entryLevel.getValue().entrySet()) {
-                        int stage = entryStage.getKey();
-                        BuildingStage st = entryStage.getValue();
+        for (var townEntry : stages.entrySet()) {
+            String town = townEntry.getKey();
+            for (var buildEntry : townEntry.getValue().entrySet()) {
+                String building = buildEntry.getKey();
+                for (var levelEntry : buildEntry.getValue().entrySet()) {
+                    int level = levelEntry.getKey();
+                    for (var stageEntry : levelEntry.getValue().entrySet()) {
+                        int stage = stageEntry.getKey();
+                        BuildingStage st = stageEntry.getValue();
                         String base = "stages." + town + "." + building + "." + level + "." + stage + ".";
                         Location p1 = st.pos1;
                         Location p2 = st.pos2;
                         config.set(base + "world", p1.getWorld().getName());
                         config.set(base + "pos1.x", p1.getBlockX());
                         config.set(base + "pos1.y", p1.getBlockY());
-                    config.set(base + "pos1.z", p1.getBlockZ());
-                    config.set(base + "pos2.x", p2.getBlockX());
-                    config.set(base + "pos2.y", p2.getBlockY());
-                    config.set(base + "pos2.z", p2.getBlockZ());
-                    java.util.List<String> list = new java.util.ArrayList<>();
-                    for (NPCSpawn npc : st.npcs) {
-                        list.add(npc.id + ";" + npc.x + ";" + npc.y + ";" + npc.z
-                                + ";" + npc.yaw + ";" + npc.pitch);
-                    }
-                    config.set(base + "npcs", list);
-                    java.util.List<String> blockLines = new java.util.ArrayList<>();
-                    for (BlockDef b : st.blocks) {
-                        blockLines.add(b.x + ";" + b.y + ";" + b.z + ";" + b.data.getAsString());
-                    }
-                    config.set(base + "blocks", blockLines);
+                        config.set(base + "pos1.z", p1.getBlockZ());
+                        config.set(base + "pos2.x", p2.getBlockX());
+                        config.set(base + "pos2.y", p2.getBlockY());
+                        config.set(base + "pos2.z", p2.getBlockZ());
+                        List<String> npcLines = new ArrayList<>();
+                        for (NPCSpawn npc : st.npcs) {
+                            npcLines.add(npc.id + ";" + npc.x + ";" + npc.y + ";" + npc.z + ";" + npc.yaw + ";" + npc.pitch);
+                        }
+                        config.set(base + "npcs", npcLines);
+                        List<String> blockLines = new ArrayList<>();
+                        for (BlockDef b : st.blocks) {
+                            blockLines.add(b.x + ";" + b.y + ";" + b.z + ";" + b.data.getAsString());
+                        }
+                        config.set(base + "blocks", blockLines);
                     }
                 }
             }
         }
-        try { config.save(file); } catch (Exception e) { e.printStackTrace(); }
+        try {
+            config.save(file);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
-    /** Represents a single NPC spawn within a stage, stored relative to pos1. */
+    /** NPC spawn position relative to stage origin. */
     public static class NPCSpawn {
         public final int id;
         public final int x, y, z;
         public final float yaw, pitch;
-
         public NPCSpawn(int id, int x, int y, int z, float yaw, float pitch) {
             this.id = id;
             this.x = x;
@@ -354,29 +346,28 @@ public class BuildingStageManager {
         }
     }
 
-    /** Simple storage class for a building stage area. */
+    /** Data for an individual building stage area. */
     public static class BuildingStage {
         public final String name;
         public final int level;
         public final int stage;
         public final Location pos1;
         public final Location pos2;
-        public final java.util.List<NPCSpawn> npcs;
-        public final java.util.List<BlockDef> blocks;
-
+        public final List<NPCSpawn> npcs;
+        public final List<BlockDef> blocks;
         public BuildingStage(String name, int level, int stage, Location pos1, Location pos2,
-                             java.util.List<NPCSpawn> npcs, java.util.List<BlockDef> blocks) {
+                             List<NPCSpawn> npcs, List<BlockDef> blocks) {
             this.name = name;
             this.level = level;
             this.stage = stage;
             this.pos1 = pos1;
             this.pos2 = pos2;
-            this.npcs = npcs == null ? java.util.Collections.emptyList() : npcs;
-            this.blocks = blocks == null ? java.util.Collections.emptyList() : blocks;
+            this.npcs = npcs == null ? Collections.emptyList() : npcs;
+            this.blocks = blocks == null ? Collections.emptyList() : blocks;
         }
     }
 
-    /** Represents a single block inside a stage structure. */
+    /** Simple block placement definition for a stage structure. */
     public static class BlockDef {
         public final int x, y, z;
         public final BlockData data;
