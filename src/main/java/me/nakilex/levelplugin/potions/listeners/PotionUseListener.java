@@ -4,10 +4,10 @@ import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.potions.data.PotionInstance;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import org.bukkit.Material;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.inventory.EquipmentSlot;
@@ -42,9 +42,7 @@ public class PotionUseListener implements Listener {
         Player player = event.getPlayer();
         ItemStack item = event.getItem();
 
-        // Check if item is valid and is a potion
-        if (item == null || !item.hasItemMeta() ||
-            !(item.getType() == Material.POTION || item.getType() == Material.SPLASH_POTION || item.getType() == Material.LINGERING_POTION)) {
+        if (item == null || !item.hasItemMeta()) {
             return;
         }
 
@@ -100,22 +98,34 @@ public class PotionUseListener implements Listener {
             int newMana = Math.min(currentMana + manaRestore, maxMana);
 
             StatsManager.getInstance().getPlayerStats(player.getUniqueId()).setCurrentMana(newMana);
-            meta.setDisplayName(instance.getTemplate().getName() + " §7[" + instance.getCharges() + "/" + instance.getTemplate().getCharges() + "]");
+            meta.setDisplayName(instance.getTemplate().getName() + ChatColor.DARK_GRAY + " ["
+                    + ChatColor.AQUA + instance.getCharges() + ChatColor.GRAY + "/" + ChatColor.AQUA
+                    + instance.getTemplate().getCharges() + ChatColor.DARK_GRAY + "]");
             if (instance.getTemplate().getHealAmount() > 0) {
-                meta.setLore(Arrays.asList("§3- §7Recover §f" + (int) instance.getTemplate().getHealAmount() + " §b✨"));
+                meta.setLore(Arrays.asList(ChatColor.DARK_AQUA + "↣ " + ChatColor.GRAY + "Recover "
+                        + ChatColor.WHITE + (int) instance.getTemplate().getHealAmount() + ChatColor.AQUA + " ✨",
+                        ChatColor.GRAY + "Right-click to drink"));
             } else {
-                meta.setLore(Arrays.asList("§3- §7Recover §f" + (int)(instance.getTemplate().getHealPercent()*100) + "% §b✨"));
+                meta.setLore(Arrays.asList(ChatColor.DARK_AQUA + "↣ " + ChatColor.GRAY + "Recover "
+                        + ChatColor.WHITE + (int) (instance.getTemplate().getHealPercent()*100) + "% " + ChatColor.AQUA + "✨",
+                        ChatColor.GRAY + "Right-click to drink"));
             }
         } else {
             double healAmt = instance.getTemplate().getHealAmount();
             double healPct = instance.getTemplate().getHealPercent();
             double heal = healAmt > 0 ? healAmt : player.getMaxHealth() * healPct;
             player.setHealth(Math.min(player.getHealth() + heal, player.getMaxHealth()));
-            meta.setDisplayName(instance.getTemplate().getName() + " §7[" + instance.getCharges() + "/" + instance.getTemplate().getCharges() + "]");
+            meta.setDisplayName(instance.getTemplate().getName() + ChatColor.DARK_GRAY + " ["
+                    + ChatColor.AQUA + instance.getCharges() + ChatColor.GRAY + "/" + ChatColor.AQUA
+                    + instance.getTemplate().getCharges() + ChatColor.DARK_GRAY + "]");
             if (healAmt > 0) {
-                meta.setLore(Arrays.asList("§4- §7Recover §f" + (int) healAmt + " §c❤"));
+                meta.setLore(Arrays.asList(ChatColor.DARK_RED + "↣ " + ChatColor.GRAY + "Recover "
+                        + ChatColor.WHITE + (int) healAmt + ChatColor.RED + " ❤",
+                        ChatColor.GRAY + "Right-click to drink"));
             } else {
-                meta.setLore(Arrays.asList("§4- §7Recover §f" + (int)(healPct*100) + "% §c❤"));
+                meta.setLore(Arrays.asList(ChatColor.DARK_RED + "↣ " + ChatColor.GRAY + "Recover "
+                        + ChatColor.WHITE + (int) (healPct*100) + "% " + ChatColor.RED + " ❤",
+                        ChatColor.GRAY + "Right-click to drink"));
             }
         }
 
