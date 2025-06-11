@@ -65,14 +65,16 @@ public class ShockwaveEffect implements SpellEffect {
                     loc.getWorld().spawnParticle(Particle.BLOCK_CRUMBLE, loc, 10, 0.2, 0.2, 0.2, 0.1, Material.DIRT.createBlockData());
                     loc.getWorld().spawnParticle(Particle.CRIT, loc, 5, 0.2, 0.2, 0.2);
 
-                    Block ground = loc.getWorld().getHighestBlockAt(loc);
-                    if (ground.getType() != Material.AIR) {
-                        Location bLoc = ground.getLocation().add(0.5, 1.0, 0.5);
-                        FallingBlock fb = loc.getWorld().spawnFallingBlock(bLoc, ground.getBlockData());
-                        fb.setDropItem(false);
-                        fb.setVelocity(new Vector(Math.cos(rad) * 0.2, 0.4, Math.sin(rad) * 0.2));
-                        fb.setMetadata("Shockwave", new FixedMetadataValue(plugin, true));
-                        Bukkit.getScheduler().runTaskLater(plugin, fb::remove, 40L);
+                    if (Math.random() < 0.2) { // spawn fewer blocks for performance
+                        Block ground = loc.getWorld().getHighestBlockAt(loc);
+                        if (ground.getType() != Material.AIR) {
+                            Location bLoc = ground.getLocation().add(0.5, 1.0, 0.5);
+                            FallingBlock fb = loc.getWorld().spawnFallingBlock(bLoc, ground.getBlockData());
+                            fb.setDropItem(false);
+                            fb.setVelocity(new Vector(Math.cos(rad) * 0.2, 0.4, Math.sin(rad) * 0.2));
+                            fb.setMetadata("Shockwave", new FixedMetadataValue(plugin, true));
+                            Bukkit.getScheduler().runTaskLater(plugin, fb::remove, 40L);
+                        }
                     }
 
                     for (Entity e : loc.getWorld().getNearbyEntities(loc, 1, 1, 1)) {
