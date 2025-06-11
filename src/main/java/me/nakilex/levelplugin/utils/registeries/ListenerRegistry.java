@@ -139,6 +139,7 @@ public class ListenerRegistry {
         pm.registerEvents(settingsGUI, plugin); // ✅ No constructor call here
         pm.registerEvents(new RogueSpell(), plugin);
         pm.registerEvents(new MeteorListener(), plugin);
+        pm.registerEvents(new ShockwaveListener(), plugin);
         pm.registerEvents(new ArcherSpell(), plugin);
         pm.registerEvents(new ChestHologramListener(lootChestManager), plugin);
 

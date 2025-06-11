@@ -22,16 +22,14 @@ import org.bukkit.Location;
 import java.util.List;
 
 /**
- * Ground slam style effect that expands outward in rings.
- * Radius can be increased via the "aoeRadius" extra param.
+ * Shockwave variant that pulls enemies toward the caster instead of knocking them away.
  */
-public class ShockwaveEffect implements SpellEffect {
+public class VortexShockwaveEffect implements SpellEffect {
     @Override
     public void apply(SpellCastContext ctx) {
         Player player = ctx.getPlayer();
         double damage = ctx.getFinalDamage();
 
-        // Base radius
         double maxRadius = 10.0;
         Object radiusParam = ctx.getExtraParam("aoeRadius");
         if (radiusParam instanceof Number n) {
@@ -43,7 +41,7 @@ public class ShockwaveEffect implements SpellEffect {
         int duration = 20;
         int steps = 10;
 
-        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1f);
+        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 0.8f);
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 0.8f, 1f);
         player.getWorld().spawnParticle(Particle.EXPLOSION, player.getLocation(), 10, 0.5, 0.5, 0.5);
 
@@ -66,16 +64,15 @@ public class ShockwaveEffect implements SpellEffect {
                     loc.getWorld().spawnParticle(Particle.BLOCK_CRUMBLE, loc, 10, 0.2, 0.2, 0.2, 0.1, Material.DIRT.createBlockData());
                     loc.getWorld().spawnParticle(Particle.CRIT, loc, 5, 0.2, 0.2, 0.2);
 
-                    if (Math.random() < 0.2) { // spawn fewer blocks for performance
+                    if (Math.random() < 0.2) {
                         Block ground = loc.getWorld().getHighestBlockAt(loc);
                         if (ground.getType() != Material.AIR) {
                             Location bLoc = ground.getLocation().add(0.5, 1.0, 0.5);
                             FallingBlock fb = loc.getWorld().spawnFallingBlock(bLoc, ground.getBlockData());
                             fb.setDropItem(false);
-                            // Reduce upward velocity so blocks stay closer to the ground
                             fb.setVelocity(new Vector(Math.cos(rad) * 0.2, 0.15, Math.sin(rad) * 0.2));
                             fb.setMetadata("Shockwave", new FixedMetadataValue(plugin, true));
-                            // Give the block plenty of time to fall before it despawns
+                            // Give the block ample time to fall before removal
                             Bukkit.getScheduler().runTaskLater(plugin, fb::remove, 80L);
                         }
                     }
@@ -84,10 +81,10 @@ public class ShockwaveEffect implements SpellEffect {
                         if (e instanceof LivingEntity le && !le.equals(player)) {
                             if (le instanceof Player p && !DuelManager.getInstance().areInDuel(player.getUniqueId(), p.getUniqueId()))
                                 continue;
-                            SpellUtils.dealWithChat(player, le, damage, "Shockwave");
-                            Vector kb = le.getLocation().toVector().subtract(player.getLocation().toVector()).normalize().multiply(0.5);
-                            kb.setY(0.3);
-                            le.setVelocity(kb);
+                            SpellUtils.dealWithChat(player, le, damage, "Vortex Shockwave");
+                            Vector pull = player.getLocation().toVector().subtract(le.getLocation().toVector()).normalize().multiply(0.5);
+                            pull.setY(0.3);
+                            le.setVelocity(pull);
                         }
                     }
 
@@ -97,6 +94,6 @@ public class ShockwaveEffect implements SpellEffect {
                 player.getWorld().playSound(player.getLocation(), Sound.ENTITY_IRON_GOLEM_ATTACK, 0.5f, 0.8f);
                 player.getWorld().playSound(player.getLocation(), Sound.BLOCK_STONE_BREAK, 0.7f, 1f);
             }
-        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, duration / steps);
+        }.runTaskTimer(plugin, 0L, duration / steps);
     }
 }

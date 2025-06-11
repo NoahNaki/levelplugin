@@ -791,6 +791,19 @@ runes:
 
     description:
       - "Extends Shockwave reach."
+  - id: "warrior_shockwave_vortex"
+    name: "Rune of Vortex"
+    rarity: "EPIC"
+    targetClass: "WARRIOR"
+    targetSpell: "shockwave"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        newEffectKey: "VORTEX_SHOCKWAVE_EFFECT"
+        extraParams: {}
+
+    description:
+      - "Shockwave pulls foes inward."
   - id: "warrior_heroic_leap_stun"
     name: "Rune of Stunning Leap"
     rarity: "EPIC"

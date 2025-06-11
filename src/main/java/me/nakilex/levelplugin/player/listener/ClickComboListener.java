@@ -52,6 +52,9 @@ public class ClickComboListener implements Listener {
     private final Map<UUID, Long> bowCooldowns = new HashMap<>();
     private static final long BOW_SHOT_COOLDOWN = 500L; // 0.5 seconds
     private final Map<UUID, Long> quickdrawCooldowns = new HashMap<>();
+    // Cooldown for melee sweep attacks
+    private final Map<UUID, Long> sweepCooldowns = new HashMap<>();
+    private static final long SWEEP_COOLDOWN = 500L; // 0.5 seconds
     private final Map<UUID, ItemStack> offhandBackups = new HashMap<>();
     private final ProtocolManager protocol = ProtocolLibrary.getProtocolManager();
     private static final int OFFHAND_SLOT = 45;
@@ -268,6 +271,14 @@ public class ClickComboListener implements Listener {
     private void doMeleeSweep(Player player, String cls) {
         ItemStack mainHand = player.getInventory().getItemInMainHand();
         if (mainHand == null || mainHand.getType() == Material.AIR) return;
+
+        // Check cooldown
+        UUID id = player.getUniqueId();
+        Long last = sweepCooldowns.get(id);
+        if (last != null && System.currentTimeMillis() - last < SWEEP_COOLDOWN) {
+            return;
+        }
+        sweepCooldowns.put(id, System.currentTimeMillis());
 
         if ("rogue".equals(cls)) {
             if (!WeaponType.isValidRogueWeapon(mainHand)) {
