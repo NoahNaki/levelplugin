@@ -26,7 +26,7 @@ public class ShadowStepEffect implements SpellEffect {
         } else {
             dest = player.getLocation().add(player.getLocation().getDirection().multiply(8));
         }
-        player.getWorld().spawnParticle(Particle.SMOKE_LARGE, player.getLocation(), 20, 0.5, 0.5, 0.5, 0.1);
+        player.getWorld().spawnParticle(Particle.LARGE_SMOKE, player.getLocation(), 20, 0.5, 0.5, 0.5, 0.1);
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 0.8f);
         player.teleport(dest, PlayerTeleportEvent.TeleportCause.PLUGIN);
         player.getWorld().spawnParticle(Particle.SQUID_INK, dest, 20, 0.5, 0.5, 0.5, 0.1);

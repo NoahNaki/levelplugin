@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.environment;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.environment.stage.BuildingStageManager;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.environment.stage.TownStageManager;
 import me.nakilex.levelplugin.fakeblock.FakeBlockManager;

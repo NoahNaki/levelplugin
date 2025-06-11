@@ -97,7 +97,7 @@ public class ExplosiveArrowShotEffect implements SpellEffect {
                     }
                 }
                 private void explode() {
-                    arrow.getWorld().spawnParticle(Particle.EXPLOSION_LARGE, arrow.getLocation(), 1);
+                    arrow.getWorld().spawnParticle(Particle.EXPLOSION, arrow.getLocation(), 1);
                     arrow.getWorld().playSound(arrow.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
                     arrow.getWorld().createExplosion(arrow.getLocation(), (float)explosionPower, false, false, player);
                     arrow.remove();
