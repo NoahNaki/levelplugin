@@ -114,6 +114,10 @@ commands:
     description: Opens the custom item browser GUI.
     usage: /itemsbrowser
     permission: none
+  potionbrowser:
+    description: Browse and obtain potions.
+    usage: /potionbrowser
+    permission: none
   toggle:
     description: Toggle plugin features on/off.
     usage: /toggle <feature>

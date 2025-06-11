@@ -553,12 +553,16 @@ public class LootChestManager {
         // Example: 20% chance to drop a potion
         double potionChance = 0.2;
         if (Math.random() < potionChance) {
-            Collection<PotionTemplate> potionTemplates = potionManager.getAllTemplates();
-            List<PotionTemplate> availablePotions = new ArrayList<>(potionTemplates);
+            List<PotionTemplate> availablePotions;
+            if (tier >= 1 && tier <= 3) {
+                availablePotions = potionManager.getTemplatesForTier(1);
+            } else if (tier >= 4 && tier <= 6) {
+                availablePotions = potionManager.getTemplatesForTier(2);
+            } else {
+                availablePotions = potionManager.getTemplatesForTier(3);
+            }
             if (!availablePotions.isEmpty()) {
-                // Randomly pick one potion template
                 PotionTemplate selected = availablePotions.get(new Random().nextInt(availablePotions.size()));
-                // Create a new potion instance and convert it to an ItemStack
                 PotionInstance instance = potionManager.createInstance(selected);
                 return instance.toItemStack(plugin);
             }

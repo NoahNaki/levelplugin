@@ -49,17 +49,18 @@ public class PotionInstance {
         ItemMeta meta = item.getItemMeta();
 
         // Set Display Name with Charges
-        if (template.getId().equals("healing_potion")) {
-            meta.setDisplayName("§cHealing Potion §4[" + charges + "/" + template.getCharges() + "]");
-            List<String> lore = Collections.emptyList();
-            meta.setLore(lore);
-            meta.setLore(Arrays.asList("§4- §7Recover §f10% §c❤"));
-        } else if (template.getId().equals("mana_potion")) {
-            meta.setDisplayName("§bMana Potion §3[" + charges + "/" + template.getCharges() + "]");
-            List<String> lore = Collections.emptyList();
-            meta.setLore(lore);
-            meta.setLore(Arrays.asList("§3- §7Recover §f10% §b✨"));
+        meta.setDisplayName(template.getName() + " §7[" + charges + "/" + template.getCharges() + "]");
+        List<String> lore = new java.util.ArrayList<>();
+        if (template.getId().equals("mana_potion")) {
+            lore.add("§3- §7Recover §f10% §b✨");
+        } else {
+            if (template.getHealAmount() > 0) {
+                lore.add("§4- §7Recover §f" + (int) template.getHealAmount() + " §c❤");
+            } else if (template.getHealPercent() > 0) {
+                lore.add("§4- §7Recover §f" + (int) (template.getHealPercent() * 100) + "% §c❤");
+            }
         }
+        meta.setLore(lore);
 
         // Store UUID in PersistentDataContainer
         PersistentDataContainer data = meta.getPersistentDataContainer();

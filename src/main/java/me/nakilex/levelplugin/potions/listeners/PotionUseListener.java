@@ -75,7 +75,7 @@ public class PotionUseListener implements Listener {
         String potionId = instance.getTemplate().getId();
 
         // Check if it's a healing potion and if the player's health is already full.
-        if (potionId.equals("healing_potion")) {
+        if (!potionId.equals("mana_potion")) {
             if (player.getHealth() >= player.getMaxHealth()) {
                 player.sendMessage("Your health is already full!");
                 return;
@@ -87,12 +87,7 @@ public class PotionUseListener implements Listener {
         potionManager.startCooldown(uuid, instance.getTemplate().getCooldownSeconds());
 
         // Apply effects based on potion type
-        if (potionId.equals("healing_potion")) {
-            int healAmount = (int) (player.getMaxHealth() * 0.1); // Restore 10% HP
-            player.setHealth(Math.min(player.getHealth() + healAmount, player.getMaxHealth()));
-            meta.setDisplayName("§cHealing Potion §4[" + instance.getCharges() + "/3]");
-            meta.setLore(Arrays.asList("§4- §7Recover §f10% §c❤"));
-        } else if (potionId.equals("mana_potion")) {
+        if (potionId.equals("mana_potion")) {
             int currentMana = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).getCurrentMana();
             int maxMana = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).getMaxMana();
 
@@ -100,8 +95,19 @@ public class PotionUseListener implements Listener {
             int newMana = Math.min(currentMana + manaRestore, maxMana);
 
             StatsManager.getInstance().getPlayerStats(player.getUniqueId()).setCurrentMana(newMana);
-            meta.setDisplayName("§bMana Potion §3[" + instance.getCharges() + "/3]");
+            meta.setDisplayName(instance.getTemplate().getName() + " §7[" + instance.getCharges() + "/" + instance.getTemplate().getCharges() + "]");
             meta.setLore(Arrays.asList("§3- §7Recover §f10% §b✨"));
+        } else {
+            double healAmt = instance.getTemplate().getHealAmount();
+            double healPct = instance.getTemplate().getHealPercent();
+            double heal = healAmt > 0 ? healAmt : player.getMaxHealth() * healPct;
+            player.setHealth(Math.min(player.getHealth() + heal, player.getMaxHealth()));
+            meta.setDisplayName(instance.getTemplate().getName() + " §7[" + instance.getCharges() + "/" + instance.getTemplate().getCharges() + "]");
+            if (healAmt > 0) {
+                meta.setLore(Arrays.asList("§4- §7Recover §f" + (int) healAmt + " §c❤"));
+            } else {
+                meta.setLore(Arrays.asList("§4- §7Recover §f" + (int)(healPct*100) + "% §c❤"));
+            }
         }
 
         player.sendMessage("Potion consumed! Remaining charges: " + instance.getCharges());

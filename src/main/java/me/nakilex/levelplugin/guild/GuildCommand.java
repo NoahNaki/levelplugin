@@ -81,6 +81,10 @@ public class GuildCommand implements CommandExecutor {
                     player.sendMessage(ChatColor.RED + "Player not found");
                     return true;
                 }
+                if (kick.getUniqueId().equals(id)) {
+                    player.sendMessage(ChatColor.RED + "You cannot kick yourself.");
+                    return true;
+                }
                 if (manager.removeMember(id, kick.getUniqueId())) {
                     player.sendMessage(ChatColor.GREEN + "Kicked " + kick.getName());
                     kick.sendMessage(ChatColor.RED + "You were kicked from the guild");

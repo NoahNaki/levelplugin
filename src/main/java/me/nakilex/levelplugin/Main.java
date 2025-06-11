@@ -15,6 +15,7 @@ import me.nakilex.levelplugin.horse.managers.HorseManager;
 import me.nakilex.levelplugin.items.config.ItemConfig;
 import me.nakilex.levelplugin.items.gui.ItemsBrowser;
 import me.nakilex.levelplugin.blacksmith.gui.RerollBrowser;
+import me.nakilex.levelplugin.potions.gui.PotionBrowser;
 import me.nakilex.levelplugin.items.listeners.PickupCustomItemListener;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.lootchests.config.ConfigManager;
@@ -203,6 +204,7 @@ public class Main extends JavaPlugin {
         registerCommandsAndListeners();
         new ItemsBrowser(this);
         new RerollBrowser(this);
+        new me.nakilex.levelplugin.potions.gui.PotionBrowser(this, potionManager);
 
         EffectRegistry.registerAll();
 

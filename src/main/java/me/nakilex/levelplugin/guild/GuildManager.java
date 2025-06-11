@@ -56,6 +56,7 @@ public class GuildManager {
     public boolean removeMember(UUID leader, UUID target) {
         Guild g = getGuild(leader);
         if (g == null || !g.getLeader().equals(leader)) return false;
+        if (leader.equals(target)) return false; // cannot kick yourself
         if (!g.removeMember(target)) return false;
         playerGuild.remove(target);
         if (g.getMembers().isEmpty()) {
