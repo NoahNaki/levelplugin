@@ -19,22 +19,22 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Provides an editor for defining town stage areas using a wand.
+ * Provides an editor for defining building stage areas using a wand.
  */
-public class TownStageCommand implements CommandExecutor, Listener {
-    private final TownStageManager manager;
+public class BuildingStageCommand implements CommandExecutor, Listener {
+    private final BuildingStageManager manager;
     private final Map<UUID, Selection> selections = new HashMap<>();
     private final ItemStack wand;
 
-    public TownStageCommand(Main plugin, TownStageManager manager) {
+    public BuildingStageCommand(Main plugin, BuildingStageManager manager) {
         this.manager = manager;
         wand = new ItemStack(Material.MACE);
         ItemMeta meta = wand.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(ChatColor.GOLD + "Town Stage Wand");
+            meta.setDisplayName(ChatColor.GOLD + "Building Stage Wand");
             wand.setItemMeta(meta);
         }
-        plugin.getCommand("townstage").setExecutor(this);
+        plugin.getCommand("buildingstage").setExecutor(this);
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }
 
@@ -60,22 +60,26 @@ public class TownStageCommand implements CommandExecutor, Listener {
                 }
                 return true;
             case "create":
-                if (args.length < 3) return false;
+                if (args.length < 5) return false;
                 Selection sel = selections.get(p.getUniqueId());
                 if (sel == null || sel.pos1 == null || sel.pos2 == null) {
                     p.sendMessage(ChatColor.RED + "Select two positions first.");
                     return true;
                 }
-                String name = args[1].toLowerCase();
-                int level = parseInt(args[2], 1);
-                manager.createStage(name, level, 1, sel.pos1, sel.pos2);
-                p.sendMessage(ChatColor.GREEN + "Stage " + name + " created.");
+                String bName = args[1].toLowerCase();
+                String town = args[2].toLowerCase();
+                int level = parseInt(args[3], 1);
+                int stage = parseInt(args[4], 1);
+                manager.createStage(town, bName, level, stage, sel.pos1, sel.pos2);
+                p.sendMessage(ChatColor.GREEN + "Stage " + bName + " created.");
                 return true;
             case "remove":
-                if (args.length < 3) return false;
-                String rName = args[1].toLowerCase();
-                int rLevel = parseInt(args[2], 1);
-                if (manager.removeStage(rName, rLevel, 1)) {
+                if (args.length < 5) return false;
+                String rbName = args[1].toLowerCase();
+                String rTown = args[2].toLowerCase();
+                int rLevel = parseInt(args[3], 1);
+                int rStage = parseInt(args[4], 1);
+                if (manager.removeStage(rTown, rbName, rLevel, rStage)) {
                     p.sendMessage(ChatColor.GREEN + "Stage removed.");
                 } else {
                     p.sendMessage(ChatColor.RED + "Stage not found.");

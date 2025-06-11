@@ -54,6 +54,18 @@ public class ClassMenuListener implements Listener {
         if (selectedClass != null) {
             UUID puuid = player.getUniqueId();
 
+            int level = LevelManager.getInstance().getLevel(player);
+            PlayerClass current = StatsManager.getInstance().getPlayerStats(puuid).playerClass;
+            int cost = current == PlayerClass.VILLAGER ? 0 : level * 50;
+            if (cost > 0) {
+                try {
+                    me.nakilex.levelplugin.Main.getInstance().getEconomyManager().deductCoins(player, cost);
+                } catch (IllegalArgumentException ex) {
+                    player.sendMessage(ChatColor.RED + "Not enough coins! Cost: " + ChatColor.GOLD + "⛃ " + cost);
+                    return;
+                }
+            }
+
             // ✅ Set class directly into StatsManager like old version
             StatsManager.getInstance().getPlayerStats(puuid).playerClass = selectedClass;
 

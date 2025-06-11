@@ -3,6 +3,8 @@ package me.nakilex.levelplugin.storage.gui;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.storage.data.FileHandler;
 import me.nakilex.levelplugin.storage.events.StorageEvents;
+import com.nexomc.nexo.api.NexoItems;
+import com.nexomc.nexo.items.ItemBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -26,9 +28,17 @@ public class StorageGUI {
     /** Cost to unlock the next new page; starts at 300 and doubles each purchase */
     private int currentPageCost = 300;
 
+    private boolean confirmUnlock = false;
+    private int sortMode = 0;
+    private int filterMode = 0;
+
     private static final int PAGE_SIZE     = 54;  // double chest size
     private static final int NAV_NEXT_SLOT = 53;
     private static final int NAV_PREV_SLOT = 45;
+    private static final int SORT_SLOT     = 50;
+    private static final int FILTER_SLOT   = 51;
+    private static final int INFO_SLOT     = 8;
+    private static final ItemStack FILLER  = createFiller();
 
     public StorageGUI(UUID ownerId, StorageEvents storageEvents) {
         this.ownerId = ownerId;
@@ -55,31 +65,25 @@ public class StorageGUI {
      */
     private void updateNavigationItems(Inventory inv) {
         // Next arrow: if on last page, show purchase cost; otherwise "Next Page"
-        String nextLabel;
+        ItemStack nextItem;
         if (currentPage == pages.size() - 1) {
-            nextLabel = ChatColor.YELLOW + "Purchase Page: " + currentPageCost + " coins";
+            if (confirmUnlock) {
+                nextItem = getNexoItem("check", ChatColor.GREEN + "Confirm " + currentPageCost + " coins");
+            } else {
+                nextItem = getNexoItem("arrow_right", ChatColor.YELLOW + "Unlock Page: " + currentPageCost + " coins");
+            }
         } else {
-            nextLabel = ChatColor.YELLOW + "Next Page";
+            nextItem = getNexoItem("arrow_right", ChatColor.YELLOW + "Next Page");
         }
-        inv.setItem(NAV_NEXT_SLOT, createNavigationItem(Material.ARROW, nextLabel));
+        inv.setItem(NAV_NEXT_SLOT, nextItem);
 
         // Previous arrow: only if not on first page
         if (currentPage > 0) {
             inv.setItem(NAV_PREV_SLOT,
-                createNavigationItem(Material.ARROW, ChatColor.YELLOW + "Previous Page"));
+                getNexoItem("arrow_left", ChatColor.YELLOW + "Previous Page"));
         } else {
             inv.setItem(NAV_PREV_SLOT, null);
         }
-    }
-
-    private ItemStack createNavigationItem(Material material, String displayName) {
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(displayName);
-            item.setItemMeta(meta);
-        }
-        return item;
     }
 
     /**
@@ -88,10 +92,18 @@ public class StorageGUI {
     public void open(Player player) {
         Inventory inv = pages.get(currentPage);
 
-        // refresh nav arrows to reflect unlock cost or page availability
-        updateNavigationItems(inv);
+        // set filler border
+        for (int i = 0; i < PAGE_SIZE; i++) {
+            if (i < 9 || i >= 45 || i % 9 == 0 || i % 9 == 8) {
+                inv.setItem(i, FILLER);
+            }
+        }
 
-        // register so clicks get forwarded to handleClick(...)
+        updateNavigationItems(inv);
+        inv.setItem(SORT_SLOT, createSortButton(sortMode));
+        inv.setItem(FILTER_SLOT, createFilterButton(filterMode));
+        inv.setItem(INFO_SLOT, createInfoItem());
+
         storageEvents.registerInventory(this, inv);
         player.openInventory(inv);
     }
@@ -113,14 +125,31 @@ public class StorageGUI {
             event.setCancelled(true);
             goToPreviousPage((Player) event.getWhoClicked());
         }
+        else if (slot == SORT_SLOT) {
+            event.setCancelled(true);
+            if (event.isLeftClick()) sortMode++; else sortMode--;
+            if (sortMode > 2) sortMode = 0; if (sortMode < 0) sortMode = 2;
+            open((Player) event.getWhoClicked());
+        }
+        else if (slot == FILTER_SLOT) {
+            event.setCancelled(true);
+            if (event.isLeftClick()) filterMode++; else filterMode--;
+            if (filterMode > 1) filterMode = 0; if (filterMode < 0) filterMode = 1;
+            open((Player) event.getWhoClicked());
+        }
         // otherwise allow regular interactions
     }
 
     private void goToNextPage(Player player) {
         if (player == null) return;
 
-        // if on the last page, offer purchase
         if (currentPage == pages.size() - 1) {
+            if (!confirmUnlock) {
+                confirmUnlock = true;
+                open(player);
+                return;
+            }
+
             EconomyManager econ = new EconomyManager(
                 Bukkit.getPluginManager().getPlugin("LevelPlugin")
             );
@@ -129,6 +158,8 @@ public class StorageGUI {
                 player.sendMessage(
                     ChatColor.RED + "You need " + currentPageCost + " coins to unlock a new page!"
                 );
+                confirmUnlock = false;
+                open(player);
                 return;
             }
 
@@ -137,12 +168,11 @@ public class StorageGUI {
                 ChatColor.GREEN + "Purchased new storage page for " + currentPageCost + " coins!"
             );
 
-            // add blank page and double the next cost
             pages.add(createBlankPage(pages.size() + 1));
             currentPageCost *= 2;
         }
 
-        // advance page index and re-open
+        confirmUnlock = false;
         currentPage++;
         open(player);
     }
@@ -182,5 +212,89 @@ public class StorageGUI {
     }
     public int getCurrentPage() {
         return currentPage;
+    }
+
+    private static ItemStack createFiller() {
+        ItemStack glass = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+        ItemMeta meta = glass.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(" ");
+            glass.setItemMeta(meta);
+        }
+        return glass;
+    }
+
+    private static ItemStack getNexoItem(String id, String name) {
+        ItemBuilder builder = NexoItems.itemFromId(id);
+        if (builder == null) return new ItemStack(Material.BARRIER);
+        ItemStack item = builder.build();
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(name);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private static String rangeLine(int index, int current, String label) {
+        ChatColor color = (index == current) ? ChatColor.WHITE : ChatColor.GRAY;
+        ChatColor bullet = (index == current) ? ChatColor.GREEN : ChatColor.DARK_GRAY;
+        return bullet + "- " + color + label;
+    }
+
+    private ItemStack createSortButton(int mode) {
+        ItemStack it = new ItemStack(Material.COMPARATOR);
+        ItemMeta meta = it.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.AQUA + "Sorting");
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "");
+            lore.add(ChatColor.DARK_GRAY + "Sort the items");
+            lore.add(" ");
+            String[] opts = {"None", "A-Z", "Z-A"};
+            for (int i = 0; i < opts.length; i++) {
+                lore.add(rangeLine(i, mode, opts[i]));
+            }
+            lore.add(" ");
+            lore.add(ChatColor.WHITE + "Left-Click " + ChatColor.GRAY + "to go forward");
+            lore.add(ChatColor.WHITE + "Right-Click " + ChatColor.GRAY + "to go backward");
+            meta.setLore(lore);
+            it.setItemMeta(meta);
+        }
+        return it;
+    }
+
+    private ItemStack createFilterButton(int mode) {
+        ItemStack it = new ItemStack(Material.HOPPER);
+        ItemMeta meta = it.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.AQUA + "Filter");
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "");
+            lore.add(ChatColor.DARK_GRAY + "Filter items");
+            lore.add(" ");
+            String[] opts = {"Show All", "Blocks Only"};
+            for (int i = 0; i < opts.length; i++) {
+                lore.add(rangeLine(i, mode, opts[i]));
+            }
+            lore.add(" ");
+            lore.add(ChatColor.WHITE + "Left-Click " + ChatColor.GRAY + "to go forward");
+            lore.add(ChatColor.WHITE + "Right-Click " + ChatColor.GRAY + "to go backward");
+            meta.setLore(lore);
+            it.setItemMeta(meta);
+        }
+        return it;
+    }
+
+    private ItemStack createInfoItem() {
+        ItemStack info = getNexoItem("info", ChatColor.YELLOW + "Information");
+        ItemMeta meta = info.getItemMeta();
+        if (meta != null) {
+            meta.setLore(List.of(
+                    ChatColor.GRAY + "Personal bank storage.",
+                    ChatColor.GRAY + "Use arrows to change pages."));
+            info.setItemMeta(meta);
+        }
+        return info;
     }
 }

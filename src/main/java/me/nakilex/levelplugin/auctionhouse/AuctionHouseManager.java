@@ -163,6 +163,13 @@ public class AuctionHouseManager {
         AuctionItem ai = auctions.get(index);
         if (!ai.getSeller().equals(seller.getUniqueId())) return false;
         if (ai.getStatus() != AuctionStatus.ACTIVE) return false;
+        if (ai.getHighestBidder() != null) {
+            economyManager.addCoins(ai.getHighestBidder(), ai.getCurrentBid());
+            Player bidder = Bukkit.getPlayer(ai.getHighestBidder());
+            if (bidder != null) {
+                bidder.sendMessage(ChatColor.YELLOW + "Your bid was refunded.");
+            }
+        }
         seller.getInventory().addItem(ai.getItem());
         auctions.remove(index);
         saveAuctions();

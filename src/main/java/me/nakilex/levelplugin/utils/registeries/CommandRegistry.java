@@ -62,6 +62,7 @@ import me.nakilex.levelplugin.debug.commands.NexoScanCommand;
 import me.nakilex.levelplugin.environment.TownCommand;
 import me.nakilex.levelplugin.environment.UpgradeGUI;
 import me.nakilex.levelplugin.environment.stage.TownStageCommand;
+import me.nakilex.levelplugin.environment.stage.BuildingStageCommand;
 
 public class CommandRegistry {
 
@@ -138,6 +139,7 @@ public class CommandRegistry {
         plugin.getCommand("modelgate").setExecutor(new me.nakilex.levelplugin.fakeblock.ModelGateCommand(plugin));
         plugin.getCommand("town").setExecutor(new TownCommand(upgradeGUI, plugin.getEnvironmentManager()));
         plugin.getCommand("townstage").setExecutor(new TownStageCommand(plugin, plugin.getTownStageManager()));
+        plugin.getCommand("buildingstage").setExecutor(new BuildingStageCommand(plugin, plugin.getBuildingStageManager()));
 
     }
 }

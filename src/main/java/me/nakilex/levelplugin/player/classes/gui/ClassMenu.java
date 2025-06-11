@@ -7,14 +7,21 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.entity.Player;
 
 import java.util.Arrays;
 
 public class ClassMenu {
 
-    public static Inventory getClassSelectionMenu() {
+    public static Inventory getClassSelectionMenu(Player player) {
         // Create an inventory with 27 slots
         Inventory inv = Bukkit.createInventory(null, 27, ChatColor.DARK_GREEN + "Choose Your Class");
+
+        int level = me.nakilex.levelplugin.player.level.managers.LevelManager.getInstance().getLevel(player);
+        me.nakilex.levelplugin.player.classes.data.PlayerClass current =
+                me.nakilex.levelplugin.player.attributes.managers.StatsManager.getInstance()
+                        .getPlayerStats(player.getUniqueId()).playerClass;
+        int cost = current == me.nakilex.levelplugin.player.classes.data.PlayerClass.VILLAGER ? 0 : level * 50;
 
         // Warrior (using wooden shovel as icon)
         inv.setItem(10, createMenuItem(Material.WOODEN_SHOVEL, ChatColor.GREEN + "" + ChatColor.BOLD + "Start As A Warrior!",
@@ -37,6 +44,7 @@ public class ClassMenu {
                     "(Combo: RLL)",
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
+                ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,
                 "",
                 ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
             )));
@@ -62,6 +70,7 @@ public class ClassMenu {
                     "(Combo: LRL)",
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
+                ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,
                 "",
                 ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
             )));
@@ -87,6 +96,7 @@ public class ClassMenu {
                     "(Combo: RRR)",
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
+                ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,
                 "",
                 ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
             )));
@@ -112,6 +122,7 @@ public class ClassMenu {
                     "(Combo: RRR)",
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
+                ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,
                 "",
                 ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
             )));

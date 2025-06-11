@@ -45,9 +45,9 @@ public class SalvageGUI {
                 ChatColor.RED + "✖ Cancel:",
                 ChatColor.GRAY + "  Closes the salvage menu safely.",
                 "",
-                ChatColor.GOLD + "Quick-Sell Buttons:",
-                ChatColor.GRAY + "  Instantly salvage all items of a given rarity",
-                ChatColor.GRAY + "  from both the GUI and your inventory."
+                ChatColor.GOLD + "Deposit Buttons:",
+                ChatColor.GRAY + "  Move all items of a chosen rarity",
+                ChatColor.GRAY + "  from your inventory into this menu."
             ));
             info.setItemMeta(infoMeta);
         }
@@ -74,7 +74,7 @@ public class SalvageGUI {
 
         for (int i = 0; i < rarities.length; i++) {
             int actualSlot = logicalStart + i; // 46–50
-            gui.setItem(actualSlot, createRaritySellButton(rarities[i]));
+            gui.setItem(actualSlot, createRarityDepositButton(rarities[i]));
         }
 
         // Deposit/Return buttons
@@ -105,7 +105,7 @@ public class SalvageGUI {
         return item;
     }
 
-    private static ItemStack createRaritySellButton(ItemRarity rarity) {
+    private static ItemStack createRarityDepositButton(ItemRarity rarity) {
         Material material;
         switch (rarity) {
             case COMMON: material = Material.LIGHT_GRAY_CONCRETE; break;
@@ -120,7 +120,7 @@ public class SalvageGUI {
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             String rarityName = rarity.name().charAt(0) + rarity.name().substring(1).toLowerCase();
-            meta.setDisplayName(rarity.getColor() + "Salvage " + rarityName + " Items");
+            meta.setDisplayName(rarity.getColor() + "Deposit " + rarityName + " Items");
             item.setItemMeta(meta);
         }
 
