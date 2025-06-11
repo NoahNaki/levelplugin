@@ -36,12 +36,13 @@ public class PotionManager {
             String id = config.getString(base + "id");
             String name = config.getString(base + "name");
             Material material = Material.valueOf(config.getString(base + "material"));
+            String nexo = config.getString(base + "nexo", "");
             int charges = config.getInt(base + "charges", 1);
             int cooldownSeconds = config.getInt(base + "cooldownSeconds", 0);
             int tier = config.getInt(base + "tier", 1);
             double healAmount = config.getDouble(base + "heal", 0);
             double healPercent = config.getDouble(base + "healPercent", 0);
-            templates.put(id, new PotionTemplate(id, name, material, charges, cooldownSeconds, tier, healAmount, healPercent));
+            templates.put(id, new PotionTemplate(id, name, material, nexo, charges, cooldownSeconds, tier, healAmount, healPercent));
         }
     }
 

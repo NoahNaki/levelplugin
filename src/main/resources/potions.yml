@@ -2,7 +2,8 @@ potions:
   healing_i:
     id: healing_i
     name: "§6Healing Potion I"
-    material: POTION
+    material: PAPER
+    nexo: potion2_red_small
     charges: 3
     cooldownSeconds: 5
     tier: 1
@@ -10,7 +11,8 @@ potions:
   healing_ii:
     id: healing_ii
     name: "§6Healing Potion II"
-    material: POTION
+    material: PAPER
+    nexo: potion2_red_middle
     charges: 3
     cooldownSeconds: 5
     tier: 2
@@ -18,14 +20,36 @@ potions:
   healing_iii:
     id: healing_iii
     name: "§6Healing Potion III"
-    material: POTION
+    material: PAPER
+    nexo: potion2_red_large
     charges: 3
     cooldownSeconds: 5
     tier: 3
     healPercent: 0.1
-  mana_potion:
-    id: mana_potion
-    name: "§9Mana Potion"
-    material: POTION
+  mana_i:
+    id: mana_i
+    name: "§9Mana Potion I"
+    material: PAPER
+    nexo: potion3_blue_small
     charges: 3
     cooldownSeconds: 5
+    tier: 1
+    heal: 100
+  mana_ii:
+    id: mana_ii
+    name: "§9Mana Potion II"
+    material: PAPER
+    nexo: potion3_blue_middle
+    charges: 3
+    cooldownSeconds: 5
+    tier: 2
+    heal: 1000
+  mana_iii:
+    id: mana_iii
+    name: "§9Mana Potion III"
+    material: PAPER
+    nexo: potion3_blue_large
+    charges: 3
+    cooldownSeconds: 5
+    tier: 3
+    healPercent: 0.1

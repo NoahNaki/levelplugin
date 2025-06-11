@@ -75,7 +75,7 @@ public class PotionUseListener implements Listener {
         String potionId = instance.getTemplate().getId();
 
         // Check if it's a healing potion and if the player's health is already full.
-        if (!potionId.equals("mana_potion")) {
+        if (!potionId.startsWith("mana")) {
             if (player.getHealth() >= player.getMaxHealth()) {
                 player.sendMessage("Your health is already full!");
                 return;
@@ -87,16 +87,25 @@ public class PotionUseListener implements Listener {
         potionManager.startCooldown(uuid, instance.getTemplate().getCooldownSeconds());
 
         // Apply effects based on potion type
-        if (potionId.equals("mana_potion")) {
+        if (potionId.startsWith("mana")) {
             int currentMana = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).getCurrentMana();
             int maxMana = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).getMaxMana();
 
-            int manaRestore = (int) (maxMana * 0.1); // Restore 10% of max mana
+            int manaRestore;
+            if (instance.getTemplate().getHealAmount() > 0) {
+                manaRestore = (int) instance.getTemplate().getHealAmount();
+            } else {
+                manaRestore = (int) (maxMana * instance.getTemplate().getHealPercent());
+            }
             int newMana = Math.min(currentMana + manaRestore, maxMana);
 
             StatsManager.getInstance().getPlayerStats(player.getUniqueId()).setCurrentMana(newMana);
             meta.setDisplayName(instance.getTemplate().getName() + " §7[" + instance.getCharges() + "/" + instance.getTemplate().getCharges() + "]");
-            meta.setLore(Arrays.asList("§3- §7Recover §f10% §b✨"));
+            if (instance.getTemplate().getHealAmount() > 0) {
+                meta.setLore(Arrays.asList("§3- §7Recover §f" + (int) instance.getTemplate().getHealAmount() + " §b✨"));
+            } else {
+                meta.setLore(Arrays.asList("§3- §7Recover §f" + (int)(instance.getTemplate().getHealPercent()*100) + "% §b✨"));
+            }
         } else {
             double healAmt = instance.getTemplate().getHealAmount();
             double healPct = instance.getTemplate().getHealPercent();
