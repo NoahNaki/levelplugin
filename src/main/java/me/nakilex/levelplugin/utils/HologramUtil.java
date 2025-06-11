@@ -51,12 +51,22 @@ public class HologramUtil {
     public static void spawnDamageHologram(Player viewer, Location at, String text) {
         if (!initialized) initPool(at.getWorld());
 
+        Main.getInstance().getLogger().info(
+            "[HologramUtil] spawnDamageHologram viewer=" + viewer.getName() +
+            " text=" + org.bukkit.ChatColor.stripColor(text)
+        );
+
         ArmorStand stand = pool.poll();
         if (stand == null) {
+            Main.getInstance().getLogger().info("[HologramUtil] Pool empty -> spawnOneOff");
             // fallback to one‑off spawn if pool is exhausted
             spawnOneOff(viewer, at, text);
             return;
         }
+
+        Main.getInstance().getLogger().info(
+            "[HologramUtil] Using pooled stand, remaining=" + pool.size()
+        );
 
         // Position & name
         stand.setCustomName(text);
@@ -65,6 +75,9 @@ public class HologramUtil {
         // Hide from everyone except the viewer (after one tick so the spawn
         // packet is processed first)
         Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+            Main.getInstance().getLogger().info(
+                "[HologramUtil] Updating visibility for " + viewer.getName()
+            );
             for (Player p : Bukkit.getOnlinePlayers()) {
                 if (p.equals(viewer)) {
                     p.showEntity(Main.getInstance(), stand);
@@ -85,6 +98,9 @@ public class HologramUtil {
                     for (Player p : Bukkit.getOnlinePlayers()) {
                         p.hideEntity(Main.getInstance(), stand);
                     }
+                    Main.getInstance().getLogger().info(
+                        "[HologramUtil] Recycle stand id=" + stand.getEntityId()
+                    );
                     // send it offscreen and recycle
                     stand.teleport(new Location(at.getWorld(), 0, POOL_Y, 0));
                     stand.setCustomName("");
@@ -101,6 +117,9 @@ public class HologramUtil {
      * In the unlikely event the pool is empty, fall back to a temporary stand.
      */
     private static void spawnOneOff(Player viewer, Location loc, String text) {
+        Main.getInstance().getLogger().info(
+            "[HologramUtil] spawnOneOff viewer=" + viewer.getName()
+        );
         Location spawnLoc = loc.clone().add(0, START_Y_OFFSET, 0);
         ArmorStand stand = (ArmorStand) loc.getWorld().spawnEntity(spawnLoc, EntityType.ARMOR_STAND);
         stand.setVisible(false);
@@ -131,6 +150,9 @@ public class HologramUtil {
                     for (Player p : Bukkit.getOnlinePlayers()) {
                         p.hideEntity(Main.getInstance(), stand);
                     }
+                    Main.getInstance().getLogger().info(
+                        "[HologramUtil] remove one-off stand id=" + stand.getEntityId()
+                    );
                     stand.remove();
                 }
             }
