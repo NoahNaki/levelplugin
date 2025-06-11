@@ -34,7 +34,14 @@ public class ItemsBrowser implements CommandExecutor, Listener {
     private static final int SIZE = ROWS * COLS;
     private static final int PAGE_SIZE = 28; // 4 rows × 7 cols of content
 
+    private static final int RARITY_FILTER_SLOT = 48;
+    private static final int LEVEL_FILTER_SLOT  = 50;
+    private static final int CLASS_FILTER_SLOT  = 52;
+
     private final JavaPlugin plugin;
+    private final java.util.Map<java.util.UUID,Integer> rarityFilters = new java.util.HashMap<>();
+    private final java.util.Map<java.util.UUID,Integer> levelFilters  = new java.util.HashMap<>();
+    private final java.util.Map<java.util.UUID,Integer> classFilters  = new java.util.HashMap<>();
 
     public ItemsBrowser(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -58,26 +65,108 @@ public class ItemsBrowser implements CommandExecutor, Listener {
         return item;
     }
 
+    private ItemStack getNexoItem(String id, String name) {
+        com.nexomc.nexo.items.ItemBuilder b = com.nexomc.nexo.api.NexoItems.itemFromId(id);
+        if (b == null) return new ItemStack(Material.BARRIER);
+        ItemStack it = b.build();
+        ItemMeta m = it.getItemMeta();
+        if (m != null) { m.setDisplayName(name); it.setItemMeta(m); }
+        return it;
+    }
+
+    private ItemStack createRarityButton(int filter) {
+        ItemStack it = new ItemStack(Material.NETHER_STAR);
+        ItemMeta meta = it.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.AQUA + "Rarity Filter");
+            List<String> lore = new ArrayList<>();
+            lore.add(" ");
+            me.nakilex.levelplugin.items.data.ItemRarity[] arr = me.nakilex.levelplugin.items.data.ItemRarity.values();
+            for (int i = 0; i < arr.length; i++) {
+                String line = (i == filter ? ChatColor.GREEN : ChatColor.GRAY) + arr[i].name();
+                lore.add(line);
+            }
+            lore.add((arr.length == filter ? ChatColor.GREEN : ChatColor.GRAY) + "ALL");
+            meta.setLore(lore);
+            it.setItemMeta(meta);
+        }
+        return it;
+    }
+
+    private ItemStack createLevelButton(int filter) {
+        ItemStack it = new ItemStack(Material.EXPERIENCE_BOTTLE);
+        ItemMeta meta = it.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.AQUA + "Level Filter");
+            List<String> lore = new ArrayList<>();
+            String[] ranges = {"Lv. 1-19","Lv. 20-39","Lv. 40-59","Lv. 60-79","Lv. 80+","ALL"};
+            for (int i = 0; i < ranges.length; i++) {
+                String line = (i == filter ? ChatColor.GREEN : ChatColor.GRAY) + ranges[i];
+                lore.add(line);
+            }
+            meta.setLore(lore);
+            it.setItemMeta(meta);
+        }
+        return it;
+    }
+
+    private ItemStack createClassButton(int filter) {
+        ItemStack it = new ItemStack(Material.BOOK);
+        ItemMeta meta = it.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.AQUA + "Class Filter");
+            List<String> lore = new ArrayList<>();
+            String[] classes = {"WARRIOR","ROGUE","ARCHER","MAGE","ALL"};
+            for (int i = 0; i < classes.length; i++) {
+                String line = (i == filter ? ChatColor.GREEN : ChatColor.GRAY) + classes[i];
+                lore.add(line);
+            }
+            meta.setLore(lore);
+            it.setItemMeta(meta);
+        }
+        return it;
+    }
+
     private void openPage(Player player, int page) {
         Inventory gui = Bukkit.createInventory(null, SIZE, title(page));
 
-        // 1) Fill every slot with a light‐gray pane
-        ItemStack filler = createMenuItem(Material.LIGHT_GRAY_STAINED_GLASS_PANE, " ");
+        ItemStack filler = createMenuItem(Material.GRAY_STAINED_GLASS_PANE, " ");
         for (int i = 0; i < SIZE; i++) {
-            gui.setItem(i, filler);
+            if (i < 9 || i >= 45 || i % 9 == 0 || i % 9 == 8) gui.setItem(i, filler);
         }
 
         // 2) Grab and sort all template IDs
         List<Integer> ids = new ArrayList<>(ItemManager.getInstance().getAllTemplates().keySet());
         Collections.sort(ids);
+
+        int rFilter = rarityFilters.getOrDefault(player.getUniqueId(), me.nakilex.levelplugin.items.data.ItemRarity.values().length);
+        int lFilter = levelFilters.getOrDefault(player.getUniqueId(), 5);
+        int cFilter = classFilters.getOrDefault(player.getUniqueId(), 4);
+
+        List<CustomItem> templates = new ArrayList<>();
+        for (int id : ids) {
+            CustomItem tpl = ItemManager.getInstance().getTemplateById(id);
+            if (tpl == null) continue;
+            if (rFilter < me.nakilex.levelplugin.items.data.ItemRarity.values().length && tpl.getRarity() != me.nakilex.levelplugin.items.data.ItemRarity.values()[rFilter])
+                continue;
+            if (lFilter < 5) {
+                int lvl = tpl.getLevelRequirement();
+                int min = lFilter*20 + 1; int max = lFilter==4?999: min+19;
+                if (lvl < min || lvl > max) continue;
+            }
+            if (cFilter < 4 && !tpl.getClassRequirement().equalsIgnoreCase(new String[]{"WARRIOR","ROGUE","ARCHER","MAGE"}[cFilter]))
+                continue;
+            templates.add(tpl);
+        }
+
         int start = page * PAGE_SIZE;
 
         // 3) Build the 4×7 grid of previews
         for (int i = 0; i < PAGE_SIZE; i++) {
             int idx = start + i;
-            if (idx >= ids.size()) break;
+            if (idx >= templates.size()) break;
 
-            CustomItem tpl = ItemManager.getInstance().getTemplateById(ids.get(idx));
+            CustomItem tpl = templates.get(idx);
             if (tpl == null) continue;
 
             // a) Create the ItemStack
@@ -166,10 +255,14 @@ public class ItemsBrowser implements CommandExecutor, Listener {
         }
 
         // 4) Pagination buttons
-        ItemStack prev = createMenuItem(Material.ARROW, ChatColor.GREEN + "Previous Page");
+        ItemStack prev = getNexoItem("arrow_left", ChatColor.GREEN + "Previous Page");
         gui.setItem(SIZE - COLS, prev);
-        ItemStack next = createMenuItem(Material.ARROW, ChatColor.GREEN + "Next Page");
+        ItemStack next = getNexoItem("arrow_right", ChatColor.GREEN + "Next Page");
         gui.setItem(SIZE - 1, next);
+
+        gui.setItem(RARITY_FILTER_SLOT, createRarityButton(rFilter));
+        gui.setItem(LEVEL_FILTER_SLOT, createLevelButton(lFilter));
+        gui.setItem(CLASS_FILTER_SLOT, createClassButton(cFilter));
 
         // 5) Finally open
         player.openInventory(gui);
@@ -201,7 +294,49 @@ public class ItemsBrowser implements CommandExecutor, Listener {
         String name = clicked.getItemMeta().getDisplayName();
         String stripped = ChatColor.stripColor(e.getView().getTitle());
         int currentPage = Integer.parseInt(stripped.split(" ")[stripped.split(" ").length - 1]) - 1;
-        int maxPage = (ItemManager.getInstance().getAllTemplates().size() - 1) / PAGE_SIZE;
+        int rFilter = rarityFilters.getOrDefault(player.getUniqueId(), me.nakilex.levelplugin.items.data.ItemRarity.values().length);
+        int lFilter = levelFilters.getOrDefault(player.getUniqueId(), 5);
+        int cFilter = classFilters.getOrDefault(player.getUniqueId(), 4);
+        int total = 0;
+        for (CustomItem ci : ItemManager.getInstance().getAllTemplates().values()) {
+            if (rFilter < me.nakilex.levelplugin.items.data.ItemRarity.values().length && ci.getRarity() != me.nakilex.levelplugin.items.data.ItemRarity.values()[rFilter]) continue;
+            if (lFilter < 5) {
+                int lvl = ci.getLevelRequirement();
+                int min = lFilter*20 + 1; int max = lFilter==4?999:min+19;
+                if (lvl < min || lvl > max) continue;
+            }
+            if (cFilter < 4 && !ci.getClassRequirement().equalsIgnoreCase(new String[]{"WARRIOR","ROGUE","ARCHER","MAGE"}[cFilter])) continue;
+            total++;
+        }
+        int maxPage = (Math.max(total,1) - 1) / PAGE_SIZE;
+
+        if (e.getRawSlot() == RARITY_FILTER_SLOT) {
+            int f = rarityFilters.getOrDefault(player.getUniqueId(), me.nakilex.levelplugin.items.data.ItemRarity.values().length);
+            if (e.getClick() == org.bukkit.event.inventory.ClickType.RIGHT) f--; else f++;
+            int max = me.nakilex.levelplugin.items.data.ItemRarity.values().length;
+            if (f < 0) f = max; if (f > max) f = 0;
+            rarityFilters.put(player.getUniqueId(), f);
+            openPage(player, 0);
+            return;
+        }
+
+        if (e.getRawSlot() == LEVEL_FILTER_SLOT) {
+            int f = levelFilters.getOrDefault(player.getUniqueId(), 5);
+            if (e.getClick() == org.bukkit.event.inventory.ClickType.RIGHT) f--; else f++;
+            if (f < 0) f = 5; if (f > 5) f = 0;
+            levelFilters.put(player.getUniqueId(), f);
+            openPage(player, 0);
+            return;
+        }
+
+        if (e.getRawSlot() == CLASS_FILTER_SLOT) {
+            int f = classFilters.getOrDefault(player.getUniqueId(), 4);
+            if (e.getClick() == org.bukkit.event.inventory.ClickType.RIGHT) f--; else f++;
+            if (f < 0) f = 4; if (f > 4) f = 0;
+            classFilters.put(player.getUniqueId(), f);
+            openPage(player, 0);
+            return;
+        }
 
         // Next Page?
         if (name.equals(ChatColor.GREEN + "Next Page")) {

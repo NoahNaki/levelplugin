@@ -2,14 +2,16 @@ package me.nakilex.levelplugin.potions.data;
 
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
+import com.nexomc.nexo.api.NexoItems;
+import com.nexomc.nexo.items.ItemBuilder;
+import org.bukkit.ChatColor;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -45,21 +47,41 @@ public class PotionInstance {
     }
 
     public ItemStack toItemStack(JavaPlugin plugin) {
-        ItemStack item = new ItemStack(template.getMaterial());
+        ItemStack item;
+        if (template.getNexoId() != null && !template.getNexoId().isEmpty()) {
+            ItemBuilder b = NexoItems.itemFromId(template.getNexoId());
+            item = b != null ? b.build() : new ItemStack(template.getMaterial());
+        } else {
+            item = new ItemStack(template.getMaterial());
+        }
         ItemMeta meta = item.getItemMeta();
 
-        // Set Display Name with Charges
-        if (template.getId().equals("healing_potion")) {
-            meta.setDisplayName("§cHealing Potion §4[" + charges + "/" + template.getCharges() + "]");
-            List<String> lore = Collections.emptyList();
-            meta.setLore(lore);
-            meta.setLore(Arrays.asList("§4- §7Recover §f10% §c❤"));
-        } else if (template.getId().equals("mana_potion")) {
-            meta.setDisplayName("§bMana Potion §3[" + charges + "/" + template.getCharges() + "]");
-            List<String> lore = Collections.emptyList();
-            meta.setLore(lore);
-            meta.setLore(Arrays.asList("§3- §7Recover §f10% §b✨"));
+        String baseName = ChatColor.translateAlternateColorCodes('&', template.getName());
+        String display = baseName + " " + ChatColor.DARK_GRAY + "[" + ChatColor.GRAY + charges
+                + ChatColor.WHITE + "/" + ChatColor.GRAY + template.getCharges() + ChatColor.DARK_GRAY + "]";
+        meta.setDisplayName(display);
+
+        List<String> lore = new java.util.ArrayList<>();
+        boolean mana = template.getId().startsWith("mana");
+        lore.add(" ");
+        lore.add(ChatColor.WHITE + "Effect:");
+        String bulletColor = mana ? ChatColor.AQUA.toString() : ChatColor.RED.toString();
+        String amountStr;
+        if (template.getHealAmount() > 0) {
+            amountStr = String.valueOf((int) template.getHealAmount());
+        } else {
+            amountStr = (int) (template.getHealPercent() * 100) + "%";
         }
+        String symbol = mana ? " ✨" : " ❤";
+        String action = mana ? "Restore " : "Heal ";
+        lore.add(bulletColor + "- " + ChatColor.GRAY + action + ChatColor.WHITE + amountStr + bulletColor + symbol);
+        lore.add(bulletColor + "- " + ChatColor.GRAY + "Cooldown: " + ChatColor.GRAY + template.getCooldownSeconds() + " seconds");
+        lore.add(" ");
+        lore.add(ChatColor.WHITE + "Right-click " + ChatColor.GRAY + "to consume");
+        meta.setLore(lore);
+
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
+        meta.setUnbreakable(true);
 
         // Store UUID in PersistentDataContainer
         PersistentDataContainer data = meta.getPersistentDataContainer();
@@ -68,5 +90,10 @@ public class PotionInstance {
 
         item.setItemMeta(meta);
         return item;
+    }
+
+    private String toRoman(int number) {
+        String[] numerals = {"I","II","III","IV","V","VI","VII","VIII","IX","X"};
+        return (number >= 1 && number <= 10) ? numerals[number-1] : String.valueOf(number);
     }
 }

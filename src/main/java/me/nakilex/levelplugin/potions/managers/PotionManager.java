@@ -32,12 +32,17 @@ public class PotionManager {
         }
 
         for (String key : config.getConfigurationSection("potions").getKeys(false)) {
-            String id = config.getString("potions." + key + ".id");
-            String name = config.getString("potions." + key + ".name");
-            Material material = Material.valueOf(config.getString("potions." + key + ".material"));
-            int charges = config.getInt("potions." + key + ".charges");
-            int cooldownSeconds = config.getInt("potions." + key + ".cooldownSeconds");
-            templates.put(id, new PotionTemplate(id, name, material, charges, cooldownSeconds));
+            String base = "potions." + key + ".";
+            String id = config.getString(base + "id");
+            String name = config.getString(base + "name");
+            Material material = Material.valueOf(config.getString(base + "material"));
+            String nexo = config.getString(base + "nexo", "");
+            int charges = config.getInt(base + "charges", 1);
+            int cooldownSeconds = config.getInt(base + "cooldownSeconds", 0);
+            int tier = config.getInt(base + "tier", 1);
+            double healAmount = config.getDouble(base + "heal", 0);
+            double healPercent = config.getDouble(base + "healPercent", 0);
+            templates.put(id, new PotionTemplate(id, name, material, nexo, charges, cooldownSeconds, tier, healAmount, healPercent));
         }
     }
 
@@ -47,6 +52,14 @@ public class PotionManager {
 
     public Collection<PotionTemplate> getAllTemplates() {
         return templates.values();
+    }
+
+    public List<PotionTemplate> getTemplatesForTier(int tier) {
+        List<PotionTemplate> list = new ArrayList<>();
+        for (PotionTemplate pt : templates.values()) {
+            if (pt.getTier() == tier) list.add(pt);
+        }
+        return list;
     }
 
     public PotionInstance getPotionInstance(UUID uuid) {
@@ -66,6 +79,10 @@ public class PotionManager {
 
     public void startCooldown(UUID uuid, int seconds) {
         cooldownManager.startCooldown(uuid, seconds);
+    }
+
+    public long getRemainingCooldown(UUID uuid) {
+        return cooldownManager.getRemainingSeconds(uuid);
     }
 
     /**

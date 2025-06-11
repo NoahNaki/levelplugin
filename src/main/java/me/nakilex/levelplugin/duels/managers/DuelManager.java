@@ -150,7 +150,10 @@ public class DuelManager {
 
     public boolean areInDuel(UUID p1, UUID p2) {
         UUID partner = activeDuels.get(p1);
-        return partner != null && partner.equals(p2);
+        if (partner != null && partner.equals(p2)) return true;
+        // Treat hostile guilds as duelling for damage purposes
+        return me.nakilex.levelplugin.guild.GuildManager.getInstance()
+                .areHostile(p1, p2);
     }
 
     /**
