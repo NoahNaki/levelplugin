@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
 import me.nakilex.levelplugin.runes.manager.RunesManager;
 import me.nakilex.levelplugin.runes.model.Rune;
+import me.nakilex.levelplugin.runes.gui.IdentifyRunesGUI;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -25,7 +26,6 @@ import java.util.*;
 public class EquipRunesGUI implements Listener {
     private final Main plugin;
     private final RunesManager runesManager;
-    private final IdentifyRunesGUI identifyGui;
 
     public static final String TITLE = ChatColor.DARK_GRAY + "Runes";
     private static final int SIZE = 54;
@@ -66,7 +66,6 @@ public class EquipRunesGUI implements Listener {
     public EquipRunesGUI(Main plugin, RunesManager runesManager, IdentifyRunesGUI identifyGui) {
         this.plugin = plugin;
         this.runesManager = runesManager;
-        this.identifyGui = (identifyGui != null) ? identifyGui : new IdentifyRunesGUI(plugin, runesManager);
     }
 
     public Inventory createInventory(Player player) {
@@ -91,7 +90,7 @@ public class EquipRunesGUI implements Listener {
             Set<Integer> target = unique ? UNIQUE_SLOTS : NORMAL_SLOTS;
             for (int slot : target) {
                 if (level >= UNLOCK_LEVELS.get(slot) && inv.getItem(slot) == null) {
-                    inv.setItem(slot, identifyGui.createIdentifiedRuneItem(rune));
+                    inv.setItem(slot, runesManager.createIdentifiedRuneItem(rune));
                     break;
                 }
             }
@@ -267,7 +266,7 @@ public class EquipRunesGUI implements Listener {
                 else bottomInv.setItem(e.getSlot(), current);
 
                 // place into the free GUI slot
-                ItemStack placed = identifyGui.createIdentifiedRuneItem(rune);
+                ItemStack placed = runesManager.createIdentifiedRuneItem(rune);
                 placed.setAmount(1);
                 topInv.setItem(free.get(), placed);
             }
@@ -307,7 +306,7 @@ public class EquipRunesGUI implements Listener {
                 cursor.setAmount(cursor.getAmount() - 1);
                 e.setCursor(cursor.getAmount() > 0 ? cursor : null);
 
-                ItemStack placed = identifyGui.createIdentifiedRuneItem(rune);
+                ItemStack placed = runesManager.createIdentifiedRuneItem(rune);
                 placed.setAmount(1);
                 topInv.setItem(rawSlot, placed);
             }

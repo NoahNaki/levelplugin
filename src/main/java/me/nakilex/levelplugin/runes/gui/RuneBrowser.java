@@ -240,11 +240,11 @@ public class RuneBrowser implements CommandExecutor, Listener {
             return;
         }
 
-        // 4) Create and give an *uncarved* Rune item:
-        ItemStack uncarved = runesManager.createUncarvedRuneItem(rune);
-        player.getInventory().addItem(uncarved);
+        // 4) Give the player an already identified rune item
+        ItemStack identified = runesManager.createIdentifiedRuneItem(rune);
+        player.getInventory().addItem(identified);
         player.sendMessage(ChatColor.GREEN + "You received: "
-            + uncarved.getItemMeta().getDisplayName());
+            + identified.getItemMeta().getDisplayName());
     }
 }
 

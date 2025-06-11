@@ -8,6 +8,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
@@ -75,6 +76,48 @@ public class RunesManager {
                 rune.getId());
         paper.setItemMeta(meta);
         return paper;
+    }
+
+    private static final Material[] RUNE_TRIM_MATERIALS = {
+        Material.WAYFINDER_ARMOR_TRIM_SMITHING_TEMPLATE,
+        Material.HOST_ARMOR_TRIM_SMITHING_TEMPLATE,
+        Material.RAISER_ARMOR_TRIM_SMITHING_TEMPLATE,
+        Material.SHAPER_ARMOR_TRIM_SMITHING_TEMPLATE
+    };
+
+    private Material chooseRuneMaterial(Rune rune) {
+        int idx = Math.abs(rune.getId().hashCode()) % RUNE_TRIM_MATERIALS.length;
+        return RUNE_TRIM_MATERIALS[idx];
+    }
+
+    /** Create an identified rune item with name, spell, description and rarity. */
+    public ItemStack createIdentifiedRuneItem(Rune rune) {
+        ItemStack item = new ItemStack(chooseRuneMaterial(rune));
+        ItemMeta meta = item.getItemMeta();
+
+        meta.addItemFlags(
+            ItemFlag.HIDE_ATTRIBUTES,
+            ItemFlag.HIDE_ENCHANTS,
+            ItemFlag.HIDE_UNBREAKABLE,
+            ItemFlag.HIDE_ARMOR_TRIM,
+            ItemFlag.HIDE_ADDITIONAL_TOOLTIP
+        );
+
+        ChatColor color = rune.getRarity().getColor();
+        meta.setDisplayName(color + rune.getDisplayName());
+
+        List<String> lore = new ArrayList<>();
+        lore.add(ChatColor.YELLOW + "Spell: " + rune.getTargetSpell());
+        for (String line : rune.getDescription()) {
+            lore.add(ChatColor.GRAY + line);
+        }
+        lore.add("");
+        lore.add(color.toString() + ChatColor.BOLD + rune.getRarity().name());
+
+        meta.setLore(lore);
+        meta.getPersistentDataContainer().set(runeKey, PersistentDataType.STRING, rune.getId());
+        item.setItemMeta(meta);
+        return item;
     }
 
 

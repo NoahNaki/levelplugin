@@ -419,55 +419,12 @@ public class IdentifyRunesGUI implements Listener {
         // 3) Name in rarity colour
         meta.setDisplayName(rarityColor + rune.getDisplayName());
 
-        // 4) Build lore
+        // 4) Build lore with spell and description
         List<String> lore = new ArrayList<>();
-
-        // 4a) blank spacer
-        lore.add("");
-
-        // 4b) effect lines: static in gray (&7), dynamic in yellow (&e)
-        // 4b) Effect lines: static in gray (&7), spell & numbers in yellow (&e)
-        for (var e : rune.getEffects()) {
-            switch (e.getType()) {
-                case MODIFIER:
-                    lore.add(
-                        ChatColor.GRAY + "Increases "
-                            + ChatColor.YELLOW + rune.getTargetSpell()
-                            + ChatColor.GRAY + " damage by "
-                            + ChatColor.YELLOW + String.format("%.1f%%", e.getBonusDamagePercent())
-                    );
-                    if (e.getCooldownReductionPercent() > 0) {
-                        lore.add(
-                            ChatColor.GRAY + "Reduces "
-                                + ChatColor.YELLOW + rune.getTargetSpell()
-                                + ChatColor.GRAY + " cooldown by "
-                                + ChatColor.YELLOW + String.format("%.1f%%", e.getCooldownReductionPercent())
-                        );
-                    }
-                    break;
-
-                case TRANSFORM:
-                    // only prettify if there’s actually a key
-                    String key = e.getNewEffectKey();
-                    if (key != null && !key.isEmpty()) {
-                        String pretty = Arrays.stream(key.split("_"))
-                            .map(s -> Character.toUpperCase(s.charAt(0)) + s.substring(1).toLowerCase())
-                            .collect(Collectors.joining(" "));
-                        lore.add(
-                            ChatColor.GRAY + "Transforms "
-                                + ChatColor.YELLOW + rune.getTargetSpell()
-                                + ChatColor.GRAY + " into "
-                                + ChatColor.YELLOW + pretty
-                        );
-                    }
-                    break;
-
-                // … other effect types …
-            }
+        lore.add(ChatColor.YELLOW + "Spell: " + rune.getTargetSpell());
+        for (String line : rune.getDescription()) {
+            lore.add(ChatColor.GRAY + line);
         }
-
-
-        // 4c) blank spacer
         lore.add("");
 
         // 4d) bottom line: if unique, prefix "UNIQUE "
