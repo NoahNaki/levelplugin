@@ -81,8 +81,13 @@ public class HologramUtil {
             @Override
             public void run() {
                 if (age++ >= LIFETIME_TICKS || stand.isDead()) {
+                    // hide from all players so next usage starts clean
+                    for (Player p : Bukkit.getOnlinePlayers()) {
+                        p.hideEntity(Main.getInstance(), stand);
+                    }
                     // send it offscreen and recycle
                     stand.teleport(new Location(at.getWorld(), 0, POOL_Y, 0));
+                    stand.setCustomName("");
                     pool.offer(stand);
                     cancel();
                     return;
@@ -122,7 +127,12 @@ public class HologramUtil {
         new BukkitRunnable() {
             @Override
             public void run() {
-                if (!stand.isDead()) stand.remove();
+                if (!stand.isDead()) {
+                    for (Player p : Bukkit.getOnlinePlayers()) {
+                        p.hideEntity(Main.getInstance(), stand);
+                    }
+                    stand.remove();
+                }
             }
         }.runTaskLater(Main.getInstance(), LIFETIME_TICKS);
     }
