@@ -47,7 +47,7 @@ public class PowerShotEffect implements SpellEffect {
 
                 Arrow arrow = w.spawnArrow(drop, new Vector(0, -3, 0), 1.5f, 0f);
                 arrow.setShooter(player);
-                arrow.setCustomName("ArrowRain");
+                arrow.setCustomName("PowerShot");
                 arrow.setCustomNameVisible(false);
                 arrow.setPickupStatus(AbstractArrow.PickupStatus.DISALLOWED);
                 arrow.setMetadata(META_KEY, new FixedMetadataValue(Main.getInstance(), player.getUniqueId()));

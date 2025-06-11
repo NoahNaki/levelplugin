@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStats;
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
 import me.nakilex.levelplugin.spells.effect.SpellEffect;
+import me.nakilex.levelplugin.spells.utils.SpellUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -149,7 +150,7 @@ public class HealEffect implements SpellEffect {
                             Player enemy = (Player) ent;
                             if (toHeal.contains(enemy)) continue;
                             if (dm.areInDuel(casterId, enemy.getUniqueId())) continue;
-                            enemy.damage(finalAoeDamage, caster);
+                            SpellUtils.dealWithChat(caster, enemy, finalAoeDamage, spellName);
                         }
                     }
                 }

@@ -86,7 +86,7 @@ public class ArcherSpell implements Listener {
                 dropLocation.getWorld().playSound(dropLocation, Sound.ENTITY_FIREWORK_ROCKET_LAUNCH, 0.5f, 1.5f);
 
                 Arrow arrow = player.getWorld().spawnArrow(dropLocation, new Vector(0, -3, 0), 1.5f, 0.0f);
-                arrow.setCustomName("ArrowRain");
+                arrow.setCustomName("PowerShot");
                 arrow.setCustomNameVisible(false);
                 arrow.setShooter(player);
                 arrow.setPickupStatus(AbstractArrow.PickupStatus.DISALLOWED);

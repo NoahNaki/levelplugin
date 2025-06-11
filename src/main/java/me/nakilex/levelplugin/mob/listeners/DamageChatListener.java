@@ -74,14 +74,20 @@ public class DamageChatListener implements Listener {
         targetName = targetName.charAt(0) + targetName.substring(1).toLowerCase();
 
         double dmg = event.getFinalDamage();
-        String hitType = isCrit ? "critically hit" : "hit";
-        String msg = String.format("%s %s %s for %.1f damage",
-            spellName, hitType, targetName, dmg);
+        String hitWord = isCrit ? "critically hit" : "hit";
+        ChatColor mainColor = isCrit ? ChatColor.YELLOW : ChatColor.WHITE;
+
+        String msg = mainColor + spellName +
+            ChatColor.GRAY + " " + hitWord + " " +
+            ChatColor.YELLOW + targetName +
+            ChatColor.GRAY + " for " +
+            ChatColor.GRAY + String.format("%.1f", dmg) + " " +
+            ChatColor.RED + "\u2764";
 
         Main.getInstance().getLogger()
-            .info("[ChatListener] Sending chat: " + msg);
+            .info("[ChatListener] Sending chat: " + ChatColor.stripColor(msg));
 
-        player.sendMessage((isCrit ? ChatColor.YELLOW : ChatColor.WHITE) + msg);
+        player.sendMessage(msg);
     }
 
 }

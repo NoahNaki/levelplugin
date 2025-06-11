@@ -53,6 +53,6 @@ public class DamageIndicatorListener implements Listener {
 
         // Spawn the floating text
         LivingEntity mob = (LivingEntity) target;
-        HologramUtil.spawnDamageHologram(mob.getEyeLocation(), text);
+        HologramUtil.spawnDamageHologram(damager, mob.getEyeLocation(), text);
     }
 }

@@ -4,6 +4,9 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
 import me.nakilex.levelplugin.spells.effect.SpellEffect;
+import me.nakilex.levelplugin.items.data.CustomItem;
+import me.nakilex.levelplugin.items.managers.ItemManager;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.spells.utils.SpellUtils;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -30,8 +33,17 @@ public class BlackholeEffect implements SpellEffect {
         Main plugin = Main.getInstance();
         UUID pid = player.getUniqueId();
 
-        // 1) Compute damage
-        double finalDamage = ctx.getFinalDamage();
+        // 1) Compute damage scaled by intelligence
+        StatsManager.PlayerStats stats =
+            StatsManager.getInstance().getPlayerStats(pid);
+        int playerInt = stats.baseIntelligence + stats.bonusIntelligence;
+        CustomItem cItem = ItemManager.getInstance()
+            .getCustomItemFromItemStack(player.getInventory().getItemInMainHand());
+        int weaponInt = cItem != null ? cItem.getIntel() : 0;
+
+        double rawDamage = ctx.getBaseSpell().getBaseDamage() + playerInt + weaponInt;
+        double dmgMultiplier = ctx.getFinalDamage() / ctx.getBaseSpell().getBaseDamage();
+        double finalDamage = rawDamage * dmgMultiplier;
 
         // 2) Rune flags
         boolean allowMultiple = parseBoolean(ctx.getExtraParam("allowMultiple"), false);

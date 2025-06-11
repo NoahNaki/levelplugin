@@ -67,17 +67,19 @@ public class SpellUtils {
                 // log final damage
                 double finalDamage = ev.getFinalDamage();
                 boolean wasCrit    = StatsEffectListener.consumeLastCrit(caster);
-                String hitType     = wasCrit ? "critically hit" : "hit";
-                ChatColor color    = wasCrit ? ChatColor.RED : ChatColor.WHITE;
-                String mobName     = getMobDisplayName(target);
-                double display     = Math.round(finalDamage * 10.0) / 10.0;
+                String mobName = getMobDisplayName(target);
+                double display = Math.round(finalDamage * 10.0) / 10.0;
 
                 if (wasChatOn) {
-                    String msg = String.format(
-                        "%s %s %s for %.1f ❤ damage",
-                        spellName, hitType, mobName, display
-                    );
-                    caster.sendMessage(color + msg);
+                    ChatColor mainColor = wasCrit ? ChatColor.YELLOW : ChatColor.WHITE;
+                    String hitWord = wasCrit ? "critically hit" : "hit";
+                    String msg = mainColor + spellName +
+                        ChatColor.GRAY + " " + hitWord + " " +
+                        ChatColor.YELLOW + mobName +
+                        ChatColor.GRAY + " for " +
+                        ChatColor.GRAY + display + " " +
+                        ChatColor.RED + "\u2764"; // heart
+                    caster.sendMessage(msg);
                 }
 
                 // cleanup listener
