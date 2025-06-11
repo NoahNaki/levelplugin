@@ -14,8 +14,8 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.HashMap;
-import java.util.Map;
+import me.nakilex.levelplugin.environment.stage.StageSelectionStore;
+
 import java.util.UUID;
 
 /**
@@ -23,17 +23,11 @@ import java.util.UUID;
  */
 public class TownStageCommand implements CommandExecutor, Listener {
     private final TownStageManager manager;
-    private final Map<UUID, Selection> selections = new HashMap<>();
     private final ItemStack wand;
 
     public TownStageCommand(Main plugin, TownStageManager manager) {
         this.manager = manager;
-        wand = new ItemStack(Material.MACE);
-        ItemMeta meta = wand.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(ChatColor.GOLD + "Town Stage Wand");
-            wand.setItemMeta(meta);
-        }
+        wand = StageSelectionStore.WAND;
         plugin.getCommand("townstage").setExecutor(this);
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }
@@ -61,14 +55,15 @@ public class TownStageCommand implements CommandExecutor, Listener {
                 return true;
             case "create":
                 if (args.length < 3) return false;
-                Selection sel = selections.get(p.getUniqueId());
-                if (sel == null || sel.pos1 == null || sel.pos2 == null) {
+                Location pos1 = StageSelectionStore.getPos1(p.getUniqueId());
+                Location pos2 = StageSelectionStore.getPos2(p.getUniqueId());
+                if (pos1 == null || pos2 == null) {
                     p.sendMessage(ChatColor.RED + "Select two positions first.");
                     return true;
                 }
                 String name = args[1].toLowerCase();
                 int level = parseInt(args[2], 1);
-                manager.createStage(name, level, 1, sel.pos1, sel.pos2);
+                manager.createStage(name, level, 1, pos1, pos2);
                 p.sendMessage(ChatColor.GREEN + "Stage " + name + " created.");
                 return true;
             case "remove":
@@ -93,13 +88,13 @@ public class TownStageCommand implements CommandExecutor, Listener {
         if (event.getClickedBlock() == null) return;
         event.setCancelled(true);
         Player player = event.getPlayer();
-        Selection sel = selections.computeIfAbsent(player.getUniqueId(), k -> new Selection());
+        Location loc = event.getClickedBlock().getLocation();
         if (event.getAction().name().contains("LEFT")) {
-            sel.pos1 = event.getClickedBlock().getLocation();
-            player.sendMessage(ChatColor.AQUA + "Pos1 set " + format(sel.pos1));
+            StageSelectionStore.setPos1(player.getUniqueId(), loc);
+            player.sendMessage(ChatColor.AQUA + "Pos1 set " + format(loc));
         } else if (event.getAction().name().contains("RIGHT")) {
-            sel.pos2 = event.getClickedBlock().getLocation();
-            player.sendMessage(ChatColor.AQUA + "Pos2 set " + format(sel.pos2));
+            StageSelectionStore.setPos2(player.getUniqueId(), loc);
+            player.sendMessage(ChatColor.AQUA + "Pos2 set " + format(loc));
         }
     }
 
@@ -113,10 +108,5 @@ public class TownStageCommand implements CommandExecutor, Listener {
 
     private static String format(Location loc) {
         return loc.getBlockX()+","+loc.getBlockY()+","+loc.getBlockZ();
-    }
-
-    private static class Selection {
-        Location pos1;
-        Location pos2;
     }
 }
