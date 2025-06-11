@@ -9,8 +9,6 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.entity.Display;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.Queue;
@@ -75,7 +73,7 @@ public class HologramUtil {
         Location spawnLoc = loc.clone().add(0, START_Y_OFFSET, 0);
         TextDisplay display = (TextDisplay) loc.getWorld().spawnEntity(spawnLoc, EntityType.TEXT_DISPLAY);
         display.setBillboard(Display.Billboard.CENTER);
-        display.setText(LegacyComponentSerializer.legacySection().deserialize(text));
+        display.setText(text);
         display.setShadowRadius(0);
         display.setShadowStrength(0);
 
