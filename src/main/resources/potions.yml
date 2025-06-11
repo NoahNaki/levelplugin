@@ -1,7 +1,7 @@
 potions:
   healing_i:
     id: healing_i
-    name: "§6Healing Potion I"
+    name: "Red Small Potion 2"
     material: PAPER
     nexo: potion2_red_small
     charges: 3
@@ -10,7 +10,7 @@ potions:
     heal: 100
   healing_ii:
     id: healing_ii
-    name: "§6Healing Potion II"
+    name: "Red Middle Potion 2"
     material: PAPER
     nexo: potion2_red_middle
     charges: 3
@@ -19,7 +19,7 @@ potions:
     heal: 1000
   healing_iii:
     id: healing_iii
-    name: "§6Healing Potion III"
+    name: "Red Big Potion 2"
     material: PAPER
     nexo: potion2_red_large
     charges: 3
@@ -28,7 +28,7 @@ potions:
     healPercent: 0.1
   mana_i:
     id: mana_i
-    name: "§9Mana Potion I"
+    name: "Blue Small Potion 3"
     material: PAPER
     nexo: potion3_blue_small
     charges: 3
@@ -37,7 +37,7 @@ potions:
     heal: 100
   mana_ii:
     id: mana_ii
-    name: "§9Mana Potion II"
+    name: "Blue Middle Potion 3"
     material: PAPER
     nexo: potion3_blue_middle
     charges: 3
@@ -46,7 +46,7 @@ potions:
     heal: 1000
   mana_iii:
     id: mana_iii
-    name: "§9Mana Potion III"
+    name: "Blue Big Potion 3"
     material: PAPER
     nexo: potion3_blue_large
     charges: 3
