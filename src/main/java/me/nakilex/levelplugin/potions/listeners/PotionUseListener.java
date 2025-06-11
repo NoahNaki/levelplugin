@@ -105,7 +105,7 @@ public class PotionUseListener implements Listener {
             StatsManager.getInstance().getPlayerStats(player.getUniqueId()).setCurrentMana(newMana);
 
             String baseName = ChatColor.translateAlternateColorCodes('&', instance.getTemplate().getName());
-            meta.setDisplayName(baseName + ChatColor.DARK_GRAY + "[" + ChatColor.GRAY + instance.getCharges()
+            meta.setDisplayName(baseName + " " + ChatColor.DARK_GRAY + "[" + ChatColor.GRAY + instance.getCharges()
                     + ChatColor.WHITE + "/" + ChatColor.GRAY + instance.getTemplate().getCharges() + ChatColor.DARK_GRAY + "]");
 
             List<String> lore = new ArrayList<>();
@@ -114,7 +114,7 @@ public class PotionUseListener implements Listener {
                     ? String.valueOf((int) instance.getTemplate().getHealAmount())
                     : (int) (instance.getTemplate().getHealPercent() * 100) + "%";
             lore.add(ChatColor.AQUA + "- " + ChatColor.GRAY + "Restore " + ChatColor.WHITE + amount + ChatColor.AQUA + " ✨");
-            lore.add(ChatColor.AQUA + "- " + ChatColor.GRAY + "Cooldown: " + ChatColor.GRAY + instance.getTemplate().getCooldownSeconds());
+            lore.add(ChatColor.AQUA + "- " + ChatColor.GRAY + "Cooldown: " + ChatColor.GRAY + instance.getTemplate().getCooldownSeconds() + " seconds");
             lore.add(" ");
             lore.add(ChatColor.WHITE + "Right-click " + ChatColor.GRAY + "to consume");
             meta.setLore(lore);
@@ -124,14 +124,14 @@ public class PotionUseListener implements Listener {
             double heal = healAmt > 0 ? healAmt : player.getMaxHealth() * healPct;
             player.setHealth(Math.min(player.getHealth() + heal, player.getMaxHealth()));
             String baseName = ChatColor.translateAlternateColorCodes('&', instance.getTemplate().getName());
-            meta.setDisplayName(baseName + ChatColor.DARK_GRAY + "[" + ChatColor.GRAY + instance.getCharges()
+            meta.setDisplayName(baseName + " " + ChatColor.DARK_GRAY + "[" + ChatColor.GRAY + instance.getCharges()
                     + ChatColor.WHITE + "/" + ChatColor.GRAY + instance.getTemplate().getCharges() + ChatColor.DARK_GRAY + "]");
 
             String amount = healAmt > 0 ? String.valueOf((int) healAmt) : (int) (healPct * 100) + "%";
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.WHITE + "Effect:");
             lore.add(ChatColor.RED + "- " + ChatColor.GRAY + "Heal " + ChatColor.WHITE + amount + ChatColor.RED + " ❤");
-            lore.add(ChatColor.RED + "- " + ChatColor.GRAY + "Cooldown: " + ChatColor.GRAY + instance.getTemplate().getCooldownSeconds());
+            lore.add(ChatColor.RED + "- " + ChatColor.GRAY + "Cooldown: " + ChatColor.GRAY + instance.getTemplate().getCooldownSeconds() + " seconds");
             lore.add(" ");
             lore.add(ChatColor.WHITE + "Right-click " + ChatColor.GRAY + "to consume");
             meta.setLore(lore);

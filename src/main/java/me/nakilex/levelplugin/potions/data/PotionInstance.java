@@ -57,7 +57,7 @@ public class PotionInstance {
         ItemMeta meta = item.getItemMeta();
 
         String baseName = ChatColor.translateAlternateColorCodes('&', template.getName());
-        String display = baseName + ChatColor.DARK_GRAY + "[" + ChatColor.GRAY + charges
+        String display = baseName + " " + ChatColor.DARK_GRAY + "[" + ChatColor.GRAY + charges
                 + ChatColor.WHITE + "/" + ChatColor.GRAY + template.getCharges() + ChatColor.DARK_GRAY + "]";
         meta.setDisplayName(display);
 
@@ -74,7 +74,7 @@ public class PotionInstance {
         String symbol = mana ? " ✨" : " ❤";
         String action = mana ? "Restore " : "Heal ";
         lore.add(bulletColor + "- " + ChatColor.GRAY + action + ChatColor.WHITE + amountStr + bulletColor + symbol);
-        lore.add(bulletColor + "- " + ChatColor.GRAY + "Cooldown: " + ChatColor.GRAY + template.getCooldownSeconds());
+        lore.add(bulletColor + "- " + ChatColor.GRAY + "Cooldown: " + ChatColor.GRAY + template.getCooldownSeconds() + " seconds");
         lore.add(" ");
         lore.add(ChatColor.WHITE + "Right-click " + ChatColor.GRAY + "to consume");
         meta.setLore(lore);
