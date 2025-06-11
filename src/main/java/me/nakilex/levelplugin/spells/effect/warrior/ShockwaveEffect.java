@@ -44,6 +44,7 @@ public class ShockwaveEffect implements SpellEffect {
         int steps = 10;
 
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1f);
+        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 0.8f, 1f);
         player.getWorld().spawnParticle(Particle.EXPLOSION, player.getLocation(), 10, 0.5, 0.5, 0.5);
 
         Plugin plugin = Bukkit.getPluginManager().getPlugin("LevelPlugin");
@@ -93,6 +94,7 @@ public class ShockwaveEffect implements SpellEffect {
                 }
 
                 player.getWorld().playSound(player.getLocation(), Sound.ENTITY_IRON_GOLEM_ATTACK, 0.5f, 0.8f);
+                player.getWorld().playSound(player.getLocation(), Sound.BLOCK_STONE_BREAK, 0.7f, 1f);
             }
         }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, duration / steps);
     }

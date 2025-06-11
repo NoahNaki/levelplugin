@@ -20,7 +20,7 @@ public class ShockwaveListener implements Listener {
         Bukkit.getScheduler().runTaskLater(
                 Bukkit.getPluginManager().getPlugin("LevelPlugin"),
                 fb::remove,
-                10L
+                40L
         );
     }
 }
