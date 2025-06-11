@@ -8,9 +8,13 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.FallingBlock;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.metadata.FixedMetadataValue;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 import org.bukkit.Location;
@@ -42,6 +46,8 @@ public class ShockwaveEffect implements SpellEffect {
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1f);
         player.getWorld().spawnParticle(Particle.EXPLOSION, player.getLocation(), 10, 0.5, 0.5, 0.5);
 
+        Plugin plugin = Bukkit.getPluginManager().getPlugin("LevelPlugin");
+
         double finalMaxRadius = maxRadius;
         new BukkitRunnable() {
             double current = 0;
@@ -58,6 +64,16 @@ public class ShockwaveEffect implements SpellEffect {
 
                     loc.getWorld().spawnParticle(Particle.BLOCK_CRUMBLE, loc, 10, 0.2, 0.2, 0.2, 0.1, Material.DIRT.createBlockData());
                     loc.getWorld().spawnParticle(Particle.CRIT, loc, 5, 0.2, 0.2, 0.2);
+
+                    Block ground = loc.getWorld().getHighestBlockAt(loc);
+                    if (ground.getType() != Material.AIR) {
+                        Location bLoc = ground.getLocation().add(0.5, 1.0, 0.5);
+                        FallingBlock fb = loc.getWorld().spawnFallingBlock(bLoc, ground.getBlockData());
+                        fb.setDropItem(false);
+                        fb.setVelocity(new Vector(Math.cos(rad) * 0.2, 0.4, Math.sin(rad) * 0.2));
+                        fb.setMetadata("Shockwave", new FixedMetadataValue(plugin, true));
+                        Bukkit.getScheduler().runTaskLater(plugin, fb::remove, 40L);
+                    }
 
                     for (Entity e : loc.getWorld().getNearbyEntities(loc, 1, 1, 1)) {
                         if (e instanceof LivingEntity le && !le.equals(player)) {
