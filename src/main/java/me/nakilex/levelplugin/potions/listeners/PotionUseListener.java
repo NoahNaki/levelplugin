@@ -149,10 +149,9 @@ public class PotionUseListener implements Listener {
             meta.setLore(lore);
         }
 
-        player.sendMessage(ChatColor.AQUA + "You drink the " + ChatColor.YELLOW + baseName
-                + ChatColor.AQUA + " and restore " + ChatColor.GOLD + (int) restored
-                + (potionId.startsWith("mana") ? " mana" : " health") + ChatColor.AQUA
-                + ". " + ChatColor.GRAY + "(" + instance.getCharges() + " charges left)");
+        player.sendMessage(ChatColor.AQUA + "+" + ChatColor.GOLD + (int) restored
+                + (potionId.startsWith("mana") ? " mana" : " HP") + ChatColor.GRAY
+                + " (" + instance.getCharges() + " left)");
         item.setItemMeta(meta);
 
         if (instance.getCharges() <= 0) {
