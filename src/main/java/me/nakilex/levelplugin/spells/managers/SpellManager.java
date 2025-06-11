@@ -103,7 +103,7 @@ public class SpellManager {
                 0,
                 WeaponType.WAND.getMaterials(),
                 "BASIC_RAY",
-                0.0
+                1.0
             )
         );
         // Combo spells
@@ -119,7 +119,7 @@ public class SpellManager {
             18.0, 
             0, 15,
             me.nakilex.levelplugin.items.data.WeaponType.WAND.getMaterials(),
-            "BLACKHOLE", 0.0
+            "BLACKHOLE", 3.0
         ));
         mageMap.put("RLR", new Spell(
             "heal", "Heal", "RLR",

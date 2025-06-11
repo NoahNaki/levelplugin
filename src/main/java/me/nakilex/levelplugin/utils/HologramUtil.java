@@ -62,14 +62,17 @@ public class HologramUtil {
         stand.setCustomName(text);
         stand.teleport(at.clone().add(0, START_Y_OFFSET, 0));
 
-        // Hide from everyone except the viewer
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            if (p.equals(viewer)) {
-                p.showEntity(Main.getInstance(), stand);
-            } else {
-                p.hideEntity(Main.getInstance(), stand);
+        // Hide from everyone except the viewer (schedule next tick to ensure
+        // the spawn packet was processed first)
+        Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                if (p.equals(viewer)) {
+                    p.showEntity(Main.getInstance(), stand);
+                } else {
+                    p.hideEntity(Main.getInstance(), stand);
+                }
             }
-        }
+        });
 
         // Animate & recycle
         new BukkitRunnable() {
@@ -104,14 +107,16 @@ public class HologramUtil {
         stand.setCustomNameVisible(true);
         stand.setCustomName(text);
 
-        // Hide from everyone except viewer
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            if (p.equals(viewer)) {
-                p.showEntity(Main.getInstance(), stand);
-            } else {
-                p.hideEntity(Main.getInstance(), stand);
+        // Hide from everyone except viewer (delayed to ensure spawn packet)
+        Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                if (p.equals(viewer)) {
+                    p.showEntity(Main.getInstance(), stand);
+                } else {
+                    p.hideEntity(Main.getInstance(), stand);
+                }
             }
-        }
+        });
 
         // remove after LIFETIME_TICKS
         new BukkitRunnable() {
