@@ -167,6 +167,10 @@ public class Main extends JavaPlugin {
         // Load configuration files
         loadConfigFiles();
 
+        // Prepare player configuration before managers that depend on it
+        playerConfig = new PlayerConfig(this);
+        playerConfig.loadAllPlayers();
+
         // Initialize managers and other components
         initializeManagers();
 
@@ -176,10 +180,6 @@ public class Main extends JavaPlugin {
 
         storageEvents = new StorageEvents();    // Create it here
         getServer().getPluginManager().registerEvents(storageEvents, this);
-
-
-        playerConfig = new PlayerConfig(this);
-        playerConfig.loadAllPlayers();
 
         // Managers that depend on PlayerConfig
         environmentManager = new me.nakilex.levelplugin.environment.EnvironmentManager(playerConfig, townStageManager, buildingStageManager, fakeBlockManager);
