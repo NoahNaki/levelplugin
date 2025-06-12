@@ -7,6 +7,7 @@ public class PlayerSettings {
     private boolean dropDetails = true;
     private boolean dropDetailsChatEnabled = true;
     private boolean partyGlow = true;
+    private boolean balancePublic = true;
 
     public boolean isDmgChatEnabled() {
         return dmgChat;
@@ -46,5 +47,13 @@ public class PlayerSettings {
 
     public void togglePartyGlow() {
         partyGlow = !partyGlow;
+    }
+
+    public boolean isBalancePublic() {
+        return balancePublic;
+    }
+
+    public void toggleBalancePublic() {
+        balancePublic = !balancePublic;
     }
 }

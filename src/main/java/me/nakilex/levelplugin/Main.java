@@ -146,6 +146,8 @@ public class Main extends JavaPlugin {
     private EquipRunesGUI equipGui;
     private me.nakilex.levelplugin.auctionhouse.AuctionHouseManager auctionHouseManager;
     private me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI auctionHouseGUI;
+    private SettingsManager settingsManager;
+    private SettingsGUI settingsGUI;
 
     public Map<UUID, List<NPC>> getActiveBowDrones() {
         return activeBowDrones;
@@ -261,12 +263,13 @@ public class Main extends JavaPlugin {
         tipsCfg = new TipsConfigManager(this);
         broadcastMgr = new BroadcastManager(this, this.tipsCfg);
         broadcastMgr.start();
+        settingsManager = new SettingsManager();
         questManager = new QuestManager(this, partyManager);
         dialogManager = new me.nakilex.levelplugin.npc.dialog.NPCDialogManager();
         scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(
                 this, economyManager, gemsManager, partyManager, questManager);
         duelStatsManager = new me.nakilex.levelplugin.leaderboards.DuelStatsManager(this);
-        leaderboardManager = new me.nakilex.levelplugin.leaderboards.LeaderboardManager(this, economyManager, playerConfig, duelStatsManager);
+        leaderboardManager = new me.nakilex.levelplugin.leaderboards.LeaderboardManager(this, economyManager, playerConfig, duelStatsManager, settingsManager);
         partyGlowManager = new PartyGlowManager(this, partyManager, scoreboardManager::getBoard);
         beaconManager = new me.nakilex.levelplugin.quests.managers.BeaconManager();
         fastTravelManager = new me.nakilex.levelplugin.fasttravel.FastTravelManager(this);
@@ -296,8 +299,8 @@ public class Main extends JavaPlugin {
         BlacksmithGUI blacksmithGUI = new BlacksmithGUI(economyManager, itemUpgradeManager, itemManager, itemRepairManager);
         horseManager = new HorseManager(horseConfigManager);
         HorseGUI horseGUI = new HorseGUI(horseManager, economyManager);
-        SettingsManager settingsManager = new SettingsManager();
-        SettingsGUI settingsGUI = new SettingsGUI(settingsManager); // Initialize the field properly
+        settingsManager = new SettingsManager();
+        settingsGUI = new SettingsGUI(settingsManager); // Initialize the field properly
 
 
         // 1) Assign the field so it’s not null.

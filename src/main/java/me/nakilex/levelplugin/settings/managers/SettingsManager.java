@@ -11,6 +11,10 @@ public class SettingsManager {
     private final HashMap<UUID, PlayerSettings> settingsMap = new HashMap<>();
 
     public PlayerSettings getSettings(Player player) {
-        return settingsMap.computeIfAbsent(player.getUniqueId(), uuid -> new PlayerSettings());
+        return getSettings(player.getUniqueId());
+    }
+
+    public PlayerSettings getSettings(UUID id) {
+        return settingsMap.computeIfAbsent(id, uuid -> new PlayerSettings());
     }
 }

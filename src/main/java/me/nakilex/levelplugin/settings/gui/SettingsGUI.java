@@ -69,6 +69,13 @@ public class SettingsGUI implements Listener {
             "/partyglow"
         ));
 
+        // Balance visibility toggle
+        gui.setItem(15, createSettingItem(
+            playerSettings.isBalancePublic(),
+            "§ePublic Balance",
+            "/toggle balancepublic"
+        ));
+
         // Filler border
         ItemStack filler = createItem(Material.GRAY_STAINED_GLASS_PANE, " ", " ");
         for (int i = 0; i < gui.getSize(); i++) {
@@ -167,6 +174,14 @@ public class SettingsGUI implements Listener {
             Bukkit.dispatchCommand(player, "partyglow");
             updateSettingItem(event.getInventory(), 14,
                 settings.isPartyGlowEnabled(), "§bParty Glow", "/partyglow");
+        } else if (slot == 15) {
+            settings.toggleBalancePublic();
+            updateSettingItem(event.getInventory(), 15,
+                settings.isBalancePublic(), "§ePublic Balance", "/toggle balancepublic");
+            me.nakilex.levelplugin.Main main = me.nakilex.levelplugin.Main.getInstance();
+            if (main != null && main.getLeaderboardManager() != null) {
+                main.getLeaderboardManager().updateAll();
+            }
         }
     }
 }

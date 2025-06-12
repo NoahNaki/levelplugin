@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.leaderboards;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
+import me.nakilex.levelplugin.settings.managers.SettingsManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -25,16 +26,18 @@ public class LeaderboardManager {
     private final EconomyManager economy;
     private final PlayerConfig playerConfig;
     private final DuelStatsManager duelStats;
+    private final SettingsManager settingsManager;
 
     private File file;
     private FileConfiguration config;
     private final Map<String, Leaderboard> boards = new HashMap<>();
 
-    public LeaderboardManager(Main plugin, EconomyManager eco, PlayerConfig pCfg, DuelStatsManager duelStats) {
+    public LeaderboardManager(Main plugin, EconomyManager eco, PlayerConfig pCfg, DuelStatsManager duelStats, SettingsManager settingsManager) {
         this.plugin = plugin;
         this.economy = eco;
         this.playerConfig = pCfg;
         this.duelStats = duelStats;
+        this.settingsManager = settingsManager;
         load();
         plugin.getLogger().info("Loaded " + boards.size() + " leaderboard(s)");
         updateAll();
@@ -111,8 +114,8 @@ public class LeaderboardManager {
                 color = "§b";
             }
             case BALANCE -> {
-                lines.add("§6§lBALANCE LEADERBOARD");
-                color = "§6";
+                lines.add("§e§lBALANCE LEADERBOARD");
+                color = "§e";
             }
             default -> {
                 lines.add("§eLEADERBOARD");
@@ -125,7 +128,11 @@ public class LeaderboardManager {
         for (Map.Entry<UUID, Integer> e : top) {
             OfflinePlayer off = Bukkit.getOfflinePlayer(e.getKey());
             String name = off.getName() != null ? off.getName() : e.getKey().toString();
-            lines.add(color + "#" + rank + " §7| §f" + name + ": " + color + e.getValue());
+            String value = color + e.getValue();
+            if (type == LeaderboardType.BALANCE) {
+                value += " \u26C3"; // ⛃ symbol
+            }
+            lines.add(color + "#" + rank + " §7| §f" + name + ": " + value);
             rank++;
         }
 
@@ -153,6 +160,7 @@ public class LeaderboardManager {
                 if (bcfg.isConfigurationSection("balances")) {
                     for (String uuidStr : bcfg.getConfigurationSection("balances").getKeys(false)) {
                         UUID id = UUID.fromString(uuidStr);
+                        if (!settingsManager.getSettings(id).isBalancePublic()) continue;
                         int bal = bcfg.getInt("balances." + uuidStr, 0);
                         map.put(id, bal);
                     }
