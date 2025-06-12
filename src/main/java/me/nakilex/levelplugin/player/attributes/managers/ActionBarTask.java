@@ -64,32 +64,24 @@ public class ActionBarTask extends BukkitRunnable {
     // New method to format combo string
     private String formatCombo(String combo, int maxLength) {
         if (combo.isEmpty()) return "";
-        StringBuilder formatted = new StringBuilder("§7["); // Gray color
-        int comboLength = combo.length();
+        StringBuilder formatted = new StringBuilder();
+        int comboLength = Math.min(combo.length(), maxLength);
 
-        for (int i = 0; i < maxLength; i++) {
-            if (i < comboLength) {
-                char c = combo.charAt(i);
-                if (c == 'R') {
-                    formatted.append("<glyph:right_mouse_click>");
-                } else if (c == 'L') {
-                    formatted.append("<glyph:left_mouse_click>");
-                } else {
-                    formatted.append(c);
-                }
+        for (int i = 0; i < comboLength; i++) {
+            char c = combo.charAt(i);
+            if (c == 'R') {
+                formatted.append("<glyph:right_mouse_click>");
+            } else if (c == 'L') {
+                formatted.append("<glyph:left_mouse_click>");
             } else {
-                formatted.append("_");
-            }
-            if (i < maxLength - 1) {
-                formatted.append("§7-");
+                formatted.append(c);
             }
         }
-        formatted.append("]");
 
         return formatted.toString();
     }
 
     private String formatCost(int cost) {
-        return "§7[-" + cost + "]";
+        return "§8[§b-" + cost + "§8]";
     }
 }
