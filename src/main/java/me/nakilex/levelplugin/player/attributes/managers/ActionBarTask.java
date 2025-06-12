@@ -57,7 +57,8 @@ public class ActionBarTask extends BukkitRunnable {
     private static final String NBSP = "\u00A0";
 
     private static final int LEFT_PX = 60;
-    private static final int CENTER_PX = 160;
+    // Shrink the gap between HP and mana by ~30%
+    private static final int CENTER_PX = 112;
     private static final int RIGHT_PX = 60;
 
     private int pixelLength(String text) {
@@ -125,9 +126,6 @@ public class ActionBarTask extends BukkitRunnable {
                 formatted.append("<glyph:left_mouse_click>");
             } else {
                 formatted.append(c);
-            }
-            if (i < comboLength - 1) {
-                formatted.append("§7-");
             }
         }
 
