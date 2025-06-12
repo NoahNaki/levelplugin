@@ -211,6 +211,10 @@ public class Main extends JavaPlugin {
 
         EffectRegistry.registerAll();
 
+        if (leaderboardManager != null) {
+            leaderboardManager.addAll();
+        }
+
         // Log success message
         getLogger().info("LevelPlugin has been enabled successfully!");
     }
@@ -420,6 +424,10 @@ public class Main extends JavaPlugin {
 
         if (environmentManager != null) {
             environmentManager.saveAll();
+        }
+
+        if (leaderboardManager != null) {
+            leaderboardManager.removeAll();
         }
 
         if (duelStatsManager != null) {

@@ -86,6 +86,18 @@ public class LeaderboardManager {
         }
     }
 
+    /** Spawn holograms for all leaderboards. */
+    public void addAll() {
+        updateAll();
+    }
+
+    /** Remove all hologram entities. */
+    public void removeAll() {
+        for (Leaderboard lb : boards.values()) {
+            lb.despawn();
+        }
+    }
+
     private List<String> buildLines(LeaderboardType type) {
         List<String> lines = new ArrayList<>();
         switch (type) {

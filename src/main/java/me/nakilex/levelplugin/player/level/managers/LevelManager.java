@@ -85,25 +85,33 @@ public class LevelManager {
         int xp    = getXP(uuid);
 
         int xpNeeded = getXpRequired(level);
+        boolean leveled = false;
         while (level < MAX_LEVEL && xp >= xpNeeded) {
             xp -= xpNeeded;
             level++;
+            leveled = true;
 
             Player player = Bukkit.getPlayer(uuid);
             if (player != null) {
                 applyLevelUpBenefits(player, level);
                 StatsManager.getInstance().addSkillPoints(uuid, 3);
                 XPBarHandler.handleLevelUpEvent(player, level, xpNeeded);
-                if (plugin.getLeaderboardManager() != null) {
-                    plugin.getLeaderboardManager().updateAll();
-                }
             }
 
             xpNeeded = getXpRequired(level);
         }
 
         playerLevels.put(uuid, level);
-        playerXp    .put(uuid, xp);
+        playerXp.put(uuid, xp);
+
+        if (leveled) {
+            if (plugin.getPlayerConfig() != null) {
+                plugin.getPlayerConfig().savePlayerData(uuid);
+            }
+            if (plugin.getLeaderboardManager() != null) {
+                plugin.getLeaderboardManager().updateAll();
+            }
+        }
     }
 
     /** Returns XP needed to go from “level” → “level+1” */
