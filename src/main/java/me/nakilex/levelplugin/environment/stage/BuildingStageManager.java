@@ -65,9 +65,13 @@ public class BuildingStageManager {
         List<NPCSpawn> npcs = captureNPCs(pos1, pos2);
         List<BlockDef> blocks = captureBlocks(pos1, pos2);
 
-        int hx = standLoc.getBlockX() - pos1.getBlockX();
-        int hy = standLoc.getBlockY() - pos1.getBlockY();
-        int hz = standLoc.getBlockZ() - pos1.getBlockZ();
+        int minX = Math.min(pos1.getBlockX(), pos2.getBlockX());
+        int minY = Math.min(pos1.getBlockY(), pos2.getBlockY());
+        int minZ = Math.min(pos1.getBlockZ(), pos2.getBlockZ());
+
+        int hx = standLoc.getBlockX() - minX;
+        int hy = standLoc.getBlockY() - minY;
+        int hz = standLoc.getBlockZ() - minZ;
 
         stages
             .computeIfAbsent(town.toLowerCase(), k -> new HashMap<>())
