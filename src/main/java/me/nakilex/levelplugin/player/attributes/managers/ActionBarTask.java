@@ -43,9 +43,9 @@ public class ActionBarTask extends BukkitRunnable {
             // Construct action bar message
             String leftText = String.format("§c%d/%d", (int) hp, (int) maxHp);
             String rightText = String.format("§b%d/%d", currentMana, maxMana);
-            String message = padRightPx(leftText, LEFT_PX) +
-                    centerTextPx(centerDisplay, CENTER_PX) +
-                    padLeftPx(rightText, RIGHT_PX);
+            String message = padRightPx(trimToPx(leftText, LEFT_PX), LEFT_PX) +
+                    centerTextPx(trimToPx(centerDisplay, CENTER_PX), CENTER_PX) +
+                    padLeftPx(trimToPx(rightText, RIGHT_PX), RIGHT_PX);
 
             // Send action bar
             player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(message));
@@ -110,6 +110,30 @@ public class ActionBarTask extends BukkitRunnable {
         int left = diff / 2;
         int right = diff - left;
         return repeatSpacePixels(left) + text + repeatSpacePixels(right);
+    }
+
+    /**
+     * Trim a string so that its visual width does not exceed the given pixel
+     * count. This is aware of color codes and glyph placeholders to avoid
+     * cutting them in half.
+     */
+    private String trimToPx(String text, int px) {
+        while (!text.isEmpty() && pixelLength(text) > px) {
+            int end = text.length() - 1;
+            text = text.substring(0, end);
+
+            // Remove trailing color code character if present
+            if (text.endsWith("§")) {
+                text = text.substring(0, text.length() - 1);
+            }
+
+            // Remove an unfinished glyph placeholder
+            int start = text.lastIndexOf("<glyph:");
+            if (start != -1 && text.indexOf('>', start) == -1) {
+                text = text.substring(0, start);
+            }
+        }
+        return text;
     }
 
     // New method to format combo string
