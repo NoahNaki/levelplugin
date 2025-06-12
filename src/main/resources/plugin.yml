@@ -15,6 +15,10 @@ commands:
     description: Grants XP to a player
     usage: /addxp <player> <amount>
     permission: none
+  addminingxp:
+    description: Grants Mining XP to a player
+    usage: /addminingxp <player> <amount>
+    permission: none
   stats:
     description: Opens the stats GUI
     usage: /stats

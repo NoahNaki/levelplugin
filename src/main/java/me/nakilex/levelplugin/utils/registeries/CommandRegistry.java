@@ -100,6 +100,10 @@ public class CommandRegistry {
 
         plugin.getCommand("addpoints").setExecutor(new AddPointsCommand());
         plugin.getCommand("addxp").setExecutor(new AddXPCommand(levelManager));
+        // Award mining XP manually
+        plugin.getCommand("addminingxp").setExecutor(
+            new me.nakilex.levelplugin.mining.commands.AddMiningXPCommand(
+                plugin.getMiningManager()));
         plugin.getCommand("stats").setExecutor(new StatsCommand());
         plugin.getCommand("additem").setExecutor(new AddItemCommand());
         plugin.getCommand("genitem").setExecutor(new me.nakilex.levelplugin.items.commands.GenerateItemCommand());

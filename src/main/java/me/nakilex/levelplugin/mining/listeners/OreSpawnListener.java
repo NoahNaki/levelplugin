@@ -20,7 +20,9 @@ public class OreSpawnListener implements Listener {
         String type = event.getMob().getMobType();
         ConfigurationSection sec = config.getConfig().getConfigurationSection("ores." + type);
         if (sec != null) {
-            oreListener.spawnHologram(event.getEntity().getBukkitEntity(), type);
+            // MythicMobSpawnEvent#getEntity() already returns the Bukkit entity
+            // so no need for getBukkitEntity() which caused a compile error
+            oreListener.spawnHologram(event.getEntity(), type);
         }
     }
 }
