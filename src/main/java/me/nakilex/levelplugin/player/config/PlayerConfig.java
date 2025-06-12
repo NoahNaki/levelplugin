@@ -35,6 +35,10 @@ public class PlayerConfig {
         }
         this.config = YamlConfiguration.loadConfiguration(file);
     }
+    public FileConfiguration getConfig() {
+        return config;
+    }
+
 
     /** Saves stats and level for one player. */
     public void savePlayerData(UUID uuid) {
@@ -196,7 +200,6 @@ public class PlayerConfig {
         config.set(base + "origin.world", null);
         config.set(base + "origin.x", null);
         config.set(base + "origin.y", null);
-        config.set(base + "origin.z", null);
         config.set(base + "buildings", null);
     }
 

@@ -15,6 +15,8 @@ import me.nakilex.levelplugin.quests.tasks.QuestNPCEffectTask;
 import me.nakilex.levelplugin.quests.tasks.QuestBeaconTask;
 import me.nakilex.levelplugin.quests.managers.BeaconManager;
 import me.nakilex.levelplugin.world.LeafParticleTask;
+import me.nakilex.levelplugin.leaderboards.LeaderboardUpdateTask;
+import me.nakilex.levelplugin.leaderboards.LeaderboardManager;
 
 public class TaskRegistry {
 
@@ -29,6 +31,11 @@ public class TaskRegistry {
         PlayerScoreboardManager sbManager = plugin.getScoreboardManager();
         if (sbManager != null) {
             new ScoreboardTask(sbManager).runTaskTimer(plugin, 20L, 20L);
+        }
+
+        LeaderboardManager lbManager = plugin.getLeaderboardManager();
+        if (lbManager != null) {
+            new LeaderboardUpdateTask(lbManager).runTaskTimer(plugin, 200L, 200L);
         }
 
         new LeafParticleTask(plugin).runTaskTimer(plugin, 20L, 20L);

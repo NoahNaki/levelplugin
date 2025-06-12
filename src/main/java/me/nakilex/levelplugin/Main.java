@@ -136,15 +136,16 @@ public class Main extends JavaPlugin {
     private me.nakilex.levelplugin.environment.UpgradeGUI upgradeGUI;
     private me.nakilex.levelplugin.environment.stage.TownStageManager townStageManager;
     private me.nakilex.levelplugin.environment.stage.BuildingStageManager buildingStageManager;
-    /**
-     * Tracks all active bow drone NPCs for each player. Some runes can add
-     * additional drones so we store a list rather than a single instance.
-     */
+    private me.nakilex.levelplugin.leaderboards.LeaderboardManager leaderboardManager;
+    private me.nakilex.levelplugin.leaderboards.DuelStatsManager duelStatsManager;
+
     private final Map<UUID, List<NPC>> activeBowDrones = new HashMap<>();
     private ChestHologramListener chestHologramListener;
     private EquipRunesGUI equipGui;
     private me.nakilex.levelplugin.auctionhouse.AuctionHouseManager auctionHouseManager;
     private me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI auctionHouseGUI;
+    private SettingsManager settingsManager;
+    private SettingsGUI settingsGUI;
 
     public Map<UUID, List<NPC>> getActiveBowDrones() {
         return activeBowDrones;
@@ -166,8 +167,14 @@ public class Main extends JavaPlugin {
         // Load configuration files
         loadConfigFiles();
 
+        // Prepare player configuration before managers that depend on it
+        playerConfig = new PlayerConfig(this);
+
         // Initialize managers and other components
         initializeManagers();
+
+        // Now that LevelManager is ready, load player data
+        playerConfig.loadAllPlayers();
 
         // Initialize ItemConfig and load items
         itemConfig = new ItemConfig(this);
@@ -175,10 +182,6 @@ public class Main extends JavaPlugin {
 
         storageEvents = new StorageEvents();    // Create it here
         getServer().getPluginManager().registerEvents(storageEvents, this);
-
-
-        playerConfig = new PlayerConfig(this);
-        playerConfig.loadAllPlayers();
 
         // Managers that depend on PlayerConfig
         environmentManager = new me.nakilex.levelplugin.environment.EnvironmentManager(playerConfig, townStageManager, buildingStageManager, fakeBlockManager);
@@ -207,6 +210,10 @@ public class Main extends JavaPlugin {
         new me.nakilex.levelplugin.potions.gui.PotionBrowser(this, potionManager);
 
         EffectRegistry.registerAll();
+
+        if (leaderboardManager != null) {
+            leaderboardManager.addAll();
+        }
 
         // Log success message
         getLogger().info("LevelPlugin has been enabled successfully!");
@@ -254,10 +261,13 @@ public class Main extends JavaPlugin {
         tipsCfg = new TipsConfigManager(this);
         broadcastMgr = new BroadcastManager(this, this.tipsCfg);
         broadcastMgr.start();
+        settingsManager = new SettingsManager();
         questManager = new QuestManager(this, partyManager);
         dialogManager = new me.nakilex.levelplugin.npc.dialog.NPCDialogManager();
         scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(
                 this, economyManager, gemsManager, partyManager, questManager);
+        duelStatsManager = new me.nakilex.levelplugin.leaderboards.DuelStatsManager(this);
+        leaderboardManager = new me.nakilex.levelplugin.leaderboards.LeaderboardManager(this, economyManager, playerConfig, duelStatsManager, settingsManager);
         partyGlowManager = new PartyGlowManager(this, partyManager, scoreboardManager::getBoard);
         beaconManager = new me.nakilex.levelplugin.quests.managers.BeaconManager();
         fastTravelManager = new me.nakilex.levelplugin.fasttravel.FastTravelManager(this);
@@ -287,8 +297,8 @@ public class Main extends JavaPlugin {
         BlacksmithGUI blacksmithGUI = new BlacksmithGUI(economyManager, itemUpgradeManager, itemManager, itemRepairManager);
         horseManager = new HorseManager(horseConfigManager);
         HorseGUI horseGUI = new HorseGUI(horseManager, economyManager);
-        SettingsManager settingsManager = new SettingsManager();
-        SettingsGUI settingsGUI = new SettingsGUI(settingsManager); // Initialize the field properly
+        // use the already-created settingsManager
+        settingsGUI = new SettingsGUI(settingsManager); // Initialize the field properly
 
 
         // 1) Assign the field so it’s not null.
@@ -415,6 +425,14 @@ public class Main extends JavaPlugin {
 
         if (environmentManager != null) {
             environmentManager.saveAll();
+        }
+
+        if (leaderboardManager != null) {
+            leaderboardManager.removeAll();
+        }
+
+        if (duelStatsManager != null) {
+            duelStatsManager.save();
         }
 
         if (townStageManager != null) {
@@ -579,6 +597,13 @@ public class Main extends JavaPlugin {
 
     public me.nakilex.levelplugin.environment.stage.BuildingStageManager getBuildingStageManager() {
         return buildingStageManager;
+    }
+    public me.nakilex.levelplugin.leaderboards.LeaderboardManager getLeaderboardManager() {
+        return leaderboardManager;
+    }
+
+    public me.nakilex.levelplugin.leaderboards.DuelStatsManager getDuelStatsManager() {
+        return duelStatsManager;
     }
 
     private void createCustomConfig() {

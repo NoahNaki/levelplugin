@@ -1,0 +1,19 @@
+leaderboards:
+  level:
+    world: flatland
+    x: 100
+    y: -50
+    z: 100
+    type: LEVEL
+  duels:
+    world: flatland
+    x: 105
+    y: -50
+    z: 100
+    type: DUELS
+  balance:
+    world: flatland
+    x: 110
+    y: -50
+    z: 100
+    type: BALANCE

@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.settings.gui;
 
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
 import me.nakilex.levelplugin.settings.data.PlayerSettings;
+import me.nakilex.levelplugin.leaderboards.LeaderboardType;
 import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
 import com.nexomc.nexo.api.NexoItems;
 import com.nexomc.nexo.items.ItemBuilder;
@@ -67,6 +68,13 @@ public class SettingsGUI implements Listener {
             playerSettings.isPartyGlowEnabled(),
             "§bParty Glow",
             "/partyglow"
+        ));
+
+        // Balance visibility toggle
+        gui.setItem(15, createSettingItem(
+            playerSettings.isBalancePublic(),
+            "§ePublic Balance",
+            "/toggle balancepublic"
         ));
 
         // Filler border
@@ -167,6 +175,14 @@ public class SettingsGUI implements Listener {
             Bukkit.dispatchCommand(player, "partyglow");
             updateSettingItem(event.getInventory(), 14,
                 settings.isPartyGlowEnabled(), "§bParty Glow", "/partyglow");
+        } else if (slot == 15) {
+            settings.toggleBalancePublic();
+            updateSettingItem(event.getInventory(), 15,
+                settings.isBalancePublic(), "§ePublic Balance", "/toggle balancepublic");
+            me.nakilex.levelplugin.Main main = me.nakilex.levelplugin.Main.getInstance();
+            if (main != null && main.getLeaderboardManager() != null) {
+                main.getLeaderboardManager().updateType(LeaderboardType.BALANCE);
+            }
         }
     }
 }
