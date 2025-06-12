@@ -107,8 +107,8 @@ public class TownStageManager {
         return false;
     }
 
-    // Spawn NPCs slightly higher so they don't end up in the ground
-    private static final double NPC_SPAWN_Y_OFFSET = 1.0; // prevent clipping
+    // NPCs should stand directly on the ground
+    private static final double NPC_SPAWN_Y_OFFSET = 0.0;
 
     public void spawnForStage(org.bukkit.entity.Player viewer, String town, int level, int stage, Location origin) {
         TownStage ts = getStage(town, level, stage);

@@ -94,8 +94,8 @@ public class BuildingStageManager {
         return false;
     }
 
-    // Raise spawned NPCs slightly so they don't clip into the ground
-    private static final double NPC_SPAWN_Y_OFFSET = 1.0;
+    // Offset for spawning NPCs. Use zero so they stand directly on the ground.
+    private static final double NPC_SPAWN_Y_OFFSET = 0.0;
 
     public void spawnForStage(Player viewer, String town, String building, int level,
                               int stage, Location origin) {
