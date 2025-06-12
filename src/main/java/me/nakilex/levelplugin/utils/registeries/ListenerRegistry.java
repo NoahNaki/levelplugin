@@ -57,6 +57,8 @@ import me.nakilex.levelplugin.fasttravel.FastTravelManager;
 import me.nakilex.levelplugin.fakeblock.ModelGateManager;
 import me.nakilex.levelplugin.motd.MotdManager;
 import me.nakilex.levelplugin.environment.UpgradeGUI;
+import me.nakilex.levelplugin.mining.listeners.OreListener;
+import me.nakilex.levelplugin.mining.listeners.OreSpawnListener;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.PluginManager;
 
@@ -166,6 +168,12 @@ public class ListenerRegistry {
         pm.registerEvents(upgradeGUI, plugin);
         pm.registerEvents(buildingUpgradeGUI, plugin);
         pm.registerEvents(hologramListener, plugin);
+
+        // Mining profession listeners
+        OreListener oreListener =
+            new OreListener(plugin.getMiningConfig(), plugin.getMiningManager());
+        pm.registerEvents(oreListener, plugin);
+        pm.registerEvents(new OreSpawnListener(oreListener, plugin.getMiningConfig()), plugin);
 
 
 

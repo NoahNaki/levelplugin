@@ -77,6 +77,8 @@ public class Main extends JavaPlugin {
     private BukkitAPIHelper mythicHelper;
     private LevelManager levelManager;
     private EconomyManager economyManager;
+    private me.nakilex.levelplugin.mining.managers.MiningManager miningManager;
+    private me.nakilex.levelplugin.mining.config.MiningConfig miningConfig;
     private ItemManager itemManager;
     private ItemUpgradeManager itemUpgradeManager;
     private ItemRepairManager itemRepairManager;
@@ -247,6 +249,8 @@ public class Main extends JavaPlugin {
         levelManager = new LevelManager(this);
         effectManager = new EffectManager(this);
         economyManager = new EconomyManager(this);
+        miningConfig = new me.nakilex.levelplugin.mining.config.MiningConfig(this);
+        miningManager = new me.nakilex.levelplugin.mining.managers.MiningManager(this);
         itemUpgradeManager = new ItemUpgradeManager(this);
         itemRepairManager = new ItemRepairManager();
         runesManager = new RunesManager(this);
@@ -545,6 +549,14 @@ public class Main extends JavaPlugin {
 
     public EffectManager getEffectManager() {
         return effectManager;
+    }
+
+    public me.nakilex.levelplugin.mining.managers.MiningManager getMiningManager() {
+        return miningManager;
+    }
+
+    public me.nakilex.levelplugin.mining.config.MiningConfig getMiningConfig() {
+        return miningConfig;
     }
 
     public RunesManager getRunesManager() {

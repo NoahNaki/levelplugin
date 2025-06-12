@@ -22,17 +22,21 @@ import java.util.UUID;
 public class PlayerJoinListener implements Listener {
 
     private final LevelManager levelManager;
+    private final me.nakilex.levelplugin.mining.managers.MiningManager miningManager;
     private final PlayerConfig playerConfig;
     private final RunesManager runesManager;
     private final EnvironmentManager environmentManager;
     private final me.nakilex.levelplugin.environment.stage.TownStageManager stageManager;
 
-    public PlayerJoinListener(LevelManager levelManager, PlayerConfig playerConfig, EnvironmentManager envManager) {
-        this.levelManager  = levelManager;
-        this.playerConfig  = playerConfig;
+    public PlayerJoinListener(LevelManager levelManager,
+                              PlayerConfig playerConfig,
+                              EnvironmentManager envManager) {
+        this.levelManager    = levelManager;
+        this.playerConfig    = playerConfig;
         this.environmentManager = envManager;
-        this.stageManager = envManager.getStageManager();
-        this.runesManager  = SpellManager.getInstance().getRunesManager();
+        this.stageManager    = envManager.getStageManager();
+        this.runesManager    = SpellManager.getInstance().getRunesManager();
+        this.miningManager   = Main.getInstance().getMiningManager();
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -46,6 +50,7 @@ public class PlayerJoinListener implements Listener {
             player.setGameMode(GameMode.ADVENTURE);
             StatsManager.getInstance().recalcDerivedStats(player);
             levelManager.initializePlayer(player);
+            miningManager.initializePlayer(player);
             environmentManager.initializePlayer(player);
             stageManager.hideNPCsFrom(player);
             player.setHealthScaled(true);
