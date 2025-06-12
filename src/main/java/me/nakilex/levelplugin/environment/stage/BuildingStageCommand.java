@@ -65,8 +65,8 @@ public class BuildingStageCommand implements CommandExecutor, Listener {
                 String town = args[2].toLowerCase();
                 int level = parseInt(args[3], 1);
                 int stage = parseInt(args[4], 1);
-                // Store the hologram spawn location a little above the player's eyes
-                Location stand = p.getLocation().clone().add(0.5, 1.5, 0.5);
+                // Save where the player ran the command and raise it one block
+                Location stand = p.getLocation().clone().add(0.5, 1.0, 0.5);
                 manager.createStage(town, bName, level, stage, pos1, pos2, stand);
                 p.sendMessage(ChatColor.GREEN + "Stage " + bName + " created.");
                 return true;
