@@ -41,7 +41,7 @@ public class ActionBarTask extends BukkitRunnable {
             // Construct action bar message
             String leftText = String.format("§c%d/%d", (int) hp, (int) maxHp);
             String rightText = String.format("§b%d/%d", currentMana, maxMana);
-            String message = String.format("%s%s%s", padRight(leftText, 10), centerText(centerDisplay, 10), padLeft(rightText, 10));
+            String message = String.format("%s%s%s", padRight(leftText, 10), centerText(centerDisplay, 20), padLeft(rightText, 10));
 
             // Send action bar
             player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(message));
@@ -69,9 +69,19 @@ public class ActionBarTask extends BukkitRunnable {
 
         for (int i = 0; i < maxLength; i++) {
             if (i < comboLength) {
-                formatted.append(combo.charAt(i));
+                char c = combo.charAt(i);
+                if (c == 'R') {
+                    formatted.append("<glyph:right_mouse_click>");
+                } else if (c == 'L') {
+                    formatted.append("<glyph:left_mouse_click>");
+                } else {
+                    formatted.append(c);
+                }
             } else {
                 formatted.append("_");
+            }
+            if (i < maxLength - 1) {
+                formatted.append("§7-");
             }
         }
         formatted.append("]");
