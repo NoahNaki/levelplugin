@@ -20,9 +20,14 @@ public class OreSpawnListener implements Listener {
         String type = event.getMob().getMobType();
         ConfigurationSection sec = config.getConfig().getConfigurationSection("ores." + type);
         if (sec != null) {
-            int defaultHealth = (int) event.getEntity().getHealth();
-            int health = sec.getInt("health", defaultHealth);
-            oreListener.initOre(event.getEntity(), type, health);
+            org.bukkit.entity.Entity bukkitEntity = event.getEntity();
+            if (bukkitEntity instanceof org.bukkit.entity.Damageable) {
+                int defaultHealth = (int) ((org.bukkit.entity.Damageable) bukkitEntity).getHealth();
+                int health = sec.getInt("health", defaultHealth);
+                oreListener.initOre(bukkitEntity, type, health);
+            } else {
+                oreListener.initOre(bukkitEntity, type, sec.getInt("health", 1));
+            }
         }
     }
 }
