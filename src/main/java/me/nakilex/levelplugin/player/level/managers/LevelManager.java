@@ -94,6 +94,9 @@ public class LevelManager {
                 applyLevelUpBenefits(player, level);
                 StatsManager.getInstance().addSkillPoints(uuid, 3);
                 XPBarHandler.handleLevelUpEvent(player, level, xpNeeded);
+                if (plugin.getLeaderboardManager() != null) {
+                    plugin.getLeaderboardManager().updateAll();
+                }
             }
 
             xpNeeded = getXpRequired(level);
