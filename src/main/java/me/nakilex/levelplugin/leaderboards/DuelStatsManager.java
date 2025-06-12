@@ -42,6 +42,9 @@ public class DuelStatsManager {
         String path = "players." + id + ".wins";
         config.set(path, getWins(id) + 1);
         save();
+        if (plugin.getLeaderboardManager() != null) {
+            plugin.getLeaderboardManager().updateAll();
+        }
     }
 
     public java.util.Map<String, Object> getAll() {

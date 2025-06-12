@@ -10,7 +10,6 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
 import java.io.IOException;
@@ -100,19 +99,39 @@ public class LeaderboardManager {
 
     private List<String> buildLines(LeaderboardType type) {
         List<String> lines = new ArrayList<>();
+
+        String color;
         switch (type) {
-            case LEVEL -> lines.add("§eTop Levels");
-            case DUELS -> lines.add("§eTop Duel Wins");
-            case BALANCE -> lines.add("§eRichest Players");
+            case LEVEL -> {
+                lines.add("§a§lLEVEL LEADERBOARD");
+                color = "§a";
+            }
+            case DUELS -> {
+                lines.add("§b§lDUELS LEADERBOARD");
+                color = "§b";
+            }
+            case BALANCE -> {
+                lines.add("§6§lBALANCE LEADERBOARD");
+                color = "§6";
+            }
+            default -> {
+                lines.add("§eLEADERBOARD");
+                color = "§e";
+            }
         }
-        List<Map.Entry<UUID,Integer>> top = getTop(type, 10);
+
+        List<Map.Entry<UUID, Integer>> top = getTop(type, 10);
         int rank = 1;
-        for (Map.Entry<UUID,Integer> e : top) {
+        for (Map.Entry<UUID, Integer> e : top) {
             OfflinePlayer off = Bukkit.getOfflinePlayer(e.getKey());
             String name = off.getName() != null ? off.getName() : e.getKey().toString();
-            lines.add("§7" + rank + ". §f" + name + " - " + e.getValue());
+            lines.add(color + "#" + rank + " §7| §f" + name + ": " + color + e.getValue());
             rank++;
         }
+
+        // spacer for "your rank" line
+        lines.add(" ");
+
         return lines;
     }
 

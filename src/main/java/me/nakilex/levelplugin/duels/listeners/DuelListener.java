@@ -232,6 +232,9 @@ public class DuelListener implements Listener {
             me.nakilex.levelplugin.Main.getInstance().getQuestManager().handleDuel(damager);
             me.nakilex.levelplugin.Main.getInstance().getDuelStatsManager()
                 .addWin(damager.getUniqueId());
+            if (me.nakilex.levelplugin.Main.getInstance().getLeaderboardManager() != null) {
+                me.nakilex.levelplugin.Main.getInstance().getLeaderboardManager().updateAll();
+            }
 
             // Prevent actual death
             event.setCancelled(true);

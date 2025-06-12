@@ -1,7 +1,19 @@
 leaderboards:
-  example:
+  level:
     world: world
     x: 0
     y: 100
     z: 0
     type: LEVEL
+  duels:
+    world: world
+    x: 5
+    y: 100
+    z: 0
+    type: DUELS
+  balance:
+    world: world
+    x: 10
+    y: 100
+    z: 0
+    type: BALANCE

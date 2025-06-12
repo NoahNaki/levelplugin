@@ -54,12 +54,14 @@ public class EconomyManager {
         String path = "balances." + player.getUniqueId().toString();
         balanceConfig.set(path, amount);
         saveBalances();
+        updateLeaderboard();
     }
 
     public void setBalance(UUID playerId, int amount) {
         String path = "balances." + playerId.toString();
         balanceConfig.set(path, amount);
         saveBalances();
+        updateLeaderboard();
     }
 
     public void addCoins(Player player, int amount) {
@@ -87,6 +89,14 @@ public class EconomyManager {
             setBalance(playerId, current - amount);
         } else {
             throw new IllegalArgumentException("Not enough coins to deduct!");
+        }
+    }
+
+    private void updateLeaderboard() {
+        if (plugin instanceof me.nakilex.levelplugin.Main main) {
+            if (main.getLeaderboardManager() != null) {
+                main.getLeaderboardManager().updateAll();
+            }
         }
     }
     /** Access to the underlying balance configuration. */
