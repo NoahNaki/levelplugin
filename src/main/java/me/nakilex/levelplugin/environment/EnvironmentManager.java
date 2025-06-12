@@ -419,7 +419,6 @@ public class EnvironmentManager {
             org.bukkit.entity.ArmorStand stand = holo.getWorld().spawn(holo, org.bukkit.entity.ArmorStand.class);
             stand.addScoreboardTag("building_hologram:" + building.toLowerCase());
             stand.setVisible(false);
-            stand.setMarker(true);
             stand.setGravity(false);
             stand.setCustomName(ChatColor.YELLOW + "Upgrade " + building + " - 1 Oak Log");
             stand.setCustomNameVisible(true);

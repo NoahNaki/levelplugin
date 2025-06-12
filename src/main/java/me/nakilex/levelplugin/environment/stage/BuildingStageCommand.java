@@ -65,7 +65,8 @@ public class BuildingStageCommand implements CommandExecutor, Listener {
                 String town = args[2].toLowerCase();
                 int level = parseInt(args[3], 1);
                 int stage = parseInt(args[4], 1);
-                Location stand = p.getLocation().getBlock().getLocation();
+                // Store the hologram spawn location two blocks above the player's feet
+                Location stand = p.getLocation().getBlock().getLocation().add(0, 2, 0);
                 manager.createStage(town, bName, level, stage, pos1, pos2, stand);
                 p.sendMessage(ChatColor.GREEN + "Stage " + bName + " created.");
                 return true;
@@ -90,6 +91,8 @@ public class BuildingStageCommand implements CommandExecutor, Listener {
     public void onInteract(PlayerInteractEvent event) {
         ItemStack inHand = event.getItem();
         if (inHand == null || !inHand.isSimilar(wand)) return;
+        // Ignore off-hand interactions to prevent duplicate messages
+        if (event.getHand() == org.bukkit.inventory.EquipmentSlot.OFF_HAND) return;
         if (event.getClickedBlock() == null) return;
         event.setCancelled(true);
         Player player = event.getPlayer();
