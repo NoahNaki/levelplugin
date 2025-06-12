@@ -81,8 +81,16 @@ public class LeaderboardManager {
 
     public void updateAll() {
         plugin.getLogger().info("Updating " + boards.size() + " leaderboards");
+        for (LeaderboardType type : LeaderboardType.values()) {
+            updateType(type);
+        }
+    }
+
+    /** Update only leaderboards of a specific type. */
+    public void updateType(LeaderboardType type) {
         for (Leaderboard lb : boards.values()) {
-            List<String> lines = buildLines(lb.getType());
+            if (lb.getType() != type) continue;
+            List<String> lines = buildLines(type);
             plugin.getLogger().fine("Spawning leaderboard " + lb.getId());
             lb.spawn(lines);
         }

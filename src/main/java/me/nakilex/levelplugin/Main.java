@@ -299,7 +299,7 @@ public class Main extends JavaPlugin {
         BlacksmithGUI blacksmithGUI = new BlacksmithGUI(economyManager, itemUpgradeManager, itemManager, itemRepairManager);
         horseManager = new HorseManager(horseConfigManager);
         HorseGUI horseGUI = new HorseGUI(horseManager, economyManager);
-        settingsManager = new SettingsManager();
+        // use the already-created settingsManager
         settingsGUI = new SettingsGUI(settingsManager); // Initialize the field properly
 
 

@@ -109,7 +109,7 @@ public class LevelManager {
                 plugin.getPlayerConfig().savePlayerData(uuid);
             }
             if (plugin.getLeaderboardManager() != null) {
-                plugin.getLeaderboardManager().updateAll();
+                plugin.getLeaderboardManager().updateType(me.nakilex.levelplugin.leaderboards.LeaderboardType.LEVEL);
             }
         }
     }
