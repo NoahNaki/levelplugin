@@ -43,9 +43,9 @@ public class ActionBarTask extends BukkitRunnable {
             // Construct action bar message
             String leftText = String.format("§c%d/%d", (int) hp, (int) maxHp);
             String rightText = String.format("§b%d/%d", currentMana, maxMana);
-            String message = padRightPx(leftText, LEFT_PX) +
-                    centerTextPx(centerDisplay, CENTER_PX) +
-                    padLeftPx(rightText, RIGHT_PX);
+            String message = padRightPx(trimToPx(leftText, LEFT_PX), LEFT_PX) +
+                    centerTextPx(trimToPx(centerDisplay, CENTER_PX), CENTER_PX) +
+                    padLeftPx(trimToPx(rightText, RIGHT_PX), RIGHT_PX);
 
             // Send action bar
             player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(message));
@@ -53,7 +53,10 @@ public class ActionBarTask extends BukkitRunnable {
     }
 
     private static final java.util.regex.Pattern GLYPH_PATTERN = java.util.regex.Pattern.compile("<glyph:[^>]+>");
-    private static final int GLYPH_PX = 0;
+    // Width in pixels of the custom combo glyphs. If this value is too small
+    // the action bar segments will shift when the glyphs render at a larger
+    // size. 8px keeps the layout stable with the current resource pack.
+    private static final int GLYPH_PX = 10;
     private static final String NBSP = "\u00A0";
 
     private static final int LEFT_PX = 30;
@@ -112,6 +115,30 @@ public class ActionBarTask extends BukkitRunnable {
         return repeatSpacePixels(left) + text + repeatSpacePixels(right);
     }
 
+    /**
+     * Trim a string so that its visual width does not exceed the given pixel
+     * count. This is aware of color codes and glyph placeholders to avoid
+     * cutting them in half.
+     */
+    private String trimToPx(String text, int px) {
+        while (!text.isEmpty() && pixelLength(text) > px) {
+            int end = text.length() - 1;
+            text = text.substring(0, end);
+
+            // Remove trailing color code character if present
+            if (text.endsWith("§")) {
+                text = text.substring(0, text.length() - 1);
+            }
+
+            // Remove an unfinished glyph placeholder
+            int start = text.lastIndexOf("<glyph:");
+            if (start != -1 && text.indexOf('>', start) == -1) {
+                text = text.substring(0, start);
+            }
+        }
+        return text;
+    }
+
     // New method to format combo string
     private String formatCombo(String combo, int maxLength) {
         if (combo.isEmpty()) return "";
@@ -126,6 +153,10 @@ public class ActionBarTask extends BukkitRunnable {
                 formatted.append("<glyph:left_mouse_click>");
             } else {
                 formatted.append(c);
+            }
+            // Add arrow separator between inputs
+            if (i < comboLength - 1) {
+                formatted.append("<glyph:small_arrow_right>");
             }
         }
 
