@@ -138,9 +138,7 @@ public class Main extends JavaPlugin {
     private me.nakilex.levelplugin.environment.stage.BuildingStageManager buildingStageManager;
     private me.nakilex.levelplugin.leaderboards.LeaderboardManager leaderboardManager;
     private me.nakilex.levelplugin.leaderboards.DuelStatsManager duelStatsManager;
-     * Tracks all active bow drone NPCs for each player. Some runes can add
-     * additional drones so we store a list rather than a single instance.
-     */
+
     private final Map<UUID, List<NPC>> activeBowDrones = new HashMap<>();
     private ChestHologramListener chestHologramListener;
     private EquipRunesGUI equipGui;

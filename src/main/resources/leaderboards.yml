@@ -1,19 +1,19 @@
 leaderboards:
   level:
-    world: world
-    x: 0
-    y: 100
-    z: 0
+    world: flatland
+    x: 100
+    y: -50
+    z: 100
     type: LEVEL
   duels:
-    world: world
-    x: 5
-    y: 100
-    z: 0
+    world: flatland
+    x: 105
+    y: -50
+    z: 100
     type: DUELS
   balance:
-    world: world
-    x: 10
-    y: 100
-    z: 0
+    world: flatland
+    x: 110
+    y: -50
+    z: 100
     type: BALANCE
