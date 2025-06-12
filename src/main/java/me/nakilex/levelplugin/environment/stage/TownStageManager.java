@@ -108,7 +108,7 @@ public class TownStageManager {
     }
 
     // Spawn NPCs slightly higher so they don't end up in the ground
-    private static final double NPC_SPAWN_Y_OFFSET = 2.0; // prevent clipping
+    private static final double NPC_SPAWN_Y_OFFSET = 1.0; // prevent clipping
 
     public void spawnForStage(org.bukkit.entity.Player viewer, String town, int level, int stage, Location origin) {
         TownStage ts = getStage(town, level, stage);
@@ -148,6 +148,7 @@ public class TownStageManager {
             clone.spawn(loc);
             if (clone.isSpawned()) {
                 clone.getEntity().teleport(loc, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN);
+                clone.getEntity().setGravity(false);
             }
             for (org.bukkit.entity.Player p : Bukkit.getOnlinePlayers()) {
                 if (!p.equals(viewer)) {

@@ -95,7 +95,7 @@ public class BuildingStageManager {
     }
 
     // Raise spawned NPCs slightly so they don't clip into the ground
-    private static final double NPC_SPAWN_Y_OFFSET = 2.0;
+    private static final double NPC_SPAWN_Y_OFFSET = 1.0;
 
     public void spawnForStage(Player viewer, String town, String building, int level,
                               int stage, Location origin) {
@@ -121,6 +121,7 @@ public class BuildingStageManager {
             clone.spawn(loc);
             if (clone.isSpawned()) {
                 clone.getEntity().teleport(loc, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN);
+                clone.getEntity().setGravity(false);
             }
             for (Player p : Bukkit.getOnlinePlayers()) {
                 if (!p.equals(viewer)) {
