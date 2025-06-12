@@ -65,7 +65,8 @@ public class BuildingStageCommand implements CommandExecutor, Listener {
                 String town = args[2].toLowerCase();
                 int level = parseInt(args[3], 1);
                 int stage = parseInt(args[4], 1);
-                manager.createStage(town, bName, level, stage, pos1, pos2);
+                Location stand = p.getLocation().getBlock().getLocation();
+                manager.createStage(town, bName, level, stage, pos1, pos2, stand);
                 p.sendMessage(ChatColor.GREEN + "Stage " + bName + " created.");
                 return true;
             case "remove":
