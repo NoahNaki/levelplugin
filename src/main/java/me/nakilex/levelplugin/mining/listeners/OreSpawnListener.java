@@ -20,7 +20,8 @@ public class OreSpawnListener implements Listener {
         String type = event.getMob().getMobType();
         ConfigurationSection sec = config.getConfig().getConfigurationSection("ores." + type);
         if (sec != null) {
-            int health = sec.getInt("health", (int)event.getMob().getHealth());
+            int defaultHealth = (int) event.getEntity().getHealth();
+            int health = sec.getInt("health", defaultHealth);
             oreListener.initOre(event.getEntity(), type, health);
         }
     }
