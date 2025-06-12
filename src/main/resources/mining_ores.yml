@@ -3,43 +3,130 @@ ores:
     name: "&7Coal Ore"
     xp: 5
     level: 1
+    health: 10
+    drop: COAL
+    damage:
+      WOODEN_PICKAXE: 2
+      GOLDEN_PICKAXE: 2
+      STONE_PICKAXE: 3
+      IRON_PICKAXE: 4
+      DIAMOND_PICKAXE: 5
+      NETHERITE_PICKAXE: 6
   copper_ore:
     name: "&6Copper Ore"
     xp: 8
     level: 5
+    health: 12
+    drop: RAW_COPPER
+    damage:
+      WOODEN_PICKAXE: 1
+      GOLDEN_PICKAXE: 2
+      STONE_PICKAXE: 3
+      IRON_PICKAXE: 4
+      DIAMOND_PICKAXE: 5
+      NETHERITE_PICKAXE: 6
   iron_ore:
     name: "&fIron Ore"
     xp: 10
     level: 10
+    health: 15
+    drop: RAW_IRON
+    damage:
+      STONE_PICKAXE: 3
+      IRON_PICKAXE: 4
+      DIAMOND_PICKAXE: 5
+      NETHERITE_PICKAXE: 6
   gold_ore:
     name: "&eGold Ore"
     xp: 12
     level: 15
+    health: 10
+    drop: RAW_GOLD
+    damage:
+      WOODEN_PICKAXE: 2
+      GOLDEN_PICKAXE: 2
+      STONE_PICKAXE: 3
+      IRON_PICKAXE: 4
+      DIAMOND_PICKAXE: 5
+      NETHERITE_PICKAXE: 6
   quartz_ore:
     name: "&dQuartz Ore"
     xp: 15
     level: 20
+    health: 12
+    drop: QUARTZ
+    damage:
+      WOODEN_PICKAXE: 2
+      GOLDEN_PICKAXE: 2
+      STONE_PICKAXE: 3
+      IRON_PICKAXE: 4
+      DIAMOND_PICKAXE: 5
+      NETHERITE_PICKAXE: 6
   amethyst_ore:
     name: "&5Amethyst Ore"
     xp: 20
     level: 25
+    health: 8
+    drop: AMETHYST_SHARD
+    damage:
+      WOODEN_PICKAXE: 2
+      GOLDEN_PICKAXE: 2
+      STONE_PICKAXE: 3
+      IRON_PICKAXE: 4
+      DIAMOND_PICKAXE: 5
+      NETHERITE_PICKAXE: 6
   redstone_ore:
     name: "&cRedstone Ore"
     xp: 20
     level: 30
+    health: 12
+    drop: REDSTONE
+    damage:
+      WOODEN_PICKAXE: 2
+      GOLDEN_PICKAXE: 2
+      STONE_PICKAXE: 3
+      IRON_PICKAXE: 4
+      DIAMOND_PICKAXE: 5
+      NETHERITE_PICKAXE: 6
   lapis_ore:
     name: "&9Lapis Ore"
     xp: 25
     level: 35
+    health: 12
+    drop: LAPIS_LAZULI
+    damage:
+      WOODEN_PICKAXE: 2
+      GOLDEN_PICKAXE: 2
+      STONE_PICKAXE: 3
+      IRON_PICKAXE: 4
+      DIAMOND_PICKAXE: 5
+      NETHERITE_PICKAXE: 6
   diamond_ore:
     name: "&bDiamond Ore"
     xp: 30
     level: 40
+    health: 20
+    drop: DIAMOND
+    damage:
+      IRON_PICKAXE: 4
+      DIAMOND_PICKAXE: 5
+      NETHERITE_PICKAXE: 6
   emerald_ore:
     name: "&aEmerald Ore"
     xp: 35
     level: 50
+    health: 20
+    drop: EMERALD
+    damage:
+      IRON_PICKAXE: 4
+      DIAMOND_PICKAXE: 5
+      NETHERITE_PICKAXE: 6
   netherite_ore:
     name: "&8Netherite Ore"
     xp: 50
     level: 75
+    health: 30
+    drop: NETHERITE_SCRAP
+    damage:
+      DIAMOND_PICKAXE: 5
+      NETHERITE_PICKAXE: 6

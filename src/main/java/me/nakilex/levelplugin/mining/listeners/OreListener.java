@@ -12,6 +12,9 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.Material;
+import org.bukkit.Sound;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
@@ -33,6 +36,7 @@ public class OreListener implements Listener {
 
     private final Map<UUID, List<ArmorStand>> holograms = new HashMap<>();
     private final Set<UUID> rewarded = new HashSet<>();
+    private final Map<UUID, Integer> healthMap = new HashMap<>();
 
     public OreListener(MiningConfig cfg, MiningManager manager) {
         this.plugin = Main.getInstance();
@@ -40,7 +44,7 @@ public class OreListener implements Listener {
         this.miningManager = manager;
     }
 
-    @EventHandler(priority = org.bukkit.event.EventPriority.LOWEST)
+    @EventHandler(priority = org.bukkit.event.EventPriority.HIGHEST)
     public void onOreInteract(PlayerInteractAtEntityEvent event) {
         Entity entity = event.getRightClicked();
         ActiveMob mob = mythicHelper.getMythicMobInstance(entity);
@@ -50,7 +54,7 @@ public class OreListener implements Listener {
         ConfigurationSection sec = miningConfig.getConfig().getConfigurationSection("ores." + type);
         if (sec == null) return; // not an ore
 
-        event.setCancelled(true);
+        event.setCancelled(true); // prevent MythicMobs skill
         Player player = event.getPlayer();
         int required = sec.getInt("level", 1);
         int xp = sec.getInt("xp", 0);
@@ -63,10 +67,29 @@ public class OreListener implements Listener {
             return;
         }
 
-        if (!rewarded.contains(entity.getUniqueId())) {
-            rewarded.add(entity.getUniqueId());
-            miningManager.addXP(player, xp);
-            player.sendMessage(ChatColor.GREEN + "+" + xp + " Mining XP");
+        Material tool = player.getInventory().getItemInMainHand().getType();
+        ConfigurationSection dmgSec = sec.getConfigurationSection("damage");
+        int dmg = 0;
+        if (dmgSec != null && tool != null) {
+            dmg = dmgSec.getInt(tool.name(), 0);
+        }
+
+        if (dmg <= 0) {
+            player.sendMessage(ChatColor.RED + "✘ You need a better pickaxe to mine this!");
+            return;
+        }
+
+        int eff = player.getInventory().getItemInMainHand().getEnchantmentLevel(org.bukkit.enchantments.Enchantment.DIG_SPEED);
+        int cd = Math.max(5, 20 - eff * 3);
+        player.setCooldown(tool, cd);
+
+        int hp = healthMap.getOrDefault(entity.getUniqueId(), sec.getInt("health", 1));
+        hp -= dmg;
+        if (hp <= 0) {
+            mineOreDeath(entity, sec, player, xp);
+        } else {
+            healthMap.put(entity.getUniqueId(), hp);
+            entity.getWorld().playSound(entity.getLocation(), org.bukkit.Sound.BLOCK_STONE_HIT, 1f, 1f);
         }
     }
 
@@ -78,6 +101,7 @@ public class OreListener implements Listener {
         if (!miningConfig.getConfig().isConfigurationSection("ores." + type)) return;
 
         rewarded.remove(event.getEntity().getUniqueId());
+        healthMap.remove(event.getEntity().getUniqueId());
         removeHologram(event.getEntity().getUniqueId());
     }
 
@@ -87,6 +111,7 @@ public class OreListener implements Listener {
         String type = mob.getMobType();
         if (!miningConfig.getConfig().isConfigurationSection("ores." + type)) return;
         rewarded.remove(event.getEntity().getUniqueId());
+        healthMap.remove(event.getEntity().getUniqueId());
         removeHologram(event.getEntity().getUniqueId());
     }
 
@@ -96,6 +121,7 @@ public class OreListener implements Listener {
         String type = mob.getMobType();
         if (!miningConfig.getConfig().isConfigurationSection("ores." + type)) return;
         rewarded.remove(event.getEntity().getUniqueId());
+        healthMap.remove(event.getEntity().getUniqueId());
         removeHologram(event.getEntity().getUniqueId());
     }
 
@@ -112,6 +138,12 @@ public class OreListener implements Listener {
         ArmorStand line2 = list.get(1);
         String prefix = meets ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ";
         line2.setCustomName(prefix + ChatColor.WHITE + "Mining Lv. Min: " + ChatColor.YELLOW + level);
+    }
+
+    // Called when a Mythic ore spawns
+    public void initOre(Entity entity, String type, int health) {
+        healthMap.put(entity.getUniqueId(), health);
+        spawnHologram(entity, type);
     }
 
     // Called externally when ores spawn
@@ -163,5 +195,20 @@ public class OreListener implements Listener {
                 removeHologram(entity.getUniqueId());
             }
         }.runTaskLater(plugin, 20L * 60 * 5);
+    }
+
+    private void mineOreDeath(Entity entity, ConfigurationSection sec, Player player, int xp) {
+        rewarded.remove(entity.getUniqueId());
+        healthMap.remove(entity.getUniqueId());
+        removeHologram(entity.getUniqueId());
+
+        String drop = sec.getString("drop", "COBBLESTONE");
+        org.bukkit.inventory.ItemStack item = new org.bukkit.inventory.ItemStack(org.bukkit.Material.valueOf(drop));
+        entity.getWorld().dropItemNaturally(entity.getLocation(), item);
+
+        miningManager.addXP(player, xp);
+        player.sendMessage(ChatColor.GREEN + "+" + xp + " Mining XP");
+
+        entity.remove();
     }
 }
