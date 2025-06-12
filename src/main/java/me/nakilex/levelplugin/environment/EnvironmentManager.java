@@ -31,6 +31,7 @@ public class EnvironmentManager {
     private final Map<UUID, String> towns = new HashMap<>();
     private final Map<UUID, Map<String, EnvironmentState>> buildingStates = new HashMap<>();
     private final Map<UUID, java.util.List<BukkitTask>> buildTasks = new HashMap<>();
+    private final Map<UUID, Map<String, org.bukkit.entity.ArmorStand>> buildingHolograms = new HashMap<>();
 
     public static class EnvironmentState {
         public int level;
@@ -125,6 +126,26 @@ public class EnvironmentManager {
         }
     }
 
+    private void removeBuildingHologram(UUID uuid, String building) {
+        var map = buildingHolograms.get(uuid);
+        if (map != null) {
+            var stand = map.remove(building.toLowerCase());
+            if (stand != null && !stand.isDead()) {
+                stand.remove();
+            }
+            if (map.isEmpty()) buildingHolograms.remove(uuid);
+        }
+    }
+
+    private void removeAllBuildingHolograms(UUID uuid) {
+        var map = buildingHolograms.remove(uuid);
+        if (map != null) {
+            for (var stand : map.values()) {
+                if (stand != null && !stand.isDead()) stand.remove();
+            }
+        }
+    }
+
     public void saveState(UUID uuid) {
         EnvironmentState s = states.get(uuid);
         if (s != null) {
@@ -201,6 +222,38 @@ public class EnvironmentManager {
         }
     }
 
+    /** Invest materials towards upgrading a specific building. */
+    public void investBuilding(Player player, String building, int amount) {
+        initializePlayer(player);
+        Map<String, EnvironmentState> bMap = buildingStates.get(player.getUniqueId());
+        if (bMap == null) {
+            player.sendMessage(ChatColor.RED + "You have no settlement buildings.");
+            return;
+        }
+        EnvironmentState bs = bMap.get(building.toLowerCase());
+        if (bs == null) {
+            player.sendMessage(ChatColor.RED + "Unknown building.");
+            return;
+        }
+        bs.invested += amount;
+        if (bs.invested >= 1) {
+            bs.invested = 0;
+            int oldL = bs.level;
+            int oldS = bs.stage;
+            advance(bs);
+            player.sendMessage(ChatColor.GREEN + building + " upgraded to L" + bs.level + " S" + bs.stage);
+            String town = towns.get(player.getUniqueId());
+            Location origin = origins.get(player.getUniqueId());
+            if (town != null && origin != null) {
+                buildingStageManager.despawnForStage(player.getUniqueId(), town, building, oldL, oldS);
+                spawnBuilding(player, building, origin, bs.level, bs.stage);
+            }
+            saveState(player.getUniqueId());
+        } else {
+            player.sendMessage(ChatColor.GREEN + "Invested " + amount + " oak log.");
+        }
+    }
+
     private void advance(EnvironmentState state) {
         state.stage++;
         if (state.stage > STAGES_PER_LEVEL) {
@@ -260,6 +313,7 @@ public class EnvironmentManager {
         String town = towns.remove(uuid);
         origins.remove(uuid);
         Map<String, EnvironmentState> bMap = buildingStates.remove(uuid);
+        removeAllBuildingHolograms(uuid);
         if (town != null && st != null) {
             stageManager.despawnForStage(uuid, town, st.level, st.stage);
             if (bMap != null) {
@@ -326,6 +380,7 @@ public class EnvironmentManager {
         UUID uuid = player.getUniqueId();
         cancelTasks(uuid);
         fakeBlockManager.clear(player);
+        removeBuildingHologram(uuid, building);
         String town = towns.get(player.getUniqueId());
         if (town == null) return;
         var stageData = buildingStageManager.getStage(town, building, level, stage);
@@ -360,6 +415,21 @@ public class EnvironmentManager {
         BukkitTask finalTask = Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
             player.playSound(origin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
             buildingStageManager.spawnForStage(player, town, building, level, stage, origin);
+            // Place the hologram where the stage was defined (+1 Y already stored)
+            Location holo = origin.clone().add(stageData.hx + 0.5, stageData.hy, stageData.hz + 0.5);
+            org.bukkit.entity.ArmorStand stand = holo.getWorld().spawn(holo, org.bukkit.entity.ArmorStand.class);
+            stand.addScoreboardTag("building_hologram:" + building.toLowerCase());
+            stand.setVisible(false);
+            stand.setGravity(false);
+            stand.setCustomName(ChatColor.YELLOW + "Upgrade " + building + " - 1 Oak Log");
+            stand.setCustomNameVisible(true);
+            stand.setSilent(true);
+            stand.setSmall(true);
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                if (!p.equals(player)) p.hideEntity(Main.getInstance(), stand);
+            }
+            buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
+                    .put(building.toLowerCase(), stand);
         }, Math.round(current));
         tasks.add(finalTask);
         buildTasks.put(uuid, tasks);

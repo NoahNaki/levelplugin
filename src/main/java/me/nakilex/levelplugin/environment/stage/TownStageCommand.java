@@ -85,6 +85,8 @@ public class TownStageCommand implements CommandExecutor, Listener {
     public void onInteract(PlayerInteractEvent event) {
         ItemStack inHand = event.getItem();
         if (inHand == null || !inHand.isSimilar(wand)) return;
+        // Ignore off-hand interactions to prevent duplicate messages
+        if (event.getHand() == org.bukkit.inventory.EquipmentSlot.OFF_HAND) return;
         if (event.getClickedBlock() == null) return;
         event.setCancelled(true);
         Player player = event.getPlayer();

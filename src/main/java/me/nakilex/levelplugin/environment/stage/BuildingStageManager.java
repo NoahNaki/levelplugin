@@ -61,14 +61,23 @@ public class BuildingStageManager {
 
     /** Create a new stage from the selected area. */
     public void createStage(String town, String building, int level, int stage,
-                            Location pos1, Location pos2) {
+                            Location pos1, Location pos2, Location standLoc) {
         List<NPCSpawn> npcs = captureNPCs(pos1, pos2);
         List<BlockDef> blocks = captureBlocks(pos1, pos2);
+
+        int minX = Math.min(pos1.getBlockX(), pos2.getBlockX());
+        int minY = Math.min(pos1.getBlockY(), pos2.getBlockY());
+        int minZ = Math.min(pos1.getBlockZ(), pos2.getBlockZ());
+
+        int hx = standLoc.getBlockX() - minX;
+        int hy = standLoc.getBlockY() - minY;
+        int hz = standLoc.getBlockZ() - minZ;
+
         stages
             .computeIfAbsent(town.toLowerCase(), k -> new HashMap<>())
             .computeIfAbsent(building.toLowerCase(), k -> new HashMap<>())
             .computeIfAbsent(level, k -> new HashMap<>())
-            .put(stage, new BuildingStage(building.toLowerCase(), level, stage, pos1, pos2, npcs, blocks));
+            .put(stage, new BuildingStage(building.toLowerCase(), level, stage, pos1, pos2, npcs, blocks, hx, hy, hz));
         saveConfig();
     }
 
@@ -89,7 +98,8 @@ public class BuildingStageManager {
         return false;
     }
 
-    private static final double NPC_SPAWN_Y_OFFSET = 1.0;
+    // Offset for spawning NPCs. Use zero so they stand directly on the ground.
+    private static final double NPC_SPAWN_Y_OFFSET = 0.0;
 
     public void spawnForStage(Player viewer, String town, String building, int level,
                               int stage, Location origin) {
@@ -115,6 +125,7 @@ public class BuildingStageManager {
             clone.spawn(loc);
             if (clone.isSpawned()) {
                 clone.getEntity().teleport(loc, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN);
+                clone.getEntity().setGravity(false);
             }
             for (Player p : Bukkit.getOnlinePlayers()) {
                 if (!p.equals(viewer)) {
@@ -270,11 +281,14 @@ public class BuildingStageManager {
                                 } catch (Exception ignore) {}
                             }
                         }
+                        int hx = config.getInt(base + "holo.x", 0);
+                        int hy = config.getInt(base + "holo.y", 0);
+                        int hz = config.getInt(base + "holo.z", 0);
                         stages
                             .computeIfAbsent(town.toLowerCase(), k -> new HashMap<>())
                             .computeIfAbsent(building.toLowerCase(), k -> new HashMap<>())
                             .computeIfAbsent(level, k -> new HashMap<>())
-                            .put(stage, new BuildingStage(building.toLowerCase(), level, stage, pos1, pos2, npcList, blockList));
+                            .put(stage, new BuildingStage(building.toLowerCase(), level, stage, pos1, pos2, npcList, blockList, hx, hy, hz));
                     }
                 }
             }
@@ -320,6 +334,9 @@ public class BuildingStageManager {
                             blockLines.add(b.x + ";" + b.y + ";" + b.z + ";" + b.data.getAsString());
                         }
                         config.set(base + "blocks", blockLines);
+                        config.set(base + "holo.x", st.hx);
+                        config.set(base + "holo.y", st.hy);
+                        config.set(base + "holo.z", st.hz);
                     }
                 }
             }
@@ -355,8 +372,10 @@ public class BuildingStageManager {
         public final Location pos2;
         public final List<NPCSpawn> npcs;
         public final List<BlockDef> blocks;
+        public final int hx, hy, hz;
         public BuildingStage(String name, int level, int stage, Location pos1, Location pos2,
-                             List<NPCSpawn> npcs, List<BlockDef> blocks) {
+                             List<NPCSpawn> npcs, List<BlockDef> blocks,
+                             int hx, int hy, int hz) {
             this.name = name;
             this.level = level;
             this.stage = stage;
@@ -364,6 +383,9 @@ public class BuildingStageManager {
             this.pos2 = pos2;
             this.npcs = npcs == null ? Collections.emptyList() : npcs;
             this.blocks = blocks == null ? Collections.emptyList() : blocks;
+            this.hx = hx;
+            this.hy = hy;
+            this.hz = hz;
         }
     }
 

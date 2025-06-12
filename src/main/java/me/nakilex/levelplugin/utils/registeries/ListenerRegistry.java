@@ -90,7 +90,9 @@ public class ListenerRegistry {
                                         FastTravelManager fastTravelManager,
                                         FastTravelGUI fastTravelGUI,
                                         MotdManager motdManager,
-                                        UpgradeGUI upgradeGUI) {
+                                        UpgradeGUI upgradeGUI,
+                                        me.nakilex.levelplugin.environment.BuildingUpgradeGUI buildingUpgradeGUI,
+                                        me.nakilex.levelplugin.environment.listeners.BuildingHologramListener hologramListener) {
 
 
         PluginManager pm = plugin.getServer().getPluginManager();
@@ -162,6 +164,8 @@ public class ListenerRegistry {
         pm.registerEvents(new FastTravelRespawnListener(fastTravelManager), plugin);
         pm.registerEvents(motdManager, plugin);
         pm.registerEvents(upgradeGUI, plugin);
+        pm.registerEvents(buildingUpgradeGUI, plugin);
+        pm.registerEvents(hologramListener, plugin);
 
 
 

@@ -134,6 +134,7 @@ public class Main extends JavaPlugin {
     private me.nakilex.levelplugin.fakeblock.ModelGateManager modelGateManager;
     private me.nakilex.levelplugin.environment.EnvironmentManager environmentManager;
     private me.nakilex.levelplugin.environment.UpgradeGUI upgradeGUI;
+    private me.nakilex.levelplugin.environment.BuildingUpgradeGUI buildingUpgradeGUI;
     private me.nakilex.levelplugin.environment.stage.TownStageManager townStageManager;
     private me.nakilex.levelplugin.environment.stage.BuildingStageManager buildingStageManager;
     private me.nakilex.levelplugin.leaderboards.LeaderboardManager leaderboardManager;
@@ -186,6 +187,7 @@ public class Main extends JavaPlugin {
         // Managers that depend on PlayerConfig
         environmentManager = new me.nakilex.levelplugin.environment.EnvironmentManager(playerConfig, townStageManager, buildingStageManager, fakeBlockManager);
         upgradeGUI = new me.nakilex.levelplugin.environment.UpgradeGUI(environmentManager);
+        buildingUpgradeGUI = new me.nakilex.levelplugin.environment.BuildingUpgradeGUI(environmentManager);
 
 
         CitizensAPI.getTraitFactory().registerTrait(net.citizensnpcs.api.trait.TraitInfo.create(MetadataTrait.class).withName("MetadataTrait"));
@@ -366,7 +368,9 @@ public class Main extends JavaPlugin {
             fastTravelManager,
             fastTravelGUI,
             motdManager,
-            upgradeGUI
+            upgradeGUI,
+            buildingUpgradeGUI,
+            new me.nakilex.levelplugin.environment.listeners.BuildingHologramListener(buildingUpgradeGUI)
         );
 
         getServer().getPluginManager().registerEvents(beaconManager, this);
