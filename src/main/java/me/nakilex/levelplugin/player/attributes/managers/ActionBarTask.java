@@ -57,21 +57,23 @@ public class ActionBarTask extends BukkitRunnable {
         return stripped.length();
     }
 
+    private static final String NBSP = "\u00A0"; // non-breaking space to keep padding
+
     private String padRight(String text, int length) {
         int padding = Math.max(0, length - visibleLength(text));
-        return text + " ".repeat(padding);
+        return text + NBSP.repeat(padding);
     }
 
     private String padLeft(String text, int length) {
         int padding = Math.max(0, length - visibleLength(text));
-        return " ".repeat(padding) + text;
+        return NBSP.repeat(padding) + text;
     }
 
     private String centerText(String text, int length) {
         int padding = Math.max(0, length - visibleLength(text));
         int left = padding / 2;
         int right = padding - left;
-        return " ".repeat(left) + text + " ".repeat(right);
+        return NBSP.repeat(left) + text + NBSP.repeat(right);
     }
 
     // New method to format combo string
