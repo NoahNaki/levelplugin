@@ -415,7 +415,7 @@ public class EnvironmentManager {
         BukkitTask finalTask = Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
             player.playSound(origin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
             buildingStageManager.spawnForStage(player, town, building, level, stage, origin);
-            Location holo = origin.clone().add(stageData.hx + 0.5, stageData.hy, stageData.hz + 0.5);
+            Location holo = origin.clone().add(stageData.hx + 0.5, stageData.hy - 1, stageData.hz + 0.5);
             org.bukkit.entity.ArmorStand stand = holo.getWorld().spawn(holo, org.bukkit.entity.ArmorStand.class);
             stand.addScoreboardTag("building_hologram:" + building.toLowerCase());
             stand.setVisible(false);
