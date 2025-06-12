@@ -53,7 +53,10 @@ public class ActionBarTask extends BukkitRunnable {
     }
 
     private static final java.util.regex.Pattern GLYPH_PATTERN = java.util.regex.Pattern.compile("<glyph:[^>]+>");
-    private static final int GLYPH_PX = 0;
+    // Width in pixels of the custom combo glyphs. If this value is too small
+    // the action bar segments will shift when the glyphs render at a larger
+    // size. 8px keeps the layout stable with the current resource pack.
+    private static final int GLYPH_PX = 8;
     private static final String NBSP = "\u00A0";
 
     private static final int LEFT_PX = 30;
