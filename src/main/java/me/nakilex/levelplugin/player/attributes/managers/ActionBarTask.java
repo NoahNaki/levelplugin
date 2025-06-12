@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.player.attributes.managers;
 
 import me.nakilex.levelplugin.player.listener.ClickComboListener;
 import me.nakilex.levelplugin.player.attributes.managers.ManaIndicatorManager;
+import me.nakilex.levelplugin.utils.DefaultFontInfo;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -42,7 +43,9 @@ public class ActionBarTask extends BukkitRunnable {
             // Construct action bar message
             String leftText = String.format("§c%d/%d", (int) hp, (int) maxHp);
             String rightText = String.format("§b%d/%d", currentMana, maxMana);
-            String message = String.format("%s%s%s", padRight(leftText, 10), centerText(centerDisplay, 20), padLeft(rightText, 10));
+            String message = padRightPx(leftText, LEFT_PX) +
+                    centerTextPx(centerDisplay, CENTER_PX) +
+                    padLeftPx(rightText, RIGHT_PX);
 
             // Send action bar
             player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(message));
@@ -50,30 +53,62 @@ public class ActionBarTask extends BukkitRunnable {
     }
 
     private static final java.util.regex.Pattern GLYPH_PATTERN = java.util.regex.Pattern.compile("<glyph:[^>]+>");
+    private static final int GLYPH_PX = 8;
+    private static final String NBSP = "\u00A0";
 
-    private int visibleLength(String text) {
-        String stripped = ChatColor.stripColor(text);
-        stripped = GLYPH_PATTERN.matcher(stripped).replaceAll("?");
-        return stripped.length();
+    private static final int LEFT_PX = 60;
+    private static final int CENTER_PX = 160;
+    private static final int RIGHT_PX = 60;
+
+    private int pixelLength(String text) {
+        int px = 0;
+        boolean code = false;
+        boolean bold = false;
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c == '§') {
+                code = true;
+                continue;
+            }
+            if (code) {
+                code = false;
+                bold = c == 'l' || c == 'L';
+                continue;
+            }
+            if (text.startsWith("<glyph:", i)) {
+                int end = text.indexOf('>', i);
+                if (end == -1) end = text.length() - 1;
+                i = end;
+                px += GLYPH_PX + 1;
+                continue;
+            }
+            DefaultFontInfo fi = DefaultFontInfo.getDefaultFontInfo(c);
+            px += (bold ? DefaultFontInfo.getBoldLength() : fi.getLength()) + 1;
+        }
+        return px;
     }
 
-    private static final String NBSP = "\u00A0"; // non-breaking space to keep padding
-
-    private String padRight(String text, int length) {
-        int padding = Math.max(0, length - visibleLength(text));
-        return text + NBSP.repeat(padding);
+    private String repeatSpacePixels(int px) {
+        int spacePx = DefaultFontInfo.SPACE.getLength() + 1;
+        int count = (int) Math.ceil(Math.max(0, px) / (double) spacePx);
+        return NBSP.repeat(count);
     }
 
-    private String padLeft(String text, int length) {
-        int padding = Math.max(0, length - visibleLength(text));
-        return NBSP.repeat(padding) + text;
+    private String padRightPx(String text, int px) {
+        int diff = px - pixelLength(text);
+        return text + repeatSpacePixels(diff);
     }
 
-    private String centerText(String text, int length) {
-        int padding = Math.max(0, length - visibleLength(text));
-        int left = padding / 2;
-        int right = padding - left;
-        return NBSP.repeat(left) + text + NBSP.repeat(right);
+    private String padLeftPx(String text, int px) {
+        int diff = px - pixelLength(text);
+        return repeatSpacePixels(diff) + text;
+    }
+
+    private String centerTextPx(String text, int px) {
+        int diff = px - pixelLength(text);
+        int left = diff / 2;
+        int right = diff - left;
+        return repeatSpacePixels(left) + text + repeatSpacePixels(right);
     }
 
     // New method to format combo string
@@ -90,6 +125,9 @@ public class ActionBarTask extends BukkitRunnable {
                 formatted.append("<glyph:left_mouse_click>");
             } else {
                 formatted.append(c);
+            }
+            if (i < comboLength - 1) {
+                formatted.append("§7-");
             }
         }
 
