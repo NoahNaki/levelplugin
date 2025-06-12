@@ -154,6 +154,10 @@ public class ActionBarTask extends BukkitRunnable {
             } else {
                 formatted.append(c);
             }
+            // Add arrow separator between inputs
+            if (i < comboLength - 1) {
+                formatted.append("<glyph:small_arrow_right>");
+            }
         }
 
         return formatted.toString();
