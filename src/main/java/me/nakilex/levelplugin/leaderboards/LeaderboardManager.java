@@ -37,6 +37,8 @@ public class LeaderboardManager {
         this.playerConfig = pCfg;
         this.duelStats = duelStats;
         load();
+        plugin.getLogger().info("Loaded " + boards.size() + " leaderboard(s)");
+        updateAll();
     }
 
     private void load() {
@@ -65,6 +67,8 @@ public class LeaderboardManager {
                 continue;
             }
             Location loc = new Location(world, x, y, z);
+            plugin.getLogger().info("Registering leaderboard '" + id + "' at "
+                    + worldName + " " + x + "," + y + "," + z + " type=" + type);
             boards.put(id, new Leaderboard(id, loc, type));
         }
     }
@@ -74,8 +78,10 @@ public class LeaderboardManager {
     }
 
     public void updateAll() {
+        plugin.getLogger().info("Updating " + boards.size() + " leaderboards");
         for (Leaderboard lb : boards.values()) {
             List<String> lines = buildLines(lb.getType());
+            plugin.getLogger().fine("Spawning leaderboard " + lb.getId());
             lb.spawn(lines);
         }
     }
@@ -141,5 +147,12 @@ public class LeaderboardManager {
         } catch (IOException e) {
             plugin.getLogger().severe("Failed to save leaderboards.yml: " + e.getMessage());
         }
+    }
+
+    /** Reload the leaderboard configuration from disk. */
+    public void reload() {
+        load();
+        plugin.getLogger().info("Reloaded " + boards.size() + " leaderboard(s)");
+        updateAll();
     }
 }
