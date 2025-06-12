@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.player.attributes.managers;
 import me.nakilex.levelplugin.player.listener.ClickComboListener;
 import me.nakilex.levelplugin.player.attributes.managers.ManaIndicatorManager;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -48,17 +49,29 @@ public class ActionBarTask extends BukkitRunnable {
         }
     }
 
+    private static final java.util.regex.Pattern GLYPH_PATTERN = java.util.regex.Pattern.compile("<glyph:[^>]+>");
+
+    private int visibleLength(String text) {
+        String stripped = ChatColor.stripColor(text);
+        stripped = GLYPH_PATTERN.matcher(stripped).replaceAll("?");
+        return stripped.length();
+    }
+
     private String padRight(String text, int length) {
-        return String.format("%-" + length + "s", text);
+        int padding = Math.max(0, length - visibleLength(text));
+        return text + " ".repeat(padding);
     }
 
     private String padLeft(String text, int length) {
-        return String.format("%" + length + "s", text);
+        int padding = Math.max(0, length - visibleLength(text));
+        return " ".repeat(padding) + text;
     }
 
     private String centerText(String text, int length) {
-        int padding = (length - text.length()) / 2;
-        return " ".repeat(Math.max(0, padding)) + text + " ".repeat(Math.max(0, padding));
+        int padding = Math.max(0, length - visibleLength(text));
+        int left = padding / 2;
+        int right = padding - left;
+        return " ".repeat(left) + text + " ".repeat(right);
     }
 
     // New method to format combo string
