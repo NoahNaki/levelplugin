@@ -53,13 +53,13 @@ public class ActionBarTask extends BukkitRunnable {
     }
 
     private static final java.util.regex.Pattern GLYPH_PATTERN = java.util.regex.Pattern.compile("<glyph:[^>]+>");
-    private static final int GLYPH_PX = 8;
+    private static final int GLYPH_PX = 0;
     private static final String NBSP = "\u00A0";
 
-    private static final int LEFT_PX = 60;
+    private static final int LEFT_PX = 30;
     // Shrink the gap between HP and mana by ~30%
-    private static final int CENTER_PX = 112;
-    private static final int RIGHT_PX = 60;
+    private static final int CENTER_PX = 90;
+    private static final int RIGHT_PX = 30;
 
     private int pixelLength(String text) {
         int px = 0;
