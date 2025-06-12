@@ -17,6 +17,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.scheduler.BukkitRunnable;
+import io.lumine.mythic.bukkit.events.MythicMobDeathEvent;
+import io.lumine.mythic.bukkit.events.MythicMobDespawnEvent;
 
 import java.util.*;
 
@@ -38,7 +40,7 @@ public class OreListener implements Listener {
         this.miningManager = manager;
     }
 
-    @EventHandler
+    @EventHandler(priority = org.bukkit.event.EventPriority.LOWEST)
     public void onOreInteract(PlayerInteractAtEntityEvent event) {
         Entity entity = event.getRightClicked();
         ActiveMob mob = mythicHelper.getMythicMobInstance(entity);
@@ -53,7 +55,10 @@ public class OreListener implements Listener {
         int required = sec.getInt("level", 1);
         int xp = sec.getInt("xp", 0);
 
-        if (miningManager.getLevel(player) < required) {
+        boolean meetsReq = miningManager.getLevel(player) >= required;
+        updateRequirementDisplay(entity.getUniqueId(), meetsReq, required);
+
+        if (!meetsReq) {
             player.sendMessage(ChatColor.RED + "Mining level " + required + " required.");
             return;
         }
@@ -76,11 +81,37 @@ public class OreListener implements Listener {
         removeHologram(event.getEntity().getUniqueId());
     }
 
+    @EventHandler
+    public void onMythicDeath(MythicMobDeathEvent event) {
+        ActiveMob mob = event.getMob();
+        String type = mob.getMobType();
+        if (!miningConfig.getConfig().isConfigurationSection("ores." + type)) return;
+        rewarded.remove(event.getEntity().getUniqueId());
+        removeHologram(event.getEntity().getUniqueId());
+    }
+
+    @EventHandler
+    public void onMythicDespawn(MythicMobDespawnEvent event) {
+        ActiveMob mob = event.getMob();
+        String type = mob.getMobType();
+        if (!miningConfig.getConfig().isConfigurationSection("ores." + type)) return;
+        rewarded.remove(event.getEntity().getUniqueId());
+        removeHologram(event.getEntity().getUniqueId());
+    }
+
     private void removeHologram(UUID uuid) {
         List<ArmorStand> list = holograms.remove(uuid);
         if (list != null) {
             for (ArmorStand as : list) if (!as.isDead()) as.remove();
         }
+    }
+
+    private void updateRequirementDisplay(UUID uuid, boolean meets, int level) {
+        List<ArmorStand> list = holograms.get(uuid);
+        if (list == null || list.size() < 2) return;
+        ArmorStand line2 = list.get(1);
+        String prefix = meets ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ";
+        line2.setCustomName(prefix + ChatColor.WHITE + "Mining Lv. Min: " + ChatColor.YELLOW + level);
     }
 
     // Called externally when ores spawn
