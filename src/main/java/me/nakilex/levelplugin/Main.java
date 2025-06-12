@@ -169,10 +169,12 @@ public class Main extends JavaPlugin {
 
         // Prepare player configuration before managers that depend on it
         playerConfig = new PlayerConfig(this);
-        playerConfig.loadAllPlayers();
 
         // Initialize managers and other components
         initializeManagers();
+
+        // Now that LevelManager is ready, load player data
+        playerConfig.loadAllPlayers();
 
         // Initialize ItemConfig and load items
         itemConfig = new ItemConfig(this);
