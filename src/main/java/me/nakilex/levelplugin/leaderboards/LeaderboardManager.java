@@ -118,8 +118,8 @@ public class LeaderboardManager {
                 color = "§a";
             }
             case DUELS -> {
-                lines.add("§b§lDUELS LEADERBOARD");
-                color = "§b";
+                lines.add("§c§lDUELS LEADERBOARD");
+                color = "§c";
             }
             case BALANCE -> {
                 lines.add("§e§lBALANCE LEADERBOARD");
@@ -139,6 +139,8 @@ public class LeaderboardManager {
             String value = color + e.getValue();
             if (type == LeaderboardType.BALANCE) {
                 value += " \u26C3"; // ⛃ symbol
+            } else if (type == LeaderboardType.DUELS) {
+                value += " \uD83D\uDDE1"; // 🗡 symbol
             }
             lines.add(color + "#" + rank + " §7| §f" + name + ": " + value);
             rank++;
