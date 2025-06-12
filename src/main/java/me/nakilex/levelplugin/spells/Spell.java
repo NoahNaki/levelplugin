@@ -138,8 +138,11 @@ public class Spell {
             player.sendMessage("§cNot enough mana (" + cost + ") to cast " + displayName);
             return;
         }
-        ps.setCurrentMana(ps.getCurrentMana() - (int)Math.ceil(cost));
+        int intCost = (int)Math.ceil(cost);
+        ps.setCurrentMana(ps.getCurrentMana() - intCost);
         recordSpellCast(player);
+        me.nakilex.levelplugin.player.attributes.managers.ManaIndicatorManager
+            .getInstance().showCost(player, intCost);
         Main.getInstance().getQuestManager().handleCast(player, id);
 
         // 5) Start cooldown (ctx.getFinalCooldown returns 0 if applyCooldown==false)

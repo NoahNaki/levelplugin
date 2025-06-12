@@ -13,6 +13,7 @@ import me.nakilex.levelplugin.spells.Spell;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStats;
+import me.nakilex.levelplugin.player.attributes.managers.ManaIndicatorManager;
 import me.nakilex.levelplugin.spells.utils.SpellUtils;
 import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.ProtocolManager;
@@ -207,6 +208,9 @@ public class ClickComboListener implements Listener {
 
 
     private void recordComboClick(Player player, String clickType) {
+        // Start of a new combo should hide any mana-cost indicator
+        ManaIndicatorManager.getInstance().clear(player);
+
         long now = System.currentTimeMillis();
         UUID uuid = player.getUniqueId();
 

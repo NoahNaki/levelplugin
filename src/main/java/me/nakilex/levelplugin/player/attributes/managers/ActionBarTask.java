@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.player.attributes.managers;
 
 import me.nakilex.levelplugin.player.listener.ClickComboListener;
+import me.nakilex.levelplugin.player.attributes.managers.ManaIndicatorManager;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -19,22 +20,28 @@ public class ActionBarTask extends BukkitRunnable {
             int currentMana = (int) ps.currentMana;
             int maxMana = ps.maxMana;
 
-            // Get active combo
+            // Get active combo or mana cost display
             String combo = ClickComboListener.getActiveCombo(player);
-            String comboDisplay = combo.isEmpty() ? "" : formatCombo(combo, 3); // Hide if no active combo
+            Integer manaCost = ManaIndicatorManager.getInstance().getCost(player);
+            String centerDisplay = "";
 
-            // Validate combo starter based on class
-            String className = ps.playerClass.name().toLowerCase();
             if (!combo.isEmpty()) {
+                // Prioritize combo and clear mana indicator
+                ManaIndicatorManager.getInstance().clear(player);
+                String className = ps.playerClass.name().toLowerCase();
                 if ((className.equals("archer") && !combo.startsWith("L")) || (!className.equals("archer") && !combo.startsWith("R"))) {
-                    comboDisplay = ""; // Invalid combo start, hide display
+                    centerDisplay = ""; // Invalid combo start
+                } else {
+                    centerDisplay = formatCombo(combo, 3);
                 }
+            } else if (manaCost != null) {
+                centerDisplay = formatCost(manaCost);
             }
 
             // Construct action bar message
             String leftText = String.format("§c%d/%d", (int) hp, (int) maxHp);
             String rightText = String.format("§b%d/%d", currentMana, maxMana);
-            String message = String.format("%s%s%s", padRight(leftText, 10), centerText(comboDisplay, 10), padLeft(rightText, 10));
+            String message = String.format("%s%s%s", padRight(leftText, 10), centerText(centerDisplay, 10), padLeft(rightText, 10));
 
             // Send action bar
             player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(message));
@@ -70,5 +77,9 @@ public class ActionBarTask extends BukkitRunnable {
         formatted.append("]");
 
         return formatted.toString();
+    }
+
+    private String formatCost(int cost) {
+        return "§7[-" + cost + "]";
     }
 }
