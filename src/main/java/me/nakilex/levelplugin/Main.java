@@ -136,7 +136,8 @@ public class Main extends JavaPlugin {
     private me.nakilex.levelplugin.environment.UpgradeGUI upgradeGUI;
     private me.nakilex.levelplugin.environment.stage.TownStageManager townStageManager;
     private me.nakilex.levelplugin.environment.stage.BuildingStageManager buildingStageManager;
-    /**
+    private me.nakilex.levelplugin.leaderboards.LeaderboardManager leaderboardManager;
+    private me.nakilex.levelplugin.leaderboards.DuelStatsManager duelStatsManager;
      * Tracks all active bow drone NPCs for each player. Some runes can add
      * additional drones so we store a list rather than a single instance.
      */
@@ -258,6 +259,8 @@ public class Main extends JavaPlugin {
         dialogManager = new me.nakilex.levelplugin.npc.dialog.NPCDialogManager();
         scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(
                 this, economyManager, gemsManager, partyManager, questManager);
+        duelStatsManager = new me.nakilex.levelplugin.leaderboards.DuelStatsManager(this);
+        leaderboardManager = new me.nakilex.levelplugin.leaderboards.LeaderboardManager(this, economyManager, playerConfig, duelStatsManager);
         partyGlowManager = new PartyGlowManager(this, partyManager, scoreboardManager::getBoard);
         beaconManager = new me.nakilex.levelplugin.quests.managers.BeaconManager();
         fastTravelManager = new me.nakilex.levelplugin.fasttravel.FastTravelManager(this);
@@ -415,6 +418,10 @@ public class Main extends JavaPlugin {
 
         if (environmentManager != null) {
             environmentManager.saveAll();
+        }
+
+        if (duelStatsManager != null) {
+            duelStatsManager.save();
         }
 
         if (townStageManager != null) {
@@ -579,6 +586,13 @@ public class Main extends JavaPlugin {
 
     public me.nakilex.levelplugin.environment.stage.BuildingStageManager getBuildingStageManager() {
         return buildingStageManager;
+    }
+    public me.nakilex.levelplugin.leaderboards.LeaderboardManager getLeaderboardManager() {
+        return leaderboardManager;
+    }
+
+    public me.nakilex.levelplugin.leaderboards.DuelStatsManager getDuelStatsManager() {
+        return duelStatsManager;
     }
 
     private void createCustomConfig() {

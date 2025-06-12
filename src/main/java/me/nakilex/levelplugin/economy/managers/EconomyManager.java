@@ -89,5 +89,10 @@ public class EconomyManager {
             throw new IllegalArgumentException("Not enough coins to deduct!");
         }
     }
+    /** Access to the underlying balance configuration. */
+    public FileConfiguration getBalanceConfig() {
+        return balanceConfig;
+    }
+
 
 }
