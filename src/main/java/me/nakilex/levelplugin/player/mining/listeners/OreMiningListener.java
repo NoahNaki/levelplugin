@@ -8,6 +8,8 @@ import me.nakilex.levelplugin.player.mining.config.MiningRewardsConfig;
 import me.nakilex.levelplugin.player.mining.managers.MiningManager;
 import org.bukkit.Material;
 import org.bukkit.Location;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -36,6 +38,8 @@ public class OreMiningListener implements Listener {
     private final Map<UUID, Player> damageTracker = new HashMap<>();
     private final Map<UUID, List<ArmorStand>> oreHolograms = new HashMap<>();
     private final Map<UUID, org.bukkit.scheduler.BukkitTask> hologramTasks = new HashMap<>();
+    // Track custom ore health when we handle mining ourselves
+    private final Map<UUID, Integer> oreHealth = new HashMap<>();
 
     // Pickaxe level requirements
     private final Map<Material, Integer> pickaxeReqs = Map.of(
@@ -75,6 +79,10 @@ public class OreMiningListener implements Listener {
         ActiveMob mob = event.getMob();
         String type = mob.getMobType().toLowerCase();
         if (!rewardsConfig.getConfig().contains("ores." + type)) return;
+
+        // Store base health so we can handle mining damage ourselves
+        int hp = (int) ((LivingEntity) mob.getEntity().getBukkitEntity()).getHealth();
+        oreHealth.put(mob.getEntity().getUniqueId(), hp);
 
         Location base = mob.getEntity().getBukkitEntity().getLocation();
         String pretty = type.replace('_', ' ');
@@ -123,6 +131,33 @@ public class OreMiningListener implements Listener {
         return true;
     }
 
+    private final Map<Material, Integer> pickaxeDamage = Map.of(
+            Material.WOODEN_PICKAXE, 2,
+            Material.GOLDEN_PICKAXE, 2,
+            Material.STONE_PICKAXE, 3,
+            Material.IRON_PICKAXE, 4,
+            Material.DIAMOND_PICKAXE, 5,
+            Material.NETHERITE_PICKAXE, 6
+    );
+
+    private void handleOreHit(Player player, ActiveMob mob, Material pick) {
+        UUID id = mob.getEntity().getUniqueId();
+        int hp = oreHealth.getOrDefault(id, (int) ((LivingEntity) mob.getEntity().getBukkitEntity()).getHealth());
+        int dmg = pickaxeDamage.getOrDefault(pick, 1);
+        hp -= dmg;
+        Location loc = mob.getEntity().getBukkitEntity().getLocation();
+        loc.getWorld().spawnParticle(Particle.CRIT, loc.add(0, 1.0, 0), 10, 0.3, 0.3, 0.3);
+        loc.getWorld().playSound(loc, Sound.BLOCK_STONE_HIT, 1f, 1f);
+        damageTracker.put(id, player);
+
+        if (hp <= 0) {
+            oreHealth.remove(id);
+            ((LivingEntity) mob.getEntity().getBukkitEntity()).setHealth(0); // triggers death event
+        } else {
+            oreHealth.put(id, hp);
+        }
+    }
+
     // Prevent use of high-tier pickaxes on generic interaction
     // Use LOWEST so our cancellation happens before MythicMobs handles the interaction
     @EventHandler(priority = org.bukkit.event.EventPriority.LOWEST, ignoreCancelled = false)
@@ -152,7 +187,16 @@ public class OreMiningListener implements Listener {
         if (item == null || !isPickaxe(item.getType())) return;
         if (!checkPickaxeLevel(event.getPlayer(), item.getType())) {
             event.setCancelled(true);
+            return;
         }
+
+        ActiveMob mob = mythicHelper.getMythicMobInstance(event.getRightClicked());
+        if (mob == null) return;
+        String type = mob.getMobType().toLowerCase();
+        if (!rewardsConfig.getConfig().contains("ores." + type)) return;
+
+        event.setCancelled(true);
+        handleOreHit(event.getPlayer(), mob, item.getType());
     }
 
     // Same for interacting at a specific entity location
@@ -164,7 +208,16 @@ public class OreMiningListener implements Listener {
         if (item == null || !isPickaxe(item.getType())) return;
         if (!checkPickaxeLevel(event.getPlayer(), item.getType())) {
             event.setCancelled(true);
+            return;
         }
+
+        ActiveMob mob = mythicHelper.getMythicMobInstance(event.getRightClicked());
+        if (mob == null) return;
+        String type = mob.getMobType().toLowerCase();
+        if (!rewardsConfig.getConfig().contains("ores." + type)) return;
+
+        event.setCancelled(true);
+        handleOreHit(event.getPlayer(), mob, item.getType());
     }
 
     // Track player who damages an ore mob
@@ -178,13 +231,14 @@ public class OreMiningListener implements Listener {
         if (!rewardsConfig.getConfig().contains("ores." + type)) return;
 
         ItemStack held = player.getInventory().getItemInMainHand();
-        if (held != null && isPickaxe(held.getType())) {
-            if (!checkPickaxeLevel(player, held.getType())) {
-                event.setCancelled(true);
-                return;
-            }
+        if (held == null || !isPickaxe(held.getType())) return;
+        if (!checkPickaxeLevel(player, held.getType())) {
+            event.setCancelled(true);
+            return;
         }
-        damageTracker.put(le.getUniqueId(), player);
+
+        event.setCancelled(true);
+        handleOreHit(player, mob, held.getType());
     }
 
     // Award XP on ore death
@@ -200,6 +254,7 @@ public class OreMiningListener implements Listener {
         if (stands != null) {
             stands.forEach(ArmorStand::remove);
         }
+        oreHealth.remove(entity.getUniqueId());
 
         Player p = damageTracker.remove(entity.getUniqueId());
         if (p == null) return;
