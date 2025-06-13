@@ -41,9 +41,15 @@ public class ToolBrowser implements CommandExecutor, Listener {
 
             List<String> lore = new ArrayList<>();
             String rarityGlyph = "<glyph:" + tier.getRarity().name().toLowerCase() + ">";
-            lore.add(rarityGlyph + " <glyph:tool>");
-            lore.add(" ");
-            lore.add(ChatColor.GRAY + "Mining Lv. Requirement: " + ChatColor.WHITE + tier.getLevelRequirement());
+            lore.add(rarityGlyph + "<glyph:tool>");
+            int level = me.nakilex.levelplugin.player.mining.managers.MiningManager.getInstance().getLevel(viewer);
+            String reqLine;
+            if (level >= tier.getLevelRequirement()) {
+                reqLine = ChatColor.GREEN + "✔ " + ChatColor.GRAY + "Mining Lv. Requirement: " + ChatColor.WHITE + tier.getLevelRequirement();
+            } else {
+                reqLine = ChatColor.RED + "✘ " + ChatColor.GRAY + "Mining Lv. Requirement: " + ChatColor.WHITE + tier.getLevelRequirement();
+            }
+            lore.add(reqLine);
             lore.add(" ");
             lore.add(ChatColor.GRAY + "Mining Speed: " + ChatColor.GREEN + "+" + tier.getMiningSpeed());
             meta.setLore(lore);

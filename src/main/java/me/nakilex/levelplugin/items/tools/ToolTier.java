@@ -12,7 +12,7 @@ public enum ToolTier {
     TIER_III(15, ItemRarity.RARE, 1.5f, Arrays.asList(Material.GOLDEN_PICKAXE)),
     TIER_IV(25, ItemRarity.EPIC, 1.8f, Arrays.asList(Material.IRON_PICKAXE)),
     TIER_V(40, ItemRarity.LEGENDARY, 2.0f, Arrays.asList(Material.DIAMOND_PICKAXE)),
-    TIER_VI(60, ItemRarity.EPIC, 2.2f, Arrays.asList(Material.NETHERITE_PICKAXE));
+    TIER_VI(60, ItemRarity.MYTHIC, 2.2f, Arrays.asList(Material.NETHERITE_PICKAXE));
 
     private final int levelReq;
     private final ItemRarity rarity;

@@ -298,7 +298,14 @@ public class ItemUtil {
         }
         lore.add(""); // Blank line before rarity
 
-        lore.add(ChatColor.WHITE + "" + ChatColor.BOLD + cItem.getRarity().getSymbol());
+        String rarityGlyph = "<glyph:" + cItem.getRarity().name().toLowerCase() + ">";
+        String typeGlyph = "<glyph:tool>";
+        if (me.nakilex.levelplugin.items.data.ArmorType.matchType(stack) != null) {
+            typeGlyph = "<glyph:armor>";
+        } else if (me.nakilex.levelplugin.items.data.WeaponType.matchType(stack) != null) {
+            typeGlyph = "<glyph:weapon>";
+        }
+        lore.add(rarityGlyph + typeGlyph);
 
         // Update the item meta with the new lore.
         meta.setLore(lore);
