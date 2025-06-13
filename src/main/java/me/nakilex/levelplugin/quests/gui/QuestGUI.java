@@ -128,11 +128,16 @@ public class QuestGUI {
         if (meta != null) {
             meta.setDisplayName(ChatColor.AQUA + "Filter");
             List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "");
+            lore.add(ChatColor.DARK_GRAY + "Filter the quests");
+            lore.add(" ");
             String[] opts = {"Show All", "Available", "In Progress", "Completed"};
             for (int i = 0; i < opts.length; i++) {
-                String pre = i == mode ? ChatColor.GREEN + "➤ " : ChatColor.GRAY + "  ";
-                lore.add(pre + opts[i]);
+                lore.add(rangeLine(i, mode, opts[i]));
             }
+            lore.add(" ");
+            lore.add(ChatColor.WHITE + "Left-Click " + ChatColor.GRAY + "to go forward");
+            lore.add(ChatColor.WHITE + "Right-Click " + ChatColor.GRAY + "to go backward");
             meta.setLore(lore);
             it.setItemMeta(meta);
         }
@@ -143,16 +148,27 @@ public class QuestGUI {
         ItemStack it = new ItemStack(Material.COMPARATOR);
         ItemMeta meta = it.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(ChatColor.AQUA + "Sort");
+            meta.setDisplayName(ChatColor.AQUA + "Sorting");
             List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "");
+            lore.add(ChatColor.DARK_GRAY + "Sort the quests");
+            lore.add(" ");
             String[] opts = {"A-Z", "By State"};
             for (int i = 0; i < opts.length; i++) {
-                String pre = i == mode ? ChatColor.GREEN + "➤ " : ChatColor.GRAY + "  ";
-                lore.add(pre + opts[i]);
+                lore.add(rangeLine(i, mode, opts[i]));
             }
+            lore.add(" ");
+            lore.add(ChatColor.WHITE + "Left-Click " + ChatColor.GRAY + "to go forward");
+            lore.add(ChatColor.WHITE + "Right-Click " + ChatColor.GRAY + "to go backward");
             meta.setLore(lore);
             it.setItemMeta(meta);
         }
         return it;
+    }
+
+    private static String rangeLine(int index, int current, String label) {
+        ChatColor color = index == current ? ChatColor.WHITE : ChatColor.GRAY;
+        ChatColor bullet = index == current ? ChatColor.GREEN : ChatColor.DARK_GRAY;
+        return bullet + "- " + color + label;
     }
 }
