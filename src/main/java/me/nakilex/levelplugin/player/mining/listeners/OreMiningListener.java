@@ -57,6 +57,20 @@ public class OreMiningListener implements Listener {
             Map.entry("netherite_ore", "§x§9§5§8§6§7§e")
     );
 
+    private final Map<String, Material> oreParticles = Map.ofEntries(
+            Map.entry("coal_ore", Material.COAL_BLOCK),
+            Map.entry("copper_ore", Material.RAW_COPPER_BLOCK),
+            Map.entry("iron_ore", Material.RAW_IRON_BLOCK),
+            Map.entry("gold_ore", Material.RAW_GOLD_BLOCK),
+            Map.entry("quartz_ore", Material.QUARTZ_BLOCK),
+            Map.entry("amethyst_ore", Material.AMETHYST_BLOCK),
+            Map.entry("redstone_ore", Material.REDSTONE_BLOCK),
+            Map.entry("lapis_ore", Material.LAPIS_BLOCK),
+            Map.entry("diamond_ore", Material.DIAMOND_BLOCK),
+            Map.entry("emerald_ore", Material.EMERALD_BLOCK),
+            Map.entry("netherite_ore", Material.ANCIENT_DEBRIS)
+    );
+
     // Pickaxe level requirements
     private final Map<Material, Integer> pickaxeReqs = Map.of(
             Material.WOODEN_PICKAXE, 1,
@@ -138,9 +152,9 @@ public class OreMiningListener implements Listener {
                 if (st.isEmpty()) {
                     String prettyName = type.replace('_', ' ');
                     prettyName = prettyName.substring(0,1).toUpperCase() + prettyName.substring(1);
-                    st.add(spawnStand(loc.clone().add(0, 2.4, 0), "")); // hp bar placeholder
-                    st.add(spawnStand(loc.clone().add(0, 2.2, 0), "§f" + prettyName));
-                    st.add(spawnStand(loc.clone().add(0, 1.95, 0), "§7Right-Click to start mining"));
+                    st.add(spawnStand(loc.clone().add(0, 1.6, 0), "")); // hp bar placeholder
+                    st.add(spawnStand(loc.clone().add(0, 1.9, 0), "§f" + prettyName));
+                    st.add(spawnStand(loc.clone().add(0, 2.1, 0), "§7Right-Click to start mining"));
                 }
                 if (st.size() >= 1) {
                     int current = oreHealth.getOrDefault(mob.getEntity().getUniqueId(), maxHp);
@@ -183,8 +197,14 @@ public class OreMiningListener implements Listener {
         int dmg = pickaxeDamage.getOrDefault(pick, 1);
         hp -= dmg;
         Location loc = mob.getEntity().getBukkitEntity().getLocation();
-        loc.getWorld().spawnParticle(Particle.CRIT, loc.add(0, 1.0, 0), 10, 0.3, 0.3, 0.3);
+        Material partMat = oreParticles.getOrDefault(mob.getMobType().toLowerCase(), Material.STONE);
+        loc.getWorld().spawnParticle(Particle.BLOCK_CRACK, loc.clone().add(0, 1.0, 0), 15, 0.6, 0.6, 0.6, partMat.createBlockData());
+        loc.getWorld().spawnParticle(Particle.CRIT, loc.clone().add(0, 1.5, 0), 20, 0.3, 0.3, 0.3);
+        loc.getWorld().playSound(loc, Sound.BLOCK_STONE_HIT, 1f, 0.5f);
         loc.getWorld().playSound(loc, Sound.BLOCK_STONE_HIT, 1f, 1f);
+        loc.getWorld().playSound(loc, Sound.BLOCK_STONE_HIT, 1f, 2f);
+        loc.getWorld().playSound(loc, Sound.ITEM_TRIDENT_HIT, 1f, 1f);
+        loc.getWorld().playSound(loc, Sound.ITEM_TRIDENT_HIT, 1f, 0.5f);
         ((LivingEntity) mob.getEntity().getBukkitEntity()).playEffect(org.bukkit.EntityEffect.HURT);
         damageTracker.put(id, player);
 
