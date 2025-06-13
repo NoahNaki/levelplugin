@@ -71,6 +71,20 @@ public class OreMiningListener implements Listener {
             Map.entry("netherite_ore", Material.ANCIENT_DEBRIS)
     );
 
+    private final Map<String, Sound> oreSounds = Map.ofEntries(
+            Map.entry("coal_ore", Sound.BLOCK_STONE_HIT),
+            Map.entry("copper_ore", Sound.BLOCK_STONE_HIT),
+            Map.entry("iron_ore", Sound.BLOCK_STONE_HIT),
+            Map.entry("gold_ore", Sound.BLOCK_STONE_HIT),
+            Map.entry("quartz_ore", Sound.BLOCK_AMETHYST_BLOCK_HIT),
+            Map.entry("amethyst_ore", Sound.BLOCK_AMETHYST_BLOCK_HIT),
+            Map.entry("redstone_ore", Sound.BLOCK_AMETHYST_BLOCK_HIT),
+            Map.entry("lapis_ore", Sound.BLOCK_AMETHYST_BLOCK_HIT),
+            Map.entry("diamond_ore", Sound.BLOCK_STONE_HIT),
+            Map.entry("emerald_ore", Sound.BLOCK_STONE_HIT),
+            Map.entry("netherite_ore", Sound.BLOCK_STONE_HIT)
+    );
+
     // Pickaxe level requirements
     private final Map<Material, Integer> pickaxeReqs = Map.of(
             Material.WOODEN_PICKAXE, 1,
@@ -200,11 +214,20 @@ public class OreMiningListener implements Listener {
         Material partMat = oreParticles.getOrDefault(mob.getMobType().toLowerCase(), Material.STONE);
         loc.getWorld().spawnParticle(Particle.BLOCK_CRACK, loc.clone().add(0, 1.0, 0), 15, 0.6, 0.6, 0.6, partMat.createBlockData());
         loc.getWorld().spawnParticle(Particle.CRIT, loc.clone().add(0, 1.5, 0), 20, 0.3, 0.3, 0.3);
-        loc.getWorld().playSound(loc, Sound.BLOCK_STONE_HIT, 1f, 0.5f);
-        loc.getWorld().playSound(loc, Sound.BLOCK_STONE_HIT, 1f, 1f);
-        loc.getWorld().playSound(loc, Sound.BLOCK_STONE_HIT, 1f, 2f);
+        Sound hitSound = oreSounds.getOrDefault(mob.getMobType().toLowerCase(), Sound.BLOCK_STONE_HIT);
+        loc.getWorld().playSound(loc, hitSound, 1f, 0.5f);
+        loc.getWorld().playSound(loc, hitSound, 1f, 1f);
+        loc.getWorld().playSound(loc, hitSound, 1f, 2f);
         loc.getWorld().playSound(loc, Sound.ITEM_TRIDENT_HIT, 1f, 1f);
         loc.getWorld().playSound(loc, Sound.ITEM_TRIDENT_HIT, 1f, 0.5f);
+        // small model movement
+        Location moved = loc.clone().add(player.getLocation().toVector().subtract(loc.toVector()).normalize().multiply(-0.2));
+        mob.getEntity().teleport(moved);
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (mob.getEntity().isValid() && !mob.getEntity().isDead()) {
+                mob.getEntity().teleport(loc);
+            }
+        }, 4L);
         ((LivingEntity) mob.getEntity().getBukkitEntity()).playEffect(org.bukkit.EntityEffect.HURT);
         damageTracker.put(id, player);
 
