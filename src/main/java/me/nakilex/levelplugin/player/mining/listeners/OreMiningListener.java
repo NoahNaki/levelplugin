@@ -41,6 +41,7 @@ public class OreMiningListener implements Listener {
     private final Map<UUID, List<ArmorStand>> oreHolograms = new HashMap<>();
     private final Map<UUID, org.bukkit.scheduler.BukkitTask> hologramTasks = new HashMap<>();
     private final Map<UUID, BukkitTask> hpHideTasks = new HashMap<>();
+    private final Map<UUID, Long> lastHitTime = new HashMap<>();
     // Track custom ore health when we handle mining ourselves
     private final Map<UUID, Integer> oreHealth = new HashMap<>();
     private final Map<UUID, Integer> oreMaxHealth = new HashMap<>();
@@ -161,6 +162,13 @@ public class OreMiningListener implements Listener {
             }
 
             Location loc = mob.getEntity().getBukkitEntity().getLocation();
+            UUID id = mob.getEntity().getUniqueId();
+            int currentHp = oreHealth.getOrDefault(id, maxHp);
+            long last = lastHitTime.getOrDefault(id, System.currentTimeMillis());
+            if (currentHp < maxHp && System.currentTimeMillis() - last > 10000) {
+                currentHp++;
+                oreHealth.put(id, currentHp);
+            }
             Player nearest = loc.getWorld().getPlayers().stream()
                     .filter(p -> p.getLocation().distanceSquared(loc) <= 20 * 20)
                     .min(Comparator.comparingDouble(p -> p.getLocation().distanceSquared(loc)))
@@ -172,18 +180,21 @@ public class OreMiningListener implements Listener {
                 if (st.isEmpty()) {
                     String prettyName = type.replace('_', ' ');
                     prettyName = prettyName.substring(0,1).toUpperCase() + prettyName.substring(1);
-                    st.add(spawnStand(loc.clone().add(0, 2.6, 0), "")); // hp bar
-                    st.add(spawnStand(loc.clone().add(0, 2.9, 0), oreColors.getOrDefault(type, "§f") + prettyName));
-                    st.add(spawnStand(loc.clone().add(0, 3.1, 0), "")); // requirement placeholder
-                    st.add(spawnStand(loc.clone().add(0, 3.3, 0), "§7Right-Click to start mining"));
+                    st.add(spawnStand(loc.clone().add(0, 3.9, 0), oreColors.getOrDefault(type, "§f") + prettyName)); // name/hp
+                    st.add(spawnStand(loc.clone().add(0, 3.6, 0), "")); // requirement
+                    st.add(spawnStand(loc.clone().add(0, 3.4, 0), " ")); // spacer
+                    st.add(spawnStand(loc.clone().add(0, 3.2, 0), "§7Right-Click to start mining"));
                 }
                 if (st.size() >= 4) {
-                    int current = oreHealth.getOrDefault(mob.getEntity().getUniqueId(), maxHp);
-                    st.get(0).setCustomName(buildBar(type, current, maxHp));
+                    int current = currentHp;
+                    // if hp bar visible, update
+                    if (hpHideTasks.containsKey(mob.getEntity().getUniqueId())) {
+                        st.get(0).setCustomName(buildBar(type, current, maxHp));
+                    }
                     if (nearest != null) {
                         int lvl = miningManager.getLevel(nearest);
                         String symbol = lvl >= reqLevel ? "§a✔" : "§c✘";
-                        st.get(2).setCustomName(symbol + " §fMining Lv. Min: §e" + reqLevel);
+                        st.get(1).setCustomName(symbol + " §fMining Lv. Min: §e" + reqLevel);
                     }
                 }
             } else {
@@ -243,6 +254,7 @@ public class OreMiningListener implements Listener {
             oreHealth.put(id, hp);
         }
 
+        lastHitTime.put(id, System.currentTimeMillis());
         List<ArmorStand> st = oreHolograms.get(id);
         if (st != null && !st.isEmpty()) {
             int max = oreMaxHealth.getOrDefault(id, hp);
@@ -252,7 +264,9 @@ public class OreMiningListener implements Listener {
             hpHideTasks.put(id, plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                 List<ArmorStand> stands = oreHolograms.get(id);
                 if (stands != null && !stands.isEmpty()) {
-                    stands.get(0).setCustomName("");
+                    String prettyName = mob.getMobType().replace('_', ' ');
+                    prettyName = prettyName.substring(0,1).toUpperCase()+prettyName.substring(1);
+                    stands.get(0).setCustomName(oreColors.getOrDefault(mob.getMobType().toLowerCase(), "§f") + prettyName);
                 }
                 hpHideTasks.remove(id);
             }, 120L));
@@ -340,6 +354,25 @@ public class OreMiningListener implements Listener {
 
         event.setCancelled(true);
         handleOreHit(player, mob, held.getType());
+    }
+
+    // Cancel any other damage to ore mobs
+    @EventHandler(priority = org.bukkit.event.EventPriority.HIGHEST)
+    public void onAnyDamage(org.bukkit.event.entity.EntityDamageEvent event) {
+        ActiveMob mob = mythicHelper.getMythicMobInstance(event.getEntity());
+        if (mob == null) return;
+        String type = mob.getMobType().toLowerCase();
+        if (!rewardsConfig.getConfig().contains("ores." + type)) return;
+
+        if (event instanceof EntityDamageByEntityEvent byEntity) {
+            if (byEntity.getDamager() instanceof Player p) {
+                ItemStack held = p.getInventory().getItemInMainHand();
+                if (held != null && isPickaxe(held.getType()) && checkPickaxeLevel(p, held.getType())) {
+                    return; // handled in other listener
+                }
+            }
+        }
+        event.setCancelled(true);
     }
 
     // Award XP on ore death
