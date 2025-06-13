@@ -424,6 +424,10 @@ public class Main extends JavaPlugin {
             lootChestManager.removeAllChests(); // Remove holograms and clean up
         }
 
+        if (me.nakilex.levelplugin.player.mining.listeners.OreMiningListener.getInstance() != null) {
+            me.nakilex.levelplugin.player.mining.listeners.OreMiningListener.getInstance().removeAllHolograms();
+        }
+
         if (questManager != null) {
             questManager.saveProgress();
         }

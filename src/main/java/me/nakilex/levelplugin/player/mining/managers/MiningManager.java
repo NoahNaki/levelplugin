@@ -50,7 +50,7 @@ public class MiningManager {
 
     private void checkLevelUp(UUID uuid) {
         int level = getLevel(uuid);
-        int xp = getXP(uuid);
+        int xp    = getXP(uuid);
 
         int xpNeeded = getXpRequired(level);
         boolean leveled = false;
@@ -58,6 +58,12 @@ public class MiningManager {
             xp -= xpNeeded;
             level++;
             leveled = true;
+
+            Player player = Bukkit.getPlayer(uuid);
+            if (player != null) {
+                sendLevelUpMessage(player, level, getXpRequired(level));
+            }
+
             xpNeeded = getXpRequired(level);
         }
 
@@ -69,8 +75,21 @@ public class MiningManager {
         }
     }
 
-    private int getXpRequired(int level) {
+    public int getXpRequired(int level) {
         return level * XP_PER_LEVEL_MULTIPLIER;
+    }
+
+    private void sendLevelUpMessage(Player player, int newLevel, int nextXp) {
+        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§b§l-", 45);
+        me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§b§lMINING LEVEL UP!");
+        me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "");
+        me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§7You are now Mining level §e§l" + newLevel + "§7!");
+        if (newLevel < MAX_LEVEL) {
+            me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§7You need §e" + nextXp + " XP §7to reach level §e" + (newLevel + 1) + "§7.");
+        }
+        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§b§l-", 45);
+        player.getWorld().playSound(player.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1f, 1f);
+        player.getWorld().spawnParticle(org.bukkit.Particle.HAPPY_VILLAGER, player.getLocation(), 20);
     }
 
     public int getLevel(Player player) {
