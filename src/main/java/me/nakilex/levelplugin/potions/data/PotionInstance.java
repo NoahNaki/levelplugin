@@ -72,10 +72,9 @@ public class PotionInstance {
             default -> rarity = me.nakilex.levelplugin.items.data.ItemRarity.COMMON;
         }
 
-        lore.add("");
         String rarityGlyph = "<glyph:" + rarity.name().toLowerCase() + ">";
         lore.add(rarityGlyph + "<glyph:potion>");
-        lore.add(" ");
+        lore.add("");
         lore.add(ChatColor.WHITE + "Effect:");
         String bulletColor = mana ? ChatColor.AQUA.toString() : ChatColor.RED.toString();
         String amountStr;

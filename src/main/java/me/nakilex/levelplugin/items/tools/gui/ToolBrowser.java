@@ -43,6 +43,7 @@ public class ToolBrowser implements CommandExecutor, Listener {
             List<String> lore = new ArrayList<>();
             String rarityGlyph = "<glyph:" + tier.getRarity().name().toLowerCase() + ">";
             lore.add(rarityGlyph + "<glyph:tool>");
+            lore.add("");
             int level = me.nakilex.levelplugin.player.mining.managers.MiningManager.getInstance().getLevel(viewer);
             String reqLine;
             if (level >= tier.getLevelRequirement()) {

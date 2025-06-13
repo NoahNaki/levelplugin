@@ -86,6 +86,15 @@ public class ItemUtil {
         meta.setDisplayName(rarityColor + cItem.getBaseName() + " " + stars);
 
         List<String> lore = new ArrayList<>();
+        // Glyph line under the name to show rarity and item type
+        String rarityGlyph = "<glyph:" + cItem.getRarity().name().toLowerCase() + ">";
+        String typeGlyph = "<glyph:tool>";
+        if (me.nakilex.levelplugin.items.data.ArmorType.matchType(stack) != null) {
+            typeGlyph = "<glyph:armor>";
+        } else if (me.nakilex.levelplugin.items.data.WeaponType.matchType(stack) != null) {
+            typeGlyph = "<glyph:weapon>";
+        }
+        lore.add(rarityGlyph + typeGlyph);
         lore.add(""); // Blank line for spacing
 
         // --- Level Requirement ---
