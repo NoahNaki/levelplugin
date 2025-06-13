@@ -90,6 +90,14 @@ public class MiningManager {
         me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§b§l-", 45);
         player.getWorld().playSound(player.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1f, 1f);
         player.getWorld().spawnParticle(org.bukkit.Particle.HAPPY_VILLAGER, player.getLocation(), 20);
+
+        // Update tool tooltips so requirements are accurate for the new level
+        player.getInventory().forEach(stack -> {
+            if (stack != null && me.nakilex.levelplugin.items.tools.ToolTier.fromMaterial(stack.getType()) != null) {
+                me.nakilex.levelplugin.items.utils.ItemUtil.updateCustomToolTooltip(stack, player);
+            }
+        });
+        player.updateInventory();
     }
 
     public int getLevel(Player player) {
