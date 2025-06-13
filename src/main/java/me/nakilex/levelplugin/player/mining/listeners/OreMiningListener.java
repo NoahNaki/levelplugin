@@ -21,6 +21,7 @@ import org.bukkit.event.entity.EntityDeathEvent;
 import io.lumine.mythic.bukkit.events.MythicMobSpawnEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.*;
 
@@ -38,8 +39,23 @@ public class OreMiningListener implements Listener {
     private final Map<UUID, Player> damageTracker = new HashMap<>();
     private final Map<UUID, List<ArmorStand>> oreHolograms = new HashMap<>();
     private final Map<UUID, org.bukkit.scheduler.BukkitTask> hologramTasks = new HashMap<>();
+    private final Map<UUID, BukkitTask> hpHideTasks = new HashMap<>();
     // Track custom ore health when we handle mining ourselves
     private final Map<UUID, Integer> oreHealth = new HashMap<>();
+    private final Map<UUID, Integer> oreMaxHealth = new HashMap<>();
+    private final Map<String, String> oreColors = Map.of(
+            "coal_ore", "§x§d§5§d§5§d§5",
+            "copper_ore", "§x§f§c§9§a§8§2",
+            "iron_ore", "§x§f§9§d§a§c§4",
+            "gold_ore", "§x§f§b§e§a§3§0",
+            "quartz_ore", "§x§e§5§e§0§d§a",
+            "amethyst_ore", "§x§a§7§7§9§f§1",
+            "redstone_ore", "§x§f§f§0§0§0§0",
+            "lapis_ore", "§x§4§d§7§5§f§1",
+            "diamond_ore", "§x§2§7§e§9§d§3",
+            "emerald_ore", "§x§0§0§d§a§3§9",
+            "netherite_ore", "§x§9§5§8§6§7§e"
+    );
 
     // Pickaxe level requirements
     private final Map<Material, Integer> pickaxeReqs = Map.of(
@@ -74,6 +90,20 @@ public class OreMiningListener implements Listener {
         return stand;
     }
 
+    private String buildBar(String type, int hp, int max) {
+        int length = 12;
+        int filled = (int) Math.round((double) hp / max * length);
+        if (filled < 0) filled = 0;
+        if (filled > length) filled = length;
+        String color = oreColors.getOrDefault(type, "§a");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < length; i++) {
+            if (i < filled) sb.append(color).append("▉");
+            else sb.append("§8▉");
+        }
+        return sb.toString();
+    }
+
     @EventHandler
     public void onSpawn(MythicMobSpawnEvent event) {
         ActiveMob mob = event.getMob();
@@ -83,6 +113,8 @@ public class OreMiningListener implements Listener {
         // Store base health so we can handle mining damage ourselves
         int hp = (int) ((LivingEntity) mob.getEntity().getBukkitEntity()).getHealth();
         oreHealth.put(mob.getEntity().getUniqueId(), hp);
+        oreMaxHealth.put(mob.getEntity().getUniqueId(), hp);
+        final int maxHp = hp;
 
         Location base = mob.getEntity().getBukkitEntity().getLocation();
         String pretty = type.replace('_', ' ');
@@ -106,8 +138,13 @@ public class OreMiningListener implements Listener {
                 if (st.isEmpty()) {
                     String prettyName = type.replace('_', ' ');
                     prettyName = prettyName.substring(0,1).toUpperCase() + prettyName.substring(1);
+                    st.add(spawnStand(loc.clone().add(0, 2.4, 0), "")); // hp bar placeholder
                     st.add(spawnStand(loc.clone().add(0, 2.2, 0), "§f" + prettyName));
                     st.add(spawnStand(loc.clone().add(0, 1.95, 0), "§7Right-Click to start mining"));
+                }
+                if (st.size() >= 1) {
+                    int current = oreHealth.getOrDefault(mob.getEntity().getUniqueId(), maxHp);
+                    st.get(0).setCustomName(buildBar(type, current, maxHp));
                 }
             } else {
                 if (!st.isEmpty()) {
@@ -148,13 +185,30 @@ public class OreMiningListener implements Listener {
         Location loc = mob.getEntity().getBukkitEntity().getLocation();
         loc.getWorld().spawnParticle(Particle.CRIT, loc.add(0, 1.0, 0), 10, 0.3, 0.3, 0.3);
         loc.getWorld().playSound(loc, Sound.BLOCK_STONE_HIT, 1f, 1f);
+        ((LivingEntity) mob.getEntity().getBukkitEntity()).playEffect(org.bukkit.EntityEffect.HURT);
         damageTracker.put(id, player);
 
         if (hp <= 0) {
             oreHealth.remove(id);
+            oreMaxHealth.remove(id);
             ((LivingEntity) mob.getEntity().getBukkitEntity()).setHealth(0); // triggers death event
         } else {
             oreHealth.put(id, hp);
+        }
+
+        List<ArmorStand> st = oreHolograms.get(id);
+        if (st != null && !st.isEmpty()) {
+            int max = oreMaxHealth.getOrDefault(id, hp);
+            st.get(0).setCustomName(buildBar(mob.getMobType().toLowerCase(), Math.max(hp,0), max));
+            BukkitTask old = hpHideTasks.remove(id);
+            if (old != null) old.cancel();
+            hpHideTasks.put(id, plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                List<ArmorStand> stands = oreHolograms.get(id);
+                if (stands != null && !stands.isEmpty()) {
+                    stands.get(0).setCustomName("");
+                }
+                hpHideTasks.remove(id);
+            }, 120L));
         }
     }
 
@@ -255,6 +309,9 @@ public class OreMiningListener implements Listener {
             stands.forEach(ArmorStand::remove);
         }
         oreHealth.remove(entity.getUniqueId());
+        oreMaxHealth.remove(entity.getUniqueId());
+        BukkitTask hide = hpHideTasks.remove(entity.getUniqueId());
+        if (hide != null) hide.cancel();
 
         Player p = damageTracker.remove(entity.getUniqueId());
         if (p == null) return;
@@ -271,6 +328,10 @@ public class OreMiningListener implements Listener {
             task.cancel();
         }
         hologramTasks.clear();
+        for (BukkitTask t : hpHideTasks.values()) {
+            t.cancel();
+        }
+        hpHideTasks.clear();
         for (List<ArmorStand> stands : oreHolograms.values()) {
             for (ArmorStand st : stands) {
                 if (!st.isDead()) st.remove();
