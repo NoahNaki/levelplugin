@@ -180,10 +180,10 @@ public class OreMiningListener implements Listener {
                 if (st.isEmpty()) {
                     String prettyName = type.replace('_', ' ');
                     prettyName = prettyName.substring(0,1).toUpperCase() + prettyName.substring(1);
-                    st.add(spawnStand(loc.clone().add(0, 3.9, 0), oreColors.getOrDefault(type, "§f") + prettyName)); // name/hp
-                    st.add(spawnStand(loc.clone().add(0, 3.6, 0), "")); // requirement
-                    st.add(spawnStand(loc.clone().add(0, 3.4, 0), " ")); // spacer
-                    st.add(spawnStand(loc.clone().add(0, 3.2, 0), "§7Right-Click to start mining"));
+                    st.add(spawnStand(loc.clone().add(0, 2.9, 0), oreColors.getOrDefault(type, "§f") + prettyName)); // name/hp
+                    st.add(spawnStand(loc.clone().add(0, 2.6, 0), "")); // requirement
+                    st.add(spawnStand(loc.clone().add(0, 2.4, 0), " ")); // spacer
+                    st.add(spawnStand(loc.clone().add(0, 2.2, 0), "§7Right-Click to start mining"));
                 }
                 if (st.size() >= 4) {
                     int current = currentHp;
