@@ -23,6 +23,10 @@ commands:
     description: Shows your Mining level
     usage: /mininglevel
     permission: none
+  setmininglevel:
+    description: Sets a player's Mining level
+    usage: /setmininglevel <player> <level>
+    permission: none
   stats:
     description: Opens the stats GUI
     usage: /stats

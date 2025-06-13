@@ -123,7 +123,7 @@ public class OreMiningListener implements Listener {
         return true;
     }
 
-    // Prevent use of high-tier pickaxes
+    // Prevent use of high-tier pickaxes on generic interaction
     @EventHandler(priority = org.bukkit.event.EventPriority.HIGHEST, ignoreCancelled = false)
     public void onInteract(PlayerInteractEvent event) {
         Action action = event.getAction();
@@ -136,8 +136,25 @@ public class OreMiningListener implements Listener {
 
         if (!checkPickaxeLevel(event.getPlayer(), item.getType())) {
             event.setCancelled(true);
-        } else if (event.isCancelled()) {
-            event.setCancelled(false);
+        }
+    }
+
+    // Interacting with entities (e.g., ore mobs)
+    @EventHandler(priority = org.bukkit.event.EventPriority.HIGHEST, ignoreCancelled = false)
+    public void onEntityInteract(org.bukkit.event.player.PlayerInteractEntityEvent event) {
+        ItemStack item = event.getPlayer().getInventory().getItemInMainHand();
+        if (item == null || !isPickaxe(item.getType())) return;
+        if (!checkPickaxeLevel(event.getPlayer(), item.getType())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = org.bukkit.event.EventPriority.HIGHEST, ignoreCancelled = false)
+    public void onAtEntityInteract(org.bukkit.event.player.PlayerInteractAtEntityEvent event) {
+        ItemStack item = event.getPlayer().getInventory().getItemInMainHand();
+        if (item == null || !isPickaxe(item.getType())) return;
+        if (!checkPickaxeLevel(event.getPlayer(), item.getType())) {
+            event.setCancelled(true);
         }
     }
 
@@ -156,8 +173,6 @@ public class OreMiningListener implements Listener {
             if (!checkPickaxeLevel(player, held.getType())) {
                 event.setCancelled(true);
                 return;
-            } else if (event.isCancelled()) {
-                event.setCancelled(false);
             }
         }
         damageTracker.put(le.getUniqueId(), player);
