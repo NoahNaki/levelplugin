@@ -62,7 +62,7 @@ public class ActionBarTask extends BukkitRunnable {
     // Slightly shift HP and mana towards the center
     private static final int LEFT_PX = 40;
     // Shrink the gap between HP and mana a bit more
-    private static final int CENTER_PX = 70;
+    private static final int CENTER_PX = 50;
     private static final int RIGHT_PX = 40;
 
     private int pixelLength(String text) {

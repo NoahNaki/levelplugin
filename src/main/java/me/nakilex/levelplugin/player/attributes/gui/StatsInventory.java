@@ -203,11 +203,12 @@ public class StatsInventory {
             double percent = next > 0 ? (mXp * 100.0 / next) : 0.0;
             percent = Math.round(percent * 10.0) / 10.0;
 
-            lore.add(ChatColor.GRAY + "General information about your characters profressions");
+            lore.add(ChatColor.GRAY + "General information about");
+            lore.add(ChatColor.GRAY + "your characters profressions");
             lore.add("");
             lore.add(ChatColor.GOLD + "Gathering Skills:");
             lore.add(ChatColor.GOLD + "- " + ChatColor.GRAY + "Lv. " + mLevel + " Mining "
-                    + ChatColor.DARK_GRAY + "[" + ChatColor.DARK_GRAY + percent + "%]");
+                + ChatColor.DARK_GRAY + "[" + ChatColor.DARK_GRAY + percent + "%]");
         }
 
         lore.add(" ");
