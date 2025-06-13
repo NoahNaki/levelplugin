@@ -190,6 +190,13 @@ public class StatsInventory {
             lore.add("");
 
             lore.add(ChatColor.GOLD + "Total XP: " + ChatColor.WHITE + currentXP + ChatColor.GRAY + " / " + ChatColor.WHITE + nextLevelXP);
+            double p = nextLevelXP > 0 ? (currentXP * 100.0 / nextLevelXP) : 0.0;
+            p = Math.round(p * 10.0) / 10.0;
+            lore.add(ChatColor.GRAY + "Progress to Level " + ChatColor.YELLOW + (StatsManager.getInstance().getLevel(player) + 1) + ChatColor.GRAY + ": " + ChatColor.YELLOW + p + "%");
+            int barLen = 9;
+            int filled = (int) Math.round(p / 100.0 * barLen);
+            String bar = ChatColor.GREEN + "" + "\u2501".repeat(Math.max(filled,0)) + ChatColor.WHITE + "" + "\u2501".repeat(Math.max(barLen - filled,0));
+            lore.add(bar + " " + ChatColor.YELLOW + currentXP + ChatColor.GOLD + "/" + ChatColor.YELLOW + nextLevelXP);
         } else {
             int mLevel = miningManager.getLevel(player);
             int mXp = miningManager.getXP(player);
@@ -204,7 +211,7 @@ public class StatsInventory {
             lore.add(ChatColor.GRAY + "Progress to Level " + ChatColor.YELLOW + (mLevel + 1) + ChatColor.GRAY + ": " + ChatColor.YELLOW + percent + "%");
             int barLen = 9;
             int filled = (int) Math.round(percent / 100.0 * barLen);
-            String bar = ChatColor.GREEN + "" + "\u2500".repeat(Math.max(filled,0)) + ChatColor.WHITE + "" + "\u2500".repeat(Math.max(barLen - filled,0));
+            String bar = ChatColor.GREEN + "" + "\u2501".repeat(Math.max(filled,0)) + ChatColor.WHITE + "" + "\u2501".repeat(Math.max(barLen - filled,0));
             lore.add(bar + " " + ChatColor.YELLOW + mXp + ChatColor.GOLD + "/" + ChatColor.YELLOW + next);
         }
 
