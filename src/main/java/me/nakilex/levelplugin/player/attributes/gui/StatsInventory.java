@@ -193,26 +193,22 @@ public class StatsInventory {
             double p = nextLevelXP > 0 ? (currentXP * 100.0 / nextLevelXP) : 0.0;
             p = Math.round(p * 10.0) / 10.0;
             lore.add(ChatColor.GRAY + "Progress to Level " + ChatColor.YELLOW + (StatsManager.getInstance().getLevel(player) + 1) + ChatColor.GRAY + ": " + ChatColor.YELLOW + p + "%");
-            int barLen = 9;
+            int barLen = 15;
             int filled = (int) Math.round(p / 100.0 * barLen);
-            String bar = ChatColor.GREEN + "" + "\u2501".repeat(Math.max(filled,0)) + ChatColor.WHITE + "" + "\u2501".repeat(Math.max(barLen - filled,0));
+            String bar = ChatColor.GREEN + "" + "―".repeat(Math.max(filled,0)) + ChatColor.WHITE + "" + "―".repeat(Math.max(barLen - filled,0));
             lore.add(bar + " " + ChatColor.YELLOW + currentXP + ChatColor.GOLD + "/" + ChatColor.YELLOW + nextLevelXP);
         } else {
             int mLevel = miningManager.getLevel(player);
-            int mXp = miningManager.getXP(player);
             int next = miningManager.getXpRequired(mLevel);
+            int mXp = miningManager.getXP(player);
             double percent = next > 0 ? (mXp * 100.0 / next) : 0.0;
             percent = Math.round(percent * 10.0) / 10.0;
 
             lore.add(ChatColor.GRAY + "General information about your characters profressions");
             lore.add("");
             lore.add(ChatColor.GOLD + "Gathering Skills:");
-            lore.add(ChatColor.GOLD + "- " + ChatColor.GRAY + "Lv. " + mLevel + " Mining");
-            lore.add(ChatColor.GRAY + "Progress to Level " + ChatColor.YELLOW + (mLevel + 1) + ChatColor.GRAY + ": " + ChatColor.YELLOW + percent + "%");
-            int barLen = 9;
-            int filled = (int) Math.round(percent / 100.0 * barLen);
-            String bar = ChatColor.GREEN + "" + "\u2501".repeat(Math.max(filled,0)) + ChatColor.WHITE + "" + "\u2501".repeat(Math.max(barLen - filled,0));
-            lore.add(bar + " " + ChatColor.YELLOW + mXp + ChatColor.GOLD + "/" + ChatColor.YELLOW + next);
+            lore.add(ChatColor.GOLD + "- " + ChatColor.GRAY + "Lv. " + mLevel + " Mining "
+                    + ChatColor.GRAY + "[" + ChatColor.YELLOW + percent + "%]");
         }
 
         lore.add(" ");
