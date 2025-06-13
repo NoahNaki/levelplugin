@@ -43,18 +43,18 @@ public class OreMiningListener implements Listener {
     // Track custom ore health when we handle mining ourselves
     private final Map<UUID, Integer> oreHealth = new HashMap<>();
     private final Map<UUID, Integer> oreMaxHealth = new HashMap<>();
-    private final Map<String, String> oreColors = Map.of(
-            "coal_ore", "§x§d§5§d§5§d§5",
-            "copper_ore", "§x§f§c§9§a§8§2",
-            "iron_ore", "§x§f§9§d§a§c§4",
-            "gold_ore", "§x§f§b§e§a§3§0",
-            "quartz_ore", "§x§e§5§e§0§d§a",
-            "amethyst_ore", "§x§a§7§7§9§f§1",
-            "redstone_ore", "§x§f§f§0§0§0§0",
-            "lapis_ore", "§x§4§d§7§5§f§1",
-            "diamond_ore", "§x§2§7§e§9§d§3",
-            "emerald_ore", "§x§0§0§d§a§3§9",
-            "netherite_ore", "§x§9§5§8§6§7§e"
+    private final Map<String, String> oreColors = Map.ofEntries(
+            Map.entry("coal_ore", "§x§d§5§d§5§d§5"),
+            Map.entry("copper_ore", "§x§f§c§9§a§8§2"),
+            Map.entry("iron_ore", "§x§f§9§d§a§c§4"),
+            Map.entry("gold_ore", "§x§f§b§e§a§3§0"),
+            Map.entry("quartz_ore", "§x§e§5§e§0§d§a"),
+            Map.entry("amethyst_ore", "§x§a§7§7§9§f§1"),
+            Map.entry("redstone_ore", "§x§f§f§0§0§0§0"),
+            Map.entry("lapis_ore", "§x§4§d§7§5§f§1"),
+            Map.entry("diamond_ore", "§x§2§7§e§9§d§3"),
+            Map.entry("emerald_ore", "§x§0§0§d§a§3§9"),
+            Map.entry("netherite_ore", "§x§9§5§8§6§7§e")
     );
 
     // Pickaxe level requirements
