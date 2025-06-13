@@ -31,14 +31,19 @@ public class ToolBrowser implements CommandExecutor, Listener {
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
-    private ItemStack createToolItem(CustomTool tool) {
+    private ItemStack createToolItem(Player viewer, CustomTool tool) {
         ItemStack it = new ItemStack(tool.getMaterial());
         ItemMeta meta = it.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(ChatColor.AQUA + tool.getName());
+            meta.setDisplayName(ChatColor.GOLD + tool.getName());
+
             List<String> lore = new ArrayList<>();
+            lore.add(" ");
             lore.add(ChatColor.GRAY + "Tier: " + ChatColor.WHITE + tool.getTier().name());
-            lore.add(ChatColor.GRAY + "Requires Mining Lv. " + ChatColor.YELLOW + tool.getTier().getLevelRequirement());
+            int req = tool.getTier().getLevelRequirement();
+            int lvl = me.nakilex.levelplugin.player.mining.managers.MiningManager.getInstance().getLevel(viewer);
+            String symbol = lvl >= req ? "§a✔ " : "§c✘ ";
+            lore.add(symbol + ChatColor.GRAY + "Mining Lv. Requirement: " + ChatColor.WHITE + req);
             meta.setLore(lore);
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             it.setItemMeta(meta);
@@ -50,7 +55,7 @@ public class ToolBrowser implements CommandExecutor, Listener {
         List<CustomTool> tools = ToolManager.getInstance().getTools();
         Inventory inv = Bukkit.createInventory(null, 9, TITLE);
         for (int i = 0; i < tools.size() && i < 9; i++) {
-            inv.setItem(i, createToolItem(tools.get(i)));
+            inv.setItem(i, createToolItem(player, tools.get(i)));
         }
         player.openInventory(inv);
     }
