@@ -124,7 +124,8 @@ public class OreMiningListener implements Listener {
     }
 
     // Prevent use of high-tier pickaxes on generic interaction
-    @EventHandler(priority = org.bukkit.event.EventPriority.HIGHEST, ignoreCancelled = false)
+    // Use LOWEST so our cancellation happens before MythicMobs handles the interaction
+    @EventHandler(priority = org.bukkit.event.EventPriority.LOWEST, ignoreCancelled = false)
     public void onInteract(PlayerInteractEvent event) {
         Action action = event.getAction();
         if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK
@@ -142,7 +143,8 @@ public class OreMiningListener implements Listener {
     }
 
     // Interacting with entities (e.g., ore mobs)
-    @EventHandler(priority = org.bukkit.event.EventPriority.HIGHEST, ignoreCancelled = false)
+    // Process entity interactions before MythicMobs reacts
+    @EventHandler(priority = org.bukkit.event.EventPriority.LOWEST, ignoreCancelled = false)
     public void onEntityInteract(org.bukkit.event.player.PlayerInteractEntityEvent event) {
         ItemStack item = event.getHand() == org.bukkit.inventory.EquipmentSlot.HAND
                 ? event.getPlayer().getInventory().getItemInMainHand()
@@ -153,7 +155,8 @@ public class OreMiningListener implements Listener {
         }
     }
 
-    @EventHandler(priority = org.bukkit.event.EventPriority.HIGHEST, ignoreCancelled = false)
+    // Same for interacting at a specific entity location
+    @EventHandler(priority = org.bukkit.event.EventPriority.LOWEST, ignoreCancelled = false)
     public void onAtEntityInteract(org.bukkit.event.player.PlayerInteractAtEntityEvent event) {
         ItemStack item = event.getHand() == org.bukkit.inventory.EquipmentSlot.HAND
                 ? event.getPlayer().getInventory().getItemInMainHand()
