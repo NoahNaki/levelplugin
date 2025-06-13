@@ -149,6 +149,7 @@ public class OreMiningListener implements Listener {
         String pretty = type.replace('_', ' ');
         pretty = pretty.substring(0,1).toUpperCase() + pretty.substring(1);
         oreHolograms.put(mob.getEntity().getUniqueId(), new ArrayList<>());
+        int reqLevel = rewardsConfig.getLevelRequirement(type);
 
         hologramTasks.put(mob.getEntity().getUniqueId(), plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
             if (mob.getEntity().isDead() || !mob.getEntity().isValid()) {
@@ -160,20 +161,30 @@ public class OreMiningListener implements Listener {
             }
 
             Location loc = mob.getEntity().getBukkitEntity().getLocation();
-            boolean playerNear = loc.getWorld().getPlayers().stream().anyMatch(p -> p.getLocation().distanceSquared(loc) <= 20 * 20);
+            Player nearest = loc.getWorld().getPlayers().stream()
+                    .filter(p -> p.getLocation().distanceSquared(loc) <= 20 * 20)
+                    .min(Comparator.comparingDouble(p -> p.getLocation().distanceSquared(loc)))
+                    .orElse(null);
+            boolean playerNear = nearest != null;
 
             List<ArmorStand> st = oreHolograms.computeIfAbsent(mob.getEntity().getUniqueId(), k -> new ArrayList<>());
             if (playerNear) {
                 if (st.isEmpty()) {
                     String prettyName = type.replace('_', ' ');
                     prettyName = prettyName.substring(0,1).toUpperCase() + prettyName.substring(1);
-                    st.add(spawnStand(loc.clone().add(0, 1.6, 0), "")); // hp bar placeholder
-                    st.add(spawnStand(loc.clone().add(0, 1.9, 0), "§f" + prettyName));
-                    st.add(spawnStand(loc.clone().add(0, 2.1, 0), "§7Right-Click to start mining"));
+                    st.add(spawnStand(loc.clone().add(0, 2.6, 0), "")); // hp bar
+                    st.add(spawnStand(loc.clone().add(0, 2.9, 0), oreColors.getOrDefault(type, "§f") + prettyName));
+                    st.add(spawnStand(loc.clone().add(0, 3.1, 0), "")); // requirement placeholder
+                    st.add(spawnStand(loc.clone().add(0, 3.3, 0), "§7Right-Click to start mining"));
                 }
-                if (st.size() >= 1) {
+                if (st.size() >= 4) {
                     int current = oreHealth.getOrDefault(mob.getEntity().getUniqueId(), maxHp);
                     st.get(0).setCustomName(buildBar(type, current, maxHp));
+                    if (nearest != null) {
+                        int lvl = miningManager.getLevel(nearest);
+                        String symbol = lvl >= reqLevel ? "§a✔" : "§c✘";
+                        st.get(2).setCustomName(symbol + " §fMining Lv. Min: §e" + reqLevel);
+                    }
                 }
             } else {
                 if (!st.isEmpty()) {
@@ -221,14 +232,6 @@ public class OreMiningListener implements Listener {
         loc.getWorld().playSound(loc, hitSound, 1f, 2f);
         loc.getWorld().playSound(loc, Sound.ITEM_TRIDENT_HIT, 1f, 1f);
         loc.getWorld().playSound(loc, Sound.ITEM_TRIDENT_HIT, 1f, 0.5f);
-        // small model movement
-        Location moved = loc.clone().add(player.getLocation().toVector().subtract(loc.toVector()).normalize().multiply(-0.2));
-        mob.getEntity().teleport(BukkitAdapter.adapt(moved));
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-            if (mob.getEntity().isValid() && !mob.getEntity().isDead()) {
-                mob.getEntity().teleport(BukkitAdapter.adapt(loc));
-            }
-        }, 4L);
         ((LivingEntity) mob.getEntity().getBukkitEntity()).playEffect(org.bukkit.EntityEffect.HURT);
         damageTracker.put(id, player);
 
@@ -360,7 +363,7 @@ public class OreMiningListener implements Listener {
         Player p = damageTracker.remove(entity.getUniqueId());
         if (p == null) return;
 
-        int xp = rewardsConfig.getConfig().getInt("ores." + type, 0);
+        int xp = rewardsConfig.getXP(type);
         if (xp > 0) {
             miningManager.addXP(p, xp);
         }

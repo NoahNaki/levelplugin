@@ -8,7 +8,7 @@ import java.io.File;
 import java.util.logging.Level;
 
 /**
- * Loads mining_rewards.yml which defines XP per ore type.
+ * Loads mining_rewards.yml which defines XP and level requirements per ore type.
  */
 public class MiningRewardsConfig {
 
@@ -29,6 +29,14 @@ public class MiningRewardsConfig {
 
     public FileConfiguration getConfig() {
         return config;
+    }
+
+    public int getXP(String ore) {
+        return config.getInt("ores." + ore + ".xp", 0);
+    }
+
+    public int getLevelRequirement(String ore) {
+        return config.getInt("ores." + ore + ".level", 0);
     }
 
     public void reloadConfig() {
