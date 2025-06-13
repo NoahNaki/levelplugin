@@ -59,7 +59,7 @@ public class ActionBarTask extends BukkitRunnable {
     private static final int GLYPH_PX = 8;
     private static final String NBSP = "\u00A0";
 
-    // Slightly shift HP and mana towards the centre
+    // Slightly shift HP and mana towards the center
     private static final int LEFT_PX = 40;
     // Shrink the gap between HP and mana a bit more
     private static final int CENTER_PX = 70;
