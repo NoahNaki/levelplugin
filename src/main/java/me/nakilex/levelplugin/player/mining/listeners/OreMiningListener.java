@@ -135,6 +135,8 @@ public class OreMiningListener implements Listener {
         if (!isPickaxe(item.getType())) return;
 
         if (!checkPickaxeLevel(event.getPlayer(), item.getType())) {
+            event.setUseItemInHand(org.bukkit.event.Event.Result.DENY);
+            event.setUseInteractedBlock(org.bukkit.event.Event.Result.DENY);
             event.setCancelled(true);
         }
     }
@@ -142,7 +144,9 @@ public class OreMiningListener implements Listener {
     // Interacting with entities (e.g., ore mobs)
     @EventHandler(priority = org.bukkit.event.EventPriority.HIGHEST, ignoreCancelled = false)
     public void onEntityInteract(org.bukkit.event.player.PlayerInteractEntityEvent event) {
-        ItemStack item = event.getPlayer().getInventory().getItemInMainHand();
+        ItemStack item = event.getHand() == org.bukkit.inventory.EquipmentSlot.HAND
+                ? event.getPlayer().getInventory().getItemInMainHand()
+                : event.getPlayer().getInventory().getItemInOffHand();
         if (item == null || !isPickaxe(item.getType())) return;
         if (!checkPickaxeLevel(event.getPlayer(), item.getType())) {
             event.setCancelled(true);
@@ -151,7 +155,9 @@ public class OreMiningListener implements Listener {
 
     @EventHandler(priority = org.bukkit.event.EventPriority.HIGHEST, ignoreCancelled = false)
     public void onAtEntityInteract(org.bukkit.event.player.PlayerInteractAtEntityEvent event) {
-        ItemStack item = event.getPlayer().getInventory().getItemInMainHand();
+        ItemStack item = event.getHand() == org.bukkit.inventory.EquipmentSlot.HAND
+                ? event.getPlayer().getInventory().getItemInMainHand()
+                : event.getPlayer().getInventory().getItemInOffHand();
         if (item == null || !isPickaxe(item.getType())) return;
         if (!checkPickaxeLevel(event.getPlayer(), item.getType())) {
             event.setCancelled(true);
