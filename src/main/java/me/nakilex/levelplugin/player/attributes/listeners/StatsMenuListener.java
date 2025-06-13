@@ -44,7 +44,7 @@ public class StatsMenuListener implements Listener {
                     player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 1.5f);
                 }
                 // Refresh the inventory to reflect changes
-                player.openInventory(StatsInventory.getStatsMenu(player));
+                player.openInventory(StatsInventory.getStatsMenu(player, StatsInventory.getPage(player)));
                 return;
             }
 
@@ -55,6 +55,16 @@ public class StatsMenuListener implements Listener {
 
             if (displayName.equalsIgnoreCase("Settings")) {
                 player.performCommand("settings");
+                return;
+            }
+
+            // Player head page switching
+            if (clickedItem.getType() == Material.PLAYER_HEAD && event.getRawSlot() == 8) {
+                int page = StatsInventory.getPage(player);
+                if (event.getClick() == ClickType.LEFT) page = (page + 1) % 2;
+                else if (event.getClick() == ClickType.RIGHT) page = (page - 1 + 2) % 2;
+                StatsInventory.setPage(player, page);
+                player.openInventory(StatsInventory.getStatsMenu(player, page));
                 return;
             }
 
@@ -119,7 +129,7 @@ public class StatsMenuListener implements Listener {
                 }
 
                 // Refresh the inventory to reflect updated stats
-                player.openInventory(StatsInventory.getStatsMenu(player));
+                player.openInventory(StatsInventory.getStatsMenu(player, StatsInventory.getPage(player)));
             }
         }
     }

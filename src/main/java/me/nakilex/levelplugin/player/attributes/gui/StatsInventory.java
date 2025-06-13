@@ -21,7 +21,24 @@ import java.util.List;
 
 public class StatsInventory {
 
+    private static final int MAX_PAGES = 2;
+    private static final java.util.Map<java.util.UUID, Integer> pageMap = new java.util.HashMap<>();
+
+    public static int getPage(Player player) {
+        return pageMap.getOrDefault(player.getUniqueId(), 0);
+    }
+
+    public static void setPage(Player player, int page) {
+        pageMap.put(player.getUniqueId(), page % MAX_PAGES);
+    }
+
     public static Inventory getStatsMenu(Player player) {
+        int page = pageMap.getOrDefault(player.getUniqueId(), 0);
+        return getStatsMenu(player, page);
+    }
+
+    public static Inventory getStatsMenu(Player player, int page) {
+        pageMap.put(player.getUniqueId(), page);
         PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
         Inventory inv = Bukkit.createInventory(
             null,
@@ -104,7 +121,7 @@ public class StatsInventory {
         inv.setItem(13, getNexoItem("refresh", ChatColor.RED + "Refund All Skill Points"));
 
         // Player head with overall summary
-        inv.setItem(8, createPlayerHead(player, ps));
+        inv.setItem(8, createPlayerHead(player, ps, page));
 
         // Navigation and extra buttons
         inv.setItem(37, getNexoItem("arrow_left", ChatColor.GRAY + "Equip Runes"));
@@ -147,32 +164,58 @@ public class StatsInventory {
         return book;
     }
 
-    public static ItemStack createPlayerHead(Player player, PlayerStats ps) {
+    public static ItemStack createPlayerHead(Player player, PlayerStats ps, int page) {
         ItemStack head = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta meta = (SkullMeta) head.getItemMeta();
         meta.setOwningPlayer(player);
-        meta.setDisplayName(ChatColor.WHITE + "" + ChatColor.BOLD + player.getName() + "'s Stats");
+        String title = page == 0 ? "Character Info" : "Profession Info";
+        meta.setDisplayName(ChatColor.AQUA + "" + ChatColor.BOLD + title);
 
         List<String> lore = new ArrayList<>();
         LevelManager levelManager = LevelManager.getInstance();
+        me.nakilex.levelplugin.player.mining.managers.MiningManager miningManager = me.nakilex.levelplugin.player.mining.managers.MiningManager.getInstance();
         int currentXP = levelManager.getXP(player);
         int nextLevelXP = levelManager.getXpNeededForNextLevel(player);
+        if (page == 0) {
+            lore.add(ChatColor.GOLD + "Level: " + ChatColor.WHITE + StatsManager.getInstance().getLevel(player));
+            lore.add("");
 
-        lore.add(ChatColor.GOLD + "Level: " + ChatColor.WHITE + StatsManager.getInstance().getLevel(player));
-        lore.add("");
-        lore.add(ChatColor.RED + "Health: " + ChatColor.YELLOW + (int) player.getHealth() + "/" + (int) player.getMaxHealth());
-        lore.add(ChatColor.BLUE + "Mana: " + ChatColor.YELLOW + ps.currentMana + "/" + ps.maxMana);
-        lore.add("");
+            // Add all stats with gear bonuses
+            lore.add(ChatColor.BLUE + "\u2620 " + ChatColor.GRAY + "Strength: " + ChatColor.WHITE + (ps.baseStrength + ps.bonusStrength) + ChatColor.GREEN + " (+" + ps.bonusStrength + ")");
+            lore.add(ChatColor.GREEN + "\u2248 " + ChatColor.GRAY + "Agility: " + ChatColor.WHITE + (ps.baseAgility + ps.bonusAgility) + ChatColor.GREEN + " (+" + ps.bonusAgility + ")");
+            lore.add(ChatColor.AQUA + "\u2666 " + ChatColor.GRAY + "Intelligence: " + ChatColor.WHITE + (ps.baseIntelligence + ps.bonusIntelligence) + ChatColor.GREEN + " (+" + ps.bonusIntelligence + ")");
+            lore.add(ChatColor.YELLOW + "\u27B9 " + ChatColor.GRAY + "Dexterity: " + ChatColor.WHITE + (ps.baseDexterity + ps.bonusDexterity) + ChatColor.GREEN + " (+" + ps.bonusDexterity + ")");
+            lore.add(ChatColor.RED + "\u2764 " + ChatColor.GRAY + "Vitality: " + ChatColor.WHITE + (ps.baseHealthStat + ps.bonusHealthStat) + ChatColor.GREEN + " (+" + ps.bonusHealthStat + ")");
+            lore.add(ChatColor.GRAY + "\u2692 " + ChatColor.GRAY + "Defense: " + ChatColor.WHITE + (ps.baseDefenceStat + ps.bonusDefenceStat) + ChatColor.GREEN + " (+" + ps.bonusDefenceStat + ")");
+            lore.add("");
 
-        // Add all stats with gear bonuses
-        lore.add(ChatColor.GRAY + "Strength: " + ChatColor.WHITE + (ps.baseStrength + ps.bonusStrength) + ChatColor.GREEN + " (+" + ps.bonusStrength + ")");
-        lore.add(ChatColor.GRAY + "Agility: " + ChatColor.WHITE + (ps.baseAgility + ps.bonusAgility) + ChatColor.GREEN + " (+" + ps.bonusAgility + ")");
-        lore.add(ChatColor.GRAY + "Intelligence: " + ChatColor.WHITE + (ps.baseIntelligence + ps.bonusIntelligence) + ChatColor.GREEN + " (+" + ps.bonusIntelligence + ")");
-        lore.add(ChatColor.GRAY + "Dexterity: " + ChatColor.WHITE + (ps.baseDexterity + ps.bonusDexterity) + ChatColor.GREEN + " (+" + ps.bonusDexterity + ")");
-        lore.add(ChatColor.GRAY + "Defense: " + ChatColor.WHITE + (ps.baseDefenceStat + ps.bonusDefenceStat) + ChatColor.GREEN + " (+" + ps.bonusDefenceStat + ")");
-        lore.add("");
+            lore.add(ChatColor.GOLD + "Total XP: " + ChatColor.WHITE + currentXP + ChatColor.GRAY + " / " + ChatColor.WHITE + nextLevelXP);
+            double p = nextLevelXP > 0 ? (currentXP * 100.0 / nextLevelXP) : 0.0;
+            p = Math.round(p * 10.0) / 10.0;
+            lore.add(ChatColor.GRAY + "Progress to Level " + ChatColor.YELLOW + (StatsManager.getInstance().getLevel(player) + 1) + ChatColor.GRAY + ": " + ChatColor.YELLOW + p + "%");
+            int barLen = 15;
+            int filled = (int) Math.round(p / 100.0 * barLen);
+            String bar = ChatColor.GREEN + "" + "―".repeat(Math.max(filled,0)) + ChatColor.WHITE + "" + "―".repeat(Math.max(barLen - filled,0));
+            lore.add(bar + " " + ChatColor.YELLOW + currentXP + ChatColor.GOLD + "/" + ChatColor.YELLOW + nextLevelXP);
+        } else {
+            int mLevel = miningManager.getLevel(player);
+            int next = miningManager.getXpRequired(mLevel);
+            int mXp = miningManager.getXP(player);
+            double percent = next > 0 ? (mXp * 100.0 / next) : 0.0;
+            percent = Math.round(percent * 10.0) / 10.0;
 
-        lore.add(ChatColor.GOLD + "Total XP: " + ChatColor.WHITE + currentXP + ChatColor.GRAY + " / " + ChatColor.WHITE + nextLevelXP);
+            lore.add(ChatColor.GRAY + "General information about your characters profressions");
+            lore.add("");
+            lore.add(ChatColor.GOLD + "Gathering Skills:");
+            lore.add(ChatColor.GOLD + "- " + ChatColor.GRAY + "Lv. " + mLevel + " Mining "
+                    + ChatColor.GRAY + "[" + ChatColor.YELLOW + percent + "%]");
+        }
+
+        lore.add(" ");
+        // Page indicator
+        String box1 = (page == 0 ? ChatColor.GREEN : ChatColor.DARK_GRAY) + "■";
+        String box2 = (page == 1 ? ChatColor.GREEN : ChatColor.DARK_GRAY) + "■";
+        lore.add(ChatColor.GREEN + "< " + box1 + " " + box2 + ChatColor.GREEN + " >");
         meta.setLore(lore);
         head.setItemMeta(meta);
         return head;

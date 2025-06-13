@@ -195,7 +195,7 @@ public class ItemUtil {
      */
     public static void updateCustomItemTooltip(ItemStack stack, Player player) {
         if (stack == null || !stack.hasItemMeta()) {
-            Bukkit.getLogger().info("[CustomItem] updateCustomItemTooltip: Item stack is null or has no item meta.");
+            Bukkit.getLogger().info("[CustomItem] updateTooltip: Item stack is null or has no item meta.");
             return;
         }
 
@@ -207,7 +207,7 @@ public class ItemUtil {
         // Retrieve the custom item ID from the PersistentDataContainer.
         Integer itemId = meta.getPersistentDataContainer().get(ITEM_ID_KEY, PersistentDataType.INTEGER);
         if (itemId == null) {
-            Bukkit.getLogger().info("[CustomItem] updateCustomItemTooltip: No custom item ID found.");
+            Bukkit.getLogger().info("[CustomItem] updateTooltip: No custom item ID found.");
             return;
         }
 
@@ -221,6 +221,16 @@ public class ItemUtil {
         // Build the updated lore.
         List<String> lore = new ArrayList<>();
         lore.add(""); // Blank line for spacing
+
+        // Glyph line under the name
+        String rarityGlyph = "<glyph:" + cItem.getRarity().name().toLowerCase() + ">";
+        String typeGlyph = "<glyph:tool>";
+        if (me.nakilex.levelplugin.items.data.ArmorType.matchType(stack) != null) {
+            typeGlyph = "<glyph:armor>";
+        } else if (me.nakilex.levelplugin.items.data.WeaponType.matchType(stack) != null) {
+            typeGlyph = "<glyph:weapon>";
+        }
+        lore.add(rarityGlyph + typeGlyph);
 
         // --- Level Requirement ---
         int playerLevel = (player != null) ? LevelManager.getInstance().getLevel(player) : 0;
@@ -296,10 +306,6 @@ public class ItemUtil {
                 + ChatColor.WHITE + cItem.getCurrentDurability()
                 + "/" + cItem.getMaxDurability());
         }
-        lore.add(""); // Blank line before rarity
-
-        lore.add(ChatColor.WHITE + "" + ChatColor.BOLD + cItem.getRarity().getSymbol());
-
         // Update the item meta with the new lore.
         meta.setLore(lore);
         stack.setItemMeta(meta);
@@ -347,5 +353,42 @@ public class ItemUtil {
         ItemMeta meta = stack.getItemMeta();
         Integer value = meta.getPersistentDataContainer().get(ITEM_ID_KEY, PersistentDataType.INTEGER);
         return (value != null) ? value : -1;
+    }
+
+    /**
+     * Updates the tooltip of a tool item based on the viewer's mining level.
+     */
+    public static void updateCustomToolTooltip(ItemStack stack, Player viewer) {
+        ToolTier tier = ToolTier.fromMaterial(stack.getType());
+        if (tier == null) return;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return;
+
+        List<String> lore = new ArrayList<>();
+        lore.add("");
+        String rarityGlyph = "<glyph:" + tier.getRarity().name().toLowerCase() + ">";
+        lore.add(rarityGlyph + "<glyph:tool>");
+        int level = (viewer != null) ? MiningManager.getInstance().getLevel(viewer) : 0;
+        String reqLine = level >= tier.getLevelRequirement()
+                ? ChatColor.GREEN + "✔ " + ChatColor.GRAY + "Mining Lv. Requirement: " + ChatColor.WHITE + tier.getLevelRequirement()
+                : ChatColor.RED + "✘ " + ChatColor.GRAY + "Mining Lv. Requirement: " + ChatColor.WHITE + tier.getLevelRequirement();
+        lore.add(reqLine);
+        lore.add(" ");
+        lore.add(ChatColor.GRAY + "Mining Speed: " + ChatColor.GREEN + "+" + tier.getMiningSpeed());
+        meta.setLore(lore);
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
+        stack.setItemMeta(meta);
+    }
+
+    /**
+     * Convenience method to update either a custom item or custom tool tooltip.
+     */
+    public static void updateTooltip(ItemStack stack, Player player) {
+        if (stack == null) return;
+        if (stack.hasItemMeta() && stack.getItemMeta().getPersistentDataContainer().has(ITEM_UUID_KEY, PersistentDataType.STRING)) {
+            updateCustomItemTooltip(stack, player);
+        } else if (ToolTier.fromMaterial(stack.getType()) != null) {
+            updateCustomToolTooltip(stack, player);
+        }
     }
 }

@@ -150,7 +150,7 @@ public class MythicMobDeathListener implements Listener {
                 if (roll <= tierChance) {
                     ItemStack loot = lootChestManager.getRandomLootForTier(tier, mobType);
                     if (loot != null) {
-                        ItemUtil.updateCustomItemTooltip(loot, player);
+                        ItemUtil.updateTooltip(loot, player);
                         Map<Integer, ItemStack> leftovers = player.getInventory().addItem(loot);
                         leftovers.values().forEach(i ->
                             player.getWorld().dropItemNaturally(player.getLocation(), i)
@@ -290,7 +290,7 @@ public class MythicMobDeathListener implements Listener {
                     int lvl = levelManager.getLevel(player);
                     CustomItem ci = ItemManager.getInstance().generateItem(mobType, lvl);
                     ItemStack stack = ItemUtil.createItemStackFromCustomItem(ci, 1, player);
-                    ItemUtil.updateCustomItemTooltip(stack, player);
+                    ItemUtil.updateTooltip(stack, player);
                     player.getWorld().dropItemNaturally(player.getLocation(), stack);
                 }
                 continue;
@@ -325,7 +325,7 @@ public class MythicMobDeathListener implements Listener {
 
                 // Convert CustomItem → ItemStack
                 ItemStack dropStack = ItemUtil.createItemStackFromCustomItem(newInstance, 1, player);
-                ItemUtil.updateCustomItemTooltip(dropStack, player);
+                ItemUtil.updateTooltip(dropStack, player);
 
                 player.getWorld().dropItemNaturally(player.getLocation(), dropStack);
             }

@@ -35,7 +35,7 @@ public class PickupCustomItemListener implements Listener {
                     // find any matching stacks and refresh their lore
                     for (ItemStack s : player.getInventory().getContents()) {
                         if (s != null && s.isSimilar(picked)) {
-                            ItemUtil.updateCustomItemTooltip(s, player);
+                            ItemUtil.updateTooltip(s, player);
                         }
                     }
                     player.updateInventory();

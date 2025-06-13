@@ -20,7 +20,7 @@ public class CustomItemUpdateListener implements Listener {
             // Check if the item is a custom item (using your persistent data logic)
             if (ItemUtil.getCustomItemId(item) != -1) {
                 // Update the tooltip to reflect the new player level (and class, if applicable)
-                ItemUtil.updateCustomItemTooltip(item, player);
+                ItemUtil.updateTooltip(item, player);
             }
         }
         // Force the inventory to update so that the changes are visible

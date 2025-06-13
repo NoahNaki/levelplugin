@@ -44,11 +44,14 @@ public class PlayerConfig {
     public void savePlayerData(UUID uuid) {
         StatsManager.PlayerStats stats = StatsManager.getInstance().getPlayerStats(uuid);
         LevelManager levelManager = LevelManager.getInstance();
+        me.nakilex.levelplugin.player.mining.managers.MiningManager miningManager = me.nakilex.levelplugin.player.mining.managers.MiningManager.getInstance();
 
         String path = "players." + uuid.toString();
         // Use UUID-based lookups so offline players save correctly
         config.set(path + ".level", levelManager.getLevel(uuid));
         config.set(path + ".xp",    levelManager.getXP(uuid));
+        config.set(path + ".mining.level", miningManager.getLevel(uuid));
+        config.set(path + ".mining.xp",    miningManager.getXP(uuid));
         config.set(path + ".skill_points", stats.skillPoints);
         config.set(path + ".stats.base_strength", stats.baseStrength);
         config.set(path + ".stats.base_agility", stats.baseAgility);
@@ -71,11 +74,16 @@ public class PlayerConfig {
         );
         int level = config.getInt(root + ".level", 1);
         int xp = config.getInt(root + ".xp", 0);
+        int miningLevel = config.getInt(root + ".mining.level", 1);
+        int miningXp = config.getInt(root + ".mining.xp", 0);
         int skillPoints = config.getInt(root + ".skill_points", 0);
 
         LevelManager lm = LevelManager.getInstance();
         lm.setLevel(uuid, level);
         lm.addXP(uuid, xp);
+        me.nakilex.levelplugin.player.mining.managers.MiningManager mm = me.nakilex.levelplugin.player.mining.managers.MiningManager.getInstance();
+        mm.setLevel(uuid, miningLevel);
+        mm.addXP(uuid, miningXp);
 
         StatsManager.PlayerStats stats = StatsManager.getInstance().getPlayerStats(uuid);
         stats.playerClass = playerClass;

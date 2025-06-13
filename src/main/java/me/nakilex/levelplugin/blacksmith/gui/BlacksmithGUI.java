@@ -422,7 +422,7 @@ public class BlacksmithGUI implements Listener {
                 if (repairManager.repairItem(player, item, ci)) {
                     player.sendMessage("§aItem repaired!");
                     gui.setItem(13, item);
-                    ItemUtil.updateCustomItemTooltip(item, player);
+                    ItemUtil.updateTooltip(item, player);
                 }
                 gui.setItem(22, createRepairButton(0));
             } else if (title.equals(GUI_TITLE_REROLL)) {
@@ -493,7 +493,7 @@ public class BlacksmithGUI implements Listener {
             CustomItem ci = itemManager.getCustomItemFromItemStack(item);
             if (ci != null) {
                 repairManager.repairItem(player, item, ci);
-                ItemUtil.updateCustomItemTooltip(item, player);
+                ItemUtil.updateTooltip(item, player);
             }
         }
         player.sendMessage("§aAll items repaired! Total cost: §6⛃ " + totalCost);
