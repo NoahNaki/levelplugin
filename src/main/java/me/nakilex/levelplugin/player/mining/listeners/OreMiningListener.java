@@ -423,6 +423,18 @@ public class OreMiningListener implements Listener {
         if (xp > 0) {
             miningManager.addXP(p, xp);
         }
+
+        // Give material drops directly to the contributing player
+        me.nakilex.levelplugin.player.mining.items.MiningMaterial mat =
+                me.nakilex.levelplugin.player.mining.items.MiningMaterial.fromOre(type);
+        if (mat != null) {
+            int amt = rewardsConfig.getDropMin(type);
+            int max = rewardsConfig.getDropMax(type);
+            if (max > amt) {
+                amt += java.util.concurrent.ThreadLocalRandom.current().nextInt(max - amt + 1);
+            }
+            p.getInventory().addItem(mat.createItem(amt));
+        }
     }
 
     /** Remove all active holograms and cancel tasks */

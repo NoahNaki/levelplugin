@@ -8,7 +8,7 @@ import java.io.File;
 import java.util.logging.Level;
 
 /**
- * Loads mining_rewards.yml which defines XP and level requirements per ore type.
+ * Loads mining_rewards.yml which defines XP, level requirements and drop ranges per ore type.
  */
 public class MiningRewardsConfig {
 
@@ -37,6 +37,14 @@ public class MiningRewardsConfig {
 
     public int getLevelRequirement(String ore) {
         return config.getInt("ores." + ore + ".level", 0);
+    }
+
+    public int getDropMin(String ore) {
+        return config.getInt("ores." + ore + ".drop.min", 1);
+    }
+
+    public int getDropMax(String ore) {
+        return Math.max(getDropMin(ore), config.getInt("ores." + ore + ".drop.max", getDropMin(ore)));
     }
 
     public void reloadConfig() {

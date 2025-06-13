@@ -168,7 +168,8 @@ public class StatsInventory {
         ItemStack head = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta meta = (SkullMeta) head.getItemMeta();
         meta.setOwningPlayer(player);
-        meta.setDisplayName(ChatColor.WHITE + "" + ChatColor.BOLD + player.getName() + "'s Stats");
+        String title = page == 0 ? "Character Info" : "Profession Info";
+        meta.setDisplayName(ChatColor.AQUA + "" + ChatColor.BOLD + title);
 
         List<String> lore = new ArrayList<>();
         LevelManager levelManager = LevelManager.getInstance();
@@ -177,9 +178,6 @@ public class StatsInventory {
         int nextLevelXP = levelManager.getXpNeededForNextLevel(player);
         if (page == 0) {
             lore.add(ChatColor.GOLD + "Level: " + ChatColor.WHITE + StatsManager.getInstance().getLevel(player));
-            lore.add("");
-            lore.add(ChatColor.RED + "Health: " + ChatColor.YELLOW + (int) player.getHealth() + "/" + (int) player.getMaxHealth());
-            lore.add(ChatColor.BLUE + "Mana: " + ChatColor.YELLOW + ps.currentMana + "/" + ps.maxMana);
             lore.add("");
 
             // Add all stats with gear bonuses
@@ -198,7 +196,6 @@ public class StatsInventory {
             double percent = next > 0 ? (mXp * 100.0 / next) : 0.0;
             percent = Math.round(percent * 10.0) / 10.0;
 
-            lore.add(ChatColor.AQUA + "" + ChatColor.BOLD + "Profession Info");
             lore.add(ChatColor.GRAY + "General information about your characters profressions");
             lore.add("");
             lore.add(ChatColor.GOLD + "Gathering Skills:");
