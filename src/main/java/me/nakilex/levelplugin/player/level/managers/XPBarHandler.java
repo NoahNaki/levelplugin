@@ -64,15 +64,23 @@ public class XPBarHandler {
 
         // UPDATE CUSTOM ITEM TOOLTIPS
         player.getInventory().forEach(stack -> {
-            if (stack != null && stack.hasItemMeta()
-                && stack.getItemMeta().getPersistentDataContainer().has(ItemUtil.ITEM_UUID_KEY, PersistentDataType.STRING)) {
-                ItemUtil.updateTooltip(stack, player);
+            if (stack != null && stack.hasItemMeta()) {
+                boolean isCustomItem = stack.getItemMeta().getPersistentDataContainer()
+                        .has(ItemUtil.ITEM_UUID_KEY, PersistentDataType.STRING);
+                boolean isCustomTool = me.nakilex.levelplugin.items.tools.ToolTier.fromMaterial(stack.getType()) != null;
+                if (isCustomItem || isCustomTool) {
+                    ItemUtil.updateTooltip(stack, player);
+                }
             }
         });
         for (ItemStack armor : player.getInventory().getArmorContents()) {
-            if (armor != null && armor.hasItemMeta()
-                && armor.getItemMeta().getPersistentDataContainer().has(ItemUtil.ITEM_UUID_KEY, PersistentDataType.STRING)) {
-                ItemUtil.updateTooltip(armor, player);
+            if (armor != null && armor.hasItemMeta()) {
+                boolean isCustomItem = armor.getItemMeta().getPersistentDataContainer()
+                        .has(ItemUtil.ITEM_UUID_KEY, PersistentDataType.STRING);
+                boolean isCustomTool = me.nakilex.levelplugin.items.tools.ToolTier.fromMaterial(armor.getType()) != null;
+                if (isCustomItem || isCustomTool) {
+                    ItemUtil.updateTooltip(armor, player);
+                }
             }
         }
         player.updateInventory();
