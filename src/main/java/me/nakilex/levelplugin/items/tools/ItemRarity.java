@@ -3,10 +3,11 @@ package me.nakilex.levelplugin.items.tools;
 import org.bukkit.ChatColor;
 
 public enum ItemRarity {
-    COMMON(ChatColor.WHITE),
+    // Colors aligned with main item rarity scheme
+    COMMON(ChatColor.GRAY),
     UNCOMMON(ChatColor.GREEN),
     RARE(ChatColor.BLUE),
-    EPIC(ChatColor.DARK_PURPLE),
+    EPIC(ChatColor.LIGHT_PURPLE),
     LEGENDARY(ChatColor.GOLD);
 
     private final ChatColor color;

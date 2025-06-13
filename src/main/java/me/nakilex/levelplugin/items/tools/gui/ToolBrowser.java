@@ -45,6 +45,7 @@ public class ToolBrowser implements CommandExecutor, Listener {
             int lvl = me.nakilex.levelplugin.player.mining.managers.MiningManager.getInstance().getLevel(viewer);
             String symbol = lvl >= req ? "§a✔ " : "§c✘ ";
             lore.add(symbol + ChatColor.GRAY + "Mining Lv. Requirement: " + ChatColor.WHITE + req);
+            lore.add(" ");
             lore.add(ChatColor.GRAY + "Mining Speed: " + ChatColor.GREEN + "+" + tier.getMiningSpeed());
             meta.setLore(lore);
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
