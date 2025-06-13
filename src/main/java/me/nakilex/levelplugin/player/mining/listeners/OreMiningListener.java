@@ -87,15 +87,6 @@ public class OreMiningListener implements Listener {
             Map.entry("netherite_ore", Sound.BLOCK_STONE_HIT)
     );
 
-    // Pickaxe level requirements
-    private final Map<Material, Integer> pickaxeReqs = Map.of(
-            Material.WOODEN_PICKAXE, 1,
-            Material.STONE_PICKAXE, 10,
-            Material.GOLDEN_PICKAXE, 15,
-            Material.IRON_PICKAXE, 25,
-            Material.DIAMOND_PICKAXE, 40,
-            Material.NETHERITE_PICKAXE, 60
-    );
 
     public OreMiningListener(Main plugin, MiningRewardsConfig cfg, MiningManager mgr) {
         this.plugin = plugin;
@@ -208,12 +199,14 @@ public class OreMiningListener implements Listener {
     }
 
     private boolean isPickaxe(Material mat) {
-        return pickaxeReqs.containsKey(mat);
+        return me.nakilex.levelplugin.items.tools.ToolTier.fromMaterial(mat) != null;
     }
 
     private boolean checkPickaxeLevel(Player player, Material mat) {
-        int req = pickaxeReqs.getOrDefault(mat, 0);
-        if (req > 0 && miningManager.getLevel(player) < req) {
+        me.nakilex.levelplugin.items.tools.ToolTier tier = me.nakilex.levelplugin.items.tools.ToolTier.fromMaterial(mat);
+        if (tier == null) return true;
+        int req = tier.getLevelRequirement();
+        if (miningManager.getLevel(player) < req) {
             player.sendMessage("§cYou need Mining level " + req + " to use this pickaxe!");
             return false;
         }
