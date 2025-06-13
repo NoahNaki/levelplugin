@@ -2,9 +2,11 @@ package me.nakilex.levelplugin.items.utils;
 
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
+import me.nakilex.levelplugin.items.tools.ToolTier;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
+import me.nakilex.levelplugin.player.mining.managers.MiningManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -220,7 +222,6 @@ public class ItemUtil {
 
         // Build the updated lore.
         List<String> lore = new ArrayList<>();
-        lore.add(""); // Blank line for spacing
 
         // Glyph line under the name
         String rarityGlyph = "<glyph:" + cItem.getRarity().name().toLowerCase() + ">";
@@ -231,6 +232,8 @@ public class ItemUtil {
             typeGlyph = "<glyph:weapon>";
         }
         lore.add(rarityGlyph + typeGlyph);
+        lore.add(""); // Blank line for spacing
+
 
         // --- Level Requirement ---
         int playerLevel = (player != null) ? LevelManager.getInstance().getLevel(player) : 0;
@@ -365,9 +368,9 @@ public class ItemUtil {
         if (meta == null) return;
 
         List<String> lore = new ArrayList<>();
-        lore.add("");
         String rarityGlyph = "<glyph:" + tier.getRarity().name().toLowerCase() + ">";
         lore.add(rarityGlyph + "<glyph:tool>");
+        lore.add("");
         int level = (viewer != null) ? MiningManager.getInstance().getLevel(viewer) : 0;
         String reqLine = level >= tier.getLevelRequirement()
                 ? ChatColor.GREEN + "✔ " + ChatColor.GRAY + "Mining Lv. Requirement: " + ChatColor.WHITE + tier.getLevelRequirement()

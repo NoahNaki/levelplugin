@@ -6,13 +6,13 @@ import org.bukkit.ChatColor;
  * Add a 'symbol' field to each rarity, so we can render ⽆ / ⚋ / ⋀ / … instead of the word.
  */
 public enum ItemRarity {
-    COMMON   (ChatColor.GRAY,        "⽆"),
-    UNCOMMON (ChatColor.GREEN,       "⡽"),
-    RARE     (ChatColor.BLUE,        "⚋"),
-    EPIC     (ChatColor.LIGHT_PURPLE,"┨"),
-    LEGENDARY(ChatColor.GOLD,        "✹"),
-    MYTHIC   (ChatColor.RED,         "⋀"),
-    FABLED   (ChatColor.AQUA,        "Ⲁ"); // or whatever you want for 'FABLED'
+    COMMON   (ChatColor.GRAY,        "<glyph:common>"),
+    UNCOMMON (ChatColor.GREEN,       "<glyph:uncommon>"),
+    RARE     (ChatColor.BLUE,        "<glyph:rare>"),
+    EPIC     (ChatColor.LIGHT_PURPLE,"<glyph:epic>"),
+    LEGENDARY(ChatColor.GOLD,        "<glyph:legendary>"),
+    MYTHIC   (ChatColor.RED,         "<glyph:mythic>"),
+    FABLED   (ChatColor.AQUA,        "<glyph:common>"); // or whatever you want for 'FABLED'
 
     private final ChatColor color;
     private final String  symbol;

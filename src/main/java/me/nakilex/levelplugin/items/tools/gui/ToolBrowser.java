@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.items.tools.gui;
 
 import me.nakilex.levelplugin.items.tools.CustomTool;
 import me.nakilex.levelplugin.items.tools.ToolManager;
+import me.nakilex.levelplugin.items.tools.ToolTier;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
