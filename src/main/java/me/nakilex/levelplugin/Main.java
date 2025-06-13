@@ -80,6 +80,7 @@ public class Main extends JavaPlugin {
     private ItemManager itemManager;
     private ItemUpgradeManager itemUpgradeManager;
     private ItemRepairManager itemRepairManager;
+    private me.nakilex.levelplugin.items.tools.ToolManager toolManager;
     private me.nakilex.levelplugin.player.mining.managers.MiningManager miningManager;
     private me.nakilex.levelplugin.player.mining.config.MiningRewardsConfig miningRewardsConfig;
     private SpellManager spellmanager;
@@ -210,6 +211,7 @@ public class Main extends JavaPlugin {
         // Register commands and event listeners
         registerCommandsAndListeners();
         new ItemsBrowser(this);
+        new me.nakilex.levelplugin.items.tools.gui.ToolBrowser(this);
         new RerollBrowser(this);
         new me.nakilex.levelplugin.potions.gui.PotionBrowser(this, potionManager);
 
@@ -240,6 +242,7 @@ public class Main extends JavaPlugin {
     private void initializeManagers() {
 
         itemManager = new ItemManager(this);
+        toolManager = new me.nakilex.levelplugin.items.tools.ToolManager();
 
         configManager = new ConfigManager(this);
         cooldownManager = new CooldownManager(this, configManager, null);
@@ -538,6 +541,10 @@ public class Main extends JavaPlugin {
 
     public me.nakilex.levelplugin.player.mining.managers.MiningManager getMiningManager() {
         return miningManager;
+    }
+
+    public me.nakilex.levelplugin.items.tools.ToolManager getToolManager() {
+        return toolManager;
     }
 
     public me.nakilex.levelplugin.player.mining.config.MiningRewardsConfig getMiningRewardsConfig() {
