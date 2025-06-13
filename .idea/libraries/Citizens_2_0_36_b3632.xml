@@ -1,15 +1,17 @@
 <component name="libraryTable">
-  <library name="LibsDisguises">
+  <library name="Citizens-2.0.36-b3632">
     <CLASSES>
+      <root url="jar://$PROJECT_DIR$/../Minecraft Servers/1.21.3 Paper/plugins/Citizens-2.0.36-b3632.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../Minecraft Servers/1.21.3 Paper/plugins/EffectLib-9.0.jar!/" />
       <root url="jar://$PROJECT_DIR$/../Minecraft Servers/1.21.3 Paper/plugins/LibsDisguises.jar!/" />
       <root url="jar://$PROJECT_DIR$/../Minecraft Servers/1.21.3 Paper/plugins/Model-Engine-R4.0.8-dev-all.jar.jar!/" />
       <root url="jar://$PROJECT_DIR$/../Minecraft Servers/1.21.3 Paper/plugins/MythicMobs-5.8.0-SNAPSHOT 5297 .jar!/" />
-      <root url="jar://$PROJECT_DIR$/../Minecraft Servers/1.21.3 Paper/plugins/EffectLib-9.0.jar!/" />
-      <root url="jar://$PROJECT_DIR$/../Minecraft Servers/1.21.3 Paper/plugins/Citizens-2.0.36-b3632.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../Minecraft Servers/1.21.3 Paper/plugins/nexo-1.7.1.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../Minecraft Servers/1.21.3 Paper/plugins/packetevents-spigot-2.8.0.jar!/" />
       <root url="jar://$PROJECT_DIR$/../Minecraft Servers/1.21.3 Paper/plugins/PlaceholderAPI-2.11.6.jar!/" />
       <root url="jar://$PROJECT_DIR$/../Minecraft Servers/1.21.3 Paper/plugins/ProtocolLib.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../Minecraft Servers/1.21.3 Paper/plugins/Vault.jar!/" />
       <root url="jar://$PROJECT_DIR$/../Minecraft Servers/1.21.3 Paper/plugins/Sentinel-2.9.2-SNAPSHOT-b527.jar!/" />
-      <root url="jar://$PROJECT_DIR$/../Minecraft Servers/1.21.3 Paper/plugins/nexo-1.7.1.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

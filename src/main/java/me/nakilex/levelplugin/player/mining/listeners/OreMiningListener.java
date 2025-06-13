@@ -238,7 +238,7 @@ public class OreMiningListener implements Listener {
         hp -= dmg;
         Location loc = mob.getEntity().getBukkitEntity().getLocation();
         Material partMat = oreParticles.getOrDefault(mob.getMobType().toLowerCase(), Material.STONE);
-        loc.getWorld().spawnParticle(Particle.BLOCK_CRACK,
+        loc.getWorld().spawnParticle(Particle.BLOCK_CRUMBLE,
                 loc.clone().add(0, 1.0, 0), 15, 0.6, 0.6, 0.6, partMat.createBlockData());
         Sound hitSound = oreSounds.getOrDefault(mob.getMobType().toLowerCase(), Sound.BLOCK_STONE_HIT);
         loc.getWorld().playSound(loc, hitSound, 1f, 0.5f);

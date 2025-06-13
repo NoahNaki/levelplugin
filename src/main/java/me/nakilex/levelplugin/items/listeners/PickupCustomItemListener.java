@@ -23,10 +23,13 @@ public class PickupCustomItemListener implements Listener {
         Player player = (Player) event.getEntity();
         ItemStack picked = event.getItem().getItemStack();
 
-        // only care about your CustomItems
-        if (picked.hasItemMeta()
+        // only care about your CustomItems or custom mining tools
+        boolean isCustomItem = picked.hasItemMeta()
             && picked.getItemMeta().getPersistentDataContainer()
-            .has(ItemUtil.ITEM_UUID_KEY, PersistentDataType.STRING)) {
+                .has(ItemUtil.ITEM_UUID_KEY, PersistentDataType.STRING);
+        boolean isCustomTool = me.nakilex.levelplugin.items.tools.ToolTier.fromMaterial(picked.getType()) != null;
+
+        if (isCustomItem || isCustomTool) {
 
             // wait 1 tick so the item is actually in their inventory
             new BukkitRunnable() {

@@ -63,6 +63,18 @@ public class PotionInstance {
 
         List<String> lore = new java.util.ArrayList<>();
         boolean mana = template.getId().startsWith("mana");
+
+        me.nakilex.levelplugin.items.data.ItemRarity rarity;
+        switch (template.getTier()) {
+            case 1 -> rarity = me.nakilex.levelplugin.items.data.ItemRarity.COMMON;
+            case 2 -> rarity = me.nakilex.levelplugin.items.data.ItemRarity.UNCOMMON;
+            case 3 -> rarity = me.nakilex.levelplugin.items.data.ItemRarity.RARE;
+            default -> rarity = me.nakilex.levelplugin.items.data.ItemRarity.COMMON;
+        }
+
+        lore.add("");
+        String rarityGlyph = "<glyph:" + rarity.name().toLowerCase() + ">";
+        lore.add(rarityGlyph + "<glyph:potion>");
         lore.add(" ");
         lore.add(ChatColor.WHITE + "Effect:");
         String bulletColor = mana ? ChatColor.AQUA.toString() : ChatColor.RED.toString();

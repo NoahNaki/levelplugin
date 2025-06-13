@@ -189,13 +189,12 @@ public class StatsInventory {
             lore.add(ChatColor.GRAY + "\u2692 " + ChatColor.GRAY + "Defense: " + ChatColor.WHITE + (ps.baseDefenceStat + ps.bonusDefenceStat) + ChatColor.GREEN + " (+" + ps.bonusDefenceStat + ")");
             lore.add("");
 
-            lore.add(ChatColor.GOLD + "Total XP: " + ChatColor.WHITE + currentXP + ChatColor.GRAY + " / " + ChatColor.WHITE + nextLevelXP);
             double p = nextLevelXP > 0 ? (currentXP * 100.0 / nextLevelXP) : 0.0;
             p = Math.round(p * 10.0) / 10.0;
             lore.add(ChatColor.GRAY + "Progress to Level " + ChatColor.YELLOW + (StatsManager.getInstance().getLevel(player) + 1) + ChatColor.GRAY + ": " + ChatColor.YELLOW + p + "%");
             int barLen = 15;
             int filled = (int) Math.round(p / 100.0 * barLen);
-            String bar = ChatColor.GREEN + "" + "―".repeat(Math.max(filled,0)) + ChatColor.WHITE + "" + "―".repeat(Math.max(barLen - filled,0));
+            String bar = ChatColor.GREEN + "" + "-".repeat(Math.max(filled,0)) + ChatColor.WHITE + "" + "-".repeat(Math.max(barLen - filled,0));
             lore.add(bar + " " + ChatColor.YELLOW + currentXP + ChatColor.GOLD + "/" + ChatColor.YELLOW + nextLevelXP);
         } else {
             int mLevel = miningManager.getLevel(player);
@@ -208,7 +207,7 @@ public class StatsInventory {
             lore.add("");
             lore.add(ChatColor.GOLD + "Gathering Skills:");
             lore.add(ChatColor.GOLD + "- " + ChatColor.GRAY + "Lv. " + mLevel + " Mining "
-                    + ChatColor.GRAY + "[" + ChatColor.YELLOW + percent + "%]");
+                    + ChatColor.DARK_GRAY + "[" + ChatColor.DARK_GRAY + percent + "%]");
         }
 
         lore.add(" ");

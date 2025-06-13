@@ -520,11 +520,13 @@ public class TradingWindow implements Listener {
         }
         for (Player recipient : Arrays.asList(this.player, this.opposite)) {
             for (ItemStack stack : recipient.getInventory().getContents()) {
-                if (stack != null
-                    && stack.hasItemMeta()
-                    && stack.getItemMeta().getPersistentDataContainer()
-                    .has(ItemUtil.ITEM_UUID_KEY, PersistentDataType.STRING)) {
-                    ItemUtil.updateTooltip(stack, recipient);
+                if (stack != null && stack.hasItemMeta()) {
+                    boolean isCustomItem = stack.getItemMeta().getPersistentDataContainer()
+                            .has(ItemUtil.ITEM_UUID_KEY, PersistentDataType.STRING);
+                    boolean isCustomTool = me.nakilex.levelplugin.items.tools.ToolTier.fromMaterial(stack.getType()) != null;
+                    if (isCustomItem || isCustomTool) {
+                        ItemUtil.updateTooltip(stack, recipient);
+                    }
                 }
             }
             recipient.updateInventory();
