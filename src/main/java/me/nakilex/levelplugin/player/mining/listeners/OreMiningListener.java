@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.player.mining.listeners;
 
 import io.lumine.mythic.bukkit.BukkitAPIHelper;
 import io.lumine.mythic.bukkit.MythicBukkit;
+import io.lumine.mythic.bukkit.BukkitAdapter;
 import io.lumine.mythic.core.mobs.ActiveMob;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.mining.config.MiningRewardsConfig;
@@ -222,10 +223,10 @@ public class OreMiningListener implements Listener {
         loc.getWorld().playSound(loc, Sound.ITEM_TRIDENT_HIT, 1f, 0.5f);
         // small model movement
         Location moved = loc.clone().add(player.getLocation().toVector().subtract(loc.toVector()).normalize().multiply(-0.2));
-        mob.getEntity().teleport(moved);
+        mob.getEntity().teleport(BukkitAdapter.adapt(moved));
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             if (mob.getEntity().isValid() && !mob.getEntity().isDead()) {
-                mob.getEntity().teleport(loc);
+                mob.getEntity().teleport(BukkitAdapter.adapt(loc));
             }
         }, 4L);
         ((LivingEntity) mob.getEntity().getBukkitEntity()).playEffect(org.bukkit.EntityEffect.HURT);
