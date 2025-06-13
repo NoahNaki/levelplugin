@@ -70,6 +70,10 @@ public class MiningManager {
         miningLevels.put(uuid, level);
         miningXp.put(uuid, xp);
 
+        Player player = Bukkit.getPlayer(uuid);
+        if (player != null && leveled) {
+            updatePlayerTooltips(player);
+        }
         if (leveled && plugin.getPlayerConfig() != null) {
             plugin.getPlayerConfig().savePlayerData(uuid);
         }
@@ -90,8 +94,9 @@ public class MiningManager {
         me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§b§l-", 45);
         player.getWorld().playSound(player.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1f, 1f);
         player.getWorld().spawnParticle(org.bukkit.Particle.HAPPY_VILLAGER, player.getLocation(), 20);
+    }
 
-        // Update tool tooltips so requirements are accurate for the new level
+    private void updatePlayerTooltips(Player player) {
         player.getInventory().forEach(stack -> {
             if (stack != null && me.nakilex.levelplugin.items.tools.ToolTier.fromMaterial(stack.getType()) != null) {
                 me.nakilex.levelplugin.items.utils.ItemUtil.updateCustomToolTooltip(stack, player);
