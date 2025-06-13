@@ -80,6 +80,8 @@ public class Main extends JavaPlugin {
     private ItemManager itemManager;
     private ItemUpgradeManager itemUpgradeManager;
     private ItemRepairManager itemRepairManager;
+    private me.nakilex.levelplugin.player.mining.managers.MiningManager miningManager;
+    private me.nakilex.levelplugin.player.mining.config.MiningRewardsConfig miningRewardsConfig;
     private SpellManager spellmanager;
     private HorseManager horseManager;
     private EffectManager effectManager;
@@ -245,6 +247,8 @@ public class Main extends JavaPlugin {
         dmgNumberToggleManager = new DmgNumberToggleManager();
         upgradeKey = new NamespacedKey(this, "upgrade_level");
         levelManager = new LevelManager(this);
+        miningManager = new me.nakilex.levelplugin.player.mining.managers.MiningManager(this);
+        miningRewardsConfig = new me.nakilex.levelplugin.player.mining.config.MiningRewardsConfig(this);
         effectManager = new EffectManager(this);
         economyManager = new EconomyManager(this);
         itemUpgradeManager = new ItemUpgradeManager(this);
@@ -311,6 +315,7 @@ public class Main extends JavaPlugin {
             blacksmithGUI,
             horseGUI,
             levelManager,
+            miningManager,
             economyManager,
             partyManager,
             guildManager,
@@ -525,6 +530,14 @@ public class Main extends JavaPlugin {
 
     public LevelManager getLevelManager() {
         return levelManager;
+    }
+
+    public me.nakilex.levelplugin.player.mining.managers.MiningManager getMiningManager() {
+        return miningManager;
+    }
+
+    public me.nakilex.levelplugin.player.mining.config.MiningRewardsConfig getMiningRewardsConfig() {
+        return miningRewardsConfig;
     }
 
     public GemsManager getGemsManager() {

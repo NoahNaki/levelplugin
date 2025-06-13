@@ -21,6 +21,7 @@ import me.nakilex.levelplugin.player.attributes.commands.StatsCommand;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.commands.ClassCommand;
 import me.nakilex.levelplugin.player.level.commands.AddXPCommand;
+import me.nakilex.levelplugin.player.mining.commands.AddMiningXPCommand;
 import me.nakilex.levelplugin.player.level.commands.SetLevelCommand;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.player.commands.WipeProfileCommand;
@@ -71,6 +72,7 @@ public class CommandRegistry {
                                         BlacksmithGUI blacksmithGUI,
                                         HorseGUI horseGUI,
                                         LevelManager levelManager,
+                                        me.nakilex.levelplugin.player.mining.managers.MiningManager miningManager,
                                         EconomyManager economyManager,
                                         PartyManager partyManager,
                                         me.nakilex.levelplugin.guild.GuildManager guildManager,
@@ -100,6 +102,7 @@ public class CommandRegistry {
 
         plugin.getCommand("addpoints").setExecutor(new AddPointsCommand());
         plugin.getCommand("addxp").setExecutor(new AddXPCommand(levelManager));
+        plugin.getCommand("addminingxp").setExecutor(new AddMiningXPCommand(miningManager));
         plugin.getCommand("stats").setExecutor(new StatsCommand());
         plugin.getCommand("additem").setExecutor(new AddItemCommand());
         plugin.getCommand("genitem").setExecutor(new me.nakilex.levelplugin.items.commands.GenerateItemCommand());
