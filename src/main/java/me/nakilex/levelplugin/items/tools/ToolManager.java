@@ -21,15 +21,16 @@ public class ToolManager {
     }
 
     private void loadDefaults() {
-        addTool("Tier I Pickaxe", Material.WOODEN_PICKAXE, ToolTier.TIER_I);
-        addTool("Tier II Pickaxe", Material.STONE_PICKAXE, ToolTier.TIER_II);
-        addTool("Tier III Pickaxe", Material.GOLDEN_PICKAXE, ToolTier.TIER_III);
-        addTool("Tier IV Pickaxe", Material.IRON_PICKAXE, ToolTier.TIER_IV);
-        addTool("Tier V Pickaxe", Material.DIAMOND_PICKAXE, ToolTier.TIER_V);
-        addTool("Tier VI Pickaxe", Material.NETHERITE_PICKAXE, ToolTier.TIER_VI);
+        addTool(Material.WOODEN_PICKAXE, ToolTier.TIER_I);
+        addTool(Material.STONE_PICKAXE, ToolTier.TIER_II);
+        addTool(Material.GOLDEN_PICKAXE, ToolTier.TIER_III);
+        addTool(Material.IRON_PICKAXE, ToolTier.TIER_IV);
+        addTool(Material.DIAMOND_PICKAXE, ToolTier.TIER_V);
+        addTool(Material.NETHERITE_PICKAXE, ToolTier.TIER_VI);
     }
 
-    private void addTool(String name, Material mat, ToolTier tier) {
+    private void addTool(Material mat, ToolTier tier) {
+        String name = "Tier " + tier.getTierName() + " Pickaxe";
         tools.add(new CustomTool(UUID.randomUUID(), name, mat, tier));
     }
 

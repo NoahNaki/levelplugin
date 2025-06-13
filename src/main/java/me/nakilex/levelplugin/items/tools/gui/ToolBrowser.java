@@ -35,17 +35,19 @@ public class ToolBrowser implements CommandExecutor, Listener {
         ItemStack it = new ItemStack(tool.getMaterial());
         ItemMeta meta = it.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(ChatColor.GOLD + tool.getName());
+            ToolTier tier = tool.getTier();
+            ChatColor color = tier.getRarity().getColor();
+            meta.setDisplayName(color + tool.getName());
 
             List<String> lore = new ArrayList<>();
             lore.add(" ");
-            lore.add(ChatColor.GRAY + "Tier: " + ChatColor.WHITE + tool.getTier().name());
-            int req = tool.getTier().getLevelRequirement();
+            int req = tier.getLevelRequirement();
             int lvl = me.nakilex.levelplugin.player.mining.managers.MiningManager.getInstance().getLevel(viewer);
             String symbol = lvl >= req ? "§a✔ " : "§c✘ ";
             lore.add(symbol + ChatColor.GRAY + "Mining Lv. Requirement: " + ChatColor.WHITE + req);
+            lore.add(ChatColor.GRAY + "Mining Speed: " + ChatColor.GREEN + "+" + tier.getMiningSpeed());
             meta.setLore(lore);
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
             it.setItemMeta(meta);
         }
         return it;
