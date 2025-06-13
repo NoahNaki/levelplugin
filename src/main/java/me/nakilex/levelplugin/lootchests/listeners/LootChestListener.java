@@ -57,7 +57,7 @@ public class LootChestListener implements Listener {
             if (stack == null || stack.getType().isAir()) continue;
 
             // This mutates the ItemStack’s lore in place based on the player’s stats:
-            ItemUtil.updateCustomItemTooltip(stack, player);
+            ItemUtil.updateTooltip(stack, player);
         }
         // ─────────────────────────────────────────────────────────────────────
 

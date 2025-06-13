@@ -155,9 +155,8 @@ public class ClassMenuListener implements Listener {
     }
 
     private void updateTooltipSafely(ItemStack item, Player player) {
-        if (item != null && item.hasItemMeta()
-            && item.getItemMeta().getPersistentDataContainer().has(ItemUtil.ITEM_UUID_KEY, PersistentDataType.STRING)) {
-            ItemUtil.updateCustomItemTooltip(item, player);
+        if (item != null && item.hasItemMeta()) {
+            ItemUtil.updateTooltip(item, player);
         }
     }
 

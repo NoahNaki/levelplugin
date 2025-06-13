@@ -66,13 +66,13 @@ public class XPBarHandler {
         player.getInventory().forEach(stack -> {
             if (stack != null && stack.hasItemMeta()
                 && stack.getItemMeta().getPersistentDataContainer().has(ItemUtil.ITEM_UUID_KEY, PersistentDataType.STRING)) {
-                ItemUtil.updateCustomItemTooltip(stack, player);
+                ItemUtil.updateTooltip(stack, player);
             }
         });
         for (ItemStack armor : player.getInventory().getArmorContents()) {
             if (armor != null && armor.hasItemMeta()
                 && armor.getItemMeta().getPersistentDataContainer().has(ItemUtil.ITEM_UUID_KEY, PersistentDataType.STRING)) {
-                ItemUtil.updateCustomItemTooltip(armor, player);
+                ItemUtil.updateTooltip(armor, player);
             }
         }
         player.updateInventory();

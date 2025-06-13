@@ -119,7 +119,7 @@ public class EnchantGUI implements Listener {
             }
             String prefix = manager.enchant(p, item, ci);
             gui.setItem(13, item);
-            ItemUtil.updateCustomItemTooltip(item, p);
+            ItemUtil.updateTooltip(item, p);
             p.sendMessage(ChatColor.GREEN + "Item enchanted with " + ChatColor.LIGHT_PURPLE + prefix + ChatColor.GREEN + "!");
             update(p, gui);
         }

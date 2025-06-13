@@ -524,7 +524,7 @@ public class TradingWindow implements Listener {
                     && stack.hasItemMeta()
                     && stack.getItemMeta().getPersistentDataContainer()
                     .has(ItemUtil.ITEM_UUID_KEY, PersistentDataType.STRING)) {
-                    ItemUtil.updateCustomItemTooltip(stack, recipient);
+                    ItemUtil.updateTooltip(stack, recipient);
                 }
             }
             recipient.updateInventory();
