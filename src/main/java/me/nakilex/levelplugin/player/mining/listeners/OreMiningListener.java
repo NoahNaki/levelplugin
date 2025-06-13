@@ -220,6 +220,15 @@ public class OreMiningListener implements Listener {
         return true;
     }
 
+    private boolean checkOreLevel(Player player, String oreType) {
+        int req = rewardsConfig.getLevelRequirement(oreType);
+        if (req > 0 && miningManager.getLevel(player) < req) {
+            player.sendMessage("§cYou need Mining level " + req + " to mine this ore!");
+            return false;
+        }
+        return true;
+    }
+
     private final Map<Material, Integer> pickaxeDamage = Map.of(
             Material.WOODEN_PICKAXE, 2,
             Material.GOLDEN_PICKAXE, 2,
@@ -310,6 +319,10 @@ public class OreMiningListener implements Listener {
         if (mob == null) return;
         String type = mob.getMobType().toLowerCase();
         if (!rewardsConfig.getConfig().contains("ores." + type)) return;
+        if (!checkOreLevel(event.getPlayer(), type)) {
+            event.setCancelled(true);
+            return;
+        }
 
         event.setCancelled(true);
         handleOreHit(event.getPlayer(), mob, item.getType());
@@ -331,6 +344,10 @@ public class OreMiningListener implements Listener {
         if (mob == null) return;
         String type = mob.getMobType().toLowerCase();
         if (!rewardsConfig.getConfig().contains("ores." + type)) return;
+        if (!checkOreLevel(event.getPlayer(), type)) {
+            event.setCancelled(true);
+            return;
+        }
 
         event.setCancelled(true);
         handleOreHit(event.getPlayer(), mob, item.getType());
@@ -352,6 +369,10 @@ public class OreMiningListener implements Listener {
             event.setCancelled(true);
             return;
         }
+        if (!checkOreLevel(player, type)) {
+            event.setCancelled(true);
+            return;
+        }
 
         event.setCancelled(true);
         handleOreHit(player, mob, held.getType());
@@ -368,7 +389,8 @@ public class OreMiningListener implements Listener {
         if (event instanceof EntityDamageByEntityEvent byEntity) {
             if (byEntity.getDamager() instanceof Player p) {
                 ItemStack held = p.getInventory().getItemInMainHand();
-                if (held != null && isPickaxe(held.getType()) && checkPickaxeLevel(p, held.getType())) {
+                if (held != null && isPickaxe(held.getType()) && checkPickaxeLevel(p, held.getType())
+                        && checkOreLevel(p, type)) {
                     return; // handled in other listener
                 }
             }
