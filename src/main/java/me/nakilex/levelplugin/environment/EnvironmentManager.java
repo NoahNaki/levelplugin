@@ -425,7 +425,7 @@ public class EnvironmentManager {
     private void spawnBuilding(Player player, String building, Location origin, int level, int stage, Runnable after) {
         UUID uuid = player.getUniqueId();
         cancelTasks(uuid);
-        fakeBlockManager.clear(player);
+        // don't clear blocks here to keep the town visible when buildings spawn
         removeBuildingHologram(uuid, building);
         String town = towns.get(player.getUniqueId());
         if (town == null) return;
