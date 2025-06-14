@@ -107,13 +107,16 @@ public class EnvironmentManager {
         }
 
         if (origin != null) {
-            spawnStructure(player, origin, es.level, es.stage);
             Map<String, EnvironmentState> bMap = buildingStates.get(uuid);
+            Runnable after = null;
             if (bMap != null) {
-                for (var e : bMap.entrySet()) {
-                    spawnBuilding(player, e.getKey(), origin, e.getValue().level, e.getValue().stage);
-                }
+                after = () -> {
+                    for (var e : bMap.entrySet()) {
+                        spawnBuilding(player, e.getKey(), origin, e.getValue().level, e.getValue().stage);
+                    }
+                };
             }
+            spawnStructure(player, origin, es.level, es.stage, after);
         }
     }
 
@@ -308,13 +311,16 @@ public class EnvironmentManager {
         Runnable after = () -> {
             initializePlayer(player); // ensure state
             EnvironmentState s = states.get(uuid);
-            spawnStructure(player, origin, s.level, s.stage);
             Map<String, EnvironmentState> bMap = buildingStates.get(uuid);
+            Runnable buildings = null;
             if (bMap != null) {
-                for (var e : bMap.entrySet()) {
-                    spawnBuilding(player, e.getKey(), origin, e.getValue().level, e.getValue().stage);
-                }
+                buildings = () -> {
+                    for (var e : bMap.entrySet()) {
+                        spawnBuilding(player, e.getKey(), origin, e.getValue().level, e.getValue().stage);
+                    }
+                };
             }
+            spawnStructure(player, origin, s.level, s.stage, buildings);
             player.sendMessage(ChatColor.YELLOW + "Settlement created at " + origin.getBlockX()+","+origin.getBlockY()+","+origin.getBlockZ());
         };
         teleportWithCast(player, origin, after);
@@ -347,7 +353,7 @@ public class EnvironmentManager {
      * Spawn the structure for the given player and stage with a simple build
      * animation and sound effects.
      */
-    private void spawnStructure(Player player, Location origin, int level, int stage) {
+    private void spawnStructure(Player player, Location origin, int level, int stage, Runnable after) {
         UUID uuid = player.getUniqueId();
         cancelTasks(uuid);
         fakeBlockManager.clear(player);
@@ -389,11 +395,17 @@ public class EnvironmentManager {
                     cancel();
                     player.playSound(origin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
                     stageManager.spawnForStage(player, town, level, stage, origin);
+                    if (after != null) after.run();
                 }
             }
         }.runTaskTimer(Main.getInstance(), 0L, 1L);
         tasks.add(task);
         buildTasks.put(uuid, tasks);
+    }
+
+    // Backwards compatible wrapper
+    private void spawnStructure(Player player, Location origin, int level, int stage) {
+        spawnStructure(player, origin, level, stage, null);
     }
 
     /** Spawn a specific building stage relative to the town origin. */
