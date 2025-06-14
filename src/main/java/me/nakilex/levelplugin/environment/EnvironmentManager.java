@@ -218,15 +218,29 @@ public class EnvironmentManager {
             Location origin = origins.get(player.getUniqueId());
             if (town != null && origin != null) {
                 stageManager.despawnForStage(player.getUniqueId(), town, oldLevel, oldStage);
-                spawnStructure(player, origin, state.level, state.stage);
-                // reset building progress for new level
                 Map<String, EnvironmentState> reset = buildingStates.get(player.getUniqueId());
                 if (reset != null) {
-                    for (var e : reset.values()) {
-                        e.level = 1;
-                        e.stage = 1;
+                    for (var entry : reset.entrySet()) {
+                        EnvironmentState bs = entry.getValue();
+                        buildingStageManager.despawnForStage(player.getUniqueId(), town, entry.getKey(), bs.level, bs.stage);
+                        bs.level = 1;
+                        bs.stage = 1;
                     }
                 }
+                Runnable chain = null;
+                if (reset != null && !reset.isEmpty()) {
+                    java.util.Iterator<java.util.Map.Entry<String, EnvironmentState>> it = reset.entrySet().iterator();
+                    chain = new Runnable() {
+                        @Override
+                        public void run() {
+                            if (it.hasNext()) {
+                                var e = it.next();
+                                spawnBuilding(player, e.getKey(), origin, e.getValue().level, e.getValue().stage, this);
+                            }
+                        }
+                    };
+                }
+                spawnStructure(player, origin, state.level, state.stage, chain);
             }
             saveState(player.getUniqueId());
         } else {
