@@ -47,7 +47,7 @@ public class TownStageManager {
         return stagesMap.get(stage);
     }
 
-    public void createStage(String name, int level, int stage, Location p1, Location p2) {
+    public void createStage(String name, int level, int stage, Location p1, Location p2, Location origin) {
         java.util.List<NPCSpawn> npcs = new java.util.ArrayList<>();
         java.util.List<BlockDef> blocks = new java.util.ArrayList<>();
         var boxMinX = Math.min(p1.getBlockX(), p2.getBlockX());
@@ -75,6 +75,10 @@ public class TownStageManager {
             }
         }
 
+        int ox = origin.getBlockX() - boxMinX;
+        int oy = origin.getBlockY() - boxMinY;
+        int oz = origin.getBlockZ() - boxMinZ;
+
         var world = p1.getWorld();
         for (int x = boxMinX; x <= boxMaxX; x++) {
             for (int y = boxMinY; y <= boxMaxY; y++) {
@@ -89,7 +93,7 @@ public class TownStageManager {
         stages
             .computeIfAbsent(name.toLowerCase(), k -> new java.util.HashMap<>())
             .computeIfAbsent(level, k -> new java.util.HashMap<>())
-            .put(stage, new TownStage(name.toLowerCase(), level, stage, p1, p2, npcs, blocks));
+            .put(stage, new TownStage(name.toLowerCase(), level, stage, p1, p2, npcs, blocks, ox, oy, oz));
         saveConfig();
     }
 
@@ -134,9 +138,9 @@ public class TownStageManager {
             // Translate original NPC position relative to the player's town
             // origin. Add a Y offset so the NPC doesn't spawn partially in the ground.
             Location loc = origin.clone().add(
-                    ns.x + 0.5,
-                    ns.y + NPC_SPAWN_Y_OFFSET,
-                    ns.z + 0.5
+                    ns.x - ts.ox + 0.5,
+                    ns.y - ts.oy + NPC_SPAWN_Y_OFFSET,
+                    ns.z - ts.oz + 0.5
             );
             loc.setYaw(ns.yaw);
             loc.setPitch(ns.pitch);
@@ -263,10 +267,13 @@ public class TownStageManager {
                             } catch (Exception ignored) {}
                         }
                     }
+                    int ox = config.getInt(base + "origin.x", 0);
+                    int oy = config.getInt(base + "origin.y", 0);
+                    int oz = config.getInt(base + "origin.z", 0);
                     stages
                         .computeIfAbsent(town.toLowerCase(), k -> new java.util.HashMap<>())
                         .computeIfAbsent(level, k -> new java.util.HashMap<>())
-                        .put(stage, new TownStage(town.toLowerCase(), level, stage, p1, p2, npcs, blocks));
+                        .put(stage, new TownStage(town.toLowerCase(), level, stage, p1, p2, npcs, blocks, ox, oy, oz));
                 }
             }
         }
@@ -310,6 +317,9 @@ public class TownStageManager {
                         blockLines.add(b.x + ";" + b.y + ";" + b.z + ";" + b.data.getAsString());
                     }
                     config.set(base + "blocks", blockLines);
+                    config.set(base + "origin.x", st.ox);
+                    config.set(base + "origin.y", st.oy);
+                    config.set(base + "origin.z", st.oz);
                 }
             }
         }
@@ -341,9 +351,11 @@ public class TownStageManager {
         public final Location pos2;
         public final java.util.List<NPCSpawn> npcs;
         public final java.util.List<BlockDef> blocks;
+        public final int ox, oy, oz;
 
         public TownStage(String name, int level, int stage, Location pos1, Location pos2,
-                         java.util.List<NPCSpawn> npcs, java.util.List<BlockDef> blocks) {
+                         java.util.List<NPCSpawn> npcs, java.util.List<BlockDef> blocks,
+                         int ox, int oy, int oz) {
             this.name = name;
             this.level = level;
             this.stage = stage;
@@ -351,6 +363,9 @@ public class TownStageManager {
             this.pos2 = pos2;
             this.npcs = npcs == null ? java.util.Collections.emptyList() : npcs;
             this.blocks = blocks == null ? java.util.Collections.emptyList() : blocks;
+            this.ox = ox;
+            this.oy = oy;
+            this.oz = oz;
         }
     }
 

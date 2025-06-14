@@ -23,9 +23,11 @@ import java.util.UUID;
  */
 public class BuildingStageCommand implements CommandExecutor, Listener {
     private final BuildingStageManager manager;
+    private final Main plugin;
     private final ItemStack wand;
 
     public BuildingStageCommand(Main plugin, BuildingStageManager manager) {
+        this.plugin = plugin;
         this.manager = manager;
         wand = StageSelectionStore.WAND;
         plugin.getCommand("buildingstage").setExecutor(this);
@@ -54,33 +56,60 @@ public class BuildingStageCommand implements CommandExecutor, Listener {
                 }
                 return true;
             case "create":
-                if (args.length < 5) return false;
+                if (args.length < 4) return false;
                 Location pos1 = StageSelectionStore.getPos1(p.getUniqueId());
                 Location pos2 = StageSelectionStore.getPos2(p.getUniqueId());
                 if (pos1 == null || pos2 == null) {
                     p.sendMessage(ChatColor.RED + "Select two positions first.");
                     return true;
                 }
+                // Arguments: <building> <level> <stage>
                 String bName = args[1].toLowerCase();
-                String town = args[2].toLowerCase();
-                int level = parseInt(args[3], 1);
-                int stage = parseInt(args[4], 1);
+                int level = parseInt(args[2], 1);
+                int stage = parseInt(args[3], 1);
                 // Save where the player ran the command and raise it one block
                 Location stand = p.getLocation().clone().add(0.5, 1.0, 0.5);
-                manager.createStage(town, bName, level, stage, pos1, pos2, stand);
+                Location origin = p.getLocation().getBlock().getLocation();
+                manager.createStage(bName, level, stage, pos1, pos2, stand, origin);
                 p.sendMessage(ChatColor.GREEN + "Stage " + bName + " created.");
                 return true;
             case "remove":
-                if (args.length < 5) return false;
+                if (args.length < 4) return false;
                 String rbName = args[1].toLowerCase();
-                String rTown = args[2].toLowerCase();
-                int rLevel = parseInt(args[3], 1);
-                int rStage = parseInt(args[4], 1);
-                if (manager.removeStage(rTown, rbName, rLevel, rStage)) {
+                int rLevel = parseInt(args[2], 1);
+                int rStage = parseInt(args[3], 1);
+                if (manager.removeStage(rbName, rLevel, rStage)) {
                     p.sendMessage(ChatColor.GREEN + "Stage removed.");
                 } else {
                     p.sendMessage(ChatColor.RED + "Stage not found.");
                 }
+                return true;
+            case "link":
+                if (args.length < 3) return false;
+                String lbName = args[1].toLowerCase();
+                String town = args[2].toLowerCase();
+                var townStage = plugin.getTownStageManager().getStage(town, 1, 1);
+                if (townStage == null) {
+                    p.sendMessage(ChatColor.RED + "Unknown town.");
+                    return true;
+                }
+                var buildOrigin = manager.getStageOrigin(lbName);
+                if (buildOrigin == null) {
+                    p.sendMessage(ChatColor.RED + "Unknown building stage.");
+                    return true;
+                }
+                int tMinX = Math.min(townStage.pos1.getBlockX(), townStage.pos2.getBlockX());
+                int tMinY = Math.min(townStage.pos1.getBlockY(), townStage.pos2.getBlockY());
+                int tMinZ = Math.min(townStage.pos1.getBlockZ(), townStage.pos2.getBlockZ());
+                var townOrigin = new Location(townStage.pos1.getWorld(),
+                        tMinX + townStage.ox,
+                        tMinY + townStage.oy,
+                        tMinZ + townStage.oz);
+                int dx = buildOrigin.getBlockX() - townOrigin.getBlockX();
+                int dy = buildOrigin.getBlockY() - townOrigin.getBlockY();
+                int dz = buildOrigin.getBlockZ() - townOrigin.getBlockZ();
+                manager.linkBuilding(town, lbName, dx, dy, dz);
+                p.sendMessage(ChatColor.GREEN + "Linked " + lbName + " to " + town + ".");
                 return true;
             default:
                 return false;
