@@ -503,28 +503,6 @@ public class LootChestManager {
         for (int chestId : ids) {
             removeChest(chestId);
         }
-
-        // Also attempt to remove any leftover crate models that might not be
-        // tracked in the spawnedChests map. If previous sessions failed to
-        // clean up properly there could be multiple furniture models stacked
-        // at the configured chest locations. Looping with NexoFurniture.remove
-        // ensures we delete every model at those locations.
-        for (ChestData data : chestDataList) {
-            Location loc = data.toLocation();
-            if (loc == null) continue;
-
-            int removedCount = 0;
-            // Keep removing until no more furniture models exist at this spot
-            while (NexoFurniture.remove(loc)) {
-                removedCount++;
-                plugin.getLogger().info("[LootChestManager] Removed leftover crate model at " + loc);
-            }
-
-            if (removedCount > 0) {
-                plugin.getLogger().info("[LootChestManager] Cleaned up " + removedCount
-                        + " leftover crate(s) at " + loc);
-            }
-        }
     }
 
     // NEW: call this when a player opens a chest GUI
