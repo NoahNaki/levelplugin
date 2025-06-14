@@ -9,6 +9,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 
 import java.util.HashMap;
@@ -50,6 +51,18 @@ public class StorageEvents implements Listener {
             // Delegate handling to the StorageGUI
             StorageGUI gui = trackedInventories.get(top);
             gui.handleClick(event);
+        }
+    }
+
+    /**
+     * Listen for drag events so menu items cannot be pulled out.
+     */
+    @EventHandler
+    public void onInventoryDrag(InventoryDragEvent event) {
+        Inventory top = event.getView().getTopInventory();
+        if (trackedInventories.containsKey(top)) {
+            StorageGUI gui = trackedInventories.get(top);
+            gui.handleDrag(event);
         }
     }
 

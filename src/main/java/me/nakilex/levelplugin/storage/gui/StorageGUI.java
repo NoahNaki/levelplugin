@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.storage.gui;
 
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.storage.data.FileHandler;
 import me.nakilex.levelplugin.storage.events.StorageEvents;
 import com.nexomc.nexo.api.NexoItems;
@@ -10,6 +11,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -25,8 +27,10 @@ public class StorageGUI {
     private int currentPage;
     private final StorageEvents storageEvents;
 
-    /** Cost to unlock the next new page; starts at 300 and doubles each purchase */
-    private int currentPageCost = 300;
+    /** Base price for unlocking storage pages. */
+    private static final int BASE_PAGE_COST = 300;
+    /** Cost to unlock the next new page. */
+    private int currentPageCost = BASE_PAGE_COST;
 
     private boolean confirmUnlock = false;
     private int sortMode = 0;
@@ -48,6 +52,8 @@ public class StorageGUI {
 
         // initialize with one blank page
         pages.add(createBlankPage(1));
+        // initial cost based on existing page count
+        this.currentPageCost = BASE_PAGE_COST * pages.size();
     }
 
     /**
@@ -68,22 +74,27 @@ public class StorageGUI {
         ItemStack nextItem;
         if (currentPage == pages.size() - 1) {
             if (confirmUnlock) {
-                nextItem = getNexoItem("check", ChatColor.GREEN + "Confirm " + currentPageCost + " coins");
+                nextItem = getNexoItem("check",
+                        ChatColor.GREEN + "Confirm " + currentPageCost + " ⛃");
             } else {
-                nextItem = getNexoItem("arrow_right", ChatColor.YELLOW + "Unlock Page: " + currentPageCost + " coins");
+                nextItem = getNexoItem("arrow_right",
+                        ChatColor.GRAY + "Unlock Page: " + ChatColor.YELLOW + currentPageCost + " ⛃");
             }
         } else {
             nextItem = getNexoItem("arrow_right", ChatColor.YELLOW + "Next Page");
         }
         inv.setItem(NAV_NEXT_SLOT, nextItem);
 
-        // Previous arrow: only if not on first page
-        if (currentPage > 0) {
-            inv.setItem(NAV_PREV_SLOT,
-                getNexoItem("arrow_left", ChatColor.YELLOW + "Previous Page"));
+        // Previous arrow slot behavior
+        ItemStack prevItem;
+        if (confirmUnlock) {
+            prevItem = getNexoItem("cross", ChatColor.RED + "Cancel");
+        } else if (currentPage > 0) {
+            prevItem = getNexoItem("arrow_left", ChatColor.YELLOW + "Previous Page");
         } else {
-            inv.setItem(NAV_PREV_SLOT, null);
+            prevItem = FILLER.clone();
         }
+        inv.setItem(NAV_PREV_SLOT, prevItem);
     }
 
     /**
@@ -100,12 +111,16 @@ public class StorageGUI {
         }
 
         updateNavigationItems(inv);
+        applySortAndFilter(inv);
         inv.setItem(SORT_SLOT, createSortButton(sortMode));
         inv.setItem(FILTER_SLOT, createFilterButton(filterMode));
         inv.setItem(INFO_SLOT, createInfoItem());
 
-        storageEvents.registerInventory(this, inv);
+        // Register after opening so InventoryCloseEvent from the previous page
+        // does not immediately unregister this one when navigating or
+        // refreshing the same inventory.
         player.openInventory(inv);
+        storageEvents.registerInventory(this, inv);
     }
 
     /**
@@ -121,9 +136,15 @@ public class StorageGUI {
             event.setCancelled(true);
             goToNextPage((Player) event.getWhoClicked());
         }
-        else if (slot == NAV_PREV_SLOT && currentPage > 0) {
+        else if (slot == NAV_PREV_SLOT) {
             event.setCancelled(true);
-            goToPreviousPage((Player) event.getWhoClicked());
+            if (confirmUnlock) {
+                // Cancel purchase confirmation and restore navigation arrow
+                confirmUnlock = false;
+                open((Player) event.getWhoClicked());
+            } else if (currentPage > 0) {
+                goToPreviousPage((Player) event.getWhoClicked());
+            }
         }
         else if (slot == SORT_SLOT) {
             event.setCancelled(true);
@@ -134,7 +155,7 @@ public class StorageGUI {
         else if (slot == FILTER_SLOT) {
             event.setCancelled(true);
             if (event.isLeftClick()) filterMode++; else filterMode--;
-            if (filterMode > 1) filterMode = 0; if (filterMode < 0) filterMode = 1;
+            if (filterMode > 5) filterMode = 0; if (filterMode < 0) filterMode = 5;
             open((Player) event.getWhoClicked());
         }
         else if (slot == INFO_SLOT || slot < 9 || slot >= 45 || slot % 9 == 0 || slot % 9 == 8) {
@@ -142,6 +163,24 @@ public class StorageGUI {
             event.setCancelled(true);
         }
         // otherwise allow regular interactions
+    }
+
+    /**
+     * Handles drag events within the storage GUI. Any drag that targets
+     * one of the protected menu slots is cancelled.
+     */
+    public void handleDrag(InventoryDragEvent event) {
+        for (int rawSlot : event.getRawSlots()) {
+            if (rawSlot < 0 || rawSlot >= PAGE_SIZE) continue;
+
+            if (rawSlot == NAV_NEXT_SLOT || rawSlot == NAV_PREV_SLOT ||
+                rawSlot == SORT_SLOT || rawSlot == FILTER_SLOT ||
+                rawSlot == INFO_SLOT || rawSlot < 9 || rawSlot >= 45 ||
+                rawSlot % 9 == 0 || rawSlot % 9 == 8) {
+                event.setCancelled(true);
+                return;
+            }
+        }
     }
 
     private void goToNextPage(Player player) {
@@ -154,9 +193,7 @@ public class StorageGUI {
                 return;
             }
 
-            EconomyManager econ = new EconomyManager(
-                Bukkit.getPluginManager().getPlugin("LevelPlugin")
-            );
+            EconomyManager econ = Main.getInstance().getEconomyManager();
             int balance = econ.getBalance(player);
             if (balance < currentPageCost) {
                 player.sendMessage(
@@ -173,7 +210,8 @@ public class StorageGUI {
             );
 
             pages.add(createBlankPage(pages.size() + 1));
-            currentPageCost *= 2;
+            // next page cost scales with current page count
+            currentPageCost = BASE_PAGE_COST * pages.size();
         }
 
         confirmUnlock = false;
@@ -204,6 +242,8 @@ public class StorageGUI {
             pages.addAll(loaded);
         }
         currentPage = 0;
+        // recalculate unlock cost based on loaded page count
+        this.currentPageCost = BASE_PAGE_COST * pages.size();
     }
 
 
@@ -255,7 +295,7 @@ public class StorageGUI {
             lore.add(ChatColor.GRAY + "");
             lore.add(ChatColor.DARK_GRAY + "Sort the items");
             lore.add(" ");
-            String[] opts = {"None", "A-Z", "Z-A"};
+            String[] opts = {"None", "Rarity \u2193", "Rarity \u2191"};
             for (int i = 0; i < opts.length; i++) {
                 lore.add(rangeLine(i, mode, opts[i]));
             }
@@ -277,7 +317,7 @@ public class StorageGUI {
             lore.add(ChatColor.GRAY + "");
             lore.add(ChatColor.DARK_GRAY + "Filter items");
             lore.add(" ");
-            String[] opts = {"Show All", "Blocks Only"};
+            String[] opts = {"Lv. 1-19", "Lv. 20-39", "Lv. 40-59", "Lv. 60-79", "Lv. 80+", "Show All"};
             for (int i = 0; i < opts.length; i++) {
                 lore.add(rangeLine(i, mode, opts[i]));
             }
@@ -300,5 +340,71 @@ public class StorageGUI {
             info.setItemMeta(meta);
         }
         return info;
+    }
+
+    // -----------------------------------------------------------------------
+    // Helper methods for sorting/filtering
+    // -----------------------------------------------------------------------
+
+    /** List of slots that store actual items (excluding borders and controls). */
+    private static final List<Integer> STORAGE_SLOTS = new ArrayList<>();
+    static {
+        for (int i = 0; i < PAGE_SIZE; i++) {
+            if (i == NAV_NEXT_SLOT || i == NAV_PREV_SLOT || i == SORT_SLOT ||
+                i == FILTER_SLOT || i == INFO_SLOT) continue;
+            if (i < 9 || i >= 45 || i % 9 == 0 || i % 9 == 8) continue;
+            STORAGE_SLOTS.add(i);
+        }
+    }
+
+    private int getRarityOrdinal(ItemStack item) {
+        me.nakilex.levelplugin.items.data.CustomItem ci =
+            me.nakilex.levelplugin.items.managers.ItemManager.getInstance()
+                .getCustomItemFromItemStack(item);
+        return ci != null ? ci.getRarity().ordinal() : 0;
+    }
+
+    private boolean matchesLevelFilter(ItemStack item, int filter) {
+        if (filter == 5) return true;
+        me.nakilex.levelplugin.items.data.CustomItem ci =
+            me.nakilex.levelplugin.items.managers.ItemManager.getInstance()
+                .getCustomItemFromItemStack(item);
+        int level = ci != null ? ci.getLevelRequirement() : 0;
+        return switch (filter) {
+            case 0 -> level >= 1 && level <= 19;
+            case 1 -> level >= 20 && level <= 39;
+            case 2 -> level >= 40 && level <= 59;
+            case 3 -> level >= 60 && level <= 79;
+            case 4 -> level >= 80;
+            default -> true;
+        };
+    }
+
+    /** Apply current sort and filter settings to a page before showing it. */
+    private void applySortAndFilter(Inventory inv) {
+        List<ItemStack> items = new ArrayList<>();
+        for (int slot : STORAGE_SLOTS) {
+            ItemStack it = inv.getItem(slot);
+            if (it != null && it.getType() != Material.AIR) {
+                items.add(it);
+            }
+            inv.setItem(slot, null);
+        }
+
+        if (sortMode == 1) {
+            items.sort(java.util.Comparator.comparingInt(this::getRarityOrdinal).reversed());
+        } else if (sortMode == 2) {
+            items.sort(java.util.Comparator.comparingInt(this::getRarityOrdinal));
+        }
+
+        if (filterMode != 5) {
+            items.removeIf(it -> !matchesLevelFilter(it, filterMode));
+        }
+
+        int idx = 0;
+        for (int slot : STORAGE_SLOTS) {
+            if (idx >= items.size()) break;
+            inv.setItem(slot, items.get(idx++));
+        }
     }
 }
