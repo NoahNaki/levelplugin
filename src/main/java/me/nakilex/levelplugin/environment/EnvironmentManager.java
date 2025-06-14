@@ -328,24 +328,10 @@ public class EnvironmentManager {
         playerConfig.saveConfigFile();
 
         Runnable after = () -> {
-            initializePlayer(player); // ensure state
-            EnvironmentState s = states.get(uuid);
-            Map<String, EnvironmentState> bMap = buildingStates.get(uuid);
-            Runnable chain = null;
-            if (bMap != null && !bMap.isEmpty()) {
-                java.util.Iterator<java.util.Map.Entry<String, EnvironmentState>> it = bMap.entrySet().iterator();
-                chain = new Runnable() {
-                    @Override
-                    public void run() {
-                        if (it.hasNext()) {
-                            var e = it.next();
-                            spawnBuilding(player, e.getKey(), origin, e.getValue().level, e.getValue().stage, this);
-                        }
-                    }
-                };
-            }
-            spawnStructure(player, origin, s.level, s.stage, chain);
-            player.sendMessage(ChatColor.YELLOW + "Settlement created at " + origin.getBlockX()+","+origin.getBlockY()+","+origin.getBlockZ());
+            // initializePlayer handles spawning the town and its buildings
+            initializePlayer(player);
+            player.sendMessage(ChatColor.YELLOW + "Settlement created at " +
+                    origin.getBlockX()+","+origin.getBlockY()+","+origin.getBlockZ());
         };
         teleportWithCast(player, origin, after);
     }
