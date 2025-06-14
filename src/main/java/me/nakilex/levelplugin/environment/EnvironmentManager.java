@@ -114,7 +114,8 @@ public class EnvironmentManager {
             if (finalBMap != null) {
                 after = () -> {
                     for (var e : finalBMap.entrySet()) {
-                        spawnBuilding(player, e.getKey(), finalOrigin, e.getValue().level, e.getValue().stage, null);
+                        Location bOrig = getBuildingOrigin(towns.get(uuid), e.getKey(), finalOrigin);
+                        spawnBuilding(player, e.getKey(), bOrig, e.getValue().level, e.getValue().stage, null);
                     }
                 };
             } else {
@@ -200,8 +201,9 @@ public class EnvironmentManager {
                         String town = towns.get(player.getUniqueId());
                         Location origin = origins.get(player.getUniqueId());
                         if (town != null && origin != null) {
-                            buildingStageManager.despawnForStage(player.getUniqueId(), town, entry.getKey(), oldL, oldS);
-                            spawnBuilding(player, entry.getKey(), origin, bs.level, bs.stage, null);
+                            buildingStageManager.despawnForStage(player.getUniqueId(), entry.getKey(), oldL, oldS);
+                            Location bOrig = getBuildingOrigin(town, entry.getKey(), origin);
+                            spawnBuilding(player, entry.getKey(), bOrig, bs.level, bs.stage, null);
                         }
                         saveState(player.getUniqueId());
                         return;
@@ -256,8 +258,9 @@ public class EnvironmentManager {
             String town = towns.get(player.getUniqueId());
             Location origin = origins.get(player.getUniqueId());
             if (town != null && origin != null) {
-                buildingStageManager.despawnForStage(player.getUniqueId(), town, building, oldL, oldS);
-                spawnBuilding(player, building, origin, bs.level, bs.stage, null);
+                buildingStageManager.despawnForStage(player.getUniqueId(), building, oldL, oldS);
+                Location bOrig = getBuildingOrigin(town, building, origin);
+                spawnBuilding(player, building, bOrig, bs.level, bs.stage, null);
             }
             saveState(player.getUniqueId());
         } else {
@@ -282,8 +285,14 @@ public class EnvironmentManager {
     private static final int TOWN_Y = -59;
     private static final int TOWN_Z = -1242;
 
-    private Location getTownStartLocation() {
+    public Location getTownStartLocation() {
         return new Location(Bukkit.getWorld(TOWN_WORLD), TOWN_X, TOWN_Y, TOWN_Z);
+    }
+
+    private Location getBuildingOrigin(String town, String building, Location townOrigin) {
+        var pl = buildingStageManager.getPlacement(town, building);
+        if (pl == null) return townOrigin;
+        return townOrigin.clone().add(pl.x, pl.y, pl.z);
     }
 
     private void teleportWithEffect(Player player, Location dest, Runnable after) {
@@ -349,7 +358,8 @@ public class EnvironmentManager {
         if (finalBMap != null) {
             after = () -> {
                 for (var e : finalBMap.entrySet()) {
-                    spawnBuilding(player, e.getKey(), origin, e.getValue().level, e.getValue().stage, null);
+                    Location bo = getBuildingOrigin(townName.toLowerCase(), e.getKey(), origin);
+                    spawnBuilding(player, e.getKey(), bo, e.getValue().level, e.getValue().stage, null);
                 }
             };
         } else {
@@ -377,7 +387,7 @@ public class EnvironmentManager {
             stageManager.despawnForStage(uuid, town, st.level, st.stage);
             if (bMap != null) {
                 for (var e : bMap.entrySet()) {
-                    buildingStageManager.despawnForStage(uuid, town, e.getKey(), e.getValue().level, e.getValue().stage);
+                    buildingStageManager.despawnForStage(uuid, e.getKey(), e.getValue().level, e.getValue().stage);
                 }
             }
         }
@@ -445,7 +455,7 @@ public class EnvironmentManager {
         removeBuildingHologram(uuid, building);
         String town = towns.get(player.getUniqueId());
         if (town == null) return;
-        var stageData = buildingStageManager.getStage(town, building, level, stage);
+        var stageData = buildingStageManager.getStage(building, level, stage);
         if (stageData == null) return;
 
         java.util.List<BukkitTask> tasks = new java.util.ArrayList<>();
@@ -479,7 +489,7 @@ public class EnvironmentManager {
 
         BukkitTask finalTask = Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
             player.playSound(origin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
-            buildingStageManager.spawnForStage(player, town, building, level, stage, origin);
+            buildingStageManager.spawnForStage(player, building, level, stage, origin);
             // Place the hologram where the stage was defined (+1 Y already stored)
             Location holo = origin.clone().add(
                     stageData.hx - stageData.ox + 0.5,
