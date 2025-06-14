@@ -133,8 +133,15 @@ public class GuildCommand implements CommandExecutor {
                     player.sendMessage(ChatColor.RED + "Only guild leaders can set alliances.");
                     return true;
                 }
-                if (manager.setAlliance(my.getName(), args[1])) {
-                    player.sendMessage(ChatColor.GREEN + "Alliance formed.");
+                if (manager.requestAlliance(my.getName(), args[1])) {
+                    player.sendMessage(ChatColor.GREEN + "Alliance request sent.");
+                    Guild target = manager.getGuild(args[1]);
+                    if (target != null) {
+                        Player leader = Bukkit.getPlayer(target.getLeader());
+                        if (leader != null) {
+                            leader.sendMessage(ChatColor.YELLOW + my.getName() + " has requested an alliance with your guild. Use /guild allyaccept " + my.getName() + " to accept.");
+                        }
+                    }
                 } else {
                     player.sendMessage(ChatColor.RED + "Cannot ally with that guild.");
                 }
@@ -165,10 +172,81 @@ public class GuildCommand implements CommandExecutor {
                     player.sendMessage(ChatColor.RED + "Only guild leaders can change relations.");
                     return true;
                 }
-                if (manager.setNeutral(myn.getName(), args[1])) {
-                    player.sendMessage(ChatColor.GREEN + "Relations set to neutral.");
+                if (manager.requestNeutral(myn.getName(), args[1])) {
+                    player.sendMessage(ChatColor.GREEN + "Neutrality request sent.");
+                    Guild target = manager.getGuild(args[1]);
+                    if (target != null) {
+                        Player leaderN = Bukkit.getPlayer(target.getLeader());
+                        if (leaderN != null) {
+                            leaderN.sendMessage(ChatColor.YELLOW + myn.getName() + " has requested neutrality. Use /guild neutralaccept " + myn.getName() + " to accept.");
+                        }
+                    }
                 } else {
                     player.sendMessage(ChatColor.RED + "Failed to set neutral.");
+                }
+                break;
+            case "allyaccept":
+                if (args.length < 2) {
+                    player.sendMessage("/guild allyaccept <guild>");
+                    return true;
+                }
+                Guild recA = manager.getGuild(id);
+                if (recA == null || !recA.getLeader().equals(id)) {
+                    player.sendMessage(ChatColor.RED + "Only guild leaders can accept alliances.");
+                    return true;
+                }
+                if (manager.acceptAlliance(recA.getName(), args[1])) {
+                    player.sendMessage(ChatColor.GREEN + "Alliance formed with " + args[1] + ".");
+                } else {
+                    player.sendMessage(ChatColor.RED + "No alliance request from that guild.");
+                }
+                break;
+            case "allydeny":
+                if (args.length < 2) {
+                    player.sendMessage("/guild allydeny <guild>");
+                    return true;
+                }
+                Guild recAD = manager.getGuild(id);
+                if (recAD == null || !recAD.getLeader().equals(id)) {
+                    player.sendMessage(ChatColor.RED + "Only guild leaders can deny alliances.");
+                    return true;
+                }
+                if (manager.denyAlliance(recAD.getName(), args[1])) {
+                    player.sendMessage(ChatColor.YELLOW + "Alliance request denied.");
+                } else {
+                    player.sendMessage(ChatColor.RED + "No alliance request from that guild.");
+                }
+                break;
+            case "neutralaccept":
+                if (args.length < 2) {
+                    player.sendMessage("/guild neutralaccept <guild>");
+                    return true;
+                }
+                Guild recN = manager.getGuild(id);
+                if (recN == null || !recN.getLeader().equals(id)) {
+                    player.sendMessage(ChatColor.RED + "Only guild leaders can accept neutrality.");
+                    return true;
+                }
+                if (manager.acceptNeutral(recN.getName(), args[1])) {
+                    player.sendMessage(ChatColor.GREEN + "Relations set to neutral with " + args[1] + ".");
+                } else {
+                    player.sendMessage(ChatColor.RED + "No neutrality request from that guild.");
+                }
+                break;
+            case "neutraldeny":
+                if (args.length < 2) {
+                    player.sendMessage("/guild neutraldeny <guild>");
+                    return true;
+                }
+                Guild recND = manager.getGuild(id);
+                if (recND == null || !recND.getLeader().equals(id)) {
+                    player.sendMessage(ChatColor.RED + "Only guild leaders can deny neutrality.");
+                    return true;
+                }
+                if (manager.denyNeutral(recND.getName(), args[1])) {
+                    player.sendMessage(ChatColor.YELLOW + "Neutrality request denied.");
+                } else {
+                    player.sendMessage(ChatColor.RED + "No neutrality request from that guild.");
                 }
                 break;
             case "list":

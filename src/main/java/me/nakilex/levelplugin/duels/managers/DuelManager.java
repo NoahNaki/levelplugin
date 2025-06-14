@@ -148,6 +148,11 @@ public class DuelManager {
         // Restore mana, etc. if you have a system for that.
     }
 
+    public boolean areFormallyDueling(UUID p1, UUID p2) {
+        UUID partner = activeDuels.get(p1);
+        return partner != null && partner.equals(p2);
+    }
+
     public boolean areInDuel(UUID p1, UUID p2) {
         UUID partner = activeDuels.get(p1);
         if (partner != null && partner.equals(p2)) return true;

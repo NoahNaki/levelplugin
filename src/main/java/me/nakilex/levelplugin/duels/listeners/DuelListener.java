@@ -210,34 +210,38 @@ public class DuelListener implements Listener {
         boolean inDuel = manager.areInDuel(victim.getUniqueId(), damager.getUniqueId());
 
         if (!inDuel) {
-            // Cancel the damage if they're not in a duel
+            // Cancel the damage if they're not allowed to fight
             event.setCancelled(true);
             return;
         }
 
-        // If they are in a duel, allow damage. Then check if victim is about to die (HP <= 1).
-        double newHealth = victim.getHealth() - event.getFinalDamage();
-        if (newHealth <= 1) {
-            // End the duel, restore both players
-            manager.endDuel(victim.getUniqueId(), damager.getUniqueId());
+        boolean formal = manager.areFormallyDueling(victim.getUniqueId(), damager.getUniqueId());
 
-            // Optional "KO" effect
-            victim.getWorld().spawnParticle(Particle.EXPLOSION, victim.getLocation(), 2);
+        // If they are in a formal duel, use knockout logic
+        if (formal) {
+            double newHealth = victim.getHealth() - event.getFinalDamage();
+            if (newHealth <= 1) {
+                // End the duel, restore both players
+                manager.endDuel(victim.getUniqueId(), damager.getUniqueId());
 
-            ChatFormatter.sendCenteredMessage(victim,
-                "§cYou lost the duel against " + damager.getName() + "!");
-            ChatFormatter.sendCenteredMessage(damager,
-                "§aYou have won the duel against " + victim.getName() + "!");
+                // Optional "KO" effect
+                victim.getWorld().spawnParticle(Particle.EXPLOSION, victim.getLocation(), 2);
 
-            me.nakilex.levelplugin.Main.getInstance().getQuestManager().handleDuel(damager);
-            me.nakilex.levelplugin.Main.getInstance().getDuelStatsManager()
-                .addWin(damager.getUniqueId());
-            if (me.nakilex.levelplugin.Main.getInstance().getLeaderboardManager() != null) {
-                me.nakilex.levelplugin.Main.getInstance().getLeaderboardManager().updateAll();
+                ChatFormatter.sendCenteredMessage(victim,
+                    "§cYou lost the duel against " + damager.getName() + "!");
+                ChatFormatter.sendCenteredMessage(damager,
+                    "§aYou have won the duel against " + victim.getName() + "!");
+
+                me.nakilex.levelplugin.Main.getInstance().getQuestManager().handleDuel(damager);
+                me.nakilex.levelplugin.Main.getInstance().getDuelStatsManager()
+                    .addWin(damager.getUniqueId());
+                if (me.nakilex.levelplugin.Main.getInstance().getLeaderboardManager() != null) {
+                    me.nakilex.levelplugin.Main.getInstance().getLeaderboardManager().updateAll();
+                }
+
+                // Prevent actual death
+                event.setCancelled(true);
             }
-
-            // Prevent actual death
-            event.setCancelled(true);
         }
     }
 

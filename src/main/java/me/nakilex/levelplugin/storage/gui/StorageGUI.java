@@ -137,6 +137,10 @@ public class StorageGUI {
             if (filterMode > 1) filterMode = 0; if (filterMode < 0) filterMode = 1;
             open((Player) event.getWhoClicked());
         }
+        else if (slot == INFO_SLOT || slot < 9 || slot >= 45 || slot % 9 == 0 || slot % 9 == 8) {
+            // Prevent taking filler or info items
+            event.setCancelled(true);
+        }
         // otherwise allow regular interactions
     }
 
