@@ -9,6 +9,8 @@ public class GuildManager {
     private final Map<String, Guild> guilds = new HashMap<>();
     private final Map<UUID, String> playerGuild = new HashMap<>();
     private final Map<UUID, String> pendingInvites = new HashMap<>();
+    private final Map<String, Set<String>> pendingAlliance = new HashMap<>(); // target -> requesting guilds
+    private final Map<String, Set<String>> pendingNeutral = new HashMap<>();  // target -> requesting guilds
 
     public Guild createGuild(String name, UUID leader) {
         if (guilds.containsKey(name) || playerGuild.containsKey(leader)) return null;
@@ -70,6 +72,63 @@ public class GuildManager {
         if (g == null || !g.getLeader().equals(leader)) return false;
         if (!g.getMembers().contains(target)) return false;
         g.promote(target);
+        return true;
+    }
+
+    // ----- Alliance / Neutrality Requests -----
+    public boolean requestAlliance(String from, String to) {
+        Guild gA = guilds.get(from);
+        Guild gB = guilds.get(to);
+        if (gA == null || gB == null) return false;
+        if (!canAlly(gA, gB)) return false;
+        pendingAlliance.computeIfAbsent(to, k -> new HashSet<>()).add(from);
+        return true;
+    }
+
+    public boolean acceptAlliance(String receiver, String requester) {
+        Set<String> set = pendingAlliance.get(receiver);
+        if (set == null || !set.remove(requester)) return false;
+        if (set.isEmpty()) pendingAlliance.remove(receiver);
+        return setAlliance(receiver, requester);
+    }
+
+    public boolean denyAlliance(String receiver, String requester) {
+        Set<String> set = pendingAlliance.get(receiver);
+        if (set == null || !set.remove(requester)) return false;
+        if (set.isEmpty()) pendingAlliance.remove(receiver);
+        return true;
+    }
+
+    /**
+     * Immediately remove an existing alliance without requiring approval.
+     */
+    public boolean revokeAlliance(String from, String to) {
+        Guild gA = guilds.get(from);
+        Guild gB = guilds.get(to);
+        if (gA == null || gB == null) return false;
+        if (!gA.getAllies().contains(to)) return false;
+        return setNeutral(from, to);
+    }
+
+    public boolean requestNeutral(String from, String to) {
+        Guild gA = guilds.get(from);
+        Guild gB = guilds.get(to);
+        if (gA == null || gB == null) return false;
+        pendingNeutral.computeIfAbsent(to, k -> new HashSet<>()).add(from);
+        return true;
+    }
+
+    public boolean acceptNeutral(String receiver, String requester) {
+        Set<String> set = pendingNeutral.get(receiver);
+        if (set == null || !set.remove(requester)) return false;
+        if (set.isEmpty()) pendingNeutral.remove(receiver);
+        return setNeutral(receiver, requester);
+    }
+
+    public boolean denyNeutral(String receiver, String requester) {
+        Set<String> set = pendingNeutral.get(receiver);
+        if (set == null || !set.remove(requester)) return false;
+        if (set.isEmpty()) pendingNeutral.remove(receiver);
         return true;
     }
 
