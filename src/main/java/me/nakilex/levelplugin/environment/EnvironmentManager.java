@@ -11,6 +11,10 @@ import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.Particle;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -266,7 +270,10 @@ public class EnvironmentManager {
         }
     }
 
-    /** Start a settlement for the player at their current location using the given town name. */
+    /**
+     * Start a settlement for the player at a fixed origin and teleport them
+     * there with a waystone style animation.
+     */
     public void startTown(Player player, String townName) {
         UUID uuid = player.getUniqueId();
         if (origins.containsKey(uuid)) {
@@ -277,7 +284,12 @@ public class EnvironmentManager {
             player.sendMessage(ChatColor.RED + "Unknown town type.");
             return;
         }
-        Location origin = player.getLocation().getBlock().getLocation();
+        Location origin = new Location(
+                Bukkit.getWorld("flatland"),
+                2010,
+                -59,
+                -1242
+        ).getBlock().getLocation();
         origins.put(uuid, origin);
         towns.put(uuid, townName.toLowerCase());
         // initialize building progress for all defined buildings of this town
@@ -292,16 +304,20 @@ public class EnvironmentManager {
         playerConfig.setEnvironmentOrigin(uuid, origin);
         playerConfig.setEnvironmentTown(uuid, townName.toLowerCase());
         playerConfig.saveConfigFile();
-        initializePlayer(player); // ensure state
-        EnvironmentState s = states.get(uuid);
-        spawnStructure(player, origin, s.level, s.stage);
-        Map<String, EnvironmentState> bMap = buildingStates.get(uuid);
-        if (bMap != null) {
-            for (var e : bMap.entrySet()) {
-                spawnBuilding(player, e.getKey(), origin, e.getValue().level, e.getValue().stage);
+
+        Runnable after = () -> {
+            initializePlayer(player); // ensure state
+            EnvironmentState s = states.get(uuid);
+            spawnStructure(player, origin, s.level, s.stage);
+            Map<String, EnvironmentState> bMap = buildingStates.get(uuid);
+            if (bMap != null) {
+                for (var e : bMap.entrySet()) {
+                    spawnBuilding(player, e.getKey(), origin, e.getValue().level, e.getValue().stage);
+                }
             }
-        }
-        player.sendMessage(ChatColor.YELLOW + "Settlement created at " + origin.getBlockX()+","+origin.getBlockY()+","+origin.getBlockZ());
+            player.sendMessage(ChatColor.YELLOW + "Settlement created at " + origin.getBlockX()+","+origin.getBlockY()+","+origin.getBlockZ());
+        };
+        teleportWithCast(player, origin, after);
     }
 
     /** Remove the player's settlement so they can start over. */
@@ -433,5 +449,40 @@ public class EnvironmentManager {
         }, Math.round(current));
         tasks.add(finalTask);
         buildTasks.put(uuid, tasks);
+    }
+
+    /**
+     * Teleport the player to a destination using the same cast animation as waystones.
+     * Executes the provided callback after the teleport completes.
+     */
+    private void teleportWithCast(Player player, Location dest, Runnable after) {
+        Location startLoc = player.getLocation().clone();
+        new BukkitRunnable() {
+            int t = 60;
+            @Override
+            public void run() {
+                if (!player.isOnline()) { cancel(); return; }
+                if (player.getLocation().distanceSquared(startLoc) > 0.1) {
+                    player.sendMessage(ChatColor.RED + "Teleport cancelled.");
+                    cancel();
+                    return;
+                }
+                double radius = 3.0 * (t / 60.0);
+                for (int i = 0; i < 20; i++) {
+                    double angle = 2 * Math.PI * i / 20.0;
+                    double x = radius * Math.cos(angle);
+                    double z = radius * Math.sin(angle);
+                    player.getWorld().spawnParticle(Particle.DRAGON_BREATH,
+                            startLoc.clone().add(x, 1, z), 0, 0, 0, 0, 0);
+                }
+                if (--t <= 0) {
+                    player.teleport(dest);
+                    player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 40, 0, false, false));
+                    player.getWorld().spawnParticle(Particle.FLASH, player.getLocation(), 20, 0.5, 0.5, 0.5, 0);
+                    cancel();
+                    if (after != null) after.run();
+                }
+            }
+        }.runTaskTimer(Main.getInstance(), 0L, 1L);
     }
 }
