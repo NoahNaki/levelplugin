@@ -108,7 +108,7 @@ public class EnvironmentManager {
 
         if (origin != null) {
             Map<String, EnvironmentState> bMap = buildingStates.get(uuid);
-            final Map<String, EnvironmentState> finalBMap = bMap;
+            final Map<String, EnvironmentState> finalBMap = bMap == null ? null : new java.util.HashMap<>(bMap);
             final Location finalOrigin = origin;
             final Runnable after;
             if (finalBMap != null) {
@@ -353,7 +353,7 @@ public class EnvironmentManager {
 
         final EnvironmentState state = states.computeIfAbsent(uuid, id -> new EnvironmentState(1, 1));
         Map<String, EnvironmentState> bMap = buildingStates.get(uuid);
-        final Map<String, EnvironmentState> finalBMap = bMap;
+        final Map<String, EnvironmentState> finalBMap = bMap == null ? null : new java.util.HashMap<>(bMap);
         final Runnable after;
         if (finalBMap != null) {
             after = () -> {
