@@ -10,6 +10,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -142,6 +143,24 @@ public class StorageGUI {
             event.setCancelled(true);
         }
         // otherwise allow regular interactions
+    }
+
+    /**
+     * Handles drag events within the storage GUI. Any drag that targets
+     * one of the protected menu slots is cancelled.
+     */
+    public void handleDrag(InventoryDragEvent event) {
+        for (int rawSlot : event.getRawSlots()) {
+            if (rawSlot < 0 || rawSlot >= PAGE_SIZE) continue;
+
+            if (rawSlot == NAV_NEXT_SLOT || rawSlot == NAV_PREV_SLOT ||
+                rawSlot == SORT_SLOT || rawSlot == FILTER_SLOT ||
+                rawSlot == INFO_SLOT || rawSlot < 9 || rawSlot >= 45 ||
+                rawSlot % 9 == 0 || rawSlot % 9 == 8) {
+                event.setCancelled(true);
+                return;
+            }
+        }
     }
 
     private void goToNextPage(Player player) {
