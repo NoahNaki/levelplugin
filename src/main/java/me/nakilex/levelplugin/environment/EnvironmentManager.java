@@ -108,14 +108,17 @@ public class EnvironmentManager {
 
         if (origin != null) {
             Map<String, EnvironmentState> bMap = buildingStates.get(uuid);
+            final Map<String, EnvironmentState> finalBMap = bMap;
             final Location finalOrigin = origin;
-            Runnable after = null;
-            if (bMap != null) {
+            final Runnable after;
+            if (finalBMap != null) {
                 after = () -> {
-                    for (var e : bMap.entrySet()) {
+                    for (var e : finalBMap.entrySet()) {
                         spawnBuilding(player, e.getKey(), finalOrigin, e.getValue().level, e.getValue().stage, null);
                     }
                 };
+            } else {
+                after = null;
             }
             spawnStructure(player, finalOrigin, es.level, es.stage, after);
         }
@@ -339,18 +342,21 @@ public class EnvironmentManager {
         playerConfig.setEnvironmentTown(uuid, townName.toLowerCase());
         playerConfig.saveConfigFile();
 
-        EnvironmentState state = states.computeIfAbsent(uuid, id -> new EnvironmentState(1, 1));
+        final EnvironmentState state = states.computeIfAbsent(uuid, id -> new EnvironmentState(1, 1));
         Map<String, EnvironmentState> bMap = buildingStates.get(uuid);
-        Runnable after = null;
-        if (bMap != null) {
+        final Map<String, EnvironmentState> finalBMap = bMap;
+        final Runnable after;
+        if (finalBMap != null) {
             after = () -> {
-                for (var e : bMap.entrySet()) {
+                for (var e : finalBMap.entrySet()) {
                     spawnBuilding(player, e.getKey(), origin, e.getValue().level, e.getValue().stage, null);
                 }
             };
+        } else {
+            after = null;
         }
-        Location finalOrigin = origin;
-        Runnable spawn = () -> {
+        final Location finalOrigin = origin;
+        final Runnable spawn = () -> {
             spawnStructure(player, finalOrigin, state.level, state.stage, after);
             player.sendMessage(ChatColor.YELLOW + "Settlement created at " + finalOrigin.getBlockX()+","+finalOrigin.getBlockY()+","+finalOrigin.getBlockZ());
         };
