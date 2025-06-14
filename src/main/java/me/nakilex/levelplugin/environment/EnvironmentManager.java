@@ -108,15 +108,16 @@ public class EnvironmentManager {
 
         if (origin != null) {
             Map<String, EnvironmentState> bMap = buildingStates.get(uuid);
+            final Location finalOrigin = origin;
             Runnable after = null;
             if (bMap != null) {
                 after = () -> {
                     for (var e : bMap.entrySet()) {
-                        spawnBuilding(player, e.getKey(), origin, e.getValue().level, e.getValue().stage, null);
+                        spawnBuilding(player, e.getKey(), finalOrigin, e.getValue().level, e.getValue().stage, null);
                     }
                 };
             }
-            spawnStructure(player, origin, es.level, es.stage, after);
+            spawnStructure(player, finalOrigin, es.level, es.stage, after);
         }
     }
 
