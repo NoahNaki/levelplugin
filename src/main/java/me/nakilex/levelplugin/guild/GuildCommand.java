@@ -203,6 +203,13 @@ public class GuildCommand implements CommandExecutor {
                 }
                 if (manager.acceptAlliance(recA.getName(), args[1])) {
                     player.sendMessage(ChatColor.GREEN + "Alliance formed with " + args[1] + ".");
+                    Guild requestGuild = manager.getGuild(args[1]);
+                    if (requestGuild != null) {
+                        Player reqLeader = Bukkit.getPlayer(requestGuild.getLeader());
+                        if (reqLeader != null) {
+                            reqLeader.sendMessage(ChatColor.GREEN + recA.getName() + " accepted your alliance request.");
+                        }
+                    }
                 } else {
                     player.sendMessage(ChatColor.RED + "No alliance request from that guild.");
                 }
