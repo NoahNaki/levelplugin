@@ -374,7 +374,10 @@ public class EnvironmentManager {
                 Map<Location, org.bukkit.block.data.BlockData> map = new java.util.HashMap<>();
                 for (int i = 0; i < blocksPerTick && it.hasNext(); i++) {
                     TownStageManager.BlockDef b = it.next();
-                    Location loc = origin.clone().add(b.x, b.y, b.z);
+                    Location loc = origin.clone().add(
+                            b.x - stageData.ox,
+                            b.y - stageData.oy,
+                            b.z - stageData.oz);
                     map.put(loc, b.data);
                     Sound breakS = breakSounds[rand.nextInt(breakSounds.length)];
                     Sound placeS = placeSounds[rand.nextInt(placeSounds.length)];
@@ -421,7 +424,10 @@ public class EnvironmentManager {
                 Map<Location, org.bukkit.block.data.BlockData> map = new java.util.HashMap<>();
                 for (int i = 0; i < blocksPerTick && it.hasNext(); i++) {
                     BuildingStageManager.BlockDef b = it.next();
-                    Location loc = origin.clone().add(b.x, b.y, b.z);
+                    Location loc = origin.clone().add(
+                            b.x - stageData.ox,
+                            b.y - stageData.oy,
+                            b.z - stageData.oz);
                     map.put(loc, b.data);
                     Sound breakS = breakSounds[rand.nextInt(breakSounds.length)];
                     Sound placeS = placeSounds[rand.nextInt(placeSounds.length)];
@@ -433,7 +439,10 @@ public class EnvironmentManager {
                     cancel();
                     player.playSound(origin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
                     buildingStageManager.spawnForStage(player, town, building, level, stage, origin);
-                    Location holo = origin.clone().add(stageData.hx + 0.5, stageData.hy, stageData.hz + 0.5);
+                    Location holo = origin.clone().add(
+                            stageData.hx - stageData.ox + 0.5,
+                            stageData.hy - stageData.oy,
+                            stageData.hz - stageData.oz + 0.5);
                     org.bukkit.entity.ArmorStand stand = holo.getWorld().spawn(holo, org.bukkit.entity.ArmorStand.class);
                     stand.addScoreboardTag("building_hologram:" + building.toLowerCase());
                     stand.setVisible(false);
