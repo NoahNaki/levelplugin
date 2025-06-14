@@ -361,33 +361,35 @@ public class EnvironmentManager {
         java.util.List<TownStageManager.BlockDef> blocks = new java.util.ArrayList<>(stageData.blocks);
         blocks.sort(java.util.Comparator.comparingInt(b -> b.y));
 
-        final int totalTime = 20 * 20; // 20 seconds in ticks
-        double step = blocks.isEmpty() ? totalTime : (double) totalTime / blocks.size();
-        double current = 0;
+        int blocksPerTick = Math.max(1, blocks.size() / (20 * 20));
 
         java.util.Random rand = new java.util.Random();
         Sound[] breakSounds = { Sound.BLOCK_STONE_BREAK, Sound.BLOCK_DEEPSLATE_BREAK, Sound.BLOCK_WOOD_BREAK };
         Sound[] placeSounds = { Sound.BLOCK_STONE_PLACE, Sound.BLOCK_DEEPSLATE_PLACE, Sound.BLOCK_WOOD_PLACE };
 
-        for (TownStageManager.BlockDef b : blocks) {
-            long delay = Math.round(current);
-            current += step;
-            Location loc = origin.clone().add(b.x, b.y, b.z);
-            BukkitTask task = Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-                fakeBlockManager.showFakeBlock(player, loc, b.data);
-                Sound breakS = breakSounds[rand.nextInt(breakSounds.length)];
-                Sound placeS = placeSounds[rand.nextInt(placeSounds.length)];
-                player.getWorld().playSound(loc, breakS, 0.7f, 1f);
-                player.getWorld().playSound(loc, placeS, 0.7f, 1f);
-            }, delay);
-            tasks.add(task);
-        }
-
-        BukkitTask finalTask = Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-            player.playSound(origin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
-            stageManager.spawnForStage(player, town, level, stage, origin);
-        }, Math.round(current));
-        tasks.add(finalTask);
+        java.util.Iterator<TownStageManager.BlockDef> it = blocks.iterator();
+        BukkitTask task = new BukkitRunnable() {
+            @Override
+            public void run() {
+                Map<Location, org.bukkit.block.data.BlockData> map = new java.util.HashMap<>();
+                for (int i = 0; i < blocksPerTick && it.hasNext(); i++) {
+                    TownStageManager.BlockDef b = it.next();
+                    Location loc = origin.clone().add(b.x, b.y, b.z);
+                    map.put(loc, b.data);
+                    Sound breakS = breakSounds[rand.nextInt(breakSounds.length)];
+                    Sound placeS = placeSounds[rand.nextInt(placeSounds.length)];
+                    player.getWorld().playSound(loc, breakS, 0.7f, 1f);
+                    player.getWorld().playSound(loc, placeS, 0.7f, 1f);
+                }
+                fakeBlockManager.showFakeBlocks(player, map);
+                if (!it.hasNext()) {
+                    cancel();
+                    player.playSound(origin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
+                    stageManager.spawnForStage(player, town, level, stage, origin);
+                }
+            }
+        }.runTaskTimer(Main.getInstance(), 0L, 1L);
+        tasks.add(task);
         buildTasks.put(uuid, tasks);
     }
 
@@ -406,48 +408,49 @@ public class EnvironmentManager {
         java.util.List<BuildingStageManager.BlockDef> blocks = new java.util.ArrayList<>(stageData.blocks);
         blocks.sort(java.util.Comparator.comparingInt(b -> b.y));
 
-        final int totalTime = 20 * 20;
-        double step = blocks.isEmpty() ? totalTime : (double) totalTime / blocks.size();
-        double current = 0;
+        int blocksPerTick = Math.max(1, blocks.size() / (20 * 20));
 
         java.util.Random rand = new java.util.Random();
         Sound[] breakSounds = { Sound.BLOCK_STONE_BREAK, Sound.BLOCK_DEEPSLATE_BREAK, Sound.BLOCK_WOOD_BREAK };
         Sound[] placeSounds = { Sound.BLOCK_STONE_PLACE, Sound.BLOCK_DEEPSLATE_PLACE, Sound.BLOCK_WOOD_PLACE };
 
-        for (BuildingStageManager.BlockDef b : blocks) {
-            long delay = Math.round(current);
-            current += step;
-            Location loc = origin.clone().add(b.x, b.y, b.z);
-            BukkitTask task = Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-                fakeBlockManager.showFakeBlock(player, loc, b.data);
-                Sound breakS = breakSounds[rand.nextInt(breakSounds.length)];
-                Sound placeS = placeSounds[rand.nextInt(placeSounds.length)];
-                player.getWorld().playSound(loc, breakS, 0.7f, 1f);
-                player.getWorld().playSound(loc, placeS, 0.7f, 1f);
-            }, delay);
-            tasks.add(task);
-        }
-
-        BukkitTask finalTask = Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-            player.playSound(origin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
-            buildingStageManager.spawnForStage(player, town, building, level, stage, origin);
-            // Place the hologram where the stage was defined (+1 Y already stored)
-            Location holo = origin.clone().add(stageData.hx + 0.5, stageData.hy, stageData.hz + 0.5);
-            org.bukkit.entity.ArmorStand stand = holo.getWorld().spawn(holo, org.bukkit.entity.ArmorStand.class);
-            stand.addScoreboardTag("building_hologram:" + building.toLowerCase());
-            stand.setVisible(false);
-            stand.setGravity(false);
-            stand.setCustomName(ChatColor.YELLOW + "Upgrade " + building + " - 1 Oak Log");
-            stand.setCustomNameVisible(true);
-            stand.setSilent(true);
-            stand.setSmall(true);
-            for (Player p : Bukkit.getOnlinePlayers()) {
-                if (!p.equals(player)) p.hideEntity(Main.getInstance(), stand);
+        java.util.Iterator<BuildingStageManager.BlockDef> it = blocks.iterator();
+        BukkitTask task = new BukkitRunnable() {
+            @Override
+            public void run() {
+                Map<Location, org.bukkit.block.data.BlockData> map = new java.util.HashMap<>();
+                for (int i = 0; i < blocksPerTick && it.hasNext(); i++) {
+                    BuildingStageManager.BlockDef b = it.next();
+                    Location loc = origin.clone().add(b.x, b.y, b.z);
+                    map.put(loc, b.data);
+                    Sound breakS = breakSounds[rand.nextInt(breakSounds.length)];
+                    Sound placeS = placeSounds[rand.nextInt(placeSounds.length)];
+                    player.getWorld().playSound(loc, breakS, 0.7f, 1f);
+                    player.getWorld().playSound(loc, placeS, 0.7f, 1f);
+                }
+                fakeBlockManager.showFakeBlocks(player, map);
+                if (!it.hasNext()) {
+                    cancel();
+                    player.playSound(origin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
+                    buildingStageManager.spawnForStage(player, town, building, level, stage, origin);
+                    Location holo = origin.clone().add(stageData.hx + 0.5, stageData.hy, stageData.hz + 0.5);
+                    org.bukkit.entity.ArmorStand stand = holo.getWorld().spawn(holo, org.bukkit.entity.ArmorStand.class);
+                    stand.addScoreboardTag("building_hologram:" + building.toLowerCase());
+                    stand.setVisible(false);
+                    stand.setGravity(false);
+                    stand.setCustomName(ChatColor.YELLOW + "Upgrade " + building + " - 1 Oak Log");
+                    stand.setCustomNameVisible(true);
+                    stand.setSilent(true);
+                    stand.setSmall(true);
+                    for (Player p : Bukkit.getOnlinePlayers()) {
+                        if (!p.equals(player)) p.hideEntity(Main.getInstance(), stand);
+                    }
+                    buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
+                            .put(building.toLowerCase(), stand);
+                }
             }
-            buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
-                    .put(building.toLowerCase(), stand);
-        }, Math.round(current));
-        tasks.add(finalTask);
+        }.runTaskTimer(Main.getInstance(), 0L, 1L);
+        tasks.add(task);
         buildTasks.put(uuid, tasks);
     }
 

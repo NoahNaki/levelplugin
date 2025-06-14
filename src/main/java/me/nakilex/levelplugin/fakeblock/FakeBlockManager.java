@@ -28,6 +28,25 @@ public class FakeBlockManager {
     }
 
     /**
+     * Shows multiple fake blocks at once using {@link Player#sendBlockChanges(java.util.Collection)}
+     * to reduce the number of packets sent.
+     */
+    public void showFakeBlocks(Player player, Map<Location, BlockData> changes) {
+        if (changes.isEmpty()) return;
+        java.util.Collection<org.bukkit.block.BlockState> states = new java.util.ArrayList<>(changes.size());
+        for (var entry : changes.entrySet()) {
+            var loc = entry.getKey();
+            var data = entry.getValue();
+            org.bukkit.block.BlockState state = loc.getBlock().getState();
+            state.setBlockData(data);
+            states.add(state);
+        }
+        player.sendBlockChanges(states);
+        playerBlocks.computeIfAbsent(player.getUniqueId(), k -> new HashMap<>())
+                .putAll(changes);
+    }
+
+    /**
      * Reverts a previously shown fake block for the player.
      */
     public void hideFakeBlock(Player player, Location loc) {
