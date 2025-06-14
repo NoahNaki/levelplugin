@@ -11,6 +11,10 @@ import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.Particle;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -269,7 +273,45 @@ public class EnvironmentManager {
         }
     }
 
-    /** Start a settlement for the player at their current location using the given town name. */
+    private static final String TOWN_WORLD = "flatland";
+    private static final int TOWN_X = 2010;
+    private static final int TOWN_Y = -59;
+    private static final int TOWN_Z = -1242;
+
+    private Location getTownStartLocation() {
+        return new Location(Bukkit.getWorld(TOWN_WORLD), TOWN_X, TOWN_Y, TOWN_Z);
+    }
+
+    private void teleportWithEffect(Player player, Location dest, Runnable after) {
+        var startLoc = player.getLocation().clone();
+        new org.bukkit.scheduler.BukkitRunnable() {
+            int t = 60;
+            @Override public void run() {
+                if(!player.isOnline()) { cancel(); return; }
+                if(player.getLocation().distanceSquared(startLoc) > 0.1) {
+                    player.sendMessage(ChatColor.RED + "Teleport cancelled.");
+                    cancel();
+                    return;
+                }
+                double radius = 3.0*(t/60.0);
+                for(int i=0;i<20;i++) {
+                    double angle = 2*Math.PI*i/20.0;
+                    double x = radius*Math.cos(angle);
+                    double z = radius*Math.sin(angle);
+                    player.getWorld().spawnParticle(org.bukkit.Particle.DRAGON_BREATH,startLoc.clone().add(x,1,z),0,0,0,0,0);
+                }
+                if(--t <= 0) {
+                    player.teleport(dest);
+                    player.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.BLINDNESS,40,0,false,false));
+                    player.getWorld().spawnParticle(org.bukkit.Particle.FLASH, player.getLocation(), 20, 0.5,0.5,0.5,0);
+                    if(after != null) after.run();
+                    cancel();
+                }
+            }
+        }.runTaskTimer(Main.getInstance(),0L,1L);
+    }
+
+    /** Start a settlement for the player at a fixed location using the given town name. */
     public void startTown(Player player, String townName) {
         UUID uuid = player.getUniqueId();
         if (origins.containsKey(uuid)) {
@@ -280,7 +322,7 @@ public class EnvironmentManager {
             player.sendMessage(ChatColor.RED + "Unknown town type.");
             return;
         }
-        Location origin = player.getLocation().getBlock().getLocation();
+        Location origin = getTownStartLocation();
         origins.put(uuid, origin);
         towns.put(uuid, townName.toLowerCase());
         // initialize building progress for all defined buildings of this town
@@ -306,9 +348,12 @@ public class EnvironmentManager {
                 }
             };
         }
-        spawnStructure(player, origin, state.level, state.stage, after);
-
-        player.sendMessage(ChatColor.YELLOW + "Settlement created at " + origin.getBlockX()+","+origin.getBlockY()+","+origin.getBlockZ());
+        Location finalOrigin = origin;
+        Runnable spawn = () -> {
+            spawnStructure(player, finalOrigin, state.level, state.stage, after);
+            player.sendMessage(ChatColor.YELLOW + "Settlement created at " + finalOrigin.getBlockX()+","+finalOrigin.getBlockY()+","+finalOrigin.getBlockZ());
+        };
+        teleportWithEffect(player, origin, spawn);
     }
 
     /** Remove the player's settlement so they can start over. */
@@ -363,7 +408,7 @@ public class EnvironmentManager {
         for (TownStageManager.BlockDef b : blocks) {
             long delay = Math.round(current);
             current += step;
-            Location loc = origin.clone().add(b.x, b.y, b.z);
+            Location loc = origin.clone().add(b.x - stageData.ox, b.y - stageData.oy, b.z - stageData.oz);
             BukkitTask task = Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
                 fakeBlockManager.showFakeBlock(player, loc, b.data);
                 Sound breakS = breakSounds[rand.nextInt(breakSounds.length)];
