@@ -26,8 +26,10 @@ public class StorageGUI {
     private int currentPage;
     private final StorageEvents storageEvents;
 
-    /** Cost to unlock the next new page; starts at 300 and doubles each purchase */
-    private int currentPageCost = 300;
+    /** Base price for unlocking storage pages. */
+    private static final int BASE_PAGE_COST = 300;
+    /** Cost to unlock the next new page. */
+    private int currentPageCost = BASE_PAGE_COST;
 
     private boolean confirmUnlock = false;
     private int sortMode = 0;
@@ -49,6 +51,8 @@ public class StorageGUI {
 
         // initialize with one blank page
         pages.add(createBlankPage(1));
+        // initial cost based on existing page count
+        this.currentPageCost = BASE_PAGE_COST * pages.size();
     }
 
     /**
@@ -106,6 +110,7 @@ public class StorageGUI {
         }
 
         updateNavigationItems(inv);
+        applySortAndFilter(inv);
         inv.setItem(SORT_SLOT, createSortButton(sortMode));
         inv.setItem(FILTER_SLOT, createFilterButton(filterMode));
         inv.setItem(INFO_SLOT, createInfoItem());
@@ -143,7 +148,7 @@ public class StorageGUI {
         else if (slot == FILTER_SLOT) {
             event.setCancelled(true);
             if (event.isLeftClick()) filterMode++; else filterMode--;
-            if (filterMode > 1) filterMode = 0; if (filterMode < 0) filterMode = 1;
+            if (filterMode > 5) filterMode = 0; if (filterMode < 0) filterMode = 5;
             open((Player) event.getWhoClicked());
         }
         else if (slot == INFO_SLOT || slot < 9 || slot >= 45 || slot % 9 == 0 || slot % 9 == 8) {
@@ -200,7 +205,8 @@ public class StorageGUI {
             );
 
             pages.add(createBlankPage(pages.size() + 1));
-            currentPageCost *= 2;
+            // next page cost scales with current page count
+            currentPageCost = BASE_PAGE_COST * pages.size();
         }
 
         confirmUnlock = false;
@@ -231,6 +237,8 @@ public class StorageGUI {
             pages.addAll(loaded);
         }
         currentPage = 0;
+        // recalculate unlock cost based on loaded page count
+        this.currentPageCost = BASE_PAGE_COST * pages.size();
     }
 
 
@@ -282,7 +290,7 @@ public class StorageGUI {
             lore.add(ChatColor.GRAY + "");
             lore.add(ChatColor.DARK_GRAY + "Sort the items");
             lore.add(" ");
-            String[] opts = {"None", "A-Z", "Z-A"};
+            String[] opts = {"None", "Rarity \u2193", "Rarity \u2191"};
             for (int i = 0; i < opts.length; i++) {
                 lore.add(rangeLine(i, mode, opts[i]));
             }
@@ -304,7 +312,7 @@ public class StorageGUI {
             lore.add(ChatColor.GRAY + "");
             lore.add(ChatColor.DARK_GRAY + "Filter items");
             lore.add(" ");
-            String[] opts = {"Show All", "Blocks Only"};
+            String[] opts = {"Lv. 1-19", "Lv. 20-39", "Lv. 40-59", "Lv. 60-79", "Lv. 80+", "Show All"};
             for (int i = 0; i < opts.length; i++) {
                 lore.add(rangeLine(i, mode, opts[i]));
             }
@@ -327,5 +335,71 @@ public class StorageGUI {
             info.setItemMeta(meta);
         }
         return info;
+    }
+
+    // -----------------------------------------------------------------------
+    // Helper methods for sorting/filtering
+    // -----------------------------------------------------------------------
+
+    /** List of slots that store actual items (excluding borders and controls). */
+    private static final List<Integer> STORAGE_SLOTS = new ArrayList<>();
+    static {
+        for (int i = 0; i < PAGE_SIZE; i++) {
+            if (i == NAV_NEXT_SLOT || i == NAV_PREV_SLOT || i == SORT_SLOT ||
+                i == FILTER_SLOT || i == INFO_SLOT) continue;
+            if (i < 9 || i >= 45 || i % 9 == 0 || i % 9 == 8) continue;
+            STORAGE_SLOTS.add(i);
+        }
+    }
+
+    private int getRarityOrdinal(ItemStack item) {
+        me.nakilex.levelplugin.items.data.CustomItem ci =
+            me.nakilex.levelplugin.items.managers.ItemManager.getInstance()
+                .getCustomItemFromItemStack(item);
+        return ci != null ? ci.getRarity().ordinal() : 0;
+    }
+
+    private boolean matchesLevelFilter(ItemStack item, int filter) {
+        if (filter == 5) return true;
+        me.nakilex.levelplugin.items.data.CustomItem ci =
+            me.nakilex.levelplugin.items.managers.ItemManager.getInstance()
+                .getCustomItemFromItemStack(item);
+        int level = ci != null ? ci.getLevelRequirement() : 0;
+        return switch (filter) {
+            case 0 -> level >= 1 && level <= 19;
+            case 1 -> level >= 20 && level <= 39;
+            case 2 -> level >= 40 && level <= 59;
+            case 3 -> level >= 60 && level <= 79;
+            case 4 -> level >= 80;
+            default -> true;
+        };
+    }
+
+    /** Apply current sort and filter settings to a page before showing it. */
+    private void applySortAndFilter(Inventory inv) {
+        List<ItemStack> items = new ArrayList<>();
+        for (int slot : STORAGE_SLOTS) {
+            ItemStack it = inv.getItem(slot);
+            if (it != null && it.getType() != Material.AIR) {
+                items.add(it);
+            }
+            inv.setItem(slot, null);
+        }
+
+        if (sortMode == 1) {
+            items.sort(java.util.Comparator.comparingInt(this::getRarityOrdinal).reversed());
+        } else if (sortMode == 2) {
+            items.sort(java.util.Comparator.comparingInt(this::getRarityOrdinal));
+        }
+
+        if (filterMode != 5) {
+            items.removeIf(it -> !matchesLevelFilter(it, filterMode));
+        }
+
+        int idx = 0;
+        for (int slot : STORAGE_SLOTS) {
+            if (idx >= items.size()) break;
+            inv.setItem(slot, items.get(idx++));
+        }
     }
 }
