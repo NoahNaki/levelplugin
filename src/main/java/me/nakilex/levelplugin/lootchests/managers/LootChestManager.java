@@ -378,7 +378,7 @@ public class LootChestManager {
 
         // 2) Attempt to remove the Nexo furniture at that location
         //    The remove(...) call will find the barrier entity/display entity combo and delete them.
-        boolean removed = NexoFurniture.remove(loc, null);
+        boolean removed = NexoFurniture.remove(loc);
         if (!removed) {
             plugin.getLogger().warning("[LootChestManager] Could not remove Nexo furniture at " + loc +
                 " (ID " + chestId + "). Maybe it's already gone?");
