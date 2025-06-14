@@ -88,11 +88,17 @@ public class BuildingStageCommand implements CommandExecutor, Listener {
                 if (args.length < 3) return false;
                 String lbName = args[1].toLowerCase();
                 String town = args[2].toLowerCase();
-                var start = plugin.getEnvironmentManager().getTownStartLocation();
+                var townStage = plugin.getTownStageManager().getStage(town, 1, 1);
+                if (townStage == null) {
+                    p.sendMessage(ChatColor.RED + "Unknown town.");
+                    return true;
+                }
+                // origin of the town when it was captured
+                var origin = townStage.pos1.clone().add(townStage.ox, townStage.oy, townStage.oz);
                 var here = p.getLocation().getBlock().getLocation();
-                int dx = here.getBlockX() - start.getBlockX();
-                int dy = here.getBlockY() - start.getBlockY();
-                int dz = here.getBlockZ() - start.getBlockZ();
+                int dx = here.getBlockX() - origin.getBlockX();
+                int dy = here.getBlockY() - origin.getBlockY();
+                int dz = here.getBlockZ() - origin.getBlockZ();
                 manager.linkBuilding(town, lbName, dx, dy, dz);
                 p.sendMessage(ChatColor.GREEN + "Linked " + lbName + " to " + town + ".");
                 return true;
