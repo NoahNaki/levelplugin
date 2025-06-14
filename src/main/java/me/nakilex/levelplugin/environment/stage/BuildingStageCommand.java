@@ -94,11 +94,11 @@ public class BuildingStageCommand implements CommandExecutor, Listener {
                     return true;
                 }
                 // origin of the town when it was captured
-                var origin = townStage.pos1.clone().add(townStage.ox, townStage.oy, townStage.oz);
+                var townOrigin = townStage.pos1.clone().add(townStage.ox, townStage.oy, townStage.oz);
                 var here = p.getLocation().getBlock().getLocation();
-                int dx = here.getBlockX() - origin.getBlockX();
-                int dy = here.getBlockY() - origin.getBlockY();
-                int dz = here.getBlockZ() - origin.getBlockZ();
+                int dx = here.getBlockX() - townOrigin.getBlockX();
+                int dy = here.getBlockY() - townOrigin.getBlockY();
+                int dz = here.getBlockZ() - townOrigin.getBlockZ();
                 manager.linkBuilding(town, lbName, dx, dy, dz);
                 p.sendMessage(ChatColor.GREEN + "Linked " + lbName + " to " + town + ".");
                 return true;
