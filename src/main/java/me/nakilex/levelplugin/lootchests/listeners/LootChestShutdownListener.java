@@ -23,6 +23,7 @@ public class LootChestShutdownListener implements Listener {
     @EventHandler
     public void onPluginDisable(PluginDisableEvent event) {
         if (!event.getPlugin().equals(plugin)) return;
+        plugin.getLogger().info("[LootChestShutdownListener] Cleaning up loot chest crates...");
         lootChestManager.removeAllChests();
     }
 }

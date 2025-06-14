@@ -517,6 +517,7 @@ public class LootChestManager {
             // Keep removing until no more furniture models exist at this spot
             while (NexoFurniture.remove(loc)) {
                 removedCount++;
+                plugin.getLogger().info("[LootChestManager] Removed leftover crate model at " + loc);
             }
 
             if (removedCount > 0) {
