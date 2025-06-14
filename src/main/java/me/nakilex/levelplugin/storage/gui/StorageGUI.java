@@ -69,22 +69,27 @@ public class StorageGUI {
         ItemStack nextItem;
         if (currentPage == pages.size() - 1) {
             if (confirmUnlock) {
-                nextItem = getNexoItem("check", ChatColor.GREEN + "Confirm " + currentPageCost + " coins");
+                nextItem = getNexoItem("check",
+                        ChatColor.GREEN + "Confirm " + currentPageCost + " ⛃");
             } else {
-                nextItem = getNexoItem("arrow_right", ChatColor.YELLOW + "Unlock Page: " + currentPageCost + " coins");
+                nextItem = getNexoItem("arrow_right",
+                        ChatColor.GRAY + "Unlock Page: " + ChatColor.YELLOW + currentPageCost + " ⛃");
             }
         } else {
             nextItem = getNexoItem("arrow_right", ChatColor.YELLOW + "Next Page");
         }
         inv.setItem(NAV_NEXT_SLOT, nextItem);
 
-        // Previous arrow: only if not on first page
-        if (currentPage > 0) {
-            inv.setItem(NAV_PREV_SLOT,
-                getNexoItem("arrow_left", ChatColor.YELLOW + "Previous Page"));
+        // Previous arrow slot behavior
+        ItemStack prevItem;
+        if (confirmUnlock) {
+            prevItem = getNexoItem("cross", ChatColor.RED + "Cancel");
+        } else if (currentPage > 0) {
+            prevItem = getNexoItem("arrow_left", ChatColor.YELLOW + "Previous Page");
         } else {
-            inv.setItem(NAV_PREV_SLOT, null);
+            prevItem = FILLER.clone();
         }
+        inv.setItem(NAV_PREV_SLOT, prevItem);
     }
 
     /**
