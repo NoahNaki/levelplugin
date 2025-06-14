@@ -463,7 +463,10 @@ public class EnvironmentManager {
         for (BuildingStageManager.BlockDef b : blocks) {
             long delay = Math.round(current);
             current += step;
-            Location loc = origin.clone().add(b.x, b.y, b.z);
+            Location loc = origin.clone().add(
+                    b.x - stageData.ox,
+                    b.y - stageData.oy,
+                    b.z - stageData.oz);
             BukkitTask task = Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
                 fakeBlockManager.showFakeBlock(player, loc, b.data);
                 Sound breakS = breakSounds[rand.nextInt(breakSounds.length)];
@@ -478,7 +481,10 @@ public class EnvironmentManager {
             player.playSound(origin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
             buildingStageManager.spawnForStage(player, town, building, level, stage, origin);
             // Place the hologram where the stage was defined (+1 Y already stored)
-            Location holo = origin.clone().add(stageData.hx + 0.5, stageData.hy, stageData.hz + 0.5);
+            Location holo = origin.clone().add(
+                    stageData.hx - stageData.ox + 0.5,
+                    stageData.hy - stageData.oy,
+                    stageData.hz - stageData.oz + 0.5);
             org.bukkit.entity.ArmorStand stand = holo.getWorld().spawn(holo, org.bukkit.entity.ArmorStand.class);
             stand.addScoreboardTag("building_hologram:" + building.toLowerCase());
             stand.setVisible(false);

@@ -61,7 +61,8 @@ public class BuildingStageManager {
 
     /** Create a new stage from the selected area. */
     public void createStage(String town, String building, int level, int stage,
-                            Location pos1, Location pos2, Location standLoc) {
+                            Location pos1, Location pos2, Location standLoc,
+                            Location origin) {
         List<NPCSpawn> npcs = captureNPCs(pos1, pos2);
         List<BlockDef> blocks = captureBlocks(pos1, pos2);
 
@@ -73,11 +74,16 @@ public class BuildingStageManager {
         int hy = standLoc.getBlockY() - minY;
         int hz = standLoc.getBlockZ() - minZ;
 
+        int ox = origin.getBlockX() - minX;
+        int oy = origin.getBlockY() - minY;
+        int oz = origin.getBlockZ() - minZ;
+
         stages
             .computeIfAbsent(town.toLowerCase(), k -> new HashMap<>())
             .computeIfAbsent(building.toLowerCase(), k -> new HashMap<>())
             .computeIfAbsent(level, k -> new HashMap<>())
-            .put(stage, new BuildingStage(building.toLowerCase(), level, stage, pos1, pos2, npcs, blocks, hx, hy, hz));
+            .put(stage, new BuildingStage(building.toLowerCase(), level, stage, pos1, pos2,
+                    npcs, blocks, hx, hy, hz, ox, oy, oz));
         saveConfig();
     }
 
@@ -118,7 +124,11 @@ public class BuildingStageManager {
             NPC template = CitizensAPI.getNPCRegistry().getById(spawn.id);
             if (template == null) continue;
             NPC clone = template.copy();
-            Location loc = origin.clone().add(spawn.x + 0.5, spawn.y + NPC_SPAWN_Y_OFFSET, spawn.z + 0.5);
+            Location loc = origin.clone().add(
+                    spawn.x - st.ox + 0.5,
+                    spawn.y - st.oy + NPC_SPAWN_Y_OFFSET,
+                    spawn.z - st.oz + 0.5
+            );
             loc.setYaw(spawn.yaw);
             loc.setPitch(spawn.pitch);
             clone.getOrAddTrait(CurrentLocation.class).setLocation(loc);
@@ -284,11 +294,15 @@ public class BuildingStageManager {
                         int hx = config.getInt(base + "holo.x", 0);
                         int hy = config.getInt(base + "holo.y", 0);
                         int hz = config.getInt(base + "holo.z", 0);
+                        int ox = config.getInt(base + "origin.x", 0);
+                        int oy = config.getInt(base + "origin.y", 0);
+                        int oz = config.getInt(base + "origin.z", 0);
                         stages
                             .computeIfAbsent(town.toLowerCase(), k -> new HashMap<>())
                             .computeIfAbsent(building.toLowerCase(), k -> new HashMap<>())
                             .computeIfAbsent(level, k -> new HashMap<>())
-                            .put(stage, new BuildingStage(building.toLowerCase(), level, stage, pos1, pos2, npcList, blockList, hx, hy, hz));
+                            .put(stage, new BuildingStage(building.toLowerCase(), level, stage,
+                                    pos1, pos2, npcList, blockList, hx, hy, hz, ox, oy, oz));
                     }
                 }
             }
@@ -337,6 +351,9 @@ public class BuildingStageManager {
                         config.set(base + "holo.x", st.hx);
                         config.set(base + "holo.y", st.hy);
                         config.set(base + "holo.z", st.hz);
+                        config.set(base + "origin.x", st.ox);
+                        config.set(base + "origin.y", st.oy);
+                        config.set(base + "origin.z", st.oz);
                     }
                 }
             }
@@ -373,9 +390,11 @@ public class BuildingStageManager {
         public final List<NPCSpawn> npcs;
         public final List<BlockDef> blocks;
         public final int hx, hy, hz;
+        public final int ox, oy, oz;
         public BuildingStage(String name, int level, int stage, Location pos1, Location pos2,
                              List<NPCSpawn> npcs, List<BlockDef> blocks,
-                             int hx, int hy, int hz) {
+                             int hx, int hy, int hz,
+                             int ox, int oy, int oz) {
             this.name = name;
             this.level = level;
             this.stage = stage;
@@ -386,6 +405,9 @@ public class BuildingStageManager {
             this.hx = hx;
             this.hy = hy;
             this.hz = hz;
+            this.ox = ox;
+            this.oy = oy;
+            this.oz = oz;
         }
     }
 

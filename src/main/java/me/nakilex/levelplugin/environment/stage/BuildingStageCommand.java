@@ -67,7 +67,8 @@ public class BuildingStageCommand implements CommandExecutor, Listener {
                 int stage = parseInt(args[4], 1);
                 // Save where the player ran the command and raise it one block
                 Location stand = p.getLocation().clone().add(0.5, 1.0, 0.5);
-                manager.createStage(town, bName, level, stage, pos1, pos2, stand);
+                Location origin = p.getLocation().getBlock().getLocation();
+                manager.createStage(town, bName, level, stage, pos1, pos2, stand, origin);
                 p.sendMessage(ChatColor.GREEN + "Stage " + bName + " created.");
                 return true;
             case "remove":
