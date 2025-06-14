@@ -105,8 +105,11 @@ public class StorageGUI {
         inv.setItem(FILTER_SLOT, createFilterButton(filterMode));
         inv.setItem(INFO_SLOT, createInfoItem());
 
-        storageEvents.registerInventory(this, inv);
+        // Register after opening so InventoryCloseEvent from the previous page
+        // does not immediately unregister this one when navigating or
+        // refreshing the same inventory.
         player.openInventory(inv);
+        storageEvents.registerInventory(this, inv);
     }
 
     /**
