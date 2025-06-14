@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.storage.gui;
 
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.storage.data.FileHandler;
 import me.nakilex.levelplugin.storage.events.StorageEvents;
 import com.nexomc.nexo.api.NexoItems;
@@ -186,9 +187,7 @@ public class StorageGUI {
                 return;
             }
 
-            EconomyManager econ = new EconomyManager(
-                Bukkit.getPluginManager().getPlugin("LevelPlugin")
-            );
+            EconomyManager econ = Main.getInstance().getEconomyManager();
             int balance = econ.getBalance(player);
             if (balance < currentPageCost) {
                 player.sendMessage(
