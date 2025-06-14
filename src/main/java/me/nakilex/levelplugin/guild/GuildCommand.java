@@ -52,14 +52,14 @@ public class GuildCommand implements CommandExecutor {
                     player.sendMessage(ChatColor.RED + "Usage: /guild invite <player>");
                     return true;
                 }
-                Player target = Bukkit.getPlayer(args[1]);
-                if (target == null) {
+                Player targetPlayer = Bukkit.getPlayer(args[1]);
+                if (targetPlayer == null) {
                     player.sendMessage(ChatColor.RED + "Player not found");
                     return true;
                 }
-                if (manager.invite(id, target.getUniqueId())) {
-                    player.sendMessage(ChatColor.GREEN + "Invite sent to " + target.getName());
-                    target.sendMessage(ChatColor.YELLOW + player.getName() + " invited you to join their guild. Type /guild accept to join.");
+                if (manager.invite(id, targetPlayer.getUniqueId())) {
+                    player.sendMessage(ChatColor.GREEN + "Invite sent to " + targetPlayer.getName());
+                    targetPlayer.sendMessage(ChatColor.YELLOW + player.getName() + " invited you to join their guild. Type /guild accept to join.");
                 } else {
                     player.sendMessage(ChatColor.RED + "Could not invite player");
                 }
@@ -135,9 +135,9 @@ public class GuildCommand implements CommandExecutor {
                 }
                 if (manager.requestAlliance(my.getName(), args[1])) {
                     player.sendMessage(ChatColor.GREEN + "Alliance request sent.");
-                    Guild target = manager.getGuild(args[1]);
-                    if (target != null) {
-                        Player leader = Bukkit.getPlayer(target.getLeader());
+                    Guild targetGuild = manager.getGuild(args[1]);
+                    if (targetGuild != null) {
+                        Player leader = Bukkit.getPlayer(targetGuild.getLeader());
                         if (leader != null) {
                             leader.sendMessage(ChatColor.YELLOW + my.getName() + " has requested an alliance with your guild. Use /guild allyaccept " + my.getName() + " to accept.");
                         }
@@ -174,9 +174,9 @@ public class GuildCommand implements CommandExecutor {
                 }
                 if (manager.requestNeutral(myn.getName(), args[1])) {
                     player.sendMessage(ChatColor.GREEN + "Neutrality request sent.");
-                    Guild target = manager.getGuild(args[1]);
-                    if (target != null) {
-                        Player leaderN = Bukkit.getPlayer(target.getLeader());
+                    Guild neutralTarget = manager.getGuild(args[1]);
+                    if (neutralTarget != null) {
+                        Player leaderN = Bukkit.getPlayer(neutralTarget.getLeader());
                         if (leaderN != null) {
                             leaderN.sendMessage(ChatColor.YELLOW + myn.getName() + " has requested neutrality. Use /guild neutralaccept " + myn.getName() + " to accept.");
                         }
