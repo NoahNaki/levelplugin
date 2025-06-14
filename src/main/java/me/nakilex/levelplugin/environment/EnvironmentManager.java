@@ -409,39 +409,42 @@ public class EnvironmentManager {
         var stageData = stageManager.getStage(town, level, stage);
         if (stageData == null) return;
 
-        java.util.List<BukkitTask> tasks = new java.util.ArrayList<>();
-
         java.util.List<TownStageManager.BlockDef> blocks = new java.util.ArrayList<>(stageData.blocks);
         blocks.sort(java.util.Comparator.comparingInt(b -> b.y));
 
         final int totalTime = 20 * 20; // 20 seconds in ticks
-        double step = blocks.isEmpty() ? totalTime : (double) totalTime / blocks.size();
-        double current = 0;
+        final int blocksPerTick = Math.max(1, blocks.size() / totalTime);
 
         java.util.Random rand = new java.util.Random();
         Sound[] breakSounds = { Sound.BLOCK_STONE_BREAK, Sound.BLOCK_DEEPSLATE_BREAK, Sound.BLOCK_WOOD_BREAK };
         Sound[] placeSounds = { Sound.BLOCK_STONE_PLACE, Sound.BLOCK_DEEPSLATE_PLACE, Sound.BLOCK_WOOD_PLACE };
 
-        for (TownStageManager.BlockDef b : blocks) {
-            long delay = Math.round(current);
-            current += step;
-            Location loc = origin.clone().add(b.x - stageData.ox, b.y - stageData.oy, b.z - stageData.oz);
-            BukkitTask task = Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-                fakeBlockManager.showFakeBlock(player, loc, b.data);
-                Sound breakS = breakSounds[rand.nextInt(breakSounds.length)];
-                Sound placeS = placeSounds[rand.nextInt(placeSounds.length)];
-                player.getWorld().playSound(loc, breakS, 0.7f, 1f);
-                player.getWorld().playSound(loc, placeS, 0.7f, 1f);
-            }, delay);
-            tasks.add(task);
-        }
+        BukkitTask task = new BukkitRunnable() {
+            int index = 0;
+            @Override public void run() {
+                if (!player.isOnline()) { cancel(); return; }
+                Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
+                for (int i = 0; i < blocksPerTick && index < blocks.size(); i++, index++) {
+                    TownStageManager.BlockDef b = blocks.get(index);
+                    Location loc = origin.clone().add(b.x - stageData.ox, b.y - stageData.oy, b.z - stageData.oz);
+                    batch.put(loc, b.data);
+                    Sound breakS = breakSounds[rand.nextInt(breakSounds.length)];
+                    Sound placeS = placeSounds[rand.nextInt(placeSounds.length)];
+                    player.getWorld().playSound(loc, breakS, 0.7f, 1f);
+                    player.getWorld().playSound(loc, placeS, 0.7f, 1f);
+                }
+                fakeBlockManager.showFakeBlocks(player, batch);
+                if (index >= blocks.size()) {
+                    player.playSound(origin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
+                    stageManager.spawnForStage(player, town, level, stage, origin);
+                    if (after != null) after.run();
+                    cancel();
+                }
+            }
+        }.runTaskTimer(Main.getInstance(), 0L, 1L);
 
-        BukkitTask finalTask = Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-            player.playSound(origin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
-            stageManager.spawnForStage(player, town, level, stage, origin);
-            if (after != null) after.run();
-        }, Math.round(current));
-        tasks.add(finalTask);
+        java.util.List<BukkitTask> tasks = new java.util.ArrayList<>();
+        tasks.add(task);
         buildTasks.put(uuid, tasks);
     }
 
@@ -458,59 +461,63 @@ public class EnvironmentManager {
         var stageData = buildingStageManager.getStage(building, level, stage);
         if (stageData == null) return;
 
-        java.util.List<BukkitTask> tasks = new java.util.ArrayList<>();
         java.util.List<BuildingStageManager.BlockDef> blocks = new java.util.ArrayList<>(stageData.blocks);
         blocks.sort(java.util.Comparator.comparingInt(b -> b.y));
 
         final int totalTime = 20 * 20;
-        double step = blocks.isEmpty() ? totalTime : (double) totalTime / blocks.size();
-        double current = 0;
+        final int blocksPerTick = Math.max(1, blocks.size() / totalTime);
 
         java.util.Random rand = new java.util.Random();
         Sound[] breakSounds = { Sound.BLOCK_STONE_BREAK, Sound.BLOCK_DEEPSLATE_BREAK, Sound.BLOCK_WOOD_BREAK };
         Sound[] placeSounds = { Sound.BLOCK_STONE_PLACE, Sound.BLOCK_DEEPSLATE_PLACE, Sound.BLOCK_WOOD_PLACE };
 
-        for (BuildingStageManager.BlockDef b : blocks) {
-            long delay = Math.round(current);
-            current += step;
-            Location loc = origin.clone().add(
-                    b.x - stageData.ox,
-                    b.y - stageData.oy,
-                    b.z - stageData.oz);
-            BukkitTask task = Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-                fakeBlockManager.showFakeBlock(player, loc, b.data);
-                Sound breakS = breakSounds[rand.nextInt(breakSounds.length)];
-                Sound placeS = placeSounds[rand.nextInt(placeSounds.length)];
-                player.getWorld().playSound(loc, breakS, 0.7f, 1f);
-                player.getWorld().playSound(loc, placeS, 0.7f, 1f);
-            }, delay);
-            tasks.add(task);
-        }
-
-        BukkitTask finalTask = Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-            player.playSound(origin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
-            buildingStageManager.spawnForStage(player, building, level, stage, origin);
-            // Place the hologram where the stage was defined (+1 Y already stored)
-            Location holo = origin.clone().add(
-                    stageData.hx - stageData.ox + 0.5,
-                    stageData.hy - stageData.oy,
-                    stageData.hz - stageData.oz + 0.5);
-            org.bukkit.entity.ArmorStand stand = holo.getWorld().spawn(holo, org.bukkit.entity.ArmorStand.class);
-            stand.addScoreboardTag("building_hologram:" + building.toLowerCase());
-            stand.setVisible(false);
-            stand.setGravity(false);
-            stand.setCustomName(ChatColor.YELLOW + "Upgrade " + building + " - 1 Oak Log");
-            stand.setCustomNameVisible(true);
-            stand.setSilent(true);
-            stand.setSmall(true);
-            for (Player p : Bukkit.getOnlinePlayers()) {
-                if (!p.equals(player)) p.hideEntity(Main.getInstance(), stand);
+        BukkitTask task = new BukkitRunnable() {
+            int index = 0;
+            @Override public void run() {
+                if (!player.isOnline()) { cancel(); return; }
+                Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
+                for (int i = 0; i < blocksPerTick && index < blocks.size(); i++, index++) {
+                    BuildingStageManager.BlockDef b = blocks.get(index);
+                    Location loc = origin.clone().add(
+                            b.x - stageData.ox,
+                            b.y - stageData.oy,
+                            b.z - stageData.oz);
+                    batch.put(loc, b.data);
+                    Sound breakS = breakSounds[rand.nextInt(breakSounds.length)];
+                    Sound placeS = placeSounds[rand.nextInt(placeSounds.length)];
+                    player.getWorld().playSound(loc, breakS, 0.7f, 1f);
+                    player.getWorld().playSound(loc, placeS, 0.7f, 1f);
+                }
+                fakeBlockManager.showFakeBlocks(player, batch);
+                if (index >= blocks.size()) {
+                    player.playSound(origin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
+                    buildingStageManager.spawnForStage(player, building, level, stage, origin);
+                    // Place the hologram where the stage was defined (+1 Y already stored)
+                    Location holo = origin.clone().add(
+                            stageData.hx - stageData.ox + 0.5,
+                            stageData.hy - stageData.oy,
+                            stageData.hz - stageData.oz + 0.5);
+                    org.bukkit.entity.ArmorStand stand = holo.getWorld().spawn(holo, org.bukkit.entity.ArmorStand.class);
+                    stand.addScoreboardTag("building_hologram:" + building.toLowerCase());
+                    stand.setVisible(false);
+                    stand.setGravity(false);
+                    stand.setCustomName(ChatColor.YELLOW + "Upgrade " + building + " - 1 Oak Log");
+                    stand.setCustomNameVisible(true);
+                    stand.setSilent(true);
+                    stand.setSmall(true);
+                    for (Player p : Bukkit.getOnlinePlayers()) {
+                        if (!p.equals(player)) p.hideEntity(Main.getInstance(), stand);
+                    }
+                    buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
+                            .put(building.toLowerCase(), stand);
+                    if (after != null) after.run();
+                    cancel();
+                }
             }
-            buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
-                    .put(building.toLowerCase(), stand);
-            if (after != null) after.run();
-        }, Math.round(current));
-        tasks.add(finalTask);
+        }.runTaskTimer(Main.getInstance(), 0L, 1L);
+
+        java.util.List<BukkitTask> tasks = new java.util.ArrayList<>();
+        tasks.add(task);
         buildTasks.put(uuid, tasks);
     }
 

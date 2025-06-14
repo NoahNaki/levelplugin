@@ -28,6 +28,29 @@ public class FakeBlockManager {
     }
 
     /**
+     * Shows multiple fake blocks at once. Useful for large selections where
+     * calling {@link #showFakeBlock(Player, Location, BlockData)} for every
+     * block individually would create a large amount of scheduled tasks.
+     * The changes are remembered so they can later be reverted via
+     * {@link #clear(Player)}.
+     */
+    public void showFakeBlocks(Player player, Map<Location, BlockData> blocks) {
+        if (blocks == null || blocks.isEmpty()) return;
+        // send block changes in bulk if supported by the server API
+        try {
+            player.sendBlockChanges(blocks);
+        } catch (NoSuchMethodError ignore) {
+            // Fallback for older API versions - send changes one by one
+            for (var entry : blocks.entrySet()) {
+                player.sendBlockChange(entry.getKey(), entry.getValue());
+            }
+        }
+        playerBlocks
+            .computeIfAbsent(player.getUniqueId(), k -> new HashMap<>())
+            .putAll(blocks);
+    }
+
+    /**
      * Reverts a previously shown fake block for the player.
      */
     public void hideFakeBlock(Player player, Location loc) {
