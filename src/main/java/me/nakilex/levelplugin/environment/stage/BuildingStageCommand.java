@@ -93,12 +93,21 @@ public class BuildingStageCommand implements CommandExecutor, Listener {
                     p.sendMessage(ChatColor.RED + "Unknown town.");
                     return true;
                 }
-                // origin of the town when it was captured
-                var townOrigin = townStage.pos1.clone().add(townStage.ox, townStage.oy, townStage.oz);
-                var here = p.getLocation().getBlock().getLocation();
-                int dx = here.getBlockX() - townOrigin.getBlockX();
-                int dy = here.getBlockY() - townOrigin.getBlockY();
-                int dz = here.getBlockZ() - townOrigin.getBlockZ();
+                var buildOrigin = manager.getStageOrigin(lbName);
+                if (buildOrigin == null) {
+                    p.sendMessage(ChatColor.RED + "Unknown building stage.");
+                    return true;
+                }
+                int tMinX = Math.min(townStage.pos1.getBlockX(), townStage.pos2.getBlockX());
+                int tMinY = Math.min(townStage.pos1.getBlockY(), townStage.pos2.getBlockY());
+                int tMinZ = Math.min(townStage.pos1.getBlockZ(), townStage.pos2.getBlockZ());
+                var townOrigin = new Location(townStage.pos1.getWorld(),
+                        tMinX + townStage.ox,
+                        tMinY + townStage.oy,
+                        tMinZ + townStage.oz);
+                int dx = buildOrigin.getBlockX() - townOrigin.getBlockX();
+                int dy = buildOrigin.getBlockY() - townOrigin.getBlockY();
+                int dz = buildOrigin.getBlockZ() - townOrigin.getBlockZ();
                 manager.linkBuilding(town, lbName, dx, dy, dz);
                 p.sendMessage(ChatColor.GREEN + "Linked " + lbName + " to " + town + ".");
                 return true;

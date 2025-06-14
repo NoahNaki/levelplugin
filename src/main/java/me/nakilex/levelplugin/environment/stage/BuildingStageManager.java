@@ -109,6 +109,16 @@ public class BuildingStageManager {
         return map.get(building.toLowerCase());
     }
 
+    /** Absolute origin location recorded when the building stage was created. */
+    public Location getStageOrigin(String building) {
+        BuildingStage st = getStage(building, 1, 1);
+        if (st == null) return null;
+        int minX = Math.min(st.pos1.getBlockX(), st.pos2.getBlockX());
+        int minY = Math.min(st.pos1.getBlockY(), st.pos2.getBlockY());
+        int minZ = Math.min(st.pos1.getBlockZ(), st.pos2.getBlockZ());
+        return new Location(st.pos1.getWorld(), minX + st.ox, minY + st.oy, minZ + st.oz);
+    }
+
     // Offset for spawning NPCs. Use zero so they stand directly on the ground.
     private static final double NPC_SPAWN_Y_OFFSET = 0.0;
 
