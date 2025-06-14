@@ -371,7 +371,6 @@ public class BuildingStageManager {
                     }
                 }
             }
-        }
 
         config.set("links", null);
         for (var townEntry : placements.entrySet()) {
