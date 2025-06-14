@@ -136,9 +136,15 @@ public class StorageGUI {
             event.setCancelled(true);
             goToNextPage((Player) event.getWhoClicked());
         }
-        else if (slot == NAV_PREV_SLOT && currentPage > 0) {
+        else if (slot == NAV_PREV_SLOT) {
             event.setCancelled(true);
-            goToPreviousPage((Player) event.getWhoClicked());
+            if (confirmUnlock) {
+                // Cancel purchase confirmation and restore navigation arrow
+                confirmUnlock = false;
+                open((Player) event.getWhoClicked());
+            } else if (currentPage > 0) {
+                goToPreviousPage((Player) event.getWhoClicked());
+            }
         }
         else if (slot == SORT_SLOT) {
             event.setCancelled(true);
