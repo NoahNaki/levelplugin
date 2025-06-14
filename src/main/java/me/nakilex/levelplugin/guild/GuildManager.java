@@ -99,6 +99,17 @@ public class GuildManager {
         return true;
     }
 
+    /**
+     * Immediately remove an existing alliance without requiring approval.
+     */
+    public boolean revokeAlliance(String from, String to) {
+        Guild gA = guilds.get(from);
+        Guild gB = guilds.get(to);
+        if (gA == null || gB == null) return false;
+        if (!gA.getAllies().contains(to)) return false;
+        return setNeutral(from, to);
+    }
+
     public boolean requestNeutral(String from, String to) {
         Guild gA = guilds.get(from);
         Guild gB = guilds.get(to);

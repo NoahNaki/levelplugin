@@ -172,7 +172,13 @@ public class GuildCommand implements CommandExecutor {
                     player.sendMessage(ChatColor.RED + "Only guild leaders can change relations.");
                     return true;
                 }
-                if (manager.requestNeutral(myn.getName(), args[1])) {
+                if (myn.getAllies().contains(args[1])) {
+                    if (manager.revokeAlliance(myn.getName(), args[1])) {
+                        player.sendMessage(ChatColor.YELLOW + "Alliance revoked; now neutral with " + args[1] + ".");
+                    } else {
+                        player.sendMessage(ChatColor.RED + "Could not change relation.");
+                    }
+                } else if (manager.requestNeutral(myn.getName(), args[1])) {
                     player.sendMessage(ChatColor.GREEN + "Neutrality request sent.");
                     Guild neutralTarget = manager.getGuild(args[1]);
                     if (neutralTarget != null) {
@@ -215,6 +221,22 @@ public class GuildCommand implements CommandExecutor {
                     player.sendMessage(ChatColor.YELLOW + "Alliance request denied.");
                 } else {
                     player.sendMessage(ChatColor.RED + "No alliance request from that guild.");
+                }
+                break;
+            case "allyrevoke":
+                if (args.length < 2) {
+                    player.sendMessage("/guild allyrevoke <guild>");
+                    return true;
+                }
+                Guild myRev = manager.getGuild(id);
+                if (myRev == null || !myRev.getLeader().equals(id)) {
+                    player.sendMessage(ChatColor.RED + "Only guild leaders can revoke alliances.");
+                    return true;
+                }
+                if (manager.revokeAlliance(myRev.getName(), args[1])) {
+                    player.sendMessage(ChatColor.YELLOW + "Alliance with " + args[1] + " revoked.");
+                } else {
+                    player.sendMessage(ChatColor.RED + "You are not allied with that guild.");
                 }
                 break;
             case "neutralaccept":

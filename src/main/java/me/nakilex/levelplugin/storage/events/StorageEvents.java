@@ -45,10 +45,10 @@ public class StorageEvents implements Listener {
      */
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        Inventory clickedInventory = event.getInventory();
-        if (trackedInventories.containsKey(clickedInventory)) {
-            // Cancel if it's a navigation slot, or pass the event to the GUI
-            StorageGUI gui = trackedInventories.get(clickedInventory);
+        Inventory top = event.getView().getTopInventory();
+        if (trackedInventories.containsKey(top)) {
+            // Delegate handling to the StorageGUI
+            StorageGUI gui = trackedInventories.get(top);
             gui.handleClick(event);
         }
     }
