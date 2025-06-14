@@ -108,15 +108,20 @@ public class EnvironmentManager {
 
         if (origin != null) {
             Map<String, EnvironmentState> bMap = buildingStates.get(uuid);
-            Runnable after = null;
-            if (bMap != null) {
-                after = () -> {
-                    for (var e : bMap.entrySet()) {
-                        spawnBuilding(player, e.getKey(), origin, e.getValue().level, e.getValue().stage);
+            Runnable chain = null;
+            if (bMap != null && !bMap.isEmpty()) {
+                java.util.Iterator<java.util.Map.Entry<String, EnvironmentState>> it = bMap.entrySet().iterator();
+                chain = new Runnable() {
+                    @Override
+                    public void run() {
+                        if (it.hasNext()) {
+                            var e = it.next();
+                            spawnBuilding(player, e.getKey(), origin, e.getValue().level, e.getValue().stage, this);
+                        }
                     }
                 };
             }
-            spawnStructure(player, origin, es.level, es.stage, after);
+            spawnStructure(player, origin, es.level, es.stage, chain);
         }
     }
 
@@ -312,15 +317,20 @@ public class EnvironmentManager {
             initializePlayer(player); // ensure state
             EnvironmentState s = states.get(uuid);
             Map<String, EnvironmentState> bMap = buildingStates.get(uuid);
-            Runnable buildings = null;
-            if (bMap != null) {
-                buildings = () -> {
-                    for (var e : bMap.entrySet()) {
-                        spawnBuilding(player, e.getKey(), origin, e.getValue().level, e.getValue().stage);
+            Runnable chain = null;
+            if (bMap != null && !bMap.isEmpty()) {
+                java.util.Iterator<java.util.Map.Entry<String, EnvironmentState>> it = bMap.entrySet().iterator();
+                chain = new Runnable() {
+                    @Override
+                    public void run() {
+                        if (it.hasNext()) {
+                            var e = it.next();
+                            spawnBuilding(player, e.getKey(), origin, e.getValue().level, e.getValue().stage, this);
+                        }
                     }
                 };
             }
-            spawnStructure(player, origin, s.level, s.stage, buildings);
+            spawnStructure(player, origin, s.level, s.stage, chain);
             player.sendMessage(ChatColor.YELLOW + "Settlement created at " + origin.getBlockX()+","+origin.getBlockY()+","+origin.getBlockZ());
         };
         teleportWithCast(player, origin, after);
@@ -408,8 +418,11 @@ public class EnvironmentManager {
         spawnStructure(player, origin, level, stage, null);
     }
 
-    /** Spawn a specific building stage relative to the town origin. */
-    private void spawnBuilding(Player player, String building, Location origin, int level, int stage) {
+    /**
+     * Spawn a specific building stage relative to the town origin with a build animation.
+     * Runs the provided callback after completion.
+     */
+    private void spawnBuilding(Player player, String building, Location origin, int level, int stage, Runnable after) {
         UUID uuid = player.getUniqueId();
         cancelTasks(uuid);
         fakeBlockManager.clear(player);
@@ -468,11 +481,17 @@ public class EnvironmentManager {
                     }
                     buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
                             .put(building.toLowerCase(), stand);
+                    if (after != null) after.run();
                 }
             }
         }.runTaskTimer(Main.getInstance(), 0L, 1L);
         tasks.add(task);
         buildTasks.put(uuid, tasks);
+    }
+
+    // Backwards compatible wrapper
+    private void spawnBuilding(Player player, String building, Location origin, int level, int stage) {
+        spawnBuilding(player, building, origin, level, stage, null);
     }
 
     /**
