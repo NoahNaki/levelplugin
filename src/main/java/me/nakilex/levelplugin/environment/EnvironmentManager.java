@@ -69,10 +69,10 @@ public class EnvironmentManager {
         return towns.get(uuid);
     }
 
-    /** Load state for player if not present and spawn their structures/NPCs. */
-    public void initializePlayer(Player player) {
+    /** Load state for player from config without spawning any structures. */
+    private void loadPlayerState(Player player) {
         UUID uuid = player.getUniqueId();
-        EnvironmentState es = states.computeIfAbsent(uuid, id -> {
+        states.computeIfAbsent(uuid, id -> {
             int lvl = playerConfig.getEnvironmentLevel(id);
             int stg = playerConfig.getEnvironmentStage(id);
             if (lvl <= 0) lvl = 1;
@@ -80,32 +80,34 @@ public class EnvironmentManager {
             return new EnvironmentState(lvl, stg);
         });
 
-        Location origin = origins.get(uuid);
-        if (origin == null) {
-            origin = playerConfig.getEnvironmentOrigin(uuid);
-            if (origin != null) {
-                origins.put(uuid, origin);
-            }
+        if (!origins.containsKey(uuid)) {
+            Location origin = playerConfig.getEnvironmentOrigin(uuid);
+            if (origin != null) origins.put(uuid, origin);
         }
-        String town = towns.get(uuid);
-        if (town == null) {
-            town = playerConfig.getEnvironmentTown(uuid);
+
+        if (!towns.containsKey(uuid)) {
+            String town = playerConfig.getEnvironmentTown(uuid);
             if (town != null) towns.put(uuid, town);
         }
 
-        if (town != null) {
-            Map<String, EnvironmentState> map = buildingStates.get(uuid);
-            if (map == null) {
-                map = new java.util.HashMap<>();
-                for (String b : playerConfig.getStoredBuildings(uuid)) {
-                    int bl = playerConfig.getBuildingLevel(uuid, b);
-                    int bs = playerConfig.getBuildingStage(uuid, b);
-                    map.put(b.toLowerCase(), new EnvironmentState(bl, bs));
-                }
-                if (!map.isEmpty()) buildingStates.put(uuid, map);
+        if (towns.containsKey(uuid) && !buildingStates.containsKey(uuid)) {
+            Map<String, EnvironmentState> map = new java.util.HashMap<>();
+            for (String b : playerConfig.getStoredBuildings(uuid)) {
+                int bl = playerConfig.getBuildingLevel(uuid, b);
+                int bs = playerConfig.getBuildingStage(uuid, b);
+                map.put(b.toLowerCase(), new EnvironmentState(bl, bs));
             }
+            if (!map.isEmpty()) buildingStates.put(uuid, map);
         }
+    }
 
+    /** Load state for player if not present and spawn their structures/NPCs. */
+    public void initializePlayer(Player player) {
+        loadPlayerState(player);
+
+        UUID uuid = player.getUniqueId();
+        EnvironmentState es = states.get(uuid);
+        Location origin = origins.get(uuid);
         if (origin != null) {
             Map<String, EnvironmentState> bMap = buildingStates.get(uuid);
             final Map<String, EnvironmentState> finalBMap = bMap == null ? null : new java.util.HashMap<>(bMap);
@@ -184,7 +186,7 @@ public class EnvironmentManager {
      * Invest materials towards the next upgrade. Currently costs 1 oak log.
      */
     public void invest(Player player, int amount) {
-        initializePlayer(player);
+        loadPlayerState(player);
         EnvironmentState state = states.get(player.getUniqueId());
         state.invested += amount;
         if (state.invested >= 1) {
@@ -237,7 +239,7 @@ public class EnvironmentManager {
 
     /** Invest materials towards upgrading a specific building. */
     public void investBuilding(Player player, String building, int amount) {
-        initializePlayer(player);
+        loadPlayerState(player);
         Map<String, EnvironmentState> bMap = buildingStates.get(player.getUniqueId());
         if (bMap == null) {
             player.sendMessage(ChatColor.RED + "You have no settlement buildings.");
