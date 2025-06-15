@@ -5,16 +5,15 @@ import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
 import me.nakilex.levelplugin.spells.effect.SpellEffect;
 import me.nakilex.levelplugin.spells.utils.SpellUtils;
-import org.bukkit.Material;
-import org.bukkit.Particle;
-import org.bukkit.Sound;
-import org.bukkit.World;
+import org.bukkit.*;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Snowball;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.EulerAngle;
 import org.bukkit.util.Vector;
 
 /**
@@ -37,17 +36,31 @@ public class FanOfKnivesEffect implements SpellEffect {
             sb.setVelocity(dir);
             sb.setGravity(true);
 
+            ArmorStand stand = world.spawn(sb.getLocation(), ArmorStand.class);
+            stand.setInvisible(true);
+            stand.setMarker(true);
+            stand.setGravity(false);
+            stand.setArms(true);
+            stand.getEquipment().setItemInMainHand(new ItemStack(Material.IRON_SWORD));
+            stand.setRightArmPose(new EulerAngle(Math.toRadians(90), 0, 0));
+
             new BukkitRunnable() {
                 @Override
                 public void run() {
-                    if (!sb.isValid() || sb.isDead()) { cancel(); return; }
-                    world.spawnParticle(Particle.CRIT, sb.getLocation(), 2, 0.1,0.1,0.1);
+                    if (!sb.isValid() || sb.isDead()) { sb.remove(); stand.remove(); cancel(); return; }
+                    Location loc = sb.getLocation();
+                    Vector v = sb.getVelocity();
+                    float yaw = (float) Math.toDegrees(Math.atan2(-v.getX(), v.getZ()));
+                    stand.teleport(loc.clone().setDirection(v));
+                    stand.setRotation(yaw, 0);
+                    world.spawnParticle(Particle.CRIT, loc, 2, 0.1,0.1,0.1);
                     for (Entity e : sb.getNearbyEntities(0.5,0.5,0.5)) {
                         if (!(e instanceof LivingEntity le) || le.equals(player)) continue;
                         if (le instanceof Player p && !DuelManager.getInstance().areInDuel(player.getUniqueId(), p.getUniqueId()))
                             continue;
                         SpellUtils.dealWithChat(player, le, damage, "Fan of Knives");
                         sb.remove();
+                        stand.remove();
                         cancel();
                         return;
                     }

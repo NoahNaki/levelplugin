@@ -32,10 +32,10 @@ public class SpellGUI {
         SPELL_DESCRIPTIONS.put("heal",          "Heal yourself or allies.");
         SPELL_DESCRIPTIONS.put("teleport",      "Teleport forward a short distance.");
 
-        SPELL_DESCRIPTIONS.put("shadow_warp",   "Warp forward leaving a decoy behind.");
+        SPELL_DESCRIPTIONS.put("shadow_dash",   "Dash forward leaving smoke.");
         SPELL_DESCRIPTIONS.put("fan_of_knives", "Throw knives in a deadly cone.");
-        SPELL_DESCRIPTIONS.put("caltrops",      "Scatter caltrops that hinder foes.");
-        SPELL_DESCRIPTIONS.put("shadow_veil",   "Cloak yourself in shadows.");
+        SPELL_DESCRIPTIONS.put("trickster_trap","Place sneaky traps around you.");
+        SPELL_DESCRIPTIONS.put("night_cloak",   "Vanish briefly in darkness.");
 
         SPELL_DESCRIPTIONS.put("power_shot",        "Charge up a powerful arrow shot.");
         SPELL_DESCRIPTIONS.put("bow_drone",   "Summon a sentry that shoots enemies.");

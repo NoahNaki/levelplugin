@@ -78,10 +78,10 @@ public class EffectRegistry {
         register("GATE_OF_RUIN_EFFECT", new GateOfRuinEffect());
 
         // --- Rogue Spells (custom set)
-        register("SHADOW_WARP", new ShadowWarpEffect());
+        register("SHADOW_DASH", new ShadowDashEffect());
         register("FAN_OF_KNIVES", new FanOfKnivesEffect());
-        register("CALTROPS", new CaltropsEffect());
-        register("SHADOW_VEIL", new ShadowVeilEffect());
+        register("TRICKSTER_TRAP", new TricksterTrapEffect());
+        register("NIGHT_CLOAK", new NightCloakEffect());
 
     }
 }

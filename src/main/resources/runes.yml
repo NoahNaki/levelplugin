@@ -1266,18 +1266,18 @@ runes:
       - "Arrive in a cloud of smoke."
 
   # --- Rogue Runes for new spells ---
-  - id: "rogue_shadow_warp_range"
-    name: "Rune of Distant Warp"
+  - id: "rogue_shadow_dash_distance"
+    name: "Rune of Swift Escape"
     rarity: "UNCOMMON"
     targetClass: "ROGUE"
-    targetSpell: "shadow_warp"
+    targetSpell: "shadow_dash"
     unique: false
     effects:
       - type: "MODIFIER"
         extraParams:
-          rangeBonus: 2
+          distanceBonus: 2
     description:
-      - "Shadow Warp travels farther."
+      - "Shadow Dash travels farther."
 
   - id: "rogue_fan_of_knives_poison"
     name: "Rune of Toxic Blades"
@@ -1293,28 +1293,29 @@ runes:
     description:
       - "Knives apply poison."
 
-  - id: "rogue_caltrops_damage"
-    name: "Rune of Jagged Spikes"
+  - id: "rogue_trickster_trap_explode"
+    name: "Rune of Explosive Trap"
     rarity: "UNCOMMON"
     targetClass: "ROGUE"
-    targetSpell: "caltrops"
+    targetSpell: "trickster_trap"
     unique: false
     effects:
-      - type: "MODIFIER"
+      - type: "TRANSFORM"
+        newEffectKey: "TRICKSTER_TRAP"
         extraParams:
-          bonusDamagePercent: 20.0
+          explode: true
     description:
-      - "Caltrops deal more damage."
+      - "Traps explode on trigger."
 
-  - id: "rogue_shadow_veil_duration"
-    name: "Rune of Lingering Veil"
+  - id: "rogue_night_cloak_duration"
+    name: "Rune of Lingering Night"
     rarity: "UNCOMMON"
     targetClass: "ROGUE"
-    targetSpell: "shadow_veil"
+    targetSpell: "night_cloak"
     unique: false
     effects:
       - type: "MODIFIER"
         extraParams:
           durationBonus: 40
     description:
-      - "Shadow Veil lasts longer."
+      - "Night Cloak lasts longer."

@@ -11,15 +11,17 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 
 /**
- * Grants temporary invisibility and speed while cloaking the caster in shadows.
+ * Grants temporary invisibility and speed.
  */
-public class ShadowVeilEffect implements SpellEffect {
+public class NightCloakEffect implements SpellEffect {
     @Override
     public void apply(SpellCastContext ctx) {
         Player player = ctx.getPlayer();
-        int duration = 120; // 6 seconds
+        int duration = 120; // 6s
+        Object bonus = ctx.getExtraParam("durationBonus");
+        if (bonus instanceof Number n) duration += n.intValue();
+
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_WITCH_DRINK, 1f, 0.8f);
-        player.getWorld().spawnParticle(Particle.SMOKE_LARGE, player.getLocation(), 20, 0.5,0.5,0.5,0.1);
         player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, duration, 0, false, false));
         player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, duration, 1, false, false));
 
