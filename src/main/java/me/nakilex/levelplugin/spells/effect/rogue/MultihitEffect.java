@@ -60,27 +60,29 @@ public class MultihitEffect implements SpellEffect {
 
         // decorative helix and spiralling circle around the target
         MagicEffects.helix(finalTarget.getLocation().add(0, 0.5, 0), Particle.CRIT, 1.0, 1.8, 3, hits * 2);
-        new SpellAnimation(1, hits * 2) {
+        int finalHits = hits;
+        new SpellAnimation(1, finalHits * 2) {
             @Override
             protected void onTick(int tick) {
-                double progress = (double) tick / (hits * 2);
+                double progress = (double) tick / (finalHits * 2);
                 double rad = 1.0 + 0.3 * Math.sin(progress * Math.PI);
                 MagicEffects.circle(world, finalTarget.getLocation().add(0, 0.5 + progress * 1.2, 0), Particle.CRIT, rad, 12);
             }
         };
 
+        int finalHits1 = hits;
         new BukkitRunnable() {
             int done = 0;
             @Override
             public void run() {
-                if (done >= hits || !finalTarget.isValid()) { cancel(); return; }
+                if (done >= finalHits1 || !finalTarget.isValid()) { cancel(); return; }
                 Vector v = finalTarget.getVelocity();
                 v.setX(0);
                 v.setZ(0);
                 // gently lift the target instead of launching them high
                 v.setY(v.getY() + 0.15);
                 finalTarget.setVelocity(v);
-                SpellUtils.dealWithChat(player, finalTarget, damage / hits, "Multihit");
+                SpellUtils.dealWithChat(player, finalTarget, damage / finalHits1, "Multihit");
                 world.spawnParticle(Particle.SWEEP_ATTACK, finalTarget.getLocation(), 5, 0.2, 0.2, 0.2, 0.01);
                 world.playSound(finalTarget.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1f);
                 done++;

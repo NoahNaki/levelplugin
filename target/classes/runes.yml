@@ -1014,35 +1014,35 @@ runes:
           summonClones: true
     description:
       - "Summons shadow clones on cast."
-  - id: "rogue_spin_twice"
-    name: "Rune of Whirling Blades"
+  - id: "rogue_crescent_slash_twice"
+    name: "Rune of Whirling Moon"
     rarity: "UNCOMMON"
     targetClass: "ROGUE"
-    targetSpell: "spin_attack"
+    targetSpell: "crescent_slash"
     unique: true
     effects:
       - type: "MODIFIER"
         extraParams:
           extraHits: 1
     description:
-      - "Spin Attack hits twice."
-  - id: "rogue_spin_blind"
-    name: "Rune of Dazzling Steel"
+      - "Crescent Slash strikes twice."
+  - id: "rogue_crescent_slash_blind"
+    name: "Rune of Dazzling Moon"
     rarity: "RARE"
     targetClass: "ROGUE"
-    targetSpell: "spin_attack"
+    targetSpell: "crescent_slash"
     unique: true
     effects:
       - type: "TRANSFORM"
         extraParams:
           blindDuration: 40
     description:
-      - "Spin Attack blinds enemies."
-  - id: "rogue_spin_transfer"
-    name: "Rune of Bitter Return"
+      - "Crescent Slash blinds enemies."
+  - id: "rogue_crescent_slash_transfer"
+    name: "Rune of Bitter Moon"
     rarity: "EPIC"
     targetClass: "ROGUE"
-    targetSpell: "spin_attack"
+    targetSpell: "crescent_slash"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -1050,11 +1050,11 @@ runes:
           transferDebuffs: true
     description:
       - "Transfers your debuffs to foes."
-  - id: "rogue_spin_vulnerability"
-    name: "Rune of Vulnerability"
+  - id: "rogue_crescent_slash_vulnerability"
+    name: "Rune of Lunar Weakness"
     rarity: "RARE"
     targetClass: "ROGUE"
-    targetSpell: "spin_attack"
+    targetSpell: "crescent_slash"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -1062,11 +1062,11 @@ runes:
           weaknessDuration: 60
     description:
       - "Victims become weakened."
-  - id: "rogue_spin_mobility"
-    name: "Rune of Nimble Dance"
+  - id: "rogue_crescent_slash_mobility"
+    name: "Rune of Nimble Crescent"
     rarity: "UNCOMMON"
     targetClass: "ROGUE"
-    targetSpell: "spin_attack"
+    targetSpell: "crescent_slash"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -1087,18 +1087,6 @@ runes:
           damageOnDash: true
     description:
       - "Dash damages foes passed through."
-  - id: "rogue_dash_shuriken"
-    name: "Rune of Shuriken Trail"
-    rarity: "RARE"
-    targetClass: "ROGUE"
-    targetSpell: "vanish"
-    unique: true
-    effects:
-      - type: "TRANSFORM"
-        extraParams:
-          shuriken: true
-    description:
-      - "Launches shurikens after dashing."
   - id: "rogue_multihit_backstab"
     name: "Rune of Sudden Strike"
     rarity: "RARE"
@@ -1198,29 +1186,3 @@ runes:
 
     description:
       - "Extends War Cry duration."
-  - id: "rogue_shadow_step_backstab"
-    name: "Rune of Backstab"
-    rarity: "RARE"
-    targetClass: "ROGUE"
-    targetSpell: "shadow_step"
-    unique: true
-    effects:
-      - type: "MODIFIER"
-        extraParams:
-          bonusDamagePercent: 30.0
-
-    description:
-      - "Backstab deals more damage."
-  - id: "rogue_shadow_step_smoke"
-    name: "Rune of Smoke Step"
-    rarity: "UNCOMMON"
-    targetClass: "ROGUE"
-    targetSpell: "shadow_step"
-    unique: false
-    effects:
-      - type: "TRANSFORM"
-        newEffectKey: "SHADOW_STEP"
-        extraParams:
-          leaveSmoke: true
-    description:
-      - "Arrive in a cloud of smoke."
