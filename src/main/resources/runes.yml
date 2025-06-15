@@ -657,7 +657,7 @@ runes:
     name: "Volcanic Blast"
     rarity: "EPIC"
     targetClass: "WARRIOR"
-    targetSpell: "shockwave"
+    targetSpell: "blade_geyser"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -672,7 +672,7 @@ runes:
     name: "+1 AOE Size"
     rarity: "UNCOMMON"
     targetClass: "WARRIOR"
-    targetSpell: "shockwave"
+    targetSpell: "blade_geyser"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -689,7 +689,7 @@ runes:
     name: "Vortex Leap"
     rarity: "EPIC"
     targetClass: "WARRIOR"
-    targetSpell: "heroic_leap"
+    targetSpell: "earth_splitter"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -705,7 +705,7 @@ runes:
     name: "Explosive Shields"
     rarity: "EPIC"
     targetClass: "WARRIOR"
-    targetSpell: "iron_fortress"
+    targetSpell: "cyclone_strike"
     unique: true
     effects:
       - type: "MODIFIER"
@@ -721,7 +721,7 @@ runes:
     name: "Also Shield Allies"
     rarity: "RARE"
     targetClass: "WARRIOR"
-    targetSpell: "iron_fortress"
+    targetSpell: "cyclone_strike"
     unique: true
     effects:
       - type: "MODIFIER"
@@ -738,7 +738,7 @@ runes:
     name: "Gate of Ruin"
     rarity: "EPIC"
     targetClass: "WARRIOR"
-    targetSpell: "judgement"
+    targetSpell: "rally_banner"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -753,7 +753,7 @@ runes:
     name: "Rune of Tremor"
     rarity: "UNCOMMON"
     targetClass: "WARRIOR"
-    targetSpell: "shockwave"
+    targetSpell: "blade_geyser"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -767,7 +767,7 @@ runes:
     name: "Rune of Lava Wave"
     rarity: "EPIC"
     targetClass: "WARRIOR"
-    targetSpell: "shockwave"
+    targetSpell: "blade_geyser"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -781,7 +781,7 @@ runes:
     name: "Rune of Far Reach"
     rarity: "UNCOMMON"
     targetClass: "WARRIOR"
-    targetSpell: "shockwave"
+    targetSpell: "blade_geyser"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -795,7 +795,7 @@ runes:
     name: "Rune of Vortex"
     rarity: "EPIC"
     targetClass: "WARRIOR"
-    targetSpell: "shockwave"
+    targetSpell: "blade_geyser"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -808,7 +808,7 @@ runes:
     name: "Rune of Stunning Leap"
     rarity: "EPIC"
     targetClass: "WARRIOR"
-    targetSpell: "heroic_leap"
+    targetSpell: "earth_splitter"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -821,7 +821,7 @@ runes:
     name: "Rune of Great Leap"
     rarity: "UNCOMMON"
     targetClass: "WARRIOR"
-    targetSpell: "heroic_leap"
+    targetSpell: "earth_splitter"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -835,7 +835,7 @@ runes:
     name: "Rune of Flame Leap"
     rarity: "RARE"
     targetClass: "WARRIOR"
-    targetSpell: "heroic_leap"
+    targetSpell: "earth_splitter"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -849,7 +849,7 @@ runes:
     name: "Rune of Reinforcement"
     rarity: "UNCOMMON"
     targetClass: "WARRIOR"
-    targetSpell: "iron_fortress"
+    targetSpell: "cyclone_strike"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -863,7 +863,7 @@ runes:
     name: "Rune of Reflection"
     rarity: "RARE"
     targetClass: "WARRIOR"
-    targetSpell: "iron_fortress"
+    targetSpell: "cyclone_strike"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -877,7 +877,7 @@ runes:
     name: "Rune of Fortified Spirit"
     rarity: "UNCOMMON"
     targetClass: "WARRIOR"
-    targetSpell: "iron_fortress"
+    targetSpell: "cyclone_strike"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -891,7 +891,7 @@ runes:
     name: "Rune of Holy Judgement"
     rarity: "RARE"
     targetClass: "WARRIOR"
-    targetSpell: "judgement"
+    targetSpell: "rally_banner"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -905,7 +905,7 @@ runes:
     name: "Rune of Chained Judgement"
     rarity: "EPIC"
     targetClass: "WARRIOR"
-    targetSpell: "judgement"
+    targetSpell: "rally_banner"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -919,7 +919,7 @@ runes:
     name: "Rune of Swift Judgement"
     rarity: "UNCOMMON"
     targetClass: "WARRIOR"
-    targetSpell: "judgement"
+    targetSpell: "rally_banner"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -934,7 +934,7 @@ runes:
     name: "Rune of Vampiric Judgement"
     rarity: "EPIC"
     targetClass: "WARRIOR"
-    targetSpell: "judgement"
+    targetSpell: "rally_banner"
     unique: true
     effects:
       - type: "MODIFIER"

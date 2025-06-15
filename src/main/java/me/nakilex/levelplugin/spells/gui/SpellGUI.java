@@ -22,10 +22,10 @@ public class SpellGUI {
     // Example descriptions keyed by Spell ID.
     private static final Map<String, String> SPELL_DESCRIPTIONS = new HashMap<>();
     static {
-        SPELL_DESCRIPTIONS.put("iron_fortress", "Fortify yourself with an iron barrier.");
-        SPELL_DESCRIPTIONS.put("heroic_leap",   "Leap heroically to close distance.");
-        SPELL_DESCRIPTIONS.put("uppercut",      "Strike upwards, launching your enemy.");
-        SPELL_DESCRIPTIONS.put("ground_slam",   "Slam the ground to damage nearby foes.");
+        SPELL_DESCRIPTIONS.put("cyclone_strike", "Spin with whirling blades around you.");
+        SPELL_DESCRIPTIONS.put("earth_splitter", "Rip the earth in a line ahead.");
+        SPELL_DESCRIPTIONS.put("rally_banner",   "Plant a banner that buffs allies.");
+        SPELL_DESCRIPTIONS.put("blade_geyser",   "Erupt blades from the ground.");
 
         SPELL_DESCRIPTIONS.put("meteor",        "Call down a meteor from the sky.");
         SPELL_DESCRIPTIONS.put("blackhole",     "Create a singularity that pulls in enemies.");
