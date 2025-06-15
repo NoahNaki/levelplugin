@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.effectdemo;
 
 import de.slikey.effectlib.Effect;
 import de.slikey.effectlib.effect.*;
+import de.slikey.effectlib.util.CustomSound;
 import me.nakilex.levelplugin.Main;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -107,7 +108,7 @@ public enum DemoEffects {
         public void play(Player player) {
             FountainEffect effect = new FountainEffect(Main.getInstance().getEffectManager());
             effect.setLocation(player.getLocation());
-            effect.particle = Particle.WATER_SPLASH;
+            effect.particle = Particle.SPLASH;
             effect.iterations = 40;
             start(effect);
         }
@@ -126,7 +127,6 @@ public enum DemoEffects {
         public void play(Player player) {
             BigBangEffect effect = new BigBangEffect(Main.getInstance().getEffectManager());
             effect.setLocation(player.getLocation());
-            effect.particle = Particle.EXPLOSION_NORMAL;
             effect.iterations = 1;
             start(effect);
         }
@@ -146,7 +146,7 @@ public enum DemoEffects {
         public void play(Player player) {
             WaveEffect effect = new WaveEffect(Main.getInstance().getEffectManager());
             effect.setLocation(player.getLocation());
-            effect.particle = Particle.WATER_SPLASH;
+            effect.particle = Particle.SPLASH;
             effect.period = 2;
             effect.iterations = 40;
             start(effect);
@@ -302,7 +302,6 @@ public enum DemoEffects {
         public void play(Player player) {
             SkyRocketEffect effect = new SkyRocketEffect(Main.getInstance().getEffectManager());
             effect.setLocation(player.getLocation());
-            effect.particle = Particle.FLAME;
             effect.power = 1.5f;
             effect.iterations = 20;
             start(effect);
@@ -329,7 +328,7 @@ public enum DemoEffects {
             effect.setLocation(player.getLocation());
             Vector forward = player.getLocation().getDirection().clone().normalize().multiply(5);
             effect.setTargetLocation(player.getLocation().clone().add(forward));
-            effect.height = 1.5;
+            effect.height = 1.5F;
             effect.particles = 60;
             effect.particle = Particle.CRIT;
             start(effect);
@@ -497,7 +496,6 @@ public enum DemoEffects {
             effect.setLocation(player.getLocation());
             effect.xEquation = "t";
             effect.yEquation = "sin(t)*2";
-            effect.particles = 100;
             start(effect);
         }
     },

@@ -31,7 +31,7 @@ public class EarthSplitterEffect implements SpellEffect {
             @Override
             protected void onTick(int tick) {
                 pos.add(dir.clone().multiply(0.5));
-                world.spawnParticle(Particle.BLOCK_CRACK, pos, 8, 0.2, 0.1, 0.2, Material.DIRT.createBlockData());
+                world.spawnParticle(Particle.BLOCK_CRUMBLE, pos, 8, 0.2, 0.1, 0.2, Material.DIRT.createBlockData());
                 for (LivingEntity le : pos.getNearbyLivingEntities(1.0)) {
                     if (le.equals(player)) continue;
                     if (le instanceof Player p && !DuelManager.getInstance().areInDuel(player.getUniqueId(), p.getUniqueId()))

@@ -48,7 +48,7 @@ public class RallyBannerEffect implements SpellEffect {
                 world.spawnParticle(Particle.NOTE, stand.getLocation().add(0,2,0), 2, 0.3,0.3,0.3, 0.2);
                 for (Entity e : stand.getNearbyEntities(6,6,6)) {
                     if (e instanceof Player p) {
-                        p.addPotionEffect(new PotionEffect(PotionEffectType.INCREASE_DAMAGE, 40, 0, true, false));
+                        p.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 40, 0, true, false));
                         p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 40, 0, true, false));
                     }
                 }
