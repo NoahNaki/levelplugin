@@ -312,7 +312,7 @@ public enum DemoEffects {
         public void play(Player player) {
             ArcEffect effect = new ArcEffect(Main.getInstance().getEffectManager());
             effect.setLocation(player.getLocation());
-            effect.setTarget(player.getLocation().add(0, 3, 0));
+            effect.setTargetLocation(player.getLocation().add(0, 3, 0));
             effect.height = 3;
             effect.particles = 80;
             start(effect);
