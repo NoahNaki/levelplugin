@@ -63,7 +63,8 @@ public class DaggerThrowEffect implements SpellEffect {
                 Location loc = stand.getLocation().add(dir.clone().multiply(1.6));
                 stand.teleport(loc);
                 spin += Math.toRadians(20);
-                stand.setRightArmPose(new EulerAngle(Math.toRadians(-90), 0, spin));
+                // spin the dagger around the Y axis as it flies
+                stand.setRightArmPose(new EulerAngle(Math.toRadians(-90), spin, 0));
                 world.spawnParticle(Particle.END_ROD, loc, 2, 0, 0, 0, 0.01);
                 travelled += 1.6;
 
