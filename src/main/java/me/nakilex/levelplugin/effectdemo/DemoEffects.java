@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.Main;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.entity.Player;
+import org.bukkit.Location;
 
 /**
  * Collection of simple EffectLib examples used in the demo GUI.
@@ -312,7 +313,9 @@ public enum DemoEffects {
         public void play(Player player) {
             ArcEffect effect = new ArcEffect(Main.getInstance().getEffectManager());
             effect.setLocation(player.getLocation());
-            effect.setTargetLocation(player.getLocation().add(0, 3, 0));
+            // aim 5 blocks forward so the path forms a real arc instead of a vertical line
+            Location target = player.getLocation().add(player.getLocation().getDirection().normalize().multiply(5));
+            effect.setTargetLocation(target);
             effect.height = 3;
             effect.particles = 80;
             start(effect);
