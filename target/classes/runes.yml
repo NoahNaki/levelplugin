@@ -945,190 +945,6 @@ runes:
   # --- Rogue Runes ---
     description:
       - "Judgement heals you."
-  - id: "rogue_endless_assault_speed"
-    name: "Rune of Relentless Strikes"
-    description:
-      - "Increases attack speed during"
-      - "Endless Assault."
-    rarity: "UNCOMMON"
-    targetClass: "ROGUE"
-    targetSpell: "endless_assault"
-    unique: false
-    effects:
-      - type: "MODIFIER"
-        extraParams:
-          attackSpeed: 0.2
-
-  - id: "rogue_blade_fury_bleed"
-    name: "Rune of Bleeding Blades"
-    description:
-      - "Blade Fury causes enemies"
-      - "to bleed over time."
-    rarity: "RARE"
-    targetClass: "ROGUE"
-    targetSpell: "blade_fury"
-    unique: true
-    effects:
-      - type: "TRANSFORM"
-        priority: 10
-        extraParams:
-          applyBleed: true
-
-  - id: "rogue_endless_assault_damage"
-    name: "Rune of Brutality"
-    rarity: "RARE"
-    targetClass: "ROGUE"
-    targetSpell: "endless_assault"
-    unique: false
-    effects:
-      - type: "MODIFIER"
-        bonusDamagePercent: 15.0
-        cooldownReductionPercent: 0.0
-        newEffectKey:
-        extraParams: {}
-
-    description:
-      - "Increases Endless Assault damage."
-  - id: "rogue_endless_assault_dash"
-    name: "Rune of Whirlwind"
-    rarity: "EPIC"
-    targetClass: "ROGUE"
-    targetSpell: "endless_assault"
-    unique: true
-    effects:
-      - type: "TRANSFORM"
-        newEffectKey: "ENDLESS_ASSAULT"
-        extraParams:
-          dashBetweenTargets: true
-
-    description:
-      - "Dash between targets."
-  - id: "rogue_endless_assault_extended"
-    name: "Rune of Endless Rage"
-    rarity: "UNCOMMON"
-    targetClass: "ROGUE"
-    targetSpell: "endless_assault"
-    unique: false
-    effects:
-      - type: "MODIFIER"
-        newEffectKey:
-        extraParams:
-          durationBonus: 40
-
-    description:
-      - "Extends Endless Assault duration."
-  - id: "rogue_endless_assault_mana"
-    name: "Rune of Efficient Assault"
-    rarity: "UNCOMMON"
-    targetClass: "ROGUE"
-    targetSpell: "endless_assault"
-    unique: false
-    effects:
-      - type: "MODIFIER"
-        newEffectKey:
-        extraParams:
-          manaCostIncrease: -5
-
-    description:
-      - "Lowers Endless Assault mana cost."
-  - id: "rogue_blade_fury_spread"
-    name: "Rune of Wide Swings"
-    rarity: "UNCOMMON"
-    targetClass: "ROGUE"
-    targetSpell: "blade_fury"
-    unique: false
-    effects:
-      - type: "MODIFIER"
-        newEffectKey:
-        extraParams:
-          aoeRadius: 2.0
-
-    description:
-      - "Wider Blade Fury radius."
-  - id: "rogue_blade_fury_stun"
-    name: "Rune of Stunning Fury"
-    rarity: "RARE"
-    targetClass: "ROGUE"
-    targetSpell: "blade_fury"
-    unique: true
-    effects:
-      - type: "TRANSFORM"
-        newEffectKey: "BLADE_FURY"
-        extraParams:
-          stunDuration: 40
-
-    description:
-      - "Blade Fury stuns foes."
-  - id: "rogue_blade_fury_rapid"
-    name: "Rune of Rapid Slashes"
-    rarity: "UNCOMMON"
-    targetClass: "ROGUE"
-    targetSpell: "blade_fury"
-    unique: false
-    effects:
-      - type: "MODIFIER"
-        bonusDamagePercent: 0.0
-        cooldownReductionPercent: 20.0
-        newEffectKey:
-        extraParams: {}
-
-    description:
-      - "Blade Fury cooldown reduced."
-  - id: "rogue_shadow_clone_swap"
-    name: "Rune of Shadow Swap"
-    rarity: "RARE"
-    targetClass: "ROGUE"
-    targetSpell: "shadow_clone"
-    unique: true
-    effects:
-      - type: "TRANSFORM"
-        newEffectKey: "SHADOW_CLONE"
-        extraParams:
-          allowSwap: true
-
-    description:
-      - "Swap places with your clone."
-  - id: "rogue_shadow_clone_explosive"
-    name: "Rune of Explosive Clone"
-    rarity: "EPIC"
-    targetClass: "ROGUE"
-    targetSpell: "shadow_clone"
-    unique: true
-    effects:
-      - type: "TRANSFORM"
-        newEffectKey: "SHADOW_CLONE"
-        extraParams:
-          explodeOnDeath: true
-
-    description:
-      - "Clones explode on death."
-  - id: "rogue_shadow_clone_mimic"
-    name: "Rune of Mimicry"
-    rarity: "EPIC"
-    targetClass: "ROGUE"
-    targetSpell: "shadow_clone"
-    unique: true
-    effects:
-      - type: "TRANSFORM"
-        newEffectKey: "MOVING_SHADOW_CLONE_EFFECT"
-        extraParams: {}
-
-    description:
-      - "Clone mimics your attacks."
-  - id: "rogue_shadow_clone_duration"
-    name: "Rune of Lingering Echo"
-    rarity: "UNCOMMON"
-    targetClass: "ROGUE"
-    targetSpell: "shadow_clone"
-    unique: false
-    effects:
-      - type: "MODIFIER"
-        newEffectKey:
-        extraParams:
-          durationBonus: 100
-
-    description:
-      - "Clone lasts longer."
   - id: "rogue_vanish_duration"
     name: "Rune of Lasting Veil"
     rarity: "UNCOMMON"
@@ -1193,25 +1009,169 @@ runes:
     unique: true
     effects:
       - type: "TRANSFORM"
-        newEffectKey: "VANISH"
-        extraParams:
-          poisonNearby: true
-
-    description:
-      - "Poisons enemies when vanishing."
-  - id: "rogue_blade_fury_shadow"
-    name: "Rune of Shadowed Fury"
-    rarity: "EPIC"
-    targetClass: "ROGUE"
-    targetSpell: "blade_fury"
-    unique: true
-    effects:
-      - type: "TRANSFORM"
         newEffectKey: "BLADE_FURY"
         extraParams:
           summonClones: true
     description:
       - "Summons shadow clones on cast."
+  - id: "rogue_spin_twice"
+    name: "Rune of Whirling Blades"
+    rarity: "UNCOMMON"
+    targetClass: "ROGUE"
+    targetSpell: "spin_attack"
+    unique: true
+    effects:
+      - type: "MODIFIER"
+        extraParams:
+          extraHits: 1
+    description:
+      - "Spin Attack hits twice."
+  - id: "rogue_spin_blind"
+    name: "Rune of Dazzling Steel"
+    rarity: "RARE"
+    targetClass: "ROGUE"
+    targetSpell: "spin_attack"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        extraParams:
+          blindDuration: 40
+    description:
+      - "Spin Attack blinds enemies."
+  - id: "rogue_spin_transfer"
+    name: "Rune of Bitter Return"
+    rarity: "EPIC"
+    targetClass: "ROGUE"
+    targetSpell: "spin_attack"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        extraParams:
+          transferDebuffs: true
+    description:
+      - "Transfers your debuffs to foes."
+  - id: "rogue_spin_vulnerability"
+    name: "Rune of Vulnerability"
+    rarity: "RARE"
+    targetClass: "ROGUE"
+    targetSpell: "spin_attack"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        extraParams:
+          weaknessDuration: 60
+    description:
+      - "Victims become weakened."
+  - id: "rogue_spin_mobility"
+    name: "Rune of Nimble Dance"
+    rarity: "UNCOMMON"
+    targetClass: "ROGUE"
+    targetSpell: "spin_attack"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        extraParams:
+          speedDuration: 60
+          jumpDuration: 60
+    description:
+      - "Grants a burst of speed."
+  - id: "rogue_dash_damage"
+    name: "Rune of Piercing Dash"
+    rarity: "RARE"
+    targetClass: "ROGUE"
+    targetSpell: "vanish"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        extraParams:
+          damageOnDash: true
+    description:
+      - "Dash damages foes passed through."
+  - id: "rogue_dash_shuriken"
+    name: "Rune of Shuriken Trail"
+    rarity: "RARE"
+    targetClass: "ROGUE"
+    targetSpell: "vanish"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        extraParams:
+          shuriken: true
+    description:
+      - "Launches shurikens after dashing."
+  - id: "rogue_multihit_backstab"
+    name: "Rune of Sudden Strike"
+    rarity: "RARE"
+    targetClass: "ROGUE"
+    targetSpell: "multihit"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        extraParams:
+          backstab: true
+    description:
+      - "Multihit becomes a single backstab."
+  - id: "rogue_multihit_extended"
+    name: "Rune of Endless Blows"
+    rarity: "UNCOMMON"
+    targetClass: "ROGUE"
+    targetSpell: "multihit"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        extraParams:
+          extraHits: 4
+          targetRange: 5
+    description:
+      - "Increases strikes and range."
+  - id: "rogue_multihit_finisher"
+    name: "Rune of Finishing Blow"
+    rarity: "RARE"
+    targetClass: "ROGUE"
+    targetSpell: "multihit"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        extraParams:
+          knockback: 1.5
+    description:
+      - "Adds a powerful finishing knockback."
+  - id: "rogue_smokebomb_sticky"
+    name: "Rune of Sticky Bombs"
+    rarity: "UNCOMMON"
+    targetClass: "ROGUE"
+    targetSpell: "smoke_bomb"
+    unique: true
+    effects:
+      - type: "MODIFIER"
+        extraParams:
+          bombCount: 2
+    description:
+      - "Throws multiple sticky bombs."
+  - id: "rogue_smokebomb_radius"
+    name: "Rune of Thick Smoke"
+    rarity: "UNCOMMON"
+    targetClass: "ROGUE"
+    targetSpell: "smoke_bomb"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        extraParams:
+          radiusBonus: 1.5
+    description:
+      - "Larger smoke cloud."
+  - id: "rogue_smokebomb_buff"
+    name: "Rune of Shadow Veil"
+    rarity: "RARE"
+    targetClass: "ROGUE"
+    targetSpell: "smoke_bomb"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        extraParams:
+          playerBuff: true
+    description:
+      - "Smoke bomb empowers you."
   - id: "warrior_war_cry_intimidate"
     name: "Rune of Intimidation"
     rarity: "UNCOMMON"

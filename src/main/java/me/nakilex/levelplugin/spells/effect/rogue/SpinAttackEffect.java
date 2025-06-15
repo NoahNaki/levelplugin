@@ -8,6 +8,7 @@ import org.bukkit.Sound;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.potion.PotionEffectType;
 
 public class SpinAttackEffect implements SpellEffect {
     @Override
@@ -47,7 +48,7 @@ public class SpinAttackEffect implements SpellEffect {
                 player.getActivePotionEffects().stream()
                     .filter(pe -> pe.getType().equals(org.bukkit.potion.PotionEffectType.POISON)
                             || pe.getType().equals(org.bukkit.potion.PotionEffectType.WITHER)
-                            || pe.getType().equals(org.bukkit.potion.PotionEffectType.SLOW)
+                            || pe.getType().equals(PotionEffectType.SLOWNESS)
                             || pe.getType().equals(org.bukkit.potion.PotionEffectType.WEAKNESS)
                             || pe.getType().equals(org.bukkit.potion.PotionEffectType.BLINDNESS))
                     .forEach(le::addPotionEffect);
@@ -63,7 +64,7 @@ public class SpinAttackEffect implements SpellEffect {
         }
         Object jump = ctx.getExtraParam("jumpDuration");
         if (jump instanceof Number num && num.intValue() > 0) {
-            player.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.JUMP, num.intValue(), 1));
+            player.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.JUMP_BOOST, num.intValue(), 1));
         }
     }
 }

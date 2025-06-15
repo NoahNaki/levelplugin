@@ -46,21 +46,24 @@ public class SmokeBombEffect implements SpellEffect {
         boolean playerBuff = Boolean.TRUE.equals(ctx.getExtraParam("playerBuff"));
 
         if (playerBuff) {
-            player.addPotionEffect(new PotionEffect(PotionEffectType.DAMAGE_BOOST, slowDur * bombCount, 0));
+            player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, slowDur * bombCount, 0));
         }
 
         for (int i = 0; i < bombCount; i++) {
             Location loc = targetLoc.clone().add(0, i * 0.2, 0);
+            int finalSlowDur = slowDur;
+            double finalRadius = radius;
+            double finalRadius1 = radius;
             new BukkitRunnable() {
                 int ticks = 0;
                 @Override
                 public void run() {
                     if (ticks++ >= 80) { cancel(); return; }
-                    world.spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, loc, 10, radius, 0.5, radius, 0.01);
-                    for (Entity e : world.getNearbyEntities(loc, radius, 2, radius)) {
+                    world.spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, loc, 10, finalRadius, 0.5, finalRadius1, 0.01);
+                    for (Entity e : world.getNearbyEntities(loc, finalRadius, 2, finalRadius1)) {
                         if (e instanceof LivingEntity le && !le.equals(player)) {
                             SpellUtils.dealWithChat(player, le, ctx.getFinalDamage()/4.0, "Smoke Bomb");
-                            le.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, slowDur, 1, false, false));
+                            le.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, finalSlowDur, 1, false, false));
                         }
                     }
                 }

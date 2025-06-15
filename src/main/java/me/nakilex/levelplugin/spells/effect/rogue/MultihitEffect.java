@@ -66,14 +66,15 @@ public class MultihitEffect implements SpellEffect {
         if (kb instanceof Number num) knockback = num.doubleValue();
 
         LivingEntity finalTarget = target;
+        double finalKnockback = knockback;
         new BukkitRunnable() {
             int step = 0;
             @Override
             public void run() {
                 if (step >= dirs.length) {
                     SpellUtils.dealWithChat(player, finalTarget, damage, "Multihit");
-                    if (knockback > 0) {
-                        finalTarget.setVelocity(player.getLocation().getDirection().normalize().multiply(knockback));
+                    if (finalKnockback > 0) {
+                        finalTarget.setVelocity(player.getLocation().getDirection().normalize().multiply(finalKnockback));
                     }
                     cancel();
                     return;
