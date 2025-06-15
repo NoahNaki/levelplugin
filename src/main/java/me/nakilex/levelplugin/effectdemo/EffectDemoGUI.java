@@ -31,9 +31,20 @@ public class EffectDemoGUI {
 
         // place demo items
         addItem(inv, 10, Material.BLAZE_ROD, "Helix Effect");
-        addItem(inv, 12, Material.NETHER_STAR, "Sphere Effect");
-        addItem(inv, 14, Material.FIRE_CHARGE, "Tornado Effect");
-        addItem(inv, 16, Material.ENDER_EYE, "Atom Effect");
+        addItem(inv, 11, Material.NETHER_STAR, "Sphere Effect");
+        addItem(inv, 12, Material.FIRE_CHARGE, "Tornado Effect");
+        addItem(inv, 13, Material.ENDER_EYE, "Atom Effect");
+        addItem(inv, 14, Material.SNOWBALL, "Cone Effect");
+        addItem(inv, 15, Material.IRON_BARS, "Cylinder Effect");
+        addItem(inv, 16, Material.BONE, "DNA Effect");
+
+        addItem(inv, 19, Material.CAKE, "Donut Effect");
+        addItem(inv, 20, Material.WATER_BUCKET, "Fountain Effect");
+        addItem(inv, 21, Material.APPLE, "Heart Effect");
+        addItem(inv, 22, Material.TNT, "Big Bang Effect");
+        addItem(inv, 23, Material.ENDER_PEARL, "Vortex Effect");
+        addItem(inv, 24, Material.PRISMARINE_SHARD, "Wave Effect");
+        addItem(inv, 25, Material.AMETHYST_SHARD, "Star Effect");
 
         player.openInventory(inv);
     }
