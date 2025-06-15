@@ -35,9 +35,9 @@ public class DaggerThrowEffect implements SpellEffect {
         Location start = player.getEyeLocation().add(dir.multiply(0.5));
         ArmorStand stand = world.spawn(start, ArmorStand.class, a -> {
             a.setInvisible(true);
-            a.setMarker(true);
             a.setGravity(false);
             a.setArms(true);
+            a.setSmall(true);
             a.getEquipment().setItemInMainHand(new ItemStack(Material.IRON_SWORD));
             a.setRotation(player.getLocation().getYaw(), player.getLocation().getPitch());
             a.setRightArmPose(new EulerAngle(Math.toRadians(-90), 0, 0));
@@ -58,6 +58,7 @@ public class DaggerThrowEffect implements SpellEffect {
 
                 Location loc = stand.getLocation().add(dir.clone().multiply(0.6));
                 stand.teleport(loc);
+                world.spawnParticle(Particle.END_ROD, loc, 2, 0, 0, 0, 0.01);
                 travelled += 0.6;
 
                 for (LivingEntity hit : loc.getNearbyLivingEntities(0.4)) {
