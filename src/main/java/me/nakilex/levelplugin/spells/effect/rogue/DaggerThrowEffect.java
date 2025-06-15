@@ -32,7 +32,7 @@ public class DaggerThrowEffect implements SpellEffect {
         World world = player.getWorld();
 
         Vector dir = player.getLocation().getDirection().normalize();
-        Location start = player.getEyeLocation().add(dir.multiply(0.5));
+        Location start = player.getEyeLocation().add(dir.multiply(0.5)).subtract(0, 1.0, 0);
         ArmorStand stand = world.spawn(start, ArmorStand.class, a -> {
             a.setInvisible(true);
             a.setGravity(false);
@@ -43,7 +43,7 @@ public class DaggerThrowEffect implements SpellEffect {
             a.getEquipment().setItemInMainHand(new ItemStack(Material.IRON_SWORD));
             a.setRotation(player.getLocation().getYaw(), player.getLocation().getPitch());
             // rotate the arm so the dagger points forward rather than upward
-            a.setRightArmPose(new EulerAngle(Math.toRadians(270), 0, Math.toRadians(90)));
+            a.setRightArmPose(new EulerAngle(Math.toRadians(270), 0, Math.toRadians(180)));
         });
 
         world.playSound(player.getLocation(), Sound.ENTITY_ARROW_SHOOT, 1f, 1.4f);
@@ -59,10 +59,10 @@ public class DaggerThrowEffect implements SpellEffect {
                     return;
                 }
 
-                Location loc = stand.getLocation().add(dir.clone().multiply(0.9));
+                Location loc = stand.getLocation().add(dir.clone().multiply(1.2));
                 stand.teleport(loc);
                 world.spawnParticle(Particle.END_ROD, loc, 2, 0, 0, 0, 0.01);
-                travelled += 0.9;
+                travelled += 1.2;
 
                 for (LivingEntity hit : loc.getNearbyLivingEntities(0.4)) {
                     if (hit.equals(player) || hit.equals(stand)) continue;
