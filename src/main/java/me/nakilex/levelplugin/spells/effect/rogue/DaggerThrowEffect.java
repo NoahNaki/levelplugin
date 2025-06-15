@@ -51,6 +51,7 @@ public class DaggerThrowEffect implements SpellEffect {
         double finalRange = range;
         new BukkitRunnable() {
             double travelled = 0;
+            double spin = 0;
             @Override
             public void run() {
                 if (travelled >= finalRange) {
@@ -61,6 +62,8 @@ public class DaggerThrowEffect implements SpellEffect {
 
                 Location loc = stand.getLocation().add(dir.clone().multiply(1.6));
                 stand.teleport(loc);
+                spin += Math.toRadians(20);
+                stand.setRightArmPose(new EulerAngle(Math.toRadians(-90), 0, spin));
                 world.spawnParticle(Particle.END_ROD, loc, 2, 0, 0, 0, 0.01);
                 travelled += 1.6;
 
