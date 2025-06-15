@@ -40,8 +40,8 @@ public enum DemoEffects {
         public void play(Player player) {
             TornadoEffect effect = new TornadoEffect(Main.getInstance().getEffectManager());
             effect.setLocation(player.getLocation());
-            effect.particle = Particle.CLOUD;
-            effect.particles = 8;
+            effect.tornadoParticle = Particle.CLOUD;
+            effect.circleParticles = 8;
             effect.iterations = 40;
             effect.start();
         }
