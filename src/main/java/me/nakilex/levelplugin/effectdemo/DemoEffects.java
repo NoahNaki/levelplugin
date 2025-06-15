@@ -307,302 +307,264 @@ public enum DemoEffects {
         }
     },
 
-    HELIX_FAST(Material.BLAZE_ROD, "Helix Fast") {
+    ARC(Material.SPECTRAL_ARROW, "Arc") {
         @Override
         public void play(Player player) {
-            HelixEffect effect = new HelixEffect(Main.getInstance().getEffectManager());
+            ArcEffect effect = new ArcEffect(Main.getInstance().getEffectManager());
             effect.setLocation(player.getLocation());
-            effect.iterations = 20;
-            effect.radius = 0.8f;
-            effect.particle = Particle.END_ROD;
+            effect.setTarget(player.getLocation().add(0, 3, 0));
+            effect.height = 3;
+            effect.particles = 80;
             start(effect);
         }
     },
-    SPHERE_TINY(Material.NETHER_STAR, "Sphere Tiny") {
+    CIRCLE(Material.HONEYCOMB, "Circle") {
         @Override
         public void play(Player player) {
-            SphereEffect effect = new SphereEffect(Main.getInstance().getEffectManager());
-            effect.setLocation(player.getLocation().add(0,1,0));
-            effect.particle = Particle.CRIT_MAGIC;
-            effect.radius = 0.8f;
-            effect.iterations = 5;
-            start(effect);
-        }
-    },
-    TORNADO_FIRE(Material.FIRE_CHARGE, "Tornado Fire") {
-        @Override
-        public void play(Player player) {
-            TornadoEffect effect = new TornadoEffect(Main.getInstance().getEffectManager());
+            CircleEffect effect = new CircleEffect(Main.getInstance().getEffectManager());
             effect.setLocation(player.getLocation());
-            effect.tornadoParticle = Particle.FIREWORKS_SPARK;
-            effect.circleParticles = 12;
-            effect.iterations = 40;
-            start(effect);
-        }
-    },
-    ATOM_SMALL(Material.ENDER_EYE, "Atom Small") {
-        @Override
-        public void play(Player player) {
-            AtomEffect effect = new AtomEffect(Main.getInstance().getEffectManager());
-            effect.setLocation(player.getLocation());
-            effect.particleOrbital = Particle.END_ROD;
-            effect.particleNucleus = Particle.FLASH;
-            effect.radius = 0.5f;
-            effect.iterations = 40;
-            start(effect);
-        }
-    },
-    CONE_WIDE(Material.SNOWBALL, "Cone Wide") {
-        @Override
-        public void play(Player player) {
-            ConeEffect effect = new ConeEffect(Main.getInstance().getEffectManager());
-            effect.setLocation(player.getLocation());
-            effect.angularVelocity = Math.PI / 4;
-            effect.lengthGrow = 0.2f;
-            effect.particle = Particle.FLAME;
-            effect.iterations = 40;
-            start(effect);
-        }
-    },
-    CYLINDER_SHORT(Material.IRON_BARS, "Cylinder Short") {
-        @Override
-        public void play(Player player) {
-            CylinderEffect effect = new CylinderEffect(Main.getInstance().getEffectManager());
-            effect.setLocation(player.getLocation());
-            effect.radius = 1.0f;
-            effect.height = 1.5f;
-            effect.particle = Particle.SPELL_WITCH;
-            effect.iterations = 20;
-            start(effect);
-        }
-    },
-    DNA_DOUBLE(Material.BONE, "DNA Double") {
-        @Override
-        public void play(Player player) {
-            DnaEffect effect = new DnaEffect(Main.getInstance().getEffectManager());
-            effect.setLocation(player.getLocation());
-            effect.particleHelix = Particle.VILLAGER_HAPPY;
-            effect.iterations = 60;
-            start(effect);
-        }
-    },
-    DONUT_GLOW(Material.CAKE, "Donut Glow") {
-        @Override
-        public void play(Player player) {
-            DonutEffect effect = new DonutEffect(Main.getInstance().getEffectManager());
-            effect.setLocation(player.getLocation());
-            effect.particle = Particle.END_ROD;
-            effect.iterations = 30;
-            start(effect);
-        }
-    },
-    FOUNTAIN_LAVA(Material.LAVA_BUCKET, "Fountain Lava") {
-        @Override
-        public void play(Player player) {
-            FountainEffect effect = new FountainEffect(Main.getInstance().getEffectManager());
-            effect.setLocation(player.getLocation());
-            effect.particle = Particle.LAVA;
-            effect.iterations = 30;
-            start(effect);
-        }
-    },
-    HEART_LARGE(Material.APPLE, "Heart Large") {
-        @Override
-        public void play(Player player) {
-            HeartEffect effect = new HeartEffect(Main.getInstance().getEffectManager());
-            effect.setLocation(player.getLocation().add(0,1,0));
-            effect.iterations = 60;
-            start(effect);
-        }
-    },
-    BIG_BANG_HUGE(Material.TNT, "Big Bang Huge") {
-        @Override
-        public void play(Player player) {
-            BigBangEffect effect = new BigBangEffect(Main.getInstance().getEffectManager());
-            effect.setLocation(player.getLocation());
-            effect.particle = Particle.EXPLOSION_LARGE;
-            effect.iterations = 1;
-            start(effect);
-        }
-    },
-    VORTEX_TIGHT(Material.ENDER_PEARL, "Vortex Tight") {
-        @Override
-        public void play(Player player) {
-            VortexEffect effect = new VortexEffect(Main.getInstance().getEffectManager());
-            effect.setLocation(player.getLocation());
-            effect.particle = Particle.ENCHANTMENT_TABLE;
-            effect.iterations = 20;
-            start(effect);
-        }
-    },
-    WAVE_FAST(Material.PRISMARINE_SHARD, "Wave Fast") {
-        @Override
-        public void play(Player player) {
-            WaveEffect effect = new WaveEffect(Main.getInstance().getEffectManager());
-            effect.setLocation(player.getLocation());
-            effect.particle = Particle.SPLASH;
-            effect.period = 1;
-            effect.iterations = 20;
-            start(effect);
-        }
-    },
-    STAR_TWINKLE(Material.AMETHYST_SHARD, "Star Twinkle") {
-        @Override
-        public void play(Player player) {
-            StarEffect effect = new StarEffect(Main.getInstance().getEffectManager());
-            effect.setLocation(player.getLocation().add(0,1,0));
-            effect.particle = Particle.CRIT_MAGIC;
-            effect.iterations = 20;
-            start(effect);
-        }
-    },
-    ANIMATED_BALL_TINY(Material.SLIME_BALL, "Animated Ball Tiny") {
-        @Override
-        public void play(Player player) {
-            AnimatedBallEffect effect = new AnimatedBallEffect(Main.getInstance().getEffectManager());
-            effect.setLocation(player.getLocation().add(0,1,0));
-            effect.particle = Particle.SPELL_WITCH;
-            effect.size = 0.5f;
-            effect.iterations = 20;
-            start(effect);
-        }
-    },
-    BLEED_HEAVY(Material.RED_DYE, "Bleed Heavy") {
-        @Override
-        public void play(Player player) {
-            BleedEffect effect = new BleedEffect(Main.getInstance().getEffectManager());
-            effect.setLocation(player.getLocation());
-            effect.material = Material.REDSTONE_BLOCK;
-            effect.height = 1.5;
-            effect.iterations = 30;
-            start(effect);
-        }
-    },
-    CLOUD_STORM(Material.GRAY_WOOL, "Cloud Storm") {
-        @Override
-        public void play(Player player) {
-            CloudEffect effect = new CloudEffect(Main.getInstance().getEffectManager());
-            effect.setLocation(player.getLocation().add(0,1,0));
-            effect.cloudParticle = Particle.CLOUD;
-            effect.mainParticle = Particle.SMOKE_NORMAL;
-            effect.iterations = 60;
-            start(effect);
-        }
-    },
-    CUBE_SMALL(Material.EMERALD_BLOCK, "Cube Small") {
-        @Override
-        public void play(Player player) {
-            CubeEffect effect = new CubeEffect(Main.getInstance().getEffectManager());
-            effect.setLocation(player.getLocation());
-            effect.particle = Particle.TOTEM;
-            effect.edgeLength = 1f;
-            effect.iterations = 10;
-            start(effect);
-        }
-    },
-    CUBOID_THIN(Material.GOLD_BLOCK, "Cuboid Thin") {
-        @Override
-        public void play(Player player) {
-            CuboidEffect effect = new CuboidEffect(Main.getInstance().getEffectManager());
-            effect.setLocation(player.getLocation());
-            effect.xLength = 1;
-            effect.yLength = 4;
-            effect.zLength = 1;
-            effect.particles = 50;
-            effect.iterations = 20;
-            start(effect);
-        }
-    },
-    DRAGON_LONG(Material.DRAGON_EGG, "Dragon Long") {
-        @Override
-        public void play(Player player) {
-            DragonEffect effect = new DragonEffect(Main.getInstance().getEffectManager());
-            effect.setLocation(player.getLocation());
-            effect.particles = 5;
-            effect.length = 5f;
-            effect.iterations = 60;
-            start(effect);
-        }
-    },
-    EARTH_BIG(Material.GRASS_BLOCK, "Earth Big") {
-        @Override
-        public void play(Player player) {
-            EarthEffect effect = new EarthEffect(Main.getInstance().getEffectManager());
-            effect.setLocation(player.getLocation());
-            effect.particleLand = Particle.VILLAGER_HAPPY;
-            effect.particleOcean = Particle.DRIP_WATER;
-            effect.iterations = 60;
-            start(effect);
-        }
-    },
-    FLAME_BURST(Material.BLAZE_POWDER, "Flame Burst") {
-        @Override
-        public void play(Player player) {
-            FlameEffect effect = new FlameEffect(Main.getInstance().getEffectManager());
-            effect.setLocation(player.getLocation());
-            effect.particles = 60;
-            effect.iterations = 10;
-            start(effect);
-        }
-    },
-    HILL_LOW(Material.DIRT, "Hill Low") {
-        @Override
-        public void play(Player player) {
-            HillEffect effect = new HillEffect(Main.getInstance().getEffectManager());
-            effect.setLocation(player.getLocation());
-            effect.edgeLength = 3;
-            effect.height = 1;
-            effect.particles = 50;
-            effect.iterations = 20;
-            start(effect);
-        }
-    },
-    LINE_THICK(Material.STICK, "Line Thick") {
-        @Override
-        public void play(Player player) {
-            LineEffect effect = new LineEffect(Main.getInstance().getEffectManager());
-            effect.setLocation(player.getLocation());
-            effect.particle = Particle.CRIT_MAGIC;
-            effect.length = 4;
-            effect.particles = 60;
-            effect.iterations = 10;
-            start(effect);
-        }
-    },
-    MUSIC_WIDE(Material.NOTE_BLOCK, "Music Wide") {
-        @Override
-        public void play(Player player) {
-            MusicEffect effect = new MusicEffect(Main.getInstance().getEffectManager());
-            effect.setLocation(player.getLocation());
-            effect.radius = 3f;
-            effect.radialsPerStep = Math.PI / 4;
-            effect.iterations = 60;
-            start(effect);
-        }
-    },
-    PYRAMID_SMALL(Material.SANDSTONE, "Pyramid Small") {
-        @Override
-        public void play(Player player) {
-            PyramidEffect effect = new PyramidEffect(Main.getInstance().getEffectManager());
-            effect.setLocation(player.getLocation());
-            effect.radius = 1;
+            effect.radius = 1.2f;
+            effect.wholeCircle = true;
             effect.particles = 30;
-            effect.iterations = 10;
             start(effect);
         }
     },
-    SKYROCKET_POWERFUL(Material.FIREWORK_ROCKET, "Sky Rocket Powerful") {
+    DISCO_BALL(Material.SEA_LANTERN, "Disco Ball") {
         @Override
         public void play(Player player) {
-            SkyRocketEffect effect = new SkyRocketEffect(Main.getInstance().getEffectManager());
+            DiscoBallEffect effect = new DiscoBallEffect(Main.getInstance().getEffectManager());
+            effect.setLocation(player.getLocation().add(0,1,0));
+            start(effect);
+        }
+    },
+    EQUATION(Material.WRITABLE_BOOK, "Equation") {
+        @Override
+        public void play(Player player) {
+            EquationEffect effect = new EquationEffect(Main.getInstance().getEffectManager());
             effect.setLocation(player.getLocation());
-            effect.particle = Particle.FLAME;
-            effect.power = 3f;
+            effect.xEquation = "3*sin(t)";
+            effect.zEquation = "3*cos(t)";
+            effect.particles = 50;
+            start(effect);
+        }
+    },
+    EXPLODE(Material.END_CRYSTAL, "Explode") {
+        @Override
+        public void play(Player player) {
+            ExplodeEffect effect = new ExplodeEffect(Main.getInstance().getEffectManager());
+            effect.setLocation(player.getLocation());
+            start(effect);
+        }
+    },
+    GRID(Material.IRON_BLOCK, "Grid") {
+        @Override
+        public void play(Player player) {
+            GridEffect effect = new GridEffect(Main.getInstance().getEffectManager());
+            effect.setLocation(player.getLocation().add(0,1,0));
+            effect.rows = 4;
+            effect.columns = 4;
+            effect.center = true;
+            start(effect);
+        }
+    },
+    ICON(Material.BELL, "Icon") {
+        @Override
+        public void play(Player player) {
+            IconEffect effect = new IconEffect(Main.getInstance().getEffectManager());
+            effect.setLocation(player.getLocation());
+            effect.yOffset = 2;
+            start(effect);
+        }
+    },
+    JUMP(Material.RABBIT_FOOT, "Jump") {
+        @Override
+        public void play(Player player) {
+            JumpEffect effect = new JumpEffect(Main.getInstance().getEffectManager());
+            effect.setEntity(player);
+            effect.power = 0.8f;
+            start(effect);
+        }
+    },
+    LOVE(Material.POPPY, "Love") {
+        @Override
+        public void play(Player player) {
+            LoveEffect effect = new LoveEffect(Main.getInstance().getEffectManager());
+            effect.setLocation(player.getLocation());
+            start(effect);
+        }
+    },
+    PARTICLE_SIMPLE(Material.GUNPOWDER, "Particle Simple") {
+        @Override
+        public void play(Player player) {
+            ParticleEffect effect = new ParticleEffect(Main.getInstance().getEffectManager());
+            effect.setLocation(player.getLocation());
+            effect.particle = Particle.CRIT;
             effect.iterations = 20;
+            start(effect);
+        }
+    },
+    PLOT(Material.MAP, "Plot") {
+        @Override
+        public void play(Player player) {
+            PlotEffect effect = new PlotEffect(Main.getInstance().getEffectManager());
+            effect.setLocation(player.getLocation());
+            effect.xEquation = "t";
+            effect.yEquation = "sin(t)*2";
+            effect.particles = 100;
+            start(effect);
+        }
+    },
+    SHIELD_DEMO(Material.SHIELD, "Shield") {
+        @Override
+        public void play(Player player) {
+            ShieldEffect effect = new ShieldEffect(Main.getInstance().getEffectManager());
+            effect.setLocation(player.getLocation());
+            effect.radius = 2.5;
+            effect.particles = 80;
+            start(effect);
+        }
+    },
+    SMOKE(Material.CAMPFIRE, "Smoke") {
+        @Override
+        public void play(Player player) {
+            SmokeEffect effect = new SmokeEffect(Main.getInstance().getEffectManager());
+            effect.setLocation(player.getLocation());
+            start(effect);
+        }
+    },
+    SOUND(Material.JUKEBOX, "Sound") {
+        @Override
+        public void play(Player player) {
+            SoundEffect effect = new SoundEffect(Main.getInstance().getEffectManager());
+            effect.setLocation(player.getLocation());
+            effect.sound = new CustomSound("entity.experience_orb.pickup,1,1");
+            start(effect);
+        }
+    },
+    TEXT(Material.NAME_TAG, "Text") {
+        @Override
+        public void play(Player player) {
+            TextEffect effect = new TextEffect(Main.getInstance().getEffectManager());
+            effect.setLocation(player.getLocation().add(0,2,0));
+            effect.text = "Hello";
+            start(effect);
+        }
+    },
+    TRACE(Material.FEATHER, "Trace") {
+        @Override
+        public void play(Player player) {
+            TraceEffect effect = new TraceEffect(Main.getInstance().getEffectManager());
+            effect.setLocation(player.getLocation());
+            start(effect);
+        }
+    },
+    TURN(Material.COMPASS, "Turn") {
+        @Override
+        public void play(Player player) {
+            TurnEffect effect = new TurnEffect(Main.getInstance().getEffectManager());
+            effect.setEntity(player);
+            effect.step = 15f;
+            start(effect);
+        }
+    },
+    WARP(Material.ENDER_PEARL, "Warp") {
+        @Override
+        public void play(Player player) {
+            WarpEffect effect = new WarpEffect(Main.getInstance().getEffectManager());
+            effect.setLocation(player.getLocation());
+            start(effect);
+        }
+    },
+    CIRCLE_RAPID(Material.BEACON, "Circle Rapid") {
+        @Override
+        public void play(Player player) {
+            CircleEffect effect = new CircleEffect(Main.getInstance().getEffectManager());
+            effect.setLocation(player.getLocation());
+            effect.radius = 2f;
+            effect.particles = 60;
+            effect.angularVelocityY = Math.PI / 10;
+            start(effect);
+        }
+    },
+    DISCO_FRENZY(Material.JACK_O_LANTERN, "Disco Frenzy") {
+        @Override
+        public void play(Player player) {
+            DiscoBallEffect effect = new DiscoBallEffect(Main.getInstance().getEffectManager());
+            effect.setLocation(player.getLocation().add(0,1,0));
+            effect.maxLines = 12;
+            start(effect);
+        }
+    },
+    EQUATION_COMPLEX(Material.ENCHANTED_BOOK, "Equation Complex") {
+        @Override
+        public void play(Player player) {
+            EquationEffect effect = new EquationEffect(Main.getInstance().getEffectManager());
+            effect.setLocation(player.getLocation());
+            effect.xEquation = "sin(t)*t/5";
+            effect.yEquation = "t/5";
+            effect.zEquation = "cos(t)*t/5";
+            effect.particles = 80;
+            start(effect);
+        }
+    },
+    EXPLODE_LARGE(Material.TNT_MINECART, "Explode Large") {
+        @Override
+        public void play(Player player) {
+            ExplodeEffect effect = new ExplodeEffect(Main.getInstance().getEffectManager());
+            effect.setLocation(player.getLocation());
+            effect.amount = 50;
+            start(effect);
+        }
+    },
+    SHIELD_SPHERE(Material.SHIELD, "Shield Sphere") {
+        @Override
+        public void play(Player player) {
+            ShieldEffect effect = new ShieldEffect(Main.getInstance().getEffectManager());
+            effect.setLocation(player.getLocation());
+            effect.sphere = true;
+            effect.radius = 2;
+            start(effect);
+        }
+    },
+    SMOKE_STORM(Material.COBWEB, "Smoke Storm") {
+        @Override
+        public void play(Player player) {
+            SmokeEffect effect = new SmokeEffect(Main.getInstance().getEffectManager());
+            effect.setLocation(player.getLocation());
+            effect.particles = 60;
+            start(effect);
+        }
+    },
+    TEXT_BOLD(Material.PAPER, "Text Bold") {
+        @Override
+        public void play(Player player) {
+            TextEffect effect = new TextEffect(Main.getInstance().getEffectManager());
+            effect.setLocation(player.getLocation().add(0,2,0));
+            effect.text = "Magic!";
+            effect.size = 0.2f;
+            start(effect);
+        }
+    },
+    WARP_TALL(Material.ENDER_EYE, "Warp Tall") {
+        @Override
+        public void play(Player player) {
+            WarpEffect effect = new WarpEffect(Main.getInstance().getEffectManager());
+            effect.setLocation(player.getLocation());
+            effect.rings = 20;
+            effect.grow = 0.3f;
+            effect.iterations = effect.rings;
+            start(effect);
+        }
+    },
+    TRACE_LONG(Material.SPYGLASS, "Trace Long") {
+        @Override
+        public void play(Player player) {
+            TraceEffect effect = new TraceEffect(Main.getInstance().getEffectManager());
+            effect.setLocation(player.getLocation());
+            effect.maxWayPoints = 60;
             start(effect);
         }
     };
-
     private final Material icon;
     private final String label;
 
