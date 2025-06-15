@@ -7,6 +7,7 @@ import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.entity.Player;
 import org.bukkit.Location;
+import org.bukkit.util.Vector;
 
 /**
  * Collection of simple EffectLib examples used in the demo GUI.
@@ -354,6 +355,49 @@ public enum DemoEffects {
             effect.setTargetLocation(target);
             effect.height = 4;
             effect.particles = 100;
+            start(effect);
+        }
+    },
+
+    ARC_SIDE(Material.ARROW, "Arc Side") {
+        @Override
+        public void play(Player player) {
+            ArcEffect effect = new ArcEffect(Main.getInstance().getEffectManager());
+            effect.setLocation(player.getLocation());
+            Vector side = player.getLocation().getDirection().clone()
+                    .crossProduct(new Vector(0, 1, 0)).normalize().multiply(5);
+            Location target = player.getLocation().add(side);
+            effect.setTargetLocation(target);
+            effect.height = 3;
+            effect.particles = 80;
+            start(effect);
+        }
+    },
+
+    ARC_DIAGONAL_UP(Material.ARROW, "Arc Diagonal Up") {
+        @Override
+        public void play(Player player) {
+            ArcEffect effect = new ArcEffect(Main.getInstance().getEffectManager());
+            effect.setLocation(player.getLocation());
+            Vector forward = player.getLocation().getDirection().clone().normalize().multiply(5);
+            Location target = player.getLocation().add(forward).add(0, 3, 0);
+            effect.setTargetLocation(target);
+            effect.height = 3;
+            effect.particles = 80;
+            start(effect);
+        }
+    },
+
+    ARC_DIAGONAL_DOWN(Material.ARROW, "Arc Diagonal Down") {
+        @Override
+        public void play(Player player) {
+            ArcEffect effect = new ArcEffect(Main.getInstance().getEffectManager());
+            effect.setLocation(player.getLocation());
+            Vector forward = player.getLocation().getDirection().clone().normalize().multiply(5);
+            Location target = player.getLocation().add(forward).add(0, -3, 0);
+            effect.setTargetLocation(target);
+            effect.height = 3;
+            effect.particles = 80;
             start(effect);
         }
     },
