@@ -53,32 +53,32 @@ public class SpellManager {
         // — WARRIOR SPELLS —
         Map<String, Spell> warriorMap = new HashMap<>();
         warriorMap.put("RLR", new Spell(
-            "cyclone_strike", "Cyclone Strike", "RLR",
-            15.0,
+            "iron_fortress", "Iron Fortress", "RLR",
+            15.0, 
             0, 10,
             me.nakilex.levelplugin.items.data.WeaponType.SHOVEL.getMaterials(),
-            "CYCLONE_STRIKE", 0.0
+            "IRON_FORTRESS", 0.0
         ));
         warriorMap.put("RRR", new Spell(
-            "earth_splitter", "Earth Splitter", "RRR",
-            10.0,
+            "heroic_leap", "Heroic Leap", "RRR",
+            10.0, 
             0, 8,
             me.nakilex.levelplugin.items.data.WeaponType.SHOVEL.getMaterials(),
-            "EARTH_SPLITTER", 1.2
+            "HEROIC_LEAP", 1.2
         ));
         warriorMap.put("RRL", new Spell(
-            "rally_banner", "Rally Banner", "RRL",
-            16.0,
+            "judgement", "Judgement", "RRL",
+            16.0, 
             0, 15,
             me.nakilex.levelplugin.items.data.WeaponType.SHOVEL.getMaterials(),
-            "RALLY_BANNER", 2.0
+            "JUDGEMENT", 2.0
         ));
         warriorMap.put("RLL", new Spell(
-            "blade_geyser", "Blade Geyser", "RLL",
+            "shockwave", "Shockwave", "RLL",
             14.0,
             0, 3,
             me.nakilex.levelplugin.items.data.WeaponType.SHOVEL.getMaterials(),
-            "BLADE_GEYSER", 1.5
+            "SHOCKWAVE", 1.5
         ));
         warriorMap.put("LRL", new Spell(
             "war_cry", "War Cry", "LRL",

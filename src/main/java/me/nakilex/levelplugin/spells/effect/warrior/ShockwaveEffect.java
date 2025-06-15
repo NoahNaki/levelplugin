@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.spells.effect.SpellEffect;
 import me.nakilex.levelplugin.spells.utils.SpellUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import me.nakilex.levelplugin.spells.utils.animation.SpellAnimation;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.block.Block;
@@ -15,7 +16,6 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 import org.bukkit.Location;
 
@@ -50,10 +50,10 @@ public class ShockwaveEffect implements SpellEffect {
         Plugin plugin = Bukkit.getPluginManager().getPlugin("LevelPlugin");
 
         double finalMaxRadius = maxRadius;
-        new BukkitRunnable() {
+        new SpellAnimation(duration / steps, duration) {
             double current = 0;
             @Override
-            public void run() {
+            protected void onTick(int tick) {
                 if (current >= finalMaxRadius) { cancel(); return; }
                 current += finalMaxRadius / steps;
 
@@ -97,6 +97,6 @@ public class ShockwaveEffect implements SpellEffect {
                 player.getWorld().playSound(player.getLocation(), Sound.ENTITY_IRON_GOLEM_ATTACK, 0.5f, 0.8f);
                 player.getWorld().playSound(player.getLocation(), Sound.BLOCK_STONE_BREAK, 0.7f, 1f);
             }
-        }.runTaskTimer(Bukkit.getPluginManager().getPlugin("LevelPlugin"), 0L, duration / steps);
+        };
     }
 }

@@ -66,15 +66,14 @@ public class EffectRegistry {
         register("EXPLOSIVE_ARROW", new ExplosiveArrowShotEffect());
 
         // --- Warrior Spells
-        register("CYCLONE_STRIKE", new CycloneStrikeEffect());
-        register("EARTH_SPLITTER", new EarthSplitterEffect());
-        register("RALLY_BANNER", new RallyBannerEffect());
-        register("BLADE_GEYSER", new BladeGeyserEffect());
-        register("WAR_CRY", new WarCryEffect());
+        register("IRON_FORTRESS", new IronFortressEffect());
+        register("HEROIC_LEAP", new HeroicLeapEffect());
+        register("SHOCKWAVE", new ShockwaveEffect());
         register("VORTEX_SHOCKWAVE_EFFECT", new VortexShockwaveEffect());
         register("VOLCANIC_BLAST_EFFECT", new VolcanicBlastEffect());
         register("VORTEX_LEAP_EFFECT", new VortexLeapEffect());
         register("STUNNING_LEAP_EFFECT", new StunningLeapEffect());
+        register("WAR_CRY", new WarCryEffect());
         register("JUDGEMENT", new JudgementEffect());
         register("GATE_OF_RUIN_EFFECT", new GateOfRuinEffect());
 
