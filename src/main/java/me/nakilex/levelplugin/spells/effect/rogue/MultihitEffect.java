@@ -43,19 +43,22 @@ public class MultihitEffect implements SpellEffect {
                     cancel();
                     return;
                 }
-                double angle = step * Math.PI / 4;
-                for (int i = 0; i < 8; i++) {
-                    double a = angle + i * Math.PI / 4;
-                    double x = Math.cos(a) * 0.5;
-                    double z = Math.sin(a) * 0.5;
-                    world.spawnParticle(Particle.CRIT, finalTarget.getLocation().add(x, 0.1 * i, z), 0);
-                }
-                finalTarget.setVelocity(finalTarget.getVelocity().add(new org.bukkit.util.Vector(0, 0.1, 0)));
+                double angle = (2 * Math.PI / hits) * step;
+                double radius = 1.5;
+                double px = finalTarget.getLocation().getX() + Math.cos(angle) * radius;
+                double pz = finalTarget.getLocation().getZ() + Math.sin(angle) * radius;
+                Location strikeLoc = new Location(world, px, finalTarget.getLocation().getY(), pz);
+                strikeLoc.setYaw((float)Math.toDegrees(angle + Math.PI));
+                player.teleport(strikeLoc);
+
+                world.spawnParticle(Particle.SWEEP_ATTACK, finalTarget.getLocation(), 5, 0.3, 0.3, 0.3);
+                world.spawnParticle(Particle.CRIT, strikeLoc, 10, 0.2, 0.2, 0.2);
+                finalTarget.setVelocity(finalTarget.getVelocity().add(new org.bukkit.util.Vector(0, 0.05, 0)));
                 world.playSound(finalTarget.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1f);
                 SpellUtils.dealWithChat(player, finalTarget, damage / hits, "Multihit");
                 step++;
             }
-        }.runTaskTimer(Main.getInstance(), 0L, 3L);
+        }.runTaskTimer(Main.getInstance(), 0L, 2L);
 
         player.sendMessage("§aYou strike your foe multiple times!");
     }

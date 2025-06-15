@@ -32,21 +32,22 @@ public class EndlessAssaultEffect implements SpellEffect {
 
         World world = target.getWorld();
         double damage = ctx.getFinalDamage() * 1.2; // slight buff
-        int hits = 6;
+        int hits = 7;
 
         LivingEntity finalTarget = target;
         new BukkitRunnable() {
             int step = 0;
             @Override
             public void run() {
-                if (step++ >= hits) {
+                if (step >= hits) {
                     cancel();
                     return;
                 }
-                finalTarget.setVelocity(finalTarget.getVelocity().add(new Vector(0, 0.2, 0)));
-                world.spawnParticle(Particle.CRIT, finalTarget.getLocation(), 15, 0.5, 1, 0.5);
-                world.playSound(finalTarget.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1f);
+                finalTarget.setVelocity(new Vector(0, 0.25, 0));
+                world.spawnParticle(Particle.CRIT_MAGIC, finalTarget.getLocation().add(0, step * 0.2, 0), 10, 0.3, 0.3, 0.3);
+                world.playSound(finalTarget.getLocation(), Sound.ITEM_TRIDENT_RIPTIDE_1, 1f, 1f);
                 SpellUtils.dealWithChat(player, finalTarget, damage / hits, "Endless Assault");
+                step++;
             }
         }.runTaskTimer(Main.getInstance(), 0L, 4L);
 

@@ -28,6 +28,9 @@ public class SmokeBombEffect implements SpellEffect {
         ItemStack skull = new ItemStack(Material.WITHER_SKELETON_SKULL);
         Item bomb = world.dropItem(player.getEyeLocation(), skull);
         bomb.setPickupDelay(Integer.MAX_VALUE);
+        bomb.setCustomName("smoke_bomb");
+        bomb.setCustomNameVisible(false);
+        bomb.setGravity(true);
         bomb.setVelocity(player.getLocation().getDirection().multiply(0.9));
 
         world.playSound(player.getLocation(), Sound.ENTITY_SNOWBALL_THROW, 1f, 1f);
@@ -42,9 +45,7 @@ public class SmokeBombEffect implements SpellEffect {
 
                 if (!activated && (bomb.isOnGround() || ticks > 20)) {
                     activated = true;
-                    Location loc = bomb.getLocation();
-                    bomb.remove();
-                    startSmoke(loc);
+                    startSmoke(bomb);
                 }
 
                 if (activated && ticks >= 80) {
@@ -54,14 +55,19 @@ public class SmokeBombEffect implements SpellEffect {
                 ticks++;
             }
 
-            private void startSmoke(Location loc) {
+            private void startSmoke(Item item) {
+                Location loc = item.getLocation();
                 new BukkitRunnable() {
                     int life = 0;
 
                     @Override
                     public void run() {
-                        if (life++ >= 80) { cancel(); return; }
-                        world.spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, loc, 10, 0.5, 0.5, 0.5, 0.01);
+                        if (life++ >= 80) {
+                            item.remove();
+                            cancel();
+                            return;
+                        }
+                        world.spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, item.getLocation(), 10, 0.5, 0.5, 0.5, 0.01);
                         for (Entity e : world.getNearbyEntities(loc, 3, 2, 3)) {
                             if (e instanceof LivingEntity le && !le.equals(player)) {
                                 SpellUtils.dealWithChat(player, le, ctx.getFinalDamage() / 4.0, "Smoke Bomb");
