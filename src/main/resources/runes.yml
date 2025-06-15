@@ -1264,3 +1264,55 @@ runes:
           leaveSmoke: true
     description:
       - "Arrive in a cloud of smoke."
+
+  # --- New Rogue Runes for updated spells ---
+  - id: "rogue_smoke_bomb_blind"
+    name: "Rune of Obscuring Smoke"
+    rarity: "RARE"
+    targetClass: "ROGUE"
+    targetSpell: "smoke_bomb"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        newEffectKey: "SMOKE_BOMB"
+        extraParams:
+          applyBlind: true
+    description:
+      - "Smoke Bomb blinds foes."
+
+  - id: "rogue_smoke_bomb_duration"
+    name: "Rune of Lingering Fumes"
+    rarity: "UNCOMMON"
+    targetClass: "ROGUE"
+    targetSpell: "smoke_bomb"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        extraParams:
+          durationBonus: 40
+    description:
+      - "Smoke Bomb lasts longer."
+
+  - id: "rogue_multihit_damage"
+    name: "Rune of Precision Strikes"
+    rarity: "RARE"
+    targetClass: "ROGUE"
+    targetSpell: "multihit"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        bonusDamagePercent: 12.0
+    description:
+      - "Multihit deals increased damage."
+
+  - id: "rogue_multihit_rapid"
+    name: "Rune of Rapid Assault"
+    rarity: "UNCOMMON"
+    targetClass: "ROGUE"
+    targetSpell: "multihit"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        cooldownReductionPercent: 15.0
+    description:
+      - "Multihit cooldown reduced."

@@ -12,7 +12,6 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.util.Vector;
 
 public class MultihitEffect implements SpellEffect {
     @Override
@@ -33,31 +32,30 @@ public class MultihitEffect implements SpellEffect {
 
         World world = target.getWorld();
         double damage = ctx.getFinalDamage();
-        Vector[] dirs = new Vector[10];
-        int idx = 0;
-        for (int i = 0; i < 8; i++) {
-            double angle = Math.toRadians(i * 45);
-            dirs[idx++] = new Vector(Math.cos(angle), 0.2, Math.sin(angle));
-        }
-        dirs[idx++] = new Vector(0, -1, 0);
-        dirs[idx] = new Vector(0, 1, 0);
+        int hits = 8;
 
         LivingEntity finalTarget = target;
         new BukkitRunnable() {
             int step = 0;
             @Override
             public void run() {
-                if (step >= dirs.length) {
-                    SpellUtils.dealWithChat(player, finalTarget, damage, "Multihit");
+                if (step >= hits) {
                     cancel();
                     return;
                 }
-                finalTarget.setVelocity(dirs[step].clone().multiply(1.2));
-                world.spawnParticle(Particle.CRIT, finalTarget.getLocation(), 15, 0.5, 1, 0.5);
+                double angle = step * Math.PI / 4;
+                for (int i = 0; i < 8; i++) {
+                    double a = angle + i * Math.PI / 4;
+                    double x = Math.cos(a) * 0.5;
+                    double z = Math.sin(a) * 0.5;
+                    world.spawnParticle(Particle.CRIT, finalTarget.getLocation().add(x, 0.1 * i, z), 0);
+                }
+                finalTarget.setVelocity(finalTarget.getVelocity().add(new org.bukkit.util.Vector(0, 0.1, 0)));
                 world.playSound(finalTarget.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1f);
+                SpellUtils.dealWithChat(player, finalTarget, damage / hits, "Multihit");
                 step++;
             }
-        }.runTaskTimer(Main.getInstance(), 0L, 4L);
+        }.runTaskTimer(Main.getInstance(), 0L, 3L);
 
         player.sendMessage("§aYou strike your foe multiple times!");
     }
