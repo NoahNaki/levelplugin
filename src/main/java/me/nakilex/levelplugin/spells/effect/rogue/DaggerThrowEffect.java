@@ -38,6 +38,8 @@ public class DaggerThrowEffect implements SpellEffect {
             a.setGravity(false);
             a.setArms(true);
             a.setSmall(true);
+            a.setMarker(true);
+            a.setInvulnerable(true);
             a.getEquipment().setItemInMainHand(new ItemStack(Material.IRON_SWORD));
             a.setRotation(player.getLocation().getYaw(), player.getLocation().getPitch());
             a.setRightArmPose(new EulerAngle(Math.toRadians(-90), 0, 0));
@@ -62,7 +64,7 @@ public class DaggerThrowEffect implements SpellEffect {
                 travelled += 0.6;
 
                 for (LivingEntity hit : loc.getNearbyLivingEntities(0.4)) {
-                    if (hit.equals(player)) continue;
+                    if (hit.equals(player) || hit.equals(stand)) continue;
                     if (hit instanceof Player p && !DuelManager.getInstance().areInDuel(player.getUniqueId(), p.getUniqueId()))
                         continue;
                     world.spawnParticle(Particle.CRIT, hit.getLocation().add(0, 1, 0), 15, 0.3, 0.3, 0.3, 0.05);
