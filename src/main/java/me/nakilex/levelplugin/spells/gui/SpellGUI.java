@@ -32,10 +32,10 @@ public class SpellGUI {
         SPELL_DESCRIPTIONS.put("heal",          "Heal yourself or allies.");
         SPELL_DESCRIPTIONS.put("teleport",      "Teleport forward a short distance.");
 
-        SPELL_DESCRIPTIONS.put("spin_attack",   "Spin rapidly to strike all nearby foes.");
-        SPELL_DESCRIPTIONS.put("vanish",        "Disappear in the shadows temporarily.");
-        SPELL_DESCRIPTIONS.put("shuriken_toss", "Throw a spinning shuriken that can be enhanced by runes.");
-        SPELL_DESCRIPTIONS.put("smoke_bomb",    "Throw a bomb that slows and damages foes.");
+        SPELL_DESCRIPTIONS.put("shadow_warp",   "Warp forward leaving a decoy behind.");
+        SPELL_DESCRIPTIONS.put("fan_of_knives", "Throw knives in a deadly cone.");
+        SPELL_DESCRIPTIONS.put("caltrops",      "Scatter caltrops that hinder foes.");
+        SPELL_DESCRIPTIONS.put("shadow_veil",   "Cloak yourself in shadows.");
 
         SPELL_DESCRIPTIONS.put("power_shot",        "Charge up a powerful arrow shot.");
         SPELL_DESCRIPTIONS.put("bow_drone",   "Summon a sentry that shoots enemies.");

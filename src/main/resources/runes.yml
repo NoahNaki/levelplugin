@@ -1265,73 +1265,56 @@ runes:
     description:
       - "Arrive in a cloud of smoke."
 
-  # --- New Rogue Runes for updated spells ---
-  - id: "rogue_smoke_bomb_blind"
-    name: "Rune of Obscuring Smoke"
+  # --- Rogue Runes for new spells ---
+  - id: "rogue_shadow_warp_range"
+    name: "Rune of Distant Warp"
+    rarity: "UNCOMMON"
+    targetClass: "ROGUE"
+    targetSpell: "shadow_warp"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        extraParams:
+          rangeBonus: 2
+    description:
+      - "Shadow Warp travels farther."
+
+  - id: "rogue_fan_of_knives_poison"
+    name: "Rune of Toxic Blades"
     rarity: "RARE"
     targetClass: "ROGUE"
-    targetSpell: "smoke_bomb"
+    targetSpell: "fan_of_knives"
     unique: true
     effects:
       - type: "TRANSFORM"
-        newEffectKey: "SMOKE_BOMB"
+        newEffectKey: "FAN_OF_KNIVES"
         extraParams:
-          applyBlind: true
+          applyPoison: true
     description:
-      - "Smoke Bomb blinds foes."
+      - "Knives apply poison."
 
-  - id: "rogue_smoke_bomb_duration"
-    name: "Rune of Lingering Fumes"
+  - id: "rogue_caltrops_damage"
+    name: "Rune of Jagged Spikes"
     rarity: "UNCOMMON"
     targetClass: "ROGUE"
-    targetSpell: "smoke_bomb"
+    targetSpell: "caltrops"
+    unique: false
+    effects:
+      - type: "MODIFIER"
+        extraParams:
+          bonusDamagePercent: 20.0
+    description:
+      - "Caltrops deal more damage."
+
+  - id: "rogue_shadow_veil_duration"
+    name: "Rune of Lingering Veil"
+    rarity: "UNCOMMON"
+    targetClass: "ROGUE"
+    targetSpell: "shadow_veil"
     unique: false
     effects:
       - type: "MODIFIER"
         extraParams:
           durationBonus: 40
     description:
-      - "Smoke Bomb lasts longer."
-
-  # --- Shuriken Toss Runes ---
-  - id: "rogue_shuriken_toss_poison"
-    name: "Rune of Venom"
-    rarity: "RARE"
-    targetClass: "ROGUE"
-    targetSpell: "shuriken_toss"
-    unique: true
-    effects:
-      - type: "TRANSFORM"
-        newEffectKey: "SHURIKEN_TOSS"
-        extraParams:
-          applyPoison: true
-    description:
-      - "Shuriken poison enemies."
-
-  - id: "rogue_shuriken_toss_teleport"
-    name: "Rune of Shadow Leap"
-    rarity: "EPIC"
-    targetClass: "ROGUE"
-    targetSpell: "shuriken_toss"
-    unique: true
-    effects:
-      - type: "TRANSFORM"
-        newEffectKey: "SHURIKEN_TOSS"
-        extraParams:
-          teleport: true
-    description:
-      - "Teleport to your shuriken."
-
-  - id: "rogue_shuriken_toss_double"
-    name: "Rune of Twin Stars"
-    rarity: "UNCOMMON"
-    targetClass: "ROGUE"
-    targetSpell: "shuriken_toss"
-    unique: false
-    effects:
-      - type: "MODIFIER"
-        newEffectKey:
-        extraParams:
-          extraProjectiles: 1
-    description:
-      - "Throws an additional shuriken."
+      - "Shadow Veil lasts longer."

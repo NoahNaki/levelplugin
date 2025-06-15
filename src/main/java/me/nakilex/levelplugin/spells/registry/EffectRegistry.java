@@ -77,11 +77,11 @@ public class EffectRegistry {
         register("JUDGEMENT", new JudgementEffect());
         register("GATE_OF_RUIN_EFFECT", new GateOfRuinEffect());
 
-        // --- Rogue Spells (Wynncraft style)
-        register("SPIN_ATTACK", new SpinAttackEffect());
-        register("SHURIKEN_TOSS", new ShurikenTossEffect());
-        register("SMOKE_BOMB", new SmokeBombEffect());
-        register("VANISH", new VanishEffect());
+        // --- Rogue Spells (custom set)
+        register("SHADOW_WARP", new ShadowWarpEffect());
+        register("FAN_OF_KNIVES", new FanOfKnivesEffect());
+        register("CALTROPS", new CaltropsEffect());
+        register("SHADOW_VEIL", new ShadowVeilEffect());
 
     }
 }

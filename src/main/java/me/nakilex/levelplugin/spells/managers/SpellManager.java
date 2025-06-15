@@ -143,32 +143,32 @@ public class SpellManager {
         // — ROGUE SPELLS —
         Map<String, Spell> rogueMap = new HashMap<>();
         rogueMap.put("RLL", new Spell(
-            "spin_attack", "Spin Attack", "RLL",
-            5.0,
-            0, 1,
+            "shadow_warp", "Shadow Warp", "RLL",
+            6.0,
+            0, 5,
             me.nakilex.levelplugin.items.data.WeaponType.SWORD.getMaterials(),
-            "SPIN_ATTACK", 2.0
+            "SHADOW_WARP", 0.0
+        ));
+        rogueMap.put("RRL", new Spell(
+            "fan_of_knives", "Fan of Knives", "RRL",
+            8.0,
+            0, 15,
+            me.nakilex.levelplugin.items.data.WeaponType.SWORD.getMaterials(),
+            "FAN_OF_KNIVES", 2.5
+        ));
+        rogueMap.put("RLR", new Spell(
+            "caltrops", "Caltrops", "RLR",
+            10.0,
+            0, 25,
+            me.nakilex.levelplugin.items.data.WeaponType.SWORD.getMaterials(),
+            "CALTROPS", 1.0
         ));
         rogueMap.put("RRR", new Spell(
-            "vanish", "Vanish", "RRR",
+            "shadow_veil", "Shadow Veil", "RRR",
             8.0,
             0, 11,
             me.nakilex.levelplugin.items.data.WeaponType.SWORD.getMaterials(),
-            "VANISH", 0.0
-        ));
-        rogueMap.put("RRL", new Spell(
-            "shuriken_toss", "Shuriken Toss", "RRL",
-            8.0,
-            0, 21,
-            me.nakilex.levelplugin.items.data.WeaponType.SWORD.getMaterials(),
-            "SHURIKEN_TOSS", 3.3
-        ));
-        rogueMap.put("RLR", new Spell(
-            "smoke_bomb", "Smoke Bomb", "RLR",
-            10.0,
-            0, 31,
-            me.nakilex.levelplugin.items.data.WeaponType.SWORD.getMaterials(),
-            "SMOKE_BOMB", 1.0
+            "SHADOW_VEIL", 0.0
         ));
         spellsByClass.put("rogue", Collections.unmodifiableMap(rogueMap));
 
