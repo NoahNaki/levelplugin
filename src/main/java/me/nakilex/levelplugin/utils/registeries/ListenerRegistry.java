@@ -45,6 +45,7 @@ import me.nakilex.levelplugin.spells.gui.SpellGUIListener;
 import me.nakilex.levelplugin.spells.listener.*;
 import me.nakilex.levelplugin.trade.listeners.PlayerRightClicksPlayerListener;
 import me.nakilex.levelplugin.guild.GuildGUIListener;
+import me.nakilex.levelplugin.effectdemo.EffectDemoListener;
 import me.nakilex.levelplugin.utils.*;
 import me.nakilex.levelplugin.quests.listeners.QuestKillListener;
 import me.nakilex.levelplugin.quests.listeners.QuestCraftListener;
@@ -138,6 +139,7 @@ public class ListenerRegistry {
         pm.registerEvents(new CustomItemUpdateListener(), plugin);
         pm.registerEvents(new SalvageListener(economyManager, gemsManager), plugin);
         pm.registerEvents(new SpellGUIListener(), plugin);
+        pm.registerEvents(new EffectDemoListener(), plugin);
         pm.registerEvents(new DoubleJumpListener(), plugin);
         pm.registerEvents(new DamageIndicatorListener(dmgToggleManager), plugin);
         pm.registerEvents(new DamageChatListener(), plugin);

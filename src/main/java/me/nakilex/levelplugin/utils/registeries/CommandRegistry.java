@@ -48,6 +48,7 @@ import me.nakilex.levelplugin.trade.commands.TradeCommand;
 import me.nakilex.levelplugin.auctionhouse.AuctionCommand;
 import me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI;
 import me.nakilex.levelplugin.auctionhouse.AuctionHouseManager;
+import me.nakilex.levelplugin.effectdemo.EffectDemoCommand;
 import me.nakilex.levelplugin.party.PartyCommands;
 import me.nakilex.levelplugin.party.PartyGlowCommand;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
@@ -153,6 +154,7 @@ public class CommandRegistry {
         plugin.getCommand("buildingstage").setExecutor(new BuildingStageCommand(plugin, plugin.getBuildingStageManager()));
         plugin.getCommand("townpos1").setExecutor(new TownPosCommand(true));
         plugin.getCommand("townpos2").setExecutor(new TownPosCommand(false));
+        plugin.getCommand("fxdemo").setExecutor(new EffectDemoCommand());
 
     }
 }

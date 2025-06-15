@@ -198,3 +198,6 @@ commands:
   townpos2:
     description: Set second selection position for towns
     usage: /townpos2
+  fxdemo:
+    description: Opens a particle showcase
+    usage: /fxdemo
