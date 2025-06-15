@@ -1014,35 +1014,35 @@ runes:
           summonClones: true
     description:
       - "Summons shadow clones on cast."
-  - id: "rogue_shadow_nova_twice"
+  - id: "rogue_umbral_daggers_twice"
     name: "Rune of Whirling Shadows"
     rarity: "UNCOMMON"
     targetClass: "ROGUE"
-    targetSpell: "shadow_nova"
+    targetSpell: "umbral_daggers"
     unique: true
     effects:
       - type: "MODIFIER"
         extraParams:
           extraHits: 1
     description:
-      - "Shadow Nova hits twice."
-  - id: "rogue_shadow_nova_blind"
+      - "Umbral Daggers strike twice."
+  - id: "rogue_umbral_daggers_blind"
     name: "Rune of Dazzling Shadows"
     rarity: "RARE"
     targetClass: "ROGUE"
-    targetSpell: "shadow_nova"
+    targetSpell: "umbral_daggers"
     unique: true
     effects:
       - type: "TRANSFORM"
         extraParams:
           blindDuration: 40
     description:
-      - "Shadow Nova blinds enemies."
-  - id: "rogue_shadow_nova_transfer"
+      - "Umbral Daggers blind enemies."
+  - id: "rogue_umbral_daggers_transfer"
     name: "Rune of Bitter Night"
     rarity: "EPIC"
     targetClass: "ROGUE"
-    targetSpell: "shadow_nova"
+    targetSpell: "umbral_daggers"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -1050,11 +1050,11 @@ runes:
           transferDebuffs: true
     description:
       - "Transfers your debuffs to foes."
-  - id: "rogue_shadow_nova_vulnerability"
+  - id: "rogue_umbral_daggers_vulnerability"
     name: "Rune of Vulnerability"
     rarity: "RARE"
     targetClass: "ROGUE"
-    targetSpell: "shadow_nova"
+    targetSpell: "umbral_daggers"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -1062,11 +1062,11 @@ runes:
           weaknessDuration: 60
     description:
       - "Victims become weakened."
-  - id: "rogue_shadow_nova_mobility"
+  - id: "rogue_umbral_daggers_mobility"
     name: "Rune of Nimble Dance"
     rarity: "UNCOMMON"
     targetClass: "ROGUE"
-    targetSpell: "shadow_nova"
+    targetSpell: "umbral_daggers"
     unique: false
     effects:
       - type: "MODIFIER"
