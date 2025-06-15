@@ -47,30 +47,34 @@ public class MultihitEffect implements SpellEffect {
         LivingEntity finalTarget = target;
 
         Vector dir = player.getLocation().getDirection().setY(0).normalize();
-        player.setVelocity(dir.clone().multiply(0.6));
+        player.setVelocity(dir.clone().multiply(0.8));
 
         int finalTotalHits = totalHits;
         new BukkitRunnable() {
             int hit = 0;
             @Override
             public void run() {
+                if (!finalTarget.isValid() || finalTarget.isDead()) { cancel(); return; }
                 if (hit >= finalTotalHits) {
-                    Vector kb = dir.clone().multiply(1.2).setY(0.4);
+                    Vector kb = player.getLocation().toVector().subtract(finalTarget.getLocation().toVector()).normalize().multiply(1.4).setY(0.5);
                     finalTarget.setVelocity(kb);
-                    world.spawnParticle(Particle.CRIT, finalTarget.getLocation(), 20, 0.3, 0.3, 0.3, 0.05);
+                    world.spawnParticle(Particle.CRIT, finalTarget.getLocation(), 30, 0.3, 0.3, 0.3, 0.05);
                     SpellUtils.dealWithChat(player, finalTarget, damage / finalTotalHits, "Multihit");
                     world.playSound(finalTarget.getLocation(), Sound.ENTITY_PLAYER_ATTACK_STRONG, 1f, 1f);
                     cancel();
                     return;
                 }
+
+                double angle = (hit * (2 * Math.PI / finalTotalHits));
+                Location pos = finalTarget.getLocation().clone().add(Math.cos(angle), 0, Math.sin(angle));
+                pos.setDirection(finalTarget.getLocation().toVector().subtract(pos.toVector()));
+                player.teleport(pos);
                 world.spawnParticle(Particle.SWEEP_ATTACK, finalTarget.getLocation(), 5, 0.2, 0.2, 0.2, 0);
-                world.playSound(finalTarget.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1f);
+                world.playSound(finalTarget.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1.2f);
                 SpellUtils.dealWithChat(player, finalTarget, damage / finalTotalHits, "Multihit");
-                Vector pull = dir.clone().multiply(-0.15);
-                finalTarget.setVelocity(finalTarget.getVelocity().add(pull));
                 hit++;
             }
-        }.runTaskTimer(Main.getInstance(), 0L, 2L);
+        }.runTaskTimer(Main.getInstance(), 4L, 4L);
 
         player.sendMessage("§aYou unleash a flurry of strikes!");
     }

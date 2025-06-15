@@ -15,6 +15,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.EulerAngle;
 import org.bukkit.util.Vector;
 
 /**
@@ -36,7 +37,10 @@ public class DaggerThrowEffect implements SpellEffect {
             a.setInvisible(true);
             a.setMarker(true);
             a.setGravity(false);
+            a.setArms(true);
             a.getEquipment().setItemInMainHand(new ItemStack(Material.IRON_SWORD));
+            a.setRotation(player.getLocation().getYaw(), player.getLocation().getPitch());
+            a.setRightArmPose(new EulerAngle(Math.toRadians(-90), 0, 0));
         });
 
         world.playSound(player.getLocation(), Sound.ENTITY_ARROW_SHOOT, 1f, 1.4f);
