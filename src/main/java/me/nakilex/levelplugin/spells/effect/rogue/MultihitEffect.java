@@ -38,6 +38,21 @@ public class MultihitEffect implements SpellEffect {
         World world = target.getWorld();
         double damage = ctx.getFinalDamage();
 
+        // fancy crescent particle slash
+        {
+            Vector forward = player.getLocation().getDirection().normalize();
+            Vector right = new Vector(-forward.getZ(), 0, forward.getX());
+            Location base = player.getLocation().clone().add(0, 1, 0);
+            for (double t = -Math.PI / 2; t <= Math.PI / 2; t += Math.PI / 16) {
+                double f = 1 + Math.cos(t) * 0.5;
+                double r = Math.sin(t);
+                Location spot = base.clone()
+                        .add(forward.clone().multiply(f))
+                        .add(right.clone().multiply(r));
+                world.spawnParticle(Particle.SWEEP_ATTACK, spot, 1, 0, 0, 0, 0);
+            }
+        }
+
         if (backstab) {
             var behind = target.getLocation().clone().add(target.getLocation().getDirection().normalize().multiply(-1));
             player.teleport(behind);

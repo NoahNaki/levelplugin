@@ -33,13 +33,9 @@ public class EndlessAssaultEffect implements SpellEffect {
         World world = target.getWorld();
         double damage = ctx.getFinalDamage() * 1.2; // slight buff
         Vector[] dirs = new Vector[10];
-        int idx = 0;
-        for (int i = 0; i < 8; i++) {
-            double angle = Math.toRadians(i * 45);
-            dirs[idx++] = new Vector(Math.cos(angle), 0.2, Math.sin(angle));
+        for (int i = 0; i < dirs.length; i++) {
+            dirs[i] = new Vector(0, 0.3, 0); // small upward nudge each strike
         }
-        dirs[idx++] = new Vector(0, -1, 0);
-        dirs[idx] = new Vector(0, 1, 0);
 
         LivingEntity finalTarget = target;
         new BukkitRunnable() {
