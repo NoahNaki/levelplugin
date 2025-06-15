@@ -4,11 +4,13 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
 import me.nakilex.levelplugin.spells.effect.SpellEffect;
+import me.nakilex.levelplugin.spells.utils.SpellUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -42,11 +44,41 @@ public class VanishEffect implements SpellEffect {
             duration = old.getDuration() + EXTEND;
         }
 
+        Object bonusDur = ctx.getExtraParam("durationBonus");
+        if (bonusDur instanceof Number num) duration += num.intValue();
+
+        double dashDistance = 5.0;
+        Object dd = ctx.getExtraParam("dashDistance");
+        if (dd instanceof Number num) dashDistance = num.doubleValue();
+
+        boolean damageDash = Boolean.TRUE.equals(ctx.getExtraParam("damageOnDash"));
+
+        // Dash movement
+        var dir = player.getLocation().getDirection().normalize();
+        player.setVelocity(dir.multiply(dashDistance));
+
+        if (damageDash) {
+            for (double d = 0; d <= dashDistance; d += 0.5) {
+                var spot = origin.clone().add(dir.clone().multiply(d));
+                for (var e : world.getNearbyEntities(spot, 1, 1, 1)) {
+                    if (e instanceof LivingEntity le && !le.equals(player)) {
+                        SpellUtils.dealWithChat(player, le, ctx.getFinalDamage() / 2.0, "Dash");
+                    }
+                }
+            }
+        }
+
         int agility = StatsManager.getInstance().getStatValue(player, StatsManager.StatType.AGI);
         boolean speed = agility > 100;
         boolean jump = agility > 250;
         int speedAmp = agility > 500 ? 1 : 0;
         int jumpAmp = agility > 500 ? 1 : 0;
+
+        Object speedBonus = ctx.getExtraParam("speedBoost");
+        if (speedBonus instanceof Number num && num.doubleValue() > 0) {
+            speed = true;
+            speedAmp = Math.max(speedAmp, 0);
+        }
 
         BukkitRunnable end = new BukkitRunnable() {
             @Override
