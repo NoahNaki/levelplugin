@@ -1014,35 +1014,35 @@ runes:
           summonClones: true
     description:
       - "Summons shadow clones on cast."
-  - id: "rogue_dagger_throw_twice"
-    name: "Rune of Whirling Blades"
+  - id: "rogue_crescent_slash_twice"
+    name: "Rune of Whirling Moon"
     rarity: "UNCOMMON"
     targetClass: "ROGUE"
-    targetSpell: "dagger_throw"
+    targetSpell: "crescent_slash"
     unique: true
     effects:
       - type: "MODIFIER"
         extraParams:
           extraHits: 1
     description:
-      - "Dagger Throw hits twice."
-  - id: "rogue_dagger_throw_blind"
-    name: "Rune of Dazzling Steel"
+      - "Crescent Slash strikes twice."
+  - id: "rogue_crescent_slash_blind"
+    name: "Rune of Dazzling Moon"
     rarity: "RARE"
     targetClass: "ROGUE"
-    targetSpell: "dagger_throw"
+    targetSpell: "crescent_slash"
     unique: true
     effects:
       - type: "TRANSFORM"
         extraParams:
           blindDuration: 40
     description:
-      - "Dagger Throw blinds enemies."
-  - id: "rogue_dagger_throw_transfer"
-    name: "Rune of Bitter Return"
+      - "Crescent Slash blinds enemies."
+  - id: "rogue_crescent_slash_transfer"
+    name: "Rune of Bitter Moon"
     rarity: "EPIC"
     targetClass: "ROGUE"
-    targetSpell: "dagger_throw"
+    targetSpell: "crescent_slash"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -1050,11 +1050,11 @@ runes:
           transferDebuffs: true
     description:
       - "Transfers your debuffs to foes."
-  - id: "rogue_dagger_throw_vulnerability"
-    name: "Rune of Vulnerability"
+  - id: "rogue_crescent_slash_vulnerability"
+    name: "Rune of Lunar Weakness"
     rarity: "RARE"
     targetClass: "ROGUE"
-    targetSpell: "dagger_throw"
+    targetSpell: "crescent_slash"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -1062,11 +1062,11 @@ runes:
           weaknessDuration: 60
     description:
       - "Victims become weakened."
-  - id: "rogue_dagger_throw_mobility"
-    name: "Rune of Nimble Dance"
+  - id: "rogue_crescent_slash_mobility"
+    name: "Rune of Nimble Crescent"
     rarity: "UNCOMMON"
     targetClass: "ROGUE"
-    targetSpell: "dagger_throw"
+    targetSpell: "crescent_slash"
     unique: false
     effects:
       - type: "MODIFIER"

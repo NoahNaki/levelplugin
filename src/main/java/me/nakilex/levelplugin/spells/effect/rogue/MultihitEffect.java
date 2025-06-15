@@ -13,6 +13,8 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
+import me.nakilex.levelplugin.spells.utils.magic.MagicEffects;
+import me.nakilex.levelplugin.spells.utils.animation.SpellAnimation;
 
 /**
  * Rapidly strike a target several times, lifting them into the air.
@@ -55,6 +57,17 @@ public class MultihitEffect implements SpellEffect {
         Object eh = ctx.getExtraParam("extraHits");
         if (eh instanceof Number num) hits += Math.max(0, num.intValue());
         LivingEntity finalTarget = target;
+
+        // decorative helix and spiralling circle around the target
+        MagicEffects.helix(finalTarget.getLocation().add(0, 0.5, 0), Particle.CRIT, 1.0, 1.8, 3, hits * 2);
+        new SpellAnimation(1, hits * 2) {
+            @Override
+            protected void onTick(int tick) {
+                double progress = (double) tick / (hits * 2);
+                double rad = 1.0 + 0.3 * Math.sin(progress * Math.PI);
+                MagicEffects.circle(world, finalTarget.getLocation().add(0, 0.5 + progress * 1.2, 0), Particle.CRIT, rad, 12);
+            }
+        };
 
         new BukkitRunnable() {
             int done = 0;
