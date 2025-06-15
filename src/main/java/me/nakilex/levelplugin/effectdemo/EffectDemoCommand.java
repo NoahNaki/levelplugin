@@ -15,7 +15,9 @@ public class EffectDemoCommand implements CommandExecutor {
             sender.sendMessage("This command can only be run by players.");
             return true;
         }
-        EffectDemoGUI.open((Player) sender);
+        Player player = (Player) sender;
+        EffectDemoGUI.open(player);
+        player.sendMessage("\u00a7eUse the arrows in the corners to browse more effects.");
         return true;
     }
 }

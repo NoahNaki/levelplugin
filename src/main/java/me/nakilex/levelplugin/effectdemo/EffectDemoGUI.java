@@ -103,8 +103,12 @@ public class EffectDemoGUI {
 
     private static ItemStack getNexoItem(String id, String name) {
         ItemBuilder builder = NexoItems.itemFromId(id);
-        if (builder == null) return new ItemStack(Material.BARRIER);
-        ItemStack item = builder.build();
+        ItemStack item;
+        if (builder == null) {
+            item = new ItemStack(Material.ARROW);
+        } else {
+            item = builder.build();
+        }
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(name);
