@@ -201,3 +201,5 @@ commands:
   fxdemo:
     description: Opens a particle showcase
     usage: /fxdemo
+    permission: levelplugin.command.fxdemo
+    permission-message: You don't have permission to use /fxdemo
