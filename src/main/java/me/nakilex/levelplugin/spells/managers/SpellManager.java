@@ -143,11 +143,11 @@ public class SpellManager {
         // — ROGUE SPELLS —
         Map<String, Spell> rogueMap = new HashMap<>();
         rogueMap.put("RLL", new Spell(
-            "phantom_blade", "Phantom Blade", "RLL",
+            "shadow_chain", "Shadow Chain", "RLL",
             5.0,
             0, 1,
             me.nakilex.levelplugin.items.data.WeaponType.SWORD.getMaterials(),
-            "PHANTOM_BLADE", 2.0
+            "SHADOW_CHAIN", 2.0
         ));
         rogueMap.put("RRR", new Spell(
             "vanish", "Vanish", "RRR",
