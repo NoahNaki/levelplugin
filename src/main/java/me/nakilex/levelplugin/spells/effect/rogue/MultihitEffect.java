@@ -19,8 +19,8 @@ public class MultihitEffect implements SpellEffect {
     public void apply(SpellCastContext ctx) {
         Player player = ctx.getPlayer();
         double range = 10.0;
-        Object r = ctx.getExtraParam("targetRange");
-        if (r instanceof Number num) range += num.doubleValue();
+        Object rangeParam = ctx.getExtraParam("targetRange");
+        if (rangeParam instanceof Number num) range += num.doubleValue();
 
         LivingEntity target = null;
         for (Entity e : player.getWorld().getNearbyEntities(player.getEyeLocation(), range, range, range)) {
@@ -45,10 +45,10 @@ public class MultihitEffect implements SpellEffect {
             Location base = player.getLocation().clone().add(0, 1, 0);
             for (double t = -Math.PI / 2; t <= Math.PI / 2; t += Math.PI / 16) {
                 double f = 1 + Math.cos(t) * 0.5;
-                double r = Math.sin(t);
+                double sideOffset = Math.sin(t);
                 Location spot = base.clone()
                         .add(forward.clone().multiply(f))
-                        .add(right.clone().multiply(r));
+                        .add(right.clone().multiply(sideOffset));
                 world.spawnParticle(Particle.SWEEP_ATTACK, spot, 1, 0, 0, 0, 0);
             }
         }
