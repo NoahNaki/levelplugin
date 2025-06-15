@@ -5,7 +5,6 @@ import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
 import me.nakilex.levelplugin.spells.effect.SpellEffect;
 import me.nakilex.levelplugin.spells.utils.SpellUtils;
-import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
@@ -15,6 +14,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
+/**
+ * Rapidly strike a target several times, lifting them into the air.
+ */
 public class MultihitEffect implements SpellEffect {
     @Override
     public void apply(SpellCastContext ctx) {
@@ -25,12 +27,20 @@ public class MultihitEffect implements SpellEffect {
         if (rp instanceof Number num) range += num.doubleValue();
 
         LivingEntity target = null;
-        for (Entity e : player.getWorld().getNearbyEntities(player.getEyeLocation(), range, range, range)) {
-            if (!(e instanceof LivingEntity le) || le.equals(player)) continue;
-            if (le instanceof Player p && !DuelManager.getInstance().areInDuel(player.getUniqueId(), p.getUniqueId()))
-                continue;
-            target = le;
-            break;
+        Entity looked = player.getTargetEntity((int) range);
+        if (looked instanceof LivingEntity le && !le.equals(player)) {
+            if (!(le instanceof Player p) || DuelManager.getInstance().areInDuel(player.getUniqueId(), p.getUniqueId())) {
+                target = le;
+            }
+        }
+        if (target == null) {
+            for (Entity e : player.getWorld().getNearbyEntities(player.getEyeLocation(), range, range, range)) {
+                if (!(e instanceof LivingEntity le) || le.equals(player)) continue;
+                if (le instanceof Player p && !DuelManager.getInstance().areInDuel(player.getUniqueId(), p.getUniqueId()))
+                    continue;
+                target = le;
+                break;
+            }
         }
 
         if (target == null) {
@@ -41,33 +51,29 @@ public class MultihitEffect implements SpellEffect {
         World world = player.getWorld();
         double damage = ctx.getFinalDamage();
 
-        int totalHits = 5;
+        int hits = 5;
         Object eh = ctx.getExtraParam("extraHits");
-        if (eh instanceof Number num) totalHits += Math.max(0, num.intValue());
+        if (eh instanceof Number num) hits += Math.max(0, num.intValue());
         LivingEntity finalTarget = target;
 
-        int finalTotalHits = totalHits;
         new BukkitRunnable() {
-            int hit = 0;
+            int done = 0;
             @Override
             public void run() {
-                if (hit >= finalTotalHits) { cancel(); return; }
-                Location base = player.getLocation();
-                Vector forward = base.getDirection().setY(0).normalize();
-                Vector right = new Vector(-forward.getZ(), 0, forward.getX());
-                Location origin = base.clone().add(forward.multiply(1 + hit * 0.4));
-                for (double t = -Math.PI/2; t <= Math.PI/2; t += Math.PI/16) {
-                    Vector offset = forward.clone().multiply(Math.cos(t) * 1.2)
-                        .add(right.clone().multiply(Math.sin(t) * 0.9))
-                        .add(new Vector(0, Math.sin(t) * 0.4, 0));
-                    world.spawnParticle(Particle.SWEEP_ATTACK, origin.clone().add(offset), 0, 0, 0, 0);
-                }
-                SpellUtils.dealWithChat(player, finalTarget, damage / finalTotalHits, "Multihit");
-                world.playSound(origin, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1f);
-                hit++;
+                if (done >= hits || !finalTarget.isValid()) { cancel(); return; }
+                Vector v = finalTarget.getVelocity();
+                v.setX(0);
+                v.setZ(0);
+                // gently lift the target instead of launching them high
+                v.setY(v.getY() + 0.15);
+                finalTarget.setVelocity(v);
+                SpellUtils.dealWithChat(player, finalTarget, damage / hits, "Multihit");
+                world.spawnParticle(Particle.SWEEP_ATTACK, finalTarget.getLocation(), 5, 0.2, 0.2, 0.2, 0.01);
+                world.playSound(finalTarget.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1f);
+                done++;
             }
-        }.runTaskTimer(Main.getInstance(), 0L, 3L);
+        }.runTaskTimer(Main.getInstance(), 0L, 2L);
 
-        player.sendMessage("§aYou strike your foe from every side!");
+        player.sendMessage("§aYou unleash a flurry of strikes!");
     }
 }

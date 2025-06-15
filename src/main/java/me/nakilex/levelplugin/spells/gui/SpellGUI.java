@@ -32,7 +32,7 @@ public class SpellGUI {
         SPELL_DESCRIPTIONS.put("heal",          "Heal yourself or allies.");
         SPELL_DESCRIPTIONS.put("teleport",      "Teleport forward a short distance.");
 
-        SPELL_DESCRIPTIONS.put("spin_attack",   "Spin rapidly to strike all nearby foes.");
+        SPELL_DESCRIPTIONS.put("dagger_throw",  "Hurl a dagger at your enemy.");
         SPELL_DESCRIPTIONS.put("vanish",        "Disappear in the shadows temporarily.");
         SPELL_DESCRIPTIONS.put("multihit",      "Dash around an enemy and hit many times.");
         SPELL_DESCRIPTIONS.put("smoke_bomb",    "Throw a bomb that slows and damages foes.");
