@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
 import me.nakilex.levelplugin.spells.effect.SpellEffect;
 import me.nakilex.levelplugin.spells.utils.animation.SpellAnimation;
+import de.slikey.effectlib.effect.HelixEffect;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.Entity;
@@ -23,6 +24,13 @@ public class WarCryEffect implements SpellEffect {
 
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 0.8f);
         player.getWorld().spawnParticle(Particle.SONIC_BOOM, player.getLocation().add(0,1,0), 1);
+
+        HelixEffect helix = new HelixEffect(Main.getInstance().getEffectManager());
+        helix.setLocation(player.getLocation().add(0,1,0));
+        helix.particle = Particle.TOTEM_OF_UNDYING;
+        helix.radius = 1.5f;
+        helix.iterations = 20;
+        helix.start();
 
         new SpellAnimation(2, 20) {
             @Override

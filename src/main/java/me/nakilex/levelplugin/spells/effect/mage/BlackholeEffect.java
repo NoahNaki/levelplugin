@@ -11,6 +11,7 @@ import me.nakilex.levelplugin.spells.utils.SpellUtils;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Particle;
+import de.slikey.effectlib.effect.CircleEffect;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.FallingBlock;
@@ -166,18 +167,15 @@ public class BlackholeEffect implements SpellEffect {
                 center.getWorld().spawnParticle(Particle.LARGE_SMOKE, v, 0, 0,0,0,1);
             }
 
-            // 2) Core sphere
-            for (int lat = 0; lat < SPHERE_RINGS; lat++) {
-                double phi = Math.PI * lat / (SPHERE_RINGS - 1);
-                for (int lon = 0; lon < SPHERE_RINGS * 2; lon++) {
-                    double theta = 2 * Math.PI * lon / (SPHERE_RINGS * 2);
-                    double x = CORE_RADIUS * Math.sin(phi) * Math.cos(theta);
-                    double y = CORE_RADIUS * Math.cos(phi);
-                    double z = CORE_RADIUS * Math.sin(phi) * Math.sin(theta);
-                    Location s = center.clone().add(x, y, z);
-                    center.getWorld().spawnParticle(Particle.PORTAL, s, 0,0,0,0,1);
-                }
-            }
+            // 2) Purple circle in the centre
+            CircleEffect c = new CircleEffect(Main.getInstance().getEffectManager());
+            c.setLocation(center);
+            c.particle = Particle.WITCH;
+            c.radius = 1.2f;
+            c.wholeCircle = true;
+            c.particles = 30;
+            c.iterations = 1;
+            c.run();
 
             // 3) Spawn ground‐blocks every 4 ticks
             if (ticks % 4 == 0) {
