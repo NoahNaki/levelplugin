@@ -47,31 +47,25 @@ public class MultihitEffect implements SpellEffect {
         LivingEntity finalTarget = target;
 
         new BukkitRunnable() {
-            int step = 0;
+            int hit = 0;
             @Override
             public void run() {
-                if (step >= totalHits) {
-                    // final crescent slash
-                    Vector forward = player.getLocation().getDirection().setY(0).normalize();
-                    Vector right = new Vector(-forward.getZ(), 0, forward.getX());
-                    Location origin = player.getLocation().clone().add(forward.multiply(1));
-                    for (double t = -Math.PI/2; t <= Math.PI/2; t += Math.PI/16) {
-                        Vector offset = forward.clone().multiply(Math.cos(t)*1.5).add(right.clone().multiply(Math.sin(t)*1.5)).add(new Vector(0, Math.sin(t)*0.4, 0));
-                        world.spawnParticle(Particle.CRIT, origin.clone().add(offset), 0, 0, 0, 0);
-                    }
-                    world.playSound(origin, Sound.ENTITY_PLAYER_ATTACK_STRONG, 1f, 1f);
-                    SpellUtils.dealWithChat(player, finalTarget, damage, "Multihit");
-                    cancel();
-                    return;
+                if (hit >= totalHits) { cancel(); return; }
+                Location base = player.getLocation();
+                Vector forward = base.getDirection().setY(0).normalize();
+                Vector right = new Vector(-forward.getZ(), 0, forward.getX());
+                Location origin = base.clone().add(forward.multiply(1 + hit * 0.4));
+                for (double t = -Math.PI/2; t <= Math.PI/2; t += Math.PI/16) {
+                    Vector offset = forward.clone().multiply(Math.cos(t) * 1.2)
+                        .add(right.clone().multiply(Math.sin(t) * 0.9))
+                        .add(new Vector(0, Math.sin(t) * 0.4, 0));
+                    world.spawnParticle(Particle.SWEEP_ATTACK, origin.clone().add(offset), 0, 0, 0, 0);
                 }
-                double angle = step * (2*Math.PI/totalHits);
-                Location loc = finalTarget.getLocation().clone().add(Math.cos(angle)*1.2, 0.2, Math.sin(angle)*1.2);
-                world.spawnParticle(Particle.SWEEP_ATTACK, loc, 5, 0.1, 0.1, 0.1, 0.01);
-                world.playSound(loc, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1f);
-                SpellUtils.dealWithChat(player, finalTarget, damage/totalHits, "Multihit");
-                step++;
+                SpellUtils.dealWithChat(player, finalTarget, damage / totalHits, "Multihit");
+                world.playSound(origin, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1f);
+                hit++;
             }
-        }.runTaskTimer(Main.getInstance(), 0L, 4L);
+        }.runTaskTimer(Main.getInstance(), 0L, 3L);
 
         player.sendMessage("§aYou strike your foe from every side!");
     }

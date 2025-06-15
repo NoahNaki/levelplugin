@@ -24,12 +24,20 @@ public class EndlessAssaultEffect implements SpellEffect {
         if (r instanceof Number num) range += num.doubleValue();
 
         LivingEntity target = null;
-        for (Entity e : player.getWorld().getNearbyEntities(player.getEyeLocation(), range, range, range)) {
-            if (!(e instanceof LivingEntity le) || le.equals(player)) continue;
-            if (le instanceof Player p && !DuelManager.getInstance().areInDuel(player.getUniqueId(), p.getUniqueId()))
-                continue;
-            target = le;
-            break;
+        Entity looked = player.getTargetEntity((int) range);
+        if (looked instanceof LivingEntity le && !le.equals(player)) {
+            if (!(le instanceof Player p) || DuelManager.getInstance().areInDuel(player.getUniqueId(), p.getUniqueId())) {
+                target = le;
+            }
+        }
+        if (target == null) {
+            for (Entity e : player.getWorld().getNearbyEntities(player.getEyeLocation(), range, range, range)) {
+                if (!(e instanceof LivingEntity le) || le.equals(player)) continue;
+                if (le instanceof Player p && !DuelManager.getInstance().areInDuel(player.getUniqueId(), p.getUniqueId()))
+                    continue;
+                target = le;
+                break;
+            }
         }
 
         if (target == null) {
@@ -46,13 +54,15 @@ public class EndlessAssaultEffect implements SpellEffect {
             @Override
             public void run() {
                 if (hits >= 5) { cancel(); return; }
-                finalTarget.setVelocity(finalTarget.getVelocity().add(new Vector(0, 0.15, 0)));
+                Vector v = finalTarget.getVelocity();
+                v.setX(0); v.setZ(0); v.setY(v.getY() + 0.25);
+                finalTarget.setVelocity(v);
                 SpellUtils.dealWithChat(player, finalTarget, damage / 5.0, "Endless Assault");
                 world.spawnParticle(Particle.SWEEP_ATTACK, finalTarget.getLocation(), 5, 0.2, 0.2, 0.2, 0.01);
                 world.playSound(finalTarget.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1f);
                 hits++;
             }
-        }.runTaskTimer(Main.getInstance(), 0L, 6L);
+        }.runTaskTimer(Main.getInstance(), 0L, 2L);
 
         player.sendMessage("§aYou relentlessly strike your foe!");
     }
