@@ -1014,35 +1014,35 @@ runes:
           summonClones: true
     description:
       - "Summons shadow clones on cast."
-  - id: "rogue_spin_twice"
+  - id: "rogue_bladerush_twice"
     name: "Rune of Whirling Blades"
     rarity: "UNCOMMON"
     targetClass: "ROGUE"
-    targetSpell: "spin_attack"
+    targetSpell: "blade_rush"
     unique: true
     effects:
       - type: "MODIFIER"
         extraParams:
           extraHits: 1
     description:
-      - "Spin Attack hits twice."
-  - id: "rogue_spin_blind"
+      - "Blade Rush hits twice."
+  - id: "rogue_bladerush_blind"
     name: "Rune of Dazzling Steel"
     rarity: "RARE"
     targetClass: "ROGUE"
-    targetSpell: "spin_attack"
+    targetSpell: "blade_rush"
     unique: true
     effects:
       - type: "TRANSFORM"
         extraParams:
           blindDuration: 40
     description:
-      - "Spin Attack blinds enemies."
-  - id: "rogue_spin_transfer"
+      - "Blade Rush blinds enemies."
+  - id: "rogue_bladerush_transfer"
     name: "Rune of Bitter Return"
     rarity: "EPIC"
     targetClass: "ROGUE"
-    targetSpell: "spin_attack"
+    targetSpell: "blade_rush"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -1050,11 +1050,11 @@ runes:
           transferDebuffs: true
     description:
       - "Transfers your debuffs to foes."
-  - id: "rogue_spin_vulnerability"
+  - id: "rogue_bladerush_vulnerability"
     name: "Rune of Vulnerability"
     rarity: "RARE"
     targetClass: "ROGUE"
-    targetSpell: "spin_attack"
+    targetSpell: "blade_rush"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -1062,11 +1062,11 @@ runes:
           weaknessDuration: 60
     description:
       - "Victims become weakened."
-  - id: "rogue_spin_mobility"
+  - id: "rogue_bladerush_mobility"
     name: "Rune of Nimble Dance"
     rarity: "UNCOMMON"
     targetClass: "ROGUE"
-    targetSpell: "spin_attack"
+    targetSpell: "blade_rush"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -1099,23 +1099,23 @@ runes:
           shuriken: true
     description:
       - "Launches shurikens after dashing."
-  - id: "rogue_multihit_backstab"
+  - id: "rogue_shadowambush_backstab"
     name: "Rune of Sudden Strike"
     rarity: "RARE"
     targetClass: "ROGUE"
-    targetSpell: "multihit"
+    targetSpell: "shadow_ambush"
     unique: true
     effects:
       - type: "TRANSFORM"
         extraParams:
           backstab: true
     description:
-      - "Multihit becomes a single backstab."
-  - id: "rogue_multihit_extended"
+      - "Shadow Ambush becomes a single backstab."
+  - id: "rogue_shadowambush_extended"
     name: "Rune of Endless Blows"
     rarity: "UNCOMMON"
     targetClass: "ROGUE"
-    targetSpell: "multihit"
+    targetSpell: "shadow_ambush"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -1124,11 +1124,11 @@ runes:
           targetRange: 5
     description:
       - "Increases strikes and range."
-  - id: "rogue_multihit_finisher"
+  - id: "rogue_shadowambush_finisher"
     name: "Rune of Finishing Blow"
     rarity: "RARE"
     targetClass: "ROGUE"
-    targetSpell: "multihit"
+    targetSpell: "shadow_ambush"
     unique: true
     effects:
       - type: "TRANSFORM"

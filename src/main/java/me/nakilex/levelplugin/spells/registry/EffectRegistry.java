@@ -77,9 +77,9 @@ public class EffectRegistry {
         register("JUDGEMENT", new JudgementEffect());
         register("GATE_OF_RUIN_EFFECT", new GateOfRuinEffect());
 
-        // --- Rogue Spells (Wynncraft style)
-        register("SPIN_ATTACK", new SpinAttackEffect());
-        register("MULTIHIT", new MultihitEffect());
+        // --- Rogue Spells ---
+        register("BLADE_RUSH", new BladeRushEffect());
+        register("SHADOW_AMBUSH", new ShadowAmbushEffect());
         register("SMOKE_BOMB", new SmokeBombEffect());
         register("VANISH", new VanishEffect());
 
