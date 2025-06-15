@@ -50,4 +50,26 @@ public final class MagicEffects {
             }
         };
     }
+
+    /**
+     * Draws a crescent-shaped slash oriented by yaw.
+     * @param center center location of the slash
+     * @param particle particle to spawn
+     * @param radius radius of the slash
+     * @param yaw orientation in radians
+     * @param points particle points along the arc
+     */
+    public static void crescent(Location center, Particle particle, double radius, double yaw, int points) {
+        World world = center.getWorld();
+        double cos = Math.cos(yaw);
+        double sin = Math.sin(yaw);
+        for (int i = 0; i < points; i++) {
+            double angle = -Math.PI / 2 + Math.PI * i / (points - 1);
+            double x = Math.cos(angle) * radius;
+            double z = Math.sin(angle) * radius;
+            double y = 0.4 * Math.sin(angle);
+            Vector offset = new Vector(x * cos - z * sin, y, x * sin + z * cos);
+            world.spawnParticle(particle, center.clone().add(offset), 0, 0, 0, 0, 0);
+        }
+    }
 }

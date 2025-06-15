@@ -14,6 +14,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 import me.nakilex.levelplugin.spells.utils.magic.MagicEffects;
+import me.nakilex.levelplugin.spells.utils.animation.SpellAnimation;
 
 /**
  * Rapidly strike a target several times, lifting them into the air.

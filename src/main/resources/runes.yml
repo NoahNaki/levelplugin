@@ -1014,35 +1014,35 @@ runes:
           summonClones: true
     description:
       - "Summons shadow clones on cast."
-  - id: "rogue_umbral_daggers_twice"
-    name: "Rune of Whirling Shadows"
+  - id: "rogue_crescent_slash_twice"
+    name: "Rune of Whirling Moon"
     rarity: "UNCOMMON"
     targetClass: "ROGUE"
-    targetSpell: "umbral_daggers"
+    targetSpell: "crescent_slash"
     unique: true
     effects:
       - type: "MODIFIER"
         extraParams:
           extraHits: 1
     description:
-      - "Umbral Daggers strike twice."
-  - id: "rogue_umbral_daggers_blind"
-    name: "Rune of Dazzling Shadows"
+      - "Crescent Slash strikes twice."
+  - id: "rogue_crescent_slash_blind"
+    name: "Rune of Dazzling Moon"
     rarity: "RARE"
     targetClass: "ROGUE"
-    targetSpell: "umbral_daggers"
+    targetSpell: "crescent_slash"
     unique: true
     effects:
       - type: "TRANSFORM"
         extraParams:
           blindDuration: 40
     description:
-      - "Umbral Daggers blind enemies."
-  - id: "rogue_umbral_daggers_transfer"
-    name: "Rune of Bitter Night"
+      - "Crescent Slash blinds enemies."
+  - id: "rogue_crescent_slash_transfer"
+    name: "Rune of Bitter Moon"
     rarity: "EPIC"
     targetClass: "ROGUE"
-    targetSpell: "umbral_daggers"
+    targetSpell: "crescent_slash"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -1050,11 +1050,11 @@ runes:
           transferDebuffs: true
     description:
       - "Transfers your debuffs to foes."
-  - id: "rogue_umbral_daggers_vulnerability"
-    name: "Rune of Vulnerability"
+  - id: "rogue_crescent_slash_vulnerability"
+    name: "Rune of Lunar Weakness"
     rarity: "RARE"
     targetClass: "ROGUE"
-    targetSpell: "umbral_daggers"
+    targetSpell: "crescent_slash"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -1062,11 +1062,11 @@ runes:
           weaknessDuration: 60
     description:
       - "Victims become weakened."
-  - id: "rogue_umbral_daggers_mobility"
-    name: "Rune of Nimble Dance"
+  - id: "rogue_crescent_slash_mobility"
+    name: "Rune of Nimble Crescent"
     rarity: "UNCOMMON"
     targetClass: "ROGUE"
-    targetSpell: "umbral_daggers"
+    targetSpell: "crescent_slash"
     unique: false
     effects:
       - type: "MODIFIER"
