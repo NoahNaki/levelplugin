@@ -314,9 +314,8 @@ public enum DemoEffects {
         public void play(Player player) {
             ArcEffect effect = new ArcEffect(Main.getInstance().getEffectManager());
             effect.setLocation(player.getLocation());
-            // aim 5 blocks forward so the path forms a real arc instead of a vertical line
-            Location target = player.getLocation().add(player.getLocation().getDirection().normalize().multiply(5));
-            effect.setTargetLocation(target);
+            Vector forward = player.getLocation().getDirection().clone().normalize().multiply(5);
+            effect.setTargetLocation(player.getLocation().clone().add(forward));
             effect.height = 3;
             effect.particles = 80;
             start(effect);
@@ -327,8 +326,8 @@ public enum DemoEffects {
         public void play(Player player) {
             ArcEffect effect = new ArcEffect(Main.getInstance().getEffectManager());
             effect.setLocation(player.getLocation());
-            Location target = player.getLocation().add(player.getLocation().getDirection().normalize().multiply(5));
-            effect.setTargetLocation(target);
+            Vector forward = player.getLocation().getDirection().clone().normalize().multiply(5);
+            effect.setTargetLocation(player.getLocation().clone().add(forward));
             effect.height = 1.5;
             effect.particles = 60;
             start(effect);
@@ -339,8 +338,8 @@ public enum DemoEffects {
         public void play(Player player) {
             ArcEffect effect = new ArcEffect(Main.getInstance().getEffectManager());
             effect.setLocation(player.getLocation());
-            Location target = player.getLocation().add(player.getLocation().getDirection().normalize().multiply(5));
-            effect.setTargetLocation(target);
+            Vector forward = player.getLocation().getDirection().clone().normalize().multiply(5);
+            effect.setTargetLocation(player.getLocation().clone().add(forward));
             effect.height = 5;
             effect.particles = 80;
             start(effect);
@@ -351,8 +350,8 @@ public enum DemoEffects {
         public void play(Player player) {
             ArcEffect effect = new ArcEffect(Main.getInstance().getEffectManager());
             effect.setLocation(player.getLocation());
-            Location target = player.getLocation().add(player.getLocation().getDirection().normalize().multiply(10));
-            effect.setTargetLocation(target);
+            Vector forward = player.getLocation().getDirection().clone().normalize().multiply(10);
+            effect.setTargetLocation(player.getLocation().clone().add(forward));
             effect.height = 4;
             effect.particles = 100;
             start(effect);
@@ -364,10 +363,9 @@ public enum DemoEffects {
         public void play(Player player) {
             ArcEffect effect = new ArcEffect(Main.getInstance().getEffectManager());
             effect.setLocation(player.getLocation());
-            Vector side = player.getLocation().getDirection().clone()
-                    .crossProduct(new Vector(0, 1, 0)).normalize().multiply(5);
-            Location target = player.getLocation().add(side);
-            effect.setTargetLocation(target);
+            Vector forward = player.getLocation().getDirection().clone().normalize().multiply(5);
+            forward.rotateAroundY(Math.PI / 2);
+            effect.setTargetLocation(player.getLocation().clone().add(forward));
             effect.height = 3;
             effect.particles = 80;
             start(effect);
@@ -380,8 +378,8 @@ public enum DemoEffects {
             ArcEffect effect = new ArcEffect(Main.getInstance().getEffectManager());
             effect.setLocation(player.getLocation());
             Vector forward = player.getLocation().getDirection().clone().normalize().multiply(5);
-            Location target = player.getLocation().add(forward).add(0, 3, 0);
-            effect.setTargetLocation(target);
+            forward.setY(forward.getY() + 3);
+            effect.setTargetLocation(player.getLocation().clone().add(forward));
             effect.height = 3;
             effect.particles = 80;
             start(effect);
@@ -394,8 +392,8 @@ public enum DemoEffects {
             ArcEffect effect = new ArcEffect(Main.getInstance().getEffectManager());
             effect.setLocation(player.getLocation());
             Vector forward = player.getLocation().getDirection().clone().normalize().multiply(5);
-            Location target = player.getLocation().add(forward).add(0, -3, 0);
-            effect.setTargetLocation(target);
+            forward.setY(forward.getY() - 3);
+            effect.setTargetLocation(player.getLocation().clone().add(forward));
             effect.height = 3;
             effect.particles = 80;
             start(effect);
