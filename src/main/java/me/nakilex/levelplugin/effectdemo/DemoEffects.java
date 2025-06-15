@@ -321,6 +321,42 @@ public enum DemoEffects {
             start(effect);
         }
     },
+    ARC_LOW(Material.SPECTRAL_ARROW, "Arc Low") {
+        @Override
+        public void play(Player player) {
+            ArcEffect effect = new ArcEffect(Main.getInstance().getEffectManager());
+            effect.setLocation(player.getLocation());
+            Location target = player.getLocation().add(player.getLocation().getDirection().normalize().multiply(5));
+            effect.setTargetLocation(target);
+            effect.height = 1.5;
+            effect.particles = 60;
+            start(effect);
+        }
+    },
+    ARC_HIGH(Material.SPECTRAL_ARROW, "Arc High") {
+        @Override
+        public void play(Player player) {
+            ArcEffect effect = new ArcEffect(Main.getInstance().getEffectManager());
+            effect.setLocation(player.getLocation());
+            Location target = player.getLocation().add(player.getLocation().getDirection().normalize().multiply(5));
+            effect.setTargetLocation(target);
+            effect.height = 5;
+            effect.particles = 80;
+            start(effect);
+        }
+    },
+    ARC_LONG(Material.TIPPED_ARROW, "Arc Long") {
+        @Override
+        public void play(Player player) {
+            ArcEffect effect = new ArcEffect(Main.getInstance().getEffectManager());
+            effect.setLocation(player.getLocation());
+            Location target = player.getLocation().add(player.getLocation().getDirection().normalize().multiply(10));
+            effect.setTargetLocation(target);
+            effect.height = 4;
+            effect.particles = 100;
+            start(effect);
+        }
+    },
     CIRCLE(Material.HONEYCOMB, "Circle") {
         @Override
         public void play(Player player) {
