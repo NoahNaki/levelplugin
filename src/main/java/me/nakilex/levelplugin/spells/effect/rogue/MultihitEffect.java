@@ -46,11 +46,12 @@ public class MultihitEffect implements SpellEffect {
         if (eh instanceof Number num) totalHits += Math.max(0, num.intValue());
         LivingEntity finalTarget = target;
 
+        int finalTotalHits = totalHits;
         new BukkitRunnable() {
             int hit = 0;
             @Override
             public void run() {
-                if (hit >= totalHits) { cancel(); return; }
+                if (hit >= finalTotalHits) { cancel(); return; }
                 Location base = player.getLocation();
                 Vector forward = base.getDirection().setY(0).normalize();
                 Vector right = new Vector(-forward.getZ(), 0, forward.getX());
@@ -61,7 +62,7 @@ public class MultihitEffect implements SpellEffect {
                         .add(new Vector(0, Math.sin(t) * 0.4, 0));
                     world.spawnParticle(Particle.SWEEP_ATTACK, origin.clone().add(offset), 0, 0, 0, 0);
                 }
-                SpellUtils.dealWithChat(player, finalTarget, damage / totalHits, "Multihit");
+                SpellUtils.dealWithChat(player, finalTarget, damage / finalTotalHits, "Multihit");
                 world.playSound(origin, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1f);
                 hit++;
             }
