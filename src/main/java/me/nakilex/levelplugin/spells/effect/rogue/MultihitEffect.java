@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
 import me.nakilex.levelplugin.spells.effect.SpellEffect;
 import me.nakilex.levelplugin.spells.utils.SpellUtils;
+import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
@@ -18,9 +19,10 @@ public class MultihitEffect implements SpellEffect {
     @Override
     public void apply(SpellCastContext ctx) {
         Player player = ctx.getPlayer();
-        double range = 10.0;
-        Object r = ctx.getExtraParam("targetRange");
-        if (r instanceof Number num) range += num.doubleValue();
+
+        double range = 8.0;
+        Object rp = ctx.getExtraParam("targetRange");
+        if (rp instanceof Number num) range += num.doubleValue();
 
         LivingEntity target = null;
         for (Entity e : player.getWorld().getNearbyEntities(player.getEyeLocation(), range, range, range)) {
@@ -30,62 +32,42 @@ public class MultihitEffect implements SpellEffect {
             target = le;
             break;
         }
+
         if (target == null) {
             player.sendMessage("§cNo valid target in range!");
             return;
         }
-        boolean backstab = Boolean.TRUE.equals(ctx.getExtraParam("backstab"));
-        World world = target.getWorld();
+
+        World world = player.getWorld();
         double damage = ctx.getFinalDamage();
 
-        if (backstab) {
-            var behind = target.getLocation().clone().add(target.getLocation().getDirection().normalize().multiply(-1));
-            player.teleport(behind);
-            SpellUtils.dealWithChat(player, target, damage * 1.5, "Backstab");
-            world.spawnParticle(Particle.CRIT, target.getLocation(), 20, 0.5, 1, 0.5);
-            world.playSound(target.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 1f, 1f);
-            return;
-        }
-
-        int extraHits = 0;
+        int totalHits = 5;
         Object eh = ctx.getExtraParam("extraHits");
-        if (eh instanceof Number num) extraHits = num.intValue();
-
-        int totalHits = 8 + extraHits;
-        Vector[] dirs = new Vector[totalHits + 2];
-        int idx = 0;
-        for (int i = 0; i < totalHits; i++) {
-            double angle = Math.toRadians(i * (360.0 / totalHits));
-            dirs[idx++] = new Vector(Math.cos(angle), 0.2, Math.sin(angle));
-        }
-        dirs[idx++] = new Vector(0, -1, 0);
-        dirs[idx] = new Vector(0, 1, 0);
-
-        double knockback = 0.0;
-        Object kb = ctx.getExtraParam("knockback");
-        if (kb instanceof Number num) knockback = num.doubleValue();
-
+        if (eh instanceof Number num) totalHits += Math.max(0, num.intValue());
         LivingEntity finalTarget = target;
-        double finalKnockback = knockback;
+
+        int finalTotalHits = totalHits;
         new BukkitRunnable() {
-            int step = 0;
+            int hit = 0;
             @Override
             public void run() {
-                if (step >= dirs.length) {
-                    SpellUtils.dealWithChat(player, finalTarget, damage, "Multihit");
-                    if (finalKnockback > 0) {
-                        finalTarget.setVelocity(player.getLocation().getDirection().normalize().multiply(finalKnockback));
-                    }
-                    cancel();
-                    return;
+                if (hit >= finalTotalHits) { cancel(); return; }
+                Location base = player.getLocation();
+                Vector forward = base.getDirection().setY(0).normalize();
+                Vector right = new Vector(-forward.getZ(), 0, forward.getX());
+                Location origin = base.clone().add(forward.multiply(1 + hit * 0.4));
+                for (double t = -Math.PI/2; t <= Math.PI/2; t += Math.PI/16) {
+                    Vector offset = forward.clone().multiply(Math.cos(t) * 1.2)
+                        .add(right.clone().multiply(Math.sin(t) * 0.9))
+                        .add(new Vector(0, Math.sin(t) * 0.4, 0));
+                    world.spawnParticle(Particle.SWEEP_ATTACK, origin.clone().add(offset), 0, 0, 0, 0);
                 }
-                finalTarget.setVelocity(dirs[step].clone().multiply(1.2));
-                world.spawnParticle(Particle.CRIT, finalTarget.getLocation(), 15, 0.5, 1, 0.5);
-                world.playSound(finalTarget.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1f);
-                step++;
+                SpellUtils.dealWithChat(player, finalTarget, damage / finalTotalHits, "Multihit");
+                world.playSound(origin, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1f);
+                hit++;
             }
-        }.runTaskTimer(Main.getInstance(), 0L, 4L);
+        }.runTaskTimer(Main.getInstance(), 0L, 3L);
 
-        player.sendMessage("§aYou strike your foe multiple times!");
+        player.sendMessage("§aYou strike your foe from every side!");
     }
 }

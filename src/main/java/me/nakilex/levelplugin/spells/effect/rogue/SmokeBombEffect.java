@@ -12,6 +12,9 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.Material;
+import org.bukkit.entity.Item;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -54,13 +57,19 @@ public class SmokeBombEffect implements SpellEffect {
             int finalSlowDur = slowDur;
             double finalRadius = radius;
             double finalRadius1 = radius;
+
+            Item item = world.dropItem(loc, new ItemStack(Material.WITHER_SKELETON_SKULL));
+            item.setPickupDelay(Integer.MAX_VALUE);
+            try { item.setCanMobPickup(false); item.setCanPlayerPickup(false); } catch (Throwable ignored) {}
+            item.setUnlimitedLifetime(true);
+
             new BukkitRunnable() {
                 int ticks = 0;
                 @Override
                 public void run() {
-                    if (ticks++ >= 80) { cancel(); return; }
-                    world.spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, loc, 10, finalRadius, 0.5, finalRadius1, 0.01);
-                    for (Entity e : world.getNearbyEntities(loc, finalRadius, 2, finalRadius1)) {
+                    if (ticks++ >= 80) { item.remove(); cancel(); return; }
+                    world.spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, item.getLocation(), 10, finalRadius, 0.5, finalRadius1, 0.01);
+                    for (Entity e : world.getNearbyEntities(item.getLocation(), finalRadius, 2, finalRadius1)) {
                         if (e instanceof LivingEntity le && !le.equals(player)) {
                             SpellUtils.dealWithChat(player, le, ctx.getFinalDamage()/4.0, "Smoke Bomb");
                             le.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, finalSlowDur, 1, false, false));
