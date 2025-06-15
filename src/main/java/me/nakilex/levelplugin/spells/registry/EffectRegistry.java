@@ -79,7 +79,7 @@ public class EffectRegistry {
 
         // --- Rogue Spells (Wynncraft style)
         register("SPIN_ATTACK", new SpinAttackEffect());
-        register("MULTIHIT", new MultihitEffect());
+        register("SHURIKEN_TOSS", new ShurikenTossEffect());
         register("SMOKE_BOMB", new SmokeBombEffect());
         register("VANISH", new VanishEffect());
 

@@ -34,7 +34,7 @@ public class SpellGUI {
 
         SPELL_DESCRIPTIONS.put("spin_attack",   "Spin rapidly to strike all nearby foes.");
         SPELL_DESCRIPTIONS.put("vanish",        "Disappear in the shadows temporarily.");
-        SPELL_DESCRIPTIONS.put("multihit",      "Dash around an enemy and hit many times.");
+        SPELL_DESCRIPTIONS.put("shuriken_toss", "Throw a spinning shuriken that can be enhanced by runes.");
         SPELL_DESCRIPTIONS.put("smoke_bomb",    "Throw a bomb that slows and damages foes.");
 
         SPELL_DESCRIPTIONS.put("power_shot",        "Charge up a powerful arrow shot.");

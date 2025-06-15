@@ -1293,26 +1293,45 @@ runes:
     description:
       - "Smoke Bomb lasts longer."
 
-  - id: "rogue_multihit_damage"
-    name: "Rune of Precision Strikes"
+  # --- Shuriken Toss Runes ---
+  - id: "rogue_shuriken_toss_poison"
+    name: "Rune of Venom"
     rarity: "RARE"
     targetClass: "ROGUE"
-    targetSpell: "multihit"
-    unique: false
+    targetSpell: "shuriken_toss"
+    unique: true
     effects:
-      - type: "MODIFIER"
-        bonusDamagePercent: 12.0
+      - type: "TRANSFORM"
+        newEffectKey: "SHURIKEN_TOSS"
+        extraParams:
+          applyPoison: true
     description:
-      - "Multihit deals increased damage."
+      - "Shuriken poison enemies."
 
-  - id: "rogue_multihit_rapid"
-    name: "Rune of Rapid Assault"
+  - id: "rogue_shuriken_toss_teleport"
+    name: "Rune of Shadow Leap"
+    rarity: "EPIC"
+    targetClass: "ROGUE"
+    targetSpell: "shuriken_toss"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        newEffectKey: "SHURIKEN_TOSS"
+        extraParams:
+          teleport: true
+    description:
+      - "Teleport to your shuriken."
+
+  - id: "rogue_shuriken_toss_double"
+    name: "Rune of Twin Stars"
     rarity: "UNCOMMON"
     targetClass: "ROGUE"
-    targetSpell: "multihit"
+    targetSpell: "shuriken_toss"
     unique: false
     effects:
       - type: "MODIFIER"
-        cooldownReductionPercent: 15.0
+        newEffectKey:
+        extraParams:
+          extraProjectiles: 1
     description:
-      - "Multihit cooldown reduced."
+      - "Throws an additional shuriken."

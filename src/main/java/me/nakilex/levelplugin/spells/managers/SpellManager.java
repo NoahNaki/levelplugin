@@ -157,11 +157,11 @@ public class SpellManager {
             "VANISH", 0.0
         ));
         rogueMap.put("RRL", new Spell(
-            "multihit", "Multihit", "RRL",
+            "shuriken_toss", "Shuriken Toss", "RRL",
             8.0,
             0, 21,
             me.nakilex.levelplugin.items.data.WeaponType.SWORD.getMaterials(),
-            "MULTIHIT", 3.3
+            "SHURIKEN_TOSS", 3.3
         ));
         rogueMap.put("RLR", new Spell(
             "smoke_bomb", "Smoke Bomb", "RLR",
