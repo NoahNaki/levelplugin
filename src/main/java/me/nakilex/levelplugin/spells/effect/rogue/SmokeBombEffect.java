@@ -18,6 +18,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
+import de.slikey.effectlib.effect.CloudEffect;
 
 public class SmokeBombEffect implements SpellEffect {
     @Override
@@ -62,6 +63,13 @@ public class SmokeBombEffect implements SpellEffect {
             item.setPickupDelay(Integer.MAX_VALUE);
             try { item.setCanMobPickup(false); item.setCanPlayerPickup(false); } catch (Throwable ignored) {}
             item.setUnlimitedLifetime(true);
+
+            CloudEffect cloud = new CloudEffect(Main.getInstance().getEffectManager());
+            cloud.setEntity(item);
+            cloud.cloudParticle = Particle.CLOUD;
+            cloud.mainParticle = Particle.SMOKE_NORMAL;
+            cloud.iterations = 40;
+            cloud.start();
 
             new BukkitRunnable() {
                 int ticks = 0;

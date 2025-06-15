@@ -1,10 +1,13 @@
 package me.nakilex.levelplugin.spells.effect.warrior;
 
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
 import me.nakilex.levelplugin.spells.effect.SpellEffect;
+import de.slikey.effectlib.effect.CylinderEffect;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.bukkit.Particle;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -38,11 +41,13 @@ public class IronFortressEffect implements SpellEffect {
         List<ArmorStand> shields = new ArrayList<>();
 
         spawnShields(player, shields);
+        runShieldParticles(player);
 
         if (share) {
             for (Player ally : player.getWorld().getPlayers()) {
                 if (!ally.equals(player) && ally.getLocation().distanceSquared(player.getLocation()) <= 9) {
                     spawnShields(ally, shields);
+                    runShieldParticles(ally);
                 }
             }
         }
@@ -113,5 +118,16 @@ public class IronFortressEffect implements SpellEffect {
             stand.getEquipment().setItemInMainHand(new org.bukkit.inventory.ItemStack(Material.SHIELD));
             list.add(stand);
         }
+    }
+
+    private void runShieldParticles(Player target) {
+        CylinderEffect effect = new CylinderEffect(Main.getInstance().getEffectManager());
+        effect.setLocation(target.getLocation());
+        effect.radius = 2f;
+        effect.height = 2.5f;
+        effect.particle = Particle.TOTEM_OF_UNDYING;
+        effect.period = 2;
+        effect.iterations = 50;
+        effect.start();
     }
 }
