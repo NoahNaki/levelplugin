@@ -318,6 +318,7 @@ public enum DemoEffects {
             effect.setTargetLocation(player.getLocation().clone().add(forward));
             effect.height = 3;
             effect.particles = 80;
+            effect.particle = Particle.CRIT;
             start(effect);
         }
     },
@@ -330,6 +331,7 @@ public enum DemoEffects {
             effect.setTargetLocation(player.getLocation().clone().add(forward));
             effect.height = 1.5;
             effect.particles = 60;
+            effect.particle = Particle.CRIT;
             start(effect);
         }
     },
@@ -342,6 +344,7 @@ public enum DemoEffects {
             effect.setTargetLocation(player.getLocation().clone().add(forward));
             effect.height = 5;
             effect.particles = 80;
+            effect.particle = Particle.CRIT;
             start(effect);
         }
     },
@@ -354,6 +357,7 @@ public enum DemoEffects {
             effect.setTargetLocation(player.getLocation().clone().add(forward));
             effect.height = 4;
             effect.particles = 100;
+            effect.particle = Particle.CRIT;
             start(effect);
         }
     },
@@ -363,11 +367,11 @@ public enum DemoEffects {
         public void play(Player player) {
             ArcEffect effect = new ArcEffect(Main.getInstance().getEffectManager());
             effect.setLocation(player.getLocation());
-            Vector forward = player.getLocation().getDirection().clone().normalize().multiply(5);
-            forward.rotateAroundY(Math.PI / 2);
-            effect.setTargetLocation(player.getLocation().clone().add(forward));
+            Vector side = player.getLocation().getDirection().clone().normalize().crossProduct(new Vector(0, 1, 0)).normalize().multiply(5);
+            effect.setTargetLocation(player.getLocation().clone().add(side));
             effect.height = 3;
             effect.particles = 80;
+            effect.particle = Particle.CRIT;
             start(effect);
         }
     },
@@ -382,6 +386,7 @@ public enum DemoEffects {
             effect.setTargetLocation(player.getLocation().clone().add(forward));
             effect.height = 3;
             effect.particles = 80;
+            effect.particle = Particle.CRIT;
             start(effect);
         }
     },
@@ -396,6 +401,7 @@ public enum DemoEffects {
             effect.setTargetLocation(player.getLocation().clone().add(forward));
             effect.height = 3;
             effect.particles = 80;
+            effect.particle = Particle.CRIT;
             start(effect);
         }
     },
