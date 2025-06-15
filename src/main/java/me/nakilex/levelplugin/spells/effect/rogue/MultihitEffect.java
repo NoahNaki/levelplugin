@@ -62,7 +62,10 @@ public class MultihitEffect implements SpellEffect {
             public void run() {
                 if (done >= hits || !finalTarget.isValid()) { cancel(); return; }
                 Vector v = finalTarget.getVelocity();
-                v.setX(0); v.setZ(0); v.setY(v.getY() + 0.25);
+                v.setX(0);
+                v.setZ(0);
+                // gently lift the target instead of launching them high
+                v.setY(v.getY() + 0.15);
                 finalTarget.setVelocity(v);
                 SpellUtils.dealWithChat(player, finalTarget, damage / hits, "Multihit");
                 world.spawnParticle(Particle.SWEEP_ATTACK, finalTarget.getLocation(), 5, 0.2, 0.2, 0.2, 0.01);

@@ -42,7 +42,8 @@ public class DaggerThrowEffect implements SpellEffect {
             a.setInvulnerable(true);
             a.getEquipment().setItemInMainHand(new ItemStack(Material.IRON_SWORD));
             a.setRotation(player.getLocation().getYaw(), player.getLocation().getPitch());
-            a.setRightArmPose(new EulerAngle(Math.toRadians(-90), 0, 0));
+            // rotate the arm so the dagger points forward rather than upward
+            a.setRightArmPose(new EulerAngle(Math.toRadians(270), 0, Math.toRadians(90)));
         });
 
         world.playSound(player.getLocation(), Sound.ENTITY_ARROW_SHOOT, 1f, 1.4f);
@@ -58,10 +59,10 @@ public class DaggerThrowEffect implements SpellEffect {
                     return;
                 }
 
-                Location loc = stand.getLocation().add(dir.clone().multiply(0.6));
+                Location loc = stand.getLocation().add(dir.clone().multiply(0.9));
                 stand.teleport(loc);
                 world.spawnParticle(Particle.END_ROD, loc, 2, 0, 0, 0, 0.01);
-                travelled += 0.6;
+                travelled += 0.9;
 
                 for (LivingEntity hit : loc.getNearbyLivingEntities(0.4)) {
                     if (hit.equals(player) || hit.equals(stand)) continue;
