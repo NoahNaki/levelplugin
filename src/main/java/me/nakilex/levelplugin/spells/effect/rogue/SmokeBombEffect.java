@@ -10,7 +10,7 @@ import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Item;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -24,13 +24,16 @@ public class SmokeBombEffect implements SpellEffect {
         Player player = ctx.getPlayer();
         World world = player.getWorld();
 
-        // Throw a skull item as the bomb
+        // Throw a wither skull using an invisible armor stand so players see the skull spin
         ItemStack skull = new ItemStack(Material.WITHER_SKELETON_SKULL);
-        Item bomb = world.dropItem(player.getEyeLocation(), skull);
-        bomb.setPickupDelay(Integer.MAX_VALUE);
-        bomb.setCustomName("smoke_bomb");
-        bomb.setCustomNameVisible(false);
+        ArmorStand bomb = world.spawn(player.getEyeLocation(), ArmorStand.class);
+        bomb.getEquipment().setHelmet(skull);
+        bomb.setInvisible(true);
+        bomb.setMarker(true);
+        bomb.setSmall(true);
         bomb.setGravity(true);
+        bomb.setInvulnerable(true);
+        bomb.setPersistent(false);
         bomb.setVelocity(player.getLocation().getDirection().multiply(0.9));
 
         world.playSound(player.getLocation(), Sound.ENTITY_SNOWBALL_THROW, 1f, 1f);
@@ -55,19 +58,19 @@ public class SmokeBombEffect implements SpellEffect {
                 ticks++;
             }
 
-            private void startSmoke(Item item) {
-                Location loc = item.getLocation();
+            private void startSmoke(ArmorStand stand) {
+                Location loc = stand.getLocation();
                 new BukkitRunnable() {
                     int life = 0;
 
                     @Override
                     public void run() {
                         if (life++ >= 80) {
-                            item.remove();
+                            stand.remove();
                             cancel();
                             return;
                         }
-                        world.spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, item.getLocation(), 10, 0.5, 0.5, 0.5, 0.01);
+                        world.spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, stand.getLocation(), 10, 0.5, 0.5, 0.5, 0.01);
                         for (Entity e : world.getNearbyEntities(loc, 3, 2, 3)) {
                             if (e instanceof LivingEntity le && !le.equals(player)) {
                                 SpellUtils.dealWithChat(player, le, ctx.getFinalDamage() / 4.0, "Smoke Bomb");
