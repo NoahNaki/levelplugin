@@ -1014,35 +1014,35 @@ runes:
           summonClones: true
     description:
       - "Summons shadow clones on cast."
-  - id: "rogue_bladerush_twice"
+  - id: "rogue_dagger_throw_twice"
     name: "Rune of Whirling Blades"
     rarity: "UNCOMMON"
     targetClass: "ROGUE"
-    targetSpell: "blade_rush"
+    targetSpell: "dagger_throw"
     unique: true
     effects:
       - type: "MODIFIER"
         extraParams:
           extraHits: 1
     description:
-      - "Blade Rush hits twice."
-  - id: "rogue_bladerush_blind"
+      - "Dagger Throw hits twice."
+  - id: "rogue_dagger_throw_blind"
     name: "Rune of Dazzling Steel"
     rarity: "RARE"
     targetClass: "ROGUE"
-    targetSpell: "blade_rush"
+    targetSpell: "dagger_throw"
     unique: true
     effects:
       - type: "TRANSFORM"
         extraParams:
           blindDuration: 40
     description:
-      - "Blade Rush blinds enemies."
-  - id: "rogue_bladerush_transfer"
+      - "Dagger Throw blinds enemies."
+  - id: "rogue_dagger_throw_transfer"
     name: "Rune of Bitter Return"
     rarity: "EPIC"
     targetClass: "ROGUE"
-    targetSpell: "blade_rush"
+    targetSpell: "dagger_throw"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -1050,11 +1050,11 @@ runes:
           transferDebuffs: true
     description:
       - "Transfers your debuffs to foes."
-  - id: "rogue_bladerush_vulnerability"
+  - id: "rogue_dagger_throw_vulnerability"
     name: "Rune of Vulnerability"
     rarity: "RARE"
     targetClass: "ROGUE"
-    targetSpell: "blade_rush"
+    targetSpell: "dagger_throw"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -1062,11 +1062,11 @@ runes:
           weaknessDuration: 60
     description:
       - "Victims become weakened."
-  - id: "rogue_bladerush_mobility"
+  - id: "rogue_dagger_throw_mobility"
     name: "Rune of Nimble Dance"
     rarity: "UNCOMMON"
     targetClass: "ROGUE"
-    targetSpell: "blade_rush"
+    targetSpell: "dagger_throw"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -1087,35 +1087,23 @@ runes:
           damageOnDash: true
     description:
       - "Dash damages foes passed through."
-  - id: "rogue_dash_shuriken"
-    name: "Rune of Shuriken Trail"
-    rarity: "RARE"
-    targetClass: "ROGUE"
-    targetSpell: "vanish"
-    unique: true
-    effects:
-      - type: "TRANSFORM"
-        extraParams:
-          shuriken: true
-    description:
-      - "Launches shurikens after dashing."
-  - id: "rogue_shadowambush_backstab"
+  - id: "rogue_multihit_backstab"
     name: "Rune of Sudden Strike"
     rarity: "RARE"
     targetClass: "ROGUE"
-    targetSpell: "shadow_ambush"
+    targetSpell: "multihit"
     unique: true
     effects:
       - type: "TRANSFORM"
         extraParams:
           backstab: true
     description:
-      - "Shadow Ambush becomes a single backstab."
-  - id: "rogue_shadowambush_extended"
+      - "Multihit becomes a single backstab."
+  - id: "rogue_multihit_extended"
     name: "Rune of Endless Blows"
     rarity: "UNCOMMON"
     targetClass: "ROGUE"
-    targetSpell: "shadow_ambush"
+    targetSpell: "multihit"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -1124,11 +1112,11 @@ runes:
           targetRange: 5
     description:
       - "Increases strikes and range."
-  - id: "rogue_shadowambush_finisher"
+  - id: "rogue_multihit_finisher"
     name: "Rune of Finishing Blow"
     rarity: "RARE"
     targetClass: "ROGUE"
-    targetSpell: "shadow_ambush"
+    targetSpell: "multihit"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -1198,29 +1186,3 @@ runes:
 
     description:
       - "Extends War Cry duration."
-  - id: "rogue_shadow_step_backstab"
-    name: "Rune of Backstab"
-    rarity: "RARE"
-    targetClass: "ROGUE"
-    targetSpell: "shadow_step"
-    unique: true
-    effects:
-      - type: "MODIFIER"
-        extraParams:
-          bonusDamagePercent: 30.0
-
-    description:
-      - "Backstab deals more damage."
-  - id: "rogue_shadow_step_smoke"
-    name: "Rune of Smoke Step"
-    rarity: "UNCOMMON"
-    targetClass: "ROGUE"
-    targetSpell: "shadow_step"
-    unique: false
-    effects:
-      - type: "TRANSFORM"
-        newEffectKey: "SHADOW_STEP"
-        extraParams:
-          leaveSmoke: true
-    description:
-      - "Arrive in a cloud of smoke."

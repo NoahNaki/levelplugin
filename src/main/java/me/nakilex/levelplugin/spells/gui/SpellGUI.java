@@ -32,9 +32,9 @@ public class SpellGUI {
         SPELL_DESCRIPTIONS.put("heal",          "Heal yourself or allies.");
         SPELL_DESCRIPTIONS.put("teleport",      "Teleport forward a short distance.");
 
-        SPELL_DESCRIPTIONS.put("blade_rush",    "Dash forward and slice through foes.");
+        SPELL_DESCRIPTIONS.put("dagger_throw",  "Hurl a dagger at your enemy.");
         SPELL_DESCRIPTIONS.put("vanish",        "Disappear in the shadows temporarily.");
-        SPELL_DESCRIPTIONS.put("shadow_ambush", "Teleport behind your target and strike.");
+        SPELL_DESCRIPTIONS.put("multihit",      "Dash around an enemy and hit many times.");
         SPELL_DESCRIPTIONS.put("smoke_bomb",    "Throw a bomb that slows and damages foes.");
 
         SPELL_DESCRIPTIONS.put("power_shot",        "Charge up a powerful arrow shot.");
