@@ -146,7 +146,7 @@ public enum DemoEffects {
         public void play(Player player) {
             WaveEffect effect = new WaveEffect(Main.getInstance().getEffectManager());
             effect.setLocation(player.getLocation());
-            effect.particle = Particle.SPLASH;
+            effect.particle = Particle.WATER_SPLASH;
             effect.period = 2;
             effect.iterations = 40;
             start(effect);
