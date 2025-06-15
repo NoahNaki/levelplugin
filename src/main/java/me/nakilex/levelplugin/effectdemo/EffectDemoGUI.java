@@ -14,7 +14,11 @@ import me.nakilex.levelplugin.effectdemo.DemoEffects;
  * Simple GUI showcasing a few EffectLib particle effects.
  */
 public class EffectDemoGUI {
-    private static final int SIZE = DemoEffects.values().length;
+    /**
+     * Inventory size must be a multiple of 9. Round up to the next valid size
+     * while capping at a single chest (54 slots).
+     */
+    private static final int SIZE = Math.min(((DemoEffects.values().length + 8) / 9) * 9, 54);
 
     /**
      * Open the demo GUI for the player.
