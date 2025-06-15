@@ -41,33 +41,37 @@ public class MultihitEffect implements SpellEffect {
         World world = player.getWorld();
         double damage = ctx.getFinalDamage();
 
-        int totalHits = 5;
+        int totalHits = 8;
         Object eh = ctx.getExtraParam("extraHits");
         if (eh instanceof Number num) totalHits += Math.max(0, num.intValue());
         LivingEntity finalTarget = target;
+
+        Vector dir = player.getLocation().getDirection().setY(0).normalize();
+        player.setVelocity(dir.clone().multiply(0.6));
 
         int finalTotalHits = totalHits;
         new BukkitRunnable() {
             int hit = 0;
             @Override
             public void run() {
-                if (hit >= finalTotalHits) { cancel(); return; }
-                Location base = player.getLocation();
-                Vector forward = base.getDirection().setY(0).normalize();
-                Vector right = new Vector(-forward.getZ(), 0, forward.getX());
-                Location origin = base.clone().add(forward.multiply(1 + hit * 0.4));
-                for (double t = -Math.PI/2; t <= Math.PI/2; t += Math.PI/16) {
-                    Vector offset = forward.clone().multiply(Math.cos(t) * 1.2)
-                        .add(right.clone().multiply(Math.sin(t) * 0.9))
-                        .add(new Vector(0, Math.sin(t) * 0.4, 0));
-                    world.spawnParticle(Particle.SWEEP_ATTACK, origin.clone().add(offset), 0, 0, 0, 0);
+                if (hit >= finalTotalHits) {
+                    Vector kb = dir.clone().multiply(1.2).setY(0.4);
+                    finalTarget.setVelocity(kb);
+                    world.spawnParticle(Particle.CRIT, finalTarget.getLocation(), 20, 0.3, 0.3, 0.3, 0.05);
+                    SpellUtils.dealWithChat(player, finalTarget, damage / finalTotalHits, "Multihit");
+                    world.playSound(finalTarget.getLocation(), Sound.ENTITY_PLAYER_ATTACK_STRONG, 1f, 1f);
+                    cancel();
+                    return;
                 }
+                world.spawnParticle(Particle.SWEEP_ATTACK, finalTarget.getLocation(), 5, 0.2, 0.2, 0.2, 0);
+                world.playSound(finalTarget.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1f);
                 SpellUtils.dealWithChat(player, finalTarget, damage / finalTotalHits, "Multihit");
-                world.playSound(origin, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1f);
+                Vector pull = dir.clone().multiply(-0.15);
+                finalTarget.setVelocity(finalTarget.getVelocity().add(pull));
                 hit++;
             }
-        }.runTaskTimer(Main.getInstance(), 0L, 3L);
+        }.runTaskTimer(Main.getInstance(), 0L, 2L);
 
-        player.sendMessage("§aYou strike your foe from every side!");
+        player.sendMessage("§aYou unleash a flurry of strikes!");
     }
 }
