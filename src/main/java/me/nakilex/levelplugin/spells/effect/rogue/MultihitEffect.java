@@ -13,7 +13,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
-public class EndlessAssaultEffect implements SpellEffect {
+/**
+ * Rapidly strikes a target multiple times.
+ */
+public class MultihitEffect implements SpellEffect {
     @Override
     public void apply(SpellCastContext ctx) {
         Player player = ctx.getPlayer();
@@ -47,7 +50,7 @@ public class EndlessAssaultEffect implements SpellEffect {
             @Override
             public void run() {
                 if (step >= dirs.length) {
-                    SpellUtils.dealWithChat(player, finalTarget, damage, "Endless Assault");
+                    SpellUtils.dealWithChat(player, finalTarget, damage, "Multihit");
                     cancel();
                     return;
                 }
@@ -58,6 +61,6 @@ public class EndlessAssaultEffect implements SpellEffect {
             }
         }.runTaskTimer(Main.getInstance(), 0L, 4L);
 
-        player.sendMessage("§aYou unleash a thousand cuts upon your foe!");
+        player.sendMessage("§aYou unleash a flurry of strikes!");
     }
 }

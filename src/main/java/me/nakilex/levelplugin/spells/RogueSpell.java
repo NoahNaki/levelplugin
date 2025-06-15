@@ -30,16 +30,16 @@ public class RogueSpell implements Listener {
 
     public boolean castRogueSpell(Player player, String effectKey) {
         switch (effectKey.toUpperCase()) {
-            case "ENDLESS_ASSAULT":
+            case "MULTIHIT":
                 return castExecute(player);
-            case "BLADE_FURY":
+            case "SPIN_ATTACK":
                 castBladeFury(player);
+                return true;
+            case "SMOKE_BOMB":
+                castShurikenThrow(player);
                 return true;
             case "VANISH":
                 castVanish(player);
-                return true;
-            case "SHADOW_CLONE":
-                castShadowClone(player);
                 return true;
             default:
                 player.sendMessage("§eUnknown Rogue Spell: " + effectKey);

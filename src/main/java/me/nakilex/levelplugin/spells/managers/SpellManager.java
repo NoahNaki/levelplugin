@@ -143,25 +143,25 @@ public class SpellManager {
         // — ROGUE SPELLS —
         Map<String, Spell> rogueMap = new HashMap<>();
         rogueMap.put("RRL", new Spell(
-            "endless_assault", "Endless Assault", "RRL",
-            12.0, 
+            "multihit", "Multihit", "RRL",
+            12.0,
             0, 15,
             me.nakilex.levelplugin.items.data.WeaponType.SWORD.getMaterials(),
-            "ENDLESS_ASSAULT", 3.3
+            "MULTIHIT", 3.3
         ));
         rogueMap.put("RLL", new Spell(
-            "blade_fury", "Blade Fury", "RLL",
-            15.0, 
+            "smoke_bomb", "Smoke Bomb", "RLL",
+            12.0,
             0, 3,
             me.nakilex.levelplugin.items.data.WeaponType.SWORD.getMaterials(),
-            "BLADE_FURY", 2.5
+            "SMOKE_BOMB", 2.0
         ));
         rogueMap.put("RLR", new Spell(
-            "shadow_clone", "Shadow Clone", "RLR",
-            10.0, 
+            "spin_attack", "Spin Attack", "RLR",
+            10.0,
             0, 10,
             me.nakilex.levelplugin.items.data.WeaponType.SWORD.getMaterials(),
-            "SHADOW_CLONE", 0.0
+            "SPIN_ATTACK", 2.5
         ));
         rogueMap.put("RRR", new Spell(
             "vanish", "Vanish", "RRR",

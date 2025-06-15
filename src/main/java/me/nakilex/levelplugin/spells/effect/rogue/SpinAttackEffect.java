@@ -9,7 +9,10 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 
-public class BladeFuryEffect implements SpellEffect {
+/**
+ * Simple spin attack damaging nearby foes.
+ */
+public class SpinAttackEffect implements SpellEffect {
     @Override
     public void apply(SpellCastContext ctx) {
         Player player = ctx.getPlayer();
@@ -17,11 +20,12 @@ public class BladeFuryEffect implements SpellEffect {
         double damage = ctx.getFinalDamage();
 
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1f);
-        player.getWorld().spawnParticle(Particle.SWEEP_ATTACK, player.getLocation(), 30, radius, 1, radius);
+        player.getWorld().spawnParticle(Particle.SWEEP_ATTACK,
+                player.getLocation(), 30, radius, 1, radius);
 
         for (Entity e : player.getWorld().getNearbyEntities(player.getLocation(), radius, radius, radius)) {
             if (e instanceof LivingEntity le && !le.equals(player)) {
-                SpellUtils.dealWithChat(player, le, damage, "Blade Fury");
+                SpellUtils.dealWithChat(player, le, damage, "Spin Attack");
             }
         }
     }

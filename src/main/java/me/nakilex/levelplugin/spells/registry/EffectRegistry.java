@@ -78,10 +78,9 @@ public class EffectRegistry {
         register("GATE_OF_RUIN_EFFECT", new GateOfRuinEffect());
 
         // --- Rogue Spells
-        register("ENDLESS_ASSAULT", new EndlessAssaultEffect());
-        register("BLADE_FURY", new BladeFuryEffect());
-        register("SHADOW_CLONE", new ShadowCloneEffect());
-        register("MOVING_SHADOW_CLONE_EFFECT", new MovingShadowCloneEffect());
+        register("MULTIHIT", new MultihitEffect());
+        register("SPIN_ATTACK", new SpinAttackEffect());
+        register("SMOKE_BOMB", new SmokeBombEffect());
         register("SHADOW_STEP", new ShadowStepEffect());
         register("VANISH", new VanishEffect());
 

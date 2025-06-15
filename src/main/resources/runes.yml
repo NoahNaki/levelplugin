@@ -945,28 +945,28 @@ runes:
   # --- Rogue Runes ---
     description:
       - "Judgement heals you."
-  - id: "rogue_endless_assault_speed"
+  - id: "rogue_multihit_speed"
     name: "Rune of Relentless Strikes"
     description:
       - "Increases attack speed during"
       - "Endless Assault."
     rarity: "UNCOMMON"
     targetClass: "ROGUE"
-    targetSpell: "endless_assault"
+    targetSpell: "multihit"
     unique: false
     effects:
       - type: "MODIFIER"
         extraParams:
           attackSpeed: 0.2
 
-  - id: "rogue_blade_fury_bleed"
+  - id: "rogue_spin_attack_bleed"
     name: "Rune of Bleeding Blades"
     description:
       - "Blade Fury causes enemies"
       - "to bleed over time."
     rarity: "RARE"
     targetClass: "ROGUE"
-    targetSpell: "blade_fury"
+    targetSpell: "spin_attack"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -974,11 +974,11 @@ runes:
         extraParams:
           applyBleed: true
 
-  - id: "rogue_endless_assault_damage"
+  - id: "rogue_multihit_damage"
     name: "Rune of Brutality"
     rarity: "RARE"
     targetClass: "ROGUE"
-    targetSpell: "endless_assault"
+    targetSpell: "multihit"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -989,11 +989,11 @@ runes:
 
     description:
       - "Increases Endless Assault damage."
-  - id: "rogue_endless_assault_dash"
+  - id: "rogue_multihit_dash"
     name: "Rune of Whirlwind"
     rarity: "EPIC"
     targetClass: "ROGUE"
-    targetSpell: "endless_assault"
+    targetSpell: "multihit"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -1003,11 +1003,11 @@ runes:
 
     description:
       - "Dash between targets."
-  - id: "rogue_endless_assault_extended"
+  - id: "rogue_multihit_extended"
     name: "Rune of Endless Rage"
     rarity: "UNCOMMON"
     targetClass: "ROGUE"
-    targetSpell: "endless_assault"
+    targetSpell: "multihit"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -1017,11 +1017,11 @@ runes:
 
     description:
       - "Extends Endless Assault duration."
-  - id: "rogue_endless_assault_mana"
+  - id: "rogue_multihit_mana"
     name: "Rune of Efficient Assault"
     rarity: "UNCOMMON"
     targetClass: "ROGUE"
-    targetSpell: "endless_assault"
+    targetSpell: "multihit"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -1031,11 +1031,11 @@ runes:
 
     description:
       - "Lowers Endless Assault mana cost."
-  - id: "rogue_blade_fury_spread"
+  - id: "rogue_spin_attack_spread"
     name: "Rune of Wide Swings"
     rarity: "UNCOMMON"
     targetClass: "ROGUE"
-    targetSpell: "blade_fury"
+    targetSpell: "spin_attack"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -1045,11 +1045,11 @@ runes:
 
     description:
       - "Wider Blade Fury radius."
-  - id: "rogue_blade_fury_stun"
+  - id: "rogue_spin_attack_stun"
     name: "Rune of Stunning Fury"
     rarity: "RARE"
     targetClass: "ROGUE"
-    targetSpell: "blade_fury"
+    targetSpell: "spin_attack"
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -1059,11 +1059,11 @@ runes:
 
     description:
       - "Blade Fury stuns foes."
-  - id: "rogue_blade_fury_rapid"
+  - id: "rogue_spin_attack_rapid"
     name: "Rune of Rapid Slashes"
     rarity: "UNCOMMON"
     targetClass: "ROGUE"
-    targetSpell: "blade_fury"
+    targetSpell: "spin_attack"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -1074,52 +1074,52 @@ runes:
 
     description:
       - "Blade Fury cooldown reduced."
-  - id: "rogue_shadow_clone_swap"
+  - id: "rogue_smoke_bomb_swap"
     name: "Rune of Shadow Swap"
     rarity: "RARE"
     targetClass: "ROGUE"
-    targetSpell: "shadow_clone"
+    targetSpell: "smoke_bomb"
     unique: true
     effects:
       - type: "TRANSFORM"
-        newEffectKey: "SHADOW_CLONE"
+        newEffectKey: "SMOKE_BOMB"
         extraParams:
           allowSwap: true
 
     description:
       - "Swap places with your clone."
-  - id: "rogue_shadow_clone_explosive"
+  - id: "rogue_smoke_bomb_explosive"
     name: "Rune of Explosive Clone"
     rarity: "EPIC"
     targetClass: "ROGUE"
-    targetSpell: "shadow_clone"
+    targetSpell: "smoke_bomb"
     unique: true
     effects:
       - type: "TRANSFORM"
-        newEffectKey: "SHADOW_CLONE"
+        newEffectKey: "SMOKE_BOMB"
         extraParams:
           explodeOnDeath: true
 
     description:
       - "Clones explode on death."
-  - id: "rogue_shadow_clone_mimic"
+  - id: "rogue_smoke_bomb_mimic"
     name: "Rune of Mimicry"
     rarity: "EPIC"
     targetClass: "ROGUE"
-    targetSpell: "shadow_clone"
+    targetSpell: "smoke_bomb"
     unique: true
     effects:
       - type: "TRANSFORM"
-        newEffectKey: "MOVING_SHADOW_CLONE_EFFECT"
+        newEffectKey: "SMOKE_BOMB"
         extraParams: {}
 
     description:
       - "Clone mimics your attacks."
-  - id: "rogue_shadow_clone_duration"
+  - id: "rogue_smoke_bomb_duration"
     name: "Rune of Lingering Echo"
     rarity: "UNCOMMON"
     targetClass: "ROGUE"
-    targetSpell: "shadow_clone"
+    targetSpell: "smoke_bomb"
     unique: false
     effects:
       - type: "MODIFIER"
@@ -1199,11 +1199,11 @@ runes:
 
     description:
       - "Poisons enemies when vanishing."
-  - id: "rogue_blade_fury_shadow"
+  - id: "rogue_spin_attack_shadow"
     name: "Rune of Shadowed Fury"
     rarity: "EPIC"
     targetClass: "ROGUE"
-    targetSpell: "blade_fury"
+    targetSpell: "spin_attack"
     unique: true
     effects:
       - type: "TRANSFORM"

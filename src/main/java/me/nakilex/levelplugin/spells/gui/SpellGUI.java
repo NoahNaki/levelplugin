@@ -32,9 +32,9 @@ public class SpellGUI {
         SPELL_DESCRIPTIONS.put("heal",          "Heal yourself or allies.");
         SPELL_DESCRIPTIONS.put("teleport",      "Teleport forward a short distance.");
 
-        SPELL_DESCRIPTIONS.put("endless_assault",   "Assault your target with a barrage of attacks");
-        SPELL_DESCRIPTIONS.put("blade_fury",    "Spin furiously, slicing nearby enemies.");
-        SPELL_DESCRIPTIONS.put("shadow_clone",  "Spawn a shadow clone that you can swap places with.");
+        SPELL_DESCRIPTIONS.put("multihit",      "Strike a foe repeatedly in quick succession.");
+        SPELL_DESCRIPTIONS.put("smoke_bomb",    "Toss a bomb that shrouds an area in smoke.");
+        SPELL_DESCRIPTIONS.put("spin_attack",   "Spin furiously, slicing nearby enemies.");
         SPELL_DESCRIPTIONS.put("vanish",        "Disappear in the shadows temporarily.");
         SPELL_DESCRIPTIONS.put("war_cry",       "Let out a furious cry to empower allies.");
         SPELL_DESCRIPTIONS.put("shadow_step",   "Step through the shadows to a new spot.");
