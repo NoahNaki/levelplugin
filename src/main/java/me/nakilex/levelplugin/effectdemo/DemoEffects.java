@@ -75,7 +75,7 @@ public enum DemoEffects {
             effect.setLocation(player.getLocation());
             effect.radius = 1.5f;
             effect.height = 3f;
-            effect.particle = Particle.SPELL_WITCH;
+            effect.particle = Particle.WITCH;
             effect.iterations = 40;
             start(effect);
         }
@@ -85,7 +85,7 @@ public enum DemoEffects {
         public void play(Player player) {
             DnaEffect effect = new DnaEffect(Main.getInstance().getEffectManager());
             effect.setLocation(player.getLocation());
-            effect.particleHelix = Particle.VILLAGER_HAPPY;
+            effect.particleHelix = Particle.HAPPY_VILLAGER;
             effect.iterations = 40;
             start(effect);
         }
@@ -95,7 +95,7 @@ public enum DemoEffects {
         public void play(Player player) {
             DonutEffect effect = new DonutEffect(Main.getInstance().getEffectManager());
             effect.setLocation(player.getLocation());
-            effect.particle = Particle.FIREWORKS_SPARK;
+            effect.particle = Particle.FIREWORK;
             effect.iterations = 40;
             start(effect);
         }
@@ -165,7 +165,7 @@ public enum DemoEffects {
         public void play(Player player) {
             AnimatedBallEffect effect = new AnimatedBallEffect(Main.getInstance().getEffectManager());
             effect.setLocation(player.getLocation().add(0,1,0));
-            effect.particle = Particle.SPELL_WITCH;
+            effect.particle = Particle.WITCH;
             effect.size = 1.2f;
             effect.iterations = 40;
             start(effect);
@@ -198,7 +198,7 @@ public enum DemoEffects {
         public void play(Player player) {
             CubeEffect effect = new CubeEffect(Main.getInstance().getEffectManager());
             effect.setLocation(player.getLocation());
-            effect.particle = Particle.TOTEM;
+            effect.particle = Particle.TOTEM_OF_UNDYING;
             effect.edgeLength = 2f;
             effect.iterations = 20;
             start(effect);
@@ -233,8 +233,8 @@ public enum DemoEffects {
         public void play(Player player) {
             EarthEffect effect = new EarthEffect(Main.getInstance().getEffectManager());
             effect.setLocation(player.getLocation());
-            effect.particleLand = Particle.VILLAGER_HAPPY;
-            effect.particleOcean = Particle.DRIP_WATER;
+            effect.particleLand = Particle.HAPPY_VILLAGER;
+            effect.particleOcean = Particle.DRIPPING_WATER;
             effect.iterations = 40;
             start(effect);
         }
@@ -266,7 +266,7 @@ public enum DemoEffects {
         public void play(Player player) {
             LineEffect effect = new LineEffect(Main.getInstance().getEffectManager());
             effect.setLocation(player.getLocation());
-            effect.particle = Particle.CRIT_MAGIC;
+            effect.particle = Particle.ENCHANTED_HIT;
             effect.length = 3;
             effect.particles = 30;
             effect.iterations = 10;
