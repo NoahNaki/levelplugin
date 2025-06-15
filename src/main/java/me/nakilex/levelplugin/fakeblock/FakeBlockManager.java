@@ -36,13 +36,20 @@ public class FakeBlockManager {
      */
     public void showFakeBlocks(Player player, Map<Location, BlockData> blocks) {
         if (blocks == null || blocks.isEmpty()) return;
+        // Convert the map to BlockState snapshots for the API
+        java.util.List<org.bukkit.block.BlockState> states = new java.util.ArrayList<>(blocks.size());
+        for (var entry : blocks.entrySet()) {
+            var state = entry.getKey().getBlock().getState();
+            state.setBlockData(entry.getValue());
+            states.add(state);
+        }
         // send block changes in bulk if supported by the server API
         try {
-            player.sendBlockChanges(blocks);
+            player.sendBlockChanges(states);
         } catch (NoSuchMethodError ignore) {
             // Fallback for older API versions - send changes one by one
-            for (var entry : blocks.entrySet()) {
-                player.sendBlockChange(entry.getKey(), entry.getValue());
+            for (var state : states) {
+                player.sendBlockChange(state.getLocation(), state.getBlockData());
             }
         }
         playerBlocks
