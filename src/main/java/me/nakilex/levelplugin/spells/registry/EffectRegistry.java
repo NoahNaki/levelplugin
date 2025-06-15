@@ -78,7 +78,7 @@ public class EffectRegistry {
         register("GATE_OF_RUIN_EFFECT", new GateOfRuinEffect());
 
         // --- Rogue Spells ---
-        register("SHADOW_CHAIN", new ShadowChainEffect());
+        register("SHADOW_NOVA", new ShadowNovaEffect());
         register("MULTIHIT", new MultihitEffect());
         register("SMOKE_BOMB", new SmokeBombEffect());
         register("VANISH", new VanishEffect());
