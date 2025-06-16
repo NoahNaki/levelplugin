@@ -9,8 +9,6 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.spells.utils.SpellUtils;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
-import de.slikey.effectlib.effect.HelixEffect;
-import me.nakilex.levelplugin.Main;
 import org.bukkit.util.Vector;
 
 import java.util.List;
@@ -101,18 +99,10 @@ public class BasicRayEffect implements SpellEffect {
                 Particle.WITCH,
                 point,
                 1,                     // one particle
-                0, 0, 0,
-                0
+                0, 0, 0,               // no random spread
+                0                      // normal speed
             );
         }
-
-        // Fancy helix around beam
-        HelixEffect helix = new HelixEffect(Main.getInstance().getEffectManager());
-        helix.setLocation(start.clone().add(dir.clone().multiply(MAX_DISTANCE / 2)));
-        helix.particle = Particle.CRIT_MAGIC;
-        helix.radius = 0.4f;
-        helix.iterations = 20;
-        helix.start();
 
 
         // 2) Then do your hit‐detection exactly as before (looping along the ray):

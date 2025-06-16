@@ -2,11 +2,11 @@ package me.nakilex.levelplugin.spells.effect.mage;
 
 import de.slikey.effectlib.effect.HelixEffect;
 import de.slikey.effectlib.effect.SphereEffect;
+import me.nakilex.levelplugin.epicspells.utils.DirectionalParticleCollection;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
-import me.nakilex.levelplugin.epicspells.effects.ExplosionLarge;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
 import me.nakilex.levelplugin.spells.effect.SpellEffect;
@@ -147,6 +147,17 @@ public class MeteorEffect implements SpellEffect {
 
                 // 2) Flame‐trail, spinning blocks, helix, sound… exactly as before
                 world.spawnParticle(Particle.FLAME, loc, 8, 0.2, 0.2, 0.2, 0.01);
+
+                // Fireball-style particles from EpicSpells
+                List<DirectionalParticleCollection> trail = new ArrayList<>();
+                trail.add(new DirectionalParticleCollection(world, Particle.SMALL_FLAME, loc, step, 20, 0.1));
+                trail.add(new DirectionalParticleCollection(world, Particle.LARGE_SMOKE, loc, step, 15, 0.1));
+                trail.add(new DirectionalParticleCollection(world, Particle.SMOKE, loc, step, 16, 0.1));
+                for (DirectionalParticleCollection dpc : trail) {
+                    dpc.randomizeLocations(1);
+                    dpc.adjustVelocities();
+                    dpc.spawn();
+                }
                 double spin = ticks * 0.1;
                 Vector axis = step.clone().normalize();
                 for (int i = 0; i < stands.size(); i++) {
@@ -206,9 +217,6 @@ public class MeteorEffect implements SpellEffect {
         shock.period = 1;
         shock.yOffset = 0.0;
         shock.start();
-
-        // Extra boom using EpicSpells
-        new ExplosionLarge(center.getWorld(), center, true);
 
         center.getWorld().playSound(center, Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
 
