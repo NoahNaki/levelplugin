@@ -17,8 +17,16 @@ public class ArrowShowerEffect implements SpellEffect {
     public void apply(SpellCastContext ctx) {
         Player player = ctx.getPlayer();
         Main.getInstance().getLogger().info("[DBG] ArrowShowerEffect triggered for " + player.getName());
+
+        final int MAX_RANGE = 20;
+        var targetBlock = player.getTargetBlockExact(MAX_RANGE);
+        var targetLocation = targetBlock != null
+                ? targetBlock.getLocation()
+                : player.getEyeLocation().add(player.getEyeLocation().getDirection().multiply(MAX_RANGE));
+        targetLocation.add(0, 20, 0);
+
         ArrowStorm spell = new ArrowStorm();
-        spell.init(new SpellManager(), player, 0, 0, "Arrow Storm");
+        spell.init(new SpellManager(), targetLocation, player, 0, 0, "Arrow Storm");
         spell.setAlive(true);
         new SpellRunner(spell).start();
     }
