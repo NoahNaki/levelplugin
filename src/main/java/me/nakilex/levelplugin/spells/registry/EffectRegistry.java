@@ -63,6 +63,7 @@ public class EffectRegistry {
         register("BOW_DRONE", new BowDroneEffect());
         register("GRAPPLE_HOOK", new GrappleHookEffect());
         register("ARROW_STORM", new ArrowStormEffect());
+        register("ARROW_SHOWER_EFFECT", new ArrowShowerEffect());
         register("EXPLOSIVE_ARROW", new ExplosiveArrowShotEffect());
 
         // --- Warrior Spells
