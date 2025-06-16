@@ -639,6 +639,7 @@ runes:
     unique: true
     effects:
       - type: "TRANSFORM"
+        priority: 50
         newEffectKey: "EPIC_ARROW_STORM_EFFECT"
         replaceBase: true
         extraParams: {}
