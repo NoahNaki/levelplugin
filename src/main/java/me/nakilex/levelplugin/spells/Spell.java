@@ -135,6 +135,9 @@ public class Spell {
             }
         }
 
+        // Debug: log the final effect list after rune modifications
+        Main.getPlugin().getLogger().info("[Spell] " + id + " effects: " + ctx.getEffectKeys());
+
         // 4) Mana check & deduct
         double cost = ctx.getFinalManaCost();
         var ps    = StatsManager.getInstance().getPlayerStats(pid);
