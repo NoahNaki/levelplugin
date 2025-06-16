@@ -186,9 +186,9 @@ public class SpellManager {
             "BASIC_ATTACK",
             1.0
         ));
-        // Power Shot uses the LLR combo
-        archerMap.put("LLR", new Spell(
-            "power_shot", "Power Shot", "LLR",
+        // Power Shot uses the LRL combo
+        archerMap.put("LRL", new Spell(
+            "power_shot", "Power Shot", "LRL",
             12.0,
             0, 3,
             me.nakilex.levelplugin.items.data.WeaponType.BOW.getMaterials(),
@@ -208,9 +208,9 @@ public class SpellManager {
             me.nakilex.levelplugin.items.data.WeaponType.BOW.getMaterials(),
             "GRAPPLE_HOOK", 0.0
         ));
-        // Arrow Storm uses the LRL combo
-        archerMap.put("LRL", new Spell(
-            "arrow_storm", "Arrow Storm", "LRL",
+        // Arrow Storm uses the LLR combo
+        archerMap.put("LLR", new Spell(
+            "arrow_storm", "Arrow Storm", "LLR",
             20.0,
             0, 15,
             me.nakilex.levelplugin.items.data.WeaponType.BOW.getMaterials(),
