@@ -631,42 +631,6 @@ runes:
 
     description:
       - "Fires many more arrows."
-  - id: "archer_arrow_storm_epic"
-    name: "Rune of the Tempest"
-    rarity: "EPIC"
-    targetClass: "ARCHER"
-    targetSpell: "arrow_storm"  # applies to Arrow Storm
-    unique: true
-    effects:
-      - type: "TRANSFORM"
-        priority: 50
-        newEffectKey: "EPIC_ARROW_STORM_EFFECT"
-        replaceBase: true
-        extraParams: {}
-        # Uses the Arrow Storm showcase effect from DemoEffects
-
-    description:
-      - "Transforms Arrow Storm into a"
-      - "devastating barrage from above."
-
-  - id: "archer_arrow_storm_flame_shower"
-    name: "Rune of the Inferno Storm"
-    rarity: "EPIC"
-    targetClass: "ARCHER"
-    targetSpell: "arrow_storm"  # applies to Arrow Storm
-    unique: true
-    effects:
-      - type: "TRANSFORM"
-        bonusDamagePercent: 0.0
-        cooldownReductionPercent: 0.0
-        priority: 50
-        newEffectKey: "EPIC_ARROW_STORM_EFFECT"
-        replaceBase: false
-        extraParams: {}
-
-    description:
-      - "Calls in a fiery storm of arrows"
-      - "alongside your Arrow Storm."
   - id: "archer_bow_drone_swarm"
     name: "Rune of the Swarm"
     description:

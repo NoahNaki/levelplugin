@@ -579,7 +579,7 @@ runes:
     name: "Rune of Blazing Rain"
     rarity: "RARE"
     targetClass: "ARCHER"
-    targetSpell: "arrow_storm"
+    targetSpell: "arrow_storm"  # applies to Arrow Storm
     unique: true
     effects:
       - type: "TRANSFORM"
@@ -593,7 +593,7 @@ runes:
     name: "Rune of Restoring Storm"
     rarity: "UNCOMMON"
     targetClass: "ARCHER"
-    targetSpell: "arrow_storm"
+    targetSpell: "arrow_storm"  # applies to Arrow Storm
     unique: false
     effects:
       - type: "MODIFIER"
@@ -607,7 +607,7 @@ runes:
     name: "Rune of Gust"
     rarity: "UNCOMMON"
     targetClass: "ARCHER"
-    targetSpell: "arrow_storm"
+    targetSpell: "arrow_storm"  # applies to Arrow Storm
     unique: false
     effects:
       - type: "TRANSFORM"
@@ -621,7 +621,7 @@ runes:
     name: "Rune of Endless Rain"
     rarity: "EPIC"
     targetClass: "ARCHER"
-    targetSpell: "arrow_storm"
+    targetSpell: "arrow_storm"  # applies to Arrow Storm
     unique: true
     effects:
       - type: "MODIFIER"

@@ -84,7 +84,7 @@ public class DeepFreeze extends BaseSpell {
                                 }
                         }
                         if(placed){
-                            PotionEffect effect = new PotionEffect(PotionEffectType.SLOW, 5, 20, false, false);
+                            PotionEffect effect = new PotionEffect(PotionEffectType.SLOWNESS, 5, 20, false, false);
                             Collection<Entity> entities = loc.getWorld().getNearbyEntities(loc, 2, 2, 2);
                             for(Entity entity: entities){
                                 if(entity instanceof LivingEntity){

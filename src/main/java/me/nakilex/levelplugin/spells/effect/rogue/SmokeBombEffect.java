@@ -67,7 +67,7 @@ public class SmokeBombEffect implements SpellEffect {
             CloudEffect cloud = new CloudEffect(Main.getInstance().getEffectManager());
             cloud.setEntity(item);
             cloud.cloudParticle = Particle.CLOUD;
-            cloud.mainParticle = Particle.SMOKE_NORMAL;
+            cloud.mainParticle = Particle.SMOKE;
             cloud.iterations = 40;
             cloud.start();
 
