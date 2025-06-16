@@ -4,6 +4,8 @@ import de.slikey.effectlib.Effect;
 import de.slikey.effectlib.effect.*;
 import de.slikey.effectlib.util.CustomSound;
 import me.nakilex.levelplugin.Main;
+import epicspellsplugin.effects.ExplosionLarge;
+import epicspellsplugin.effects.ExplosionMedium;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.entity.Player;
@@ -648,6 +650,18 @@ public enum DemoEffects {
             effect.setLocation(player.getLocation());
             effect.maxWayPoints = 60;
             start(effect);
+        }
+    },
+    REALISTIC_EXPLOSION_MEDIUM(Material.TNT, "Realistic Explosion Medium") {
+        @Override
+        public void play(Player player) {
+            new ExplosionMedium(player.getWorld(), player.getLocation(), false);
+        }
+    },
+    REALISTIC_EXPLOSION_LARGE(Material.TNT, "Realistic Explosion Large") {
+        @Override
+        public void play(Player player) {
+            new ExplosionLarge(player.getWorld(), player.getLocation(), false);
         }
     };
     private final Material icon;
