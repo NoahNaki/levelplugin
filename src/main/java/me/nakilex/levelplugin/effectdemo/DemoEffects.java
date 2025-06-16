@@ -6,6 +6,13 @@ import de.slikey.effectlib.util.CustomSound;
 import me.nakilex.levelplugin.Main;
 import epicspellsplugin.effects.ExplosionLarge;
 import epicspellsplugin.effects.ExplosionMedium;
+import epicspellsplugin.spells.ArrowStorm;
+import epicspellsplugin.spells.DeepFreeze;
+import epicspellsplugin.spells.Explosion;
+import epicspellsplugin.spells.Fireball;
+import epicspellsplugin.spells.PowerStrike;
+import epicspellsplugin.SpellManager;
+import epicspellsplugin.SpellRunner;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.entity.Player;
@@ -650,6 +657,51 @@ public enum DemoEffects {
             effect.setLocation(player.getLocation());
             effect.maxWayPoints = 60;
             start(effect);
+        }
+    },
+    ARROW_STORM(Material.BOW, "Arrow Storm") {
+        @Override
+        public void play(Player player) {
+            ArrowStorm spell = new ArrowStorm();
+            spell.init(new SpellManager(), player, 0, 0, "Arrow Storm");
+            spell.setAlive(true);
+            new SpellRunner(spell).start();
+        }
+    },
+    DEEP_FREEZE(Material.PACKED_ICE, "Deep Freeze") {
+        @Override
+        public void play(Player player) {
+            DeepFreeze spell = new DeepFreeze();
+            spell.init(new SpellManager(), player, 0, 0, "Deep Freeze");
+            spell.setAlive(true);
+            new SpellRunner(spell).start();
+        }
+    },
+    EXPLOSION_SPELL(Material.TNT, "Explosion Spell") {
+        @Override
+        public void play(Player player) {
+            Explosion spell = new Explosion();
+            spell.init(new SpellManager(), player, 0, 0, "Explosion");
+            spell.setAlive(true);
+            new SpellRunner(spell).start();
+        }
+    },
+    FIREBALL_SPELL(Material.FIRE_CHARGE, "Fireball Spell") {
+        @Override
+        public void play(Player player) {
+            Fireball spell = new Fireball();
+            spell.init(new SpellManager(), player.getLocation(), player, 0, 0, "Fireball");
+            spell.setAlive(true);
+            new SpellRunner(spell).start();
+        }
+    },
+    POWER_STRIKE(Material.DIAMOND_SWORD, "Power Strike") {
+        @Override
+        public void play(Player player) {
+            PowerStrike spell = new PowerStrike();
+            spell.init(new SpellManager(), player, 0, 0, "Power Strike");
+            spell.setAlive(true);
+            new SpellRunner(spell).start();
         }
     },
     REALISTIC_EXPLOSION_MEDIUM(Material.TNT, "Realistic Explosion Medium") {
