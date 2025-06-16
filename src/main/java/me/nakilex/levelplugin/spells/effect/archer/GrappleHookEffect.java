@@ -44,7 +44,7 @@ public class GrappleHookEffect implements SpellEffect {
                     cloud.setEntity(player);
                     cloud.cloudParticle = Particle.CLOUD;
                     cloud.mainParticle = Particle.END_ROD;
-                    cloud.iterations = 40;
+                    cloud.iterations = 3;
                     cloud.start();
 
                     handleGlide(player);

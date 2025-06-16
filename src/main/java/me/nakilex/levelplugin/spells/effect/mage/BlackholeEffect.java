@@ -174,7 +174,7 @@ public class BlackholeEffect implements SpellEffect {
             c.radius = 1.2f;
             c.wholeCircle = true;
             c.particles = 30;
-            c.iterations = 1;
+            c.iterations = 20;
             c.run();
 
             // 3) Spawn ground‐blocks every 4 ticks
