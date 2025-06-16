@@ -167,15 +167,19 @@ public class BlackholeEffect implements SpellEffect {
                 center.getWorld().spawnParticle(Particle.LARGE_SMOKE, v, 0, 0,0,0,1);
             }
 
-            // 2) Purple circle in the centre
-            CircleEffect c = new CircleEffect(Main.getInstance().getEffectManager());
-            c.setLocation(center);
-            c.particle = Particle.WITCH;
-            c.radius = 1.2f;
-            c.wholeCircle = true;
-            c.particles = 30;
-            c.iterations = 20;
-            c.run();
+            // 2) Sphere made of stacked circles
+            double sphereRad = 1.2;
+            for (double y = -sphereRad; y <= sphereRad; y += 0.4) {
+                double ring = Math.sqrt(sphereRad * sphereRad - y * y);
+                CircleEffect c = new CircleEffect(Main.getInstance().getEffectManager());
+                c.setLocation(center.clone().add(0, y, 0));
+                c.particle = Particle.WITCH;
+                c.radius = (float) ring;
+                c.wholeCircle = true;
+                c.particles = 20;
+                c.iterations = 1;
+                c.run();
+            }
 
             // 3) Spawn ground‐blocks every 4 ticks
             if (ticks % 4 == 0) {

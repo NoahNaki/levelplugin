@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.spells.effect.mage;
 
 import de.slikey.effectlib.effect.HelixEffect;
 import de.slikey.effectlib.effect.SphereEffect;
+import me.nakilex.levelplugin.epicspells.utils.DirectionalParticleCollection;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
@@ -146,6 +147,17 @@ public class MeteorEffect implements SpellEffect {
 
                 // 2) Flame‐trail, spinning blocks, helix, sound… exactly as before
                 world.spawnParticle(Particle.FLAME, loc, 8, 0.2, 0.2, 0.2, 0.01);
+
+                // Fireball-style particles from EpicSpells
+                List<DirectionalParticleCollection> trail = new ArrayList<>();
+                trail.add(new DirectionalParticleCollection(world, Particle.SMALL_FLAME, loc, step, 20, 0.1));
+                trail.add(new DirectionalParticleCollection(world, Particle.LARGE_SMOKE, loc, step, 15, 0.1));
+                trail.add(new DirectionalParticleCollection(world, Particle.SMOKE, loc, step, 16, 0.1));
+                for (DirectionalParticleCollection dpc : trail) {
+                    dpc.randomizeLocations(1);
+                    dpc.adjustVelocities();
+                    dpc.spawn();
+                }
                 double spin = ticks * 0.1;
                 Vector axis = step.clone().normalize();
                 for (int i = 0; i < stands.size(); i++) {
