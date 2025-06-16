@@ -56,8 +56,8 @@ public class Fireball extends BaseSpell{
         position = position.add(velocity);
         List<DirectionalParticleCollection> particles = new ArrayList<>();
         particles.add(new DirectionalParticleCollection(world, Particle.SMALL_FLAME, position, velocity, 20, 0.1));
-        particles.add(new DirectionalParticleCollection(world, Particle.SMOKE_LARGE, position, velocity, 15, 0.1));
-        particles.add(new DirectionalParticleCollection(world, Particle.SMOKE_NORMAL, position, velocity, 16, 0.1));
+        particles.add(new DirectionalParticleCollection(world, Particle.LARGE_SMOKE, position, velocity, 15, 0.1));
+        particles.add(new DirectionalParticleCollection(world, Particle.SMOKE, position, velocity, 16, 0.1));
         for(DirectionalParticleCollection temp: particles){
             temp.randomizeLocations(1);
             temp.adjustVelocities();

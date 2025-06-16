@@ -31,8 +31,8 @@ public class ExplosionMedium {
         List<DirectionalParticleCollection> particles = new ArrayList<>();
         Vector velocity = new Vector();
         particles.add(new DirectionalParticleCollection(world, Particle.SMALL_FLAME, location, velocity, 80, 0.3));
-        particles.add(new DirectionalParticleCollection(world, Particle.SMOKE_LARGE, location, velocity, 30, 0.3));
-        particles.add(new DirectionalParticleCollection(world, Particle.SMOKE_NORMAL, location, velocity, 40, 0.3));
+        particles.add(new DirectionalParticleCollection(world, Particle.LARGE_SMOKE, location, velocity, 30, 0.3));
+        particles.add(new DirectionalParticleCollection(world, Particle.SMOKE, location, velocity, 40, 0.3));
         particles.add(new DirectionalParticleCollection(world, Particle.CAMPFIRE_COSY_SMOKE, location, velocity, 40, 0.1));
 
         new RealisticExplosion(world, location, 5, particles, 0.2, spawnFire);
