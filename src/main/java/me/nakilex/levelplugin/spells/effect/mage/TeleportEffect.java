@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.listener.ClickComboListener;
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
 import me.nakilex.levelplugin.spells.effect.SpellEffect;
+import me.nakilex.levelplugin.effectdemo.DemoEffects;
 import me.nakilex.levelplugin.spells.utils.SpellUtils;
 import org.bukkit.Location;
 import org.bukkit.Particle;
@@ -101,10 +102,11 @@ public class TeleportEffect implements SpellEffect {
             }
 
             // The blink itself
-            origin.getWorld().spawnParticle(Particle.DRAGON_BREATH, origin, 100, 0.5,1,0.5);
+            origin.getWorld().spawnParticle(Particle.DRAGON_BREATH, origin, 100, 0.5, 1, 0.5);
             player.teleport(safe);
-            safe.getWorld().spawnParticle(Particle.DRAGON_BREATH, safe, 100, 0.5,1,0.5);
+            safe.getWorld().spawnParticle(Particle.DRAGON_BREATH, safe, 100, 0.5, 1, 0.5);
             safe.getWorld().playSound(safe, Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 1f);
+            DemoEffects.STAR.play(player);
 
             // Explosion on arrival (no knockback)
             if (explosionOnArrive) {

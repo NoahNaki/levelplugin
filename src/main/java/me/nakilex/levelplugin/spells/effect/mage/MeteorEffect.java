@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
+import me.nakilex.levelplugin.epicspells.effects.ExplosionLarge;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
 import me.nakilex.levelplugin.spells.effect.SpellEffect;
@@ -205,6 +206,9 @@ public class MeteorEffect implements SpellEffect {
         shock.period = 1;
         shock.yOffset = 0.0;
         shock.start();
+
+        // Extra boom using EpicSpells
+        new ExplosionLarge(center.getWorld(), center, true);
 
         center.getWorld().playSound(center, Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
 
