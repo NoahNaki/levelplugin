@@ -58,7 +58,7 @@ public class ClassMenu {
                 "",
                 ChatColor.RED + "" + ChatColor.BOLD + "ABILITY 1:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Power Shot " + ChatColor.GRAY +
-                    "(Combo: LRL)",
+                    "(Combo: LLR)",
                 ChatColor.YELLOW + "" + ChatColor.BOLD + "ABILITY 2:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Explosive Arrow " + ChatColor.GRAY +
                     "(Combo: LRR)",
@@ -67,7 +67,7 @@ public class ClassMenu {
                     "(Combo: LLL)",
                 ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "ABILITY 4:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Arrow Storm " + ChatColor.GRAY +
-                    "(Combo: LLR)",
+                    "(Combo: LRL)",
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
                 ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,
