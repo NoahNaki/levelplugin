@@ -196,14 +196,14 @@ public class SpellManager {
         ));
         archerMap.put("LRR", new Spell(
             "bow_drone", "Sentry", "LRR",
-            15.0, 
+            15.0,
             0, 8,
             me.nakilex.levelplugin.items.data.WeaponType.BOW.getMaterials(),
             "BOW_DRONE", 1.5
         ));
         archerMap.put("LLL", new Spell(
             "grapple_hook", "Grapple Hook", "LLL",
-            8.0, 
+            8.0,
             0, 10,
             me.nakilex.levelplugin.items.data.WeaponType.BOW.getMaterials(),
             "GRAPPLE_HOOK", 0.0

@@ -639,9 +639,11 @@ runes:
     unique: true
     effects:
       - type: "TRANSFORM"
+        priority: 50
         newEffectKey: "EPIC_ARROW_STORM_EFFECT"
         replaceBase: true
         extraParams: {}
+        # Uses the Arrow Storm showcase effect from DemoEffects
 
     description:
       - "Transforms Arrow Storm into a" 
