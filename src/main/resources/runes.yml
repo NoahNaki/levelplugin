@@ -631,6 +631,21 @@ runes:
 
     description:
       - "Fires many more arrows."
+  - id: "archer_arrow_storm_shower"
+    name: "Rune of the Arrow Shower"
+    rarity: "EPIC"
+    targetClass: "ARCHER"
+    targetSpell: "arrow_storm"  # applies to Arrow Storm
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        bonusDamagePercent: 0.0
+        cooldownReductionPercent: 0.0
+        newEffectKey: "ARROW_SHOWER_EFFECT"
+        extraParams: {}
+
+    description:
+      - "Summons a flaming rain of arrows."
   - id: "archer_bow_drone_swarm"
     name: "Rune of the Swarm"
     description:
