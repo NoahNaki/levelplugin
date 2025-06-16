@@ -4,6 +4,15 @@ import de.slikey.effectlib.Effect;
 import de.slikey.effectlib.effect.*;
 import de.slikey.effectlib.util.CustomSound;
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.epicspells.effects.ExplosionLarge;
+import me.nakilex.levelplugin.epicspells.effects.ExplosionMedium;
+import me.nakilex.levelplugin.epicspells.spells.ArrowStorm;
+import me.nakilex.levelplugin.epicspells.spells.DeepFreeze;
+import me.nakilex.levelplugin.epicspells.spells.Explosion;
+import me.nakilex.levelplugin.epicspells.spells.Fireball;
+import me.nakilex.levelplugin.epicspells.spells.PowerStrike;
+import me.nakilex.levelplugin.epicspells.SpellManager;
+import me.nakilex.levelplugin.epicspells.SpellRunner;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.entity.Player;
@@ -648,6 +657,63 @@ public enum DemoEffects {
             effect.setLocation(player.getLocation());
             effect.maxWayPoints = 60;
             start(effect);
+        }
+    },
+    ARROW_STORM(Material.BOW, "Arrow Storm") {
+        @Override
+        public void play(Player player) {
+            ArrowStorm spell = new ArrowStorm();
+            spell.init(new SpellManager(), player, 0, 0, "Arrow Storm");
+            spell.setAlive(true);
+            new SpellRunner(spell).start();
+        }
+    },
+    DEEP_FREEZE(Material.PACKED_ICE, "Deep Freeze") {
+        @Override
+        public void play(Player player) {
+            DeepFreeze spell = new DeepFreeze();
+            spell.init(new SpellManager(), player, 0, 0, "Deep Freeze");
+            spell.setAlive(true);
+            new SpellRunner(spell).start();
+        }
+    },
+    EXPLOSION_SPELL(Material.TNT, "Explosion Spell") {
+        @Override
+        public void play(Player player) {
+            Explosion spell = new Explosion();
+            spell.init(new SpellManager(), player, 0, 0, "Explosion");
+            spell.setAlive(true);
+            new SpellRunner(spell).start();
+        }
+    },
+    FIREBALL_SPELL(Material.FIRE_CHARGE, "Fireball Spell") {
+        @Override
+        public void play(Player player) {
+            Fireball spell = new Fireball();
+            spell.init(new SpellManager(), player.getLocation(), player, 0, 0, "Fireball");
+            spell.setAlive(true);
+            new SpellRunner(spell).start();
+        }
+    },
+    POWER_STRIKE(Material.DIAMOND_SWORD, "Power Strike") {
+        @Override
+        public void play(Player player) {
+            PowerStrike spell = new PowerStrike();
+            spell.init(new SpellManager(), player, 0, 0, "Power Strike");
+            spell.setAlive(true);
+            new SpellRunner(spell).start();
+        }
+    },
+    REALISTIC_EXPLOSION_MEDIUM(Material.TNT, "Realistic Explosion Medium") {
+        @Override
+        public void play(Player player) {
+            new ExplosionMedium(player.getWorld(), player.getLocation(), false);
+        }
+    },
+    REALISTIC_EXPLOSION_LARGE(Material.TNT, "Realistic Explosion Large") {
+        @Override
+        public void play(Player player) {
+            new ExplosionLarge(player.getWorld(), player.getLocation(), false);
         }
     };
     private final Material icon;

@@ -118,9 +118,13 @@ public class Spell {
                 ctx.addDamagePercent(eff.getBonusDamagePercent());
                 ctx.reduceCooldownPercent(eff.getCooldownReductionPercent());
 
-                // stack any newEffectKey
+                // stack or replace effect key
                 if (eff.getNewEffectKey() != null) {
-                    ctx.addEffectKey(eff.getNewEffectKey());
+                    if (eff.isReplaceBase()) {
+                        ctx.replaceBaseEffectKey(eff.getNewEffectKey());
+                    } else {
+                        ctx.addEffectKey(eff.getNewEffectKey());
+                    }
                 }
                 // pull in all extraParams (AOE, stun, projectiles, etc.)
                 // pull in all extraParams (AOE, stun, projectiles, etc.) with priority
@@ -130,6 +134,9 @@ public class Spell {
 
             }
         }
+
+        // Debug: log the final effect list after rune modifications
+        Main.getPlugin().getLogger().info("[Spell] " + id + " effects: " + ctx.getEffectKeys());
 
         // 4) Mana check & deduct
         double cost = ctx.getFinalManaCost();

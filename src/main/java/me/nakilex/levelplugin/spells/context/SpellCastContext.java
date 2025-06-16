@@ -60,6 +60,17 @@ public class SpellCastContext {
         }
     }
 
+    /** Replace the base effect key entirely. */
+    public void replaceBaseEffectKey(String key) {
+        if (key != null && !key.isEmpty()) {
+            if (effectKeys.isEmpty()) {
+                effectKeys.add(key);
+            } else {
+                effectKeys.set(0, key);
+            }
+        }
+    }
+
     /** Returns the ordered list of effect keys to execute. */
     public List<String> getEffectKeys() {
         return Collections.unmodifiableList(effectKeys);
