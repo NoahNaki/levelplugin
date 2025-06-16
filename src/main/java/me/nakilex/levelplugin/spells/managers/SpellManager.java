@@ -67,11 +67,11 @@ public class SpellManager {
             "HEROIC_LEAP", 1.2
         ));
         warriorMap.put("RRL", new Spell(
-            "judgement", "Judgement", "RRL",
-            16.0, 
+            "power_strike", "Power Strike", "RRL",
+            16.0,
             0, 15,
             me.nakilex.levelplugin.items.data.WeaponType.SHOVEL.getMaterials(),
-            "JUDGEMENT", 2.0
+            "POWER_STRIKE", 2.0
         ));
         warriorMap.put("RLL", new Spell(
             "shockwave", "Shockwave", "RLL",

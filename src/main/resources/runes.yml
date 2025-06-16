@@ -631,6 +631,20 @@ runes:
 
     description:
       - "Fires many more arrows."
+  - id: "archer_arrow_storm_epic"
+    name: "Rune of the Tempest"
+    rarity: "EPIC"
+    targetClass: "ARCHER"
+    targetSpell: "arrow_storm"
+    unique: true
+    effects:
+      - type: "TRANSFORM"
+        newEffectKey: "EPIC_ARROW_STORM_EFFECT"
+        extraParams: {}
+
+    description:
+      - "Transforms Arrow Storm into a" 
+      - "devastating barrage from above."
   - id: "archer_bow_drone_swarm"
     name: "Rune of the Swarm"
     description:

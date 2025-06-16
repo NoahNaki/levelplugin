@@ -63,6 +63,7 @@ public class EffectRegistry {
         register("BOW_DRONE", new BowDroneEffect());
         register("GRAPPLE_HOOK", new GrappleHookEffect());
         register("ARROW_STORM", new ArrowStormEffect());
+        register("EPIC_ARROW_STORM_EFFECT", new EpicArrowStormEffect());
         register("EXPLOSIVE_ARROW", new ExplosiveArrowShotEffect());
 
         // --- Warrior Spells
@@ -74,6 +75,7 @@ public class EffectRegistry {
         register("VORTEX_LEAP_EFFECT", new VortexLeapEffect());
         register("STUNNING_LEAP_EFFECT", new StunningLeapEffect());
         register("WAR_CRY", new WarCryEffect());
+        register("POWER_STRIKE", new PowerStrikeEffect());
         register("JUDGEMENT", new JudgementEffect());
         register("GATE_OF_RUIN_EFFECT", new GateOfRuinEffect());
 
