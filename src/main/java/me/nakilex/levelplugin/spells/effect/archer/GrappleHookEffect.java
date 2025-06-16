@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
 import me.nakilex.levelplugin.spells.effect.SpellEffect;
 import me.nakilex.levelplugin.spells.utils.SpellUtils;
+import de.slikey.effectlib.effect.CloudEffect;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.*;
@@ -38,6 +39,14 @@ public class GrappleHookEffect implements SpellEffect {
                     Location loc=hook.getLocation();
                     Vector pull=loc.toVector().subtract(player.getLocation().toVector()).normalize().multiply(1.5);
                     player.setVelocity(pull.add(new Vector(0,0.5,0)));
+
+                    CloudEffect cloud = new CloudEffect(Main.getInstance().getEffectManager());
+                    cloud.setEntity(player);
+                    cloud.cloudParticle = Particle.CLOUD;
+                    cloud.mainParticle = Particle.END_ROD;
+                    cloud.iterations = 40;
+                    cloud.start();
+
                     handleGlide(player);
                     hook.remove(); cancel();
                 }
