@@ -657,8 +657,11 @@ runes:
     unique: true
     effects:
       - type: "TRANSFORM"
+        bonusDamagePercent: 0.0
+        cooldownReductionPercent: 0.0
         priority: 50
         newEffectKey: "EPIC_ARROW_STORM_EFFECT"
+        replaceBase: false
         extraParams: {}
 
     description:
