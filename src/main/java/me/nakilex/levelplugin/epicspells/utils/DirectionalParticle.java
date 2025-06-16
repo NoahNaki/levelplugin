@@ -14,29 +14,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package epicspellsplugin.utils;
+package me.nakilex.levelplugin.epicspells.utils;
 
-import java.util.Arrays;
-import java.util.Random;
+import org.bukkit.Location;
+import org.bukkit.Particle;
+import org.bukkit.util.Vector;
 
-public class Utils {
+/**
+ *
+ * @author M0rica
+ */
+public class DirectionalParticle {
 
-    public static float randomFloat(float min, float max){
-        Random r = new Random();
-        return r.nextFloat() * (max-min) + min;
-    }
-
-    public static double randomDouble(double min, double max){
-        Random r = new Random();
-        return r.nextDouble() * (max-min) + min;
-    }
-
-    public static boolean arraysEqual(Integer[] array, Integer[] other){
-        if(array.length != other.length){
-            return false;
-        }
-        Arrays.sort(array);
-        Arrays.sort(other);
-        return Arrays.equals(array, other);
+    public static void spawn(Particle particle, Location location, Vector velocity, double speed){
+        location.getWorld().spawnParticle(particle, location, 0, velocity.getX(), velocity.getY(), velocity.getZ(), speed);
     }
 }
+

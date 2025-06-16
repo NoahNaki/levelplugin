@@ -1,9 +1,9 @@
-package epicspellsplugin.spells;
+package me.nakilex.levelplugin.epicspells.spells;
 
-import epicspellsplugin.BaseSpell;
-import epicspellsplugin.SpellManager;
-import epicspellsplugin.utils.DirectionalParticle;
-import epicspellsplugin.utils.Utils;
+import me.nakilex.levelplugin.epicspells.BaseSpell;
+import me.nakilex.levelplugin.epicspells.SpellManager;
+import me.nakilex.levelplugin.epicspells.utils.DirectionalParticle;
+import me.nakilex.levelplugin.epicspells.utils.Utils;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;

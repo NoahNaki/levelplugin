@@ -1,11 +1,11 @@
-package epicspellsplugin.spells;
+package me.nakilex.levelplugin.epicspells.spells;
 
-import epicspellsplugin.BaseSpell;
-import epicspellsplugin.SpellManager;
-import epicspellsplugin.utils.DirectionalParticle;
-import epicspellsplugin.utils.DirectionalParticleCollection;
-import epicspellsplugin.utils.LocationUtils;
-import epicspellsplugin.utils.Utils;
+import me.nakilex.levelplugin.epicspells.BaseSpell;
+import me.nakilex.levelplugin.epicspells.SpellManager;
+import me.nakilex.levelplugin.epicspells.utils.DirectionalParticle;
+import me.nakilex.levelplugin.epicspells.utils.DirectionalParticleCollection;
+import me.nakilex.levelplugin.epicspells.utils.LocationUtils;
+import me.nakilex.levelplugin.epicspells.utils.Utils;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;

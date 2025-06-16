@@ -1,4 +1,4 @@
-package epicspellsplugin;
+package me.nakilex.levelplugin.epicspells;
 
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.Location;

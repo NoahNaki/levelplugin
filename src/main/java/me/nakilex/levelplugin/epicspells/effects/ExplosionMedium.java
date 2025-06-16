@@ -14,9 +14,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package epicspellsplugin.effects;
+package me.nakilex.levelplugin.epicspells.effects;
 
-import epicspellsplugin.utils.DirectionalParticleCollection;
+import me.nakilex.levelplugin.epicspells.utils.DirectionalParticleCollection;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.World;
@@ -25,16 +25,16 @@ import org.bukkit.util.Vector;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ExplosionLarge {
+public class ExplosionMedium {
 
-    public ExplosionLarge(World world, Location location, boolean spawnFire){
+    public ExplosionMedium(World world, Location location, boolean spawnFire){
         List<DirectionalParticleCollection> particles = new ArrayList<>();
         Vector velocity = new Vector();
-        particles.add(new DirectionalParticleCollection(world, Particle.SMALL_FLAME, location, velocity, 200, 0.5));
-        particles.add(new DirectionalParticleCollection(world, Particle.SMOKE_LARGE, location, velocity, 100, 0.5));
-        particles.add(new DirectionalParticleCollection(world, Particle.SMOKE_NORMAL, location, velocity, 160, 0.5));
-        particles.add(new DirectionalParticleCollection(world, Particle.CAMPFIRE_COSY_SMOKE, location, velocity, 160, 0.2));
+        particles.add(new DirectionalParticleCollection(world, Particle.SMALL_FLAME, location, velocity, 80, 0.3));
+        particles.add(new DirectionalParticleCollection(world, Particle.SMOKE_LARGE, location, velocity, 30, 0.3));
+        particles.add(new DirectionalParticleCollection(world, Particle.SMOKE_NORMAL, location, velocity, 40, 0.3));
+        particles.add(new DirectionalParticleCollection(world, Particle.CAMPFIRE_COSY_SMOKE, location, velocity, 40, 0.1));
 
-        new RealisticExplosion(world, location, 10, particles, 0.2, spawnFire);
+        new RealisticExplosion(world, location, 5, particles, 0.2, spawnFire);
     }
 }

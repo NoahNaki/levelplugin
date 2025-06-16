@@ -1,7 +1,7 @@
-package epicspellsplugin.effects;
+package me.nakilex.levelplugin.epicspells.effects;
 
-import epicspellsplugin.utils.DirectionalParticleCollection;
-import epicspellsplugin.utils.Utils;
+import me.nakilex.levelplugin.epicspells.utils.DirectionalParticleCollection;
+import me.nakilex.levelplugin.epicspells.utils.Utils;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;

@@ -1,9 +1,9 @@
-package epicspellsplugin.spells;
+package me.nakilex.levelplugin.epicspells.spells;
 
-import epicspellsplugin.BaseSpell;
-import epicspellsplugin.SpellManager;
-import epicspellsplugin.effects.RealisticExplosion;
-import epicspellsplugin.utils.DirectionalParticleCollection;
+import me.nakilex.levelplugin.epicspells.BaseSpell;
+import me.nakilex.levelplugin.epicspells.SpellManager;
+import me.nakilex.levelplugin.epicspells.effects.RealisticExplosion;
+import me.nakilex.levelplugin.epicspells.utils.DirectionalParticleCollection;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.World;

@@ -14,12 +14,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package epicspellsplugin.spells;
+package me.nakilex.levelplugin.epicspells.spells;
 
-import epicspellsplugin.SpellManager;
-import epicspellsplugin.effects.ExplosionLarge;
-import epicspellsplugin.effects.ExplosionMedium;
-import epicspellsplugin.BaseSpell;
+import me.nakilex.levelplugin.epicspells.SpellManager;
+import me.nakilex.levelplugin.epicspells.effects.ExplosionLarge;
+import me.nakilex.levelplugin.epicspells.effects.ExplosionMedium;
+import me.nakilex.levelplugin.epicspells.BaseSpell;
 import java.util.ArrayList;
 import java.util.List;
 import org.bukkit.Location;
