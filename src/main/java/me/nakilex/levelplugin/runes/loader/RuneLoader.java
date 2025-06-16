@@ -85,6 +85,8 @@ public class RuneLoader {
             double cdReduct  = ((Number) em.getOrDefault("cooldownReductionPercent", 0)).doubleValue();
             String newKey    = Objects.toString(em.get("newEffectKey"), null);
             int priority = ((Number) em.getOrDefault("priority", 0)).intValue();
+            boolean replaceBase = Boolean.parseBoolean(
+                Objects.toString(em.get("replaceBase"), "false"));
 
             // extraParams may be null or a Map
             Map<String, Object> extraParams = Collections.emptyMap();
@@ -93,7 +95,8 @@ public class RuneLoader {
                 extraParams = (Map<String, Object>) xp;
             }
 
-            effects.add(new RuneEffect(type, bonusDmg, cdReduct, newKey, extraParams, priority));
+            effects.add(new RuneEffect(
+                type, bonusDmg, cdReduct, newKey, extraParams, priority, replaceBase));
         }
 
         runes.put(id, new Rune(

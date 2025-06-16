@@ -20,13 +20,14 @@ public class RuneEffect {
     private final String newEffectKey;               // e.g. "METEOR_SHOWER_EFFECT" when transforming
     private final Map<String, Object> extraParams;   // any additional parameters (e.g. "extraProjectiles":3)
     private final int priority;
+    private final boolean replaceBase;
 
     public RuneEffect(
         Type type,
         double bonusDamagePercent,
         double cooldownReductionPercent,
         String newEffectKey,
-        Map<String, Object> extraParams, int priority
+        Map<String, Object> extraParams, int priority, boolean replaceBase
     ) {
         this.type = type;
         this.bonusDamagePercent = bonusDamagePercent;
@@ -34,6 +35,7 @@ public class RuneEffect {
         this.newEffectKey = newEffectKey;
         this.extraParams = extraParams;
         this.priority = priority;
+        this.replaceBase = replaceBase;
     }
 
     public Type getType() {
@@ -49,6 +51,8 @@ public class RuneEffect {
     }
 
     public int getPriority() { return priority; }
+
+    public boolean isReplaceBase() { return replaceBase; }
 
     /**
      * @return the effectKey to swap to when applying a transform effect, or null for modifiers
@@ -67,7 +71,9 @@ public class RuneEffect {
 
     @Override
     public String toString() {
-        return String.format("RuneEffect[type=%s, bonusDamage=%.2f%%, cooldownRed=%.2f%%, newEffectKey=%s, params=%s]",
-            type, bonusDamagePercent, cooldownReductionPercent, newEffectKey, extraParams);
+        return String.format(
+            "RuneEffect[type=%s, bonusDamage=%.2f%%, cooldownRed=%.2f%%, newEffectKey=%s, replaceBase=%s, params=%s]",
+            type, bonusDamagePercent, cooldownReductionPercent, newEffectKey,
+            replaceBase, extraParams);
     }
 }

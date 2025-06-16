@@ -640,6 +640,7 @@ runes:
     effects:
       - type: "TRANSFORM"
         newEffectKey: "EPIC_ARROW_STORM_EFFECT"
+        replaceBase: true
         extraParams: {}
 
     description:
