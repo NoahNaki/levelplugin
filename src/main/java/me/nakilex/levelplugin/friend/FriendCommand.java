@@ -92,6 +92,11 @@ public class FriendCommand implements CommandExecutor {
                 }
                 if (manager.removeFriend(id, off.getUniqueId())) {
                     player.sendMessage(ChatColor.GREEN + "Removed " + off.getName() + " from friends.");
+                    Player other = off.getPlayer();
+                    if (other != null) {
+                        me.nakilex.levelplugin.Main.getInstance().getFriendGlowManager().applyGlowScoreboard(other);
+                    }
+                    me.nakilex.levelplugin.Main.getInstance().getFriendGlowManager().applyGlowScoreboard(player);
                 } else {
                     player.sendMessage(ChatColor.RED + "That player is not your friend.");
                 }
@@ -103,6 +108,8 @@ public class FriendCommand implements CommandExecutor {
                     player.sendMessage(ChatColor.GREEN + "Friend request accepted from " + name + ".");
                     Player on = inviter != null ? Bukkit.getPlayer(inviter) : null;
                     if (on != null) on.sendMessage(ChatColor.GREEN + player.getName() + " accepted your friend request.");
+                    me.nakilex.levelplugin.Main.getInstance().getFriendGlowManager().applyGlowScoreboard(player);
+                    if (on != null) me.nakilex.levelplugin.Main.getInstance().getFriendGlowManager().applyGlowScoreboard(on);
                 } else {
                     player.sendMessage(ChatColor.RED + "No pending friend request.");
                 }
@@ -150,26 +157,19 @@ public class FriendCommand implements CommandExecutor {
                     UUID f = all.get(i);
                     OfflinePlayer op = Bukkit.getOfflinePlayer(f);
                     String name = op.getName() != null ? op.getName() : f.toString();
-                    PlayerClass pc = StatsManager.getInstance().getPlayerStats(f).playerClass;
-                    String className = pc.name().substring(0,1) + pc.name().substring(1).toLowerCase();
-                    int lvl = LevelManager.getInstance().getLevel(f);
-                    String seen;
                     if (op.isOnline()) {
-                        seen = ChatColor.GREEN + "Online";
+                        PlayerClass pc = StatsManager.getInstance().getPlayerStats(f).playerClass;
+                        String className = pc.name().substring(0,1) + pc.name().substring(1).toLowerCase();
+                        int lvl = LevelManager.getInstance().getLevel(f);
+                        player.sendMessage(ChatColor.GRAY + "- "
+                                + ChatColor.DARK_GRAY + "[" + ChatColor.GRAY + "Lv. " + lvl + " " + className
+                                + ChatColor.DARK_GRAY + "] "
+                                + ChatColor.GREEN + name);
                     } else {
                         long days = op.getLastPlayed() > 0 ? (now - op.getLastPlayed()) / 86400000L : -1;
-                        if (days < 0) {
-                            seen = ChatColor.GRAY + "(Last seen ?d)";
-                        } else {
-                            seen = ChatColor.GRAY + "(Last seen " + days + "d)";
-                        }
+                        String seen = days < 0 ? ChatColor.GRAY + "(Last seen ?d)" : ChatColor.GRAY + "(Last seen " + days + "d)";
+                        player.sendMessage(ChatColor.GRAY + "- " + ChatColor.YELLOW + name + " " + seen);
                     }
-
-                    player.sendMessage(ChatColor.GRAY + "- "
-                            + ChatColor.DARK_GRAY + "[" + ChatColor.GRAY + "Lv. " + lvl + " " + className
-                            + ChatColor.DARK_GRAY + "] "
-                            + ChatColor.GREEN + name + ChatColor.GRAY + " - "
-                            + ChatColor.YELLOW + name + " " + seen);
                 }
 
                 if (maxPage > 1) {

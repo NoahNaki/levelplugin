@@ -9,6 +9,7 @@ public class PlayerSettings {
     private boolean dropDetails = true;
     private boolean dropDetailsChatEnabled = true;
     private boolean partyGlow = true;
+    private boolean friendGlow = true;
     private boolean balancePublic = true;
     private PlayerVisibility playerVisibility = PlayerVisibility.SHOW_ALL;
 
@@ -50,6 +51,14 @@ public class PlayerSettings {
 
     public void togglePartyGlow() {
         partyGlow = !partyGlow;
+    }
+
+    public boolean isFriendGlowEnabled() {
+        return friendGlow;
+    }
+
+    public void toggleFriendGlow() {
+        friendGlow = !friendGlow;
     }
 
     public boolean isBalancePublic() {

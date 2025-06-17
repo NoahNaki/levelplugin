@@ -71,15 +71,22 @@ public class SettingsGUI implements Listener {
             "/partyglow"
         ));
 
-        // Balance visibility toggle
+        // Friend Glow toggle
         gui.setItem(15, createSettingItem(
+            playerSettings.isFriendGlowEnabled(),
+            "§bFriend Glow",
+            "/friendglow"
+        ));
+
+        // Balance visibility toggle
+        gui.setItem(16, createSettingItem(
             playerSettings.isBalancePublic(),
             "§ePublic Balance",
             "/toggle balancepublic"
         ));
 
         // Player visibility mode
-        gui.setItem(16, createVisibilityItem(playerSettings.getPlayerVisibility()));
+        gui.setItem(17, createVisibilityItem(playerSettings.getPlayerVisibility()));
 
         // Filler border
         ItemStack filler = createItem(Material.GRAY_STAINED_GLASS_PANE, " ", " ");
@@ -148,7 +155,7 @@ public class SettingsGUI implements Listener {
     }
 
     private void updateVisibilityItem(Inventory inv, PlayerVisibility vis) {
-        inv.setItem(16, createVisibilityItem(vis));
+        inv.setItem(17, createVisibilityItem(vis));
     }
 
     @EventHandler
@@ -200,14 +207,19 @@ public class SettingsGUI implements Listener {
             updateSettingItem(event.getInventory(), 14,
                 settings.isPartyGlowEnabled(), "§bParty Glow", "/partyglow");
         } else if (slot == 15) {
-            settings.toggleBalancePublic();
+            settings.toggleFriendGlow();
+            Bukkit.dispatchCommand(player, "friendglow");
             updateSettingItem(event.getInventory(), 15,
+                settings.isFriendGlowEnabled(), "§bFriend Glow", "/friendglow");
+        } else if (slot == 16) {
+            settings.toggleBalancePublic();
+            updateSettingItem(event.getInventory(), 16,
                 settings.isBalancePublic(), "§ePublic Balance", "/toggle balancepublic");
             me.nakilex.levelplugin.Main main = me.nakilex.levelplugin.Main.getInstance();
             if (main != null && main.getLeaderboardManager() != null) {
                 main.getLeaderboardManager().updateType(LeaderboardType.BALANCE);
             }
-        } else if (slot == 16) {
+        } else if (slot == 17) {
             settings.cyclePlayerVisibility();
             updateVisibilityItem(event.getInventory(), settings.getPlayerVisibility());
             me.nakilex.levelplugin.Main.getInstance()

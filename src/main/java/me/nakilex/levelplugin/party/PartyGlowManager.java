@@ -39,6 +39,8 @@ public class PartyGlowManager implements Listener {
      * because the glow should be on by default.
      */
     private final Set<UUID> disabled = ConcurrentHashMap.newKeySet();
+    /** Tracks which players are currently glowing for each viewer. */
+    private final Map<UUID, Set<UUID>> glowing = new ConcurrentHashMap<>();
 
     public PartyGlowManager(Main plugin, PartyManager partyManager, PlayerScoreboardManagerAccessor accessor) {
         this.plugin = plugin;
@@ -150,13 +152,27 @@ public class PartyGlowManager implements Listener {
         team.getEntries().forEach(team::removeEntry);
 
         Party party = partyManager.getParty(viewer.getUniqueId());
-        if (party == null) {
-            return;
+        Set<UUID> current = new HashSet<>();
+        if (party != null) {
+            current.addAll(party.getMembers());
+            current.remove(viewer.getUniqueId());
         }
 
+        Set<UUID> prev = glowing.computeIfAbsent(viewer.getUniqueId(), k -> new HashSet<>());
         boolean glow = isEnabled(viewer);
-        for (UUID memberId : party.getMembers()) {
-            if (memberId.equals(viewer.getUniqueId())) continue;
+
+        // Disable glow for players no longer party members
+        for (UUID id : new HashSet<>(prev)) {
+            if (!current.contains(id)) {
+                Player p = Bukkit.getPlayer(id);
+                if (p != null && p.isOnline()) {
+                    sendGlow(viewer, p, false);
+                }
+                prev.remove(id);
+            }
+        }
+
+        for (UUID memberId : current) {
             Player member = Bukkit.getPlayer(memberId);
             String entry = member != null ? member.getName() : Bukkit.getOfflinePlayer(memberId).getName();
             if (entry == null) entry = memberId.toString();
@@ -164,6 +180,7 @@ public class PartyGlowManager implements Listener {
             if (member != null && member.isOnline()) {
                 sendGlow(viewer, member, glow);
             }
+            prev.add(memberId);
         }
     }
 
@@ -196,6 +213,7 @@ public class PartyGlowManager implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         disabled.remove(event.getPlayer().getUniqueId());
+        glowing.remove(event.getPlayer().getUniqueId());
     }
 
     /** Interface to access PlayerScoreboardManager boards without exposing the class. */

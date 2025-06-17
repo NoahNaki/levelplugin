@@ -35,6 +35,8 @@ public class FriendGlowManager implements Listener {
     private final PlayerScoreboardManagerAccessor scoreboardAccessor;
     private final ProtocolManager protocol;
     private final Set<UUID> disabled = ConcurrentHashMap.newKeySet();
+    /** Tracks which players are currently glowing for each viewer. */
+    private final Map<UUID, Set<UUID>> glowing = new ConcurrentHashMap<>();
 
     public FriendGlowManager(Main plugin, FriendManager manager, PlayerScoreboardManagerAccessor accessor) {
         this.plugin = plugin;
@@ -136,8 +138,24 @@ public class FriendGlowManager implements Listener {
         }
         team.getEntries().forEach(team::removeEntry);
 
+        Set<UUID> current = new HashSet<>(friendManager.getFriends(viewer.getUniqueId()));
+        Set<UUID> prev = glowing.computeIfAbsent(viewer.getUniqueId(), k -> new HashSet<>());
+
         boolean glow = isEnabled(viewer);
-        for (UUID id : friendManager.getFriends(viewer.getUniqueId())) {
+
+        // Disable glow for players no longer friends
+        for (UUID id : new HashSet<>(prev)) {
+            if (!current.contains(id)) {
+                Player p = Bukkit.getPlayer(id);
+                if (p != null && p.isOnline()) {
+                    sendGlow(viewer, p, false);
+                }
+                prev.remove(id);
+            }
+        }
+
+        // Apply glow for current friends
+        for (UUID id : current) {
             Player friend = Bukkit.getPlayer(id);
             String entry = friend != null ? friend.getName() : Bukkit.getOfflinePlayer(id).getName();
             if (entry == null) entry = id.toString();
@@ -145,6 +163,7 @@ public class FriendGlowManager implements Listener {
             if (friend != null && friend.isOnline()) {
                 sendGlow(viewer, friend, glow);
             }
+            prev.add(id);
         }
     }
 
@@ -176,6 +195,7 @@ public class FriendGlowManager implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         disabled.remove(event.getPlayer().getUniqueId());
+        glowing.remove(event.getPlayer().getUniqueId());
     }
 
     public interface PlayerScoreboardManagerAccessor {

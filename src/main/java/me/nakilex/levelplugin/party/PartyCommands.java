@@ -17,6 +17,15 @@ public class PartyCommands implements CommandExecutor {
     private final Map<UUID, Long> inviteCooldowns = new HashMap<>();
     private static final Map<UUID, UUID> pendingInvites = new HashMap<>(); // Maps invitee -> inviter
 
+    private void refreshPartyGlow(Party party) {
+        if (party == null) return;
+        var glow = me.nakilex.levelplugin.Main.getInstance().getPartyGlowManager();
+        for (UUID id : party.getMembers()) {
+            Player p = Bukkit.getPlayer(id);
+            if (p != null) glow.applyGlowScoreboard(p);
+        }
+    }
+
 
 
     public PartyCommands(PartyManager partyManager) {
@@ -44,6 +53,7 @@ public class PartyCommands implements CommandExecutor {
             case "create":
                 if (partyManager.createParty(playerId)) {
                     player.sendMessage(ChatColor.GREEN + "Party created successfully.");
+                    refreshPartyGlow(partyManager.getParty(playerId));
                 } else {
                     player.sendMessage(ChatColor.RED + "You are already in a party.");
                 }
@@ -125,6 +135,8 @@ public class PartyCommands implements CommandExecutor {
                         online.sendMessage(ChatColor.RED + "You have been kicked from the party.");
                     }
                     player.sendMessage(ChatColor.GREEN + "Player kicked successfully.");
+                    refreshPartyGlow(partyManager.getParty(playerId));
+                    if (online != null) me.nakilex.levelplugin.Main.getInstance().getPartyGlowManager().applyGlowScoreboard(online);
                 } else {
                     player.sendMessage(ChatColor.RED + "Failed to kick player.");
                 }
@@ -133,6 +145,8 @@ public class PartyCommands implements CommandExecutor {
             case "leave":
                 if (partyManager.removeMember(playerId, playerId)) {
                     player.sendMessage(ChatColor.GREEN + "You left the party.");
+                    refreshPartyGlow(partyManager.getParty(playerId));
+                    me.nakilex.levelplugin.Main.getInstance().getPartyGlowManager().applyGlowScoreboard(player);
                 } else {
                     player.sendMessage(ChatColor.RED + "You are not in a party.");
                 }
@@ -175,6 +189,7 @@ public class PartyCommands implements CommandExecutor {
             case "accept":
                 if (PartyUtils.acceptInvite(playerId, partyManager)) {
                     player.sendMessage(ChatColor.GREEN + "You have joined the party.");
+                    refreshPartyGlow(partyManager.getParty(playerId));
                 } else {
                     player.sendMessage(ChatColor.RED + "No pending invites.");
                 }
