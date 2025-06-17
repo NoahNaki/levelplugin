@@ -70,7 +70,7 @@ public class FriendCommand implements CommandExecutor {
                     return true;
                 }
                 if (manager.sendRequest(id, targetId)) {
-                    player.sendMessage(ChatColor.GREEN + "Friend request sent to " + off.getName() + ".");
+                    player.sendMessage(ChatColor.GREEN + "Friend request sent to " + off.getName() + ". It will expire in 5 minutes.");
                     Player online = Bukkit.getPlayer(targetId);
                     if (online != null) {
                         online.sendMessage(ChatColor.YELLOW + player.getName() + " has sent you a friend request.");

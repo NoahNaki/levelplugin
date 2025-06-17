@@ -6,8 +6,18 @@ import java.util.*;
  * Simple manager storing mutual friendships between players.
  */
 public class FriendManager {
+    private static final long EXPIRY = 5 * 60 * 1000L; // 5 minutes
     private final Map<UUID, Set<UUID>> friends = new HashMap<>();
-    private final Map<UUID, UUID> requests = new HashMap<>(); // invitee -> inviter
+    private final Map<UUID, Request> requests = new HashMap<>(); // invitee -> request
+
+    private static class Request {
+        final UUID inviter;
+        final long time;
+        Request(UUID inviter) {
+            this.inviter = inviter;
+            this.time = System.currentTimeMillis();
+        }
+    }
 
     private Set<UUID> getList(UUID id) {
         return friends.computeIfAbsent(id, k -> new HashSet<>());
@@ -25,21 +35,34 @@ public class FriendManager {
     /** Send a friend request from a -> b. */
     public boolean sendRequest(UUID a, UUID b) {
         if (a.equals(b) || areFriends(a, b)) return false;
-        if (requests.containsKey(b)) return false; // already requested
-        requests.put(b, a);
+        Request existing = requests.get(b);
+        if (existing != null) {
+            if (System.currentTimeMillis() - existing.time < EXPIRY) return false;
+            requests.remove(b);
+        }
+        requests.put(b, new Request(a));
         return true;
     }
 
-    /** Get pending request inviter for the given player. */
+    /** Get pending request inviter for the given player, or null if none/expired. */
     public UUID getRequest(UUID invitee) {
-        return requests.get(invitee);
+        Request r = requests.get(invitee);
+        if (r == null) return null;
+        if (System.currentTimeMillis() - r.time > EXPIRY) {
+            requests.remove(invitee);
+            return null;
+        }
+        return r.inviter;
     }
 
     /** Accept any pending request for the invitee. */
     public boolean acceptRequest(UUID invitee) {
-        UUID inviter = requests.remove(invitee);
-        if (inviter == null) return false;
-        addFriend(inviter, invitee);
+        Request r = requests.remove(invitee);
+        if (r == null) return false;
+        if (System.currentTimeMillis() - r.time > EXPIRY) {
+            return false;
+        }
+        addFriend(r.inviter, invitee);
         return true;
     }
 
