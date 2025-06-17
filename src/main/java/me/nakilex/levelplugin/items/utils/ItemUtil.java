@@ -82,7 +82,7 @@ public class ItemUtil {
 
         // Set display name with rarity color and upgrade stars.
         ChatColor rarityColor = cItem.getRarity().getColor();
-        String stars = "★".repeat(cItem.getUpgradeLevel());
+        String stars = "<glyph:star>".repeat(cItem.getUpgradeLevel());
         meta.setDisplayName(rarityColor + cItem.getBaseName() + " " + stars);
 
         List<String> lore = new ArrayList<>();

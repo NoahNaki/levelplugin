@@ -8,6 +8,8 @@ import me.nakilex.levelplugin.duels.commands.DuelCommand;
 import me.nakilex.levelplugin.economy.commands.*;
 import me.nakilex.levelplugin.economy.gui.GemExchangeGUI;
 import me.nakilex.levelplugin.economy.managers.GemsManager;
+import me.nakilex.levelplugin.friend.IgnoreCommand;
+import me.nakilex.levelplugin.friend.UnignoreCommand;
 import me.nakilex.levelplugin.horse.commands.HorseCommand;
 import me.nakilex.levelplugin.horse.gui.HorseGUI;
 import me.nakilex.levelplugin.items.commands.AddItemCommand;

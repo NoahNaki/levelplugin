@@ -169,7 +169,7 @@ public class CustomItem {
 
     /** Display name with stars for upgrades. */
     public String getName() {
-        return baseName + "★".repeat(upgradeLevel);
+        return baseName + "<glyph:star>".repeat(upgradeLevel);
     }
     public String getDisplayName() { return getName(); }
 
