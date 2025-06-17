@@ -22,17 +22,44 @@ public class TownCommand implements CommandExecutor {
             return true;
         }
         if (args.length > 0) {
-            if (args[0].equalsIgnoreCase("start")) {
-                if (args.length < 2) {
-                    p.sendMessage(ChatColor.RED + "Usage: /town start <name>");
-                    return true;
+            switch (args[0].toLowerCase()) {
+                case "start" -> {
+                    if (args.length < 2) {
+                        p.sendMessage(ChatColor.RED + "Usage: /town start <name>");
+                        return true;
+                    }
+                    manager.startTown(p, args[1].toLowerCase());
                 }
-                manager.startTown(p, args[1].toLowerCase());
-                return true;
-            } else if (args[0].equalsIgnoreCase("reset")) {
-                manager.resetTown(p);
-                return true;
+                case "reset" -> manager.resetTown(p);
+                case "invite" -> {
+                    if (args.length < 2) {
+                        p.sendMessage(ChatColor.RED + "Usage: /town invite <player>");
+                        return true;
+                    }
+                    Player target = p.getServer().getPlayer(args[1]);
+                    if (target == null) {
+                        p.sendMessage(ChatColor.RED + "Player not found.");
+                        return true;
+                    }
+                    manager.invite(p, target);
+                }
+                case "kick" -> {
+                    if (args.length < 2) {
+                        p.sendMessage(ChatColor.RED + "Usage: /town kick <player>");
+                        return true;
+                    }
+                    Player target = p.getServer().getPlayer(args[1]);
+                    if (target == null) {
+                        p.sendMessage(ChatColor.RED + "Player not found.");
+                        return true;
+                    }
+                    manager.kick(p, target);
+                }
+                case "leave" -> manager.leave(p);
+                case "info" -> manager.sendInfo(p);
+                default -> gui.open(p);
             }
+            return true;
         }
         gui.open(p);
         return true;

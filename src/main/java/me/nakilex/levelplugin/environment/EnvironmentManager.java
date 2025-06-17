@@ -36,6 +36,8 @@ public class EnvironmentManager {
     private final Map<UUID, Map<String, EnvironmentState>> buildingStates = new HashMap<>();
     private final Map<UUID, java.util.List<BukkitTask>> buildTasks = new HashMap<>();
     private final Map<UUID, Map<String, org.bukkit.entity.ArmorStand>> buildingHolograms = new HashMap<>();
+    private final Map<UUID, UUID> coopOwners = new HashMap<>(); // player -> owner
+    private final Map<UUID, java.util.Set<UUID>> coopMembers = new HashMap<>(); // owner -> members
 
     public static class EnvironmentState {
         public int level;
@@ -66,13 +68,41 @@ public class EnvironmentManager {
     }
 
     public String getTown(UUID uuid) {
-        return towns.get(uuid);
+        UUID owner = getOwner(uuid);
+        return towns.get(owner);
     }
 
-    /** Load state for player from config without spawning any structures. */
-    private void loadPlayerState(Player player) {
-        UUID uuid = player.getUniqueId();
-        states.computeIfAbsent(uuid, id -> {
+    /** Get the owner of a player's town (returns self if none). */
+    public UUID getOwner(UUID player) {
+        return coopOwners.getOrDefault(player, player);
+    }
+
+    /** Get online players belonging to a town owner. */
+    private java.util.List<Player> getOnlineMembers(UUID owner) {
+        java.util.List<Player> list = new java.util.ArrayList<>();
+        Player p = Bukkit.getPlayer(owner);
+        if (p != null) list.add(p);
+        for (UUID m : coopMembers.getOrDefault(owner, java.util.Collections.emptySet())) {
+            Player pm = Bukkit.getPlayer(m);
+            if (pm != null) list.add(pm);
+        }
+        return list;
+    }
+
+    private void storeMembers(UUID owner) {
+        java.util.Set<UUID> set = coopMembers.get(owner);
+        if (set != null) playerConfig.setTownMembers(owner, set);
+    }
+
+    private java.util.List<UUID> getViewerIds(UUID owner) {
+        java.util.List<UUID> ids = new java.util.ArrayList<>();
+        ids.add(owner);
+        ids.addAll(coopMembers.getOrDefault(owner, java.util.Collections.emptySet()));
+        return ids;
+    }
+
+    private void loadOwnerState(UUID owner) {
+        states.computeIfAbsent(owner, id -> {
             int lvl = playerConfig.getEnvironmentLevel(id);
             int stg = playerConfig.getEnvironmentStage(id);
             if (lvl <= 0) lvl = 1;
@@ -80,24 +110,47 @@ public class EnvironmentManager {
             return new EnvironmentState(lvl, stg);
         });
 
-        if (!origins.containsKey(uuid)) {
-            Location origin = playerConfig.getEnvironmentOrigin(uuid);
-            if (origin != null) origins.put(uuid, origin);
+        if (!origins.containsKey(owner)) {
+            Location origin = playerConfig.getEnvironmentOrigin(owner);
+            if (origin != null) origins.put(owner, origin);
         }
 
-        if (!towns.containsKey(uuid)) {
-            String town = playerConfig.getEnvironmentTown(uuid);
-            if (town != null) towns.put(uuid, town);
+        if (!towns.containsKey(owner)) {
+            String town = playerConfig.getEnvironmentTown(owner);
+            if (town != null) towns.put(owner, town);
         }
 
-        if (towns.containsKey(uuid) && !buildingStates.containsKey(uuid)) {
+        if (towns.containsKey(owner) && !buildingStates.containsKey(owner)) {
             Map<String, EnvironmentState> map = new java.util.HashMap<>();
-            for (String b : playerConfig.getStoredBuildings(uuid)) {
-                int bl = playerConfig.getBuildingLevel(uuid, b);
-                int bs = playerConfig.getBuildingStage(uuid, b);
+            for (String b : playerConfig.getStoredBuildings(owner)) {
+                int bl = playerConfig.getBuildingLevel(owner, b);
+                int bs = playerConfig.getBuildingStage(owner, b);
                 map.put(b.toLowerCase(), new EnvironmentState(bl, bs));
             }
-            if (!map.isEmpty()) buildingStates.put(uuid, map);
+            if (!map.isEmpty()) buildingStates.put(owner, map);
+        }
+
+        if (!coopMembers.containsKey(owner)) {
+            var list = playerConfig.getTownMembers(owner);
+            if (!list.isEmpty()) {
+                coopMembers.put(owner, new java.util.HashSet<>(list));
+                for (UUID m : list) coopOwners.putIfAbsent(m, owner);
+            }
+        }
+
+        coopOwners.putIfAbsent(owner, owner);
+    }
+
+    /** Load state for player from config without spawning any structures. */
+    private void loadPlayerState(Player player) {
+        UUID uuid = player.getUniqueId();
+        UUID owner = playerConfig.getTownOwner(uuid);
+        if (owner != null && !owner.equals(uuid)) {
+            coopOwners.put(uuid, owner);
+            loadOwnerState(owner);
+        } else {
+            coopOwners.put(uuid, uuid);
+            loadOwnerState(uuid);
         }
     }
 
@@ -105,18 +158,18 @@ public class EnvironmentManager {
     public void initializePlayer(Player player) {
         loadPlayerState(player);
 
-        UUID uuid = player.getUniqueId();
-        EnvironmentState es = states.get(uuid);
-        Location origin = origins.get(uuid);
+        UUID owner = getOwner(player.getUniqueId());
+        EnvironmentState es = states.get(owner);
+        Location origin = origins.get(owner);
         if (origin != null) {
-            Map<String, EnvironmentState> bMap = buildingStates.get(uuid);
+            Map<String, EnvironmentState> bMap = buildingStates.get(owner);
             final Map<String, EnvironmentState> finalBMap = bMap == null ? null : new java.util.HashMap<>(bMap);
             final Location finalOrigin = origin;
             final Runnable after;
             if (finalBMap != null) {
                 after = () -> {
                     for (var e : finalBMap.entrySet()) {
-                        Location bOrig = getBuildingOrigin(towns.get(uuid), e.getKey(), finalOrigin);
+                        Location bOrig = getBuildingOrigin(towns.get(owner), e.getKey(), finalOrigin);
                         spawnBuilding(player, e.getKey(), bOrig, e.getValue().level, e.getValue().stage, null);
                     }
                 };
@@ -128,7 +181,7 @@ public class EnvironmentManager {
     }
 
     public EnvironmentState getState(UUID uuid) {
-        return states.get(uuid);
+        return states.get(getOwner(uuid));
     }
 
     private void cancelTasks(UUID uuid) {
@@ -160,18 +213,40 @@ public class EnvironmentManager {
         }
     }
 
-    public void saveState(UUID uuid) {
-        EnvironmentState s = states.get(uuid);
-        if (s != null) {
-            playerConfig.setEnvironmentState(uuid, s.level, s.stage);
-            String town = towns.get(uuid);
-            if (town != null) playerConfig.setEnvironmentTown(uuid, town);
-            Map<String, EnvironmentState> bMap = buildingStates.get(uuid);
+    private void despawnForPlayer(Player player) {
+        UUID pid = player.getUniqueId();
+        cancelTasks(pid);
+        fakeBlockManager.clear(player);
+        removeAllBuildingHolograms(pid);
+        UUID owner = getOwner(pid);
+        EnvironmentState st = states.get(owner);
+        String town = towns.get(owner);
+        Map<String, EnvironmentState> bMap = buildingStates.get(owner);
+        if (town != null && st != null) {
+            stageManager.despawnForStage(pid, town, st.level, st.stage);
             if (bMap != null) {
                 for (var e : bMap.entrySet()) {
-                    playerConfig.setBuildingState(uuid, e.getKey(), e.getValue().level, e.getValue().stage);
+                    buildingStageManager.despawnForStage(pid, e.getKey(), e.getValue().level, e.getValue().stage);
                 }
             }
+        }
+    }
+
+    public void saveState(UUID uuid) {
+        UUID owner = getOwner(uuid);
+        EnvironmentState s = states.get(owner);
+        if (s != null) {
+            playerConfig.setEnvironmentState(owner, s.level, s.stage);
+            String town = towns.get(owner);
+            if (town != null) playerConfig.setEnvironmentTown(owner, town);
+            Map<String, EnvironmentState> bMap = buildingStates.get(owner);
+            if (bMap != null) {
+                for (var e : bMap.entrySet()) {
+                    playerConfig.setBuildingState(owner, e.getKey(), e.getValue().level, e.getValue().stage);
+                }
+            }
+            storeMembers(owner);
+            playerConfig.setTownOwner(owner, owner);
             playerConfig.saveConfigFile();
         }
     }
@@ -187,11 +262,12 @@ public class EnvironmentManager {
      */
     public void invest(Player player, int amount) {
         loadPlayerState(player);
-        EnvironmentState state = states.get(player.getUniqueId());
+        UUID owner = getOwner(player.getUniqueId());
+        EnvironmentState state = states.get(owner);
         state.invested += amount;
         if (state.invested >= 1) {
             state.invested = 0;
-            Map<String, EnvironmentState> bMap = buildingStates.get(player.getUniqueId());
+            Map<String, EnvironmentState> bMap = buildingStates.get(owner);
             if (bMap != null && !bMap.isEmpty()) {
                 for (var entry : bMap.entrySet()) {
                     EnvironmentState bs = entry.getValue();
@@ -200,14 +276,16 @@ public class EnvironmentManager {
                         int oldS = bs.stage;
                         advance(bs);
                         player.sendMessage(ChatColor.GREEN + "" + entry.getKey() + " upgraded to L" + bs.level + " S" + bs.stage);
-                        String town = towns.get(player.getUniqueId());
-                        Location origin = origins.get(player.getUniqueId());
+                        String town = towns.get(owner);
+                        Location origin = origins.get(owner);
                         if (town != null && origin != null) {
-                            buildingStageManager.despawnForStage(player.getUniqueId(), entry.getKey(), oldL, oldS);
-                            Location bOrig = getBuildingOrigin(town, entry.getKey(), origin);
-                            spawnBuilding(player, entry.getKey(), bOrig, bs.level, bs.stage, null);
+                            for (Player p : getOnlineMembers(owner)) {
+                                buildingStageManager.despawnForStage(p.getUniqueId(), entry.getKey(), oldL, oldS);
+                                Location bOrig = getBuildingOrigin(town, entry.getKey(), origin);
+                                spawnBuilding(p, entry.getKey(), bOrig, bs.level, bs.stage, null);
+                            }
                         }
-                        saveState(player.getUniqueId());
+                        saveState(owner);
                         return;
                     }
                 }
@@ -217,13 +295,15 @@ public class EnvironmentManager {
             int oldStage = state.stage;
             advance(state);
             player.sendMessage(ChatColor.GREEN + "Settlement upgraded to Level " + state.level + " Stage " + state.stage + "!");
-            String town = towns.get(player.getUniqueId());
-            Location origin = origins.get(player.getUniqueId());
+            String town = towns.get(owner);
+            Location origin = origins.get(owner);
             if (town != null && origin != null) {
-                stageManager.despawnForStage(player.getUniqueId(), town, oldLevel, oldStage);
-                spawnStructure(player, origin, state.level, state.stage, null);
+                for (Player p : getOnlineMembers(owner)) {
+                    stageManager.despawnForStage(p.getUniqueId(), town, oldLevel, oldStage);
+                    spawnStructure(p, origin, state.level, state.stage, null);
+                }
                 // reset building progress for new level
-                Map<String, EnvironmentState> reset = buildingStates.get(player.getUniqueId());
+                Map<String, EnvironmentState> reset = buildingStates.get(owner);
                 if (reset != null) {
                     for (var e : reset.values()) {
                         e.level = 1;
@@ -231,7 +311,7 @@ public class EnvironmentManager {
                     }
                 }
             }
-            saveState(player.getUniqueId());
+            saveState(owner);
         } else {
             player.sendMessage(ChatColor.GREEN + "Invested " + amount + " oak log.");
         }
@@ -240,7 +320,8 @@ public class EnvironmentManager {
     /** Invest materials towards upgrading a specific building. */
     public void investBuilding(Player player, String building, int amount) {
         loadPlayerState(player);
-        Map<String, EnvironmentState> bMap = buildingStates.get(player.getUniqueId());
+        UUID owner = getOwner(player.getUniqueId());
+        Map<String, EnvironmentState> bMap = buildingStates.get(owner);
         if (bMap == null) {
             player.sendMessage(ChatColor.RED + "You have no settlement buildings.");
             return;
@@ -257,14 +338,16 @@ public class EnvironmentManager {
             int oldS = bs.stage;
             advance(bs);
             player.sendMessage(ChatColor.GREEN + building + " upgraded to L" + bs.level + " S" + bs.stage);
-            String town = towns.get(player.getUniqueId());
-            Location origin = origins.get(player.getUniqueId());
+            String town = towns.get(owner);
+            Location origin = origins.get(owner);
             if (town != null && origin != null) {
-                buildingStageManager.despawnForStage(player.getUniqueId(), building, oldL, oldS);
-                Location bOrig = getBuildingOrigin(town, building, origin);
-                spawnBuilding(player, building, bOrig, bs.level, bs.stage, null);
+                for (Player p : getOnlineMembers(owner)) {
+                    buildingStageManager.despawnForStage(p.getUniqueId(), building, oldL, oldS);
+                    Location bOrig = getBuildingOrigin(town, building, origin);
+                    spawnBuilding(p, building, bOrig, bs.level, bs.stage, null);
+                }
             }
-            saveState(player.getUniqueId());
+            saveState(owner);
         } else {
             player.sendMessage(ChatColor.GREEN + "Invested " + amount + " oak log.");
         }
@@ -329,7 +412,7 @@ public class EnvironmentManager {
     /** Start a settlement for the player at a fixed location using the given town name. */
     public void startTown(Player player, String townName) {
         UUID uuid = player.getUniqueId();
-        if (origins.containsKey(uuid)) {
+        if (origins.containsKey(uuid) || coopOwners.getOrDefault(uuid, uuid) != uuid) {
             player.sendMessage(ChatColor.RED + "You already started a settlement.");
             return;
         }
@@ -340,6 +423,9 @@ public class EnvironmentManager {
         Location origin = getTownStartLocation();
         origins.put(uuid, origin);
         towns.put(uuid, townName.toLowerCase());
+        coopOwners.put(uuid, uuid);
+        coopMembers.put(uuid, new java.util.HashSet<>());
+        playerConfig.setTownOwner(uuid, uuid);
         // initialize building progress for all defined buildings of this town
         var buildingNames = buildingStageManager.getBuildings(townName);
         if (!buildingNames.isEmpty()) {
@@ -351,6 +437,8 @@ public class EnvironmentManager {
         }
         playerConfig.setEnvironmentOrigin(uuid, origin);
         playerConfig.setEnvironmentTown(uuid, townName.toLowerCase());
+        playerConfig.setTownOwner(uuid, uuid);
+        playerConfig.setTownMembers(uuid, java.util.Collections.emptyList());
         playerConfig.saveConfigFile();
 
         final EnvironmentState state = states.computeIfAbsent(uuid, id -> new EnvironmentState(1, 1));
@@ -378,22 +466,42 @@ public class EnvironmentManager {
     /** Remove the player's settlement so they can start over. */
     public void resetTown(Player player) {
         UUID uuid = player.getUniqueId();
-        cancelTasks(uuid);
+        UUID owner = getOwner(uuid);
+        if (!owner.equals(uuid)) {
+            player.sendMessage(ChatColor.RED + "Only town owners can reset the town.");
+            return;
+        }
+
+        // remove members
+        java.util.Set<UUID> mems = coopMembers.remove(owner);
+        if (mems != null) {
+            for (UUID m : mems) {
+                coopOwners.remove(m);
+                Player pl = Bukkit.getPlayer(m);
+                if (pl != null) despawnForPlayer(pl);
+                playerConfig.setTownOwner(m, null);
+            }
+        }
+
+        cancelTasks(owner);
         fakeBlockManager.clear(player);
-        EnvironmentState st = states.remove(uuid);
-        String town = towns.remove(uuid);
-        origins.remove(uuid);
-        Map<String, EnvironmentState> bMap = buildingStates.remove(uuid);
-        removeAllBuildingHolograms(uuid);
+        EnvironmentState st = states.remove(owner);
+        String town = towns.remove(owner);
+        origins.remove(owner);
+        Map<String, EnvironmentState> bMap = buildingStates.remove(owner);
+        removeAllBuildingHolograms(owner);
         if (town != null && st != null) {
-            stageManager.despawnForStage(uuid, town, st.level, st.stage);
-            if (bMap != null) {
-                for (var e : bMap.entrySet()) {
-                    buildingStageManager.despawnForStage(uuid, e.getKey(), e.getValue().level, e.getValue().stage);
+            for (UUID viewer : getViewerIds(owner)) {
+                stageManager.despawnForStage(viewer, town, st.level, st.stage);
+                if (bMap != null) {
+                    for (var e : bMap.entrySet()) {
+                        buildingStageManager.despawnForStage(viewer, e.getKey(), e.getValue().level, e.getValue().stage);
+                    }
                 }
             }
         }
-        playerConfig.clearEnvironmentData(uuid);
+        playerConfig.clearEnvironmentData(owner);
+        playerConfig.setTownMembers(owner, java.util.Collections.emptyList());
         playerConfig.saveConfigFile();
         player.sendMessage(ChatColor.RED + "Your settlement has been reset.");
     }
@@ -406,7 +514,7 @@ public class EnvironmentManager {
         UUID uuid = player.getUniqueId();
         cancelTasks(uuid);
         fakeBlockManager.clear(player);
-        String town = towns.get(player.getUniqueId());
+        String town = towns.get(getOwner(player.getUniqueId()));
         if (town == null) return;
         var stageData = stageManager.getStage(town, level, stage);
         if (stageData == null) return;
@@ -458,7 +566,7 @@ public class EnvironmentManager {
     private void spawnBuilding(Player player, String building, Location origin, int level, int stage, Runnable after) {
         UUID uuid = player.getUniqueId();
         removeBuildingHologram(uuid, building);
-        String town = towns.get(player.getUniqueId());
+        String town = towns.get(getOwner(player.getUniqueId()));
         if (town == null) return;
         var stageData = buildingStageManager.getStage(building, level, stage);
         if (stageData == null) return;
@@ -525,5 +633,85 @@ public class EnvironmentManager {
 
     private void spawnBuilding(Player player, String building, Location origin, int level, int stage) {
         spawnBuilding(player, building, origin, level, stage, null);
+    }
+
+    // ----- Coop management -----
+
+    public void invite(Player ownerPlayer, Player target) {
+        UUID owner = getOwner(ownerPlayer.getUniqueId());
+        if (!owner.equals(ownerPlayer.getUniqueId())) {
+            ownerPlayer.sendMessage(ChatColor.RED + "Only the town owner can invite players.");
+            return;
+        }
+        UUID tid = target.getUniqueId();
+        if (coopOwners.containsKey(tid) && !coopOwners.get(tid).equals(tid)) {
+            ownerPlayer.sendMessage(ChatColor.RED + "That player is already in a town.");
+            return;
+        }
+        coopOwners.put(tid, owner);
+        coopMembers.computeIfAbsent(owner, k -> new java.util.HashSet<>()).add(tid);
+        playerConfig.setTownOwner(tid, owner);
+        storeMembers(owner);
+        playerConfig.saveConfigFile();
+        initializePlayer(target);
+        target.sendMessage(ChatColor.GREEN + "You joined " + ownerPlayer.getName() + "'s town!");
+        ownerPlayer.sendMessage(ChatColor.GREEN + target.getName() + " added to your town.");
+    }
+
+    public void kick(Player ownerPlayer, Player target) {
+        UUID owner = getOwner(ownerPlayer.getUniqueId());
+        if (!owner.equals(ownerPlayer.getUniqueId())) {
+            ownerPlayer.sendMessage(ChatColor.RED + "Only the town owner can kick players.");
+            return;
+        }
+        UUID tid = target.getUniqueId();
+        java.util.Set<UUID> set = coopMembers.get(owner);
+        if (set == null || !set.remove(tid)) {
+            ownerPlayer.sendMessage(ChatColor.RED + "That player is not in your town.");
+            return;
+        }
+        coopOwners.remove(tid);
+        storeMembers(owner);
+        playerConfig.setTownOwner(tid, null);
+        playerConfig.saveConfigFile();
+        despawnForPlayer(target);
+        target.sendMessage(ChatColor.RED + "You were removed from the town.");
+        ownerPlayer.sendMessage(ChatColor.YELLOW + target.getName() + " kicked from your town.");
+    }
+
+    public void leave(Player player) {
+        UUID uuid = player.getUniqueId();
+        UUID owner = getOwner(uuid);
+        if (owner.equals(uuid)) {
+            player.sendMessage(ChatColor.RED + "You are the town owner. Use /town reset to disband.");
+            return;
+        }
+        java.util.Set<UUID> set = coopMembers.get(owner);
+        if (set != null) set.remove(uuid);
+        coopOwners.remove(uuid);
+        storeMembers(owner);
+        playerConfig.setTownOwner(uuid, null);
+        playerConfig.saveConfigFile();
+        despawnForPlayer(player);
+        player.sendMessage(ChatColor.YELLOW + "You left the town.");
+    }
+
+    public void sendInfo(Player player) {
+        loadPlayerState(player);
+        UUID owner = getOwner(player.getUniqueId());
+        String town = towns.get(owner);
+        if (town == null) {
+            player.sendMessage(ChatColor.RED + "You are not in a town.");
+            return;
+        }
+        player.sendMessage(ChatColor.AQUA + "Town: " + town);
+        player.sendMessage(ChatColor.AQUA + "Owner: " + Bukkit.getOfflinePlayer(owner).getName());
+        java.util.Set<UUID> set = coopMembers.getOrDefault(owner, java.util.Collections.emptySet());
+        if (!set.isEmpty()) {
+            player.sendMessage(ChatColor.AQUA + "Members:");
+            for (UUID m : set) {
+                player.sendMessage(ChatColor.GRAY + "- " + Bukkit.getOfflinePlayer(m).getName());
+            }
+        }
     }
 }

@@ -194,6 +194,45 @@ public class PlayerConfig {
         config.set(base + "stage", stage);
     }
 
+    // ----- Town Coop -----
+
+    /** Get the UUID of the town owner for the given player or null if none. */
+    public java.util.UUID getTownOwner(java.util.UUID player) {
+        String path = "players." + player + ".environment.owner";
+        String val = config.getString(path, null);
+        if (val == null) return null;
+        try {
+            return java.util.UUID.fromString(val);
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    /** Set the town owner UUID for a player. */
+    public void setTownOwner(java.util.UUID player, java.util.UUID owner) {
+        String path = "players." + player + ".environment.owner";
+        config.set(path, owner != null ? owner.toString() : null);
+    }
+
+    /** Get members of a town owned by the given UUID. */
+    public java.util.List<java.util.UUID> getTownMembers(java.util.UUID owner) {
+        String path = "players." + owner + ".environment.members";
+        java.util.List<String> raw = config.getStringList(path);
+        java.util.List<java.util.UUID> out = new java.util.ArrayList<>();
+        for (String s : raw) {
+            try { out.add(java.util.UUID.fromString(s)); } catch (IllegalArgumentException ignore) {}
+        }
+        return out;
+    }
+
+    /** Store the member list for a town owner. */
+    public void setTownMembers(java.util.UUID owner, java.util.Collection<java.util.UUID> members) {
+        String path = "players." + owner + ".environment.members";
+        java.util.List<String> list = new java.util.ArrayList<>();
+        for (java.util.UUID u : members) list.add(u.toString());
+        config.set(path, list);
+    }
+
     public java.util.Set<String> getStoredBuildings(UUID uuid) {
         String base = "players." + uuid + ".environment.buildings";
         if (!config.isConfigurationSection(base)) return java.util.Collections.emptySet();
