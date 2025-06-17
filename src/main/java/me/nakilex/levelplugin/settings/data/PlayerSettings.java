@@ -1,5 +1,7 @@
 package me.nakilex.levelplugin.settings.data;
 
+import me.nakilex.levelplugin.settings.data.PlayerVisibility;
+
 public class PlayerSettings {
 
     private boolean dmgChat     = false;
@@ -8,6 +10,7 @@ public class PlayerSettings {
     private boolean dropDetailsChatEnabled = true;
     private boolean partyGlow = true;
     private boolean balancePublic = true;
+    private PlayerVisibility playerVisibility = PlayerVisibility.SHOW_ALL;
 
     public boolean isDmgChatEnabled() {
         return dmgChat;
@@ -56,4 +59,18 @@ public class PlayerSettings {
     public void toggleBalancePublic() {
         balancePublic = !balancePublic;
     }
+
+    public PlayerVisibility getPlayerVisibility() {
+        return playerVisibility;
+    }
+
+    /** Cycle visibility setting through the three states. */
+    public void cyclePlayerVisibility() {
+        switch (playerVisibility) {
+            case SHOW_ALL -> playerVisibility = PlayerVisibility.FRIENDS_ONLY;
+            case FRIENDS_ONLY -> playerVisibility = PlayerVisibility.HIDE_ALL;
+            case HIDE_ALL -> playerVisibility = PlayerVisibility.SHOW_ALL;
+        }
+    }
 }
+

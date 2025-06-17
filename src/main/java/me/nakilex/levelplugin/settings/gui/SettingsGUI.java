@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.settings.gui;
 
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
 import me.nakilex.levelplugin.settings.data.PlayerSettings;
+import me.nakilex.levelplugin.settings.data.PlayerVisibility;
 import me.nakilex.levelplugin.leaderboards.LeaderboardType;
 import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
 import com.nexomc.nexo.api.NexoItems;
@@ -77,6 +78,9 @@ public class SettingsGUI implements Listener {
             "/toggle balancepublic"
         ));
 
+        // Player visibility mode
+        gui.setItem(16, createVisibilityItem(playerSettings.getPlayerVisibility()));
+
         // Filler border
         ItemStack filler = createItem(Material.GRAY_STAINED_GLASS_PANE, " ", " ");
         for (int i = 0; i < gui.getSize(); i++) {
@@ -111,6 +115,22 @@ public class SettingsGUI implements Listener {
         return item;
     }
 
+    private ItemStack createVisibilityItem(PlayerVisibility vis) {
+        Material mat;
+        String status;
+        switch (vis) {
+            case SHOW_ALL -> { mat = Material.LIME_DYE; status = "All"; }
+            case FRIENDS_ONLY -> { mat = Material.GREEN_DYE; status = "Friends"; }
+            case HIDE_ALL -> { mat = Material.GRAY_DYE; status = "None"; }
+            default -> { mat = Material.GRAY_DYE; status = "Unknown"; }
+        }
+        return createItem(mat, "§bPlayer Visibility",
+                "",
+                "§7Status: §f" + status,
+                "",
+                "§eClick to cycle");
+    }
+
     private ItemStack getNexoItem(String id, String name) {
         ItemBuilder builder = NexoItems.itemFromId(id);
         if (builder == null) return new ItemStack(Material.BARRIER);
@@ -125,6 +145,10 @@ public class SettingsGUI implements Listener {
 
     private void updateSettingItem(Inventory inventory, int slot, boolean enabled, String name, String command) {
         inventory.setItem(slot, createSettingItem(enabled, name, command));
+    }
+
+    private void updateVisibilityItem(Inventory inv, PlayerVisibility vis) {
+        inv.setItem(16, createVisibilityItem(vis));
     }
 
     @EventHandler
@@ -183,6 +207,11 @@ public class SettingsGUI implements Listener {
             if (main != null && main.getLeaderboardManager() != null) {
                 main.getLeaderboardManager().updateType(LeaderboardType.BALANCE);
             }
+        } else if (slot == 16) {
+            settings.cyclePlayerVisibility();
+            updateVisibilityItem(event.getInventory(), settings.getPlayerVisibility());
+            me.nakilex.levelplugin.Main.getInstance()
+                .getPlayerVisibilityManager().updatePlayer(player);
         }
     }
 }

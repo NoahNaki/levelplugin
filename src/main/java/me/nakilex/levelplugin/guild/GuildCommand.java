@@ -57,6 +57,11 @@ public class GuildCommand implements CommandExecutor {
                     player.sendMessage(ChatColor.RED + "Player not found");
                     return true;
                 }
+                if (me.nakilex.levelplugin.Main.getInstance().getIgnoreManager().isIgnoring(targetPlayer.getUniqueId(), id)
+                        || me.nakilex.levelplugin.Main.getInstance().getIgnoreManager().isIgnoring(id, targetPlayer.getUniqueId())) {
+                    player.sendMessage(ChatColor.RED + "Cannot invite that player.");
+                    return true;
+                }
                 if (manager.invite(id, targetPlayer.getUniqueId())) {
                     player.sendMessage(ChatColor.GREEN + "Invite sent to " + targetPlayer.getName());
                     targetPlayer.sendMessage(ChatColor.YELLOW + player.getName() + " invited you to join their guild. Type /guild accept to join.");

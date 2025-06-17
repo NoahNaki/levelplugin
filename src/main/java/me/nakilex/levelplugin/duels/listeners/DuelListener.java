@@ -51,6 +51,12 @@ public class DuelListener implements Listener {
         Player target = (Player) hitEntity;
         DuelManager manager = DuelManager.getInstance();
 
+        if (me.nakilex.levelplugin.Main.getInstance().getIgnoreManager().isIgnoring(target.getUniqueId(), player.getUniqueId())
+            || me.nakilex.levelplugin.Main.getInstance().getIgnoreManager().isIgnoring(player.getUniqueId(), target.getUniqueId())) {
+            ChatFormatter.sendCenteredMessage(player, ChatColor.RED + "Cannot duel that player.");
+            return;
+        }
+
         // ← NEW: Prevent sending/receiving if either player is already in a duel
         if (manager.areInAnyDuel(player) || manager.areInAnyDuel(target)) {
             ChatFormatter.sendCenteredMessage(player,
@@ -272,6 +278,12 @@ public class DuelListener implements Listener {
         DuelRequest existing = manager.getRequest(attacker.getUniqueId());
         if (existing != null && existing.getRequester().equals(victim.getUniqueId())) {
             manager.acceptRequest(attacker);
+            return;
+        }
+
+        if (me.nakilex.levelplugin.Main.getInstance().getIgnoreManager().isIgnoring(victim.getUniqueId(), attacker.getUniqueId())
+            || me.nakilex.levelplugin.Main.getInstance().getIgnoreManager().isIgnoring(attacker.getUniqueId(), victim.getUniqueId())) {
+            ChatFormatter.sendCenteredMessage(attacker, ChatColor.RED + "Cannot duel that player.");
             return;
         }
 

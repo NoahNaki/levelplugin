@@ -60,6 +60,11 @@ public class PartyCommands implements CommandExecutor {
                     return true;
                 }
                 UUID inviteeId = invitee.getUniqueId();
+                if (me.nakilex.levelplugin.Main.getInstance().getIgnoreManager().isIgnoring(inviteeId, playerId)
+                        || me.nakilex.levelplugin.Main.getInstance().getIgnoreManager().isIgnoring(playerId, inviteeId)) {
+                    player.sendMessage(ChatColor.RED + "Cannot invite that player.");
+                    return true;
+                }
                 Party inviterParty = partyManager.getParty(playerId); // Renamed to inviterParty
 
                 if (inviterParty == null || !inviterParty.isLeader(playerId)) {

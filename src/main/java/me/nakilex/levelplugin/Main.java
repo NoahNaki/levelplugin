@@ -26,6 +26,11 @@ import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.mob.managers.DmgNumberToggleManager;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.party.PartyGlowManager;
+import me.nakilex.levelplugin.friend.FriendManager;
+import me.nakilex.levelplugin.friend.FriendGlowManager;
+import me.nakilex.levelplugin.friend.PlayerVisibilityManager;
+import me.nakilex.levelplugin.friend.IgnoreManager;
+import me.nakilex.levelplugin.friend.FriendRequestListener;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
@@ -90,6 +95,11 @@ public class Main extends JavaPlugin {
     private me.nakilex.levelplugin.guild.GuildManager guildManager;
     private me.nakilex.levelplugin.guild.GuildGUI guildGUI;
     private PartyGlowManager partyGlowManager;
+    private me.nakilex.levelplugin.friend.FriendManager friendManager;
+    private me.nakilex.levelplugin.friend.FriendGlowManager friendGlowManager;
+    private me.nakilex.levelplugin.friend.PlayerVisibilityManager visibilityManager;
+    private IgnoreManager ignoreManager;
+    private FriendRequestListener friendRequestListener;
     public static final String PREFIX = "";
     private static Main plugin;
     private DealMaker dealMaker;
@@ -259,6 +269,7 @@ public class Main extends JavaPlugin {
         runesManager = new RunesManager(this);
         spellmanager = new SpellManager(this, runesManager);
         partyManager = new PartyManager();
+        friendManager = new FriendManager();
         guildManager = me.nakilex.levelplugin.guild.GuildManager.getInstance();
         guildGUI = new me.nakilex.levelplugin.guild.GuildGUI(guildManager);
         identifyRunesGUI = new IdentifyRunesGUI(this, runesManager);
@@ -278,6 +289,10 @@ public class Main extends JavaPlugin {
         duelStatsManager = new me.nakilex.levelplugin.leaderboards.DuelStatsManager(this);
         leaderboardManager = new me.nakilex.levelplugin.leaderboards.LeaderboardManager(this, economyManager, playerConfig, duelStatsManager, settingsManager);
         partyGlowManager = new PartyGlowManager(this, partyManager, scoreboardManager::getBoard);
+        friendGlowManager = new FriendGlowManager(this, friendManager, scoreboardManager::getBoard);
+        visibilityManager = new PlayerVisibilityManager(this, friendManager, settingsManager);
+        ignoreManager = new IgnoreManager(this);
+        friendRequestListener = new FriendRequestListener(friendManager);
         beaconManager = new me.nakilex.levelplugin.quests.managers.BeaconManager();
         fastTravelManager = new me.nakilex.levelplugin.fasttravel.FastTravelManager(this);
         modelGateManager = new me.nakilex.levelplugin.fakeblock.ModelGateManager(this);
@@ -613,6 +628,26 @@ public class Main extends JavaPlugin {
 
     public PartyGlowManager getPartyGlowManager() {
         return partyGlowManager;
+    }
+
+    public FriendGlowManager getFriendGlowManager() {
+        return friendGlowManager;
+    }
+
+    public PlayerVisibilityManager getPlayerVisibilityManager() {
+        return visibilityManager;
+    }
+
+    public FriendManager getFriendManager() {
+        return friendManager;
+    }
+
+    public IgnoreManager getIgnoreManager() {
+        return ignoreManager;
+    }
+
+    public FriendRequestListener getFriendRequestListener() {
+        return friendRequestListener;
     }
 
     public me.nakilex.levelplugin.environment.EnvironmentManager getEnvironmentManager() {

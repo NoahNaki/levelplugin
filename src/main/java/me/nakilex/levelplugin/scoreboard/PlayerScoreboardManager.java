@@ -164,7 +164,8 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
             }
         }
 
-        // Apply party glow scoreboard entries if feature is enabled
+        // Apply party and friend glow scoreboard entries if enabled
         plugin.getPartyGlowManager().applyGlowScoreboard(player);
+        plugin.getFriendGlowManager().applyGlowScoreboard(player);
     }
 }
