@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.settings.gui;
 
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
 import me.nakilex.levelplugin.settings.data.PlayerSettings;
+import me.nakilex.levelplugin.settings.data.PlayerVisibility;
 import me.nakilex.levelplugin.leaderboards.LeaderboardType;
 import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
 import com.nexomc.nexo.api.NexoItems;
@@ -70,12 +71,22 @@ public class SettingsGUI implements Listener {
             "/partyglow"
         ));
 
-        // Balance visibility toggle
+        // Friend Glow toggle
         gui.setItem(15, createSettingItem(
+            playerSettings.isFriendGlowEnabled(),
+            "§bFriend Glow",
+            "/friendglow"
+        ));
+
+        // Balance visibility toggle
+        gui.setItem(16, createSettingItem(
             playerSettings.isBalancePublic(),
             "§ePublic Balance",
             "/toggle balancepublic"
         ));
+
+        // Player visibility mode
+        gui.setItem(17, createVisibilityItem(playerSettings.getPlayerVisibility()));
 
         // Filler border
         ItemStack filler = createItem(Material.GRAY_STAINED_GLASS_PANE, " ", " ");
@@ -111,6 +122,22 @@ public class SettingsGUI implements Listener {
         return item;
     }
 
+    private ItemStack createVisibilityItem(PlayerVisibility vis) {
+        Material mat;
+        String status;
+        switch (vis) {
+            case SHOW_ALL -> { mat = Material.LIME_DYE; status = "All"; }
+            case FRIENDS_ONLY -> { mat = Material.GREEN_DYE; status = "Friends"; }
+            case HIDE_ALL -> { mat = Material.GRAY_DYE; status = "None"; }
+            default -> { mat = Material.GRAY_DYE; status = "Unknown"; }
+        }
+        return createItem(mat, "§bPlayer Visibility",
+                "",
+                "§7Status: §f" + status,
+                "",
+                "§eClick to cycle");
+    }
+
     private ItemStack getNexoItem(String id, String name) {
         ItemBuilder builder = NexoItems.itemFromId(id);
         if (builder == null) return new ItemStack(Material.BARRIER);
@@ -125,6 +152,10 @@ public class SettingsGUI implements Listener {
 
     private void updateSettingItem(Inventory inventory, int slot, boolean enabled, String name, String command) {
         inventory.setItem(slot, createSettingItem(enabled, name, command));
+    }
+
+    private void updateVisibilityItem(Inventory inv, PlayerVisibility vis) {
+        inv.setItem(17, createVisibilityItem(vis));
     }
 
     @EventHandler
@@ -176,13 +207,23 @@ public class SettingsGUI implements Listener {
             updateSettingItem(event.getInventory(), 14,
                 settings.isPartyGlowEnabled(), "§bParty Glow", "/partyglow");
         } else if (slot == 15) {
-            settings.toggleBalancePublic();
+            settings.toggleFriendGlow();
+            Bukkit.dispatchCommand(player, "friendglow");
             updateSettingItem(event.getInventory(), 15,
+                settings.isFriendGlowEnabled(), "§bFriend Glow", "/friendglow");
+        } else if (slot == 16) {
+            settings.toggleBalancePublic();
+            updateSettingItem(event.getInventory(), 16,
                 settings.isBalancePublic(), "§ePublic Balance", "/toggle balancepublic");
             me.nakilex.levelplugin.Main main = me.nakilex.levelplugin.Main.getInstance();
             if (main != null && main.getLeaderboardManager() != null) {
                 main.getLeaderboardManager().updateType(LeaderboardType.BALANCE);
             }
+        } else if (slot == 17) {
+            settings.cyclePlayerVisibility();
+            updateVisibilityItem(event.getInventory(), settings.getPlayerVisibility());
+            me.nakilex.levelplugin.Main.getInstance()
+                .getPlayerVisibilityManager().updatePlayer(player);
         }
     }
 }

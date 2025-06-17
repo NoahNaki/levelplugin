@@ -1,4 +1,4 @@
-package me.nakilex.levelplugin.party;
+package me.nakilex.levelplugin.friend;
 
 import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.ProtocolManager;
@@ -27,29 +27,25 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Handles per-player glowing of party members.
+ * Handles per-player glowing of friends in green.
  */
-public class PartyGlowManager implements Listener {
+public class FriendGlowManager implements Listener {
     private final Main plugin;
-    private final PartyManager partyManager;
+    private final FriendManager friendManager;
     private final PlayerScoreboardManagerAccessor scoreboardAccessor;
     private final ProtocolManager protocol;
-    /**
-     * Tracks players that have the party glow feature disabled. Absent = enabled
-     * because the glow should be on by default.
-     */
     private final Set<UUID> disabled = ConcurrentHashMap.newKeySet();
     /** Tracks which players are currently glowing for each viewer. */
     private final Map<UUID, Set<UUID>> glowing = new ConcurrentHashMap<>();
 
-    public PartyGlowManager(Main plugin, PartyManager partyManager, PlayerScoreboardManagerAccessor accessor) {
+    public FriendGlowManager(Main plugin, FriendManager manager, PlayerScoreboardManagerAccessor accessor) {
         this.plugin = plugin;
-        this.partyManager = partyManager;
+        this.friendManager = manager;
         this.scoreboardAccessor = accessor;
         this.protocol = ProtocolLibrary.getProtocolManager();
 
         protocol.addPacketListener(new PacketAdapter(plugin, ListenerPriority.NORMAL,
-                com.comphenix.protocol.PacketType.Play.Server.ENTITY_METADATA) {
+                PacketType.Play.Server.ENTITY_METADATA) {
             @Override
             public void onPacketSending(PacketEvent event) {
                 handleMetadata(event);
@@ -60,26 +56,23 @@ public class PartyGlowManager implements Listener {
     private void handleMetadata(PacketEvent event) {
         Player viewer = event.getPlayer();
         if (!isEnabled(viewer)) return;
-
         Entity entity = event.getPacket().getEntityModifier(viewer.getWorld()).read(0);
         if (!(entity instanceof Player target)) return;
-
-        if (!areInSameParty(viewer.getUniqueId(), target.getUniqueId())) return;
+        if (!areFriends(viewer.getUniqueId(), target.getUniqueId())) return;
 
         try {
-            // ProtocolLib 5.x and above
             StructureModifier<List<WrappedDataValue>> mod =
-                    (StructureModifier<List<WrappedDataValue>>) event.getPacket()
-                            .getClass()
-                            .getMethod("getDataValueCollectionModifier")
-                            .invoke(event.getPacket());
+                (StructureModifier<List<WrappedDataValue>>) event.getPacket()
+                        .getClass()
+                        .getMethod("getDataValueCollectionModifier")
+                        .invoke(event.getPacket());
             List<WrappedDataValue> values = new ArrayList<>(mod.read(0));
             boolean found = false;
             for (int i = 0; i < values.size(); i++) {
                 WrappedDataValue val = values.get(i);
                 if (val.getIndex() == 0 && val.getValue() instanceof Byte) {
                     byte flags = (byte) val.getValue();
-                    flags |= 0x40; // glowing bit
+                    flags |= 0x40;
                     values.set(i, new WrappedDataValue(0, val.getSerializer(), flags));
                     found = true;
                     break;
@@ -92,7 +85,6 @@ public class PartyGlowManager implements Listener {
             mod.write(0, values);
             return;
         } catch (Exception ignore) {
-            // fall back to older API
         }
 
         List<WrappedWatchableObject> watchables = new ArrayList<>(event.getPacket().getWatchableCollectionModifier().read(0));
@@ -113,12 +105,10 @@ public class PartyGlowManager implements Listener {
         event.getPacket().getWatchableCollectionModifier().write(0, watchables);
     }
 
-    private boolean areInSameParty(UUID a, UUID b) {
-        Party party = partyManager.getParty(a);
-        return party != null && party.getMembers().contains(b);
+    private boolean areFriends(UUID a, UUID b) {
+        return friendManager.areFriends(a, b);
     }
 
-    /** Toggle glow for a player. */
     public boolean toggle(Player player) {
         UUID id = player.getUniqueId();
         boolean nowEnabled;
@@ -137,31 +127,23 @@ public class PartyGlowManager implements Listener {
         return !disabled.contains(player.getUniqueId());
     }
 
-    /**
-     * Update the scoreboard team for this player's glow settings.
-     */
     public void applyGlowScoreboard(Player viewer) {
         Scoreboard board = scoreboardAccessor.getBoard(viewer);
         if (board == null) return;
-        Team team = board.getTeam("partyglow");
+        Team team = board.getTeam("friendglow");
         if (team == null) {
-            team = board.registerNewTeam("partyglow");
-            team.setColor(ChatColor.YELLOW);
+            team = board.registerNewTeam("friendglow");
+            team.setColor(ChatColor.GREEN);
             team.setOption(Team.Option.COLLISION_RULE, Team.OptionStatus.NEVER);
         }
         team.getEntries().forEach(team::removeEntry);
 
-        Party party = partyManager.getParty(viewer.getUniqueId());
-        Set<UUID> current = new HashSet<>();
-        if (party != null) {
-            current.addAll(party.getMembers());
-            current.remove(viewer.getUniqueId());
-        }
-
+        Set<UUID> current = new HashSet<>(friendManager.getFriends(viewer.getUniqueId()));
         Set<UUID> prev = glowing.computeIfAbsent(viewer.getUniqueId(), k -> new HashSet<>());
+
         boolean glow = isEnabled(viewer);
 
-        // Disable glow for players no longer party members
+        // Disable glow for players no longer friends
         for (UUID id : new HashSet<>(prev)) {
             if (!current.contains(id)) {
                 Player p = Bukkit.getPlayer(id);
@@ -172,15 +154,16 @@ public class PartyGlowManager implements Listener {
             }
         }
 
-        for (UUID memberId : current) {
-            Player member = Bukkit.getPlayer(memberId);
-            String entry = member != null ? member.getName() : Bukkit.getOfflinePlayer(memberId).getName();
-            if (entry == null) entry = memberId.toString();
+        // Apply glow for current friends
+        for (UUID id : current) {
+            Player friend = Bukkit.getPlayer(id);
+            String entry = friend != null ? friend.getName() : Bukkit.getOfflinePlayer(id).getName();
+            if (entry == null) entry = id.toString();
             team.addEntry(entry);
-            if (member != null && member.isOnline()) {
-                sendGlow(viewer, member, glow);
+            if (friend != null && friend.isOnline()) {
+                sendGlow(viewer, friend, glow);
             }
-            prev.add(memberId);
+            prev.add(id);
         }
     }
 
@@ -190,9 +173,9 @@ public class PartyGlowManager implements Listener {
 
         try {
             StructureModifier<List<WrappedDataValue>> mod =
-                    (StructureModifier<List<WrappedDataValue>>) packet.getClass()
-                            .getMethod("getDataValueCollectionModifier")
-                            .invoke(packet);
+                (StructureModifier<List<WrappedDataValue>>) packet.getClass()
+                        .getMethod("getDataValueCollectionModifier")
+                        .invoke(packet);
             WrappedDataWatcher.Serializer ser = Registry.get(Byte.class);
             byte flags = (byte) (glowing ? 0x40 : 0);
             mod.write(0, Collections.singletonList(new WrappedDataValue(0, ser, flags)));
@@ -205,8 +188,7 @@ public class PartyGlowManager implements Listener {
 
         try {
             protocol.sendServerPacket(viewer, packet);
-        } catch (Exception e) {
-            // ignore
+        } catch (Exception ignore) {
         }
     }
 
@@ -216,7 +198,6 @@ public class PartyGlowManager implements Listener {
         glowing.remove(event.getPlayer().getUniqueId());
     }
 
-    /** Interface to access PlayerScoreboardManager boards without exposing the class. */
     public interface PlayerScoreboardManagerAccessor {
         Scoreboard getBoard(Player player);
     }
