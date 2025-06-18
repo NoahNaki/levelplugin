@@ -200,6 +200,33 @@ public class PlayerConfig {
         return config.getConfigurationSection(base).getKeys(false);
     }
 
+    public java.util.UUID getCoopOwner(UUID uuid) {
+        String path = "players." + uuid + ".environment.coop.owner";
+        String val = config.getString(path, null);
+        return val != null ? java.util.UUID.fromString(val) : null;
+    }
+
+    public void setCoopOwner(UUID uuid, java.util.UUID owner) {
+        String path = "players." + uuid + ".environment.coop.owner";
+        config.set(path, owner != null ? owner.toString() : null);
+    }
+
+    public java.util.UUID getCoopPartner(UUID uuid) {
+        String path = "players." + uuid + ".environment.coop.partner";
+        String val = config.getString(path, null);
+        return val != null ? java.util.UUID.fromString(val) : null;
+    }
+
+    public void setCoopPartner(UUID uuid, java.util.UUID partner) {
+        String path = "players." + uuid + ".environment.coop.partner";
+        config.set(path, partner != null ? partner.toString() : null);
+    }
+
+    public void clearCoop(UUID uuid) {
+        setCoopOwner(uuid, null);
+        setCoopPartner(uuid, null);
+    }
+
     public void clearEnvironmentData(UUID uuid) {
         String base = "players." + uuid + ".environment.";
         config.set(base + "level", null);

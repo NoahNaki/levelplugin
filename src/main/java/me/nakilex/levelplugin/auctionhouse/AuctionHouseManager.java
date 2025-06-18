@@ -12,6 +12,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
+import me.nakilex.levelplugin.items.managers.ItemManager;
+import me.nakilex.levelplugin.items.data.CustomItem;
 
 import java.io.File;
 import java.io.IOException;
@@ -94,6 +96,14 @@ public class AuctionHouseManager {
         sendItemMessage(seller, item, ChatColor.GOLD + "Your <item> has been listed for "
                 + ChatColor.YELLOW + priceBasis + " ⛃" + ChatColor.GOLD + ".");
         seller.sendMessage(ChatColor.GRAY + "Tax on sale: " + ChatColor.YELLOW + tax + " ⛃" + ChatColor.GRAY + ".");
+        String id = null;
+        CustomItem c = ItemManager.getInstance().getCustomItemFromItemStack(item);
+        if (c != null) {
+            id = String.valueOf(c.getId());
+        } else {
+            id = item.getType().name();
+        }
+        me.nakilex.levelplugin.Main.getInstance().getQuestManager().handleAuctionList(seller, id);
         return true;
     }
 
@@ -123,6 +133,14 @@ public class AuctionHouseManager {
         ai.setCurrentBid(amount);
         ai.setHighestBidder(bidder.getUniqueId());
         saveAuctions();
+        String id = null;
+        CustomItem c = ItemManager.getInstance().getCustomItemFromItemStack(ai.getItem());
+        if (c != null) {
+            id = String.valueOf(c.getId());
+        } else {
+            id = ai.getItem().getType().name();
+        }
+        me.nakilex.levelplugin.Main.getInstance().getQuestManager().handleAuctionBid(bidder, id);
         return true;
     }
 
@@ -151,6 +169,17 @@ public class AuctionHouseManager {
         }
         sendItemMessage(buyer, ai.getItem(), ChatColor.GREEN + "You bought <item> for "
                 + ChatColor.YELLOW + price + " ⛃" + ChatColor.GREEN + ".");
+        String id = null;
+        me.nakilex.levelplugin.items.data.CustomItem c = me.nakilex.levelplugin.items.managers.ItemManager.getInstance().getCustomItemFromItemStack(ai.getItem());
+        if (c != null) {
+            id = String.valueOf(c.getId());
+        } else {
+            id = ai.getItem().getType().name();
+        }
+        me.nakilex.levelplugin.Main.getInstance().getQuestManager().handleAuctionBuy(buyer, id);
+        if (seller != null) {
+            me.nakilex.levelplugin.Main.getInstance().getQuestManager().handleAuctionSell(seller, id);
+        }
         return true;
     }
 
@@ -198,6 +227,17 @@ public class AuctionHouseManager {
                     if (seller != null) {
                         sendItemMessage(seller, ai.getItem(), ChatColor.GOLD + "Your <item> sold for "
                                 + ChatColor.YELLOW + payout + " ⛃" + ChatColor.GOLD + ".");
+                        String id = null;
+                        CustomItem c = ItemManager.getInstance().getCustomItemFromItemStack(ai.getItem());
+                        if (c != null) {
+                            id = String.valueOf(c.getId());
+                        } else {
+                            id = ai.getItem().getType().name();
+                        }
+                        if (buyer != null) {
+                            me.nakilex.levelplugin.Main.getInstance().getQuestManager().handleAuctionBuy(buyer, id);
+                        }
+                        me.nakilex.levelplugin.Main.getInstance().getQuestManager().handleAuctionSell(seller, id);
                     }
                 } else {
                     // return item to seller

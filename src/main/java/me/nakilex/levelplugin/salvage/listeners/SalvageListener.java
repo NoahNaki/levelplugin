@@ -182,6 +182,7 @@ public class SalvageListener implements Listener {
             if (totalGems > 0) msg.append(ChatColor.LIGHT_PURPLE).append(totalGems).append(ChatColor.LIGHT_PURPLE + " ✦ "  + ChatColor.GOLD + "gems");
             msg.append("!");
             player.sendMessage(msg.toString());
+            Main.getInstance().getQuestManager().handleSalvage(player, "ANY");
         } else {
             player.sendMessage(ChatColor.YELLOW + "No valid items to salvage.");
         }

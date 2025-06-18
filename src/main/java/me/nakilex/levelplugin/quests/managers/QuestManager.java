@@ -330,6 +330,139 @@ public class QuestManager {
         updateObjective(player, QuestObjectiveType.SELECT_CLASS, "ANY", 1);
     }
 
+    public void handleEnchant(Player player) {
+        if (debug) {
+            plugin.getLogger().info("[QuestDebug] " + player.getName() + " enchanted an item");
+        }
+        updateObjective(player, QuestObjectiveType.ENCHANT, "ANY", 1);
+    }
+
+    public void handleDiscover(Player player, String regionId) {
+        if (debug) {
+            plugin.getLogger().info("[QuestDebug] " + player.getName() + " discovered " + regionId);
+        }
+        updateObjective(player, QuestObjectiveType.DISCOVER, regionId, 1);
+    }
+
+    public void handleConsumePotion(Player player, String potionId) {
+        if (debug) {
+            plugin.getLogger().info("[QuestDebug] " + player.getName() + " consumed " + potionId);
+        }
+        updateObjective(player, QuestObjectiveType.CONSUME_POTION, potionId, 1);
+    }
+
+    public void handleAuctionBuy(Player player, String itemId) {
+        if (debug) {
+            plugin.getLogger().info("[QuestDebug] " + player.getName() + " bought from auction " + itemId);
+        }
+        updateObjective(player, QuestObjectiveType.AUCTION_BUY, itemId, 1);
+    }
+
+    public void handleAuctionList(Player player, String itemId) {
+        if (debug) {
+            plugin.getLogger().info("[QuestDebug] " + player.getName() + " listed on auction " + itemId);
+        }
+        updateObjective(player, QuestObjectiveType.AUCTION_LIST, itemId, 1);
+    }
+
+    public void handleAuctionSell(Player player, String itemId) {
+        if (debug) {
+            plugin.getLogger().info("[QuestDebug] " + player.getName() + " sold on auction " + itemId);
+        }
+        updateObjective(player, QuestObjectiveType.AUCTION_SELL, itemId, 1);
+    }
+
+    public void handleAuctionBid(Player player, String itemId) {
+        if (debug) {
+            plugin.getLogger().info("[QuestDebug] " + player.getName() + " bid on auction " + itemId);
+        }
+        updateObjective(player, QuestObjectiveType.AUCTION_BID, itemId, 1);
+    }
+
+    public void handleTownUpgrade(Player player) {
+        if (debug) {
+            plugin.getLogger().info("[QuestDebug] " + player.getName() + " upgraded town");
+        }
+        updateObjective(player, QuestObjectiveType.TOWN_UPGRADE, "ANY", 1);
+    }
+
+    public void handlePlayTime(Player player, int minutes) {
+        if (debug) {
+            plugin.getLogger().info("[QuestDebug] " + player.getName() + " played " + minutes + "m");
+        }
+        updateObjective(player, QuestObjectiveType.PLAY_TIME, "MINUTES", minutes);
+    }
+
+    public void handleRepair(Player player, String itemId) {
+        if (debug) {
+            plugin.getLogger().info("[QuestDebug] " + player.getName() + " repaired " + itemId);
+        }
+        updateObjective(player, QuestObjectiveType.BLACKSMITH_REPAIR, itemId, 1);
+    }
+
+    public void handleReroll(Player player, String itemId) {
+        if (debug) {
+            plugin.getLogger().info("[QuestDebug] " + player.getName() + " rerolled " + itemId);
+        }
+        updateObjective(player, QuestObjectiveType.BLACKSMITH_REROLL, itemId, 1);
+    }
+
+    public void handleSalvage(Player player, String itemId) {
+        if (debug) {
+            plugin.getLogger().info("[QuestDebug] " + player.getName() + " salvaged " + itemId);
+        }
+        updateObjective(player, QuestObjectiveType.SALVAGE, itemId, 1);
+    }
+
+    public void handleWaystoneUnlock(Player player, String id) {
+        if (debug) {
+            plugin.getLogger().info("[QuestDebug] " + player.getName() + " unlocked waystone " + id);
+        }
+        updateObjective(player, QuestObjectiveType.WAYSTONE_UNLOCK, id, 1);
+    }
+
+    public void handleWaystoneUse(Player player, String id) {
+        if (debug) {
+            plugin.getLogger().info("[QuestDebug] " + player.getName() + " used waystone " + id);
+        }
+        updateObjective(player, QuestObjectiveType.WAYSTONE_USE, id, 1);
+    }
+
+    public void handleCastCombo(Player player, String combo) {
+        if (debug) {
+            plugin.getLogger().info("[QuestDebug] " + player.getName() + " combo " + combo);
+        }
+        updateObjective(player, QuestObjectiveType.CAST_COMBO, combo, 1);
+    }
+
+    public void handleRuneEquip(Player player, String runeId) {
+        if (debug) {
+            plugin.getLogger().info("[QuestDebug] " + player.getName() + " equipped rune " + runeId);
+        }
+        updateObjective(player, QuestObjectiveType.RUNE_EQUIP, runeId, 1);
+    }
+
+    public void handleRuneUnequip(Player player, String runeId) {
+        if (debug) {
+            plugin.getLogger().info("[QuestDebug] " + player.getName() + " unequipped rune " + runeId);
+        }
+        updateObjective(player, QuestObjectiveType.RUNE_UNEQUIP, runeId, 1);
+    }
+
+    public void handleDuelParticipate(Player player) {
+        if (debug) {
+            plugin.getLogger().info("[QuestDebug] " + player.getName() + " participated in duel");
+        }
+        updateObjective(player, QuestObjectiveType.DUEL_PARTICIPATE, "ANY", 1);
+    }
+
+    public void handleDuelLose(Player player) {
+        if (debug) {
+            plugin.getLogger().info("[QuestDebug] " + player.getName() + " lost a duel");
+        }
+        updateObjective(player, QuestObjectiveType.DUEL_LOSE, "ANY", 1);
+    }
+
     private boolean requirementsMet(Player player, Quest quest) {
         return checkRequirements(player, quest, true);
     }
@@ -534,6 +667,44 @@ public class QuestManager {
                 return "Explore " + obj.getTarget();
             case SELECT_CLASS:
                 return "Select a class";
+            case ENCHANT:
+                return "Enchant an item";
+            case DISCOVER:
+                return "Discover " + obj.getTarget();
+            case CONSUME_POTION:
+                return "Consume " + obj.getTarget();
+            case PLAY_TIME:
+                return "Play for " + obj.getAmount() + " minutes";
+            case AUCTION_BUY:
+                return "Buy from auction";
+            case AUCTION_LIST:
+                return "List an item on auction";
+            case AUCTION_SELL:
+                return "Sell an item on auction";
+            case AUCTION_BID:
+                return "Bid on an auction";
+            case TOWN_UPGRADE:
+                return "Upgrade your town";
+            case BLACKSMITH_REPAIR:
+                return "Repair an item";
+            case BLACKSMITH_REROLL:
+                return "Reroll an item";
+            case SALVAGE:
+                return "Salvage items";
+            case WAYSTONE_UNLOCK:
+                return "Unlock waystone " + obj.getTarget();
+            case WAYSTONE_USE:
+                return "Use waystone " + obj.getTarget();
+            case CAST_COMBO:
+                return "Cast combo " + obj.getTarget();
+            case RUNE_EQUIP:
+                return "Equip rune";
+            case RUNE_UNEQUIP:
+                return "Unequip rune";
+            case DUEL_PARTICIPATE:
+                return "Participate in a duel";
+            case DUEL_LOSE:
+                return "Lose a duel";
             default:
                 return obj.getTarget();
         }

@@ -213,6 +213,7 @@ public class EquipRunesGUI implements Listener {
                 Rune rune = runesManager.getRuneById(id);
                 if (rune != null) {
                     runesManager.unequipRune(p, rune);
+                    Main.getInstance().getQuestManager().handleRuneUnequip(p, rune.getId());
                 }
                 // let vanilla remove the item and put it on cursor/inv
                 return;
@@ -260,6 +261,7 @@ public class EquipRunesGUI implements Listener {
             // Let vanilla move one; then update data & GUI slot
             e.setCancelled(true);
             if (runesManager.equipRune(p, rune)) {
+                Main.getInstance().getQuestManager().handleRuneEquip(p, rune.getId());
                 // consume one from bottomInv
                 current.setAmount(current.getAmount() - 1);
                 if (current.getAmount() == 0) bottomInv.setItem(e.getSlot(), null);
@@ -303,6 +305,7 @@ public class EquipRunesGUI implements Listener {
             // Perform equip
             e.setCancelled(true);
             if (runesManager.equipRune(p, cursor)) {
+                Main.getInstance().getQuestManager().handleRuneEquip(p, rune.getId());
                 cursor.setAmount(cursor.getAmount() - 1);
                 e.setCursor(cursor.getAmount() > 0 ? cursor : null);
 

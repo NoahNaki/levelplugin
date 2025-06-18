@@ -155,6 +155,8 @@ public class PotionUseListener implements Listener {
                 + symColor + symbol + ChatColor.GRAY + " (" + instance.getCharges() + " left)");
         item.setItemMeta(meta);
 
+        me.nakilex.levelplugin.Main.getInstance().getQuestManager().handleConsumePotion(player, potionId);
+
         if (instance.getCharges() <= 0) {
             player.getInventory().remove(item);
         }

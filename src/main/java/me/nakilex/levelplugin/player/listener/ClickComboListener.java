@@ -393,6 +393,7 @@ public class ClickComboListener implements Listener {
         }
 
         // Delegate casting logic to Spell which handles mana, runes and cooldown
+        Main.getInstance().getQuestManager().handleCastCombo(player, combo);
         spell.castEffect(player);
 
         // Recalculate derived stats to reflect mana changes
