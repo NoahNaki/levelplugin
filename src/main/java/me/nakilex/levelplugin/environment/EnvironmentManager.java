@@ -38,6 +38,7 @@ public class EnvironmentManager {
     private final Map<UUID, Map<String, org.bukkit.entity.ArmorStand>> buildingHolograms = new HashMap<>();
     private final Map<UUID, UUID> coopOwners = new HashMap<>();
     private final Map<UUID, UUID> coopPartners = new HashMap<>();
+    private final Map<UUID, UUID> pendingInvites = new HashMap<>();
 
     public static class EnvironmentState {
         public int level;
@@ -627,21 +628,47 @@ public class EnvironmentManager {
             owner.sendMessage(ChatColor.RED + "You already have a partner.");
             return;
         }
+
         UUID targetId = target.getUniqueId();
-        if (origins.containsKey(targetId) || coopOwners.containsKey(targetId) || coopPartners.containsKey(targetId)) {
-            owner.sendMessage(ChatColor.RED + "That player already has a town.");
+        pendingInvites.put(targetId, ownerId);
+        owner.sendMessage(ChatColor.GREEN + "Invited " + target.getName() + " to your town.");
+        target.sendMessage(ChatColor.YELLOW + owner.getName() + " has invited you to join their town. Type /town accept or /town deny.");
+    }
+
+    public void accept(Player player) {
+        UUID playerId = player.getUniqueId();
+        UUID ownerId = pendingInvites.remove(playerId);
+        if (ownerId == null) {
+            player.sendMessage(ChatColor.RED + "You have no pending town invites.");
             return;
         }
-
-        coopOwners.put(targetId, ownerId);
-        coopPartners.put(ownerId, targetId);
-        shareData(targetId, ownerId);
-        playerConfig.setCoopOwner(targetId, ownerId);
-        playerConfig.setCoopPartner(ownerId, targetId);
+        if (origins.containsKey(playerId) || coopOwners.containsKey(playerId) || coopPartners.containsKey(playerId)) {
+            player.sendMessage(ChatColor.RED + "You must /town reset before joining another town.");
+            pendingInvites.put(playerId, ownerId); // keep invite
+            return;
+        }
+        coopOwners.put(playerId, ownerId);
+        coopPartners.put(ownerId, playerId);
+        shareData(playerId, ownerId);
+        playerConfig.setCoopOwner(playerId, ownerId);
+        playerConfig.setCoopPartner(ownerId, playerId);
         playerConfig.saveConfigFile();
-        initializePlayer(target);
-        owner.sendMessage(ChatColor.GREEN + "Added " + target.getName() + " to your town.");
-        target.sendMessage(ChatColor.GREEN + "You joined " + owner.getName() + "'s town!");
+        initializePlayer(player);
+        Player owner = Bukkit.getPlayer(ownerId);
+        if (owner != null) owner.sendMessage(ChatColor.GREEN + player.getName() + " joined your town.");
+        player.sendMessage(ChatColor.GREEN + "You joined " + (owner != null ? owner.getName() : "the owner") + "'s town!");
+    }
+
+    public void deny(Player player) {
+        UUID playerId = player.getUniqueId();
+        UUID ownerId = pendingInvites.remove(playerId);
+        if (ownerId == null) {
+            player.sendMessage(ChatColor.RED + "You have no pending town invites.");
+            return;
+        }
+        Player owner = Bukkit.getPlayer(ownerId);
+        if (owner != null) owner.sendMessage(ChatColor.RED + player.getName() + " declined your town invite.");
+        player.sendMessage(ChatColor.RED + "You declined the town invite.");
     }
 
     public void kick(Player owner, Player target) {

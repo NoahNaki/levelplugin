@@ -40,6 +40,12 @@ public class TownCommand implements CommandExecutor {
                     p.sendMessage(ChatColor.RED + "Player not found.");
                 }
                 return true;
+            } else if (args[0].equalsIgnoreCase("accept")) {
+                manager.accept(p);
+                return true;
+            } else if (args[0].equalsIgnoreCase("deny")) {
+                manager.deny(p);
+                return true;
             } else if (args[0].equalsIgnoreCase("kick") && args.length >= 2) {
                 Player target = p.getServer().getPlayer(args[1]);
                 if (target != null) {
