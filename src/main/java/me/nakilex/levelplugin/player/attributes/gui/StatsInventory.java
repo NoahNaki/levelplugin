@@ -177,7 +177,6 @@ public class StatsInventory {
         int currentXP = levelManager.getXP(player);
         int nextLevelXP = levelManager.getXpNeededForNextLevel(player);
         if (page == 0) {
-            lore.add(ChatColor.GOLD + "Level: " + ChatColor.WHITE + StatsManager.getInstance().getLevel(player));
             lore.add("");
 
             // Add all stats with gear bonuses
