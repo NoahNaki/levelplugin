@@ -263,8 +263,9 @@ public class EnvironmentManager {
                         String town = towns.get(base);
                         Location origin = origins.get(base);
                         if (town != null && origin != null) {
-                            buildingStageManager.despawnForStage(player.getUniqueId(), entry.getKey(), oldL, oldS);
                             Location bOrig = getBuildingOrigin(town, entry.getKey(), origin);
+                            clearBuildingStage(player, entry.getKey(), bOrig, oldL, oldS);
+                            buildingStageManager.despawnForStage(player.getUniqueId(), entry.getKey(), oldL, oldS);
                             spawnBuilding(player, entry.getKey(), bOrig, bs.level, bs.stage, null);
                         }
                         Main.getInstance().getQuestManager().handleTownUpgrade(player);
@@ -281,6 +282,7 @@ public class EnvironmentManager {
             String town = towns.get(base);
             Location origin = origins.get(base);
             if (town != null && origin != null) {
+                clearTownStage(player, town, origin, oldLevel, oldStage);
                 stageManager.despawnForStage(player.getUniqueId(), town, oldLevel, oldStage);
                 spawnStructure(player, origin, state.level, state.stage, null);
                 // reset building progress for new level
@@ -323,8 +325,9 @@ public class EnvironmentManager {
             String town = towns.get(base);
             Location origin = origins.get(base);
             if (town != null && origin != null) {
-                buildingStageManager.despawnForStage(player.getUniqueId(), building, oldL, oldS);
                 Location bOrig = getBuildingOrigin(town, building, origin);
+                clearBuildingStage(player, building, bOrig, oldL, oldS);
+                buildingStageManager.despawnForStage(player.getUniqueId(), building, oldL, oldS);
                 spawnBuilding(player, building, bOrig, bs.level, bs.stage, null);
             }
             Main.getInstance().getQuestManager().handleTownUpgrade(player);
@@ -610,6 +613,30 @@ public class EnvironmentManager {
 
     private void spawnBuilding(Player player, String building, Location origin, int level, int stage) {
         spawnBuilding(player, building, origin, level, stage, null);
+    }
+
+    /** Remove any fake blocks from a previous building stage before upgrading. */
+    private void clearBuildingStage(Player player, String building, Location origin, int level, int stage) {
+        var st = buildingStageManager.getStage(building, level, stage);
+        if (st == null) return;
+        java.util.List<Location> locs = new java.util.ArrayList<>();
+        for (var b : st.blocks) {
+            Location l = origin.clone().add(b.x - st.ox, b.y - st.oy, b.z - st.oz);
+            locs.add(l);
+        }
+        fakeBlockManager.hideFakeBlocks(player, locs);
+    }
+
+    /** Remove fake blocks from a previous town stage before upgrading. */
+    private void clearTownStage(Player player, String town, Location origin, int level, int stage) {
+        var st = stageManager.getStage(town, level, stage);
+        if (st == null) return;
+        java.util.List<Location> locs = new java.util.ArrayList<>();
+        for (var b : st.blocks) {
+            Location l = origin.clone().add(b.x - st.ox, b.y - st.oy, b.z - st.oz);
+            locs.add(l);
+        }
+        fakeBlockManager.hideFakeBlocks(player, locs);
     }
 
     // ----- Coop management -----

@@ -72,6 +72,25 @@ public class FakeBlockManager {
     }
 
     /**
+     * Reverts multiple previously shown fake blocks for the player.
+     * @param player target player
+     * @param locations collection of block locations to restore
+     */
+    public void hideFakeBlocks(Player player, java.util.Collection<Location> locations) {
+        if (locations == null || locations.isEmpty()) return;
+        Map<Location, BlockData> map = playerBlocks.get(player.getUniqueId());
+        for (Location loc : locations) {
+            player.sendBlockChange(loc, loc.getBlock().getBlockData());
+            if (map != null) {
+                map.remove(loc);
+            }
+        }
+        if (map != null && map.isEmpty()) {
+            playerBlocks.remove(player.getUniqueId());
+        }
+    }
+
+    /**
      * Clears all fake blocks for the given player, restoring the real world
      * state.
      */
