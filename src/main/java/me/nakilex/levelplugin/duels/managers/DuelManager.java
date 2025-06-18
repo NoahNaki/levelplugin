@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.duels.managers;
 
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
