@@ -239,6 +239,7 @@ public class DuelListener implements Listener {
                     "§aYou have won the duel against " + victim.getName() + "!");
 
                 me.nakilex.levelplugin.Main.getInstance().getQuestManager().handleDuel(damager);
+                me.nakilex.levelplugin.Main.getInstance().getQuestManager().handleDuelLose(victim);
                 me.nakilex.levelplugin.Main.getInstance().getDuelStatsManager()
                     .addWin(damager.getUniqueId());
                 if (me.nakilex.levelplugin.Main.getInstance().getLeaderboardManager() != null) {

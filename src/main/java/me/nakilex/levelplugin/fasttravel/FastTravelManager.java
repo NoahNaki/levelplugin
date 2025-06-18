@@ -123,6 +123,8 @@ public class FastTravelManager {
     public void unlock(Player player, String name) {
         unlocked.computeIfAbsent(player.getUniqueId(), k -> new HashSet<>()).add(name.toLowerCase());
         save();
+        Main.getInstance().getQuestManager().handleDiscover(player, name.toLowerCase());
+        Main.getInstance().getQuestManager().handleWaystoneUnlock(player, name.toLowerCase());
     }
 
     public boolean isUnlocked(Player player, String name) {

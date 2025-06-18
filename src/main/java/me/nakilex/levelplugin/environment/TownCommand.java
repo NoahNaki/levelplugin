@@ -32,6 +32,42 @@ public class TownCommand implements CommandExecutor {
             } else if (args[0].equalsIgnoreCase("reset")) {
                 manager.resetTown(p);
                 return true;
+            } else if (args[0].equalsIgnoreCase("invite") && args.length >= 2) {
+                Player target = p.getServer().getPlayer(args[1]);
+                if (target != null) {
+                    manager.invite(p, target);
+                } else {
+                    p.sendMessage(ChatColor.RED + "Player not found.");
+                }
+                return true;
+            } else if (args[0].equalsIgnoreCase("accept")) {
+                manager.accept(p);
+                return true;
+            } else if (args[0].equalsIgnoreCase("deny")) {
+                manager.deny(p);
+                return true;
+            } else if (args[0].equalsIgnoreCase("kick") && args.length >= 2) {
+                Player target = p.getServer().getPlayer(args[1]);
+                if (target != null) {
+                    manager.kick(p, target);
+                } else {
+                    p.sendMessage(ChatColor.RED + "Player not found.");
+                }
+                return true;
+            } else if (args[0].equalsIgnoreCase("leave")) {
+                manager.leave(p);
+                return true;
+            } else if (args[0].equalsIgnoreCase("transfer") && args.length >= 2) {
+                Player target = p.getServer().getPlayer(args[1]);
+                if (target != null) {
+                    manager.transfer(p, target);
+                } else {
+                    p.sendMessage(ChatColor.RED + "Player not found.");
+                }
+                return true;
+            } else if (args[0].equalsIgnoreCase("info")) {
+                manager.sendInfo(p);
+                return true;
             }
         }
         gui.open(p);

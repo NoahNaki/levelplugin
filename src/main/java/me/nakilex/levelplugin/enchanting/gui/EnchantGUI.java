@@ -121,6 +121,7 @@ public class EnchantGUI implements Listener {
             gui.setItem(13, item);
             ItemUtil.updateTooltip(item, p);
             p.sendMessage(ChatColor.GREEN + "Item enchanted with " + ChatColor.LIGHT_PURPLE + prefix + ChatColor.GREEN + "!");
+            me.nakilex.levelplugin.Main.getInstance().getQuestManager().handleEnchant(p);
             update(p, gui);
         }
     }

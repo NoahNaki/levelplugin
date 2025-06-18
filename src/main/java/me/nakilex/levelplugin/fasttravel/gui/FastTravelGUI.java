@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.fasttravel.FastTravelManager;
 import me.nakilex.levelplugin.fakeblock.ModelGate;
 import me.nakilex.levelplugin.fakeblock.ModelGateManager;
+import me.nakilex.levelplugin.Main;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -204,6 +205,7 @@ public class FastTravelGUI implements Listener {
                     player.teleport(dest);
                     player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS,40,0,false,false));
                     player.getWorld().spawnParticle(org.bukkit.Particle.FLASH,player.getLocation(),20,0.5,0.5,0.5,0);
+                    Main.getInstance().getQuestManager().handleWaystoneUse(player, target.getId());
                     cancel();
                 }
             }
