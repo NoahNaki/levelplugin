@@ -587,12 +587,6 @@ public class TradingWindow implements Listener {
                 if (isOpponentsField(i)) {
                     if (playerItems[pointer] != null) {
                         ItemStack itemStack = playerItems[pointer].clone();
-                        ItemMeta im = itemStack.getItemMeta();
-                        ArrayList<String> meta = new ArrayList<String>();
-                        meta.add(messageStrings.getTranslation(Translations.DEAL_PARTNERS_LORE_1));
-                        meta.add(messageStrings.getTranslation(Translations.DEAL_PARTNERS_LORE_2));
-                        im.setLore(meta);
-                        itemStack.setItemMeta(im);
                         this.playerInventory.setItem(i, itemStack);
                     } else {
                         this.playerInventory.setItem(i, this.separator);
@@ -603,12 +597,6 @@ public class TradingWindow implements Listener {
                 if (isOpponentsField(i)) {
                     if (playerItems[pointer] != null) {
                         ItemStack itemStack = playerItems[pointer].clone();
-                        ItemMeta im = itemStack.getItemMeta();
-                        ArrayList<String> meta = new ArrayList<String>();
-                        meta.add(messageStrings.getTranslation(Translations.DEAL_PARTNERS_LORE_1));
-                        meta.add(messageStrings.getTranslation(Translations.DEAL_PARTNERS_LORE_2));
-                        im.setLore(meta);
-                        itemStack.setItemMeta(im);
                         this.oppositeInventory.setItem(i, itemStack);
                     } else {
                         this.oppositeInventory.setItem(i, this.separator);
