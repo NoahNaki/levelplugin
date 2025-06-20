@@ -207,12 +207,22 @@ public class QuestManager {
         me.nakilex.levelplugin.fakeblock.QuestGateManager gates = plugin.getQuestGateManager();
         String gateId = "office_elevator";
         gates.closeGate(player, gateId);
-        long delay = 40L;
-        me.nakilex.levelplugin.fakeblock.QuestGate g = gates.getGate(gateId);
-        if (g != null) delay = g.getAnimationTicks();
+
         plugin.getServer().getScheduler().runTaskLater(plugin,
-                () -> gates.toggleGate(player, gateId), delay);
-        player.sendTitle("CENTRAL EXECUTIVE", "", 10, 40, 10);
+                () -> gates.openGate(player, gateId), 100L);
+
+        org.bukkit.event.Listener moveListener = new org.bukkit.event.Listener() {
+            @org.bukkit.event.EventHandler
+            public void onMove(org.bukkit.event.player.PlayerMoveEvent event) {
+                if (!event.getPlayer().equals(player)) return;
+                if (event.getFrom().getX() == event.getTo().getX()
+                        && event.getFrom().getY() == event.getTo().getY()
+                        && event.getFrom().getZ() == event.getTo().getZ()) return;
+                player.sendTitle("CENTRAL EXECUTIVE", "", 10, 40, 10);
+                org.bukkit.event.HandlerList.unregisterAll(this);
+            }
+        };
+        org.bukkit.Bukkit.getPluginManager().registerEvents(moveListener, plugin);
     }
 
     public PlayerQuestProgress getProgress(UUID player) {

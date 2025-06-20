@@ -180,6 +180,7 @@ public class QuestGateManager implements Listener {
                     double dx = (p.getBlockX() + 0.5) - cx;
                     double dz = (p.getBlockZ() + 0.5) - cz;
                     double dist = Math.sqrt(dx*dx + dz*dz);
+                    dist = Math.round(dist * 1000.0) / 1000.0;
                     distMap.computeIfAbsent(dist, d -> new java.util.ArrayList<>()).add(entry.getValue());
                 }
                 for (var list : distMap.values()) {
