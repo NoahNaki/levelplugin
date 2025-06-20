@@ -57,7 +57,9 @@ public class QuestManager {
         quests.clear();
         // Register quests here manually.
         Quest tutorial = new me.nakilex.levelplugin.quests.def.TutorialQuest();
+        Quest office   = new me.nakilex.levelplugin.quests.def.OfficeErrandsQuest();
         registerQuest(tutorial);
+        registerQuest(office);
         plugin.getLogger().info("Registered " + quests.size() + " quests.");
     }
 
@@ -189,6 +191,25 @@ public class QuestManager {
         activeQuests.put(player.getUniqueId(), new PlayerQuestProgress(quest));
         trackedQuests.putIfAbsent(player.getUniqueId(), quest.getId());
         player.sendMessage("§aStarted quest: " + quest.getName());
+
+        if ("officeerrands".equalsIgnoreCase(quest.getId())) {
+            startOfficeErrands(player);
+        }
+    }
+
+    private void startOfficeErrands(Player player) {
+        org.bukkit.World world = org.bukkit.Bukkit.getWorld("redrocks");
+        if (world != null) {
+            org.bukkit.Location loc = new org.bukkit.Location(world, 29.5, 142.0, -92.5);
+            player.teleport(loc);
+        }
+
+        me.nakilex.levelplugin.fakeblock.QuestGateManager gates = plugin.getQuestGateManager();
+        String gateId = "office_elevator";
+        gates.closeGate(player, gateId);
+        plugin.getServer().getScheduler().runTaskLater(plugin,
+                () -> gates.openGate(player, gateId), 40L);
+        player.sendTitle("CENTRAL EXECUTIVE", "", 10, 40, 10);
     }
 
     public PlayerQuestProgress getProgress(UUID player) {

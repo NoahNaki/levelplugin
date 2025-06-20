@@ -126,6 +126,30 @@ public class QuestGateManager implements Listener {
         return true;
     }
 
+    /** Explicitly open a gate for a player. */
+    public boolean openGate(Player player, String id) {
+        return setGateState(player, id, false);
+    }
+
+    /** Explicitly close a gate for a player. */
+    public boolean closeGate(Player player, String id) {
+        return setGateState(player, id, true);
+    }
+
+    private boolean setGateState(Player player, String id, boolean closed) {
+        QuestGate gate = gates.get(id.toLowerCase());
+        if (gate == null) return false;
+        gate.setClosed(player.getUniqueId(), closed);
+        animateGate(player, gate, closed);
+        return true;
+    }
+
+    /** Access a gate by id or null if not found. */
+    public QuestGate getGate(String id) {
+        if (id == null) return null;
+        return gates.get(id.toLowerCase());
+    }
+
     private void animateGate(Player player, QuestGate gate, boolean closed) {
         java.util.List<java.util.List<org.bukkit.Location>> groups = new java.util.ArrayList<>();
 
