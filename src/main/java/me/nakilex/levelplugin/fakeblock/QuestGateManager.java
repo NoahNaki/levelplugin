@@ -272,7 +272,9 @@ public class QuestGateManager implements Listener {
                 plugin.getLogger().info("[GateDebug] " + player.getName() + " join -> set office_elevator closed");
             }
         }
-        updatePlayer(player);
+        // Delay updating until the player's chunks have loaded to ensure
+        // the fake blocks are visible on join.
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> updatePlayer(player), 10L);
     }
 
     @EventHandler
