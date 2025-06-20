@@ -127,42 +127,59 @@ public class QuestGateManager implements Listener {
     }
 
     private void animateGate(Player player, QuestGate gate, boolean closed) {
-        var list = new java.util.ArrayList<>(gate.getBlocks());
+        java.util.List<java.util.List<org.bukkit.Location>> groups = new java.util.ArrayList<>();
+
         switch (gate.getAnimation()) {
-            case GATE -> list.sort(java.util.Comparator.comparingInt(loc -> loc.getBlockY()));
-            case WATERFALL -> list.sort(java.util.Comparator.comparingInt((org.bukkit.Location loc) -> loc.getBlockY()).reversed());
+            case GATE, WATERFALL -> {
+                java.util.Map<Integer, java.util.List<org.bukkit.Location>> map = new java.util.HashMap<>();
+                for (var loc : gate.getBlocks()) {
+                    map.computeIfAbsent(loc.getBlockY(), k -> new java.util.ArrayList<>()).add(loc);
+                }
+                java.util.List<Integer> ys = new java.util.ArrayList<>(map.keySet());
+                ys.sort(Integer::compare);
+                if (gate.getAnimation() == GateAnimation.WATERFALL) java.util.Collections.reverse(ys);
+                for (int y : ys) groups.add(map.get(y));
+            }
             case ELEVATOR -> {
+                java.util.Map<String, java.util.List<org.bukkit.Location>> map = new java.util.HashMap<>();
+                for (var loc : gate.getBlocks()) {
+                    String key = loc.getBlockX()+","+loc.getBlockZ();
+                    map.computeIfAbsent(key, k -> new java.util.ArrayList<>()).add(loc);
+                }
                 double cx = (gate.getMinX() + gate.getMaxX()) / 2.0;
                 double cz = (gate.getMinZ() + gate.getMaxZ()) / 2.0;
-                list.sort(java.util.Comparator.comparingDouble(loc -> {
-                    double dx = loc.getBlockX() - cx;
-                    double dz = loc.getBlockZ() - cz;
-                    return dx * dx + dz * dz;
+                java.util.List<java.util.Map.Entry<String, java.util.List<org.bukkit.Location>>> entries = new java.util.ArrayList<>(map.entrySet());
+                entries.sort(java.util.Comparator.comparingDouble(e -> {
+                    var p = e.getValue().get(0);
+                    double dx = p.getBlockX() - cx;
+                    double dz = p.getBlockZ() - cz;
+                    return dx*dx + dz*dz;
                 }));
+                for (var e : entries) groups.add(e.getValue());
             }
-            default -> {}
+            default -> groups.add(gate.getBlocks());
         }
-        if (closed) {
-            if (gate.getAnimation() != GateAnimation.INSTANT) java.util.Collections.reverse(list);
-        }
-        final java.util.Iterator<org.bukkit.Location> it = list.iterator();
+
+        if (closed && gate.getAnimation() != GateAnimation.INSTANT) java.util.Collections.reverse(groups);
+
+        java.util.Iterator<java.util.List<org.bukkit.Location>> it = groups.iterator();
+
         org.bukkit.scheduler.BukkitRunnable task = new org.bukkit.scheduler.BukkitRunnable() {
             @Override
             public void run() {
-                int count = 0;
-                while (count++ < 10 && it.hasNext()) {
-                    var loc = it.next();
-                    if (closed) {
-                        blockManager.showFakeBlock(player, loc, gate.getClosedData());
-                    } else {
-                        blockManager.hideFakeBlock(player, loc);
-                    }
+                if (!it.hasNext()) { cancel(); return; }
+                var locs = it.next();
+                if (closed) {
+                    for (var loc : locs) blockManager.showFakeBlock(player, loc, gate.getClosedData());
+                } else {
+                    for (var loc : locs) blockManager.hideFakeBlock(player, loc);
                 }
-                if (!it.hasNext()) cancel();
             }
         };
+
         if (gate.getAnimation() == GateAnimation.INSTANT) {
             task.run();
+            task.cancel();
         } else {
             task.runTaskTimer(plugin, 0L, 2L);
         }
