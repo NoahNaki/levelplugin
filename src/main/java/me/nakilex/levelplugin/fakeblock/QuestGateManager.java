@@ -12,6 +12,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.Location;
+import me.nakilex.levelplugin.fakeblock.GateAnimation;
 
 import java.io.File;
 import java.util.*;
@@ -26,6 +27,8 @@ public class QuestGateManager implements Listener {
     private final Main plugin;
     private final FakeBlockManager blockManager;
     private final Map<String, QuestGate> gates = new HashMap<>();
+    /** Enables verbose logging for gate state changes. */
+    private boolean debug = false;
     private File file;
     private FileConfiguration config;
 
@@ -62,6 +65,17 @@ public class QuestGateManager implements Listener {
         updateAll();
     }
 
+    /** Toggle debug logging. */
+    public boolean toggleDebug() {
+        debug = !debug;
+        plugin.getLogger().info("[GateDebug] mode " + (debug ? "enabled" : "disabled"));
+        return debug;
+    }
+
+    public boolean isDebug() {
+        return debug;
+    }
+
     private void loadFromConfig() {
         file = new File(plugin.getDataFolder(), "gates.yml");
         if (!file.exists()) {
@@ -82,7 +96,9 @@ public class QuestGateManager implements Listener {
             if (mat == null) mat = Material.BARRIER;
             BlockData data = mat.createBlockData();
             boolean closed = config.getBoolean(base + "closed", true);
-            addGate(new QuestGate(key.toLowerCase(), p1, p2, data, closed));
+            GateAnimation anim = GateAnimation.fromString(config.getString(base + "animation"));
+            long ticks = config.getLong(base + "duration", 40L);
+            addGate(new QuestGate(key.toLowerCase(), p1, p2, data, closed, anim, ticks));
         }
     }
 
@@ -101,6 +117,8 @@ public class QuestGateManager implements Listener {
             config.set(base + "pos2.z", p2.getBlockZ());
             config.set(base + "block", gate.getClosedData().getMaterial().name());
             config.set(base + "closed", gate.isDefaultClosed());
+            config.set(base + "animation", gate.getAnimation().name());
+            config.set(base + "duration", gate.getAnimationTicks());
         }
         try { config.save(file); } catch (Exception e) { e.printStackTrace(); }
     }
@@ -117,9 +135,109 @@ public class QuestGateManager implements Listener {
     public boolean toggleGate(Player player, String id) {
         QuestGate gate = gates.get(id.toLowerCase());
         if (gate == null) return false;
-        gate.toggle(player.getUniqueId());
-        updatePlayer(player);
+        boolean closed = gate.isClosed(player.getUniqueId());
+        gate.setClosed(player.getUniqueId(), !closed);
+        animateGate(player, gate, !closed);
+        if (debug) {
+            plugin.getLogger().info("[GateDebug] " + player.getName() + " toggled " + id + " to " + (!closed ? "open" : "closed"));
+        }
         return true;
+    }
+
+    /** Explicitly open a gate for a player. */
+    public boolean openGate(Player player, String id) {
+        return setGateState(player, id, false);
+    }
+
+    /** Explicitly close a gate for a player. */
+    public boolean closeGate(Player player, String id) {
+        return setGateState(player, id, true);
+    }
+
+    private boolean setGateState(Player player, String id, boolean closed) {
+        QuestGate gate = gates.get(id.toLowerCase());
+        if (gate == null) return false;
+        gate.setClosed(player.getUniqueId(), closed);
+        animateGate(player, gate, closed);
+        if (debug) {
+            plugin.getLogger().info("[GateDebug] " + player.getName() + " set " + id + " to " + (closed ? "closed" : "open"));
+        }
+        return true;
+    }
+
+    /** Access a gate by id or null if not found. */
+    public QuestGate getGate(String id) {
+        if (id == null) return null;
+        return gates.get(id.toLowerCase());
+    }
+
+    private void animateGate(Player player, QuestGate gate, boolean closed) {
+        java.util.List<java.util.List<org.bukkit.Location>> groups = new java.util.ArrayList<>();
+
+        switch (gate.getAnimation()) {
+            case GATE, WATERFALL -> {
+                java.util.Map<Integer, java.util.List<org.bukkit.Location>> map = new java.util.HashMap<>();
+                for (var loc : gate.getBlocks()) {
+                    map.computeIfAbsent(loc.getBlockY(), k -> new java.util.ArrayList<>()).add(loc);
+                }
+                java.util.List<Integer> ys = new java.util.ArrayList<>(map.keySet());
+                ys.sort(Integer::compare);
+                if (gate.getAnimation() == GateAnimation.WATERFALL) java.util.Collections.reverse(ys);
+                for (int y : ys) groups.add(map.get(y));
+            }
+            case ELEVATOR -> {
+                java.util.Map<String, java.util.List<org.bukkit.Location>> colMap = new java.util.HashMap<>();
+                for (var loc : gate.getBlocks()) {
+                    String key = loc.getBlockX()+","+loc.getBlockZ();
+                    colMap.computeIfAbsent(key, k -> new java.util.ArrayList<>()).add(loc);
+                }
+                double cx = (gate.getMinX() + gate.getMaxX()) / 2.0;
+                double cz = (gate.getMinZ() + gate.getMaxZ()) / 2.0;
+                java.util.Map<Double, java.util.List<java.util.List<org.bukkit.Location>>> distMap = new java.util.TreeMap<>();
+                for (var entry : colMap.entrySet()) {
+                    var p = entry.getValue().get(0);
+                    double dx = (p.getBlockX() + 0.5) - cx;
+                    double dz = (p.getBlockZ() + 0.5) - cz;
+                    double dist = Math.sqrt(dx*dx + dz*dz);
+                    dist = Math.round(dist * 1000.0) / 1000.0;
+                    distMap.computeIfAbsent(dist, d -> new java.util.ArrayList<>()).add(entry.getValue());
+                }
+                for (var list : distMap.values()) {
+                    java.util.List<org.bukkit.Location> group = new java.util.ArrayList<>();
+                    for (var col : list) group.addAll(col);
+                    groups.add(group);
+                }
+            }
+            default -> groups.add(gate.getBlocks());
+        }
+
+        if (closed && gate.getAnimation() != GateAnimation.INSTANT) java.util.Collections.reverse(groups);
+
+        java.util.Iterator<java.util.List<org.bukkit.Location>> it = groups.iterator();
+
+        org.bukkit.scheduler.BukkitRunnable task = new org.bukkit.scheduler.BukkitRunnable() {
+            @Override
+            public void run() {
+                if (!it.hasNext()) { cancel(); return; }
+                var locs = it.next();
+                if (closed) {
+                    for (var loc : locs) blockManager.showFakeBlock(player, loc, gate.getClosedData(loc));
+                } else {
+                    for (var loc : locs) blockManager.hideFakeBlock(player, loc);
+                }
+            }
+        };
+
+        if (gate.getAnimation() == GateAnimation.INSTANT) {
+            task.run();
+            task.cancel();
+        } else {
+            long interval = 1L;
+            if (!groups.isEmpty()) {
+                interval = Math.max(1L, gate.getAnimationTicks() / groups.size());
+            }
+            task.runTaskTimer(plugin, 0L, interval);
+        }
     }
 
     /** Update all players currently online. */
@@ -134,7 +252,7 @@ public class QuestGateManager implements Listener {
         for (QuestGate gate : gates.values()) {
             if (gate.isClosed(player.getUniqueId())) {
                 for (var loc : gate.getBlocks()) {
-                    blockManager.showFakeBlock(player, loc, gate.getClosedData());
+                    blockManager.showFakeBlock(player, loc, gate.getClosedData(loc));
                 }
             } else {
                 for (var loc : gate.getBlocks()) {
@@ -146,7 +264,17 @@ public class QuestGateManager implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        updatePlayer(event.getPlayer());
+        Player player = event.getPlayer();
+        QuestGate gate = gates.get("office_elevator");
+        if (gate != null) {
+            gate.setClosed(player.getUniqueId(), true);
+            if (debug) {
+                plugin.getLogger().info("[GateDebug] " + player.getName() + " join -> set office_elevator closed");
+            }
+        }
+        // Delay updating until the player's chunks have loaded to ensure
+        // the fake blocks are visible on join.
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> updatePlayer(player), 10L);
     }
 
     @EventHandler

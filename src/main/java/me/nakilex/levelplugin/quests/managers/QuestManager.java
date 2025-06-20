@@ -57,7 +57,9 @@ public class QuestManager {
         quests.clear();
         // Register quests here manually.
         Quest tutorial = new me.nakilex.levelplugin.quests.def.TutorialQuest();
+        Quest office   = new me.nakilex.levelplugin.quests.def.OfficeErrandsQuest();
         registerQuest(tutorial);
+        registerQuest(office);
         plugin.getLogger().info("Registered " + quests.size() + " quests.");
     }
 
@@ -189,6 +191,10 @@ public class QuestManager {
         activeQuests.put(player.getUniqueId(), new PlayerQuestProgress(quest));
         trackedQuests.putIfAbsent(player.getUniqueId(), quest.getId());
         player.sendMessage("§aStarted quest: " + quest.getName());
+
+        if (quest instanceof me.nakilex.levelplugin.quests.data.QuestScript script) {
+            script.onStart(player, plugin);
+        }
     }
 
     public PlayerQuestProgress getProgress(UUID player) {
