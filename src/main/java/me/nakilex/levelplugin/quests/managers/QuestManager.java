@@ -192,37 +192,9 @@ public class QuestManager {
         trackedQuests.putIfAbsent(player.getUniqueId(), quest.getId());
         player.sendMessage("§aStarted quest: " + quest.getName());
 
-        if ("officeerrands".equalsIgnoreCase(quest.getId())) {
-            startOfficeErrands(player);
+        if (quest instanceof me.nakilex.levelplugin.quests.data.QuestScript script) {
+            script.onStart(player, plugin);
         }
-    }
-
-    private void startOfficeErrands(Player player) {
-        org.bukkit.World world = org.bukkit.Bukkit.getWorld("redrocks");
-        if (world != null) {
-            org.bukkit.Location loc = new org.bukkit.Location(world, 29.5, 142.0, -92.5);
-            player.teleport(loc);
-        }
-
-        me.nakilex.levelplugin.fakeblock.QuestGateManager gates = plugin.getQuestGateManager();
-        String gateId = "office_elevator";
-        gates.closeGate(player, gateId);
-
-        plugin.getServer().getScheduler().runTaskLater(plugin,
-                () -> gates.openGate(player, gateId), 100L);
-
-        org.bukkit.event.Listener moveListener = new org.bukkit.event.Listener() {
-            @org.bukkit.event.EventHandler
-            public void onMove(org.bukkit.event.player.PlayerMoveEvent event) {
-                if (!event.getPlayer().equals(player)) return;
-                if (event.getFrom().getX() == event.getTo().getX()
-                        && event.getFrom().getY() == event.getTo().getY()
-                        && event.getFrom().getZ() == event.getTo().getZ()) return;
-                player.sendTitle("CENTRAL EXECUTIVE", "", 10, 40, 10);
-                org.bukkit.event.HandlerList.unregisterAll(this);
-            }
-        };
-        org.bukkit.Bukkit.getPluginManager().registerEvents(moveListener, plugin);
     }
 
     public PlayerQuestProgress getProgress(UUID player) {
