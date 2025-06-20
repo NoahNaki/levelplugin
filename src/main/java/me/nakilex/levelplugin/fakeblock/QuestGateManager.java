@@ -12,6 +12,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.Location;
+import me.nakilex.levelplugin.fakeblock.GateAnimation;
 
 import java.io.File;
 import java.util.*;
@@ -82,7 +83,8 @@ public class QuestGateManager implements Listener {
             if (mat == null) mat = Material.BARRIER;
             BlockData data = mat.createBlockData();
             boolean closed = config.getBoolean(base + "closed", true);
-            addGate(new QuestGate(key.toLowerCase(), p1, p2, data, closed));
+            GateAnimation anim = GateAnimation.fromString(config.getString(base + "animation"));
+            addGate(new QuestGate(key.toLowerCase(), p1, p2, data, closed, anim));
         }
     }
 
@@ -101,6 +103,7 @@ public class QuestGateManager implements Listener {
             config.set(base + "pos2.z", p2.getBlockZ());
             config.set(base + "block", gate.getClosedData().getMaterial().name());
             config.set(base + "closed", gate.isDefaultClosed());
+            config.set(base + "animation", gate.getAnimation().name());
         }
         try { config.save(file); } catch (Exception e) { e.printStackTrace(); }
     }
@@ -117,9 +120,52 @@ public class QuestGateManager implements Listener {
     public boolean toggleGate(Player player, String id) {
         QuestGate gate = gates.get(id.toLowerCase());
         if (gate == null) return false;
-        gate.toggle(player.getUniqueId());
-        updatePlayer(player);
+        boolean closed = gate.isClosed(player.getUniqueId());
+        gate.setClosed(player.getUniqueId(), !closed);
+        animateGate(player, gate, !closed);
         return true;
+    }
+
+    private void animateGate(Player player, QuestGate gate, boolean closed) {
+        var list = new java.util.ArrayList<>(gate.getBlocks());
+        switch (gate.getAnimation()) {
+            case GATE -> list.sort(java.util.Comparator.comparingInt(loc -> loc.getBlockY()));
+            case WATERFALL -> list.sort(java.util.Comparator.comparingInt((org.bukkit.Location loc) -> loc.getBlockY()).reversed());
+            case ELEVATOR -> {
+                double cx = (gate.getMinX() + gate.getMaxX()) / 2.0;
+                double cz = (gate.getMinZ() + gate.getMaxZ()) / 2.0;
+                list.sort(java.util.Comparator.comparingDouble(loc -> {
+                    double dx = loc.getBlockX() - cx;
+                    double dz = loc.getBlockZ() - cz;
+                    return dx * dx + dz * dz;
+                }));
+            }
+            default -> {}
+        }
+        if (closed) {
+            if (gate.getAnimation() != GateAnimation.INSTANT) java.util.Collections.reverse(list);
+        }
+        final java.util.Iterator<org.bukkit.Location> it = list.iterator();
+        org.bukkit.scheduler.BukkitRunnable task = new org.bukkit.scheduler.BukkitRunnable() {
+            @Override
+            public void run() {
+                int count = 0;
+                while (count++ < 10 && it.hasNext()) {
+                    var loc = it.next();
+                    if (closed) {
+                        blockManager.showFakeBlock(player, loc, gate.getClosedData());
+                    } else {
+                        blockManager.hideFakeBlock(player, loc);
+                    }
+                }
+                if (!it.hasNext()) cancel();
+            }
+        };
+        if (gate.getAnimation() == GateAnimation.INSTANT) {
+            task.run();
+        } else {
+            task.runTaskTimer(plugin, 0L, 2L);
+        }
     }
 
     /** Update all players currently online. */

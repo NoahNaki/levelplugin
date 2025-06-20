@@ -10,6 +10,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import me.nakilex.levelplugin.fakeblock.GateAnimation;
+
 /**
  * Represents a region of blocks that should appear closed until a quest is
  * completed.
@@ -24,6 +26,9 @@ public class QuestGate {
     private final BlockData closedData;
     private final List<Location> blocks = new ArrayList<>();
 
+    private final GateAnimation animation;
+    private int minX, maxX, minY, maxY, minZ, maxZ;
+
     /** Whether the gate is closed by default for new players. */
     private boolean defaultClosed;
 
@@ -32,23 +37,24 @@ public class QuestGate {
      * used. */
     private final Map<UUID, Boolean> playerStates = new HashMap<>();
 
-    public QuestGate(String id, Location pos1, Location pos2, BlockData closedData, boolean closed) {
+    public QuestGate(String id, Location pos1, Location pos2, BlockData closedData, boolean closed, GateAnimation anim) {
         this.id = id;
         this.pos1 = pos1;
         this.pos2 = pos2;
         this.closedData = closedData;
         this.defaultClosed = closed;
+        this.animation = anim == null ? GateAnimation.INSTANT : anim;
         precomputeBlocks();
     }
 
     private void precomputeBlocks() {
         World world = pos1.getWorld();
-        int minX = Math.min(pos1.getBlockX(), pos2.getBlockX());
-        int maxX = Math.max(pos1.getBlockX(), pos2.getBlockX());
-        int minY = Math.min(pos1.getBlockY(), pos2.getBlockY());
-        int maxY = Math.max(pos1.getBlockY(), pos2.getBlockY());
-        int minZ = Math.min(pos1.getBlockZ(), pos2.getBlockZ());
-        int maxZ = Math.max(pos1.getBlockZ(), pos2.getBlockZ());
+        minX = Math.min(pos1.getBlockX(), pos2.getBlockX());
+        maxX = Math.max(pos1.getBlockX(), pos2.getBlockX());
+        minY = Math.min(pos1.getBlockY(), pos2.getBlockY());
+        maxY = Math.max(pos1.getBlockY(), pos2.getBlockY());
+        minZ = Math.min(pos1.getBlockZ(), pos2.getBlockZ());
+        maxZ = Math.max(pos1.getBlockZ(), pos2.getBlockZ());
         for (int x = minX; x <= maxX; x++) {
             for (int y = minY; y <= maxY; y++) {
                 for (int z = minZ; z <= maxZ; z++) {
@@ -62,9 +68,16 @@ public class QuestGate {
         return id;
     }
 
-    public BlockData getClosedData() {
-        return closedData;
-    }
+    public BlockData getClosedData() { return closedData; }
+
+    public GateAnimation getAnimation() { return animation; }
+
+    public int getMinY() { return minY; }
+    public int getMaxY() { return maxY; }
+    public int getMinX() { return minX; }
+    public int getMaxX() { return maxX; }
+    public int getMinZ() { return minZ; }
+    public int getMaxZ() { return maxZ; }
 
     public Location getPos1() { return pos1; }
 
@@ -94,12 +107,6 @@ public class QuestGate {
 
     public boolean isInside(Location loc) {
         if (!loc.getWorld().equals(pos1.getWorld())) return false;
-        int minX = Math.min(pos1.getBlockX(), pos2.getBlockX());
-        int maxX = Math.max(pos1.getBlockX(), pos2.getBlockX());
-        int minY = Math.min(pos1.getBlockY(), pos2.getBlockY());
-        int maxY = Math.max(pos1.getBlockY(), pos2.getBlockY());
-        int minZ = Math.min(pos1.getBlockZ(), pos2.getBlockZ());
-        int maxZ = Math.max(pos1.getBlockZ(), pos2.getBlockZ());
         int x = loc.getBlockX();
         int y = loc.getBlockY();
         int z = loc.getBlockZ();

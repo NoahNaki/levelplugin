@@ -11,3 +11,4 @@ gates:
       z: 2
     block: IRON_BARS
     closed: true
+    animation: INSTANT

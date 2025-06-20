@@ -9,6 +9,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import me.nakilex.levelplugin.fakeblock.GateAnimation;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -67,7 +68,8 @@ public class FakeGateCommand implements CommandExecutor, Listener {
                 String id = args[1].toLowerCase();
                 Material mat = Material.matchMaterial(args[2]);
                 if (mat == null) mat = Material.BARRIER;
-                QuestGate gate = new QuestGate(id, sel.pos1, sel.pos2, mat.createBlockData(), true);
+                GateAnimation anim = args.length > 3 ? GateAnimation.fromString(args[3]) : GateAnimation.INSTANT;
+                QuestGate gate = new QuestGate(id, sel.pos1, sel.pos2, mat.createBlockData(), true, anim);
                 manager.createGate(gate);
                 player.sendMessage(ChatColor.YELLOW + "Gate " + id + " created and closed.");
                 return true;
