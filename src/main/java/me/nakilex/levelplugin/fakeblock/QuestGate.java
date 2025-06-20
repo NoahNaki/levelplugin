@@ -2,7 +2,10 @@ package me.nakilex.levelplugin.fakeblock;
 
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.MultipleFacing;
+import org.bukkit.block.data.type.Wall;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +28,8 @@ public class QuestGate {
     private final Location pos2;
     private final BlockData closedData;
     private final List<Location> blocks = new ArrayList<>();
+    private final Map<Location, BlockData> blockDataMap = new HashMap<>();
+    private final java.util.Set<Location> blockSet = new java.util.HashSet<>();
 
     private final GateAnimation animation;
     private int minX, maxX, minY, maxY, minZ, maxZ;
@@ -58,10 +63,36 @@ public class QuestGate {
         for (int x = minX; x <= maxX; x++) {
             for (int y = minY; y <= maxY; y++) {
                 for (int z = minZ; z <= maxZ; z++) {
-                    blocks.add(new Location(world, x, y, z));
+                    Location loc = new Location(world, x, y, z);
+                    blocks.add(loc);
+                    blockSet.add(loc);
                 }
             }
         }
+
+        // compute connection-aware block data for connectable materials
+        for (Location loc : blocks) {
+            blockDataMap.put(loc, buildConnectedData(loc));
+        }
+    }
+
+    private BlockData buildConnectedData(Location loc) {
+        BlockData data = closedData.clone();
+        if (data instanceof MultipleFacing mf) {
+            for (BlockFace face : new BlockFace[]{BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST}) {
+                Location adj = loc.clone().add(face.getModX(), face.getModY(), face.getModZ());
+                boolean connect = blockSet.contains(adj) || !adj.getBlock().getType().isAir();
+                mf.setFace(face, connect);
+            }
+        } else if (data instanceof Wall wall) {
+            for (BlockFace face : new BlockFace[]{BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST}) {
+                Location adj = loc.clone().add(face.getModX(), face.getModY(), face.getModZ());
+                boolean connect = blockSet.contains(adj) || !adj.getBlock().getType().isAir();
+                wall.setHeight(face, connect ? Wall.Height.TALL : Wall.Height.NONE);
+            }
+            wall.setUp(true);
+        }
+        return data;
     }
 
     public String getId() {
@@ -69,6 +100,8 @@ public class QuestGate {
     }
 
     public BlockData getClosedData() { return closedData; }
+    public BlockData getClosedData(Location loc) { return blockDataMap.getOrDefault(loc, closedData); }
+    public Map<Location, BlockData> getClosedDataMap() { return blockDataMap; }
 
     public GateAnimation getAnimation() { return animation; }
 

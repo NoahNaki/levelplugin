@@ -141,21 +141,26 @@ public class QuestGateManager implements Listener {
                 for (int y : ys) groups.add(map.get(y));
             }
             case ELEVATOR -> {
-                java.util.Map<String, java.util.List<org.bukkit.Location>> map = new java.util.HashMap<>();
+                java.util.Map<String, java.util.List<org.bukkit.Location>> colMap = new java.util.HashMap<>();
                 for (var loc : gate.getBlocks()) {
                     String key = loc.getBlockX()+","+loc.getBlockZ();
-                    map.computeIfAbsent(key, k -> new java.util.ArrayList<>()).add(loc);
+                    colMap.computeIfAbsent(key, k -> new java.util.ArrayList<>()).add(loc);
                 }
                 double cx = (gate.getMinX() + gate.getMaxX()) / 2.0;
                 double cz = (gate.getMinZ() + gate.getMaxZ()) / 2.0;
-                java.util.List<java.util.Map.Entry<String, java.util.List<org.bukkit.Location>>> entries = new java.util.ArrayList<>(map.entrySet());
-                entries.sort(java.util.Comparator.comparingDouble(e -> {
-                    var p = e.getValue().get(0);
-                    double dx = p.getBlockX() - cx;
-                    double dz = p.getBlockZ() - cz;
-                    return dx*dx + dz*dz;
-                }));
-                for (var e : entries) groups.add(e.getValue());
+                java.util.Map<Double, java.util.List<java.util.List<org.bukkit.Location>>> distMap = new java.util.TreeMap<>();
+                for (var entry : colMap.entrySet()) {
+                    var p = entry.getValue().get(0);
+                    double dx = (p.getBlockX() + 0.5) - cx;
+                    double dz = (p.getBlockZ() + 0.5) - cz;
+                    double dist = Math.sqrt(dx*dx + dz*dz);
+                    distMap.computeIfAbsent(dist, d -> new java.util.ArrayList<>()).add(entry.getValue());
+                }
+                for (var list : distMap.values()) {
+                    java.util.List<org.bukkit.Location> group = new java.util.ArrayList<>();
+                    for (var col : list) group.addAll(col);
+                    groups.add(group);
+                }
             }
             default -> groups.add(gate.getBlocks());
         }
@@ -170,7 +175,7 @@ public class QuestGateManager implements Listener {
                 if (!it.hasNext()) { cancel(); return; }
                 var locs = it.next();
                 if (closed) {
-                    for (var loc : locs) blockManager.showFakeBlock(player, loc, gate.getClosedData());
+                    for (var loc : locs) blockManager.showFakeBlock(player, loc, gate.getClosedData(loc));
                 } else {
                     for (var loc : locs) blockManager.hideFakeBlock(player, loc);
                 }
@@ -197,7 +202,7 @@ public class QuestGateManager implements Listener {
         for (QuestGate gate : gates.values()) {
             if (gate.isClosed(player.getUniqueId())) {
                 for (var loc : gate.getBlocks()) {
-                    blockManager.showFakeBlock(player, loc, gate.getClosedData());
+                    blockManager.showFakeBlock(player, loc, gate.getClosedData(loc));
                 }
             } else {
                 for (var loc : gate.getBlocks()) {
