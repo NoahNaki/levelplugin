@@ -27,6 +27,8 @@ public class QuestGateManager implements Listener {
     private final Main plugin;
     private final FakeBlockManager blockManager;
     private final Map<String, QuestGate> gates = new HashMap<>();
+    /** Enables verbose logging for gate state changes. */
+    private boolean debug = false;
     private File file;
     private FileConfiguration config;
 
@@ -61,6 +63,17 @@ public class QuestGateManager implements Listener {
         addGate(gate);
         saveConfig();
         updateAll();
+    }
+
+    /** Toggle debug logging. */
+    public boolean toggleDebug() {
+        debug = !debug;
+        plugin.getLogger().info("[GateDebug] mode " + (debug ? "enabled" : "disabled"));
+        return debug;
+    }
+
+    public boolean isDebug() {
+        return debug;
     }
 
     private void loadFromConfig() {
@@ -125,6 +138,9 @@ public class QuestGateManager implements Listener {
         boolean closed = gate.isClosed(player.getUniqueId());
         gate.setClosed(player.getUniqueId(), !closed);
         animateGate(player, gate, !closed);
+        if (debug) {
+            plugin.getLogger().info("[GateDebug] " + player.getName() + " toggled " + id + " to " + (!closed ? "open" : "closed"));
+        }
         return true;
     }
 
@@ -143,6 +159,9 @@ public class QuestGateManager implements Listener {
         if (gate == null) return false;
         gate.setClosed(player.getUniqueId(), closed);
         animateGate(player, gate, closed);
+        if (debug) {
+            plugin.getLogger().info("[GateDebug] " + player.getName() + " set " + id + " to " + (closed ? "closed" : "open"));
+        }
         return true;
     }
 
@@ -249,6 +268,9 @@ public class QuestGateManager implements Listener {
         QuestGate gate = gates.get("office_elevator");
         if (gate != null) {
             gate.setClosed(player.getUniqueId(), true);
+            if (debug) {
+                plugin.getLogger().info("[GateDebug] " + player.getName() + " join -> set office_elevator closed");
+            }
         }
         updatePlayer(player);
     }

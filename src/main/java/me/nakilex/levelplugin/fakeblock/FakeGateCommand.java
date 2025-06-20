@@ -93,6 +93,10 @@ public class FakeGateCommand implements CommandExecutor, Listener {
                     player.sendMessage(ChatColor.RED + "Gate not found.");
                 }
                 return true;
+            case "debug":
+                boolean enabled = manager.toggleDebug();
+                player.sendMessage(ChatColor.YELLOW + "Gate debug " + (enabled ? "enabled" : "disabled"));
+                return true;
             default:
                 return false;
         }
