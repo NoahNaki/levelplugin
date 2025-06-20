@@ -245,7 +245,12 @@ public class QuestGateManager implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        updatePlayer(event.getPlayer());
+        Player player = event.getPlayer();
+        QuestGate gate = gates.get("office_elevator");
+        if (gate != null) {
+            gate.setClosed(player.getUniqueId(), true);
+        }
+        updatePlayer(player);
     }
 
     @EventHandler

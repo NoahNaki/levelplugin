@@ -46,12 +46,25 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
 
         QuestGateManager gates = plugin.getQuestGateManager();
         String gateId = "office_elevator";
-        gates.closeGate(player, gateId);
 
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             gates.openGate(player, gateId);
-            player.sendTitle(ChatColor.RED.toString() + ChatColor.BOLD + "CENTRAL EXECUTIVE",
-                    "", 10, 40, 10);
-        }, 80L);
+
+            org.bukkit.event.Listener listener = new org.bukkit.event.Listener() {
+                @org.bukkit.event.EventHandler
+                public void onMove(org.bukkit.event.player.PlayerMoveEvent e) {
+                    if (!e.getPlayer().equals(player)) return;
+                    if (e.getFrom().getX() == e.getTo().getX() &&
+                        e.getFrom().getY() == e.getTo().getY() &&
+                        e.getFrom().getZ() == e.getTo().getZ()) {
+                        return;
+                    }
+                    player.sendTitle(ChatColor.RED.toString() + ChatColor.BOLD + "CENTRAL EXECUTIVE",
+                            "", 10, 40, 10);
+                    org.bukkit.event.player.PlayerMoveEvent.getHandlerList().unregister(this);
+                }
+            };
+            Bukkit.getPluginManager().registerEvents(listener, plugin);
+        }, 40L);
     }
 }
