@@ -33,6 +33,7 @@ public class QuestGate {
 
     private final GateAnimation animation;
     private int minX, maxX, minY, maxY, minZ, maxZ;
+    private long animationTicks;
 
     /** Whether the gate is closed by default for new players. */
     private boolean defaultClosed;
@@ -49,7 +50,13 @@ public class QuestGate {
         this.closedData = closedData;
         this.defaultClosed = closed;
         this.animation = anim == null ? GateAnimation.INSTANT : anim;
+        this.animationTicks = 40L;
         precomputeBlocks();
+    }
+
+    public QuestGate(String id, Location pos1, Location pos2, BlockData closedData, boolean closed, GateAnimation anim, long ticks) {
+        this(id, pos1, pos2, closedData, closed, anim);
+        if (ticks > 0) this.animationTicks = ticks;
     }
 
     private void precomputeBlocks() {
@@ -104,6 +111,8 @@ public class QuestGate {
     public Map<Location, BlockData> getClosedDataMap() { return blockDataMap; }
 
     public GateAnimation getAnimation() { return animation; }
+    public long getAnimationTicks() { return animationTicks; }
+    public void setAnimationTicks(long ticks) { if (ticks > 0) this.animationTicks = ticks; }
 
     public int getMinY() { return minY; }
     public int getMaxY() { return maxY; }

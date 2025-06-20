@@ -12,3 +12,4 @@ gates:
     block: IRON_BARS
     closed: true
     animation: INSTANT
+    duration: 40

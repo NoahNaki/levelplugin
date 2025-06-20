@@ -207,8 +207,11 @@ public class QuestManager {
         me.nakilex.levelplugin.fakeblock.QuestGateManager gates = plugin.getQuestGateManager();
         String gateId = "office_elevator";
         gates.closeGate(player, gateId);
+        long delay = 40L;
+        me.nakilex.levelplugin.fakeblock.QuestGate g = gates.getGate(gateId);
+        if (g != null) delay = g.getAnimationTicks();
         plugin.getServer().getScheduler().runTaskLater(plugin,
-                () -> gates.openGate(player, gateId), 40L);
+                () -> gates.toggleGate(player, gateId), delay);
         player.sendTitle("CENTRAL EXECUTIVE", "", 10, 40, 10);
     }
 

@@ -84,7 +84,8 @@ public class QuestGateManager implements Listener {
             BlockData data = mat.createBlockData();
             boolean closed = config.getBoolean(base + "closed", true);
             GateAnimation anim = GateAnimation.fromString(config.getString(base + "animation"));
-            addGate(new QuestGate(key.toLowerCase(), p1, p2, data, closed, anim));
+            long ticks = config.getLong(base + "duration", 40L);
+            addGate(new QuestGate(key.toLowerCase(), p1, p2, data, closed, anim, ticks));
         }
     }
 
@@ -104,6 +105,7 @@ public class QuestGateManager implements Listener {
             config.set(base + "block", gate.getClosedData().getMaterial().name());
             config.set(base + "closed", gate.isDefaultClosed());
             config.set(base + "animation", gate.getAnimation().name());
+            config.set(base + "duration", gate.getAnimationTicks());
         }
         try { config.save(file); } catch (Exception e) { e.printStackTrace(); }
     }
@@ -210,7 +212,11 @@ public class QuestGateManager implements Listener {
             task.run();
             task.cancel();
         } else {
-            task.runTaskTimer(plugin, 0L, 2L);
+            long interval = 1L;
+            if (!groups.isEmpty()) {
+                interval = Math.max(1L, gate.getAnimationTicks() / groups.size());
+            }
+            task.runTaskTimer(plugin, 0L, interval);
         }
     }
 

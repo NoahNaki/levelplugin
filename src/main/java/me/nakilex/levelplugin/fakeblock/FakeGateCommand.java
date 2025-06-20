@@ -69,7 +69,11 @@ public class FakeGateCommand implements CommandExecutor, Listener {
                 Material mat = Material.matchMaterial(args[2]);
                 if (mat == null) mat = Material.BARRIER;
                 GateAnimation anim = args.length > 3 ? GateAnimation.fromString(args[3]) : GateAnimation.INSTANT;
-                QuestGate gate = new QuestGate(id, sel.pos1, sel.pos2, mat.createBlockData(), true, anim);
+                long ticks = 40L;
+                if (args.length > 4) {
+                    try { ticks = Math.round(Double.parseDouble(args[4]) * 20.0); } catch (NumberFormatException ignored) {}
+                }
+                QuestGate gate = new QuestGate(id, sel.pos1, sel.pos2, mat.createBlockData(), true, anim, ticks);
                 manager.createGate(gate);
                 player.sendMessage(ChatColor.YELLOW + "Gate " + id + " created and closed.");
                 return true;
