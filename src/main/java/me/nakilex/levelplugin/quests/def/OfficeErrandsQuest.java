@@ -50,11 +50,8 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
 
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             gates.openGate(player, gateId);
-            QuestGate gate = gates.getGate(gateId);
-            long delay = gate != null ? gate.getAnimationTicks() : 40L;
-            plugin.getServer().getScheduler().runTaskLater(plugin, () ->
-                    player.sendTitle(ChatColor.RED.toString() + ChatColor.BOLD + "CENTRAL EXECUTIVE",
-                            "", 10, 40, 10), delay);
-        }, 40L);
+            player.sendTitle(ChatColor.RED.toString() + ChatColor.BOLD + "CENTRAL EXECUTIVE",
+                    "", 10, 40, 10);
+        }, 80L);
     }
 }
