@@ -1,7 +1,6 @@
 package me.nakilex.levelplugin.quests.def;
 
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.fakeblock.QuestGate;
 import me.nakilex.levelplugin.fakeblock.QuestGateManager;
 import me.nakilex.levelplugin.quests.data.*;
 import org.bukkit.Bukkit;
@@ -9,6 +8,16 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.event.HandlerList;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scheduler.BukkitRunnable;
+import net.citizensnpcs.api.CitizensAPI;
+import net.citizensnpcs.api.npc.NPC;
 
 import java.util.List;
 
@@ -18,7 +27,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
         World world = Bukkit.getWorld("redrocks");
         Location beacon = world != null ? new Location(world, 29.5, 142, -92.5) : null;
         return java.util.List.of(
-                new QuestObjective(QuestObjectiveType.TALK, "ANY", 1, beacon)
+                new QuestObjective(QuestObjectiveType.TALK, "npc516", 1, beacon)
         );
     }
 
@@ -41,30 +50,106 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
     public void onStart(Player player, Main plugin) {
         World world = Bukkit.getWorld("redrocks");
         if (world != null) {
-            player.teleport(new Location(world, 29.5, 142.0, -92.5));
+            player.teleport(new Location(world, 19, 142, -47));
         }
 
         QuestGateManager gates = plugin.getQuestGateManager();
         String gateId = "office_elevator";
 
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-            gates.openGate(player, gateId);
+        // Apply blindness and close the elevator gate
+        player.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.BLINDNESS, 40, 0, false, false, false));
+        gates.closeGate(player, gateId);
 
-            org.bukkit.event.Listener listener = new org.bukkit.event.Listener() {
-                @org.bukkit.event.EventHandler
-                public void onMove(org.bukkit.event.player.PlayerMoveEvent e) {
-                    if (!e.getPlayer().equals(player)) return;
-                    if (e.getFrom().getX() == e.getTo().getX() &&
-                        e.getFrom().getY() == e.getTo().getY() &&
-                        e.getFrom().getZ() == e.getTo().getZ()) {
+        // After blindness wears off, send initial dialog line
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            player.sendMessage(ChatColor.GRAY + "[1/1] " + player.getName() + ChatColor.WHITE + ": Lights are off... looks like everyone’s gone. Guess that’s my cue.");
+        }, 40L);
+
+        // Listen for talking to the Janitor (NPC 516)
+        Listener talkListener = new Listener() {
+            private boolean done = false;
+
+            @org.bukkit.event.EventHandler
+            public void onInteract(PlayerInteractEntityEvent event) {
+                if (done) return;
+                if (!event.getPlayer().equals(player)) return;
+                if (event.getHand() == EquipmentSlot.OFF_HAND) return;
+                if (!CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked())) return;
+                NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
+                if (npc.getId() != 516) return;
+
+                done = true;
+                plugin.getQuestManager().handleTalk(player, "npc516");
+
+                String[] lines = new String[] {
+                        "Ilta: Took your time.",
+                        player.getName() + ": Didn't realize how late it was.",
+                        "Ilta: Time’s slippery in places like this.",
+                        "Ilta: One minute you’re working late… next minute, the building’s watching to see if you’ll notice it’s not quite the same as you left it.",
+                        player.getName() + ": What’s that supposed to mean?",
+                        "Ilta: It means you're not leaving the same way you came in."
+                };
+
+                new BukkitRunnable() {
+                    int idx = 0;
+                    @Override public void run() {
+                        if (!player.isOnline()) { cancel(); return; }
+                        if (idx >= lines.length) {
+                            gates.openGate(player, gateId);
+                            HandlerList.unregisterAll(talkListener);
+                            cancel();
+                            return;
+                        }
+                        player.sendMessage(ChatColor.GRAY + "[" + (idx + 1) + "/" + lines.length + "] " + ChatColor.WHITE + lines[idx]);
+                        idx++;
+                    }
+                }.runTaskTimer(plugin, 0L, 40L);
+            }
+        };
+        Bukkit.getPluginManager().registerEvents(talkListener, plugin);
+
+        // After speaking with the Janitor, detect when the player enters the elevator
+        Listener moveListener = new Listener() {
+            private boolean ready = false;
+
+            @org.bukkit.event.EventHandler
+            public void onMove(PlayerMoveEvent e) {
+                if (!e.getPlayer().equals(player)) return;
+                if (!ready) {
+                    me.nakilex.levelplugin.quests.data.PlayerQuestProgress prog = plugin.getQuestManager().getProgress(player.getUniqueId());
+                    if (prog != null && prog.getQuest().getId().equals("officeerrands") && prog.getProgress(0) >= 1) {
+                        ready = true;
+                    } else {
                         return;
                     }
-                    player.sendTitle(ChatColor.RED.toString() + ChatColor.BOLD + "CENTRAL EXECUTIVE",
-                            "", 10, 40, 10);
-                    org.bukkit.event.player.PlayerMoveEvent.getHandlerList().unregister(this);
                 }
-            };
-            Bukkit.getPluginManager().registerEvents(listener, plugin);
-        }, 40L);
+
+                int minX = 27, maxX = 31, minZ = -95, maxZ = -90; // elevator bounds
+                org.bukkit.Location to = e.getTo();
+                if (to.getBlockX() >= minX && to.getBlockX() <= maxX && to.getBlockZ() >= minZ && to.getBlockZ() <= maxZ) {
+                    HandlerList.unregisterAll(this);
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                        gates.closeGate(player, gateId);
+                        org.bukkit.Location cur = player.getLocation();
+
+                        // Compute offset inside elevator region
+                        double offX = cur.getX() - minX;
+                        double offY = cur.getY() - 142;
+                        double offZ = cur.getZ() - minZ;
+
+                        int newMinX = 4249;
+                        int newMinY = -33;
+                        int newMinZ = -1212;
+
+                        org.bukkit.World destWorld = Bukkit.getWorld("flatland");
+                        if (destWorld != null) {
+                            org.bukkit.Location dest = new org.bukkit.Location(destWorld, newMinX + offX, newMinY + offY, newMinZ + offZ, cur.getYaw(), cur.getPitch());
+                            player.teleport(dest);
+                        }
+                    }, 40L);
+                }
+            }
+        };
+        Bukkit.getPluginManager().registerEvents(moveListener, plugin);
     }
 }
