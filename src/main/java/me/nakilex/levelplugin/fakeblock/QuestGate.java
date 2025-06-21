@@ -2,13 +2,18 @@ package me.nakilex.levelplugin.fakeblock;
 
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.MultipleFacing;
+import org.bukkit.block.data.type.Wall;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+
+import me.nakilex.levelplugin.fakeblock.GateAnimation;
 
 /**
  * Represents a region of blocks that should appear closed until a quest is
@@ -23,6 +28,12 @@ public class QuestGate {
     private final Location pos2;
     private final BlockData closedData;
     private final List<Location> blocks = new ArrayList<>();
+    private final Map<Location, BlockData> blockDataMap = new HashMap<>();
+    private final java.util.Set<Location> blockSet = new java.util.HashSet<>();
+
+    private final GateAnimation animation;
+    private int minX, maxX, minY, maxY, minZ, maxZ;
+    private long animationTicks;
 
     /** Whether the gate is closed by default for new players. */
     private boolean defaultClosed;
@@ -32,39 +43,83 @@ public class QuestGate {
      * used. */
     private final Map<UUID, Boolean> playerStates = new HashMap<>();
 
-    public QuestGate(String id, Location pos1, Location pos2, BlockData closedData, boolean closed) {
+    public QuestGate(String id, Location pos1, Location pos2, BlockData closedData, boolean closed, GateAnimation anim) {
         this.id = id;
         this.pos1 = pos1;
         this.pos2 = pos2;
         this.closedData = closedData;
         this.defaultClosed = closed;
+        this.animation = anim == null ? GateAnimation.INSTANT : anim;
+        this.animationTicks = 40L;
         precomputeBlocks();
+    }
+
+    public QuestGate(String id, Location pos1, Location pos2, BlockData closedData, boolean closed, GateAnimation anim, long ticks) {
+        this(id, pos1, pos2, closedData, closed, anim);
+        if (ticks > 0) this.animationTicks = ticks;
     }
 
     private void precomputeBlocks() {
         World world = pos1.getWorld();
-        int minX = Math.min(pos1.getBlockX(), pos2.getBlockX());
-        int maxX = Math.max(pos1.getBlockX(), pos2.getBlockX());
-        int minY = Math.min(pos1.getBlockY(), pos2.getBlockY());
-        int maxY = Math.max(pos1.getBlockY(), pos2.getBlockY());
-        int minZ = Math.min(pos1.getBlockZ(), pos2.getBlockZ());
-        int maxZ = Math.max(pos1.getBlockZ(), pos2.getBlockZ());
+        minX = Math.min(pos1.getBlockX(), pos2.getBlockX());
+        maxX = Math.max(pos1.getBlockX(), pos2.getBlockX());
+        minY = Math.min(pos1.getBlockY(), pos2.getBlockY());
+        maxY = Math.max(pos1.getBlockY(), pos2.getBlockY());
+        minZ = Math.min(pos1.getBlockZ(), pos2.getBlockZ());
+        maxZ = Math.max(pos1.getBlockZ(), pos2.getBlockZ());
         for (int x = minX; x <= maxX; x++) {
             for (int y = minY; y <= maxY; y++) {
                 for (int z = minZ; z <= maxZ; z++) {
-                    blocks.add(new Location(world, x, y, z));
+                    Location loc = new Location(world, x, y, z);
+                    blocks.add(loc);
+                    blockSet.add(loc);
                 }
             }
         }
+
+        // compute connection-aware block data for connectable materials
+        for (Location loc : blocks) {
+            blockDataMap.put(loc, buildConnectedData(loc));
+        }
+    }
+
+    private BlockData buildConnectedData(Location loc) {
+        BlockData data = closedData.clone();
+        if (data instanceof MultipleFacing mf) {
+            for (BlockFace face : new BlockFace[]{BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST}) {
+                Location adj = loc.clone().add(face.getModX(), face.getModY(), face.getModZ());
+                boolean connect = blockSet.contains(adj) || !adj.getBlock().getType().isAir();
+                mf.setFace(face, connect);
+            }
+        } else if (data instanceof Wall wall) {
+            for (BlockFace face : new BlockFace[]{BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST}) {
+                Location adj = loc.clone().add(face.getModX(), face.getModY(), face.getModZ());
+                boolean connect = blockSet.contains(adj) || !adj.getBlock().getType().isAir();
+                wall.setHeight(face, connect ? Wall.Height.TALL : Wall.Height.NONE);
+            }
+            wall.setUp(true);
+        }
+        return data;
     }
 
     public String getId() {
         return id;
     }
 
-    public BlockData getClosedData() {
-        return closedData;
-    }
+    public BlockData getClosedData() { return closedData; }
+    public BlockData getClosedData(Location loc) { return blockDataMap.getOrDefault(loc, closedData); }
+    public Map<Location, BlockData> getClosedDataMap() { return blockDataMap; }
+
+    public GateAnimation getAnimation() { return animation; }
+    public long getAnimationTicks() { return animationTicks; }
+    public void setAnimationTicks(long ticks) { if (ticks > 0) this.animationTicks = ticks; }
+
+    public int getMinY() { return minY; }
+    public int getMaxY() { return maxY; }
+    public int getMinX() { return minX; }
+    public int getMaxX() { return maxX; }
+    public int getMinZ() { return minZ; }
+    public int getMaxZ() { return maxZ; }
 
     public Location getPos1() { return pos1; }
 
@@ -94,12 +149,6 @@ public class QuestGate {
 
     public boolean isInside(Location loc) {
         if (!loc.getWorld().equals(pos1.getWorld())) return false;
-        int minX = Math.min(pos1.getBlockX(), pos2.getBlockX());
-        int maxX = Math.max(pos1.getBlockX(), pos2.getBlockX());
-        int minY = Math.min(pos1.getBlockY(), pos2.getBlockY());
-        int maxY = Math.max(pos1.getBlockY(), pos2.getBlockY());
-        int minZ = Math.min(pos1.getBlockZ(), pos2.getBlockZ());
-        int maxZ = Math.max(pos1.getBlockZ(), pos2.getBlockZ());
         int x = loc.getBlockX();
         int y = loc.getBlockY();
         int z = loc.getBlockZ();

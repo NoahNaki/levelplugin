@@ -11,3 +11,19 @@ gates:
       z: 2
     block: IRON_BARS
     closed: true
+    animation: INSTANT
+    duration: 40
+  office_elevator:
+    world: redrocks
+    pos1:
+      x: 31
+      y: 142
+      z: -90
+    pos2:
+      x: 27
+      y: 146
+      z: -90
+    block: ANDESITE_WALL
+    closed: true
+    animation: ELEVATOR
+    duration: 40

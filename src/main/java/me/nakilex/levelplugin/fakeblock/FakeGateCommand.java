@@ -9,6 +9,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import me.nakilex.levelplugin.fakeblock.GateAnimation;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -54,7 +55,14 @@ public class FakeGateCommand implements CommandExecutor, Listener {
                 if (ids.isEmpty()) {
                     player.sendMessage(ChatColor.YELLOW + "No gates defined.");
                 } else {
-                    player.sendMessage(ChatColor.YELLOW + "Gates: " + String.join(", ", ids));
+                    StringBuilder sb = new StringBuilder();
+                    for (String idKey : ids) {
+                        QuestGate g = manager.getGate(idKey);
+                        boolean closed = g != null && g.isClosed(player.getUniqueId());
+                        if (sb.length() > 0) sb.append(", ");
+                        sb.append(idKey).append("(").append(closed ? "closed" : "open").append(")");
+                    }
+                    player.sendMessage(ChatColor.YELLOW + "Gates: " + sb);
                 }
                 return true;
             case "create":
@@ -67,14 +75,21 @@ public class FakeGateCommand implements CommandExecutor, Listener {
                 String id = args[1].toLowerCase();
                 Material mat = Material.matchMaterial(args[2]);
                 if (mat == null) mat = Material.BARRIER;
-                QuestGate gate = new QuestGate(id, sel.pos1, sel.pos2, mat.createBlockData(), true);
+                GateAnimation anim = args.length > 3 ? GateAnimation.fromString(args[3]) : GateAnimation.INSTANT;
+                long ticks = 40L;
+                if (args.length > 4) {
+                    try { ticks = Math.round(Double.parseDouble(args[4]) * 20.0); } catch (NumberFormatException ignored) {}
+                }
+                QuestGate gate = new QuestGate(id, sel.pos1, sel.pos2, mat.createBlockData(), true, anim, ticks);
                 manager.createGate(gate);
                 player.sendMessage(ChatColor.YELLOW + "Gate " + id + " created and closed.");
                 return true;
             case "toggle":
                 if (args.length < 2) return false;
                 if (manager.toggleGate(player, args[1])) {
-                    player.sendMessage(ChatColor.YELLOW + "Toggled gate " + args[1] + ".");
+                    QuestGate g = manager.getGate(args[1]);
+                    boolean closed = g != null && g.isClosed(player.getUniqueId());
+                    player.sendMessage(ChatColor.YELLOW + "Gate " + args[1] + " is now " + (closed ? "closed" : "open") + ".");
                 } else {
                     player.sendMessage(ChatColor.RED + "Gate not found.");
                 }
@@ -86,6 +101,10 @@ public class FakeGateCommand implements CommandExecutor, Listener {
                 } else {
                     player.sendMessage(ChatColor.RED + "Gate not found.");
                 }
+                return true;
+            case "debug":
+                boolean enabled = manager.toggleDebug();
+                player.sendMessage(ChatColor.YELLOW + "Gate debug " + (enabled ? "enabled" : "disabled"));
                 return true;
             default:
                 return false;
