@@ -16,6 +16,7 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.Sound;
 import org.bukkit.block.data.BlockData;
 import java.util.Map;
 import java.util.HashMap;
@@ -113,6 +114,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
                 String speaker = parts[0].equals("<player>") ? player.getName() : parts[0];
                 String msg = parts[1];
                 player.sendMessage(ChatColor.GRAY + "[" + (idx[0] + 1) + "/" + lines.length + "] " + ChatColor.YELLOW + speaker + ChatColor.WHITE + ": " + msg);
+                player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
                 idx[0]++;
 
                 if (idx[0] >= lines.length) {

@@ -25,7 +25,7 @@ public class NPCClickListener implements Listener {
         this.dialogManager = dialogManager;
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void onNPCClick(PlayerInteractEntityEvent event) {
         // Ignore offhand interactions
         if (event.getHand() == org.bukkit.inventory.EquipmentSlot.OFF_HAND) {
