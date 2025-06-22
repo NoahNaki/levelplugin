@@ -133,9 +133,9 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
                     org.bukkit.Location lampLoc = new org.bukkit.Location(rWorld, 29, -148, -93);
 
                     var fbm = plugin.getFakeBlockManager();
-                    org.bukkit.block.data.type.RedstoneLamp off = (org.bukkit.block.data.type.RedstoneLamp) org.bukkit.Material.REDSTONE_LAMP.createBlockData();
+                    org.bukkit.block.data.Lightable off = (org.bukkit.block.data.Lightable) org.bukkit.Material.REDSTONE_LAMP.createBlockData();
                     off.setLit(false);
-                    org.bukkit.block.data.type.RedstoneLamp on = (org.bukkit.block.data.type.RedstoneLamp) org.bukkit.Material.REDSTONE_LAMP.createBlockData();
+                    org.bukkit.block.data.Lightable on = (org.bukkit.block.data.Lightable) org.bukkit.Material.REDSTONE_LAMP.createBlockData();
                     on.setLit(true);
 
                     new org.bukkit.scheduler.BukkitRunnable() {
