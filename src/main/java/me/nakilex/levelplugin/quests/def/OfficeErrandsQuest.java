@@ -196,8 +196,10 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
                                                 fbm.showFakeBlocks(player, worldElevatorBlocks);
                                             }
 
-                                            Bukkit.getScheduler().runTaskLater(plugin, () ->
-                                                    gates.openGate(player, worldGateId), 40L);
+                                            gates.closeGate(player, worldGateId);
+                                            Bukkit.getScheduler().runTaskLater(plugin,
+                                                    () -> gates.openGate(player, worldGateId),
+                                                    40L);
 
                                             Listener exitListener = new Listener() {
                                                 @org.bukkit.event.EventHandler
