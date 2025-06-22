@@ -213,11 +213,14 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
                                                 fbm.showFakeBlocks(player, worldElevatorBlocks);
                                             }
 
-                                            // Ensure the world elevator appears closed immediately
-                                            gates.updatePlayer(player);
+                                            // Delay updating the closed gate until the destination chunks load
+                                            Bukkit.getScheduler().runTaskLater(plugin,
+                                                    () -> gates.updatePlayer(player),
+                                                    10L);
+                                            // Open the world elevator two seconds after teleporting
                                             Bukkit.getScheduler().runTaskLater(plugin,
                                                     () -> gates.openGate(player, worldGateId),
-                                                    100L);
+                                                    40L);
 
                                             Listener exitListener = new Listener() {
                                                 @org.bukkit.event.EventHandler
