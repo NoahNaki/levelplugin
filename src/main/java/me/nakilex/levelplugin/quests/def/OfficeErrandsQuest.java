@@ -125,26 +125,56 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
                 org.bukkit.Location to = e.getTo();
                 if (to.getBlockX() >= minX && to.getBlockX() <= maxX && to.getBlockZ() >= minZ && to.getBlockZ() <= maxZ) {
                     HandlerList.unregisterAll(this);
-                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                        gates.closeGate(player, gateId);
-                        org.bukkit.Location cur = player.getLocation();
 
-                        // Compute offset inside elevator region
-                        double offX = cur.getX() - minX;
-                        double offY = cur.getY() - 142;
-                        double offZ = cur.getZ() - minZ;
+                    gates.closeGate(player, gateId); // close immediately
 
-                        int newMinX = 4249;
-                        int newMinY = -33;
-                        int newMinZ = -1212;
+                    World rWorld = Bukkit.getWorld("redrocks");
+                    if (rWorld == null) return;
+                    org.bukkit.Location lampLoc = new org.bukkit.Location(rWorld, 29, -148, -93);
 
-                        org.bukkit.World destWorld = Bukkit.getWorld("flatland");
-                        if (destWorld != null) {
-                            org.bukkit.Location dest = new org.bukkit.Location(destWorld, newMinX + offX, newMinY + offY, newMinZ + offZ, cur.getYaw(), cur.getPitch());
-                            player.teleport(dest);
-                            plugin.getQuestManager().handleTalk(player, "npc516");
+                    var fbm = plugin.getFakeBlockManager();
+                    org.bukkit.block.data.type.RedstoneLamp off = (org.bukkit.block.data.type.RedstoneLamp) org.bukkit.Material.REDSTONE_LAMP.createBlockData();
+                    off.setLit(false);
+                    org.bukkit.block.data.type.RedstoneLamp on = (org.bukkit.block.data.type.RedstoneLamp) org.bukkit.Material.REDSTONE_LAMP.createBlockData();
+                    on.setLit(true);
+
+                    new org.bukkit.scheduler.BukkitRunnable() {
+                        int ticks = 0;
+                        boolean lit = false;
+
+                        @Override
+                        public void run() {
+                            lit = !lit;
+                            fbm.showFakeBlock(player, lampLoc, lit ? on : off);
+                            ticks += 10;
+                            if (ticks >= 200) {
+                                cancel();
+                                fbm.hideFakeBlock(player, lampLoc);
+
+                                player.sendMessage(ChatColor.GRAY + "[1/1] " + player.getName() + ChatColor.WHITE + ": Huh that's weird, the elevator light's flickering.");
+
+                                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                                    org.bukkit.Location cur = player.getLocation();
+
+                                    // Compute offset inside elevator region
+                                    double offX = cur.getX() - minX;
+                                    double offY = cur.getY() - 142;
+                                    double offZ = cur.getZ() - minZ;
+
+                                    int newMinX = 4249;
+                                    int newMinY = -33;
+                                    int newMinZ = -1212;
+
+                                    org.bukkit.World destWorld = Bukkit.getWorld("flatland");
+                                    if (destWorld != null) {
+                                        org.bukkit.Location dest = new org.bukkit.Location(destWorld, newMinX + offX, newMinY + offY, newMinZ + offZ, cur.getYaw(), cur.getPitch());
+                                        player.teleport(dest);
+                                        plugin.getQuestManager().handleTalk(player, "npc516");
+                                    }
+                                }, 40L);
+                            }
                         }
-                    }, 40L);
+                    }.runTaskTimer(plugin, 0L, 10L);
                 }
             }
         };
