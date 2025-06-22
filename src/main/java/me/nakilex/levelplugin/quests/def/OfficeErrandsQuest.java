@@ -64,15 +64,26 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
         String gateId = "office_elevator";
         String worldGateId = "world_elevator";
 
-        // Apply blindness and close the elevator gate
+        // Apply blindness while the world loads
         player.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.BLINDNESS, 40, 0, false, false, false));
-        gates.closeGate(player, gateId);
+
+        // Close the office elevator once the player should have the world loaded
+        Bukkit.getScheduler().runTaskLater(plugin,
+                () -> gates.closeGate(player, gateId),
+                40L);
+
+        // Ensure the destination elevator starts closed for this player
+        gates.closeGate(player, worldGateId);
 
         World flat = Bukkit.getWorld("flatland");
         if (flat != null && worldElevatorBlocks == null) {
             worldElevatorBlocks = captureArea(flat,
                     4248, -34, -1214,
                     4254, -27, -1207);
+            // Exclude the gate door blocks so the QuestGate controls them
+            removeArea(worldElevatorBlocks,
+                    4248, -33, -1214,
+                    4254, -29, -1214);
         }
 
         // After blindness wears off, send initial dialog line
@@ -199,7 +210,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
                                             gates.updatePlayer(player);
                                             Bukkit.getScheduler().runTaskLater(plugin,
                                                     () -> gates.openGate(player, worldGateId),
-                                                    60L);
+                                                    40L);
 
                                             Listener exitListener = new Listener() {
                                                 @org.bukkit.event.EventHandler
@@ -252,5 +263,21 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
             }
         }
         return map;
+    }
+
+    /** Remove a subregion from the captured block map. */
+    private void removeArea(Map<Location, BlockData> map,
+                            int x1, int y1, int z1,
+                            int x2, int y2, int z2) {
+        int minX = Math.min(x1, x2);
+        int maxX = Math.max(x1, x2);
+        int minY = Math.min(y1, y2);
+        int maxY = Math.max(y1, y2);
+        int minZ = Math.min(z1, z2);
+        int maxZ = Math.max(z1, z2);
+        map.keySet().removeIf(loc ->
+                loc.getBlockX() >= minX && loc.getBlockX() <= maxX &&
+                        loc.getBlockY() >= minY && loc.getBlockY() <= maxY &&
+                        loc.getBlockZ() >= minZ && loc.getBlockZ() <= maxZ);
     }
 }
