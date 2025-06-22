@@ -79,7 +79,8 @@ public class ClassMenu {
         inv.setItem(13, createMenuItem(Material.CROSSBOW, ChatColor.AQUA + "" + ChatColor.BOLD + "Start As A CoolArcher!",
             Arrays.asList(
                 "",
-                ChatColor.GRAY + "A special testing class using MythicMobs skills.",
+                ChatColor.GRAY + "Choosing this will start you out as a ",
+                ChatColor.AQUA + "COOLARCHER" + ChatColor.GRAY + "! Your starting item will be a crossbow.",
                 "",
                 ChatColor.RED + "" + ChatColor.BOLD + "ABILITY 1:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Backstep " + ChatColor.GRAY + "(Combo: LRL)",
