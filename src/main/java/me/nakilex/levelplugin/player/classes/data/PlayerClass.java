@@ -5,8 +5,8 @@ public enum PlayerClass {
     WARRIOR(1),
     ROGUE(1),
     ARCHER(1),
-    COOLARCHER(10),
-    PHOENIXHUNTER(20),
+    COOLARCHER(1),
+    PHOENIXHUNTER(1),
     MAGE(1);
 
     private final int requiredLevel;

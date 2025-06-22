@@ -255,7 +255,7 @@ public class SpellManager {
         coolMap.put("RRR", new Spell(
             "deadly_javelin", "Deadly Javelin", "RRR",
             10.0,
-            0, 7,
+            0, 10,
             WeaponType.BOW.getMaterials(),
             "MYTHIC_DEADLY_JAVELIN", 0.0
         ));
@@ -298,7 +298,7 @@ public class SpellManager {
         phoenixMap.put("LLR", new Spell(
             "phoenix_totem", "Phoenix Totem", "LLR",
             10.0,
-            0, 8,
+            0, 1,
             WeaponType.BOW.getMaterials(),
             "MYTHIC_PHOENIX_TOTEM", 0.0
         ));
@@ -312,7 +312,7 @@ public class SpellManager {
         phoenixMap.put("RRR", new Spell(
             "phoenix_rebirth", "Phoenix Rebirth", "RRR",
             20.0,
-            0, 15,
+            0, 10,
             WeaponType.BOW.getMaterials(),
             "MYTHIC_PHOENIX_REBIRTH", 0.0
         ));
