@@ -31,6 +31,7 @@ public class Spell {
     private final List<Material> allowedWeapons;
     private final String effectKey;
     private final double baseDamage;        // ← holds the pre-rune damage
+    private final boolean passive;          // if true skip mana cost indicator
 
     // static managers
     private static final CooldownManager cooldownMgr = CooldownManager.getInstance();
@@ -44,7 +45,8 @@ public class Spell {
         int levelReq,
         List<Material> allowedWeapons,
         String effectKey,
-        double baseDamage              // ← pass in the raw dmg here
+        double baseDamage,             // ← pass in the raw dmg here
+        boolean passive
     ) {
         this.id               = id;
         this.displayName      = displayName;
@@ -55,6 +57,21 @@ public class Spell {
         this.allowedWeapons   = allowedWeapons;
         this.effectKey        = effectKey;
         this.baseDamage       = baseDamage;
+        this.passive          = passive;
+    }
+
+    public Spell(
+        String id,
+        String displayName,
+        String combo,
+        double baseManaCost,
+        long cooldownSeconds,
+        int levelReq,
+        List<Material> allowedWeapons,
+        String effectKey,
+        double baseDamage
+    ) {
+        this(id, displayName, combo, baseManaCost, cooldownSeconds, levelReq, allowedWeapons, effectKey, baseDamage, false);
     }
 
     // getters...
@@ -67,6 +84,7 @@ public class Spell {
     public List<Material> getAllowedWeapons() { return allowedWeapons; }
     public double getBaseDamage()        { return baseDamage; }
     public String getEffectKey()         { return effectKey; }
+    public boolean isPassive()           { return passive; }
 
     /** for SpellCastContext’s baseSpell.getManaCost() */
     public double getManaCost() {
@@ -157,8 +175,10 @@ public class Spell {
         int intCost = (int)Math.ceil(cost);
         ps.setCurrentMana(ps.getCurrentMana() - intCost);
         recordSpellCast(player);
-        me.nakilex.levelplugin.player.attributes.managers.ManaIndicatorManager
-            .getInstance().showCost(player, intCost);
+        if (!passive) {
+            me.nakilex.levelplugin.player.attributes.managers.ManaIndicatorManager
+                .getInstance().showCost(player, intCost);
+        }
         Main.getInstance().getQuestManager().handleCast(player, id);
 
         // 5) Start cooldown (ctx.getFinalCooldown returns 0 if applyCooldown==false)

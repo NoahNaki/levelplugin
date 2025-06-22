@@ -300,7 +300,8 @@ public class SpellManager {
             0.0,
             0, 0,
             WeaponType.BOW.getMaterials(),
-            "MYTHIC_PHOENIX_TOTEM", 0.0
+            "MYTHIC_PHOENIX_TOTEM", 0.0,
+            true
         ));
         phoenixMap.put("LLL", new Spell(
             "pyroclasmic_barrage", "Pyroclasmic Barrage", "LLL",
