@@ -74,6 +74,14 @@ public class EffectRegistry {
         register("MYTHIC_ARROW_BARRAGE", new MythicSkillEffect("Arrow_Barrage"));
         register("MYTHIC_DRAGON_PIERCER", new MythicSkillEffect("Dragon_Piercer"));
 
+        // --- PhoenixHunter Mythic skills ---
+        register("MYTHIC_BLAZING_FEATHERS", new MythicSkillEffect("Blazing_Feathers"));
+        register("MYTHIC_ASHDANCE", new MythicSkillEffect("Ashdance"));
+        register("MYTHIC_FLAMEBURST_CONVERGENCE", new MythicSkillEffect("Flameburst_Convergence"));
+        register("MYTHIC_PHOENIX_TOTEM", new MythicSkillEffect("Phoenix_Totem"));
+        register("MYTHIC_PYROCLASMIC_BARRAGE", new MythicSkillEffect("Pyroclasmic_Barrage"));
+        register("MYTHIC_PHOENIX_REBIRTH", new MythicSkillEffect("Phoenix_Rebirth"));
+
         // --- Warrior Spells
         register("IRON_FORTRESS", new IronFortressEffect());
         register("HEROIC_LEAP", new HeroicLeapEffect());

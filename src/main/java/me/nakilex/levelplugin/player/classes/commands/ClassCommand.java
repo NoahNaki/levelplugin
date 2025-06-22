@@ -26,7 +26,8 @@ public class ClassCommand implements CommandExecutor {
                 StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass = chosen;
                 boolean flight = chosen == PlayerClass.ARCHER
                         || chosen == PlayerClass.ROGUE
-                        || chosen == PlayerClass.COOLARCHER;
+                        || chosen == PlayerClass.COOLARCHER
+                        || chosen == PlayerClass.PHOENIXHUNTER;
                 player.setAllowFlight(flight);
                 if (!flight) player.setFlying(false);
                 player.sendMessage(ChatColor.GREEN + "Class set to " + ChatColor.AQUA + chosen.name());

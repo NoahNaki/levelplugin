@@ -97,6 +97,30 @@ public class ClassMenu {
                 ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
             )));
 
+        // PhoenixHunter class (using blaze rod as icon)
+        inv.setItem(15, createMenuItem(Material.BLAZE_ROD, ChatColor.GOLD + "" + ChatColor.BOLD + "Start As A PhoenixHunter!",
+            Arrays.asList(
+                "",
+                ChatColor.GRAY + "Choosing this will start you out as a ",
+                ChatColor.GOLD + "PHOENIXHUNTER" + ChatColor.GRAY + "! Master fiery bow skills.",
+                "",
+                ChatColor.RED + "" + ChatColor.BOLD + "ABILITY 1:",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Ashdance " + ChatColor.GRAY + "(Combo: LRL)",
+                ChatColor.YELLOW + "" + ChatColor.BOLD + "ABILITY 2:",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Flameburst Convergence " + ChatColor.GRAY + "(Combo: LRR)",
+                ChatColor.BLUE + "" + ChatColor.BOLD + "ABILITY 3:",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Phoenix Totem " + ChatColor.GRAY + "(Combo: LLR)",
+                ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "ABILITY 4:",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Pyroclasmic Barrage " + ChatColor.GRAY + "(Combo: LLL)",
+                ChatColor.DARK_AQUA + "" + ChatColor.BOLD + "ULTIMATE:",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Phoenix Rebirth " + ChatColor.GRAY + "(Combo: RRR)",
+                "",
+                ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
+                ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,
+                "",
+                ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
+            )));
+
         // Mage (using stick as icon)
         inv.setItem(14, createMenuItem(Material.STICK, ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "Start As A Mage!",
             Arrays.asList(

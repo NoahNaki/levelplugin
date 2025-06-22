@@ -3175,3 +3175,16 @@ items:
     agi: 0-0
     intel: 0-0
     dex: 0-0
+
+  255:
+    name: "Common Wooden PhoenixHunter Bow"
+    rarity: COMMON
+    level_requirement: 1
+    class_requirement: PHOENIXHUNTER
+    material: CROSSBOW
+    hp: 0-0
+    def: 0-0
+    str: 2-5
+    agi: 0-0
+    intel: 0-0
+    dex: 0-0

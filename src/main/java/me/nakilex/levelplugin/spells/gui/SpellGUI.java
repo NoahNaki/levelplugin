@@ -47,6 +47,13 @@ public class SpellGUI {
         SPELL_DESCRIPTIONS.put("windrazor",       "Surround yourself with slicing wind.");
         SPELL_DESCRIPTIONS.put("arrow_barrage",   "Rapidly fire a volley of arrows.");
         SPELL_DESCRIPTIONS.put("dragon_piercer",  "Launch a devastating dragon arrow.");
+
+        SPELL_DESCRIPTIONS.put("blazing_feathers", "Fire fiery feathers at your foes.");
+        SPELL_DESCRIPTIONS.put("ashdance", "Dash in flames leaving fire in your wake.");
+        SPELL_DESCRIPTIONS.put("flameburst_convergence", "Unleash converging fire bolts.");
+        SPELL_DESCRIPTIONS.put("phoenix_totem", "Summon a blazing totem that burns enemies.");
+        SPELL_DESCRIPTIONS.put("pyroclasmic_barrage", "Launch a barrage of burning feathers.");
+        SPELL_DESCRIPTIONS.put("phoenix_rebirth", "Transform into a phoenix to scorch foes.");
     }
 
     // The slots where we will place the spells in a 27-slot inventory.

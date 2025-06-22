@@ -260,6 +260,56 @@ public class SpellManager {
             "MYTHIC_DRAGON_PIERCER", 0.0
         ));
         spellsByClass.put("coolarcher", Collections.unmodifiableMap(coolMap));
+
+        // — PHOENIXHUNTER CLASS —
+        Map<String, Spell> phoenixMap = new HashMap<>();
+        phoenixMap.put("BASIC_ATTACK", new Spell(
+            "blazing_feathers",
+            "Blazing Feathers",
+            "BASIC_ATTACK",
+            0.0,
+            1,
+            1,
+            WeaponType.BOW.getMaterials(),
+            "MYTHIC_BLAZING_FEATHERS",
+            0.0
+        ));
+        phoenixMap.put("LRL", new Spell(
+            "ashdance", "Ashdance", "LRL",
+            6.0,
+            0, 3,
+            WeaponType.BOW.getMaterials(),
+            "MYTHIC_ASHDANCE", 0.0
+        ));
+        phoenixMap.put("LRR", new Spell(
+            "flameburst_convergence", "Flameburst Convergence", "LRR",
+            8.0,
+            0, 5,
+            WeaponType.BOW.getMaterials(),
+            "MYTHIC_FLAMEBURST_CONVERGENCE", 0.0
+        ));
+        phoenixMap.put("LLR", new Spell(
+            "phoenix_totem", "Phoenix Totem", "LLR",
+            10.0,
+            0, 8,
+            WeaponType.BOW.getMaterials(),
+            "MYTHIC_PHOENIX_TOTEM", 0.0
+        ));
+        phoenixMap.put("LLL", new Spell(
+            "pyroclasmic_barrage", "Pyroclasmic Barrage", "LLL",
+            12.0,
+            0, 10,
+            WeaponType.BOW.getMaterials(),
+            "MYTHIC_PYROCLASMIC_BARRAGE", 0.0
+        ));
+        phoenixMap.put("RRR", new Spell(
+            "phoenix_rebirth", "Phoenix Rebirth", "RRR",
+            20.0,
+            0, 15,
+            WeaponType.BOW.getMaterials(),
+            "MYTHIC_PHOENIX_REBIRTH", 0.0
+        ));
+        spellsByClass.put("phoenixhunter", Collections.unmodifiableMap(phoenixMap));
     }
 
 }
