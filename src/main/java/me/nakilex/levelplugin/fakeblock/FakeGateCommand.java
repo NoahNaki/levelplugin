@@ -94,6 +94,38 @@ public class FakeGateCommand implements CommandExecutor, Listener {
                     player.sendMessage(ChatColor.RED + "Gate not found.");
                 }
                 return true;
+            case "open":
+                if (args.length < 2) return false;
+                Player target = player;
+                if (args.length > 2) {
+                    target = Bukkit.getPlayer(args[2]);
+                    if (target == null) {
+                        player.sendMessage(ChatColor.RED + "Player not found.");
+                        return true;
+                    }
+                }
+                if (manager.openGate(target, args[1])) {
+                    player.sendMessage(ChatColor.YELLOW + "Gate " + args[1] + " opened for " + target.getName() + ".");
+                } else {
+                    player.sendMessage(ChatColor.RED + "Gate not found.");
+                }
+                return true;
+            case "close":
+                if (args.length < 2) return false;
+                target = player;
+                if (args.length > 2) {
+                    target = Bukkit.getPlayer(args[2]);
+                    if (target == null) {
+                        player.sendMessage(ChatColor.RED + "Player not found.");
+                        return true;
+                    }
+                }
+                if (manager.closeGate(target, args[1])) {
+                    player.sendMessage(ChatColor.YELLOW + "Gate " + args[1] + " closed for " + target.getName() + ".");
+                } else {
+                    player.sendMessage(ChatColor.RED + "Gate not found.");
+                }
+                return true;
             case "remove":
                 if (args.length < 2) return false;
                 if (manager.removeGate(args[1])) {

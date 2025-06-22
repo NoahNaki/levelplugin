@@ -27,3 +27,17 @@ gates:
     closed: true
     animation: ELEVATOR
     duration: 40
+  world_elevator:
+    world: flatland
+    pos1:
+      x: 4254
+      y: -33
+      z: -1214
+    pos2:
+      x: 4248
+      y: -29
+      z: -1214
+    block: ANDESITE_WALL
+    closed: true
+    animation: ELEVATOR
+    duration: 40
