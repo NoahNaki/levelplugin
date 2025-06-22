@@ -10,6 +10,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.entity.Player;
 
 import java.util.Arrays;
+import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 
 public class ClassMenu {
 
@@ -45,6 +46,7 @@ public class ClassMenu {
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
                 ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,
+                ChatColor.GRAY + "Requires Level: " + ChatColor.YELLOW + PlayerClass.WARRIOR.getRequiredLevel(),
                 "",
                 ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
             )));
@@ -71,6 +73,7 @@ public class ClassMenu {
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
                 ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,
+                ChatColor.GRAY + "Requires Level: " + ChatColor.YELLOW + PlayerClass.ARCHER.getRequiredLevel(),
                 "",
                 ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
             )));
@@ -93,6 +96,7 @@ public class ClassMenu {
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
                 ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,
+                ChatColor.GRAY + "Requires Level: " + ChatColor.YELLOW + PlayerClass.COOLARCHER.getRequiredLevel(),
                 "",
                 ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
             )));
@@ -117,6 +121,7 @@ public class ClassMenu {
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
                 ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,
+                ChatColor.GRAY + "Requires Level: " + ChatColor.YELLOW + PlayerClass.PHOENIXHUNTER.getRequiredLevel(),
                 "",
                 ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
             )));
@@ -143,6 +148,7 @@ public class ClassMenu {
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
                 ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,
+                ChatColor.GRAY + "Requires Level: " + ChatColor.YELLOW + PlayerClass.MAGE.getRequiredLevel(),
                 "",
                 ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
             )));
@@ -169,6 +175,7 @@ public class ClassMenu {
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
                 ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,
+                ChatColor.GRAY + "Requires Level: " + ChatColor.YELLOW + PlayerClass.ROGUE.getRequiredLevel(),
                 "",
                 ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
             )));

@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.spells;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.runes.manager.RunesManager;
 import me.nakilex.levelplugin.runes.model.Rune;
 import me.nakilex.levelplugin.runes.model.RuneEffect;
@@ -96,6 +97,14 @@ public class Spell {
      */
     public void castEffect(Player player) {
         UUID pid = player.getUniqueId();
+
+        // 0) Level requirement
+        int playerLevel = me.nakilex.levelplugin.player.level.managers.LevelManager
+                .getInstance().getLevel(player);
+        if (playerLevel < levelReq) {
+            player.sendMessage("§cYou must be level " + levelReq + " to cast " + displayName);
+            return;
+        }
 
         // 1) Cooldown guard
         if (cooldownMgr.isOnCooldown(pid, id)) {

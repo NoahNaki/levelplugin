@@ -57,6 +57,12 @@ public class ClassMenuListener implements Listener {
             UUID puuid = player.getUniqueId();
 
             int level = LevelManager.getInstance().getLevel(player);
+
+            if (level < selectedClass.getRequiredLevel()) {
+                player.sendMessage(ChatColor.RED + "You must reach level " + selectedClass.getRequiredLevel() + " to select this class.");
+                return;
+            }
+
             PlayerClass current = StatsManager.getInstance().getPlayerStats(puuid).playerClass;
             int cost = current == PlayerClass.VILLAGER ? 0 : level * 50;
             if (cost > 0) {
