@@ -197,8 +197,9 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
                                         // Compute offset inside the office elevator
                                         Location originMin = new Location(e.getTo().getWorld(), minX, 142, minZ);
                                         Location destMin = new Location(Bukkit.getWorld("flatland"), 4249, -33, -1212);
+                                        World destWorld = destMin.getWorld();
 
-                                        if (destMin.getWorld() != null) {
+                                        if (destWorld != null) {
                                             Location dest = destMin.clone().add(
                                                     cur.getX() - originMin.getX(),
                                                     cur.getY() - originMin.getY(),
