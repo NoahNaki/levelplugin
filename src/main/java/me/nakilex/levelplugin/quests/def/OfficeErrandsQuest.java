@@ -78,13 +78,15 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
         };
 
         talkListener[0] = new Listener() {
-            @org.bukkit.event.EventHandler
+            @org.bukkit.event.EventHandler(priority = org.bukkit.event.EventPriority.LOWEST)
             public void onInteract(PlayerInteractEntityEvent event) {
                 if (!event.getPlayer().equals(player)) return;
                 if (event.getHand() == EquipmentSlot.OFF_HAND) return;
                 if (!CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked())) return;
                 NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
                 if (npc.getId() != 516) return;
+
+                event.setCancelled(true);
 
                 if (idx[0] >= lines.length) {
                     event.setCancelled(true);
@@ -126,55 +128,57 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
                 if (to.getBlockX() >= minX && to.getBlockX() <= maxX && to.getBlockZ() >= minZ && to.getBlockZ() <= maxZ) {
                     HandlerList.unregisterAll(this);
 
-                    gates.closeGate(player, gateId); // close immediately
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                        gates.closeGate(player, gateId);
 
-                    World rWorld = Bukkit.getWorld("redrocks");
-                    if (rWorld == null) return;
-                    org.bukkit.Location lampLoc = new org.bukkit.Location(rWorld, 29, -148, -93);
+                        World rWorld = Bukkit.getWorld("redrocks");
+                        if (rWorld == null) return;
+                        org.bukkit.Location lampLoc = new org.bukkit.Location(rWorld, 29, 148, -94);
 
-                    var fbm = plugin.getFakeBlockManager();
-                    org.bukkit.block.data.Lightable off = (org.bukkit.block.data.Lightable) org.bukkit.Material.REDSTONE_LAMP.createBlockData();
-                    off.setLit(false);
-                    org.bukkit.block.data.Lightable on = (org.bukkit.block.data.Lightable) org.bukkit.Material.REDSTONE_LAMP.createBlockData();
-                    on.setLit(true);
+                        var fbm = plugin.getFakeBlockManager();
+                        org.bukkit.block.data.Lightable off = (org.bukkit.block.data.Lightable) org.bukkit.Material.REDSTONE_LAMP.createBlockData();
+                        off.setLit(false);
+                        org.bukkit.block.data.Lightable on = (org.bukkit.block.data.Lightable) org.bukkit.Material.REDSTONE_LAMP.createBlockData();
+                        on.setLit(true);
 
-                    new org.bukkit.scheduler.BukkitRunnable() {
-                        int ticks = 0;
-                        boolean lit = false;
+                        new org.bukkit.scheduler.BukkitRunnable() {
+                            int ticks = 0;
+                            boolean lit = false;
 
-                        @Override
-                        public void run() {
-                            lit = !lit;
-                            fbm.showFakeBlock(player, lampLoc, lit ? on : off);
-                            ticks += 10;
-                            if (ticks >= 200) {
-                                cancel();
-                                fbm.hideFakeBlock(player, lampLoc);
+                            @Override
+                            public void run() {
+                                lit = !lit;
+                                fbm.showFakeBlock(player, lampLoc, lit ? on : off);
+                                ticks += 10;
+                                if (ticks >= 200) {
+                                    cancel();
+                                    fbm.hideFakeBlock(player, lampLoc);
 
-                                player.sendMessage(ChatColor.GRAY + "[1/1] " + player.getName() + ChatColor.WHITE + ": Huh that's weird, the elevator light's flickering.");
+                                    player.sendMessage(ChatColor.GRAY + "[1/1] " + player.getName() + ChatColor.WHITE + ": Huh that's weird, the elevator light's flickering.");
 
-                                Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                                    org.bukkit.Location cur = player.getLocation();
+                                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                                        org.bukkit.Location cur = player.getLocation();
 
-                                    // Compute offset inside elevator region
-                                    double offX = cur.getX() - minX;
-                                    double offY = cur.getY() - 142;
-                                    double offZ = cur.getZ() - minZ;
+                                        // Compute offset inside elevator region
+                                        double offX = cur.getX() - minX;
+                                        double offY = cur.getY() - 142;
+                                        double offZ = cur.getZ() - minZ;
 
-                                    int newMinX = 4249;
-                                    int newMinY = -33;
-                                    int newMinZ = -1212;
+                                        int newMinX = 4249;
+                                        int newMinY = -33;
+                                        int newMinZ = -1212;
 
-                                    org.bukkit.World destWorld = Bukkit.getWorld("flatland");
-                                    if (destWorld != null) {
-                                        org.bukkit.Location dest = new org.bukkit.Location(destWorld, newMinX + offX, newMinY + offY, newMinZ + offZ, cur.getYaw(), cur.getPitch());
-                                        player.teleport(dest);
-                                        plugin.getQuestManager().handleTalk(player, "npc516");
-                                    }
-                                }, 40L);
+                                        org.bukkit.World destWorld = Bukkit.getWorld("flatland");
+                                        if (destWorld != null) {
+                                            org.bukkit.Location dest = new org.bukkit.Location(destWorld, newMinX + offX, newMinY + offY, newMinZ + offZ, cur.getYaw(), cur.getPitch());
+                                            player.teleport(dest);
+                                            plugin.getQuestManager().handleTalk(player, "npc516");
+                                        }
+                                    }, 40L);
+                                }
                             }
-                        }
-                    }.runTaskTimer(plugin, 0L, 10L);
+                        }.runTaskTimer(plugin, 0L, 10L);
+                    }, 40L);
                 }
             }
         };
