@@ -66,7 +66,8 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
         }, 40L);
 
         // Listen for talking to the Janitor (NPC 516)
-        Listener talkListener = new Listener() {
+        final Listener[] talkListener = new Listener[1];
+        talkListener[0] = new Listener() {
             private boolean done = false;
 
             @org.bukkit.event.EventHandler
@@ -96,7 +97,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
                         if (!player.isOnline()) { cancel(); return; }
                         if (idx >= lines.length) {
                             gates.openGate(player, gateId);
-                            HandlerList.unregisterAll(talkListener);
+                            HandlerList.unregisterAll(talkListener[0]);
                             cancel();
                             return;
                         }
@@ -106,7 +107,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
                 }.runTaskTimer(plugin, 0L, 40L);
             }
         };
-        Bukkit.getPluginManager().registerEvents(talkListener, plugin);
+        Bukkit.getPluginManager().registerEvents(talkListener[0], plugin);
 
         // After speaking with the Janitor, detect when the player enters the elevator
         Listener moveListener = new Listener() {
