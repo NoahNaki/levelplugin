@@ -182,9 +182,9 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
                                         double offY = cur.getY() - 142;
                                         double offZ = cur.getZ() - minZ;
 
-                                        int newMinX = 4249;
-                                        int newMinY = -33;
-                                        int newMinZ = -1212;
+                                        int newMinX = 4248;
+                                        int newMinY = -34;
+                                        int newMinZ = -1214;
 
                                         org.bukkit.World destWorld = Bukkit.getWorld("flatland");
                                         if (destWorld != null) {
@@ -196,10 +196,11 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
                                                 fbm.showFakeBlocks(player, worldElevatorBlocks);
                                             }
 
-                                            gates.closeGate(player, worldGateId);
+                                            // Ensure the world elevator appears closed immediately
+                                            gates.updatePlayer(player);
                                             Bukkit.getScheduler().runTaskLater(plugin,
                                                     () -> gates.openGate(player, worldGateId),
-                                                    40L);
+                                                    60L);
 
                                             Listener exitListener = new Listener() {
                                                 @org.bukkit.event.EventHandler
