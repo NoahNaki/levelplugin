@@ -56,6 +56,23 @@ public class SpellGUI {
         SPELL_DESCRIPTIONS.put("phoenix_rebirth", "Transform into a phoenix to scorch foes.");
     }
 
+    /** Simple usage hints for non-combo based spells. */
+    private static final Map<String, String> SPELL_USAGE = new HashMap<>();
+    static {
+        SPELL_USAGE.put("quick_shot", "Left Click");
+        SPELL_USAGE.put("backstep", "Right Click");
+        SPELL_USAGE.put("windrazor", "Sneak");
+        SPELL_USAGE.put("arrow_barrage", "Sneak + Right Click");
+        SPELL_USAGE.put("dragon_piercer", "Sneak + Left Click");
+
+        SPELL_USAGE.put("blazing_feathers", "Left Click");
+        SPELL_USAGE.put("ashdance", "Right Click");
+        SPELL_USAGE.put("flameburst_convergence", "Sneak");
+        SPELL_USAGE.put("phoenix_totem", "Passive");
+        SPELL_USAGE.put("pyroclasmic_barrage", "Sneak + Right Click");
+        SPELL_USAGE.put("phoenix_rebirth", "Sneak + Left Click");
+    }
+
     // The slots where we will place the spells in a 27-slot inventory.
     private static final int[] SPELL_SLOTS = { 10, 12, 14, 16, 22 };
 
@@ -145,9 +162,16 @@ public class SpellGUI {
         String spellName = spell.getDisplayName();
         meta.setDisplayName(unlocked ? ChatColor.GREEN + spellName : ChatColor.RED + spellName);
 
-        // Build the lore with combo, mana cost, and level requirement.
+        // Build the lore with usage info and level requirement.
         List<String> lore = new ArrayList<>();
-        lore.add(ChatColor.GRAY + "Combo: " + ChatColor.YELLOW + spell.getCombo());
+
+        String usage = SPELL_USAGE.get(spell.getId());
+        if (usage == null) {
+            usage = spell.getCombo().replace("L", "Left").replace("R", "Right");
+        }
+
+        lore.add(ChatColor.GRAY + "Usage: " + ChatColor.YELLOW + usage);
+        lore.add(ChatColor.GRAY + "Required Level: " + ChatColor.YELLOW + spell.getLevelReq());
 
         if (unlocked) {
             lore.add(ChatColor.DARK_GRAY + "" + ChatColor.STRIKETHROUGH + "--------------------");

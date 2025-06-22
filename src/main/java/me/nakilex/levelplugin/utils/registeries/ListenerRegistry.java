@@ -40,6 +40,7 @@ import me.nakilex.levelplugin.salvage.listeners.SalvageListener;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
 import me.nakilex.levelplugin.spells.ArcherSpell;
+import me.nakilex.levelplugin.spells.CoolArcherSpell;
 import me.nakilex.levelplugin.spells.RogueSpell;
 import me.nakilex.levelplugin.spells.PhoenixHunterSpell;
 import me.nakilex.levelplugin.spells.gui.SpellGUIListener;
@@ -150,6 +151,7 @@ public class ListenerRegistry {
         pm.registerEvents(new MeteorListener(), plugin);
         pm.registerEvents(new ShockwaveListener(), plugin);
         pm.registerEvents(new ArcherSpell(), plugin);
+        pm.registerEvents(new CoolArcherSpell(), plugin);
         pm.registerEvents(new PhoenixHunterSpell(), plugin);
         pm.registerEvents(new ChestHologramListener(lootChestManager), plugin);
         pm.registerEvents(new LootChestShutdownListener(plugin, lootChestManager), plugin);
