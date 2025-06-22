@@ -200,7 +200,9 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
                                         double offZ = cur.getZ() - minZ;
 
                                         int newMinX = 4248;
-                                        int newMinY = -33;
+                                        // Spawn slightly above the captured floor
+                                        // to avoid clipping or falling through
+                                        int newMinY = -32;
                                         int newMinZ = -1214;
 
                                         org.bukkit.World destWorld = Bukkit.getWorld("flatland");
