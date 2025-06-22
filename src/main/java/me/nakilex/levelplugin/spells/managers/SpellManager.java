@@ -297,8 +297,8 @@ public class SpellManager {
         ));
         phoenixMap.put("LLR", new Spell(
             "phoenix_totem", "Phoenix Totem", "LLR",
-            10.0,
-            0, 1,
+            0.0,
+            0, 0,
             WeaponType.BOW.getMaterials(),
             "MYTHIC_PHOENIX_TOTEM", 0.0
         ));
