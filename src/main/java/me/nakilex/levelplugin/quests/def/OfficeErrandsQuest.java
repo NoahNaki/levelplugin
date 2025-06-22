@@ -29,6 +29,8 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
 
     /** Cached block data for the destination elevator structure. */
     private Map<Location, BlockData> worldElevatorBlocks;
+    /** Map of the destination elevator area replaced with air for hiding. */
+    private Map<Location, BlockData> worldElevatorAir;
 
     private static List<QuestObjective> createObjectives() {
         World world = Bukkit.getWorld("redrocks");
@@ -84,6 +86,11 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
             removeArea(worldElevatorBlocks,
                     4248, -33, -1214,
                     4254, -29, -1214);
+            worldElevatorAir = new HashMap<>();
+            BlockData air = org.bukkit.Material.AIR.createBlockData();
+            for (Location l : worldElevatorBlocks.keySet()) {
+                worldElevatorAir.put(l, air);
+            }
         }
 
         // After blindness wears off, send initial dialog line
@@ -193,7 +200,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
                                         double offZ = cur.getZ() - minZ;
 
                                         int newMinX = 4248;
-                                        int newMinY = -34;
+                                        int newMinY = -33;
                                         int newMinZ = -1214;
 
                                         org.bukkit.World destWorld = Bukkit.getWorld("flatland");
@@ -222,8 +229,8 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
                                                             || l.getBlockY() < -34 || l.getBlockY() > -27
                                                             || l.getBlockZ() < -1214 || l.getBlockZ() > -1207) {
                                                         HandlerList.unregisterAll(this);
-                                                        if (worldElevatorBlocks != null) {
-                                                            fbm.hideFakeBlocks(player, worldElevatorBlocks.keySet());
+                                                        if (worldElevatorAir != null) {
+                                                            fbm.showFakeBlocks(player, worldElevatorAir);
                                                         }
                                                     }
                                                 }
