@@ -75,6 +75,27 @@ public class ClassMenu {
                 ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
             )));
 
+        // CoolArcher test class (using crossbow as icon)
+        inv.setItem(13, createMenuItem(Material.CROSSBOW, ChatColor.AQUA + "" + ChatColor.BOLD + "Start As A CoolArcher!",
+            Arrays.asList(
+                "",
+                ChatColor.GRAY + "A special testing class using MythicMobs skills.",
+                "",
+                ChatColor.RED + "" + ChatColor.BOLD + "ABILITY 1:",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Backstep " + ChatColor.GRAY + "(Combo: LRL)",
+                ChatColor.YELLOW + "" + ChatColor.BOLD + "ABILITY 2:",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Windrazor " + ChatColor.GRAY + "(Combo: LRR)",
+                ChatColor.BLUE + "" + ChatColor.BOLD + "ABILITY 3:",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Arrow Barrage " + ChatColor.GRAY + "(Combo: LLR)",
+                ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "ABILITY 4:",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Dragon Piercer " + ChatColor.GRAY + "(Combo: LLL)",
+                "",
+                ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
+                ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,
+                "",
+                ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
+            )));
+
         // Mage (using stick as icon)
         inv.setItem(14, createMenuItem(Material.STICK, ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "Start As A Mage!",
             Arrays.asList(

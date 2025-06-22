@@ -44,6 +44,7 @@ public class ClassMenuListener implements Listener {
         switch (displayName.toUpperCase()) {
             case "START AS A WARRIOR!": selectedClass = PlayerClass.WARRIOR; className = "Warrior"; break;
             case "START AS AN ARCHER!": selectedClass = PlayerClass.ARCHER;  className = "Archer";  break;
+            case "START AS A COOLARCHER!": selectedClass = PlayerClass.COOLARCHER; className = "CoolArcher"; break;
             case "START AS A MAGE!":    selectedClass = PlayerClass.MAGE;    className = "Mage";    break;
             case "START AS A ROGUE!":   selectedClass = PlayerClass.ROGUE;   className = "Rogue";   break;
             default:
@@ -69,7 +70,9 @@ public class ClassMenuListener implements Listener {
             // ✅ Set class directly into StatsManager like old version
             StatsManager.getInstance().getPlayerStats(puuid).playerClass = selectedClass;
 
-            boolean canDJ = (selectedClass == PlayerClass.ARCHER || selectedClass == PlayerClass.ROGUE);
+            boolean canDJ = (selectedClass == PlayerClass.ARCHER
+                    || selectedClass == PlayerClass.ROGUE
+                    || selectedClass == PlayerClass.COOLARCHER);
             player.setAllowFlight(canDJ);
             if (!canDJ) {
                 player.setFlying(false);

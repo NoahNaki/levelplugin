@@ -41,6 +41,12 @@ public class SpellGUI {
         SPELL_DESCRIPTIONS.put("bow_drone",   "Summon a sentry that shoots enemies.");
         SPELL_DESCRIPTIONS.put("grapple_hook",      "Grapple to surfaces for mobility.");
         SPELL_DESCRIPTIONS.put("arrow_storm",       "Rain down a storm of arrows.");
+
+        SPELL_DESCRIPTIONS.put("quick_shot",      "Fire a quick empowered arrow.");
+        SPELL_DESCRIPTIONS.put("backstep",        "Leap backwards to evade foes.");
+        SPELL_DESCRIPTIONS.put("windrazor",       "Surround yourself with slicing wind.");
+        SPELL_DESCRIPTIONS.put("arrow_barrage",   "Rapidly fire a volley of arrows.");
+        SPELL_DESCRIPTIONS.put("dragon_piercer",  "Launch a devastating dragon arrow.");
     }
 
     // The slots where we will place the spells in a 27-slot inventory.

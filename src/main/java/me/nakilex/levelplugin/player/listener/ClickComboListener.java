@@ -148,7 +148,7 @@ public class ClickComboListener implements Listener {
         String activeCombo = getActiveCombo(player);
 
         // —— Archer bow logic ——
-        if ("archer".equals(className) &&
+        if (("archer".equals(className) || "coolarcher".equals(className)) &&
             me.nakilex.levelplugin.items.data.WeaponType.BOW
                 .getMaterials().contains(mainHand.getType())) {
             if (!activeCombo.isEmpty()) {
@@ -189,7 +189,7 @@ public class ClickComboListener implements Listener {
                 .getMaterials().contains(bow.getType())) return;
 
         PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
-        if (ps.playerClass != PlayerClass.ARCHER) return;
+        if (ps.playerClass != PlayerClass.ARCHER && ps.playerClass != PlayerClass.COOLARCHER) return;
 
         String activeCombo = getActiveCombo(player);
         event.setConsumeItem(false);

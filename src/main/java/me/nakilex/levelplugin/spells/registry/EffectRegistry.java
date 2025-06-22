@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.spells.registry;
 import me.nakilex.levelplugin.spells.ArcherSpell;
 import me.nakilex.levelplugin.spells.effect.SpellEffect;
 import me.nakilex.levelplugin.spells.effect.archer.*;
+import me.nakilex.levelplugin.spells.effect.MythicSkillEffect;
 import me.nakilex.levelplugin.spells.effect.mage.*;
 import me.nakilex.levelplugin.spells.effect.warrior.*;
 import me.nakilex.levelplugin.spells.effect.rogue.*;
@@ -65,6 +66,13 @@ public class EffectRegistry {
         register("ARROW_STORM", new ArrowStormEffect());
         register("ARROW_SHOWER_EFFECT", new ArrowShowerEffect());
         register("EXPLOSIVE_ARROW", new ExplosiveArrowShotEffect());
+
+        // --- CoolArcher Mythic skills ---
+        register("MYTHIC_QUICK_SHOT", new MythicSkillEffect("Quick_Shot"));
+        register("MYTHIC_BACKSTEP", new MythicSkillEffect("Backstep"));
+        register("MYTHIC_WINDRAZOR", new MythicSkillEffect("Windrazor"));
+        register("MYTHIC_ARROW_BARRAGE", new MythicSkillEffect("Arrow_Barrage"));
+        register("MYTHIC_DRAGON_PIERCER", new MythicSkillEffect("Dragon_Piercer"));
 
         // --- Warrior Spells
         register("IRON_FORTRESS", new IronFortressEffect());

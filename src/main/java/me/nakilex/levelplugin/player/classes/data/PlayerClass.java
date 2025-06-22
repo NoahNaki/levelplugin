@@ -5,5 +5,6 @@ public enum PlayerClass {
     WARRIOR,
     ROGUE,
     ARCHER,
+    COOLARCHER,
     MAGE
 }

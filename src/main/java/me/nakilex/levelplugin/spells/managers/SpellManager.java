@@ -217,6 +217,49 @@ public class SpellManager {
             "ARROW_STORM", 0.5
         ));
         spellsByClass.put("archer", Collections.unmodifiableMap(archerMap));
+
+        // — COOLARCHER TEST CLASS —
+        Map<String, Spell> coolMap = new HashMap<>();
+        coolMap.put("BASIC_ATTACK", new Spell(
+            "quick_shot",
+            "Quick Shot",
+            "BASIC_ATTACK",
+            0.0,
+            1,
+            1,
+            WeaponType.BOW.getMaterials(),
+            "MYTHIC_QUICK_SHOT",
+            0.0
+        ));
+        coolMap.put("LRL", new Spell(
+            "backstep", "Backstep", "LRL",
+            5.0,
+            0, 3,
+            WeaponType.BOW.getMaterials(),
+            "MYTHIC_BACKSTEP", 0.0
+        ));
+        coolMap.put("LRR", new Spell(
+            "windrazor", "Windrazor", "LRR",
+            8.0,
+            0, 5,
+            WeaponType.BOW.getMaterials(),
+            "MYTHIC_WINDRAZOR", 0.0
+        ));
+        coolMap.put("LLR", new Spell(
+            "arrow_barrage", "Arrow Barrage", "LLR",
+            12.0,
+            0, 10,
+            WeaponType.BOW.getMaterials(),
+            "MYTHIC_ARROW_BARRAGE", 0.0
+        ));
+        coolMap.put("LLL", new Spell(
+            "dragon_piercer", "Dragon Piercer", "LLL",
+            15.0,
+            0, 12,
+            WeaponType.BOW.getMaterials(),
+            "MYTHIC_DRAGON_PIERCER", 0.0
+        ));
+        spellsByClass.put("coolarcher", Collections.unmodifiableMap(coolMap));
     }
 
 }

@@ -41,9 +41,11 @@ public class PlayerClassManager {
         setPlayerClass(player.getUniqueId(), playerClass);
 
         // Update flight permission based on the new class.
-        // If the new class is ARCHER, allow flight; otherwise, disable it.
+        // Archers, Rogues and our test CoolArcher can double jump (flight). Other classes cannot.
         if (player.getGameMode() != GameMode.CREATIVE) {
-            if (playerClass == PlayerClass.ARCHER) {
+            if (playerClass == PlayerClass.ARCHER
+                    || playerClass == PlayerClass.ROGUE
+                    || playerClass == PlayerClass.COOLARCHER) {
                 player.setAllowFlight(true);
             } else {
                 player.setAllowFlight(false);
