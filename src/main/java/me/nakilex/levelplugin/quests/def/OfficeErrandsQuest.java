@@ -67,7 +67,6 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
         // Apply blindness and close the elevator gate
         player.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.BLINDNESS, 40, 0, false, false, false));
         gates.closeGate(player, gateId);
-        gates.closeGate(player, worldGateId);
 
         World flat = Bukkit.getWorld("flatland");
         if (flat != null && worldElevatorBlocks == null) {
