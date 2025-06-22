@@ -6,6 +6,7 @@ import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.Sound;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
@@ -70,6 +71,7 @@ public class NPCDialogManager {
                 + ChatColor.GREEN + session.npc.getName()
                 + ChatColor.WHITE + ": " + line;
         player.sendMessage(msg);
+        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
         session.index++;
     }
 

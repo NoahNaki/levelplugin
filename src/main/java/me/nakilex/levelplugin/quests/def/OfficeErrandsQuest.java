@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.quests.def;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.fakeblock.QuestGateManager;
+import me.nakilex.levelplugin.fakeblock.FakeBlockManager;
 import me.nakilex.levelplugin.quests.data.*;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -15,12 +16,18 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.block.data.BlockData;
+import java.util.Map;
+import java.util.HashMap;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 
 import java.util.List;
 
 public class OfficeErrandsQuest extends Quest implements QuestScript {
+
+    /** Cached block data for the destination elevator structure. */
+    private Map<Location, BlockData> worldElevatorBlocks;
 
     private static List<QuestObjective> createObjectives() {
         World world = Bukkit.getWorld("redrocks");
@@ -54,10 +61,19 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
 
         QuestGateManager gates = plugin.getQuestGateManager();
         String gateId = "office_elevator";
+        String worldGateId = "world_elevator";
 
         // Apply blindness and close the elevator gate
         player.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.BLINDNESS, 40, 0, false, false, false));
         gates.closeGate(player, gateId);
+        gates.closeGate(player, worldGateId);
+
+        World flat = Bukkit.getWorld("flatland");
+        if (flat != null && worldElevatorBlocks == null) {
+            worldElevatorBlocks = captureArea(flat,
+                    4248, -34, -1214,
+                    4254, -27, -1207);
+        }
 
         // After blindness wears off, send initial dialog line
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
@@ -135,7 +151,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
                         if (rWorld == null) return;
                         org.bukkit.Location lampLoc = new org.bukkit.Location(rWorld, 29, 148, -94);
 
-                        var fbm = plugin.getFakeBlockManager();
+                        FakeBlockManager fbm = plugin.getFakeBlockManager();
                         org.bukkit.block.data.Lightable off = (org.bukkit.block.data.Lightable) org.bukkit.Material.REDSTONE_LAMP.createBlockData();
                         off.setLit(false);
                         org.bukkit.block.data.Lightable on = (org.bukkit.block.data.Lightable) org.bukkit.Material.REDSTONE_LAMP.createBlockData();
@@ -172,6 +188,33 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
                                         if (destWorld != null) {
                                             org.bukkit.Location dest = new org.bukkit.Location(destWorld, newMinX + offX, newMinY + offY, newMinZ + offZ, cur.getYaw(), cur.getPitch());
                                             player.teleport(dest);
+
+                                            FakeBlockManager fbm = plugin.getFakeBlockManager();
+                                            if (worldElevatorBlocks != null) {
+                                                fbm.showFakeBlocks(player, worldElevatorBlocks);
+                                            }
+
+                                            Bukkit.getScheduler().runTaskLater(plugin, () ->
+                                                    gates.openGate(player, worldGateId), 40L);
+
+                                            Listener exitListener = new Listener() {
+                                                @org.bukkit.event.EventHandler
+                                                public void onMove(PlayerMoveEvent ev) {
+                                                    if (!ev.getPlayer().equals(player)) return;
+                                                    Location l = ev.getTo();
+                                                    if (!l.getWorld().equals(destWorld)
+                                                            || l.getBlockX() < 4248 || l.getBlockX() > 4254
+                                                            || l.getBlockY() < -34 || l.getBlockY() > -27
+                                                            || l.getBlockZ() < -1214 || l.getBlockZ() > -1207) {
+                                                        HandlerList.unregisterAll(this);
+                                                        if (worldElevatorBlocks != null) {
+                                                            fbm.hideFakeBlocks(player, worldElevatorBlocks.keySet());
+                                                        }
+                                                    }
+                                                }
+                                            };
+                                            Bukkit.getPluginManager().registerEvents(exitListener, plugin);
+
                                             plugin.getQuestManager().handleTalk(player, "npc516");
                                         }
                                     }, 40L);
@@ -183,5 +226,27 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
             }
         };
         Bukkit.getPluginManager().registerEvents(moveListener, plugin);
+    }
+
+    /** Capture block data from the destination elevator region for reuse. */
+    private Map<Location, BlockData> captureArea(World world,
+                                                 int x1, int y1, int z1,
+                                                 int x2, int y2, int z2) {
+        int minX = Math.min(x1, x2);
+        int maxX = Math.max(x1, x2);
+        int minY = Math.min(y1, y2);
+        int maxY = Math.max(y1, y2);
+        int minZ = Math.min(z1, z2);
+        int maxZ = Math.max(z1, z2);
+        Map<Location, BlockData> map = new HashMap<>();
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    Location l = new Location(world, x, y, z);
+                    map.put(l, l.getBlock().getBlockData());
+                }
+            }
+        }
+        return map;
     }
 }
