@@ -73,6 +73,7 @@ public class EffectRegistry {
         register("MYTHIC_WINDRAZOR", new MythicSkillEffect("Windrazor"));
         register("MYTHIC_ARROW_BARRAGE", new MythicSkillEffect("Arrow_Barrage"));
         register("MYTHIC_DRAGON_PIERCER", new MythicSkillEffect("Dragon_Piercer"));
+        register("MYTHIC_DEADLY_JAVELIN", new MythicSkillEffect("Deadly_Javelin"));
 
         // --- PhoenixHunter Mythic skills ---
         register("MYTHIC_BLAZING_FEATHERS", new MythicSkillEffect("Blazing_Feathers"));

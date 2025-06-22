@@ -3,6 +3,8 @@ package me.nakilex.levelplugin.spells;
 import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import me.nakilex.levelplugin.spells.Spell;
+import me.nakilex.levelplugin.spells.managers.SpellManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -32,7 +34,7 @@ public class PhoenixHunterSpell implements Listener {
                         ItemStack item = p.getInventory().getItemInMainHand();
                         if (item != null && VALID_WEAPONS.contains(item.getType())) {
                             MythicBukkit.inst().getAPIHelper().castSkill(p, "Flameborn");
-                            MythicBukkit.inst().getAPIHelper().castSkill(p, "Phoenix_Totem");
+                            castSpell(p, "LLR"); // Phoenix Totem passive
                         }
                     }
                 }
@@ -55,9 +57,9 @@ public class PhoenixHunterSpell implements Listener {
         if (!isPhoenixHunter(player) || !validWeapon(player)) return;
 
         if (player.isSneaking()) {
-            MythicBukkit.inst().getAPIHelper().castSkill(player, "Phoenix_Rebirth");
+            castSpell(player, "RRR"); // Phoenix Rebirth
         } else {
-            MythicBukkit.inst().getAPIHelper().castSkill(player, "Blazing_Feathers");
+            castSpell(player, "BASIC_ATTACK"); // Blazing Feathers
         }
     }
 
@@ -69,9 +71,9 @@ public class PhoenixHunterSpell implements Listener {
         if (!isPhoenixHunter(player) || !validWeapon(player)) return;
         event.setCancelled(true);
         if (player.isSneaking()) {
-            MythicBukkit.inst().getAPIHelper().castSkill(player, "Pyroclasmic_Barrage");
+            castSpell(player, "LLL"); // Pyroclasmic Barrage
         } else {
-            MythicBukkit.inst().getAPIHelper().castSkill(player, "Ashdance");
+            castSpell(player, "LRL"); // Ashdance
         }
     }
 
@@ -80,6 +82,25 @@ public class PhoenixHunterSpell implements Listener {
         if (!event.isSneaking()) return;
         Player player = event.getPlayer();
         if (!isPhoenixHunter(player) || !validWeapon(player)) return;
-        MythicBukkit.inst().getAPIHelper().castSkill(player, "Flameburst_Convergence");
+        castSpell(player, "LRR"); // Flameburst Convergence
+    }
+
+    private void castSpell(Player player, String combo) {
+        Spell spell = SpellManager.getInstance().getSpell("phoenixhunter", combo);
+        if (spell == null) {
+            MythicBukkit.inst().getAPIHelper().castSkill(player, combo);
+            return;
+        }
+        if (!spell.getAllowedWeapons().contains(player.getInventory().getItemInMainHand().getType())) {
+            player.sendMessage("§cYou must hold a valid phoenixhunter weapon!");
+            return;
+        }
+        int level = StatsManager.getInstance().getLevel(player);
+        if (level < spell.getLevelReq()) {
+            player.sendMessage("§cYou are not high enough level for " + spell.getDisplayName());
+            return;
+        }
+        spell.castEffect(player);
+        StatsManager.getInstance().recalcDerivedStats(player);
     }
 }

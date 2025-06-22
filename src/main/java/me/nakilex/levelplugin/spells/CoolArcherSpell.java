@@ -4,6 +4,8 @@ import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import me.nakilex.levelplugin.spells.Spell;
+import me.nakilex.levelplugin.spells.managers.SpellManager;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -40,9 +42,9 @@ public class CoolArcherSpell implements Listener {
         if (!isCoolArcher(player) || !validWeapon(player)) return;
 
         if (player.isSneaking()) {
-            MythicBukkit.inst().getAPIHelper().castSkill(player, "Deadly_Javelin");
+            castSpell(player, "RRR"); // Deadly Javelin
         } else {
-            MythicBukkit.inst().getAPIHelper().castSkill(player, "Quick_Shot");
+            castSpell(player, "BASIC_ATTACK"); // Quick Shot
         }
     }
 
@@ -55,9 +57,9 @@ public class CoolArcherSpell implements Listener {
         event.setCancelled(true);
 
         if (player.isSneaking()) {
-            MythicBukkit.inst().getAPIHelper().castSkill(player, "Dragon_Piercer");
+            castSpell(player, "LLL"); // Dragon Piercer
         } else {
-            MythicBukkit.inst().getAPIHelper().castSkill(player, "Backstep");
+            castSpell(player, "LRL"); // Backstep
         }
     }
 
@@ -66,6 +68,28 @@ public class CoolArcherSpell implements Listener {
         if (!event.isSneaking()) return;
         Player player = event.getPlayer();
         if (!isCoolArcher(player) || !validWeapon(player)) return;
-        MythicBukkit.inst().getAPIHelper().castSkill(player, "Arrow_Barrage");
+        castSpell(player, "LLR"); // Arrow Barrage
+    }
+
+    private void castSpell(Player player, String combo) {
+        Spell spell = SpellManager.getInstance().getSpell("coolarcher", combo);
+        if (spell == null) {
+            MythicBukkit.inst().getAPIHelper().castSkill(player, combo);
+            return;
+        }
+
+        // weapon check
+        if (!spell.getAllowedWeapons().contains(player.getInventory().getItemInMainHand().getType())) {
+            player.sendMessage("§cYou must hold a valid coolarcher weapon!");
+            return;
+        }
+        int level = StatsManager.getInstance().getLevel(player);
+        if (level < spell.getLevelReq()) {
+            player.sendMessage("§cYou are not high enough level for " + spell.getDisplayName());
+            return;
+        }
+
+        spell.castEffect(player);
+        StatsManager.getInstance().recalcDerivedStats(player);
     }
 }

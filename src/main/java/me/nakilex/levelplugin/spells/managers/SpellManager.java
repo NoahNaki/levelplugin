@@ -252,6 +252,13 @@ public class SpellManager {
             WeaponType.BOW.getMaterials(),
             "MYTHIC_ARROW_BARRAGE", 0.0
         ));
+        coolMap.put("RRR", new Spell(
+            "deadly_javelin", "Deadly Javelin", "RRR",
+            10.0,
+            0, 7,
+            WeaponType.BOW.getMaterials(),
+            "MYTHIC_DEADLY_JAVELIN", 0.0
+        ));
         coolMap.put("LLL", new Spell(
             "dragon_piercer", "Dragon Piercer", "LLL",
             15.0,
