@@ -194,20 +194,17 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
                                     Bukkit.getScheduler().runTaskLater(plugin, () -> {
                                         org.bukkit.Location cur = player.getLocation();
 
-                                        // Compute offset inside elevator region
-                                        double offX = cur.getX() - minX;
-                                        double offY = cur.getY() - 142;
-                                        double offZ = cur.getZ() - minZ;
+                                        // Compute offset inside the office elevator
+                                        Location originMin = new Location(e.getTo().getWorld(), minX, 142, minZ);
+                                        Location destMin = new Location(Bukkit.getWorld("flatland"), 4249, -33, -1212);
 
-                                        int newMinX = 4248;
-                                        // Spawn slightly above the captured floor
-                                        // to avoid clipping or falling through
-                                        int newMinY = -32;
-                                        int newMinZ = -1214;
-
-                                        org.bukkit.World destWorld = Bukkit.getWorld("flatland");
-                                        if (destWorld != null) {
-                                            org.bukkit.Location dest = new org.bukkit.Location(destWorld, newMinX + offX, newMinY + offY, newMinZ + offZ, cur.getYaw(), cur.getPitch());
+                                        if (destMin.getWorld() != null) {
+                                            Location dest = destMin.clone().add(
+                                                    cur.getX() - originMin.getX(),
+                                                    cur.getY() - originMin.getY(),
+                                                    cur.getZ() - originMin.getZ());
+                                            dest.setYaw(cur.getYaw());
+                                            dest.setPitch(cur.getPitch());
                                             player.teleport(dest);
 
                                             FakeBlockManager fbm = plugin.getFakeBlockManager();
@@ -219,7 +216,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
                                             gates.updatePlayer(player);
                                             Bukkit.getScheduler().runTaskLater(plugin,
                                                     () -> gates.openGate(player, worldGateId),
-                                                    40L);
+                                                    100L);
 
                                             Listener exitListener = new Listener() {
                                                 @org.bukkit.event.EventHandler
