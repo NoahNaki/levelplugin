@@ -15,7 +15,6 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.scheduler.BukkitRunnable;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 
@@ -67,44 +66,42 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
 
         // Listen for talking to the Janitor (NPC 516)
         final Listener[] talkListener = new Listener[1];
-        talkListener[0] = new Listener() {
-            private boolean done = false;
+        final int[] idx = {0};
+        final boolean[] dialogDone = {false};
+        final String[] lines = new String[] {
+                "Ilta|Took your time.",
+                "<player>|Didn't realize how late it was.",
+                "Ilta|Time’s slippery in places like this.",
+                "Ilta|One minute you’re working late… next minute, the building’s watching to see if you’ll notice it’s not quite the same as you left it.",
+                "<player>|What’s that supposed to mean?",
+                "Ilta|It means you're not leaving the same way you came in."
+        };
 
+        talkListener[0] = new Listener() {
             @org.bukkit.event.EventHandler
             public void onInteract(PlayerInteractEntityEvent event) {
-                if (done) return;
                 if (!event.getPlayer().equals(player)) return;
                 if (event.getHand() == EquipmentSlot.OFF_HAND) return;
                 if (!CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked())) return;
                 NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
                 if (npc.getId() != 516) return;
 
-                done = true;
-                plugin.getQuestManager().handleTalk(player, "npc516");
+                if (idx[0] >= lines.length) {
+                    event.setCancelled(true);
+                    return;
+                }
 
-                String[] lines = new String[] {
-                        "Ilta: Took your time.",
-                        player.getName() + ": Didn't realize how late it was.",
-                        "Ilta: Time’s slippery in places like this.",
-                        "Ilta: One minute you’re working late… next minute, the building’s watching to see if you’ll notice it’s not quite the same as you left it.",
-                        player.getName() + ": What’s that supposed to mean?",
-                        "Ilta: It means you're not leaving the same way you came in."
-                };
+                String[] parts = lines[idx[0]].split("\\|", 2);
+                String speaker = parts[0].equals("<player>") ? player.getName() : parts[0];
+                String msg = parts[1];
+                player.sendMessage(ChatColor.GRAY + "[" + (idx[0] + 1) + "/" + lines.length + "] " + ChatColor.YELLOW + speaker + ChatColor.WHITE + ": " + msg);
+                idx[0]++;
 
-                new BukkitRunnable() {
-                    int idx = 0;
-                    @Override public void run() {
-                        if (!player.isOnline()) { cancel(); return; }
-                        if (idx >= lines.length) {
-                            gates.openGate(player, gateId);
-                            HandlerList.unregisterAll(talkListener[0]);
-                            cancel();
-                            return;
-                        }
-                        player.sendMessage(ChatColor.GRAY + "[" + (idx + 1) + "/" + lines.length + "] " + ChatColor.WHITE + lines[idx]);
-                        idx++;
-                    }
-                }.runTaskTimer(plugin, 0L, 40L);
+                if (idx[0] >= lines.length) {
+                    dialogDone[0] = true;
+                    gates.openGate(player, gateId);
+                    HandlerList.unregisterAll(talkListener[0]);
+                }
             }
         };
         Bukkit.getPluginManager().registerEvents(talkListener[0], plugin);
@@ -117,8 +114,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
             public void onMove(PlayerMoveEvent e) {
                 if (!e.getPlayer().equals(player)) return;
                 if (!ready) {
-                    me.nakilex.levelplugin.quests.data.PlayerQuestProgress prog = plugin.getQuestManager().getProgress(player.getUniqueId());
-                    if (prog != null && prog.getQuest().getId().equals("officeerrands") && prog.getProgress(0) >= 1) {
+                    if (dialogDone[0]) {
                         ready = true;
                     } else {
                         return;
@@ -146,6 +142,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
                         if (destWorld != null) {
                             org.bukkit.Location dest = new org.bukkit.Location(destWorld, newMinX + offX, newMinY + offY, newMinZ + offZ, cur.getYaw(), cur.getPitch());
                             player.teleport(dest);
+                            plugin.getQuestManager().handleTalk(player, "npc516");
                         }
                     }, 40L);
                 }
