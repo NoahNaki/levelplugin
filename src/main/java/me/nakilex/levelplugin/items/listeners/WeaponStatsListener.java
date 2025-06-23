@@ -6,9 +6,11 @@ import me.nakilex.levelplugin.items.events.WeaponEquipEvent;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
-import me.nakilex.levelplugin.player.classes.data.PlayerClass;
-import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -23,7 +25,6 @@ import java.util.UUID;
 public class WeaponStatsListener implements Listener {
 
     private final StatsManager statsManager = StatsManager.getInstance();
-    private final PlayerClassManager classManager = PlayerClassManager.getInstance();
     private final ItemManager itemManager = ItemManager.getInstance();
 
     @EventHandler
@@ -58,7 +59,7 @@ public class WeaponStatsListener implements Listener {
 
                 if (!wasBroken) {
                     // Subtract its stats now
-                    removeWeaponStats(player, inst);
+                    removeWeaponStats(player, inst, oldWeap);
                     // Remove from the “equipped” set
                     equipped.remove(inst.getId());
                     // Unregister from holderMap so reduceDurability() can’t find it later
@@ -92,14 +93,7 @@ public class WeaponStatsListener implements Listener {
                     boolean isBroken   = inst.isBroken();
                     int playerLevel    = LevelManager.getInstance().getLevel(player);
                     int requiredLevel  = inst.getLevelRequirement();
-                    PlayerClass requiredClass;
-                try {
-                    requiredClass = PlayerClass.valueOf(inst.getClassRequirement().toUpperCase());
-                } catch (IllegalArgumentException e) {
-                    requiredClass = PlayerClass.VILLAGER;
-                }
-                PlayerClass playerClass = statsManager.getPlayerStats(puuid).playerClass;
-                StatsManager.PlayerStats ps = statsManager.getPlayerStats(puuid);
+                    StatsManager.PlayerStats ps = statsManager.getPlayerStats(puuid);
 
                 Bukkit.getLogger().info(
                     "[WeaponStats] Attempting to add new weapon (ID=" + inst.getId() +
@@ -125,21 +119,9 @@ public class WeaponStatsListener implements Listener {
                         + " but lack the level to gain its stats."
                     );
                 }
-                else if (requiredClass != PlayerClass.VILLAGER
-                    && requiredClass != playerClass) {
-                    Bukkit.getLogger().info(
-                        "[WeaponStats] Skipped addition: player class "
-                            + playerClass + " != required class " + requiredClass + "."
-                    );
-                    player.sendMessage(ChatColor.RED
-                        + "You can hold "
-                        + inst.getBaseName()
-                        + " but lack the required class to gain its stats."
-                    );
-                }
                 else {
                     // Add stats now
-                    addWeaponStats(player, inst);
+                    addWeaponStats(player, inst, newWeap);
                     // Put it into the “equipped” set
                     equipped.add(inst.getId());
                     // Register in holderMap so CustomItem.reduceDurability can find it
@@ -212,7 +194,7 @@ public class WeaponStatsListener implements Listener {
                     "[WeaponStats] onPlayerRespawn: Removing stats for broken weapon ID=" + id
                         + " (player=" + player.getName() + ")"
                 );
-                removeWeaponStats(player, inst);
+                removeWeaponStats(player, inst, inHand);
 
                 // Also remove from equipped set (if present) and unregister holder
                 if (equipped.contains(id)) {
@@ -246,27 +228,57 @@ public class WeaponStatsListener implements Listener {
 
 
 
-    private void addWeaponStats(Player player, CustomItem customItem) {
+    public void addWeaponStats(Player player, CustomItem customItem, ItemStack stack) {
         StatsManager.PlayerStats ps = statsManager.getPlayerStats(player.getUniqueId());
-        ps.bonusHealthStat   += customItem.getHp();
-        ps.bonusDefenceStat  += customItem.getDef();
-        ps.bonusStrength     += customItem.getStr();
-        ps.bonusAgility      += customItem.getAgi();
-        ps.bonusIntelligence += customItem.getIntel();
-        ps.bonusDexterity    += customItem.getDex();
+        me.nakilex.levelplugin.ego.EgoRarity rarity = me.nakilex.levelplugin.ego.EgoRarity.COMMON;
+        int rank = 1;
+        if (stack.hasItemMeta()) {
+            PersistentDataContainer pdc = stack.getItemMeta().getPersistentDataContainer();
+            if (pdc.has(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING)) {
+                try { rarity = me.nakilex.levelplugin.ego.EgoRarity.valueOf(pdc.get(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING)); } catch (Exception ignored) {}
+            }
+            rank = pdc.getOrDefault(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
+        }
+        if (ItemUtil.rarityAllows(rarity, StatsManager.StatType.HP))
+            ps.bonusHealthStat   += ItemUtil.scaleEgoStat(customItem.getHp(), rarity, rank);
+        if (ItemUtil.rarityAllows(rarity, StatsManager.StatType.DEF))
+            ps.bonusDefenceStat  += ItemUtil.scaleEgoStat(customItem.getDef(), rarity, rank);
+        if (ItemUtil.rarityAllows(rarity, StatsManager.StatType.STR))
+            ps.bonusStrength     += ItemUtil.scaleEgoStat(customItem.getStr(), rarity, rank);
+        if (ItemUtil.rarityAllows(rarity, StatsManager.StatType.AGI))
+            ps.bonusAgility      += ItemUtil.scaleEgoStat(customItem.getAgi(), rarity, rank);
+        if (ItemUtil.rarityAllows(rarity, StatsManager.StatType.INT))
+            ps.bonusIntelligence += ItemUtil.scaleEgoStat(customItem.getIntel(), rarity, rank);
+        if (ItemUtil.rarityAllows(rarity, StatsManager.StatType.DEX))
+            ps.bonusDexterity    += ItemUtil.scaleEgoStat(customItem.getDex(), rarity, rank);
     }
 
-    public void removeWeaponStats(Player player, CustomItem customItem) {
+    public void removeWeaponStats(Player player, CustomItem customItem, ItemStack stack) {
         Bukkit.getLogger().info("[WeaponStats] removeWeaponStats() called for player="
             + player.getName() + ", itemID=" + customItem.getId());
 
         StatsManager.PlayerStats ps = statsManager.getPlayerStats(player.getUniqueId());
-        ps.bonusHealthStat   -= customItem.getHp();
-        ps.bonusDefenceStat  -= customItem.getDef();
-        ps.bonusStrength     -= customItem.getStr();
-        ps.bonusAgility      -= customItem.getAgi();
-        ps.bonusIntelligence -= customItem.getIntel();
-        ps.bonusDexterity    -= customItem.getDex();
+        me.nakilex.levelplugin.ego.EgoRarity rarity = me.nakilex.levelplugin.ego.EgoRarity.COMMON;
+        int rank = 1;
+        if (stack.hasItemMeta()) {
+            PersistentDataContainer pdc = stack.getItemMeta().getPersistentDataContainer();
+            if (pdc.has(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING)) {
+                try { rarity = me.nakilex.levelplugin.ego.EgoRarity.valueOf(pdc.get(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING)); } catch (Exception ignored) {}
+            }
+            rank = pdc.getOrDefault(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
+        }
+        if (ItemUtil.rarityAllows(rarity, StatsManager.StatType.HP))
+            ps.bonusHealthStat   = Math.max(0, ps.bonusHealthStat   - ItemUtil.scaleEgoStat(customItem.getHp(), rarity, rank));
+        if (ItemUtil.rarityAllows(rarity, StatsManager.StatType.DEF))
+            ps.bonusDefenceStat  = Math.max(0, ps.bonusDefenceStat  - ItemUtil.scaleEgoStat(customItem.getDef(), rarity, rank));
+        if (ItemUtil.rarityAllows(rarity, StatsManager.StatType.STR))
+            ps.bonusStrength     = Math.max(0, ps.bonusStrength     - ItemUtil.scaleEgoStat(customItem.getStr(), rarity, rank));
+        if (ItemUtil.rarityAllows(rarity, StatsManager.StatType.AGI))
+            ps.bonusAgility      = Math.max(0, ps.bonusAgility      - ItemUtil.scaleEgoStat(customItem.getAgi(), rarity, rank));
+        if (ItemUtil.rarityAllows(rarity, StatsManager.StatType.INT))
+            ps.bonusIntelligence = Math.max(0, ps.bonusIntelligence - ItemUtil.scaleEgoStat(customItem.getIntel(), rarity, rank));
+        if (ItemUtil.rarityAllows(rarity, StatsManager.StatType.DEX))
+            ps.bonusDexterity    = Math.max(0, ps.bonusDexterity    - ItemUtil.scaleEgoStat(customItem.getDex(), rarity, rank));
 
         // IMMEDIATELY recalc all derived stats (this will:
         //  • recompute maxHealth → setMaxHealth(...)

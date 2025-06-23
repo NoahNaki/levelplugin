@@ -56,10 +56,11 @@ public class PlayerDeathListener implements Listener {
                     if (armorItem != null) {
                         int armorId = armorItem.getId();
                         int reduceAmtArmor = armorItem.getMaxDurability() / 10;
-                        armorItem.reduceDurability(reduceAmtArmor);
+                        armorItem.reduceDurability(reduceAmtArmor, player, helmet);
 
                         // Re‐build the helmet ItemStack to reflect new durability
                         ItemStack updatedHelmet = ItemUtil.createItemStackFromCustomItem(armorItem, 1, player);
+                        ItemUtil.copyEgoData(helmet, updatedHelmet, armorItem, player);
                         player.getInventory().setHelmet(updatedHelmet);
 
                         if (armorItem.isBroken()) {
@@ -82,9 +83,10 @@ public class PlayerDeathListener implements Listener {
                     if (armorItem != null) {
                         int armorId = armorItem.getId();
                         int reduceAmtArmor = armorItem.getMaxDurability() / 10;
-                        armorItem.reduceDurability(reduceAmtArmor);
+                        armorItem.reduceDurability(reduceAmtArmor, player, chest);
 
                         ItemStack updatedChest = ItemUtil.createItemStackFromCustomItem(armorItem, 1, player);
+                        ItemUtil.copyEgoData(chest, updatedChest, armorItem, player);
                         player.getInventory().setChestplate(updatedChest);
 
                         if (armorItem.isBroken()) {
@@ -107,9 +109,10 @@ public class PlayerDeathListener implements Listener {
                     if (armorItem != null) {
                         int armorId = armorItem.getId();
                         int reduceAmtArmor = armorItem.getMaxDurability() / 10;
-                        armorItem.reduceDurability(reduceAmtArmor);
+                        armorItem.reduceDurability(reduceAmtArmor, player, legs);
 
                         ItemStack updatedLegs = ItemUtil.createItemStackFromCustomItem(armorItem, 1, player);
+                        ItemUtil.copyEgoData(legs, updatedLegs, armorItem, player);
                         player.getInventory().setLeggings(updatedLegs);
 
                         if (armorItem.isBroken()) {
@@ -132,9 +135,10 @@ public class PlayerDeathListener implements Listener {
                     if (armorItem != null) {
                         int armorId = armorItem.getId();
                         int reduceAmtArmor = armorItem.getMaxDurability() / 10;
-                        armorItem.reduceDurability(reduceAmtArmor);
+                        armorItem.reduceDurability(reduceAmtArmor, player, boots);
 
                         ItemStack updatedBoots = ItemUtil.createItemStackFromCustomItem(armorItem, 1, player);
+                        ItemUtil.copyEgoData(boots, updatedBoots, armorItem, player);
                         player.getInventory().setBoots(updatedBoots);
 
                         if (armorItem.isBroken()) {
@@ -163,7 +167,7 @@ public class PlayerDeathListener implements Listener {
 
                         // 4) Reduce durability by 10% of MAX (i.e. 10 points if MAX=100)
                         int amountToReduce = cItem.getMaxDurability() / 10;
-                        cItem.reduceDurability(amountToReduce);
+                        cItem.reduceDurability(amountToReduce, player, inHand);
 
                         // 5) If the weapon is now broken and still marked as equipped, strip its stats
                         Set<Integer> equipped = statsMgr.getEquippedItems(puuid);
@@ -172,7 +176,7 @@ public class PlayerDeathListener implements Listener {
                                 "[PlayerDeathListener] Stripping stats on death for broken weapon ID="
                                     + itemId + " (player=" + player.getName() + ")"
                             );
-                            new WeaponStatsListener().removeWeaponStats(player, cItem);
+                            new WeaponStatsListener().removeWeaponStats(player, cItem, inHand);
                             equipped.remove(itemId);
                             ItemManager.getInstance().unregisterHolder(itemId);
 
@@ -194,6 +198,7 @@ public class PlayerDeathListener implements Listener {
 
                         // 6) Re‐build the ItemStack (this now reflects “broken” if durability hit 0)
                         ItemStack updatedStack = ItemUtil.createItemStackFromCustomItem(cItem, 1, player);
+                        ItemUtil.copyEgoData(inHand, updatedStack, cItem, player);
                         player.getInventory().setItemInMainHand(updatedStack);
 
                         // 7) If it broke just now, notify the player

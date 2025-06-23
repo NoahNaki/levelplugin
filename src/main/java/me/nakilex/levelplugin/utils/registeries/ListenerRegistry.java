@@ -28,7 +28,6 @@ import me.nakilex.levelplugin.party.PartyChatListener;
 import me.nakilex.levelplugin.party.PartyInviteListener;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.attributes.listeners.StatsMenuListener;
-import me.nakilex.levelplugin.player.classes.listeners.ClassMenuListener;
 import me.nakilex.levelplugin.player.listener.*;
 import me.nakilex.levelplugin.player.utils.ArrowUtils;
 import me.nakilex.levelplugin.potions.listeners.PotionUseListener;
@@ -39,8 +38,9 @@ import me.nakilex.levelplugin.runes.manager.RunesManager;
 import me.nakilex.levelplugin.salvage.listeners.SalvageListener;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
-import me.nakilex.levelplugin.spells.ArcherSpell;
-import me.nakilex.levelplugin.spells.RogueSpell;
+import me.nakilex.levelplugin.spells.CoolArcherSpell;
+import me.nakilex.levelplugin.spells.PhoenixHunterSpell;
+import me.nakilex.levelplugin.spells.WarriorSpell;
 import me.nakilex.levelplugin.spells.gui.SpellGUIListener;
 import me.nakilex.levelplugin.spells.listener.*;
 import me.nakilex.levelplugin.trade.listeners.PlayerRightClicksPlayerListener;
@@ -76,10 +76,8 @@ public class ListenerRegistry {
                                          DmgNumberToggleManager dmgToggleManager,
                                          PickupCustomItemListener pickupCustomItemListener,
                                          SettingsGUI settingsGUI,
-                                         RogueSpell rogueSpell,
                                          ProjectileFriendlyFireListener projectileFriendlyFireListener,
                                          FileConfiguration bossConfig,
-                                         ArcherSpell archerSpell,
                                          MeteorListener meteorListener,
                                          GemsManager gemsManager,
                                          IdentifyRunesGUI identifyRunesGUI,
@@ -115,7 +113,6 @@ public class ListenerRegistry {
         pm.registerEvents(new ClickComboListener(), plugin);
         pm.registerEvents(new ItemNameDisplayListener(), plugin);
         pm.registerEvents(new StaticItemListener(), plugin);
-        pm.registerEvents(new ClassMenuListener(), plugin);
         pm.registerEvents(blacksmithGUI, plugin);
         pm.registerEvents(horseGUI, plugin);
         pm.registerEvents(new NPCClickListener(economyManager, questManager, dialogManager), plugin);
@@ -130,6 +127,7 @@ public class ListenerRegistry {
         pm.registerEvents(new PotionUseListener(potionManager, plugin), plugin);
         pm.registerEvents(new MythicMobNameManager(plugin), plugin);
         pm.registerEvents(new MythicMobDamageListener(), plugin);
+        pm.registerEvents(new me.nakilex.levelplugin.mob.listeners.MythicSkillDamageScaler(), plugin);
         pm.registerEvents(new FallDamageDisabler(), plugin);
         pm.registerEvents(new HungerDisabler(), plugin);
         pm.registerEvents(SprintManager.getInstance(), plugin);
@@ -145,10 +143,11 @@ public class ListenerRegistry {
         pm.registerEvents(new DamageChatListener(), plugin);
         pm.registerEvents(settingsGUI, plugin); // ✅ No constructor call here
         pm.registerEvents(new GuildGUIListener(), plugin);
-        pm.registerEvents(new RogueSpell(), plugin);
         pm.registerEvents(new MeteorListener(), plugin);
         pm.registerEvents(new ShockwaveListener(), plugin);
-        pm.registerEvents(new ArcherSpell(), plugin);
+        pm.registerEvents(new CoolArcherSpell(), plugin);
+        pm.registerEvents(new PhoenixHunterSpell(), plugin);
+        pm.registerEvents(new WarriorSpell(), plugin);
         pm.registerEvents(new ChestHologramListener(lootChestManager), plugin);
         pm.registerEvents(new LootChestShutdownListener(plugin, lootChestManager), plugin);
 

@@ -227,21 +227,25 @@ public class CustomItem {
     }
 
     public void reduceDurability(int amount) {
+        reduceDurability(amount, null, null);
+    }
+
+    public void reduceDurability(int amount, Player holder, ItemStack stack) {
         if (broken) return; // Already broken—nothing more to do.
 
         currentDurability = Math.max(0, currentDurability - amount);
         if (currentDurability == 0) {
             broken = true;
 
-            // 1) Look up who currently “holds” this item by its ID.
+            // 1) Determine who currently “holds” this item if not provided
             ItemManager im = ItemManager.getInstance();
-            Player holder = im.getHolderOf(this.id);
+            if (holder == null) holder = im.getHolderOf(this.id);
 
             if (holder != null) {
                 UUID puuid = holder.getUniqueId();
                 StatsManager statsMgr = StatsManager.getInstance();
 
-                // 2) Only strip stats if that player’s equipped‐set still contains this ID
+                // 2) Only strip stats if that player’s equipped-set still contains this ID
                 Set<Integer> equipped = statsMgr.getEquippedItems(puuid);
                 if (equipped.contains(this.id)) {
                     Bukkit.getLogger().info(
@@ -250,8 +254,12 @@ public class CustomItem {
                             + ". Stripping stats now."
                     );
 
+                    if (stack == null) {
+                        stack = ItemUtil.createItemStackFromCustomItem(this, 1, holder);
+                    }
+
                     // 3) Call removeWeaponStats(...) (now public) to subtract all the bonuses
-                    new WeaponStatsListener().removeWeaponStats(holder, this);
+                    new WeaponStatsListener().removeWeaponStats(holder, this, stack);
 
                     // 4) Remove that ID so WeaponStatsListener never tries again on death/respawn
                     equipped.remove(this.id);

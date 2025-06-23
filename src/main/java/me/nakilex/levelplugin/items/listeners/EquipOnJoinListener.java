@@ -6,8 +6,6 @@ import me.nakilex.levelplugin.items.data.WeaponType;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
-import me.nakilex.levelplugin.player.classes.data.PlayerClass;
-import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -22,7 +20,6 @@ public class EquipOnJoinListener implements Listener {
 
     private final StatsManager statsManager      = StatsManager.getInstance();
     private final LevelManager levelManager      = LevelManager.getInstance();
-    private final PlayerClassManager classManager= PlayerClassManager.getInstance();
     private final ItemManager itemManager        = ItemManager.getInstance();
 
     @EventHandler
@@ -47,6 +44,25 @@ public class EquipOnJoinListener implements Listener {
 
         // 3) Recalculate alle afgeleide stats na het (eventueel) toevoegen
         statsManager.recalcDerivedStats(player);
+
+        // Load Ego weapon from the item in main hand so XP gains apply
+        ItemStack hand = player.getInventory().getItemInMainHand();
+        if (hand != null && hand.hasItemMeta()) {
+            PersistentDataContainer pdc = hand.getItemMeta().getPersistentDataContainer();
+            if (pdc.has(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING)) {
+                String id = pdc.get(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING);
+                String key = id.split("_")[0];
+                me.nakilex.levelplugin.ego.EgoWeapon proto = me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance().getPrototype(key);
+                if (proto != null) {
+                    me.nakilex.levelplugin.ego.EgoWeapon weapon = proto.copy();
+                    int rank = pdc.getOrDefault(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
+                    int exp = pdc.getOrDefault(ItemUtil.EGO_EXP_KEY, PersistentDataType.INTEGER, 0);
+                    while (weapon.getRank() < rank) weapon.addExp(weapon.expToNextRank());
+                    weapon.addExp(exp);
+                    me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance().setWeapon(puuid, weapon);
+                }
+            }
+        }
     }
 
     private void applyArmorIfNeeded(Player player, UUID puuid, Set<Integer> equipped, ItemStack item) {
@@ -104,18 +120,6 @@ public class EquipOnJoinListener implements Listener {
             return;
         }
 
-        // Klasse-check (optioneel)
-        PlayerClass requiredClass;
-        try {
-            requiredClass = PlayerClass.valueOf(ci.getClassRequirement().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            requiredClass = PlayerClass.VILLAGER;
-        }
-        PlayerClass playerClass = statsManager.getPlayerStats(puuid).playerClass;
-        if (requiredClass != PlayerClass.VILLAGER && requiredClass != playerClass) {
-            player.sendMessage(ChatColor.RED + "Only " + requiredClass + "s can use " + ci.getBaseName() + "!");
-            return;
-        }
 
         // Voeg stats toe
         StatsManager.PlayerStats ps = statsManager.getPlayerStats(puuid);

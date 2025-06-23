@@ -13,6 +13,7 @@ import org.bukkit.event.entity.EntityDeathEvent;
 
 import java.io.File;
 import java.util.HashSet;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -23,6 +24,24 @@ public class MythicMobNameManager implements Listener {
     private final Set<ActiveMob> trackedMobs = new HashSet<>();
     /** Holds all boss‑keys exactly as in your YAML (e.g. "KING SLIME", "TERRACOTTA GENERAL", etc.) */
     private final Set<String> fieldBossKeys;
+
+    private static final String[] IGNORE_PREFIXES = {
+        "VFX_",
+        "QUICK_SHOT",
+        "BACKSTEP",
+        "WINDRAZOR",
+        "DEADLY_JAVELIN",
+        "ARROW_BARRAGE",
+        "DRAGON_PIERCER",
+        "BRUTAL_STRIKE",
+        "CHARGE",
+        "CHAIN_HOOK",
+        "SHIELD_BARRIER",
+        "WHIRLWIND",
+        "JUDGEMENT",
+        "RAMPAGE",
+        "SHOCKWAVE"
+    };
 
     public MythicMobNameManager(Main plugin) {
         this.plugin = plugin;
@@ -51,6 +70,9 @@ public class MythicMobNameManager implements Listener {
     @EventHandler
     public void onMythicMobSpawn(MythicMobSpawnEvent event) {
         ActiveMob mob = event.getMob();
+        if (shouldIgnoreMob(mob.getMobType())) {
+            return;
+        }
         trackedMobs.add(mob);
         setDisplayName(mob);
     }
@@ -78,6 +100,9 @@ public class MythicMobNameManager implements Listener {
     }
 
     private void setDisplayName(ActiveMob mob) {
+        if (shouldIgnoreMob(mob.getMobType())) {
+            return;
+        }
         int    level     = (int) mob.getLevel();
         double currentHP = mob.getEntity().getHealth();
         double maxHP     = mob.getEntity().getMaxHealth();
@@ -113,5 +138,10 @@ public class MythicMobNameManager implements Listener {
             }
         }
         return String.join(" ", parts);
+    }
+
+    private boolean shouldIgnoreMob(String mobType) {
+        String upper = mobType.toUpperCase();
+        return Arrays.stream(IGNORE_PREFIXES).anyMatch(upper::startsWith);
     }
 }

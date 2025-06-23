@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.spells;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.runes.manager.RunesManager;
 import me.nakilex.levelplugin.runes.model.Rune;
 import me.nakilex.levelplugin.runes.model.RuneEffect;
@@ -12,6 +13,10 @@ import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.spells.registry.EffectRegistry;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 
 import java.util.List;
 import java.util.Map;
@@ -30,6 +35,7 @@ public class Spell {
     private final List<Material> allowedWeapons;
     private final String effectKey;
     private final double baseDamage;        // ← holds the pre-rune damage
+    private final boolean passive;          // if true skip mana cost indicator
 
     // static managers
     private static final CooldownManager cooldownMgr = CooldownManager.getInstance();
@@ -43,7 +49,8 @@ public class Spell {
         int levelReq,
         List<Material> allowedWeapons,
         String effectKey,
-        double baseDamage              // ← pass in the raw dmg here
+        double baseDamage,             // ← pass in the raw dmg here
+        boolean passive
     ) {
         this.id               = id;
         this.displayName      = displayName;
@@ -54,6 +61,21 @@ public class Spell {
         this.allowedWeapons   = allowedWeapons;
         this.effectKey        = effectKey;
         this.baseDamage       = baseDamage;
+        this.passive          = passive;
+    }
+
+    public Spell(
+        String id,
+        String displayName,
+        String combo,
+        double baseManaCost,
+        long cooldownSeconds,
+        int levelReq,
+        List<Material> allowedWeapons,
+        String effectKey,
+        double baseDamage
+    ) {
+        this(id, displayName, combo, baseManaCost, cooldownSeconds, levelReq, allowedWeapons, effectKey, baseDamage, false);
     }
 
     // getters...
@@ -66,6 +88,7 @@ public class Spell {
     public List<Material> getAllowedWeapons() { return allowedWeapons; }
     public double getBaseDamage()        { return baseDamage; }
     public String getEffectKey()         { return effectKey; }
+    public boolean isPassive()           { return passive; }
 
     /** for SpellCastContext’s baseSpell.getManaCost() */
     public double getManaCost() {
@@ -96,6 +119,35 @@ public class Spell {
      */
     public void castEffect(Player player) {
         UUID pid = player.getUniqueId();
+
+        // Debug initial cast attempt
+        Main.getPlugin().getLogger().info("[SpellCast] " + player.getName() +
+                " attempts " + id + " via " + combo);
+
+        // 0) Requirement check (level or weapon rank)
+        boolean ego = false;
+        int rank = 0;
+        ItemStack hand = player.getInventory().getItemInMainHand();
+        if (hand != null && hand.hasItemMeta()) {
+            PersistentDataContainer pdc = hand.getItemMeta().getPersistentDataContainer();
+            if (pdc.has(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER)) {
+                ego = true;
+                rank = pdc.get(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER);
+            }
+        }
+        if (ego) {
+            if (rank < levelReq) {
+                player.sendMessage("§cYour weapon must be rank " + levelReq + " to cast " + displayName);
+                return;
+            }
+        } else {
+            int playerLevel = me.nakilex.levelplugin.player.level.managers.LevelManager
+                    .getInstance().getLevel(player);
+            if (playerLevel < levelReq) {
+                player.sendMessage("§cYou must be level " + levelReq + " to cast " + displayName);
+                return;
+            }
+        }
 
         // 1) Cooldown guard
         if (cooldownMgr.isOnCooldown(pid, id)) {
@@ -137,6 +189,8 @@ public class Spell {
 
         // Debug: log the final effect list after rune modifications
         Main.getPlugin().getLogger().info("[Spell] " + id + " effects: " + ctx.getEffectKeys());
+        Main.getPlugin().getLogger().info("[Spell] finalDamage=" + ctx.getFinalDamage() +
+                " finalCost=" + ctx.getFinalManaCost());
 
         // 4) Mana check & deduct
         double cost = ctx.getFinalManaCost();
@@ -148,8 +202,10 @@ public class Spell {
         int intCost = (int)Math.ceil(cost);
         ps.setCurrentMana(ps.getCurrentMana() - intCost);
         recordSpellCast(player);
-        me.nakilex.levelplugin.player.attributes.managers.ManaIndicatorManager
-            .getInstance().showCost(player, intCost);
+        if (!passive) {
+            me.nakilex.levelplugin.player.attributes.managers.ManaIndicatorManager
+                .getInstance().showCost(player, intCost);
+        }
         Main.getInstance().getQuestManager().handleCast(player, id);
 
         // 5) Start cooldown (ctx.getFinalCooldown returns 0 if applyCooldown==false)

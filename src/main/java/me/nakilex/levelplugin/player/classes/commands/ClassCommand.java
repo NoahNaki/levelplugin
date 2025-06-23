@@ -24,7 +24,10 @@ public class ClassCommand implements CommandExecutor {
             try {
                 PlayerClass chosen = PlayerClass.valueOf(args[0].toUpperCase());
                 StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass = chosen;
-                boolean flight = chosen == PlayerClass.ARCHER || chosen == PlayerClass.ROGUE;
+                boolean flight = chosen == PlayerClass.ARCHER
+                        || chosen == PlayerClass.ROGUE
+                        || chosen == PlayerClass.COOLARCHER
+                        || chosen == PlayerClass.PHOENIXHUNTER;
                 player.setAllowFlight(flight);
                 if (!flight) player.setFlying(false);
                 player.sendMessage(ChatColor.GREEN + "Class set to " + ChatColor.AQUA + chosen.name());
@@ -32,9 +35,7 @@ public class ClassCommand implements CommandExecutor {
                 player.sendMessage(ChatColor.RED + "Unknown class: " + args[0]);
             }
         } else {
-            // Debug: log to console that this command was used
-            Bukkit.getLogger().info("[ClassCommand] " + player.getName() + " used /class. Opening class selection menu.");
-            player.openInventory(ClassMenu.getClassSelectionMenu(player));
+            player.sendMessage(ChatColor.YELLOW + "Class selection is no longer used. Wield an Ego Weapon to access its skills.");
         }
         return true;
     }

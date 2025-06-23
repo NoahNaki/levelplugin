@@ -5,7 +5,6 @@ import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.data.WeaponType;
 import me.nakilex.levelplugin.items.managers.ItemManager;
-import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.runes.manager.RunesManager;
 import me.nakilex.levelplugin.runes.model.Rune;
@@ -43,7 +42,6 @@ import org.bukkit.util.Vector;
 
 import java.util.*;
 
-import static me.nakilex.levelplugin.player.classes.data.PlayerClass.VILLAGER;
 
 public class ClickComboListener implements Listener {
 
@@ -148,7 +146,7 @@ public class ClickComboListener implements Listener {
         String activeCombo = getActiveCombo(player);
 
         // —— Archer bow logic ——
-        if ("archer".equals(className) &&
+        if (("archer".equals(className) || "coolarcher".equals(className) || "phoenixhunter".equals(className)) &&
             me.nakilex.levelplugin.items.data.WeaponType.BOW
                 .getMaterials().contains(mainHand.getType())) {
             if (!activeCombo.isEmpty()) {
@@ -188,8 +186,6 @@ public class ClickComboListener implements Listener {
             !me.nakilex.levelplugin.items.data.WeaponType.BOW
                 .getMaterials().contains(bow.getType())) return;
 
-        PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
-        if (ps.playerClass != PlayerClass.ARCHER) return;
 
         String activeCombo = getActiveCombo(player);
         event.setConsumeItem(false);
@@ -300,25 +296,11 @@ public class ClickComboListener implements Listener {
         if (inst != null) {
             int playerLevel = LevelManager.getInstance().getLevel(player);
             int reqLevel    = inst.getLevelRequirement();
-            String clsReq   = inst.getClassRequirement();
-            PlayerClass requiredClass;
-            try {
-                requiredClass = PlayerClass.valueOf(clsReq.toUpperCase());
-            } catch (IllegalArgumentException ex) {
-                requiredClass = VILLAGER;
-            }
-            PlayerClass playerClass = StatsManager
-                .getInstance()
-                .getPlayerStats(player.getUniqueId())
-                .playerClass;
 
             if (playerLevel < reqLevel) {
                 player.sendMessage("§cYou must be level " + reqLevel +
                     " to use that attack with your " +
                     inst.getBaseName() + "!");
-                return;
-            }
-            if (requiredClass != VILLAGER && requiredClass != playerClass) {
                 return;
             }
         }

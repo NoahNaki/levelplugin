@@ -1,12 +1,13 @@
 package me.nakilex.levelplugin.spells.gui;
 
-import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
-import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.spells.Spell;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.runes.manager.RunesManager;
 import me.nakilex.levelplugin.runes.model.Rune;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -41,6 +42,52 @@ public class SpellGUI {
         SPELL_DESCRIPTIONS.put("bow_drone",   "Summon a sentry that shoots enemies.");
         SPELL_DESCRIPTIONS.put("grapple_hook",      "Grapple to surfaces for mobility.");
         SPELL_DESCRIPTIONS.put("arrow_storm",       "Rain down a storm of arrows.");
+
+        SPELL_DESCRIPTIONS.put("quick_shot",      "Fire a quick empowered arrow.");
+        SPELL_DESCRIPTIONS.put("backstep",        "Leap backwards to evade foes.");
+        SPELL_DESCRIPTIONS.put("windrazor",       "Surround yourself with slicing wind.");
+        SPELL_DESCRIPTIONS.put("arrow_barrage",   "Rapidly fire a volley of arrows.");
+        SPELL_DESCRIPTIONS.put("dragon_piercer",  "Launch a devastating dragon arrow.");
+
+        SPELL_DESCRIPTIONS.put("blazing_feathers", "Fire fiery feathers at your foes.");
+        SPELL_DESCRIPTIONS.put("ashdance", "Dash in flames leaving fire in your wake.");
+        SPELL_DESCRIPTIONS.put("flameburst_convergence", "Unleash converging fire bolts.");
+        SPELL_DESCRIPTIONS.put("phoenix_totem", "Summon a blazing totem that burns enemies.");
+        SPELL_DESCRIPTIONS.put("pyroclasmic_barrage", "Launch a barrage of burning feathers.");
+        SPELL_DESCRIPTIONS.put("phoenix_rebirth", "Transform into a phoenix to scorch foes.");
+
+        SPELL_DESCRIPTIONS.put("brutal_strike", "Swing your axe in a brutal strike.");
+        SPELL_DESCRIPTIONS.put("charge", "Rush forward, knocking enemies aside.");
+        SPELL_DESCRIPTIONS.put("chain_hook", "Throw a chain to pull foes to you.");
+        SPELL_DESCRIPTIONS.put("shield_barrier", "Raise a temporary blocking shield.");
+        SPELL_DESCRIPTIONS.put("whirlwind", "Spin and damage nearby foes.");
+        SPELL_DESCRIPTIONS.put("judgement", "Leap and smash the ground mightily.");
+        SPELL_DESCRIPTIONS.put("rampage", "Gain buffs when near death.");
+    }
+
+    /** Simple usage hints for non-combo based spells. */
+    private static final Map<String, String> SPELL_USAGE = new HashMap<>();
+    static {
+        SPELL_USAGE.put("quick_shot", "Left Click");
+        SPELL_USAGE.put("backstep", "Right Click");
+        SPELL_USAGE.put("windrazor", "Sneak");
+        SPELL_USAGE.put("arrow_barrage", "Sneak + Right Click");
+        SPELL_USAGE.put("dragon_piercer", "Sneak + Left Click");
+
+        SPELL_USAGE.put("blazing_feathers", "Left Click");
+        SPELL_USAGE.put("ashdance", "Right Click");
+        SPELL_USAGE.put("flameburst_convergence", "Sneak");
+        SPELL_USAGE.put("phoenix_totem", "Passive");
+        SPELL_USAGE.put("pyroclasmic_barrage", "Sneak + Right Click");
+        SPELL_USAGE.put("phoenix_rebirth", "Sneak + Left Click");
+
+        SPELL_USAGE.put("brutal_strike", "Left Click");
+        SPELL_USAGE.put("charge", "Right Click");
+        SPELL_USAGE.put("chain_hook", "Sneak + Right Click");
+        SPELL_USAGE.put("shield_barrier", "Sneak");
+        SPELL_USAGE.put("whirlwind", "Sneak + Right Click");
+        SPELL_USAGE.put("judgement", "Sneak + Left Click");
+        SPELL_USAGE.put("rampage", "Sneak + Left Click (low HP)");
     }
 
     // The slots where we will place the spells in a 27-slot inventory.
@@ -51,9 +98,31 @@ public class SpellGUI {
      * in slots 10, 12, 14, and 16 (sorted by level requirement).
      */
     public static void openSpellGUI(Player player) {
-        // Get the player's class from StatsManager
-        PlayerClass playerClass = getPlayerClass(player);
-        Bukkit.getLogger().info("[SpellGUI] " + player.getName() + " is detected as: " + playerClass);
+        // Determine class based on the equipped Ego Weapon
+        ItemStack weapon = player.getInventory().getItemInMainHand();
+        String classKey = null;
+        if (weapon != null && weapon.hasItemMeta()) {
+            PersistentDataContainer pdc = weapon.getItemMeta().getPersistentDataContainer();
+            if (pdc.has(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING)) {
+                String id = pdc.get(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING);
+                String prefix = id.split("_")[0];
+                if (prefix.equalsIgnoreCase("archer")) classKey = "coolarcher";
+                else if (prefix.equalsIgnoreCase("phoenix")) classKey = "phoenixhunter";
+                else if (prefix.equalsIgnoreCase("warrior")) classKey = "warrior";
+            }
+        }
+
+        if (classKey == null) {
+            player.sendMessage(ChatColor.RED + "Hold an Ego Weapon to view its spells.");
+            Inventory gui = Bukkit.createInventory(null, 27, ChatColor.DARK_GREEN + "Spell Book");
+            ItemStack filler = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+            ItemMeta fm = filler.getItemMeta();
+            fm.setDisplayName(" ");
+            filler.setItemMeta(fm);
+            for (int i = 0; i < gui.getSize(); i++) gui.setItem(i, filler);
+            player.openInventory(gui);
+            return;
+        }
 
         // Create a 27-slot inventory titled "Spell Book"
         Inventory gui = Bukkit.createInventory(null, 27, ChatColor.DARK_GREEN + "Spell Book");
@@ -68,15 +137,6 @@ public class SpellGUI {
             gui.setItem(i, filler);
         }
 
-        // If the player is a VILLAGER (or has no real class), do not place any spells.
-        if (playerClass == PlayerClass.VILLAGER) {
-            Bukkit.getLogger().info("[SpellGUI] " + player.getName() + " is a VILLAGER, so no spells will be displayed.");
-            player.openInventory(gui);
-            return;
-        }
-
-        // Convert playerClass to lowercase to match SpellManager keys.
-        String classKey = playerClass.name().toLowerCase();
         Bukkit.getLogger().info("[SpellGUI] Looking up spells for class key: " + classKey);
 
         // Retrieve spells for that class.
@@ -87,35 +147,35 @@ public class SpellGUI {
             player.openInventory(gui);
             return;
         }
-        Bukkit.getLogger().info("[SpellGUI] Found " + classSpells.size() + " spells for " + playerClass);
+        Bukkit.getLogger().info("[SpellGUI] Found " + classSpells.size() + " spells for class " + classKey);
 
         // Create a list and sort the spells by their level requirement (lowest to highest)
         List<Spell> spells = new ArrayList<>(classSpells.values());
         spells.sort(Comparator.comparingInt(Spell::getLevelReq));
 
-        // Get player's level from LevelManager
-        int playerLevel = LevelManager.getInstance().getLevel(player);
+        int playerRank = 0;
+        ItemStack hand = player.getInventory().getItemInMainHand();
+        if (hand != null && hand.hasItemMeta()) {
+            PersistentDataContainer pdc = hand.getItemMeta().getPersistentDataContainer();
+            if (pdc.has(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER)) {
+                playerRank = pdc.get(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER);
+            } else {
+                playerRank = LevelManager.getInstance().getLevel(player);
+            }
+        } else {
+            playerRank = LevelManager.getInstance().getLevel(player);
+        }
 
         // Place up to 4 spells in the designated slots.
         for (int i = 0; i < SPELL_SLOTS.length && i < spells.size(); i++) {
             Spell spell = spells.get(i);
-            ItemStack spellItem = createSpellItem(player, spell, playerLevel);
+            ItemStack spellItem = createSpellItem(player, spell, playerRank);
             gui.setItem(SPELL_SLOTS[i], spellItem);
             Bukkit.getLogger().info("[SpellGUI] Placed spell '" + spell.getDisplayName() + "' in slot " + SPELL_SLOTS[i]);
         }
 
         // Finally, open the GUI for the player.
         player.openInventory(gui);
-    }
-
-    /**
-     * Retrieves the player's class from StatsManager.
-     */
-    private static PlayerClass getPlayerClass(Player player) {
-        PlayerClass pClass = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass;
-        // Log the retrieved class
-        Bukkit.getLogger().info("[SpellGUI] Retrieved class for " + player.getName() + ": " + pClass);
-        return pClass;
     }
 
     /**
@@ -132,9 +192,16 @@ public class SpellGUI {
         String spellName = spell.getDisplayName();
         meta.setDisplayName(unlocked ? ChatColor.GREEN + spellName : ChatColor.RED + spellName);
 
-        // Build the lore with combo, mana cost, and level requirement.
+        // Build the lore with usage info and level requirement.
         List<String> lore = new ArrayList<>();
-        lore.add(ChatColor.GRAY + "Combo: " + ChatColor.YELLOW + spell.getCombo());
+
+        String usage = SPELL_USAGE.get(spell.getId());
+        if (usage == null) {
+            usage = spell.getCombo().replace("L", "Left").replace("R", "Right");
+        }
+
+        lore.add(ChatColor.GRAY + "Usage: " + ChatColor.YELLOW + usage);
+        lore.add(ChatColor.GRAY + "Required Rank: " + ChatColor.YELLOW + spell.getLevelReq());
 
         if (unlocked) {
             lore.add(ChatColor.DARK_GRAY + "" + ChatColor.STRIKETHROUGH + "--------------------");

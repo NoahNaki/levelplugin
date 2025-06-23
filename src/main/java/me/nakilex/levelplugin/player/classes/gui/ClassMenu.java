@@ -10,6 +10,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.entity.Player;
 
 import java.util.Arrays;
+import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 
 public class ClassMenu {
 
@@ -24,27 +25,28 @@ public class ClassMenu {
         int cost = current == me.nakilex.levelplugin.player.classes.data.PlayerClass.VILLAGER ? 0 : level * 50;
 
         // Warrior (using wooden shovel as icon)
-        inv.setItem(10, createMenuItem(Material.WOODEN_SHOVEL, ChatColor.GREEN + "" + ChatColor.BOLD + "Start As A Warrior!",
+        inv.setItem(10, createMenuItem(Material.WOODEN_AXE, ChatColor.GREEN + "" + ChatColor.BOLD + "Start As A Warrior!",
             Arrays.asList(
                 "",
                 ChatColor.GRAY + "Choosing this will start you out as a ",
-                ChatColor.GREEN + "WARRIOR" + ChatColor.GRAY + "! Your starting item will be a sword.",
+                ChatColor.GREEN + "WARRIOR" + ChatColor.GRAY + "! Your starting item will be an axe.",
                 "",
                 ChatColor.RED + "" + ChatColor.BOLD + "ABILITY 1:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Iron Fortress " + ChatColor.GRAY +
-                    "(Combo: RLR)",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Charge " + ChatColor.GRAY +
+                    "(Combo: LRL)",
                 ChatColor.YELLOW + "" + ChatColor.BOLD + "ABILITY 2:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Heroic Leap " + ChatColor.GRAY +
-                    "(Combo: RRR)",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Chain Hook " + ChatColor.GRAY +
+                    "(Combo: LRR)",
                 ChatColor.BLUE + "" + ChatColor.BOLD + "ABILITY 3:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Uppercut " + ChatColor.GRAY +
-                    "(Combo: RRL)",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Shield Barrier " + ChatColor.GRAY +
+                    "(Combo: Sneak)",
                 ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "ABILITY 4:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Ground Slam " + ChatColor.GRAY +
-                    "(Combo: RLL)",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Rampage " + ChatColor.GRAY +
+                    "(Combo: Sneak + Left Click)",
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
                 ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,
+                ChatColor.GRAY + "Requires Level: " + ChatColor.YELLOW + PlayerClass.WARRIOR.getRequiredLevel(),
                 "",
                 ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
             )));
@@ -71,6 +73,55 @@ public class ClassMenu {
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
                 ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,
+                ChatColor.GRAY + "Requires Level: " + ChatColor.YELLOW + PlayerClass.ARCHER.getRequiredLevel(),
+                "",
+                ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
+            )));
+
+        // CoolArcher test class (using crossbow as icon)
+        inv.setItem(13, createMenuItem(Material.CROSSBOW, ChatColor.AQUA + "" + ChatColor.BOLD + "Start As A CoolArcher!",
+            Arrays.asList(
+                "",
+                ChatColor.GRAY + "Choosing this will start you out as a ",
+                ChatColor.AQUA + "COOLARCHER" + ChatColor.GRAY + "! Your starting item will be a crossbow.",
+                "",
+                ChatColor.RED + "" + ChatColor.BOLD + "ABILITY 1:",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Backstep " + ChatColor.GRAY + "(Combo: LRL)",
+                ChatColor.YELLOW + "" + ChatColor.BOLD + "ABILITY 2:",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Windrazor " + ChatColor.GRAY + "(Combo: LRR)",
+                ChatColor.BLUE + "" + ChatColor.BOLD + "ABILITY 3:",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Arrow Barrage " + ChatColor.GRAY + "(Combo: LLR)",
+                ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "ABILITY 4:",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Dragon Piercer " + ChatColor.GRAY + "(Combo: LLL)",
+                "",
+                ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
+                ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,
+                ChatColor.GRAY + "Requires Level: " + ChatColor.YELLOW + PlayerClass.COOLARCHER.getRequiredLevel(),
+                "",
+                ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
+            )));
+
+        // PhoenixHunter class (using blaze rod as icon)
+        inv.setItem(15, createMenuItem(Material.BLAZE_ROD, ChatColor.GOLD + "" + ChatColor.BOLD + "Start As A PhoenixHunter!",
+            Arrays.asList(
+                "",
+                ChatColor.GRAY + "Choosing this will start you out as a ",
+                ChatColor.GOLD + "PHOENIXHUNTER" + ChatColor.GRAY + "! Master fiery bow skills.",
+                "",
+                ChatColor.RED + "" + ChatColor.BOLD + "ABILITY 1:",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Ashdance " + ChatColor.GRAY + "(Combo: LRL)",
+                ChatColor.YELLOW + "" + ChatColor.BOLD + "ABILITY 2:",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Flameburst Convergence " + ChatColor.GRAY + "(Combo: LRR)",
+                ChatColor.BLUE + "" + ChatColor.BOLD + "ABILITY 3:",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Phoenix Totem " + ChatColor.GRAY + "(Combo: LLR)",
+                ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "ABILITY 4:",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Pyroclasmic Barrage " + ChatColor.GRAY + "(Combo: LLL)",
+                ChatColor.DARK_AQUA + "" + ChatColor.BOLD + "ULTIMATE:",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Phoenix Rebirth " + ChatColor.GRAY + "(Combo: RRR)",
+                "",
+                ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
+                ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,
+                ChatColor.GRAY + "Requires Level: " + ChatColor.YELLOW + PlayerClass.PHOENIXHUNTER.getRequiredLevel(),
                 "",
                 ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
             )));
@@ -97,6 +148,7 @@ public class ClassMenu {
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
                 ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,
+                ChatColor.GRAY + "Requires Level: " + ChatColor.YELLOW + PlayerClass.MAGE.getRequiredLevel(),
                 "",
                 ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
             )));
@@ -123,6 +175,7 @@ public class ClassMenu {
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
                 ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,
+                ChatColor.GRAY + "Requires Level: " + ChatColor.YELLOW + PlayerClass.ROGUE.getRequiredLevel(),
                 "",
                 ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
             )));

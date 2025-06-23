@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.blacksmith.managers.ItemRepairManager;
 import me.nakilex.levelplugin.blacksmith.managers.ItemUpgradeManager;
 import me.nakilex.levelplugin.blacksmith.managers.ItemRerollManager;
+import me.nakilex.levelplugin.ego.EgoWeaponManager;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
@@ -23,6 +24,7 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.util.*;
 
@@ -32,6 +34,7 @@ public class BlacksmithGUI implements Listener {
     private static final String GUI_TITLE_UPGRADE = ChatColor.DARK_GRAY + "Blacksmith: Upgrade";
     private static final String GUI_TITLE_REPAIR  = ChatColor.DARK_GRAY + "Blacksmith: Repair";
     private static final String GUI_TITLE_REROLL = ChatColor.DARK_GRAY + "Blacksmith: Reroll";
+    private static final String GUI_TITLE_EVOLVE = ChatColor.DARK_GRAY + "Blacksmith: Evolve";
 
     private final EconomyManager economyManager;
     private final ItemUpgradeManager upgradeManager;
@@ -53,7 +56,7 @@ public class BlacksmithGUI implements Listener {
         Inventory gui = Bukkit.createInventory(player, GUI_SIZE, GUI_TITLE_UPGRADE);
         fillGuiWithFiller(gui);
         gui.setItem(8, createUpgradeInfoItem());
-        gui.setItem(9, getNexoItem("arrow_left", ChatColor.GRAY + "Go to Reroll"));
+        gui.setItem(9, getNexoItem("arrow_left", ChatColor.GRAY + "Go to Evolve"));
         gui.setItem(17, getNexoItem("arrow_right", ChatColor.GRAY + "Go to Repair"));
         gui.setItem(13, null);
         gui.setItem(22, createUpgradeButton(0, 0));
@@ -79,11 +82,23 @@ public class BlacksmithGUI implements Listener {
         fillGuiWithFiller(gui);
         gui.setItem(8, createRerollInfoItem());
         gui.setItem(9, getNexoItem("arrow_left", ChatColor.GRAY + "Go to Repair"));
-        gui.setItem(17, getNexoItem("arrow_right", ChatColor.GRAY + "Go to Upgrade"));
+        gui.setItem(17, getNexoItem("arrow_right", ChatColor.GRAY + "Go to Evolve"));
         gui.setItem(11, null); // item slot
         gui.setItem(13, null); // result
         gui.setItem(15, null); // placeholder
         gui.setItem(22, createRerollButton(0));
+        openInventories.put(player.getUniqueId(), gui);
+        player.openInventory(gui);
+    }
+
+    public void openEvolveGUI(Player player) {
+        Inventory gui = Bukkit.createInventory(player, GUI_SIZE, GUI_TITLE_EVOLVE);
+        fillGuiWithFiller(gui);
+        gui.setItem(8, createEvolveInfoItem());
+        gui.setItem(9, getNexoItem("arrow_left", ChatColor.GRAY + "Go to Reroll"));
+        gui.setItem(17, getNexoItem("arrow_right", ChatColor.GRAY + "Go to Upgrade"));
+        gui.setItem(13, null);
+        gui.setItem(22, createEvolveButton(false));
         openInventories.put(player.getUniqueId(), gui);
         player.openInventory(gui);
     }
@@ -170,6 +185,20 @@ public class BlacksmithGUI implements Listener {
         return info;
     }
 
+    private ItemStack createEvolveInfoItem() {
+        ItemStack info = getNexoItem("info", ChatColor.YELLOW + "Information");
+        ItemMeta meta = info.getItemMeta();
+        if (meta != null) {
+            meta.setLore(Arrays.asList(
+                ChatColor.GRAY + "",
+                ChatColor.GRAY + "Place a Rank 10 Ego weapon",
+                ChatColor.GRAY + "in the center slot to evolve it."
+            ));
+            info.setItemMeta(meta);
+        }
+        return info;
+    }
+
     private ItemStack createUpgradeButton(int upgradeCost, int successChance) {
         ItemStack upgrade = new ItemStack(Material.ANVIL);
         ItemMeta meta = upgrade.getItemMeta();
@@ -223,6 +252,36 @@ public class BlacksmithGUI implements Listener {
             reroll.setItemMeta(meta);
         }
         return reroll;
+    }
+
+    private ItemStack createEvolveButton(boolean ready) {
+        ItemStack evo = getNexoItem("check", ChatColor.GREEN + "Evolve");
+        ItemMeta meta = evo.getItemMeta();
+        if (meta != null) {
+            List<String> lore = new ArrayList<>();
+            if (ready) {
+                lore.add(ChatColor.GRAY + "Upgrade your weapon rarity");
+            } else {
+                lore.add(ChatColor.RED + "Requires Rank 10");
+            }
+            meta.setLore(lore);
+            evo.setItemMeta(meta);
+        }
+        return evo;
+    }
+
+    private ItemStack createEvolveConfirmButton() {
+        ItemStack warn = getNexoItem("alert", ChatColor.RED + "Warning");
+        ItemMeta meta = warn.getItemMeta();
+        if (meta != null) {
+            meta.setLore(Arrays.asList(
+                ChatColor.GRAY + "Evolving your weapon will reset its rank",
+                ChatColor.GRAY + "and star levels.",
+                ChatColor.DARK_GRAY + "Click again to confirm"
+            ));
+            warn.setItemMeta(meta);
+        }
+        return warn;
     }
 
     private ItemStack createRepairAllButton(int totalCost) {
@@ -331,25 +390,33 @@ public class BlacksmithGUI implements Listener {
             ItemStack placeholder = title.equals(GUI_TITLE_REROLL) ? gui.getItem(15) : null;
             String newTitle;
             if (title.equals(GUI_TITLE_UPGRADE)) {
-                if (rawSlot == 9) { // left -> reroll
-                    newTitle = GUI_TITLE_REROLL;
-                    openRerollGUI(player);
+                if (rawSlot == 9) {
+                    newTitle = GUI_TITLE_EVOLVE;
+                    openEvolveGUI(player);
                 } else {
                     newTitle = GUI_TITLE_REPAIR;
                     openRepairGUI(player);
                 }
             } else if (title.equals(GUI_TITLE_REPAIR)) {
-                if (rawSlot == 9) { // left -> upgrade
+                if (rawSlot == 9) {
                     newTitle = GUI_TITLE_UPGRADE;
                     openUpgradeGUI(player);
                 } else {
                     newTitle = GUI_TITLE_REROLL;
                     openRerollGUI(player);
                 }
-            } else { // REROLL
-                if (rawSlot == 9) { // left -> repair
+            } else if (title.equals(GUI_TITLE_REROLL)) {
+                if (rawSlot == 9) {
                     newTitle = GUI_TITLE_REPAIR;
                     openRepairGUI(player);
+                } else {
+                    newTitle = GUI_TITLE_EVOLVE;
+                    openEvolveGUI(player);
+                }
+            } else { // EVOLVE
+                if (rawSlot == 9) {
+                    newTitle = GUI_TITLE_REROLL;
+                    openRerollGUI(player);
                 } else {
                     newTitle = GUI_TITLE_UPGRADE;
                     openUpgradeGUI(player);
@@ -462,6 +529,27 @@ public class BlacksmithGUI implements Listener {
                         ? " increased by " + ChatColor.GREEN + "+" + diff
                         : " decreased by " + ChatColor.RED + diff);
                 player.sendMessage(message);
+            } else if (title.equals(GUI_TITLE_EVOLVE)) {
+                ItemStack button = gui.getItem(22);
+                String name = button != null && button.getItemMeta() != null ? ChatColor.stripColor(button.getItemMeta().getDisplayName()) : "";
+                if ("Warning".equalsIgnoreCase(name)) {
+                    EgoWeaponManager manager = EgoWeaponManager.getInstance();
+                    if (manager.evolveWeapon(player, item)) {
+                        gui.setItem(13, item);
+                    }
+                    int rank = item.getItemMeta().getPersistentDataContainer()
+                            .getOrDefault(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
+                    gui.setItem(22, createEvolveButton(rank >= 10));
+                } else {
+                    int rank = item.getItemMeta().getPersistentDataContainer()
+                            .getOrDefault(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
+                    if (rank >= 10) {
+                        gui.setItem(22, createEvolveConfirmButton());
+                    } else {
+                        player.sendMessage("§cRequires Rank 10 to evolve.");
+                    }
+                    return; // skip automatic button update
+                }
             }
         }
 
@@ -507,6 +595,8 @@ public class BlacksmithGUI implements Listener {
         if (current == null || current.getType().isAir()) {
             if (title.equals(GUI_TITLE_REROLL)) {
                 gui.setItem(22, createRerollButton(0));
+            } else if (title.equals(GUI_TITLE_EVOLVE)) {
+                gui.setItem(22, createEvolveButton(false));
             } else {
                 gui.setItem(22, title.equals(GUI_TITLE_UPGRADE)
                     ? createUpgradeButton(0, 0)
@@ -519,6 +609,8 @@ public class BlacksmithGUI implements Listener {
         if (ci == null) {
             if (title.equals(GUI_TITLE_REROLL)) {
                 gui.setItem(22, createRerollButton(0));
+            } else if (title.equals(GUI_TITLE_EVOLVE)) {
+                gui.setItem(22, createEvolveButton(false));
             } else {
                 gui.setItem(22, title.equals(GUI_TITLE_UPGRADE)
                     ? createUpgradeButton(0, 0)
@@ -537,8 +629,16 @@ public class BlacksmithGUI implements Listener {
             }
         } else if (title.equals(GUI_TITLE_REPAIR)) {
             gui.setItem(22, createRepairButton(repairManager.getRepairCost(ci)));
-        } else {
+        } else if (title.equals(GUI_TITLE_REROLL)) {
             gui.setItem(22, createRerollButton(rerollManager.getRerollCost(ci)));
+        } else {
+            ItemMeta meta = current.getItemMeta();
+            int rank = 1;
+            if (meta != null) {
+                rank = meta.getPersistentDataContainer()
+                        .getOrDefault(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
+            }
+            gui.setItem(22, createEvolveButton(rank >= 10));
         }
     }
 

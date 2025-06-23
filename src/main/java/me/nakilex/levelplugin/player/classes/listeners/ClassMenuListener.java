@@ -17,6 +17,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.persistence.PersistentDataContainer;
 
 import java.util.Set;
 import java.util.UUID;
@@ -44,6 +45,8 @@ public class ClassMenuListener implements Listener {
         switch (displayName.toUpperCase()) {
             case "START AS A WARRIOR!": selectedClass = PlayerClass.WARRIOR; className = "Warrior"; break;
             case "START AS AN ARCHER!": selectedClass = PlayerClass.ARCHER;  className = "Archer";  break;
+            case "START AS A COOLARCHER!": selectedClass = PlayerClass.COOLARCHER; className = "CoolArcher"; break;
+            case "START AS A PHOENIXHUNTER!": selectedClass = PlayerClass.PHOENIXHUNTER; className = "PhoenixHunter"; break;
             case "START AS A MAGE!":    selectedClass = PlayerClass.MAGE;    className = "Mage";    break;
             case "START AS A ROGUE!":   selectedClass = PlayerClass.ROGUE;   className = "Rogue";   break;
             default:
@@ -55,6 +58,12 @@ public class ClassMenuListener implements Listener {
             UUID puuid = player.getUniqueId();
 
             int level = LevelManager.getInstance().getLevel(player);
+
+            if (level < selectedClass.getRequiredLevel()) {
+                player.sendMessage(ChatColor.RED + "You must reach level " + selectedClass.getRequiredLevel() + " to select this class.");
+                return;
+            }
+
             PlayerClass current = StatsManager.getInstance().getPlayerStats(puuid).playerClass;
             int cost = current == PlayerClass.VILLAGER ? 0 : level * 50;
             if (cost > 0) {
@@ -69,7 +78,10 @@ public class ClassMenuListener implements Listener {
             // ✅ Set class directly into StatsManager like old version
             StatsManager.getInstance().getPlayerStats(puuid).playerClass = selectedClass;
 
-            boolean canDJ = (selectedClass == PlayerClass.ARCHER || selectedClass == PlayerClass.ROGUE);
+            boolean canDJ = (selectedClass == PlayerClass.ARCHER
+                    || selectedClass == PlayerClass.ROGUE
+                    || selectedClass == PlayerClass.COOLARCHER
+                    || selectedClass == PlayerClass.PHOENIXHUNTER);
             player.setAllowFlight(canDJ);
             if (!canDJ) {
                 player.setFlying(false);
@@ -129,11 +141,11 @@ public class ClassMenuListener implements Listener {
         boolean wasApplied = equipped.contains(id);
 
         if (wasApplied && (!meetsClassReq || !meetsLevelReq)) {
-            removeWeaponStats(player, ci);
+            removeWeaponStats(player, ci, weapon);
             equipped.remove(id);
             player.sendMessage(ChatColor.RED + "You no longer meet the requirements for " + ci.getBaseName() + "!");
         } else if (!wasApplied && meetsClassReq && meetsLevelReq) {
-            addWeaponStats(player, ci);
+            addWeaponStats(player, ci, weapon);
             equipped.add(id);
             player.sendMessage(ChatColor.GREEN + "Stats applied for " + ci.getBaseName() + "!");
         }
@@ -160,23 +172,41 @@ public class ClassMenuListener implements Listener {
         }
     }
 
-    private void addWeaponStats(Player player, CustomItem ci) {
+    private void addWeaponStats(Player player, CustomItem ci, ItemStack stack) {
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
-        ps.bonusHealthStat   += ci.getHp();
-        ps.bonusDefenceStat  += ci.getDef();
-        ps.bonusStrength     += ci.getStr();
-        ps.bonusAgility      += ci.getAgi();
-        ps.bonusIntelligence += ci.getIntel();
-        ps.bonusDexterity    += ci.getDex();
+        me.nakilex.levelplugin.ego.EgoRarity rarity = me.nakilex.levelplugin.ego.EgoRarity.COMMON;
+        int rank = 1;
+        if (stack.hasItemMeta()) {
+            PersistentDataContainer pdc = stack.getItemMeta().getPersistentDataContainer();
+            if (pdc.has(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING)) {
+                try { rarity = me.nakilex.levelplugin.ego.EgoRarity.valueOf(pdc.get(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING)); } catch (Exception ignored) {}
+            }
+            rank = pdc.getOrDefault(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
+        }
+        ps.bonusHealthStat   += ItemUtil.scaleEgoStat(ci.getHp(), rarity, rank);
+        ps.bonusDefenceStat  += ItemUtil.scaleEgoStat(ci.getDef(), rarity, rank);
+        ps.bonusStrength     += ItemUtil.scaleEgoStat(ci.getStr(), rarity, rank);
+        ps.bonusAgility      += ItemUtil.scaleEgoStat(ci.getAgi(), rarity, rank);
+        ps.bonusIntelligence += ItemUtil.scaleEgoStat(ci.getIntel(), rarity, rank);
+        ps.bonusDexterity    += ItemUtil.scaleEgoStat(ci.getDex(), rarity, rank);
     }
 
-    private void removeWeaponStats(Player player, CustomItem ci) {
+    private void removeWeaponStats(Player player, CustomItem ci, ItemStack stack) {
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
-        ps.bonusHealthStat   -= ci.getHp();
-        ps.bonusDefenceStat  -= ci.getDef();
-        ps.bonusStrength     -= ci.getStr();
-        ps.bonusAgility      -= ci.getAgi();
-        ps.bonusIntelligence -= ci.getIntel();
-        ps.bonusDexterity    -= ci.getDex();
+        me.nakilex.levelplugin.ego.EgoRarity rarity = me.nakilex.levelplugin.ego.EgoRarity.COMMON;
+        int rank = 1;
+        if (stack.hasItemMeta()) {
+            PersistentDataContainer pdc = stack.getItemMeta().getPersistentDataContainer();
+            if (pdc.has(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING)) {
+                try { rarity = me.nakilex.levelplugin.ego.EgoRarity.valueOf(pdc.get(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING)); } catch (Exception ignored) {}
+            }
+            rank = pdc.getOrDefault(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
+        }
+        ps.bonusHealthStat   -= ItemUtil.scaleEgoStat(ci.getHp(), rarity, rank);
+        ps.bonusDefenceStat  -= ItemUtil.scaleEgoStat(ci.getDef(), rarity, rank);
+        ps.bonusStrength     -= ItemUtil.scaleEgoStat(ci.getStr(), rarity, rank);
+        ps.bonusAgility      -= ItemUtil.scaleEgoStat(ci.getAgi(), rarity, rank);
+        ps.bonusIntelligence -= ItemUtil.scaleEgoStat(ci.getIntel(), rarity, rank);
+        ps.bonusDexterity    -= ItemUtil.scaleEgoStat(ci.getDex(), rarity, rank);
     }
 }

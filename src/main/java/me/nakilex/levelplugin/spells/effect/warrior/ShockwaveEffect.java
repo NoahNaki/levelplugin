@@ -4,9 +4,10 @@ import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
 import me.nakilex.levelplugin.spells.effect.SpellEffect;
 import me.nakilex.levelplugin.spells.utils.SpellUtils;
+import me.nakilex.levelplugin.spells.utils.animation.SpellAnimation;
+import me.nakilex.levelplugin.Main;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import me.nakilex.levelplugin.spells.utils.animation.SpellAnimation;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.block.Block;
@@ -66,16 +67,14 @@ public class ShockwaveEffect implements SpellEffect {
                     loc.getWorld().spawnParticle(Particle.BLOCK_CRUMBLE, loc, 10, 0.2, 0.2, 0.2, 0.1, Material.DIRT.createBlockData());
                     loc.getWorld().spawnParticle(Particle.CRIT, loc, 5, 0.2, 0.2, 0.2);
 
-                    if (Math.random() < 0.2) { // spawn fewer blocks for performance
+                    if (Math.random() < 0.2) {
                         Block ground = loc.getWorld().getHighestBlockAt(loc);
                         if (ground.getType() != Material.AIR) {
                             Location bLoc = ground.getLocation().add(0.5, 1.0, 0.5);
                             FallingBlock fb = loc.getWorld().spawnFallingBlock(bLoc, ground.getBlockData());
                             fb.setDropItem(false);
-                            // Reduce upward velocity so blocks stay closer to the ground
                             fb.setVelocity(new Vector(Math.cos(rad) * 0.2, 0.15, Math.sin(rad) * 0.2));
                             fb.setMetadata("Shockwave", new FixedMetadataValue(plugin, true));
-                            // Give the block plenty of time to fall before it despawns
                             Bukkit.getScheduler().runTaskLater(plugin, fb::remove, 80L);
                         }
                     }

@@ -50,10 +50,11 @@ public class ItemUpgradeManager {
 
             // Rebuild the ItemStack so lore, name, and stats reflect the upgrade
             ItemStack updated = ItemUtil.createItemStackFromCustomItem(
-                customItem,
-                itemStack.getAmount(),
-                player
+                    customItem,
+                    itemStack.getAmount(),
+                    player
             );
+            ItemUtil.copyEgoData(itemStack, updated, customItem, player);
             itemStack.setType(updated.getType());
             itemStack.setItemMeta(updated.getItemMeta());
 

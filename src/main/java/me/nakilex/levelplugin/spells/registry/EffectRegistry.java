@@ -1,11 +1,7 @@
 package me.nakilex.levelplugin.spells.registry;
 
-import me.nakilex.levelplugin.spells.ArcherSpell;
 import me.nakilex.levelplugin.spells.effect.SpellEffect;
-import me.nakilex.levelplugin.spells.effect.archer.*;
-import me.nakilex.levelplugin.spells.effect.mage.*;
-import me.nakilex.levelplugin.spells.effect.warrior.*;
-import me.nakilex.levelplugin.spells.effect.rogue.*;
+import me.nakilex.levelplugin.spells.effect.MythicSkillEffect;
 
 
 import java.util.Map;
@@ -37,53 +33,34 @@ public class EffectRegistry {
      * Register every built‐in effect. Call this once in onEnable().
      */
     public static void registerAll() {
-        // --- Mage spells ---
 
-        register("METEOR", new MeteorEffect());
-        register("BLACKHOLE", new BlackholeEffect());
-        register("HEAL", new HealEffect());
-        register("TELEPORT", new TeleportEffect());
-        register("BASIC_RAY", new BasicRayEffect());
+        // --- CoolArcher Mythic skills ---
+        register("MYTHIC_QUICK_SHOT", new MythicSkillEffect("Quick_Shot"));
+        register("MYTHIC_BACKSTEP", new MythicSkillEffect("Backstep"));
+        register("MYTHIC_WINDRAZOR", new MythicSkillEffect("Windrazor"));
+        register("MYTHIC_ARROW_BARRAGE", new MythicSkillEffect("Arrow_Barrage"));
+        register("MYTHIC_DRAGON_PIERCER", new MythicSkillEffect("Dragon_Piercer"));
+        register("MYTHIC_DEADLY_JAVELIN", new MythicSkillEffect("Deadly_Javelin"));
 
-        // --- Meteor Runes ---
-        register("METEOR_SHOWER_EFFECT", new MeteorShowerEffect());
-        register("FROST_COMET_EFFECT", new FrostCometEffect());
-        register("OBSIDIAN_METEOR_EFFECT", new ObsidianMeteorEffect());
+        // --- PhoenixHunter Mythic skills ---
+        register("MYTHIC_BLAZING_FEATHERS", new MythicSkillEffect("Blazing_Feathers"));
+        register("MYTHIC_ASHDANCE", new MythicSkillEffect("Ashdance"));
+        register("MYTHIC_FLAMEBURST_CONVERGENCE", new MythicSkillEffect("Flameburst_Convergence"));
+        register("MYTHIC_PHOENIX_TOTEM", new MythicSkillEffect("Phoenix_Totem"));
+        register("MYTHIC_PYROCLASMIC_BARRAGE", new MythicSkillEffect("Pyroclasmic_Barrage"));
+        register("MYTHIC_PHOENIX_REBIRTH", new MythicSkillEffect("Phoenix_Rebirth"));
 
-        // --- Blackhole Runes
-        register("SINGULARITY_BLACKHOLE_EFFECT", new SingularityBlackholeEffect());
-        register("TEMPORAL_BLACKHOLE_EFFECT", new TemporalStasisBlackholeEffect());
-        register("CHAOS_BLACKHOLE_EFFECT", new ChaosBlackholeEffect());
-        register("HEAL", new HealEffect());
+        // --- Warrior Mythic skills ---
+        register("MYTHIC_BRUTAL_STRIKE", new MythicSkillEffect("Brutal_Strike"));
+        register("MYTHIC_CHARGE", new MythicSkillEffect("Charge"));
+        register("MYTHIC_CHAIN_HOOK", new MythicSkillEffect("Chain_Hook"));
+        register("MYTHIC_SHIELD_BARRIER", new MythicSkillEffect("Shield_Barrier"));
+        register("MYTHIC_WHIRLWIND", new MythicSkillEffect("Whirlwind"));
+        register("MYTHIC_JUDGEMENT", new MythicSkillEffect("Judgement"));
+        register("MYTHIC_RAMPAGE", new MythicSkillEffect("Rampage"));
+        register("SHOCKWAVE", new me.nakilex.levelplugin.spells.effect.warrior.ShockwaveEffect());
 
-        // --- Archer Spells
-
-        register("BASIC_ATTACK", new BasicArrowShotEffect());
-        register("POWER_SHOT", new PowerShotEffect());
-        register("BOW_DRONE", new BowDroneEffect());
-        register("GRAPPLE_HOOK", new GrappleHookEffect());
-        register("ARROW_STORM", new ArrowStormEffect());
-        register("ARROW_SHOWER_EFFECT", new ArrowShowerEffect());
-        register("EXPLOSIVE_ARROW", new ExplosiveArrowShotEffect());
-
-        // --- Warrior Spells
-        register("IRON_FORTRESS", new IronFortressEffect());
-        register("HEROIC_LEAP", new HeroicLeapEffect());
-        register("SHOCKWAVE", new ShockwaveEffect());
-        register("VORTEX_SHOCKWAVE_EFFECT", new VortexShockwaveEffect());
-        register("VOLCANIC_BLAST_EFFECT", new VolcanicBlastEffect());
-        register("VORTEX_LEAP_EFFECT", new VortexLeapEffect());
-        register("STUNNING_LEAP_EFFECT", new StunningLeapEffect());
-        register("WAR_CRY", new WarCryEffect());
-        register("POWER_STRIKE", new PowerStrikeEffect());
-        register("JUDGEMENT", new JudgementEffect());
-        register("GATE_OF_RUIN_EFFECT", new GateOfRuinEffect());
-
-        // --- Rogue Spells ---
-        register("CRESCENT_SLASH", new CrescentSlashEffect());
-        register("MULTIHIT", new MultihitEffect());
-        register("SMOKE_BOMB", new SmokeBombEffect());
-        register("VANISH", new VanishEffect());
+        // No legacy warrior or rogue spell effects retained
 
     }
 }

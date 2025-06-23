@@ -5,7 +5,6 @@ import me.nakilex.levelplugin.items.data.WeaponType;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
-import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import org.bukkit.*;
 import org.bukkit.entity.EntityType;
@@ -98,20 +97,10 @@ public class XPBarHandler {
             if (ci != null) {
                 int id           = ci.getId();
                 int reqLevel     = ci.getLevelRequirement();
-                String clsReqRaw = ci.getClassRequirement();
+                int reqLevel     = ci.getLevelRequirement();
 
-                PlayerClass reqClass;
-                try {
-                    reqClass = PlayerClass.valueOf(clsReqRaw.toUpperCase());
-                } catch (IllegalArgumentException e) {
-                    reqClass = PlayerClass.VILLAGER;
-                }
-                PlayerClass playerClass = statsMgr.getPlayerStats(puuid).playerClass;
-
-                // Check both level AND class requirements
-                if (!equipped.contains(id)
-                    && newLevel >= reqLevel
-                    && (reqClass == PlayerClass.VILLAGER || reqClass == playerClass)) {
+                // Check level requirement only
+                if (!equipped.contains(id) && newLevel >= reqLevel) {
 
                     // ADD STATS
                     StatsManager.PlayerStats ps = statsMgr.getPlayerStats(puuid);
@@ -126,7 +115,7 @@ public class XPBarHandler {
                     player.sendMessage(ChatColor.GREEN
                         + "Your " + ci.getBaseName()
                         + " now grants its stats, since you reached level "
-                        + newLevel + " and meet the class requirement!");
+                        + newLevel + "!");
                 }
             }
         }

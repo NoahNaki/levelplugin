@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStat
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 
@@ -29,14 +30,26 @@ public class StatsEffectListener implements Listener {
         return wasCrit != null && wasCrit;
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
         Entity damager = event.getDamager();
         Entity target  = event.getEntity();
 
-        // ── Outgoing damage (when the damager is a player) ──
-        if (damager instanceof Player) {
-            Player player = (Player) damager;
+        // Determine if a player is responsible for the damage
+        Player player = null;
+        if (damager instanceof Player p) {
+            player = p;
+        } else if (damager instanceof org.bukkit.entity.Projectile proj && proj.getShooter() instanceof Player shooter) {
+            // Skip scaling for our own custom projectiles which already embed stats
+            if (proj.hasMetadata("ArcherSpell") || proj.hasMetadata("BasicAttack") || proj.hasMetadata("Meteor") || proj.hasMetadata("Shockwave")) {
+                player = null;
+            } else {
+                player = shooter;
+            }
+        }
+
+        // ── Outgoing damage (when the damager is a player or their projectile) ──
+        if (player != null) {
             PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
 
             // 1) Strength bonus
@@ -50,6 +63,10 @@ public class StatsEffectListener implements Listener {
 
             boolean isCrit = random.nextDouble() < critChance;
             if (isCrit) finalDamage *= 2;
+
+            me.nakilex.levelplugin.Main.getPlugin().getLogger().info(
+                "[StatsEffect] dmg=" + event.getDamage() + "->" + finalDamage +
+                " crit=" + isCrit + " player=" + player.getName());
 
             // Record for chat, etc.
             lastCritMap.put(player.getUniqueId(), isCrit);
