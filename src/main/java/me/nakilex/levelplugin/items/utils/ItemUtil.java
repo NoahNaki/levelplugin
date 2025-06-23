@@ -208,7 +208,8 @@ public class ItemUtil {
         meta.addItemFlags(ItemFlag.HIDE_UNBREAKABLE);
 
         // Store unique data in the PersistentDataContainer.
-        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        // Reuse the container retrieved earlier instead of redeclaring it
+        // to avoid duplicate variable errors during compilation.
         pdc.set(ITEM_ID_KEY, PersistentDataType.INTEGER, cItem.getId());
         pdc.set(UPGRADE_LEVEL_KEY, PersistentDataType.INTEGER, cItem.getUpgradeLevel());
         pdc.set(ITEM_UUID_KEY, PersistentDataType.STRING, cItem.getUuid().toString());
