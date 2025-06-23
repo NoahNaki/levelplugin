@@ -54,6 +54,17 @@ public class EgoWeaponManager {
         EgoWeapon weapon = getWeapon(player.getUniqueId());
         if (weapon == null) return;
         boolean leveled = weapon.addExp(xp);
+        ItemStack hand = player.getInventory().getItemInMainHand();
+        if (hand != null && hand.hasItemMeta()) {
+            ItemMeta meta = hand.getItemMeta();
+            PersistentDataContainer pdc = meta.getPersistentDataContainer();
+            if (pdc.has(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING)) {
+                pdc.set(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, weapon.getRank());
+                pdc.set(ItemUtil.EGO_EXP_KEY, PersistentDataType.INTEGER, weapon.getExp());
+                hand.setItemMeta(meta);
+                ItemUtil.updateEgoWeaponTooltip(hand, player);
+            }
+        }
         if (leveled) {
             player.sendMessage("§aYour weapon ranked up to " + weapon.getRank() + "!");
         }
@@ -74,7 +85,7 @@ public class EgoWeaponManager {
             meta.setDisplayName(weapon.getRarity().getColor() + weapon.getName());
             stack.setItemMeta(meta);
         }
-        ItemUtil.updateCustomItemTooltip(stack, null);
+        ItemUtil.updateEgoWeaponTooltip(stack, null);
         return stack;
     }
 }

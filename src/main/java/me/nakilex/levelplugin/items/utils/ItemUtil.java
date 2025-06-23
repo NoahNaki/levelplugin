@@ -116,22 +116,20 @@ public class ItemUtil {
             lore.add("");
         }
 
-        // --- Level Requirement ---
-        int playerLevel = (player != null) ? LevelManager.getInstance().getLevel(player) : 0;
-        String levelRequirementLine;
-        if (player == null) {
-            // When no player is provided, simply show the requirement in gray.
-            levelRequirementLine = ChatColor.GRAY + "Level Requirement: " + cItem.getLevelRequirement();
-        } else if (playerLevel < cItem.getLevelRequirement()) {
-            // Player does not meet the requirement: red cross and then light gray text.
-            levelRequirementLine = ChatColor.RED + "✘ " + ChatColor.GRAY + "Level Requirement: " + ChatColor.WHITE + cItem.getLevelRequirement();
-        } else {
-            // Player meets the requirement: green check and then light gray text.
-            levelRequirementLine = ChatColor.GREEN + "✔ " + ChatColor.GRAY + "Level Requirement: " + ChatColor.WHITE + cItem.getLevelRequirement();
+        if (!pdc.has(EGO_ID_KEY, PersistentDataType.STRING)) {
+            // --- Level Requirement ---
+            int playerLevel = (player != null) ? LevelManager.getInstance().getLevel(player) : 0;
+            String levelRequirementLine;
+            if (player == null) {
+                levelRequirementLine = ChatColor.GRAY + "Level Requirement: " + cItem.getLevelRequirement();
+            } else if (playerLevel < cItem.getLevelRequirement()) {
+                levelRequirementLine = ChatColor.RED + "✘ " + ChatColor.GRAY + "Level Requirement: " + ChatColor.WHITE + cItem.getLevelRequirement();
+            } else {
+                levelRequirementLine = ChatColor.GREEN + "✔ " + ChatColor.GRAY + "Level Requirement: " + ChatColor.WHITE + cItem.getLevelRequirement();
+            }
+            lore.add(levelRequirementLine);
+            lore.add(""); // Another blank line for spacing
         }
-        lore.add(levelRequirementLine);
-
-        lore.add(""); // Another blank line for spacing
 
         // --- Stats Information ---
         String prefix = parsePrefix(cItem.getBaseName());
@@ -401,6 +399,50 @@ public class ItemUtil {
         int filled = (int) Math.round(pct / 100.0 * barLen);
         String bar = ChatColor.GREEN + "" + "-".repeat(Math.max(filled,0)) + ChatColor.WHITE + "" + "-".repeat(Math.max(barLen - filled,0));
         lore.add(bar + " " + ChatColor.YELLOW + exp + ChatColor.GOLD + "/" + ChatColor.YELLOW + expToNext);
+        lore.add("");
+
+        CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(stack);
+        if (cItem != null) {
+            String prefix = parsePrefix(cItem.getBaseName());
+            StatsManager.StatType prefixStat = prefix != null ? PREFIX_MAP.get(prefix) : null;
+            if (cItem.getHp() != 0) {
+                String line = ChatColor.RED + "❤ " + ChatColor.GRAY + "Health: " + ChatColor.RED + "+" + cItem.getHp();
+                if (prefixStat == StatsManager.StatType.HP) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
+                lore.add(line);
+            }
+            if (cItem.getDef() != 0) {
+                String line = ChatColor.GRAY + "⛂ " + ChatColor.GRAY + "Defence: " + ChatColor.WHITE + "+" + cItem.getDef();
+                if (prefixStat == StatsManager.StatType.DEF) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
+                lore.add(line);
+            }
+            if (cItem.getStr() != 0) {
+                String line = ChatColor.BLUE + "☠ " + ChatColor.GRAY + "Strength: " + ChatColor.WHITE + "+" + cItem.getStr();
+                if (prefixStat == StatsManager.StatType.STR) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
+                lore.add(line);
+            }
+            if (cItem.getAgi() != 0) {
+                String line = ChatColor.GREEN + "≈ " + ChatColor.GRAY + "Agility: " + ChatColor.WHITE + "+" + cItem.getAgi();
+                if (prefixStat == StatsManager.StatType.AGI) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
+                lore.add(line);
+            }
+            if (cItem.getIntel() != 0) {
+                String line = ChatColor.AQUA + "♦ " + ChatColor.GRAY + "Intelligence: " + ChatColor.WHITE + "+" + cItem.getIntel();
+                if (prefixStat == StatsManager.StatType.INT) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
+                lore.add(line);
+            }
+            if (cItem.getDex() != 0) {
+                String line = ChatColor.YELLOW + "➹ " + ChatColor.GRAY + "Dexterity: " + ChatColor.WHITE + "+" + cItem.getDex();
+                if (prefixStat == StatsManager.StatType.DEX) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
+                lore.add(line);
+            }
+
+            lore.add("");
+            if (cItem.isBroken()) {
+                lore.add(ChatColor.GRAY + "Durability: " + ChatColor.RED + ChatColor.BOLD + "BROKEN");
+            } else {
+                lore.add(ChatColor.GRAY + "Durability: " + ChatColor.WHITE + cItem.getCurrentDurability() + "/" + cItem.getMaxDurability());
+            }
+        }
 
         meta.setLore(lore);
         stack.setItemMeta(meta);

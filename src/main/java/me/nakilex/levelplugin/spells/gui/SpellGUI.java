@@ -136,13 +136,23 @@ public class SpellGUI {
         List<Spell> spells = new ArrayList<>(classSpells.values());
         spells.sort(Comparator.comparingInt(Spell::getLevelReq));
 
-        // Get player's level from LevelManager
-        int playerLevel = LevelManager.getInstance().getLevel(player);
+        int playerRank = 0;
+        ItemStack hand = player.getInventory().getItemInMainHand();
+        if (hand != null && hand.hasItemMeta()) {
+            PersistentDataContainer pdc = hand.getItemMeta().getPersistentDataContainer();
+            if (pdc.has(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER)) {
+                playerRank = pdc.get(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER);
+            } else {
+                playerRank = LevelManager.getInstance().getLevel(player);
+            }
+        } else {
+            playerRank = LevelManager.getInstance().getLevel(player);
+        }
 
         // Place up to 4 spells in the designated slots.
         for (int i = 0; i < SPELL_SLOTS.length && i < spells.size(); i++) {
             Spell spell = spells.get(i);
-            ItemStack spellItem = createSpellItem(player, spell, playerLevel);
+            ItemStack spellItem = createSpellItem(player, spell, playerRank);
             gui.setItem(SPELL_SLOTS[i], spellItem);
             Bukkit.getLogger().info("[SpellGUI] Placed spell '" + spell.getDisplayName() + "' in slot " + SPELL_SLOTS[i]);
         }
@@ -174,7 +184,7 @@ public class SpellGUI {
         }
 
         lore.add(ChatColor.GRAY + "Usage: " + ChatColor.YELLOW + usage);
-        lore.add(ChatColor.GRAY + "Required Level: " + ChatColor.YELLOW + spell.getLevelReq());
+        lore.add(ChatColor.GRAY + "Required Rank: " + ChatColor.YELLOW + spell.getLevelReq());
 
         if (unlocked) {
             lore.add(ChatColor.DARK_GRAY + "" + ChatColor.STRIKETHROUGH + "--------------------");

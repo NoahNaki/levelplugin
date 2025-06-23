@@ -13,6 +13,10 @@ import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.spells.registry.EffectRegistry;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 
 import java.util.List;
 import java.util.Map;
@@ -116,12 +120,29 @@ public class Spell {
     public void castEffect(Player player) {
         UUID pid = player.getUniqueId();
 
-        // 0) Level requirement
-        int playerLevel = me.nakilex.levelplugin.player.level.managers.LevelManager
-                .getInstance().getLevel(player);
-        if (playerLevel < levelReq) {
-            player.sendMessage("§cYou must be level " + levelReq + " to cast " + displayName);
-            return;
+        // 0) Requirement check (level or weapon rank)
+        boolean ego = false;
+        int rank = 0;
+        ItemStack hand = player.getInventory().getItemInMainHand();
+        if (hand != null && hand.hasItemMeta()) {
+            PersistentDataContainer pdc = hand.getItemMeta().getPersistentDataContainer();
+            if (pdc.has(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER)) {
+                ego = true;
+                rank = pdc.get(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER);
+            }
+        }
+        if (ego) {
+            if (rank < levelReq) {
+                player.sendMessage("§cYour weapon must be rank " + levelReq + " to cast " + displayName);
+                return;
+            }
+        } else {
+            int playerLevel = me.nakilex.levelplugin.player.level.managers.LevelManager
+                    .getInstance().getLevel(player);
+            if (playerLevel < levelReq) {
+                player.sendMessage("§cYou must be level " + levelReq + " to cast " + displayName);
+                return;
+            }
         }
 
         // 1) Cooldown guard
