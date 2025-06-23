@@ -52,6 +52,27 @@ public class EgoWeaponManager {
 
     public void addXp(Player player, int xp) {
         EgoWeapon weapon = getWeapon(player.getUniqueId());
+        if (weapon == null) {
+            ItemStack heldItem = player.getInventory().getItemInMainHand();
+            if (heldItem != null && heldItem.hasItemMeta()) {
+                ItemMeta meta = heldItem.getItemMeta();
+                PersistentDataContainer pdc = meta.getPersistentDataContainer();
+                if (pdc.has(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING)) {
+                    String id = pdc.get(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING);
+                    String key = id.split("_")[0];
+                    EgoWeapon proto = prototypes.get(key);
+                    if (proto != null) {
+                        weapon = proto.copy();
+                        weapon.addExp(0); // ensure fields init
+                        int r = pdc.getOrDefault(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
+                        int e = pdc.getOrDefault(ItemUtil.EGO_EXP_KEY, PersistentDataType.INTEGER, 0);
+                        while (weapon.getRank() < r) weapon.addExp(weapon.expToNextRank());
+                        weapon.addExp(e);
+                        setWeapon(player.getUniqueId(), weapon);
+                    }
+                }
+            }
+        }
         if (weapon == null) return;
         boolean leveled = weapon.addExp(xp);
         ItemStack hand = player.getInventory().getItemInMainHand();

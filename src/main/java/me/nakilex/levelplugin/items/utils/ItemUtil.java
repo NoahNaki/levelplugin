@@ -478,12 +478,12 @@ public class ItemUtil {
      */
     public static void updateTooltip(ItemStack stack, Player player) {
         if (stack == null) return;
-        if (stack.hasItemMeta() && stack.getItemMeta().getPersistentDataContainer().has(ITEM_UUID_KEY, PersistentDataType.STRING)) {
-            updateCustomItemTooltip(stack, player);
-        } else if (stack.hasItemMeta() && stack.getItemMeta().getPersistentDataContainer().has(EGO_ID_KEY, PersistentDataType.STRING)) {
+        if (stack.hasItemMeta() && stack.getItemMeta().getPersistentDataContainer().has(EGO_ID_KEY, PersistentDataType.STRING)) {
             updateEgoWeaponTooltip(stack, player);
+        } else if (stack.hasItemMeta() && stack.getItemMeta().getPersistentDataContainer().has(ITEM_UUID_KEY, PersistentDataType.STRING)) {
+            updateCustomItemTooltip(stack, player);
         } else if (ToolTier.fromMaterial(stack.getType()) != null) {
             updateCustomToolTooltip(stack, player);
         }
-    }
+   }
 }
