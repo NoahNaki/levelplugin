@@ -55,6 +55,14 @@ public class SpellGUI {
         SPELL_DESCRIPTIONS.put("phoenix_totem", "Summon a blazing totem that burns enemies.");
         SPELL_DESCRIPTIONS.put("pyroclasmic_barrage", "Launch a barrage of burning feathers.");
         SPELL_DESCRIPTIONS.put("phoenix_rebirth", "Transform into a phoenix to scorch foes.");
+
+        SPELL_DESCRIPTIONS.put("brutal_strike", "Swing your axe in a brutal strike.");
+        SPELL_DESCRIPTIONS.put("charge", "Rush forward, knocking enemies aside.");
+        SPELL_DESCRIPTIONS.put("chain_hook", "Throw a chain to pull foes to you.");
+        SPELL_DESCRIPTIONS.put("shield_barrier", "Raise a temporary blocking shield.");
+        SPELL_DESCRIPTIONS.put("whirlwind", "Spin and damage nearby foes.");
+        SPELL_DESCRIPTIONS.put("judgement", "Leap and smash the ground mightily.");
+        SPELL_DESCRIPTIONS.put("rampage", "Gain buffs when near death.");
     }
 
     /** Simple usage hints for non-combo based spells. */
@@ -72,6 +80,14 @@ public class SpellGUI {
         SPELL_USAGE.put("phoenix_totem", "Passive");
         SPELL_USAGE.put("pyroclasmic_barrage", "Sneak + Right Click");
         SPELL_USAGE.put("phoenix_rebirth", "Sneak + Left Click");
+
+        SPELL_USAGE.put("brutal_strike", "Left Click");
+        SPELL_USAGE.put("charge", "Right Click");
+        SPELL_USAGE.put("chain_hook", "Sneak + Right Click");
+        SPELL_USAGE.put("shield_barrier", "Sneak");
+        SPELL_USAGE.put("whirlwind", "Sneak + Right Click");
+        SPELL_USAGE.put("judgement", "Sneak + Left Click");
+        SPELL_USAGE.put("rampage", "Sneak + Left Click (low HP)");
     }
 
     // The slots where we will place the spells in a 27-slot inventory.
@@ -92,6 +108,7 @@ public class SpellGUI {
                 String prefix = id.split("_")[0];
                 if (prefix.equalsIgnoreCase("archer")) classKey = "coolarcher";
                 else if (prefix.equalsIgnoreCase("phoenix")) classKey = "phoenixhunter";
+                else if (prefix.equalsIgnoreCase("warrior")) classKey = "warrior";
             }
         }
 

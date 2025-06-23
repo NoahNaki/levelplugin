@@ -25,24 +25,24 @@ public class ClassMenu {
         int cost = current == me.nakilex.levelplugin.player.classes.data.PlayerClass.VILLAGER ? 0 : level * 50;
 
         // Warrior (using wooden shovel as icon)
-        inv.setItem(10, createMenuItem(Material.WOODEN_SHOVEL, ChatColor.GREEN + "" + ChatColor.BOLD + "Start As A Warrior!",
+        inv.setItem(10, createMenuItem(Material.WOODEN_AXE, ChatColor.GREEN + "" + ChatColor.BOLD + "Start As A Warrior!",
             Arrays.asList(
                 "",
                 ChatColor.GRAY + "Choosing this will start you out as a ",
-                ChatColor.GREEN + "WARRIOR" + ChatColor.GRAY + "! Your starting item will be a sword.",
+                ChatColor.GREEN + "WARRIOR" + ChatColor.GRAY + "! Your starting item will be an axe.",
                 "",
                 ChatColor.RED + "" + ChatColor.BOLD + "ABILITY 1:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Iron Fortress " + ChatColor.GRAY +
-                    "(Combo: RLR)",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Charge " + ChatColor.GRAY +
+                    "(Combo: LRL)",
                 ChatColor.YELLOW + "" + ChatColor.BOLD + "ABILITY 2:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Heroic Leap " + ChatColor.GRAY +
-                    "(Combo: RRR)",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Chain Hook " + ChatColor.GRAY +
+                    "(Combo: LRR)",
                 ChatColor.BLUE + "" + ChatColor.BOLD + "ABILITY 3:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Uppercut " + ChatColor.GRAY +
-                    "(Combo: RRL)",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Shield Barrier " + ChatColor.GRAY +
+                    "(Combo: Sneak)",
                 ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "ABILITY 4:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Ground Slam " + ChatColor.GRAY +
-                    "(Combo: RLL)",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Rampage " + ChatColor.GRAY +
+                    "(Combo: Sneak + Left Click)",
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
                 ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,

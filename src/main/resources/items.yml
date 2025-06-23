@@ -3214,3 +3214,16 @@ items:
     agi: 0-0
     intel: 0-0
     dex: 0-0
+
+  258:
+    name: "Ego Warrior Axe"
+    rarity: COMMON
+    level_requirement: 1
+    class_requirement: WARRIOR
+    material: WOODEN_AXE
+    hp: 0-0
+    def: 0-0
+    str: 3-6
+    agi: 0-0
+    intel: 0-0
+    dex: 0-0

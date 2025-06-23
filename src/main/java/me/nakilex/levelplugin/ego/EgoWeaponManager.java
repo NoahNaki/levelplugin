@@ -38,6 +38,12 @@ public class EgoWeaponManager {
         phoenix.addRankSkill(5, "Flameburst_Convergence");
         phoenix.addRankSkill(8, "Phoenix_Rebirth");
         prototypes.put("phoenix", phoenix);
+
+        EgoWeapon warrior = new EgoWeapon("warrior_ego", "Ego Warrior Axe", EgoRarity.COMMON);
+        warrior.addRankSkill(1, "Brutal_Strike");
+        warrior.addRankSkill(5, "Charge");
+        warrior.addRankSkill(8, "Rampage");
+        prototypes.put("warrior", warrior);
     }
 
     public EgoWeapon getPrototype(String key) {
