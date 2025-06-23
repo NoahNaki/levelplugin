@@ -130,6 +130,7 @@ public class ListenerRegistry {
         pm.registerEvents(new PotionUseListener(potionManager, plugin), plugin);
         pm.registerEvents(new MythicMobNameManager(plugin), plugin);
         pm.registerEvents(new MythicMobDamageListener(), plugin);
+        pm.registerEvents(new me.nakilex.levelplugin.mob.listeners.MythicSkillDamageScaler(), plugin);
         pm.registerEvents(new FallDamageDisabler(), plugin);
         pm.registerEvents(new HungerDisabler(), plugin);
         pm.registerEvents(SprintManager.getInstance(), plugin);
