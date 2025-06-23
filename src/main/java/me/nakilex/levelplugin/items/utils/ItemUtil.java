@@ -31,6 +31,9 @@ public class ItemUtil {
     public static final NamespacedKey ITEM_ID_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "custom_item_id");
     public static final NamespacedKey ITEM_UUID_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "custom_item_uuid");
     public static final NamespacedKey DURABILITY_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "custom_item_durability");
+    public static final NamespacedKey EGO_ID_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "ego_weapon_id");
+    public static final NamespacedKey EGO_RANK_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "ego_weapon_rank");
+    public static final NamespacedKey EGO_EXP_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "ego_weapon_exp");
 
     private static final int PREFIX_BONUS = 20;
     private static final java.util.Map<String, StatsManager.StatType> PREFIX_MAP = new java.util.HashMap<>();
@@ -96,6 +99,23 @@ public class ItemUtil {
         }
         lore.add(rarityGlyph + typeGlyph);
         lore.add(""); // Blank line for spacing
+
+        // If this item is an Ego Weapon, show rank progress before stats
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        if (pdc.has(EGO_RANK_KEY, PersistentDataType.INTEGER)) {
+            int rank = pdc.getOrDefault(EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
+            int exp  = pdc.getOrDefault(EGO_EXP_KEY,  PersistentDataType.INTEGER, 0);
+            int expToNext = 100 * rank;
+            double pct = expToNext > 0 ? (exp * 100.0 / expToNext) : 0.0;
+            pct = Math.round(pct * 10.0) / 10.0;
+            lore.add(ChatColor.GRAY + "Rank: " + ChatColor.YELLOW + rank + ChatColor.GRAY + "/10");
+            lore.add(ChatColor.GRAY + "Progress to Level " + ChatColor.YELLOW + (rank + 1) + ChatColor.GRAY + ": " + ChatColor.YELLOW + pct + "%");
+            int barLen = 15;
+            int filled = (int) Math.round(pct / 100.0 * barLen);
+            String bar = ChatColor.GREEN + "" + "-".repeat(Math.max(filled,0)) + ChatColor.WHITE + "" + "-".repeat(Math.max(barLen - filled,0));
+            lore.add(bar + " " + ChatColor.YELLOW + exp + ChatColor.GOLD + "/" + ChatColor.YELLOW + expToNext);
+            lore.add("");
+        }
 
         // --- Level Requirement ---
         int playerLevel = (player != null) ? LevelManager.getInstance().getLevel(player) : 0;
@@ -367,6 +387,61 @@ public class ItemUtil {
         return (value != null) ? value : -1;
     }
 
+    // ─── Ego Weapon Utilities ────────────────────────────────────────────────
+
+    public static ItemStack createEgoWeaponItem(me.nakilex.levelplugin.ego.EgoWeapon weapon, Material material) {
+        ItemStack stack = new ItemStack(material);
+        ItemMeta meta = stack.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(weapon.getRarity().getColor() + weapon.getName());
+            PersistentDataContainer pdc = meta.getPersistentDataContainer();
+            pdc.set(EGO_ID_KEY, PersistentDataType.STRING, weapon.getId());
+            pdc.set(EGO_RANK_KEY, PersistentDataType.INTEGER, weapon.getRank());
+            pdc.set(EGO_EXP_KEY, PersistentDataType.INTEGER, weapon.getExp());
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
+            stack.setItemMeta(meta);
+        }
+        updateEgoWeaponTooltip(stack, null);
+        return stack;
+    }
+
+    public static void updateEgoWeaponTooltip(ItemStack stack, Player viewer) {
+        if (stack == null || !stack.hasItemMeta()) return;
+        ItemMeta meta = stack.getItemMeta();
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        if (!pdc.has(EGO_ID_KEY, PersistentDataType.STRING)) return;
+
+        int rank = pdc.getOrDefault(EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
+        int exp  = pdc.getOrDefault(EGO_EXP_KEY,  PersistentDataType.INTEGER, 0);
+        int expToNext = 100 * rank;
+        double pct = expToNext > 0 ? (exp * 100.0 / expToNext) : 0.0;
+        pct = Math.round(pct * 10.0) / 10.0;
+
+        List<String> lore = meta.hasLore() ? meta.getLore() : new ArrayList<>();
+        lore.clear();
+
+        // Rarity + weapon glyph line
+        String rarityName = "COMMON";
+        try {
+            me.nakilex.levelplugin.ego.EgoRarity rar = me.nakilex.levelplugin.ego.EgoRarity.valueOf(pdc.get(EGO_ID_KEY, PersistentDataType.STRING).split("_")[0].toUpperCase());
+            rarityName = rar.name();
+            lore.add(rar.getSymbol() + "<glyph:weapon>");
+        } catch (Exception ex) {
+            lore.add("<glyph:weapon>");
+        }
+
+        lore.add("");
+        lore.add(ChatColor.GRAY + "Rank: " + ChatColor.YELLOW + rank + ChatColor.GRAY + "/10");
+        lore.add(ChatColor.GRAY + "Progress to Level " + ChatColor.YELLOW + (rank + 1) + ChatColor.GRAY + ": " + ChatColor.YELLOW + pct + "%");
+        int barLen = 15;
+        int filled = (int) Math.round(pct / 100.0 * barLen);
+        String bar = ChatColor.GREEN + "" + "-".repeat(Math.max(filled,0)) + ChatColor.WHITE + "" + "-".repeat(Math.max(barLen - filled,0));
+        lore.add(bar + " " + ChatColor.YELLOW + exp + ChatColor.GOLD + "/" + ChatColor.YELLOW + expToNext);
+
+        meta.setLore(lore);
+        stack.setItemMeta(meta);
+    }
+
     /**
      * Updates the tooltip of a tool item based on the viewer's mining level.
      */
@@ -399,6 +474,8 @@ public class ItemUtil {
         if (stack == null) return;
         if (stack.hasItemMeta() && stack.getItemMeta().getPersistentDataContainer().has(ITEM_UUID_KEY, PersistentDataType.STRING)) {
             updateCustomItemTooltip(stack, player);
+        } else if (stack.hasItemMeta() && stack.getItemMeta().getPersistentDataContainer().has(EGO_ID_KEY, PersistentDataType.STRING)) {
+            updateEgoWeaponTooltip(stack, player);
         } else if (ToolTier.fromMaterial(stack.getType()) != null) {
             updateCustomToolTooltip(stack, player);
         }

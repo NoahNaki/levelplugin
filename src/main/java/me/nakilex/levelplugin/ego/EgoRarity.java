@@ -1,22 +1,28 @@
 package me.nakilex.levelplugin.ego;
 
+import org.bukkit.ChatColor;
+
 public enum EgoRarity {
-    COMMON(1.0),
-    UNCOMMON(1.1),
-    RARE(1.25),
-    EPIC(1.5),
-    LEGENDARY(1.75),
-    MYTHIC(2.0);
+    COMMON   (1.0, ChatColor.GRAY,        "<glyph:common>"),
+    UNCOMMON (1.1, ChatColor.GREEN,       "<glyph:uncommon>"),
+    RARE     (1.25,ChatColor.BLUE,        "<glyph:rare>"),
+    EPIC     (1.5, ChatColor.LIGHT_PURPLE,"<glyph:epic>"),
+    LEGENDARY(1.75,ChatColor.GOLD,        "<glyph:legendary>"),
+    MYTHIC   (2.0, ChatColor.RED,         "<glyph:mythic>");
 
     private final double scale;
+    private final ChatColor color;
+    private final String symbol;
 
-    EgoRarity(double scale) {
-        this.scale = scale;
+    EgoRarity(double scale, ChatColor color, String symbol) {
+        this.scale  = scale;
+        this.color  = color;
+        this.symbol = symbol;
     }
 
-    public double getScale() {
-        return scale;
-    }
+    public double getScale() { return scale; }
+    public ChatColor getColor() { return color; }
+    public String getSymbol() { return symbol; }
 
     /** Returns the next higher rarity or this if at max. */
     public EgoRarity next() {
