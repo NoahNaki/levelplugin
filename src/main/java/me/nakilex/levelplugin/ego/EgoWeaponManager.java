@@ -87,7 +87,7 @@ public class EgoWeaponManager {
             }
         }
         if (leveled) {
-            player.sendMessage("§aYour weapon ranked up to " + weapon.getRank() + "!");
+            player.sendMessage("§aYour weapon " + weapon.getName() + " is now Rank " + weapon.getRank() + "!");
         }
     }
 
