@@ -45,14 +45,25 @@ public class EgoWeapon {
         return 100 * rank;
     }
 
-    /** Adds XP and returns true if the weapon ranked up. */
+    /**
+     * Adds XP and returns true if the weapon ranked up. When the weapon
+     * reaches the max rank (10) any further XP is ignored so the progress bar
+     * stays capped.
+     */
     public boolean addExp(int amount) {
+        if (rank >= 10) {
+            exp = expToNextRank();
+            return false;
+        }
         boolean leveled = false;
         exp += amount;
         while (exp >= expToNextRank() && rank < 10) {
             exp -= expToNextRank();
             rank++;
             leveled = true;
+        }
+        if (rank >= 10) {
+            exp = expToNextRank();
         }
         return leveled;
     }

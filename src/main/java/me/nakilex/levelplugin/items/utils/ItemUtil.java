@@ -107,6 +107,7 @@ public class ItemUtil {
             int exp  = pdc.getOrDefault(EGO_EXP_KEY,  PersistentDataType.INTEGER, 0);
             int expToNext = 100 * rank;
             double pct = expToNext > 0 ? (exp * 100.0 / expToNext) : 0.0;
+            if (pct > 100.0) pct = 100.0;
             pct = Math.round(pct * 10.0) / 10.0;
             lore.add(ChatColor.GRAY + "Rank: " + ChatColor.YELLOW + rank + ChatColor.GRAY + "/10");
             lore.add(ChatColor.GRAY + "Progress to Level " + ChatColor.YELLOW + (rank + 1) + ChatColor.GRAY + ": " + ChatColor.YELLOW + pct + "%");
@@ -392,6 +393,7 @@ public class ItemUtil {
         int exp  = pdc.getOrDefault(EGO_EXP_KEY,  PersistentDataType.INTEGER, 0);
         int expToNext = 100 * rank;
         double pct = expToNext > 0 ? (exp * 100.0 / expToNext) : 0.0;
+        if (pct > 100.0) pct = 100.0;
         pct = Math.round(pct * 10.0) / 10.0;
 
         List<String> lore = meta.hasLore() ? meta.getLore() : new ArrayList<>();
