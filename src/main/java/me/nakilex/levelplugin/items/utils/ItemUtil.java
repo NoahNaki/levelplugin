@@ -362,20 +362,11 @@ public class ItemUtil {
         return (int) Math.round(base * multiplier);
     }
 
-    private static final StatsManager.StatType[] UNLOCK_ORDER = {
-        StatsManager.StatType.AGI,
-        StatsManager.StatType.STR,
-        StatsManager.StatType.DEX,
-        StatsManager.StatType.INT,
-        StatsManager.StatType.DEF
-    };
-
+    // Previously certain stats unlocked only at higher rarities. To keep
+    // gameplay simpler all rarities now support every stat. The function is
+    // retained for future extensibility but always returns true.
     public static boolean rarityAllows(me.nakilex.levelplugin.ego.EgoRarity rarity, StatsManager.StatType stat) {
-        int allowed = Math.min(rarity.ordinal() + 1, UNLOCK_ORDER.length);
-        for (int i = 0; i < allowed; i++) {
-            if (UNLOCK_ORDER[i] == stat) return true;
-        }
-        return false;
+        return true;
     }
 
     public static ItemStack createEgoWeaponItem(me.nakilex.levelplugin.ego.EgoWeapon weapon, Material material) {

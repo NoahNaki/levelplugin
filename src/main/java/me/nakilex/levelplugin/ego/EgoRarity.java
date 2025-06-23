@@ -3,12 +3,14 @@ package me.nakilex.levelplugin.ego;
 import org.bukkit.ChatColor;
 
 public enum EgoRarity {
-    COMMON   (1.0,  ChatColor.GRAY,        "<glyph:common>"),
-    UNCOMMON (1.25, ChatColor.GREEN,       "<glyph:uncommon>"),
-    RARE     (1.5,  ChatColor.BLUE,        "<glyph:rare>"),
-    EPIC     (2.0,  ChatColor.LIGHT_PURPLE,"<glyph:epic>"),
-    LEGENDARY(2.5,  ChatColor.GOLD,        "<glyph:legendary>"),
-    MYTHIC   (3.0,  ChatColor.RED,         "<glyph:mythic>");
+    // Updated scaling so higher rarities provide a much larger boost
+    // which incentivises evolving weapons.
+    COMMON   (1.0, ChatColor.GRAY,        "<glyph:common>"),
+    UNCOMMON (1.5, ChatColor.GREEN,       "<glyph:uncommon>"),
+    RARE     (2.0, ChatColor.BLUE,        "<glyph:rare>"),
+    EPIC     (3.0, ChatColor.LIGHT_PURPLE,"<glyph:epic>"),
+    LEGENDARY(4.0, ChatColor.GOLD,        "<glyph:legendary>"),
+    MYTHIC   (5.0, ChatColor.RED,         "<glyph:mythic>");
 
     private final double scale;
     private final ChatColor color;
