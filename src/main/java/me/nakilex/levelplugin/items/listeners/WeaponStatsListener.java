@@ -7,6 +7,9 @@ import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -55,7 +58,7 @@ public class WeaponStatsListener implements Listener {
 
                 if (!wasBroken) {
                     // Subtract its stats now
-                    removeWeaponStats(player, inst);
+                    removeWeaponStats(player, inst, oldWeap);
                     // Remove from the “equipped” set
                     equipped.remove(inst.getId());
                     // Unregister from holderMap so reduceDurability() can’t find it later
@@ -117,7 +120,7 @@ public class WeaponStatsListener implements Listener {
                 }
                 else {
                     // Add stats now
-                    addWeaponStats(player, inst);
+                    addWeaponStats(player, inst, newWeap);
                     // Put it into the “equipped” set
                     equipped.add(inst.getId());
                     // Register in holderMap so CustomItem.reduceDurability can find it
@@ -190,7 +193,7 @@ public class WeaponStatsListener implements Listener {
                     "[WeaponStats] onPlayerRespawn: Removing stats for broken weapon ID=" + id
                         + " (player=" + player.getName() + ")"
                 );
-                removeWeaponStats(player, inst);
+                removeWeaponStats(player, inst, inHand);
 
                 // Also remove from equipped set (if present) and unregister holder
                 if (equipped.contains(id)) {
@@ -224,27 +227,45 @@ public class WeaponStatsListener implements Listener {
 
 
 
-    private void addWeaponStats(Player player, CustomItem customItem) {
+    private void addWeaponStats(Player player, CustomItem customItem, ItemStack stack) {
         StatsManager.PlayerStats ps = statsManager.getPlayerStats(player.getUniqueId());
-        ps.bonusHealthStat   += customItem.getHp();
-        ps.bonusDefenceStat  += customItem.getDef();
-        ps.bonusStrength     += customItem.getStr();
-        ps.bonusAgility      += customItem.getAgi();
-        ps.bonusIntelligence += customItem.getIntel();
-        ps.bonusDexterity    += customItem.getDex();
+        me.nakilex.levelplugin.ego.EgoRarity rarity = me.nakilex.levelplugin.ego.EgoRarity.COMMON;
+        int rank = 1;
+        if (stack.hasItemMeta()) {
+            PersistentDataContainer pdc = stack.getItemMeta().getPersistentDataContainer();
+            if (pdc.has(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING)) {
+                try { rarity = me.nakilex.levelplugin.ego.EgoRarity.valueOf(pdc.get(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING)); } catch (Exception ignored) {}
+            }
+            rank = pdc.getOrDefault(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
+        }
+        ps.bonusHealthStat   += ItemUtil.scaleEgoStat(customItem.getHp(), rarity, rank);
+        ps.bonusDefenceStat  += ItemUtil.scaleEgoStat(customItem.getDef(), rarity, rank);
+        ps.bonusStrength     += ItemUtil.scaleEgoStat(customItem.getStr(), rarity, rank);
+        ps.bonusAgility      += ItemUtil.scaleEgoStat(customItem.getAgi(), rarity, rank);
+        ps.bonusIntelligence += ItemUtil.scaleEgoStat(customItem.getIntel(), rarity, rank);
+        ps.bonusDexterity    += ItemUtil.scaleEgoStat(customItem.getDex(), rarity, rank);
     }
 
-    public void removeWeaponStats(Player player, CustomItem customItem) {
+    public void removeWeaponStats(Player player, CustomItem customItem, ItemStack stack) {
         Bukkit.getLogger().info("[WeaponStats] removeWeaponStats() called for player="
             + player.getName() + ", itemID=" + customItem.getId());
 
         StatsManager.PlayerStats ps = statsManager.getPlayerStats(player.getUniqueId());
-        ps.bonusHealthStat   -= customItem.getHp();
-        ps.bonusDefenceStat  -= customItem.getDef();
-        ps.bonusStrength     -= customItem.getStr();
-        ps.bonusAgility      -= customItem.getAgi();
-        ps.bonusIntelligence -= customItem.getIntel();
-        ps.bonusDexterity    -= customItem.getDex();
+        me.nakilex.levelplugin.ego.EgoRarity rarity = me.nakilex.levelplugin.ego.EgoRarity.COMMON;
+        int rank = 1;
+        if (stack.hasItemMeta()) {
+            PersistentDataContainer pdc = stack.getItemMeta().getPersistentDataContainer();
+            if (pdc.has(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING)) {
+                try { rarity = me.nakilex.levelplugin.ego.EgoRarity.valueOf(pdc.get(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING)); } catch (Exception ignored) {}
+            }
+            rank = pdc.getOrDefault(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
+        }
+        ps.bonusHealthStat   -= ItemUtil.scaleEgoStat(customItem.getHp(), rarity, rank);
+        ps.bonusDefenceStat  -= ItemUtil.scaleEgoStat(customItem.getDef(), rarity, rank);
+        ps.bonusStrength     -= ItemUtil.scaleEgoStat(customItem.getStr(), rarity, rank);
+        ps.bonusAgility      -= ItemUtil.scaleEgoStat(customItem.getAgi(), rarity, rank);
+        ps.bonusIntelligence -= ItemUtil.scaleEgoStat(customItem.getIntel(), rarity, rank);
+        ps.bonusDexterity    -= ItemUtil.scaleEgoStat(customItem.getDex(), rarity, rank);
 
         // IMMEDIATELY recalc all derived stats (this will:
         //  • recompute maxHealth → setMaxHealth(...)

@@ -31,6 +31,7 @@ public class EgoWeapon {
     public int getExp() { return exp; }
 
     public void setName(String name) { this.name = name; }
+    public void setRarity(EgoRarity rarity) { this.rarity = rarity; }
 
     public void addRankSkill(int rank, String skillKey) {
         rankSkills.put(rank, skillKey);

@@ -3204,7 +3204,7 @@ items:
 
   257:
     name: "Ego Phoenix Bow"
-    rarity: COMMON
+    rarity: RARE
     level_requirement: 1
     class_requirement: PHOENIXHUNTER
     material: CROSSBOW

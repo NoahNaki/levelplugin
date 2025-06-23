@@ -33,6 +33,7 @@ public class ItemUtil {
     public static final NamespacedKey EGO_ID_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "ego_weapon_id");
     public static final NamespacedKey EGO_RANK_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "ego_weapon_rank");
     public static final NamespacedKey EGO_EXP_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "ego_weapon_exp");
+    public static final NamespacedKey EGO_RARITY_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "ego_weapon_rarity");
 
     private static final int PREFIX_BONUS = 20;
     private static final java.util.Map<String, StatsManager.StatType> PREFIX_MAP = new java.util.HashMap<>();
@@ -349,7 +350,20 @@ public class ItemUtil {
         return (value != null) ? value : -1;
     }
 
-    // ─── Ego Weapon Utilities ────────────────────────────────────────────────
+// ─── Ego Weapon Utilities ────────────────────────────────────────────────
+
+    /**
+     * Scale a base stat for an Ego weapon using its rarity and rank.
+     * Higher rarity provides a larger base multiplier and increases the
+     * bonus gained per rank.
+     */
+    public static int scaleEgoStat(int base, me.nakilex.levelplugin.ego.EgoRarity rarity, int rank) {
+        if (base == 0) return 0;
+        double rarityMul = rarity.getScale();
+        double perRank = 0.05 * rarityMul;
+        double multiplier = rarityMul + (rank - 1) * perRank;
+        return (int) Math.round(base * multiplier);
+    }
 
     public static ItemStack createEgoWeaponItem(me.nakilex.levelplugin.ego.EgoWeapon weapon, Material material) {
         ItemStack stack = new ItemStack(material);
@@ -360,6 +374,7 @@ public class ItemUtil {
             pdc.set(EGO_ID_KEY, PersistentDataType.STRING, weapon.getId());
             pdc.set(EGO_RANK_KEY, PersistentDataType.INTEGER, weapon.getRank());
             pdc.set(EGO_EXP_KEY, PersistentDataType.INTEGER, weapon.getExp());
+            pdc.set(EGO_RARITY_KEY, PersistentDataType.STRING, weapon.getRarity().name());
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
             stack.setItemMeta(meta);
         }
@@ -382,15 +397,13 @@ public class ItemUtil {
         List<String> lore = meta.hasLore() ? meta.getLore() : new ArrayList<>();
         lore.clear();
 
-        // Rarity + weapon glyph line
-        String rarityName = "COMMON";
-        try {
-            me.nakilex.levelplugin.ego.EgoRarity rar = me.nakilex.levelplugin.ego.EgoRarity.valueOf(pdc.get(EGO_ID_KEY, PersistentDataType.STRING).split("_")[0].toUpperCase());
-            rarityName = rar.name();
-            lore.add(rar.getSymbol() + "<glyph:weapon>");
-        } catch (Exception ex) {
-            lore.add("<glyph:weapon>");
+        me.nakilex.levelplugin.ego.EgoRarity rarity = me.nakilex.levelplugin.ego.EgoRarity.COMMON;
+        if (pdc.has(EGO_RARITY_KEY, PersistentDataType.STRING)) {
+            try {
+                rarity = me.nakilex.levelplugin.ego.EgoRarity.valueOf(pdc.get(EGO_RARITY_KEY, PersistentDataType.STRING));
+            } catch (Exception ignored) {}
         }
+        lore.add(rarity.getSymbol() + "<glyph:weapon>");
 
         lore.add("");
         lore.add(ChatColor.GRAY + "Rank: " + ChatColor.YELLOW + rank + ChatColor.GRAY + "/10");
@@ -405,33 +418,40 @@ public class ItemUtil {
         if (cItem != null) {
             String prefix = parsePrefix(cItem.getBaseName());
             StatsManager.StatType prefixStat = prefix != null ? PREFIX_MAP.get(prefix) : null;
-            if (cItem.getHp() != 0) {
-                String line = ChatColor.RED + "❤ " + ChatColor.GRAY + "Health: " + ChatColor.RED + "+" + cItem.getHp();
+            int scaledHp = scaleEgoStat(cItem.getHp(), rarity, rank);
+            int scaledDef = scaleEgoStat(cItem.getDef(), rarity, rank);
+            int scaledStr = scaleEgoStat(cItem.getStr(), rarity, rank);
+            int scaledAgi = scaleEgoStat(cItem.getAgi(), rarity, rank);
+            int scaledInt = scaleEgoStat(cItem.getIntel(), rarity, rank);
+            int scaledDex = scaleEgoStat(cItem.getDex(), rarity, rank);
+
+            if (scaledHp != 0) {
+                String line = ChatColor.RED + "❤ " + ChatColor.GRAY + "Health: " + ChatColor.RED + "+" + scaledHp;
                 if (prefixStat == StatsManager.StatType.HP) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
                 lore.add(line);
             }
-            if (cItem.getDef() != 0) {
-                String line = ChatColor.GRAY + "⛂ " + ChatColor.GRAY + "Defence: " + ChatColor.WHITE + "+" + cItem.getDef();
+            if (scaledDef != 0) {
+                String line = ChatColor.GRAY + "⛂ " + ChatColor.GRAY + "Defence: " + ChatColor.WHITE + "+" + scaledDef;
                 if (prefixStat == StatsManager.StatType.DEF) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
                 lore.add(line);
             }
-            if (cItem.getStr() != 0) {
-                String line = ChatColor.BLUE + "☠ " + ChatColor.GRAY + "Strength: " + ChatColor.WHITE + "+" + cItem.getStr();
+            if (scaledStr != 0) {
+                String line = ChatColor.BLUE + "☠ " + ChatColor.GRAY + "Strength: " + ChatColor.WHITE + "+" + scaledStr;
                 if (prefixStat == StatsManager.StatType.STR) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
                 lore.add(line);
             }
-            if (cItem.getAgi() != 0) {
-                String line = ChatColor.GREEN + "≈ " + ChatColor.GRAY + "Agility: " + ChatColor.WHITE + "+" + cItem.getAgi();
+            if (scaledAgi != 0) {
+                String line = ChatColor.GREEN + "≈ " + ChatColor.GRAY + "Agility: " + ChatColor.WHITE + "+" + scaledAgi;
                 if (prefixStat == StatsManager.StatType.AGI) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
                 lore.add(line);
             }
-            if (cItem.getIntel() != 0) {
-                String line = ChatColor.AQUA + "♦ " + ChatColor.GRAY + "Intelligence: " + ChatColor.WHITE + "+" + cItem.getIntel();
+            if (scaledInt != 0) {
+                String line = ChatColor.AQUA + "♦ " + ChatColor.GRAY + "Intelligence: " + ChatColor.WHITE + "+" + scaledInt;
                 if (prefixStat == StatsManager.StatType.INT) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
                 lore.add(line);
             }
-            if (cItem.getDex() != 0) {
-                String line = ChatColor.YELLOW + "➹ " + ChatColor.GRAY + "Dexterity: " + ChatColor.WHITE + "+" + cItem.getDex();
+            if (scaledDex != 0) {
+                String line = ChatColor.YELLOW + "➹ " + ChatColor.GRAY + "Dexterity: " + ChatColor.WHITE + "+" + scaledDex;
                 if (prefixStat == StatsManager.StatType.DEX) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
                 lore.add(line);
             }

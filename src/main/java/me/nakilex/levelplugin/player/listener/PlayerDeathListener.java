@@ -172,7 +172,7 @@ public class PlayerDeathListener implements Listener {
                                 "[PlayerDeathListener] Stripping stats on death for broken weapon ID="
                                     + itemId + " (player=" + player.getName() + ")"
                             );
-                            new WeaponStatsListener().removeWeaponStats(player, cItem);
+                            new WeaponStatsListener().removeWeaponStats(player, cItem, inHand);
                             equipped.remove(itemId);
                             ItemManager.getInstance().unregisterHolder(itemId);
 

@@ -3,6 +3,8 @@ package me.nakilex.levelplugin.ego;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.items.data.CustomItem;
+import me.nakilex.levelplugin.items.listeners.WeaponStatsListener;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
@@ -31,7 +33,7 @@ public class EgoWeaponManager {
         archer.addRankSkill(8, "Dragon_Piercer");
         prototypes.put("archer", archer);
 
-        EgoWeapon phoenix = new EgoWeapon("phoenix_ego", "Ego Phoenix Bow", EgoRarity.COMMON);
+        EgoWeapon phoenix = new EgoWeapon("phoenix_ego", "Ego Phoenix Bow", EgoRarity.RARE);
         phoenix.addRankSkill(1, "Blazing_Feathers");
         phoenix.addRankSkill(5, "Flameburst_Convergence");
         phoenix.addRankSkill(8, "Phoenix_Rebirth");
@@ -66,6 +68,12 @@ public class EgoWeaponManager {
                         weapon.addExp(0); // ensure fields init
                         int r = pdc.getOrDefault(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
                         int e = pdc.getOrDefault(ItemUtil.EGO_EXP_KEY, PersistentDataType.INTEGER, 0);
+                        if (pdc.has(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING)) {
+                            try {
+                                me.nakilex.levelplugin.ego.EgoRarity rar = me.nakilex.levelplugin.ego.EgoRarity.valueOf(pdc.get(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING));
+                                weapon.setRarity(rar);
+                            } catch (Exception ignored) {}
+                        }
                         while (weapon.getRank() < r) weapon.addExp(weapon.expToNextRank());
                         weapon.addExp(e);
                         setWeapon(player.getUniqueId(), weapon);
@@ -82,8 +90,18 @@ public class EgoWeaponManager {
             if (pdc.has(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING)) {
                 pdc.set(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, weapon.getRank());
                 pdc.set(ItemUtil.EGO_EXP_KEY, PersistentDataType.INTEGER, weapon.getExp());
+                pdc.set(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING, weapon.getRarity().name());
                 hand.setItemMeta(meta);
                 ItemUtil.updateEgoWeaponTooltip(hand, player);
+                if (leveled) {
+                    CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(hand);
+                    if (ci != null) {
+                        WeaponStatsListener wsl = new WeaponStatsListener();
+                        wsl.removeWeaponStats(player, ci, hand);
+                        wsl.addWeaponStats(player, ci, hand);
+                        StatsManager.getInstance().recalcDerivedStats(player);
+                    }
+                }
             }
         }
         if (leveled) {
@@ -103,6 +121,7 @@ public class EgoWeaponManager {
             pdc.set(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING, weapon.getId());
             pdc.set(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, weapon.getRank());
             pdc.set(ItemUtil.EGO_EXP_KEY, PersistentDataType.INTEGER, weapon.getExp());
+            pdc.set(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING, weapon.getRarity().name());
             meta.setDisplayName(weapon.getRarity().getColor() + weapon.getName());
             stack.setItemMeta(meta);
         }

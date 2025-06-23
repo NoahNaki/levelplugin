@@ -17,6 +17,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.persistence.PersistentDataContainer;
 
 import java.util.Set;
 import java.util.UUID;
@@ -140,11 +141,11 @@ public class ClassMenuListener implements Listener {
         boolean wasApplied = equipped.contains(id);
 
         if (wasApplied && (!meetsClassReq || !meetsLevelReq)) {
-            removeWeaponStats(player, ci);
+            removeWeaponStats(player, ci, weapon);
             equipped.remove(id);
             player.sendMessage(ChatColor.RED + "You no longer meet the requirements for " + ci.getBaseName() + "!");
         } else if (!wasApplied && meetsClassReq && meetsLevelReq) {
-            addWeaponStats(player, ci);
+            addWeaponStats(player, ci, weapon);
             equipped.add(id);
             player.sendMessage(ChatColor.GREEN + "Stats applied for " + ci.getBaseName() + "!");
         }
@@ -171,23 +172,41 @@ public class ClassMenuListener implements Listener {
         }
     }
 
-    private void addWeaponStats(Player player, CustomItem ci) {
+    private void addWeaponStats(Player player, CustomItem ci, ItemStack stack) {
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
-        ps.bonusHealthStat   += ci.getHp();
-        ps.bonusDefenceStat  += ci.getDef();
-        ps.bonusStrength     += ci.getStr();
-        ps.bonusAgility      += ci.getAgi();
-        ps.bonusIntelligence += ci.getIntel();
-        ps.bonusDexterity    += ci.getDex();
+        me.nakilex.levelplugin.ego.EgoRarity rarity = me.nakilex.levelplugin.ego.EgoRarity.COMMON;
+        int rank = 1;
+        if (stack.hasItemMeta()) {
+            PersistentDataContainer pdc = stack.getItemMeta().getPersistentDataContainer();
+            if (pdc.has(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING)) {
+                try { rarity = me.nakilex.levelplugin.ego.EgoRarity.valueOf(pdc.get(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING)); } catch (Exception ignored) {}
+            }
+            rank = pdc.getOrDefault(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
+        }
+        ps.bonusHealthStat   += ItemUtil.scaleEgoStat(ci.getHp(), rarity, rank);
+        ps.bonusDefenceStat  += ItemUtil.scaleEgoStat(ci.getDef(), rarity, rank);
+        ps.bonusStrength     += ItemUtil.scaleEgoStat(ci.getStr(), rarity, rank);
+        ps.bonusAgility      += ItemUtil.scaleEgoStat(ci.getAgi(), rarity, rank);
+        ps.bonusIntelligence += ItemUtil.scaleEgoStat(ci.getIntel(), rarity, rank);
+        ps.bonusDexterity    += ItemUtil.scaleEgoStat(ci.getDex(), rarity, rank);
     }
 
-    private void removeWeaponStats(Player player, CustomItem ci) {
+    private void removeWeaponStats(Player player, CustomItem ci, ItemStack stack) {
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
-        ps.bonusHealthStat   -= ci.getHp();
-        ps.bonusDefenceStat  -= ci.getDef();
-        ps.bonusStrength     -= ci.getStr();
-        ps.bonusAgility      -= ci.getAgi();
-        ps.bonusIntelligence -= ci.getIntel();
-        ps.bonusDexterity    -= ci.getDex();
+        me.nakilex.levelplugin.ego.EgoRarity rarity = me.nakilex.levelplugin.ego.EgoRarity.COMMON;
+        int rank = 1;
+        if (stack.hasItemMeta()) {
+            PersistentDataContainer pdc = stack.getItemMeta().getPersistentDataContainer();
+            if (pdc.has(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING)) {
+                try { rarity = me.nakilex.levelplugin.ego.EgoRarity.valueOf(pdc.get(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING)); } catch (Exception ignored) {}
+            }
+            rank = pdc.getOrDefault(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
+        }
+        ps.bonusHealthStat   -= ItemUtil.scaleEgoStat(ci.getHp(), rarity, rank);
+        ps.bonusDefenceStat  -= ItemUtil.scaleEgoStat(ci.getDef(), rarity, rank);
+        ps.bonusStrength     -= ItemUtil.scaleEgoStat(ci.getStr(), rarity, rank);
+        ps.bonusAgility      -= ItemUtil.scaleEgoStat(ci.getAgi(), rarity, rank);
+        ps.bonusIntelligence -= ItemUtil.scaleEgoStat(ci.getIntel(), rarity, rank);
+        ps.bonusDexterity    -= ItemUtil.scaleEgoStat(ci.getDex(), rarity, rank);
     }
 }
