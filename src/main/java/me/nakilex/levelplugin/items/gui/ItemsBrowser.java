@@ -34,11 +34,13 @@ public class ItemsBrowser implements CommandExecutor, Listener {
     private static final int SIZE = ROWS * COLS;
     private static final int PAGE_SIZE = 28; // 4 rows × 7 cols of content
 
+    private static final int TYPE_FILTER_SLOT   = 46;
     private static final int RARITY_FILTER_SLOT = 48;
     private static final int LEVEL_FILTER_SLOT  = 50;
     private static final int CLASS_FILTER_SLOT  = 52;
 
     private final JavaPlugin plugin;
+    private final java.util.Map<java.util.UUID,Integer> typeFilters   = new java.util.HashMap<>();
     private final java.util.Map<java.util.UUID,Integer> rarityFilters = new java.util.HashMap<>();
     private final java.util.Map<java.util.UUID,Integer> levelFilters  = new java.util.HashMap<>();
     private final java.util.Map<java.util.UUID,Integer> classFilters  = new java.util.HashMap<>();
@@ -71,6 +73,23 @@ public class ItemsBrowser implements CommandExecutor, Listener {
         ItemStack it = b.build();
         ItemMeta m = it.getItemMeta();
         if (m != null) { m.setDisplayName(name); it.setItemMeta(m); }
+        return it;
+    }
+
+    private ItemStack createTypeButton(int filter) {
+        ItemStack it = new ItemStack(Material.DIAMOND_SWORD);
+        ItemMeta meta = it.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.AQUA + "Type Filter");
+            List<String> lore = new ArrayList<>();
+            String[] types = {"ARMOR","WEAPON","ALL"};
+            for (int i = 0; i < types.length; i++) {
+                String line = (i == filter ? ChatColor.GREEN : ChatColor.GRAY) + types[i];
+                lore.add(line);
+            }
+            meta.setLore(lore);
+            it.setItemMeta(meta);
+        }
         return it;
     }
 
@@ -139,6 +158,7 @@ public class ItemsBrowser implements CommandExecutor, Listener {
         List<Integer> ids = new ArrayList<>(ItemManager.getInstance().getAllTemplates().keySet());
         Collections.sort(ids);
 
+        int tFilter = typeFilters.getOrDefault(player.getUniqueId(), 2);
         int rFilter = rarityFilters.getOrDefault(player.getUniqueId(), me.nakilex.levelplugin.items.data.ItemRarity.values().length);
         int lFilter = levelFilters.getOrDefault(player.getUniqueId(), 5);
         int cFilter = classFilters.getOrDefault(player.getUniqueId(), 4);
@@ -156,6 +176,9 @@ public class ItemsBrowser implements CommandExecutor, Listener {
             }
             if (cFilter < 4 && !tpl.getClassRequirement().equalsIgnoreCase(new String[]{"WARRIOR","ROGUE","ARCHER","MAGE"}[cFilter]))
                 continue;
+            boolean isWeapon = me.nakilex.levelplugin.items.data.WeaponType.matchType(new ItemStack(tpl.getMaterial())) != null;
+            if (tFilter == 0 && isWeapon) continue;
+            if (tFilter == 1 && !isWeapon) continue;
             templates.add(tpl);
         }
 
@@ -260,6 +283,7 @@ public class ItemsBrowser implements CommandExecutor, Listener {
         ItemStack next = getNexoItem("arrow_right", ChatColor.GREEN + "Next Page");
         gui.setItem(SIZE - 1, next);
 
+        gui.setItem(TYPE_FILTER_SLOT, createTypeButton(tFilter));
         gui.setItem(RARITY_FILTER_SLOT, createRarityButton(rFilter));
         gui.setItem(LEVEL_FILTER_SLOT, createLevelButton(lFilter));
         gui.setItem(CLASS_FILTER_SLOT, createClassButton(cFilter));
@@ -306,9 +330,21 @@ public class ItemsBrowser implements CommandExecutor, Listener {
                 if (lvl < min || lvl > max) continue;
             }
             if (cFilter < 4 && !ci.getClassRequirement().equalsIgnoreCase(new String[]{"WARRIOR","ROGUE","ARCHER","MAGE"}[cFilter])) continue;
+            boolean isWeapon = me.nakilex.levelplugin.items.data.WeaponType.matchType(new ItemStack(ci.getMaterial())) != null;
+            if (tFilter == 0 && isWeapon) continue;
+            if (tFilter == 1 && !isWeapon) continue;
             total++;
         }
         int maxPage = (Math.max(total,1) - 1) / PAGE_SIZE;
+
+        if (e.getRawSlot() == TYPE_FILTER_SLOT) {
+            int f = typeFilters.getOrDefault(player.getUniqueId(), 2);
+            if (e.getClick() == org.bukkit.event.inventory.ClickType.RIGHT) f--; else f++;
+            if (f < 0) f = 2; if (f > 2) f = 0;
+            typeFilters.put(player.getUniqueId(), f);
+            openPage(player, 0);
+            return;
+        }
 
         if (e.getRawSlot() == RARITY_FILTER_SLOT) {
             int f = rarityFilters.getOrDefault(player.getUniqueId(), me.nakilex.levelplugin.items.data.ItemRarity.values().length);

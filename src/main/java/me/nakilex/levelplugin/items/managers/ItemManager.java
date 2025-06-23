@@ -104,22 +104,25 @@ public class ItemManager {
                     itemsConfig.getString(path + "dex", "0-0"));
 
                 // Build the template (rolls will happen when creating instances)
-                CustomItem template = new CustomItem(
-                    numericId,
-                    name,
-                    rarity,
-                    levelReq,
-                    classReq,
-                    material,
-                    hpRange,
-                    defRange,
-                    strRange,
-                    agiRange,
-                    intelRange,
-                    dexRange
-                );
+                // Skip loading weapon templates now that Ego weapons replace them
+                if (me.nakilex.levelplugin.items.data.WeaponType.matchType(new org.bukkit.inventory.ItemStack(material)) == null) {
+                    CustomItem template = new CustomItem(
+                        numericId,
+                        name,
+                        rarity,
+                        levelReq,
+                        classReq,
+                        material,
+                        hpRange,
+                        defRange,
+                        strRange,
+                        agiRange,
+                        intelRange,
+                        dexRange
+                    );
 
-                templatesMap.put(numericId, template);
+                    templatesMap.put(numericId, template);
+                }
 
             } catch (Exception e) {
                 Main.getInstance().getLogger().warning("Failed to load item with key: " + key);

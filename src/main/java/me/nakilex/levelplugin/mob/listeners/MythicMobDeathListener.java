@@ -136,6 +136,8 @@ public class MythicMobDeathListener implements Listener {
 
             // 1) XP (with bonus)
             levelManager.addXP(player, awardedExp);
+            // Share XP with the player's active Ego Weapon
+            me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance().addXp(player, awardedExp);
 
             // 2) Coins
             int coins = ThreadLocalRandom.current().nextInt(minCoins, maxCoins + 1);
