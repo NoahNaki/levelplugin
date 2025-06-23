@@ -260,12 +260,12 @@ public class WeaponStatsListener implements Listener {
             }
             rank = pdc.getOrDefault(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
         }
-        ps.bonusHealthStat   -= ItemUtil.scaleEgoStat(customItem.getHp(), rarity, rank);
-        ps.bonusDefenceStat  -= ItemUtil.scaleEgoStat(customItem.getDef(), rarity, rank);
-        ps.bonusStrength     -= ItemUtil.scaleEgoStat(customItem.getStr(), rarity, rank);
-        ps.bonusAgility      -= ItemUtil.scaleEgoStat(customItem.getAgi(), rarity, rank);
-        ps.bonusIntelligence -= ItemUtil.scaleEgoStat(customItem.getIntel(), rarity, rank);
-        ps.bonusDexterity    -= ItemUtil.scaleEgoStat(customItem.getDex(), rarity, rank);
+        ps.bonusHealthStat   = Math.max(0, ps.bonusHealthStat   - ItemUtil.scaleEgoStat(customItem.getHp(), rarity, rank));
+        ps.bonusDefenceStat  = Math.max(0, ps.bonusDefenceStat  - ItemUtil.scaleEgoStat(customItem.getDef(), rarity, rank));
+        ps.bonusStrength     = Math.max(0, ps.bonusStrength     - ItemUtil.scaleEgoStat(customItem.getStr(), rarity, rank));
+        ps.bonusAgility      = Math.max(0, ps.bonusAgility      - ItemUtil.scaleEgoStat(customItem.getAgi(), rarity, rank));
+        ps.bonusIntelligence = Math.max(0, ps.bonusIntelligence - ItemUtil.scaleEgoStat(customItem.getIntel(), rarity, rank));
+        ps.bonusDexterity    = Math.max(0, ps.bonusDexterity    - ItemUtil.scaleEgoStat(customItem.getDex(), rarity, rank));
 
         // IMMEDIATELY recalc all derived stats (this will:
         //  • recompute maxHealth → setMaxHealth(...)

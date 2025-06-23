@@ -142,8 +142,18 @@ public class StatsManager {
         PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
 
         // Ensure stats are not negative
-        ps.baseHealthStat = Math.max(0, ps.baseHealthStat);
-        ps.bonusHealthStat = Math.max(0, ps.bonusHealthStat);
+        ps.baseHealthStat   = Math.max(0, ps.baseHealthStat);
+        ps.bonusHealthStat  = Math.max(0, ps.bonusHealthStat);
+        ps.baseStrength     = Math.max(0, ps.baseStrength);
+        ps.bonusStrength    = Math.max(0, ps.bonusStrength);
+        ps.baseAgility      = Math.max(0, ps.baseAgility);
+        ps.bonusAgility     = Math.max(0, ps.bonusAgility);
+        ps.baseDexterity    = Math.max(0, ps.baseDexterity);
+        ps.bonusDexterity   = Math.max(0, ps.bonusDexterity);
+        ps.baseDefenceStat  = Math.max(0, ps.baseDefenceStat);
+        ps.bonusDefenceStat = Math.max(0, ps.bonusDefenceStat);
+        ps.baseIntelligence = Math.max(0, ps.baseIntelligence);
+        ps.bonusIntelligence = Math.max(0, ps.bonusIntelligence);
 
         // Store the current health ratio (current health / old max health)
         double oldMaxHealth = player.getMaxHealth();
