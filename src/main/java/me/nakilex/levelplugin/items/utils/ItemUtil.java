@@ -362,6 +362,22 @@ public class ItemUtil {
         return (int) Math.round(base * multiplier);
     }
 
+    private static final StatsManager.StatType[] UNLOCK_ORDER = {
+        StatsManager.StatType.AGI,
+        StatsManager.StatType.STR,
+        StatsManager.StatType.DEX,
+        StatsManager.StatType.INT,
+        StatsManager.StatType.DEF
+    };
+
+    public static boolean rarityAllows(me.nakilex.levelplugin.ego.EgoRarity rarity, StatsManager.StatType stat) {
+        int allowed = Math.min(rarity.ordinal() + 1, UNLOCK_ORDER.length);
+        for (int i = 0; i < allowed; i++) {
+            if (UNLOCK_ORDER[i] == stat) return true;
+        }
+        return false;
+    }
+
     public static ItemStack createEgoWeaponItem(me.nakilex.levelplugin.ego.EgoWeapon weapon, Material material) {
         ItemStack stack = new ItemStack(material);
         ItemMeta meta = stack.getItemMeta();
@@ -398,6 +414,12 @@ public class ItemUtil {
         int rank = srcPdc.getOrDefault(EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
         int exp  = srcPdc.getOrDefault(EGO_EXP_KEY,  PersistentDataType.INTEGER, 0);
         String rarStr = srcPdc.get(EGO_RARITY_KEY, PersistentDataType.STRING);
+        if (rarStr == null && viewer != null) {
+            me.nakilex.levelplugin.ego.EgoWeapon w = me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance().getWeapon(viewer.getUniqueId());
+            if (w != null) {
+                rarStr = w.getRarity().name();
+            }
+        }
 
         tgtPdc.set(EGO_ID_KEY, PersistentDataType.STRING, id);
         tgtPdc.set(EGO_RANK_KEY, PersistentDataType.INTEGER, rank);
@@ -458,32 +480,32 @@ public class ItemUtil {
             int scaledInt = scaleEgoStat(cItem.getIntel(), rarity, rank);
             int scaledDex = scaleEgoStat(cItem.getDex(), rarity, rank);
 
-            if (scaledHp != 0) {
+            if (scaledHp != 0 && rarityAllows(rarity, StatsManager.StatType.HP)) {
                 String line = ChatColor.RED + "❤ " + ChatColor.GRAY + "Health: " + ChatColor.RED + "+" + scaledHp;
                 if (prefixStat == StatsManager.StatType.HP) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
                 lore.add(line);
             }
-            if (scaledDef != 0) {
+            if (scaledDef != 0 && rarityAllows(rarity, StatsManager.StatType.DEF)) {
                 String line = ChatColor.GRAY + "⛂ " + ChatColor.GRAY + "Defence: " + ChatColor.WHITE + "+" + scaledDef;
                 if (prefixStat == StatsManager.StatType.DEF) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
                 lore.add(line);
             }
-            if (scaledStr != 0) {
+            if (scaledStr != 0 && rarityAllows(rarity, StatsManager.StatType.STR)) {
                 String line = ChatColor.BLUE + "☠ " + ChatColor.GRAY + "Strength: " + ChatColor.WHITE + "+" + scaledStr;
                 if (prefixStat == StatsManager.StatType.STR) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
                 lore.add(line);
             }
-            if (scaledAgi != 0) {
+            if (scaledAgi != 0 && rarityAllows(rarity, StatsManager.StatType.AGI)) {
                 String line = ChatColor.GREEN + "≈ " + ChatColor.GRAY + "Agility: " + ChatColor.WHITE + "+" + scaledAgi;
                 if (prefixStat == StatsManager.StatType.AGI) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
                 lore.add(line);
             }
-            if (scaledInt != 0) {
+            if (scaledInt != 0 && rarityAllows(rarity, StatsManager.StatType.INT)) {
                 String line = ChatColor.AQUA + "♦ " + ChatColor.GRAY + "Intelligence: " + ChatColor.WHITE + "+" + scaledInt;
                 if (prefixStat == StatsManager.StatType.INT) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
                 lore.add(line);
             }
-            if (scaledDex != 0) {
+            if (scaledDex != 0 && rarityAllows(rarity, StatsManager.StatType.DEX)) {
                 String line = ChatColor.YELLOW + "➹ " + ChatColor.GRAY + "Dexterity: " + ChatColor.WHITE + "+" + scaledDex;
                 if (prefixStat == StatsManager.StatType.DEX) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
                 lore.add(line);
