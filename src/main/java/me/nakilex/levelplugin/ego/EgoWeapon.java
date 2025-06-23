@@ -62,4 +62,17 @@ public class EgoWeapon {
         this.rank = 1;
         this.exp = 0;
     }
+
+    /**
+     * Create a deep copy of this weapon for assigning to players.
+     */
+    public EgoWeapon copy() {
+        EgoWeapon w = new EgoWeapon(this.id, this.name, this.rarity);
+        w.rank = this.rank;
+        w.exp = this.exp;
+        for (Map.Entry<Integer, String> e : this.rankSkills.entrySet()) {
+            w.rankSkills.put(e.getKey(), e.getValue());
+        }
+        return w;
+    }
 }

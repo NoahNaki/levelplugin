@@ -348,11 +348,32 @@ public class ItemsBrowser implements CommandExecutor, Listener {
         // Otherwise, if this is one of our item-templates, give it
         int templateId = ItemUtil.getCustomItemId(clicked);
         if (templateId != -1) {
+            CustomItem template = ItemManager.getInstance().getTemplateById(templateId);
+            if (template != null && template.getBaseName().startsWith("Ego ")) {
+                String[] parts = template.getBaseName().split(" ");
+                if (parts.length >= 2) {
+                    String key = parts[1].toLowerCase();
+                    me.nakilex.levelplugin.ego.EgoWeapon proto =
+                            me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance().getPrototype(key);
+                    if (proto != null) {
+                        me.nakilex.levelplugin.ego.EgoWeapon weapon = proto.copy();
+                        me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance()
+                                .setWeapon(player.getUniqueId(), weapon);
+                        ItemStack toGive = me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance()
+                                .createWeaponItem(weapon, templateId);
+                        player.getInventory().addItem(toGive);
+                        player.sendMessage(ChatColor.GREEN + "You received: "
+                                + toGive.getItemMeta().getDisplayName());
+                        return;
+                    }
+                }
+            }
+
             CustomItem instance = ItemManager.getInstance().rollNewInstance(templateId);
-            // give to player
             ItemStack toGive = ItemUtil.createItemStackFromCustomItem(instance, 1, player);
             player.getInventory().addItem(toGive);
-            player.sendMessage(ChatColor.GREEN + "You received: " + toGive.getItemMeta().getDisplayName());
+            player.sendMessage(ChatColor.GREEN + "You received: "
+                    + toGive.getItemMeta().getDisplayName());
         }
     }
 }
