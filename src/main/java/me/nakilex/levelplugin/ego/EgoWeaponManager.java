@@ -91,13 +91,13 @@ public class EgoWeaponManager {
         boolean leveled = weapon.addExp(xp);
         ItemStack hand = player.getInventory().getItemInMainHand();
         if (hand != null && hand.hasItemMeta()) {
-            ItemMeta meta = hand.getItemMeta();
-            PersistentDataContainer pdc = meta.getPersistentDataContainer();
-            if (pdc.has(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING)) {
-                pdc.set(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, weapon.getRank());
-                pdc.set(ItemUtil.EGO_EXP_KEY, PersistentDataType.INTEGER, weapon.getExp());
-                pdc.set(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING, weapon.getRarity().name());
-                hand.setItemMeta(meta);
+            ItemMeta meta2 = hand.getItemMeta();
+            PersistentDataContainer pdc2 = meta2.getPersistentDataContainer();
+            if (pdc2.has(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING)) {
+                pdc2.set(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, weapon.getRank());
+                pdc2.set(ItemUtil.EGO_EXP_KEY, PersistentDataType.INTEGER, weapon.getExp());
+                pdc2.set(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING, weapon.getRarity().name());
+                hand.setItemMeta(meta2);
                 ItemUtil.updateEgoWeaponTooltip(hand, player);
                 if (leveled) {
                     CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(hand);
