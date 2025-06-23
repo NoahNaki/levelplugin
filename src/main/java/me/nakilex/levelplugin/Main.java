@@ -40,8 +40,6 @@ import me.nakilex.levelplugin.runes.gui.IdentifyRunesGUI;
 import me.nakilex.levelplugin.runes.manager.RunesManager;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
-import me.nakilex.levelplugin.spells.ArcherSpell;
-import me.nakilex.levelplugin.spells.RogueSpell;
 import me.nakilex.levelplugin.spells.listener.MeteorListener;
 import me.nakilex.levelplugin.spells.managers.ManaCostTracker;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
@@ -122,7 +120,6 @@ public class Main extends JavaPlugin {
     private DmgNumberToggleManager dmgNumberToggleManager;
     private IdentifyRunesGUI identifyGui;
     private ManaCostTracker manaTracker;
-    private RogueSpell rogueSpell;
     private ProjectileFriendlyFireListener projectileFriendlyFireListener;
     private FileConfiguration bossConfig;
     private File bossConfigFile;
@@ -132,7 +129,6 @@ public class Main extends JavaPlugin {
     private GemExchangeGUI gemGui;
     private me.nakilex.levelplugin.enchanting.managers.EnchantManager enchantManager;
     private me.nakilex.levelplugin.enchanting.gui.EnchantGUI enchantGUI;
-    private ArcherSpell archerSpell;
     private TipsConfigManager tipsCfg;
     private BroadcastManager broadcastMgr;
     private me.nakilex.levelplugin.quests.managers.QuestManager questManager;
@@ -374,10 +370,8 @@ public class Main extends JavaPlugin {
             dmgNumberToggleManager,
             pickupCustomItemListener,
             settingsGUI,
-            rogueSpell,
             projectileFriendlyFireListener,
             bossConfig,
-            archerSpell,
             meteorListener,
             gemsManager,
             identifyRunesGUI,
