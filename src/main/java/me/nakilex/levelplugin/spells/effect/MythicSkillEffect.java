@@ -24,9 +24,16 @@ public class MythicSkillEffect implements SpellEffect {
         double strength = stats.baseStrength + stats.bonusStrength;
         double damage = ctx.getFinalDamage() + strength * 0.5;
 
-        // Compute damage for our own stats system. MythicBukkit's helper does
-        // not let us pass custom variables, so we simply invoke the skill and
-        // let StatsEffectListener apply the finalDamage value.
-        MythicBukkit.inst().getAPIHelper().castSkill(caster, skill);
+        // Pass the damage value as a metadata variable so MythicMobs can use
+        // <skill.damage> in the skill file. Fall back to simple cast if the
+        // API version lacks the Consumer overload.
+        try {
+            MythicBukkit.inst().getAPIHelper().castSkill(caster, skill, meta -> {
+                meta.getVariables().setDouble("damage", damage);
+            });
+        } catch (NoSuchMethodError e) {
+            // Older API - just cast normally
+            MythicBukkit.inst().getAPIHelper().castSkill(caster, skill);
+        }
     }
 }
