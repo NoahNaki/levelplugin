@@ -127,19 +127,6 @@ public class ClassMenu {
                 ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
             )));
 
-        // Phoenix Hunter (using blaze rod as icon)
-        inv.setItem(22, createMenuItem(Material.BLAZE_ROD, ChatColor.GOLD + "" + ChatColor.BOLD + "Start As A Phoenix Hunter!",
-            Arrays.asList(
-                "",
-                ChatColor.GRAY + "Choosing this will start you out as a ",
-                ChatColor.GOLD + "PHOENIX HUNTER" + ChatColor.GRAY + "! Your starting item will be a bow.",
-                "",
-                ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
-                ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,
-                "",
-                ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
-            )));
-
         // Fill borders with gray stained glass panes
         ItemStack filler = createFillerItem(Material.GRAY_STAINED_GLASS_PANE, " ");
         for (int i = 0; i < 27; i++) {
@@ -149,6 +136,20 @@ public class ClassMenu {
                 inv.setItem(i, filler);
             }
         }
+
+        // Phoenix Hunter (using blaze rod as icon)
+        inv.setItem(22, createMenuItem(Material.BLAZE_ROD,
+                ChatColor.GOLD + "" + ChatColor.BOLD + "Start As A Phoenix Hunter!",
+                Arrays.asList(
+                        "",
+                        ChatColor.GRAY + "Choosing this will start you out as a ",
+                        ChatColor.GOLD + "PHOENIX HUNTER" + ChatColor.GRAY + "! Your starting item will be a bow.",
+                        "",
+                        ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
+                        ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,
+                        "",
+                        ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
+                )));
 
         return inv;
     }
