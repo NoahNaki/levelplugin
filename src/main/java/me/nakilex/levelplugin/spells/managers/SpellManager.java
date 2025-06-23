@@ -88,6 +88,7 @@ public class SpellManager {
             "WAR_CRY", 0.0
         ));
         spellsByClass.put("warrior", Collections.unmodifiableMap(warriorMap));
+        plugin.getLogger().info("[SPELLS] Warrior combos: " + warriorMap.keySet());
 
         // — MAGE SPELLS (including BASIC_MAGE_ATTACK) —
         Map<String, Spell> mageMap = new HashMap<>();
@@ -267,6 +268,7 @@ public class SpellManager {
             "MYTHIC_DRAGON_PIERCER", 0.0
         ));
         spellsByClass.put("coolarcher", Collections.unmodifiableMap(coolMap));
+        plugin.getLogger().info("[SPELLS] CoolArcher combos: " + coolMap.keySet());
 
         // — PHOENIXHUNTER CLASS —
         Map<String, Spell> phoenixMap = new HashMap<>();
@@ -318,6 +320,7 @@ public class SpellManager {
             "MYTHIC_PHOENIX_REBIRTH", 0.0
         ));
         spellsByClass.put("phoenixhunter", Collections.unmodifiableMap(phoenixMap));
+        plugin.getLogger().info("[SPELLS] PhoenixHunter combos: " + phoenixMap.keySet());
     }
 
 }
