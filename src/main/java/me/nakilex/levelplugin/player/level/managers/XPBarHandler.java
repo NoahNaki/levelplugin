@@ -111,7 +111,9 @@ public class XPBarHandler {
                 // Check both level AND class requirements
                 if (!equipped.contains(id)
                     && newLevel >= reqLevel
-                    && (reqClass == PlayerClass.VILLAGER || reqClass == playerClass)) {
+                    && (reqClass == PlayerClass.VILLAGER
+                        || reqClass == playerClass
+                        || (playerClass == PlayerClass.PHOENIX_HUNTER && reqClass == PlayerClass.ARCHER))) {
 
                     // ADD STATS
                     StatsManager.PlayerStats ps = statsMgr.getPlayerStats(puuid);

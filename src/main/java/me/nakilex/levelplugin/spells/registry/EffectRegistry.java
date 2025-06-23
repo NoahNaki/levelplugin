@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.spells.effect.archer.*;
 import me.nakilex.levelplugin.spells.effect.mage.*;
 import me.nakilex.levelplugin.spells.effect.warrior.*;
 import me.nakilex.levelplugin.spells.effect.rogue.*;
+import me.nakilex.levelplugin.spells.effect.MythicSkillEffect;
 
 
 import java.util.Map;
@@ -84,6 +85,15 @@ public class EffectRegistry {
         register("MULTIHIT", new MultihitEffect());
         register("SMOKE_BOMB", new SmokeBombEffect());
         register("VANISH", new VanishEffect());
+
+        // --- Phoenix Hunter Spells ---
+        register("FLAMEBORN", new MythicSkillEffect("Flameborn"));
+        register("BLAZING_FEATHERS", new MythicSkillEffect("Blazing_Feathers"));
+        register("ASHDANCE", new MythicSkillEffect("Ashdance"));
+        register("FLAMEBURST_CONVERGENCE", new MythicSkillEffect("Flameburst_Convergence"));
+        register("PHOENIX_TOTEM", new MythicSkillEffect("Phoenix_Totem"));
+        register("PYROCLASMIC_BARRAGE", new MythicSkillEffect("Pyroclasmic_Barrage"));
+        register("PHOENIX_REBIRTH", new MythicSkillEffect("Phoenix_Rebirth"));
 
     }
 }

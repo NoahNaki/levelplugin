@@ -44,6 +44,7 @@ public class ClassMenuListener implements Listener {
         switch (displayName.toUpperCase()) {
             case "START AS A WARRIOR!": selectedClass = PlayerClass.WARRIOR; className = "Warrior"; break;
             case "START AS AN ARCHER!": selectedClass = PlayerClass.ARCHER;  className = "Archer";  break;
+            case "START AS A PHOENIX HUNTER!": selectedClass = PlayerClass.PHOENIX_HUNTER; className = "Phoenix Hunter"; break;
             case "START AS A MAGE!":    selectedClass = PlayerClass.MAGE;    className = "Mage";    break;
             case "START AS A ROGUE!":   selectedClass = PlayerClass.ROGUE;   className = "Rogue";   break;
             default:
@@ -124,7 +125,9 @@ public class ClassMenuListener implements Listener {
         PlayerClass currentClass = StatsManager.getInstance().getPlayerStats(puuid).playerClass;
 
 
-        boolean meetsClassReq = (reqClass == PlayerClass.VILLAGER || reqClass == currentClass);
+        boolean meetsClassReq = (reqClass == PlayerClass.VILLAGER
+                || reqClass == currentClass
+                || (currentClass == PlayerClass.PHOENIX_HUNTER && reqClass == PlayerClass.ARCHER));
         boolean meetsLevelReq = (playerLevel >= reqLevel);
         boolean wasApplied = equipped.contains(id);
 

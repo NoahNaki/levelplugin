@@ -217,6 +217,59 @@ public class SpellManager {
             "ARROW_STORM", 0.5
         ));
         spellsByClass.put("archer", Collections.unmodifiableMap(archerMap));
+
+        // — PHOENIX HUNTER SPELLS —
+        Map<String, Spell> phxMap = new HashMap<>();
+        phxMap.put("FLAMEBORN", new Spell(
+                "flameborn", "Flameborn", "FLAMEBORN",
+                0.0,
+                0, 1,
+                me.nakilex.levelplugin.items.data.WeaponType.BOW.getMaterials(),
+                "FLAMEBORN", 0.0
+        ));
+        phxMap.put("BLAZING_FEATHERS", new Spell(
+                "blazing_feathers", "Blazing Feathers", "BLAZING_FEATHERS",
+                0.0,
+                0, 1,
+                me.nakilex.levelplugin.items.data.WeaponType.BOW.getMaterials(),
+                "BLAZING_FEATHERS", 0.0
+        ));
+        phxMap.put("ASHDANCE", new Spell(
+                "ashdance", "Ashdance", "ASHDANCE",
+                0.0,
+                0, 1,
+                me.nakilex.levelplugin.items.data.WeaponType.BOW.getMaterials(),
+                "ASHDANCE", 0.0
+        ));
+        phxMap.put("FLAMEBURST_CONVERGENCE", new Spell(
+                "flameburst_convergence", "Flameburst Convergence", "FLAMEBURST_CONVERGENCE",
+                0.0,
+                0, 1,
+                me.nakilex.levelplugin.items.data.WeaponType.BOW.getMaterials(),
+                "FLAMEBURST_CONVERGENCE", 0.0
+        ));
+        phxMap.put("PHOENIX_TOTEM", new Spell(
+                "phoenix_totem", "Phoenix Totem", "PHOENIX_TOTEM",
+                0.0,
+                0, 1,
+                me.nakilex.levelplugin.items.data.WeaponType.BOW.getMaterials(),
+                "PHOENIX_TOTEM", 0.0
+        ));
+        phxMap.put("PYROCLASMIC_BARRAGE", new Spell(
+                "pyroclasmic_barrage", "Pyroclasmic Barrage", "PYROCLASMIC_BARRAGE",
+                0.0,
+                0, 1,
+                me.nakilex.levelplugin.items.data.WeaponType.BOW.getMaterials(),
+                "PYROCLASMIC_BARRAGE", 0.0
+        ));
+        phxMap.put("PHOENIX_REBIRTH", new Spell(
+                "phoenix_rebirth", "Phoenix Rebirth", "PHOENIX_REBIRTH",
+                0.0,
+                0, 1,
+                me.nakilex.levelplugin.items.data.WeaponType.BOW.getMaterials(),
+                "PHOENIX_REBIRTH", 0.0
+        ));
+        spellsByClass.put("phoenix_hunter", Collections.unmodifiableMap(phxMap));
     }
 
 }

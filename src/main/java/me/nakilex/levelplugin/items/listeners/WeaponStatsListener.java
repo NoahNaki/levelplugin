@@ -126,7 +126,8 @@ public class WeaponStatsListener implements Listener {
                     );
                 }
                 else if (requiredClass != PlayerClass.VILLAGER
-                    && requiredClass != playerClass) {
+                    && requiredClass != playerClass
+                    && !(playerClass == PlayerClass.PHOENIX_HUNTER && requiredClass == PlayerClass.ARCHER)) {
                     Bukkit.getLogger().info(
                         "[WeaponStats] Skipped addition: player class "
                             + playerClass + " != required class " + requiredClass + "."

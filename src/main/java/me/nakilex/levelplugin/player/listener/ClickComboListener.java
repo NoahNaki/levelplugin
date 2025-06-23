@@ -208,13 +208,16 @@ public class ClickComboListener implements Listener {
 
 
     private void recordComboClick(Player player, String clickType) {
+        PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
+        if (ps.playerClass == PlayerClass.PHOENIX_HUNTER) {
+            return; // Phoenix Hunter does not use click combos
+        }
         // Start of a new combo should hide any mana-cost indicator
         ManaIndicatorManager.getInstance().clear(player);
 
         long now = System.currentTimeMillis();
         UUID uuid = player.getUniqueId();
 
-        PlayerStats ps = StatsManager.getInstance().getPlayerStats(uuid);
         String className = ps.playerClass.name().toLowerCase();
         ItemStack mainHand = player.getInventory().getItemInMainHand();
         if (mainHand == null || mainHand.getType() == Material.AIR) return;
@@ -318,7 +321,8 @@ public class ClickComboListener implements Listener {
                     inst.getBaseName() + "!");
                 return;
             }
-            if (requiredClass != VILLAGER && requiredClass != playerClass) {
+            if (requiredClass != VILLAGER && requiredClass != playerClass
+                && !(playerClass == PlayerClass.PHOENIX_HUNTER && requiredClass == PlayerClass.ARCHER)) {
                 return;
             }
         }
