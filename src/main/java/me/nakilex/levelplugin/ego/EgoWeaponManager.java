@@ -143,6 +143,13 @@ public class EgoWeaponManager {
         weapon.evolve();
         setWeapon(player.getUniqueId(), weapon);
 
+        // Reset upgrade level so costs scale with new rarity
+        CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(stack);
+        if (ci != null) {
+            ci.setUpgradeLevel(0);
+            ItemUtil.updateUpgradeLevel(stack, 0);
+        }
+
         pdc.set(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING, weapon.getRarity().name());
         pdc.set(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, weapon.getRank());
         pdc.set(ItemUtil.EGO_EXP_KEY, PersistentDataType.INTEGER, weapon.getExp());
@@ -151,7 +158,6 @@ public class EgoWeaponManager {
         ItemUtil.updateEgoWeaponTooltip(stack, player);
 
         // Reapply stats
-        CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(stack);
         if (ci != null) {
             WeaponStatsListener wsl = new WeaponStatsListener();
             wsl.removeWeaponStats(player, ci, stack);

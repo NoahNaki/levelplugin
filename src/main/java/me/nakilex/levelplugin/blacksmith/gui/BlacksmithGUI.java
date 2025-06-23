@@ -258,8 +258,14 @@ public class BlacksmithGUI implements Listener {
         ItemStack evo = getNexoItem("check", ChatColor.GOLD + "Evolve Weapon");
         ItemMeta meta = evo.getItemMeta();
         if (meta != null) {
-            meta.setLore(Collections.singletonList(
-                ready ? ChatColor.YELLOW + "Click to evolve" : ChatColor.RED + "Requires Rank 10"));
+            List<String> lore = new ArrayList<>();
+            if (ready) {
+                lore.add(ChatColor.YELLOW + "Click to evolve");
+                lore.add(ChatColor.GRAY + "Resets rank and upgrades");
+            } else {
+                lore.add(ChatColor.RED + "Requires Rank 10");
+            }
+            meta.setLore(lore);
             evo.setItemMeta(meta);
         }
         return evo;
