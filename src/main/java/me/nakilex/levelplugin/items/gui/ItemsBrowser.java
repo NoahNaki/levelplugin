@@ -318,6 +318,7 @@ public class ItemsBrowser implements CommandExecutor, Listener {
         String name = clicked.getItemMeta().getDisplayName();
         String stripped = ChatColor.stripColor(e.getView().getTitle());
         int currentPage = Integer.parseInt(stripped.split(" ")[stripped.split(" ").length - 1]) - 1;
+        int tFilter = typeFilters.getOrDefault(player.getUniqueId(), 2);
         int rFilter = rarityFilters.getOrDefault(player.getUniqueId(), me.nakilex.levelplugin.items.data.ItemRarity.values().length);
         int lFilter = levelFilters.getOrDefault(player.getUniqueId(), 5);
         int cFilter = classFilters.getOrDefault(player.getUniqueId(), 4);
