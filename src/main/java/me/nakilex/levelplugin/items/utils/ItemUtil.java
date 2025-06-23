@@ -213,7 +213,8 @@ public class ItemUtil {
         // Log that we're updating this particular item for the given player.
         ItemMeta meta = stack.getItemMeta();
         String displayName = meta != null ? meta.getDisplayName() : "Unknown";
-        Bukkit.getLogger().info("[CustomItem] Updating tooltip for item: " + displayName + " for player: " + player.getName());
+        String name = (player != null) ? player.getName() : "null";
+        Bukkit.getLogger().info("[CustomItem] Updating tooltip for item: " + displayName + " for player: " + name);
 
         // Retrieve the custom item ID from the PersistentDataContainer.
         Integer itemId = meta.getPersistentDataContainer().get(ITEM_ID_KEY, PersistentDataType.INTEGER);
