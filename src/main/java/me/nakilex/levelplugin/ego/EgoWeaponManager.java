@@ -53,35 +53,41 @@ public class EgoWeaponManager {
     }
 
     public void addXp(Player player, int xp) {
-        EgoWeapon weapon = getWeapon(player.getUniqueId());
-        if (weapon == null) {
-            ItemStack heldItem = player.getInventory().getItemInMainHand();
-            if (heldItem != null && heldItem.hasItemMeta()) {
-                ItemMeta meta = heldItem.getItemMeta();
-                PersistentDataContainer pdc = meta.getPersistentDataContainer();
-                if (pdc.has(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING)) {
-                    String id = pdc.get(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING);
-                    String key = id.split("_")[0];
-                    EgoWeapon proto = prototypes.get(key);
-                    if (proto != null) {
-                        weapon = proto.copy();
-                        weapon.addExp(0); // ensure fields init
-                        int r = pdc.getOrDefault(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
-                        int e = pdc.getOrDefault(ItemUtil.EGO_EXP_KEY, PersistentDataType.INTEGER, 0);
-                        if (pdc.has(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING)) {
-                            try {
-                                me.nakilex.levelplugin.ego.EgoRarity rar = me.nakilex.levelplugin.ego.EgoRarity.valueOf(pdc.get(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING));
-                                weapon.setRarity(rar);
-                            } catch (Exception ignored) {}
-                        }
-                        while (weapon.getRank() < r) weapon.addExp(weapon.expToNextRank());
-                        weapon.addExp(e);
-                        setWeapon(player.getUniqueId(), weapon);
-                    }
-                }
-            }
+        ItemStack heldItem = player.getInventory().getItemInMainHand();
+        if (heldItem == null || !heldItem.hasItemMeta()) {
+            return;
         }
-        if (weapon == null) return;
+
+        ItemMeta meta = heldItem.getItemMeta();
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        if (!pdc.has(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING)) {
+            return;
+        }
+
+        String id = pdc.get(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING);
+        String key = id.split("_")[0];
+        EgoWeapon proto = prototypes.get(key);
+        if (proto == null) {
+            return;
+        }
+
+        EgoWeapon weapon = getWeapon(player.getUniqueId());
+        if (weapon == null || !weapon.getId().equals(id)) {
+            weapon = proto.copy();
+            weapon.addExp(0);
+            int r = pdc.getOrDefault(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
+            int e = pdc.getOrDefault(ItemUtil.EGO_EXP_KEY, PersistentDataType.INTEGER, 0);
+            if (pdc.has(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING)) {
+                try {
+                    me.nakilex.levelplugin.ego.EgoRarity rar = me.nakilex.levelplugin.ego.EgoRarity.valueOf(pdc.get(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING));
+                    weapon.setRarity(rar);
+                } catch (Exception ignored) {}
+            }
+            while (weapon.getRank() < r) weapon.addExp(weapon.expToNextRank());
+            weapon.addExp(e);
+            setWeapon(player.getUniqueId(), weapon);
+        }
+
         boolean leveled = weapon.addExp(xp);
         ItemStack hand = player.getInventory().getItemInMainHand();
         if (hand != null && hand.hasItemMeta()) {

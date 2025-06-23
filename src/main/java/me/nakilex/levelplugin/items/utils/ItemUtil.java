@@ -416,7 +416,7 @@ public class ItemUtil {
         String rarStr = srcPdc.get(EGO_RARITY_KEY, PersistentDataType.STRING);
         if (rarStr == null && viewer != null) {
             me.nakilex.levelplugin.ego.EgoWeapon w = me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance().getWeapon(viewer.getUniqueId());
-            if (w != null) {
+            if (w != null && w.getId().equals(id)) {
                 rarStr = w.getRarity().name();
             }
         }
