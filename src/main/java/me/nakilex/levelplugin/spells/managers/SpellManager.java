@@ -185,11 +185,11 @@ public class SpellManager {
             "MYTHIC_SHIELD_BARRIER", 0.0
         ));
         warriorMap.put("RLL", new Spell(
-            "whirlwind", "Whirlwind", "RLL",
-            8.0,
-            0, 8,
+            "shockwave", "Shockwave", "RLL",
+            14.0,
+            0, 3,
             WeaponType.SHOVEL.getMaterials(),
-            "MYTHIC_WHIRLWIND", 0.0
+            "SHOCKWAVE", 1.5
         ));
         warriorMap.put("LLL", new Spell(
             "judgement", "Judgement", "LLL",

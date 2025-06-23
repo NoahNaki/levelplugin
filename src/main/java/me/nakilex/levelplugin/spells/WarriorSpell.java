@@ -47,7 +47,7 @@ public class WarriorSpell implements Listener {
         Main.getPlugin().getLogger().info("[WR] left click " + player.getName() + " sneaking=" + player.isSneaking());
 
         if (player.isSneaking()) {
-            castSpell(player, "RRR"); // Rampage
+            castSpell(player, "RLL"); // Shockwave
         } else {
             castSpell(player, "BASIC_ATTACK"); // Brutal Strike
         }

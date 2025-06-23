@@ -32,7 +32,15 @@ public class MythicMobNameManager implements Listener {
         "WINDRAZOR",
         "DEADLY_JAVELIN",
         "ARROW_BARRAGE",
-        "DRAGON_PIERCER"
+        "DRAGON_PIERCER",
+        "BRUTAL_STRIKE",
+        "CHARGE",
+        "CHAIN_HOOK",
+        "SHIELD_BARRIER",
+        "WHIRLWIND",
+        "JUDGEMENT",
+        "RAMPAGE",
+        "SHOCKWAVE"
     };
 
     public MythicMobNameManager(Main plugin) {
