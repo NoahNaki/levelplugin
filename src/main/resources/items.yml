@@ -3216,11 +3216,11 @@ items:
     dex: 0-0
 
   258:
-    name: "Ego Warrior Axe"
+    name: "Ego Warrior Shovel"
     rarity: COMMON
     level_requirement: 1
     class_requirement: WARRIOR
-    material: WOODEN_AXE
+    material: WOODEN_SHOVEL
     hp: 0-0
     def: 0-0
     str: 3-6

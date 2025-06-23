@@ -160,49 +160,49 @@ public class SpellManager {
             0.0,
             1,
             1,
-            WeaponType.AXE.getMaterials(),
+            WeaponType.SHOVEL.getMaterials(),
             "MYTHIC_BRUTAL_STRIKE", 0.0
         ));
         warriorMap.put("LRL", new Spell(
             "charge", "Charge", "LRL",
             5.0,
             0, 3,
-            WeaponType.AXE.getMaterials(),
+            WeaponType.SHOVEL.getMaterials(),
             "MYTHIC_CHARGE", 0.0
         ));
         warriorMap.put("LRR", new Spell(
             "chain_hook", "Chain Hook", "LRR",
             6.0,
             0, 5,
-            WeaponType.AXE.getMaterials(),
+            WeaponType.SHOVEL.getMaterials(),
             "MYTHIC_CHAIN_HOOK", 0.0
         ));
         warriorMap.put("LLR", new Spell(
             "shield_barrier", "Shield Barrier", "LLR",
             0.0,
             0, 5,
-            WeaponType.AXE.getMaterials(),
+            WeaponType.SHOVEL.getMaterials(),
             "MYTHIC_SHIELD_BARRIER", 0.0
         ));
         warriorMap.put("RLL", new Spell(
             "whirlwind", "Whirlwind", "RLL",
             8.0,
             0, 8,
-            WeaponType.AXE.getMaterials(),
+            WeaponType.SHOVEL.getMaterials(),
             "MYTHIC_WHIRLWIND", 0.0
         ));
         warriorMap.put("LLL", new Spell(
             "judgement", "Judgement", "LLL",
             15.0,
             0, 10,
-            WeaponType.AXE.getMaterials(),
+            WeaponType.SHOVEL.getMaterials(),
             "MYTHIC_JUDGEMENT", 0.0
         ));
         warriorMap.put("RRR", new Spell(
             "rampage", "Rampage", "RRR",
             20.0,
             0, 10,
-            WeaponType.AXE.getMaterials(),
+            WeaponType.SHOVEL.getMaterials(),
             "MYTHIC_RAMPAGE", 0.0
         ));
         spellsByClass.put("warrior", Collections.unmodifiableMap(warriorMap));
