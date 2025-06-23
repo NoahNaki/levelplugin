@@ -2,7 +2,10 @@ package me.nakilex.levelplugin.spells.effect;
 
 import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import org.bukkit.entity.Player;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Simple effect that triggers a MythicMobs skill by name.
@@ -17,7 +20,16 @@ public class MythicSkillEffect implements SpellEffect {
     @Override
     public void apply(SpellCastContext ctx) {
         Player caster = ctx.getPlayer();
-        // Invoke MythicMobs to cast the configured skill as this player
-        MythicBukkit.inst().getAPIHelper().castSkill(caster, skill);
+
+        // Calculate scaled damage using player stats and any modifiers
+        var stats = StatsManager.getInstance().getPlayerStats(caster.getUniqueId());
+        double strength = stats.baseStrength + stats.bonusStrength;
+        double damage = ctx.getFinalDamage() + strength * 0.5;
+
+        // Provide the computed damage as a variable to MythicMobs
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("damage", damage);
+
+        MythicBukkit.inst().getAPIHelper().castSkill(caster, skill, vars);
     }
 }
