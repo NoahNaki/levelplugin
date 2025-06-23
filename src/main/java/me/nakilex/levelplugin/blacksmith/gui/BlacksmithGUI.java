@@ -255,13 +255,12 @@ public class BlacksmithGUI implements Listener {
     }
 
     private ItemStack createEvolveButton(boolean ready) {
-        ItemStack evo = getNexoItem("check", ChatColor.GOLD + "Evolve Weapon");
+        ItemStack evo = getNexoItem("check", ChatColor.GREEN + "Evolve");
         ItemMeta meta = evo.getItemMeta();
         if (meta != null) {
             List<String> lore = new ArrayList<>();
             if (ready) {
-                lore.add(ChatColor.YELLOW + "Click to evolve");
-                lore.add(ChatColor.GRAY + "Resets rank and upgrades");
+                lore.add(ChatColor.GRAY + "Upgrade your weapon rarity");
             } else {
                 lore.add(ChatColor.RED + "Requires Rank 10");
             }
@@ -269,6 +268,20 @@ public class BlacksmithGUI implements Listener {
             evo.setItemMeta(meta);
         }
         return evo;
+    }
+
+    private ItemStack createEvolveConfirmButton() {
+        ItemStack warn = getNexoItem("alert", ChatColor.RED + "Warning");
+        ItemMeta meta = warn.getItemMeta();
+        if (meta != null) {
+            meta.setLore(Arrays.asList(
+                ChatColor.GRAY + "Evolving your weapon will reset its rank",
+                ChatColor.GRAY + "and star levels.",
+                ChatColor.DARK_GRAY + "Click again to confirm"
+            ));
+            warn.setItemMeta(meta);
+        }
+        return warn;
     }
 
     private ItemStack createRepairAllButton(int totalCost) {
@@ -517,13 +530,26 @@ public class BlacksmithGUI implements Listener {
                         : " decreased by " + ChatColor.RED + diff);
                 player.sendMessage(message);
             } else if (title.equals(GUI_TITLE_EVOLVE)) {
-                EgoWeaponManager manager = EgoWeaponManager.getInstance();
-                if (manager.evolveWeapon(player, item)) {
-                    gui.setItem(13, item);
+                ItemStack button = gui.getItem(22);
+                String name = button != null && button.getItemMeta() != null ? ChatColor.stripColor(button.getItemMeta().getDisplayName()) : "";
+                if ("Warning".equalsIgnoreCase(name)) {
+                    EgoWeaponManager manager = EgoWeaponManager.getInstance();
+                    if (manager.evolveWeapon(player, item)) {
+                        gui.setItem(13, item);
+                    }
+                    int rank = item.getItemMeta().getPersistentDataContainer()
+                            .getOrDefault(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
+                    gui.setItem(22, createEvolveButton(rank >= 10));
+                } else {
+                    int rank = item.getItemMeta().getPersistentDataContainer()
+                            .getOrDefault(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
+                    if (rank >= 10) {
+                        gui.setItem(22, createEvolveConfirmButton());
+                    } else {
+                        player.sendMessage("§cRequires Rank 10 to evolve.");
+                    }
+                    return; // skip automatic button update
                 }
-                gui.setItem(22, createEvolveButton(
-                    item.getItemMeta().getPersistentDataContainer()
-                        .getOrDefault(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER,1) >= 10));
             }
         }
 
