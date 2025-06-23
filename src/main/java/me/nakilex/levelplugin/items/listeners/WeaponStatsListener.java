@@ -227,7 +227,7 @@ public class WeaponStatsListener implements Listener {
 
 
 
-    private void addWeaponStats(Player player, CustomItem customItem, ItemStack stack) {
+    public void addWeaponStats(Player player, CustomItem customItem, ItemStack stack) {
         StatsManager.PlayerStats ps = statsManager.getPlayerStats(player.getUniqueId());
         me.nakilex.levelplugin.ego.EgoRarity rarity = me.nakilex.levelplugin.ego.EgoRarity.COMMON;
         int rank = 1;

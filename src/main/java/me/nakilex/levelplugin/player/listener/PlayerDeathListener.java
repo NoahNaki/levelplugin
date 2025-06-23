@@ -56,7 +56,7 @@ public class PlayerDeathListener implements Listener {
                     if (armorItem != null) {
                         int armorId = armorItem.getId();
                         int reduceAmtArmor = armorItem.getMaxDurability() / 10;
-                        armorItem.reduceDurability(reduceAmtArmor);
+                        armorItem.reduceDurability(reduceAmtArmor, player, helmet);
 
                         // Re‐build the helmet ItemStack to reflect new durability
                         ItemStack updatedHelmet = ItemUtil.createItemStackFromCustomItem(armorItem, 1, player);
@@ -82,7 +82,7 @@ public class PlayerDeathListener implements Listener {
                     if (armorItem != null) {
                         int armorId = armorItem.getId();
                         int reduceAmtArmor = armorItem.getMaxDurability() / 10;
-                        armorItem.reduceDurability(reduceAmtArmor);
+                        armorItem.reduceDurability(reduceAmtArmor, player, chest);
 
                         ItemStack updatedChest = ItemUtil.createItemStackFromCustomItem(armorItem, 1, player);
                         player.getInventory().setChestplate(updatedChest);
@@ -107,7 +107,7 @@ public class PlayerDeathListener implements Listener {
                     if (armorItem != null) {
                         int armorId = armorItem.getId();
                         int reduceAmtArmor = armorItem.getMaxDurability() / 10;
-                        armorItem.reduceDurability(reduceAmtArmor);
+                        armorItem.reduceDurability(reduceAmtArmor, player, legs);
 
                         ItemStack updatedLegs = ItemUtil.createItemStackFromCustomItem(armorItem, 1, player);
                         player.getInventory().setLeggings(updatedLegs);
@@ -132,7 +132,7 @@ public class PlayerDeathListener implements Listener {
                     if (armorItem != null) {
                         int armorId = armorItem.getId();
                         int reduceAmtArmor = armorItem.getMaxDurability() / 10;
-                        armorItem.reduceDurability(reduceAmtArmor);
+                        armorItem.reduceDurability(reduceAmtArmor, player, boots);
 
                         ItemStack updatedBoots = ItemUtil.createItemStackFromCustomItem(armorItem, 1, player);
                         player.getInventory().setBoots(updatedBoots);
@@ -163,7 +163,7 @@ public class PlayerDeathListener implements Listener {
 
                         // 4) Reduce durability by 10% of MAX (i.e. 10 points if MAX=100)
                         int amountToReduce = cItem.getMaxDurability() / 10;
-                        cItem.reduceDurability(amountToReduce);
+                        cItem.reduceDurability(amountToReduce, player, inHand);
 
                         // 5) If the weapon is now broken and still marked as equipped, strip its stats
                         Set<Integer> equipped = statsMgr.getEquippedItems(puuid);
