@@ -22,6 +22,9 @@ public class MythicSkillDamageScaler implements Listener {
         var stats = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
         double strength = stats.baseStrength + stats.bonusStrength;
         double scaled = event.getDamage() + strength * 0.5;
+        me.nakilex.levelplugin.Main.getPlugin().getLogger().info(
+                "[MythicDamageScaler] base=" + event.getDamage() + " scaled=" + scaled +
+                " caster=" + player.getName());
         event.setDamage(scaled);
     }
 }

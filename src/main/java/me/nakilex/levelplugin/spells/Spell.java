@@ -120,6 +120,10 @@ public class Spell {
     public void castEffect(Player player) {
         UUID pid = player.getUniqueId();
 
+        // Debug initial cast attempt
+        Main.getPlugin().getLogger().info("[SpellCast] " + player.getName() +
+                " attempts " + id + " via " + combo);
+
         // 0) Requirement check (level or weapon rank)
         boolean ego = false;
         int rank = 0;
@@ -185,6 +189,8 @@ public class Spell {
 
         // Debug: log the final effect list after rune modifications
         Main.getPlugin().getLogger().info("[Spell] " + id + " effects: " + ctx.getEffectKeys());
+        Main.getPlugin().getLogger().info("[Spell] finalDamage=" + ctx.getFinalDamage() +
+                " finalCost=" + ctx.getFinalManaCost());
 
         // 4) Mana check & deduct
         double cost = ctx.getFinalManaCost();

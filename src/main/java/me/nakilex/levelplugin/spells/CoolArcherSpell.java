@@ -47,6 +47,8 @@ public class CoolArcherSpell implements Listener {
         Player player = event.getPlayer();
         if (!hasEgoArcher(player) || !validWeapon(player)) return;
 
+        Main.getPlugin().getLogger().info("[CA] left click " + player.getName() + " sneaking=" + player.isSneaking());
+
         if (player.isSneaking()) {
             castSpell(player, "RRR"); // Deadly Javelin
         } else {
@@ -62,6 +64,8 @@ public class CoolArcherSpell implements Listener {
         if (!hasEgoArcher(player) || !validWeapon(player)) return;
         event.setCancelled(true);
 
+        Main.getPlugin().getLogger().info("[CA] right click " + player.getName() + " sneaking=" + player.isSneaking());
+
         if (player.isSneaking()) {
             castSpell(player, "LLL"); // Dragon Piercer
         } else {
@@ -74,11 +78,13 @@ public class CoolArcherSpell implements Listener {
         if (!event.isSneaking()) return;
         Player player = event.getPlayer();
         if (!hasEgoArcher(player) || !validWeapon(player)) return;
+        Main.getPlugin().getLogger().info("[CA] toggle sneak by " + player.getName());
         castSpell(player, "LLR"); // Arrow Barrage
     }
 
     private void castSpell(Player player, String combo) {
         Spell spell = SpellManager.getInstance().getSpell("coolarcher", combo);
+        Main.getPlugin().getLogger().info("[CA] castSpell combo=" + combo + " spell=" + (spell!=null));
         if (spell == null) {
             MythicBukkit.inst().getAPIHelper().castSkill(player, combo);
             return;

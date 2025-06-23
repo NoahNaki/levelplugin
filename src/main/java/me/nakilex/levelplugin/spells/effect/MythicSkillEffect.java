@@ -24,6 +24,10 @@ public class MythicSkillEffect implements SpellEffect {
         double strength = stats.baseStrength + stats.bonusStrength;
         double damage = ctx.getFinalDamage() + strength * 0.5;
 
+        me.nakilex.levelplugin.Main.getPlugin().getLogger().info(
+                "[MythicSkillEffect] skill=" + skill + " dmg=" + damage +
+                " player=" + caster.getName());
+
         // Pass the damage value as a metadata variable so MythicMobs can use
         // <skill.damage> in the skill file. Fall back to simple cast if the
         // API version lacks the Consumer overload.

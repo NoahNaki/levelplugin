@@ -38,6 +38,7 @@ public class PhoenixHunterSpell implements Listener {
                             String id = pdc.get(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING);
                             if (id != null && id.startsWith("phoenix") && VALID_WEAPONS.contains(item.getType())) {
                                 MythicBukkit.inst().getAPIHelper().castSkill(p, "Flameborn");
+                                Main.getPlugin().getLogger().info("[PH] passive Flameborn for " + p.getName());
                                 castSpell(p, "LLR"); // Phoenix Totem passive
                             }
                         }
@@ -66,6 +67,8 @@ public class PhoenixHunterSpell implements Listener {
         Player player = event.getPlayer();
         if (!hasEgoPhoenix(player) || !validWeapon(player)) return;
 
+        Main.getPlugin().getLogger().info("[PH] left click " + player.getName() + " sneaking=" + player.isSneaking());
+
         if (player.isSneaking()) {
             castSpell(player, "RRR"); // Phoenix Rebirth
         } else {
@@ -80,6 +83,7 @@ public class PhoenixHunterSpell implements Listener {
         Player player = event.getPlayer();
         if (!hasEgoPhoenix(player) || !validWeapon(player)) return;
         event.setCancelled(true);
+        Main.getPlugin().getLogger().info("[PH] right click " + player.getName() + " sneaking=" + player.isSneaking());
         if (player.isSneaking()) {
             castSpell(player, "LLL"); // Pyroclasmic Barrage
         } else {
@@ -92,11 +96,13 @@ public class PhoenixHunterSpell implements Listener {
         if (!event.isSneaking()) return;
         Player player = event.getPlayer();
         if (!hasEgoPhoenix(player) || !validWeapon(player)) return;
+        Main.getPlugin().getLogger().info("[PH] toggle sneak by " + player.getName());
         castSpell(player, "LRR"); // Flameburst Convergence
     }
 
     private void castSpell(Player player, String combo) {
         Spell spell = SpellManager.getInstance().getSpell("phoenixhunter", combo);
+        Main.getPlugin().getLogger().info("[PH] castSpell combo=" + combo + " spell=" + (spell!=null));
         if (spell == null) {
             MythicBukkit.inst().getAPIHelper().castSkill(player, combo);
             return;

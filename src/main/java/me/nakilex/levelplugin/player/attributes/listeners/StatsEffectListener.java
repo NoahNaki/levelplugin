@@ -63,6 +63,10 @@ public class StatsEffectListener implements Listener {
             boolean isCrit = random.nextDouble() < critChance;
             if (isCrit) finalDamage *= 2;
 
+            me.nakilex.levelplugin.Main.getPlugin().getLogger().info(
+                "[StatsEffect] dmg=" + event.getDamage() + "->" + finalDamage +
+                " crit=" + isCrit + " player=" + player.getName());
+
             // Record for chat, etc.
             lastCritMap.put(player.getUniqueId(), isCrit);
 
