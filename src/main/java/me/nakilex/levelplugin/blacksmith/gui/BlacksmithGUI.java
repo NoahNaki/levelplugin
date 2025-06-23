@@ -600,8 +600,12 @@ public class BlacksmithGUI implements Listener {
         } else if (title.equals(GUI_TITLE_REROLL)) {
             gui.setItem(22, createRerollButton(rerollManager.getRerollCost(ci)));
         } else {
-            int rank = ci.getItemMeta().getPersistentDataContainer()
-                .getOrDefault(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
+            ItemMeta meta = current.getItemMeta();
+            int rank = 1;
+            if (meta != null) {
+                rank = meta.getPersistentDataContainer()
+                        .getOrDefault(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
+            }
             gui.setItem(22, createEvolveButton(rank >= 10));
         }
     }
