@@ -28,7 +28,7 @@ public class MythicSkillDamageScaler implements Listener {
         return null;
     }
 
-    @EventHandler(priority = EventPriority.HIGH)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onMythicDamage(MythicDamageEvent event) {
         Player player = null;
 

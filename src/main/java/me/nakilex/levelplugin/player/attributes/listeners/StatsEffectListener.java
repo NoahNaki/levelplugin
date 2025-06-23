@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStat
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 
@@ -29,7 +30,7 @@ public class StatsEffectListener implements Listener {
         return wasCrit != null && wasCrit;
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
         Entity damager = event.getDamager();
         Entity target  = event.getEntity();
