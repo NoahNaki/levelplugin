@@ -4,7 +4,6 @@ import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.tools.ToolTier;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
-import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.player.mining.managers.MiningManager;
 import org.bukkit.Bukkit;
@@ -132,26 +131,6 @@ public class ItemUtil {
         }
         lore.add(levelRequirementLine);
 
-        // --- Class Requirement ---
-        if (cItem.getClassRequirement() != null && !cItem.getClassRequirement().equalsIgnoreCase("ANY")) {
-            // Format the class requirement: capitalize first letter.
-            String rawClassReq = cItem.getClassRequirement();
-            String classReq = rawClassReq.substring(0, 1).toUpperCase() + rawClassReq.substring(1).toLowerCase();
-            String classRequirementLine;
-
-            if (player == null) {
-                classRequirementLine = ChatColor.GRAY + "Class Requirement: " + classReq;
-            } else {
-                // Retrieve the player's class from StatsManager.
-                PlayerClass playerClass = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass;
-                if (playerClass.name().equalsIgnoreCase(classReq)) {
-                    classRequirementLine = ChatColor.GREEN + "✔ " + ChatColor.GRAY + "Class Requirement: " + ChatColor.WHITE + classReq;
-                } else {
-                    classRequirementLine = ChatColor.RED + "✘ " + ChatColor.GRAY + "Class Requirement: " + ChatColor.WHITE + classReq;
-                }
-            }
-            lore.add(classRequirementLine);
-        }
         lore.add(""); // Another blank line for spacing
 
         // --- Stats Information ---
@@ -277,23 +256,6 @@ public class ItemUtil {
         }
         lore.add(levelRequirementLine);
 
-        // --- Class Requirement ---
-        if (cItem.getClassRequirement() != null && !cItem.getClassRequirement().equalsIgnoreCase("ANY")) {
-            String rawClassReq = cItem.getClassRequirement();
-            String classReq = rawClassReq.substring(0, 1).toUpperCase() + rawClassReq.substring(1).toLowerCase();
-            String classRequirementLine;
-            if (player == null) {
-                classRequirementLine = ChatColor.GRAY + "Class Requirement: " + classReq;
-            } else {
-                PlayerClass playerClass = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass;
-                if (playerClass.name().equalsIgnoreCase(classReq)) {
-                    classRequirementLine = ChatColor.GREEN + "✔ " + ChatColor.GRAY + "Class Requirement: " + ChatColor.WHITE + classReq;
-                } else {
-                    classRequirementLine = ChatColor.RED + "✘ " + ChatColor.GRAY + "Class Requirement: " + ChatColor.WHITE + classReq;
-                }
-            }
-            lore.add(classRequirementLine);
-        }
         lore.add(""); // Blank line for spacing
 
         // --- Stats Information ---

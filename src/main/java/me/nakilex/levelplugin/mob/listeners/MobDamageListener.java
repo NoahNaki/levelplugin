@@ -3,7 +3,6 @@ package me.nakilex.levelplugin.mob.listeners;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
-import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -44,19 +43,6 @@ public class MobDamageListener implements Listener {
                 if (inst != null) {
                     int playerLevel = LevelManager.getInstance().getLevel(player);
                     int reqLevel    = inst.getLevelRequirement();
-                    String clsReq   = inst.getClassRequirement();
-
-                    // Parse the required class (default to VILLAGER if invalid)
-                    PlayerClass requiredClass;
-                    try {
-                        requiredClass = PlayerClass.valueOf(clsReq.toUpperCase());
-                    } catch (IllegalArgumentException ex) {
-                        requiredClass = PlayerClass.VILLAGER;
-                    }
-
-                    PlayerClass playerClass = StatsManager.getInstance()
-                        .getPlayerStats(player.getUniqueId())
-                        .playerClass;
 
                     // Cancel if below level
                     if (playerLevel < reqLevel) {
@@ -67,16 +53,6 @@ public class MobDamageListener implements Listener {
                         return;
                     }
 
-                    // Cancel if wrong class
-                    if (requiredClass != PlayerClass.VILLAGER
-                        && requiredClass != playerClass) {
-                        player.sendMessage(ChatColor.RED +
-                            "Only " +
-                            requiredClass.name().toLowerCase() +
-                            "s may use your " + inst.getBaseName() + "!");
-                        event.setCancelled(true);
-                        return;
-                    }
                 }
             }
 

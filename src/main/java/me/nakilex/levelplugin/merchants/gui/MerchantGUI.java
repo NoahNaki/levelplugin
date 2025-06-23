@@ -8,7 +8,6 @@ import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.merchants.data.MerchantItem;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
-import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -338,8 +337,6 @@ public class MerchantGUI implements Listener {
 
     private void updateMerchantTooltips(Player player) {
         int lvl       = StatsManager.getInstance().getLevel(player);
-        PlayerClass cls   = StatsManager.getInstance()
-            .getPlayerStats(player.getUniqueId()).playerClass;
         int coins     = economyManager.getBalance(player);
         int totalGems = Main.getInstance().getGemsManager().getTotalUnits(player);
 
@@ -368,24 +365,6 @@ public class MerchantGUI implements Listener {
                 );
             }
 
-            // ── 2) Class Requirement ─────────────────────────
-            int clsIdx = -1;
-            for (int i = 0; i < lore.size(); i++) {
-                if (lore.get(i).contains("Class Requirement:")) {
-                    clsIdx = i;
-                    break;
-                }
-            }
-            if (clsIdx != -1 && !tpl.getClassRequirement().equalsIgnoreCase("ANY")) {
-                boolean ok = cls.name().equalsIgnoreCase(tpl.getClassRequirement());
-                String cap = tpl.getClassRequirement().substring(0,1).toUpperCase()
-                    + tpl.getClassRequirement().substring(1).toLowerCase();
-                lore.set(clsIdx,
-                    (ok ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
-                        + ChatColor.GRAY + "Class Requirement: "
-                        + ChatColor.WHITE + cap
-                );
-            }
 
             // ── 3) Coin Price ────────────────────────────────
             int priceHdr = lore.indexOf(ChatColor.GOLD + "Price:");

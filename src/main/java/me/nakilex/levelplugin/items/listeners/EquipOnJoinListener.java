@@ -6,8 +6,6 @@ import me.nakilex.levelplugin.items.data.WeaponType;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
-import me.nakilex.levelplugin.player.classes.data.PlayerClass;
-import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -22,7 +20,6 @@ public class EquipOnJoinListener implements Listener {
 
     private final StatsManager statsManager      = StatsManager.getInstance();
     private final LevelManager levelManager      = LevelManager.getInstance();
-    private final PlayerClassManager classManager= PlayerClassManager.getInstance();
     private final ItemManager itemManager        = ItemManager.getInstance();
 
     @EventHandler
@@ -104,18 +101,6 @@ public class EquipOnJoinListener implements Listener {
             return;
         }
 
-        // Klasse-check (optioneel)
-        PlayerClass requiredClass;
-        try {
-            requiredClass = PlayerClass.valueOf(ci.getClassRequirement().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            requiredClass = PlayerClass.VILLAGER;
-        }
-        PlayerClass playerClass = statsManager.getPlayerStats(puuid).playerClass;
-        if (requiredClass != PlayerClass.VILLAGER && requiredClass != playerClass) {
-            player.sendMessage(ChatColor.RED + "Only " + requiredClass + "s can use " + ci.getBaseName() + "!");
-            return;
-        }
 
         // Voeg stats toe
         StatsManager.PlayerStats ps = statsManager.getPlayerStats(puuid);

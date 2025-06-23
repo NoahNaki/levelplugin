@@ -5,7 +5,6 @@ import me.nakilex.levelplugin.items.data.StatRange;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
-import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -37,13 +36,11 @@ public class ItemsBrowser implements CommandExecutor, Listener {
     private static final int TYPE_FILTER_SLOT   = 46;
     private static final int RARITY_FILTER_SLOT = 48;
     private static final int LEVEL_FILTER_SLOT  = 50;
-    private static final int CLASS_FILTER_SLOT  = 52;
 
     private final JavaPlugin plugin;
     private final java.util.Map<java.util.UUID,Integer> typeFilters   = new java.util.HashMap<>();
     private final java.util.Map<java.util.UUID,Integer> rarityFilters = new java.util.HashMap<>();
     private final java.util.Map<java.util.UUID,Integer> levelFilters  = new java.util.HashMap<>();
-    private final java.util.Map<java.util.UUID,Integer> classFilters  = new java.util.HashMap<>();
 
     public ItemsBrowser(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -129,22 +126,6 @@ public class ItemsBrowser implements CommandExecutor, Listener {
         return it;
     }
 
-    private ItemStack createClassButton(int filter) {
-        ItemStack it = new ItemStack(Material.BOOK);
-        ItemMeta meta = it.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(ChatColor.AQUA + "Class Filter");
-            List<String> lore = new ArrayList<>();
-            String[] classes = {"WARRIOR","ROGUE","ARCHER","MAGE","ALL"};
-            for (int i = 0; i < classes.length; i++) {
-                String line = (i == filter ? ChatColor.GREEN : ChatColor.GRAY) + classes[i];
-                lore.add(line);
-            }
-            meta.setLore(lore);
-            it.setItemMeta(meta);
-        }
-        return it;
-    }
 
     private void openPage(Player player, int page) {
         Inventory gui = Bukkit.createInventory(null, SIZE, title(page));
@@ -161,7 +142,6 @@ public class ItemsBrowser implements CommandExecutor, Listener {
         int tFilter = typeFilters.getOrDefault(player.getUniqueId(), 2);
         int rFilter = rarityFilters.getOrDefault(player.getUniqueId(), me.nakilex.levelplugin.items.data.ItemRarity.values().length);
         int lFilter = levelFilters.getOrDefault(player.getUniqueId(), 5);
-        int cFilter = classFilters.getOrDefault(player.getUniqueId(), 4);
 
         List<CustomItem> templates = new ArrayList<>();
         for (int id : ids) {
@@ -174,8 +154,6 @@ public class ItemsBrowser implements CommandExecutor, Listener {
                 int min = lFilter*20 + 1; int max = lFilter==4?999: min+19;
                 if (lvl < min || lvl > max) continue;
             }
-            if (cFilter < 4 && !tpl.getClassRequirement().equalsIgnoreCase(new String[]{"WARRIOR","ROGUE","ARCHER","MAGE"}[cFilter]))
-                continue;
             boolean isWeapon = me.nakilex.levelplugin.items.data.WeaponType.matchType(new ItemStack(tpl.getMaterial())) != null;
             if (tFilter == 0 && isWeapon) continue;
             if (tFilter == 1 && !isWeapon) continue;
@@ -212,17 +190,6 @@ public class ItemsBrowser implements CommandExecutor, Listener {
                 + ChatColor.GRAY + "Level Requirement: "
                 + ChatColor.WHITE + tpl.getLevelRequirement());
 
-            // — Class Requirement with ✔/✘
-            if (!tpl.getClassRequirement().equalsIgnoreCase("ANY")) {
-                PlayerClass pcls = StatsManager.getInstance()
-                    .getPlayerStats(player.getUniqueId()).playerClass;
-                boolean clsOk = pcls.name().equalsIgnoreCase(tpl.getClassRequirement());
-                String cap = tpl.getClassRequirement().substring(0,1).toUpperCase()
-                    + tpl.getClassRequirement().substring(1).toLowerCase();
-                lore.add((clsOk ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
-                    + ChatColor.GRAY + "Class Requirement: "
-                    + ChatColor.WHITE + cap);
-            }
 
             lore.add(""); // spacer
 
@@ -286,7 +253,6 @@ public class ItemsBrowser implements CommandExecutor, Listener {
         gui.setItem(TYPE_FILTER_SLOT, createTypeButton(tFilter));
         gui.setItem(RARITY_FILTER_SLOT, createRarityButton(rFilter));
         gui.setItem(LEVEL_FILTER_SLOT, createLevelButton(lFilter));
-        gui.setItem(CLASS_FILTER_SLOT, createClassButton(cFilter));
 
         // 5) Finally open
         player.openInventory(gui);
@@ -321,7 +287,6 @@ public class ItemsBrowser implements CommandExecutor, Listener {
         int tFilter = typeFilters.getOrDefault(player.getUniqueId(), 2);
         int rFilter = rarityFilters.getOrDefault(player.getUniqueId(), me.nakilex.levelplugin.items.data.ItemRarity.values().length);
         int lFilter = levelFilters.getOrDefault(player.getUniqueId(), 5);
-        int cFilter = classFilters.getOrDefault(player.getUniqueId(), 4);
         int total = 0;
         for (CustomItem ci : ItemManager.getInstance().getAllTemplates().values()) {
             if (rFilter < me.nakilex.levelplugin.items.data.ItemRarity.values().length && ci.getRarity() != me.nakilex.levelplugin.items.data.ItemRarity.values()[rFilter]) continue;
@@ -330,7 +295,6 @@ public class ItemsBrowser implements CommandExecutor, Listener {
                 int min = lFilter*20 + 1; int max = lFilter==4?999:min+19;
                 if (lvl < min || lvl > max) continue;
             }
-            if (cFilter < 4 && !ci.getClassRequirement().equalsIgnoreCase(new String[]{"WARRIOR","ROGUE","ARCHER","MAGE"}[cFilter])) continue;
             boolean isWeapon = me.nakilex.levelplugin.items.data.WeaponType.matchType(new ItemStack(ci.getMaterial())) != null;
             if (tFilter == 0 && isWeapon) continue;
             if (tFilter == 1 && !isWeapon) continue;
@@ -366,14 +330,6 @@ public class ItemsBrowser implements CommandExecutor, Listener {
             return;
         }
 
-        if (e.getRawSlot() == CLASS_FILTER_SLOT) {
-            int f = classFilters.getOrDefault(player.getUniqueId(), 4);
-            if (e.getClick() == org.bukkit.event.inventory.ClickType.RIGHT) f--; else f++;
-            if (f < 0) f = 4; if (f > 4) f = 0;
-            classFilters.put(player.getUniqueId(), f);
-            openPage(player, 0);
-            return;
-        }
 
         // Next Page?
         if (name.equals(ChatColor.GREEN + "Next Page")) {

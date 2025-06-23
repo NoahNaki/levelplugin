@@ -6,8 +6,6 @@ import me.nakilex.levelplugin.items.events.WeaponEquipEvent;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
-import me.nakilex.levelplugin.player.classes.data.PlayerClass;
-import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -23,7 +21,6 @@ import java.util.UUID;
 public class WeaponStatsListener implements Listener {
 
     private final StatsManager statsManager = StatsManager.getInstance();
-    private final PlayerClassManager classManager = PlayerClassManager.getInstance();
     private final ItemManager itemManager = ItemManager.getInstance();
 
     @EventHandler
@@ -92,14 +89,7 @@ public class WeaponStatsListener implements Listener {
                     boolean isBroken   = inst.isBroken();
                     int playerLevel    = LevelManager.getInstance().getLevel(player);
                     int requiredLevel  = inst.getLevelRequirement();
-                    PlayerClass requiredClass;
-                try {
-                    requiredClass = PlayerClass.valueOf(inst.getClassRequirement().toUpperCase());
-                } catch (IllegalArgumentException e) {
-                    requiredClass = PlayerClass.VILLAGER;
-                }
-                PlayerClass playerClass = statsManager.getPlayerStats(puuid).playerClass;
-                StatsManager.PlayerStats ps = statsManager.getPlayerStats(puuid);
+                    StatsManager.PlayerStats ps = statsManager.getPlayerStats(puuid);
 
                 Bukkit.getLogger().info(
                     "[WeaponStats] Attempting to add new weapon (ID=" + inst.getId() +
@@ -123,18 +113,6 @@ public class WeaponStatsListener implements Listener {
                         + "You can hold "
                         + inst.getBaseName()
                         + " but lack the level to gain its stats."
-                    );
-                }
-                else if (requiredClass != PlayerClass.VILLAGER
-                    && requiredClass != playerClass) {
-                    Bukkit.getLogger().info(
-                        "[WeaponStats] Skipped addition: player class "
-                            + playerClass + " != required class " + requiredClass + "."
-                    );
-                    player.sendMessage(ChatColor.RED
-                        + "You can hold "
-                        + inst.getBaseName()
-                        + " but lack the required class to gain its stats."
                     );
                 }
                 else {
