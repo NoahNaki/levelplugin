@@ -3162,3 +3162,16 @@ items:
     agi: 0-40
     intel: 999999-999999
     dex: 999999-999999
+
+  254:
+    name: "Phoenix Hunter Bow"
+    rarity: COMMON
+    level_requirement: 1
+    class_requirement: PHOENIX_HUNTER
+    material: BOW
+    hp: 0-0
+    def: 0-0
+    str: 1-3
+    agi: 0-0
+    intel: 0-0
+    dex: 0-0
