@@ -361,7 +361,7 @@ public class ItemUtil {
     public static int scaleEgoStat(int base, me.nakilex.levelplugin.ego.EgoRarity rarity, int rank) {
         if (base == 0) return 0;
         double rarityMul = rarity.getScale();
-        double perRank = 0.05 * rarityMul;
+        double perRank = 0.10 * rarityMul;
         double multiplier = rarityMul + (rank - 1) * perRank;
         return (int) Math.round(base * multiplier);
     }

@@ -38,9 +38,7 @@ import me.nakilex.levelplugin.runes.manager.RunesManager;
 import me.nakilex.levelplugin.salvage.listeners.SalvageListener;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
-import me.nakilex.levelplugin.spells.ArcherSpell;
 import me.nakilex.levelplugin.spells.CoolArcherSpell;
-import me.nakilex.levelplugin.spells.RogueSpell;
 import me.nakilex.levelplugin.spells.PhoenixHunterSpell;
 import me.nakilex.levelplugin.spells.gui.SpellGUIListener;
 import me.nakilex.levelplugin.spells.listener.*;
@@ -77,10 +75,8 @@ public class ListenerRegistry {
                                          DmgNumberToggleManager dmgToggleManager,
                                          PickupCustomItemListener pickupCustomItemListener,
                                          SettingsGUI settingsGUI,
-                                         RogueSpell rogueSpell,
                                          ProjectileFriendlyFireListener projectileFriendlyFireListener,
                                          FileConfiguration bossConfig,
-                                         ArcherSpell archerSpell,
                                          MeteorListener meteorListener,
                                          GemsManager gemsManager,
                                          IdentifyRunesGUI identifyRunesGUI,
@@ -146,10 +142,8 @@ public class ListenerRegistry {
         pm.registerEvents(new DamageChatListener(), plugin);
         pm.registerEvents(settingsGUI, plugin); // ✅ No constructor call here
         pm.registerEvents(new GuildGUIListener(), plugin);
-        pm.registerEvents(new RogueSpell(), plugin);
         pm.registerEvents(new MeteorListener(), plugin);
         pm.registerEvents(new ShockwaveListener(), plugin);
-        pm.registerEvents(new ArcherSpell(), plugin);
         pm.registerEvents(new CoolArcherSpell(), plugin);
         pm.registerEvents(new PhoenixHunterSpell(), plugin);
         pm.registerEvents(new ChestHologramListener(lootChestManager), plugin);

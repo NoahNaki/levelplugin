@@ -3,12 +3,12 @@ package me.nakilex.levelplugin.ego;
 import org.bukkit.ChatColor;
 
 public enum EgoRarity {
-    COMMON   (1.0, ChatColor.GRAY,        "<glyph:common>"),
-    UNCOMMON (1.1, ChatColor.GREEN,       "<glyph:uncommon>"),
-    RARE     (1.25,ChatColor.BLUE,        "<glyph:rare>"),
-    EPIC     (1.5, ChatColor.LIGHT_PURPLE,"<glyph:epic>"),
-    LEGENDARY(1.75,ChatColor.GOLD,        "<glyph:legendary>"),
-    MYTHIC   (2.0, ChatColor.RED,         "<glyph:mythic>");
+    COMMON   (1.0,  ChatColor.GRAY,        "<glyph:common>"),
+    UNCOMMON (1.25, ChatColor.GREEN,       "<glyph:uncommon>"),
+    RARE     (1.5,  ChatColor.BLUE,        "<glyph:rare>"),
+    EPIC     (2.0,  ChatColor.LIGHT_PURPLE,"<glyph:epic>"),
+    LEGENDARY(2.5,  ChatColor.GOLD,        "<glyph:legendary>"),
+    MYTHIC   (3.0,  ChatColor.RED,         "<glyph:mythic>");
 
     private final double scale;
     private final ChatColor color;
