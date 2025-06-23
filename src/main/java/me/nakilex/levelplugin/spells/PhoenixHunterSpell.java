@@ -2,7 +2,8 @@ package me.nakilex.levelplugin.spells;
 
 import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
-import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
+import org.bukkit.persistence.PersistentDataType;
 import me.nakilex.levelplugin.spells.Spell;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import org.bukkit.Bukkit;
@@ -30,11 +31,15 @@ public class PhoenixHunterSpell implements Listener {
             @Override
             public void run() {
                 for (Player p : Bukkit.getOnlinePlayers()) {
-                    if (StatsManager.getInstance().getPlayerStats(p.getUniqueId()).playerClass == PlayerClass.PHOENIXHUNTER) {
-                        ItemStack item = p.getInventory().getItemInMainHand();
-                        if (item != null && VALID_WEAPONS.contains(item.getType())) {
-                            MythicBukkit.inst().getAPIHelper().castSkill(p, "Flameborn");
-                            castSpell(p, "LLR"); // Phoenix Totem passive
+                    ItemStack item = p.getInventory().getItemInMainHand();
+                    if (item != null && item.hasItemMeta()) {
+                        var pdc = item.getItemMeta().getPersistentDataContainer();
+                        if (pdc.has(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING)) {
+                            String id = pdc.get(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING);
+                            if (id != null && id.startsWith("phoenix") && VALID_WEAPONS.contains(item.getType())) {
+                                MythicBukkit.inst().getAPIHelper().castSkill(p, "Flameborn");
+                                castSpell(p, "LLR"); // Phoenix Totem passive
+                            }
                         }
                     }
                 }
@@ -42,8 +47,13 @@ public class PhoenixHunterSpell implements Listener {
         }.runTaskTimer(me.nakilex.levelplugin.Main.getInstance(), 10L, 10L);
     }
 
-    private boolean isPhoenixHunter(Player player) {
-        return StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass == PlayerClass.PHOENIXHUNTER;
+    private boolean hasEgoPhoenix(Player player) {
+        ItemStack item = player.getInventory().getItemInMainHand();
+        if (item == null || !item.hasItemMeta()) return false;
+        var pdc = item.getItemMeta().getPersistentDataContainer();
+        if (!pdc.has(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING)) return false;
+        String id = pdc.get(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING);
+        return id != null && id.startsWith("phoenix");
     }
 
     private boolean validWeapon(Player player) {
@@ -54,7 +64,7 @@ public class PhoenixHunterSpell implements Listener {
     @EventHandler
     public void onLeftClick(PlayerAnimationEvent event) {
         Player player = event.getPlayer();
-        if (!isPhoenixHunter(player) || !validWeapon(player)) return;
+        if (!hasEgoPhoenix(player) || !validWeapon(player)) return;
 
         if (player.isSneaking()) {
             castSpell(player, "RRR"); // Phoenix Rebirth
@@ -68,7 +78,7 @@ public class PhoenixHunterSpell implements Listener {
         if (event.getHand() == null || event.getHand().ordinal() != 0) return; // main hand only
         if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         Player player = event.getPlayer();
-        if (!isPhoenixHunter(player) || !validWeapon(player)) return;
+        if (!hasEgoPhoenix(player) || !validWeapon(player)) return;
         event.setCancelled(true);
         if (player.isSneaking()) {
             castSpell(player, "LLL"); // Pyroclasmic Barrage
@@ -81,7 +91,7 @@ public class PhoenixHunterSpell implements Listener {
     public void onToggleSneak(PlayerToggleSneakEvent event) {
         if (!event.isSneaking()) return;
         Player player = event.getPlayer();
-        if (!isPhoenixHunter(player) || !validWeapon(player)) return;
+        if (!hasEgoPhoenix(player) || !validWeapon(player)) return;
         castSpell(player, "LRR"); // Flameburst Convergence
     }
 

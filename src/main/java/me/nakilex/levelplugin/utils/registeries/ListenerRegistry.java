@@ -28,7 +28,6 @@ import me.nakilex.levelplugin.party.PartyChatListener;
 import me.nakilex.levelplugin.party.PartyInviteListener;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.attributes.listeners.StatsMenuListener;
-import me.nakilex.levelplugin.player.classes.listeners.ClassMenuListener;
 import me.nakilex.levelplugin.player.listener.*;
 import me.nakilex.levelplugin.player.utils.ArrowUtils;
 import me.nakilex.levelplugin.potions.listeners.PotionUseListener;
@@ -117,7 +116,6 @@ public class ListenerRegistry {
         pm.registerEvents(new ClickComboListener(), plugin);
         pm.registerEvents(new ItemNameDisplayListener(), plugin);
         pm.registerEvents(new StaticItemListener(), plugin);
-        pm.registerEvents(new ClassMenuListener(), plugin);
         pm.registerEvents(blacksmithGUI, plugin);
         pm.registerEvents(horseGUI, plugin);
         pm.registerEvents(new NPCClickListener(economyManager, questManager, dialogManager), plugin);

@@ -35,9 +35,7 @@ public class ClassCommand implements CommandExecutor {
                 player.sendMessage(ChatColor.RED + "Unknown class: " + args[0]);
             }
         } else {
-            // Debug: log to console that this command was used
-            Bukkit.getLogger().info("[ClassCommand] " + player.getName() + " used /class. Opening class selection menu.");
-            player.openInventory(ClassMenu.getClassSelectionMenu(player));
+            player.sendMessage(ChatColor.YELLOW + "Class selection is no longer used. Wield an Ego Weapon to access its skills.");
         }
         return true;
     }

@@ -1,12 +1,13 @@
 package me.nakilex.levelplugin.spells.gui;
 
-import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
-import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.spells.Spell;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.runes.manager.RunesManager;
 import me.nakilex.levelplugin.runes.model.Rune;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -81,9 +82,30 @@ public class SpellGUI {
      * in slots 10, 12, 14, and 16 (sorted by level requirement).
      */
     public static void openSpellGUI(Player player) {
-        // Get the player's class from StatsManager
-        PlayerClass playerClass = getPlayerClass(player);
-        Bukkit.getLogger().info("[SpellGUI] " + player.getName() + " is detected as: " + playerClass);
+        // Determine class based on the equipped Ego Weapon
+        ItemStack weapon = player.getInventory().getItemInMainHand();
+        String classKey = null;
+        if (weapon != null && weapon.hasItemMeta()) {
+            PersistentDataContainer pdc = weapon.getItemMeta().getPersistentDataContainer();
+            if (pdc.has(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING)) {
+                String id = pdc.get(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING);
+                String prefix = id.split("_")[0];
+                if (prefix.equalsIgnoreCase("archer")) classKey = "coolarcher";
+                else if (prefix.equalsIgnoreCase("phoenix")) classKey = "phoenixhunter";
+            }
+        }
+
+        if (classKey == null) {
+            player.sendMessage(ChatColor.RED + "Hold an Ego Weapon to view its spells.");
+            Inventory gui = Bukkit.createInventory(null, 27, ChatColor.DARK_GREEN + "Spell Book");
+            ItemStack filler = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+            ItemMeta fm = filler.getItemMeta();
+            fm.setDisplayName(" ");
+            filler.setItemMeta(fm);
+            for (int i = 0; i < gui.getSize(); i++) gui.setItem(i, filler);
+            player.openInventory(gui);
+            return;
+        }
 
         // Create a 27-slot inventory titled "Spell Book"
         Inventory gui = Bukkit.createInventory(null, 27, ChatColor.DARK_GREEN + "Spell Book");
@@ -98,15 +120,6 @@ public class SpellGUI {
             gui.setItem(i, filler);
         }
 
-        // If the player is a VILLAGER (or has no real class), do not place any spells.
-        if (playerClass == PlayerClass.VILLAGER) {
-            Bukkit.getLogger().info("[SpellGUI] " + player.getName() + " is a VILLAGER, so no spells will be displayed.");
-            player.openInventory(gui);
-            return;
-        }
-
-        // Convert playerClass to lowercase to match SpellManager keys.
-        String classKey = playerClass.name().toLowerCase();
         Bukkit.getLogger().info("[SpellGUI] Looking up spells for class key: " + classKey);
 
         // Retrieve spells for that class.
@@ -117,7 +130,7 @@ public class SpellGUI {
             player.openInventory(gui);
             return;
         }
-        Bukkit.getLogger().info("[SpellGUI] Found " + classSpells.size() + " spells for " + playerClass);
+        Bukkit.getLogger().info("[SpellGUI] Found " + classSpells.size() + " spells for class " + classKey);
 
         // Create a list and sort the spells by their level requirement (lowest to highest)
         List<Spell> spells = new ArrayList<>(classSpells.values());
@@ -136,16 +149,6 @@ public class SpellGUI {
 
         // Finally, open the GUI for the player.
         player.openInventory(gui);
-    }
-
-    /**
-     * Retrieves the player's class from StatsManager.
-     */
-    private static PlayerClass getPlayerClass(Player player) {
-        PlayerClass pClass = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass;
-        // Log the retrieved class
-        Bukkit.getLogger().info("[SpellGUI] Retrieved class for " + player.getName() + ": " + pClass);
-        return pClass;
     }
 
     /**
