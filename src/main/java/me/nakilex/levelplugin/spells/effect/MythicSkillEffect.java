@@ -4,8 +4,6 @@ import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import org.bukkit.entity.Player;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Simple effect that triggers a MythicMobs skill by name.
@@ -26,10 +24,9 @@ public class MythicSkillEffect implements SpellEffect {
         double strength = stats.baseStrength + stats.bonusStrength;
         double damage = ctx.getFinalDamage() + strength * 0.5;
 
-        // Provide the computed damage as a variable to MythicMobs
-        Map<String, Object> vars = new HashMap<>();
-        vars.put("damage", damage);
-
-        MythicBukkit.inst().getAPIHelper().castSkill(caster, skill, vars);
+        // Compute damage for our own stats system. MythicBukkit's helper does
+        // not let us pass custom variables, so we simply invoke the skill and
+        // let StatsEffectListener apply the finalDamage value.
+        MythicBukkit.inst().getAPIHelper().castSkill(caster, skill);
     }
 }
