@@ -167,8 +167,7 @@ public class ItemUtil {
             lore.add(line);
         }
 
-        lore.add(""); // Blank line before rarity
-
+        lore.add("");
         if (cItem.isBroken()) {
             lore.add(ChatColor.GRAY + "Durability: " + ChatColor.RED + ChatColor.BOLD + "BROKEN");
         } else {
@@ -176,10 +175,6 @@ public class ItemUtil {
                 + ChatColor.WHITE + cItem.getCurrentDurability()
                 + "/" + cItem.getMaxDurability());
         }
-        lore.add(""); // Blank line before rarity
-
-        // --- Rarity ---
-        lore.add(ChatColor.WHITE + "" + ChatColor.BOLD + cItem.getRarity().getSymbol());
 
         meta.setLore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES); // Hide item attributes

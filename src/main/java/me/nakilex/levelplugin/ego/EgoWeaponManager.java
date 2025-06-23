@@ -110,6 +110,60 @@ public class EgoWeaponManager {
     }
 
     /**
+     * Evolve the player's currently held ego weapon if possible.
+     * Returns true if evolution succeeded.
+     */
+    public boolean evolveWeapon(Player player, ItemStack stack) {
+        if (stack == null || !stack.hasItemMeta()) return false;
+        ItemMeta meta = stack.getItemMeta();
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        if (!pdc.has(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING)) return false;
+
+        int rank = pdc.getOrDefault(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
+        if (rank < 10) {
+            player.sendMessage("§cWeapon must be Rank 10 to evolve!");
+            return false;
+        }
+
+        // Load weapon instance
+        EgoWeapon weapon = getWeapon(player.getUniqueId());
+        if (weapon == null) {
+            // reconstruct from PDC using prototype
+            String id = pdc.get(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING);
+            String key = id.split("_")[0];
+            EgoWeapon proto = prototypes.get(key);
+            if (proto != null) {
+                weapon = proto.copy();
+                weapon.addExp(0);
+            } else {
+                return false;
+            }
+        }
+
+        weapon.evolve();
+        setWeapon(player.getUniqueId(), weapon);
+
+        pdc.set(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING, weapon.getRarity().name());
+        pdc.set(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, weapon.getRank());
+        pdc.set(ItemUtil.EGO_EXP_KEY, PersistentDataType.INTEGER, weapon.getExp());
+        meta.setDisplayName(weapon.getRarity().getColor() + weapon.getName());
+        stack.setItemMeta(meta);
+        ItemUtil.updateEgoWeaponTooltip(stack, player);
+
+        // Reapply stats
+        CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(stack);
+        if (ci != null) {
+            WeaponStatsListener wsl = new WeaponStatsListener();
+            wsl.removeWeaponStats(player, ci, stack);
+            wsl.addWeaponStats(player, ci, stack);
+            StatsManager.getInstance().recalcDerivedStats(player);
+        }
+
+        player.sendMessage("§aYour weapon has evolved to " + weapon.getRarity().name() + " rarity!");
+        return true;
+    }
+
+    /**
      * Create an ItemStack representing this Ego Weapon using an existing item template.
      */
     public ItemStack createWeaponItem(EgoWeapon weapon, int templateId) {
