@@ -48,6 +48,8 @@ public class SpellManager {
         return runesManager;
     }
 
+    private void loadSpells() {
+
         // — COOLARCHER TEST CLASS —
         Map<String, Spell> coolMap = new HashMap<>();
         coolMap.put("BASIC_ATTACK", new Spell(
