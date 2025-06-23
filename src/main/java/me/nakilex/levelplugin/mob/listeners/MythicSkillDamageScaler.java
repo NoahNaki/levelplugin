@@ -14,10 +14,49 @@ import org.bukkit.event.Listener;
  */
 public class MythicSkillDamageScaler implements Listener {
 
+    private Player resolvePlayer(Object casterObj) {
+        if (casterObj == null) return null;
+        try {
+            // try: caster.getEntity().getBukkitEntity()
+            Object ent = casterObj.getClass().getMethod("getEntity").invoke(casterObj);
+            if (ent != null) {
+                Object bukkit = ent.getClass().getMethod("getBukkitEntity").invoke(ent);
+                if (bukkit instanceof Player p) return p;
+            }
+        } catch (Exception ignore) {
+        }
+        return null;
+    }
+
     @EventHandler(priority = EventPriority.HIGH)
     public void onMythicDamage(MythicDamageEvent event) {
-        if (event.getCaster() == null) return;
-        if (!(event.getCaster().getEntity().getBukkitEntity() instanceof Player player)) return;
+        Player player = null;
+
+        // First try direct caster
+        player = resolvePlayer(event.getCaster());
+
+        if (player == null) {
+            // Fallback: try trigger -> caster (for projectile skills)
+            try {
+                Object trigger = event.getClass().getMethod("getTrigger").invoke(event);
+                if (trigger != null) {
+                    Object trigCaster = trigger.getClass().getMethod("getCaster").invoke(trigger);
+                    player = resolvePlayer(trigCaster);
+                }
+            } catch (Exception ignore) {
+            }
+        }
+
+        if (player == null) {
+            // Final attempt: method getShooter if present
+            try {
+                Object shooter = event.getClass().getMethod("getShooter").invoke(event);
+                if (shooter instanceof Player p) player = p;
+            } catch (Exception ignore) {
+            }
+        }
+
+        if (player == null) return;
 
         var stats = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
         double strength = stats.baseStrength + stats.bonusStrength;
