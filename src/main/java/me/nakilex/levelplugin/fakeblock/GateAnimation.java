@@ -1,3 +1,5 @@
+package me.nakilex.levelplugin.fakeblock;
+
 public enum GateAnimation {
     INSTANT,
     GATE,
