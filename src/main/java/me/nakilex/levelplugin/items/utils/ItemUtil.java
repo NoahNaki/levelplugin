@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.items.tools.ToolTier;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.player.mining.managers.MiningManager;
+import me.nakilex.levelplugin.ego.EgoRarity;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -376,6 +377,41 @@ public class ItemUtil {
         }
         updateEgoWeaponTooltip(stack, null);
         return stack;
+    }
+
+    /**
+     * Copy Ego weapon metadata from one stack to another and update the display
+     * name to use the Ego rarity color. Optionally provide the CustomItem used
+     * to rebuild the target so the upgrade stars stay in sync.
+     */
+    public static void copyEgoData(ItemStack source, ItemStack target, CustomItem item, Player viewer) {
+        if (source == null || target == null) return;
+        if (!source.hasItemMeta() || !target.hasItemMeta()) return;
+
+        ItemMeta srcMeta = source.getItemMeta();
+        ItemMeta tgtMeta = target.getItemMeta();
+        PersistentDataContainer srcPdc = srcMeta.getPersistentDataContainer();
+        PersistentDataContainer tgtPdc = tgtMeta.getPersistentDataContainer();
+        if (!srcPdc.has(EGO_ID_KEY, PersistentDataType.STRING)) return;
+
+        String id = srcPdc.get(EGO_ID_KEY, PersistentDataType.STRING);
+        int rank = srcPdc.getOrDefault(EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
+        int exp  = srcPdc.getOrDefault(EGO_EXP_KEY,  PersistentDataType.INTEGER, 0);
+        String rarStr = srcPdc.get(EGO_RARITY_KEY, PersistentDataType.STRING);
+
+        tgtPdc.set(EGO_ID_KEY, PersistentDataType.STRING, id);
+        tgtPdc.set(EGO_RANK_KEY, PersistentDataType.INTEGER, rank);
+        tgtPdc.set(EGO_EXP_KEY,  PersistentDataType.INTEGER, exp);
+        if (rarStr != null) tgtPdc.set(EGO_RARITY_KEY, PersistentDataType.STRING, rarStr);
+
+        EgoRarity rar = EgoRarity.COMMON;
+        if (rarStr != null) {
+            try { rar = EgoRarity.valueOf(rarStr); } catch (Exception ignored) {}
+        }
+        String stars = item != null ? "<glyph:star>".repeat(item.getUpgradeLevel()) : "";
+        tgtMeta.setDisplayName(rar.getColor() + item.getBaseName() + " " + stars);
+        target.setItemMeta(tgtMeta);
+        updateEgoWeaponTooltip(target, viewer);
     }
 
     public static void updateEgoWeaponTooltip(ItemStack stack, Player viewer) {

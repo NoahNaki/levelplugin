@@ -60,6 +60,7 @@ public class PlayerDeathListener implements Listener {
 
                         // Re‐build the helmet ItemStack to reflect new durability
                         ItemStack updatedHelmet = ItemUtil.createItemStackFromCustomItem(armorItem, 1, player);
+                        ItemUtil.copyEgoData(helmet, updatedHelmet, armorItem, player);
                         player.getInventory().setHelmet(updatedHelmet);
 
                         if (armorItem.isBroken()) {
@@ -85,6 +86,7 @@ public class PlayerDeathListener implements Listener {
                         armorItem.reduceDurability(reduceAmtArmor, player, chest);
 
                         ItemStack updatedChest = ItemUtil.createItemStackFromCustomItem(armorItem, 1, player);
+                        ItemUtil.copyEgoData(chest, updatedChest, armorItem, player);
                         player.getInventory().setChestplate(updatedChest);
 
                         if (armorItem.isBroken()) {
@@ -110,6 +112,7 @@ public class PlayerDeathListener implements Listener {
                         armorItem.reduceDurability(reduceAmtArmor, player, legs);
 
                         ItemStack updatedLegs = ItemUtil.createItemStackFromCustomItem(armorItem, 1, player);
+                        ItemUtil.copyEgoData(legs, updatedLegs, armorItem, player);
                         player.getInventory().setLeggings(updatedLegs);
 
                         if (armorItem.isBroken()) {
@@ -135,6 +138,7 @@ public class PlayerDeathListener implements Listener {
                         armorItem.reduceDurability(reduceAmtArmor, player, boots);
 
                         ItemStack updatedBoots = ItemUtil.createItemStackFromCustomItem(armorItem, 1, player);
+                        ItemUtil.copyEgoData(boots, updatedBoots, armorItem, player);
                         player.getInventory().setBoots(updatedBoots);
 
                         if (armorItem.isBroken()) {
@@ -194,6 +198,7 @@ public class PlayerDeathListener implements Listener {
 
                         // 6) Re‐build the ItemStack (this now reflects “broken” if durability hit 0)
                         ItemStack updatedStack = ItemUtil.createItemStackFromCustomItem(cItem, 1, player);
+                        ItemUtil.copyEgoData(inHand, updatedStack, cItem, player);
                         player.getInventory().setItemInMainHand(updatedStack);
 
                         // 7) If it broke just now, notify the player
