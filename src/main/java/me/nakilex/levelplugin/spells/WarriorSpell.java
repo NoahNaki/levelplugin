@@ -21,9 +21,10 @@ import java.util.Set;
 
 public class WarriorSpell implements Listener {
 
+    // Nexo models use sword items as the base, so accept any sword material
     private static final Set<Material> VALID_WEAPONS = EnumSet.of(
-            Material.WOODEN_SHOVEL, Material.STONE_SHOVEL, Material.IRON_SHOVEL,
-            Material.GOLDEN_SHOVEL, Material.DIAMOND_SHOVEL, Material.NETHERITE_SHOVEL);
+            Material.WOODEN_SWORD, Material.STONE_SWORD, Material.IRON_SWORD,
+            Material.GOLDEN_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD);
 
     private boolean hasEgoWarrior(Player p) {
         ItemStack item = p.getInventory().getItemInMainHand();

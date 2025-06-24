@@ -26,7 +26,10 @@ import java.util.Set;
  */
 public class CoolArcherSpell implements Listener {
 
-    private static final Set<Material> VALID_WEAPONS = EnumSet.of(Material.CROSSBOW, Material.BOW);
+    // Archer bows use sword items as the base to apply Nexo models
+    private static final Set<Material> VALID_WEAPONS = EnumSet.of(
+            Material.WOODEN_SWORD, Material.STONE_SWORD, Material.IRON_SWORD,
+            Material.GOLDEN_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD);
 
     private boolean hasEgoArcher(Player p) {
         ItemStack item = p.getInventory().getItemInMainHand();
