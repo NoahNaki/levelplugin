@@ -25,7 +25,7 @@ public class MythicMobNameManager implements Listener {
     /** Holds all boss‑keys exactly as in your YAML (e.g. "KING SLIME", "TERRACOTTA GENERAL", etc.) */
     private final Set<String> fieldBossKeys;
 
-    private static final String[] IGNORE_PREFIXES = {
+    private static final String[] DEFAULT_PREFIXES = {
         "VFX_",
         "QUICK_SHOT",
         "BACKSTEP",
@@ -54,8 +54,25 @@ public class MythicMobNameManager implements Listener {
         "HAMMER_OF_JUSTICE",
         "HEAVENLY_SHIELD",
         "UNBREAKABLE_WILL",
-        "LAST_STAND"
+        "LAST_STAND",
+        // Death Knight / Phoenix Hunter etc
+        "CURSED_SEAL",
+        "DEATH_STRIKE",
+        "PHANTOM_CHARGE",
+        "WRAITHBOUND_CHAINS",
+        "SOUL_BARRIER",
+        "NECROTIC_WHIRLWIND",
+        "DEATH_SENTENCE",
+        "ASHDANCE",
+        "BLAZING_FEATHERS",
+        "PHOENIX_TOTEM",
+        "FLAMEBURST_CONVERGENCE",
+        "PYROCLASMIC_BARRAGE",
+        "PHOENIX_REBIRTH",
+        "FLAMEBORN"
     };
+
+    private final Set<String> ignorePrefixes = new HashSet<>();
 
     public MythicMobNameManager(Main plugin) {
         this.plugin = plugin;
@@ -65,13 +82,26 @@ public class MythicMobNameManager implements Listener {
         FileConfiguration bossCfg = YamlConfiguration.loadConfiguration(bossesFile);
         if (bossCfg.isConfigurationSection("mobs")) {
             this.fieldBossKeys = bossCfg
-                .getConfigurationSection("mobs")
-                .getKeys(false)
-                .stream()
-                .map(String::toUpperCase)    // normalize to uppercase
-                .collect(Collectors.toSet());
+                    .getConfigurationSection("mobs")
+                    .getKeys(false)
+                    .stream()
+                    .map(String::toUpperCase)
+                    .collect(Collectors.toSet());
         } else {
             this.fieldBossKeys = new HashSet<>();
+        }
+
+        plugin.saveResource("mob_name_ignores.yml", false);
+        File ignoreFile = new File(plugin.getDataFolder(), "mob_name_ignores.yml");
+        FileConfiguration ignoreCfg = YamlConfiguration.loadConfiguration(ignoreFile);
+        ignorePrefixes.addAll(Arrays.stream(DEFAULT_PREFIXES)
+                .map(String::toUpperCase)
+                .collect(Collectors.toSet()));
+        if (ignoreCfg.isList("prefixes")) {
+            ignorePrefixes.addAll(ignoreCfg.getStringList("prefixes")
+                    .stream()
+                    .map(String::toUpperCase)
+                    .collect(Collectors.toSet()));
         }
 
         // ─── Schedule the name‐updater ────────────────────────────────────────────────
@@ -156,6 +186,11 @@ public class MythicMobNameManager implements Listener {
 
     private boolean shouldIgnoreMob(String mobType) {
         String upper = mobType.toUpperCase();
-        return Arrays.stream(IGNORE_PREFIXES).anyMatch(upper::startsWith);
+        for (String prefix : ignorePrefixes) {
+            if (upper.startsWith(prefix)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
