@@ -24,7 +24,9 @@ import java.util.Set;
 public class BarbarianSpell implements Listener {
 
     // Placeholder material since model comes from Nexo custom data
-    private static final Set<Material> VALID_WEAPONS = EnumSet.of(Material.DIAMOND);
+    private static final Set<Material> VALID_WEAPONS = EnumSet.of(
+            Material.WOODEN_SHOVEL, Material.STONE_SHOVEL, Material.IRON_SHOVEL,
+            Material.GOLDEN_SHOVEL, Material.DIAMOND_SHOVEL, Material.NETHERITE_SHOVEL);
 
     private boolean hasEgoBarbarian(Player player) {
         ItemStack item = player.getInventory().getItemInMainHand();

@@ -5,8 +5,6 @@ import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.listeners.WeaponStatsListener;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
-import com.nexomc.nexo.api.NexoItems;
-import com.nexomc.nexo.items.ItemBuilder;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
@@ -213,33 +211,6 @@ public class EgoWeaponManager {
             stack.setItemMeta(meta);
         }
         ItemUtil.updateEgoWeaponTooltip(stack, null);
-
-        // Apply Nexo model based on weapon prefix
-        String prefix = weapon.getId().split("_")[0];
-        String nexoId = switch (prefix) {
-            case "archer" -> "archer_bow";
-            case "phoenix" -> "phoenix_hunter_hellbow";
-            case "warrior" -> "warrior_sword";
-            case "barbarian" -> "axe_babarian";
-            case "paladin" -> "paladin_hammer";
-            default -> null;
-        };
-        if (nexoId != null) {
-            applyNexoModel(stack, meta, nexoId);
-        }
         return stack;
-    }
-
-    private void applyNexoModel(ItemStack stack, ItemMeta meta, String id) {
-        ItemBuilder builder = NexoItems.itemFromId(id);
-        if (builder == null) return;
-        ItemStack model = builder.build();
-        ItemMeta mMeta = model.getItemMeta();
-        if (mMeta != null) {
-            meta.setCustomModelData(mMeta.getCustomModelData());
-            meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ATTRIBUTES);
-            stack.setType(org.bukkit.Material.DIAMOND);
-            stack.setItemMeta(meta);
-        }
     }
 }
