@@ -28,7 +28,7 @@ import java.util.List;
  */
 public class ShockwaveEffect implements SpellEffect {
     @Override
-    public void apply(SpellCastContext ctx) {
+    public boolean apply(SpellCastContext ctx) {
         Player player = ctx.getPlayer();
         double damage = ctx.getFinalDamage();
 
@@ -97,5 +97,6 @@ public class ShockwaveEffect implements SpellEffect {
                 player.getWorld().playSound(player.getLocation(), Sound.BLOCK_STONE_BREAK, 0.7f, 1f);
             }
         };
+        return true;
     }
 }

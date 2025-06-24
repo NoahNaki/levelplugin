@@ -16,7 +16,7 @@ public class MythicSkillEffect implements SpellEffect {
     }
 
     @Override
-    public void apply(SpellCastContext ctx) {
+    public boolean apply(SpellCastContext ctx) {
         Player caster = ctx.getPlayer();
 
         // Calculate scaled damage using player stats and any modifiers
@@ -31,8 +31,9 @@ public class MythicSkillEffect implements SpellEffect {
         // Pass the damage value as a metadata variable so MythicMobs can use
         // <skill.damage> in the skill file. Fall back to simple cast if the
         // API version lacks the Consumer overload.
+        boolean success;
         try {
-            MythicBukkit.inst().getAPIHelper().castSkill(caster, skill, meta -> {
+            success = MythicBukkit.inst().getAPIHelper().castSkill(caster, skill, meta -> {
                 try {
                     var vars = meta.getVariables();
                     // Attempt to call setDouble(String,double) if present
@@ -50,7 +51,8 @@ public class MythicSkillEffect implements SpellEffect {
             });
         } catch (NoSuchMethodError e) {
             // Older API - just cast normally
-            MythicBukkit.inst().getAPIHelper().castSkill(caster, skill);
+            success = MythicBukkit.inst().getAPIHelper().castSkill(caster, skill);
         }
+        return success;
     }
 }

@@ -183,13 +183,30 @@ public class Spell {
         Main.getPlugin().getLogger().info("[Spell] finalDamage=" + ctx.getFinalDamage() +
                 " finalCost=" + ctx.getFinalManaCost());
 
-        // 4) Mana check & deduct
+        // 4) Mana check
         double cost = ctx.getFinalManaCost();
         var ps    = StatsManager.getInstance().getPlayerStats(pid);
         if (ps.getCurrentMana() < Math.ceil(cost)) {
             player.sendMessage("§cNot enough mana (" + cost + ") to cast " + displayName);
             return;
         }
+
+        // 5) Attempt to fire effects first to see if Mythic cooldown allows it
+        boolean success = false;
+        for (String key : ctx.getEffectKeys()) {
+            SpellEffect effect = EffectRegistry.get(key);
+            if (effect != null) {
+                if (effect.apply(ctx)) success = true;
+            } else {
+                player.sendMessage("§eUnknown effect: " + key);
+            }
+        }
+
+        if (!success) {
+            // Effect failed (likely Mythic cooldown) so skip cost/cooldown
+            return;
+        }
+
         int intCost = (int)Math.ceil(cost);
         ps.setCurrentMana(ps.getCurrentMana() - intCost);
         recordSpellCast(player);
@@ -199,18 +216,8 @@ public class Spell {
         }
         Main.getInstance().getQuestManager().handleCast(player, id);
 
-        // 5) Start cooldown (ctx.getFinalCooldown returns 0 if applyCooldown==false)
+        // 6) Start cooldown (ctx.getFinalCooldown returns 0 if applyCooldown==false)
         cooldownMgr.setCooldown(pid, id, ctx.getFinalCooldown() / 1000.0);
-
-        // 6) Fire off every configured effect in order
-        for (String key : ctx.getEffectKeys()) {
-            SpellEffect effect = EffectRegistry.get(key);
-            if (effect != null) {
-                effect.apply(ctx);
-            } else {
-                player.sendMessage("§eUnknown effect: " + key);
-            }
-        }
     }
 
 
