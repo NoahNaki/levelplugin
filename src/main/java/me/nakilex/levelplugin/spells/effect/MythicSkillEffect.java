@@ -53,6 +53,7 @@ public class MythicSkillEffect implements SpellEffect {
             // Older API - just cast normally
             success = MythicBukkit.inst().getAPIHelper().castSkill(caster, skill);
         }
+        ctx.markSuccess(success);
         return success;
     }
 }

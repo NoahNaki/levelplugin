@@ -202,6 +202,8 @@ public class Spell {
             }
         }
 
+        success = success || ctx.wasSuccessful();
+
         if (!success) {
             // Effect failed (likely Mythic cooldown) so skip cost/cooldown
             return;

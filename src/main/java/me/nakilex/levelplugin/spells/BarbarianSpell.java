@@ -23,10 +23,10 @@ import java.util.Set;
  */
 public class BarbarianSpell implements Listener {
 
-    // Nexo models for the barbarian weapon use sword items as their material
+    // Barbarian weapons currently use shovels as their base material
     private static final Set<Material> VALID_WEAPONS = EnumSet.of(
-            Material.WOODEN_SWORD, Material.STONE_SWORD, Material.IRON_SWORD,
-            Material.GOLDEN_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD);
+            Material.WOODEN_SHOVEL, Material.STONE_SHOVEL, Material.IRON_SHOVEL,
+            Material.GOLDEN_SHOVEL, Material.DIAMOND_SHOVEL, Material.NETHERITE_SHOVEL);
 
     private boolean hasEgoBarbarian(Player player) {
         ItemStack item = player.getInventory().getItemInMainHand();
