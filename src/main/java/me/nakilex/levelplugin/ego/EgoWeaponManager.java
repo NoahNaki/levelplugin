@@ -5,6 +5,8 @@ import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.listeners.WeaponStatsListener;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import com.nexomc.nexo.api.NexoItems;
+import com.nexomc.nexo.items.ItemBuilder;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
@@ -211,6 +213,28 @@ public class EgoWeaponManager {
             stack.setItemMeta(meta);
         }
         ItemUtil.updateEgoWeaponTooltip(stack, null);
+
+        // Apply nexo model based on weapon prefix
+        String prefix = weapon.getId().split("_")[0];
+        String nexoId = switch (prefix) {
+            case "archer" -> "archer_bow";
+            case "warrior" -> "warrior_sword";
+            case "barbarian" -> "axe_babarian";
+            case "paladin" -> "paladin_hammer";
+            default -> null;
+        };
+        if (nexoId != null) {
+            ItemBuilder builder = NexoItems.itemFromId(nexoId);
+            if (builder != null) {
+                ItemStack model = builder.build();
+                ItemMeta mMeta = model.getItemMeta();
+                if (mMeta != null) {
+                    meta.setCustomModelData(mMeta.getCustomModelData());
+                    stack.setType(model.getType());
+                    stack.setItemMeta(meta);
+                }
+            }
+        }
         return stack;
     }
 }

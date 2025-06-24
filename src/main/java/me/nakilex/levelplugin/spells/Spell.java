@@ -135,18 +135,9 @@ public class Spell {
                 rank = pdc.get(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER);
             }
         }
-        if (ego) {
-            if (rank < levelReq) {
-                player.sendMessage("§cYour weapon must be rank " + levelReq + " to cast " + displayName);
-                return;
-            }
-        } else {
-            int playerLevel = me.nakilex.levelplugin.player.level.managers.LevelManager
-                    .getInstance().getLevel(player);
-            if (playerLevel < levelReq) {
-                player.sendMessage("§cYou must be level " + levelReq + " to cast " + displayName);
-                return;
-            }
+        if (rank < levelReq) {
+            player.sendMessage("§cYour weapon must be rank " + levelReq + " to cast " + displayName);
+            return;
         }
 
         // 1) Cooldown guard
