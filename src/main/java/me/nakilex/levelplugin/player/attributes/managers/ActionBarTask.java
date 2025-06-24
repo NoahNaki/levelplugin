@@ -165,6 +165,7 @@ public class ActionBarTask extends BukkitRunnable {
     }
 
     private String formatCost(int cost) {
+        if (cost <= 0) return "";
         return "§8[§b-" + cost + "§8]";
     }
 }

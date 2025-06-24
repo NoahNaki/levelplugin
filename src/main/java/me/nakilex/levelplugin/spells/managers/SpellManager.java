@@ -56,7 +56,7 @@ public class SpellManager {
             "quick_shot",
             "Quick Shot",
             "BASIC_ATTACK",
-            2.0,
+            0.0,
             1,
             1,
             WeaponType.BOW.getMaterials(),

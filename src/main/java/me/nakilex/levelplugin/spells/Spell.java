@@ -202,7 +202,7 @@ public class Spell {
         int intCost = (int)Math.ceil(cost);
         ps.setCurrentMana(ps.getCurrentMana() - intCost);
         recordSpellCast(player);
-        if (!passive) {
+        if (!passive && intCost > 0) {
             me.nakilex.levelplugin.player.attributes.managers.ManaIndicatorManager
                 .getInstance().showCost(player, intCost);
         }

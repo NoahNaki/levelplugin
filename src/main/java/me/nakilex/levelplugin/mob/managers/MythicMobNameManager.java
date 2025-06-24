@@ -40,7 +40,21 @@ public class MythicMobNameManager implements Listener {
         "WHIRLWIND",
         "JUDGEMENT",
         "RAMPAGE",
-        "SHOCKWAVE"
+        "SHOCKWAVE",
+        // Barbarian
+        "RAGEBLADE",
+        "PRIMAL_AXE",
+        "WAR_CRY",
+        "DOUBLE_EDGE",
+        "RELENTLESS_LEAP",
+        "ETERNAL_FURY",
+        // Paladin
+        "HOLY_STRIKE",
+        "BOUND_SEAL",
+        "HAMMER_OF_JUSTICE",
+        "HEAVENLY_SHIELD",
+        "UNBREAKABLE_WILL",
+        "LAST_STAND"
     };
 
     public MythicMobNameManager(Main plugin) {
