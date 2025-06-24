@@ -100,18 +100,14 @@ public class Spell {
         return this.cooldownSeconds;
     }
 
-    /** Retrieves the dynamic mana cost for this player and spell. */
+    /** Returns the base mana cost. Dynamic increases were removed. */
     public double getCurrentManaCost(Player player) {
-        return Main.getInstance()
-            .getManaTracker()
-            .getCost(player.getUniqueId(), id, baseManaCost);
+        return baseManaCost;
     }
 
-    /** After a successful cast, record for dynamic cost adjustments. */
+    /** No-op since cost scaling has been removed. */
     public void recordSpellCast(Player player) {
-        Main.getInstance()
-            .getManaTracker()
-            .recordCast(player.getUniqueId(), id, baseManaCost);
+        // intentionally left blank
     }
 
     /**

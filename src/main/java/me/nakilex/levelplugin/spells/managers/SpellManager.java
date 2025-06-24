@@ -60,7 +60,7 @@ public class SpellManager {
             0.0,
             MythicSkillConfig.getCooldownSeconds("Quick_Shot"),
             1,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.SHOVEL.getMaterials(),
             "MYTHIC_QUICK_SHOT",
             0.0
         ));
@@ -68,35 +68,35 @@ public class SpellManager {
             "backstep", "Backstep", "LRL",
             5.0,
             MythicSkillConfig.getCooldownSeconds("Backstep"), 3,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.SHOVEL.getMaterials(),
             "MYTHIC_BACKSTEP", 0.0
         ));
         coolMap.put("LRR", new Spell(
             "windrazor", "Windrazor", "LRR",
             8.0,
             MythicSkillConfig.getCooldownSeconds("Windrazor"), 5,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.SHOVEL.getMaterials(),
             "MYTHIC_WINDRAZOR", 0.0
         ));
         coolMap.put("LLR", new Spell(
             "arrow_barrage", "Arrow Barrage", "LLR",
             12.0,
             MythicSkillConfig.getCooldownSeconds("Arrow_Barrage"), 10,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.SHOVEL.getMaterials(),
             "MYTHIC_ARROW_BARRAGE", 0.0
         ));
         coolMap.put("RRR", new Spell(
             "deadly_javelin", "Deadly Javelin", "RRR",
             10.0,
             MythicSkillConfig.getCooldownSeconds("Deadly_Javelin"), 10,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.SHOVEL.getMaterials(),
             "MYTHIC_DEADLY_JAVELIN", 0.0
         ));
         coolMap.put("LLL", new Spell(
             "dragon_piercer", "Dragon Piercer", "LLL",
             15.0,
             MythicSkillConfig.getCooldownSeconds("Dragon_Piercer"), 10,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.SHOVEL.getMaterials(),
             "MYTHIC_DRAGON_PIERCER", 0.0
         ));
         spellsByClass.put("coolarcher", Collections.unmodifiableMap(coolMap));
@@ -111,7 +111,7 @@ public class SpellManager {
             0.0,
             1,
             1,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.SHOVEL.getMaterials(),
             "MYTHIC_BLAZING_FEATHERS",
             0.0
         ));
@@ -119,21 +119,21 @@ public class SpellManager {
             "ashdance", "Ashdance", "LRL",
             6.0,
             MythicSkillConfig.getCooldownSeconds("Ashdance"), 3,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.SHOVEL.getMaterials(),
             "MYTHIC_ASHDANCE", 0.0
         ));
         phoenixMap.put("LRR", new Spell(
             "flameburst_convergence", "Flameburst Convergence", "LRR",
             8.0,
             MythicSkillConfig.getCooldownSeconds("Flameburst_Convergence"), 5,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.SHOVEL.getMaterials(),
             "MYTHIC_FLAMEBURST_CONVERGENCE", 0.0
         ));
         phoenixMap.put("LLR", new Spell(
             "phoenix_totem", "Phoenix Totem", "LLR",
             0.0,
             MythicSkillConfig.getCooldownSeconds("Phoenix_Totem"), 0,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.SHOVEL.getMaterials(),
             "MYTHIC_PHOENIX_TOTEM", 0.0,
             true
         ));
@@ -141,14 +141,14 @@ public class SpellManager {
             "pyroclasmic_barrage", "Pyroclasmic Barrage", "LLL",
             12.0,
             MythicSkillConfig.getCooldownSeconds("Pyroclasmic_Barrage"), 10,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.SHOVEL.getMaterials(),
             "MYTHIC_PYROCLASMIC_BARRAGE", 0.0
         ));
         phoenixMap.put("RRR", new Spell(
             "phoenix_rebirth", "Phoenix Rebirth", "RRR",
             20.0,
             MythicSkillConfig.getCooldownSeconds("Phoenix_Rebirth"), 10,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.SHOVEL.getMaterials(),
             "MYTHIC_PHOENIX_REBIRTH", 0.0
         ));
         spellsByClass.put("phoenixhunter", Collections.unmodifiableMap(phoenixMap));
@@ -216,42 +216,42 @@ public class SpellManager {
             0.0,
             MythicSkillConfig.getCooldownSeconds("Rageblade"),
             1,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.SHOVEL.getMaterials(),
             "MYTHIC_RAGEBLADE", 0.0
         ));
         barbarianMap.put("LRL", new Spell(
             "primal_axe", "Primal Axe", "LRL",
             8.0,
             MythicSkillConfig.getCooldownSeconds("Primal_Axe"), 3,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.SHOVEL.getMaterials(),
             "MYTHIC_PRIMAL_AXE", 0.0
         ));
         barbarianMap.put("LLR", new Spell(
             "war_cry", "War Cry", "LLR",
             10.0,
             MythicSkillConfig.getCooldownSeconds("War_Cry"), 5,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.SHOVEL.getMaterials(),
             "MYTHIC_WAR_CRY", 0.0
         ));
         barbarianMap.put("LLL", new Spell(
             "double_edge", "Double Edge", "LLL",
             12.0,
             MythicSkillConfig.getCooldownSeconds("Double_Edge"), 5,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.SHOVEL.getMaterials(),
             "MYTHIC_DOUBLE_EDGE", 0.0
         ));
         barbarianMap.put("RLL", new Spell(
             "relentless_leap", "Relentless Leap", "RLL",
             6.0,
             MythicSkillConfig.getCooldownSeconds("Relentless_Leap"), 3,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.SHOVEL.getMaterials(),
             "MYTHIC_RELENTLESS_LEAP", 0.0
         ));
         barbarianMap.put("RRR", new Spell(
             "eternal_fury", "Eternal Fury", "RRR",
             20.0,
             MythicSkillConfig.getCooldownSeconds("Eternal_Fury"), 10,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.SHOVEL.getMaterials(),
             "MYTHIC_ETERNAL_FURY", 0.0
         ));
         spellsByClass.put("barbarian", Collections.unmodifiableMap(barbarianMap));
