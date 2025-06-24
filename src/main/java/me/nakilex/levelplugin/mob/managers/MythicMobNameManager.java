@@ -69,7 +69,13 @@ public class MythicMobNameManager implements Listener {
         "FLAMEBURST_CONVERGENCE",
         "PYROCLASMIC_BARRAGE",
         "PHOENIX_REBIRTH",
-        "FLAMEBORN"
+        "FLAMEBORN",
+        "HOLY_SMASH_RUPTURE",
+        "LIGHT_ERUPTION",
+        "PALADIN_SPIN_SLASH",
+        "HUNTER_FOCUS",
+        "HOLY_CHAINS",
+        "LIGHT_BEAM_FX"
     };
 
     private final Set<String> ignorePrefixes = new HashSet<>();
