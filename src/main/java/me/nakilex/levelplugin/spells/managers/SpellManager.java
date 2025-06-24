@@ -207,6 +207,102 @@ public class SpellManager {
         ));
         spellsByClass.put("warrior", Collections.unmodifiableMap(warriorMap));
         plugin.getLogger().info("[SPELLS] Warrior combos: " + warriorMap.keySet());
+
+        // — BARBARIAN CLASS —
+        Map<String, Spell> barbarianMap = new HashMap<>();
+        barbarianMap.put("BASIC_ATTACK", new Spell(
+            "rageblade", "Rageblade", "BASIC_ATTACK",
+            0.0,
+            1,
+            1,
+            WeaponType.AXE.getMaterials(),
+            "MYTHIC_RAGEBLADE", 0.0
+        ));
+        barbarianMap.put("LRL", new Spell(
+            "primal_axe", "Primal Axe", "LRL",
+            8.0,
+            0, 3,
+            WeaponType.AXE.getMaterials(),
+            "MYTHIC_PRIMAL_AXE", 0.0
+        ));
+        barbarianMap.put("LLR", new Spell(
+            "war_cry", "War Cry", "LLR",
+            10.0,
+            0, 5,
+            WeaponType.AXE.getMaterials(),
+            "MYTHIC_WAR_CRY", 0.0
+        ));
+        barbarianMap.put("LLL", new Spell(
+            "double_edge", "Double Edge", "LLL",
+            12.0,
+            0, 5,
+            WeaponType.AXE.getMaterials(),
+            "MYTHIC_DOUBLE_EDGE", 0.0
+        ));
+        barbarianMap.put("RLL", new Spell(
+            "relentless_leap", "Relentless Leap", "RLL",
+            6.0,
+            0, 3,
+            WeaponType.AXE.getMaterials(),
+            "MYTHIC_RELENTLESS_LEAP", 0.0
+        ));
+        barbarianMap.put("RRR", new Spell(
+            "eternal_fury", "Eternal Fury", "RRR",
+            20.0,
+            0, 10,
+            WeaponType.AXE.getMaterials(),
+            "MYTHIC_ETERNAL_FURY", 0.0
+        ));
+        spellsByClass.put("barbarian", Collections.unmodifiableMap(barbarianMap));
+        plugin.getLogger().info("[SPELLS] Barbarian combos: " + barbarianMap.keySet());
+
+        // — PALADIN CLASS —
+        Map<String, Spell> paladinMap = new HashMap<>();
+        paladinMap.put("BASIC_ATTACK", new Spell(
+            "holy_strike", "Holy Strike", "BASIC_ATTACK",
+            0.0,
+            1,
+            1,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_HOLY_STRIKE", 0.0
+        ));
+        paladinMap.put("LRL", new Spell(
+            "bound_seal", "Bound Seal", "LRL",
+            8.0,
+            0, 3,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_BOUND_SEAL", 0.0
+        ));
+        paladinMap.put("LRR", new Spell(
+            "hammer_of_justice", "Hammer Of Justice", "LRR",
+            10.0,
+            0, 5,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_HAMMER_OF_JUSTICE", 0.0
+        ));
+        paladinMap.put("LLL", new Spell(
+            "heavenly_shield", "Heavenly Shield", "LLL",
+            12.0,
+            0, 5,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_HEAVENLY_SHIELD", 0.0
+        ));
+        paladinMap.put("RLL", new Spell(
+            "unbreakable_will", "Unbreakable Will", "RLL",
+            6.0,
+            0, 3,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_UNBREAKABLE_WILL", 0.0
+        ));
+        paladinMap.put("RRR", new Spell(
+            "last_stand", "Last Stand", "RRR",
+            20.0,
+            0, 10,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_LAST_STAND", 0.0
+        ));
+        spellsByClass.put("paladin", Collections.unmodifiableMap(paladinMap));
+        plugin.getLogger().info("[SPELLS] Paladin combos: " + paladinMap.keySet());
     }
 
 }

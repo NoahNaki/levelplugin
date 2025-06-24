@@ -3227,3 +3227,29 @@ items:
     agi: 0-0
     intel: 0-0
     dex: 0-0
+
+  259:
+    name: "Ego Barbarian Axe"
+    rarity: UNCOMMON
+    level_requirement: 1
+    class_requirement: BARBARIAN
+    material: WOODEN_AXE
+    hp: 0-0
+    def: 0-0
+    str: 3-6
+    agi: 0-0
+    intel: 0-0
+    dex: 0-0
+
+  260:
+    name: "Ego Paladin Sword"
+    rarity: RARE
+    level_requirement: 1
+    class_requirement: PALADIN
+    material: WOODEN_SWORD
+    hp: 0-0
+    def: 0-0
+    str: 3-6
+    agi: 0-0
+    intel: 0-0
+    dex: 0-0

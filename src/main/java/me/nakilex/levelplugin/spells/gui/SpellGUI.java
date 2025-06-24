@@ -63,6 +63,20 @@ public class SpellGUI {
         SPELL_DESCRIPTIONS.put("whirlwind", "Spin and damage nearby foes.");
         SPELL_DESCRIPTIONS.put("judgement", "Leap and smash the ground mightily.");
         SPELL_DESCRIPTIONS.put("rampage", "Gain buffs when near death.");
+
+        SPELL_DESCRIPTIONS.put("rageblade", "Strike rapidly with your axe.");
+        SPELL_DESCRIPTIONS.put("primal_axe", "Hurl your axe forward with force.");
+        SPELL_DESCRIPTIONS.put("war_cry", "Shout to debuff nearby enemies.");
+        SPELL_DESCRIPTIONS.put("double_edge", "Spin with deadly slashes.");
+        SPELL_DESCRIPTIONS.put("relentless_leap", "Leap and pull foes together.");
+        SPELL_DESCRIPTIONS.put("eternal_fury", "Enter an empowered rage.");
+
+        SPELL_DESCRIPTIONS.put("holy_strike", "Strike with righteous power.");
+        SPELL_DESCRIPTIONS.put("bound_seal", "Bind foes in holy chains.");
+        SPELL_DESCRIPTIONS.put("hammer_of_justice", "Smash down a massive hammer.");
+        SPELL_DESCRIPTIONS.put("heavenly_shield", "Grant a protective barrier.");
+        SPELL_DESCRIPTIONS.put("unbreakable_will", "Dash forward with steadfast will.");
+        SPELL_DESCRIPTIONS.put("last_stand", "Unleash a devastating holy assault.");
     }
 
     /** Simple usage hints for non-combo based spells. */
@@ -88,6 +102,20 @@ public class SpellGUI {
         SPELL_USAGE.put("whirlwind", "Sneak + Right Click");
         SPELL_USAGE.put("judgement", "Sneak + Left Click");
         SPELL_USAGE.put("rampage", "Sneak + Left Click (low HP)");
+
+        SPELL_USAGE.put("rageblade", "Left Click");
+        SPELL_USAGE.put("primal_axe", "Right Click");
+        SPELL_USAGE.put("war_cry", "Sneak");
+        SPELL_USAGE.put("double_edge", "Sneak + Right Click");
+        SPELL_USAGE.put("relentless_leap", "Sneak + Toggle");
+        SPELL_USAGE.put("eternal_fury", "Sneak + Left Click");
+
+        SPELL_USAGE.put("holy_strike", "Left Click");
+        SPELL_USAGE.put("bound_seal", "Right Click");
+        SPELL_USAGE.put("hammer_of_justice", "Sneak");
+        SPELL_USAGE.put("heavenly_shield", "Sneak + Right Click");
+        SPELL_USAGE.put("unbreakable_will", "Sneak + Left Click");
+        SPELL_USAGE.put("last_stand", "Sneak + Left Click");
     }
 
     // The slots where we will place the spells in a 27-slot inventory.
@@ -109,6 +137,8 @@ public class SpellGUI {
                 if (prefix.equalsIgnoreCase("archer")) classKey = "coolarcher";
                 else if (prefix.equalsIgnoreCase("phoenix")) classKey = "phoenixhunter";
                 else if (prefix.equalsIgnoreCase("warrior")) classKey = "warrior";
+                else if (prefix.equalsIgnoreCase("barbarian")) classKey = "barbarian";
+                else if (prefix.equalsIgnoreCase("paladin")) classKey = "paladin";
             }
         }
 
