@@ -9,6 +9,7 @@ public enum PlayerClass {
     PHOENIXHUNTER(1),
     BARBARIAN(1),
     PALADIN(1),
+    DEATHKNIGHT(1),
     MAGE(1);
 
     private final int requiredLevel;
