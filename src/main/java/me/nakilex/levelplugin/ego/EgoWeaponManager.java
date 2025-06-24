@@ -239,6 +239,8 @@ public class EgoWeaponManager {
                     nPdc.set(ItemUtil.EGO_EXP_KEY, PersistentDataType.INTEGER, weapon.getExp());
                     nPdc.set(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING, weapon.getRarity().name());
 
+                    nMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
+                    nMeta.setUnbreakable(true);
                     nexoStack.setItemMeta(nMeta);
                     stack = nexoStack;
                 }
@@ -252,6 +254,8 @@ public class EgoWeaponManager {
                 pdc.set(ItemUtil.EGO_EXP_KEY, PersistentDataType.INTEGER, weapon.getExp());
                 pdc.set(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING, weapon.getRarity().name());
                 meta.setDisplayName(weapon.getRarity().getColor() + weapon.getName());
+                meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
+                meta.setUnbreakable(true);
                 stack.setItemMeta(meta);
             }
         }

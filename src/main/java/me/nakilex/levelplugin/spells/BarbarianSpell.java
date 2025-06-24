@@ -93,11 +93,6 @@ public class BarbarianSpell implements Listener {
             player.sendMessage("§cYou must hold a valid barbarian weapon!");
             return;
         }
-        int level = StatsManager.getInstance().getLevel(player);
-        if (level < spell.getLevelReq()) {
-            player.sendMessage("§cYou are not high enough level for " + spell.getDisplayName());
-            return;
-        }
         spell.castEffect(player);
         StatsManager.getInstance().recalcDerivedStats(player);
     }
