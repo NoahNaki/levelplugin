@@ -214,7 +214,7 @@ public class EgoWeaponManager {
         }
         ItemUtil.updateEgoWeaponTooltip(stack, null);
 
-        // Apply nexo model based on weapon prefix
+        // Apply Nexo model based on weapon prefix
         String prefix = weapon.getId().split("_")[0];
         String nexoId = switch (prefix) {
             case "archer" -> "archer_bow";
@@ -224,17 +224,20 @@ public class EgoWeaponManager {
             default -> null;
         };
         if (nexoId != null) {
-            ItemBuilder builder = NexoItems.itemFromId(nexoId);
-            if (builder != null) {
-                ItemStack model = builder.build();
-                ItemMeta mMeta = model.getItemMeta();
-                if (mMeta != null) {
-                    meta.setCustomModelData(mMeta.getCustomModelData());
-                    stack.setType(model.getType());
-                    stack.setItemMeta(meta);
-                }
-            }
+            applyNexoModel(stack, meta, nexoId);
         }
         return stack;
+    }
+
+    private void applyNexoModel(ItemStack stack, ItemMeta meta, String id) {
+        ItemBuilder builder = NexoItems.itemFromId(id);
+        if (builder == null) return;
+        ItemStack model = builder.build();
+        ItemMeta mMeta = model.getItemMeta();
+        if (mMeta != null) {
+            meta.setCustomModelData(mMeta.getCustomModelData());
+            stack.setType(model.getType());
+            stack.setItemMeta(meta);
+        }
     }
 }

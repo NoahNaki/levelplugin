@@ -165,6 +165,17 @@ public class SpellGUI {
     // The slots where we will place the spells in a 27-slot inventory.
     private static final int[] SPELL_SLOTS = { 10, 12, 14, 16, 22 };
 
+    private static ItemStack getNexoItem(String id, String name) {
+        ItemBuilder builder = NexoItems.itemFromId(id);
+        ItemStack item = builder == null ? new ItemStack(Material.PAPER) : builder.build();
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            if (name != null && !name.isEmpty()) meta.setDisplayName(name);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
     /**
      * Opens the Spell GUI for the given player. It fills all slots with filler and places the class spells
      * in slots 10, 12, 14, and 16 (sorted by level requirement).
@@ -254,14 +265,13 @@ public class SpellGUI {
         boolean unlocked = (playerLevel >= spell.getLevelReq());
         String iconId = SPELL_ICONS.get(spell.getId());
         ItemStack item;
-        if (iconId != null) {
-            ItemBuilder builder = NexoItems.itemFromId(iconId);
-            item = builder != null ? builder.build() : new ItemStack(Material.PAPER);
+        if (iconId != null && unlocked) {
+            item = getNexoItem(iconId, "");
+        } else if (iconId != null) {
+            item = new ItemStack(Material.FIREWORK_STAR);
         } else {
             item = new ItemStack(unlocked ? Material.SLIME_BALL : Material.FIREWORK_STAR);
         }
-        Material mat = unlocked ? item.getType() : Material.FIREWORK_STAR;
-        item.setType(mat);
         ItemMeta meta = item.getItemMeta();
 
         // Set the display name with color based on locked/unlocked.
