@@ -24,7 +24,7 @@ import java.util.Set;
  */
 public class PaladinSpell implements Listener {
 
-    private static final Set<Material> VALID_WEAPONS = EnumSet.of(Material.PAPER);
+    private static final Set<Material> VALID_WEAPONS = EnumSet.of(Material.DIAMOND);
 
     private boolean hasEgoPaladin(Player player) {
         ItemStack item = player.getInventory().getItemInMainHand();

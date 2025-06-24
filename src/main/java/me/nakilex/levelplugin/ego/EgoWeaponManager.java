@@ -238,7 +238,7 @@ public class EgoWeaponManager {
         if (mMeta != null) {
             meta.setCustomModelData(mMeta.getCustomModelData());
             meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ATTRIBUTES);
-            stack.setType(org.bukkit.Material.PAPER);
+            stack.setType(org.bukkit.Material.DIAMOND);
             stack.setItemMeta(meta);
         }
     }
