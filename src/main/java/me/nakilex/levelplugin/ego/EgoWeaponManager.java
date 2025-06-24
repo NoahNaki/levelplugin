@@ -44,6 +44,19 @@ public class EgoWeaponManager {
         warrior.addRankSkill(5, "Charge");
         warrior.addRankSkill(8, "Rampage");
         prototypes.put("warrior", warrior);
+
+        // New classes
+        EgoWeapon barbarian = new EgoWeapon("barbarian_ego", "Ego Barbarian Shovel", EgoRarity.UNCOMMON);
+        barbarian.addRankSkill(1, "Rageblade");
+        barbarian.addRankSkill(5, "Primal_Axe");
+        barbarian.addRankSkill(8, "Eternal_Fury");
+        prototypes.put("barbarian", barbarian);
+
+        EgoWeapon paladin = new EgoWeapon("paladin_ego", "Ego Paladin Sword", EgoRarity.RARE);
+        paladin.addRankSkill(1, "Holy_Strike");
+        paladin.addRankSkill(5, "Bound_Seal");
+        paladin.addRankSkill(8, "Last_Stand");
+        prototypes.put("paladin", paladin);
     }
 
     public EgoWeapon getPrototype(String key) {

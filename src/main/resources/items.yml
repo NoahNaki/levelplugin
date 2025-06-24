@@ -3229,11 +3229,11 @@ items:
     dex: 0-0
 
   259:
-    name: "Ego Barbarian Axe"
+    name: "Ego Barbarian Shovel"
     rarity: UNCOMMON
     level_requirement: 1
     class_requirement: BARBARIAN
-    material: WOODEN_AXE
+    material: WOODEN_SHOVEL
     hp: 0-0
     def: 0-0
     str: 3-6

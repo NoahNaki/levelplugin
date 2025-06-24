@@ -23,10 +23,11 @@ import java.util.Set;
  */
 public class BarbarianSpell implements Listener {
 
+    // Use shovels for now until custom axe models are added
     private static final Set<Material> VALID_WEAPONS = EnumSet.of(
-            Material.WOODEN_AXE, Material.STONE_AXE,
-            Material.IRON_AXE, Material.GOLDEN_AXE,
-            Material.DIAMOND_AXE, Material.NETHERITE_AXE);
+            Material.WOODEN_SHOVEL, Material.STONE_SHOVEL,
+            Material.IRON_SHOVEL, Material.GOLDEN_SHOVEL,
+            Material.DIAMOND_SHOVEL, Material.NETHERITE_SHOVEL);
 
     private boolean hasEgoBarbarian(Player player) {
         ItemStack item = player.getInventory().getItemInMainHand();

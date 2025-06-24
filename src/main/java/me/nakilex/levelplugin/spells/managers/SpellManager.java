@@ -215,42 +215,42 @@ public class SpellManager {
             0.0,
             1,
             1,
-            WeaponType.AXE.getMaterials(),
+            WeaponType.SHOVEL.getMaterials(),
             "MYTHIC_RAGEBLADE", 0.0
         ));
         barbarianMap.put("LRL", new Spell(
             "primal_axe", "Primal Axe", "LRL",
             8.0,
             0, 3,
-            WeaponType.AXE.getMaterials(),
+            WeaponType.SHOVEL.getMaterials(),
             "MYTHIC_PRIMAL_AXE", 0.0
         ));
         barbarianMap.put("LLR", new Spell(
             "war_cry", "War Cry", "LLR",
             10.0,
             0, 5,
-            WeaponType.AXE.getMaterials(),
+            WeaponType.SHOVEL.getMaterials(),
             "MYTHIC_WAR_CRY", 0.0
         ));
         barbarianMap.put("LLL", new Spell(
             "double_edge", "Double Edge", "LLL",
             12.0,
             0, 5,
-            WeaponType.AXE.getMaterials(),
+            WeaponType.SHOVEL.getMaterials(),
             "MYTHIC_DOUBLE_EDGE", 0.0
         ));
         barbarianMap.put("RLL", new Spell(
             "relentless_leap", "Relentless Leap", "RLL",
             6.0,
             0, 3,
-            WeaponType.AXE.getMaterials(),
+            WeaponType.SHOVEL.getMaterials(),
             "MYTHIC_RELENTLESS_LEAP", 0.0
         ));
         barbarianMap.put("RRR", new Spell(
             "eternal_fury", "Eternal Fury", "RRR",
             20.0,
             0, 10,
-            WeaponType.AXE.getMaterials(),
+            WeaponType.SHOVEL.getMaterials(),
             "MYTHIC_ETERNAL_FURY", 0.0
         ));
         spellsByClass.put("barbarian", Collections.unmodifiableMap(barbarianMap));
