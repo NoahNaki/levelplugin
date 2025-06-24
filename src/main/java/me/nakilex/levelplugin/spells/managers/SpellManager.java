@@ -59,7 +59,7 @@ public class SpellManager {
             0.0,
             1,
             1,
-            WeaponType.BOW.getMaterials(),
+            java.util.Collections.singletonList(org.bukkit.Material.PAPER),
             "MYTHIC_QUICK_SHOT",
             0.0
         ));
@@ -67,35 +67,35 @@ public class SpellManager {
             "backstep", "Backstep", "LRL",
             5.0,
             0, 3,
-            WeaponType.BOW.getMaterials(),
+            java.util.Collections.singletonList(org.bukkit.Material.PAPER),
             "MYTHIC_BACKSTEP", 0.0
         ));
         coolMap.put("LRR", new Spell(
             "windrazor", "Windrazor", "LRR",
             8.0,
             0, 5,
-            WeaponType.BOW.getMaterials(),
+            java.util.Collections.singletonList(org.bukkit.Material.PAPER),
             "MYTHIC_WINDRAZOR", 0.0
         ));
         coolMap.put("LLR", new Spell(
             "arrow_barrage", "Arrow Barrage", "LLR",
             12.0,
             0, 10,
-            WeaponType.BOW.getMaterials(),
+            java.util.Collections.singletonList(org.bukkit.Material.PAPER),
             "MYTHIC_ARROW_BARRAGE", 0.0
         ));
         coolMap.put("RRR", new Spell(
             "deadly_javelin", "Deadly Javelin", "RRR",
             10.0,
             0, 10,
-            WeaponType.BOW.getMaterials(),
+            java.util.Collections.singletonList(org.bukkit.Material.PAPER),
             "MYTHIC_DEADLY_JAVELIN", 0.0
         ));
         coolMap.put("LLL", new Spell(
             "dragon_piercer", "Dragon Piercer", "LLL",
             15.0,
             0, 12,
-            WeaponType.BOW.getMaterials(),
+            java.util.Collections.singletonList(org.bukkit.Material.PAPER),
             "MYTHIC_DRAGON_PIERCER", 0.0
         ));
         spellsByClass.put("coolarcher", Collections.unmodifiableMap(coolMap));
@@ -110,7 +110,7 @@ public class SpellManager {
             0.0,
             1,
             1,
-            WeaponType.BOW.getMaterials(),
+            java.util.Collections.singletonList(org.bukkit.Material.PAPER),
             "MYTHIC_BLAZING_FEATHERS",
             0.0
         ));
@@ -118,21 +118,21 @@ public class SpellManager {
             "ashdance", "Ashdance", "LRL",
             6.0,
             0, 3,
-            WeaponType.BOW.getMaterials(),
+            java.util.Collections.singletonList(org.bukkit.Material.PAPER),
             "MYTHIC_ASHDANCE", 0.0
         ));
         phoenixMap.put("LRR", new Spell(
             "flameburst_convergence", "Flameburst Convergence", "LRR",
             8.0,
             0, 5,
-            WeaponType.BOW.getMaterials(),
+            java.util.Collections.singletonList(org.bukkit.Material.PAPER),
             "MYTHIC_FLAMEBURST_CONVERGENCE", 0.0
         ));
         phoenixMap.put("LLR", new Spell(
             "phoenix_totem", "Phoenix Totem", "LLR",
             0.0,
             0, 0,
-            WeaponType.BOW.getMaterials(),
+            java.util.Collections.singletonList(org.bukkit.Material.PAPER),
             "MYTHIC_PHOENIX_TOTEM", 0.0,
             true
         ));
@@ -140,14 +140,14 @@ public class SpellManager {
             "pyroclasmic_barrage", "Pyroclasmic Barrage", "LLL",
             12.0,
             0, 10,
-            WeaponType.BOW.getMaterials(),
+            java.util.Collections.singletonList(org.bukkit.Material.PAPER),
             "MYTHIC_PYROCLASMIC_BARRAGE", 0.0
         ));
         phoenixMap.put("RRR", new Spell(
             "phoenix_rebirth", "Phoenix Rebirth", "RRR",
             20.0,
             0, 10,
-            WeaponType.BOW.getMaterials(),
+            java.util.Collections.singletonList(org.bukkit.Material.PAPER),
             "MYTHIC_PHOENIX_REBIRTH", 0.0
         ));
         spellsByClass.put("phoenixhunter", Collections.unmodifiableMap(phoenixMap));
@@ -160,49 +160,49 @@ public class SpellManager {
             0.0,
             1,
             1,
-            WeaponType.SHOVEL.getMaterials(),
+            java.util.Collections.singletonList(org.bukkit.Material.PAPER),
             "MYTHIC_BRUTAL_STRIKE", 0.0
         ));
         warriorMap.put("LRL", new Spell(
             "charge", "Charge", "LRL",
             5.0,
             0, 3,
-            WeaponType.SHOVEL.getMaterials(),
+            java.util.Collections.singletonList(org.bukkit.Material.PAPER),
             "MYTHIC_CHARGE", 0.0
         ));
         warriorMap.put("LRR", new Spell(
             "chain_hook", "Chain Hook", "LRR",
             6.0,
             0, 5,
-            WeaponType.SHOVEL.getMaterials(),
+            java.util.Collections.singletonList(org.bukkit.Material.PAPER),
             "MYTHIC_CHAIN_HOOK", 0.0
         ));
         warriorMap.put("LLR", new Spell(
             "shield_barrier", "Shield Barrier", "LLR",
             0.0,
             0, 5,
-            WeaponType.SHOVEL.getMaterials(),
+            java.util.Collections.singletonList(org.bukkit.Material.PAPER),
             "MYTHIC_SHIELD_BARRIER", 0.0
         ));
         warriorMap.put("RLL", new Spell(
             "shockwave", "Shockwave", "RLL",
             14.0,
             0, 3,
-            WeaponType.SHOVEL.getMaterials(),
+            java.util.Collections.singletonList(org.bukkit.Material.PAPER),
             "SHOCKWAVE", 1.5
         ));
         warriorMap.put("LLL", new Spell(
             "judgement", "Judgement", "LLL",
             15.0,
             0, 10,
-            WeaponType.SHOVEL.getMaterials(),
+            java.util.Collections.singletonList(org.bukkit.Material.PAPER),
             "MYTHIC_JUDGEMENT", 0.0
         ));
         warriorMap.put("RRR", new Spell(
             "rampage", "Rampage", "RRR",
             20.0,
             0, 10,
-            WeaponType.SHOVEL.getMaterials(),
+            java.util.Collections.singletonList(org.bukkit.Material.PAPER),
             "MYTHIC_RAMPAGE", 0.0
         ));
         spellsByClass.put("warrior", Collections.unmodifiableMap(warriorMap));
@@ -215,42 +215,42 @@ public class SpellManager {
             0.0,
             1,
             1,
-            WeaponType.SHOVEL.getMaterials(),
+            java.util.Collections.singletonList(org.bukkit.Material.PAPER),
             "MYTHIC_RAGEBLADE", 0.0
         ));
         barbarianMap.put("LRL", new Spell(
             "primal_axe", "Primal Axe", "LRL",
             8.0,
             0, 3,
-            WeaponType.SHOVEL.getMaterials(),
+            java.util.Collections.singletonList(org.bukkit.Material.PAPER),
             "MYTHIC_PRIMAL_AXE", 0.0
         ));
         barbarianMap.put("LLR", new Spell(
             "war_cry", "War Cry", "LLR",
             10.0,
             0, 5,
-            WeaponType.SHOVEL.getMaterials(),
+            java.util.Collections.singletonList(org.bukkit.Material.PAPER),
             "MYTHIC_WAR_CRY", 0.0
         ));
         barbarianMap.put("LLL", new Spell(
             "double_edge", "Double Edge", "LLL",
             12.0,
             0, 5,
-            WeaponType.SHOVEL.getMaterials(),
+            java.util.Collections.singletonList(org.bukkit.Material.PAPER),
             "MYTHIC_DOUBLE_EDGE", 0.0
         ));
         barbarianMap.put("RLL", new Spell(
             "relentless_leap", "Relentless Leap", "RLL",
             6.0,
             0, 3,
-            WeaponType.SHOVEL.getMaterials(),
+            java.util.Collections.singletonList(org.bukkit.Material.PAPER),
             "MYTHIC_RELENTLESS_LEAP", 0.0
         ));
         barbarianMap.put("RRR", new Spell(
             "eternal_fury", "Eternal Fury", "RRR",
             20.0,
             0, 10,
-            WeaponType.SHOVEL.getMaterials(),
+            java.util.Collections.singletonList(org.bukkit.Material.PAPER),
             "MYTHIC_ETERNAL_FURY", 0.0
         ));
         spellsByClass.put("barbarian", Collections.unmodifiableMap(barbarianMap));
@@ -263,42 +263,42 @@ public class SpellManager {
             0.0,
             1,
             1,
-            WeaponType.SWORD.getMaterials(),
+            java.util.Collections.singletonList(org.bukkit.Material.PAPER),
             "MYTHIC_HOLY_STRIKE", 0.0
         ));
         paladinMap.put("LRL", new Spell(
             "bound_seal", "Bound Seal", "LRL",
             8.0,
             0, 3,
-            WeaponType.SWORD.getMaterials(),
+            java.util.Collections.singletonList(org.bukkit.Material.PAPER),
             "MYTHIC_BOUND_SEAL", 0.0
         ));
         paladinMap.put("LRR", new Spell(
             "hammer_of_justice", "Hammer Of Justice", "LRR",
             10.0,
             0, 5,
-            WeaponType.SWORD.getMaterials(),
+            java.util.Collections.singletonList(org.bukkit.Material.PAPER),
             "MYTHIC_HAMMER_OF_JUSTICE", 0.0
         ));
         paladinMap.put("LLL", new Spell(
             "heavenly_shield", "Heavenly Shield", "LLL",
             12.0,
             0, 5,
-            WeaponType.SWORD.getMaterials(),
+            java.util.Collections.singletonList(org.bukkit.Material.PAPER),
             "MYTHIC_HEAVENLY_SHIELD", 0.0
         ));
         paladinMap.put("RLL", new Spell(
             "unbreakable_will", "Unbreakable Will", "RLL",
             6.0,
             0, 3,
-            WeaponType.SWORD.getMaterials(),
+            java.util.Collections.singletonList(org.bukkit.Material.PAPER),
             "MYTHIC_UNBREAKABLE_WILL", 0.0
         ));
         paladinMap.put("RRR", new Spell(
             "last_stand", "Last Stand", "RRR",
             20.0,
             0, 10,
-            WeaponType.SWORD.getMaterials(),
+            java.util.Collections.singletonList(org.bukkit.Material.PAPER),
             "MYTHIC_LAST_STAND", 0.0
         ));
         spellsByClass.put("paladin", Collections.unmodifiableMap(paladinMap));

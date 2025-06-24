@@ -26,7 +26,7 @@ import java.util.Set;
  */
 public class CoolArcherSpell implements Listener {
 
-    private static final Set<Material> VALID_WEAPONS = EnumSet.of(Material.CROSSBOW, Material.BOW);
+    private static final Set<Material> VALID_WEAPONS = EnumSet.of(Material.PAPER);
 
     private boolean hasEgoArcher(Player p) {
         ItemStack item = p.getInventory().getItemInMainHand();

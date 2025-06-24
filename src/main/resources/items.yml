@@ -3168,7 +3168,7 @@ items:
     rarity: COMMON
     level_requirement: 1
     class_requirement: COOLARCHER
-    material: CROSSBOW
+    material: PAPER
     hp: 0-0
     def: 0-0
     str: 2-5
@@ -3181,7 +3181,7 @@ items:
     rarity: COMMON
     level_requirement: 1
     class_requirement: PHOENIXHUNTER
-    material: CROSSBOW
+    material: PAPER
     hp: 0-0
     def: 0-0
     str: 2-5
@@ -3194,7 +3194,7 @@ items:
     rarity: COMMON
     level_requirement: 1
     class_requirement: COOLARCHER
-    material: CROSSBOW
+    material: PAPER
     hp: 0-0
     def: 0-0
     str: 3-6
@@ -3207,7 +3207,7 @@ items:
     rarity: RARE
     level_requirement: 1
     class_requirement: PHOENIXHUNTER
-    material: CROSSBOW
+    material: PAPER
     hp: 0-0
     def: 0-0
     str: 3-6
@@ -3220,7 +3220,7 @@ items:
     rarity: COMMON
     level_requirement: 1
     class_requirement: WARRIOR
-    material: WOODEN_SHOVEL
+    material: PAPER
     hp: 0-0
     def: 0-0
     str: 3-6
@@ -3233,7 +3233,7 @@ items:
     rarity: UNCOMMON
     level_requirement: 1
     class_requirement: BARBARIAN
-    material: WOODEN_SHOVEL
+    material: PAPER
     hp: 0-0
     def: 0-0
     str: 3-6
@@ -3246,7 +3246,7 @@ items:
     rarity: RARE
     level_requirement: 1
     class_requirement: PALADIN
-    material: WOODEN_SWORD
+    material: PAPER
     hp: 0-0
     def: 0-0
     str: 3-6

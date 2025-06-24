@@ -23,7 +23,7 @@ import java.util.Set;
 
 public class PhoenixHunterSpell implements Listener {
 
-    private static final Set<Material> VALID_WEAPONS = EnumSet.of(Material.CROSSBOW, Material.BOW);
+    private static final Set<Material> VALID_WEAPONS = EnumSet.of(Material.PAPER);
 
     public PhoenixHunterSpell() {
         // Passive task for Flameborn/Phoenix Totem every 10 ticks

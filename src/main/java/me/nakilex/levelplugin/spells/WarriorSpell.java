@@ -21,9 +21,7 @@ import java.util.Set;
 
 public class WarriorSpell implements Listener {
 
-    private static final Set<Material> VALID_WEAPONS = EnumSet.of(
-            Material.WOODEN_SHOVEL, Material.STONE_SHOVEL, Material.IRON_SHOVEL,
-            Material.GOLDEN_SHOVEL, Material.DIAMOND_SHOVEL, Material.NETHERITE_SHOVEL);
+    private static final Set<Material> VALID_WEAPONS = EnumSet.of(Material.PAPER);
 
     private boolean hasEgoWarrior(Player p) {
         ItemStack item = p.getInventory().getItemInMainHand();

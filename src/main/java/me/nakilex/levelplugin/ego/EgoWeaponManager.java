@@ -218,6 +218,7 @@ public class EgoWeaponManager {
         String prefix = weapon.getId().split("_")[0];
         String nexoId = switch (prefix) {
             case "archer" -> "archer_bow";
+            case "phoenix" -> "phoenix_hunter_hellbow";
             case "warrior" -> "warrior_sword";
             case "barbarian" -> "axe_babarian";
             case "paladin" -> "paladin_hammer";
@@ -236,7 +237,8 @@ public class EgoWeaponManager {
         ItemMeta mMeta = model.getItemMeta();
         if (mMeta != null) {
             meta.setCustomModelData(mMeta.getCustomModelData());
-            stack.setType(model.getType());
+            meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ATTRIBUTES);
+            stack.setType(org.bukkit.Material.PAPER);
             stack.setItemMeta(meta);
         }
     }
