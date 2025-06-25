@@ -36,6 +36,8 @@ public class SpellManager {
         instance = this;
         this.plugin = plugin;
         this.effectRegistry = EffectRegistry.getInstance();
+        // Ensure effects are registered before any spells try to use them
+        EffectRegistry.registerAll();
         loadSpells();
     }
 
