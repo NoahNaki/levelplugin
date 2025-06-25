@@ -297,6 +297,54 @@ public class SpellManager {
         spellsByClass.put("paladin", Collections.unmodifiableMap(paladinMap));
         plugin.getLogger().info("[SPELLS] Paladin combos: " + paladinMap.keySet());
 
+        // — DEATH KNIGHT CLASS —
+        Map<String, Spell> dkMap = new HashMap<>();
+        dkMap.put("BASIC_ATTACK", new Spell(
+            "death_strike", "Death Strike", "BASIC_ATTACK",
+            0.0,
+            MythicSkillConfig.getCooldownSeconds("Death_Strike_ST"),
+            1,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_DEATH_STRIKE_ST", 0.0
+        ));
+        dkMap.put("LRL", new Spell(
+            "phantom_charge", "Phantom Charge", "LRL",
+            8.0,
+            MythicSkillConfig.getCooldownSeconds("Phantom_Charge"), 3,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_PHANTOM_CHARGE", 0.0
+        ));
+        dkMap.put("LRR", new Spell(
+            "necrotic_whirlwind", "Necrotic Whirlwind", "LRR",
+            10.0,
+            MythicSkillConfig.getCooldownSeconds("Necrotic_Whirlwind"), 5,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_NECROTIC_WHIRLWIND", 0.0
+        ));
+        dkMap.put("RLL", new Spell(
+            "wraithbound_chains", "Wraithbound Chains", "RLL",
+            6.0,
+            MythicSkillConfig.getCooldownSeconds("Wraithbound_Chains"), 3,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_WRAITHBOUND_CHAINS", 0.0
+        ));
+        dkMap.put("LLL", new Spell(
+            "soul_barrier", "Soul Barrier", "LLL",
+            12.0,
+            MythicSkillConfig.getCooldownSeconds("Soul_Barrier"), 5,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_SOUL_BARRIER", 0.0
+        ));
+        dkMap.put("RRR", new Spell(
+            "death_sentence", "Death Sentence", "RRR",
+            20.0,
+            MythicSkillConfig.getCooldownSeconds("Death_Sentence"), 10,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_DEATH_SENTENCE", 0.0
+        ));
+        spellsByClass.put("deathknight", Collections.unmodifiableMap(dkMap));
+        plugin.getLogger().info("[SPELLS] DeathKnight combos: " + dkMap.keySet());
+
     }
 
 }

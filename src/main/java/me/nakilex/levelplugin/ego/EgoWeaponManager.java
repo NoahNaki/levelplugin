@@ -60,6 +60,13 @@ public class EgoWeaponManager {
         paladin.addRankSkill(8, "Last_Stand");
         prototypes.put("paladin", paladin);
 
+        // Death Knight
+        EgoWeapon deathKnight = new EgoWeapon("death_knight_necroslayer", "Necroslayer", EgoRarity.RARE);
+        deathKnight.addRankSkill(1, "Death_Strike_ST");
+        deathKnight.addRankSkill(5, "Phantom_Charge");
+        deathKnight.addRankSkill(8, "Death_Sentence");
+        prototypes.put("death_knight", deathKnight);
+
     }
 
     public EgoWeapon getPrototype(String key) {
