@@ -106,6 +106,11 @@ public class EffectRegistry {
         register("MYTHIC_FROST_NOVA", new MythicSkillEffect("Frost_Nova"));
         register("MYTHIC_INFERNO_CHAINS", new MythicSkillEffect("Inferno_Chains"));
 
+        // --- Dragonian Mythic skills ---
+        register("MYTHIC_DRAGONIAN_SLASH", new MythicSkillEffect("Dragonian_Slash"));
+        register("MYTHIC_DRAGONIAN_LUNGE", new MythicSkillEffect("Dragonian_Lunge"));
+        register("MYTHIC_TAOTIE_DRAGON", new MythicSkillEffect("Taotie_Dragon"));
+
 
 
 
