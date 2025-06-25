@@ -126,8 +126,7 @@ public class SpellManager {
             0.0,
             MythicSkillConfig.getCooldownSeconds("Phoenix_Totem"), 0,
             WeaponType.SWORD.getMaterials(),
-            "MYTHIC_PHOENIX_TOTEM", 0.0,
-            true
+            "MYTHIC_PHOENIX_TOTEM", 0.0
         ));
         phoenixMap.put("LLL", new Spell(
             "pyroclasmic_barrage", "Pyroclasmic Barrage", "LLL",
