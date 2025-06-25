@@ -3273,4 +3273,46 @@ items:
     intel: 0-0
     dex: 0-0
 
+  262:
+    name: "Ego Abyssion Sword"
+    rarity: RARE
+    level_requirement: 1
+    class_requirement: ABYSSION
+    material: STONE_SWORD
+    unbreakable: true
+    hp: 0-0
+    def: 0-0
+    str: 3-6
+    agi: 0-0
+    intel: 0-0
+    dex: 0-0
+
+  263:
+    name: "Ego Mage Staff"
+    rarity: RARE
+    level_requirement: 1
+    class_requirement: MAGE
+    material: STONE_SWORD
+    unbreakable: true
+    hp: 0-0
+    def: 0-0
+    str: 0-0
+    agi: 0-0
+    intel: 3-6
+    dex: 0-0
+
+  264:
+    name: "Ego Dragonian Sword"
+    rarity: RARE
+    level_requirement: 1
+    class_requirement: DRAGONIAN
+    material: STONE_SWORD
+    unbreakable: true
+    hp: 0-0
+    def: 0-0
+    str: 3-6
+    agi: 0-0
+    intel: 0-0
+    dex: 0-0
+
 

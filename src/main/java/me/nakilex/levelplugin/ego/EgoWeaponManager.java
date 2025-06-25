@@ -79,6 +79,13 @@ public class EgoWeaponManager {
         mage.addRankSkill(8, "Inferno_Chains");
         prototypes.put("mage", mage);
 
+        // Dragonian class
+        EgoWeapon dragonian = new EgoWeapon("dragonian_ego", "Ego Dragonian Sword", EgoRarity.RARE);
+        dragonian.addRankSkill(1, "dragonian_l_t");
+        dragonian.addRankSkill(5, "dragonian_r_t");
+        dragonian.addRankSkill(8, "dragonian_ls_t");
+        prototypes.put("dragonian", dragonian);
+
 
     }
 
@@ -235,6 +242,7 @@ public class EgoWeaponManager {
             case "death" -> "death_knight_necroslayer";
             case "abyssion" -> "abyssion_sword";
             case "mage" -> "mage_staff";
+            case "dragonian" -> "dragonian_sword";
             default -> null;
         };
 
