@@ -244,12 +244,16 @@ public class SpellGUI {
                 else if (prefix.equalsIgnoreCase("paladin")) classKey = "paladin";
                 else if (prefix.equalsIgnoreCase("death") || prefix.equalsIgnoreCase("deathknight"))
                     classKey = "deathknight";
+                else if (prefix.equalsIgnoreCase("abyssion")) classKey = "abyssion";
+                else if (prefix.equalsIgnoreCase("mage")) classKey = "mage";
             }
             if (classKey == null) {
                 String name = weapon.getItemMeta().getDisplayName();
                 if (name != null) {
                     String lower = name.toLowerCase();
                     if (lower.contains("necroslayer")) classKey = "deathknight";
+                    else if (lower.contains("abyssion")) classKey = "abyssion";
+                    else if (lower.contains("mage")) classKey = "mage";
                 }
             }
         }
