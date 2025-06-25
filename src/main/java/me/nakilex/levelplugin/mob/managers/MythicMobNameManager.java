@@ -34,6 +34,7 @@ public class MythicMobNameManager implements Listener {
         "ARROW_BARRAGE",
         "DRAGON_PIERCER",
         "BRUTAL_STRIKE",
+        "BRUTAL_PIERCE",
         "CHARGE",
         "CHAIN_HOOK",
         "SHIELD_BARRIER",
@@ -63,12 +64,20 @@ public class MythicMobNameManager implements Listener {
         "PYROCLASMIC_BARRAGE",
         "PHOENIX_REBIRTH",
         "FLAMEBORN",
+        "DRAGON_ARROW",
         "HOLY_SMASH_RUPTURE",
         "LIGHT_ERUPTION",
         "PALADIN_SPIN_SLASH",
         "HUNTER_FOCUS",
         "HOLY_CHAINS",
-        "LIGHT_BEAM_FX"
+        "LIGHT_BEAM_FX",
+        // Death Knight
+        "DEATH_STRIKE",
+        "PHANTOM_CHARGE",
+        "WRAITHBOUND_CHAINS",
+        "SOUL_BARRIER",
+        "NECROTIC_WHIRLWIND",
+        "DEATH_SENTENCE"
     };
 
     private final Set<String> ignorePrefixes = new HashSet<>();
