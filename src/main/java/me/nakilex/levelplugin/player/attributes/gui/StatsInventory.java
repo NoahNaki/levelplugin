@@ -124,8 +124,8 @@ public class StatsInventory {
         inv.setItem(8, createPlayerHead(player, ps, page));
 
         // Navigation and extra buttons
-        inv.setItem(37, getNexoItem("arrow_left", ChatColor.GRAY + "Equip Runes"));
-        inv.setItem(43, getNexoItem("arrow_right", ChatColor.GRAY + "Equip Runes"));
+        inv.setItem(37, getNexoItem("arrow_left", ChatColor.GRAY + "Back"));
+        inv.setItem(43, getNexoItem("arrow_right", ChatColor.GRAY + "Forward"));
         inv.setItem(48, getNexoItem("camera", ChatColor.YELLOW + "Coming Soon"));
         inv.setItem(50, getNexoItem("settings", ChatColor.AQUA + "Settings"));
 

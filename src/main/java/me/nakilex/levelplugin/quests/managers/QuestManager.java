@@ -441,19 +441,6 @@ public class QuestManager {
         updateObjective(player, QuestObjectiveType.CAST_COMBO, combo, 1);
     }
 
-    public void handleRuneEquip(Player player, String runeId) {
-        if (debug) {
-            plugin.getLogger().info("[QuestDebug] " + player.getName() + " equipped rune " + runeId);
-        }
-        updateObjective(player, QuestObjectiveType.RUNE_EQUIP, runeId, 1);
-    }
-
-    public void handleRuneUnequip(Player player, String runeId) {
-        if (debug) {
-            plugin.getLogger().info("[QuestDebug] " + player.getName() + " unequipped rune " + runeId);
-        }
-        updateObjective(player, QuestObjectiveType.RUNE_UNEQUIP, runeId, 1);
-    }
 
     public void handleDuelParticipate(Player player) {
         if (debug) {
@@ -594,15 +581,6 @@ public class QuestManager {
                 }
             }
         }
-        if (!reward.getRuneIds().isEmpty()) {
-            for (String runeId : reward.getRuneIds()) {
-                me.nakilex.levelplugin.runes.model.Rune rune = plugin.getRunesManager().getRuneById(runeId);
-                if (rune != null) {
-                    org.bukkit.inventory.ItemStack item = plugin.getRunesManager().createUncarvedRuneItem(rune);
-                    player.getInventory().addItem(item);
-                }
-            }
-        }
     }
 
     /**
@@ -629,11 +607,6 @@ public class QuestManager {
             for (int id : reward.getItemIds()) {
                 me.nakilex.levelplugin.items.data.CustomItem tpl = plugin.getItemManager().getTemplateById(id);
                 String name = tpl != null ? tpl.getBaseName() : ("Item " + id);
-                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + name);
-            }
-            for (String runeId : reward.getRuneIds()) {
-                me.nakilex.levelplugin.runes.model.Rune rune = plugin.getRunesManager().getRuneById(runeId);
-                String name = rune != null ? rune.getDisplayName() : runeId;
                 me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + name);
             }
             me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, " ", 45);
@@ -703,10 +676,6 @@ public class QuestManager {
                 return "Use waystone " + obj.getTarget();
             case CAST_COMBO:
                 return "Cast combo " + obj.getTarget();
-            case RUNE_EQUIP:
-                return "Equip rune";
-            case RUNE_UNEQUIP:
-                return "Unequip rune";
             case DUEL_PARTICIPATE:
                 return "Participate in a duel";
             case DUEL_LOSE:

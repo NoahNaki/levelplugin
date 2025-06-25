@@ -1,6 +1,5 @@
 package me.nakilex.levelplugin.player.attributes.managers;
 
-import me.nakilex.levelplugin.player.listener.ClickComboListener;
 import me.nakilex.levelplugin.player.attributes.managers.ManaIndicatorManager;
 import me.nakilex.levelplugin.utils.DefaultFontInfo;
 import org.bukkit.Bukkit;
@@ -22,21 +21,10 @@ public class ActionBarTask extends BukkitRunnable {
             int currentMana = (int) ps.currentMana;
             int maxMana = ps.maxMana;
 
-            // Get active combo or mana cost display
-            String combo = ClickComboListener.getActiveCombo(player);
+            // Show pending mana cost in the middle if available
             Integer manaCost = ManaIndicatorManager.getInstance().getCost(player);
             String centerDisplay = "";
-
-            if (!combo.isEmpty()) {
-                // Prioritize combo and clear mana indicator
-                ManaIndicatorManager.getInstance().clear(player);
-                String className = ps.playerClass.name().toLowerCase();
-                if ((className.equals("archer") && !combo.startsWith("L")) || (!className.equals("archer") && !combo.startsWith("R"))) {
-                    centerDisplay = ""; // Invalid combo start
-                } else {
-                    centerDisplay = formatCombo(combo, 3);
-                }
-            } else if (manaCost != null) {
+            if (manaCost != null) {
                 centerDisplay = formatCost(manaCost);
             }
 
@@ -52,7 +40,6 @@ public class ActionBarTask extends BukkitRunnable {
         }
     }
 
-    private static final java.util.regex.Pattern GLYPH_PATTERN = java.util.regex.Pattern.compile("<glyph:[^>]+>");
     // Width in pixels of the custom combo glyphs. If this value is too small
     // the action bar segments will shift when the glyphs render at a larger
     // size. 8px keeps the layout stable with the current resource pack.
@@ -138,30 +125,6 @@ public class ActionBarTask extends BukkitRunnable {
             }
         }
         return text;
-    }
-
-    // New method to format combo string
-    private String formatCombo(String combo, int maxLength) {
-        if (combo.isEmpty()) return "";
-        StringBuilder formatted = new StringBuilder();
-        int comboLength = Math.min(combo.length(), maxLength);
-
-        for (int i = 0; i < comboLength; i++) {
-            char c = combo.charAt(i);
-            if (c == 'R') {
-                formatted.append("<glyph:right_mouse_click>");
-            } else if (c == 'L') {
-                formatted.append("<glyph:left_mouse_click>");
-            } else {
-                formatted.append(c);
-            }
-            // Add arrow separator between inputs
-            if (i < comboLength - 1) {
-                formatted.append("<glyph:small_arrow_right>");
-            }
-        }
-
-        return formatted.toString();
     }
 
     private String formatCost(int cost) {

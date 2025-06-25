@@ -33,7 +33,7 @@ public class TutorialQuest extends Quest {
                 1,
                 List.of(),
                 null,
-                new QuestReward(150, 500, 10, List.of(), List.of()),
+                new QuestReward(150, 500, 10, List.of()),
                 273,
                 List.of(
                         "Hello there! Welcome to the realm.",

@@ -6,8 +6,8 @@ import org.bukkit.entity.Player;
 import java.util.*;
 
 /**
- * Holds dynamic spell modifications applied at cast time, including stacked rune-driven effects
- * and priority-based extra parameter resolution.
+ * Holds dynamic spell modifications applied at cast time with
+ * priority-based extra parameter resolution.
  */
 public class SpellCastContext {
     private final Spell baseSpell;
@@ -55,7 +55,7 @@ public class SpellCastContext {
         this.cooldownReductionPercent += percent;
     }
 
-    /** Add an additional effect key (for TRANSFORM runes). */
+    /** Add an additional effect key. */
     public void addEffectKey(String key) {
         if (key != null && !key.isEmpty()) {
             effectKeys.add(key);

@@ -3,8 +3,6 @@ package me.nakilex.levelplugin.spells.gui;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.spells.Spell;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
-import me.nakilex.levelplugin.runes.manager.RunesManager;
-import me.nakilex.levelplugin.runes.model.Rune;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
@@ -295,18 +293,7 @@ public class SpellGUI {
             String desc = SPELL_DESCRIPTIONS.getOrDefault(spell.getId(), "No description available.");
             lore.add(ChatColor.GRAY + "Description: " + ChatColor.WHITE + desc);
 
-            RunesManager rm = SpellManager.getInstance().getRunesManager();
-            List<Rune> runes = rm.getRunesForSpell(player, spell.getId());
-            if (!runes.isEmpty()) {
-                lore.add(" ");
-                lore.add(ChatColor.GOLD + "Runes:");
-                for (Rune r : runes) {
-                    lore.add(ChatColor.YELLOW + "- " + r.getDisplayName());
-                    for (String line : r.getDescription()) {
-                        lore.add(ChatColor.GRAY + "  " + line);
-                    }
-                }
-            }
+            // Additional spell details could be listed here
         }
 
         meta.setLore(lore);

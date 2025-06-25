@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Manages persistence of per-player data, including stats, level, and equipped runes.
+ * Manages persistence of per-player data, including stats and level.
  */
 public class PlayerConfig {
 
@@ -112,17 +112,7 @@ public class PlayerConfig {
         }
     }
 
-    public List<String> getEquippedRunes(UUID playerUuid) {
-        String path = "players." + playerUuid + ".equippedRunes";
-        List<String> runes = config.getStringList(path);
-        return runes != null ? runes : Collections.emptyList();
-    }
 
-    public void setEquippedRunes(UUID playerUuid, List<String> runeIds) {
-        String path = "players." + playerUuid + ".equippedRunes";
-        config.set(path, runeIds);
-        saveConfig();
-    }
 
     // ----- Environment Progress -----
 
@@ -252,7 +242,7 @@ public class PlayerConfig {
     }
 
     public void savePlayer(UUID playerUuid) {
-        // Persist stats and equipped runes
+        // Persist stats
         savePlayerData(playerUuid);
         saveConfig();
     }

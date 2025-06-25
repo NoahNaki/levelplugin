@@ -8,8 +8,6 @@ import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
-import me.nakilex.levelplugin.runes.manager.RunesManager;
-import me.nakilex.levelplugin.runes.model.Rune;
 import me.nakilex.levelplugin.party.Party;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
@@ -43,7 +41,6 @@ public class MythicMobDeathListener implements Listener {
     private final LevelManager levelManager;
     private final EconomyManager economyManager;
     private final LootChestManager lootChestManager;
-    private final RunesManager runesManager;
     private final Main plugin = Main.getInstance();
     private static final Set<UUID> dropDetailsDisabled = new HashSet<>();
     private static final Set<UUID> chatDetailsDisabled = ConcurrentHashMap.newKeySet();
@@ -61,7 +58,6 @@ public class MythicMobDeathListener implements Listener {
         this.levelManager      = levelManager;
         this.economyManager    = economyManager;
         this.lootChestManager  = lootChestManager;
-        this.runesManager      = Main.getInstance().getRunesManager();
     }
 
     // ← New method: record every player who hits a mob
@@ -161,9 +157,8 @@ public class MythicMobDeathListener implements Listener {
                 }
             }
 
-            // 4b) Special drops: reroll scrolls & runes
+            // 4b) Special drops: reroll scrolls
             maybeDropRerollScroll(player);
-            maybeDropRandomRune(player);
 
             // 5) Hologram details
             if (isDropDetailsEnabled(player)) {
@@ -343,23 +338,6 @@ public class MythicMobDeathListener implements Listener {
         }
     }
 
-    /** Roll for rune drops of varying rarities */
-    private void maybeDropRandomRune(Player player) {
-        rollRune(player, Rune.Rarity.COMMON, 0.01);
-        rollRune(player, Rune.Rarity.UNCOMMON, 0.01);
-        rollRune(player, Rune.Rarity.RARE, 0.005);
-        rollRune(player, Rune.Rarity.EPIC, 0.001);
-    }
-
-    private void rollRune(Player player, Rune.Rarity rarity, double chance) {
-        if (ThreadLocalRandom.current().nextDouble() < chance) {
-            Rune rune = runesManager.getRandomRuneByRarity(rarity);
-            if (rune != null) {
-                ItemStack item = runesManager.createUncarvedRuneItem(rune);
-                player.getWorld().dropItemNaturally(player.getLocation(), item);
-            }
-        }
-    }
 
     private ItemStack createRandomRerollScroll() {
         Material[] mats = {

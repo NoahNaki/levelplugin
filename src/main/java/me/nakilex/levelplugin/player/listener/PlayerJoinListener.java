@@ -6,8 +6,6 @@ import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.player.mining.managers.MiningManager;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
-import me.nakilex.levelplugin.runes.manager.RunesManager;
-import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
@@ -25,7 +23,6 @@ public class PlayerJoinListener implements Listener {
     private final LevelManager levelManager;
     private final MiningManager miningManager;
     private final PlayerConfig playerConfig;
-    private final RunesManager runesManager;
     private final EnvironmentManager environmentManager;
     private final me.nakilex.levelplugin.environment.stage.TownStageManager stageManager;
 
@@ -35,7 +32,6 @@ public class PlayerJoinListener implements Listener {
         this.playerConfig  = playerConfig;
         this.environmentManager = envManager;
         this.stageManager = envManager.getStageManager();
-        this.runesManager  = SpellManager.getInstance().getRunesManager();
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -61,13 +57,7 @@ public class PlayerJoinListener implements Listener {
                 player.sendMessage(org.bukkit.ChatColor.YELLOW + "You received 20 coins to get started!");
             }
 
-            // 2) Load equipped runes from PlayerConfig
-            List<String> storedRunes = Main.getInstance()
-                .getPlayerConfig()
-                .getEquippedRunes(pid);
-            if (storedRunes != null && !storedRunes.isEmpty()) {
-                runesManager.loadPlayerRunes(pid, storedRunes);
-            }
+            // 2) Additional per-player loading can happen here
         }, 2L);  // 2 ticks
     }
 }
