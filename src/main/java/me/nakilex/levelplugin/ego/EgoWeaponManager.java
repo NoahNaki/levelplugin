@@ -73,6 +73,12 @@ public class EgoWeaponManager {
         abyssion.addRankSkill(8, "Abyssal_Smash");
         prototypes.put("abyssion", abyssion);
 
+        EgoWeapon mage = new EgoWeapon("mage_ego", "Ego Mage Staff", EgoRarity.RARE);
+        mage.addRankSkill(1, "Fireball");
+        mage.addRankSkill(5, "Meteor");
+        mage.addRankSkill(8, "Inferno_Chains");
+        prototypes.put("mage", mage);
+
 
     }
 

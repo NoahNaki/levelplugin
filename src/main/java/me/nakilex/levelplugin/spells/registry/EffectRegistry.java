@@ -92,6 +92,13 @@ public class EffectRegistry {
         register("MYTHIC_AQUA_AURA", new MythicSkillEffect("Aqua_Aura"));
         register("MYTHIC_ABYSSAL_SMASH", new MythicSkillEffect("Abyssal_Smash"));
 
+        // --- Mage Mythic skills ---
+        register("MYTHIC_FIREBALL", new MythicSkillEffect("Fireball"));
+        register("MYTHIC_BLINK", new MythicSkillEffect("Blink"));
+        register("MYTHIC_METEOR", new MythicSkillEffect("Meteor"));
+        register("MYTHIC_FROST_NOVA", new MythicSkillEffect("Frost_Nova"));
+        register("MYTHIC_INFERNO_CHAINS", new MythicSkillEffect("Inferno_Chains"));
+
 
 
 

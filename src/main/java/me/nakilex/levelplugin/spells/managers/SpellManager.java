@@ -395,6 +395,47 @@ public class SpellManager {
         spellsByClass.put("abyssion", Collections.unmodifiableMap(abyssionMap));
         plugin.getLogger().info("[SPELLS] Abyssion combos: " + abyssionMap.keySet());
 
+        // — MAGE CLASS —
+        Map<String, Spell> mageMap = new HashMap<>();
+        mageMap.put("BASIC_ATTACK", new Spell(
+            "fireball", "Fireball", "BASIC_ATTACK",
+            0.0,
+            MythicSkillConfig.getCooldownSeconds("Fireball"),
+            1,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_FIREBALL", 0.0
+        ));
+        mageMap.put("LRL", new Spell(
+            "blink", "Blink", "LRL",
+            6.0,
+            MythicSkillConfig.getCooldownSeconds("Blink"), 3,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_BLINK", 0.0
+        ));
+        mageMap.put("LLL", new Spell(
+            "meteor", "Meteor", "LLL",
+            12.0,
+            MythicSkillConfig.getCooldownSeconds("Meteor"), 5,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_METEOR", 0.0
+        ));
+        mageMap.put("LRR", new Spell(
+            "frost_nova", "Frost Nova", "LRR",
+            8.0,
+            MythicSkillConfig.getCooldownSeconds("Frost_Nova"), 5,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_FROST_NOVA", 0.0
+        ));
+        mageMap.put("RRR", new Spell(
+            "inferno_chains", "Inferno Chains", "RRR",
+            20.0,
+            MythicSkillConfig.getCooldownSeconds("Inferno_Chains"), 10,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_INFERNO_CHAINS", 0.0
+        ));
+        spellsByClass.put("mage", Collections.unmodifiableMap(mageMap));
+        plugin.getLogger().info("[SPELLS] Mage combos: " + mageMap.keySet());
+
 
     }
 

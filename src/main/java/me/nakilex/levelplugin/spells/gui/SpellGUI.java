@@ -89,6 +89,10 @@ public class SpellGUI {
         SPELL_DESCRIPTIONS.put("tidal_wave", "Summon a wave that knocks foes back.");
         SPELL_DESCRIPTIONS.put("aqua_aura", "Emit an aura that empowers allies.");
         SPELL_DESCRIPTIONS.put("abyssal_smash", "Leap high and smash down with tidal force.");
+        SPELL_DESCRIPTIONS.put("fireball", "Launch a blazing projectile.");
+        SPELL_DESCRIPTIONS.put("blink", "Teleport a short distance.");
+        SPELL_DESCRIPTIONS.put("frost_nova", "Freeze and damage nearby foes.");
+        SPELL_DESCRIPTIONS.put("inferno_chains", "Bind enemies with burning chains.");
     }
 
     /** Simple usage hints for non-combo based spells. */
@@ -140,6 +144,11 @@ public class SpellGUI {
         SPELL_USAGE.put("tidal_wave", "Sneak + Right Click");
         SPELL_USAGE.put("aqua_aura", "Sneak");
         SPELL_USAGE.put("abyssal_smash", "Sneak + Left Click");
+        SPELL_USAGE.put("fireball", "Left Click");
+        SPELL_USAGE.put("blink", "Right Click");
+        SPELL_USAGE.put("meteor", "Sneak + Right Click");
+        SPELL_USAGE.put("frost_nova", "Sneak");
+        SPELL_USAGE.put("inferno_chains", "Sneak + Left Click");
     }
 
     /** Maps spell IDs to Nexo item icons */
@@ -193,7 +202,12 @@ public class SpellGUI {
         Map.entry("abyssal_dash", "icon_abyssal_dash"),
         Map.entry("tidal_wave", "icon_tidal_wave"),
         Map.entry("aqua_aura", "icon_aqua_aura"),
-        Map.entry("abyssal_smash", "icon_abyssal_smash")
+        Map.entry("abyssal_smash", "icon_abyssal_smash"),
+        Map.entry("fireball", "icon_fireball"),
+        Map.entry("blink", "icon_blink"),
+        Map.entry("meteor", "icon_meteor"),
+        Map.entry("frost_nova", "icon_frost_nova"),
+        Map.entry("inferno_chains", "icon_inferno_chains")
     );
 
     // The slots where we will place the spells in a 27-slot inventory.
