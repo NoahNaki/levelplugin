@@ -100,18 +100,14 @@ public class Spell {
         return this.cooldownSeconds;
     }
 
-    /** Retrieves the dynamic mana cost for this player and spell. */
+    /** Returns the base mana cost. Dynamic increases were removed. */
     public double getCurrentManaCost(Player player) {
-        return Main.getInstance()
-            .getManaTracker()
-            .getCost(player.getUniqueId(), id, baseManaCost);
+        return baseManaCost;
     }
 
-    /** After a successful cast, record for dynamic cost adjustments. */
+    /** No-op since cost scaling has been removed. */
     public void recordSpellCast(Player player) {
-        Main.getInstance()
-            .getManaTracker()
-            .recordCast(player.getUniqueId(), id, baseManaCost);
+        // intentionally left blank
     }
 
     /**
@@ -135,18 +131,9 @@ public class Spell {
                 rank = pdc.get(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER);
             }
         }
-        if (ego) {
-            if (rank < levelReq) {
-                player.sendMessage("§cYour weapon must be rank " + levelReq + " to cast " + displayName);
-                return;
-            }
-        } else {
-            int playerLevel = me.nakilex.levelplugin.player.level.managers.LevelManager
-                    .getInstance().getLevel(player);
-            if (playerLevel < levelReq) {
-                player.sendMessage("§cYou must be level " + levelReq + " to cast " + displayName);
-                return;
-            }
+        if (rank < levelReq) {
+            player.sendMessage("§cYour weapon must be rank " + levelReq + " to cast " + displayName);
+            return;
         }
 
         // 1) Cooldown guard
@@ -192,34 +179,43 @@ public class Spell {
         Main.getPlugin().getLogger().info("[Spell] finalDamage=" + ctx.getFinalDamage() +
                 " finalCost=" + ctx.getFinalManaCost());
 
-        // 4) Mana check & deduct
+        // 4) Mana check
         double cost = ctx.getFinalManaCost();
         var ps    = StatsManager.getInstance().getPlayerStats(pid);
         if (ps.getCurrentMana() < Math.ceil(cost)) {
             player.sendMessage("§cNot enough mana (" + cost + ") to cast " + displayName);
             return;
         }
+
+        // 5) Attempt to fire effects first to see if Mythic cooldown allows it
+        boolean success = false;
+        for (String key : ctx.getEffectKeys()) {
+            SpellEffect effect = EffectRegistry.get(key);
+            if (effect != null) {
+                if (effect.apply(ctx)) success = true;
+            } else {
+                player.sendMessage("§eUnknown effect: " + key);
+            }
+        }
+
+        success = success || ctx.wasSuccessful();
+
+        if (!success) {
+            // Effect failed (likely Mythic cooldown) so skip cost/cooldown
+            return;
+        }
+
         int intCost = (int)Math.ceil(cost);
         ps.setCurrentMana(ps.getCurrentMana() - intCost);
         recordSpellCast(player);
-        if (!passive) {
+        if (!passive && intCost > 0) {
             me.nakilex.levelplugin.player.attributes.managers.ManaIndicatorManager
                 .getInstance().showCost(player, intCost);
         }
         Main.getInstance().getQuestManager().handleCast(player, id);
 
-        // 5) Start cooldown (ctx.getFinalCooldown returns 0 if applyCooldown==false)
+        // 6) Start cooldown (ctx.getFinalCooldown returns 0 if applyCooldown==false)
         cooldownMgr.setCooldown(pid, id, ctx.getFinalCooldown() / 1000.0);
-
-        // 6) Fire off every configured effect in order
-        for (String key : ctx.getEffectKeys()) {
-            SpellEffect effect = EffectRegistry.get(key);
-            if (effect != null) {
-                effect.apply(ctx);
-            } else {
-                player.sendMessage("§eUnknown effect: " + key);
-            }
-        }
     }
 
 

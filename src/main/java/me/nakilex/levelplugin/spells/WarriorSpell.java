@@ -21,9 +21,10 @@ import java.util.Set;
 
 public class WarriorSpell implements Listener {
 
+    // Nexo models use sword items as the base, so accept any sword material
     private static final Set<Material> VALID_WEAPONS = EnumSet.of(
-            Material.WOODEN_SHOVEL, Material.STONE_SHOVEL, Material.IRON_SHOVEL,
-            Material.GOLDEN_SHOVEL, Material.DIAMOND_SHOVEL, Material.NETHERITE_SHOVEL);
+            Material.WOODEN_SWORD, Material.STONE_SWORD, Material.IRON_SWORD,
+            Material.GOLDEN_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD);
 
     private boolean hasEgoWarrior(Player p) {
         ItemStack item = p.getInventory().getItemInMainHand();
@@ -87,11 +88,6 @@ public class WarriorSpell implements Listener {
         }
         if (!spell.getAllowedWeapons().contains(player.getInventory().getItemInMainHand().getType())) {
             player.sendMessage("§cYou must hold a valid warrior weapon!");
-            return;
-        }
-        int level = StatsManager.getInstance().getLevel(player);
-        if (level < spell.getLevelReq()) {
-            player.sendMessage("§cYou are not high enough level for " + spell.getDisplayName());
             return;
         }
         spell.castEffect(player);

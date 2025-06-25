@@ -62,5 +62,22 @@ public class EffectRegistry {
 
         // No legacy warrior or rogue spell effects retained
 
+        // --- Barbarian Mythic skills ---
+        register("MYTHIC_RAGEBLADE", new MythicSkillEffect("Rageblade"));
+        register("MYTHIC_PRIMAL_AXE", new MythicSkillEffect("Primal_Axe"));
+        register("MYTHIC_WAR_CRY", new MythicSkillEffect("War_Cry"));
+        register("MYTHIC_DOUBLE_EDGE", new MythicSkillEffect("Double_Edge"));
+        register("MYTHIC_RELENTLESS_LEAP", new MythicSkillEffect("Relentless_Leap"));
+        register("MYTHIC_ETERNAL_FURY", new MythicSkillEffect("Eternal_Fury"));
+
+        // --- Paladin Mythic skills ---
+        register("MYTHIC_HOLY_STRIKE", new MythicSkillEffect("Holy_Strike"));
+        register("MYTHIC_BOUND_SEAL", new MythicSkillEffect("Bound_Seal"));
+        register("MYTHIC_HAMMER_OF_JUSTICE", new MythicSkillEffect("Hammer_Of_Justice"));
+        register("MYTHIC_HEAVENLY_SHIELD", new MythicSkillEffect("Heavenly_Shield"));
+        register("MYTHIC_UNBREAKABLE_WILL", new MythicSkillEffect("Unbreakable_Will"));
+        register("MYTHIC_LAST_STAND", new MythicSkillEffect("Last_Stand"));
+
+
     }
 }

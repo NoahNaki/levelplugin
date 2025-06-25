@@ -24,6 +24,27 @@ public class ClassMenu {
                         .getPlayerStats(player.getUniqueId()).playerClass;
         int cost = current == me.nakilex.levelplugin.player.classes.data.PlayerClass.VILLAGER ? 0 : level * 50;
 
+        // Barbarian (using wooden shovel as icon)
+        inv.setItem(9, createMenuItem(Material.WOODEN_SHOVEL, ChatColor.DARK_RED + "" + ChatColor.BOLD + "Start As A Barbarian!",
+            Arrays.asList(
+                "",
+                ChatColor.GRAY + "Choosing this will start you out as a ",
+                ChatColor.DARK_RED + "BARBARIAN" + ChatColor.GRAY + "! Your starting item will be a shovel.",
+                "",
+                ChatColor.RED + "" + ChatColor.BOLD + "ABILITY 1:",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Rageblade " + ChatColor.GRAY + "(Combo: Left Click)",
+                ChatColor.YELLOW + "" + ChatColor.BOLD + "ABILITY 2:",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Primal Axe " + ChatColor.GRAY + "(Combo: LRL)",
+                ChatColor.DARK_AQUA + "" + ChatColor.BOLD + "ULTIMATE:",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Eternal Fury " + ChatColor.GRAY + "(Combo: RRR)",
+                "",
+                ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
+                ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,
+                ChatColor.GRAY + "Requires Level: " + ChatColor.YELLOW + PlayerClass.BARBARIAN.getRequiredLevel(),
+                "",
+                ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
+            )));
+
         // Warrior (using wooden shovel as icon)
         inv.setItem(10, createMenuItem(Material.WOODEN_AXE, ChatColor.GREEN + "" + ChatColor.BOLD + "Start As A Warrior!",
             Arrays.asList(
@@ -41,12 +62,33 @@ public class ClassMenu {
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Shield Barrier " + ChatColor.GRAY +
                     "(Combo: Sneak)",
                 ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "ABILITY 4:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Rampage " + ChatColor.GRAY +
-                    "(Combo: Sneak + Left Click)",
+            ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Rampage " + ChatColor.GRAY +
+                "(Combo: Sneak + Left Click)",
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
                 ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,
                 ChatColor.GRAY + "Requires Level: " + ChatColor.YELLOW + PlayerClass.WARRIOR.getRequiredLevel(),
+                "",
+            ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
+        )));
+
+        // Paladin (using wooden sword as icon)
+        inv.setItem(11, createMenuItem(Material.WOODEN_SWORD, ChatColor.GOLD + "" + ChatColor.BOLD + "Start As A Paladin!",
+            Arrays.asList(
+                "",
+                ChatColor.GRAY + "Choosing this will start you out as a ",
+                ChatColor.GOLD + "PALADIN" + ChatColor.GRAY + "! Your starting item will be a sword.",
+                "",
+                ChatColor.RED + "" + ChatColor.BOLD + "ABILITY 1:",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Holy Strike " + ChatColor.GRAY + "(Combo: Left Click)",
+                ChatColor.YELLOW + "" + ChatColor.BOLD + "ABILITY 2:",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Bound Seal " + ChatColor.GRAY + "(Combo: LRL)",
+                ChatColor.DARK_AQUA + "" + ChatColor.BOLD + "ULTIMATE:",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Last Stand " + ChatColor.GRAY + "(Combo: RRR)",
+                "",
+                ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
+                ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,
+                ChatColor.GRAY + "Requires Level: " + ChatColor.YELLOW + PlayerClass.PALADIN.getRequiredLevel(),
                 "",
                 ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
             )));

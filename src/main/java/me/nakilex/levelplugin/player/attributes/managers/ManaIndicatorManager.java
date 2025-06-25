@@ -20,7 +20,7 @@ public class ManaIndicatorManager {
     }
 
     private final Map<UUID, Info> indicators = new ConcurrentHashMap<>();
-    private static final long DURATION_MS = 500; // 0.5 seconds
+    private static final long DURATION_MS = 1500; // 1.5 seconds
 
     /** Record the mana cost to show on the action bar. */
     public void showCost(Player player, int cost) {

@@ -15,6 +15,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import com.nexomc.nexo.api.NexoItems;
+import com.nexomc.nexo.items.ItemBuilder;
 
 import java.util.*;
 
@@ -63,6 +65,20 @@ public class SpellGUI {
         SPELL_DESCRIPTIONS.put("whirlwind", "Spin and damage nearby foes.");
         SPELL_DESCRIPTIONS.put("judgement", "Leap and smash the ground mightily.");
         SPELL_DESCRIPTIONS.put("rampage", "Gain buffs when near death.");
+
+        SPELL_DESCRIPTIONS.put("rageblade", "Strike rapidly with your axe.");
+        SPELL_DESCRIPTIONS.put("primal_axe", "Hurl your axe forward with force.");
+        SPELL_DESCRIPTIONS.put("war_cry", "Shout to debuff nearby enemies.");
+        SPELL_DESCRIPTIONS.put("double_edge", "Spin with deadly slashes.");
+        SPELL_DESCRIPTIONS.put("relentless_leap", "Leap and pull foes together.");
+        SPELL_DESCRIPTIONS.put("eternal_fury", "Enter an empowered rage.");
+
+        SPELL_DESCRIPTIONS.put("holy_strike", "Strike with righteous power.");
+        SPELL_DESCRIPTIONS.put("bound_seal", "Bind foes in holy chains.");
+        SPELL_DESCRIPTIONS.put("hammer_of_justice", "Smash down a massive hammer.");
+        SPELL_DESCRIPTIONS.put("heavenly_shield", "Grant a protective barrier.");
+        SPELL_DESCRIPTIONS.put("unbreakable_will", "Dash forward with steadfast will.");
+        SPELL_DESCRIPTIONS.put("last_stand", "Unleash a devastating holy assault.");
     }
 
     /** Simple usage hints for non-combo based spells. */
@@ -88,10 +104,78 @@ public class SpellGUI {
         SPELL_USAGE.put("whirlwind", "Sneak + Right Click");
         SPELL_USAGE.put("judgement", "Sneak + Left Click");
         SPELL_USAGE.put("rampage", "Sneak + Left Click (low HP)");
+
+        SPELL_USAGE.put("rageblade", "Left Click");
+        SPELL_USAGE.put("primal_axe", "Right Click");
+        SPELL_USAGE.put("war_cry", "Sneak");
+        SPELL_USAGE.put("double_edge", "Sneak + Right Click");
+        SPELL_USAGE.put("relentless_leap", "Sneak + Toggle");
+        SPELL_USAGE.put("eternal_fury", "Sneak + Left Click");
+
+        SPELL_USAGE.put("holy_strike", "Left Click");
+        SPELL_USAGE.put("bound_seal", "Right Click");
+        SPELL_USAGE.put("hammer_of_justice", "Sneak");
+        SPELL_USAGE.put("heavenly_shield", "Sneak + Right Click");
+        SPELL_USAGE.put("unbreakable_will", "Sneak + Left Click");
+        SPELL_USAGE.put("last_stand", "Sneak + Left Click");
     }
+
+    /** Maps spell IDs to Nexo item icons */
+    private static final Map<String, String> SPELL_ICONS = Map.ofEntries(
+        Map.entry("quick_shot", "icon_quick_shot"),
+        Map.entry("backstep", "icon_backstep"),
+        Map.entry("windrazor", "icon_windrazor"),
+        Map.entry("arrow_barrage", "icon_windrazor"),
+        Map.entry("deadly_javelin", "icon_deadly_javelin"),
+        Map.entry("dragon_piercer", "icon_dragon_piercer"),
+        // Phoenix Hunter
+        Map.entry("blazing_feathers", "icon_blazing_feathers"),
+        Map.entry("ashdance", "icon_ashdance"),
+        Map.entry("flameburst_convergence", "icon_flameburst_convergence"),
+        Map.entry("phoenix_totem", "icon_phoenix_totem"),
+        Map.entry("pyroclasmic_barrage", "icon_pyroclasmic_barrage"),
+        Map.entry("phoenix_rebirth", "icon_phoenix_rebirth"),
+        Map.entry("flameborn", "icon_flameborn"),
+        // Warrior
+        Map.entry("brutal_strike", "icon_brutal_strike"),
+        Map.entry("charge", "icon_charge"),
+        Map.entry("chain_hook", "icon_chain_hook"),
+        Map.entry("shield_barrier", "icon_shield_barrier"),
+        Map.entry("whirlwind", "icon_rampage"),
+        Map.entry("judgement", "icon_judgement"),
+        Map.entry("rampage", "icon_rampage"),
+        // Barbarian
+        Map.entry("bloodlust", "icon_bloodlust"),
+        Map.entry("rageblade", "icon_rageblade"),
+        Map.entry("primal_axe", "icon_primal_axe"),
+        Map.entry("war_cry", "icon_war_cry"),
+        Map.entry("double_edge", "icon_double_edge"),
+        Map.entry("relentless_leap", "icon_relentless_leap"),
+        Map.entry("eternal_fury", "icon_eternal_fury"),
+        // Paladin
+        Map.entry("radiant_aura", "icon_radiant_aura"),
+        Map.entry("holy_strike", "icon_holy_strike"),
+        Map.entry("bound_seal", "icon_bound_seal"),
+        Map.entry("hammer_of_justice", "icon_hammer_of_justice"),
+        Map.entry("heavenly_shield", "icon_heavenly_shield"),
+        Map.entry("unbreakable_will", "icon_unbreakable_will"),
+        Map.entry("last_stand", "icon_last_stand")
+        // Death Knight (removed)
+    );
 
     // The slots where we will place the spells in a 27-slot inventory.
     private static final int[] SPELL_SLOTS = { 10, 12, 14, 16, 22 };
+
+    private static ItemStack getNexoItem(String id, String name) {
+        ItemBuilder builder = NexoItems.itemFromId(id);
+        ItemStack item = builder == null ? new ItemStack(Material.PAPER) : builder.build();
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            if (name != null && !name.isEmpty()) meta.setDisplayName(name);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
 
     /**
      * Opens the Spell GUI for the given player. It fills all slots with filler and places the class spells
@@ -109,6 +193,8 @@ public class SpellGUI {
                 if (prefix.equalsIgnoreCase("archer")) classKey = "coolarcher";
                 else if (prefix.equalsIgnoreCase("phoenix")) classKey = "phoenixhunter";
                 else if (prefix.equalsIgnoreCase("warrior")) classKey = "warrior";
+                else if (prefix.equalsIgnoreCase("barbarian")) classKey = "barbarian";
+                else if (prefix.equalsIgnoreCase("paladin")) classKey = "paladin";
             }
         }
 
@@ -157,13 +243,7 @@ public class SpellGUI {
         ItemStack hand = player.getInventory().getItemInMainHand();
         if (hand != null && hand.hasItemMeta()) {
             PersistentDataContainer pdc = hand.getItemMeta().getPersistentDataContainer();
-            if (pdc.has(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER)) {
-                playerRank = pdc.get(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER);
-            } else {
-                playerRank = LevelManager.getInstance().getLevel(player);
-            }
-        } else {
-            playerRank = LevelManager.getInstance().getLevel(player);
+            playerRank = pdc.getOrDefault(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, 0);
         }
 
         // Place up to 4 spells in the designated slots.
@@ -184,8 +264,15 @@ public class SpellGUI {
      */
     private static ItemStack createSpellItem(Player player, Spell spell, int playerLevel) {
         boolean unlocked = (playerLevel >= spell.getLevelReq());
-        Material material = unlocked ? Material.SLIME_BALL : Material.FIREWORK_STAR;
-        ItemStack item = new ItemStack(material);
+        String iconId = SPELL_ICONS.get(spell.getId());
+        ItemStack item;
+        if (iconId != null && unlocked) {
+            item = getNexoItem(iconId, "");
+        } else if (iconId != null) {
+            item = new ItemStack(Material.FIREWORK_STAR);
+        } else {
+            item = new ItemStack(unlocked ? Material.SLIME_BALL : Material.FIREWORK_STAR);
+        }
         ItemMeta meta = item.getItemMeta();
 
         // Set the display name with color based on locked/unlocked.

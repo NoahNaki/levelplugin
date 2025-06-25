@@ -9,6 +9,8 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.Bukkit;
+import com.nexomc.nexo.api.NexoItems;
+import com.nexomc.nexo.items.ItemBuilder;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
@@ -44,6 +46,20 @@ public class EgoWeaponManager {
         warrior.addRankSkill(5, "Charge");
         warrior.addRankSkill(8, "Rampage");
         prototypes.put("warrior", warrior);
+
+        // New classes
+        EgoWeapon barbarian = new EgoWeapon("barbarian_ego", "Ego Barbarian Shovel", EgoRarity.UNCOMMON);
+        barbarian.addRankSkill(1, "Rageblade");
+        barbarian.addRankSkill(5, "Primal_Axe");
+        barbarian.addRankSkill(8, "Eternal_Fury");
+        prototypes.put("barbarian", barbarian);
+
+        EgoWeapon paladin = new EgoWeapon("paladin_ego", "Ego Paladin Sword", EgoRarity.RARE);
+        paladin.addRankSkill(1, "Holy_Strike");
+        paladin.addRankSkill(5, "Bound_Seal");
+        paladin.addRankSkill(8, "Last_Stand");
+        prototypes.put("paladin", paladin);
+
     }
 
     public EgoWeapon getPrototype(String key) {
@@ -187,16 +203,64 @@ public class EgoWeaponManager {
     public ItemStack createWeaponItem(EgoWeapon weapon, int templateId) {
         CustomItem base = ItemManager.getInstance().rollNewInstance(templateId);
         ItemStack stack = ItemUtil.createItemStackFromCustomItem(base, 1, null);
-        ItemMeta meta = stack.getItemMeta();
-        if (meta != null) {
-            PersistentDataContainer pdc = meta.getPersistentDataContainer();
-            pdc.set(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING, weapon.getId());
-            pdc.set(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, weapon.getRank());
-            pdc.set(ItemUtil.EGO_EXP_KEY, PersistentDataType.INTEGER, weapon.getExp());
-            pdc.set(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING, weapon.getRarity().name());
-            meta.setDisplayName(weapon.getRarity().getColor() + weapon.getName());
-            stack.setItemMeta(meta);
+
+        // Determine Nexo model based on the weapon prefix
+        String prefix = weapon.getId().split("_")[0];
+        String nexoId = switch (prefix) {
+            case "archer" -> "archer_bow";
+            case "phoenix" -> "phoenix_hunter_hellbow";
+            case "warrior" -> "warrior_sword";
+            case "barbarian" -> "axe_babarian";
+            case "paladin" -> "paladin_hammer";
+            default -> null;
+        };
+
+        if (nexoId != null) {
+            ItemBuilder builder = NexoItems.itemFromId(nexoId);
+            if (builder != null) {
+                ItemStack nexoStack = builder.build();
+                ItemMeta nMeta = nexoStack.getItemMeta();
+                ItemMeta bMeta = stack.getItemMeta();
+                if (nMeta != null && bMeta != null) {
+                    PersistentDataContainer nPdc = nMeta.getPersistentDataContainer();
+                    PersistentDataContainer bPdc = bMeta.getPersistentDataContainer();
+
+                    nMeta.setDisplayName(weapon.getRarity().getColor() + weapon.getName());
+                    nPdc.set(ItemUtil.ITEM_ID_KEY, PersistentDataType.INTEGER,
+                            bPdc.get(ItemUtil.ITEM_ID_KEY, PersistentDataType.INTEGER));
+                    nPdc.set(ItemUtil.ITEM_UUID_KEY, PersistentDataType.STRING,
+                            bPdc.get(ItemUtil.ITEM_UUID_KEY, PersistentDataType.STRING));
+                    nPdc.set(ItemUtil.UPGRADE_LEVEL_KEY, PersistentDataType.INTEGER,
+                            bPdc.get(ItemUtil.UPGRADE_LEVEL_KEY, PersistentDataType.INTEGER));
+                    nPdc.set(ItemUtil.DURABILITY_KEY, PersistentDataType.INTEGER,
+                            bPdc.get(ItemUtil.DURABILITY_KEY, PersistentDataType.INTEGER));
+
+                    nPdc.set(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING, weapon.getId());
+                    nPdc.set(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, weapon.getRank());
+                    nPdc.set(ItemUtil.EGO_EXP_KEY, PersistentDataType.INTEGER, weapon.getExp());
+                    nPdc.set(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING, weapon.getRarity().name());
+
+                    nMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
+                    nMeta.setUnbreakable(true);
+                    nexoStack.setItemMeta(nMeta);
+                    stack = nexoStack;
+                }
+            }
+        } else {
+            ItemMeta meta = stack.getItemMeta();
+            if (meta != null) {
+                PersistentDataContainer pdc = meta.getPersistentDataContainer();
+                pdc.set(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING, weapon.getId());
+                pdc.set(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, weapon.getRank());
+                pdc.set(ItemUtil.EGO_EXP_KEY, PersistentDataType.INTEGER, weapon.getExp());
+                pdc.set(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING, weapon.getRarity().name());
+                meta.setDisplayName(weapon.getRarity().getColor() + weapon.getName());
+                meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
+                meta.setUnbreakable(true);
+                stack.setItemMeta(meta);
+            }
         }
+
         ItemUtil.updateEgoWeaponTooltip(stack, null);
         return stack;
     }

@@ -23,7 +23,10 @@ import java.util.Set;
 
 public class PhoenixHunterSpell implements Listener {
 
-    private static final Set<Material> VALID_WEAPONS = EnumSet.of(Material.CROSSBOW, Material.BOW);
+    // Phoenix Hunter bows use sword items as the base in the Nexo pack
+    private static final Set<Material> VALID_WEAPONS = EnumSet.of(
+            Material.WOODEN_SWORD, Material.STONE_SWORD, Material.IRON_SWORD,
+            Material.GOLDEN_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD);
 
     public PhoenixHunterSpell() {
         // Passive task for Flameborn/Phoenix Totem every 10 ticks
@@ -109,11 +112,6 @@ public class PhoenixHunterSpell implements Listener {
         }
         if (!spell.getAllowedWeapons().contains(player.getInventory().getItemInMainHand().getType())) {
             player.sendMessage("§cYou must hold a valid phoenixhunter weapon!");
-            return;
-        }
-        int level = StatsManager.getInstance().getLevel(player);
-        if (level < spell.getLevelReq()) {
-            player.sendMessage("§cYou are not high enough level for " + spell.getDisplayName());
             return;
         }
         spell.castEffect(player);

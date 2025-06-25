@@ -3168,7 +3168,7 @@ items:
     rarity: COMMON
     level_requirement: 1
     class_requirement: COOLARCHER
-    material: CROSSBOW
+    material: DIAMOND
     hp: 0-0
     def: 0-0
     str: 2-5
@@ -3181,7 +3181,7 @@ items:
     rarity: COMMON
     level_requirement: 1
     class_requirement: PHOENIXHUNTER
-    material: CROSSBOW
+    material: DIAMOND
     hp: 0-0
     def: 0-0
     str: 2-5
@@ -3194,7 +3194,8 @@ items:
     rarity: COMMON
     level_requirement: 1
     class_requirement: COOLARCHER
-    material: CROSSBOW
+    material: STONE_SWORD
+    unbreakable: true
     hp: 0-0
     def: 0-0
     str: 3-6
@@ -3207,7 +3208,8 @@ items:
     rarity: RARE
     level_requirement: 1
     class_requirement: PHOENIXHUNTER
-    material: CROSSBOW
+    material: STONE_SWORD
+    unbreakable: true
     hp: 0-0
     def: 0-0
     str: 3-6
@@ -3221,9 +3223,39 @@ items:
     level_requirement: 1
     class_requirement: WARRIOR
     material: WOODEN_SHOVEL
+    unbreakable: true
     hp: 0-0
     def: 0-0
     str: 3-6
     agi: 0-0
     intel: 0-0
     dex: 0-0
+
+  259:
+    name: "Ego Barbarian Shovel"
+    rarity: UNCOMMON
+    level_requirement: 1
+    class_requirement: BARBARIAN
+    material: STONE_SWORD
+    unbreakable: true
+    hp: 0-0
+    def: 0-0
+    str: 3-6
+    agi: 0-0
+    intel: 0-0
+    dex: 0-0
+
+  260:
+    name: "Ego Paladin Sword"
+    rarity: RARE
+    level_requirement: 1
+    class_requirement: PALADIN
+    material: STONE_SWORD
+    unbreakable: true
+    hp: 0-0
+    def: 0-0
+    str: 3-6
+    agi: 0-0
+    intel: 0-0
+    dex: 0-0
+

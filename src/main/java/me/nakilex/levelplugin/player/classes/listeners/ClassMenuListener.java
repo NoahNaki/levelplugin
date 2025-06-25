@@ -43,11 +43,13 @@ public class ClassMenuListener implements Listener {
         String className = null;
 
         switch (displayName.toUpperCase()) {
+            case "START AS A BARBARIAN!": selectedClass = PlayerClass.BARBARIAN; className = "Barbarian"; break;
             case "START AS A WARRIOR!": selectedClass = PlayerClass.WARRIOR; className = "Warrior"; break;
             case "START AS AN ARCHER!": selectedClass = PlayerClass.ARCHER;  className = "Archer";  break;
             case "START AS A COOLARCHER!": selectedClass = PlayerClass.COOLARCHER; className = "CoolArcher"; break;
             case "START AS A PHOENIXHUNTER!": selectedClass = PlayerClass.PHOENIXHUNTER; className = "PhoenixHunter"; break;
             case "START AS A MAGE!":    selectedClass = PlayerClass.MAGE;    className = "Mage";    break;
+            case "START AS A PALADIN!": selectedClass = PlayerClass.PALADIN; className = "Paladin"; break;
             case "START AS A ROGUE!":   selectedClass = PlayerClass.ROGUE;   className = "Rogue";   break;
             default:
                 player.sendMessage(ChatColor.RED + "Invalid class selection.");

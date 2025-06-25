@@ -25,6 +25,8 @@ public class SpellCastContext {
     // Support multiple TRANSFORM effects
     private final List<String> effectKeys = new ArrayList<>();
 
+    private boolean success = false;
+
     // Generic extra params with priority
     private static class Param {
         Object value;
@@ -138,6 +140,14 @@ public class SpellCastContext {
                     extraParams.put(key, p);
                 }
         }
+    }
+
+    public void markSuccess(boolean value) {
+        if (value) this.success = true;
+    }
+
+    public boolean wasSuccessful() {
+        return success;
     }
 
 
