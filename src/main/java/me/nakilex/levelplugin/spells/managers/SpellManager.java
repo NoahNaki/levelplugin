@@ -362,35 +362,35 @@ public class SpellManager {
             0.0,
             MythicSkillConfig.getCooldownSeconds("Aqua_Slash"),
             1,
-            Collections.singletonList(Material.DIAMOND),
+            Arrays.asList(Material.DIAMOND, Material.STONE_SWORD),
             "MYTHIC_AQUA_SLASH", 0.0
         ));
         abyssionMap.put("LRL", new Spell(
             "abyssal_dash", "Abyssal Dash", "LRL",
             6.0,
             MythicSkillConfig.getCooldownSeconds("Abyssal_Dash"), 3,
-            Collections.singletonList(Material.DIAMOND),
+            Arrays.asList(Material.DIAMOND, Material.STONE_SWORD),
             "MYTHIC_ABYSSAL_DASH", 0.0
         ));
         abyssionMap.put("LLL", new Spell(
             "tidal_wave", "Tidal Wave", "LLL",
             8.0,
             MythicSkillConfig.getCooldownSeconds("Tidal_Wave"), 5,
-            Collections.singletonList(Material.DIAMOND),
+            Arrays.asList(Material.DIAMOND, Material.STONE_SWORD),
             "MYTHIC_TIDAL_WAVE", 0.0
         ));
         abyssionMap.put("RLL", new Spell(
             "aqua_aura", "Aqua Aura", "RLL",
             10.0,
             MythicSkillConfig.getCooldownSeconds("Aqua_Aura"), 5,
-            Collections.singletonList(Material.DIAMOND),
+            Arrays.asList(Material.DIAMOND, Material.STONE_SWORD),
             "MYTHIC_AQUA_AURA", 0.0
         ));
         abyssionMap.put("RRR", new Spell(
             "abyssal_smash", "Abyssal Smash", "RRR",
             20.0,
             MythicSkillConfig.getCooldownSeconds("Abyssal_Smash"), 10,
-            Collections.singletonList(Material.DIAMOND),
+            Arrays.asList(Material.DIAMOND, Material.STONE_SWORD),
             "MYTHIC_ABYSSAL_SMASH", 0.0
         ));
         spellsByClass.put("abyssion", Collections.unmodifiableMap(abyssionMap));
@@ -403,7 +403,7 @@ public class SpellManager {
             0.0,
             MythicSkillConfig.getCooldownSeconds("Fireball"),
             1,
-            Collections.singletonList(Material.DIAMOND),
+            Arrays.asList(Material.DIAMOND, Material.STONE_SWORD),
             "MYTHIC_FIREBALL", 0.0
         ));
         mageMap.put("LRL", new Spell(
@@ -411,28 +411,28 @@ public class SpellManager {
             6.0,
             1,
             3,
-            Collections.singletonList(Material.DIAMOND),
+            Arrays.asList(Material.DIAMOND, Material.STONE_SWORD),
             "MYTHIC_BLINK", 0.0
         ));
         mageMap.put("LLL", new Spell(
             "meteor", "Meteor", "LLL",
             12.0,
             MythicSkillConfig.getCooldownSeconds("Meteor"), 5,
-            Collections.singletonList(Material.DIAMOND),
+            Arrays.asList(Material.DIAMOND, Material.STONE_SWORD),
             "MYTHIC_METEOR", 0.0
         ));
         mageMap.put("LRR", new Spell(
             "frost_nova", "Frost Nova", "LRR",
             8.0,
             MythicSkillConfig.getCooldownSeconds("Frost_Nova"), 5,
-            Collections.singletonList(Material.DIAMOND),
+            Arrays.asList(Material.DIAMOND, Material.STONE_SWORD),
             "MYTHIC_FROST_NOVA", 0.0
         ));
         mageMap.put("RRR", new Spell(
             "inferno_chains", "Inferno Chains", "RRR",
             20.0,
             MythicSkillConfig.getCooldownSeconds("Inferno_Chains"), 10,
-            Collections.singletonList(Material.DIAMOND),
+            Arrays.asList(Material.DIAMOND, Material.STONE_SWORD),
             "MYTHIC_INFERNO_CHAINS", 0.0
         ));
         spellsByClass.put("mage", Collections.unmodifiableMap(mageMap));

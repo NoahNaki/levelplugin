@@ -24,8 +24,9 @@ import java.util.Set;
  */
 public class AbyssionSpell implements Listener {
 
-    // Ego abyssion weapons now use a diamond base item
-    private static final Set<Material> VALID_WEAPONS = EnumSet.of(Material.DIAMOND);
+    // Accept both the old STONE_SWORD base and the new DIAMOND item
+    private static final Set<Material> VALID_WEAPONS =
+            EnumSet.of(Material.DIAMOND, Material.STONE_SWORD);
 
     private boolean hasEgoAbyssion(Player player) {
         ItemStack item = player.getInventory().getItemInMainHand();
@@ -38,7 +39,10 @@ public class AbyssionSpell implements Listener {
 
     private boolean validWeapon(Player player) {
         ItemStack item = player.getInventory().getItemInMainHand();
-        return item != null && VALID_WEAPONS.contains(item.getType());
+        if (item == null) return false;
+        boolean valid = VALID_WEAPONS.contains(item.getType());
+        Main.getPlugin().getLogger().info("[AB] held item=" + item.getType() + " valid=" + valid);
+        return valid;
     }
 
     @EventHandler
