@@ -408,7 +408,8 @@ public class SpellManager {
         mageMap.put("LRL", new Spell(
             "blink", "Blink", "LRL",
             6.0,
-            MythicSkillConfig.getCooldownSeconds("Blink"), 3,
+            1,
+            3,
             WeaponType.SWORD.getMaterials(),
             "MYTHIC_BLINK", 0.0
         ));

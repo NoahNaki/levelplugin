@@ -20,13 +20,20 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.CrossbowMeta;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
+
+import java.io.File;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public class BowDroneEffect implements SpellEffect {
     private static final String META_KEY = "ArcherSpell";
+    private static final Set<String> IGNORE_PREFIXES = loadIgnorePrefixes();
 
     private int parseInt(Object obj, int def) {
         if (obj instanceof Number n) return n.intValue();
@@ -41,6 +48,31 @@ public class BowDroneEffect implements SpellEffect {
             return sum;
         }
         return def;
+    }
+
+    private static Set<String> loadIgnorePrefixes() {
+        Set<String> set = new HashSet<>();
+        try {
+            Main plugin = Main.getInstance();
+            plugin.saveResource("mob_name_ignores.yml", false);
+            File f = new File(plugin.getDataFolder(), "mob_name_ignores.yml");
+            FileConfiguration cfg = YamlConfiguration.loadConfiguration(f);
+            if (cfg.isList("prefixes")) {
+                for (String s : cfg.getStringList("prefixes")) {
+                    set.add(s.toUpperCase());
+                }
+            }
+        } catch (Exception ignore) {}
+        return set;
+    }
+
+    private boolean shouldIgnoreName(String name) {
+        if (name == null) return false;
+        String stripped = ChatColor.stripColor(name).toUpperCase();
+        for (String p : IGNORE_PREFIXES) {
+            if (stripped.startsWith(p)) return true;
+        }
+        return false;
     }
 
     @Override
@@ -150,17 +182,18 @@ public class BowDroneEffect implements SpellEffect {
                         if (!(e instanceof LivingEntity le)) continue;
                         if (le.equals(player)) continue;
                         if (le instanceof Player p && !DuelManager.getInstance().areInDuel(pid, p.getUniqueId())) continue;
+                        if (shouldIgnoreName(le.getCustomName())) continue;
 
                         double d = le.getLocation().distanceSquared(loc);
                         if (d < bestDist) { bestDist = d; target = le; }
                     }
                     if (target == null) return;
 
-                    Arrow shot = loc.getWorld().spawnArrow(
+                    SpectralArrow shot = (SpectralArrow) loc.getWorld().spawnEntity(
                         loc,
-                        target.getEyeLocation().toVector().subtract(loc.toVector()).normalize(),
-                        3.0f, 0.0f
+                        EntityType.SPECTRAL_ARROW
                     );
+                    shot.setVelocity(target.getEyeLocation().toVector().subtract(loc.toVector()).normalize().multiply(3.0));
                     shot.setShooter(player);
                     shot.setMetadata(META_KEY, new FixedMetadataValue(Main.getInstance(), pid));
                     loc.getWorld().playSound(loc, Sound.ENTITY_ARROW_SHOOT, 0.7f, 1f);
