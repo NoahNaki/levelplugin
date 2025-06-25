@@ -3278,7 +3278,7 @@ items:
     rarity: RARE
     level_requirement: 1
     class_requirement: ABYSSION
-    material: STONE_SWORD
+    material: DIAMOND
     unbreakable: true
     hp: 0-0
     def: 0-0
@@ -3292,7 +3292,7 @@ items:
     rarity: RARE
     level_requirement: 1
     class_requirement: MAGE
-    material: STONE_SWORD
+    material: DIAMOND
     unbreakable: true
     hp: 0-0
     def: 0-0

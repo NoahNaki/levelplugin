@@ -4,7 +4,7 @@ abyssion_sword:
     generate_model: false
     model: abyssion_model/abyssion_sword
     custom_model_data: 3200
-  material: STONE_SWORD
+  material: DIAMOND
   permission: abyssion_sword
   itemname: abyssion_sword
 
@@ -13,7 +13,7 @@ abyssion_sword_shiny:
     generate_model: false
     model: abyssion_model/abyssion_sword_shiny
     custom_model_data: 3201
-  material: STONE_SWORD
+  material: DIAMOND
   permission: abyssion_sword_shiny
   itemname: abyssion_sword_shiny
 
@@ -40,7 +40,7 @@ mage_staff:
     generate_model: false
     model: mage_model/mage_staff
     custom_model_data: 3100
-  material: STONE_SWORD
+  material: DIAMOND
   permission: mage_staff
   itemname: mage_staff
 
@@ -49,7 +49,7 @@ mage_staff_shiny:
     generate_model: false
     model: mage_model/mage_staff_shiny
     custom_model_data: 3101
-  material: STONE_SWORD
+  material: DIAMOND
   permission: mage_staff_shiny
   itemname: mage_staff_shiny
 

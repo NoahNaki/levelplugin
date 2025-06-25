@@ -24,9 +24,8 @@ import java.util.Set;
  */
 public class MageSpell implements Listener {
 
-    private static final Set<Material> VALID_WEAPONS = EnumSet.of(
-            Material.WOODEN_SWORD, Material.STONE_SWORD, Material.IRON_SWORD,
-            Material.GOLDEN_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD);
+    // Ego mage weapons now use a diamond base item instead of stone sword
+    private static final Set<Material> VALID_WEAPONS = EnumSet.of(Material.DIAMOND);
 
     private boolean hasEgoMage(Player player) {
         ItemStack item = player.getInventory().getItemInMainHand();
