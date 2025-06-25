@@ -84,6 +84,15 @@ public class SpellGUI {
         SPELL_DESCRIPTIONS.put("soul_barrier", "Summon souls to shield yourself.");
         SPELL_DESCRIPTIONS.put("necrotic_whirlwind", "Spin with necrotic energy.");
         SPELL_DESCRIPTIONS.put("death_sentence", "Leap and crush targets with deathly force.");
+        SPELL_DESCRIPTIONS.put("aqua_slash", "Slash enemies with a burst of water.");
+        SPELL_DESCRIPTIONS.put("abyssal_dash", "Dash forward leaving waves behind.");
+        SPELL_DESCRIPTIONS.put("tidal_wave", "Summon a wave that knocks foes back.");
+        SPELL_DESCRIPTIONS.put("aqua_aura", "Emit an aura that empowers allies.");
+        SPELL_DESCRIPTIONS.put("abyssal_smash", "Leap high and smash down with tidal force.");
+        SPELL_DESCRIPTIONS.put("fireball", "Launch a blazing projectile.");
+        SPELL_DESCRIPTIONS.put("blink", "Teleport a short distance.");
+        SPELL_DESCRIPTIONS.put("frost_nova", "Freeze and damage nearby foes.");
+        SPELL_DESCRIPTIONS.put("inferno_chains", "Bind enemies with burning chains.");
     }
 
     /** Simple usage hints for non-combo based spells. */
@@ -131,6 +140,15 @@ public class SpellGUI {
         SPELL_USAGE.put("necrotic_whirlwind", "Sneak + Right Click");
         SPELL_USAGE.put("death_sentence", "Sneak + Left Click");
         SPELL_USAGE.put("aqua_slash", "Left Click");
+        SPELL_USAGE.put("abyssal_dash", "Right Click");
+        SPELL_USAGE.put("tidal_wave", "Sneak + Right Click");
+        SPELL_USAGE.put("aqua_aura", "Sneak");
+        SPELL_USAGE.put("abyssal_smash", "Sneak + Left Click");
+        SPELL_USAGE.put("fireball", "Left Click");
+        SPELL_USAGE.put("blink", "Right Click");
+        SPELL_USAGE.put("meteor", "Sneak + Right Click");
+        SPELL_USAGE.put("frost_nova", "Sneak");
+        SPELL_USAGE.put("inferno_chains", "Sneak + Left Click");
     }
 
     /** Maps spell IDs to Nexo item icons */
@@ -179,7 +197,17 @@ public class SpellGUI {
         Map.entry("wraithbound_chains", "icon_wraithbound_chains"),
         Map.entry("soul_barrier", "icon_soul_barrier"),
         Map.entry("necrotic_whirlwind", "icon_necrotic_whirlwind"),
-        Map.entry("death_sentence", "icon_death_sentence")
+        Map.entry("death_sentence", "icon_death_sentence"),
+        Map.entry("aqua_slash", "icon_aqua_slash"),
+        Map.entry("abyssal_dash", "icon_abyssal_dash"),
+        Map.entry("tidal_wave", "icon_tidal_wave"),
+        Map.entry("aqua_aura", "icon_aqua_aura"),
+        Map.entry("abyssal_smash", "icon_abyssal_smash"),
+        Map.entry("fireball", "icon_fireball"),
+        Map.entry("blink", "icon_blink"),
+        Map.entry("meteor", "icon_meteor"),
+        Map.entry("frost_nova", "icon_frost_nova"),
+        Map.entry("inferno_chains", "icon_inferno_chains")
     );
 
     // The slots where we will place the spells in a 27-slot inventory.
@@ -216,12 +244,16 @@ public class SpellGUI {
                 else if (prefix.equalsIgnoreCase("paladin")) classKey = "paladin";
                 else if (prefix.equalsIgnoreCase("death") || prefix.equalsIgnoreCase("deathknight"))
                     classKey = "deathknight";
+                else if (prefix.equalsIgnoreCase("abyssion")) classKey = "abyssion";
+                else if (prefix.equalsIgnoreCase("mage")) classKey = "mage";
             }
             if (classKey == null) {
                 String name = weapon.getItemMeta().getDisplayName();
                 if (name != null) {
                     String lower = name.toLowerCase();
                     if (lower.contains("necroslayer")) classKey = "deathknight";
+                    else if (lower.contains("abyssion")) classKey = "abyssion";
+                    else if (lower.contains("mage")) classKey = "mage";
                 }
             }
         }

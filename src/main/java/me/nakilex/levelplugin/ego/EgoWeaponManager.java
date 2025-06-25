@@ -67,6 +67,18 @@ public class EgoWeaponManager {
         death.addRankSkill(8, "Death_Sentence");
         prototypes.put("death", death);
 
+        EgoWeapon abyssion = new EgoWeapon("abyssion_ego", "Ego Abyssion Sword", EgoRarity.RARE);
+        abyssion.addRankSkill(1, "Aqua_Slash");
+        abyssion.addRankSkill(5, "Tidal_Wave");
+        abyssion.addRankSkill(8, "Abyssal_Smash");
+        prototypes.put("abyssion", abyssion);
+
+        EgoWeapon mage = new EgoWeapon("mage_ego", "Ego Mage Staff", EgoRarity.RARE);
+        mage.addRankSkill(1, "Fireball");
+        mage.addRankSkill(5, "Meteor");
+        mage.addRankSkill(8, "Inferno_Chains");
+        prototypes.put("mage", mage);
+
 
     }
 
@@ -221,6 +233,8 @@ public class EgoWeaponManager {
             case "barbarian" -> "axe_babarian";
             case "paladin" -> "paladin_hammer";
             case "death" -> "death_knight_necroslayer";
+            case "abyssion" -> "abyssion_sword";
+            case "mage" -> "mage_staff";
             default -> null;
         };
 

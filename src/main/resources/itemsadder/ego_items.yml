@@ -1,0 +1,108 @@
+# Custom Ego weapon models and icons
+abyssion_sword:
+  Pack:
+    generate_model: false
+    model: abyssion_model/abyssion_sword
+    custom_model_data: 3200
+  material: STONE_SWORD
+  permission: abyssion_sword
+  itemname: abyssion_sword
+
+abyssion_sword_shiny:
+  Pack:
+    generate_model: false
+    model: abyssion_model/abyssion_sword_shiny
+    custom_model_data: 3201
+  material: STONE_SWORD
+  permission: abyssion_sword_shiny
+  itemname: abyssion_sword_shiny
+
+abyssion_head:
+  Pack:
+    generate_model: false
+    model: abyssion_model/abyssion_head
+    custom_model_data: 3202
+  material: PAPER
+  permission: abyssion_head
+  itemname: abyssion_head
+
+abyssion_bubble:
+  Pack:
+    generate_model: false
+    model: abyssion_model/abyssion_bubble
+    custom_model_data: 3203
+  material: PAPER
+  permission: abyssion_bubble
+  itemname: abyssion_bubble
+
+mage_staff:
+  Pack:
+    generate_model: false
+    model: mage_model/mage_staff
+    custom_model_data: 3100
+  material: STONE_SWORD
+  permission: mage_staff
+  itemname: mage_staff
+
+mage_staff_shiny:
+  Pack:
+    generate_model: false
+    model: mage_model/mage_staff_shiny
+    custom_model_data: 3101
+  material: STONE_SWORD
+  permission: mage_staff_shiny
+  itemname: mage_staff_shiny
+
+icon_meteor:
+  Pack:
+    generate_model: false
+    model: mage_model/icon_meteor
+    custom_model_data: 3102
+  material: COAL
+  permission: icon_meteor
+  itemname: icon_meteor
+
+icon_arcane_missile:
+  Pack:
+    generate_model: false
+    model: mage_model/icon_arcane_missile
+    custom_model_data: 3103
+  material: COAL
+  permission: icon_arcane_missile
+  itemname: icon_arcane_missile
+
+icon_fireball:
+  Pack:
+    generate_model: false
+    model: mage_model/icon_fireball
+    custom_model_data: 3104
+  material: COAL
+  permission: icon_fireball
+  itemname: icon_fireball
+
+icon_frost_nova:
+  Pack:
+    generate_model: false
+    model: mage_model/icon_frost_nova
+    custom_model_data: 3105
+  material: COAL
+  permission: icon_frost_nova
+  itemname: icon_frost_nova
+
+icon_inferno_chains:
+  Pack:
+    generate_model: false
+    model: mage_model/icon_inferno_chains
+    custom_model_data: 3106
+  material: COAL
+  permission: icon_inferno_chains
+  itemname: icon_inferno_chains
+
+icon_blink:
+  Pack:
+    generate_model: false
+    model: mage_model/icon_blink
+    custom_model_data: 3107
+  material: COAL
+  permission: icon_blink
+  itemname: icon_blink
