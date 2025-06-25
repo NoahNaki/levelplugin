@@ -13,6 +13,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 
@@ -77,6 +78,18 @@ public class WarriorSpell implements Listener {
         if (!hasEgoWarrior(player) || !validWeapon(player)) return;
         Main.getPlugin().getLogger().info("[WR] toggle sneak by " + player.getName());
         castSpell(player, "LLR"); // Shield Barrier
+    }
+
+    @EventHandler
+    public void onSwapHand(PlayerSwapHandItemsEvent event) {
+        Player player = event.getPlayer();
+        if (!hasEgoWarrior(player) || !validWeapon(player)) return;
+        event.setCancelled(true);
+        if (player.isSneaking() && player.getHealth() <= player.getMaxHealth() * 0.5) {
+            castSpell(player, "RRR"); // Rampage when low HP
+        } else {
+            castSpell(player, "LLL"); // Judgement
+        }
     }
 
     private void castSpell(Player player, String combo) {

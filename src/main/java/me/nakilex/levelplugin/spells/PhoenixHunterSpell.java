@@ -15,6 +15,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -101,6 +102,14 @@ public class PhoenixHunterSpell implements Listener {
         if (!hasEgoPhoenix(player) || !validWeapon(player)) return;
         Main.getPlugin().getLogger().info("[PH] toggle sneak by " + player.getName());
         castSpell(player, "LRR"); // Flameburst Convergence
+    }
+
+    @EventHandler
+    public void onSwapHand(PlayerSwapHandItemsEvent event) {
+        Player player = event.getPlayer();
+        if (!hasEgoPhoenix(player) || !validWeapon(player)) return;
+        event.setCancelled(true);
+        castSpell(player, "LLR"); // Phoenix Totem manual cast
     }
 
     private void castSpell(Player player, String combo) {

@@ -13,6 +13,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 
@@ -80,6 +81,14 @@ public class PaladinSpell implements Listener {
         if (!hasEgoPaladin(player) || !validWeapon(player)) return;
         Main.getPlugin().getLogger().info("[PL] toggle sneak by " + player.getName());
         castSpell(player, "LRR"); // Hammer Of Justice
+    }
+
+    @EventHandler
+    public void onSwapHand(PlayerSwapHandItemsEvent event) {
+        Player player = event.getPlayer();
+        if (!hasEgoPaladin(player) || !validWeapon(player)) return;
+        event.setCancelled(true);
+        castSpell(player, "RLL"); // Unbreakable Will
     }
 
     private void castSpell(Player player, String combo) {

@@ -12,6 +12,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 
@@ -80,6 +81,14 @@ public class BarbarianSpell implements Listener {
         if (!hasEgoBarbarian(player) || !validWeapon(player)) return;
         Main.getPlugin().getLogger().info("[BB] toggle sneak by " + player.getName());
         castSpell(player, "LLR"); // War Cry
+    }
+
+    @EventHandler
+    public void onSwapHand(PlayerSwapHandItemsEvent event) {
+        Player player = event.getPlayer();
+        if (!hasEgoBarbarian(player) || !validWeapon(player)) return;
+        event.setCancelled(true);
+        castSpell(player, "RLL"); // Relentless Leap
     }
 
     private void castSpell(Player player, String combo) {
