@@ -234,6 +234,14 @@ public class SpellGUI {
                 else if (prefix.equalsIgnoreCase("abyssion"))
                     classKey = "abyssion";
             }
+            if (classKey == null) {
+                String name = weapon.getItemMeta().getDisplayName();
+                if (name != null) {
+                    String lower = name.toLowerCase();
+                    if (lower.contains("necroslayer")) classKey = "deathknight";
+                    else if (lower.contains("abyssion")) classKey = "abyssion";
+                }
+            }
         }
 
         if (classKey == null) {
