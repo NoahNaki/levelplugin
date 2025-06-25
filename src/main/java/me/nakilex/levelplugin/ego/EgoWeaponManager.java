@@ -242,6 +242,7 @@ public class EgoWeaponManager {
             case "death" -> "death_knight_necroslayer";
             case "abyssion" -> "abyssion_sword";
             case "mage" -> "mage_staff";
+            case "dragonian" -> "dragonian_sword";
             default -> null;
         };
 
