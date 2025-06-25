@@ -32,9 +32,13 @@ public class AbyssionSpell implements Listener {
         ItemStack item = player.getInventory().getItemInMainHand();
         if (item == null || !item.hasItemMeta()) return false;
         var pdc = item.getItemMeta().getPersistentDataContainer();
-        if (!pdc.has(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING)) return false;
-        String id = pdc.get(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING);
-        return id != null && id.startsWith("abyssion");
+        if (pdc.has(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING)) {
+            String id = pdc.get(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING);
+            if (id != null && id.startsWith("abyssion")) return true;
+        }
+        // Fallback for Mythic items that don't use our Ego tags
+        String name = item.getItemMeta().getDisplayName();
+        return name != null && name.toLowerCase().contains("abyssion");
     }
 
     private boolean validWeapon(Player player) {

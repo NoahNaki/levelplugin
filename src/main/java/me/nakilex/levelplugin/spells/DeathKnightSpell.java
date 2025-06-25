@@ -32,9 +32,13 @@ public class DeathKnightSpell implements Listener {
         ItemStack item = player.getInventory().getItemInMainHand();
         if (item == null || !item.hasItemMeta()) return false;
         var pdc = item.getItemMeta().getPersistentDataContainer();
-        if (!pdc.has(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING)) return false;
-        String id = pdc.get(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING);
-        return id != null && id.startsWith("death");
+        if (pdc.has(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING)) {
+            String id = pdc.get(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING);
+            if (id != null && id.startsWith("death")) return true;
+        }
+        // Fallback for Mythic items lacking Ego tags
+        String name = item.getItemMeta().getDisplayName();
+        return name != null && name.toLowerCase().contains("necroslayer");
     }
 
     private boolean validWeapon(Player player) {
