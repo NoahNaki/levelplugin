@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
+import me.nakilex.levelplugin.spells.context.SpellCastContextCompat;
 import me.nakilex.levelplugin.spells.effect.SpellEffect;
 import me.nakilex.levelplugin.spells.managers.CooldownManager;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
@@ -173,7 +174,7 @@ public class Spell {
             }
         }
 
-        boolean success = ctx.wasSuccessful();
+        boolean success = SpellCastContextCompat.wasSuccessful(ctx);
 
         if (!success) {
             // Effect failed (likely Mythic cooldown) so skip cost/cooldown
