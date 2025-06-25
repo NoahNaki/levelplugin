@@ -43,7 +43,6 @@ import me.nakilex.levelplugin.spells.PhoenixHunterSpell;
 import me.nakilex.levelplugin.spells.BarbarianSpell;
 import me.nakilex.levelplugin.spells.PaladinSpell;
 import me.nakilex.levelplugin.spells.WarriorSpell;
-import me.nakilex.levelplugin.spells.DeathKnightSpell;
 import me.nakilex.levelplugin.spells.gui.SpellGUIListener;
 import me.nakilex.levelplugin.spells.listener.*;
 import me.nakilex.levelplugin.trade.listeners.PlayerRightClicksPlayerListener;
@@ -152,7 +151,6 @@ public class ListenerRegistry {
         pm.registerEvents(new PhoenixHunterSpell(), plugin);
         pm.registerEvents(new BarbarianSpell(), plugin);
         pm.registerEvents(new PaladinSpell(), plugin);
-        pm.registerEvents(new DeathKnightSpell(), plugin);
         pm.registerEvents(new WarriorSpell(), plugin);
         pm.registerEvents(new ChestHologramListener(lootChestManager), plugin);
         pm.registerEvents(new LootChestShutdownListener(plugin, lootChestManager), plugin);

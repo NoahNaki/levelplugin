@@ -118,12 +118,6 @@ public class SpellGUI {
         SPELL_USAGE.put("heavenly_shield", "Sneak + Right Click");
         SPELL_USAGE.put("unbreakable_will", "Sneak + Left Click");
         SPELL_USAGE.put("last_stand", "Sneak + Left Click");
-        SPELL_USAGE.put("death_strike", "Left Click");
-        SPELL_USAGE.put("phantom_charge", "Right Click");
-        SPELL_USAGE.put("wraithbound_chains", "Sneak + Right Click");
-        SPELL_USAGE.put("soul_barrier", "Sneak + Right Click");
-        SPELL_USAGE.put("necrotic_whirlwind", "Sneak + Left Click");
-        SPELL_USAGE.put("death_sentence", "Sneak + Left Click");
     }
 
     /** Maps spell IDs to Nexo item icons */
@@ -165,14 +159,8 @@ public class SpellGUI {
         Map.entry("hammer_of_justice", "icon_hammer_of_justice"),
         Map.entry("heavenly_shield", "icon_heavenly_shield"),
         Map.entry("unbreakable_will", "icon_unbreakable_will"),
-        Map.entry("last_stand", "icon_last_stand"),
-        // Death Knight
-        Map.entry("death_strike", "icon_death_strike"),
-        Map.entry("phantom_charge", "icon_phantom_charge"),
-        Map.entry("wraithbound_chains", "icon_wraithbound_chains"),
-        Map.entry("soul_barrier", "icon_soul_barrier"),
-        Map.entry("necrotic_whirlwind", "icon_necrotic_whirlwind"),
-        Map.entry("death_sentence", "icon_death_sentence")
+        Map.entry("last_stand", "icon_last_stand")
+        // Death Knight (removed)
     );
 
     // The slots where we will place the spells in a 27-slot inventory.
@@ -207,7 +195,6 @@ public class SpellGUI {
                 else if (prefix.equalsIgnoreCase("warrior")) classKey = "warrior";
                 else if (prefix.equalsIgnoreCase("barbarian")) classKey = "barbarian";
                 else if (prefix.equalsIgnoreCase("paladin")) classKey = "paladin";
-                else if (prefix.equalsIgnoreCase("death")) classKey = "deathknight";
             }
         }
 

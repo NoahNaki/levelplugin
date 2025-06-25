@@ -55,14 +55,7 @@ public class MythicMobNameManager implements Listener {
         "HEAVENLY_SHIELD",
         "UNBREAKABLE_WILL",
         "LAST_STAND",
-        // Death Knight / Phoenix Hunter etc
-        "CURSED_SEAL",
-        "DEATH_STRIKE",
-        "PHANTOM_CHARGE",
-        "WRAITHBOUND_CHAINS",
-        "SOUL_BARRIER",
-        "NECROTIC_WHIRLWIND",
-        "DEATH_SENTENCE",
+        // Phoenix Hunter etc
         "ASHDANCE",
         "BLAZING_FEATHERS",
         "PHOENIX_TOTEM",
