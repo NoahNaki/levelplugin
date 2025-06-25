@@ -67,11 +67,6 @@ public class EgoWeaponManager {
         death.addRankSkill(8, "Death_Sentence");
         prototypes.put("death", death);
 
-        EgoWeapon abyss = new EgoWeapon("abyssion_ego", "Ego Abyssion Sword", EgoRarity.RARE);
-        abyss.addRankSkill(1, "Aqua_Slash");
-        abyss.addRankSkill(5, "Tidal_Wave");
-        abyss.addRankSkill(8, "Abyssal_Smash");
-        prototypes.put("abyssion", abyss);
 
     }
 
@@ -226,7 +221,6 @@ public class EgoWeaponManager {
             case "barbarian" -> "axe_babarian";
             case "paladin" -> "paladin_hammer";
             case "death" -> "death_knight_necroslayer";
-            case "abyssion" -> "abyssion_sword";
             default -> null;
         };
 
