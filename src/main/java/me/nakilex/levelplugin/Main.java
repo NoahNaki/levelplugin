@@ -214,8 +214,6 @@ public class Main extends JavaPlugin {
         new RerollBrowser(this);
         new me.nakilex.levelplugin.potions.gui.PotionBrowser(this, potionManager);
 
-        EffectRegistry.registerAll();
-
         if (leaderboardManager != null) {
             leaderboardManager.addAll();
         }

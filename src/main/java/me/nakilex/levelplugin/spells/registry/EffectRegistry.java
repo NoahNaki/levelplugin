@@ -10,6 +10,11 @@ import java.util.concurrent.ConcurrentHashMap;
 public class EffectRegistry {
     private static final Map<String, SpellEffect> EFFECTS = new ConcurrentHashMap<>();
     private static final EffectRegistry INSTANCE = new EffectRegistry();
+    private static boolean initialized = false;
+
+    static {
+        registerAll();
+    }
 
     /**
      * Lookup an effect by its key (case‐insensitive).
@@ -32,7 +37,9 @@ public class EffectRegistry {
     /**
      * Register every built‐in effect. Call this once in onEnable().
      */
-    public static void registerAll() {
+    public static synchronized void registerAll() {
+        if (initialized) return;
+        initialized = true;
 
         // --- CoolArcher Mythic skills ---
         register("MYTHIC_QUICK_SHOT", new MythicSkillEffect("Quick_Shot"));
