@@ -502,6 +502,13 @@ public class SpellManager {
             WeaponType.SWORD.getMaterials(),
             "MYTHIC_DANCING_BLADE", 0.0
         ));
+        windruneMap.put("LRR", new Spell(
+            "cloudpiercer", "Cloudpiercer", "LRR",
+            8.0,
+            MythicSkillConfig.getCooldownSeconds("Cloudpiercer"), 3,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_CLOUDPIERCER", 0.0
+        ));
         windruneMap.put("RLL", new Spell(
             "torrent", "Torrent", "RLL",
             10.0,

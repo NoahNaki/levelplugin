@@ -75,11 +75,18 @@ public class WindruneSpell implements Listener {
 
     @EventHandler
     public void onToggleSneak(PlayerToggleSneakEvent event) {
-        if (!event.isSneaking()) return;
         Player player = event.getPlayer();
         if (!hasEgoWindrune(player) || !validWeapon(player)) return;
-        Main.getPlugin().getLogger().info("[WR] toggle sneak by " + player.getName());
-        castSpell(player, "RLL"); // Torrent
+
+        if (event.isSneaking()) {
+            // Player started sneaking - Cloudpiercer
+            Main.getPlugin().getLogger().info("[WR] sneak start by " + player.getName());
+            castSpell(player, "LRR");
+        } else {
+            // Player stopped sneaking - Torrent
+            Main.getPlugin().getLogger().info("[WR] sneak stop by " + player.getName());
+            castSpell(player, "RLL");
+        }
     }
 
     private void castSpell(Player player, String combo) {
