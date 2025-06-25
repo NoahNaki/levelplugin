@@ -85,6 +85,13 @@ public class EffectRegistry {
         register("MYTHIC_NECROTIC_WHIRLWIND", new MythicSkillEffect("Necrotic_Whirlwind"));
         register("MYTHIC_DEATH_SENTENCE", new MythicSkillEffect("Death_Sentence"));
 
+        // --- Abyssion Mythic skills ---
+        register("MYTHIC_AQUA_SLASH", new MythicSkillEffect("Aqua_Slash"));
+        register("MYTHIC_ABYSSAL_DASH", new MythicSkillEffect("Abyssal_Dash"));
+        register("MYTHIC_TIDAL_WAVE", new MythicSkillEffect("Tidal_Wave"));
+        register("MYTHIC_AQUA_AURA", new MythicSkillEffect("Aqua_Aura"));
+        register("MYTHIC_ABYSSAL_SMASH", new MythicSkillEffect("Abyssal_Smash"));
+
 
     }
 }
