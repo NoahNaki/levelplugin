@@ -93,6 +93,13 @@ public class SpellGUI {
         SPELL_DESCRIPTIONS.put("blink", "Teleport a short distance.");
         SPELL_DESCRIPTIONS.put("frost_nova", "Freeze and damage nearby foes.");
         SPELL_DESCRIPTIONS.put("inferno_chains", "Bind enemies with burning chains.");
+
+        // Dragonian
+        SPELL_DESCRIPTIONS.put("dragonian_slash", "Slash foes with blazing speed.");
+        SPELL_DESCRIPTIONS.put("dragonian_lunge", "Lunge forward leaving flames.");
+        SPELL_DESCRIPTIONS.put("dragonian_rs", "Cleave enemies in a fiery sweep.");
+        SPELL_DESCRIPTIONS.put("dragonian_ss", "Enter a stance of draconic power.");
+        SPELL_DESCRIPTIONS.put("taotie_dragon", "Summon the fearsome Taotie dragon.");
     }
 
     /** Simple usage hints for non-combo based spells. */
@@ -149,6 +156,13 @@ public class SpellGUI {
         SPELL_USAGE.put("meteor", "Sneak + Right Click");
         SPELL_USAGE.put("frost_nova", "Sneak");
         SPELL_USAGE.put("inferno_chains", "Sneak + Left Click");
+
+        // Dragonian
+        SPELL_USAGE.put("dragonian_slash", "Left Click");
+        SPELL_USAGE.put("dragonian_lunge", "Right Click");
+        SPELL_USAGE.put("dragonian_rs", "Sneak + Right Click");
+        SPELL_USAGE.put("dragonian_ss", "Sneak");
+        SPELL_USAGE.put("taotie_dragon", "Sneak + Left Click");
     }
 
     /** Maps spell IDs to Nexo item icons */
@@ -208,6 +222,13 @@ public class SpellGUI {
         Map.entry("meteor", "icon_meteor"),
         Map.entry("frost_nova", "icon_frost_nova"),
         Map.entry("inferno_chains", "icon_inferno_chains")
+        ,
+        // Dragonian
+        Map.entry("dragonian_slash", "icon_dragonian_slash"),
+        Map.entry("dragonian_lunge", "icon_dragonian_lunge"),
+        Map.entry("dragonian_rs", "icon_dragonian_rs"),
+        Map.entry("dragonian_ss", "icon_dragonian_ss"),
+        Map.entry("taotie_dragon", "icon_taotie_dragon")
     );
 
     // The slots where we will place the spells in a 27-slot inventory.
@@ -246,6 +267,7 @@ public class SpellGUI {
                     classKey = "deathknight";
                 else if (prefix.equalsIgnoreCase("abyssion")) classKey = "abyssion";
                 else if (prefix.equalsIgnoreCase("mage")) classKey = "mage";
+                else if (prefix.equalsIgnoreCase("dragonian")) classKey = "dragonian";
             }
             if (classKey == null) {
                 String name = weapon.getItemMeta().getDisplayName();
@@ -254,6 +276,7 @@ public class SpellGUI {
                     if (lower.contains("necroslayer")) classKey = "deathknight";
                     else if (lower.contains("abyssion")) classKey = "abyssion";
                     else if (lower.contains("mage")) classKey = "mage";
+                    else if (lower.contains("dragonian")) classKey = "dragonian";
                 }
             }
         }
