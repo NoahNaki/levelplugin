@@ -133,6 +133,16 @@ public class Spell {
             if (pdc.has(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER)) {
                 ego = true;
                 rank = pdc.get(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER);
+            } else {
+                // Mythic items may lack the ego data so fall back on the display name
+                String name = hand.getItemMeta().getDisplayName();
+                if (name != null) {
+                    String lower = name.toLowerCase();
+                    if (lower.contains("abyssion") || lower.contains("necroslayer")) {
+                        ego = true;
+                        rank = 10; // treat mythic versions as max rank
+                    }
+                }
             }
         }
         if (rank < levelReq) {
