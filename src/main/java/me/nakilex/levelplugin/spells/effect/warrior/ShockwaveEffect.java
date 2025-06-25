@@ -97,6 +97,7 @@ public class ShockwaveEffect implements SpellEffect {
                 player.getWorld().playSound(player.getLocation(), Sound.BLOCK_STONE_BREAK, 0.7f, 1f);
             }
         };
+        ctx.markSuccess(true);
         return true;
     }
 }

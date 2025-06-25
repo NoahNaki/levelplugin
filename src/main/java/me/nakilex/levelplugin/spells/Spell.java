@@ -121,7 +121,13 @@ public class Spell {
         boolean ego = false;
         int rank = 0;
         ItemStack hand = player.getInventory().getItemInMainHand();
-        if (hand != null && hand.hasItemMeta()) {
+        if (hand == null || hand.getType() == Material.AIR ||
+            (!allowedWeapons.isEmpty() && !allowedWeapons.contains(hand.getType()))) {
+            player.sendMessage("§cYou can't cast " + displayName + " with this weapon.");
+            return;
+        }
+
+        if (hand.hasItemMeta()) {
             PersistentDataContainer pdc = hand.getItemMeta().getPersistentDataContainer();
             if (pdc.has(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER)) {
                 ego = true;
