@@ -19,6 +19,18 @@ public class QuestReward {
         this.itemIds = itemIds != null ? new ArrayList<>(itemIds) : new ArrayList<>();
     }
 
+    /**
+     * Backwards compatible constructor accepting the now-removed rune list.
+     * <p>
+     * Older compiled code expects this signature, so we simply ignore the
+     * runeIds parameter and delegate to the primary constructor.
+     */
+    public QuestReward(int xp, int coins, int gems,
+                       List<Integer> itemIds,
+                       List<String> runeIds) {
+        this(xp, coins, gems, itemIds);
+    }
+
     public int getXp() { return xp; }
     public int getCoins() { return coins; }
     public int getGems() { return gems; }
