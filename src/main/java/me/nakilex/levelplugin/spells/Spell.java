@@ -140,7 +140,7 @@ public class Spell {
                     String lower = name.toLowerCase();
                     if (lower.contains("abyssion") || lower.contains("necroslayer")) {
                         ego = true;
-                        rank = 10; // treat mythic versions as max rank
+                        rank = 1; // start at rank 1 like normal ego weapons
                     }
                 }
             }
