@@ -143,6 +143,7 @@ public class Spell {
                     String prefix = null;
                     if (lower.contains("abyssion")) prefix = "abyssion";
                     else if (lower.contains("necroslayer")) prefix = "death";
+                    else if (lower.contains("windrune")) prefix = "windrune";
                     if (prefix != null) {
                         ego = true;
                         rank = 1; // start at rank 1 like normal ego weapons
