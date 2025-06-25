@@ -478,6 +478,54 @@ public class SpellManager {
         spellsByClass.put("dragonian", Collections.unmodifiableMap(dragonianMap));
         plugin.getLogger().info("[SPELLS] Dragonian combos: " + dragonianMap.keySet());
 
+        // — WINDRUNE CLASS —
+        Map<String, Spell> windruneMap = new HashMap<>();
+        windruneMap.put("BASIC_ATTACK", new Spell(
+            "gale_slash", "Gale Slash", "BASIC_ATTACK",
+            0.0,
+            MythicSkillConfig.getCooldownSeconds("Gale_Slash"),
+            1,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_GALE_SLASH", 0.0
+        ));
+        windruneMap.put("LRL", new Spell(
+            "vault", "Vault", "LRL",
+            6.0,
+            MythicSkillConfig.getCooldownSeconds("Vault"), 3,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_VAULT", 0.0
+        ));
+        windruneMap.put("LLL", new Spell(
+            "dancing_blade", "Dancing Blade", "LLL",
+            8.0,
+            MythicSkillConfig.getCooldownSeconds("Dancing_Blade"), 5,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_DANCING_BLADE", 0.0
+        ));
+        windruneMap.put("LRR", new Spell(
+            "cloudpiercer", "Cloudpiercer", "LRR",
+            8.0,
+            MythicSkillConfig.getCooldownSeconds("Cloudpiercer"), 3,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_CLOUDPIERCER", 0.0
+        ));
+        windruneMap.put("RLL", new Spell(
+            "torrent", "Torrent", "RLL",
+            10.0,
+            MythicSkillConfig.getCooldownSeconds("Torrent"), 5,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_TORRENT", 0.0
+        ));
+        windruneMap.put("RRR", new Spell(
+            "windbound_fury", "Windbound Fury", "RRR",
+            20.0,
+            MythicSkillConfig.getCooldownSeconds("Windbound_Fury"), 10,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_WINDBOUND_FURY", 0.0
+        ));
+        spellsByClass.put("windrune", Collections.unmodifiableMap(windruneMap));
+        plugin.getLogger().info("[SPELLS] Windrune combos: " + windruneMap.keySet());
+
 
     }
 

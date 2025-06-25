@@ -100,6 +100,14 @@ public class SpellGUI {
         SPELL_DESCRIPTIONS.put("dragonian_rs", "Cleave enemies in a fiery sweep.");
         SPELL_DESCRIPTIONS.put("dragonian_ss", "Enter a stance of draconic power.");
         SPELL_DESCRIPTIONS.put("taotie_dragon", "Summon the fearsome Taotie dragon.");
+
+        // Windrune
+        SPELL_DESCRIPTIONS.put("gale_slash", "Slash enemies with slicing wind.");
+        SPELL_DESCRIPTIONS.put("vault", "Leap skyward with the wind's aid.");
+        SPELL_DESCRIPTIONS.put("dancing_blade", "Dash and cut surrounding foes.");
+        SPELL_DESCRIPTIONS.put("torrent", "Spin rapidly drawing enemies in.");
+        SPELL_DESCRIPTIONS.put("cloudpiercer", "Launch a piercing spear of air.");
+        SPELL_DESCRIPTIONS.put("windbound_fury", "Unleash a raging windstorm.");
     }
 
     /** Simple usage hints for non-combo based spells. */
@@ -163,6 +171,14 @@ public class SpellGUI {
         SPELL_USAGE.put("dragonian_rs", "Sneak + Right Click");
         SPELL_USAGE.put("dragonian_ss", "Sneak");
         SPELL_USAGE.put("taotie_dragon", "Sneak + Left Click");
+
+        // Windrune
+        SPELL_USAGE.put("gale_slash", "Left Click");
+        SPELL_USAGE.put("vault", "Right Click");
+        SPELL_USAGE.put("dancing_blade", "Sneak + Right Click");
+        SPELL_USAGE.put("torrent", "Sneak + Toggle");
+        SPELL_USAGE.put("cloudpiercer", "Sneak");
+        SPELL_USAGE.put("windbound_fury", "Sneak + Left Click");
     }
 
     /** Maps spell IDs to Nexo item icons */
@@ -228,7 +244,14 @@ public class SpellGUI {
         Map.entry("dragonian_lunge", "icon_dragonian_lunge"),
         Map.entry("dragonian_rs", "icon_dragonian_rs"),
         Map.entry("dragonian_ss", "icon_dragonian_ss"),
-        Map.entry("taotie_dragon", "icon_taotie_dragon")
+        Map.entry("taotie_dragon", "icon_taotie_dragon"),
+        // Windrune
+        Map.entry("gale_slash", "icon_gale_slash"),
+        Map.entry("vault", "icon_vault"),
+        Map.entry("dancing_blade", "icon_dancing_blade"),
+        Map.entry("torrent", "icon_torrent"),
+        Map.entry("cloudpiercer", "icon_cloudpiercer"),
+        Map.entry("windbound_fury", "icon_windbound_fury")
     );
 
     // The slots where we will place the spells in a 27-slot inventory.
@@ -268,6 +291,7 @@ public class SpellGUI {
                 else if (prefix.equalsIgnoreCase("abyssion")) classKey = "abyssion";
                 else if (prefix.equalsIgnoreCase("mage")) classKey = "mage";
                 else if (prefix.equalsIgnoreCase("dragonian")) classKey = "dragonian";
+                else if (prefix.equalsIgnoreCase("windrune")) classKey = "windrune";
             }
             if (classKey == null) {
                 String name = weapon.getItemMeta().getDisplayName();
@@ -277,6 +301,7 @@ public class SpellGUI {
                     else if (lower.contains("abyssion")) classKey = "abyssion";
                     else if (lower.contains("mage")) classKey = "mage";
                     else if (lower.contains("dragonian")) classKey = "dragonian";
+                    else if (lower.contains("windrune")) classKey = "windrune";
                 }
             }
         }

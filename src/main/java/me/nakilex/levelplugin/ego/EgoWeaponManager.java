@@ -86,6 +86,13 @@ public class EgoWeaponManager {
         dragonian.addRankSkill(8, "dragonian_ls_t");
         prototypes.put("dragonian", dragonian);
 
+        // Windrune class
+        EgoWeapon windrune = new EgoWeapon("windrune_ego", "Ego Windrune Blade", EgoRarity.RARE);
+        windrune.addRankSkill(1, "Gale_Slash");
+        windrune.addRankSkill(5, "Vault");
+        windrune.addRankSkill(8, "Windbound_Fury");
+        prototypes.put("windrune", windrune);
+
 
     }
 
@@ -243,6 +250,7 @@ public class EgoWeaponManager {
             case "abyssion" -> "abyssion_sword";
             case "mage" -> "mage_staff";
             case "dragonian" -> "dragonian_sword";
+            case "windrune" -> "gale_glaive_windreaver";
             default -> null;
         };
 
@@ -289,6 +297,22 @@ public class EgoWeaponManager {
                 meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
                 meta.setUnbreakable(true);
                 stack.setItemMeta(meta);
+            }
+        }
+
+        // Ensure ego data is present even if the Nexo model failed to load
+        ItemMeta checkMeta = stack.getItemMeta();
+        if (checkMeta != null) {
+            PersistentDataContainer checkPdc = checkMeta.getPersistentDataContainer();
+            if (!checkPdc.has(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING)) {
+                checkPdc.set(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING, weapon.getId());
+                checkPdc.set(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, weapon.getRank());
+                checkPdc.set(ItemUtil.EGO_EXP_KEY, PersistentDataType.INTEGER, weapon.getExp());
+                checkPdc.set(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING, weapon.getRarity().name());
+                checkMeta.setDisplayName(weapon.getRarity().getColor() + weapon.getName());
+                checkMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
+                checkMeta.setUnbreakable(true);
+                stack.setItemMeta(checkMeta);
             }
         }
 
