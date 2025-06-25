@@ -67,6 +67,12 @@ public class EgoWeaponManager {
         death.addRankSkill(8, "Death_Sentence");
         prototypes.put("death", death);
 
+        EgoWeapon abyssion = new EgoWeapon("abyssion_ego", "Ego Abyssion Sword", EgoRarity.RARE);
+        abyssion.addRankSkill(1, "Aqua_Slash");
+        abyssion.addRankSkill(5, "Tidal_Wave");
+        abyssion.addRankSkill(8, "Abyssal_Smash");
+        prototypes.put("abyssion", abyssion);
+
 
     }
 

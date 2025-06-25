@@ -354,6 +354,47 @@ public class SpellManager {
         spellsByClass.put("deathknight", Collections.unmodifiableMap(deathMap));
         plugin.getLogger().info("[SPELLS] DeathKnight combos: " + deathMap.keySet());
 
+        // — ABYSSION CLASS —
+        Map<String, Spell> abyssionMap = new HashMap<>();
+        abyssionMap.put("BASIC_ATTACK", new Spell(
+            "aqua_slash", "Aqua Slash", "BASIC_ATTACK",
+            0.0,
+            MythicSkillConfig.getCooldownSeconds("Aqua_Slash"),
+            1,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_AQUA_SLASH", 0.0
+        ));
+        abyssionMap.put("LRL", new Spell(
+            "abyssal_dash", "Abyssal Dash", "LRL",
+            6.0,
+            MythicSkillConfig.getCooldownSeconds("Abyssal_Dash"), 3,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_ABYSSAL_DASH", 0.0
+        ));
+        abyssionMap.put("LLL", new Spell(
+            "tidal_wave", "Tidal Wave", "LLL",
+            8.0,
+            MythicSkillConfig.getCooldownSeconds("Tidal_Wave"), 5,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_TIDAL_WAVE", 0.0
+        ));
+        abyssionMap.put("RLL", new Spell(
+            "aqua_aura", "Aqua Aura", "RLL",
+            10.0,
+            MythicSkillConfig.getCooldownSeconds("Aqua_Aura"), 5,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_AQUA_AURA", 0.0
+        ));
+        abyssionMap.put("RRR", new Spell(
+            "abyssal_smash", "Abyssal Smash", "RRR",
+            20.0,
+            MythicSkillConfig.getCooldownSeconds("Abyssal_Smash"), 10,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_ABYSSAL_SMASH", 0.0
+        ));
+        spellsByClass.put("abyssion", Collections.unmodifiableMap(abyssionMap));
+        plugin.getLogger().info("[SPELLS] Abyssion combos: " + abyssionMap.keySet());
+
 
     }
 
