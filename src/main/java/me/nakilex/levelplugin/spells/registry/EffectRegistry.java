@@ -40,7 +40,7 @@ public class EffectRegistry {
         register("MYTHIC_WINDRAZOR", new MythicSkillEffect("Windrazor"));
         register("MYTHIC_ARROW_BARRAGE", new MythicSkillEffect("Arrow_Barrage"));
         register("MYTHIC_DRAGON_PIERCER", new MythicSkillEffect("Dragon_Piercer"));
-        register("MYTHIC_DEADLY_JAVELIN", new MythicSkillEffect("Deadly_Javelin"));
+        register("BOW_DRONE", new me.nakilex.levelplugin.spells.effect.archer.BowDroneEffect());
 
         // --- PhoenixHunter Mythic skills ---
         register("MYTHIC_BLAZING_FEATHERS", new MythicSkillEffect("Blazing_Feathers"));
@@ -94,7 +94,7 @@ public class EffectRegistry {
 
         // --- Mage Mythic skills ---
         register("MYTHIC_FIREBALL", new MythicSkillEffect("Fireball"));
-        register("MYTHIC_BLINK", new MythicSkillEffect("Blink"));
+        register("MYTHIC_BLINK", new me.nakilex.levelplugin.spells.effect.mage.TeleportEffect());
         register("MYTHIC_METEOR", new MythicSkillEffect("Meteor"));
         register("MYTHIC_FROST_NOVA", new MythicSkillEffect("Frost_Nova"));
         register("MYTHIC_INFERNO_CHAINS", new MythicSkillEffect("Inferno_Chains"));

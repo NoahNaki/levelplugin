@@ -87,11 +87,11 @@ public class SpellManager {
             "MYTHIC_ARROW_BARRAGE", 0.0
         ));
         coolMap.put("RRR", new Spell(
-            "deadly_javelin", "Deadly Javelin", "RRR",
+            "bow_drone", "Bow Drone", "RRR",
             10.0,
             MythicSkillConfig.getCooldownSeconds("Deadly_Javelin"), 10,
             WeaponType.SWORD.getMaterials(),
-            "MYTHIC_DEADLY_JAVELIN", 0.0
+            "BOW_DRONE", 0.0
         ));
         coolMap.put("LLL", new Spell(
             "dragon_piercer", "Dragon Piercer", "LLL",
