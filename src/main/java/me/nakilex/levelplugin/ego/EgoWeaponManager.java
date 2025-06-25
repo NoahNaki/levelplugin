@@ -86,6 +86,13 @@ public class EgoWeaponManager {
         dragonian.addRankSkill(8, "dragonian_ls_t");
         prototypes.put("dragonian", dragonian);
 
+        // Windrune class
+        EgoWeapon windrune = new EgoWeapon("windrune_ego", "Ego Windrune Blade", EgoRarity.RARE);
+        windrune.addRankSkill(1, "Gale_Slash");
+        windrune.addRankSkill(5, "Vault");
+        windrune.addRankSkill(8, "Windbound_Fury");
+        prototypes.put("windrune", windrune);
+
 
     }
 
@@ -243,6 +250,7 @@ public class EgoWeaponManager {
             case "abyssion" -> "abyssion_sword";
             case "mage" -> "mage_staff";
             case "dragonian" -> "dragonian_sword";
+            case "windrune" -> "windrune_blade";
             default -> null;
         };
 
