@@ -113,6 +113,14 @@ public class EffectRegistry {
         register("MYTHIC_DRAGONIAN_SS_T", new MythicSkillEffect("dragonian_ss_t"));
         register("MYTHIC_DRAGONIAN_LS_T", new MythicSkillEffect("dragonian_ls_t"));
 
+        // --- Windrune Mythic skills ---
+        register("MYTHIC_GALE_SLASH", new MythicSkillEffect("Gale_Slash"));
+        register("MYTHIC_VAULT", new MythicSkillEffect("Vault"));
+        register("MYTHIC_DANCING_BLADE", new MythicSkillEffect("Dancing_Blade"));
+        register("MYTHIC_TORRENT", new MythicSkillEffect("Torrent"));
+        register("MYTHIC_CLOUDPIERCER", new MythicSkillEffect("Cloudpiercer"));
+        register("MYTHIC_WINDBOUND_FURY", new MythicSkillEffect("Windbound_Fury"));
+
 
 
 
