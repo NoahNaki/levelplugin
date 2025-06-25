@@ -233,6 +233,8 @@ public class EgoWeaponManager {
             case "barbarian" -> "axe_babarian";
             case "paladin" -> "paladin_hammer";
             case "death" -> "death_knight_necroslayer";
+            case "abyssion" -> "abyssion_sword";
+            case "mage" -> "mage_staff";
             default -> null;
         };
 
