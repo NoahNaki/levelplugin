@@ -139,11 +139,13 @@ public class Spell {
                 // Mythic items may lack the ego data so fall back on the display name
                 String name = hand.getItemMeta().getDisplayName();
                 if (name != null) {
-                    String lower = name.toLowerCase();
+                    String stripped = org.bukkit.ChatColor.stripColor(name);
+                    String lower = stripped.toLowerCase();
                     String prefix = null;
                     if (lower.contains("abyssion")) prefix = "abyssion";
                     else if (lower.contains("necroslayer")) prefix = "death";
-                    else if (lower.contains("windrune")) prefix = "windrune";
+                    else if (lower.contains("windrune") || lower.contains("windreaver"))
+                        prefix = "windrune";
                     if (prefix != null) {
                         ego = true;
                         rank = 1; // start at rank 1 like normal ego weapons
