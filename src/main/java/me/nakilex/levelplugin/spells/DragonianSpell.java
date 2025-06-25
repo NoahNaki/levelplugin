@@ -4,6 +4,7 @@ import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.spells.Spell;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
