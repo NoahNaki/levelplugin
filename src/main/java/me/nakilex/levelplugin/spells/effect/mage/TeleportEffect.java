@@ -2,7 +2,6 @@ package me.nakilex.levelplugin.spells.effect.mage;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
-import me.nakilex.levelplugin.player.listener.ClickComboListener;
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
 import me.nakilex.levelplugin.spells.effect.SpellEffect;
 import me.nakilex.levelplugin.spells.utils.SpellUtils;
@@ -142,11 +141,17 @@ public class TeleportEffect implements SpellEffect {
     private Location findSafeLocation(Location target, double range, Player player) {
         for (int dy = (int)-range; dy <= range; dy++) {
             Location temp = target.clone().add(0, dy, 0);
-            if (ClickComboListener.isLocTpSafe(temp)) {
+            if (isLocationTpSafe(temp)) {
                 return temp;
             }
         }
         return null;
+    }
+
+    private boolean isLocationTpSafe(Location location) {
+        var block = location.getBlock();
+        if (block.isLiquid() || !block.isPassable()) return false;
+        return location.clone().add(0, 1, 0).getBlock().isPassable();
     }
 
     // ────────────────────────────────────────────────────────────────────────────

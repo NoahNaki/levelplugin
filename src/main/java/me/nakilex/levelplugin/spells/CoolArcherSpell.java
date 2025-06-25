@@ -53,7 +53,7 @@ public class CoolArcherSpell implements Listener {
         Main.getPlugin().getLogger().info("[CA] left click " + player.getName() + " sneaking=" + player.isSneaking());
 
         if (player.isSneaking()) {
-            castSpell(player, "RRR"); // Deadly Javelin
+            castSpell(player, "RRR"); // Bow Drone
         } else {
             castSpell(player, "BASIC_ATTACK"); // Quick Shot
         }
