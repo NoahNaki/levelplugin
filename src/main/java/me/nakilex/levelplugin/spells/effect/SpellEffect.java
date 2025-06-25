@@ -11,5 +11,10 @@ public interface SpellEffect {
      * animation actually triggered. Returning false indicates the effect did
      * nothing, e.g. because a Mythic skill was still on cooldown.
      */
-    boolean apply(SpellCastContext ctx);
+    /**
+     * Apply the effect using the provided context.
+     * Effects should call {@link SpellCastContext#markSuccess(boolean)} to
+     * indicate whether any action actually occurred.
+     */
+    void apply(SpellCastContext ctx);
 }

@@ -16,7 +16,7 @@ public class MythicSkillEffect implements SpellEffect {
     }
 
     @Override
-    public boolean apply(SpellCastContext ctx) {
+    public void apply(SpellCastContext ctx) {
         Player caster = ctx.getPlayer();
 
         // Calculate scaled damage using player stats and any modifiers
@@ -54,6 +54,5 @@ public class MythicSkillEffect implements SpellEffect {
             success = MythicBukkit.inst().getAPIHelper().castSkill(caster, skill);
         }
         ctx.markSuccess(success);
-        return success;
     }
 }

@@ -121,7 +121,13 @@ public class Spell {
         boolean ego = false;
         int rank = 0;
         ItemStack hand = player.getInventory().getItemInMainHand();
-        if (hand != null && hand.hasItemMeta()) {
+        if (hand == null || hand.getType() == Material.AIR ||
+            (!allowedWeapons.isEmpty() && !allowedWeapons.contains(hand.getType()))) {
+            player.sendMessage("§cYou can't cast " + displayName + " with this weapon.");
+            return;
+        }
+
+        if (hand.hasItemMeta()) {
             PersistentDataContainer pdc = hand.getItemMeta().getPersistentDataContainer();
             if (pdc.has(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER)) {
                 ego = true;
@@ -157,17 +163,17 @@ public class Spell {
         }
 
         // 5) Attempt to fire effects first to see if Mythic cooldown allows it
-        boolean success = false;
         for (String key : ctx.getEffectKeys()) {
             SpellEffect effect = EffectRegistry.get(key);
             if (effect != null) {
-                if (effect.apply(ctx)) success = true;
+                // Apply the effect and rely on the context to track success
+                effect.apply(ctx);
             } else {
                 player.sendMessage("§eUnknown effect: " + key);
             }
         }
 
-        success = success || ctx.wasSuccessful();
+        boolean success = ctx.wasSuccessful();
 
         if (!success) {
             // Effect failed (likely Mythic cooldown) so skip cost/cooldown
