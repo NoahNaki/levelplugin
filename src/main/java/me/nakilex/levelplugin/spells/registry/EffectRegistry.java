@@ -77,6 +77,13 @@ public class EffectRegistry {
         register("MYTHIC_HEAVENLY_SHIELD", new MythicSkillEffect("Heavenly_Shield"));
         register("MYTHIC_UNBREAKABLE_WILL", new MythicSkillEffect("Unbreakable_Will"));
         register("MYTHIC_LAST_STAND", new MythicSkillEffect("Last_Stand"));
+        // --- Death Knight Mythic skills ---
+        register("MYTHIC_DEATH_STRIKE", new MythicSkillEffect("Death_Strike_ST"));
+        register("MYTHIC_PHANTOM_CHARGE", new MythicSkillEffect("Phantom_Charge"));
+        register("MYTHIC_WRAITHBOUND_CHAINS", new MythicSkillEffect("Wraithbound_Chains"));
+        register("MYTHIC_SOUL_BARRIER", new MythicSkillEffect("Soul_Barrier"));
+        register("MYTHIC_NECROTIC_WHIRLWIND", new MythicSkillEffect("Necrotic_Whirlwind"));
+        register("MYTHIC_DEATH_SENTENCE", new MythicSkillEffect("Death_Sentence"));
 
 
     }
