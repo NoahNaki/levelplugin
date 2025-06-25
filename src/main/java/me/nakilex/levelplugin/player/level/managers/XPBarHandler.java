@@ -97,7 +97,6 @@ public class XPBarHandler {
             if (ci != null) {
                 int id           = ci.getId();
                 int reqLevel     = ci.getLevelRequirement();
-                int reqLevel     = ci.getLevelRequirement();
 
                 // Check level requirement only
                 if (!equipped.contains(id) && newLevel >= reqLevel) {

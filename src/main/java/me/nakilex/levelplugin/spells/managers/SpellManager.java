@@ -23,6 +23,15 @@ public class SpellManager {
         return instance;
     }
 
+    /**
+     * Convenience constructor for demo utilities that don’t have access to the
+     * plugin instance. This simply delegates to the main constructor using the
+     * singleton {@link Main} instance.
+     */
+    public SpellManager() {
+        this(Main.getInstance());
+    }
+
     public SpellManager(Main plugin) {
         instance = this;
         this.plugin = plugin;

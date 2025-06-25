@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.spells.effect.warrior;
 
 import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
+import me.nakilex.levelplugin.spells.context.SpellCastContextCompat;
 import me.nakilex.levelplugin.spells.effect.SpellEffect;
 import me.nakilex.levelplugin.spells.utils.SpellUtils;
 import me.nakilex.levelplugin.spells.utils.animation.SpellAnimation;
@@ -97,6 +98,6 @@ public class ShockwaveEffect implements SpellEffect {
                 player.getWorld().playSound(player.getLocation(), Sound.BLOCK_STONE_BREAK, 0.7f, 1f);
             }
         };
-        ctx.markSuccess(true);
+        SpellCastContextCompat.markSuccess(ctx, true);
     }
 }
