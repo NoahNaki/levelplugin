@@ -19,6 +19,18 @@ public class QuestReward {
         this.itemIds = itemIds != null ? new ArrayList<>(itemIds) : new ArrayList<>();
     }
 
+    /**
+     * Legacy constructor that accepted rune IDs. Runes were removed from the
+     * plugin, but this overload remains for backward compatibility with older
+     * builds which still invoke it.
+     */
+    public QuestReward(int xp, int coins, int gems,
+                       List<Integer> itemIds,
+                       List<String> runeIds) {
+        this(xp, coins, gems, itemIds);
+        // runeIds ignored
+    }
+
     public int getXp() { return xp; }
     public int getCoins() { return coins; }
     public int getGems() { return gems; }
