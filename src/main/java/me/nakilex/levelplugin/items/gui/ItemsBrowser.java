@@ -178,6 +178,7 @@ public class ItemsBrowser implements CommandExecutor, Listener {
                 String[] parts = tpl.getBaseName().split(" ");
                 if (parts.length >= 2) {
                     String key = parts[1].toLowerCase();
+                    if (key.equals("necroslayer")) key = "death_knight";
                     me.nakilex.levelplugin.ego.EgoWeapon proto =
                             me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance().getPrototype(key);
                     if (proto != null) {
@@ -376,6 +377,7 @@ public class ItemsBrowser implements CommandExecutor, Listener {
                 String[] parts = template.getBaseName().split(" ");
                 if (parts.length >= 2) {
                     String key = parts[1].toLowerCase();
+                    if (key.equals("necroslayer")) key = "death_knight";
                     me.nakilex.levelplugin.ego.EgoWeapon proto =
                             me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance().getPrototype(key);
                     if (proto != null) {
