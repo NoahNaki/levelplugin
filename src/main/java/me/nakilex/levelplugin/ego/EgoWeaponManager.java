@@ -300,6 +300,22 @@ public class EgoWeaponManager {
             }
         }
 
+        // Ensure ego data is present even if the Nexo model failed to load
+        ItemMeta checkMeta = stack.getItemMeta();
+        if (checkMeta != null) {
+            PersistentDataContainer checkPdc = checkMeta.getPersistentDataContainer();
+            if (!checkPdc.has(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING)) {
+                checkPdc.set(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING, weapon.getId());
+                checkPdc.set(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, weapon.getRank());
+                checkPdc.set(ItemUtil.EGO_EXP_KEY, PersistentDataType.INTEGER, weapon.getExp());
+                checkPdc.set(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING, weapon.getRarity().name());
+                checkMeta.setDisplayName(weapon.getRarity().getColor() + weapon.getName());
+                checkMeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
+                checkMeta.setUnbreakable(true);
+                stack.setItemMeta(checkMeta);
+            }
+        }
+
         ItemUtil.updateEgoWeaponTooltip(stack, null);
         return stack;
     }
