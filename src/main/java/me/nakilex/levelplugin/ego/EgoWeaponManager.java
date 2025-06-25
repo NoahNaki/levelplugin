@@ -250,7 +250,7 @@ public class EgoWeaponManager {
             case "abyssion" -> "abyssion_sword";
             case "mage" -> "mage_staff";
             case "dragonian" -> "dragonian_sword";
-            case "windrune" -> "windrune_blade";
+            case "windrune" -> "gale_glaive_windreaver";
             default -> null;
         };
 
