@@ -1,3 +1,4 @@
+# Prefixes for MythicMob entities that should not display HP bars
 prefixes:
   - VFX_
   - QUICK_SHOT
