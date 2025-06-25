@@ -442,24 +442,38 @@ public class SpellManager {
         dragonianMap.put("BASIC_ATTACK", new Spell(
             "dragonian_slash", "Dragonian Slash", "BASIC_ATTACK",
             0.0,
-            MythicSkillConfig.getCooldownSeconds("Dragonian_Slash"),
+            MythicSkillConfig.getCooldownSeconds("dragonian_l_t"),
             1,
             WeaponType.SWORD.getMaterials(),
-            "MYTHIC_DRAGONIAN_SLASH", 0.0
+            "MYTHIC_DRAGONIAN_L_T", 0.0
         ));
         dragonianMap.put("LRL", new Spell(
             "dragonian_lunge", "Dragonian Lunge", "LRL",
             6.0,
-            MythicSkillConfig.getCooldownSeconds("Dragonian_Lunge"), 3,
+            MythicSkillConfig.getCooldownSeconds("dragonian_r_t"), 3,
             WeaponType.SWORD.getMaterials(),
-            "MYTHIC_DRAGONIAN_LUNGE", 0.0
+            "MYTHIC_DRAGONIAN_R_T", 0.0
+        ));
+        dragonianMap.put("LLL", new Spell(
+            "dragonian_rs", "Dragonian RS", "LLL",
+            8.0,
+            MythicSkillConfig.getCooldownSeconds("dragonian_rs_t"), 5,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_DRAGONIAN_RS_T", 0.0
+        ));
+        dragonianMap.put("LLR", new Spell(
+            "dragonian_ss", "Dragonian Stance", "LLR",
+            10.0,
+            MythicSkillConfig.getCooldownSeconds("dragonian_ss_t"), 5,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_DRAGONIAN_SS_T", 0.0
         ));
         dragonianMap.put("RRR", new Spell(
             "taotie_dragon", "Taotie Dragon", "RRR",
             20.0,
-            MythicSkillConfig.getCooldownSeconds("Taotie_Dragon"), 10,
+            MythicSkillConfig.getCooldownSeconds("dragonian_ls_t"), 10,
             WeaponType.SWORD.getMaterials(),
-            "MYTHIC_TAOTIE_DRAGON", 0.0
+            "MYTHIC_DRAGONIAN_LS_T", 0.0
         ));
         spellsByClass.put("dragonian", Collections.unmodifiableMap(dragonianMap));
         plugin.getLogger().info("[SPELLS] Dragonian combos: " + dragonianMap.keySet());
