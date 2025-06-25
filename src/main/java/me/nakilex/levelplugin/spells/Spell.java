@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.spells;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.ego.EgoRarity;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
 import me.nakilex.levelplugin.spells.context.SpellCastContextCompat;
@@ -12,6 +13,7 @@ import me.nakilex.levelplugin.spells.registry.EffectRegistry;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
@@ -133,6 +135,28 @@ public class Spell {
             if (pdc.has(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER)) {
                 ego = true;
                 rank = pdc.get(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER);
+            } else {
+                // Mythic items may lack the ego data so fall back on the display name
+                String name = hand.getItemMeta().getDisplayName();
+                if (name != null) {
+                    String lower = name.toLowerCase();
+                    String prefix = null;
+                    if (lower.contains("abyssion")) prefix = "abyssion";
+                    else if (lower.contains("necroslayer")) prefix = "death";
+                    if (prefix != null) {
+                        ego = true;
+                        rank = 1; // start at rank 1 like normal ego weapons
+                        // initialize basic ego data so tooltip works
+                        ItemMeta meta = hand.getItemMeta();
+                        PersistentDataContainer mpdc = meta.getPersistentDataContainer();
+                        mpdc.set(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING, prefix + "_ego");
+                        mpdc.set(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
+                        mpdc.set(ItemUtil.EGO_EXP_KEY, PersistentDataType.INTEGER, 0);
+                        mpdc.set(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING, EgoRarity.RARE.name());
+                        hand.setItemMeta(meta);
+                        ItemUtil.updateEgoWeaponTooltip(hand, player);
+                    }
+                }
             }
         }
         if (rank < levelReq) {

@@ -61,6 +61,13 @@ public class EgoWeaponManager {
         paladin.addRankSkill(8, "Last_Stand");
         prototypes.put("paladin", paladin);
 
+        EgoWeapon death = new EgoWeapon("death_ego", "Ego Death Knight Sword", EgoRarity.RARE);
+        death.addRankSkill(1, "Death_Strike_ST");
+        death.addRankSkill(5, "Wraithbound_Chains");
+        death.addRankSkill(8, "Death_Sentence");
+        prototypes.put("death", death);
+
+
     }
 
     public EgoWeapon getPrototype(String key) {
@@ -213,6 +220,7 @@ public class EgoWeaponManager {
             case "warrior" -> "warrior_sword";
             case "barbarian" -> "axe_babarian";
             case "paladin" -> "paladin_hammer";
+            case "death" -> "death_knight_necroslayer";
             default -> null;
         };
 
