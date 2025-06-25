@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.spells;
 
 import io.lumine.mythic.bukkit.MythicBukkit;
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import org.bukkit.persistence.PersistentDataType;

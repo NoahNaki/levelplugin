@@ -1,6 +1,6 @@
 package me.nakilex.levelplugin.mob.listeners;
 
-import io.lumine.mythic.api.events.MythicDamageEvent;
+import io.lumine.mythic.bukkit.events.MythicDamageEvent;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;

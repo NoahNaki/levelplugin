@@ -2,10 +2,12 @@ package me.nakilex.levelplugin.items.data;
 
 import me.nakilex.levelplugin.items.listeners.WeaponStatsListener;
 import me.nakilex.levelplugin.items.managers.ItemManager;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.Set;
 import java.util.UUID;
