@@ -79,6 +79,13 @@ public class EgoWeaponManager {
         mage.addRankSkill(8, "Inferno_Chains");
         prototypes.put("mage", mage);
 
+        // Dragonian class
+        EgoWeapon dragonian = new EgoWeapon("dragonian_ego", "Ego Dragonian Sword", EgoRarity.RARE);
+        dragonian.addRankSkill(1, "Dragonian_Slash");
+        dragonian.addRankSkill(5, "Dragonian_Lunge");
+        dragonian.addRankSkill(8, "Taotie_Dragon");
+        prototypes.put("dragonian", dragonian);
+
 
     }
 
