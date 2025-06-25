@@ -48,10 +48,6 @@ public class StatsMenuListener implements Listener {
                 return;
             }
 
-            if (displayName.equalsIgnoreCase("Equip Runes")) {
-                player.performCommand("equiprunes");
-                return;
-            }
 
             if (displayName.equalsIgnoreCase("Settings")) {
                 player.performCommand("settings");

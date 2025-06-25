@@ -31,12 +31,6 @@ import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.player.commands.WipeProfileCommand;
 import me.nakilex.levelplugin.potions.commands.AddPotionCommand;
 import me.nakilex.levelplugin.lootchests.commands.LootChestCommand;
-import me.nakilex.levelplugin.runes.commands.EquipRunesCommand;
-import me.nakilex.levelplugin.runes.commands.IdentifyRunesCommand;
-import me.nakilex.levelplugin.runes.gui.EquipRunesGUI;
-import me.nakilex.levelplugin.runes.gui.IdentifyRunesGUI;
-import me.nakilex.levelplugin.runes.gui.RuneBrowser;
-import me.nakilex.levelplugin.runes.manager.RunesManager;
 import me.nakilex.levelplugin.salvage.commands.SalvageCommand;
 import me.nakilex.levelplugin.settings.commands.SettingsCommand;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
@@ -96,9 +90,6 @@ public class CommandRegistry {
                                         AuctionHouseManager auctionMgr,
                                         AuctionHouseGUI auctionGui,
                                         TipsConfigManager tipsCfg,
-                                        IdentifyRunesGUI identifyGui,
-                                        RunesManager runesManager,
-                                        EquipRunesGUI equipGui,
                                         me.nakilex.levelplugin.enchanting.gui.EnchantGUI enchantGUI,
                                         BroadcastManager broadcastMgr,
                                         QuestManager questManager,
@@ -145,10 +136,7 @@ public class CommandRegistry {
         plugin.getCommand("gemexchange").setExecutor(new GemExchangeCommand(gemGui));
         plugin.getCommand("tipsreload").setExecutor(new TipsReloadCommand(tipsCfg, broadcastMgr));
         plugin.getCommand("toggle").setExecutor(new ToggleCommand(plugin));
-        plugin.getCommand("identifyrunes").setExecutor(new IdentifyRunesCommand(identifyGui));
-        plugin.getCommand("runebrowser").setExecutor(new RuneBrowser(plugin, runesManager));
         plugin.getCommand("auctionhouse").setExecutor(new AuctionCommand(auctionMgr, auctionGui));
-        plugin.getCommand("equiprunes").setExecutor(new EquipRunesCommand(equipGui));
         plugin.getCommand("quest").setExecutor(new QuestCommand(questManager));
         plugin.getCommand("location").setExecutor(new LocationCommand(fastTravelManager));
         plugin.getCommand("fasttravel").setExecutor(new FastTravelCommand(plugin.getFastTravelGUI()));

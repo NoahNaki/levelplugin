@@ -35,9 +35,6 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
-import me.nakilex.levelplugin.runes.gui.EquipRunesGUI;
-import me.nakilex.levelplugin.runes.gui.IdentifyRunesGUI;
-import me.nakilex.levelplugin.runes.manager.RunesManager;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
 import me.nakilex.levelplugin.spells.listener.MeteorListener;
@@ -118,13 +115,10 @@ public class Main extends JavaPlugin {
     private ItemConfig itemConfig;
     private PlayerConfig playerConfig;
     private DmgNumberToggleManager dmgNumberToggleManager;
-    private IdentifyRunesGUI identifyGui;
     private ManaCostTracker manaTracker;
     private ProjectileFriendlyFireListener projectileFriendlyFireListener;
     private FileConfiguration bossConfig;
     private File bossConfigFile;
-    private RunesManager runesManager;
-    private IdentifyRunesGUI identifyRunesGUI;
     private GemsManager gemsManager;
     private GemExchangeGUI gemGui;
     private me.nakilex.levelplugin.enchanting.managers.EnchantManager enchantManager;
@@ -151,7 +145,6 @@ public class Main extends JavaPlugin {
 
     private final Map<UUID, List<NPC>> activeBowDrones = new HashMap<>();
     private ChestHologramListener chestHologramListener;
-    private EquipRunesGUI equipGui;
     private me.nakilex.levelplugin.auctionhouse.AuctionHouseManager auctionHouseManager;
     private me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI auctionHouseGUI;
     private SettingsManager settingsManager;
@@ -262,14 +255,11 @@ public class Main extends JavaPlugin {
         economyManager = new EconomyManager(this);
         itemUpgradeManager = new ItemUpgradeManager(this);
         itemRepairManager = new ItemRepairManager();
-        runesManager = new RunesManager(this);
-        spellmanager = new SpellManager(this, runesManager);
+        spellmanager = new SpellManager(this);
         partyManager = new PartyManager();
         friendManager = new FriendManager();
         guildManager = me.nakilex.levelplugin.guild.GuildManager.getInstance();
         guildGUI = new me.nakilex.levelplugin.guild.GuildGUI(guildManager);
-        identifyRunesGUI = new IdentifyRunesGUI(this, runesManager);
-        identifyGui = identifyRunesGUI;
         gemsManager = new GemsManager();
         gemGui = new GemExchangeGUI(this, gemsManager);
         auctionHouseManager = new me.nakilex.levelplugin.auctionhouse.AuctionHouseManager(this, economyManager);
@@ -299,7 +289,6 @@ public class Main extends JavaPlugin {
         townStageManager = new me.nakilex.levelplugin.environment.stage.TownStageManager(this);
         buildingStageManager = new me.nakilex.levelplugin.environment.stage.BuildingStageManager(this);
         cooldownManager.setLootChestManager(lootChestManager);
-        equipGui = new EquipRunesGUI(this, runesManager, identifyRunesGUI);
         enchantManager = new me.nakilex.levelplugin.enchanting.managers.EnchantManager();
         enchantGUI = new me.nakilex.levelplugin.enchanting.gui.EnchantGUI(enchantManager, economyManager);
 
@@ -346,9 +335,6 @@ public class Main extends JavaPlugin {
             auctionHouseManager,
             auctionHouseGUI,
             tipsCfg,
-            identifyRunesGUI,
-            runesManager,
-            equipGui,
             enchantGUI,
             broadcastMgr,
             questManager,
@@ -374,9 +360,6 @@ public class Main extends JavaPlugin {
             bossConfig,
             meteorListener,
             gemsManager,
-            identifyRunesGUI,
-            runesManager,
-            equipGui,
             enchantGUI,
             chestHologramListener,
             questManager,
@@ -578,10 +561,6 @@ public class Main extends JavaPlugin {
 
     public EffectManager getEffectManager() {
         return effectManager;
-    }
-
-    public RunesManager getRunesManager() {
-        return runesManager;
     }
 
     public QuestManager getQuestManager() {

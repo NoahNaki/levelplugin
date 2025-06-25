@@ -2,8 +2,6 @@ package me.nakilex.levelplugin.player.listener;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
-import me.nakilex.levelplugin.runes.manager.RunesManager;
-import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -16,7 +14,6 @@ import java.util.UUID;
 public class PlayerQuitListener implements Listener {
 
     private final PlayerConfig  playerConfig;
-    private final RunesManager  runesManager;
     private final EnvironmentManager environmentManager;
     private final me.nakilex.levelplugin.environment.stage.TownStageManager stageManager;
 
@@ -24,7 +21,6 @@ public class PlayerQuitListener implements Listener {
         this.playerConfig = playerConfig;
         this.environmentManager = envManager;
         this.stageManager = envManager.getStageManager();
-        this.runesManager = SpellManager.getInstance().getRunesManager();
     }
 
     @EventHandler
@@ -32,11 +28,7 @@ public class PlayerQuitListener implements Listener {
         Player player = event.getPlayer();
         UUID pid = player.getUniqueId();
 
-        // Get currently equipped runes and save them
-        List<String> equipped = runesManager.getEquippedRuneIds(player);
-        Main.getInstance()
-            .getPlayerConfig()
-            .setEquippedRunes(pid, equipped);
+        // Persist player data
         Main.getInstance()
             .getPlayerConfig()
             .savePlayer(pid);

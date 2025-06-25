@@ -3,9 +3,6 @@ package me.nakilex.levelplugin.spells;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
-import me.nakilex.levelplugin.runes.manager.RunesManager;
-import me.nakilex.levelplugin.runes.model.Rune;
-import me.nakilex.levelplugin.runes.model.RuneEffect;
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
 import me.nakilex.levelplugin.spells.effect.SpellEffect;
 import me.nakilex.levelplugin.spells.managers.CooldownManager;
@@ -34,7 +31,7 @@ public class Spell {
     private final int levelReq;
     private final List<Material> allowedWeapons;
     private final String effectKey;
-    private final double baseDamage;        // ← holds the pre-rune damage
+    private final double baseDamage;        // base unmodified damage
     private final boolean passive;          // if true skip mana cost indicator
 
     // static managers
@@ -111,7 +108,7 @@ public class Spell {
     }
 
     /**
-     * Handles cooldown, runes, mana deduction, and effect dispatch.
+     * Handles cooldown, mana deduction, and effect dispatch.
      */
     public void castEffect(Player player) {
         UUID pid = player.getUniqueId();
@@ -146,35 +143,7 @@ public class Spell {
         // 2) Build our context (starts with default effectKey)
         SpellCastContext ctx = new SpellCastContext(this, player);
 
-        // 3) Apply every equipped rune’s effects (MODIFIER + TRANSFORM params)
-        List<Rune> runes = SpellManager.getInstance()
-            .getRunesManager()
-            .getRunesForSpell(player, id);
-
-        for (Rune rune : runes) {
-            for (RuneEffect eff : rune.getEffects()) {
-                // always modify damage/cooldown
-                ctx.addDamagePercent(eff.getBonusDamagePercent());
-                ctx.reduceCooldownPercent(eff.getCooldownReductionPercent());
-
-                // stack or replace effect key
-                if (eff.getNewEffectKey() != null) {
-                    if (eff.isReplaceBase()) {
-                        ctx.replaceBaseEffectKey(eff.getNewEffectKey());
-                    } else {
-                        ctx.addEffectKey(eff.getNewEffectKey());
-                    }
-                }
-                // pull in all extraParams (AOE, stun, projectiles, etc.)
-                // pull in all extraParams (AOE, stun, projectiles, etc.) with priority
-                for (Map.Entry<String, Object> e : eff.getExtraParams().entrySet()) {
-                    ctx.putExtraParam(e.getKey(), e.getValue(), eff.getPriority());
-                }
-
-            }
-        }
-
-        // Debug: log the final effect list after rune modifications
+        // Additional effect modifiers could be applied here
         Main.getPlugin().getLogger().info("[Spell] " + id + " effects: " + ctx.getEffectKeys());
         Main.getPlugin().getLogger().info("[Spell] finalDamage=" + ctx.getFinalDamage() +
                 " finalCost=" + ctx.getFinalManaCost());

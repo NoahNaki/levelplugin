@@ -3,9 +3,6 @@ package me.nakilex.levelplugin.spells.managers;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.data.WeaponType;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
-import me.nakilex.levelplugin.runes.manager.RunesManager;
-import me.nakilex.levelplugin.runes.model.Rune;
-import me.nakilex.levelplugin.runes.model.RuneEffect;
 import me.nakilex.levelplugin.spells.Spell;
 import me.nakilex.levelplugin.spells.registry.EffectRegistry;
 import me.nakilex.levelplugin.spells.utils.MythicSkillConfig;
@@ -17,7 +14,6 @@ import java.util.*;
 public class SpellManager {
     private static SpellManager instance;
 
-    private final RunesManager runesManager;               // ← add this
     private final EffectRegistry effectRegistry;
     private final Map<String, Map<String, Spell>> spellsByClass = new HashMap<>();
     private Main plugin;
@@ -27,10 +23,9 @@ public class SpellManager {
         return instance;
     }
 
-    public SpellManager(Main plugin, RunesManager runesManager) {
+    public SpellManager(Main plugin) {
         instance = this;
         this.plugin = plugin;
-        this.runesManager = runesManager;            // ← now assigning the real one
         this.effectRegistry = EffectRegistry.getInstance();
         loadSpells();
     }
@@ -45,9 +40,6 @@ public class SpellManager {
         return spellsByClass.getOrDefault(className.toLowerCase(), Collections.emptyMap());
     }
 
-    public RunesManager getRunesManager() {
-        return runesManager;
-    }
 
     private void loadSpells() {
 

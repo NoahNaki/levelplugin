@@ -32,9 +32,6 @@ import me.nakilex.levelplugin.player.listener.*;
 import me.nakilex.levelplugin.player.utils.ArrowUtils;
 import me.nakilex.levelplugin.potions.listeners.PotionUseListener;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
-import me.nakilex.levelplugin.runes.gui.EquipRunesGUI;
-import me.nakilex.levelplugin.runes.gui.IdentifyRunesGUI;
-import me.nakilex.levelplugin.runes.manager.RunesManager;
 import me.nakilex.levelplugin.salvage.listeners.SalvageListener;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
@@ -82,9 +79,6 @@ public class ListenerRegistry {
                                          FileConfiguration bossConfig,
                                          MeteorListener meteorListener,
                                          GemsManager gemsManager,
-                                         IdentifyRunesGUI identifyRunesGUI,
-                                        RunesManager runesManager,
-                                        EquipRunesGUI   equipGui,
                                         me.nakilex.levelplugin.enchanting.gui.EnchantGUI enchantGUI,
                                         ChestHologramListener chestHologramListener,
                                         QuestManager questManager,
@@ -159,8 +153,6 @@ public class ListenerRegistry {
         pm.registerEvents(new EquipOnJoinListener(), plugin);
         pm.registerEvents(new PlayerDeathListener(plugin), plugin);
         pm.registerEvents(new FullInventoryListener(), plugin);
-        pm.registerEvents(new IdentifyRunesGUI(plugin, runesManager), plugin);
-        pm.registerEvents(new EquipRunesGUI(plugin, runesManager, identifyRunesGUI), plugin);
         pm.registerEvents(enchantGUI, plugin);
         pm.registerEvents(new QuestKillListener(questManager), plugin);
         pm.registerEvents(new QuestCraftListener(questManager), plugin);
