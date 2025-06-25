@@ -61,7 +61,7 @@ public class EgoWeaponManager {
         prototypes.put("paladin", paladin);
 
         // Death Knight
-        EgoWeapon deathKnight = new EgoWeapon("death_knight_necroslayer", "Necroslayer", EgoRarity.RARE);
+        EgoWeapon deathKnight = new EgoWeapon("death_knight_necroslayer", "Ego Necroslayer", EgoRarity.RARE);
         deathKnight.addRankSkill(1, "Death_Strike_ST");
         deathKnight.addRankSkill(5, "Phantom_Charge");
         deathKnight.addRankSkill(8, "Death_Sentence");
@@ -219,6 +219,7 @@ public class EgoWeaponManager {
             case "warrior" -> "warrior_sword";
             case "barbarian" -> "axe_babarian";
             case "paladin" -> "paladin_hammer";
+            case "death_knight" -> "death_knight_necroslayer";
             default -> null;
         };
 

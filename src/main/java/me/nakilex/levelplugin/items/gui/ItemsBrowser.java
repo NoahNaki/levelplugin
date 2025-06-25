@@ -170,9 +170,32 @@ public class ItemsBrowser implements CommandExecutor, Listener {
             CustomItem tpl = templates.get(idx);
             if (tpl == null) continue;
 
-            // a) Create the ItemStack
-            ItemStack preview = new ItemStack(tpl.getMaterial(), 1);
-            ItemMeta pm = preview.getItemMeta();
+            // a) Create the ItemStack. Use the Nexo model for Ego weapons so
+            // they appear correctly in the browser.
+            ItemStack preview;
+            ItemMeta pm;
+            if (tpl.getBaseName().startsWith("Ego ")) {
+                String[] parts = tpl.getBaseName().split(" ");
+                if (parts.length >= 2) {
+                    String key = parts[1].toLowerCase();
+                    me.nakilex.levelplugin.ego.EgoWeapon proto =
+                            me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance().getPrototype(key);
+                    if (proto != null) {
+                        preview = me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance()
+                                .createWeaponItem(proto.copy(), tpl.getId());
+                        pm = preview.getItemMeta();
+                    } else {
+                        preview = new ItemStack(tpl.getMaterial(), 1);
+                        pm = preview.getItemMeta();
+                    }
+                } else {
+                    preview = new ItemStack(tpl.getMaterial(), 1);
+                    pm = preview.getItemMeta();
+                }
+            } else {
+                preview = new ItemStack(tpl.getMaterial(), 1);
+                pm = preview.getItemMeta();
+            }
             if (pm == null) continue;
 
             // b) Name + rarity color
