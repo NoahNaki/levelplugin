@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.spells.effect;
 
 import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
+import me.nakilex.levelplugin.spells.context.SpellCastContextCompat;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import org.bukkit.entity.Player;
 
@@ -53,6 +54,6 @@ public class MythicSkillEffect implements SpellEffect {
             // Older API - just cast normally
             success = MythicBukkit.inst().getAPIHelper().castSkill(caster, skill);
         }
-        ctx.markSuccess(success);
+        SpellCastContextCompat.markSuccess(ctx, success);
     }
 }
