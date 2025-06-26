@@ -124,7 +124,9 @@ public class ProceduralItemGenerator {
             createRange(str),
             createRange(agi),
             createRange(intel),
-            createRange(dex)
+            createRange(dex),
+            false,
+            null
         );
 
         ItemManager.getInstance().addInstance(item);

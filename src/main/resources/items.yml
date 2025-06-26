@@ -3196,6 +3196,8 @@ items:
     class_requirement: COOLARCHER
     material: STONE_SWORD
     unbreakable: true
+    ego: true
+    ego_key: archer
     hp: 0-0
     def: 0-0
     str: 3-6
@@ -3210,6 +3212,8 @@ items:
     class_requirement: PHOENIXHUNTER
     material: STONE_SWORD
     unbreakable: true
+    ego: true
+    ego_key: phoenix
     hp: 0-0
     def: 0-0
     str: 3-6
@@ -3224,6 +3228,8 @@ items:
     class_requirement: WARRIOR
     material: WOODEN_SHOVEL
     unbreakable: true
+    ego: true
+    ego_key: warrior
     hp: 0-0
     def: 0-0
     str: 3-6
@@ -3238,6 +3244,8 @@ items:
     class_requirement: BARBARIAN
     material: STONE_SWORD
     unbreakable: true
+    ego: true
+    ego_key: barbarian
     hp: 0-0
     def: 0-0
     str: 3-6
@@ -3252,6 +3260,8 @@ items:
     class_requirement: PALADIN
     material: STONE_SWORD
     unbreakable: true
+    ego: true
+    ego_key: paladin
     hp: 0-0
     def: 0-0
     str: 3-6
@@ -3266,6 +3276,8 @@ items:
     class_requirement: DEATHKNIGHT
     material: STONE_SWORD
     unbreakable: true
+    ego: true
+    ego_key: death
     hp: 0-0
     def: 0-0
     str: 3-6
@@ -3280,6 +3292,8 @@ items:
     class_requirement: ABYSSION
     material: STONE_SWORD
     unbreakable: true
+    ego: true
+    ego_key: abyssion
     hp: 0-0
     def: 0-0
     str: 3-6
@@ -3294,6 +3308,8 @@ items:
     class_requirement: MAGE
     material: STONE_SWORD
     unbreakable: true
+    ego: true
+    ego_key: mage
     hp: 0-0
     def: 0-0
     str: 0-0
@@ -3308,6 +3324,8 @@ items:
     class_requirement: DRAGONIAN
     material: STONE_SWORD
     unbreakable: true
+    ego: true
+    ego_key: dragonian
     hp: 0-0
     def: 0-0
     str: 3-6
@@ -3316,12 +3334,14 @@ items:
     dex: 0-0
 
   265:
-    name: "Ego Windrune Blade"
+    name: "Stormedge"
     rarity: RARE
     level_requirement: 1
     class_requirement: WINDRUNE
     material: STONE_SWORD
     unbreakable: true
+    ego: true
+    ego_key: windrune
     hp: 0-0
     def: 0-0
     str: 3-6
@@ -3337,6 +3357,8 @@ items:
     class_requirement: ARCTICKNIGHT
     material: STONE_SWORD
     unbreakable: true
+    ego: true
+    ego_key: arctic
     hp: 0-0
     def: 0-0
     str: 3-6
@@ -3351,6 +3373,8 @@ items:
     class_requirement: DRAGONWARRIOR
     material: STONE_SWORD
     unbreakable: true
+    ego: true
+    ego_key: dragonwarrior
     hp: 0-0
     def: 0-0
     str: 3-6

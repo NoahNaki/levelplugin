@@ -101,7 +101,7 @@ public class EgoWeaponManager {
         prototypes.put("arctic", arctic);
 
         // Windrune class
-        EgoWeapon windrune = new EgoWeapon("windrune_ego", "Ego Windrune Blade", EgoRarity.RARE);
+        EgoWeapon windrune = new EgoWeapon("windrune_ego", "Stormedge", EgoRarity.RARE);
         windrune.addRankSkill(1, "Gale_Slash");
         windrune.addRankSkill(5, "Vault");
         windrune.addRankSkill(8, "Windbound_Fury");

@@ -314,7 +314,9 @@ public class MythicMobDeathListener implements Listener {
                     template.getStrRange(),
                     template.getAgiRange(),
                     template.getIntelRange(),
-                    template.getDexRange()
+                    template.getDexRange(),
+                    template.isEgo(),
+                    template.getEgoKey()
                 );
 
                 // Add to ItemManager so it's recognized/tracked

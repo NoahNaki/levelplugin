@@ -52,6 +52,10 @@ public class ItemConfig {
 
             config.set(path + ".upgradeLevel", item.getUpgradeLevel());
             config.set(path + ".enchantCount", item.getEnchantCount());
+            config.set(path + ".ego", item.isEgo());
+            if (item.isEgo()) {
+                config.set(path + ".egoKey", item.getEgoKey());
+            }
 
             // Persist current durability (maxDurability is static, so no need to save it)
             config.set(path + ".currentDurability", item.getCurrentDurability());
@@ -80,6 +84,8 @@ public class ItemConfig {
                 Material material  = Material.valueOf(config.getString(base + "material"));
                 int upgLvl         = config.getInt(base + "upgradeLevel", 0);
                 int enchCnt        = config.getInt(base + "enchantCount", 0);
+                boolean ego        = config.getBoolean(base + "ego", false);
+                String egoKey      = config.getString(base + "egoKey", null);
 
                 // Restore the rolled values and original template ranges.
                 int hpValue    = config.getInt(base + "hp",    0);
@@ -116,7 +122,9 @@ public class ItemConfig {
                 CustomItem instance = new CustomItem(
                     uuid, id, baseName, rarity, lvlReq, clsReq, material,
                     hpRange, defRange, strRange, agiRange, intelRange, dexRange,
-                    upgLvl
+                    upgLvl,
+                    ego,
+                    egoKey
                 );
                 instance.setEnchantCount(enchCnt);
 

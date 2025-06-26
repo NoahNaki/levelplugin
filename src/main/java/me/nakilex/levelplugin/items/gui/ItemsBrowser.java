@@ -349,25 +349,11 @@ public class ItemsBrowser implements CommandExecutor, Listener {
         int templateId = ItemUtil.getCustomItemId(clicked);
         if (templateId != -1) {
             CustomItem template = ItemManager.getInstance().getTemplateById(templateId);
-            if (template != null && template.getBaseName().startsWith("Ego ")) {
-                String[] parts = template.getBaseName().split(" ");
-                if (parts.length >= 2) {
-                    String key = parts[1].toLowerCase();
+            if (template != null && template.isEgo()) {
+                String key = template.getEgoKey();
+                if (key != null) {
                     me.nakilex.levelplugin.ego.EgoWeapon proto =
                             me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance().getPrototype(key);
-
-                    if (proto == null && parts.length >= 3) {
-                        StringBuilder sb = new StringBuilder(parts[1].toLowerCase());
-                        for (int i = 2; i < parts.length; i++) {
-                            sb.append(parts[i].toLowerCase());
-                            proto = me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance().getPrototype(sb.toString());
-                            if (proto != null) {
-                                key = sb.toString();
-                                break;
-                            }
-                        }
-                    }
-
                     if (proto != null) {
                         me.nakilex.levelplugin.ego.EgoWeapon weapon = proto.copy();
                         me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance()

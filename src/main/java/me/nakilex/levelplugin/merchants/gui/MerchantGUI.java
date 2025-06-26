@@ -318,7 +318,9 @@ public class MerchantGUI implements Listener {
                     template.getStrRange(),
                     template.getAgiRange(),
                     template.getIntelRange(),
-                    template.getDexRange()
+                    template.getDexRange(),
+                    template.isEgo(),
+                    template.getEgoKey()
                 );
                 ItemManager.getInstance().addInstance(newInstance);
                 ItemStack purchasedItem = ItemUtil.createItemStackFromCustomItem(newInstance, mItem.getAmount(), player);

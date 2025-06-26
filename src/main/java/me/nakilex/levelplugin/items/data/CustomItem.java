@@ -24,6 +24,8 @@ public class CustomItem {
     private final int levelRequirement;
     private final String classRequirement;
     private final Material material;
+    private final boolean ego;
+    private final String egoKey;
 
     private int currentDurability;
     private static final int MAX_DURABILITY = 100;
@@ -76,7 +78,9 @@ public class CustomItem {
                       StatRange agiRange,
                       StatRange intelRange,
                       StatRange dexRange,
-                      int upgradeLevel) {
+                      int upgradeLevel,
+                      boolean ego,
+                      String egoKey) {
         this.uuid             = uuid;
         this.id               = id;
         this.baseName         = baseName;
@@ -84,6 +88,8 @@ public class CustomItem {
         this.levelRequirement = levelRequirement;
         this.classRequirement = classRequirement;
         this.material         = material;
+        this.ego              = ego;
+        this.egoKey           = egoKey;
 
         this.hpRange    = hpRange;
         this.defRange   = defRange;
@@ -121,11 +127,13 @@ public class CustomItem {
                       StatRange strRange,
                       StatRange agiRange,
                       StatRange intelRange,
-                      StatRange dexRange) {
+                      StatRange dexRange,
+                      boolean ego,
+                      String egoKey) {
         this(UUID.randomUUID(),
             id, baseName, rarity, levelRequirement, classRequirement, material,
             hpRange, defRange, strRange, agiRange, intelRange, dexRange,
-            0);
+            0, ego, egoKey);
     }
 
     // ─── Getters ───────────────────────────────────────────────────────────────
@@ -137,6 +145,8 @@ public class CustomItem {
     public int getLevelRequirement()    { return levelRequirement; }
     public String getClassRequirement() { return classRequirement; }
     public Material getMaterial()       { return material; }
+    public boolean isEgo()              { return ego; }
+    public String getEgoKey()           { return egoKey; }
 
     public StatRange getHpRange()    { return hpRange; }
     public StatRange getDefRange()   { return defRange; }
