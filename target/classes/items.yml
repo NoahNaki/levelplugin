@@ -3190,12 +3190,14 @@ items:
     dex: 0-0
 
   256:
-    name: "Ego Archer Bow"
+    name: "Hawkstring"
     rarity: COMMON
     level_requirement: 1
     class_requirement: COOLARCHER
     material: STONE_SWORD
     unbreakable: true
+    ego: true
+    ego_key: archer
     hp: 0-0
     def: 0-0
     str: 3-6
@@ -3204,12 +3206,14 @@ items:
     dex: 0-0
 
   257:
-    name: "Ego Phoenix Bow"
+    name: "Ashfeather"
     rarity: RARE
     level_requirement: 1
     class_requirement: PHOENIXHUNTER
     material: STONE_SWORD
     unbreakable: true
+    ego: true
+    ego_key: phoenix
     hp: 0-0
     def: 0-0
     str: 3-6
@@ -3218,12 +3222,14 @@ items:
     dex: 0-0
 
   258:
-    name: "Ego Warrior Shovel"
+    name: "Ironmaw"
     rarity: COMMON
     level_requirement: 1
     class_requirement: WARRIOR
     material: WOODEN_SHOVEL
     unbreakable: true
+    ego: true
+    ego_key: warrior
     hp: 0-0
     def: 0-0
     str: 3-6
@@ -3232,12 +3238,14 @@ items:
     dex: 0-0
 
   259:
-    name: "Ego Barbarian Shovel"
+    name: "Bonecarver"
     rarity: UNCOMMON
     level_requirement: 1
     class_requirement: BARBARIAN
     material: STONE_SWORD
     unbreakable: true
+    ego: true
+    ego_key: barbarian
     hp: 0-0
     def: 0-0
     str: 3-6
@@ -3246,12 +3254,14 @@ items:
     dex: 0-0
 
   260:
-    name: "Ego Paladin Sword"
+    name: "Oathbrand"
     rarity: RARE
     level_requirement: 1
     class_requirement: PALADIN
     material: STONE_SWORD
     unbreakable: true
+    ego: true
+    ego_key: paladin
     hp: 0-0
     def: 0-0
     str: 3-6
@@ -3260,12 +3270,14 @@ items:
     dex: 0-0
 
   261:
-    name: "Ego Death Knight Sword"
+    name: "Gravefang"
     rarity: RARE
     level_requirement: 1
     class_requirement: DEATHKNIGHT
     material: STONE_SWORD
     unbreakable: true
+    ego: true
+    ego_key: death
     hp: 0-0
     def: 0-0
     str: 3-6
@@ -3274,12 +3286,14 @@ items:
     dex: 0-0
 
   262:
-    name: "Ego Abyssion Sword"
+    name: "Abyssion"
     rarity: RARE
     level_requirement: 1
     class_requirement: ABYSSION
     material: STONE_SWORD
     unbreakable: true
+    ego: true
+    ego_key: abyssion
     hp: 0-0
     def: 0-0
     str: 3-6
@@ -3288,12 +3302,14 @@ items:
     dex: 0-0
 
   263:
-    name: "Ego Mage Staff"
+    name: "Elder Staff"
     rarity: RARE
     level_requirement: 1
     class_requirement: MAGE
     material: STONE_SWORD
     unbreakable: true
+    ego: true
+    ego_key: mage
     hp: 0-0
     def: 0-0
     str: 0-0
@@ -3302,12 +3318,14 @@ items:
     dex: 0-0
 
   264:
-    name: "Ego Dragonian Sword"
+    name: "Ignitus"
     rarity: RARE
     level_requirement: 1
     class_requirement: DRAGONIAN
     material: STONE_SWORD
     unbreakable: true
+    ego: true
+    ego_key: dragonian
     hp: 0-0
     def: 0-0
     str: 3-6
@@ -3316,12 +3334,14 @@ items:
     dex: 0-0
 
   265:
-    name: "Ego Windrune Blade"
+    name: "Stormedge"
     rarity: RARE
     level_requirement: 1
     class_requirement: WINDRUNE
     material: STONE_SWORD
     unbreakable: true
+    ego: true
+    ego_key: windrune
     hp: 0-0
     def: 0-0
     str: 3-6
@@ -3331,12 +3351,14 @@ items:
 
 
   266:
-    name: "Ego Arctic Lance"
+    name: "Frostpiercer"
     rarity: RARE
     level_requirement: 1
     class_requirement: ARCTICKNIGHT
     material: STONE_SWORD
     unbreakable: true
+    ego: true
+    ego_key: arctic
     hp: 0-0
     def: 0-0
     str: 3-6
@@ -3345,12 +3367,14 @@ items:
     dex: 0-0
 
   267:
-    name: "Ego Dragon Warrior Spear"
+    name: "Skyfang"
     rarity: RARE
     level_requirement: 1
     class_requirement: DRAGONWARRIOR
     material: STONE_SWORD
     unbreakable: true
+    ego: true
+    ego_key: dragonwarrior
     hp: 0-0
     def: 0-0
     str: 3-6

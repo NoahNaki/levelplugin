@@ -170,73 +170,96 @@ public class ItemsBrowser implements CommandExecutor, Listener {
             CustomItem tpl = templates.get(idx);
             if (tpl == null) continue;
 
-            // a) Create the ItemStack
-            ItemStack preview = new ItemStack(tpl.getMaterial(), 1);
-            ItemMeta pm = preview.getItemMeta();
+            // a) Create the ItemStack. For Ego templates build the Nexo model
+            //    using EgoWeaponManager so the preview matches the actual item.
+            ItemStack preview;
+            ItemMeta pm;
+            if (tpl.isEgo() && tpl.getEgoKey() != null) {
+                me.nakilex.levelplugin.ego.EgoWeapon proto =
+                        me.nakilex.levelplugin.ego.EgoWeaponManager
+                                .getInstance().getPrototype(tpl.getEgoKey());
+                if (proto != null) {
+                    preview = me.nakilex.levelplugin.ego.EgoWeaponManager
+                            .getInstance().createWeaponItem(proto.copy(), tpl.getId());
+                } else {
+                    preview = new ItemStack(tpl.getMaterial(), 1);
+                }
+            } else {
+                preview = new ItemStack(tpl.getMaterial(), 1);
+            }
+            pm = preview.getItemMeta();
             if (pm == null) continue;
 
-            // b) Name + rarity color
+            // b) Apply display/lore depending on whether this is an Ego template
             ChatColor col = tpl.getRarity().getColor();
-            pm.setDisplayName(col + tpl.getBaseName());
+            if (tpl.isEgo() && tpl.getEgoKey() != null) {
+                // The preview already contains proper lore from createWeaponItem.
+                pm.getPersistentDataContainer()
+                        .set(ItemUtil.ITEM_ID_KEY, PersistentDataType.INTEGER, tpl.getId());
+                pm.getPersistentDataContainer()
+                        .set(ItemUtil.UPGRADE_LEVEL_KEY, PersistentDataType.INTEGER, 0);
+                preview.setItemMeta(pm);
+            } else {
+                pm.setDisplayName(col + tpl.getBaseName());
 
-            // c) Build lore
-            List<String> lore = new ArrayList<>();
-            lore.add(""); // spacer
+                // c) Build lore
+                List<String> lore = new ArrayList<>();
+                lore.add(""); // spacer
 
-            // — Level Requirement with ✔/✘
-            int playerLvl = StatsManager.getInstance().getLevel(player);
-            boolean lvlOk = playerLvl >= tpl.getLevelRequirement();
-            lore.add((lvlOk ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
-                + ChatColor.GRAY + "Level Requirement: "
-                + ChatColor.WHITE + tpl.getLevelRequirement());
+                // — Level Requirement with ✔/✘
+                int playerLvl = StatsManager.getInstance().getLevel(player);
+                boolean lvlOk = playerLvl >= tpl.getLevelRequirement();
+                lore.add((lvlOk ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
+                        + ChatColor.GRAY + "Level Requirement: "
+                        + ChatColor.WHITE + tpl.getLevelRequirement());
 
+                lore.add(""); // spacer
 
-            lore.add(""); // spacer
+                // — Stat RANGES (numbers in white)
+                StatRange s;
+                s = tpl.getHpRange();
+                if (!(s.getMin()==0 && s.getMax()==0))
+                    lore.add(ChatColor.RED   + "❤ " + ChatColor.GRAY + "Health: "
+                            + ChatColor.WHITE + "+" + s);
+                s = tpl.getDefRange();
+                if (!(s.getMin()==0 && s.getMax()==0))
+                    lore.add(ChatColor.GRAY  + "⛂ " + ChatColor.GRAY + "Defence: "
+                            + ChatColor.WHITE + "+" + s);
+                s = tpl.getStrRange();
+                if (!(s.getMin()==0 && s.getMax()==0))
+                    lore.add(ChatColor.BLUE  + "☠ " + ChatColor.GRAY + "Strength: "
+                            + ChatColor.WHITE + "+" + s);
+                s = tpl.getAgiRange();
+                if (!(s.getMin()==0 && s.getMax()==0))
+                    lore.add(ChatColor.GREEN + "≈ " + ChatColor.GRAY + "Agility: "
+                            + ChatColor.WHITE + "+" + s);
+                s = tpl.getIntelRange();
+                if (!(s.getMin()==0 && s.getMax()==0))
+                    lore.add(ChatColor.AQUA  + "♦ " + ChatColor.GRAY + "Intelligence: "
+                            + ChatColor.WHITE + "+" + s);
+                s = tpl.getDexRange();
+                if (!(s.getMin()==0 && s.getMax()==0))
+                    lore.add(ChatColor.YELLOW+ "➹ " + ChatColor.GRAY + "Dexterity: "
+                            + ChatColor.WHITE + "+" + s);
 
-            // — Stat RANGES (numbers in white)
-            StatRange s;
-            s = tpl.getHpRange();
-            if (!(s.getMin()==0 && s.getMax()==0))
-                lore.add(ChatColor.RED   + "❤ " + ChatColor.GRAY + "Health: "
-                    + ChatColor.WHITE + "+" + s);
-            s = tpl.getDefRange();
-            if (!(s.getMin()==0 && s.getMax()==0))
-                lore.add(ChatColor.GRAY  + "⛂ " + ChatColor.GRAY + "Defence: "
-                    + ChatColor.WHITE + "+" + s);
-            s = tpl.getStrRange();
-            if (!(s.getMin()==0 && s.getMax()==0))
-                lore.add(ChatColor.BLUE  + "☠ " + ChatColor.GRAY + "Strength: "
-                    + ChatColor.WHITE + "+" + s);
-            s = tpl.getAgiRange();
-            if (!(s.getMin()==0 && s.getMax()==0))
-                lore.add(ChatColor.GREEN + "≈ " + ChatColor.GRAY + "Agility: "
-                    + ChatColor.WHITE + "+" + s);
-            s = tpl.getIntelRange();
-            if (!(s.getMin()==0 && s.getMax()==0))
-                lore.add(ChatColor.AQUA  + "♦ " + ChatColor.GRAY + "Intelligence: "
-                    + ChatColor.WHITE + "+" + s);
-            s = tpl.getDexRange();
-            if (!(s.getMin()==0 && s.getMax()==0))
-                lore.add(ChatColor.YELLOW+ "➹ " + ChatColor.GRAY + "Dexterity: "
-                    + ChatColor.WHITE + "+" + s);
+                lore.add(""); // spacer
 
-            lore.add(""); // spacer
+                // — Rarity
+                lore.add(col + "" + ChatColor.BOLD + tpl.getRarity().name());
 
-            // — Rarity
-            lore.add(col + "" + ChatColor.BOLD + tpl.getRarity().name());
+                // d) Apply lore & flags
+                pm.setLore(lore);
+                pm.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
+                pm.setUnbreakable(true);
 
-            // d) Apply lore & flags
-            pm.setLore(lore);
-            pm.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
-            pm.setUnbreakable(true);
+                // e) Stamp the template ID (so clicking gives the right item)
+                pm.getPersistentDataContainer()
+                        .set(ItemUtil.ITEM_ID_KEY, PersistentDataType.INTEGER, tpl.getId());
+                pm.getPersistentDataContainer()
+                        .set(ItemUtil.UPGRADE_LEVEL_KEY, PersistentDataType.INTEGER, 0);
 
-            // e) Stamp the template ID (so clicking gives the right item)
-            pm.getPersistentDataContainer()
-                .set(ItemUtil.ITEM_ID_KEY, PersistentDataType.INTEGER, tpl.getId());
-            pm.getPersistentDataContainer()
-                .set(ItemUtil.UPGRADE_LEVEL_KEY, PersistentDataType.INTEGER, 0);
-
-            preview.setItemMeta(pm);
+                preview.setItemMeta(pm);
+            }
 
             // f) Compute final slot and place
             int row = 1 + (i / 7);
