@@ -56,8 +56,8 @@ commands:
     usage: /balance
     aliases: [b]
   addcoins:
-    description: Adds coins to your balance
-    usage: /addcoins <player> <amount>
+    description: Adjust a player's coins (can be negative)
+    usage: /addcoins <player|@everyone> <amount>
     permission: none
 
   blacksmith:
@@ -128,7 +128,8 @@ commands:
     description: Opens the settings menu
     usage: /settings
   addgems:
-    description: Give yourself some gems (admin).
+    description: Adjust a player's gems (can be negative)
+    usage: /addgems <player|@everyone> <amount>
     permission: none
   gems:
     description: Check your gem balance.
