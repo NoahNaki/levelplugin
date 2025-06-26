@@ -26,6 +26,11 @@ public enum EgoRarity {
     public ChatColor getColor() { return color; }
     public String getSymbol() { return symbol; }
 
+    /** Multiplier for XP requirements based on rarity. */
+    public int getXpMultiplier() {
+        return 1 << this.ordinal();
+    }
+
     /** Returns the next higher rarity or this if at max. */
     public EgoRarity next() {
         int ord = this.ordinal();

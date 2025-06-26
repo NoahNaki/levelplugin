@@ -106,7 +106,13 @@ public class ItemUtil {
         if (pdc.has(EGO_RANK_KEY, PersistentDataType.INTEGER)) {
             int rank = pdc.getOrDefault(EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
             int exp  = pdc.getOrDefault(EGO_EXP_KEY,  PersistentDataType.INTEGER, 0);
-            int expToNext = 100 * rank;
+            me.nakilex.levelplugin.ego.EgoRarity rarity = me.nakilex.levelplugin.ego.EgoRarity.COMMON;
+            if (pdc.has(EGO_RARITY_KEY, PersistentDataType.STRING)) {
+                try {
+                    rarity = me.nakilex.levelplugin.ego.EgoRarity.valueOf(pdc.get(EGO_RARITY_KEY, PersistentDataType.STRING));
+                } catch (Exception ignored) {}
+            }
+            int expToNext = 100 * rank * rarity.getXpMultiplier();
             double pct = expToNext > 0 ? (exp * 100.0 / expToNext) : 0.0;
             if (pct > 100.0) pct = 100.0;
             pct = Math.round(pct * 10.0) / 10.0;
@@ -435,7 +441,13 @@ public class ItemUtil {
 
         int rank = pdc.getOrDefault(EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
         int exp  = pdc.getOrDefault(EGO_EXP_KEY,  PersistentDataType.INTEGER, 0);
-        int expToNext = 100 * rank;
+        me.nakilex.levelplugin.ego.EgoRarity rarity = me.nakilex.levelplugin.ego.EgoRarity.COMMON;
+        if (pdc.has(EGO_RARITY_KEY, PersistentDataType.STRING)) {
+            try {
+                rarity = me.nakilex.levelplugin.ego.EgoRarity.valueOf(pdc.get(EGO_RARITY_KEY, PersistentDataType.STRING));
+            } catch (Exception ignored) {}
+        }
+        int expToNext = 100 * rank * rarity.getXpMultiplier();
         double pct = expToNext > 0 ? (exp * 100.0 / expToNext) : 0.0;
         if (pct > 100.0) pct = 100.0;
         pct = Math.round(pct * 10.0) / 10.0;
@@ -443,12 +455,7 @@ public class ItemUtil {
         List<String> lore = meta.hasLore() ? meta.getLore() : new ArrayList<>();
         lore.clear();
 
-        me.nakilex.levelplugin.ego.EgoRarity rarity = me.nakilex.levelplugin.ego.EgoRarity.COMMON;
-        if (pdc.has(EGO_RARITY_KEY, PersistentDataType.STRING)) {
-            try {
-                rarity = me.nakilex.levelplugin.ego.EgoRarity.valueOf(pdc.get(EGO_RARITY_KEY, PersistentDataType.STRING));
-            } catch (Exception ignored) {}
-        }
+        // rarity already loaded above
         lore.add(rarity.getSymbol() + "<glyph:weapon>");
 
         lore.add("");
