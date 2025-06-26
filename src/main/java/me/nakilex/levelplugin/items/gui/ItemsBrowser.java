@@ -355,6 +355,19 @@ public class ItemsBrowser implements CommandExecutor, Listener {
                     String key = parts[1].toLowerCase();
                     me.nakilex.levelplugin.ego.EgoWeapon proto =
                             me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance().getPrototype(key);
+
+                    if (proto == null && parts.length >= 3) {
+                        StringBuilder sb = new StringBuilder(parts[1].toLowerCase());
+                        for (int i = 2; i < parts.length; i++) {
+                            sb.append(parts[i].toLowerCase());
+                            proto = me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance().getPrototype(sb.toString());
+                            if (proto != null) {
+                                key = sb.toString();
+                                break;
+                            }
+                        }
+                    }
+
                     if (proto != null) {
                         me.nakilex.levelplugin.ego.EgoWeapon weapon = proto.copy();
                         me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance()
