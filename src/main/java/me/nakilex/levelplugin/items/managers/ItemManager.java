@@ -102,6 +102,8 @@ public class ItemManager {
                     itemsConfig.getString(path + "intel", "0-0"));
                 StatRange dexRange   = StatRange.fromString(
                     itemsConfig.getString(path + "dex", "0-0"));
+                boolean egoFlag = itemsConfig.getBoolean(path + "ego", false);
+                String egoKey  = itemsConfig.getString(path + "ego_key", null);
 
                 // Build the template (rolls will happen when creating instances)
                 boolean isWeapon = me.nakilex.levelplugin.items.data.WeaponType
@@ -110,7 +112,7 @@ public class ItemManager {
                 // Skip most weapon templates now that Ego weapons replace them, but
                 // allow any item whose name starts with "Ego" so those weapons show
                 // up in the ItemsBrowser.
-                if (!isWeapon || name.startsWith("Ego")) {
+                if (!isWeapon || egoFlag) {
                     CustomItem template = new CustomItem(
                         numericId,
                         name,
@@ -123,7 +125,9 @@ public class ItemManager {
                         strRange,
                         agiRange,
                         intelRange,
-                        dexRange
+                        dexRange,
+                        egoFlag,
+                        egoKey
                     );
 
                     templatesMap.put(numericId, template);
@@ -194,7 +198,9 @@ public class ItemManager {
             tpl.getStrRange(),
             tpl.getAgiRange(),
             tpl.getIntelRange(),
-            tpl.getDexRange()
+            tpl.getDexRange(),
+            tpl.isEgo(),
+            tpl.getEgoKey()
         );
         addInstance(inst);
         return inst;

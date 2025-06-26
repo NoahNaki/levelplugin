@@ -42,7 +42,8 @@ public class EgoWeapon {
     }
 
     public int expToNextRank() {
-        return 100 * rank;
+        int multiplier = rarity.getXpMultiplier();
+        return 100 * rank * multiplier;
     }
 
     /**

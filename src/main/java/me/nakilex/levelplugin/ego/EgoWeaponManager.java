@@ -30,78 +30,78 @@ public class EgoWeaponManager {
     private final Map<String, EgoWeapon> prototypes = new HashMap<>();
 
     private EgoWeaponManager() {
-        EgoWeapon archer = new EgoWeapon("archer_ego", "Ego Archer Bow", EgoRarity.COMMON);
+        EgoWeapon archer = new EgoWeapon("archer_ego", "Hawkstring", EgoRarity.COMMON);
         archer.addRankSkill(1, "Quick_Shot");
         archer.addRankSkill(5, "Backstep");
         archer.addRankSkill(8, "Dragon_Piercer");
         prototypes.put("archer", archer);
 
-        EgoWeapon phoenix = new EgoWeapon("phoenix_ego", "Ego Phoenix Bow", EgoRarity.RARE);
+        EgoWeapon phoenix = new EgoWeapon("phoenix_ego", "Ashfeather", EgoRarity.RARE);
         phoenix.addRankSkill(1, "Blazing_Feathers");
         phoenix.addRankSkill(5, "Flameburst_Convergence");
         phoenix.addRankSkill(8, "Phoenix_Rebirth");
         prototypes.put("phoenix", phoenix);
 
-        EgoWeapon warrior = new EgoWeapon("warrior_ego", "Ego Warrior Axe", EgoRarity.COMMON);
+        EgoWeapon warrior = new EgoWeapon("warrior_ego", "Ironmaw", EgoRarity.COMMON);
         warrior.addRankSkill(1, "Brutal_Strike");
         warrior.addRankSkill(5, "Charge");
         warrior.addRankSkill(8, "Rampage");
         prototypes.put("warrior", warrior);
 
         // New classes
-        EgoWeapon barbarian = new EgoWeapon("barbarian_ego", "Ego Barbarian Shovel", EgoRarity.UNCOMMON);
+        EgoWeapon barbarian = new EgoWeapon("barbarian_ego", "Bonecarver", EgoRarity.UNCOMMON);
         barbarian.addRankSkill(1, "Rageblade");
         barbarian.addRankSkill(5, "Primal_Axe");
         barbarian.addRankSkill(8, "Eternal_Fury");
         prototypes.put("barbarian", barbarian);
 
-        EgoWeapon paladin = new EgoWeapon("paladin_ego", "Ego Paladin Sword", EgoRarity.RARE);
+        EgoWeapon paladin = new EgoWeapon("paladin_ego", "Oathbrand", EgoRarity.RARE);
         paladin.addRankSkill(1, "Holy_Strike");
         paladin.addRankSkill(5, "Bound_Seal");
         paladin.addRankSkill(8, "Last_Stand");
         prototypes.put("paladin", paladin);
 
-        EgoWeapon death = new EgoWeapon("death_ego", "Ego Death Knight Sword", EgoRarity.RARE);
+        EgoWeapon death = new EgoWeapon("death_ego", "Gravefang", EgoRarity.RARE);
         death.addRankSkill(1, "Death_Strike_ST");
         death.addRankSkill(5, "Wraithbound_Chains");
         death.addRankSkill(8, "Death_Sentence");
         prototypes.put("death", death);
 
-        EgoWeapon abyssion = new EgoWeapon("abyssion_ego", "Ego Abyssion Sword", EgoRarity.RARE);
+        EgoWeapon abyssion = new EgoWeapon("abyssion_ego", "Abyssion", EgoRarity.RARE);
         abyssion.addRankSkill(1, "Aqua_Slash");
         abyssion.addRankSkill(5, "Tidal_Wave");
         abyssion.addRankSkill(8, "Abyssal_Smash");
         prototypes.put("abyssion", abyssion);
 
-        EgoWeapon mage = new EgoWeapon("mage_ego", "Ego Mage Staff", EgoRarity.RARE);
+        EgoWeapon mage = new EgoWeapon("mage_ego", "Elder Staff", EgoRarity.RARE);
         mage.addRankSkill(1, "Fireball");
         mage.addRankSkill(5, "Meteor");
         mage.addRankSkill(8, "Inferno_Chains");
         prototypes.put("mage", mage);
 
         // Dragon Warrior class
-        EgoWeapon dragonwarrior = new EgoWeapon("dragonwarrior_ego", "Ego Dragon Warrior Spear", EgoRarity.RARE);
+        EgoWeapon dragonwarrior = new EgoWeapon("dragonwarrior_ego", "Skyfang", EgoRarity.RARE);
         dragonwarrior.addRankSkill(1, "Dragon_Slash");
         dragonwarrior.addRankSkill(5, "Dragon_Dash");
         dragonwarrior.addRankSkill(8, "Dragonborn");
         prototypes.put("dragonwarrior", dragonwarrior);
 
         // Dragonian class
-        EgoWeapon dragonian = new EgoWeapon("dragonian_ego", "Ego Dragonian Sword", EgoRarity.RARE);
+        EgoWeapon dragonian = new EgoWeapon("dragonian_ego", "Ignitus", EgoRarity.RARE);
         dragonian.addRankSkill(1, "dragonian_l_t");
         dragonian.addRankSkill(5, "dragonian_r_t");
         dragonian.addRankSkill(8, "dragonian_ls_t");
         prototypes.put("dragonian", dragonian);
 
         // Arctic Knight class
-        EgoWeapon arctic = new EgoWeapon("arctic_ego", "Ego Arctic Lance", EgoRarity.RARE);
+        EgoWeapon arctic = new EgoWeapon("arctic_ego", "Frostpiercer", EgoRarity.RARE);
         arctic.addRankSkill(1, "Frost_Strike");
         arctic.addRankSkill(5, "Glacial_Impalement");
         arctic.addRankSkill(8, "Permafrost_Lance");
         prototypes.put("arctic", arctic);
 
         // Windrune class
-        EgoWeapon windrune = new EgoWeapon("windrune_ego", "Ego Windrune Blade", EgoRarity.RARE);
+        EgoWeapon windrune = new EgoWeapon("windrune_ego", "Stormedge", EgoRarity.RARE);
         windrune.addRankSkill(1, "Gale_Slash");
         windrune.addRankSkill(5, "Vault");
         windrune.addRankSkill(8, "Windbound_Fury");

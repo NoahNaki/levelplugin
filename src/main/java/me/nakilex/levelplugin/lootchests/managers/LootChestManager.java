@@ -643,7 +643,9 @@ public class LootChestManager {
             chosen.getStrRange(),
             chosen.getAgiRange(),
             chosen.getIntelRange(),
-            chosen.getDexRange()
+            chosen.getDexRange(),
+            chosen.isEgo(),
+            chosen.getEgoKey()
         );
         ItemManager.getInstance().addInstance(newInstance);
 

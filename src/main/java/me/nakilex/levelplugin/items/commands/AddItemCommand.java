@@ -61,7 +61,9 @@ public class AddItemCommand implements CommandExecutor {
             template.getStrRange(),
             template.getAgiRange(),
             template.getIntelRange(),
-            template.getDexRange()
+            template.getDexRange(),
+            template.isEgo(),
+            template.getEgoKey()
         );
 
         // Register it
