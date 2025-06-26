@@ -84,8 +84,22 @@ public class MerchantGUI implements Listener {
             CustomItem tpl = ItemManager.getInstance().getTemplateById(mItem.getItemId());
             if (tpl == null) continue;
 
-            // Base stack + lore from your existing helper (player=null gives gray req stubs)
-            ItemStack stack = ItemUtil.createItemStackFromCustomItem(tpl, mItem.getAmount(), null);
+            // Base stack. For Ego templates use the Nexo model so previews match
+            // the final generated item.
+            ItemStack stack;
+            if (tpl.isEgo() && tpl.getEgoKey() != null) {
+                me.nakilex.levelplugin.ego.EgoWeapon proto =
+                        me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance()
+                                .getPrototype(tpl.getEgoKey());
+                if (proto != null) {
+                    stack = me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance()
+                            .createWeaponItem(proto.copy(), tpl.getId());
+                } else {
+                    stack = ItemUtil.createItemStackFromCustomItem(tpl, mItem.getAmount(), null);
+                }
+            } else {
+                stack = ItemUtil.createItemStackFromCustomItem(tpl, mItem.getAmount(), null);
+            }
             ItemMeta meta = stack.getItemMeta();
             if (meta == null || !meta.hasLore()) {
                 inventory.setItem(mItem.getSlot(), stack);
@@ -94,27 +108,29 @@ public class MerchantGUI implements Listener {
 
             List<String> lore = meta.getLore();
 
-            // 1) Rewrite each stat line to show the RANGE (white numbers)
-            for (int i = 0; i < lore.size(); i++) {
-                String line = lore.get(i);
-                if (line.contains("☠")) {
-                    lore.set(i, ChatColor.BLUE  + "☠ " + ChatColor.GRAY + "Strength: "
-                        + ChatColor.WHITE + "+" + tpl.getStrRange());
-                } else if (line.contains("❤")) {
-                    lore.set(i, ChatColor.RED   + "❤ " + ChatColor.GRAY + "Health: "
-                        + ChatColor.WHITE + "+" + tpl.getHpRange());
-                } else if (line.contains("⛂")) {
-                    lore.set(i, ChatColor.GRAY  + "⛂ " + ChatColor.GRAY + "Defence: "
-                        + ChatColor.WHITE + "+" + tpl.getDefRange());
-                } else if (line.contains("≈")) {
-                    lore.set(i, ChatColor.GREEN + "≈ " + ChatColor.GRAY + "Agility: "
-                        + ChatColor.WHITE + "+" + tpl.getAgiRange());
-                } else if (line.contains("♦")) {
-                    lore.set(i, ChatColor.AQUA  + "♦ " + ChatColor.GRAY + "Intelligence: "
-                        + ChatColor.WHITE + "+" + tpl.getIntelRange());
-                } else if (line.contains("➹")) {
-                    lore.set(i, ChatColor.YELLOW+ "➹ " + ChatColor.GRAY + "Dexterity: "
-                        + ChatColor.WHITE + "+" + tpl.getDexRange());
+            // 1) Rewrite each stat line to show the RANGE (white numbers) for non-Ego items
+            if (!tpl.isEgo()) {
+                for (int i = 0; i < lore.size(); i++) {
+                    String line = lore.get(i);
+                    if (line.contains("☠")) {
+                        lore.set(i, ChatColor.BLUE  + "☠ " + ChatColor.GRAY + "Strength: "
+                                + ChatColor.WHITE + "+" + tpl.getStrRange());
+                    } else if (line.contains("❤")) {
+                        lore.set(i, ChatColor.RED   + "❤ " + ChatColor.GRAY + "Health: "
+                                + ChatColor.WHITE + "+" + tpl.getHpRange());
+                    } else if (line.contains("⛂")) {
+                        lore.set(i, ChatColor.GRAY  + "⛂ " + ChatColor.GRAY + "Defence: "
+                                + ChatColor.WHITE + "+" + tpl.getDefRange());
+                    } else if (line.contains("≈")) {
+                        lore.set(i, ChatColor.GREEN + "≈ " + ChatColor.GRAY + "Agility: "
+                                + ChatColor.WHITE + "+" + tpl.getAgiRange());
+                    } else if (line.contains("♦")) {
+                        lore.set(i, ChatColor.AQUA  + "♦ " + ChatColor.GRAY + "Intelligence: "
+                                + ChatColor.WHITE + "+" + tpl.getIntelRange());
+                    } else if (line.contains("➹")) {
+                        lore.set(i, ChatColor.YELLOW+ "➹ " + ChatColor.GRAY + "Dexterity: "
+                                + ChatColor.WHITE + "+" + tpl.getDexRange());
+                    }
                 }
             }
 
