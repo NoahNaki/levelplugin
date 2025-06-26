@@ -571,8 +571,8 @@ public class SpellManager {
             WeaponType.SWORD.getMaterials(),
             "MYTHIC_PERMAFROST_LANCE", 0.0
         ));
-        spellsByClass.put("arcticknight", Collections.unmodifiableMap(arcticMap));
-        plugin.getLogger().info("[SPELLS] ArcticKnight combos: " + arcticMap.keySet());
+        spellsByClass.put("arctic", Collections.unmodifiableMap(arcticMap));
+        plugin.getLogger().info("[SPELLS] Arctic combos: " + arcticMap.keySet());
 
 
     }

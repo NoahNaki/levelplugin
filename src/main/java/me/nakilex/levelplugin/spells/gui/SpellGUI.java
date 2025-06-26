@@ -315,7 +315,7 @@ public class SpellGUI {
                 else if (prefix.equalsIgnoreCase("mage")) classKey = "mage";
                 else if (prefix.equalsIgnoreCase("dragonian")) classKey = "dragonian";
                 else if (prefix.equalsIgnoreCase("windrune")) classKey = "windrune";
-                else if (prefix.equalsIgnoreCase("arcticknight")) classKey = "arcticknight";
+                else if (prefix.equalsIgnoreCase("arctic")) classKey = "arctic";
             }
             if (classKey == null) {
                 String name = weapon.getItemMeta().getDisplayName();
@@ -326,7 +326,7 @@ public class SpellGUI {
                     else if (lower.contains("mage")) classKey = "mage";
                     else if (lower.contains("dragonian")) classKey = "dragonian";
                     else if (lower.contains("windrune")) classKey = "windrune";
-                    else if (lower.contains("arctic")) classKey = "arcticknight";
+                    else if (lower.contains("arctic")) classKey = "arctic";
                 }
             }
         }

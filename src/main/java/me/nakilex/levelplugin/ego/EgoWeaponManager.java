@@ -87,11 +87,11 @@ public class EgoWeaponManager {
         prototypes.put("dragonian", dragonian);
 
         // Arctic Knight class
-        EgoWeapon arctic = new EgoWeapon("arcticknight_ego", "Ego Arctic Lance", EgoRarity.RARE);
+        EgoWeapon arctic = new EgoWeapon("arctic_ego", "Ego Arctic Lance", EgoRarity.RARE);
         arctic.addRankSkill(1, "Frost_Strike");
         arctic.addRankSkill(5, "Glacial_Impalement");
         arctic.addRankSkill(8, "Permafrost_Lance");
-        prototypes.put("arcticknight", arctic);
+        prototypes.put("arctic", arctic);
 
         // Windrune class
         EgoWeapon windrune = new EgoWeapon("windrune_ego", "Ego Windrune Blade", EgoRarity.RARE);
@@ -258,7 +258,7 @@ public class EgoWeaponManager {
             case "mage" -> "mage_staff";
             case "dragonian" -> "dragonian_sword";
             case "windrune" -> "gale_glaive_windreaver";
-            case "arcticknight" -> "frigid_lance_arctic_knight";
+            case "arctic" -> "frigid_lance_arctic_knight";
             default -> null;
         };
 

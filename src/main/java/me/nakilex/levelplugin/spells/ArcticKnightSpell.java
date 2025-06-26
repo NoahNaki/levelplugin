@@ -34,7 +34,7 @@ public class ArcticKnightSpell implements Listener {
         var pdc = item.getItemMeta().getPersistentDataContainer();
         if (!pdc.has(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING)) return false;
         String id = pdc.get(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING);
-        return id != null && id.startsWith("arcticknight");
+        return id != null && id.startsWith("arctic");
     }
 
     private boolean validWeapon(Player player) {
@@ -83,7 +83,7 @@ public class ArcticKnightSpell implements Listener {
     }
 
     private void castSpell(Player player, String combo) {
-        Spell spell = SpellManager.getInstance().getSpell("arcticknight", combo);
+        Spell spell = SpellManager.getInstance().getSpell("arctic", combo);
         Main.getPlugin().getLogger().info("[AK] castSpell combo=" + combo + " spell=" + (spell != null));
         if (spell == null) {
             MythicBukkit.inst().getAPIHelper().castSkill(player, combo);
