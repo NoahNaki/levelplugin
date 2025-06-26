@@ -478,6 +478,47 @@ public class SpellManager {
         spellsByClass.put("dragonian", Collections.unmodifiableMap(dragonianMap));
         plugin.getLogger().info("[SPELLS] Dragonian combos: " + dragonianMap.keySet());
 
+        // — DRAGON WARRIOR CLASS —
+        Map<String, Spell> dragonwarriorMap = new HashMap<>();
+        dragonwarriorMap.put("BASIC_ATTACK", new Spell(
+            "dragon_slash", "Dragon Slash", "BASIC_ATTACK",
+            0.0,
+            MythicSkillConfig.getCooldownSeconds("Dragon_Slash"),
+            1,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_DRAGON_SLASH", 0.0
+        ));
+        dragonwarriorMap.put("LRL", new Spell(
+            "dragon_dash", "Dragon Dash", "LRL",
+            6.0,
+            MythicSkillConfig.getCooldownSeconds("Dragon_Dash"), 3,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_DRAGON_DASH", 0.0
+        ));
+        dragonwarriorMap.put("LLL", new Spell(
+            "dragon_breath", "Dragon Breath", "LLL",
+            8.0,
+            MythicSkillConfig.getCooldownSeconds("Dragon_Breath"), 5,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_DRAGON_BREATH", 0.0
+        ));
+        dragonwarriorMap.put("LLR", new Spell(
+            "dragon_zone", "Dragon Zone", "LLR",
+            10.0,
+            MythicSkillConfig.getCooldownSeconds("Dragon_Zone"), 5,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_DRAGON_ZONE", 0.0
+        ));
+        dragonwarriorMap.put("RRR", new Spell(
+            "dragonborn", "Dragonborn", "RRR",
+            20.0,
+            MythicSkillConfig.getCooldownSeconds("Dragonborn"), 10,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_DRAGONBORN", 0.0
+        ));
+        spellsByClass.put("dragonwarrior", Collections.unmodifiableMap(dragonwarriorMap));
+        plugin.getLogger().info("[SPELLS] DragonWarrior combos: " + dragonwarriorMap.keySet());
+
         // — WINDRUNE CLASS —
         Map<String, Spell> windruneMap = new HashMap<>();
         windruneMap.put("BASIC_ATTACK", new Spell(
