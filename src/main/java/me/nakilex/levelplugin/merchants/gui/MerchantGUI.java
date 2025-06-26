@@ -108,29 +108,27 @@ public class MerchantGUI implements Listener {
 
             List<String> lore = meta.getLore();
 
-            // 1) Rewrite each stat line to show the RANGE (white numbers) for non-Ego items
-            if (!tpl.isEgo()) {
-                for (int i = 0; i < lore.size(); i++) {
-                    String line = lore.get(i);
-                    if (line.contains("☠")) {
-                        lore.set(i, ChatColor.BLUE  + "☠ " + ChatColor.GRAY + "Strength: "
-                                + ChatColor.WHITE + "+" + tpl.getStrRange());
-                    } else if (line.contains("❤")) {
-                        lore.set(i, ChatColor.RED   + "❤ " + ChatColor.GRAY + "Health: "
-                                + ChatColor.WHITE + "+" + tpl.getHpRange());
-                    } else if (line.contains("⛂")) {
-                        lore.set(i, ChatColor.GRAY  + "⛂ " + ChatColor.GRAY + "Defence: "
-                                + ChatColor.WHITE + "+" + tpl.getDefRange());
-                    } else if (line.contains("≈")) {
-                        lore.set(i, ChatColor.GREEN + "≈ " + ChatColor.GRAY + "Agility: "
-                                + ChatColor.WHITE + "+" + tpl.getAgiRange());
-                    } else if (line.contains("♦")) {
-                        lore.set(i, ChatColor.AQUA  + "♦ " + ChatColor.GRAY + "Intelligence: "
-                                + ChatColor.WHITE + "+" + tpl.getIntelRange());
-                    } else if (line.contains("➹")) {
-                        lore.set(i, ChatColor.YELLOW+ "➹ " + ChatColor.GRAY + "Dexterity: "
-                                + ChatColor.WHITE + "+" + tpl.getDexRange());
-                    }
+            // 1) Rewrite each stat line to show the RANGE (white numbers)
+            for (int i = 0; i < lore.size(); i++) {
+                String line = lore.get(i);
+                if (line.contains("☠")) {
+                    lore.set(i, ChatColor.BLUE  + "☠ " + ChatColor.GRAY + "Strength: "
+                            + ChatColor.WHITE + "+" + tpl.getStrRange());
+                } else if (line.contains("❤")) {
+                    lore.set(i, ChatColor.RED   + "❤ " + ChatColor.GRAY + "Health: "
+                            + ChatColor.WHITE + "+" + tpl.getHpRange());
+                } else if (line.contains("⛂")) {
+                    lore.set(i, ChatColor.GRAY  + "⛂ " + ChatColor.GRAY + "Defence: "
+                            + ChatColor.WHITE + "+" + tpl.getDefRange());
+                } else if (line.contains("≈")) {
+                    lore.set(i, ChatColor.GREEN + "≈ " + ChatColor.GRAY + "Agility: "
+                            + ChatColor.WHITE + "+" + tpl.getAgiRange());
+                } else if (line.contains("♦")) {
+                    lore.set(i, ChatColor.AQUA  + "♦ " + ChatColor.GRAY + "Intelligence: "
+                            + ChatColor.WHITE + "+" + tpl.getIntelRange());
+                } else if (line.contains("➹")) {
+                    lore.set(i, ChatColor.YELLOW+ "➹ " + ChatColor.GRAY + "Dexterity: "
+                            + ChatColor.WHITE + "+" + tpl.getDexRange());
                 }
             }
 
@@ -322,33 +320,40 @@ public class MerchantGUI implements Listener {
             // Give item to player
             CustomItem template = ItemManager.getInstance().getTemplateById(mItem.getItemId());
             if (template != null) {
-                CustomItem newInstance = new CustomItem(
-                    template.getId(),
-                    template.getBaseName(),
-                    template.getRarity(),
-                    template.getLevelRequirement(),
-                    template.getClassRequirement(),
-                    template.getMaterial(),
-                    template.getHpRange(),
-                    template.getDefRange(),
-                    template.getStrRange(),
-                    template.getAgiRange(),
-                    template.getIntelRange(),
-                    template.getDexRange(),
-                    template.isEgo(),
-                    template.getEgoKey()
-                );
-                ItemManager.getInstance().addInstance(newInstance);
+                if (template.isEgo() && template.getEgoKey() != null) {
+                    me.nakilex.levelplugin.ego.EgoWeapon proto =
+                            me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance()
+                                    .getPrototype(template.getEgoKey());
+                    if (proto != null) {
+                        me.nakilex.levelplugin.ego.EgoWeapon weapon = proto.copy();
+                        me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance()
+                                .setWeapon(player.getUniqueId(), weapon);
+                        ItemStack purchasedItem = me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance()
+                                .createWeaponItem(weapon, template.getId());
+                        player.getInventory().addItem(purchasedItem);
+                        Main.getInstance().getQuestManager().handleBuy(player, String.valueOf(mItem.getItemId()));
+                        player.sendMessage(ChatColor.GREEN +
+                                "You purchased " +
+                                purchasedItem.getItemMeta().getDisplayName() +
+                                ChatColor.GREEN + " for " +
+                                ChatColor.YELLOW + coinCost + " ⛃ coins" +
+                                (gemCost > 0 ? ChatColor.GRAY + " and " + ChatColor.LIGHT_PURPLE + gemCost + "✦" : "") +
+                                ChatColor.GREEN + ".");
+                        return;
+                    }
+                }
+
+                CustomItem newInstance = ItemManager.getInstance().rollNewInstance(template.getId());
                 ItemStack purchasedItem = ItemUtil.createItemStackFromCustomItem(newInstance, mItem.getAmount(), player);
                 player.getInventory().addItem(purchasedItem);
                 Main.getInstance().getQuestManager().handleBuy(player, String.valueOf(mItem.getItemId()));
                 player.sendMessage(ChatColor.GREEN +
-                    "You purchased " +
-                    purchasedItem.getItemMeta().getDisplayName() +
-                    ChatColor.GREEN + " for " +
-                    ChatColor.YELLOW + coinCost + " ⛃ coins" +
-                    (gemCost > 0 ? ChatColor.GRAY + " and " + ChatColor.LIGHT_PURPLE + gemCost + "✦" : "") +
-                    ChatColor.GREEN + ".");
+                        "You purchased " +
+                        purchasedItem.getItemMeta().getDisplayName() +
+                        ChatColor.GREEN + " for " +
+                        ChatColor.YELLOW + coinCost + " ⛃ coins" +
+                        (gemCost > 0 ? ChatColor.GRAY + " and " + ChatColor.LIGHT_PURPLE + gemCost + "✦" : "") +
+                        ChatColor.GREEN + ".");
             }
         }
     }
