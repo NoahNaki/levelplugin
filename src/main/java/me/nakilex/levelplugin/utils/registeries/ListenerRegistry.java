@@ -45,6 +45,7 @@ import me.nakilex.levelplugin.spells.AbyssionSpell;
 import me.nakilex.levelplugin.spells.MageSpell;
 import me.nakilex.levelplugin.spells.DragonianSpell;
 import me.nakilex.levelplugin.spells.WindruneSpell;
+import me.nakilex.levelplugin.spells.ArcticKnightSpell;
 import me.nakilex.levelplugin.spells.gui.SpellGUIListener;
 import me.nakilex.levelplugin.spells.listener.*;
 import me.nakilex.levelplugin.trade.listeners.PlayerRightClicksPlayerListener;
@@ -155,6 +156,7 @@ public class ListenerRegistry {
         pm.registerEvents(new AbyssionSpell(), plugin);
         pm.registerEvents(new DragonianSpell(), plugin);
         pm.registerEvents(new WindruneSpell(), plugin);
+        pm.registerEvents(new ArcticKnightSpell(), plugin);
         pm.registerEvents(new ChestHologramListener(lootChestManager), plugin);
         pm.registerEvents(new LootChestShutdownListener(plugin, lootChestManager), plugin);
 

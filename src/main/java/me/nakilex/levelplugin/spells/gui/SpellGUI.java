@@ -108,6 +108,14 @@ public class SpellGUI {
         SPELL_DESCRIPTIONS.put("torrent", "Spin rapidly drawing enemies in.");
         SPELL_DESCRIPTIONS.put("cloudpiercer", "Launch a piercing spear of air.");
         SPELL_DESCRIPTIONS.put("windbound_fury", "Unleash a raging windstorm.");
+
+        // Arctic Knight
+        SPELL_DESCRIPTIONS.put("frost_strike", "Strike with chilling power.");
+        SPELL_DESCRIPTIONS.put("glacial_impalement", "Impale foes on icy spikes.");
+        SPELL_DESCRIPTIONS.put("glacier_smash", "Leap and smash the ground with ice.");
+        SPELL_DESCRIPTIONS.put("arctic_charge", "Charge forward leaving frost behind.");
+        SPELL_DESCRIPTIONS.put("frozen_shield", "Conjure a protective ice shield.");
+        SPELL_DESCRIPTIONS.put("permafrost_lance", "Devastate enemies with frozen might.");
     }
 
     /** Simple usage hints for non-combo based spells. */
@@ -179,6 +187,14 @@ public class SpellGUI {
         SPELL_USAGE.put("torrent", "Sneak + Toggle");
         SPELL_USAGE.put("cloudpiercer", "Sneak");
         SPELL_USAGE.put("windbound_fury", "Sneak + Left Click");
+
+        // Arctic Knight
+        SPELL_USAGE.put("frost_strike", "Left Click");
+        SPELL_USAGE.put("glacial_impalement", "Right Click");
+        SPELL_USAGE.put("frozen_shield", "Sneak + Right Click");
+        SPELL_USAGE.put("arctic_charge", "Sneak");
+        SPELL_USAGE.put("glacier_smash", "Sneak + Toggle");
+        SPELL_USAGE.put("permafrost_lance", "Sneak + Left Click");
     }
 
     /** Maps spell IDs to Nexo item icons */
@@ -251,7 +267,14 @@ public class SpellGUI {
         Map.entry("dancing_blade", "icon_dancing_blade"),
         Map.entry("torrent", "icon_torrent"),
         Map.entry("cloudpiercer", "icon_cloudpiercer"),
-        Map.entry("windbound_fury", "icon_windbound_fury")
+        Map.entry("windbound_fury", "icon_windbound_fury"),
+        // Arctic Knight
+        Map.entry("frost_strike", "icon_frost_strike"),
+        Map.entry("glacial_impalement", "icon_glacial_impalement"),
+        Map.entry("glacier_smash", "icon_glacier_smash"),
+        Map.entry("arctic_charge", "icon_arctic_charge"),
+        Map.entry("frozen_shield", "icon_frozen_shield"),
+        Map.entry("permafrost_lance", "icon_permafrost_lance")
     );
 
     // The slots where we will place the spells in a 27-slot inventory.
@@ -292,6 +315,7 @@ public class SpellGUI {
                 else if (prefix.equalsIgnoreCase("mage")) classKey = "mage";
                 else if (prefix.equalsIgnoreCase("dragonian")) classKey = "dragonian";
                 else if (prefix.equalsIgnoreCase("windrune")) classKey = "windrune";
+                else if (prefix.equalsIgnoreCase("arcticknight")) classKey = "arcticknight";
             }
             if (classKey == null) {
                 String name = weapon.getItemMeta().getDisplayName();
@@ -302,6 +326,7 @@ public class SpellGUI {
                     else if (lower.contains("mage")) classKey = "mage";
                     else if (lower.contains("dragonian")) classKey = "dragonian";
                     else if (lower.contains("windrune")) classKey = "windrune";
+                    else if (lower.contains("arctic")) classKey = "arcticknight";
                 }
             }
         }

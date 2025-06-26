@@ -121,6 +121,14 @@ public class EffectRegistry {
         register("MYTHIC_CLOUDPIERCER", new MythicSkillEffect("Cloudpiercer"));
         register("MYTHIC_WINDBOUND_FURY", new MythicSkillEffect("Windbound_Fury"));
 
+        // --- Arctic Knight Mythic skills ---
+        register("MYTHIC_FROST_STRIKE", new MythicSkillEffect("Frost_Strike"));
+        register("MYTHIC_GLACIAL_IMPALEMENT", new MythicSkillEffect("Glacial_Impalement"));
+        register("MYTHIC_GLACIER_SMASH", new MythicSkillEffect("Glacier_Smash"));
+        register("MYTHIC_ARCTIC_CHARGE", new MythicSkillEffect("Arctic_Charge"));
+        register("MYTHIC_FROZEN_SHIELD", new MythicSkillEffect("Frozen_Shield"));
+        register("MYTHIC_PERMAFROST_LANCE", new MythicSkillEffect("Permafrost_Lance"));
+
 
 
 
