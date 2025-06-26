@@ -526,6 +526,54 @@ public class SpellManager {
         spellsByClass.put("windrune", Collections.unmodifiableMap(windruneMap));
         plugin.getLogger().info("[SPELLS] Windrune combos: " + windruneMap.keySet());
 
+        // — ARCTIC KNIGHT CLASS —
+        Map<String, Spell> arcticMap = new HashMap<>();
+        arcticMap.put("BASIC_ATTACK", new Spell(
+            "frost_strike", "Frost Strike", "BASIC_ATTACK",
+            0.0,
+            MythicSkillConfig.getCooldownSeconds("Frost_Strike"),
+            1,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_FROST_STRIKE", 0.0
+        ));
+        arcticMap.put("LRL", new Spell(
+            "glacial_impalement", "Glacial Impalement", "LRL",
+            6.0,
+            MythicSkillConfig.getCooldownSeconds("Glacial_Impalement"), 3,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_GLACIAL_IMPALEMENT", 0.0
+        ));
+        arcticMap.put("LLL", new Spell(
+            "frozen_shield", "Frozen Shield", "LLL",
+            8.0,
+            MythicSkillConfig.getCooldownSeconds("Frozen_Shield"), 5,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_FROZEN_SHIELD", 0.0
+        ));
+        arcticMap.put("LLR", new Spell(
+            "arctic_charge", "Arctic Charge", "LLR",
+            10.0,
+            MythicSkillConfig.getCooldownSeconds("Arctic_Charge"), 5,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_ARCTIC_CHARGE", 0.0
+        ));
+        arcticMap.put("RLL", new Spell(
+            "glacier_smash", "Glacier Smash", "RLL",
+            8.0,
+            MythicSkillConfig.getCooldownSeconds("Glacier_Smash"), 3,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_GLACIER_SMASH", 0.0
+        ));
+        arcticMap.put("RRR", new Spell(
+            "permafrost_lance", "Permafrost Lance", "RRR",
+            20.0,
+            MythicSkillConfig.getCooldownSeconds("Permafrost_Lance"), 10,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_PERMAFROST_LANCE", 0.0
+        ));
+        spellsByClass.put("arctic", Collections.unmodifiableMap(arcticMap));
+        plugin.getLogger().info("[SPELLS] Arctic combos: " + arcticMap.keySet());
+
 
     }
 

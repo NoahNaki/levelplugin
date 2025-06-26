@@ -3330,3 +3330,17 @@ items:
     dex: 0-0
 
 
+  266:
+    name: "Ego Arctic Lance"
+    rarity: RARE
+    level_requirement: 1
+    class_requirement: ARCTICKNIGHT
+    material: STONE_SWORD
+    unbreakable: true
+    hp: 0-0
+    def: 0-0
+    str: 3-6
+    agi: 0-0
+    intel: 0-0
+    dex: 0-0
+
