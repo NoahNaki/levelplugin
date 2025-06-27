@@ -47,6 +47,9 @@ commands:
     description: Change your class
     usage: /class <Warrior|Rogue|Archer|Mage>
     aliases: [c]
+  awakenwarrior:
+    description: Choose your warrior awakening
+    usage: /awakenwarrior
   addmob:
     description: Spawns custom mobs
     usage: /addmob <mobid> <amount>
