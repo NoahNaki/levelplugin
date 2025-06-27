@@ -296,43 +296,28 @@ public class SpellGUI {
      * in slots 10, 12, 14, and 16 (sorted by level requirement).
      */
     public static void openSpellGUI(Player player) {
-        // Determine class based on the equipped Ego Weapon
-        ItemStack weapon = player.getInventory().getItemInMainHand();
-        String classKey = null;
-        if (weapon != null && weapon.hasItemMeta()) {
-            PersistentDataContainer pdc = weapon.getItemMeta().getPersistentDataContainer();
-            if (pdc.has(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING)) {
-                String id = pdc.get(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING);
-                String prefix = id.split("_")[0];
-                if (prefix.equalsIgnoreCase("archer")) classKey = "coolarcher";
-                else if (prefix.equalsIgnoreCase("phoenix")) classKey = "phoenixhunter";
-                else if (prefix.equalsIgnoreCase("warrior")) classKey = "warrior";
-                else if (prefix.equalsIgnoreCase("barbarian")) classKey = "barbarian";
-                else if (prefix.equalsIgnoreCase("paladin")) classKey = "paladin";
-                else if (prefix.equalsIgnoreCase("death") || prefix.equalsIgnoreCase("deathknight"))
-                    classKey = "deathknight";
-                else if (prefix.equalsIgnoreCase("abyssion")) classKey = "abyssion";
-                else if (prefix.equalsIgnoreCase("mage")) classKey = "mage";
-                else if (prefix.equalsIgnoreCase("dragonian")) classKey = "dragonian";
-                else if (prefix.equalsIgnoreCase("windrune")) classKey = "windrune";
-                else if (prefix.equalsIgnoreCase("arctic")) classKey = "arctic";
-            }
-            if (classKey == null) {
-                String name = weapon.getItemMeta().getDisplayName();
-                if (name != null) {
-                    String lower = name.toLowerCase();
-                    if (lower.contains("necroslayer")) classKey = "deathknight";
-                    else if (lower.contains("abyssion")) classKey = "abyssion";
-                    else if (lower.contains("mage")) classKey = "mage";
-                    else if (lower.contains("dragonian")) classKey = "dragonian";
-                    else if (lower.contains("windrune")) classKey = "windrune";
-                    else if (lower.contains("arctic")) classKey = "arctic";
-                }
-            }
-        }
+        // Determine class based on the player's selected class
+        var ps = me.nakilex.levelplugin.player.attributes.managers.StatsManager.getInstance()
+                .getPlayerStats(player.getUniqueId());
+        PlayerClass pClass = ps.playerClass;
+        String classKey = switch (pClass) {
+            case COOLARCHER -> "coolarcher";
+            case PHOENIXHUNTER -> "phoenixhunter";
+            case WARRIOR -> "warrior";
+            case BARBARIAN -> "barbarian";
+            case PALADIN -> "paladin";
+            case DEATHKNIGHT -> "deathknight";
+            case ABYSSION -> "abyssion";
+            case MAGE -> "mage";
+            case DRAGONIAN -> "dragonian";
+            case GALEGLAIVE -> "windrune";
+            case ARCTICKNIGHT -> "arctic";
+            case DRAGONWARRIOR -> "dragonwarrior";
+            default -> null;
+        };
 
         if (classKey == null) {
-            player.sendMessage(ChatColor.RED + "Hold an Ego Weapon to view its spells.");
+            player.sendMessage(ChatColor.RED + "Select a class to view its spells.");
             Inventory gui = Bukkit.createInventory(null, 27, ChatColor.DARK_GREEN + "Spell Book");
             ItemStack filler = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
             ItemMeta fm = filler.getItemMeta();

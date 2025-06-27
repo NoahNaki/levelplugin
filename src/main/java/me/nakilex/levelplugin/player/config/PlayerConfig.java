@@ -60,6 +60,7 @@ public class PlayerConfig {
         config.set(path + ".stats.base_health", stats.baseHealthStat);
         config.set(path + ".stats.base_defense", stats.baseDefenceStat);
         config.set(path + ".class", stats.playerClass.name());
+        config.set(path + ".awakening_stage", stats.awakeningStage);
 
         saveConfig();
     }
@@ -77,6 +78,7 @@ public class PlayerConfig {
         int miningLevel = config.getInt(root + ".mining.level", 1);
         int miningXp = config.getInt(root + ".mining.xp", 0);
         int skillPoints = config.getInt(root + ".skill_points", 0);
+        int awakenStage = config.getInt(root + ".awakening_stage", 0);
 
         LevelManager lm = LevelManager.getInstance();
         lm.setLevel(uuid, level);
@@ -94,6 +96,7 @@ public class PlayerConfig {
         stats.baseDexterity     = config.getInt(root + ".stats.base_dexterity", 0);
         stats.baseHealthStat    = config.getInt(root + ".stats.base_health", 0);
         stats.baseDefenceStat   = config.getInt(root + ".stats.base_defense", 0);
+        stats.awakeningStage    = awakenStage;
     }
 
     /** Saves data for all players. */

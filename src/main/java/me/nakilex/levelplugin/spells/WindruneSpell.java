@@ -28,13 +28,9 @@ public class WindruneSpell implements Listener {
             Material.WOODEN_SWORD, Material.STONE_SWORD, Material.IRON_SWORD,
             Material.GOLDEN_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD);
 
-    private boolean hasEgoWindrune(Player player) {
-        ItemStack item = player.getInventory().getItemInMainHand();
-        if (item == null || !item.hasItemMeta()) return false;
-        var pdc = item.getItemMeta().getPersistentDataContainer();
-        if (!pdc.has(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING)) return false;
-        String id = pdc.get(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING);
-        return id != null && id.startsWith("windrune");
+    private boolean isWindrune(Player player) {
+        return StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass ==
+                me.nakilex.levelplugin.player.classes.data.PlayerClass.GALEGLAIVE;
     }
 
     private boolean validWeapon(Player player) {
@@ -45,7 +41,7 @@ public class WindruneSpell implements Listener {
     @EventHandler
     public void onLeftClick(PlayerAnimationEvent event) {
         Player player = event.getPlayer();
-        if (!hasEgoWindrune(player) || !validWeapon(player)) return;
+        if (!isWindrune(player) || !validWeapon(player)) return;
 
         Main.getPlugin().getLogger().info("[WR] left click " + player.getName() + " sneaking=" + player.isSneaking());
 
@@ -61,7 +57,7 @@ public class WindruneSpell implements Listener {
         if (event.getHand() == null || event.getHand().ordinal() != 0) return;
         if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         Player player = event.getPlayer();
-        if (!hasEgoWindrune(player) || !validWeapon(player)) return;
+        if (!isWindrune(player) || !validWeapon(player)) return;
         event.setCancelled(true);
 
         Main.getPlugin().getLogger().info("[WR] right click " + player.getName() + " sneaking=" + player.isSneaking());
@@ -76,7 +72,7 @@ public class WindruneSpell implements Listener {
     @EventHandler
     public void onToggleSneak(PlayerToggleSneakEvent event) {
         Player player = event.getPlayer();
-        if (!hasEgoWindrune(player) || !validWeapon(player)) return;
+        if (!isWindrune(player) || !validWeapon(player)) return;
 
         if (event.isSneaking()) {
             // Player started sneaking - Cloudpiercer

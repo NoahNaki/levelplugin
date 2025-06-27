@@ -28,17 +28,9 @@ public class DeathKnightSpell implements Listener {
             Material.WOODEN_SWORD, Material.STONE_SWORD, Material.IRON_SWORD,
             Material.GOLDEN_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD);
 
-    private boolean hasEgoDeathKnight(Player player) {
-        ItemStack item = player.getInventory().getItemInMainHand();
-        if (item == null || !item.hasItemMeta()) return false;
-        var pdc = item.getItemMeta().getPersistentDataContainer();
-        if (pdc.has(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING)) {
-            String id = pdc.get(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING);
-            if (id != null && id.startsWith("death")) return true;
-        }
-        // Fallback for Mythic items lacking Ego tags
-        String name = item.getItemMeta().getDisplayName();
-        return name != null && name.toLowerCase().contains("necroslayer");
+    private boolean isDeathKnight(Player player) {
+        return StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass ==
+                me.nakilex.levelplugin.player.classes.data.PlayerClass.DEATHKNIGHT;
     }
 
     private boolean validWeapon(Player player) {
@@ -49,7 +41,7 @@ public class DeathKnightSpell implements Listener {
     @EventHandler
     public void onLeftClick(PlayerAnimationEvent event) {
         Player player = event.getPlayer();
-        if (!hasEgoDeathKnight(player) || !validWeapon(player)) return;
+        if (!isDeathKnight(player) || !validWeapon(player)) return;
 
         Main.getPlugin().getLogger().info("[DK] left click " + player.getName() + " sneaking=" + player.isSneaking());
 
@@ -65,7 +57,7 @@ public class DeathKnightSpell implements Listener {
         if (event.getHand() == null || event.getHand().ordinal() != 0) return;
         if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         Player player = event.getPlayer();
-        if (!hasEgoDeathKnight(player) || !validWeapon(player)) return;
+        if (!isDeathKnight(player) || !validWeapon(player)) return;
         event.setCancelled(true);
 
         Main.getPlugin().getLogger().info("[DK] right click " + player.getName() + " sneaking=" + player.isSneaking());
@@ -81,7 +73,7 @@ public class DeathKnightSpell implements Listener {
     public void onToggleSneak(PlayerToggleSneakEvent event) {
         if (!event.isSneaking()) return;
         Player player = event.getPlayer();
-        if (!hasEgoDeathKnight(player) || !validWeapon(player)) return;
+        if (!isDeathKnight(player) || !validWeapon(player)) return;
         Main.getPlugin().getLogger().info("[DK] toggle sneak by " + player.getName());
         castSpell(player, "LRR"); // Wraithbound Chains
         castSpell(player, "LLR"); // Soul Barrier stack/cast

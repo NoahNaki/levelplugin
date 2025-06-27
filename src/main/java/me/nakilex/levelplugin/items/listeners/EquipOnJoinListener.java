@@ -49,28 +49,6 @@ public class EquipOnJoinListener implements Listener {
         statsManager.recalcDerivedStats(player);
 
         // Load Ego weapon from the item in main hand so XP gains apply
-        ItemStack hand = player.getInventory().getItemInMainHand();
-        if (hand != null && hand.hasItemMeta()) {
-            PersistentDataContainer pdc = hand.getItemMeta().getPersistentDataContainer();
-            if (pdc.has(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING)) {
-                String id = pdc.get(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING);
-                String key = id.split("_")[0];
-                me.nakilex.levelplugin.ego.EgoWeapon proto = me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance().getPrototype(key);
-                if (proto != null) {
-                    me.nakilex.levelplugin.ego.EgoWeapon weapon = proto.copy();
-                    int rank = pdc.getOrDefault(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
-                    int exp = pdc.getOrDefault(ItemUtil.EGO_EXP_KEY, PersistentDataType.INTEGER, 0);
-                    while (weapon.getRank() < rank) weapon.addExp(weapon.expToNextRank());
-                    weapon.addExp(exp);
-                    me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance().setWeapon(puuid, weapon);
-                }
-            }
-        }
-    }
-
-    private void applyArmorIfNeeded(Player player, UUID puuid, Set<Integer> equipped, ItemStack item) {
-        if (item == null || item.getType().isAir()) return;
-
         ArmorType type = ArmorType.matchType(item);
         if (type == null) return;
 

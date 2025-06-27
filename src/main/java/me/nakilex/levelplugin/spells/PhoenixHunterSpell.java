@@ -52,13 +52,9 @@ public class PhoenixHunterSpell implements Listener {
         }.runTaskTimer(me.nakilex.levelplugin.Main.getInstance(), 10L, 10L);
     }
 
-    private boolean hasEgoPhoenix(Player player) {
-        ItemStack item = player.getInventory().getItemInMainHand();
-        if (item == null || !item.hasItemMeta()) return false;
-        var pdc = item.getItemMeta().getPersistentDataContainer();
-        if (!pdc.has(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING)) return false;
-        String id = pdc.get(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING);
-        return id != null && id.startsWith("phoenix");
+    private boolean isPhoenixHunter(Player player) {
+        return StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass ==
+                me.nakilex.levelplugin.player.classes.data.PlayerClass.PHOENIXHUNTER;
     }
 
     private boolean validWeapon(Player player) {
@@ -69,7 +65,7 @@ public class PhoenixHunterSpell implements Listener {
     @EventHandler
     public void onLeftClick(PlayerAnimationEvent event) {
         Player player = event.getPlayer();
-        if (!hasEgoPhoenix(player) || !validWeapon(player)) return;
+        if (!isPhoenixHunter(player) || !validWeapon(player)) return;
 
         Main.getPlugin().getLogger().info("[PH] left click " + player.getName() + " sneaking=" + player.isSneaking());
 
@@ -85,7 +81,7 @@ public class PhoenixHunterSpell implements Listener {
         if (event.getHand() == null || event.getHand().ordinal() != 0) return; // main hand only
         if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         Player player = event.getPlayer();
-        if (!hasEgoPhoenix(player) || !validWeapon(player)) return;
+        if (!isPhoenixHunter(player) || !validWeapon(player)) return;
         event.setCancelled(true);
         Main.getPlugin().getLogger().info("[PH] right click " + player.getName() + " sneaking=" + player.isSneaking());
         if (player.isSneaking()) {
@@ -99,7 +95,7 @@ public class PhoenixHunterSpell implements Listener {
     public void onToggleSneak(PlayerToggleSneakEvent event) {
         if (!event.isSneaking()) return;
         Player player = event.getPlayer();
-        if (!hasEgoPhoenix(player) || !validWeapon(player)) return;
+        if (!isPhoenixHunter(player) || !validWeapon(player)) return;
         Main.getPlugin().getLogger().info("[PH] toggle sneak by " + player.getName());
         castSpell(player, "LRR"); // Flameburst Convergence
     }

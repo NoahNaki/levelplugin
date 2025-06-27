@@ -1,7 +1,6 @@
 package me.nakilex.levelplugin.player.level.commands;
 
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
-import me.nakilex.levelplugin.ego.EgoWeaponManager;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -45,7 +44,6 @@ public class AddXPCommand implements CommandExecutor {
 
         // Grant XP to player and their active Ego weapon
         levelManager.addXP(target, amount);
-        EgoWeaponManager.getInstance().addXp(target, amount);
         sender.sendMessage("§aGave " + amount + " XP to " + target.getName());
         target.sendMessage("§aYou have received " + amount + " XP!");
 

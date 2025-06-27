@@ -1,6 +1,6 @@
 package me.nakilex.levelplugin.player.classes.commands;
 
-import me.nakilex.levelplugin.player.classes.gui.AwakenWarriorGUI;
+import me.nakilex.levelplugin.player.classes.managers.AwakeningManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -13,7 +13,7 @@ public class AwakenWarriorCommand implements CommandExecutor {
             sender.sendMessage("Only players can use this command");
             return true;
         }
-        AwakenWarriorGUI.open(player);
+        AwakeningManager.check(player);
         return true;
     }
 }

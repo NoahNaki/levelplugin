@@ -31,13 +31,9 @@ public class CoolArcherSpell implements Listener {
             Material.WOODEN_SWORD, Material.STONE_SWORD, Material.IRON_SWORD,
             Material.GOLDEN_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD);
 
-    private boolean hasEgoArcher(Player p) {
-        ItemStack item = p.getInventory().getItemInMainHand();
-        if (item == null || !item.hasItemMeta()) return false;
-        var pdc = item.getItemMeta().getPersistentDataContainer();
-        if (!pdc.has(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING)) return false;
-        String id = pdc.get(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING);
-        return id != null && id.startsWith("archer");
+    private boolean isCoolArcher(Player p) {
+        return StatsManager.getInstance().getPlayerStats(p.getUniqueId()).playerClass ==
+                me.nakilex.levelplugin.player.classes.data.PlayerClass.COOLARCHER;
     }
 
     private boolean validWeapon(Player p) {
@@ -48,7 +44,7 @@ public class CoolArcherSpell implements Listener {
     @EventHandler
     public void onLeftClick(PlayerAnimationEvent event) {
         Player player = event.getPlayer();
-        if (!hasEgoArcher(player) || !validWeapon(player)) return;
+        if (!isCoolArcher(player) || !validWeapon(player)) return;
 
         Main.getPlugin().getLogger().info("[CA] left click " + player.getName() + " sneaking=" + player.isSneaking());
 
@@ -64,7 +60,7 @@ public class CoolArcherSpell implements Listener {
         if (event.getHand() == null || event.getHand().ordinal() != 0) return;
         if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         Player player = event.getPlayer();
-        if (!hasEgoArcher(player) || !validWeapon(player)) return;
+        if (!isCoolArcher(player) || !validWeapon(player)) return;
         event.setCancelled(true);
 
         Main.getPlugin().getLogger().info("[CA] right click " + player.getName() + " sneaking=" + player.isSneaking());
@@ -80,7 +76,7 @@ public class CoolArcherSpell implements Listener {
     public void onToggleSneak(PlayerToggleSneakEvent event) {
         if (!event.isSneaking()) return;
         Player player = event.getPlayer();
-        if (!hasEgoArcher(player) || !validWeapon(player)) return;
+        if (!isCoolArcher(player) || !validWeapon(player)) return;
         Main.getPlugin().getLogger().info("[CA] toggle sneak by " + player.getName());
         castSpell(player, "LLR"); // Arrow Barrage
     }
