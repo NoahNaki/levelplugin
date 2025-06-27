@@ -173,7 +173,6 @@ public class ItemsBrowser implements CommandExecutor, Listener {
             // a) Create the ItemStack preview from the template material
             ItemStack preview = new ItemStack(tpl.getMaterial(), 1);
             ItemMeta pm = preview.getItemMeta();
-            pm = preview.getItemMeta();
             if (pm == null) continue;
 
             // b) Apply display/lore
@@ -237,7 +236,6 @@ public class ItemsBrowser implements CommandExecutor, Listener {
                         .set(ItemUtil.UPGRADE_LEVEL_KEY, PersistentDataType.INTEGER, 0);
 
                 preview.setItemMeta(pm);
-            }
 
             // f) Compute final slot and place
             int row = 1 + (i / 7);
@@ -349,8 +347,6 @@ public class ItemsBrowser implements CommandExecutor, Listener {
         // Otherwise, if this is one of our item-templates, give it
         int templateId = ItemUtil.getCustomItemId(clicked);
         if (templateId != -1) {
-            CustomItem template = ItemManager.getInstance().getTemplateById(templateId);
-
             CustomItem instance = ItemManager.getInstance().rollNewInstance(templateId);
             ItemStack toGive = ItemUtil.createItemStackFromCustomItem(instance, 1, player);
             player.getInventory().addItem(toGive);
