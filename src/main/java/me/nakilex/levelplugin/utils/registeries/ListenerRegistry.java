@@ -20,7 +20,6 @@ import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.mob.listeners.*;
 import me.nakilex.levelplugin.mob.managers.DmgNumberToggleManager;
 import me.nakilex.levelplugin.mob.managers.MythicMobNameManager;
-import me.nakilex.levelplugin.player.attributes.managers.SprintManager;
 import me.nakilex.levelplugin.npc.listeners.NPCClickListener;
 import me.nakilex.levelplugin.npc.listeners.NPCCommandListener;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
@@ -132,7 +131,6 @@ public class ListenerRegistry {
         pm.registerEvents(new me.nakilex.levelplugin.mob.listeners.MythicSkillDamageScaler(), plugin);
         pm.registerEvents(new FallDamageDisabler(), plugin);
         pm.registerEvents(new HungerDisabler(), plugin);
-        pm.registerEvents(SprintManager.getInstance(), plugin);
         pm.registerEvents(new CropTrampleListener(), plugin);
         pm.registerEvents(new DuelListener(), plugin);
         pm.registerEvents(new PickupCustomItemListener(plugin), plugin);
