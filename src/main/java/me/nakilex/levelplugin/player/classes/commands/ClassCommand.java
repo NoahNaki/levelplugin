@@ -35,7 +35,7 @@ public class ClassCommand implements CommandExecutor {
                 player.sendMessage(ChatColor.RED + "Unknown class: " + args[0]);
             }
         } else {
-            player.sendMessage(ChatColor.YELLOW + "Class selection is no longer used. Wield an Ego Weapon to access its skills.");
+            player.openInventory(ClassMenu.getClassSelectionMenu(player));
         }
         return true;
     }

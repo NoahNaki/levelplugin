@@ -2,8 +2,8 @@ package me.nakilex.levelplugin.spells;
 
 import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -14,7 +14,6 @@ import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.persistence.PersistentDataType;
 
 import java.util.EnumSet;
 import java.util.Set;
@@ -29,13 +28,9 @@ public class BarbarianSpell implements Listener {
             Material.WOODEN_SWORD, Material.STONE_SWORD, Material.IRON_SWORD,
             Material.GOLDEN_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD);
 
-    private boolean hasEgoBarbarian(Player player) {
-        ItemStack item = player.getInventory().getItemInMainHand();
-        if (item == null || !item.hasItemMeta()) return false;
-        var pdc = item.getItemMeta().getPersistentDataContainer();
-        if (!pdc.has(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING)) return false;
-        String id = pdc.get(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING);
-        return id != null && id.startsWith("barbarian");
+    private boolean isBarbarian(Player player) {
+        return StatsManager.getInstance()
+                .getPlayerStats(player.getUniqueId()).playerClass == PlayerClass.BARBARIAN;
     }
 
     private boolean validWeapon(Player player) {
@@ -46,7 +41,7 @@ public class BarbarianSpell implements Listener {
     @EventHandler
     public void onLeftClick(PlayerAnimationEvent event) {
         Player player = event.getPlayer();
-        if (!hasEgoBarbarian(player) || !validWeapon(player)) return;
+        if (!isBarbarian(player) || !validWeapon(player)) return;
 
         Main.getPlugin().getLogger().info("[BB] left click " + player.getName() + " sneaking=" + player.isSneaking());
 
@@ -62,7 +57,7 @@ public class BarbarianSpell implements Listener {
         if (event.getHand() == null || event.getHand().ordinal() != 0) return;
         if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         Player player = event.getPlayer();
-        if (!hasEgoBarbarian(player) || !validWeapon(player)) return;
+        if (!isBarbarian(player) || !validWeapon(player)) return;
         event.setCancelled(true);
 
         Main.getPlugin().getLogger().info("[BB] right click " + player.getName() + " sneaking=" + player.isSneaking());
@@ -78,7 +73,7 @@ public class BarbarianSpell implements Listener {
     public void onToggleSneak(PlayerToggleSneakEvent event) {
         if (!event.isSneaking()) return;
         Player player = event.getPlayer();
-        if (!hasEgoBarbarian(player) || !validWeapon(player)) return;
+        if (!isBarbarian(player) || !validWeapon(player)) return;
         Main.getPlugin().getLogger().info("[BB] toggle sneak by " + player.getName());
         castSpell(player, "LLR"); // War Cry
     }
