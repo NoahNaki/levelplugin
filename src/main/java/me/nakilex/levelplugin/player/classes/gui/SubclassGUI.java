@@ -28,16 +28,16 @@ public class SubclassGUI implements Listener {
     };
     private static final int[] SLOTS = {10, 11, 12, 14, 15, 16};
 
-    private static final ItemStack LOCK_ITEM;
+    private static final ItemStack LOCK_ITEM_BASE;
     private static final ItemStack FILLER;
 
     static {
         ItemBuilder b = NexoItems.itemFromId("lock");
-        LOCK_ITEM = b == null ? new ItemStack(Material.BARRIER) : b.build();
-        ItemMeta meta = LOCK_ITEM.getItemMeta();
+        LOCK_ITEM_BASE = b == null ? new ItemStack(Material.BARRIER) : b.build();
+        ItemMeta meta = LOCK_ITEM_BASE.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(ChatColor.RED + "Locked");
-            LOCK_ITEM.setItemMeta(meta);
+            LOCK_ITEM_BASE.setItemMeta(meta);
         }
         FILLER = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
         ItemMeta fm = FILLER.getItemMeta();
@@ -53,7 +53,7 @@ public class SubclassGUI implements Listener {
         for (int i = 0; i < CLASSES.length && i < SLOTS.length; i++) {
             PlayerClass pc = CLASSES[i];
             boolean unlocked = ps.unlockedClasses.contains(pc) && ps.awakeningStage >= stageOf(pc);
-            ItemStack it = unlocked ? createItem(pc) : LOCK_ITEM;
+            ItemStack it = unlocked ? createItem(pc) : createLockedItem(pc);
             inv.setItem(SLOTS[i], it);
         }
         player.openInventory(inv);
@@ -75,6 +75,16 @@ public class SubclassGUI implements Listener {
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(ChatColor.GREEN + pc.name());
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private static ItemStack createLockedItem(PlayerClass pc) {
+        ItemStack item = LOCK_ITEM_BASE.clone();
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.RED + pc.name());
             item.setItemMeta(meta);
         }
         return item;
