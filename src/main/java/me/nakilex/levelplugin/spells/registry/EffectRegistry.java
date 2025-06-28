@@ -77,6 +77,13 @@ public class EffectRegistry {
         register("MYTHIC_RELENTLESS_LEAP", new MythicSkillEffect("Relentless_Leap"));
         register("MYTHIC_ETERNAL_FURY", new MythicSkillEffect("Eternal_Fury"));
 
+        // --- Beastmaster Mythic skills ---
+        register("MYTHIC_BEAST_AURA", new MythicSkillEffect("Beast_Aura"));
+        register("MYTHIC_SUMMON_BEAST", new MythicSkillEffect("Summon_Beast"));
+        register("MYTHIC_HUNTERS_TRAP", new MythicSkillEffect("Hunters_Trap"));
+        register("MYTHIC_QUICK_DASH", new MythicSkillEffect("Quick_Dash"));
+        register("MYTHIC_AWAKENING_OF_FENRIR", new MythicSkillEffect("Awakening_Of_Fenrir"));
+
         // --- Paladin Mythic skills ---
         register("MYTHIC_HOLY_STRIKE", new MythicSkillEffect("Holy_Strike"));
         register("MYTHIC_BOUND_SEAL", new MythicSkillEffect("Bound_Seal"));
