@@ -24,10 +24,11 @@ import java.util.Set;
  */
 public class BeastmasterSpell implements Listener {
 
-    // Beastmaster bows also use sword materials in the Nexo pack
+    // Beastmaster crossbows may use either sword or crossbow bases in the pack
     private static final Set<Material> VALID_WEAPONS = EnumSet.of(
             Material.WOODEN_SWORD, Material.STONE_SWORD, Material.IRON_SWORD,
-            Material.GOLDEN_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD);
+            Material.GOLDEN_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD,
+            Material.CROSSBOW);
 
     private boolean isBeastmaster(Player player) {
         return StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass ==
