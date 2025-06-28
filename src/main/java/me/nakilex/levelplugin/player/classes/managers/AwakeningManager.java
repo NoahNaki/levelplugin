@@ -11,9 +11,9 @@ public class AwakeningManager {
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
         int level = LevelManager.getInstance().getLevel(player);
         int stage = ps.awakeningStage;
-        PlayerClass base = ps.playerClass;
+        PlayerClass cls = ps.playerClass;
 
-        if (base == PlayerClass.WARRIOR) {
+        if (isWarriorFamily(cls)) {
             if (stage < 1 && level >= 25) {
                 AwakeningGUI.open(player, 1, PlayerClass.BARBARIAN, PlayerClass.DRAGONIAN);
             } else if (stage < 2 && level >= 50) {
@@ -24,5 +24,12 @@ public class AwakeningManager {
                 AwakeningGUI.open(player, 4, null, PlayerClass.DRAGONWARRIOR);
             }
         }
+    }
+
+    private static boolean isWarriorFamily(PlayerClass cls) {
+        return cls == PlayerClass.WARRIOR || cls == PlayerClass.BARBARIAN ||
+               cls == PlayerClass.DRAGONIAN || cls == PlayerClass.GALEGLAIVE ||
+               cls == PlayerClass.DEATHKNIGHT || cls == PlayerClass.ARCTICKNIGHT ||
+               cls == PlayerClass.DRAGONWARRIOR;
     }
 }
