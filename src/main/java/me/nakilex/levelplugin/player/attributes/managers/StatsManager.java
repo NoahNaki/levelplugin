@@ -272,6 +272,8 @@ public class StatsManager {
 
         public PlayerClass playerClass = PlayerClass.VILLAGER;
 
+        public int awakeningStage = 0;
+
         public int getCurrentMana() {
             return currentMana;
         }

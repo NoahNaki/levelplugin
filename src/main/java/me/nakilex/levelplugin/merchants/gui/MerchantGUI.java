@@ -86,20 +86,7 @@ public class MerchantGUI implements Listener {
 
             // Base stack. For Ego templates use the Nexo model so previews match
             // the final generated item.
-            ItemStack stack;
-            if (tpl.isEgo() && tpl.getEgoKey() != null) {
-                me.nakilex.levelplugin.ego.EgoWeapon proto =
-                        me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance()
-                                .getPrototype(tpl.getEgoKey());
-                if (proto != null) {
-                    stack = me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance()
-                            .createWeaponItem(proto.copy(), tpl.getId());
-                } else {
-                    stack = ItemUtil.createItemStackFromCustomItem(tpl, mItem.getAmount(), null);
-                }
-            } else {
-                stack = ItemUtil.createItemStackFromCustomItem(tpl, mItem.getAmount(), null);
-            }
+            ItemStack stack = ItemUtil.createItemStackFromCustomItem(tpl, mItem.getAmount(), null);
             ItemMeta meta = stack.getItemMeta();
             if (meta == null || !meta.hasLore()) {
                 inventory.setItem(mItem.getSlot(), stack);
@@ -320,28 +307,6 @@ public class MerchantGUI implements Listener {
             // Give item to player
             CustomItem template = ItemManager.getInstance().getTemplateById(mItem.getItemId());
             if (template != null) {
-                if (template.isEgo() && template.getEgoKey() != null) {
-                    me.nakilex.levelplugin.ego.EgoWeapon proto =
-                            me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance()
-                                    .getPrototype(template.getEgoKey());
-                    if (proto != null) {
-                        me.nakilex.levelplugin.ego.EgoWeapon weapon = proto.copy();
-                        me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance()
-                                .setWeapon(player.getUniqueId(), weapon);
-                        ItemStack purchasedItem = me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance()
-                                .createWeaponItem(weapon, template.getId());
-                        player.getInventory().addItem(purchasedItem);
-                        Main.getInstance().getQuestManager().handleBuy(player, String.valueOf(mItem.getItemId()));
-                        player.sendMessage(ChatColor.GREEN +
-                                "You purchased " +
-                                purchasedItem.getItemMeta().getDisplayName() +
-                                ChatColor.GREEN + " for " +
-                                ChatColor.YELLOW + coinCost + " ⛃ coins" +
-                                (gemCost > 0 ? ChatColor.GRAY + " and " + ChatColor.LIGHT_PURPLE + gemCost + "✦" : "") +
-                                ChatColor.GREEN + ".");
-                        return;
-                    }
-                }
 
                 CustomItem newInstance = ItemManager.getInstance().rollNewInstance(template.getId());
                 ItemStack purchasedItem = ItemUtil.createItemStackFromCustomItem(newInstance, mItem.getAmount(), player);

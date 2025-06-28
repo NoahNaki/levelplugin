@@ -170,37 +170,14 @@ public class ItemsBrowser implements CommandExecutor, Listener {
             CustomItem tpl = templates.get(idx);
             if (tpl == null) continue;
 
-            // a) Create the ItemStack. For Ego templates build the Nexo model
-            //    using EgoWeaponManager so the preview matches the actual item.
-            ItemStack preview;
-            ItemMeta pm;
-            if (tpl.isEgo() && tpl.getEgoKey() != null) {
-                me.nakilex.levelplugin.ego.EgoWeapon proto =
-                        me.nakilex.levelplugin.ego.EgoWeaponManager
-                                .getInstance().getPrototype(tpl.getEgoKey());
-                if (proto != null) {
-                    preview = me.nakilex.levelplugin.ego.EgoWeaponManager
-                            .getInstance().createWeaponItem(proto.copy(), tpl.getId());
-                } else {
-                    preview = new ItemStack(tpl.getMaterial(), 1);
-                }
-            } else {
-                preview = new ItemStack(tpl.getMaterial(), 1);
-            }
-            pm = preview.getItemMeta();
+            // a) Create the ItemStack preview from the template material
+            ItemStack preview = new ItemStack(tpl.getMaterial(), 1);
+            ItemMeta pm = preview.getItemMeta();
             if (pm == null) continue;
 
-            // b) Apply display/lore depending on whether this is an Ego template
+            // b) Apply display/lore
             ChatColor col = tpl.getRarity().getColor();
-            if (tpl.isEgo() && tpl.getEgoKey() != null) {
-                // The preview already contains proper lore from createWeaponItem.
-                pm.getPersistentDataContainer()
-                        .set(ItemUtil.ITEM_ID_KEY, PersistentDataType.INTEGER, tpl.getId());
-                pm.getPersistentDataContainer()
-                        .set(ItemUtil.UPGRADE_LEVEL_KEY, PersistentDataType.INTEGER, 0);
-                preview.setItemMeta(pm);
-            } else {
-                pm.setDisplayName(col + tpl.getBaseName());
+            pm.setDisplayName(col + tpl.getBaseName());
 
                 // c) Build lore
                 List<String> lore = new ArrayList<>();
@@ -259,7 +236,6 @@ public class ItemsBrowser implements CommandExecutor, Listener {
                         .set(ItemUtil.UPGRADE_LEVEL_KEY, PersistentDataType.INTEGER, 0);
 
                 preview.setItemMeta(pm);
-            }
 
             // f) Compute final slot and place
             int row = 1 + (i / 7);
@@ -371,26 +347,6 @@ public class ItemsBrowser implements CommandExecutor, Listener {
         // Otherwise, if this is one of our item-templates, give it
         int templateId = ItemUtil.getCustomItemId(clicked);
         if (templateId != -1) {
-            CustomItem template = ItemManager.getInstance().getTemplateById(templateId);
-            if (template != null && template.isEgo()) {
-                String key = template.getEgoKey();
-                if (key != null) {
-                    me.nakilex.levelplugin.ego.EgoWeapon proto =
-                            me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance().getPrototype(key);
-                    if (proto != null) {
-                        me.nakilex.levelplugin.ego.EgoWeapon weapon = proto.copy();
-                        me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance()
-                                .setWeapon(player.getUniqueId(), weapon);
-                        ItemStack toGive = me.nakilex.levelplugin.ego.EgoWeaponManager.getInstance()
-                                .createWeaponItem(weapon, templateId);
-                        player.getInventory().addItem(toGive);
-                        player.sendMessage(ChatColor.GREEN + "You received: "
-                                + toGive.getItemMeta().getDisplayName());
-                        return;
-                    }
-                }
-            }
-
             CustomItem instance = ItemManager.getInstance().rollNewInstance(templateId);
             ItemStack toGive = ItemUtil.createItemStackFromCustomItem(instance, 1, player);
             player.getInventory().addItem(toGive);

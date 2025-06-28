@@ -2,7 +2,6 @@ package me.nakilex.levelplugin.spells;
 
 import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import org.bukkit.Material;
@@ -14,7 +13,6 @@ import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.persistence.PersistentDataType;
 
 import java.util.EnumSet;
 import java.util.Set;
@@ -26,13 +24,9 @@ public class WarriorSpell implements Listener {
             Material.WOODEN_SWORD, Material.STONE_SWORD, Material.IRON_SWORD,
             Material.GOLDEN_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD);
 
-    private boolean hasEgoWarrior(Player p) {
-        ItemStack item = p.getInventory().getItemInMainHand();
-        if (item == null || !item.hasItemMeta()) return false;
-        var pdc = item.getItemMeta().getPersistentDataContainer();
-        if (!pdc.has(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING)) return false;
-        String id = pdc.get(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING);
-        return id != null && id.startsWith("warrior");
+    private boolean isWarrior(Player p) {
+        return StatsManager.getInstance().getPlayerStats(p.getUniqueId()).playerClass ==
+                me.nakilex.levelplugin.player.classes.data.PlayerClass.WARRIOR;
     }
 
     private boolean validWeapon(Player p) {
@@ -43,7 +37,7 @@ public class WarriorSpell implements Listener {
     @EventHandler
     public void onLeftClick(PlayerAnimationEvent event) {
         Player player = event.getPlayer();
-        if (!hasEgoWarrior(player) || !validWeapon(player)) return;
+        if (!isWarrior(player) || !validWeapon(player)) return;
 
         Main.getPlugin().getLogger().info("[WR] left click " + player.getName() + " sneaking=" + player.isSneaking());
 
@@ -60,7 +54,7 @@ public class WarriorSpell implements Listener {
         if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK)
             return;
         Player player = event.getPlayer();
-        if (!hasEgoWarrior(player) || !validWeapon(player)) return;
+        if (!isWarrior(player) || !validWeapon(player)) return;
         event.setCancelled(true);
         Main.getPlugin().getLogger().info("[WR] right click " + player.getName() + " sneaking=" + player.isSneaking());
         if (player.isSneaking()) {
@@ -74,7 +68,7 @@ public class WarriorSpell implements Listener {
     public void onToggleSneak(PlayerToggleSneakEvent event) {
         if (!event.isSneaking()) return;
         Player player = event.getPlayer();
-        if (!hasEgoWarrior(player) || !validWeapon(player)) return;
+        if (!isWarrior(player) || !validWeapon(player)) return;
         Main.getPlugin().getLogger().info("[WR] toggle sneak by " + player.getName());
         castSpell(player, "LLR"); // Shield Barrier
     }

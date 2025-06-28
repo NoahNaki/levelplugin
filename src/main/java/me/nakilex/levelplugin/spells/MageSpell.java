@@ -28,13 +28,9 @@ public class MageSpell implements Listener {
             Material.WOODEN_SWORD, Material.STONE_SWORD, Material.IRON_SWORD,
             Material.GOLDEN_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD);
 
-    private boolean hasEgoMage(Player player) {
-        ItemStack item = player.getInventory().getItemInMainHand();
-        if (item == null || !item.hasItemMeta()) return false;
-        var pdc = item.getItemMeta().getPersistentDataContainer();
-        if (!pdc.has(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING)) return false;
-        String id = pdc.get(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING);
-        return id != null && id.startsWith("mage");
+    private boolean isMage(Player player) {
+        return StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass ==
+                me.nakilex.levelplugin.player.classes.data.PlayerClass.MAGE;
     }
 
     private boolean validWeapon(Player player) {
@@ -45,7 +41,7 @@ public class MageSpell implements Listener {
     @EventHandler
     public void onLeftClick(PlayerAnimationEvent event) {
         Player player = event.getPlayer();
-        if (!hasEgoMage(player) || !validWeapon(player)) return;
+        if (!isMage(player) || !validWeapon(player)) return;
 
         Main.getPlugin().getLogger().info("[MG] left click " + player.getName() + " sneaking=" + player.isSneaking());
 
@@ -61,7 +57,7 @@ public class MageSpell implements Listener {
         if (event.getHand() == null || event.getHand().ordinal() != 0) return;
         if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         Player player = event.getPlayer();
-        if (!hasEgoMage(player) || !validWeapon(player)) return;
+        if (!isMage(player) || !validWeapon(player)) return;
         event.setCancelled(true);
 
         Main.getPlugin().getLogger().info("[MG] right click " + player.getName() + " sneaking=" + player.isSneaking());
@@ -77,7 +73,7 @@ public class MageSpell implements Listener {
     public void onToggleSneak(PlayerToggleSneakEvent event) {
         if (!event.isSneaking()) return;
         Player player = event.getPlayer();
-        if (!hasEgoMage(player) || !validWeapon(player)) return;
+        if (!isMage(player) || !validWeapon(player)) return;
         Main.getPlugin().getLogger().info("[MG] toggle sneak by " + player.getName());
         castSpell(player, "LRR"); // Frost Nova
     }

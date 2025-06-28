@@ -5,11 +5,22 @@ public enum PlayerClass {
     WARRIOR(1),
     ROGUE(1),
     ARCHER(1),
+    MAGE(1),
+    CLERIC(1),
+
+    // awakened / advanced classes
+    BARBARIAN(1),
+    DRAGONIAN(1),
+    GALEGLAIVE(1),
+    DEATHKNIGHT(1),
+    ARCTICKNIGHT(1),
+    DRAGONWARRIOR(1),
+
+    // legacy / misc classes kept for compatibility
     COOLARCHER(1),
     PHOENIXHUNTER(1),
-    BARBARIAN(1),
     PALADIN(1),
-    MAGE(1);
+    ABYSSION(1);
 
     private final int requiredLevel;
 

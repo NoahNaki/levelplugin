@@ -20,14 +20,15 @@ public class EffectRegistry {
      * Lookup an effect by its key (case‐insensitive).
      */
     public static SpellEffect get(String key) {
-        return EFFECTS.get(key.toUpperCase());
+        // Use Locale.ROOT to avoid Turkish locale issues
+        return EFFECTS.get(key.toUpperCase(java.util.Locale.ROOT));
     }
 
     /**
      * Register a single effect under its key.
      */
     public static void register(String key, SpellEffect effect) {
-        EFFECTS.put(key.toUpperCase(), effect);
+        EFFECTS.put(key.toUpperCase(java.util.Locale.ROOT), effect);
     }
 
     public static EffectRegistry getInstance() {
@@ -76,6 +77,7 @@ public class EffectRegistry {
         register("MYTHIC_DOUBLE_EDGE", new MythicSkillEffect("Double_Edge"));
         register("MYTHIC_RELENTLESS_LEAP", new MythicSkillEffect("Relentless_Leap"));
         register("MYTHIC_ETERNAL_FURY", new MythicSkillEffect("Eternal_Fury"));
+
 
         // --- Paladin Mythic skills ---
         register("MYTHIC_HOLY_STRIKE", new MythicSkillEffect("Holy_Strike"));

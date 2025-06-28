@@ -2,8 +2,7 @@ package me.nakilex.levelplugin.spells;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
-import me.nakilex.levelplugin.ego.EgoRarity;
-import me.nakilex.levelplugin.player.level.managers.LevelManager;
+
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
 import me.nakilex.levelplugin.spells.context.SpellCastContextCompat;
 import me.nakilex.levelplugin.spells.effect.SpellEffect;
@@ -13,13 +12,9 @@ import me.nakilex.levelplugin.spells.registry.EffectRegistry;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataContainer;
-import org.bukkit.persistence.PersistentDataType;
-import me.nakilex.levelplugin.items.utils.ItemUtil;
+
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -120,66 +115,14 @@ public class Spell {
         Main.getPlugin().getLogger().info("[SpellCast] " + player.getName() +
                 " attempts " + id + " via " + combo);
 
-        // 0) Requirement check (level or weapon rank)
-        boolean ego = false;
-        int rank = 0;
+        // 0) Requirement check (only weapon type now)
         ItemStack hand = player.getInventory().getItemInMainHand();
         if (hand == null || hand.getType() == Material.AIR ||
             (!allowedWeapons.isEmpty() && !allowedWeapons.contains(hand.getType()))) {
             player.sendMessage("§cYou can't cast " + displayName + " with this weapon.");
             return;
         }
-
-        if (hand.hasItemMeta()) {
-            PersistentDataContainer pdc = hand.getItemMeta().getPersistentDataContainer();
-            if (pdc.has(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER)) {
-                ego = true;
-                rank = pdc.get(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER);
-            } else {
-                Integer tid = pdc.get(ItemUtil.ITEM_ID_KEY, PersistentDataType.INTEGER);
-                if (tid != null) {
-                    var tpl = me.nakilex.levelplugin.items.managers.ItemManager.getInstance().getTemplateById(tid);
-                    if (tpl != null && tpl.isEgo()) {
-                        ego = true;
-                        rank = 1;
-                        String key = tpl.getEgoKey();
-                        ItemMeta meta = hand.getItemMeta();
-                        PersistentDataContainer mpdc = meta.getPersistentDataContainer();
-                        if (key != null) mpdc.set(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING, key + "_ego");
-                        mpdc.set(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
-                        mpdc.set(ItemUtil.EGO_EXP_KEY, PersistentDataType.INTEGER, 0);
-                        mpdc.set(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING, EgoRarity.RARE.name());
-                        hand.setItemMeta(meta);
-                        ItemUtil.updateEgoWeaponTooltip(hand, player);
-                    }
-                }
-                if (!ego) {
-                    String name = hand.getItemMeta().getDisplayName();
-                    if (name != null) {
-                        String lower = name.toLowerCase();
-                        String prefix = null;
-                        if (lower.contains("abyssion")) prefix = "abyssion";
-                        else if (lower.contains("necroslayer")) prefix = "death";
-                        if (prefix != null) {
-                            ego = true;
-                            rank = 1;
-                            ItemMeta meta = hand.getItemMeta();
-                            PersistentDataContainer mpdc = meta.getPersistentDataContainer();
-                            mpdc.set(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING, prefix + "_ego");
-                            mpdc.set(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
-                            mpdc.set(ItemUtil.EGO_EXP_KEY, PersistentDataType.INTEGER, 0);
-                            mpdc.set(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING, EgoRarity.RARE.name());
-                            hand.setItemMeta(meta);
-                            ItemUtil.updateEgoWeaponTooltip(hand, player);
-                        }
-                    }
-                }
-            }
-        }
-        if (rank < levelReq) {
-            player.sendMessage("§cYour weapon must be rank " + levelReq + " to cast " + displayName);
-            return;
-        }
+        // rank and ego requirements removed
 
         // 1) Cooldown guard
         if (cooldownMgr.isOnCooldown(pid, id)) {

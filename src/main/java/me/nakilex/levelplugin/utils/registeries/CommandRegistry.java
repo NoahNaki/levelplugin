@@ -108,6 +108,7 @@ public class CommandRegistry {
         plugin.getCommand("genitem").setExecutor(new me.nakilex.levelplugin.items.commands.GenerateItemCommand());
         plugin.getCommand("setlevel").setExecutor(new SetLevelCommand(plugin));
         plugin.getCommand("class").setExecutor(new ClassCommand());
+        plugin.getCommand("awakenwarrior").setExecutor(new me.nakilex.levelplugin.player.classes.commands.AwakenWarriorCommand());
         plugin.getCommand("balance").setExecutor(new BalanceCommand(economyManager));
         plugin.getCommand("addcoins").setExecutor(new AddCoinsCommand(economyManager));
         plugin.getCommand("blacksmith").setExecutor(new BlacksmithCommand(blacksmithGUI));
