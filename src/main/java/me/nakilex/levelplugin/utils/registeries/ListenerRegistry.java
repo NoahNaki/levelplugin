@@ -36,7 +36,6 @@ import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
 import me.nakilex.levelplugin.spells.CoolArcherSpell;
 import me.nakilex.levelplugin.spells.PhoenixHunterSpell;
-import me.nakilex.levelplugin.spells.BeastmasterSpell;
 import me.nakilex.levelplugin.spells.BarbarianSpell;
 import me.nakilex.levelplugin.spells.PaladinSpell;
 import me.nakilex.levelplugin.spells.WarriorSpell;
@@ -149,7 +148,6 @@ public class ListenerRegistry {
         pm.registerEvents(new ShockwaveListener(), plugin);
         pm.registerEvents(new CoolArcherSpell(), plugin);
         pm.registerEvents(new PhoenixHunterSpell(), plugin);
-        pm.registerEvents(new BeastmasterSpell(), plugin);
         pm.registerEvents(new BarbarianSpell(), plugin);
         pm.registerEvents(new PaladinSpell(), plugin);
         pm.registerEvents(new WarriorSpell(), plugin);

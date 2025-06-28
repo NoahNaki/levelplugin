@@ -155,50 +155,6 @@ public class SpellManager {
         spellsByClass.put("phoenixhunter", Collections.unmodifiableMap(phoenixMap));
         plugin.getLogger().info("[SPELLS] PhoenixHunter combos: " + phoenixMap.keySet());
 
-        // — BEASTMASTER CLASS —
-        Map<String, Spell> beastMap = new HashMap<>();
-        beastMap.put("BASIC_ATTACK", new Spell(
-            "beast_aura",
-            "Beast Aura",
-            "BASIC_ATTACK",
-            0.0,
-            MythicSkillConfig.getCooldownSeconds("Beast_Aura"),
-            1,
-            WeaponType.SWORD.getMaterials(),
-            "MYTHIC_BEAST_AURA",
-            0.0
-        ));
-        beastMap.put("LRL", new Spell(
-            "summon_beast", "Summon Beast", "LRL",
-            5.0,
-            MythicSkillConfig.getCooldownSeconds("Summon_Beast"), 3,
-            WeaponType.SWORD.getMaterials(),
-            "MYTHIC_SUMMON_BEAST", 0.0
-        ));
-        beastMap.put("LLR", new Spell(
-            "hunters_trap", "Hunters Trap", "LLR",
-            8.0,
-            MythicSkillConfig.getCooldownSeconds("Hunters_Trap"), 5,
-            WeaponType.SWORD.getMaterials(),
-            "MYTHIC_HUNTERS_TRAP", 0.0
-        ));
-        beastMap.put("LLL", new Spell(
-            "quick_dash", "Quick Dash", "LLL",
-            10.0,
-            MythicSkillConfig.getCooldownSeconds("Quick_Dash"), 5,
-            WeaponType.SWORD.getMaterials(),
-            "MYTHIC_QUICK_DASH", 0.0
-        ));
-        beastMap.put("RRR", new Spell(
-            "awakening_of_fenrir", "Awakening of Fenrir", "RRR",
-            20.0,
-            MythicSkillConfig.getCooldownSeconds("Awakening_Of_Fenrir"), 10,
-            WeaponType.SWORD.getMaterials(),
-            "MYTHIC_AWAKENING_OF_FENRIR", 0.0
-        ));
-        spellsByClass.put("beastmaster", Collections.unmodifiableMap(beastMap));
-        plugin.getLogger().info("[SPELLS] Beastmaster combos: " + beastMap.keySet());
-
         // — WARRIOR CLASS —
         Map<String, Spell> warriorMap = new HashMap<>();
         warriorMap.put("BASIC_ATTACK", new Spell(

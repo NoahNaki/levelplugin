@@ -23,10 +23,6 @@ public class AwakeningManager {
             } else if (stage < 4 && level >= 100) {
                 AwakeningGUI.open(player, 4, null, PlayerClass.DRAGONWARRIOR);
             }
-        } else if (base == PlayerClass.ARCHER) {
-            if (stage < 1 && level >= 25) {
-                AwakeningGUI.open(player, 1, PlayerClass.BEASTMASTER, null);
-            }
         }
     }
 }
