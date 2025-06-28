@@ -62,6 +62,7 @@ public class AwakeningGUI implements Listener {
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(uuid);
         ps.playerClass = newClass;
         ps.awakeningStage = Math.max(ps.awakeningStage, stage);
+        ps.unlockedClasses.add(newClass);
         player.sendMessage(ChatColor.GREEN + "Class changed to " + newClass.name());
         player.closeInventory();
         stageMap.remove(uuid);

@@ -26,7 +26,9 @@ public class ClassCommand implements CommandExecutor {
             }
             try {
                 PlayerClass chosen = PlayerClass.valueOf(args[2].toUpperCase());
-                StatsManager.getInstance().getPlayerStats(target.getUniqueId()).playerClass = chosen;
+                StatsManager.PlayerStats tps = StatsManager.getInstance().getPlayerStats(target.getUniqueId());
+                tps.playerClass = chosen;
+                tps.unlockedClasses.add(chosen);
                 boolean flight = chosen == PlayerClass.ARCHER || chosen == PlayerClass.ROGUE;
                 target.setAllowFlight(flight);
                 if (!flight) target.setFlying(false);
@@ -67,6 +69,7 @@ public class ClassCommand implements CommandExecutor {
             }
 
             ps.playerClass = chosen;
+            ps.unlockedClasses.add(chosen);
             boolean flight = chosen == PlayerClass.ARCHER || chosen == PlayerClass.ROGUE;
             player.setAllowFlight(flight);
             if (!flight) player.setFlying(false);

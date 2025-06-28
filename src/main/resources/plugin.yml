@@ -50,6 +50,9 @@ commands:
   awakenwarrior:
     description: Choose your warrior awakening
     usage: /awakenwarrior
+  subclass:
+    description: Change to an unlocked subclass
+    usage: /subclass
   addmob:
     description: Spawns custom mobs
     usage: /addmob <mobid> <amount>
