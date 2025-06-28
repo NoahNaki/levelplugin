@@ -20,14 +20,15 @@ public class EffectRegistry {
      * Lookup an effect by its key (case‐insensitive).
      */
     public static SpellEffect get(String key) {
-        return EFFECTS.get(key.toUpperCase());
+        // Use Locale.ROOT to avoid Turkish locale issues
+        return EFFECTS.get(key.toUpperCase(java.util.Locale.ROOT));
     }
 
     /**
      * Register a single effect under its key.
      */
     public static void register(String key, SpellEffect effect) {
-        EFFECTS.put(key.toUpperCase(), effect);
+        EFFECTS.put(key.toUpperCase(java.util.Locale.ROOT), effect);
     }
 
     public static EffectRegistry getInstance() {
