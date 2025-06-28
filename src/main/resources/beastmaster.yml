@@ -1,0 +1,22 @@
+Changetarget:
+  Cooldown: 0
+  Skills:
+  - runaitargetselector{target=clear}
+  - runaitargetselector{target=players}
+
+Cancelattack:
+  Skills:
+  - CancelEvent
+
+Beast_Aura:
+  Cooldown: 0
+  Conditions:
+  - hasaura{n=Awakening_Of_Fenrir_aura} false
+  - hasaura{n=Panther_Aura} cast Panther_Beast_Aura
+  - hasaura{n=Owl_Aura} cast Owl_Beast_Aura
+  - hasaura{n=Turtle_Aura} cast Turtle_Beast_Aura
+  - hasaura{n=Panther_Sync} cast Panther_SYNC
+  - hasaura{n=Owl_Sync} cast Owl_SYNC
+  - hasaura{n=Turtle_Sync} cast Turtle_SYNC
+  Skills:
+  - Aura{auraName=Beast_Aura;duration=15} @self

@@ -11,14 +11,22 @@ public class AwakeningManager {
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
         int level = LevelManager.getInstance().getLevel(player);
         int stage = ps.awakeningStage;
-        if (stage < 1 && level >= 25) {
-            AwakeningGUI.open(player, 1, PlayerClass.BARBARIAN, PlayerClass.DRAGONIAN);
-        } else if (stage < 2 && level >= 50) {
-            AwakeningGUI.open(player, 2, null, PlayerClass.GALEGLAIVE);
-        } else if (stage < 3 && level >= 75) {
-            AwakeningGUI.open(player, 3, PlayerClass.DEATHKNIGHT, PlayerClass.ARCTICKNIGHT);
-        } else if (stage < 4 && level >= 100) {
-            AwakeningGUI.open(player, 4, null, PlayerClass.DRAGONWARRIOR);
+        PlayerClass base = ps.playerClass;
+
+        if (base == PlayerClass.WARRIOR) {
+            if (stage < 1 && level >= 25) {
+                AwakeningGUI.open(player, 1, PlayerClass.BARBARIAN, PlayerClass.DRAGONIAN);
+            } else if (stage < 2 && level >= 50) {
+                AwakeningGUI.open(player, 2, null, PlayerClass.GALEGLAIVE);
+            } else if (stage < 3 && level >= 75) {
+                AwakeningGUI.open(player, 3, PlayerClass.DEATHKNIGHT, PlayerClass.ARCTICKNIGHT);
+            } else if (stage < 4 && level >= 100) {
+                AwakeningGUI.open(player, 4, null, PlayerClass.DRAGONWARRIOR);
+            }
+        } else if (base == PlayerClass.ARCHER) {
+            if (stage < 1 && level >= 25) {
+                AwakeningGUI.open(player, 1, PlayerClass.BEASTMASTER, null);
+            }
         }
     }
 }
