@@ -44,7 +44,7 @@ commands:
     usage: /setlevel <player> <level>
     permission: none
   class:
-    description: Change your class or set another player's class
+    description: Choose your class once or have an admin override it
     usage: /class <Mage|Archer|Rogue|Warrior|Cleric>|admin <player> <class>
     aliases: [c]
   awakenwarrior:
