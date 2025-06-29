@@ -95,7 +95,9 @@ public class ItemUtil {
             // Sticks are wands/staves
             WeaponType.WAND, 1011,
             // Bows retain the bow appearance
-            WeaponType.BOW, 1002
+            WeaponType.BOW, 1002,
+            // Axes default to a small axe
+            WeaponType.AXE, 1005
     );
 
     /** Armor defaults for the early levels. */
@@ -105,6 +107,31 @@ public class ItemUtil {
             ArmorType.LEGGINGS, 1002,
             ArmorType.BOOTS, 1002
     );
+
+    /**
+     * Per-class model overrides for the early levels. Only entries that differ
+     * from the generic defaults need to be specified.
+     */
+    private static final java.util.Map<String, java.util.Map<WeaponType,Integer>> CLASS_WEAPON_MODELS;
+    private static final java.util.Map<String, java.util.Map<ArmorType,Integer>> CLASS_ARMOR_MODELS;
+
+    static {
+        java.util.Map<WeaponType,Integer> rogueWeapons = new java.util.HashMap<>();
+        rogueWeapons.put(WeaponType.SWORD, 1012); // dagger
+        rogueWeapons.put(WeaponType.AXE, 1005); // small axe
+        rogueWeapons.put(WeaponType.SHOVEL, 1002); // spear
+        rogueWeapons.put(WeaponType.WAND, 1011); // staff
+        rogueWeapons.put(WeaponType.BOW, 1002); // bow
+
+        java.util.Map<ArmorType,Integer> rogueArmor = new java.util.HashMap<>();
+        rogueArmor.put(ArmorType.HELMET, 1000);
+        rogueArmor.put(ArmorType.CHESTPLATE, 1002);
+        rogueArmor.put(ArmorType.LEGGINGS, 1002);
+        rogueArmor.put(ArmorType.BOOTS, 1002);
+
+        CLASS_WEAPON_MODELS = java.util.Map.of("ROGUE", rogueWeapons);
+        CLASS_ARMOR_MODELS = java.util.Map.of("ROGUE", rogueArmor);
+    }
 
 
     /**
@@ -181,10 +208,25 @@ public class ItemUtil {
             // Apply default models for early game items that lack a Nexo model
             WeaponType wt = WeaponType.matchType(new ItemStack(templateMat));
             ArmorType at  = ArmorType.matchType(new ItemStack(templateMat));
-            if (wt != null && DEFAULT_WEAPON_MODELS.containsKey(wt)) {
-                meta.setCustomModelData(DEFAULT_WEAPON_MODELS.get(wt));
-            } else if (at != null && DEFAULT_ARMOR_MODELS.containsKey(at)) {
-                meta.setCustomModelData(DEFAULT_ARMOR_MODELS.get(at));
+            String cls = cItem.getClassRequirement() != null
+                    ? cItem.getClassRequirement().toUpperCase() : null;
+
+            if (wt != null) {
+                Integer model = null;
+                if (cls != null) {
+                    java.util.Map<WeaponType,Integer> map = CLASS_WEAPON_MODELS.get(cls);
+                    if (map != null) model = map.get(wt);
+                }
+                if (model == null) model = DEFAULT_WEAPON_MODELS.get(wt);
+                if (model != null) meta.setCustomModelData(model);
+            } else if (at != null) {
+                Integer model = null;
+                if (cls != null) {
+                    java.util.Map<ArmorType,Integer> map = CLASS_ARMOR_MODELS.get(cls);
+                    if (map != null) model = map.get(at);
+                }
+                if (model == null) model = DEFAULT_ARMOR_MODELS.get(at);
+                if (model != null) meta.setCustomModelData(model);
             }
         }
 
