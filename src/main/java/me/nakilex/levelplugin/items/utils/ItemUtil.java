@@ -160,10 +160,9 @@ public class ItemUtil {
                 me.nakilex.levelplugin.items.data.WeaponType.matchType(new ItemStack(templateMat));
         me.nakilex.levelplugin.items.data.ArmorType aType =
                 me.nakilex.levelplugin.items.data.ArmorType.matchType(new ItemStack(templateMat));
-        boolean needsNeutral = aType != null
-                || wType == me.nakilex.levelplugin.items.data.WeaponType.SWORD
-                || wType == me.nakilex.levelplugin.items.data.WeaponType.AXE
-                || wType == me.nakilex.levelplugin.items.data.WeaponType.SHOVEL;
+        // Use a neutral DIAMOND item for all weapons and armor so vanilla
+        // attribute tooltips never show up regardless of type.
+        boolean needsNeutral = aType != null || wType != null;
 
         boolean hasNexoModel = nexoId != null && !nexoId.isEmpty();
         boolean willApplyDefaultModel = !hasNexoModel
@@ -414,10 +413,9 @@ public class ItemUtil {
         WeaponType wType = WeaponType.matchType(new ItemStack(origMat));
         ArmorType aType = ArmorType.matchType(new ItemStack(origMat));
         boolean hasNexoModel = pdcStack.has(NEXO_MODEL_KEY, PersistentDataType.STRING);
-        if (!hasNexoModel && (aType != null
-                || wType == WeaponType.SWORD
-                || wType == WeaponType.AXE
-                || wType == WeaponType.SHOVEL)) {
+        // Always use a DIAMOND type for any weapon or armor that doesn't have a
+        // custom Nexo model so the vanilla damage/armor tooltips remain hidden.
+        if (!hasNexoModel && (aType != null || wType != null)) {
             stack.setType(Material.DIAMOND);
         } else {
             stack.setType(origMat);
@@ -667,10 +665,9 @@ public class ItemUtil {
         WeaponType wType = WeaponType.matchType(new ItemStack(origMat));
         ArmorType aType = ArmorType.matchType(new ItemStack(origMat));
         boolean hasNexoModel = pdc.has(NEXO_MODEL_KEY, PersistentDataType.STRING);
-        if (!hasNexoModel && (aType != null
-                || wType == WeaponType.SWORD
-                || wType == WeaponType.AXE
-                || wType == WeaponType.SHOVEL)) {
+        // Force a neutral DIAMOND item for any weapon or armor lacking a custom
+        // model so Paper never shows the default damage/armor attributes.
+        if (!hasNexoModel && (aType != null || wType != null)) {
             stack.setType(Material.DIAMOND);
         } else {
             stack.setType(origMat);
