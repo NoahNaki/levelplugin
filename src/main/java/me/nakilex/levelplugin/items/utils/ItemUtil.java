@@ -7,6 +7,8 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.player.mining.managers.MiningManager;
 import me.nakilex.levelplugin.ego.EgoRarity;
+import me.nakilex.levelplugin.items.data.ArmorType;
+import me.nakilex.levelplugin.items.data.WeaponType;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -79,6 +81,28 @@ public class ItemUtil {
         return null;
     }
 
+    // ─── Default Models ─────────────────────────────────────────────────────
+
+    /** Maximum level to apply the default models when no Nexo model is set. */
+    private static final int DEFAULT_MODEL_MAX_LEVEL = 10;
+
+    /** Weapon defaults for the early levels. */
+    private static final java.util.Map<WeaponType,Integer> DEFAULT_WEAPON_MODELS = java.util.Map.of(
+            WeaponType.SWORD, 1012,
+            WeaponType.AXE, 1005,
+            WeaponType.WAND, 1011,
+            WeaponType.SHOVEL, 1002,
+            WeaponType.BOW, 1002
+    );
+
+    /** Armor defaults for the early levels. */
+    private static final java.util.Map<ArmorType,Integer> DEFAULT_ARMOR_MODELS = java.util.Map.of(
+            ArmorType.HELMET, 1000,
+            ArmorType.CHESTPLATE, 1002,
+            ArmorType.LEGGINGS, 1002,
+            ArmorType.BOOTS, 1002
+    );
+
 
     /**
      * Creates an ItemStack from a CustomItem while including dynamic tooltip information.
@@ -129,6 +153,17 @@ public class ItemUtil {
         if (meta == null) return stack;
         if (nexoId != null && !nexoId.isEmpty()) {
             meta.getPersistentDataContainer().set(NEXO_MODEL_KEY, PersistentDataType.STRING, nexoId);
+        } else {
+            // Apply default models for early game items that lack a Nexo model
+            if (cItem.getLevelRequirement() <= DEFAULT_MODEL_MAX_LEVEL && !meta.hasCustomModelData()) {
+                WeaponType wt = WeaponType.matchType(new ItemStack(templateMat));
+                ArmorType at  = ArmorType.matchType(new ItemStack(templateMat));
+                if (wt != null && DEFAULT_WEAPON_MODELS.containsKey(wt)) {
+                    meta.setCustomModelData(DEFAULT_WEAPON_MODELS.get(wt));
+                } else if (at != null && DEFAULT_ARMOR_MODELS.containsKey(at)) {
+                    meta.setCustomModelData(DEFAULT_ARMOR_MODELS.get(at));
+                }
+            }
         }
 
         // Set display name with rarity color and upgrade stars.
