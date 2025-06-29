@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.UUID;
 
 /**
@@ -61,6 +62,9 @@ public class PlayerConfig {
         config.set(path + ".stats.base_defense", stats.baseDefenceStat);
         config.set(path + ".class", stats.playerClass.name());
         config.set(path + ".awakening_stage", stats.awakeningStage);
+        List<String> unlocked = new ArrayList<>();
+        for (PlayerClass pc : stats.unlockedClasses) unlocked.add(pc.name());
+        config.set(path + ".unlocked_classes", unlocked);
 
         saveConfig();
     }
@@ -79,6 +83,7 @@ public class PlayerConfig {
         int miningXp = config.getInt(root + ".mining.xp", 0);
         int skillPoints = config.getInt(root + ".skill_points", 0);
         int awakenStage = config.getInt(root + ".awakening_stage", 0);
+        List<String> unlockedList = config.getStringList(root + ".unlocked_classes");
 
         LevelManager lm = LevelManager.getInstance();
         lm.setLevel(uuid, level);
@@ -97,6 +102,13 @@ public class PlayerConfig {
         stats.baseHealthStat    = config.getInt(root + ".stats.base_health", 0);
         stats.baseDefenceStat   = config.getInt(root + ".stats.base_defense", 0);
         stats.awakeningStage    = awakenStage;
+        stats.unlockedClasses.clear();
+        stats.unlockedClasses.add(playerClass);
+        for (String s : unlockedList) {
+            try {
+                stats.unlockedClasses.add(PlayerClass.valueOf(s));
+            } catch (IllegalArgumentException ignored) {}
+        }
     }
 
     /** Saves data for all players. */

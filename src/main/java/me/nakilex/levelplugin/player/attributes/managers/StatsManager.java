@@ -274,6 +274,12 @@ public class StatsManager {
 
         public int awakeningStage = 0;
 
+        public Set<PlayerClass> unlockedClasses = new HashSet<>();
+
+        public PlayerStats() {
+            unlockedClasses.add(playerClass);
+        }
+
         public int getCurrentMana() {
             return currentMana;
         }
