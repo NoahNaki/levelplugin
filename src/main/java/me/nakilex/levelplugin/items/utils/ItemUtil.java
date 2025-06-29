@@ -140,6 +140,29 @@ public class ItemUtil {
         }
 
         if (!pdc.has(EGO_ID_KEY, PersistentDataType.STRING)) {
+            // --- Class Requirement ---
+            String clsReqRaw = cItem.getClassRequirement();
+            me.nakilex.levelplugin.player.classes.data.PlayerClass reqClass = null;
+            try {
+                if (clsReqRaw != null && !clsReqRaw.isBlank()) {
+                    reqClass = me.nakilex.levelplugin.player.classes.data.PlayerClass.valueOf(clsReqRaw.toUpperCase());
+                }
+            } catch (IllegalArgumentException ignored) {}
+
+            if (reqClass != null && reqClass != me.nakilex.levelplugin.player.classes.data.PlayerClass.VILLAGER) {
+                me.nakilex.levelplugin.player.classes.data.PlayerClass playerClass = null;
+                if (player != null) {
+                    playerClass = me.nakilex.levelplugin.player.attributes.managers.StatsManager
+                            .getInstance().getPlayerStats(player.getUniqueId()).playerClass;
+                }
+                boolean meets = player == null ||
+                        me.nakilex.levelplugin.player.classes.data.ClassUtil.meetsRequirement(playerClass, reqClass);
+                String reqName = reqClass.name().substring(0,1) + reqClass.name().substring(1).toLowerCase();
+                String line = (meets ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ") +
+                        ChatColor.GRAY + "Class Requirement: " + ChatColor.WHITE + reqName;
+                lore.add(line);
+            }
+
             // --- Level Requirement ---
             int playerLevel = (player != null) ? LevelManager.getInstance().getLevel(player) : 0;
             String levelRequirementLine;
@@ -200,7 +223,7 @@ public class ItemUtil {
         meta.setLore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES); // Hide item attributes
         meta.setUnbreakable(true); // Make the item unbreakable
-        meta.addItemFlags(ItemFlag.HIDE_UNBREAKABLE);
+        meta.addItemFlags(ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_DYE);
 
         // Store unique data in the PersistentDataContainer.
         // Reuse the container retrieved earlier instead of redeclaring it
@@ -260,6 +283,28 @@ public class ItemUtil {
         lore.add(rarityGlyph + typeGlyph);
         lore.add(""); // Blank line for spacing
 
+        // --- Class Requirement ---
+        String clsReqRaw = cItem.getClassRequirement();
+        me.nakilex.levelplugin.player.classes.data.PlayerClass reqClass = null;
+        try {
+            if (clsReqRaw != null && !clsReqRaw.isBlank()) {
+                reqClass = me.nakilex.levelplugin.player.classes.data.PlayerClass.valueOf(clsReqRaw.toUpperCase());
+            }
+        } catch (IllegalArgumentException ignored) {}
+
+        if (reqClass != null && reqClass != me.nakilex.levelplugin.player.classes.data.PlayerClass.VILLAGER) {
+            me.nakilex.levelplugin.player.classes.data.PlayerClass playerClass = null;
+            if (player != null) {
+                playerClass = me.nakilex.levelplugin.player.attributes.managers.StatsManager
+                        .getInstance().getPlayerStats(player.getUniqueId()).playerClass;
+            }
+            boolean meets = player == null ||
+                    me.nakilex.levelplugin.player.classes.data.ClassUtil.meetsRequirement(playerClass, reqClass);
+            String reqName = reqClass.name().substring(0,1) + reqClass.name().substring(1).toLowerCase();
+            String line = (meets ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ") +
+                    ChatColor.GRAY + "Class Requirement: " + ChatColor.WHITE + reqName;
+            lore.add(line);
+        }
 
         // --- Level Requirement ---
         int playerLevel = (player != null) ? LevelManager.getInstance().getLevel(player) : 0;
@@ -399,7 +444,7 @@ public class ItemUtil {
             pdc.set(EGO_RANK_KEY, PersistentDataType.INTEGER, weapon.getRank());
             pdc.set(EGO_EXP_KEY, PersistentDataType.INTEGER, weapon.getExp());
             pdc.set(EGO_RARITY_KEY, PersistentDataType.STRING, weapon.getRarity().name());
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_DYE);
             stack.setItemMeta(meta);
         }
         updateEgoWeaponTooltip(stack, null);

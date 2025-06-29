@@ -115,12 +115,29 @@ public class Spell {
         Main.getPlugin().getLogger().info("[SpellCast] " + player.getName() +
                 " attempts " + id + " via " + combo);
 
-        // 0) Requirement check (only weapon type now)
+        // 0) Requirement check (weapon type + class)
         ItemStack hand = player.getInventory().getItemInMainHand();
         if (hand == null || hand.getType() == Material.AIR ||
             (!allowedWeapons.isEmpty() && !allowedWeapons.contains(hand.getType()))) {
             player.sendMessage("§cYou can't cast " + displayName + " with this weapon.");
             return;
+        }
+        me.nakilex.levelplugin.items.data.CustomItem ci = me.nakilex.levelplugin.items.managers.ItemManager
+                .getInstance().getCustomItemFromItemStack(hand);
+        if (ci != null) {
+            String reqRaw = ci.getClassRequirement();
+            me.nakilex.levelplugin.player.classes.data.PlayerClass req = null;
+            try {
+                if (reqRaw != null && !reqRaw.isBlank()) {
+                    req = me.nakilex.levelplugin.player.classes.data.PlayerClass.valueOf(reqRaw.toUpperCase());
+                }
+            } catch (IllegalArgumentException ignored) {}
+            me.nakilex.levelplugin.player.classes.data.PlayerClass playerClass =
+                    StatsManager.getInstance().getPlayerStats(pid).playerClass;
+            if (!me.nakilex.levelplugin.player.classes.data.ClassUtil.meetsRequirement(playerClass, req)) {
+                player.sendMessage("§cYou are not the right class to cast spells with this weapon.");
+                return;
+            }
         }
         // rank and ego requirements removed
 
