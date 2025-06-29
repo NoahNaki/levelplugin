@@ -106,6 +106,8 @@ public class ItemUtil {
         if (nexoId != null && !nexoId.isEmpty()) {
             com.nexomc.nexo.items.ItemBuilder b = com.nexomc.nexo.api.NexoItems.itemFromId(nexoId);
             stack = b != null ? b.build() : new ItemStack(mat);
+            // Ensure we still use the neutral material to hide vanilla stats
+            stack.setType(mat);
             stack.setAmount(amount);
         } else {
             stack = new ItemStack(mat, amount);

@@ -274,6 +274,7 @@ public class EgoWeaponManager {
             ItemBuilder builder = NexoItems.itemFromId(nexoId);
             if (builder != null) {
                 ItemStack nexoStack = builder.build();
+                nexoStack.setType(stack.getType());
                 ItemMeta nMeta = nexoStack.getItemMeta();
                 ItemMeta bMeta = stack.getItemMeta();
                 if (nMeta != null && bMeta != null) {
@@ -289,6 +290,10 @@ public class EgoWeaponManager {
                             bPdc.get(ItemUtil.UPGRADE_LEVEL_KEY, PersistentDataType.INTEGER));
                     nPdc.set(ItemUtil.DURABILITY_KEY, PersistentDataType.INTEGER,
                             bPdc.get(ItemUtil.DURABILITY_KEY, PersistentDataType.INTEGER));
+                    if (bPdc.has(ItemUtil.TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING)) {
+                        nPdc.set(ItemUtil.TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING,
+                                bPdc.get(ItemUtil.TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING));
+                    }
 
                     nPdc.set(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING, weapon.getId());
                     nPdc.set(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, weapon.getRank());
