@@ -51,3 +51,18 @@ sets:
       BOW: conqueror_assortment-bow
     materials:
       CROSSBOW: conqueror_assortment-crossbow
+
+  arctic:
+    armor:
+      HELMET: arcticknight_helmet
+      CHESTPLATE: arcticknight_chestplate
+      LEGGINGS: arcticknight_leggings
+      BOOTS: arcticknight_boots
+    weapon_types:
+      SWORD: arctic_knight_animated_weapon_set_sword
+      AXE: arctic_knight_animated_weapon_set_axe
+      SHOVEL: arctic_knight_animated_weapon_set_spear
+      WAND: arctic_knight_animated_weapon_set_staff
+      BOW: arctic_knight_animated_weapon_set_bow
+    materials:
+      CROSSBOW: arctic_knight_animated_weapon_set_crossbow
