@@ -365,6 +365,8 @@ public class ItemUtil {
         }
         // Update the item meta with the new lore.
         meta.setLore(lore);
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_DYE);
+        meta.setUnbreakable(true);
         stack.setItemMeta(meta);
     }
 
@@ -577,6 +579,8 @@ public class ItemUtil {
         }
 
         meta.setLore(lore);
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_DYE);
+        meta.setUnbreakable(true);
         stack.setItemMeta(meta);
     }
 
