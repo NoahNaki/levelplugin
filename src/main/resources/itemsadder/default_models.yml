@@ -34,21 +34,21 @@ rogue_assortment-rogue_pickaxe:
     custom_model_data: 1003
   itemname: Display
 rogue_assortment-rogue_shovel:
-  material: DIAMOND_SHOVEL
+  material: DIAMOND
   Pack:
     generate_model: false
     model: elitecreatures:rogue_assortment/rogue_shovel
     custom_model_data: 1002
   itemname: Display
 rogue_assortment-rogue_staff:
-  material: DIAMOND_SWORD
+  material: STICK
   Pack:
     generate_model: false
     model: elitecreatures:rogue_assortment/rogue_staff
     custom_model_data: 1011
   itemname: Display
 rogue_assortment-rogue_sword:
-  material: DIAMOND_SWORD
+  material: DIAMOND
   Pack:
     generate_model: false
     model: elitecreatures:rogue_assortment/rogue_sword

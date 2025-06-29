@@ -88,10 +88,13 @@ public class ItemUtil {
 
     /** Weapon defaults for the early levels. */
     private static final java.util.Map<WeaponType,Integer> DEFAULT_WEAPON_MODELS = java.util.Map.of(
+            // Swords use the dagger model
             WeaponType.SWORD, 1012,
-            WeaponType.AXE, 1005,
-            WeaponType.WAND, 1011,
+            // Shovels act as spears
             WeaponType.SHOVEL, 1002,
+            // Sticks are wands/staves
+            WeaponType.WAND, 1011,
+            // Bows retain the bow appearance
             WeaponType.BOW, 1002
     );
 
@@ -132,9 +135,17 @@ public class ItemUtil {
                 me.nakilex.levelplugin.items.data.WeaponType.matchType(new ItemStack(templateMat));
         boolean isArmor =
                 me.nakilex.levelplugin.items.data.ArmorType.matchType(new ItemStack(templateMat)) != null;
-        if (isArmor || wType == me.nakilex.levelplugin.items.data.WeaponType.SWORD
-                || wType == me.nakilex.levelplugin.items.data.WeaponType.AXE
-                || wType == me.nakilex.levelplugin.items.data.WeaponType.SHOVEL) {
+
+        boolean hasNexoModel = nexoId != null && !nexoId.isEmpty();
+        boolean willApplyDefaultModel = !hasNexoModel
+                && cItem.getLevelRequirement() <= DEFAULT_MODEL_MAX_LEVEL;
+
+        // Only swap to the neutral diamond material when no model will be
+        // applied. This avoids breaking resource-pack models.
+        if (!hasNexoModel && !willApplyDefaultModel
+                && (isArmor || wType == me.nakilex.levelplugin.items.data.WeaponType.SWORD
+                    || wType == me.nakilex.levelplugin.items.data.WeaponType.AXE
+                    || wType == me.nakilex.levelplugin.items.data.WeaponType.SHOVEL)) {
             mat = Material.DIAMOND;
         }
         ItemStack stack;
@@ -151,18 +162,16 @@ public class ItemUtil {
 
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) return stack;
-        if (nexoId != null && !nexoId.isEmpty()) {
+        if (hasNexoModel) {
             meta.getPersistentDataContainer().set(NEXO_MODEL_KEY, PersistentDataType.STRING, nexoId);
-        } else {
+        } else if (willApplyDefaultModel && !meta.hasCustomModelData()) {
             // Apply default models for early game items that lack a Nexo model
-            if (cItem.getLevelRequirement() <= DEFAULT_MODEL_MAX_LEVEL && !meta.hasCustomModelData()) {
-                WeaponType wt = WeaponType.matchType(new ItemStack(templateMat));
-                ArmorType at  = ArmorType.matchType(new ItemStack(templateMat));
-                if (wt != null && DEFAULT_WEAPON_MODELS.containsKey(wt)) {
-                    meta.setCustomModelData(DEFAULT_WEAPON_MODELS.get(wt));
-                } else if (at != null && DEFAULT_ARMOR_MODELS.containsKey(at)) {
-                    meta.setCustomModelData(DEFAULT_ARMOR_MODELS.get(at));
-                }
+            WeaponType wt = WeaponType.matchType(new ItemStack(templateMat));
+            ArmorType at  = ArmorType.matchType(new ItemStack(templateMat));
+            if (wt != null && DEFAULT_WEAPON_MODELS.containsKey(wt)) {
+                meta.setCustomModelData(DEFAULT_WEAPON_MODELS.get(wt));
+            } else if (at != null && DEFAULT_ARMOR_MODELS.containsKey(at)) {
+                meta.setCustomModelData(DEFAULT_ARMOR_MODELS.get(at));
             }
         }
 
