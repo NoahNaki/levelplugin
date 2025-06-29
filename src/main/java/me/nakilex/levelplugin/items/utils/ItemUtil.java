@@ -86,6 +86,9 @@ public class ItemUtil {
     /** Maximum level to apply the default models when no Nexo model is set. */
     private static final int DEFAULT_MODEL_MAX_LEVEL = 10;
 
+    /** Name of the model set that contains early-game default models. */
+    private static final String DEFAULT_MODEL_SET = "default1_10";
+
     /** Simple container for a model material and CustomModelData value. */
     private record Model(Material material, int data) {}
 
@@ -129,6 +132,18 @@ public class ItemUtil {
         // still determine weapon/armor type later.
         Material templateMat = cItem.getMaterial();
         Material mat = templateMat;
+
+        // Apply the default model set if this item has no model specified and
+        // the level requirement falls within the early range.
+        if ((nexoId == null || nexoId.isBlank())
+                && cItem.getLevelRequirement() <= DEFAULT_MODEL_MAX_LEVEL) {
+            String id = me.nakilex.levelplugin.Main.getInstance()
+                    .getModelSetManager()
+                    .getModelId(DEFAULT_MODEL_SET, templateMat);
+            if (id != null && !id.isEmpty()) {
+                nexoId = id;
+            }
+        }
         // Use a neutral material only for weapons/armor that actually show
         // vanilla stats. Bows, crossbows and wands don't display attack damage
         // so we keep their original material to ensure the model renders

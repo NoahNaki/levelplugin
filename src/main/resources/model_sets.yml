@@ -13,3 +13,16 @@ sets:
       BOW: molten_magma_animated_weapon_set_bow
     materials:
       CROSSBOW: molten_magma_animated_weapon_set_crossbow
+
+  default1_10:
+    armor:
+      HELMET: rogue_assortment_helmet3d
+      CHESTPLATE: rogueassortment_chestplate
+      LEGGINGS: rogueassortment_leggings
+      BOOTS: rogueassortment_boots
+    weapon_types:
+      SWORD: rogue_assortment-rogue_sword
+      AXE: rogue_assortment-rogue_axe
+      SHOVEL: rogue_assortment-rogue_shovel
+      WAND: rogue_assortment-rogue_staff
+      BOW: rogue_assortment-bow
