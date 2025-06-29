@@ -66,3 +66,13 @@ sets:
       BOW: arctic_knight_animated_weapon_set_bow
     materials:
       CROSSBOW: arctic_knight_animated_weapon_set_crossbow
+
+  witchcaster:
+    weapon_types:
+      SWORD: witchcaster_animated-sword
+      AXE: witchcaster_animated-axe
+      SHOVEL: witchcaster_animated-spear
+      WAND: witchcaster_animated-staff
+      BOW: witchcaster_animated-bow
+    materials:
+      CROSSBOW: witchcaster_animated-crossbow
