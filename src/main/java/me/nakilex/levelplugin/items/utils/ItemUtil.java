@@ -86,6 +86,13 @@ public class ItemUtil {
      */
     public static ItemStack createItemStackFromCustomItem(CustomItem cItem, int amount, Player player, String nexoId) {
         Material mat = cItem.getMaterial();
+        // Use a generic material for weapons and armor so vanilla attribute
+        // tooltips (e.g. attack damage or armor) do not appear. Since all
+        // models are custom, using a diamond item works fine.
+        if (me.nakilex.levelplugin.items.data.WeaponType.matchType(new ItemStack(mat)) != null
+                || me.nakilex.levelplugin.items.data.ArmorType.matchType(new ItemStack(mat)) != null) {
+            mat = Material.DIAMOND;
+        }
         ItemStack stack;
         if (nexoId != null && !nexoId.isEmpty()) {
             com.nexomc.nexo.items.ItemBuilder b = com.nexomc.nexo.api.NexoItems.itemFromId(nexoId);
@@ -107,9 +114,10 @@ public class ItemUtil {
         // Glyph line under the name to show rarity and item type
         String rarityGlyph = "<glyph:" + cItem.getRarity().name().toLowerCase() + ">";
         String typeGlyph = "<glyph:tool>";
-        if (me.nakilex.levelplugin.items.data.ArmorType.matchType(stack) != null) {
+        Material origMat = cItem.getMaterial();
+        if (me.nakilex.levelplugin.items.data.ArmorType.matchType(new ItemStack(origMat)) != null) {
             typeGlyph = "<glyph:armor>";
-        } else if (me.nakilex.levelplugin.items.data.WeaponType.matchType(stack) != null) {
+        } else if (me.nakilex.levelplugin.items.data.WeaponType.matchType(new ItemStack(origMat)) != null) {
             typeGlyph = "<glyph:weapon>";
         }
         lore.add(rarityGlyph + typeGlyph);
@@ -275,9 +283,10 @@ public class ItemUtil {
         // Glyph line under the name
         String rarityGlyph = "<glyph:" + cItem.getRarity().name().toLowerCase() + ">";
         String typeGlyph = "<glyph:tool>";
-        if (me.nakilex.levelplugin.items.data.ArmorType.matchType(stack) != null) {
+        Material origMat = cItem.getMaterial();
+        if (me.nakilex.levelplugin.items.data.ArmorType.matchType(new ItemStack(origMat)) != null) {
             typeGlyph = "<glyph:armor>";
-        } else if (me.nakilex.levelplugin.items.data.WeaponType.matchType(stack) != null) {
+        } else if (me.nakilex.levelplugin.items.data.WeaponType.matchType(new ItemStack(origMat)) != null) {
             typeGlyph = "<glyph:weapon>";
         }
         lore.add(rarityGlyph + typeGlyph);
