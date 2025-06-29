@@ -647,6 +647,26 @@ public class ItemUtil {
      */
     public static void updateTooltip(ItemStack stack, Player player) {
         if (stack == null) return;
+        if (stack.hasItemMeta()) {
+            ItemMeta meta = stack.getItemMeta();
+            PersistentDataContainer pdc = meta.getPersistentDataContainer();
+            if (pdc.has(TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING)) {
+                String stored = pdc.get(TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING);
+                if (stored != null) {
+                    try {
+                        Material orig = Material.valueOf(stored);
+                        boolean isWeapon = me.nakilex.levelplugin.items.data.WeaponType
+                                .matchType(new ItemStack(orig)) != null;
+                        boolean isArmor = me.nakilex.levelplugin.items.data.ArmorType
+                                .matchType(new ItemStack(orig)) != null;
+                        if ((isWeapon || isArmor) && stack.getType() != Material.DIAMOND) {
+                            stack.setType(Material.DIAMOND);
+                        }
+                    } catch (IllegalArgumentException ignored) {
+                    }
+                }
+            }
+        }
         if (stack.hasItemMeta() && stack.getItemMeta().getPersistentDataContainer().has(EGO_ID_KEY, PersistentDataType.STRING)) {
             updateEgoWeaponTooltip(stack, player);
         } else if (stack.hasItemMeta() && stack.getItemMeta().getPersistentDataContainer().has(ITEM_UUID_KEY, PersistentDataType.STRING)) {
