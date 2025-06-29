@@ -15,6 +15,7 @@ public class ModelSetManager {
 
     private final Map<String, Map<Material, String>> materialSets = new HashMap<>();
     private final Map<String, Map<ArmorType, String>> armorSets = new HashMap<>();
+    private final Map<String, Map<me.nakilex.levelplugin.items.data.WeaponType, String>> weaponSets = new HashMap<>();
 
     public ModelSetManager(Plugin plugin) {
         File file = new File(plugin.getDataFolder(), "model_sets.yml");
@@ -57,6 +58,21 @@ public class ModelSetManager {
                 if (!armorMap.isEmpty()) {
                     armorSets.put(key.toLowerCase(), armorMap);
                 }
+
+                Map<me.nakilex.levelplugin.items.data.WeaponType, String> weaponMap = new HashMap<>();
+                ConfigurationSection weapSec = sec.getConfigurationSection("weapon_types");
+                if (weapSec != null) {
+                    for (String typeKey : weapSec.getKeys(false)) {
+                        try {
+                            me.nakilex.levelplugin.items.data.WeaponType wt = me.nakilex.levelplugin.items.data.WeaponType.valueOf(typeKey.toUpperCase());
+                            weaponMap.put(wt, weapSec.getString(typeKey));
+                        } catch (IllegalArgumentException ignore) {
+                        }
+                    }
+                }
+                if (!weaponMap.isEmpty()) {
+                    weaponSets.put(key.toLowerCase(), weaponMap);
+                }
             }
         }
     }
@@ -76,6 +92,14 @@ public class ModelSetManager {
             ArmorType type = ArmorType.matchType(new org.bukkit.inventory.ItemStack(mat));
             if (type != null) {
                 return armorMap.get(type);
+            }
+        }
+
+        Map<me.nakilex.levelplugin.items.data.WeaponType, String> weaponMap = weaponSets.get(key);
+        if (weaponMap != null) {
+            me.nakilex.levelplugin.items.data.WeaponType wt = me.nakilex.levelplugin.items.data.WeaponType.matchType(new org.bukkit.inventory.ItemStack(mat));
+            if (wt != null) {
+                return weaponMap.get(wt);
             }
         }
         return null;
