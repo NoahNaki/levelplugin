@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.listeners.WeaponStatsListener;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import org.bukkit.inventory.ItemFlag;
+import org.bukkit.Material;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
@@ -273,6 +274,10 @@ public class EgoWeaponManager {
         if (nexoId != null) {
             ItemBuilder builder = NexoItems.itemFromId(nexoId);
             if (builder != null) {
+                // Build the model item directly from Nexo so the correct
+                // custom model data and material are preserved. Do not
+                // override the material with the neutral type here or the
+                // resource pack will fail to apply the proper model.
                 ItemStack nexoStack = builder.build();
                 ItemMeta nMeta = nexoStack.getItemMeta();
                 ItemMeta bMeta = stack.getItemMeta();
@@ -289,6 +294,16 @@ public class EgoWeaponManager {
                             bPdc.get(ItemUtil.UPGRADE_LEVEL_KEY, PersistentDataType.INTEGER));
                     nPdc.set(ItemUtil.DURABILITY_KEY, PersistentDataType.INTEGER,
                             bPdc.get(ItemUtil.DURABILITY_KEY, PersistentDataType.INTEGER));
+                    if (bPdc.has(ItemUtil.TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING)) {
+                        nPdc.set(ItemUtil.TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING,
+                                bPdc.get(ItemUtil.TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING));
+                    }
+                    if (bPdc.has(ItemUtil.NEXO_MODEL_KEY, PersistentDataType.STRING)) {
+                        nPdc.set(ItemUtil.NEXO_MODEL_KEY, PersistentDataType.STRING,
+                                bPdc.get(ItemUtil.NEXO_MODEL_KEY, PersistentDataType.STRING));
+                    } else {
+                        nPdc.set(ItemUtil.NEXO_MODEL_KEY, PersistentDataType.STRING, nexoId);
+                    }
 
                     nPdc.set(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING, weapon.getId());
                     nPdc.set(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, weapon.getRank());

@@ -70,6 +70,7 @@ mobs:
     coins: "500-750"
     tier: 4
     tier_chance: 10.0
+    model_set: witchcaster
 
 
   Drunken_Woodcutter:
@@ -105,6 +106,8 @@ mobs:
     coins: "5000-8000"
     tier: 6
     tier_chance: 25.0
+    model_set: arctic
+
 
 
   SKELETON_ARCHER:
@@ -112,6 +115,7 @@ mobs:
     coins: "5000-7600"
     tier: 6
     tier_chance: 15.0
+    model_set: molten
 
 
 

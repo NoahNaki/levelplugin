@@ -13,3 +13,66 @@ sets:
       BOW: molten_magma_animated_weapon_set_bow
     materials:
       CROSSBOW: molten_magma_animated_weapon_set_crossbow
+
+  default1_10:
+    armor:
+      HELMET: rogue_assortment_helmet3d
+      CHESTPLATE: rogueassortment_chestplate
+      LEGGINGS: rogueassortment_leggings
+      BOOTS: rogueassortment_boots
+    weapon_types:
+      SWORD: rogue_assortment-rogue_sword
+      AXE: rogue_assortment-rogue_axe
+      SHOVEL: rogue_assortment-rogue_shovel
+      WAND: rogue_assortment-rogue_staff
+      BOW: rogue_assortment-bow
+
+  dwarven11_20:
+    armor:
+      HELMET: dwarven_weapon_assortment_helmet
+      CHESTPLATE: dwarven_chestplate
+      LEGGINGS: dwarven_leggings
+      BOOTS: dwarven_boots
+    weapon_types:
+      SWORD: dwarven_weapon_assortment_sword
+      AXE: dwarven_weapon_assortment_axe
+      SHOVEL: dwarven_weapon_assortment_shovel
+      WAND: dwarven_weapon_assortment_staff
+      BOW: dwarven_weapon_assortment_bow
+    materials:
+      CROSSBOW: dwarven_weapon_assortment_crossbow
+
+  conqueror21_30:
+    weapon_types:
+      SWORD: dwarven_weapon_assortment_sword
+      AXE: conqueror_assortment-axe
+      SHOVEL: conqueror_assortment-spear
+      WAND: conqueror_assortment-staff
+      BOW: conqueror_assortment-bow
+    materials:
+      CROSSBOW: conqueror_assortment-crossbow
+
+  arctic:
+    armor:
+      HELMET: arcticknight_helmet
+      CHESTPLATE: arcticknight_chestplate
+      LEGGINGS: arcticknight_leggings
+      BOOTS: arcticknight_boots
+    weapon_types:
+      SWORD: arctic_knight_animated_weapon_set_sword
+      AXE: arctic_knight_animated_weapon_set_axe
+      SHOVEL: arctic_knight_animated_weapon_set_spear
+      WAND: arctic_knight_animated_weapon_set_staff
+      BOW: arctic_knight_animated_weapon_set_bow
+    materials:
+      CROSSBOW: arctic_knight_animated_weapon_set_crossbow
+
+  witchcaster:
+    weapon_types:
+      SWORD: witchcaster_animated-sword
+      AXE: witchcaster_animated-axe
+      SHOVEL: witchcaster_animated-spear
+      WAND: witchcaster_animated-staff
+      BOW: witchcaster_animated-bow
+    materials:
+      CROSSBOW: witchcaster_animated-crossbow

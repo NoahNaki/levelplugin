@@ -2,6 +2,11 @@ package me.nakilex.levelplugin.items.data;
 
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
+
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -42,6 +47,19 @@ public enum WeaponType {
     public static WeaponType matchType(ItemStack item) {
         if (item == null || item.getType() == Material.AIR) return null;
         Material mat = item.getType();
+        if (item.hasItemMeta()) {
+            ItemMeta meta = item.getItemMeta();
+            PersistentDataContainer pdc = meta.getPersistentDataContainer();
+            if (pdc.has(ItemUtil.TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING)) {
+                String stored = pdc.get(ItemUtil.TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING);
+                if (stored != null) {
+                    try {
+                        mat = Material.valueOf(stored);
+                    } catch (IllegalArgumentException ignored) {
+                    }
+                }
+            }
+        }
         for (WeaponType wt : values()) {
             if (wt.materials.contains(mat)) return wt;
         }

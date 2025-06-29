@@ -7,6 +7,8 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.player.mining.managers.MiningManager;
 import me.nakilex.levelplugin.ego.EgoRarity;
+import me.nakilex.levelplugin.items.data.ArmorType;
+import me.nakilex.levelplugin.items.data.WeaponType;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -31,6 +33,17 @@ public class ItemUtil {
     public static final NamespacedKey ITEM_ID_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "custom_item_id");
     public static final NamespacedKey ITEM_UUID_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "custom_item_uuid");
     public static final NamespacedKey DURABILITY_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "custom_item_durability");
+    /**
+     * Stores the original material of a custom item before we swap it to a
+     * neutral material such as DIAMOND. Used so armor/weapon detection still
+     * works after we change the visible material.
+     */
+    public static final NamespacedKey TEMPLATE_MATERIAL_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "template_material");
+    /**
+     * Marks that this stack uses a Nexo model so we should not override its
+     * material when refreshing the tooltip.
+     */
+    public static final NamespacedKey NEXO_MODEL_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "nexo_model");
     public static final NamespacedKey EGO_ID_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "ego_weapon_id");
     public static final NamespacedKey EGO_RANK_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "ego_weapon_rank");
     public static final NamespacedKey EGO_EXP_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "ego_weapon_exp");
@@ -68,6 +81,51 @@ public class ItemUtil {
         return null;
     }
 
+    // ─── Default Models ─────────────────────────────────────────────────────
+
+    /** Maximum level that uses the early-game model set. */
+    private static final int DEFAULT_MODEL_MAX_LEVEL = 10;
+
+    /** Model set names for default equipment visuals by level range. */
+    private static final String MODEL_SET_1_10 = "default1_10";
+    private static final String MODEL_SET_11_20 = "dwarven11_20";
+    private static final String MODEL_SET_21_30 = "conqueror21_30";
+
+    /**
+     * Determine which model set should be used for the given level.
+     *
+     * @param level The item level requirement.
+     * @return The model set name or {@code null} if none applies.
+     */
+    private static String getModelSetForLevel(int level) {
+        if (level <= 10) return MODEL_SET_1_10;
+        if (level <= 20) return MODEL_SET_11_20;
+        if (level <= 30) return MODEL_SET_21_30;
+        return null;
+    }
+
+    /** Simple container for a model material and CustomModelData value. */
+    private record Model(Material material, int data) {}
+
+    /**
+     * Class specific default weapon models. The key is the class name in
+     * uppercase. Only four classes are supported for now.
+     */
+    private static final java.util.Map<String, Model> CLASS_DEFAULT_WEAPONS = java.util.Map.of(
+            "MAGE",    new Model(Material.STICK,       1011),
+            "ROGUE",   new Model(Material.DIAMOND,     1012),
+            "ARCHER",  new Model(Material.BOW,         1002),
+            "WARRIOR", new Model(Material.DIAMOND_AXE, 1005)
+    );
+
+    /** Default armor models for the early levels. */
+    private static final java.util.Map<ArmorType, Model> DEFAULT_ARMOR_MODELS = java.util.Map.of(
+            ArmorType.HELMET,     new Model(Material.KELP,             1000),
+            ArmorType.CHESTPLATE, new Model(Material.LEATHER_CHESTPLATE, 1002),
+            ArmorType.LEGGINGS,   new Model(Material.LEATHER_LEGGINGS,   1002),
+            ArmorType.BOOTS,      new Model(Material.LEATHER_BOOTS,      1002)
+    );
+
 
     /**
      * Creates an ItemStack from a CustomItem while including dynamic tooltip information.
@@ -85,18 +143,88 @@ public class ItemUtil {
      * Variant that optionally applies a Nexo model by ID.
      */
     public static ItemStack createItemStackFromCustomItem(CustomItem cItem, int amount, Player player, String nexoId) {
-        Material mat = cItem.getMaterial();
+        // Keep track of the template material before any potential neutral swap
+        // so we can still determine weapon/armor type later. Default to the
+        // custom item's material but replace it with the Nexo model's material
+        // if one is provided.
+        Material templateMat = cItem.getMaterial();
+        Material mat = templateMat;
+
+        // Apply the appropriate model set if this item has no model specified.
+        String setName = getModelSetForLevel(cItem.getLevelRequirement());
+        if ((nexoId == null || nexoId.isBlank()) && setName != null) {
+            String id = me.nakilex.levelplugin.Main.getInstance()
+                    .getModelSetManager()
+                    .getModelId(setName, templateMat);
+            if (id != null && !id.isEmpty()) {
+                nexoId = id;
+            }
+        }
+        me.nakilex.levelplugin.items.data.WeaponType wType =
+                me.nakilex.levelplugin.items.data.WeaponType.matchType(new ItemStack(templateMat));
+        me.nakilex.levelplugin.items.data.ArmorType aType =
+                me.nakilex.levelplugin.items.data.ArmorType.matchType(new ItemStack(templateMat));
+        // Use a neutral DIAMOND item for all weapons and armor so vanilla
+        // attribute tooltips never show up regardless of type.
+        boolean needsNeutral = aType != null || wType != null;
+
+        boolean hasNexoModel = nexoId != null && !nexoId.isEmpty();
+        boolean willApplyDefaultModel = !hasNexoModel
+                && getModelSetForLevel(cItem.getLevelRequirement()) != null;
+
+        Model defaultModel = null;
+        if (willApplyDefaultModel && cItem.getLevelRequirement() <= DEFAULT_MODEL_MAX_LEVEL) {
+            String cls = cItem.getClassRequirement();
+            if (wType != null && cls != null) {
+                defaultModel = CLASS_DEFAULT_WEAPONS.get(cls.toUpperCase());
+            }
+            if (defaultModel == null && aType != null) {
+                defaultModel = DEFAULT_ARMOR_MODELS.get(aType);
+            }
+            if (defaultModel != null) {
+                mat = defaultModel.material();
+            }
+        } else if (!hasNexoModel && aType == null) {
+            // fallback material for weapons without models outside the early range
+            String cls = cItem.getClassRequirement();
+            if (cls != null) {
+                switch (cls.toUpperCase()) {
+                    case "WARRIOR" -> mat = Material.DIAMOND_SHOVEL;
+                    case "ROGUE" -> mat = Material.DIAMOND_SWORD;
+                    case "MAGE" -> mat = Material.STICK;
+                    case "ARCHER" -> mat = Material.BOW;
+                }
+            }
+        }
         ItemStack stack;
         if (nexoId != null && !nexoId.isEmpty()) {
             com.nexomc.nexo.items.ItemBuilder b = com.nexomc.nexo.api.NexoItems.itemFromId(nexoId);
+            // When a model is provided by Nexo keep its original material so the
+            // custom resource pack applies correctly. We only adjust the amount
+            // here. Also update the template material so we know the true base
+            // type of this item.
             stack = b != null ? b.build() : new ItemStack(mat);
             stack.setAmount(amount);
+            templateMat = stack.getType();
         } else {
             stack = new ItemStack(mat, amount);
+        }
+        if (needsNeutral && !hasNexoModel && defaultModel == null) {
+            // Armor in the conqueror range has no dedicated model, keep the
+            // original material instead of forcing DIAMOND so vanilla visuals
+            // remain intact.
+            if (!(MODEL_SET_21_30.equals(setName) && aType != null)) {
+                stack.setType(Material.DIAMOND);
+            }
         }
 
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) return stack;
+        if (hasNexoModel) {
+            meta.getPersistentDataContainer().set(NEXO_MODEL_KEY, PersistentDataType.STRING, nexoId);
+        } else if (willApplyDefaultModel && !meta.hasCustomModelData() && defaultModel != null) {
+            meta.setCustomModelData(defaultModel.data());
+        }
 
         // Set display name with rarity color and upgrade stars.
         ChatColor rarityColor = cItem.getRarity().getColor();
@@ -107,9 +235,11 @@ public class ItemUtil {
         // Glyph line under the name to show rarity and item type
         String rarityGlyph = "<glyph:" + cItem.getRarity().name().toLowerCase() + ">";
         String typeGlyph = "<glyph:tool>";
-        if (me.nakilex.levelplugin.items.data.ArmorType.matchType(stack) != null) {
+        // Determine the original material from the template so the correct glyph shows
+        Material origMat = templateMat;
+        if (me.nakilex.levelplugin.items.data.ArmorType.matchType(new ItemStack(origMat)) != null) {
             typeGlyph = "<glyph:armor>";
-        } else if (me.nakilex.levelplugin.items.data.WeaponType.matchType(stack) != null) {
+        } else if (me.nakilex.levelplugin.items.data.WeaponType.matchType(new ItemStack(origMat)) != null) {
             typeGlyph = "<glyph:weapon>";
         }
         lore.add(rarityGlyph + typeGlyph);
@@ -232,6 +362,10 @@ public class ItemUtil {
         pdc.set(UPGRADE_LEVEL_KEY, PersistentDataType.INTEGER, cItem.getUpgradeLevel());
         pdc.set(ITEM_UUID_KEY, PersistentDataType.STRING, cItem.getUuid().toString());
         pdc.set(DURABILITY_KEY, PersistentDataType.INTEGER, cItem.getCurrentDurability());
+        pdc.set(TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING, templateMat.name());
+        if (nexoId != null && !nexoId.isEmpty()) {
+            pdc.set(NEXO_MODEL_KEY, PersistentDataType.STRING, nexoId);
+        }
 
         stack.setItemMeta(meta);
         return stack;
@@ -275,9 +409,38 @@ public class ItemUtil {
         // Glyph line under the name
         String rarityGlyph = "<glyph:" + cItem.getRarity().name().toLowerCase() + ">";
         String typeGlyph = "<glyph:tool>";
-        if (me.nakilex.levelplugin.items.data.ArmorType.matchType(stack) != null) {
+        // Determine the original material so we can display the correct glyph
+        Material origMat = stack.getType();
+        PersistentDataContainer pdcStack = meta.getPersistentDataContainer();
+        if (pdcStack.has(TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING)) {
+            String stored = pdcStack.get(TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING);
+            if (stored != null) {
+                try {
+                    origMat = Material.valueOf(stored);
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+        }
+        WeaponType wType = WeaponType.matchType(new ItemStack(origMat));
+        ArmorType aType = ArmorType.matchType(new ItemStack(origMat));
+        boolean hasNexoModel = pdcStack.has(NEXO_MODEL_KEY, PersistentDataType.STRING);
+        boolean hasModel = meta.hasCustomModelData();
+        String setName = getModelSetForLevel(cItem.getLevelRequirement());
+        // Only switch to a DIAMOND type when absolutely necessary to hide vanilla
+        // attributes. Conqueror range armor keeps its original material since
+        // there is no matching model for it.
+        if (!hasNexoModel && !hasModel && (aType != null || wType != null)) {
+            if (!(MODEL_SET_21_30.equals(setName) && aType != null)) {
+                stack.setType(Material.DIAMOND);
+            } else {
+                stack.setType(origMat);
+            }
+        } else {
+            stack.setType(origMat);
+        }
+        if (me.nakilex.levelplugin.items.data.ArmorType.matchType(new ItemStack(origMat)) != null) {
             typeGlyph = "<glyph:armor>";
-        } else if (me.nakilex.levelplugin.items.data.WeaponType.matchType(stack) != null) {
+        } else if (me.nakilex.levelplugin.items.data.WeaponType.matchType(new ItemStack(origMat)) != null) {
             typeGlyph = "<glyph:weapon>";
         }
         lore.add(rarityGlyph + typeGlyph);
@@ -365,6 +528,8 @@ public class ItemUtil {
         }
         // Update the item meta with the new lore.
         meta.setLore(lore);
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_DYE);
+        meta.setUnbreakable(true);
         stack.setItemMeta(meta);
     }
 
@@ -481,6 +646,14 @@ public class ItemUtil {
         tgtPdc.set(EGO_RANK_KEY, PersistentDataType.INTEGER, rank);
         tgtPdc.set(EGO_EXP_KEY,  PersistentDataType.INTEGER, exp);
         if (rarStr != null) tgtPdc.set(EGO_RARITY_KEY, PersistentDataType.STRING, rarStr);
+        if (srcPdc.has(TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING)) {
+            tgtPdc.set(TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING,
+                    srcPdc.get(TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING));
+        }
+        if (srcPdc.has(NEXO_MODEL_KEY, PersistentDataType.STRING)) {
+            tgtPdc.set(NEXO_MODEL_KEY, PersistentDataType.STRING,
+                    srcPdc.get(NEXO_MODEL_KEY, PersistentDataType.STRING));
+        }
 
         EgoRarity rar = EgoRarity.COMMON;
         if (rarStr != null) {
@@ -497,6 +670,37 @@ public class ItemUtil {
         ItemMeta meta = stack.getItemMeta();
         PersistentDataContainer pdc = meta.getPersistentDataContainer();
         if (!pdc.has(EGO_ID_KEY, PersistentDataType.STRING)) return;
+        Material origMat = stack.getType();
+        if (pdc.has(TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING)) {
+            String stored = pdc.get(TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING);
+            if (stored != null) {
+                try {
+                    origMat = Material.valueOf(stored);
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+        }
+        WeaponType wType = WeaponType.matchType(new ItemStack(origMat));
+        ArmorType aType = ArmorType.matchType(new ItemStack(origMat));
+        boolean hasNexoModel = pdc.has(NEXO_MODEL_KEY, PersistentDataType.STRING);
+        boolean hasModel = meta.hasCustomModelData();
+        String setName = null;
+        CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(stack);
+        if (cItem != null) {
+            setName = getModelSetForLevel(cItem.getLevelRequirement());
+        }
+        // Force a neutral DIAMOND item only when there is no custom model so
+        // Paper never shows the default damage/armor attributes. Skip this for
+        // conqueror-range armor which lacks matching models.
+        if (!hasNexoModel && !hasModel && (aType != null || wType != null)) {
+            if (!(MODEL_SET_21_30.equals(setName) && aType != null)) {
+                stack.setType(Material.DIAMOND);
+            } else {
+                stack.setType(origMat);
+            }
+        } else {
+            stack.setType(origMat);
+        }
 
         int rank = pdc.getOrDefault(EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
         int exp  = pdc.getOrDefault(EGO_EXP_KEY,  PersistentDataType.INTEGER, 0);
@@ -526,7 +730,6 @@ public class ItemUtil {
         lore.add(bar + " " + ChatColor.YELLOW + exp + ChatColor.GOLD + "/" + ChatColor.YELLOW + expToNext);
         lore.add("");
 
-        CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(stack);
         if (cItem != null) {
             String prefix = parsePrefix(cItem.getBaseName());
             StatsManager.StatType prefixStat = prefix != null ? PREFIX_MAP.get(prefix) : null;
@@ -577,6 +780,8 @@ public class ItemUtil {
         }
 
         meta.setLore(lore);
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_DYE);
+        meta.setUnbreakable(true);
         stack.setItemMeta(meta);
     }
 
@@ -610,6 +815,13 @@ public class ItemUtil {
      */
     public static void updateTooltip(ItemStack stack, Player player) {
         if (stack == null) return;
+        if (stack.hasItemMeta()) {
+            ItemMeta meta = stack.getItemMeta();
+            PersistentDataContainer pdc = meta.getPersistentDataContainer();
+            if (pdc.has(TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING)) {
+                // no action needed; stored material helps determine glyphs elsewhere
+            }
+        }
         if (stack.hasItemMeta() && stack.getItemMeta().getPersistentDataContainer().has(EGO_ID_KEY, PersistentDataType.STRING)) {
             updateEgoWeaponTooltip(stack, player);
         } else if (stack.hasItemMeta() && stack.getItemMeta().getPersistentDataContainer().has(ITEM_UUID_KEY, PersistentDataType.STRING)) {
