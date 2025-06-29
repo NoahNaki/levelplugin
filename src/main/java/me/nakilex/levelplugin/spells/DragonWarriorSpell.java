@@ -4,6 +4,7 @@ import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
+import me.nakilex.levelplugin.items.data.WeaponType;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -22,9 +23,11 @@ import java.util.Set;
  */
 public class DragonWarriorSpell implements Listener {
 
-    private static final Set<Material> VALID_WEAPONS = EnumSet.of(
-            Material.WOODEN_SWORD, Material.STONE_SWORD, Material.IRON_SWORD,
-            Material.GOLDEN_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD);
+    private static final Set<Material> VALID_WEAPONS = EnumSet.copyOf(WeaponType.SWORD.getMaterials());
+    static {
+        VALID_WEAPONS.addAll(WeaponType.AXE.getMaterials());
+        VALID_WEAPONS.addAll(WeaponType.SHOVEL.getMaterials());
+    }
 
     private boolean isDragonWarrior(Player player) {
         return StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass ==
@@ -33,7 +36,11 @@ public class DragonWarriorSpell implements Listener {
 
     private boolean validWeapon(Player player) {
         ItemStack item = player.getInventory().getItemInMainHand();
-        return item != null && VALID_WEAPONS.contains(item.getType());
+        boolean ok = item != null && VALID_WEAPONS.contains(item.getType());
+        if (!ok) {
+            Main.getPlugin().getLogger().info("[DW DBG] invalid weapon " + (item == null ? "null" : item.getType().name()));
+        }
+        return ok;
     }
 
     @EventHandler
