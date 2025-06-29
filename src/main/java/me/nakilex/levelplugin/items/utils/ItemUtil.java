@@ -31,6 +31,12 @@ public class ItemUtil {
     public static final NamespacedKey ITEM_ID_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "custom_item_id");
     public static final NamespacedKey ITEM_UUID_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "custom_item_uuid");
     public static final NamespacedKey DURABILITY_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "custom_item_durability");
+    /**
+     * Stores the original material of a custom item before we swap it to a
+     * neutral material such as DIAMOND. Used so armor/weapon detection still
+     * works after we change the visible material.
+     */
+    public static final NamespacedKey TEMPLATE_MATERIAL_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "template_material");
     public static final NamespacedKey EGO_ID_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "ego_weapon_id");
     public static final NamespacedKey EGO_RANK_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "ego_weapon_rank");
     public static final NamespacedKey EGO_EXP_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "ego_weapon_exp");
@@ -85,12 +91,15 @@ public class ItemUtil {
      * Variant that optionally applies a Nexo model by ID.
      */
     public static ItemStack createItemStackFromCustomItem(CustomItem cItem, int amount, Player player, String nexoId) {
-        Material mat = cItem.getMaterial();
+        // Keep track of the template material before swapping it out so we can
+        // still determine weapon/armor type later.
+        Material templateMat = cItem.getMaterial();
+        Material mat = templateMat;
         // Use a generic material for weapons and armor so vanilla attribute
         // tooltips (e.g. attack damage or armor) do not appear. Since all
         // models are custom, using a diamond item works fine.
-        if (me.nakilex.levelplugin.items.data.WeaponType.matchType(new ItemStack(mat)) != null
-                || me.nakilex.levelplugin.items.data.ArmorType.matchType(new ItemStack(mat)) != null) {
+        if (me.nakilex.levelplugin.items.data.WeaponType.matchType(new ItemStack(templateMat)) != null
+                || me.nakilex.levelplugin.items.data.ArmorType.matchType(new ItemStack(templateMat)) != null) {
             mat = Material.DIAMOND;
         }
         ItemStack stack;
@@ -114,7 +123,7 @@ public class ItemUtil {
         // Glyph line under the name to show rarity and item type
         String rarityGlyph = "<glyph:" + cItem.getRarity().name().toLowerCase() + ">";
         String typeGlyph = "<glyph:tool>";
-        Material origMat = cItem.getMaterial();
+        Material origMat = templateMat;
         if (me.nakilex.levelplugin.items.data.ArmorType.matchType(new ItemStack(origMat)) != null) {
             typeGlyph = "<glyph:armor>";
         } else if (me.nakilex.levelplugin.items.data.WeaponType.matchType(new ItemStack(origMat)) != null) {
@@ -240,6 +249,7 @@ public class ItemUtil {
         pdc.set(UPGRADE_LEVEL_KEY, PersistentDataType.INTEGER, cItem.getUpgradeLevel());
         pdc.set(ITEM_UUID_KEY, PersistentDataType.STRING, cItem.getUuid().toString());
         pdc.set(DURABILITY_KEY, PersistentDataType.INTEGER, cItem.getCurrentDurability());
+        pdc.set(TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING, templateMat.name());
 
         stack.setItemMeta(meta);
         return stack;
@@ -283,7 +293,7 @@ public class ItemUtil {
         // Glyph line under the name
         String rarityGlyph = "<glyph:" + cItem.getRarity().name().toLowerCase() + ">";
         String typeGlyph = "<glyph:tool>";
-        Material origMat = cItem.getMaterial();
+        Material origMat = templateMat;
         if (me.nakilex.levelplugin.items.data.ArmorType.matchType(new ItemStack(origMat)) != null) {
             typeGlyph = "<glyph:armor>";
         } else if (me.nakilex.levelplugin.items.data.WeaponType.matchType(new ItemStack(origMat)) != null) {

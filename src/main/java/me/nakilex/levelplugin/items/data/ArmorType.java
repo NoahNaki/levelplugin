@@ -2,6 +2,11 @@ package me.nakilex.levelplugin.items.data;
 
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
+
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 
 /**
  * Identifies which armor slot is involved (helmet, chestplate, leggings, boots).
@@ -24,6 +29,17 @@ public enum ArmorType {
         }
 
         String typeName = item.getType().name();
+        if (item.hasItemMeta()) {
+            ItemMeta meta = item.getItemMeta();
+            PersistentDataContainer pdc = meta.getPersistentDataContainer();
+            if (pdc.has(ItemUtil.TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING)) {
+                String stored = pdc.get(ItemUtil.TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING);
+                if (stored != null) {
+                    typeName = stored;
+                }
+            }
+        }
+
         // Helmet checks
         if (typeName.endsWith("_HELMET") || typeName.endsWith("_HEAD") || typeName.endsWith("_SKULL")) {
             return HELMET;
