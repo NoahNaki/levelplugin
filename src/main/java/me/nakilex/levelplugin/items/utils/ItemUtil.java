@@ -140,13 +140,26 @@ public class ItemUtil {
         boolean willApplyDefaultModel = !hasNexoModel
                 && cItem.getLevelRequirement() <= DEFAULT_MODEL_MAX_LEVEL;
 
-        // Only swap to the neutral diamond material when no model will be
-        // applied. This avoids breaking resource-pack models.
-        if (!hasNexoModel && !willApplyDefaultModel
-                && (isArmor || wType == me.nakilex.levelplugin.items.data.WeaponType.SWORD
-                    || wType == me.nakilex.levelplugin.items.data.WeaponType.AXE
-                    || wType == me.nakilex.levelplugin.items.data.WeaponType.SHOVEL)) {
-            mat = Material.DIAMOND;
+        if (!hasNexoModel && !willApplyDefaultModel && !isArmor) {
+            String cls = cItem.getClassRequirement();
+            if (cls != null) {
+                switch (cls.toUpperCase()) {
+                    case "WARRIOR":
+                        mat = Material.DIAMOND_SHOVEL; // spear base
+                        break;
+                    case "ROGUE":
+                        mat = Material.DIAMOND_SWORD; // dagger base
+                        break;
+                    case "MAGE":
+                        mat = Material.STICK; // staff base
+                        break;
+                    case "ARCHER":
+                        mat = Material.BOW;
+                        break;
+                    default:
+                        break;
+                }
+            }
         }
         ItemStack stack;
         if (nexoId != null && !nexoId.isEmpty()) {
@@ -721,28 +734,7 @@ public class ItemUtil {
             ItemMeta meta = stack.getItemMeta();
             PersistentDataContainer pdc = meta.getPersistentDataContainer();
             if (pdc.has(TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING)) {
-                String stored = pdc.get(TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING);
-                if (stored != null) {
-                    try {
-                        Material orig = Material.valueOf(stored);
-                        me.nakilex.levelplugin.items.data.WeaponType wType =
-                                me.nakilex.levelplugin.items.data.WeaponType.matchType(new ItemStack(orig));
-                        boolean isArmor = me.nakilex.levelplugin.items.data.ArmorType
-                                .matchType(new ItemStack(orig)) != null;
-                        boolean hasModel = meta.hasCustomModelData()
-                                || pdc.has(NEXO_MODEL_KEY, PersistentDataType.STRING);
-                        // Only swap to the neutral material for plain items without a model.
-                        if (!pdc.has(EGO_ID_KEY, PersistentDataType.STRING)
-                                && !hasModel
-                                && (isArmor || wType == me.nakilex.levelplugin.items.data.WeaponType.SWORD
-                                || wType == me.nakilex.levelplugin.items.data.WeaponType.AXE
-                                || wType == me.nakilex.levelplugin.items.data.WeaponType.SHOVEL)
-                                && stack.getType() != Material.DIAMOND) {
-                            stack.setType(Material.DIAMOND);
-                        }
-                    } catch (IllegalArgumentException ignored) {
-                    }
-                }
+                // no action needed; stored material helps determine glyphs elsewhere
             }
         }
         if (stack.hasItemMeta() && stack.getItemMeta().getPersistentDataContainer().has(EGO_ID_KEY, PersistentDataType.STRING)) {
