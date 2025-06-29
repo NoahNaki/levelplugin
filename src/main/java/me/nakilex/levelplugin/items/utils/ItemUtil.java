@@ -37,6 +37,11 @@ public class ItemUtil {
      * works after we change the visible material.
      */
     public static final NamespacedKey TEMPLATE_MATERIAL_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "template_material");
+    /**
+     * Marks that this stack uses a Nexo model so we should not override its
+     * material when refreshing the tooltip.
+     */
+    public static final NamespacedKey NEXO_MODEL_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "nexo_model");
     public static final NamespacedKey EGO_ID_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "ego_weapon_id");
     public static final NamespacedKey EGO_RANK_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "ego_weapon_rank");
     public static final NamespacedKey EGO_EXP_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "ego_weapon_exp");
@@ -122,6 +127,9 @@ public class ItemUtil {
 
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) return stack;
+        if (nexoId != null && !nexoId.isEmpty()) {
+            meta.getPersistentDataContainer().set(NEXO_MODEL_KEY, PersistentDataType.STRING, nexoId);
+        }
 
         // Set display name with rarity color and upgrade stars.
         ChatColor rarityColor = cItem.getRarity().getColor();
@@ -260,6 +268,9 @@ public class ItemUtil {
         pdc.set(ITEM_UUID_KEY, PersistentDataType.STRING, cItem.getUuid().toString());
         pdc.set(DURABILITY_KEY, PersistentDataType.INTEGER, cItem.getCurrentDurability());
         pdc.set(TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING, templateMat.name());
+        if (nexoId != null && !nexoId.isEmpty()) {
+            pdc.set(NEXO_MODEL_KEY, PersistentDataType.STRING, nexoId);
+        }
 
         stack.setItemMeta(meta);
         return stack;
@@ -523,6 +534,14 @@ public class ItemUtil {
         tgtPdc.set(EGO_RANK_KEY, PersistentDataType.INTEGER, rank);
         tgtPdc.set(EGO_EXP_KEY,  PersistentDataType.INTEGER, exp);
         if (rarStr != null) tgtPdc.set(EGO_RARITY_KEY, PersistentDataType.STRING, rarStr);
+        if (srcPdc.has(TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING)) {
+            tgtPdc.set(TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING,
+                    srcPdc.get(TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING));
+        }
+        if (srcPdc.has(NEXO_MODEL_KEY, PersistentDataType.STRING)) {
+            tgtPdc.set(NEXO_MODEL_KEY, PersistentDataType.STRING,
+                    srcPdc.get(NEXO_MODEL_KEY, PersistentDataType.STRING));
+        }
 
         EgoRarity rar = EgoRarity.COMMON;
         if (rarStr != null) {
@@ -666,10 +685,11 @@ public class ItemUtil {
                                 me.nakilex.levelplugin.items.data.WeaponType.matchType(new ItemStack(orig));
                         boolean isArmor = me.nakilex.levelplugin.items.data.ArmorType
                                 .matchType(new ItemStack(orig)) != null;
-                        // Only swap to the neutral material for non-ego items.
-                        // Ego weapons require their original material so the
-                        // resource-pack model stays intact.
+                        boolean hasModel = meta.hasCustomModelData()
+                                || pdc.has(NEXO_MODEL_KEY, PersistentDataType.STRING);
+                        // Only swap to the neutral material for plain items without a model.
                         if (!pdc.has(EGO_ID_KEY, PersistentDataType.STRING)
+                                && !hasModel
                                 && (isArmor || wType == me.nakilex.levelplugin.items.data.WeaponType.SWORD
                                 || wType == me.nakilex.levelplugin.items.data.WeaponType.AXE
                                 || wType == me.nakilex.levelplugin.items.data.WeaponType.SHOVEL)

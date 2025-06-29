@@ -297,6 +297,12 @@ public class EgoWeaponManager {
                         nPdc.set(ItemUtil.TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING,
                                 bPdc.get(ItemUtil.TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING));
                     }
+                    if (bPdc.has(ItemUtil.NEXO_MODEL_KEY, PersistentDataType.STRING)) {
+                        nPdc.set(ItemUtil.NEXO_MODEL_KEY, PersistentDataType.STRING,
+                                bPdc.get(ItemUtil.NEXO_MODEL_KEY, PersistentDataType.STRING));
+                    } else {
+                        nPdc.set(ItemUtil.NEXO_MODEL_KEY, PersistentDataType.STRING, nexoId);
+                    }
 
                     nPdc.set(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING, weapon.getId());
                     nPdc.set(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, weapon.getRank());
