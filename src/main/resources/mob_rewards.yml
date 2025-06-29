@@ -70,6 +70,7 @@ mobs:
     coins: "500-750"
     tier: 4
     tier_chance: 10.0
+    model_set: witchcaster
 
 
   Drunken_Woodcutter:
