@@ -44,9 +44,15 @@ commands:
     usage: /setlevel <player> <level>
     permission: none
   class:
-    description: Change your class
-    usage: /class <Warrior|Rogue|Archer|Mage>
+    description: Choose your class once or have an admin override it
+    usage: /class <Mage|Archer|Rogue|Warrior|Cleric>|admin <player> <class>
     aliases: [c]
+  awakenwarrior:
+    description: Choose your warrior awakening
+    usage: /awakenwarrior
+  subclass:
+    description: Change to an unlocked subclass
+    usage: /subclass
   addmob:
     description: Spawns custom mobs
     usage: /addmob <mobid> <amount>

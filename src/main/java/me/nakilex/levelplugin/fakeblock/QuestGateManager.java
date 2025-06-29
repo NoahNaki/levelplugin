@@ -230,7 +230,6 @@ public class QuestGateManager implements Listener {
 
         if (gate.getAnimation() == GateAnimation.INSTANT) {
             task.run();
-            task.cancel();
         } else {
             long interval = 1L;
             if (!groups.isEmpty()) {

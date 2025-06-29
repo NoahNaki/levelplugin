@@ -1,6 +1,6 @@
 package me.nakilex.levelplugin.spells.gui;
 
-import me.nakilex.levelplugin.player.level.managers.LevelManager;
+import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.spells.Spell;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;

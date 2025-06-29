@@ -21,7 +21,7 @@ gates:
       z: -90
     pos2:
       x: 27
-      y: 146
+      y: 148
       z: -90
     block: ANDESITE_WALL
     closed: true
