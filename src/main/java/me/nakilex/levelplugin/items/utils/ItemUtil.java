@@ -730,7 +730,6 @@ public class ItemUtil {
         lore.add(bar + " " + ChatColor.YELLOW + exp + ChatColor.GOLD + "/" + ChatColor.YELLOW + expToNext);
         lore.add("");
 
-        CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(stack);
         if (cItem != null) {
             String prefix = parsePrefix(cItem.getBaseName());
             StatsManager.StatType prefixStat = prefix != null ? PREFIX_MAP.get(prefix) : null;
