@@ -210,7 +210,12 @@ public class ItemUtil {
             stack = new ItemStack(mat, amount);
         }
         if (needsNeutral && !hasNexoModel && defaultModel == null) {
-            stack.setType(Material.DIAMOND);
+            // Armor in the conqueror range has no dedicated model, keep the
+            // original material instead of forcing DIAMOND so vanilla visuals
+            // remain intact.
+            if (!(MODEL_SET_21_30.equals(setName) && aType != null)) {
+                stack.setType(Material.DIAMOND);
+            }
         }
 
         ItemMeta meta = stack.getItemMeta();
@@ -420,10 +425,16 @@ public class ItemUtil {
         ArmorType aType = ArmorType.matchType(new ItemStack(origMat));
         boolean hasNexoModel = pdcStack.has(NEXO_MODEL_KEY, PersistentDataType.STRING);
         boolean hasModel = meta.hasCustomModelData();
-        // Always use a DIAMOND type only if there is no custom model at all so
-        // the vanilla damage/armor tooltips remain hidden.
+        String setName = getModelSetForLevel(cItem.getLevelRequirement());
+        // Only switch to a DIAMOND type when absolutely necessary to hide vanilla
+        // attributes. Conqueror range armor keeps its original material since
+        // there is no matching model for it.
         if (!hasNexoModel && !hasModel && (aType != null || wType != null)) {
-            stack.setType(Material.DIAMOND);
+            if (!(MODEL_SET_21_30.equals(setName) && aType != null)) {
+                stack.setType(Material.DIAMOND);
+            } else {
+                stack.setType(origMat);
+            }
         } else {
             stack.setType(origMat);
         }
@@ -673,10 +684,20 @@ public class ItemUtil {
         ArmorType aType = ArmorType.matchType(new ItemStack(origMat));
         boolean hasNexoModel = pdc.has(NEXO_MODEL_KEY, PersistentDataType.STRING);
         boolean hasModel = meta.hasCustomModelData();
+        String setName = null;
+        CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(stack);
+        if (cItem != null) {
+            setName = getModelSetForLevel(cItem.getLevelRequirement());
+        }
         // Force a neutral DIAMOND item only when there is no custom model so
-        // Paper never shows the default damage/armor attributes.
+        // Paper never shows the default damage/armor attributes. Skip this for
+        // conqueror-range armor which lacks matching models.
         if (!hasNexoModel && !hasModel && (aType != null || wType != null)) {
-            stack.setType(Material.DIAMOND);
+            if (!(MODEL_SET_21_30.equals(setName) && aType != null)) {
+                stack.setType(Material.DIAMOND);
+            } else {
+                stack.setType(origMat);
+            }
         } else {
             stack.setType(origMat);
         }
