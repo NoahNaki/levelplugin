@@ -19,6 +19,7 @@ import java.util.*;
 
 public class SubclassGUI implements Listener {
     private static final PlayerClass[] CLASSES = {
+            PlayerClass.WARRIOR,
             PlayerClass.BARBARIAN,
             PlayerClass.DRAGONIAN,
             PlayerClass.GALEGLAIVE,
@@ -26,7 +27,7 @@ public class SubclassGUI implements Listener {
             PlayerClass.ARCTICKNIGHT,
             PlayerClass.DRAGONWARRIOR
     };
-    private static final int[] SLOTS = {10, 11, 12, 14, 15, 16};
+    private static final int[] SLOTS = {10, 11, 12, 13, 14, 15, 16};
 
     private static final ItemStack LOCK_ITEM_BASE;
     private static final ItemStack FILLER;
@@ -66,6 +67,7 @@ public class SubclassGUI implements Listener {
             case GALEGLAIVE -> 2;
             case DEATHKNIGHT, ARCTICKNIGHT -> 3;
             case DRAGONWARRIOR -> 4;
+            case WARRIOR -> 0;
             default -> 0;
         };
     }
