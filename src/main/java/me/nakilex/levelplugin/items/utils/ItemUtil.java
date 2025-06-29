@@ -123,6 +123,7 @@ public class ItemUtil {
         // Glyph line under the name to show rarity and item type
         String rarityGlyph = "<glyph:" + cItem.getRarity().name().toLowerCase() + ">";
         String typeGlyph = "<glyph:tool>";
+        // Determine the original material from the template so the correct glyph shows
         Material origMat = templateMat;
         if (me.nakilex.levelplugin.items.data.ArmorType.matchType(new ItemStack(origMat)) != null) {
             typeGlyph = "<glyph:armor>";
@@ -293,7 +294,18 @@ public class ItemUtil {
         // Glyph line under the name
         String rarityGlyph = "<glyph:" + cItem.getRarity().name().toLowerCase() + ">";
         String typeGlyph = "<glyph:tool>";
-        Material origMat = templateMat;
+        // Determine the original material so we can display the correct glyph
+        Material origMat = stack.getType();
+        PersistentDataContainer pdcStack = meta.getPersistentDataContainer();
+        if (pdcStack.has(TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING)) {
+            String stored = pdcStack.get(TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING);
+            if (stored != null) {
+                try {
+                    origMat = Material.valueOf(stored);
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+        }
         if (me.nakilex.levelplugin.items.data.ArmorType.matchType(new ItemStack(origMat)) != null) {
             typeGlyph = "<glyph:armor>";
         } else if (me.nakilex.levelplugin.items.data.WeaponType.matchType(new ItemStack(origMat)) != null) {
