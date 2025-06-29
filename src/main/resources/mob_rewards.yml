@@ -106,6 +106,8 @@ mobs:
     coins: "5000-8000"
     tier: 6
     tier_chance: 25.0
+    model_set: arctic
+
 
 
   SKELETON_ARCHER:
