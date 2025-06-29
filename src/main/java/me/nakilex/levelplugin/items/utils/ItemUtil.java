@@ -141,8 +141,10 @@ public class ItemUtil {
      * Variant that optionally applies a Nexo model by ID.
      */
     public static ItemStack createItemStackFromCustomItem(CustomItem cItem, int amount, Player player, String nexoId) {
-        // Keep track of the template material before swapping it out so we can
-        // still determine weapon/armor type later.
+        // Keep track of the template material before any potential neutral swap
+        // so we can still determine weapon/armor type later. Default to the
+        // custom item's material but replace it with the Nexo model's material
+        // if one is provided.
         Material templateMat = cItem.getMaterial();
         Material mat = templateMat;
 
@@ -197,9 +199,11 @@ public class ItemUtil {
             com.nexomc.nexo.items.ItemBuilder b = com.nexomc.nexo.api.NexoItems.itemFromId(nexoId);
             // When a model is provided by Nexo keep its original material so the
             // custom resource pack applies correctly. We only adjust the amount
-            // here.
+            // here. Also update the template material so we know the true base
+            // type of this item.
             stack = b != null ? b.build() : new ItemStack(mat);
             stack.setAmount(amount);
+            templateMat = stack.getType();
         } else {
             stack = new ItemStack(mat, amount);
         }
