@@ -78,8 +78,22 @@ public class ItemUtil {
      * @return The created ItemStack.
      */
     public static ItemStack createItemStackFromCustomItem(CustomItem cItem, int amount, Player player) {
+        return createItemStackFromCustomItem(cItem, amount, player, null);
+    }
+
+    /**
+     * Variant that optionally applies a Nexo model by ID.
+     */
+    public static ItemStack createItemStackFromCustomItem(CustomItem cItem, int amount, Player player, String nexoId) {
         Material mat = cItem.getMaterial();
-        ItemStack stack = new ItemStack(mat, amount);
+        ItemStack stack;
+        if (nexoId != null && !nexoId.isEmpty()) {
+            com.nexomc.nexo.items.ItemBuilder b = com.nexomc.nexo.api.NexoItems.itemFromId(nexoId);
+            stack = b != null ? b.build() : new ItemStack(mat);
+            stack.setAmount(amount);
+        } else {
+            stack = new ItemStack(mat, amount);
+        }
 
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) return stack;
@@ -126,6 +140,29 @@ public class ItemUtil {
         }
 
         if (!pdc.has(EGO_ID_KEY, PersistentDataType.STRING)) {
+            // --- Class Requirement ---
+            String clsReqRaw = cItem.getClassRequirement();
+            me.nakilex.levelplugin.player.classes.data.PlayerClass reqClass = null;
+            try {
+                if (clsReqRaw != null && !clsReqRaw.isBlank()) {
+                    reqClass = me.nakilex.levelplugin.player.classes.data.PlayerClass.valueOf(clsReqRaw.toUpperCase());
+                }
+            } catch (IllegalArgumentException ignored) {}
+
+            if (reqClass != null && reqClass != me.nakilex.levelplugin.player.classes.data.PlayerClass.VILLAGER) {
+                me.nakilex.levelplugin.player.classes.data.PlayerClass playerClass = null;
+                if (player != null) {
+                    playerClass = me.nakilex.levelplugin.player.attributes.managers.StatsManager
+                            .getInstance().getPlayerStats(player.getUniqueId()).playerClass;
+                }
+                boolean meets = player == null ||
+                        me.nakilex.levelplugin.player.classes.data.ClassUtil.meetsRequirement(playerClass, reqClass);
+                String reqName = reqClass.name().substring(0,1) + reqClass.name().substring(1).toLowerCase();
+                String line = (meets ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ") +
+                        ChatColor.GRAY + "Class Requirement: " + ChatColor.WHITE + reqName;
+                lore.add(line);
+            }
+
             // --- Level Requirement ---
             int playerLevel = (player != null) ? LevelManager.getInstance().getLevel(player) : 0;
             String levelRequirementLine;
@@ -186,7 +223,7 @@ public class ItemUtil {
         meta.setLore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES); // Hide item attributes
         meta.setUnbreakable(true); // Make the item unbreakable
-        meta.addItemFlags(ItemFlag.HIDE_UNBREAKABLE);
+        meta.addItemFlags(ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_DYE);
 
         // Store unique data in the PersistentDataContainer.
         // Reuse the container retrieved earlier instead of redeclaring it
@@ -246,6 +283,28 @@ public class ItemUtil {
         lore.add(rarityGlyph + typeGlyph);
         lore.add(""); // Blank line for spacing
 
+        // --- Class Requirement ---
+        String clsReqRaw = cItem.getClassRequirement();
+        me.nakilex.levelplugin.player.classes.data.PlayerClass reqClass = null;
+        try {
+            if (clsReqRaw != null && !clsReqRaw.isBlank()) {
+                reqClass = me.nakilex.levelplugin.player.classes.data.PlayerClass.valueOf(clsReqRaw.toUpperCase());
+            }
+        } catch (IllegalArgumentException ignored) {}
+
+        if (reqClass != null && reqClass != me.nakilex.levelplugin.player.classes.data.PlayerClass.VILLAGER) {
+            me.nakilex.levelplugin.player.classes.data.PlayerClass playerClass = null;
+            if (player != null) {
+                playerClass = me.nakilex.levelplugin.player.attributes.managers.StatsManager
+                        .getInstance().getPlayerStats(player.getUniqueId()).playerClass;
+            }
+            boolean meets = player == null ||
+                    me.nakilex.levelplugin.player.classes.data.ClassUtil.meetsRequirement(playerClass, reqClass);
+            String reqName = reqClass.name().substring(0,1) + reqClass.name().substring(1).toLowerCase();
+            String line = (meets ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ") +
+                    ChatColor.GRAY + "Class Requirement: " + ChatColor.WHITE + reqName;
+            lore.add(line);
+        }
 
         // --- Level Requirement ---
         int playerLevel = (player != null) ? LevelManager.getInstance().getLevel(player) : 0;
@@ -385,7 +444,7 @@ public class ItemUtil {
             pdc.set(EGO_RANK_KEY, PersistentDataType.INTEGER, weapon.getRank());
             pdc.set(EGO_EXP_KEY, PersistentDataType.INTEGER, weapon.getExp());
             pdc.set(EGO_RARITY_KEY, PersistentDataType.STRING, weapon.getRarity().name());
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_DYE);
             stack.setItemMeta(meta);
         }
         updateEgoWeaponTooltip(stack, null);
@@ -558,5 +617,32 @@ public class ItemUtil {
         } else if (ToolTier.fromMaterial(stack.getType()) != null) {
             updateCustomToolTooltip(stack, player);
         }
-   }
+    }
+
+    /**
+     * Refresh tooltips for all custom items and tools a player carries.
+     */
+    public static void refreshTooltips(Player player) {
+        player.getInventory().forEach(stack -> {
+            if (stack != null && stack.hasItemMeta()) {
+                boolean custom = stack.getItemMeta().getPersistentDataContainer()
+                        .has(ITEM_UUID_KEY, PersistentDataType.STRING);
+                boolean tool = ToolTier.fromMaterial(stack.getType()) != null;
+                if (custom || tool) {
+                    updateTooltip(stack, player);
+                }
+            }
+        });
+        for (ItemStack armor : player.getInventory().getArmorContents()) {
+            if (armor != null && armor.hasItemMeta()) {
+                boolean custom = armor.getItemMeta().getPersistentDataContainer()
+                        .has(ITEM_UUID_KEY, PersistentDataType.STRING);
+                boolean tool = ToolTier.fromMaterial(armor.getType()) != null;
+                if (custom || tool) {
+                    updateTooltip(armor, player);
+                }
+            }
+        }
+        player.updateInventory();
+    }
 }

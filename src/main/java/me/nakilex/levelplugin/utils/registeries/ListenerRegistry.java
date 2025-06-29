@@ -104,7 +104,13 @@ public class ListenerRegistry {
 
         // Register all listeners
         pm.registerEvents(new MobDamageListener(), plugin);
-        pm.registerEvents(new MythicMobDeathListener(mobRewardsConfig, plugin.getLevelManager(), economyManager, lootChestManager), plugin);
+        pm.registerEvents(new MythicMobDeathListener(
+                mobRewardsConfig,
+                plugin.getLevelManager(),
+                economyManager,
+                lootChestManager,
+                plugin.getModelSetManager()
+        ), plugin);
         pm.registerEvents(new me.nakilex.levelplugin.player.mining.listeners.OreMiningListener(plugin, plugin.getMiningRewardsConfig(), plugin.getMiningManager()), plugin);
         pm.registerEvents(new PlayerJoinListener(plugin.getLevelManager(), plugin.getMiningManager(), plugin.getPlayerConfig(), plugin.getEnvironmentManager()), plugin);
         pm.registerEvents(new PlayerQuitListener(plugin.getPlayerConfig(), plugin.getEnvironmentManager()), plugin);

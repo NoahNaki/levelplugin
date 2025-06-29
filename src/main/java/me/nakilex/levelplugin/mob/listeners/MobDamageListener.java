@@ -44,6 +44,25 @@ public class MobDamageListener implements Listener {
                     int playerLevel = LevelManager.getInstance().getLevel(player);
                     int reqLevel    = inst.getLevelRequirement();
 
+                    String clsReqRaw = inst.getClassRequirement();
+                    me.nakilex.levelplugin.player.classes.data.PlayerClass reqClass = null;
+                    try {
+                        if (clsReqRaw != null && !clsReqRaw.isBlank()) {
+                            reqClass = me.nakilex.levelplugin.player.classes.data.PlayerClass.valueOf(clsReqRaw.toUpperCase());
+                        }
+                    } catch (IllegalArgumentException ignored) {}
+
+                    me.nakilex.levelplugin.player.classes.data.PlayerClass playerClass =
+                            StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass;
+
+                    // Cancel if wrong class
+                    if (!me.nakilex.levelplugin.player.classes.data.ClassUtil.meetsRequirement(playerClass, reqClass)) {
+                        player.sendMessage(ChatColor.RED +
+                            "You cannot wield your " + inst.getBaseName() + " as a " + playerClass.name().toLowerCase() + ".");
+                        event.setCancelled(true);
+                        return;
+                    }
+
                     // Cancel if below level
                     if (playerLevel < reqLevel) {
                         player.sendMessage(ChatColor.RED +

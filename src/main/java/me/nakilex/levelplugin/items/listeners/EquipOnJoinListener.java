@@ -96,6 +96,21 @@ public class EquipOnJoinListener implements Listener {
 
         int reqLevel = ci.getLevelRequirement();
         int playerLevel = levelManager.getLevel(player);
+        String clsReqRaw = ci.getClassRequirement();
+        me.nakilex.levelplugin.player.classes.data.PlayerClass reqClass = null;
+        try {
+            if (clsReqRaw != null && !clsReqRaw.isBlank()) {
+                reqClass = me.nakilex.levelplugin.player.classes.data.PlayerClass.valueOf(clsReqRaw.toUpperCase());
+            }
+        } catch (IllegalArgumentException ignored) {}
+
+        me.nakilex.levelplugin.player.classes.data.PlayerClass playerClass =
+                statsManager.getPlayerStats(puuid).playerClass;
+
+        if (!me.nakilex.levelplugin.player.classes.data.ClassUtil.meetsRequirement(playerClass, reqClass)) {
+            player.sendMessage(ChatColor.RED + "You need to be " + (reqClass == null ? "the right" : reqClass.name().toLowerCase()) + " class to wield your " + ci.getBaseName() + "!");
+            return;
+        }
         if (playerLevel < reqLevel) {
             player.sendMessage(ChatColor.RED + "You need to be Level " + reqLevel + " to wield your " + ci.getBaseName() + "!");
             return;

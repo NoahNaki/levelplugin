@@ -112,6 +112,7 @@ mobs:
     coins: "5000-7600"
     tier: 6
     tier_chance: 15.0
+    model_set: molten
 
 
 

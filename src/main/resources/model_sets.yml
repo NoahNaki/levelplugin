@@ -1,0 +1,15 @@
+sets:
+  molten:
+    armor:
+      HELMET: molten_helmet
+      CHESTPLATE: molten_chestplate
+      LEGGINGS: molten_leggings
+      BOOTS: molten_boots
+    weapon_types:
+      SWORD: molten_magma_animated_weapon_set_sword
+      AXE: molten_magma_animated_weapon_set_axe
+      WAND: molten_magma_animated_weapon_set_staff
+      SHOVEL: molten_magma_animated_weapon_set_mace
+      BOW: molten_magma_animated_weapon_set_bow
+    materials:
+      CROSSBOW: molten_magma_animated_weapon_set_crossbow

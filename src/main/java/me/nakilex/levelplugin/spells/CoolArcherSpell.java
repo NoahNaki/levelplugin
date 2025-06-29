@@ -2,7 +2,7 @@ package me.nakilex.levelplugin.spells;
 
 import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.items.data.WeaponType;
 import org.bukkit.persistence.PersistentDataType;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.spells.Spell;
@@ -26,10 +26,8 @@ import java.util.Set;
  */
 public class CoolArcherSpell implements Listener {
 
-    // Archer bows use sword items as the base to apply Nexo models
-    private static final Set<Material> VALID_WEAPONS = EnumSet.of(
-            Material.WOODEN_SWORD, Material.STONE_SWORD, Material.IRON_SWORD,
-            Material.GOLDEN_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD);
+    // Use bow and crossbow materials
+    private static final Set<Material> VALID_WEAPONS = EnumSet.copyOf(WeaponType.BOW.getMaterials());
 
     private boolean isCoolArcher(Player p) {
         return StatsManager.getInstance().getPlayerStats(p.getUniqueId()).playerClass ==
@@ -38,7 +36,11 @@ public class CoolArcherSpell implements Listener {
 
     private boolean validWeapon(Player p) {
         ItemStack item = p.getInventory().getItemInMainHand();
-        return item != null && VALID_WEAPONS.contains(item.getType());
+        boolean ok = item != null && VALID_WEAPONS.contains(item.getType());
+        if (!ok) {
+            Main.getPlugin().getLogger().info("[CA DBG] invalid weapon " + (item == null ? "null" : item.getType().name()));
+        }
+        return ok;
     }
 
     @EventHandler

@@ -11,6 +11,7 @@ import me.nakilex.levelplugin.lootchests.utils.ParticleUtils;
 import me.nakilex.levelplugin.potions.data.PotionInstance;
 import me.nakilex.levelplugin.potions.data.PotionTemplate;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
+import me.nakilex.levelplugin.Main;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -133,7 +134,7 @@ public class LootChestManager {
         // 3) Pre-buffer one random loot ItemStack (we’ll place it into the GUI when a player opens it)
         //    NOTE: ChestData must have a method setBufferedLootItem(ItemStack).
         //          Add that setter to ChestData if it's missing.
-        ItemStack loot = getRandomLootForTier(data.getTier(), "default");
+        ItemStack loot = getRandomLootForTier(data.getTier(), "default", null);
         data.setBufferedLootItem(loot);
 
         // 4) Start the particle task (handles hologram spawning based on player proximity)
@@ -549,7 +550,7 @@ public class LootChestManager {
         return cooldownManager;
     }
 
-    public ItemStack getRandomLootForTier(int tier, String mobType) {
+    public ItemStack getRandomLootForTier(int tier, String mobType, String modelSet) {
         // Example: 20% chance to drop a potion
         double potionChance = 0.2;
         if (Math.random() < potionChance) {
@@ -612,7 +613,8 @@ public class LootChestManager {
         // 30% chance to roll a procedural item instead of template
         if (Math.random() < 0.3) {
             CustomItem generated = ItemManager.getInstance().generateItem(mobType, level);
-            return ItemUtil.createItemStackFromCustomItem(generated, 1, null);
+            String nexo = modelSet != null ? Main.getInstance().getModelSetManager().getModelId(modelSet, generated.getMaterial()) : null;
+            return ItemUtil.createItemStackFromCustomItem(generated, 1, null, nexo);
         }
 
         // Gather matching custom items
@@ -649,7 +651,8 @@ public class LootChestManager {
         );
         ItemManager.getInstance().addInstance(newInstance);
 
-        return ItemUtil.createItemStackFromCustomItem(newInstance, 1, null);
+        String nexo = modelSet != null ? Main.getInstance().getModelSetManager().getModelId(modelSet, newInstance.getMaterial()) : null;
+        return ItemUtil.createItemStackFromCustomItem(newInstance, 1, null, nexo);
 
     }
 }

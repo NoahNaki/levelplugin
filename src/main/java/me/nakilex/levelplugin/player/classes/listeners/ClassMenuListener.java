@@ -160,19 +160,9 @@ public class ClassMenuListener implements Listener {
      * Updates the tooltip of every item in the player's inventory and armor slots.
      */
     private void refreshInventoryTooltips(Player player) {
-        for (ItemStack stack : player.getInventory().getContents()) {
-            updateTooltipSafely(stack, player);
-        }
-        for (ItemStack armor : player.getInventory().getArmorContents()) {
-            updateTooltipSafely(armor, player);
-        }
+        me.nakilex.levelplugin.items.utils.ItemUtil.refreshTooltips(player);
     }
 
-    private void updateTooltipSafely(ItemStack item, Player player) {
-        if (item != null && item.hasItemMeta()) {
-            ItemUtil.updateTooltip(item, player);
-        }
-    }
 
     private void addWeaponStats(Player player, CustomItem ci, ItemStack stack) {
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());

@@ -91,7 +91,7 @@ public class PotionInstance {
         lore.add(ChatColor.WHITE + "Right-click " + ChatColor.GRAY + "to consume");
         meta.setLore(lore);
 
-        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_DYE);
         meta.setUnbreakable(true);
 
         // Store UUID in PersistentDataContainer
