@@ -204,7 +204,7 @@ public class ItemUtil {
         } else {
             stack = new ItemStack(mat, amount);
         }
-        if (needsNeutral) {
+        if (needsNeutral && !hasNexoModel) {
             stack.setType(Material.DIAMOND);
         }
 
@@ -413,10 +413,11 @@ public class ItemUtil {
         }
         WeaponType wType = WeaponType.matchType(new ItemStack(origMat));
         ArmorType aType = ArmorType.matchType(new ItemStack(origMat));
-        if (aType != null
+        boolean hasNexoModel = pdcStack.has(NEXO_MODEL_KEY, PersistentDataType.STRING);
+        if (!hasNexoModel && (aType != null
                 || wType == WeaponType.SWORD
                 || wType == WeaponType.AXE
-                || wType == WeaponType.SHOVEL) {
+                || wType == WeaponType.SHOVEL)) {
             stack.setType(Material.DIAMOND);
         } else {
             stack.setType(origMat);
@@ -665,10 +666,11 @@ public class ItemUtil {
         }
         WeaponType wType = WeaponType.matchType(new ItemStack(origMat));
         ArmorType aType = ArmorType.matchType(new ItemStack(origMat));
-        if (aType != null
+        boolean hasNexoModel = pdc.has(NEXO_MODEL_KEY, PersistentDataType.STRING);
+        if (!hasNexoModel && (aType != null
                 || wType == WeaponType.SWORD
                 || wType == WeaponType.AXE
-                || wType == WeaponType.SHOVEL) {
+                || wType == WeaponType.SHOVEL)) {
             stack.setType(Material.DIAMOND);
         } else {
             stack.setType(origMat);

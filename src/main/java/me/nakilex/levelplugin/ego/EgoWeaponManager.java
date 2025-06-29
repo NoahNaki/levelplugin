@@ -314,16 +314,6 @@ public class EgoWeaponManager {
                     nMeta.setUnbreakable(true);
                     nexoStack.setItemMeta(nMeta);
                     stack = nexoStack;
-                    me.nakilex.levelplugin.items.data.WeaponType wType =
-                            me.nakilex.levelplugin.items.data.WeaponType.matchType(stack);
-                    me.nakilex.levelplugin.items.data.ArmorType aType =
-                            me.nakilex.levelplugin.items.data.ArmorType.matchType(stack);
-                    if (aType != null
-                            || wType == me.nakilex.levelplugin.items.data.WeaponType.SWORD
-                            || wType == me.nakilex.levelplugin.items.data.WeaponType.AXE
-                            || wType == me.nakilex.levelplugin.items.data.WeaponType.SHOVEL) {
-                        stack.setType(Material.DIAMOND);
-                    }
                 }
             }
         } else {
