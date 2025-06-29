@@ -63,7 +63,8 @@ public enum WeaponType {
     }
 
     public static boolean isValidWarriorWeapon(ItemStack item) {
-        return matchType(item) == SHOVEL;
+        WeaponType type = matchType(item);
+        return type == SWORD || type == AXE || type == SHOVEL;
     }
 
     public static boolean isValidMageWeapon(ItemStack item) {

@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.spells.managers;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.data.WeaponType;
+import org.bukkit.Material;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.spells.Spell;
 import me.nakilex.levelplugin.spells.registry.EffectRegistry;
@@ -17,6 +18,13 @@ public class SpellManager {
     private final EffectRegistry effectRegistry;
     private final Map<String, Map<String, Spell>> spellsByClass = new HashMap<>();
     private Main plugin;
+
+    private static final List<Material> WARRIOR_WEAPONS = new ArrayList<>();
+    static {
+        WARRIOR_WEAPONS.addAll(WeaponType.SWORD.getMaterials());
+        WARRIOR_WEAPONS.addAll(WeaponType.AXE.getMaterials());
+        WARRIOR_WEAPONS.addAll(WeaponType.SHOVEL.getMaterials());
+    }
 
     public static SpellManager getInstance() {
         if (instance == null) throw new IllegalStateException("SpellManager not init’d!");
@@ -61,7 +69,7 @@ public class SpellManager {
             0.0,
             MythicSkillConfig.getCooldownSeconds("Quick_Shot"),
             1,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.BOW.getMaterials(),
             "MYTHIC_QUICK_SHOT",
             0.0
         ));
@@ -69,35 +77,35 @@ public class SpellManager {
             "backstep", "Backstep", "LRL",
             5.0,
             MythicSkillConfig.getCooldownSeconds("Backstep"), 3,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.BOW.getMaterials(),
             "MYTHIC_BACKSTEP", 0.0
         ));
         coolMap.put("LRR", new Spell(
             "windrazor", "Windrazor", "LRR",
             8.0,
             MythicSkillConfig.getCooldownSeconds("Windrazor"), 5,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.BOW.getMaterials(),
             "MYTHIC_WINDRAZOR", 0.0
         ));
         coolMap.put("LLR", new Spell(
             "arrow_barrage", "Arrow Barrage", "LLR",
             12.0,
             MythicSkillConfig.getCooldownSeconds("Arrow_Barrage"), 10,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.BOW.getMaterials(),
             "MYTHIC_ARROW_BARRAGE", 0.0
         ));
         coolMap.put("RRR", new Spell(
             "bow_drone", "Bow Drone", "RRR",
             10.0,
             MythicSkillConfig.getCooldownSeconds("Deadly_Javelin"), 10,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.BOW.getMaterials(),
             "BOW_DRONE", 0.0
         ));
         coolMap.put("LLL", new Spell(
             "dragon_piercer", "Dragon Piercer", "LLL",
             15.0,
             MythicSkillConfig.getCooldownSeconds("Dragon_Piercer"), 10,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.BOW.getMaterials(),
             "MYTHIC_DRAGON_PIERCER", 0.0
         ));
         spellsByClass.put("coolarcher", Collections.unmodifiableMap(coolMap));
@@ -112,7 +120,7 @@ public class SpellManager {
             0.0,
             1,
             1,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.BOW.getMaterials(),
             "MYTHIC_BLAZING_FEATHERS",
             0.0
         ));
@@ -120,21 +128,21 @@ public class SpellManager {
             "ashdance", "Ashdance", "LRL",
             6.0,
             MythicSkillConfig.getCooldownSeconds("Ashdance"), 3,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.BOW.getMaterials(),
             "MYTHIC_ASHDANCE", 0.0
         ));
         phoenixMap.put("LRR", new Spell(
             "flameburst_convergence", "Flameburst Convergence", "LRR",
             8.0,
             MythicSkillConfig.getCooldownSeconds("Flameburst_Convergence"), 5,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.BOW.getMaterials(),
             "MYTHIC_FLAMEBURST_CONVERGENCE", 0.0
         ));
         phoenixMap.put("LLR", new Spell(
             "phoenix_totem", "Phoenix Totem", "LLR",
             0.0,
             MythicSkillConfig.getCooldownSeconds("Phoenix_Totem"), 0,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.BOW.getMaterials(),
             "MYTHIC_PHOENIX_TOTEM", 0.0,
             true
         ));
@@ -142,14 +150,14 @@ public class SpellManager {
             "pyroclasmic_barrage", "Pyroclasmic Barrage", "LLL",
             12.0,
             MythicSkillConfig.getCooldownSeconds("Pyroclasmic_Barrage"), 10,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.BOW.getMaterials(),
             "MYTHIC_PYROCLASMIC_BARRAGE", 0.0
         ));
         phoenixMap.put("RRR", new Spell(
             "phoenix_rebirth", "Phoenix Rebirth", "RRR",
             20.0,
             MythicSkillConfig.getCooldownSeconds("Phoenix_Rebirth"), 10,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.BOW.getMaterials(),
             "MYTHIC_PHOENIX_REBIRTH", 0.0
         ));
         spellsByClass.put("phoenixhunter", Collections.unmodifiableMap(phoenixMap));
@@ -162,49 +170,49 @@ public class SpellManager {
             0.0,
             1,
             1,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_BRUTAL_STRIKE", 0.0
         ));
         warriorMap.put("LRL", new Spell(
             "charge", "Charge", "LRL",
             5.0,
             MythicSkillConfig.getCooldownSeconds("Charge"), 3,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_CHARGE", 0.0
         ));
         warriorMap.put("LRR", new Spell(
             "chain_hook", "Chain Hook", "LRR",
             6.0,
             MythicSkillConfig.getCooldownSeconds("Chain_Hook"), 5,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_CHAIN_HOOK", 0.0
         ));
         warriorMap.put("LLR", new Spell(
             "shield_barrier", "Shield Barrier", "LLR",
             0.0,
             MythicSkillConfig.getCooldownSeconds("Shield_Barrier"), 5,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_SHIELD_BARRIER", 0.0
         ));
         warriorMap.put("RLL", new Spell(
             "shockwave", "Shockwave", "RLL",
             14.0,
             MythicSkillConfig.getCooldownSeconds("Whirlwind"), 3,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "SHOCKWAVE", 1.5
         ));
         warriorMap.put("LLL", new Spell(
             "judgement", "Judgement", "LLL",
             15.0,
             MythicSkillConfig.getCooldownSeconds("Judgement"), 10,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_JUDGEMENT", 0.0
         ));
         warriorMap.put("RRR", new Spell(
             "rampage", "Rampage", "RRR",
             20.0,
             MythicSkillConfig.getCooldownSeconds("Rampage"), 10,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_RAMPAGE", 0.0
         ));
         spellsByClass.put("warrior", Collections.unmodifiableMap(warriorMap));
@@ -217,42 +225,42 @@ public class SpellManager {
             0.0,
             MythicSkillConfig.getCooldownSeconds("Rageblade"),
             1,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_RAGEBLADE", 0.0
         ));
         barbarianMap.put("LRL", new Spell(
             "primal_axe", "Primal Axe", "LRL",
             8.0,
             MythicSkillConfig.getCooldownSeconds("Primal_Axe"), 3,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_PRIMAL_AXE", 0.0
         ));
         barbarianMap.put("LLR", new Spell(
             "war_cry", "War Cry", "LLR",
             10.0,
             MythicSkillConfig.getCooldownSeconds("War_Cry"), 5,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_WAR_CRY", 0.0
         ));
         barbarianMap.put("LLL", new Spell(
             "double_edge", "Double Edge", "LLL",
             12.0,
             MythicSkillConfig.getCooldownSeconds("Double_Edge"), 5,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_DOUBLE_EDGE", 0.0
         ));
         barbarianMap.put("RLL", new Spell(
             "relentless_leap", "Relentless Leap", "RLL",
             6.0,
             MythicSkillConfig.getCooldownSeconds("Relentless_Leap"), 3,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_RELENTLESS_LEAP", 0.0
         ));
         barbarianMap.put("RRR", new Spell(
             "eternal_fury", "Eternal Fury", "RRR",
             20.0,
             MythicSkillConfig.getCooldownSeconds("Eternal_Fury"), 10,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_ETERNAL_FURY", 0.0
         ));
         spellsByClass.put("barbarian", Collections.unmodifiableMap(barbarianMap));
@@ -265,42 +273,42 @@ public class SpellManager {
             0.0,
             MythicSkillConfig.getCooldownSeconds("Holy_Strike"),
             1,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_HOLY_STRIKE", 0.0
         ));
         paladinMap.put("LRL", new Spell(
             "bound_seal", "Bound Seal", "LRL",
             8.0,
             MythicSkillConfig.getCooldownSeconds("Bound_Seal"), 3,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_BOUND_SEAL", 0.0
         ));
         paladinMap.put("LRR", new Spell(
             "hammer_of_justice", "Hammer Of Justice", "LRR",
             10.0,
             MythicSkillConfig.getCooldownSeconds("Hammer_Of_Justice"), 5,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_HAMMER_OF_JUSTICE", 0.0
         ));
         paladinMap.put("LLL", new Spell(
             "heavenly_shield", "Heavenly Shield", "LLL",
             12.0,
             MythicSkillConfig.getCooldownSeconds("Heavenly_Shield"), 5,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_HEAVENLY_SHIELD", 0.0
         ));
         paladinMap.put("RLL", new Spell(
             "unbreakable_will", "Unbreakable Will", "RLL",
             6.0,
             MythicSkillConfig.getCooldownSeconds("Unbreakable_Will"), 3,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_UNBREAKABLE_WILL", 0.0
         ));
         paladinMap.put("RRR", new Spell(
             "last_stand", "Last Stand", "RRR",
             20.0,
             MythicSkillConfig.getCooldownSeconds("Last_Stand"), 10,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_LAST_STAND", 0.0
         ));
         spellsByClass.put("paladin", Collections.unmodifiableMap(paladinMap));
@@ -313,42 +321,42 @@ public class SpellManager {
             0.0,
             MythicSkillConfig.getCooldownSeconds("Death_Strike_ST"),
             1,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_DEATH_STRIKE", 0.0
         ));
         deathMap.put("LRL", new Spell(
             "phantom_charge", "Phantom Charge", "LRL",
             6.0,
             MythicSkillConfig.getCooldownSeconds("Phantom_Charge"), 3,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_PHANTOM_CHARGE", 0.0
         ));
         deathMap.put("LRR", new Spell(
             "wraithbound_chains", "Wraithbound Chains", "LRR",
             6.0,
             MythicSkillConfig.getCooldownSeconds("Wraithbound_Chains"), 5,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_WRAITHBOUND_CHAINS", 0.0
         ));
         deathMap.put("LLR", new Spell(
             "soul_barrier", "Soul Barrier", "LLR",
             0.0,
             MythicSkillConfig.getCooldownSeconds("Soul_Barrier"), 5,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_SOUL_BARRIER", 0.0
         ));
         deathMap.put("LLL", new Spell(
             "necrotic_whirlwind", "Necrotic Whirlwind", "LLL",
             10.0,
             MythicSkillConfig.getCooldownSeconds("Necrotic_Whirlwind"), 5,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_NECROTIC_WHIRLWIND", 0.0
         ));
         deathMap.put("RRR", new Spell(
             "death_sentence", "Death Sentence", "RRR",
             20.0,
             MythicSkillConfig.getCooldownSeconds("Death_Sentence"), 10,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_DEATH_SENTENCE", 0.0
         ));
         spellsByClass.put("deathknight", Collections.unmodifiableMap(deathMap));
@@ -361,35 +369,35 @@ public class SpellManager {
             0.0,
             MythicSkillConfig.getCooldownSeconds("Aqua_Slash"),
             1,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_AQUA_SLASH", 0.0
         ));
         abyssionMap.put("LRL", new Spell(
             "abyssal_dash", "Abyssal Dash", "LRL",
             6.0,
             MythicSkillConfig.getCooldownSeconds("Abyssal_Dash"), 3,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_ABYSSAL_DASH", 0.0
         ));
         abyssionMap.put("LLL", new Spell(
             "tidal_wave", "Tidal Wave", "LLL",
             8.0,
             MythicSkillConfig.getCooldownSeconds("Tidal_Wave"), 5,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_TIDAL_WAVE", 0.0
         ));
         abyssionMap.put("RLL", new Spell(
             "aqua_aura", "Aqua Aura", "RLL",
             10.0,
             MythicSkillConfig.getCooldownSeconds("Aqua_Aura"), 5,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_AQUA_AURA", 0.0
         ));
         abyssionMap.put("RRR", new Spell(
             "abyssal_smash", "Abyssal Smash", "RRR",
             20.0,
             MythicSkillConfig.getCooldownSeconds("Abyssal_Smash"), 10,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_ABYSSAL_SMASH", 0.0
         ));
         spellsByClass.put("abyssion", Collections.unmodifiableMap(abyssionMap));
@@ -402,7 +410,7 @@ public class SpellManager {
             0.0,
             MythicSkillConfig.getCooldownSeconds("Fireball"),
             1,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.WAND.getMaterials(),
             "MYTHIC_FIREBALL", 0.0
         ));
         mageMap.put("LRL", new Spell(
@@ -410,28 +418,28 @@ public class SpellManager {
             6.0,
             1,
             3,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.WAND.getMaterials(),
             "MYTHIC_BLINK", 0.0
         ));
         mageMap.put("LLL", new Spell(
             "meteor", "Meteor", "LLL",
             12.0,
             MythicSkillConfig.getCooldownSeconds("Meteor"), 5,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.WAND.getMaterials(),
             "MYTHIC_METEOR", 0.0
         ));
         mageMap.put("LRR", new Spell(
             "frost_nova", "Frost Nova", "LRR",
             8.0,
             MythicSkillConfig.getCooldownSeconds("Frost_Nova"), 5,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.WAND.getMaterials(),
             "MYTHIC_FROST_NOVA", 0.0
         ));
         mageMap.put("RRR", new Spell(
             "inferno_chains", "Inferno Chains", "RRR",
             20.0,
             MythicSkillConfig.getCooldownSeconds("Inferno_Chains"), 10,
-            WeaponType.SWORD.getMaterials(),
+            WeaponType.WAND.getMaterials(),
             "MYTHIC_INFERNO_CHAINS", 0.0
         ));
         spellsByClass.put("mage", Collections.unmodifiableMap(mageMap));
@@ -444,35 +452,35 @@ public class SpellManager {
             0.0,
             MythicSkillConfig.getCooldownSeconds("dragonian_l_t"),
             1,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_DRAGONIAN_L_T", 0.0
         ));
         dragonianMap.put("LRL", new Spell(
             "dragonian_lunge", "Dragonian Lunge", "LRL",
             6.0,
             MythicSkillConfig.getCooldownSeconds("dragonian_r_t"), 3,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_DRAGONIAN_R_T", 0.0
         ));
         dragonianMap.put("LLL", new Spell(
             "dragonian_rs", "Dragonian RS", "LLL",
             8.0,
             MythicSkillConfig.getCooldownSeconds("dragonian_rs_t"), 5,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_DRAGONIAN_RS_T", 0.0
         ));
         dragonianMap.put("LLR", new Spell(
             "dragonian_ss", "Dragonian Stance", "LLR",
             10.0,
             MythicSkillConfig.getCooldownSeconds("dragonian_ss_t"), 5,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_DRAGONIAN_SS_T", 0.0
         ));
         dragonianMap.put("RRR", new Spell(
             "taotie_dragon", "Taotie Dragon", "RRR",
             20.0,
             MythicSkillConfig.getCooldownSeconds("dragonian_ls_t"), 10,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_DRAGONIAN_LS_T", 0.0
         ));
         spellsByClass.put("dragonian", Collections.unmodifiableMap(dragonianMap));
@@ -485,35 +493,35 @@ public class SpellManager {
             0.0,
             MythicSkillConfig.getCooldownSeconds("Dragon_Slash"),
             1,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_DRAGON_SLASH", 0.0
         ));
         dragonwarriorMap.put("LRL", new Spell(
             "dragon_dash", "Dragon Dash", "LRL",
             6.0,
             MythicSkillConfig.getCooldownSeconds("Dragon_Dash"), 3,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_DRAGON_DASH", 0.0
         ));
         dragonwarriorMap.put("LLL", new Spell(
             "dragon_breath", "Dragon Breath", "LLL",
             8.0,
             MythicSkillConfig.getCooldownSeconds("Dragon_Breath"), 5,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_DRAGON_BREATH", 0.0
         ));
         dragonwarriorMap.put("LLR", new Spell(
             "dragon_zone", "Dragon Zone", "LLR",
             10.0,
             MythicSkillConfig.getCooldownSeconds("Dragon_Zone"), 5,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_DRAGON_ZONE", 0.0
         ));
         dragonwarriorMap.put("RRR", new Spell(
             "dragonborn", "Dragonborn", "RRR",
             20.0,
             MythicSkillConfig.getCooldownSeconds("Dragonborn"), 10,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_DRAGONBORN", 0.0
         ));
         spellsByClass.put("dragonwarrior", Collections.unmodifiableMap(dragonwarriorMap));
@@ -526,42 +534,42 @@ public class SpellManager {
             0.0,
             MythicSkillConfig.getCooldownSeconds("Gale_Slash"),
             1,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_GALE_SLASH", 0.0
         ));
         windruneMap.put("LRL", new Spell(
             "vault", "Vault", "LRL",
             6.0,
             MythicSkillConfig.getCooldownSeconds("Vault"), 3,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_VAULT", 0.0
         ));
         windruneMap.put("LLL", new Spell(
             "dancing_blade", "Dancing Blade", "LLL",
             8.0,
             MythicSkillConfig.getCooldownSeconds("Dancing_Blade"), 5,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_DANCING_BLADE", 0.0
         ));
         windruneMap.put("LRR", new Spell(
             "cloudpiercer", "Cloudpiercer", "LRR",
             8.0,
             MythicSkillConfig.getCooldownSeconds("Cloudpiercer"), 3,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_CLOUDPIERCER", 0.0
         ));
         windruneMap.put("RLL", new Spell(
             "torrent", "Torrent", "RLL",
             10.0,
             MythicSkillConfig.getCooldownSeconds("Torrent"), 5,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_TORRENT", 0.0
         ));
         windruneMap.put("RRR", new Spell(
             "windbound_fury", "Windbound Fury", "RRR",
             20.0,
             MythicSkillConfig.getCooldownSeconds("Windbound_Fury"), 10,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_WINDBOUND_FURY", 0.0
         ));
         spellsByClass.put("windrune", Collections.unmodifiableMap(windruneMap));
@@ -574,42 +582,42 @@ public class SpellManager {
             0.0,
             MythicSkillConfig.getCooldownSeconds("Frost_Strike"),
             1,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_FROST_STRIKE", 0.0
         ));
         arcticMap.put("LRL", new Spell(
             "glacial_impalement", "Glacial Impalement", "LRL",
             6.0,
             MythicSkillConfig.getCooldownSeconds("Glacial_Impalement"), 3,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_GLACIAL_IMPALEMENT", 0.0
         ));
         arcticMap.put("LLL", new Spell(
             "frozen_shield", "Frozen Shield", "LLL",
             8.0,
             MythicSkillConfig.getCooldownSeconds("Frozen_Shield"), 5,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_FROZEN_SHIELD", 0.0
         ));
         arcticMap.put("LLR", new Spell(
             "arctic_charge", "Arctic Charge", "LLR",
             10.0,
             MythicSkillConfig.getCooldownSeconds("Arctic_Charge"), 5,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_ARCTIC_CHARGE", 0.0
         ));
         arcticMap.put("RLL", new Spell(
             "glacier_smash", "Glacier Smash", "RLL",
             8.0,
             MythicSkillConfig.getCooldownSeconds("Glacier_Smash"), 3,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_GLACIER_SMASH", 0.0
         ));
         arcticMap.put("RRR", new Spell(
             "permafrost_lance", "Permafrost Lance", "RRR",
             20.0,
             MythicSkillConfig.getCooldownSeconds("Permafrost_Lance"), 10,
-            WeaponType.SWORD.getMaterials(),
+            WARRIOR_WEAPONS,
             "MYTHIC_PERMAFROST_LANCE", 0.0
         ));
         spellsByClass.put("arctic", Collections.unmodifiableMap(arcticMap));

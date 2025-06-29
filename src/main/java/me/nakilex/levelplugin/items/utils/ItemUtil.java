@@ -617,5 +617,32 @@ public class ItemUtil {
         } else if (ToolTier.fromMaterial(stack.getType()) != null) {
             updateCustomToolTooltip(stack, player);
         }
-   }
+    }
+
+    /**
+     * Refresh tooltips for all custom items and tools a player carries.
+     */
+    public static void refreshTooltips(Player player) {
+        player.getInventory().forEach(stack -> {
+            if (stack != null && stack.hasItemMeta()) {
+                boolean custom = stack.getItemMeta().getPersistentDataContainer()
+                        .has(ITEM_UUID_KEY, PersistentDataType.STRING);
+                boolean tool = ToolTier.fromMaterial(stack.getType()) != null;
+                if (custom || tool) {
+                    updateTooltip(stack, player);
+                }
+            }
+        });
+        for (ItemStack armor : player.getInventory().getArmorContents()) {
+            if (armor != null && armor.hasItemMeta()) {
+                boolean custom = armor.getItemMeta().getPersistentDataContainer()
+                        .has(ITEM_UUID_KEY, PersistentDataType.STRING);
+                boolean tool = ToolTier.fromMaterial(armor.getType()) != null;
+                if (custom || tool) {
+                    updateTooltip(armor, player);
+                }
+            }
+        }
+        player.updateInventory();
+    }
 }
