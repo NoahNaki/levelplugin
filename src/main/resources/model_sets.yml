@@ -41,3 +41,13 @@ sets:
       BOW: dwarven_weapon_assortment_bow
     materials:
       CROSSBOW: dwarven_weapon_assortment_crossbow
+
+  conqueror21_30:
+    weapon_types:
+      SWORD: conqueror_assortment-gauntlet
+      AXE: conqueror_assortment-axe
+      SHOVEL: conqueror_assortment-shovel
+      WAND: conqueror_assortment-staff
+      BOW: conqueror_assortment-bow
+    materials:
+      CROSSBOW: conqueror_assortment-crossbow

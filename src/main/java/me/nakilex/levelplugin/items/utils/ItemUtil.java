@@ -89,6 +89,7 @@ public class ItemUtil {
     /** Model set names for default equipment visuals by level range. */
     private static final String MODEL_SET_1_10 = "default1_10";
     private static final String MODEL_SET_11_20 = "dwarven11_20";
+    private static final String MODEL_SET_21_30 = "conqueror21_30";
 
     /**
      * Determine which model set should be used for the given level.
@@ -99,6 +100,7 @@ public class ItemUtil {
     private static String getModelSetForLevel(int level) {
         if (level <= 10) return MODEL_SET_1_10;
         if (level <= 20) return MODEL_SET_11_20;
+        if (level <= 30) return MODEL_SET_21_30;
         return null;
     }
 
