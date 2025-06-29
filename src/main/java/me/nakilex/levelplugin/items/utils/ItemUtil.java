@@ -156,14 +156,14 @@ public class ItemUtil {
                 nexoId = id;
             }
         }
-        // Use a neutral material only for weapons/armor that actually show
-        // vanilla stats. Bows, crossbows and wands don't display attack damage
-        // so we keep their original material to ensure the model renders
-        // correctly.
         me.nakilex.levelplugin.items.data.WeaponType wType =
                 me.nakilex.levelplugin.items.data.WeaponType.matchType(new ItemStack(templateMat));
         me.nakilex.levelplugin.items.data.ArmorType aType =
                 me.nakilex.levelplugin.items.data.ArmorType.matchType(new ItemStack(templateMat));
+        boolean needsNeutral = aType != null
+                || wType == me.nakilex.levelplugin.items.data.WeaponType.SWORD
+                || wType == me.nakilex.levelplugin.items.data.WeaponType.AXE
+                || wType == me.nakilex.levelplugin.items.data.WeaponType.SHOVEL;
 
         boolean hasNexoModel = nexoId != null && !nexoId.isEmpty();
         boolean willApplyDefaultModel = !hasNexoModel
@@ -203,6 +203,9 @@ public class ItemUtil {
             stack.setAmount(amount);
         } else {
             stack = new ItemStack(mat, amount);
+        }
+        if (needsNeutral) {
+            stack.setType(Material.DIAMOND);
         }
 
         ItemMeta meta = stack.getItemMeta();
@@ -407,6 +410,16 @@ public class ItemUtil {
                 } catch (IllegalArgumentException ignored) {
                 }
             }
+        }
+        WeaponType wType = WeaponType.matchType(new ItemStack(origMat));
+        ArmorType aType = ArmorType.matchType(new ItemStack(origMat));
+        if (aType != null
+                || wType == WeaponType.SWORD
+                || wType == WeaponType.AXE
+                || wType == WeaponType.SHOVEL) {
+            stack.setType(Material.DIAMOND);
+        } else {
+            stack.setType(origMat);
         }
         if (me.nakilex.levelplugin.items.data.ArmorType.matchType(new ItemStack(origMat)) != null) {
             typeGlyph = "<glyph:armor>";
@@ -640,6 +653,26 @@ public class ItemUtil {
         ItemMeta meta = stack.getItemMeta();
         PersistentDataContainer pdc = meta.getPersistentDataContainer();
         if (!pdc.has(EGO_ID_KEY, PersistentDataType.STRING)) return;
+        Material origMat = stack.getType();
+        if (pdc.has(TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING)) {
+            String stored = pdc.get(TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING);
+            if (stored != null) {
+                try {
+                    origMat = Material.valueOf(stored);
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+        }
+        WeaponType wType = WeaponType.matchType(new ItemStack(origMat));
+        ArmorType aType = ArmorType.matchType(new ItemStack(origMat));
+        if (aType != null
+                || wType == WeaponType.SWORD
+                || wType == WeaponType.AXE
+                || wType == WeaponType.SHOVEL) {
+            stack.setType(Material.DIAMOND);
+        } else {
+            stack.setType(origMat);
+        }
 
         int rank = pdc.getOrDefault(EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
         int exp  = pdc.getOrDefault(EGO_EXP_KEY,  PersistentDataType.INTEGER, 0);
