@@ -86,52 +86,27 @@ public class ItemUtil {
     /** Maximum level to apply the default models when no Nexo model is set. */
     private static final int DEFAULT_MODEL_MAX_LEVEL = 10;
 
-    /** Weapon defaults for the early levels. */
-    private static final java.util.Map<WeaponType,Integer> DEFAULT_WEAPON_MODELS = java.util.Map.of(
-            // Swords use the dagger model
-            WeaponType.SWORD, 1012,
-            // Shovels act as spears
-            WeaponType.SHOVEL, 1002,
-            // Sticks are wands/staves
-            WeaponType.WAND, 1011,
-            // Bows retain the bow appearance
-            WeaponType.BOW, 1002,
-            // Axes default to a small axe
-            WeaponType.AXE, 1005
-    );
-
-    /** Armor defaults for the early levels. */
-    private static final java.util.Map<ArmorType,Integer> DEFAULT_ARMOR_MODELS = java.util.Map.of(
-            ArmorType.HELMET, 1000,
-            ArmorType.CHESTPLATE, 1002,
-            ArmorType.LEGGINGS, 1002,
-            ArmorType.BOOTS, 1002
-    );
+    /** Simple container for a model material and CustomModelData value. */
+    private record Model(Material material, int data) {}
 
     /**
-     * Per-class model overrides for the early levels. Only entries that differ
-     * from the generic defaults need to be specified.
+     * Class specific default weapon models. The key is the class name in
+     * uppercase. Only four classes are supported for now.
      */
-    private static final java.util.Map<String, java.util.Map<WeaponType,Integer>> CLASS_WEAPON_MODELS;
-    private static final java.util.Map<String, java.util.Map<ArmorType,Integer>> CLASS_ARMOR_MODELS;
+    private static final java.util.Map<String, Model> CLASS_DEFAULT_WEAPONS = java.util.Map.of(
+            "MAGE",    new Model(Material.STICK,       1011),
+            "ROGUE",   new Model(Material.DIAMOND,     1012),
+            "ARCHER",  new Model(Material.BOW,         1002),
+            "WARRIOR", new Model(Material.DIAMOND_AXE, 1005)
+    );
 
-    static {
-        java.util.Map<WeaponType,Integer> rogueWeapons = new java.util.HashMap<>();
-        rogueWeapons.put(WeaponType.SWORD, 1012); // dagger
-        rogueWeapons.put(WeaponType.AXE, 1005); // small axe
-        rogueWeapons.put(WeaponType.SHOVEL, 1002); // spear
-        rogueWeapons.put(WeaponType.WAND, 1011); // staff
-        rogueWeapons.put(WeaponType.BOW, 1002); // bow
-
-        java.util.Map<ArmorType,Integer> rogueArmor = new java.util.HashMap<>();
-        rogueArmor.put(ArmorType.HELMET, 1000);
-        rogueArmor.put(ArmorType.CHESTPLATE, 1002);
-        rogueArmor.put(ArmorType.LEGGINGS, 1002);
-        rogueArmor.put(ArmorType.BOOTS, 1002);
-
-        CLASS_WEAPON_MODELS = java.util.Map.of("ROGUE", rogueWeapons);
-        CLASS_ARMOR_MODELS = java.util.Map.of("ROGUE", rogueArmor);
-    }
+    /** Default armor models for the early levels. */
+    private static final java.util.Map<ArmorType, Model> DEFAULT_ARMOR_MODELS = java.util.Map.of(
+            ArmorType.HELMET,     new Model(Material.KELP,             1000),
+            ArmorType.CHESTPLATE, new Model(Material.LEATHER_CHESTPLATE, 1002),
+            ArmorType.LEGGINGS,   new Model(Material.LEATHER_LEGGINGS,   1002),
+            ArmorType.BOOTS,      new Model(Material.LEATHER_BOOTS,      1002)
+    );
 
 
     /**
@@ -160,31 +135,34 @@ public class ItemUtil {
         // correctly.
         me.nakilex.levelplugin.items.data.WeaponType wType =
                 me.nakilex.levelplugin.items.data.WeaponType.matchType(new ItemStack(templateMat));
-        boolean isArmor =
-                me.nakilex.levelplugin.items.data.ArmorType.matchType(new ItemStack(templateMat)) != null;
+        me.nakilex.levelplugin.items.data.ArmorType aType =
+                me.nakilex.levelplugin.items.data.ArmorType.matchType(new ItemStack(templateMat));
 
         boolean hasNexoModel = nexoId != null && !nexoId.isEmpty();
         boolean willApplyDefaultModel = !hasNexoModel
                 && cItem.getLevelRequirement() <= DEFAULT_MODEL_MAX_LEVEL;
 
-        if (!hasNexoModel && !willApplyDefaultModel && !isArmor) {
+        Model defaultModel = null;
+        if (willApplyDefaultModel) {
+            String cls = cItem.getClassRequirement();
+            if (wType != null && cls != null) {
+                defaultModel = CLASS_DEFAULT_WEAPONS.get(cls.toUpperCase());
+            }
+            if (defaultModel == null && aType != null) {
+                defaultModel = DEFAULT_ARMOR_MODELS.get(aType);
+            }
+            if (defaultModel != null) {
+                mat = defaultModel.material();
+            }
+        } else if (!hasNexoModel && aType == null) {
+            // fallback material for weapons without models outside the early range
             String cls = cItem.getClassRequirement();
             if (cls != null) {
                 switch (cls.toUpperCase()) {
-                    case "WARRIOR":
-                        mat = Material.DIAMOND_SHOVEL; // spear base
-                        break;
-                    case "ROGUE":
-                        mat = Material.DIAMOND_SWORD; // dagger base
-                        break;
-                    case "MAGE":
-                        mat = Material.STICK; // staff base
-                        break;
-                    case "ARCHER":
-                        mat = Material.BOW;
-                        break;
-                    default:
-                        break;
+                    case "WARRIOR" -> mat = Material.DIAMOND_SHOVEL;
+                    case "ROGUE" -> mat = Material.DIAMOND_SWORD;
+                    case "MAGE" -> mat = Material.STICK;
+                    case "ARCHER" -> mat = Material.BOW;
                 }
             }
         }
@@ -204,30 +182,8 @@ public class ItemUtil {
         if (meta == null) return stack;
         if (hasNexoModel) {
             meta.getPersistentDataContainer().set(NEXO_MODEL_KEY, PersistentDataType.STRING, nexoId);
-        } else if (willApplyDefaultModel && !meta.hasCustomModelData()) {
-            // Apply default models for early game items that lack a Nexo model
-            WeaponType wt = WeaponType.matchType(new ItemStack(templateMat));
-            ArmorType at  = ArmorType.matchType(new ItemStack(templateMat));
-            String cls = cItem.getClassRequirement() != null
-                    ? cItem.getClassRequirement().toUpperCase() : null;
-
-            if (wt != null) {
-                Integer model = null;
-                if (cls != null) {
-                    java.util.Map<WeaponType,Integer> map = CLASS_WEAPON_MODELS.get(cls);
-                    if (map != null) model = map.get(wt);
-                }
-                if (model == null) model = DEFAULT_WEAPON_MODELS.get(wt);
-                if (model != null) meta.setCustomModelData(model);
-            } else if (at != null) {
-                Integer model = null;
-                if (cls != null) {
-                    java.util.Map<ArmorType,Integer> map = CLASS_ARMOR_MODELS.get(cls);
-                    if (map != null) model = map.get(at);
-                }
-                if (model == null) model = DEFAULT_ARMOR_MODELS.get(at);
-                if (model != null) meta.setCustomModelData(model);
-            }
+        } else if (willApplyDefaultModel && !meta.hasCustomModelData() && defaultModel != null) {
+            meta.setCustomModelData(defaultModel.data());
         }
 
         // Set display name with rarity color and upgrade stars.
