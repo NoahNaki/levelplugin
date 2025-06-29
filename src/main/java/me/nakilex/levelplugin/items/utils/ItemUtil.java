@@ -111,9 +111,10 @@ public class ItemUtil {
         ItemStack stack;
         if (nexoId != null && !nexoId.isEmpty()) {
             com.nexomc.nexo.items.ItemBuilder b = com.nexomc.nexo.api.NexoItems.itemFromId(nexoId);
+            // When a model is provided by Nexo keep its original material so the
+            // custom resource pack applies correctly. We only adjust the amount
+            // here.
             stack = b != null ? b.build() : new ItemStack(mat);
-            // Ensure we still use the neutral material to hide vanilla stats
-            stack.setType(mat);
             stack.setAmount(amount);
         } else {
             stack = new ItemStack(mat, amount);
@@ -665,7 +666,11 @@ public class ItemUtil {
                                 me.nakilex.levelplugin.items.data.WeaponType.matchType(new ItemStack(orig));
                         boolean isArmor = me.nakilex.levelplugin.items.data.ArmorType
                                 .matchType(new ItemStack(orig)) != null;
-                        if ((isArmor || wType == me.nakilex.levelplugin.items.data.WeaponType.SWORD
+                        // Only swap to the neutral material for non-ego items.
+                        // Ego weapons require their original material so the
+                        // resource-pack model stays intact.
+                        if (!pdc.has(EGO_ID_KEY, PersistentDataType.STRING)
+                                && (isArmor || wType == me.nakilex.levelplugin.items.data.WeaponType.SWORD
                                 || wType == me.nakilex.levelplugin.items.data.WeaponType.AXE
                                 || wType == me.nakilex.levelplugin.items.data.WeaponType.SHOVEL)
                                 && stack.getType() != Material.DIAMOND) {

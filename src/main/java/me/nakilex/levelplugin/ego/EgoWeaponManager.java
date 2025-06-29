@@ -273,8 +273,11 @@ public class EgoWeaponManager {
         if (nexoId != null) {
             ItemBuilder builder = NexoItems.itemFromId(nexoId);
             if (builder != null) {
+                // Build the model item directly from Nexo so the correct
+                // custom model data and material are preserved. Do not
+                // override the material with the neutral type here or the
+                // resource pack will fail to apply the proper model.
                 ItemStack nexoStack = builder.build();
-                nexoStack.setType(stack.getType());
                 ItemMeta nMeta = nexoStack.getItemMeta();
                 ItemMeta bMeta = stack.getItemMeta();
                 if (nMeta != null && bMeta != null) {
