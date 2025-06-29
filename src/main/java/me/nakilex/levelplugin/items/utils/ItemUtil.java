@@ -95,11 +95,17 @@ public class ItemUtil {
         // still determine weapon/armor type later.
         Material templateMat = cItem.getMaterial();
         Material mat = templateMat;
-        // Use a generic material for weapons and armor so vanilla attribute
-        // tooltips (e.g. attack damage or armor) do not appear. Since all
-        // models are custom, using a diamond item works fine.
-        if (me.nakilex.levelplugin.items.data.WeaponType.matchType(new ItemStack(templateMat)) != null
-                || me.nakilex.levelplugin.items.data.ArmorType.matchType(new ItemStack(templateMat)) != null) {
+        // Use a neutral material only for weapons/armor that actually show
+        // vanilla stats. Bows, crossbows and wands don't display attack damage
+        // so we keep their original material to ensure the model renders
+        // correctly.
+        me.nakilex.levelplugin.items.data.WeaponType wType =
+                me.nakilex.levelplugin.items.data.WeaponType.matchType(new ItemStack(templateMat));
+        boolean isArmor =
+                me.nakilex.levelplugin.items.data.ArmorType.matchType(new ItemStack(templateMat)) != null;
+        if (isArmor || wType == me.nakilex.levelplugin.items.data.WeaponType.SWORD
+                || wType == me.nakilex.levelplugin.items.data.WeaponType.AXE
+                || wType == me.nakilex.levelplugin.items.data.WeaponType.SHOVEL) {
             mat = Material.DIAMOND;
         }
         ItemStack stack;
@@ -655,11 +661,14 @@ public class ItemUtil {
                 if (stored != null) {
                     try {
                         Material orig = Material.valueOf(stored);
-                        boolean isWeapon = me.nakilex.levelplugin.items.data.WeaponType
-                                .matchType(new ItemStack(orig)) != null;
+                        me.nakilex.levelplugin.items.data.WeaponType wType =
+                                me.nakilex.levelplugin.items.data.WeaponType.matchType(new ItemStack(orig));
                         boolean isArmor = me.nakilex.levelplugin.items.data.ArmorType
                                 .matchType(new ItemStack(orig)) != null;
-                        if ((isWeapon || isArmor) && stack.getType() != Material.DIAMOND) {
+                        if ((isArmor || wType == me.nakilex.levelplugin.items.data.WeaponType.SWORD
+                                || wType == me.nakilex.levelplugin.items.data.WeaponType.AXE
+                                || wType == me.nakilex.levelplugin.items.data.WeaponType.SHOVEL)
+                                && stack.getType() != Material.DIAMOND) {
                             stack.setType(Material.DIAMOND);
                         }
                     } catch (IllegalArgumentException ignored) {
