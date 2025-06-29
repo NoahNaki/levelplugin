@@ -83,11 +83,24 @@ public class ItemUtil {
 
     // ─── Default Models ─────────────────────────────────────────────────────
 
-    /** Maximum level to apply the default models when no Nexo model is set. */
+    /** Maximum level that uses the early-game model set. */
     private static final int DEFAULT_MODEL_MAX_LEVEL = 10;
 
-    /** Name of the model set that contains early-game default models. */
-    private static final String DEFAULT_MODEL_SET = "default1_10";
+    /** Model set names for default equipment visuals by level range. */
+    private static final String MODEL_SET_1_10 = "default1_10";
+    private static final String MODEL_SET_11_20 = "dwarven11_20";
+
+    /**
+     * Determine which model set should be used for the given level.
+     *
+     * @param level The item level requirement.
+     * @return The model set name or {@code null} if none applies.
+     */
+    private static String getModelSetForLevel(int level) {
+        if (level <= 10) return MODEL_SET_1_10;
+        if (level <= 20) return MODEL_SET_11_20;
+        return null;
+    }
 
     /** Simple container for a model material and CustomModelData value. */
     private record Model(Material material, int data) {}
@@ -133,13 +146,12 @@ public class ItemUtil {
         Material templateMat = cItem.getMaterial();
         Material mat = templateMat;
 
-        // Apply the default model set if this item has no model specified and
-        // the level requirement falls within the early range.
-        if ((nexoId == null || nexoId.isBlank())
-                && cItem.getLevelRequirement() <= DEFAULT_MODEL_MAX_LEVEL) {
+        // Apply the appropriate model set if this item has no model specified.
+        String setName = getModelSetForLevel(cItem.getLevelRequirement());
+        if ((nexoId == null || nexoId.isBlank()) && setName != null) {
             String id = me.nakilex.levelplugin.Main.getInstance()
                     .getModelSetManager()
-                    .getModelId(DEFAULT_MODEL_SET, templateMat);
+                    .getModelId(setName, templateMat);
             if (id != null && !id.isEmpty()) {
                 nexoId = id;
             }
@@ -155,10 +167,10 @@ public class ItemUtil {
 
         boolean hasNexoModel = nexoId != null && !nexoId.isEmpty();
         boolean willApplyDefaultModel = !hasNexoModel
-                && cItem.getLevelRequirement() <= DEFAULT_MODEL_MAX_LEVEL;
+                && getModelSetForLevel(cItem.getLevelRequirement()) != null;
 
         Model defaultModel = null;
-        if (willApplyDefaultModel) {
+        if (willApplyDefaultModel && cItem.getLevelRequirement() <= DEFAULT_MODEL_MAX_LEVEL) {
             String cls = cItem.getClassRequirement();
             if (wType != null && cls != null) {
                 defaultModel = CLASS_DEFAULT_WEAPONS.get(cls.toUpperCase());

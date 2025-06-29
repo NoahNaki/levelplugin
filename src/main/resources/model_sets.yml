@@ -26,3 +26,18 @@ sets:
       SHOVEL: rogue_assortment-rogue_shovel
       WAND: rogue_assortment-rogue_staff
       BOW: rogue_assortment-bow
+
+  dwarven11_20:
+    armor:
+      HELMET: dwarven_weapon_assortment_helmet
+      CHESTPLATE: dwarven_chestplate
+      LEGGINGS: dwarven_leggings
+      BOOTS: dwarven_boots
+    weapon_types:
+      SWORD: dwarven_weapon_assortment_sword
+      AXE: dwarven_weapon_assortment_axe
+      SHOVEL: dwarven_weapon_assortment_shovel
+      WAND: dwarven_weapon_assortment_staff
+      BOW: dwarven_weapon_assortment_bow
+    materials:
+      CROSSBOW: dwarven_weapon_assortment_crossbow
