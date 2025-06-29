@@ -203,7 +203,7 @@ public class ItemUtil {
         } else {
             stack = new ItemStack(mat, amount);
         }
-        if (needsNeutral && !hasNexoModel) {
+        if (needsNeutral && !hasNexoModel && defaultModel == null) {
             stack.setType(Material.DIAMOND);
         }
 
@@ -413,9 +413,10 @@ public class ItemUtil {
         WeaponType wType = WeaponType.matchType(new ItemStack(origMat));
         ArmorType aType = ArmorType.matchType(new ItemStack(origMat));
         boolean hasNexoModel = pdcStack.has(NEXO_MODEL_KEY, PersistentDataType.STRING);
-        // Always use a DIAMOND type for any weapon or armor that doesn't have a
-        // custom Nexo model so the vanilla damage/armor tooltips remain hidden.
-        if (!hasNexoModel && (aType != null || wType != null)) {
+        boolean hasModel = meta.hasCustomModelData();
+        // Always use a DIAMOND type only if there is no custom model at all so
+        // the vanilla damage/armor tooltips remain hidden.
+        if (!hasNexoModel && !hasModel && (aType != null || wType != null)) {
             stack.setType(Material.DIAMOND);
         } else {
             stack.setType(origMat);
@@ -665,9 +666,10 @@ public class ItemUtil {
         WeaponType wType = WeaponType.matchType(new ItemStack(origMat));
         ArmorType aType = ArmorType.matchType(new ItemStack(origMat));
         boolean hasNexoModel = pdc.has(NEXO_MODEL_KEY, PersistentDataType.STRING);
-        // Force a neutral DIAMOND item for any weapon or armor lacking a custom
-        // model so Paper never shows the default damage/armor attributes.
-        if (!hasNexoModel && (aType != null || wType != null)) {
+        boolean hasModel = meta.hasCustomModelData();
+        // Force a neutral DIAMOND item only when there is no custom model so
+        // Paper never shows the default damage/armor attributes.
+        if (!hasNexoModel && !hasModel && (aType != null || wType != null)) {
             stack.setType(Material.DIAMOND);
         } else {
             stack.setType(origMat);
