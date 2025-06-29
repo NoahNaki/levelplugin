@@ -110,6 +110,7 @@ public class Main extends JavaPlugin {
     private HorseConfigManager horseConfigManager;
     private NamespacedKey upgradeKey;
     private MobRewardsConfig mobRewardsConfig;
+    private me.nakilex.levelplugin.mob.config.ModelSetManager modelSetManager;
     private StorageEvents storageEvents; // Single, shared instance
     private StorageManager storageManager;
     private ItemConfig itemConfig;
@@ -291,6 +292,8 @@ public class Main extends JavaPlugin {
         enchantGUI = new me.nakilex.levelplugin.enchanting.gui.EnchantGUI(enchantManager, economyManager);
 
         StatsManager.getInstance().setLevelManager(levelManager);
+
+        modelSetManager = new me.nakilex.levelplugin.mob.config.ModelSetManager(this);
     }
 
     private void setupCustomConfig() {
@@ -591,6 +594,10 @@ public class Main extends JavaPlugin {
 
     public me.nakilex.levelplugin.fakeblock.ModelGateManager getModelGateManager() {
         return modelGateManager;
+    }
+
+    public me.nakilex.levelplugin.mob.config.ModelSetManager getModelSetManager() {
+        return modelSetManager;
     }
 
     public me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager getScoreboardManager() {

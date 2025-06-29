@@ -78,8 +78,22 @@ public class ItemUtil {
      * @return The created ItemStack.
      */
     public static ItemStack createItemStackFromCustomItem(CustomItem cItem, int amount, Player player) {
+        return createItemStackFromCustomItem(cItem, amount, player, null);
+    }
+
+    /**
+     * Variant that optionally applies a Nexo model by ID.
+     */
+    public static ItemStack createItemStackFromCustomItem(CustomItem cItem, int amount, Player player, String nexoId) {
         Material mat = cItem.getMaterial();
-        ItemStack stack = new ItemStack(mat, amount);
+        ItemStack stack;
+        if (nexoId != null && !nexoId.isEmpty()) {
+            com.nexomc.nexo.items.ItemBuilder b = com.nexomc.nexo.api.NexoItems.itemFromId(nexoId);
+            stack = b != null ? b.build() : new ItemStack(mat);
+            stack.setAmount(amount);
+        } else {
+            stack = new ItemStack(mat, amount);
+        }
 
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) return stack;

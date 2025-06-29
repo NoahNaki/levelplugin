@@ -41,6 +41,7 @@ public class MythicMobDeathListener implements Listener {
     private final LevelManager levelManager;
     private final EconomyManager economyManager;
     private final LootChestManager lootChestManager;
+    private final me.nakilex.levelplugin.mob.config.ModelSetManager modelSetManager;
     private final Main plugin = Main.getInstance();
     private static final Set<UUID> dropDetailsDisabled = new HashSet<>();
     private static final Set<UUID> chatDetailsDisabled = ConcurrentHashMap.newKeySet();
@@ -52,12 +53,14 @@ public class MythicMobDeathListener implements Listener {
     public MythicMobDeathListener(MobRewardsConfig mobRewardsConfig,
                                   LevelManager levelManager,
                                   EconomyManager economyManager,
-                                  LootChestManager lootChestManager) {
+                                  LootChestManager lootChestManager,
+                                  me.nakilex.levelplugin.mob.config.ModelSetManager modelSetManager) {
         this.mythicHelper      = MythicBukkit.inst().getAPIHelper();
         this.mobRewardsConfig  = mobRewardsConfig;
         this.levelManager      = levelManager;
         this.economyManager    = economyManager;
         this.lootChestManager  = lootChestManager;
+        this.modelSetManager   = modelSetManager;
     }
 
     // ← New method: record every player who hits a mob
@@ -106,6 +109,7 @@ public class MythicMobDeathListener implements Listener {
         String coinsSpec    = node.getString("coins", "0-0");
         int tier            = node.getInt("tier", 0);
         double tierChance   = node.getDouble("tier_chance", 100.0);
+        String modelSet     = node.getString("model_set", null);
 
         // Parse coin range
         String[] sp      = coinsSpec.split("-");
@@ -138,13 +142,13 @@ public class MythicMobDeathListener implements Listener {
             economyManager.addCoins(player, coins);
 
             // 3) Custom‐item drops
-            dropCustomItems(player, mobType);
+            dropCustomItems(player, mobType, modelSet);
 
             // 4) Tier‐loot
             if (tier > 0) {
                 double roll = ThreadLocalRandom.current().nextDouble() * 100.0;
                 if (roll <= tierChance) {
-                    ItemStack loot = lootChestManager.getRandomLootForTier(tier, mobType);
+                    ItemStack loot = lootChestManager.getRandomLootForTier(tier, mobType, modelSet);
                     if (loot != null) {
                         ItemUtil.updateTooltip(loot, player);
                         Map<Integer, ItemStack> leftovers = player.getInventory().addItem(loot);
@@ -241,7 +245,7 @@ public class MythicMobDeathListener implements Listener {
      * Reads `mobs.<mobType>.items` from mob_rewards.yml,
      * and drops items based on drop_rate and quantity ranges.
      */
-    private void dropCustomItems(Player player, String mobType) {
+    private void dropCustomItems(Player player, String mobType, String modelSet) {
 
         String path = "mobs." + mobType + ".items";
 
@@ -284,7 +288,8 @@ public class MythicMobDeathListener implements Listener {
                 for (int i = 0; i < quantity; i++) {
                     int lvl = levelManager.getLevel(player);
                     CustomItem ci = ItemManager.getInstance().generateItem(mobType, lvl);
-                    ItemStack stack = ItemUtil.createItemStackFromCustomItem(ci, 1, player);
+                    String nexo = modelSet != null ? modelSetManager.getModelId(modelSet, ci.getMaterial()) : null;
+                    ItemStack stack = ItemUtil.createItemStackFromCustomItem(ci, 1, player, nexo);
                     ItemUtil.updateTooltip(stack, player);
                     player.getWorld().dropItemNaturally(player.getLocation(), stack);
                 }
@@ -321,7 +326,8 @@ public class MythicMobDeathListener implements Listener {
                 ItemManager.getInstance().addInstance(newInstance);
 
                 // Convert CustomItem → ItemStack
-                ItemStack dropStack = ItemUtil.createItemStackFromCustomItem(newInstance, 1, player);
+                String nexo = modelSet != null ? modelSetManager.getModelId(modelSet, newInstance.getMaterial()) : null;
+                ItemStack dropStack = ItemUtil.createItemStackFromCustomItem(newInstance, 1, player, nexo);
                 ItemUtil.updateTooltip(dropStack, player);
 
                 player.getWorld().dropItemNaturally(player.getLocation(), dropStack);

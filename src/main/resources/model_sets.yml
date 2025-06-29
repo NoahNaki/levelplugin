@@ -1,0 +1,10 @@
+sets:
+  molten:
+    LEATHER_HELMET: molten_helmet
+    LEATHER_CHESTPLATE: molten_chestplate
+    LEATHER_LEGGINGS: molten_leggings
+    LEATHER_BOOTS: molten_boots
+    DIAMOND_SWORD: molten_magma_animated_weapon_set_sword
+    DIAMOND_AXE: molten_magma_animated_weapon_set_axe
+    BOW: molten_magma_animated_weapon_set_bow
+    CROSSBOW: molten_magma_animated_weapon_set_crossbow
