@@ -149,19 +149,14 @@ public class SubclassGUI implements Listener {
             Map.entry(PlayerClass.ABYSSION, new Rating(4,4,3,3))
     );
 
-    private static Map<String, String> SPELL_DESCRIPTIONS;
     private static Map<String, String> SPELL_USAGE;
 
     static {
         try {
-            var f1 = me.nakilex.levelplugin.spells.gui.SpellGUI.class.getDeclaredField("SPELL_DESCRIPTIONS");
-            f1.setAccessible(true);
-            SPELL_DESCRIPTIONS = (Map<String, String>) f1.get(null);
-            var f2 = me.nakilex.levelplugin.spells.gui.SpellGUI.class.getDeclaredField("SPELL_USAGE");
-            f2.setAccessible(true);
-            SPELL_USAGE = (Map<String, String>) f2.get(null);
+            var f = me.nakilex.levelplugin.spells.gui.SpellGUI.class.getDeclaredField("SPELL_USAGE");
+            f.setAccessible(true);
+            SPELL_USAGE = (Map<String, String>) f.get(null);
         } catch (Exception e) {
-            SPELL_DESCRIPTIONS = Collections.emptyMap();
             SPELL_USAGE = Collections.emptyMap();
         }
     }
@@ -177,11 +172,38 @@ public class SubclassGUI implements Listener {
         return CLASS_RATINGS.getOrDefault(pc, new Rating(3,3,3,3));
     }
 
+    private static String ratingLine(ChatColor color, String label, int val) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(color).append(label).append(":");
+        int pad = 9 - label.length();
+        for (int i = 0; i < pad; i++) sb.append(' ');
+        sb.append(bar(val));
+        return sb.toString();
+    }
+
+    private static String formatClassName(PlayerClass pc) {
+        String raw = pc.name().toLowerCase();
+        StringBuilder out = new StringBuilder(raw.length());
+        boolean cap = true;
+        for (char c : raw.toCharArray()) {
+            if (c == '_' || c == ' ') {
+                out.append(' ');
+                cap = true;
+            } else if (cap) {
+                out.append(Character.toUpperCase(c));
+                cap = false;
+            } else {
+                out.append(c);
+            }
+        }
+        return out.toString();
+    }
+
     private static ItemStack createItem(PlayerClass pc) {
         ItemStack item = new ItemStack(Material.BOOK);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(ChatColor.GREEN + pc.name());
+            meta.setDisplayName(ChatColor.GREEN + formatClassName(pc));
             List<String> lore = new ArrayList<>();
 
             Map<String, Spell> spellMap = SpellManager.getInstance().getSpellsByClass(pc.name().toLowerCase());
@@ -191,20 +213,21 @@ public class SubclassGUI implements Listener {
                 int count = 0;
                 for (Spell sp : spells) {
                     if ("BASIC_ATTACK".equalsIgnoreCase(sp.getCombo())) continue;
-                    if (count++ >= 4) break;
-                    String usage = SPELL_USAGE.getOrDefault(sp.getId(), sp.getCombo());
-                    String desc = SPELL_DESCRIPTIONS.getOrDefault(sp.getId(), "");
-                    lore.add(ChatColor.GOLD + sp.getDisplayName());
-                    lore.add(ChatColor.GRAY + " " + usage + " - " + desc);
+                    if (count++ >= 3) break;
+                    String usage = SPELL_USAGE.getOrDefault(sp.getId(),
+                            sp.getCombo().replace("L", "Left").replace("R", "Right"));
+                    lore.add(ChatColor.YELLOW.toString() + ChatColor.BOLD + sp.getDisplayName() + ChatColor.RESET + ChatColor.YELLOW + " - " + ChatColor.GRAY + usage);
                 }
             }
 
             Rating r = rating(pc);
             lore.add(" ");
-            lore.add(ChatColor.RED + "Damage: " + bar(r.dmg));
-            lore.add(ChatColor.BLUE + "Defense: " + bar(r.def));
-            lore.add(ChatColor.GREEN + "Mobility: " + bar(r.mob));
-            lore.add(ChatColor.YELLOW + "Utility: " + bar(r.util));
+            lore.add(ratingLine(ChatColor.RED, "Damage", r.dmg));
+            lore.add(ratingLine(ChatColor.BLUE, "Defence", r.def));
+            lore.add(ratingLine(ChatColor.GREEN, "Mobility", r.mob));
+            lore.add(ratingLine(ChatColor.YELLOW, "Utility", r.util));
+            lore.add(" ");
+            lore.add(ChatColor.WHITE + "Click " + ChatColor.GRAY + "to select this class!");
 
             meta.setLore(lore);
             item.setItemMeta(meta);
@@ -216,7 +239,7 @@ public class SubclassGUI implements Listener {
         ItemStack item = LOCK_ITEM_BASE.clone();
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(ChatColor.RED + pc.name());
+            meta.setDisplayName(ChatColor.RED + "???");
             item.setItemMeta(meta);
         }
         return item;
