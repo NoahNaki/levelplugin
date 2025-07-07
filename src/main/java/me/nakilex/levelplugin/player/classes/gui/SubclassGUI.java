@@ -5,6 +5,8 @@ import com.nexomc.nexo.items.ItemBuilder;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.spells.managers.SpellManager;
+import me.nakilex.levelplugin.spells.Spell;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -124,11 +126,87 @@ public class SubclassGUI implements Listener {
         OPEN.put(player.getUniqueId(), inv);
     }
 
+    private static final class Rating {
+        final int dmg, def, mob, util;
+        Rating(int d, int f, int m, int u) { this.dmg = d; this.def = f; this.mob = m; this.util = u; }
+    }
+
+    private static final Map<PlayerClass, Rating> CLASS_RATINGS = Map.ofEntries(
+            Map.entry(PlayerClass.WARRIOR, new Rating(4,4,3,2)),
+            Map.entry(PlayerClass.ROGUE, new Rating(3,2,5,3)),
+            Map.entry(PlayerClass.ARCHER, new Rating(4,2,4,3)),
+            Map.entry(PlayerClass.MAGE, new Rating(5,1,3,5)),
+            Map.entry(PlayerClass.CLERIC, new Rating(2,4,2,4)),
+            Map.entry(PlayerClass.BARBARIAN, new Rating(5,3,3,2)),
+            Map.entry(PlayerClass.DRAGONIAN, new Rating(5,3,3,3)),
+            Map.entry(PlayerClass.GALEGLAIVE, new Rating(4,2,5,3)),
+            Map.entry(PlayerClass.DEATHKNIGHT, new Rating(5,4,2,3)),
+            Map.entry(PlayerClass.ARCTICKNIGHT, new Rating(4,4,2,3)),
+            Map.entry(PlayerClass.DRAGONWARRIOR, new Rating(5,4,3,2)),
+            Map.entry(PlayerClass.COOLARCHER, new Rating(3,2,4,3)),
+            Map.entry(PlayerClass.PHOENIXHUNTER, new Rating(5,2,4,4)),
+            Map.entry(PlayerClass.PALADIN, new Rating(4,5,2,3)),
+            Map.entry(PlayerClass.ABYSSION, new Rating(4,4,3,3))
+    );
+
+    private static Map<String, String> SPELL_DESCRIPTIONS;
+    private static Map<String, String> SPELL_USAGE;
+
+    static {
+        try {
+            var f1 = me.nakilex.levelplugin.spells.gui.SpellGUI.class.getDeclaredField("SPELL_DESCRIPTIONS");
+            f1.setAccessible(true);
+            SPELL_DESCRIPTIONS = (Map<String, String>) f1.get(null);
+            var f2 = me.nakilex.levelplugin.spells.gui.SpellGUI.class.getDeclaredField("SPELL_USAGE");
+            f2.setAccessible(true);
+            SPELL_USAGE = (Map<String, String>) f2.get(null);
+        } catch (Exception e) {
+            SPELL_DESCRIPTIONS = Collections.emptyMap();
+            SPELL_USAGE = Collections.emptyMap();
+        }
+    }
+
+    private static String bar(int val) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < val; i++) sb.append(ChatColor.GOLD).append("■");
+        for (int i = val; i < 5; i++) sb.append(ChatColor.DARK_GRAY).append("■");
+        return sb.toString();
+    }
+
+    private static Rating rating(PlayerClass pc) {
+        return CLASS_RATINGS.getOrDefault(pc, new Rating(3,3,3,3));
+    }
+
     private static ItemStack createItem(PlayerClass pc) {
         ItemStack item = new ItemStack(Material.BOOK);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(ChatColor.GREEN + pc.name());
+            List<String> lore = new ArrayList<>();
+
+            Map<String, Spell> spellMap = SpellManager.getInstance().getSpellsByClass(pc.name().toLowerCase());
+            if (!spellMap.isEmpty()) {
+                List<Spell> spells = new ArrayList<>(spellMap.values());
+                spells.sort(Comparator.comparingInt(Spell::getLevelReq));
+                int count = 0;
+                for (Spell sp : spells) {
+                    if ("BASIC_ATTACK".equalsIgnoreCase(sp.getCombo())) continue;
+                    if (count++ >= 4) break;
+                    String usage = SPELL_USAGE.getOrDefault(sp.getId(), sp.getCombo());
+                    String desc = SPELL_DESCRIPTIONS.getOrDefault(sp.getId(), "");
+                    lore.add(ChatColor.GOLD + sp.getDisplayName());
+                    lore.add(ChatColor.GRAY + " " + usage + " - " + desc);
+                }
+            }
+
+            Rating r = rating(pc);
+            lore.add(" ");
+            lore.add(ChatColor.RED + "Damage: " + bar(r.dmg));
+            lore.add(ChatColor.BLUE + "Defense: " + bar(r.def));
+            lore.add(ChatColor.GREEN + "Mobility: " + bar(r.mob));
+            lore.add(ChatColor.YELLOW + "Utility: " + bar(r.util));
+
+            meta.setLore(lore);
             item.setItemMeta(meta);
         }
         return item;
