@@ -125,7 +125,6 @@ public class SubclassGUI implements Listener {
     private static final Map<PlayerClass, Rating> CLASS_RATINGS = Map.ofEntries(
             Map.entry(PlayerClass.WARRIOR, new Rating(4,4,3,2)),
             Map.entry(PlayerClass.ROGUE, new Rating(3,2,5,3)),
-            Map.entry(PlayerClass.ARCHER, new Rating(4,2,4,3)),
             Map.entry(PlayerClass.MAGE, new Rating(5,1,3,5)),
             Map.entry(PlayerClass.CLERIC, new Rating(2,4,2,4)),
             Map.entry(PlayerClass.BARBARIAN, new Rating(5,3,3,2)),
@@ -156,7 +155,6 @@ public class SubclassGUI implements Listener {
     private static final Map<PlayerClass, String> CLASS_SUMMARY = Map.ofEntries(
             Map.entry(PlayerClass.WARRIOR, "Close range fighter with charge and hook combos."),
             Map.entry(PlayerClass.ROGUE, "Swift assassin with high mobility skills."),
-            Map.entry(PlayerClass.ARCHER, "Ranged specialist focusing on bow attacks."),
             Map.entry(PlayerClass.MAGE, "Master of elemental magic with powerful spells."),
             Map.entry(PlayerClass.CLERIC, "Support class able to heal and shield allies."),
             Map.entry(PlayerClass.BARBARIAN, "Ferocious warrior using leaps and furious blows."),
