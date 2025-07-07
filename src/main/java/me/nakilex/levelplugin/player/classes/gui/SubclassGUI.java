@@ -346,8 +346,10 @@ public class SubclassGUI implements Listener {
                     ChatFormatter.sendCenteredMessage(player, "");
                     ChatFormatter.constructDivider(player, "§6§l-", 45);
                     player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
+                    player.closeInventory();
+                } else {
+                    player.sendMessage(ChatColor.RED + "You cannot select that class!");
                 }
-                player.closeInventory();
                 return;
             }
         }
