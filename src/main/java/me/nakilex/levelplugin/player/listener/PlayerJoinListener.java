@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.player.mining.managers.MiningManager;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
+import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
@@ -57,7 +58,17 @@ public class PlayerJoinListener implements Listener {
                 player.sendMessage(org.bukkit.ChatColor.YELLOW + "You received 20 coins to get started!");
             }
 
-            // 2) Additional per-player loading can happen here
+            // 2) If they haven't chosen a class, show the class selection menu
+            StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(pid);
+            if (ps.playerClass == PlayerClass.VILLAGER) {
+                // Delay slightly longer and run via console for reliability
+                Bukkit.getScheduler().runTaskLater(Main.getInstance(), () ->
+                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
+                                "dm open mmocore_class_warrior " + player.getName()),
+                        10L);
+            }
+
+            // 3) Additional per-player loading can happen here
         }, 2L);  // 2 ticks
     }
 }

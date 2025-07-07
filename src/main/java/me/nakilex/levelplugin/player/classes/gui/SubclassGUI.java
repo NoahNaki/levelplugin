@@ -4,6 +4,7 @@ import com.nexomc.nexo.api.NexoItems;
 import com.nexomc.nexo.items.ItemBuilder;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -15,6 +16,7 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.Sound;
 
 import java.util.*;
 
@@ -24,7 +26,7 @@ import java.util.*;
  */
 public class SubclassGUI implements Listener {
 
-    public static final String TITLE = ChatColor.DARK_AQUA + "Select Subclass";
+    public static final String TITLE = ChatColor.DARK_AQUA + "Select Class";
 
     private static final int GUI_SIZE = 54; // full chest
     private static final int[] CLASS_SLOTS = {
@@ -45,7 +47,8 @@ public class SubclassGUI implements Listener {
 
     static {
         ItemBuilder b = NexoItems.itemFromId("lock");
-        LOCK_ITEM_BASE = b == null ? new ItemStack(Material.BARRIER) : b.build();
+        // Use the Nexo "lock" item so locked classes have a consistent icon
+        LOCK_ITEM_BASE = b != null ? b.build() : new ItemStack(Material.BARRIER);
         ItemMeta meta = LOCK_ITEM_BASE.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(ChatColor.RED + "Locked");
@@ -237,7 +240,14 @@ public class SubclassGUI implements Listener {
                 StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
                 if (ps.unlockedClasses.contains(pc)) {
                     ps.playerClass = pc;
-                    player.sendMessage(ChatColor.GREEN + "Subclass changed to " + pc.name());
+                    ChatFormatter.constructDivider(player, "§6§l-", 45);
+                    ChatFormatter.sendCenteredMessage(player, "§6§lCLASS SELECTED!");
+                    ChatFormatter.sendCenteredMessage(player, "");
+                    ChatFormatter.sendCenteredMessage(player,
+                            "§7You are now the §e§l" + pc.name() + " §7class!");
+                    ChatFormatter.sendCenteredMessage(player, "");
+                    ChatFormatter.constructDivider(player, "§6§l-", 45);
+                    player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
                 }
                 player.closeInventory();
                 return;
