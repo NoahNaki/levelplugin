@@ -50,7 +50,7 @@ public class SubclassGUI implements Listener {
     static {
         ItemBuilder b = NexoItems.itemFromId("lock");
         // Use the Nexo "lock" item so locked classes have a consistent icon
-        LOCK_ITEM_BASE = b != null ? b.build() : new ItemStack(Material.BARRIER);
+        LOCK_ITEM_BASE = b != null ? b.build() : new ItemStack(Material.PAPER);
         ItemMeta meta = LOCK_ITEM_BASE.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(ChatColor.RED + "Locked");
@@ -203,14 +203,22 @@ public class SubclassGUI implements Listener {
 
             Map<String, Spell> spellMap = SpellManager.getInstance()
                     .getSpellsByClass(pc.name().toLowerCase());
-            if (!spellMap.isEmpty()) {
-                List<Spell> spells = new ArrayList<>(spellMap.values());
+            List<Spell> spells = new ArrayList<>(spellMap.values());
+            if (spells.isEmpty()) {
+                lore.add(" ");
+                lore.add(ChatColor.YELLOW.toString() + ChatColor.BOLD + "Basic Attack" + ChatColor.RESET
+                        + ChatColor.WHITE + " - " + ChatColor.GRAY + "Left Click");
+            } else {
                 spells.sort(Comparator.comparingInt(Spell::getLevelReq));
                 lore.add(" ");
                 for (Spell sp : spells) {
-                    if ("BASIC_ATTACK".equalsIgnoreCase(sp.getCombo())) continue;
-                    String usage = SPELL_USAGE.getOrDefault(sp.getId(),
-                            sp.getCombo().replace("L", "Left").replace("R", "Right"));
+                    String usage;
+                    if ("BASIC_ATTACK".equalsIgnoreCase(sp.getCombo())) {
+                        usage = "Left Click";
+                    } else {
+                        usage = SPELL_USAGE.getOrDefault(sp.getId(),
+                                sp.getCombo().replace("L", "Left").replace("R", "Right"));
+                    }
                     lore.add(ChatColor.YELLOW.toString() + ChatColor.BOLD + sp.getDisplayName()
                             + ChatColor.RESET + ChatColor.WHITE + " - " + ChatColor.GRAY + usage);
                 }
