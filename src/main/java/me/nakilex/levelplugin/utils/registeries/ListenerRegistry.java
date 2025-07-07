@@ -48,7 +48,6 @@ import me.nakilex.levelplugin.spells.WindruneSpell;
 import me.nakilex.levelplugin.spells.ArcticKnightSpell;
 import me.nakilex.levelplugin.spells.gui.SpellGUIListener;
 import me.nakilex.levelplugin.spells.listener.*;
-import me.nakilex.levelplugin.player.classes.gui.AwakeningGUI;
 import me.nakilex.levelplugin.player.classes.gui.SubclassGUI;
 import me.nakilex.levelplugin.trade.listeners.PlayerRightClicksPlayerListener;
 import me.nakilex.levelplugin.guild.GuildGUIListener;
@@ -163,7 +162,6 @@ public class ListenerRegistry {
         pm.registerEvents(new AbyssionSpell(), plugin);
         pm.registerEvents(new DragonWarriorSpell(), plugin);
         pm.registerEvents(new DragonianSpell(), plugin);
-        pm.registerEvents(new AwakeningGUI(), plugin);
         pm.registerEvents(new SubclassGUI(), plugin);
         pm.registerEvents(new WindruneSpell(), plugin);
         pm.registerEvents(new ArcticKnightSpell(), plugin);

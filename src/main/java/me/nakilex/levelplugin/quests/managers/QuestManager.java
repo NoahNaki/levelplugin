@@ -58,8 +58,10 @@ public class QuestManager {
         // Register quests here manually.
         Quest tutorial = new me.nakilex.levelplugin.quests.def.TutorialQuest();
         Quest office   = new me.nakilex.levelplugin.quests.def.OfficeErrandsQuest();
+        Quest dragon   = new me.nakilex.levelplugin.quests.def.DragonianQuest();
         registerQuest(tutorial);
         registerQuest(office);
+        registerQuest(dragon);
         plugin.getLogger().info("Registered " + quests.size() + " quests.");
     }
 
@@ -521,6 +523,9 @@ public class QuestManager {
                     }
                     sendCompletionMessage(player, quest);
                     giveRewards(player, quest);
+                    if (quest instanceof me.nakilex.levelplugin.quests.data.QuestCompletionScript script) {
+                        script.onComplete(player, plugin);
+                    }
                 }
                 break;
             }
@@ -551,6 +556,9 @@ public class QuestManager {
                         completedQuests.computeIfAbsent(memberId, k -> new HashSet<>()).add(other.getQuest().getId());
                         sendCompletionMessage(p, other.getQuest());
                         giveRewards(p, other.getQuest());
+                        if (other.getQuest() instanceof me.nakilex.levelplugin.quests.data.QuestCompletionScript script) {
+                            script.onComplete(p, plugin);
+                        }
                     }
                 }
             }

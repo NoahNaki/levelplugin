@@ -53,23 +53,12 @@ public class SubclassGUI implements Listener {
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
         for (int i = 0; i < CLASSES.length && i < SLOTS.length; i++) {
             PlayerClass pc = CLASSES[i];
-            boolean unlocked = ps.unlockedClasses.contains(pc) && ps.awakeningStage >= stageOf(pc);
+            boolean unlocked = ps.unlockedClasses.contains(pc);
             ItemStack it = unlocked ? createItem(pc) : createLockedItem(pc);
             inv.setItem(SLOTS[i], it);
         }
         player.openInventory(inv);
         OPEN.put(player.getUniqueId(), inv);
-    }
-
-    private static int stageOf(PlayerClass pc) {
-        return switch (pc) {
-            case BARBARIAN, DRAGONIAN -> 1;
-            case GALEGLAIVE -> 2;
-            case DEATHKNIGHT, ARCTICKNIGHT -> 3;
-            case DRAGONWARRIOR -> 4;
-            case WARRIOR -> 0;
-            default -> 0;
-        };
     }
 
     private static ItemStack createItem(PlayerClass pc) {
@@ -103,7 +92,7 @@ public class SubclassGUI implements Listener {
             if (slot == SLOTS[i]) {
                 PlayerClass pc = CLASSES[i];
                 StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
-                if (ps.unlockedClasses.contains(pc) && ps.awakeningStage >= stageOf(pc)) {
+                if (ps.unlockedClasses.contains(pc)) {
                     ps.playerClass = pc;
                     player.sendMessage(ChatColor.GREEN + "Subclass changed to " + pc.name());
                 }
