@@ -96,7 +96,7 @@ public class ClassCommand implements CommandExecutor {
         if (args.length == 0) {
             // Run the DeluxeMenus command as the player to ensure the menu opens
             // correctly even if console execution fails
-            player.performCommand("dm open mmocore_class_warrior -p:" + player.getName());
+            player.performCommand("dm open mmocore_class_warrior " + player.getName());
             return true;
         }
 

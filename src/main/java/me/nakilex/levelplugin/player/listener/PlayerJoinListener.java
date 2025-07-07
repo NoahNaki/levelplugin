@@ -63,7 +63,7 @@ public class PlayerJoinListener implements Listener {
             if (ps.playerClass == PlayerClass.VILLAGER) {
                 // Delay slightly longer and execute as the player to improve reliability
                 Bukkit.getScheduler().runTaskLater(Main.getInstance(), () ->
-                        player.performCommand("dm open mmocore_class_warrior -p:" + player.getName()),
+                        player.performCommand("dm open mmocore_class_warrior " + player.getName()),
                         10L);
             }
 
