@@ -225,9 +225,7 @@ public class SubclassGUI implements Listener {
             } else {
                 spells.sort(Comparator.comparingInt(Spell::getLevelReq));
                 lore.add(" ");
-                int count = 0;
                 for (Spell sp : spells) {
-                    if (count >= 3) break;
                     String usage;
                     if ("BASIC_ATTACK".equalsIgnoreCase(sp.getCombo())) {
                         usage = "Left Click";
@@ -237,7 +235,6 @@ public class SubclassGUI implements Listener {
                     }
                     lore.add(ChatColor.YELLOW.toString() + ChatColor.BOLD + sp.getDisplayName()
                             + ChatColor.RESET + ChatColor.WHITE + " - " + ChatColor.GRAY + usage);
-                    count++;
                 }
             }
 
