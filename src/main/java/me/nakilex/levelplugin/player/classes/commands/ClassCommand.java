@@ -130,7 +130,7 @@ public class ClassCommand implements CommandExecutor {
             ChatFormatter.sendCenteredMessage(player, "§6§lCLASS SELECTED!");
             ChatFormatter.sendCenteredMessage(player, "");
             ChatFormatter.sendCenteredMessage(player,
-                    "§7You have chosen the §e§l" + chosen.name() + " §7class!");
+                    "§7You are now the §e§l" + chosen.name() + " §7class!");
             ChatFormatter.sendCenteredMessage(player, "");
             ChatFormatter.constructDivider(player, "§6§l-", 45);
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);

@@ -26,7 +26,7 @@ import java.util.*;
  */
 public class SubclassGUI implements Listener {
 
-    public static final String TITLE = ChatColor.DARK_AQUA + "Select Subclass";
+    public static final String TITLE = ChatColor.DARK_AQUA + "Select Class";
 
     private static final int GUI_SIZE = 54; // full chest
     private static final int[] CLASS_SLOTS = {
@@ -241,10 +241,10 @@ public class SubclassGUI implements Listener {
                 if (ps.unlockedClasses.contains(pc)) {
                     ps.playerClass = pc;
                     ChatFormatter.constructDivider(player, "§6§l-", 45);
-                    ChatFormatter.sendCenteredMessage(player, "§6§lSUBCLASS CHANGED!");
+                    ChatFormatter.sendCenteredMessage(player, "§6§lCLASS SELECTED!");
                     ChatFormatter.sendCenteredMessage(player, "");
                     ChatFormatter.sendCenteredMessage(player,
-                            "§7You are now the §e§l" + pc.name() + " §7subclass!");
+                            "§7You are now the §e§l" + pc.name() + " §7class!");
                     ChatFormatter.sendCenteredMessage(player, "");
                     ChatFormatter.constructDivider(player, "§6§l-", 45);
                     player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
