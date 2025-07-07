@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.player.classes.commands;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.player.listener.ClassSelectionListener;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -77,6 +78,7 @@ public class ClassCommand implements CommandExecutor {
                     target.sendMessage(ChatColor.GREEN + "Your class has been set to " + chosen.name());
                 }
                 me.nakilex.levelplugin.items.utils.ItemUtil.refreshTooltips(target);
+                me.nakilex.levelplugin.player.listener.ClassSelectionListener.completeSelection(target);
             } catch (IllegalArgumentException ex) {
                 sender.sendMessage(ChatColor.RED + "Unknown class: " + args[2]);
             }
@@ -116,6 +118,7 @@ public class ClassCommand implements CommandExecutor {
             if (!flight) player.setFlying(false);
             player.sendMessage(ChatColor.GREEN + "Class set to " + ChatColor.AQUA + chosen.name());
             me.nakilex.levelplugin.items.utils.ItemUtil.refreshTooltips(player);
+            me.nakilex.levelplugin.player.listener.ClassSelectionListener.completeSelection(player);
         } catch (IllegalArgumentException ex) {
             player.sendMessage(ChatColor.RED + "Unknown class: " + args[0]);
         }
