@@ -96,7 +96,6 @@ public class LevelManager {
                 applyLevelUpBenefits(player, level);
                 StatsManager.getInstance().addSkillPoints(uuid, 3);
                 XPBarHandler.handleLevelUpEvent(player, level, xpNeeded);
-                me.nakilex.levelplugin.player.classes.managers.AwakeningManager.check(player);
             }
 
             xpNeeded = getXpRequired(level);

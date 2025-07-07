@@ -58,8 +58,10 @@ public class QuestManager {
         // Register quests here manually.
         Quest tutorial = new me.nakilex.levelplugin.quests.def.TutorialQuest();
         Quest office   = new me.nakilex.levelplugin.quests.def.OfficeErrandsQuest();
+        Quest dragon   = new me.nakilex.levelplugin.quests.def.DragonianQuest();
         registerQuest(tutorial);
         registerQuest(office);
+        registerQuest(dragon);
         plugin.getLogger().info("Registered " + quests.size() + " quests.");
     }
 
@@ -521,6 +523,9 @@ public class QuestManager {
                     }
                     sendCompletionMessage(player, quest);
                     giveRewards(player, quest);
+                    if (quest instanceof me.nakilex.levelplugin.quests.data.QuestCompletionScript script) {
+                        script.onComplete(player, plugin);
+                    }
                 }
                 break;
             }
@@ -551,6 +556,9 @@ public class QuestManager {
                         completedQuests.computeIfAbsent(memberId, k -> new HashSet<>()).add(other.getQuest().getId());
                         sendCompletionMessage(p, other.getQuest());
                         giveRewards(p, other.getQuest());
+                        if (other.getQuest() instanceof me.nakilex.levelplugin.quests.data.QuestCompletionScript script) {
+                            script.onComplete(p, plugin);
+                        }
                     }
                 }
             }
@@ -581,6 +589,10 @@ public class QuestManager {
                 }
             }
         }
+
+        for (me.nakilex.levelplugin.player.classes.data.PlayerClass pc : reward.getUnlockClasses()) {
+            StatsManager.getInstance().unlockClass(player.getUniqueId(), pc);
+        }
     }
 
     /**
@@ -608,6 +620,9 @@ public class QuestManager {
                 me.nakilex.levelplugin.items.data.CustomItem tpl = plugin.getItemManager().getTemplateById(id);
                 String name = tpl != null ? tpl.getBaseName() : ("Item " + id);
                 me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + name);
+            }
+            for (me.nakilex.levelplugin.player.classes.data.PlayerClass pc : reward.getUnlockClasses()) {
+                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + pc.name() + " class");
             }
             me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, " ", 45);
         }

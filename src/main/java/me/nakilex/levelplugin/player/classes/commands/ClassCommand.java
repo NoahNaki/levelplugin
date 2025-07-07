@@ -1,6 +1,5 @@
 package me.nakilex.levelplugin.player.classes.commands;
 
-import me.nakilex.levelplugin.player.classes.gui.ClassMenu;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
@@ -15,6 +14,46 @@ public class ClassCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
+        if (args.length >= 1 && args[0].equalsIgnoreCase("unlock")) {
+            if (args.length != 3) {
+                sender.sendMessage(ChatColor.YELLOW + "Usage: /class unlock <player> <class>");
+                return true;
+            }
+            Player target = Bukkit.getPlayer(args[1]);
+            if (target == null) {
+                sender.sendMessage(ChatColor.RED + "Player not found: " + args[1]);
+                return true;
+            }
+            try {
+                PlayerClass cls = PlayerClass.valueOf(args[2].toUpperCase());
+                StatsManager.getInstance().unlockClass(target.getUniqueId(), cls);
+                sender.sendMessage(ChatColor.GREEN + "Unlocked " + cls.name() + " for " + target.getName());
+            } catch (IllegalArgumentException ex) {
+                sender.sendMessage(ChatColor.RED + "Unknown class: " + args[2]);
+            }
+            return true;
+        }
+
+        if (args.length >= 1 && args[0].equalsIgnoreCase("lock")) {
+            if (args.length != 3) {
+                sender.sendMessage(ChatColor.YELLOW + "Usage: /class lock <player> <class>");
+                return true;
+            }
+            Player target = Bukkit.getPlayer(args[1]);
+            if (target == null) {
+                sender.sendMessage(ChatColor.RED + "Player not found: " + args[1]);
+                return true;
+            }
+            try {
+                PlayerClass cls = PlayerClass.valueOf(args[2].toUpperCase());
+                StatsManager.getInstance().lockClass(target.getUniqueId(), cls);
+                sender.sendMessage(ChatColor.GREEN + "Locked " + cls.name() + " for " + target.getName());
+            } catch (IllegalArgumentException ex) {
+                sender.sendMessage(ChatColor.RED + "Unknown class: " + args[2]);
+            }
+            return true;
+        }
+
         if (args.length >= 1 && args[0].equalsIgnoreCase("admin")) {
             if (args.length != 3) {
                 sender.sendMessage(ChatColor.YELLOW + "Usage: /class admin <player> <class>");

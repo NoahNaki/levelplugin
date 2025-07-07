@@ -137,6 +137,18 @@ public class StatsManager {
         player.sendMessage(ChatColor.GREEN + "All skill points have been refunded!");
     }
 
+    /** Unlock a class for the given player without switching to it. */
+    public void unlockClass(UUID uuid, PlayerClass pc) {
+        PlayerStats ps = getPlayerStats(uuid);
+        ps.unlockedClasses.add(pc);
+    }
+
+    /** Remove a class from a player's unlocked set. */
+    public void lockClass(UUID uuid, PlayerClass pc) {
+        PlayerStats ps = getPlayerStats(uuid);
+        ps.unlockedClasses.remove(pc);
+    }
+
 
     public void recalcDerivedStats(Player player) {
         PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
@@ -271,8 +283,6 @@ public class StatsManager {
         public int skillPoints = 0;
 
         public PlayerClass playerClass = PlayerClass.VILLAGER;
-
-        public int awakeningStage = 0;
 
         public Set<PlayerClass> unlockedClasses = new HashSet<>();
 
