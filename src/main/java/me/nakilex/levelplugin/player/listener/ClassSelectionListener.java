@@ -62,7 +62,7 @@ public class ClassSelectionListener implements Listener {
                     "You must select a starting class before continuing!");
             Bukkit.getScheduler().runTaskLater(plugin, () ->
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
-                            "dm open mmocore_class_warrior -p:" + player.getName()),
+                            "dm open mmocore_class_warrior " + player.getName()),
                     1L);
         } else {
             completeSelection(player);
