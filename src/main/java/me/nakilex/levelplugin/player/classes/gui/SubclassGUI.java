@@ -152,6 +152,23 @@ public class SubclassGUI implements Listener {
         }
     }
 
+    private static final Map<PlayerClass, String> CLASS_SUMMARY = Map.ofEntries(
+            Map.entry(PlayerClass.WARRIOR, "Close range fighter with charge and hook combos."),
+            Map.entry(PlayerClass.ROGUE, "Swift assassin with high mobility skills."),
+            Map.entry(PlayerClass.ARCHER, "Ranged specialist focusing on bow attacks."),
+            Map.entry(PlayerClass.MAGE, "Master of elemental magic with powerful spells."),
+            Map.entry(PlayerClass.CLERIC, "Support class able to heal and shield allies."),
+            Map.entry(PlayerClass.BARBARIAN, "Ferocious warrior using leaps and furious blows."),
+            Map.entry(PlayerClass.DRAGONIAN, "Dragon-blooded fighter wielding breath attacks."),
+            Map.entry(PlayerClass.GALEGLAIVE, "Agile windblade user with swift strikes."),
+            Map.entry(PlayerClass.DEATHKNIGHT, "Dark knight controlling necrotic power."),
+            Map.entry(PlayerClass.ARCTICKNIGHT, "Frost warrior unleashing icy attacks."),
+            Map.entry(PlayerClass.DRAGONWARRIOR, "Hybrid dragon warrior channeling draconic energy."),
+            Map.entry(PlayerClass.COOLARCHER, "Experimental archer harnessing drones."),
+            Map.entry(PlayerClass.PHOENIXHUNTER, "Flame archer empowered by the phoenix."),
+            Map.entry(PlayerClass.PALADIN, "Holy fighter boasting strong defence."),
+            Map.entry(PlayerClass.ABYSSION, "Tide-wielding swordsman controlling water."));
+
     private static String bar(int val) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < val; i++) sb.append(ChatColor.GOLD).append("■");
@@ -191,6 +208,12 @@ public class SubclassGUI implements Listener {
         if (meta != null) {
             meta.setDisplayName(ChatColor.GREEN + formatClassName(pc));
             List<String> lore = new ArrayList<>();
+
+            String summary = CLASS_SUMMARY.get(pc);
+            if (summary != null) {
+                lore.add(ChatColor.GRAY + summary);
+                lore.add(" ");
+            }
 
             Map<String, Spell> spellMap = SpellManager.getInstance()
                     .getSpellsByClass(pc.name().toLowerCase());
