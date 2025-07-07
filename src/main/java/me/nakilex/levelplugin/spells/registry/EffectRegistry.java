@@ -42,13 +42,20 @@ public class EffectRegistry {
         if (initialized) return;
         initialized = true;
 
-        // --- CoolArcher Mythic skills ---
+        // --- Archer Mythic skills ---
         register("MYTHIC_QUICK_SHOT", new MythicSkillEffect("Quick_Shot"));
         register("MYTHIC_BACKSTEP", new MythicSkillEffect("Backstep"));
         register("MYTHIC_WINDRAZOR", new MythicSkillEffect("Windrazor"));
         register("MYTHIC_ARROW_BARRAGE", new MythicSkillEffect("Arrow_Barrage"));
         register("MYTHIC_DRAGON_PIERCER", new MythicSkillEffect("Dragon_Piercer"));
         register("BOW_DRONE", new me.nakilex.levelplugin.spells.effect.archer.BowDroneEffect());
+        // --- Deadeye Mythic skills ---
+        register("MYTHIC_PISTOL_SHOT", new MythicSkillEffect("Pistol_Shot"));
+        register("MYTHIC_SHOTGUN_BLAST", new MythicSkillEffect("Shotgun_Blast"));
+        register("MYTHIC_SNIPER_BACKUP", new MythicSkillEffect("Sniper_Backup"));
+        register("MYTHIC_DEATHFIRE", new MythicSkillEffect("Deathfire"));
+        register("MYTHIC_FOCUS_SHOT", new MythicSkillEffect("Focus_Shot"));
+        register("MYTHIC_AIR_STRIKE", new MythicSkillEffect("Air_Strike"));
 
         // --- PhoenixHunter Mythic skills ---
         register("MYTHIC_BLAZING_FEATHERS", new MythicSkillEffect("Blazing_Feathers"));

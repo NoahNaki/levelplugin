@@ -134,7 +134,8 @@ public class SubclassGUI implements Listener {
             Map.entry(PlayerClass.DEATHKNIGHT, new Rating(5,4,2,3)),
             Map.entry(PlayerClass.ARCTICKNIGHT, new Rating(4,4,2,3)),
             Map.entry(PlayerClass.DRAGONWARRIOR, new Rating(5,4,3,2)),
-            Map.entry(PlayerClass.COOLARCHER, new Rating(3,2,4,3)),
+            Map.entry(PlayerClass.ARCHER, new Rating(3,2,4,3)),
+            Map.entry(PlayerClass.DEADEYE, new Rating(4,2,4,3)),
             Map.entry(PlayerClass.PHOENIXHUNTER, new Rating(5,2,4,4)),
             Map.entry(PlayerClass.PALADIN, new Rating(4,5,2,3)),
             Map.entry(PlayerClass.ABYSSION, new Rating(4,4,3,3))
@@ -164,7 +165,8 @@ public class SubclassGUI implements Listener {
             Map.entry(PlayerClass.DEATHKNIGHT, "Dark knight controlling necrotic power."),
             Map.entry(PlayerClass.ARCTICKNIGHT, "Frost warrior unleashing icy attacks."),
             Map.entry(PlayerClass.DRAGONWARRIOR, "Hybrid dragon warrior channeling draconic energy."),
-            Map.entry(PlayerClass.COOLARCHER, "Experimental archer harnessing drones."),
+            Map.entry(PlayerClass.ARCHER, "Experimental archer harnessing drones."),
+            Map.entry(PlayerClass.DEADEYE, "Sharpshooter wielding pistols and explosives."),
             Map.entry(PlayerClass.PHOENIXHUNTER, "Flame archer empowered by the phoenix."),
             Map.entry(PlayerClass.PALADIN, "Holy fighter boasting strong defence."),
             Map.entry(PlayerClass.ABYSSION, "Tide-wielding swordsman controlling water."));

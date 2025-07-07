@@ -302,7 +302,8 @@ public class SpellGUI {
                 .getPlayerStats(player.getUniqueId());
         PlayerClass pClass = ps.playerClass;
         String classKey = switch (pClass) {
-            case COOLARCHER -> "coolarcher";
+            case ARCHER -> "archer";
+            case DEADEYE -> "deadeye";
             case PHOENIXHUNTER -> "phoenixhunter";
             case WARRIOR -> "warrior";
             case BARBARIAN -> "barbarian";

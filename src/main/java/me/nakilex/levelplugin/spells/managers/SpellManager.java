@@ -60,9 +60,9 @@ public class SpellManager {
 
     private void loadSpells() {
 
-        // — COOLARCHER TEST CLASS —
-        Map<String, Spell> coolMap = new HashMap<>();
-        coolMap.put("BASIC_ATTACK", new Spell(
+        // — ARCHER CLASS —
+        Map<String, Spell> archerMap = new HashMap<>();
+        archerMap.put("BASIC_ATTACK", new Spell(
             "quick_shot",
             "Quick Shot",
             "BASIC_ATTACK",
@@ -73,43 +73,43 @@ public class SpellManager {
             "MYTHIC_QUICK_SHOT",
             0.0
         ));
-        coolMap.put("LRL", new Spell(
+        archerMap.put("LRL", new Spell(
             "backstep", "Backstep", "LRL",
             5.0,
             MythicSkillConfig.getCooldownSeconds("Backstep"), 3,
             WeaponType.BOW.getMaterials(),
             "MYTHIC_BACKSTEP", 0.0
         ));
-        coolMap.put("LRR", new Spell(
+        archerMap.put("LRR", new Spell(
             "windrazor", "Windrazor", "LRR",
             8.0,
             MythicSkillConfig.getCooldownSeconds("Windrazor"), 5,
             WeaponType.BOW.getMaterials(),
             "MYTHIC_WINDRAZOR", 0.0
         ));
-        coolMap.put("LLR", new Spell(
+        archerMap.put("LLR", new Spell(
             "arrow_barrage", "Arrow Barrage", "LLR",
             12.0,
             MythicSkillConfig.getCooldownSeconds("Arrow_Barrage"), 10,
             WeaponType.BOW.getMaterials(),
             "MYTHIC_ARROW_BARRAGE", 0.0
         ));
-        coolMap.put("RRR", new Spell(
+        archerMap.put("RRR", new Spell(
             "bow_drone", "Bow Drone", "RRR",
             10.0,
             MythicSkillConfig.getCooldownSeconds("Deadly_Javelin"), 10,
             WeaponType.BOW.getMaterials(),
             "BOW_DRONE", 0.0
         ));
-        coolMap.put("LLL", new Spell(
+        archerMap.put("LLL", new Spell(
             "dragon_piercer", "Dragon Piercer", "LLL",
             15.0,
             MythicSkillConfig.getCooldownSeconds("Dragon_Piercer"), 10,
             WeaponType.BOW.getMaterials(),
             "MYTHIC_DRAGON_PIERCER", 0.0
         ));
-        spellsByClass.put("coolarcher", Collections.unmodifiableMap(coolMap));
-        plugin.getLogger().info("[SPELLS] CoolArcher combos: " + coolMap.keySet());
+        spellsByClass.put("archer", Collections.unmodifiableMap(archerMap));
+        plugin.getLogger().info("[SPELLS] Archer combos: " + archerMap.keySet());
 
         // — PHOENIXHUNTER CLASS —
         Map<String, Spell> phoenixMap = new HashMap<>();
@@ -162,6 +162,53 @@ public class SpellManager {
         ));
         spellsByClass.put("phoenixhunter", Collections.unmodifiableMap(phoenixMap));
         plugin.getLogger().info("[SPELLS] PhoenixHunter combos: " + phoenixMap.keySet());
+
+        // — DEADEYE CLASS —
+        Map<String, Spell> deadeyeMap = new HashMap<>();
+        deadeyeMap.put("BASIC_ATTACK", new Spell(
+            "pistol_shot", "Pistol Shot", "BASIC_ATTACK",
+            0.0,
+            MythicSkillConfig.getCooldownSeconds("Pistol_Shot"), 1,
+            WeaponType.BOW.getMaterials(),
+            "MYTHIC_PISTOL_SHOT", 0.0
+        ));
+        deadeyeMap.put("LRL", new Spell(
+            "shotgun_blast", "Shotgun Blast", "LRL",
+            6.0,
+            MythicSkillConfig.getCooldownSeconds("Shotgun_Blast"), 3,
+            WeaponType.BOW.getMaterials(),
+            "MYTHIC_SHOTGUN_BLAST", 0.0
+        ));
+        deadeyeMap.put("LRR", new Spell(
+            "sniper_backup", "Sniper Backup", "LRR",
+            10.0,
+            MythicSkillConfig.getCooldownSeconds("Sniper_Backup"), 5,
+            WeaponType.BOW.getMaterials(),
+            "MYTHIC_SNIPER_BACKUP", 0.0
+        ));
+        deadeyeMap.put("LLR", new Spell(
+            "deathfire", "Deathfire", "LLR",
+            12.0,
+            MythicSkillConfig.getCooldownSeconds("Deathfire"), 5,
+            WeaponType.BOW.getMaterials(),
+            "MYTHIC_DEATHFIRE", 0.0
+        ));
+        deadeyeMap.put("LLL", new Spell(
+            "focus_shot", "Focus Shot", "LLL",
+            15.0,
+            MythicSkillConfig.getCooldownSeconds("Focus_Shot"), 10,
+            WeaponType.BOW.getMaterials(),
+            "MYTHIC_FOCUS_SHOT", 0.0
+        ));
+        deadeyeMap.put("RRR", new Spell(
+            "air_strike", "Air Strike", "RRR",
+            20.0,
+            MythicSkillConfig.getCooldownSeconds("Air_Strike"), 10,
+            WeaponType.BOW.getMaterials(),
+            "MYTHIC_AIR_STRIKE", 0.0
+        ));
+        spellsByClass.put("deadeye", Collections.unmodifiableMap(deadeyeMap));
+        plugin.getLogger().info("[SPELLS] Deadeye combos: " + deadeyeMap.keySet());
 
         // — WARRIOR CLASS —
         Map<String, Spell> warriorMap = new HashMap<>();
