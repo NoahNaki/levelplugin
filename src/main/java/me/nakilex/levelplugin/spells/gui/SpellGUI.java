@@ -138,6 +138,7 @@ public class SpellGUI {
         SPELL_USAGE.put("charge", "Right Click");
         SPELL_USAGE.put("chain_hook", "Sneak + Right Click");
         SPELL_USAGE.put("shield_barrier", "Sneak");
+        SPELL_USAGE.put("shockwave", "Sneak + Left Click");
         SPELL_USAGE.put("whirlwind", "Sneak + Right Click");
         SPELL_USAGE.put("judgement", "Sneak + Left Click");
         SPELL_USAGE.put("rampage", "Sneak + Left Click (low HP)");

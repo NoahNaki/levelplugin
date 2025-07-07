@@ -44,18 +44,9 @@ public class SubclassGUI implements Listener {
     private static final int SORT_SLOT = 50;
     private static final int INFO_SLOT = 8;
 
-    private static final ItemStack LOCK_ITEM_BASE;
     private static final ItemStack FILLER;
 
     static {
-        ItemBuilder b = NexoItems.itemFromId("lock");
-        // Use the Nexo "lock" item so locked classes have a consistent icon
-        LOCK_ITEM_BASE = b != null ? b.build() : new ItemStack(Material.PAPER);
-        ItemMeta meta = LOCK_ITEM_BASE.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(ChatColor.RED + "Locked");
-            LOCK_ITEM_BASE.setItemMeta(meta);
-        }
         FILLER = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
         ItemMeta fm = FILLER.getItemMeta();
         if (fm != null) { fm.setDisplayName(" "); FILLER.setItemMeta(fm); }
@@ -239,8 +230,19 @@ public class SubclassGUI implements Listener {
         return item;
     }
 
+    private static ItemStack lockItem() {
+        ItemBuilder b = NexoItems.itemFromId("lock");
+        ItemStack item = b != null ? b.build() : new ItemStack(Material.PAPER);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.RED + "Locked");
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
     private static ItemStack createLockedItem(PlayerClass pc) {
-        ItemStack item = LOCK_ITEM_BASE.clone();
+        ItemStack item = lockItem();
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(ChatColor.RED + "???");
