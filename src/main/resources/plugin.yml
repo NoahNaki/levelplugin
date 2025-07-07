@@ -45,7 +45,7 @@ commands:
     permission: none
   class:
     description: Choose your class once or have an admin override it
-    usage: /class <Mage|Archer|Rogue|Warrior|Cleric>|admin <player> <class>
+    usage: /class <Mage|Archer|Rogue|Warrior|Cleric>|admin <player> <class>|unlockall <player>
     aliases: [c]
   awakenwarrior:
     description: Choose your warrior awakening

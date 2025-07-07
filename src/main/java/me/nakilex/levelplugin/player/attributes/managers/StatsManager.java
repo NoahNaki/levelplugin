@@ -149,6 +149,14 @@ public class StatsManager {
         ps.unlockedClasses.remove(pc);
     }
 
+    /** Unlock every available class for the given player. */
+    public void unlockAllClasses(UUID uuid) {
+        PlayerStats ps = getPlayerStats(uuid);
+        for (PlayerClass pc : PlayerClass.values()) {
+            ps.unlockedClasses.add(pc);
+        }
+    }
+
 
     public void recalcDerivedStats(Player player) {
         PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());

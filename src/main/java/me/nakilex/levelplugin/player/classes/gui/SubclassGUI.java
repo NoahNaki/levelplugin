@@ -5,6 +5,8 @@ import com.nexomc.nexo.items.ItemBuilder;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.spells.managers.SpellManager;
+import me.nakilex.levelplugin.spells.Spell;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -42,18 +44,9 @@ public class SubclassGUI implements Listener {
     private static final int SORT_SLOT = 50;
     private static final int INFO_SLOT = 8;
 
-    private static final ItemStack LOCK_ITEM_BASE;
     private static final ItemStack FILLER;
 
     static {
-        ItemBuilder b = NexoItems.itemFromId("lock");
-        // Use the Nexo "lock" item so locked classes have a consistent icon
-        LOCK_ITEM_BASE = b != null ? b.build() : new ItemStack(Material.BARRIER);
-        ItemMeta meta = LOCK_ITEM_BASE.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(ChatColor.RED + "Locked");
-            LOCK_ITEM_BASE.setItemMeta(meta);
-        }
         FILLER = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
         ItemMeta fm = FILLER.getItemMeta();
         if (fm != null) { fm.setDisplayName(" "); FILLER.setItemMeta(fm); }
@@ -120,25 +113,162 @@ public class SubclassGUI implements Listener {
         inv.setItem(SORT_SLOT, createSortButton(sort));
         inv.setItem(INFO_SLOT, getNexoItem("info", ChatColor.YELLOW + "Information"));
 
-        player.openInventory(inv);
         OPEN.put(player.getUniqueId(), inv);
+        player.openInventory(inv);
+    }
+
+    private static final class Rating {
+        final int dmg, def, mob, util;
+        Rating(int d, int f, int m, int u) { this.dmg = d; this.def = f; this.mob = m; this.util = u; }
+    }
+
+    private static final Map<PlayerClass, Rating> CLASS_RATINGS = Map.ofEntries(
+            Map.entry(PlayerClass.WARRIOR, new Rating(4,4,3,2)),
+            Map.entry(PlayerClass.ROGUE, new Rating(3,2,5,3)),
+            Map.entry(PlayerClass.ARCHER, new Rating(4,2,4,3)),
+            Map.entry(PlayerClass.MAGE, new Rating(5,1,3,5)),
+            Map.entry(PlayerClass.CLERIC, new Rating(2,4,2,4)),
+            Map.entry(PlayerClass.BARBARIAN, new Rating(5,3,3,2)),
+            Map.entry(PlayerClass.DRAGONIAN, new Rating(5,3,3,3)),
+            Map.entry(PlayerClass.GALEGLAIVE, new Rating(4,2,5,3)),
+            Map.entry(PlayerClass.DEATHKNIGHT, new Rating(5,4,2,3)),
+            Map.entry(PlayerClass.ARCTICKNIGHT, new Rating(4,4,2,3)),
+            Map.entry(PlayerClass.DRAGONWARRIOR, new Rating(5,4,3,2)),
+            Map.entry(PlayerClass.COOLARCHER, new Rating(3,2,4,3)),
+            Map.entry(PlayerClass.PHOENIXHUNTER, new Rating(5,2,4,4)),
+            Map.entry(PlayerClass.PALADIN, new Rating(4,5,2,3)),
+            Map.entry(PlayerClass.ABYSSION, new Rating(4,4,3,3))
+    );
+
+    private static Map<String, String> SPELL_USAGE;
+
+    static {
+        try {
+            var f = me.nakilex.levelplugin.spells.gui.SpellGUI.class.getDeclaredField("SPELL_USAGE");
+            f.setAccessible(true);
+            SPELL_USAGE = (Map<String, String>) f.get(null);
+        } catch (Exception e) {
+            SPELL_USAGE = Collections.emptyMap();
+        }
+    }
+
+    private static final Map<PlayerClass, String> CLASS_SUMMARY = Map.ofEntries(
+            Map.entry(PlayerClass.WARRIOR, "Close range fighter with charge and hook combos."),
+            Map.entry(PlayerClass.ROGUE, "Swift assassin with high mobility skills."),
+            Map.entry(PlayerClass.ARCHER, "Ranged specialist focusing on bow attacks."),
+            Map.entry(PlayerClass.MAGE, "Master of elemental magic with powerful spells."),
+            Map.entry(PlayerClass.CLERIC, "Support class able to heal and shield allies."),
+            Map.entry(PlayerClass.BARBARIAN, "Ferocious warrior using leaps and furious blows."),
+            Map.entry(PlayerClass.DRAGONIAN, "Dragon-blooded fighter wielding breath attacks."),
+            Map.entry(PlayerClass.GALEGLAIVE, "Agile windblade user with swift strikes."),
+            Map.entry(PlayerClass.DEATHKNIGHT, "Dark knight controlling necrotic power."),
+            Map.entry(PlayerClass.ARCTICKNIGHT, "Frost warrior unleashing icy attacks."),
+            Map.entry(PlayerClass.DRAGONWARRIOR, "Hybrid dragon warrior channeling draconic energy."),
+            Map.entry(PlayerClass.COOLARCHER, "Experimental archer harnessing drones."),
+            Map.entry(PlayerClass.PHOENIXHUNTER, "Flame archer empowered by the phoenix."),
+            Map.entry(PlayerClass.PALADIN, "Holy fighter boasting strong defence."),
+            Map.entry(PlayerClass.ABYSSION, "Tide-wielding swordsman controlling water."));
+
+    private static String bar(int val) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < val; i++) sb.append(ChatColor.GOLD).append("■");
+        for (int i = val; i < 5; i++) sb.append(ChatColor.DARK_GRAY).append("■");
+        return sb.toString();
+    }
+
+    private static Rating rating(PlayerClass pc) {
+        return CLASS_RATINGS.getOrDefault(pc, new Rating(3,3,3,3));
+    }
+
+    private static String ratingLine(ChatColor color, String label, int val) {
+        return color + label + ":\t" + bar(val);
+    }
+
+    private static String formatClassName(PlayerClass pc) {
+        String raw = pc.name().toLowerCase();
+        StringBuilder out = new StringBuilder(raw.length());
+        boolean cap = true;
+        for (char c : raw.toCharArray()) {
+            if (c == '_' || c == ' ') {
+                out.append(' ');
+                cap = true;
+            } else if (cap) {
+                out.append(Character.toUpperCase(c));
+                cap = false;
+            } else {
+                out.append(c);
+            }
+        }
+        return out.toString();
     }
 
     private static ItemStack createItem(PlayerClass pc) {
         ItemStack item = new ItemStack(Material.BOOK);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(ChatColor.GREEN + pc.name());
+            meta.setDisplayName(ChatColor.GREEN + formatClassName(pc));
+            List<String> lore = new ArrayList<>();
+
+            String summary = CLASS_SUMMARY.get(pc);
+            if (summary != null) {
+                lore.add(ChatColor.GRAY + summary);
+                lore.add(" ");
+            }
+
+            Map<String, Spell> spellMap = SpellManager.getInstance()
+                    .getSpellsByClass(pc.name().toLowerCase());
+            List<Spell> spells = new ArrayList<>(spellMap.values());
+            if (spells.isEmpty()) {
+                lore.add(" ");
+                lore.add(ChatColor.YELLOW.toString() + ChatColor.BOLD + "Basic Attack" + ChatColor.RESET
+                        + ChatColor.WHITE + " - " + ChatColor.GRAY + "Left Click");
+            } else {
+                spells.sort(Comparator.comparingInt(Spell::getLevelReq));
+                lore.add(" ");
+                for (Spell sp : spells) {
+                    String usage;
+                    if ("BASIC_ATTACK".equalsIgnoreCase(sp.getCombo())) {
+                        usage = "Left Click";
+                    } else {
+                        usage = SPELL_USAGE.getOrDefault(sp.getId(),
+                                sp.getCombo().replace("L", "Left").replace("R", "Right"));
+                    }
+                    lore.add(ChatColor.YELLOW.toString() + ChatColor.BOLD + sp.getDisplayName()
+                            + ChatColor.RESET + ChatColor.WHITE + " - " + ChatColor.GRAY + usage);
+                }
+            }
+
+            Rating r = rating(pc);
+            lore.add(" ");
+            lore.add(ratingLine(ChatColor.RED, "Damage", r.dmg));
+            lore.add(ratingLine(ChatColor.BLUE, "Defence", r.def));
+            lore.add(ratingLine(ChatColor.GREEN, "Mobility", r.mob));
+            lore.add(ratingLine(ChatColor.YELLOW, "Utility", r.util));
+            lore.add(" ");
+            lore.add(ChatColor.WHITE + "Click " + ChatColor.GRAY + "to select this class!");
+
+            meta.setLore(lore);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private static ItemStack lockItem() {
+        ItemBuilder b = NexoItems.itemFromId("lock");
+        ItemStack item = b != null ? b.build() : new ItemStack(Material.PAPER);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.RED + "Locked");
             item.setItemMeta(meta);
         }
         return item;
     }
 
     private static ItemStack createLockedItem(PlayerClass pc) {
-        ItemStack item = LOCK_ITEM_BASE.clone();
+        ItemStack item = lockItem();
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(ChatColor.RED + pc.name());
+            meta.setDisplayName(ChatColor.RED + "???");
             item.setItemMeta(meta);
         }
         return item;
@@ -248,8 +378,10 @@ public class SubclassGUI implements Listener {
                     ChatFormatter.sendCenteredMessage(player, "");
                     ChatFormatter.constructDivider(player, "§6§l-", 45);
                     player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
+                    player.closeInventory();
+                } else {
+                    player.sendMessage(ChatColor.RED + "You cannot select that class!");
                 }
-                player.closeInventory();
                 return;
             }
         }
