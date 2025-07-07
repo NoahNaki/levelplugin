@@ -62,7 +62,7 @@ public class PlayerJoinListener implements Listener {
             StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(pid);
             if (ps.playerClass == PlayerClass.VILLAGER) {
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
-                        "dm open mmocore_class_warrior -p:" + player.getName());
+                        "dm open mmocore_class_warrior " + player.getName());
             }
 
             // 3) Additional per-player loading can happen here
