@@ -3,8 +3,11 @@ package me.nakilex.levelplugin.player.classes.commands;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.Main;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -92,7 +95,7 @@ public class ClassCommand implements CommandExecutor {
 
         if (args.length == 0) {
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
-                    "dm open mmocore_class_warrior " + player.getName());
+                    "dm open mmocore_class_warrior -p:" + player.getName());
             return true;
         }
 
@@ -121,7 +124,17 @@ public class ClassCommand implements CommandExecutor {
             boolean flight = chosen == PlayerClass.ARCHER || chosen == PlayerClass.ROGUE;
             player.setAllowFlight(flight);
             if (!flight) player.setFlying(false);
-            player.sendMessage(ChatColor.GREEN + "Class set to " + ChatColor.AQUA + chosen.name());
+
+            ChatFormatter.constructDivider(player, "§6§l-", 45);
+            ChatFormatter.sendCenteredMessage(player, "§6§lCLASS SELECTED!");
+            ChatFormatter.sendCenteredMessage(player, "");
+            ChatFormatter.sendCenteredMessage(player,
+                    "§7You have chosen the §e§l" + chosen.name() + " §7class!");
+            ChatFormatter.constructDivider(player, "§6§l-", 45);
+            player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
+            player.closeInventory();
+            Main.getInstance().getQuestManager().handleClassSelect(player);
+
             me.nakilex.levelplugin.items.utils.ItemUtil.refreshTooltips(player);
         } catch (IllegalArgumentException ex) {
             player.sendMessage(ChatColor.RED + "Unknown class: " + args[0]);
