@@ -173,12 +173,7 @@ public class SubclassGUI implements Listener {
     }
 
     private static String ratingLine(ChatColor color, String label, int val) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(color).append(label).append(":");
-        int pad = 9 - label.length();
-        for (int i = 0; i < pad; i++) sb.append(' ');
-        sb.append(bar(val));
-        return sb.toString();
+        return color + label + ":\t" + bar(val);
     }
 
     private static String formatClassName(PlayerClass pc) {
@@ -210,13 +205,15 @@ public class SubclassGUI implements Listener {
             if (!spellMap.isEmpty()) {
                 List<Spell> spells = new ArrayList<>(spellMap.values());
                 spells.sort(Comparator.comparingInt(Spell::getLevelReq));
+                lore.add(" ");
                 int count = 0;
                 for (Spell sp : spells) {
                     if ("BASIC_ATTACK".equalsIgnoreCase(sp.getCombo())) continue;
                     if (count++ >= 3) break;
                     String usage = SPELL_USAGE.getOrDefault(sp.getId(),
                             sp.getCombo().replace("L", "Left").replace("R", "Right"));
-                    lore.add(ChatColor.YELLOW.toString() + ChatColor.BOLD + sp.getDisplayName() + ChatColor.RESET + ChatColor.YELLOW + " - " + ChatColor.GRAY + usage);
+                    lore.add(ChatColor.YELLOW.toString() + ChatColor.BOLD + sp.getDisplayName() +
+                            ChatColor.RESET + ChatColor.WHITE + " - " + ChatColor.GRAY + usage);
                 }
             }
 
