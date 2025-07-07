@@ -32,11 +32,13 @@ public class QuestReward {
      * plugin, but this overload remains for backward compatibility with older
      * builds which still invoke it.
      */
+    // Legacy constructor kept for binary compatibility with old saves that
+    // included rune rewards. The rune list is ignored but the signature is
+    // distinct by using an array parameter to avoid type erasure conflicts.
     public QuestReward(int xp, int coins, int gems,
                        List<Integer> itemIds,
-                       List<String> runeIds) {
+                       String[] runeIds) {
         this(xp, coins, gems, itemIds, java.util.Collections.emptyList());
-        // runeIds ignored
     }
 
     public int getXp() { return xp; }
