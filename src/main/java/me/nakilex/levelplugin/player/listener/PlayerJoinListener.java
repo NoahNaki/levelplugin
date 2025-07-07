@@ -61,9 +61,10 @@ public class PlayerJoinListener implements Listener {
             // 2) If they haven't chosen a class, show the class selection menu
             StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(pid);
             if (ps.playerClass == PlayerClass.VILLAGER) {
-                // Delay slightly longer and execute as the player to improve reliability
+                // Delay slightly longer and run via console for reliability
                 Bukkit.getScheduler().runTaskLater(Main.getInstance(), () ->
-                        player.performCommand("dm open mmocore_class_warrior " + player.getName()),
+                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
+                                "dm open mmocore_class_warrior -p:" + player.getName()),
                         10L);
             }
 

@@ -94,9 +94,9 @@ public class ClassCommand implements CommandExecutor {
         Player player = (Player) sender;
 
         if (args.length == 0) {
-            // Run the DeluxeMenus command as the player to ensure the menu opens
-            // correctly even if console execution fails
-            player.performCommand("dm open mmocore_class_warrior " + player.getName());
+            // Open the DeluxeMenus GUI for this player
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
+                    "dm open mmocore_class_warrior -p:" + player.getName());
             return true;
         }
 
@@ -131,6 +131,7 @@ public class ClassCommand implements CommandExecutor {
             ChatFormatter.sendCenteredMessage(player, "");
             ChatFormatter.sendCenteredMessage(player,
                     "§7You have chosen the §e§l" + chosen.name() + " §7class!");
+            ChatFormatter.sendCenteredMessage(player, "");
             ChatFormatter.constructDivider(player, "§6§l-", 45);
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
             player.closeInventory();

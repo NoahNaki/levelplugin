@@ -94,6 +94,7 @@ public class ClassMenuListener implements Listener {
             ChatFormatter.sendCenteredMessage(player, "");
             ChatFormatter.sendCenteredMessage(player,
                 "§7You have chosen the §e§l" + className + " §7class!");
+            ChatFormatter.sendCenteredMessage(player, "");
             ChatFormatter.constructDivider(player, "§6§l-", 45);
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
             player.closeInventory();
