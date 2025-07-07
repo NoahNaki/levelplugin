@@ -64,7 +64,7 @@ public class PlayerJoinListener implements Listener {
                 // Delay slightly longer and run via console for reliability
                 Bukkit.getScheduler().runTaskLater(Main.getInstance(), () ->
                         Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
-                                "dm open mmocore_class_warrior -p:" + player.getName()),
+                                "dm open mmocore_class_warrior " + player.getName()),
                         10L);
             }
 

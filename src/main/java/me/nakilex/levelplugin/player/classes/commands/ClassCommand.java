@@ -96,7 +96,7 @@ public class ClassCommand implements CommandExecutor {
         if (args.length == 0) {
             // Open the DeluxeMenus GUI for this player
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
-                    "dm open mmocore_class_warrior -p:" + player.getName());
+                    "dm open mmocore_class_warrior " + player.getName());
             return true;
         }
 
