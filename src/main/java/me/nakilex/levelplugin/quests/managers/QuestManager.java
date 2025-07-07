@@ -589,6 +589,10 @@ public class QuestManager {
                 }
             }
         }
+
+        for (me.nakilex.levelplugin.player.classes.data.PlayerClass pc : reward.getUnlockClasses()) {
+            StatsManager.getInstance().unlockClass(player.getUniqueId(), pc);
+        }
     }
 
     /**
@@ -616,6 +620,9 @@ public class QuestManager {
                 me.nakilex.levelplugin.items.data.CustomItem tpl = plugin.getItemManager().getTemplateById(id);
                 String name = tpl != null ? tpl.getBaseName() : ("Item " + id);
                 me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + name);
+            }
+            for (me.nakilex.levelplugin.player.classes.data.PlayerClass pc : reward.getUnlockClasses()) {
+                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + pc.name() + " class");
             }
             me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, " ", 45);
         }
