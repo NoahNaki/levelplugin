@@ -76,9 +76,18 @@ public class ClassCommand implements CommandExecutor {
                 target.setAllowFlight(flight);
                 if (!flight) target.setFlying(false);
                 sender.sendMessage(ChatColor.GREEN + "Class for " + target.getName() + " set to " + chosen.name());
-                if (sender != target) {
-                    target.sendMessage(ChatColor.GREEN + "Your class has been set to " + chosen.name());
-                }
+
+                ChatFormatter.constructDivider(target, "§6§l-", 45);
+                ChatFormatter.sendCenteredMessage(target, "§6§lCLASS SELECTED!");
+                ChatFormatter.sendCenteredMessage(target, "");
+                ChatFormatter.sendCenteredMessage(target,
+                        "§7You are now the §e§l" + chosen.name() + " §7class!");
+                ChatFormatter.sendCenteredMessage(target, "");
+                ChatFormatter.constructDivider(target, "§6§l-", 45);
+                target.playSound(target.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
+                target.closeInventory();
+                Main.getInstance().getQuestManager().handleClassSelect(target);
+
                 me.nakilex.levelplugin.items.utils.ItemUtil.refreshTooltips(target);
             } catch (IllegalArgumentException ex) {
                 sender.sendMessage(ChatColor.RED + "Unknown class: " + args[2]);
