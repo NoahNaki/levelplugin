@@ -94,8 +94,9 @@ public class ClassCommand implements CommandExecutor {
         Player player = (Player) sender;
 
         if (args.length == 0) {
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
-                    "dm open mmocore_class_warrior -p:" + player.getName());
+            // Run the DeluxeMenus command as the player to ensure the menu opens
+            // correctly even if console execution fails
+            player.performCommand("dm open mmocore_class_warrior -p:" + player.getName());
             return true;
         }
 
