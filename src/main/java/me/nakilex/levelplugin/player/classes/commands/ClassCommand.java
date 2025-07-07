@@ -37,6 +37,21 @@ public class ClassCommand implements CommandExecutor {
             return true;
         }
 
+        if (args.length >= 1 && args[0].equalsIgnoreCase("unlockall")) {
+            if (args.length != 2) {
+                sender.sendMessage(ChatColor.YELLOW + "Usage: /class unlockall <player>");
+                return true;
+            }
+            Player target = Bukkit.getPlayer(args[1]);
+            if (target == null) {
+                sender.sendMessage(ChatColor.RED + "Player not found: " + args[1]);
+                return true;
+            }
+            StatsManager.getInstance().unlockAllClasses(target.getUniqueId());
+            sender.sendMessage(ChatColor.GREEN + "Unlocked all classes for " + target.getName());
+            return true;
+        }
+
         if (args.length >= 1 && args[0].equalsIgnoreCase("lock")) {
             if (args.length != 3) {
                 sender.sendMessage(ChatColor.YELLOW + "Usage: /class lock <player> <class>");
