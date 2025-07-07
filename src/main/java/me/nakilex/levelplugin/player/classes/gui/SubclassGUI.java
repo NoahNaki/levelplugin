@@ -113,8 +113,8 @@ public class SubclassGUI implements Listener {
         inv.setItem(SORT_SLOT, createSortButton(sort));
         inv.setItem(INFO_SLOT, getNexoItem("info", ChatColor.YELLOW + "Information"));
 
-        player.openInventory(inv);
         OPEN.put(player.getUniqueId(), inv);
+        player.openInventory(inv);
     }
 
     private static final class Rating {
