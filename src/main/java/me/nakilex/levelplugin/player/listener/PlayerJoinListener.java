@@ -57,7 +57,11 @@ public class PlayerJoinListener implements Listener {
                 player.sendMessage(org.bukkit.ChatColor.YELLOW + "You received 20 coins to get started!");
             }
 
-            // 2) Additional per-player loading can happen here
+            // 2) Open the class selection menu using DeluxeMenus
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
+                    "dm open mmocore_class_warrior -p:" + player.getName());
+
+            // 3) Additional per-player loading can happen here
         }, 2L);  // 2 ticks
     }
 }
