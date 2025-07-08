@@ -1,7 +1,7 @@
 package me.nakilex.levelplugin.utils;
 
-import com.mojang.authlib.GameProfile;
-import com.mojang.authlib.properties.Property;
+import org.bukkit.craftbukkit.libs.com.mojang.authlib.GameProfile;
+import org.bukkit.craftbukkit.libs.com.mojang.authlib.properties.Property;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.inventory.ItemStack;
