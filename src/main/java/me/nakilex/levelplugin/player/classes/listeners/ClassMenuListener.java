@@ -46,7 +46,6 @@ public class ClassMenuListener implements Listener {
             case "START AS A BARBARIAN!": selectedClass = PlayerClass.BARBARIAN; className = "Barbarian"; break;
             case "START AS A WARRIOR!": selectedClass = PlayerClass.WARRIOR; className = "Warrior"; break;
             case "START AS AN ARCHER!": selectedClass = PlayerClass.ARCHER;  className = "Archer";  break;
-            case "START AS A COOLARCHER!": selectedClass = PlayerClass.COOLARCHER; className = "CoolArcher"; break;
             case "START AS A PHOENIXHUNTER!": selectedClass = PlayerClass.PHOENIXHUNTER; className = "PhoenixHunter"; break;
             case "START AS A MAGE!":    selectedClass = PlayerClass.MAGE;    className = "Mage";    break;
             case "START AS A PALADIN!": selectedClass = PlayerClass.PALADIN; className = "Paladin"; break;
@@ -82,7 +81,7 @@ public class ClassMenuListener implements Listener {
 
             boolean canDJ = (selectedClass == PlayerClass.ARCHER
                     || selectedClass == PlayerClass.ROGUE
-                    || selectedClass == PlayerClass.COOLARCHER
+                    || selectedClass == PlayerClass.DEADEYE
                     || selectedClass == PlayerClass.PHOENIXHUNTER);
             player.setAllowFlight(canDJ);
             if (!canDJ) {

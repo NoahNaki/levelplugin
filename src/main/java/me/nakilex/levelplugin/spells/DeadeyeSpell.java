@@ -2,9 +2,8 @@ package me.nakilex.levelplugin.spells;
 
 import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.items.data.WeaponType;
-import org.bukkit.persistence.PersistentDataType;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.items.data.WeaponType;
 import me.nakilex.levelplugin.spells.Spell;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import org.bukkit.Material;
@@ -21,24 +20,23 @@ import java.util.EnumSet;
 import java.util.Set;
 
 /**
- * Simple listener that maps basic interactions to MythicMobs skills for the
- * CoolArcher test class.
+ * Listener mapping player interactions to MythicMobs skills for the Deadeye subclass.
  */
-public class CoolArcherSpell implements Listener {
+public class DeadeyeSpell implements Listener {
 
-    // Use bow and crossbow materials
+    // Uses bow and crossbow materials
     private static final Set<Material> VALID_WEAPONS = EnumSet.copyOf(WeaponType.BOW.getMaterials());
 
-    private boolean isCoolArcher(Player p) {
-        return StatsManager.getInstance().getPlayerStats(p.getUniqueId()).playerClass ==
-                me.nakilex.levelplugin.player.classes.data.PlayerClass.COOLARCHER;
+    private boolean isDeadeye(Player player) {
+        return StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass ==
+                me.nakilex.levelplugin.player.classes.data.PlayerClass.DEADEYE;
     }
 
-    private boolean validWeapon(Player p) {
-        ItemStack item = p.getInventory().getItemInMainHand();
+    private boolean validWeapon(Player player) {
+        ItemStack item = player.getInventory().getItemInMainHand();
         boolean ok = item != null && VALID_WEAPONS.contains(item.getType());
         if (!ok) {
-            Main.getPlugin().getLogger().info("[CA DBG] invalid weapon " + (item == null ? "null" : item.getType().name()));
+            Main.getPlugin().getLogger().info("[DE DBG] invalid weapon " + (item == null ? "null" : item.getType().name()));
         }
         return ok;
     }
@@ -46,14 +44,12 @@ public class CoolArcherSpell implements Listener {
     @EventHandler
     public void onLeftClick(PlayerAnimationEvent event) {
         Player player = event.getPlayer();
-        if (!isCoolArcher(player) || !validWeapon(player)) return;
-
-        Main.getPlugin().getLogger().info("[CA] left click " + player.getName() + " sneaking=" + player.isSneaking());
+        if (!isDeadeye(player) || !validWeapon(player)) return;
 
         if (player.isSneaking()) {
-            castSpell(player, "RRR"); // Bow Drone
+            castSpell(player, "RRR"); // Air Strike
         } else {
-            castSpell(player, "BASIC_ATTACK"); // Quick Shot
+            castSpell(player, "BASIC_ATTACK"); // Pistol Shot
         }
     }
 
@@ -62,15 +58,13 @@ public class CoolArcherSpell implements Listener {
         if (event.getHand() == null || event.getHand().ordinal() != 0) return;
         if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         Player player = event.getPlayer();
-        if (!isCoolArcher(player) || !validWeapon(player)) return;
+        if (!isDeadeye(player) || !validWeapon(player)) return;
         event.setCancelled(true);
 
-        Main.getPlugin().getLogger().info("[CA] right click " + player.getName() + " sneaking=" + player.isSneaking());
-
         if (player.isSneaking()) {
-            castSpell(player, "LLL"); // Dragon Piercer
+            castSpell(player, "LLL"); // Focus Shot
         } else {
-            castSpell(player, "LRL"); // Backstep
+            castSpell(player, "LRL"); // Shotgun Blast
         }
     }
 
@@ -78,22 +72,18 @@ public class CoolArcherSpell implements Listener {
     public void onToggleSneak(PlayerToggleSneakEvent event) {
         if (!event.isSneaking()) return;
         Player player = event.getPlayer();
-        if (!isCoolArcher(player) || !validWeapon(player)) return;
-        Main.getPlugin().getLogger().info("[CA] toggle sneak by " + player.getName());
-        castSpell(player, "LLR"); // Arrow Barrage
+        if (!isDeadeye(player) || !validWeapon(player)) return;
+        castSpell(player, "LRR"); // Sniper Backup
     }
 
     private void castSpell(Player player, String combo) {
-        Spell spell = SpellManager.getInstance().getSpell("coolarcher", combo);
-        Main.getPlugin().getLogger().info("[CA] castSpell combo=" + combo + " spell=" + (spell!=null));
+        Spell spell = SpellManager.getInstance().getSpell("deadeye", combo);
         if (spell == null) {
             MythicBukkit.inst().getAPIHelper().castSkill(player, combo);
             return;
         }
-
-        // weapon check
         if (!spell.getAllowedWeapons().contains(player.getInventory().getItemInMainHand().getType())) {
-            player.sendMessage("§cYou must hold a valid coolarcher weapon!");
+            player.sendMessage("§cYou must hold a valid deadeye weapon!");
             return;
         }
         spell.castEffect(player);
