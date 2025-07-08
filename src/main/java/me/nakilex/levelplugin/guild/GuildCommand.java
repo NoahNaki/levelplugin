@@ -7,16 +7,19 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+
 import java.util.UUID;
 
 public class GuildCommand implements CommandExecutor {
 
     private final GuildManager manager;
     private final GuildGUI gui;
+    private final GuildMemberGUI memberGui;
 
-    public GuildCommand(GuildManager manager, GuildGUI gui) {
+    public GuildCommand(GuildManager manager, GuildGUI gui, GuildMemberGUI memberGui) {
         this.manager = manager;
         this.gui = gui;
+        this.memberGui = memberGui;
     }
 
     @Override
@@ -282,6 +285,9 @@ public class GuildCommand implements CommandExecutor {
                 } else {
                     player.sendMessage(ChatColor.RED + "No neutrality request from that guild.");
                 }
+                break;
+            case "menu":
+                memberGui.open(player);
                 break;
             case "list":
                 gui.open(player);
