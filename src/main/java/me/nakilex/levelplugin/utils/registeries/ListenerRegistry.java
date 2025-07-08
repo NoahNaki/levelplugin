@@ -52,7 +52,6 @@ import me.nakilex.levelplugin.spells.listener.*;
 import me.nakilex.levelplugin.player.classes.gui.SubclassGUI;
 import me.nakilex.levelplugin.trade.listeners.PlayerRightClicksPlayerListener;
 import me.nakilex.levelplugin.guild.GuildGUIListener;
-import me.nakilex.levelplugin.effectdemo.EffectDemoListener;
 import me.nakilex.levelplugin.utils.*;
 import me.nakilex.levelplugin.quests.listeners.QuestKillListener;
 import me.nakilex.levelplugin.quests.listeners.QuestCraftListener;
@@ -102,7 +101,6 @@ public class ListenerRegistry {
 
         PluginManager pm = plugin.getServer().getPluginManager();
 
-        // Register all listeners
         pm.registerEvents(new MobDamageListener(), plugin);
         pm.registerEvents(new MythicMobDeathListener(
                 mobRewardsConfig,
@@ -145,11 +143,10 @@ public class ListenerRegistry {
         pm.registerEvents(new CustomItemUpdateListener(), plugin);
         pm.registerEvents(new SalvageListener(economyManager, gemsManager), plugin);
         pm.registerEvents(new SpellGUIListener(), plugin);
-        pm.registerEvents(new EffectDemoListener(), plugin);
         pm.registerEvents(new DoubleJumpListener(), plugin);
         pm.registerEvents(new DamageIndicatorListener(dmgToggleManager), plugin);
         pm.registerEvents(new DamageChatListener(), plugin);
-        pm.registerEvents(settingsGUI, plugin); // ✅ No constructor call here
+        pm.registerEvents(settingsGUI, plugin);
         pm.registerEvents(new GuildGUIListener(), plugin);
         pm.registerEvents(new MeteorListener(), plugin);
         pm.registerEvents(new ShockwaveListener(), plugin);
@@ -196,9 +193,8 @@ public class ListenerRegistry {
 
 
 
-        // Register ArrowUtils listener and start cleanup task
         ArrowUtils arrowUtils = new ArrowUtils(plugin);
-        pm.registerEvents(arrowUtils, plugin);  // Register the listener
-        arrowUtils.startArrowCleanupTask();    // Start the task to clean up arrows periodically
+        pm.registerEvents(arrowUtils, plugin);
+        arrowUtils.startArrowCleanupTask();
     }
 }

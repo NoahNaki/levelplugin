@@ -76,7 +76,6 @@ public class ClassMenuListener implements Listener {
                 }
             }
 
-            // ✅ Set class directly into StatsManager like old version
             StatsManager.getInstance().getPlayerStats(puuid).playerClass = selectedClass;
 
             boolean canDJ = (selectedClass == PlayerClass.ARCHER

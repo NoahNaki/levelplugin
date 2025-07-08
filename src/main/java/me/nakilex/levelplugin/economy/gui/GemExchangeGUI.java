@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import me.nakilex.levelplugin.utils.GuiUtil;
 
 public class GemExchangeGUI implements Listener {
     private static final String TITLE = ChatColor.DARK_PURPLE + "Gem Exchange";
@@ -73,11 +74,14 @@ public class GemExchangeGUI implements Listener {
     }
 
     private void fillFiller() {
-        ItemStack filler = createFillerItem(Material.GRAY_STAINED_GLASS_PANE);
+        ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
+        ItemMeta meta = filler.getItemMeta();
+        if (meta != null) {
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            filler.setItemMeta(meta);
+        }
         for (int slot = 0; slot < gui.getSize(); slot++) {
-            if (gui.getItem(slot) == null) {
-                gui.setItem(slot, filler);
-            }
+            if (gui.getItem(slot) == null) gui.setItem(slot, filler);
         }
     }
 
@@ -102,19 +106,15 @@ public class GemExchangeGUI implements Listener {
     @EventHandler
     public void onClose(InventoryCloseEvent ev) {
         if (ev.getView().getTitle().equals(TITLE)) {
-            // no-op
         }
     }
 
     private void handleConvert(Player p,
                                Material fromMat, int fromAmt,
                                Material toMat,   int toAmt) {
-        // 1) Count how many of the “from” material the player has
         @SuppressWarnings("unchecked")
         Map<Integer, ItemStack> map = (Map<Integer, ItemStack>) p.getInventory().all(fromMat);
         int total = map.values().stream().mapToInt(ItemStack::getAmount).sum();
-
-        // 2) If they don’t have enough, bail out
         if (total < fromAmt) {
             p.sendMessage(ChatColor.RED
                 + "Not enough "
@@ -122,8 +122,6 @@ public class GemExchangeGUI implements Listener {
                 + "! Need " + fromAmt + ".");
             return;
         }
-
-        // 3) Remove exactly `fromAmt` items from their inventory
         int rem = fromAmt;
         for (var entry : map.entrySet()) {
             ItemStack stack = entry.getValue();
@@ -139,18 +137,13 @@ public class GemExchangeGUI implements Listener {
 
             if (rem == 0) break;
         }
-
-        // 4) Build the “pretty” custom item instead of a vanilla one
-        //    Determine the unit‐value of the target material:
         int unitValue;
-        if (toMat == Material.MEDIUM_AMETHYST_BUD)      unitValue = 1;      // fragment = 1 unit
-        else if (toMat == Material.AMETHYST_SHARD)      unitValue = 64;     // shard = 64 units
-        else /* AMETHYST_CLUSTER */                     unitValue = 4096;   // cluster = 4096 units
+        if (toMat == Material.MEDIUM_AMETHYST_BUD)      unitValue = 1;
+        else if (toMat == Material.AMETHYST_SHARD)      unitValue = 64;
+        else /* AMETHYST_CLUSTER */                     unitValue = 4096;
 
         ItemStack pretty = gemsManager.createCurrencyItem(toMat, toAmt, unitValue);
         p.getInventory().addItem(pretty);
-
-        // 5) Send feedback and reopen GUI
         p.sendMessage(ChatColor.GREEN
             + "Converted " + fromAmt + " "
             + fromMat.name().toLowerCase().replace('_',' ')
@@ -178,14 +171,5 @@ public class GemExchangeGUI implements Listener {
         return item;
     }
 
-    private ItemStack createFillerItem(Material mat) {
-        ItemStack item = new ItemStack(mat, 1);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(" ");
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-            item.setItemMeta(meta);
-        }
-        return item;
-    }
+    
 }

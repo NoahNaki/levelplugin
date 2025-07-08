@@ -857,4 +857,10 @@ public class ItemUtil {
         }
         player.updateInventory();
     }
+
+    public static void applyUpdatedStack(ItemStack target, ItemStack source) {
+        if (target == null || source == null) return;
+        target.setType(source.getType());
+        target.setItemMeta(source.getItemMeta());
+    }
 }

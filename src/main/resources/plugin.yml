@@ -88,7 +88,7 @@ commands:
     aliases: [p]
   guild:
     description: Manage your guild
-    usage: /guild <subcommand>
+    usage: /guild <subcommand> | /guild menu
   partyglow:
     description: Toggle party member glow
     usage: /partyglow
@@ -208,8 +208,3 @@ commands:
   townpos2:
     description: Set second selection position for towns
     usage: /townpos2
-  fxdemo:
-    description: Opens a particle showcase
-    usage: /fxdemo
-    permission: levelplugin.command.fxdemo
-    permission-message: You don't have permission to use /fxdemo

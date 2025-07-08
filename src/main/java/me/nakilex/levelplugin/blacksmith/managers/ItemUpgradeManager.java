@@ -55,8 +55,7 @@ public class ItemUpgradeManager {
                     player
             );
             ItemUtil.copyEgoData(itemStack, updated, customItem, player);
-            itemStack.setType(updated.getType());
-            itemStack.setItemMeta(updated.getItemMeta());
+            ItemUtil.applyUpdatedStack(itemStack, updated);
 
             return true;
         }

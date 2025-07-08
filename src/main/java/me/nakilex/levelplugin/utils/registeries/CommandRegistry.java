@@ -44,7 +44,6 @@ import me.nakilex.levelplugin.trade.commands.TradeCommand;
 import me.nakilex.levelplugin.auctionhouse.AuctionCommand;
 import me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI;
 import me.nakilex.levelplugin.auctionhouse.AuctionHouseManager;
-import me.nakilex.levelplugin.effectdemo.EffectDemoCommand;
 import me.nakilex.levelplugin.party.PartyCommands;
 import me.nakilex.levelplugin.party.PartyGlowCommand;
 import me.nakilex.levelplugin.friend.FriendCommand;
@@ -78,6 +77,7 @@ public class CommandRegistry {
                                         PartyManager partyManager,
                                         me.nakilex.levelplugin.guild.GuildManager guildManager,
                                         me.nakilex.levelplugin.guild.GuildGUI guildGui,
+                                        me.nakilex.levelplugin.guild.GuildMemberGUI guildMemberGui,
                                         PotionManager potionManager,
                                         LootChestManager lootChestManager,
                                         ConfigManager configManager,
@@ -114,7 +114,7 @@ public class CommandRegistry {
         plugin.getCommand("blacksmith").setExecutor(new BlacksmithCommand(blacksmithGUI));
         plugin.getCommand("horse").setExecutor(new HorseCommand(horseManager, horseGUI));
         plugin.getCommand("party").setExecutor(new PartyCommands(partyManager));
-        plugin.getCommand("guild").setExecutor(new me.nakilex.levelplugin.guild.GuildCommand(guildManager, guildGui));
+        plugin.getCommand("guild").setExecutor(new me.nakilex.levelplugin.guild.GuildCommand(guildManager, guildGui, guildMemberGui));
         plugin.getCommand("partyglow").setExecutor(new PartyGlowCommand(plugin.getPartyGlowManager()));
         plugin.getCommand("friend").setExecutor(new FriendCommand(plugin.getFriendManager()));
         plugin.getCommand("friendglow").setExecutor(new FriendGlowCommand(plugin.getFriendGlowManager()));
@@ -151,7 +151,6 @@ public class CommandRegistry {
         plugin.getCommand("buildingstage").setExecutor(new BuildingStageCommand(plugin, plugin.getBuildingStageManager()));
         plugin.getCommand("townpos1").setExecutor(new TownPosCommand(true));
         plugin.getCommand("townpos2").setExecutor(new TownPosCommand(false));
-        plugin.getCommand("fxdemo").setExecutor(new EffectDemoCommand());
 
     }
 }

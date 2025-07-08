@@ -1,7 +1,6 @@
 package me.nakilex.levelplugin.player.attributes.gui;
 
-import com.nexomc.nexo.api.NexoItems;
-import com.nexomc.nexo.items.ItemBuilder;
+import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStats;
@@ -45,8 +44,6 @@ public class StatsInventory {
             54,
             ps.skillPoints + " skill points remaining"
         );
-
-        // Stat books with base and bonus stats
         inv.setItem(19, createStatBook(
             "Strength", StatType.STR, ps.baseStrength, ps.bonusStrength, ps.skillPoints,
             "Increases your melee damage.",
@@ -55,11 +52,9 @@ public class StatsInventory {
                 "Current bonus: " + ChatColor.YELLOW + ((ps.baseStrength + ps.bonusStrength) * 0.5) + " damage."
             }
         ));
-
-        // Agility with DR dodge chance
         int totalAgility = ps.baseAgility + ps.bonusAgility;
         double dodgePercent = totalAgility / (totalAgility + 200.0) * 100.0;
-        dodgePercent = Math.round(dodgePercent * 10.0) / 10.0;  // 1-decimal precision
+        dodgePercent = Math.round(dodgePercent * 10.0) / 10.0;
 
         inv.setItem(20, createStatBook(
             "Agility", StatType.AGI, ps.baseAgility, ps.bonusAgility, ps.skillPoints,
@@ -101,12 +96,10 @@ public class StatsInventory {
                 "Current HP bonus: " + ChatColor.YELLOW + ((ps.baseHealthStat + ps.bonusHealthStat) * 2) + " HP."
             }
         ));
-
-        // Updated Defense stat with diminishing returns
         int totalDef = ps.baseDefenceStat + ps.bonusDefenceStat;
         double percentReduction = totalDef / (totalDef + 100.0);
-        percentReduction *= 100.0; // convert to percentage
-        percentReduction = Math.round(percentReduction * 10.0) / 10.0; // round to 1 decimal
+        percentReduction *= 100.0;
+        percentReduction = Math.round(percentReduction * 10.0) / 10.0;
 
         inv.setItem(25, createStatBook(
             "Defense", StatType.DEF, ps.baseDefenceStat, ps.bonusDefenceStat, ps.skillPoints,
@@ -116,21 +109,13 @@ public class StatsInventory {
                 "Current damage reduction: " + ChatColor.YELLOW + percentReduction + "%"
             }
         ));
-
-        // Refund Skill Points Button
-        inv.setItem(13, getNexoItem("refresh", ChatColor.RED + "Refund All Skill Points"));
-
-        // Player head with overall summary
+        inv.setItem(13, GuiUtil.getNexoItem("refresh", ChatColor.RED + "Refund All Skill Points"));
         inv.setItem(8, createPlayerHead(player, ps, page));
-
-        // Navigation and extra buttons
-        inv.setItem(37, getNexoItem("arrow_left", ChatColor.GRAY + "Back"));
-        inv.setItem(43, getNexoItem("arrow_right", ChatColor.GRAY + "Forward"));
-        inv.setItem(48, getNexoItem("camera", ChatColor.YELLOW + "Coming Soon"));
-        inv.setItem(50, getNexoItem("settings", ChatColor.AQUA + "Settings"));
-
-        // Fill empty slots with gray stained glass panes
-        ItemStack filler = createFillerItem(Material.GRAY_STAINED_GLASS_PANE, " ");
+        inv.setItem(37, GuiUtil.getNexoItem("arrow_left", ChatColor.GRAY + "Back"));
+        inv.setItem(43, GuiUtil.getNexoItem("arrow_right", ChatColor.GRAY + "Forward"));
+        inv.setItem(48, GuiUtil.getNexoItem("camera", ChatColor.YELLOW + "Coming Soon"));
+        inv.setItem(50, GuiUtil.getNexoItem("settings", ChatColor.AQUA + "Settings"));
+        ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
         for (int i = 0; i < inv.getSize(); i++) {
             if (inv.getItem(i) == null) {
                 inv.setItem(i, filler);
@@ -178,8 +163,6 @@ public class StatsInventory {
         int nextLevelXP = levelManager.getXpNeededForNextLevel(player);
         if (page == 0) {
             lore.add("");
-
-            // Add all stats with gear bonuses
             lore.add(ChatColor.BLUE + "\u2620 " + ChatColor.GRAY + "Strength: " + ChatColor.WHITE + (ps.baseStrength + ps.bonusStrength) + ChatColor.GREEN + " (+" + ps.bonusStrength + ")");
             lore.add(ChatColor.GREEN + "\u2248 " + ChatColor.GRAY + "Agility: " + ChatColor.WHITE + (ps.baseAgility + ps.bonusAgility) + ChatColor.GREEN + " (+" + ps.bonusAgility + ")");
             lore.add(ChatColor.AQUA + "\u2666 " + ChatColor.GRAY + "Intelligence: " + ChatColor.WHITE + (ps.baseIntelligence + ps.bonusIntelligence) + ChatColor.GREEN + " (+" + ps.bonusIntelligence + ")");
@@ -211,7 +194,6 @@ public class StatsInventory {
         }
 
         lore.add(" ");
-        // Page indicator
         String box1 = (page == 0 ? ChatColor.GREEN : ChatColor.DARK_GRAY) + "■";
         String box2 = (page == 1 ? ChatColor.GREEN : ChatColor.DARK_GRAY) + "■";
         lore.add(ChatColor.GREEN + "< " + box1 + " " + box2 + ChatColor.GREEN + " >");
@@ -220,23 +202,4 @@ public class StatsInventory {
         return head;
     }
 
-    private static ItemStack createFillerItem(Material material, String space) {
-        ItemStack filler = new ItemStack(material);
-        ItemMeta meta = filler.getItemMeta();
-        meta.setDisplayName(space);
-        filler.setItemMeta(meta);
-        return filler;
-    }
-
-    private static ItemStack getNexoItem(String id, String name) {
-        ItemBuilder builder = NexoItems.itemFromId(id);
-        if (builder == null) return new ItemStack(Material.BARRIER);
-        ItemStack item = builder.build();
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(name);
-            item.setItemMeta(meta);
-        }
-        return item;
-    }
 }

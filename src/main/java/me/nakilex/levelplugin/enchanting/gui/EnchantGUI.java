@@ -6,8 +6,7 @@ import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.Main;
-import com.nexomc.nexo.api.NexoItems;
-import com.nexomc.nexo.items.ItemBuilder;
+import me.nakilex.levelplugin.utils.GuiUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -38,7 +37,7 @@ public class EnchantGUI implements Listener {
 
     public void open(Player player) {
         Inventory gui = Bukkit.createInventory(player, SIZE, TITLE);
-        ItemStack filler = createFiller();
+        ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
         for (int i = 0; i < SIZE; i++) gui.setItem(i, filler);
         gui.setItem(INFO_SLOT, createInfoItem());
         gui.setItem(13, null);
@@ -47,19 +46,10 @@ public class EnchantGUI implements Listener {
         player.openInventory(gui);
     }
 
-    private ItemStack createFiller() {
-        ItemStack pane = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
-        ItemMeta meta = pane.getItemMeta();
-        if (meta != null) { meta.setDisplayName(" "); pane.setItemMeta(meta); }
-        return pane;
-    }
-
     private ItemStack createInfoItem() {
-        ItemBuilder builder = NexoItems.itemFromId("info");
-        ItemStack item = builder == null ? new ItemStack(Material.BOOK) : builder.build();
+        ItemStack item = GuiUtil.getNexoItem("info", ChatColor.YELLOW + "Information");
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(ChatColor.YELLOW + "Information");
             meta.setLore(Arrays.asList(
                     ChatColor.GRAY + "Place a custom item in the center.",
                     ChatColor.GRAY + "Click " + ChatColor.LIGHT_PURPLE + "Enchant" + ChatColor.GRAY + " to add",
@@ -94,7 +84,6 @@ public class EnchantGUI implements Listener {
             return;
         }
 
-        // Allow shift-clicking items from player inventory into slot 13
         if (rawSlot >= gui.getSize()) {
             if (e.getAction() == org.bukkit.event.inventory.InventoryAction.MOVE_TO_OTHER_INVENTORY
                     && (gui.getItem(13) == null || gui.getItem(13).getType().isAir())) {

@@ -1,9 +1,8 @@
 
 package me.nakilex.levelplugin.salvage.gui;
 
-import com.nexomc.nexo.api.NexoItems;
-import com.nexomc.nexo.items.ItemBuilder;
 import me.nakilex.levelplugin.items.data.ItemRarity;
+import me.nakilex.levelplugin.utils.GuiUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -21,18 +20,14 @@ public class SalvageGUI {
 
     public static void openMerchantGUI(Player player) {
         Inventory gui = Bukkit.createInventory(null, GUI_SIZE, GUI_TITLE);
-        ItemStack filler = createFiller();
-
-        // Fill border with filler
+        ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
         for (int i = 0; i < GUI_SIZE; i++) {
             if (i < 9 || i >= 45 || i % 9 == 0 || i % 9 == 8) {
                 gui.setItem(i, filler);
             }
         }
 
-        // Top-right info icon
-        // Top-right info icon
-        ItemStack info = getNexoItem("info", ChatColor.YELLOW + "Information");
+        ItemStack info = GuiUtil.getNexoItem("info", ChatColor.YELLOW + "Information");
         ItemMeta infoMeta = info.getItemMeta();
         if (infoMeta != null) {
             infoMeta.setLore(Arrays.asList(
@@ -53,15 +48,8 @@ public class SalvageGUI {
         }
 
         gui.setItem(8, info);
-
-
-        // Bottom-left close button
-        gui.setItem(45, getNexoItem("cross", ChatColor.RED + "Cancel"));
-
-        // Bottom-right confirm button
-        gui.setItem(53, getNexoItem("check", ChatColor.GREEN + "Confirm Salvage"));
-
-        // Center visually for 5 items (slots 46–50)
+        gui.setItem(45, GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel"));
+        gui.setItem(53, GuiUtil.getNexoItem("check", ChatColor.GREEN + "Confirm Salvage"));
         ItemRarity[] rarities = {
             ItemRarity.COMMON,
             ItemRarity.UNCOMMON,
@@ -73,37 +61,14 @@ public class SalvageGUI {
         int logicalStart = 47;
 
         for (int i = 0; i < rarities.length; i++) {
-            int actualSlot = logicalStart + i; // 46–50
+            int actualSlot = logicalStart + i;
             gui.setItem(actualSlot, createRarityDepositButton(rarities[i]));
         }
-
-        // Deposit/Return buttons
-        gui.setItem(46, getNexoItem("arrow_down", ChatColor.YELLOW + "Return All"));
-        gui.setItem(52, getNexoItem("arrow_up", ChatColor.YELLOW + "Deposit All"));
+        gui.setItem(46, GuiUtil.getNexoItem("arrow_down", ChatColor.YELLOW + "Return All"));
+        gui.setItem(52, GuiUtil.getNexoItem("arrow_up", ChatColor.YELLOW + "Deposit All"));
         player.openInventory(gui);
     }
 
-    private static ItemStack createFiller() {
-        ItemStack glass = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
-        ItemMeta meta = glass.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(" ");
-            glass.setItemMeta(meta);
-        }
-        return glass;
-    }
-
-    private static ItemStack getNexoItem(String id, String name) {
-        ItemBuilder builder = NexoItems.itemFromId(id);
-        if (builder == null) return new ItemStack(Material.BARRIER);
-        ItemStack item = builder.build();
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(name);
-            item.setItemMeta(meta);
-        }
-        return item;
-    }
 
     private static ItemStack createRarityDepositButton(ItemRarity rarity) {
         String id;
@@ -117,6 +82,6 @@ public class SalvageGUI {
         }
 
         String rarityName = rarity.name().charAt(0) + rarity.name().substring(1).toLowerCase();
-        return getNexoItem(id, rarity.getColor() + "Deposit " + rarityName + " Items");
+        return GuiUtil.getNexoItem(id, rarity.getColor() + "Deposit " + rarityName + " Items");
     }
 }
