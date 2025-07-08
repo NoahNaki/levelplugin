@@ -15,13 +15,9 @@ import me.nakilex.levelplugin.settings.gui.SettingsGUI;
 import me.nakilex.levelplugin.trade.data.ConfigValues;
 import me.nakilex.levelplugin.trade.utils.MessageStrings;
 import me.nakilex.levelplugin.utils.DealMaker;
-import me.nakilex.levelplugin.utils.registeries.CommandRegistry;
-import me.nakilex.levelplugin.utils.registeries.ListenerRegistry;
-import me.nakilex.levelplugin.utils.registeries.TaskRegistry;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -74,7 +70,6 @@ public class Main extends JavaPlugin {
     public FileConfiguration getBossConfig() { return bootstrap.getBossConfig(); }
     public me.nakilex.levelplugin.utils.registeries.CommandRegistry getCommandRegistry() { return null; }
     public me.nakilex.levelplugin.utils.registeries.ListenerRegistry getListenerRegistry() { return null; }
-    public me.nakilex.levelplugin.effectdemo.DemoEffects getDemoEffects() { return null; }
     public me.nakilex.levelplugin.spells.registry.EffectRegistry getEffectRegistry() { return null; }
     public me.nakilex.levelplugin.environment.EnvironmentManager getEnvironmentManager() { return bootstrap.getEnvironmentManager(); }
     public me.nakilex.levelplugin.environment.stage.TownStageManager getTownStageManager() { return bootstrap.getTownStageManager(); }
