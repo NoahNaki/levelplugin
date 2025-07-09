@@ -81,12 +81,12 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
         World world2 = Bukkit.getWorld("world2");
         if (world2 != null && worldElevatorBlocks == null) {
             worldElevatorBlocks = captureArea(world2,
-                    101, 65, -99,
-                    107, 72, -92);
+                    101, 66, -99,
+                    107, 76, -92);
             // Exclude the gate door blocks so the QuestGate controls them
             removeArea(worldElevatorBlocks,
-                    101, 66, -99,
-                    107, 70, -99);
+                    101, 67, -92,
+                    107, 73, -92);
             worldElevatorAir = new HashMap<>();
             BlockData air = org.bukkit.Material.AIR.createBlockData();
             for (Location l : worldElevatorBlocks.keySet()) {
@@ -230,7 +230,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                                                     Location l = ev.getTo();
                                                     if (!l.getWorld().equals(destWorld)
                                                             || l.getBlockX() < 101 || l.getBlockX() > 107
-                                                            || l.getBlockY() < 65 || l.getBlockY() > 72
+                                                            || l.getBlockY() < 66 || l.getBlockY() > 76
                                                             || l.getBlockZ() < -99 || l.getBlockZ() > -92) {
                                                         HandlerList.unregisterAll(this);
                                                         if (worldElevatorAir != null) {
