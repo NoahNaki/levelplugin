@@ -1,7 +1,6 @@
 package me.nakilex.levelplugin.quests.def;
 
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.player.classes.gui.ClassMenu;
 import me.nakilex.levelplugin.quests.data.*;
 import org.bukkit.entity.Player;
 
@@ -41,6 +40,7 @@ public class NewBeginningPart2Quest extends Quest implements QuestScript {
 
     @Override
     public void onStart(Player player, Main plugin) {
-        player.openInventory(ClassMenu.getClassSelectionMenu(player));
+        // Invoke the external class selection plugin
+        player.performCommand("class");
     }
 }
