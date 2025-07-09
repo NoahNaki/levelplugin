@@ -97,6 +97,9 @@ public class ProfileSelectionGUI implements Listener {
     public static void startSelection(Player player) {
         SELECTING.add(player.getUniqueId());
         hideOthers(player);
+        // Allow flight temporarily so the anti-cheat doesn't kick the player
+        // while they are frozen in midair waiting for the GUI to open.
+        player.setAllowFlight(true);
         open(player);
     }
 
@@ -104,6 +107,9 @@ public class ProfileSelectionGUI implements Listener {
         SELECTING.remove(player.getUniqueId());
         showOthers(player);
         Main.getInstance().getPlayerVisibilityManager().apply(player);
+        // Restore flight state to prevent unintended flying after the menu
+        // closes.
+        player.setAllowFlight(false);
     }
 
     public static void open(Player player) {
