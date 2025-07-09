@@ -78,15 +78,15 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
         // Ensure the destination elevator starts closed for this player
         gates.closeGate(player, worldGateId);
 
-        World flat = Bukkit.getWorld("flatland");
-        if (flat != null && worldElevatorBlocks == null) {
-            worldElevatorBlocks = captureArea(flat,
-                    4248, -34, -1214,
-                    4254, -27, -1207);
+        World world2 = Bukkit.getWorld("world2");
+        if (world2 != null && worldElevatorBlocks == null) {
+            worldElevatorBlocks = captureArea(world2,
+                    101, 65, -99,
+                    107, 72, -92);
             // Exclude the gate door blocks so the QuestGate controls them
             removeArea(worldElevatorBlocks,
-                    4248, -33, -1214,
-                    4254, -29, -1214);
+                    101, 66, -99,
+                    107, 70, -99);
             worldElevatorAir = new HashMap<>();
             BlockData air = org.bukkit.Material.AIR.createBlockData();
             for (Location l : worldElevatorBlocks.keySet()) {
@@ -197,7 +197,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
 
                                         // Compute offset inside the office elevator
                                         Location originMin = new Location(e.getTo().getWorld(), minX, 142, minZ);
-                                        Location destMin = new Location(Bukkit.getWorld("flatland"), 4249, -33, -1212);
+                                        Location destMin = new Location(Bukkit.getWorld("world2"), 102, 66, -97);
                                         World destWorld = destMin.getWorld();
 
                                         if (destWorld != null) {
@@ -229,9 +229,9 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                                                     if (!ev.getPlayer().equals(player)) return;
                                                     Location l = ev.getTo();
                                                     if (!l.getWorld().equals(destWorld)
-                                                            || l.getBlockX() < 4248 || l.getBlockX() > 4254
-                                                            || l.getBlockY() < -34 || l.getBlockY() > -27
-                                                            || l.getBlockZ() < -1214 || l.getBlockZ() > -1207) {
+                                                            || l.getBlockX() < 101 || l.getBlockX() > 107
+                                                            || l.getBlockY() < 65 || l.getBlockY() > 72
+                                                            || l.getBlockZ() < -99 || l.getBlockZ() > -92) {
                                                         HandlerList.unregisterAll(this);
                                                         if (worldElevatorAir != null) {
                                                             fbm.showFakeBlocks(player, worldElevatorAir);
