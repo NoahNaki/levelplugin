@@ -152,11 +152,13 @@ public class ProfileSelectionGUI implements Listener {
             OPEN.remove(e.getPlayer().getUniqueId());
             Player p = (Player) e.getPlayer();
             if (SELECTING.contains(p.getUniqueId())) {
+                // Reopen the menu a short time after closing so the
+                // player has a moment to use the escape menu if desired.
                 Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
                     if (p.isOnline() && SELECTING.contains(p.getUniqueId())) {
                         open(p);
                     }
-                }, 1L);
+                }, 40L); // 2 seconds
             }
         }
     }
