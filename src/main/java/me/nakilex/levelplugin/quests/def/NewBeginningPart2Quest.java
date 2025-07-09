@@ -1,13 +1,16 @@
 package me.nakilex.levelplugin.quests.def;
 
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.player.classes.gui.ClassMenu;
 import me.nakilex.levelplugin.quests.data.*;
+import org.bukkit.entity.Player;
 
 import java.util.List;
 
 /**
  * Second part of the introduction questline.
  */
-public class NewBeginningPart2Quest extends Quest {
+public class NewBeginningPart2Quest extends Quest implements QuestScript {
     private static List<QuestObjective> createObjectives() {
         return List.of(
                 new QuestObjective(QuestObjectiveType.SELECT_CLASS, "ANY", 1),
@@ -28,14 +31,16 @@ public class NewBeginningPart2Quest extends Quest {
                 QuestRewardCompat.create(150, 30, 0, List.of()),
                 537,
                 List.of(
-                        "Hey adventurer!",
-                        "First let's get you some equipment.",
-                        "If you sold the clothes you have on right now they'd fetch a pretty penny.",
-                        "This fabric rivals what the nobles wear, but since you saved my life I'll help you out.",
-                        "Here's some coins. Head over to the merchant and buy yourself some armor and a weapon.",
-                        "But first we need to know what /class you are.",
-                        "Choose your class"
+                        "First things first—gear. That outfit of yours could sell for a fortune.",
+                        "The fabric’s nobility-tier, but you might need it later, so I’ll cover you for now.",
+                        "Take these coins, go see the merchant, and grab some armor and a weapon.",
+                        "But before that, we need to know your /class."
                 )
         );
+    }
+
+    @Override
+    public void onStart(Player player, Main plugin) {
+        player.openInventory(ClassMenu.getClassSelectionMenu(player));
     }
 }

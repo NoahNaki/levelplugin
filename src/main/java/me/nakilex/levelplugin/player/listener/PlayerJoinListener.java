@@ -67,6 +67,18 @@ public class PlayerJoinListener implements Listener {
                 player.teleport(lobby);
             }
 
+            net.citizensnpcs.api.npc.NPC moved = net.citizensnpcs.api.CitizensAPI.getNPCRegistry().getById(537);
+            if (moved != null && moved.isSpawned()) {
+                me.nakilex.levelplugin.quests.managers.QuestManager qm = Main.getInstance().getQuestManager();
+                me.nakilex.levelplugin.quests.data.Quest nb1 = qm.getQuest("newbeginning1");
+                me.nakilex.levelplugin.quests.gui.QuestState st = qm.getQuestState(player, nb1);
+                if (st != me.nakilex.levelplugin.quests.gui.QuestState.COMPLETED) {
+                    player.hideEntity(Main.getInstance(), moved.getEntity());
+                } else {
+                    player.showEntity(Main.getInstance(), moved.getEntity());
+                }
+            }
+
             // Additional per-player loading can happen here
         }, 2L);  // 2 ticks
 

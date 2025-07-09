@@ -68,10 +68,9 @@ public class NewBeginningPart1Quest extends Quest implements QuestScript {
         InetSocketAddress addr = player.getAddress();
         String ip = addr != null && addr.getAddress() != null ? addr.getAddress().getHostAddress() : "unknown";
         String[] lines = new String[] {
-                "Hey you there!",
-                "Where did you suddenly appear from, I could've sworn there wasn't anyone there a second ago, and your clothes, your certainly dont look from around here, are you perhaps a noble from another country?",
-                "What? You came from another world, I guess that somewhat makes sense, my mom used to tell me that she once met an adventurer who claimed the same thing, said they're from a place called " + ip + ".",
-                "My name is Piwan, since you're not from around here, I could show you around my village."
+                "Hey! Where did you come from? I swear you weren’t there a second ago—and those clothes... you're not from around here, are you? A foreign noble, maybe?",
+                "Another world? Huh. Oddly enough, my mom once met someone who said the same—claimed they came from a place called " + ip + ".",
+                "I'm Piwan. I can show you around the village."
         };
 
         // Send the first line immediately when close with numbering
