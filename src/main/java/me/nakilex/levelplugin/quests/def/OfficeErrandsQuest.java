@@ -30,8 +30,8 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
 
     /** Cached block data for the destination elevator structure. */
     private Map<Location, BlockData> worldElevatorBlocks;
-    /** Map of the destination elevator area replaced with air for hiding. */
-    private Map<Location, BlockData> worldElevatorAir;
+    /** Map of the destination elevator area once the elevator disappears. */
+    private Map<Location, BlockData> worldElevatorGone;
 
     private static List<QuestObjective> createObjectives() {
         World world = Bukkit.getWorld("redrocks");
@@ -87,10 +87,17 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
             removeArea(worldElevatorBlocks,
                     101, 67, -92,
                     107, 73, -92);
-            worldElevatorAir = new HashMap<>();
+            worldElevatorGone = new HashMap<>();
             BlockData air = org.bukkit.Material.AIR.createBlockData();
-            for (Location l : worldElevatorBlocks.keySet()) {
-                worldElevatorAir.put(l, air);
+            BlockData path = org.bukkit.Material.DIRT_PATH.createBlockData();
+            // Create the final elevator-gone state: air above, dirt path floor
+            for (int x = 101; x <= 107; x++) {
+                for (int z = -99; z <= -92; z++) {
+                    worldElevatorGone.put(new Location(world2, x, 66, z), path);
+                    for (int y = 67; y <= 76; y++) {
+                        worldElevatorGone.put(new Location(world2, x, y, z), air);
+                    }
+                }
             }
         }
 
@@ -233,8 +240,22 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                                                             || l.getBlockY() < 66 || l.getBlockY() > 76
                                                             || l.getBlockZ() < -99 || l.getBlockZ() > -92) {
                                                         HandlerList.unregisterAll(this);
-                                                        if (worldElevatorAir != null) {
-                                                            fbm.showFakeBlocks(player, worldElevatorAir);
+                                                        if (worldElevatorGone != null) {
+                                                            fbm.showFakeBlocks(player, worldElevatorGone);
+                                                            // Apply real block changes so the player can walk through
+                                                            for (var entry : worldElevatorGone.entrySet()) {
+                                                                entry.getKey().getBlock().setBlockData(entry.getValue());
+                                                            }
+                                                            // Hide hanging entities inside the elevator
+                                                            for (var ent : destWorld.getEntities()) {
+                                                                Location el = ent.getLocation();
+                                                                if (el.getBlockX() >= 101 && el.getBlockX() <= 107
+                                                                        && el.getBlockY() >= 66 && el.getBlockY() <= 76
+                                                                        && el.getBlockZ() >= -99 && el.getBlockZ() <= -92
+                                                                        && ent instanceof org.bukkit.entity.Hanging) {
+                                                                    player.hideEntity(plugin, ent);
+                                                                }
+                                                            }
                                                         }
                                                     }
                                                 }
