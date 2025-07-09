@@ -237,12 +237,13 @@ public class ProfileSelectionGUI implements Listener {
                 Integer active = pm.getActiveSlot(player.getUniqueId());
                 if (active != null && active == slotIndex) {
                     pm.clearActiveSlot(player.getUniqueId());
-                    org.bukkit.World lobbyWorld = Bukkit.getWorld("world2");
-                    if (lobbyWorld != null) {
-                        org.bukkit.Location lobby = new org.bukkit.Location(lobbyWorld, 217, 6, 80);
-                        player.teleport(lobby);
-                    }
-                    Bukkit.getScheduler().runTask(Main.getInstance(), () -> startSelection(player));
+                    // Do not teleport back to the lobby. Instead, reopen the
+                    // selection menu after a short delay so gravity can settle
+                    // the player before movement is locked again.
+                    Bukkit.getScheduler().runTaskLater(
+                            Main.getInstance(),
+                            () -> startSelection(player),
+                            30L); // ~1.5 seconds
                 }
             }
             player.closeInventory();
