@@ -101,6 +101,14 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
             }
             // Physically clear the elevator so players can walk through
             applyArea(worldElevatorGone);
+
+            // Show the intact elevator for all other online players
+            FakeBlockManager fbm = plugin.getFakeBlockManager();
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                if (!p.equals(player)) {
+                    fbm.showFakeBlocks(p, worldElevatorBlocks);
+                }
+            }
         }
 
         // After blindness wears off, send initial dialog line
@@ -243,6 +251,9 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                                                             || l.getBlockZ() < -99 || l.getBlockZ() > -92) {
                                                         HandlerList.unregisterAll(this);
                                                         if (worldElevatorGone != null) {
+                                                            if (worldElevatorBlocks != null) {
+                                                                fbm.hideFakeBlocks(player, worldElevatorBlocks.keySet());
+                                                            }
                                                             fbm.showFakeBlocks(player, worldElevatorGone);
                                                             // Hide hanging entities inside the elevator
                                                             for (var ent : destWorld.getEntities()) {
@@ -317,6 +328,14 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
         for (var entry : blocks.entrySet()) {
             entry.getKey().getBlock().setBlockData(entry.getValue(), false);
         }
+    }
+
+    public Map<Location, BlockData> getWorldElevatorBlocks() {
+        return worldElevatorBlocks;
+    }
+
+    public Map<Location, BlockData> getWorldElevatorGone() {
+        return worldElevatorGone;
     }
     @Override
     public void onComplete(Player player, Main plugin) {
