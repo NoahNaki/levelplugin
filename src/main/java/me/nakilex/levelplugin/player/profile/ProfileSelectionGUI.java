@@ -65,6 +65,9 @@ public class ProfileSelectionGUI implements Listener {
     private static final Set<UUID> SELECTING = new HashSet<>();
     private static final Set<UUID> NAMING = new HashSet<>();
     private static final Map<UUID, Integer> PENDING_SLOT = new HashMap<>();
+    // When the very first profile is created, store the slot so the
+    // introductory quest can start once that profile is selected.
+    private static final Map<UUID, Integer> FIRST_PROFILE_SLOT = new HashMap<>();
 
     private static void hideOthers(Player player) {
         for (Player p : Bukkit.getOnlinePlayers()) {
@@ -222,6 +225,14 @@ public class ProfileSelectionGUI implements Listener {
             return;
         }
 
+        // If this is the first profile the player ever created and
+        // they are selecting it for the first time, start the intro quest.
+        Integer pending = FIRST_PROFILE_SLOT.get(player.getUniqueId());
+        if (pending != null && pending == index) {
+            Main.getInstance().getQuestManager().startQuest(player, "officeerrands");
+            FIRST_PROFILE_SLOT.remove(player.getUniqueId());
+        }
+
         player.sendMessage(ChatColor.YELLOW + "Selected character " + prof.getName());
         pm.setActiveSlot(player.getUniqueId(), index);
         org.bukkit.Location loc = Main.getInstance().getPlayerConfig()
@@ -262,7 +273,7 @@ public class ProfileSelectionGUI implements Listener {
                         ProfileManager pm = ProfileManager.getInstance();
                         pm.createProfile(player.getUniqueId(), index, input.trim());
                         if (firstCreation) {
-                            Main.getInstance().getQuestManager().startQuest(player, "officeerrands");
+                            FIRST_PROFILE_SLOT.put(player.getUniqueId(), index);
                         }
                         return Prompt.END_OF_CONVERSATION;
                     }
@@ -297,6 +308,10 @@ public class ProfileSelectionGUI implements Listener {
                         open(p);
                     }
                 }, 40L);
+            } else if (SELECTING.contains(id) && ProfileManager.getInstance().getActiveSlot(id) != null) {
+                // Player closed the menu while a profile was already selected;
+                // stop enforcing selection so they can continue playing.
+                stopSelection(p);
             }
         }
 
@@ -307,6 +322,8 @@ public class ProfileSelectionGUI implements Listener {
             if (SELECTING.contains(id) && !NAMING.contains(id)
                     && ProfileManager.getInstance().getActiveSlot(id) == null) {
                 Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> open((Player) e.getPlayer()), 1L);
+            } else if (SELECTING.contains(id) && ProfileManager.getInstance().getActiveSlot(id) != null) {
+                stopSelection((Player) e.getPlayer());
             }
         }
     }

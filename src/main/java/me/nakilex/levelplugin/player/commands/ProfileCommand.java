@@ -15,7 +15,15 @@ public class ProfileCommand implements CommandExecutor {
             return true;
         }
         Player player = (Player) sender;
-        ProfileSelectionGUI.startSelection(player);
+        // If the player already has a profile selected, simply open the
+        // menu without restricting movement.  The selection enforcement
+        // logic is only needed when no profile is active (handled on join).
+        if (me.nakilex.levelplugin.player.profile.ProfileManager.getInstance()
+                .getActiveSlot(player.getUniqueId()) == null) {
+            ProfileSelectionGUI.startSelection(player);
+        } else {
+            ProfileSelectionGUI.open(player);
+        }
         return true;
     }
 }
