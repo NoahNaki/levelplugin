@@ -15,6 +15,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+import me.nakilex.levelplugin.player.profile.ProfileSelectionGUI;
 
 import java.util.List;
 import java.util.UUID;
@@ -68,7 +69,10 @@ public class PlayerJoinListener implements Listener {
                         10L);
             }
 
-            // 3) Additional per-player loading can happen here
+            // 3) Open profile selection menu on join
+            ProfileSelectionGUI.open(player);
+
+            // Additional per-player loading can happen here
         }, 2L);  // 2 ticks
     }
 }

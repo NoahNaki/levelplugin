@@ -190,6 +190,7 @@ public class ListenerRegistry {
         pm.registerEvents(upgradeGUI, plugin);
         pm.registerEvents(buildingUpgradeGUI, plugin);
         pm.registerEvents(hologramListener, plugin);
+        pm.registerEvents(new me.nakilex.levelplugin.player.profile.ProfileSelectionGUI(), plugin);
 
 
 
