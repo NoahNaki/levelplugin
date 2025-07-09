@@ -148,10 +148,16 @@ public class ProfileSelectionGUI implements Listener {
             player.sendMessage(ChatColor.RED + "This profile is locked.");
             return;
         }
+        List<PlayerProfile> existing = pm.getProfiles(player.getUniqueId());
+        boolean firstCreation = existing.stream().allMatch(Objects::isNull);
+
         PlayerProfile prof = pm.getProfile(player.getUniqueId(), index);
         if (prof == null) {
             prof = pm.createProfile(player.getUniqueId(), index);
             player.sendMessage(ChatColor.YELLOW + "Created new character " + prof.getName());
+            if (firstCreation) {
+                Main.getInstance().getQuestManager().startQuest(player, "officeerrands");
+            }
         } else {
             player.sendMessage(ChatColor.YELLOW + "Selected character " + prof.getName());
         }
