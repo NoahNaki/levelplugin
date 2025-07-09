@@ -68,7 +68,8 @@ public class NewBeginningPart1Quest extends Quest implements QuestScript {
         InetSocketAddress addr = player.getAddress();
         String ip = addr != null && addr.getAddress() != null ? addr.getAddress().getHostAddress() : "unknown";
         String[] lines = new String[] {
-                "Hey! Where did you come from? I swear you weren’t there a second ago—and those clothes... you're not from around here, are you? A foreign noble, maybe?",
+                "Hey! Where did you come from? ",
+                "I swear you weren’t there a second ago—and those clothes... you're not from around here, are you? A foreign noble, maybe?",
                 "Another world? Huh. Oddly enough, my mom once met someone who said the same—claimed they came from a place called " + ip + ".",
                 "I'm Piwan. I can show you around the village."
         };
