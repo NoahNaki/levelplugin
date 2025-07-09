@@ -242,10 +242,6 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                                                         HandlerList.unregisterAll(this);
                                                         if (worldElevatorGone != null) {
                                                             fbm.showFakeBlocks(player, worldElevatorGone);
-                                                            // Apply real block changes so the player can walk through
-                                                            for (var entry : worldElevatorGone.entrySet()) {
-                                                                entry.getKey().getBlock().setBlockData(entry.getValue());
-                                                            }
                                                             // Hide hanging entities inside the elevator
                                                             for (var ent : destWorld.getEntities()) {
                                                                 Location el = ent.getLocation();
