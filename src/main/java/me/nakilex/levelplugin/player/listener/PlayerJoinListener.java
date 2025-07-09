@@ -58,8 +58,8 @@ public class PlayerJoinListener implements Listener {
                 player.sendMessage(org.bukkit.ChatColor.YELLOW + "You received 20 coins to get started!");
             }
 
-            // 2) Open profile selection menu on join
-            ProfileSelectionGUI.open(player);
+            // 2) Force profile selection menu on join
+            ProfileSelectionGUI.startSelection(player);
 
             // Additional per-player loading can happen here
         }, 2L);  // 2 ticks

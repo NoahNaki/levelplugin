@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.player.profile;
 
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -25,6 +26,20 @@ public class ProfileSelectionGUI implements Listener {
     private static final ItemStack FILLER = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
 
     private static final Map<UUID, Inventory> OPEN = new HashMap<>();
+    private static final Set<UUID> SELECTING = new HashSet<>();
+
+    /**
+     * Begin the profile selection process for a player. The GUI will
+     * automatically reopen if closed until a profile is selected.
+     */
+    public static void startSelection(Player player) {
+        SELECTING.add(player.getUniqueId());
+        open(player);
+    }
+
+    private static void stopSelection(Player player) {
+        SELECTING.remove(player.getUniqueId());
+    }
 
     public static void open(Player player) {
         Inventory inv = Bukkit.createInventory(null, SIZE, TITLE);
@@ -103,6 +118,7 @@ public class ProfileSelectionGUI implements Listener {
         } else {
             player.sendMessage(ChatColor.YELLOW + "Selected character " + prof.getName());
         }
+        stopSelection(player);
         player.closeInventory();
     }
 
@@ -111,6 +127,14 @@ public class ProfileSelectionGUI implements Listener {
         Inventory open = OPEN.get(e.getPlayer().getUniqueId());
         if (open != null && e.getInventory().equals(open)) {
             OPEN.remove(e.getPlayer().getUniqueId());
+            Player p = (Player) e.getPlayer();
+            if (SELECTING.contains(p.getUniqueId())) {
+                Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+                    if (p.isOnline() && SELECTING.contains(p.getUniqueId())) {
+                        open(p);
+                    }
+                }, 1L);
+            }
         }
     }
 }
