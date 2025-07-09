@@ -38,8 +38,6 @@ public class ProfileSelectionGUI implements Listener {
     private static final String CONFIRM_TITLE = ChatColor.RED + "Confirm Delete";
     private static final int CONFIRM_YES_SLOT = 11;
     private static final int CONFIRM_NO_SLOT = 15;
-    private static final ItemStack CONFIRM_YES_ITEM = GuiUtil.getNexoItem("check", ChatColor.GREEN + "Delete");
-    private static final ItemStack CONFIRM_NO_ITEM  = GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel");
 
 
     static {
@@ -151,8 +149,11 @@ public class ProfileSelectionGUI implements Listener {
     private static void openConfirmDelete(Player player, int slotIndex) {
         Inventory inv = Bukkit.createInventory(null, SIZE, CONFIRM_TITLE);
         for (int i = 0; i < SIZE; i++) inv.setItem(i, FILLER);
-        inv.setItem(CONFIRM_YES_SLOT, CONFIRM_YES_ITEM);
-        inv.setItem(CONFIRM_NO_SLOT, CONFIRM_NO_ITEM);
+        // Build the confirm items dynamically so Nexo is already initialized
+        inv.setItem(CONFIRM_YES_SLOT,
+                GuiUtil.getNexoItem("check", ChatColor.GREEN + "Delete"));
+        inv.setItem(CONFIRM_NO_SLOT,
+                GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel"));
         CONFIRM_OPEN.put(player.getUniqueId(), inv);
         PENDING_SLOT.put(player.getUniqueId(), slotIndex);
         player.openInventory(inv);
