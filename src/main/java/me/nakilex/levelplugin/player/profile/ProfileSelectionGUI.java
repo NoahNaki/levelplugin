@@ -35,6 +35,12 @@ public class ProfileSelectionGUI implements Listener {
     private static final int BACK_SLOT = 15;
     private static final ItemStack DELETE_ITEM;
 
+    private static final String CONFIRM_TITLE = ChatColor.RED + "Confirm Delete";
+    private static final int CONFIRM_YES_SLOT = 11;
+    private static final int CONFIRM_NO_SLOT = 15;
+    private static final ItemStack CONFIRM_YES_ITEM = GuiUtil.getNexoItem("check", ChatColor.GREEN + "Delete");
+    private static final ItemStack CONFIRM_NO_ITEM  = GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel");
+
 
     static {
         ItemStack barrier = new ItemStack(Material.BARRIER);
@@ -62,6 +68,7 @@ public class ProfileSelectionGUI implements Listener {
 
     private static final Map<UUID, Inventory> OPEN = new HashMap<>();
     private static final Map<UUID, Inventory> EDIT_OPEN = new HashMap<>();
+    private static final Map<UUID, Inventory> CONFIRM_OPEN = new HashMap<>();
     private static final Set<UUID> SELECTING = new HashSet<>();
     private static final Set<UUID> NAMING = new HashSet<>();
     private static final Map<UUID, Integer> PENDING_SLOT = new HashMap<>();
@@ -117,13 +124,8 @@ public class ProfileSelectionGUI implements Listener {
             }
             PlayerProfile prof = list.get(i);
             if (prof == null) {
-                ItemStack star = new ItemStack(Material.FIREWORK_STAR);
-                ItemMeta meta = star.getItemMeta();
-                if (meta != null) {
-                    meta.setDisplayName(ChatColor.GREEN + "[+] Create character");
-                    star.setItemMeta(meta);
-                }
-                inv.setItem(slot, star);
+                inv.setItem(slot,
+                        GuiUtil.getNexoItem("plus", ChatColor.GREEN + "[+] Create character"));
             } else {
                 inv.setItem(slot, createProfileItem(prof));
             }
@@ -142,6 +144,16 @@ public class ProfileSelectionGUI implements Listener {
         inv.setItem(DELETE_SLOT, DELETE_ITEM);
         inv.setItem(BACK_SLOT, GuiUtil.getNexoItem("arrow_left", ChatColor.GRAY + "Back"));
         EDIT_OPEN.put(player.getUniqueId(), inv);
+        PENDING_SLOT.put(player.getUniqueId(), slotIndex);
+        player.openInventory(inv);
+    }
+
+    private static void openConfirmDelete(Player player, int slotIndex) {
+        Inventory inv = Bukkit.createInventory(null, SIZE, CONFIRM_TITLE);
+        for (int i = 0; i < SIZE; i++) inv.setItem(i, FILLER);
+        inv.setItem(CONFIRM_YES_SLOT, CONFIRM_YES_ITEM);
+        inv.setItem(CONFIRM_NO_SLOT, CONFIRM_NO_ITEM);
+        CONFIRM_OPEN.put(player.getUniqueId(), inv);
         PENDING_SLOT.put(player.getUniqueId(), slotIndex);
         player.openInventory(inv);
     }
@@ -197,16 +209,32 @@ public class ProfileSelectionGUI implements Listener {
         e.setCancelled(true);
         int slotIndex = PENDING_SLOT.getOrDefault(player.getUniqueId(), -1);
         if (e.getRawSlot() == DELETE_SLOT) {
-            ProfileManager pm = ProfileManager.getInstance();
+            openConfirmDelete(player, slotIndex);
+            return;
+        } else if (e.getRawSlot() == BACK_SLOT) {
+            player.closeInventory();
+        }
+    }
+
+    @EventHandler
+    public void onConfirmClick(InventoryClickEvent e) {
+        Player player = (Player) e.getWhoClicked();
+        Inventory inv = CONFIRM_OPEN.get(player.getUniqueId());
+        if (inv == null || !e.getView().getTopInventory().equals(inv)) return;
+        e.setCancelled(true);
+        int slotIndex = PENDING_SLOT.getOrDefault(player.getUniqueId(), -1);
+        if (e.getRawSlot() == CONFIRM_YES_SLOT) {
             if (slotIndex >= 0) {
+                ProfileManager pm = ProfileManager.getInstance();
                 pm.getProfiles(player.getUniqueId()).set(slotIndex, null);
-                Main.getInstance().getPlayerConfig().setProfileLocation(player.getUniqueId(), slotIndex, null);
+                Main.getInstance().getPlayerConfig()
+                        .setProfileLocation(player.getUniqueId(), slotIndex, null);
                 Main.getInstance().getPlayerConfig().saveConfigFile();
                 player.sendMessage(ChatColor.RED + "Profile deleted.");
             }
             player.closeInventory();
-        } else if (e.getRawSlot() == BACK_SLOT) {
-            player.closeInventory();
+        } else if (e.getRawSlot() == CONFIRM_NO_SLOT) {
+            openEdit(player, slotIndex);
         }
     }
 
@@ -318,6 +346,19 @@ public class ProfileSelectionGUI implements Listener {
         Inventory edit = EDIT_OPEN.get(id);
         if (edit != null && e.getInventory().equals(edit)) {
             EDIT_OPEN.remove(id);
+            PENDING_SLOT.remove(id);
+            if (SELECTING.contains(id) && !NAMING.contains(id)
+                    && ProfileManager.getInstance().getActiveSlot(id) == null) {
+                Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> open((Player) e.getPlayer()), 1L);
+            } else if (SELECTING.contains(id) && ProfileManager.getInstance().getActiveSlot(id) != null) {
+                stopSelection((Player) e.getPlayer());
+            }
+            return;
+        }
+
+        Inventory confirm = CONFIRM_OPEN.get(id);
+        if (confirm != null && e.getInventory().equals(confirm)) {
+            CONFIRM_OPEN.remove(id);
             PENDING_SLOT.remove(id);
             if (SELECTING.contains(id) && !NAMING.contains(id)
                     && ProfileManager.getInstance().getActiveSlot(id) == null) {
