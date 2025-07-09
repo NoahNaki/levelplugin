@@ -12,7 +12,7 @@ public class NewBeginningPart2Quest extends Quest {
         return List.of(
                 new QuestObjective(QuestObjectiveType.SELECT_CLASS, "ANY", 1),
                 new QuestObjective(QuestObjectiveType.BUY, "class_weapon", 1),
-                new QuestObjective(QuestObjectiveType.TALK, "npc600", 1)
+                new QuestObjective(QuestObjectiveType.TALK, "npc536", 1)
         );
     }
 
@@ -26,7 +26,7 @@ public class NewBeginningPart2Quest extends Quest {
                 List.of("newbeginning1"),
                 null,
                 QuestRewardCompat.create(150, 30, 0, List.of()),
-                600,
+                536,
                 List.of(
                         "Hey adventurer!",
                         "First let's get you some equipment.",

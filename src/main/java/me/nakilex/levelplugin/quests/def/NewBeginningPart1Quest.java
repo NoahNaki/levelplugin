@@ -19,7 +19,7 @@ import java.util.List;
 public class NewBeginningPart1Quest extends Quest implements QuestScript {
     private static List<QuestObjective> createObjectives() {
         // Use a custom target so normal NPC click handling doesn't finish the quest
-        return List.of(new QuestObjective(QuestObjectiveType.TALK, "npc600_done", 1));
+        return List.of(new QuestObjective(QuestObjectiveType.TALK, "npc536_done", 1));
     }
 
     public NewBeginningPart1Quest() {
@@ -45,7 +45,7 @@ public class NewBeginningPart1Quest extends Quest implements QuestScript {
             boolean triggered = false;
             @Override
             public void run() {
-                NPC npc = CitizensAPI.getNPCRegistry().getById(600);
+                NPC npc = CitizensAPI.getNPCRegistry().getById(536);
                 if (npc == null || !npc.isSpawned()) return;
                 if (!player.isOnline()) { cancel(); return; }
                 if (!npc.getEntity().getWorld().equals(player.getWorld())) return;
@@ -82,7 +82,7 @@ public class NewBeginningPart1Quest extends Quest implements QuestScript {
                 if (event.getHand() == org.bukkit.inventory.EquipmentSlot.OFF_HAND) return;
                 if (!CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked())) return;
                 NPC clicked = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
-                if (clicked.getId() != 600) return;
+                if (clicked.getId() != 536) return;
                 event.setCancelled(true);
 
                 if (idx >= lines.length) return;
@@ -92,7 +92,7 @@ public class NewBeginningPart1Quest extends Quest implements QuestScript {
 
                 if (idx >= lines.length) {
                     org.bukkit.event.HandlerList.unregisterAll(listener[0]);
-                    Main.getInstance().getQuestManager().handleTalk(player, "npc600_done");
+                    Main.getInstance().getQuestManager().handleTalk(player, "npc536_done");
                     moveNpc(player, npc, plugin);
                 }
             }
