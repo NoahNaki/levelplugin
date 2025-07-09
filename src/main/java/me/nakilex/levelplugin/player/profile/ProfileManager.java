@@ -33,11 +33,12 @@ public class ProfileManager {
         return list.get(slot);
     }
 
-    public PlayerProfile createProfile(UUID uuid, int slot) {
+    public PlayerProfile createProfile(UUID uuid, int slot, String name) {
         if (slot >= getUnlockedSlots(uuid)) return null;
         List<PlayerProfile> list = getProfiles(uuid);
         if (list.get(slot) != null) return list.get(slot);
-        PlayerProfile p = new PlayerProfile(slot, "Profile " + (slot + 1));
+        if (name == null || name.isBlank()) name = "Profile " + (slot + 1);
+        PlayerProfile p = new PlayerProfile(slot, name);
         list.set(slot, p);
         return p;
     }

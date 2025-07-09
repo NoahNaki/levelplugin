@@ -141,6 +141,7 @@ public class CommandRegistry {
         plugin.getCommand("quest").setExecutor(new QuestCommand(questManager));
         plugin.getCommand("location").setExecutor(new LocationCommand(fastTravelManager));
         plugin.getCommand("fasttravel").setExecutor(new FastTravelCommand(plugin.getFastTravelGUI()));
+        plugin.getCommand("profile").setExecutor(new me.nakilex.levelplugin.player.commands.ProfileCommand());
         plugin.getCommand("wipeprofile").setExecutor(new WipeProfileCommand(levelManager, StatsManager.getInstance(), economyManager, gemsManager));
         plugin.getCommand("nexoscan").setExecutor(new NexoScanCommand());
         plugin.getCommand("motd").setExecutor(new me.nakilex.levelplugin.motd.MotdCommand(motdManager));

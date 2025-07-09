@@ -11,6 +11,10 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.conversations.ConversationFactory;
+import org.bukkit.conversations.ConversationContext;
+import org.bukkit.conversations.Prompt;
+import org.bukkit.conversations.StringPrompt;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -26,6 +30,11 @@ public class ProfileSelectionGUI implements Listener {
     private static final ItemStack FILLER = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
     private static final int LOGOUT_SLOT = 22;
     private static final ItemStack LOGOUT_ITEM;
+    private static final String EDIT_TITLE = ChatColor.DARK_GREEN + "Edit Profile";
+    private static final int DELETE_SLOT = 11;
+    private static final int BACK_SLOT = 15;
+    private static final ItemStack DELETE_ITEM;
+
 
     static {
         ItemStack barrier = new ItemStack(Material.BARRIER);
@@ -35,10 +44,27 @@ public class ProfileSelectionGUI implements Listener {
             barrier.setItemMeta(meta);
         }
         LOGOUT_ITEM = barrier;
+
+        ItemStack cauldron = new ItemStack(Material.CAULDRON);
+        ItemMeta cm = cauldron.getItemMeta();
+        if (cm != null) {
+            cm.setDisplayName(ChatColor.RED.toString() + ChatColor.BOLD + "Delete Profile");
+            cm.setLore(Arrays.asList(
+                    "",
+                    ChatColor.GRAY + "Mark this profile for permanent deletion.",
+                    "",
+                    ChatColor.RED + "Click to delete"
+            ));
+            cauldron.setItemMeta(cm);
+        }
+        DELETE_ITEM = cauldron;
     }
 
     private static final Map<UUID, Inventory> OPEN = new HashMap<>();
+    private static final Map<UUID, Inventory> EDIT_OPEN = new HashMap<>();
     private static final Set<UUID> SELECTING = new HashSet<>();
+    private static final Set<UUID> NAMING = new HashSet<>();
+    private static final Map<UUID, Integer> PENDING_SLOT = new HashMap<>();
 
     private static void hideOthers(Player player) {
         for (Player p : Bukkit.getOnlinePlayers()) {
@@ -107,18 +133,32 @@ public class ProfileSelectionGUI implements Listener {
         player.openInventory(inv);
     }
 
+    private static void openEdit(Player player, int slotIndex) {
+        Inventory inv = Bukkit.createInventory(null, SIZE, EDIT_TITLE);
+        for (int i = 0; i < SIZE; i++) inv.setItem(i, FILLER);
+        inv.setItem(DELETE_SLOT, DELETE_ITEM);
+        inv.setItem(BACK_SLOT, GuiUtil.getNexoItem("arrow_left", ChatColor.GRAY + "Back"));
+        EDIT_OPEN.put(player.getUniqueId(), inv);
+        PENDING_SLOT.put(player.getUniqueId(), slotIndex);
+        player.openInventory(inv);
+    }
+
     private static ItemStack createProfileItem(PlayerProfile profile) {
         ItemStack item = new ItemStack(Material.NAME_TAG);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(ChatColor.YELLOW + profile.getName());
             List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.YELLOW + "Character Info");
+            lore.add("");
             lore.add(ChatColor.GRAY + "Level: " + ChatColor.WHITE + "1");
             lore.add(ChatColor.GRAY + "XP: " + ChatColor.WHITE + "0%");
             lore.add(ChatColor.GRAY + "Class: " + ChatColor.WHITE + "None");
             lore.add(ChatColor.GRAY + "Finished Quests: " + ChatColor.WHITE + "0/0");
             lore.add(ChatColor.GRAY + "Playtime: " + ChatColor.WHITE + "0m");
-            lore.add(ChatColor.WHITE + "Click " + ChatColor.GRAY + "to select this character");
+            lore.add("");
+            lore.add(ChatColor.WHITE + "Left-click " + ChatColor.GRAY + "to select this profile");
+            lore.add(ChatColor.WHITE + "Right-click " + ChatColor.GRAY + "to edit this profile");
             meta.setLore(lore);
             item.setItemMeta(meta);
         }
@@ -133,12 +173,37 @@ public class ProfileSelectionGUI implements Listener {
         e.setCancelled(true);
         for (int i = 0; i < PROFILE_SLOTS.length; i++) {
             if (e.getRawSlot() == PROFILE_SLOTS[i]) {
-                handleSelect(player, i);
+                if (e.isRightClick()) {
+                    handleEdit(player, i);
+                } else {
+                    handleSelect(player, i);
+                }
                 return;
             }
         }
         if (e.getRawSlot() == LOGOUT_SLOT) {
             handleLogout(player);
+        }
+    }
+
+    @EventHandler
+    public void onEditClick(InventoryClickEvent e) {
+        Player player = (Player) e.getWhoClicked();
+        Inventory inv = EDIT_OPEN.get(player.getUniqueId());
+        if (inv == null || !e.getView().getTopInventory().equals(inv)) return;
+        e.setCancelled(true);
+        int slotIndex = PENDING_SLOT.getOrDefault(player.getUniqueId(), -1);
+        if (e.getRawSlot() == DELETE_SLOT) {
+            ProfileManager pm = ProfileManager.getInstance();
+            if (slotIndex >= 0) {
+                pm.getProfiles(player.getUniqueId()).set(slotIndex, null);
+                Main.getInstance().getPlayerConfig().setProfileLocation(player.getUniqueId(), slotIndex, null);
+                Main.getInstance().getPlayerConfig().saveConfigFile();
+                player.sendMessage(ChatColor.RED + "Profile deleted.");
+            }
+            player.closeInventory();
+        } else if (e.getRawSlot() == BACK_SLOT) {
+            player.closeInventory();
         }
     }
 
@@ -153,20 +218,61 @@ public class ProfileSelectionGUI implements Listener {
 
         PlayerProfile prof = pm.getProfile(player.getUniqueId(), index);
         if (prof == null) {
-            prof = pm.createProfile(player.getUniqueId(), index);
-            player.sendMessage(ChatColor.YELLOW + "Created new character " + prof.getName());
-            if (firstCreation) {
-                Main.getInstance().getQuestManager().startQuest(player, "officeerrands");
-            }
-        } else {
-            player.sendMessage(ChatColor.YELLOW + "Selected character " + prof.getName());
+            promptForName(player, index, firstCreation);
+            return;
         }
+
+        player.sendMessage(ChatColor.YELLOW + "Selected character " + prof.getName());
         pm.setActiveSlot(player.getUniqueId(), index);
         org.bukkit.Location loc = Main.getInstance().getPlayerConfig()
                 .getProfileLocation(player.getUniqueId(), index);
         if (loc != null) player.teleport(loc);
         stopSelection(player);
         player.closeInventory();
+    }
+
+    private void handleEdit(Player player, int index) {
+        ProfileManager pm = ProfileManager.getInstance();
+        PlayerProfile prof = pm.getProfile(player.getUniqueId(), index);
+        if (prof == null) {
+            player.sendMessage(ChatColor.RED + "No profile in this slot.");
+            return;
+        }
+        openEdit(player, index);
+    }
+
+    private void promptForName(Player player, int index, boolean firstCreation) {
+        NAMING.add(player.getUniqueId());
+        PENDING_SLOT.put(player.getUniqueId(), index);
+        player.closeInventory();
+
+        ConversationFactory factory = new ConversationFactory(Main.getInstance())
+                .withFirstPrompt(new StringPrompt() {
+                    @Override
+                    public String getPromptText(ConversationContext context) {
+                        return ChatColor.GOLD + "Enter a name for this profile:";
+                    }
+
+                    @Override
+                    public Prompt acceptInput(ConversationContext context, String input) {
+                        if (input == null || input.trim().isEmpty()) {
+                            player.sendMessage(ChatColor.RED + "Invalid name.");
+                            return this;
+                        }
+                        ProfileManager pm = ProfileManager.getInstance();
+                        pm.createProfile(player.getUniqueId(), index, input.trim());
+                        if (firstCreation) {
+                            Main.getInstance().getQuestManager().startQuest(player, "officeerrands");
+                        }
+                        return Prompt.END_OF_CONVERSATION;
+                    }
+                })
+                .withLocalEcho(false)
+                .addConversationAbandonedListener(event -> {
+                    NAMING.remove(player.getUniqueId());
+                    Bukkit.getScheduler().runTask(Main.getInstance(), () -> open(player));
+                });
+        factory.buildConversation(player).begin();
     }
 
     private void handleLogout(Player player) {
@@ -176,32 +282,42 @@ public class ProfileSelectionGUI implements Listener {
 
     @EventHandler
     public void onClose(InventoryCloseEvent e) {
-        Inventory open = OPEN.get(e.getPlayer().getUniqueId());
+        UUID id = e.getPlayer().getUniqueId();
+        Inventory open = OPEN.get(id);
         if (open != null && e.getInventory().equals(open)) {
-            OPEN.remove(e.getPlayer().getUniqueId());
+            OPEN.remove(id);
             Player p = (Player) e.getPlayer();
-            if (SELECTING.contains(p.getUniqueId())) {
-                // Reopen the menu a short time after closing so the
-                // player has a moment to use the escape menu if desired.
+            if (SELECTING.contains(id) && !NAMING.contains(id)) {
                 Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-                    if (p.isOnline() && SELECTING.contains(p.getUniqueId())) {
+                    if (p.isOnline() && SELECTING.contains(id)) {
                         open(p);
                     }
-                }, 40L); // 2 seconds
+                }, 40L);
+            }
+        }
+
+        Inventory edit = EDIT_OPEN.get(id);
+        if (edit != null && e.getInventory().equals(edit)) {
+            EDIT_OPEN.remove(id);
+            PENDING_SLOT.remove(id);
+            if (SELECTING.contains(id) && !NAMING.contains(id)) {
+                Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> open((Player) e.getPlayer()), 1L);
             }
         }
     }
 
     @EventHandler
     public void onMove(org.bukkit.event.player.PlayerMoveEvent e) {
-        if (isSelecting(e.getPlayer()) && e.getFrom().distanceSquared(e.getTo()) > 0) {
+        UUID id = e.getPlayer().getUniqueId();
+        if (SELECTING.contains(id) && !NAMING.contains(id) && e.getFrom().distanceSquared(e.getTo()) > 0) {
             e.setTo(e.getFrom());
         }
     }
 
     @EventHandler
     public void onChat(org.bukkit.event.player.AsyncPlayerChatEvent e) {
-        if (isSelecting(e.getPlayer())) {
+        UUID id = e.getPlayer().getUniqueId();
+        if (SELECTING.contains(id) && !NAMING.contains(id)) {
             e.setCancelled(true);
         }
     }
