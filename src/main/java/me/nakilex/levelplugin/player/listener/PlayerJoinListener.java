@@ -42,6 +42,7 @@ public class PlayerJoinListener implements Listener {
         UUID pid = player.getUniqueId();
 
         // Delay to let other plugins finish their startup logic
+        // Early initialization and teleport
         Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
             // 1) Set up gamemode & stats
             player.setGameMode(GameMode.ADVENTURE);
@@ -66,11 +67,14 @@ public class PlayerJoinListener implements Listener {
                 player.teleport(lobby);
             }
 
-            // 2) Force profile selection menu on join
-            ProfileManager.getInstance().clearActiveSlot(pid);
-            ProfileSelectionGUI.startSelection(player);
-
             // Additional per-player loading can happen here
         }, 2L);  // 2 ticks
+
+        // Delay profile menu so gravity settles the player
+        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+            if (!player.isOnline()) return;
+            ProfileManager.getInstance().clearActiveSlot(pid);
+            ProfileSelectionGUI.startSelection(player);
+        }, 30L);  // ~1.5 seconds
     }
 }
