@@ -231,6 +231,17 @@ public class ProfileSelectionGUI implements Listener {
                         .setProfileLocation(player.getUniqueId(), slotIndex, null);
                 Main.getInstance().getPlayerConfig().saveConfigFile();
                 player.sendMessage(ChatColor.RED + "Profile deleted.");
+
+                Integer active = pm.getActiveSlot(player.getUniqueId());
+                if (active != null && active == slotIndex) {
+                    pm.clearActiveSlot(player.getUniqueId());
+                    org.bukkit.World lobbyWorld = Bukkit.getWorld("world2");
+                    if (lobbyWorld != null) {
+                        org.bukkit.Location lobby = new org.bukkit.Location(lobbyWorld, 217, 6, 80);
+                        player.teleport(lobby);
+                    }
+                    Bukkit.getScheduler().runTask(Main.getInstance(), () -> startSelection(player));
+                }
             }
             player.closeInventory();
         } else if (e.getRawSlot() == CONFIRM_NO_SLOT) {
