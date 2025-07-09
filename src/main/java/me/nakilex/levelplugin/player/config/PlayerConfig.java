@@ -240,6 +240,48 @@ public class PlayerConfig {
         config.set(base + "buildings", null);
     }
 
+    // ----- Profile Data -----
+
+    public org.bukkit.Location getProfileLocation(UUID uuid, int slot) {
+        String base = "players." + uuid + ".profiles." + slot + ".";
+        if (!config.contains(base + "world")) return null;
+        org.bukkit.World w = org.bukkit.Bukkit.getWorld(config.getString(base + "world"));
+        if (w == null) return null;
+        double x = config.getDouble(base + "x");
+        double y = config.getDouble(base + "y");
+        double z = config.getDouble(base + "z");
+        float yaw = (float) config.getDouble(base + "yaw");
+        float pitch = (float) config.getDouble(base + "pitch");
+        return new org.bukkit.Location(w, x, y, z, yaw, pitch);
+    }
+
+    public void setProfileLocation(UUID uuid, int slot, org.bukkit.Location loc) {
+        String base = "players." + uuid + ".profiles." + slot + ".";
+        if (loc == null) {
+            config.set(base + "world", null);
+            config.set(base + "x", null);
+            config.set(base + "y", null);
+            config.set(base + "z", null);
+            config.set(base + "yaw", null);
+            config.set(base + "pitch", null);
+        } else {
+            config.set(base + "world", loc.getWorld().getName());
+            config.set(base + "x", loc.getX());
+            config.set(base + "y", loc.getY());
+            config.set(base + "z", loc.getZ());
+            config.set(base + "yaw", loc.getYaw());
+            config.set(base + "pitch", loc.getPitch());
+        }
+    }
+
+    public int getUnlockedProfiles(UUID uuid) {
+        return config.getInt("players." + uuid + ".profiles.unlocked", 1);
+    }
+
+    public void setUnlockedProfiles(UUID uuid, int count) {
+        config.set("players." + uuid + ".profiles.unlocked", count);
+    }
+
     /** Allows external classes to persist config changes. */
     public void saveConfigFile() {
         saveConfig();
