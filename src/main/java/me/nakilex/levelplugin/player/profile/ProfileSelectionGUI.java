@@ -24,6 +24,18 @@ public class ProfileSelectionGUI implements Listener {
     private static final int SIZE = 27;
     private static final int[] PROFILE_SLOTS = {10, 12, 14, 16};
     private static final ItemStack FILLER = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
+    private static final int LOGOUT_SLOT = 22;
+    private static final ItemStack LOGOUT_ITEM;
+
+    static {
+        ItemStack barrier = new ItemStack(Material.BARRIER);
+        ItemMeta meta = barrier.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.RED + "Leave Server");
+            barrier.setItemMeta(meta);
+        }
+        LOGOUT_ITEM = barrier;
+    }
 
     private static final Map<UUID, Inventory> OPEN = new HashMap<>();
     private static final Set<UUID> SELECTING = new HashSet<>();
@@ -69,6 +81,9 @@ public class ProfileSelectionGUI implements Listener {
             }
         }
 
+        // add logout button
+        inv.setItem(LOGOUT_SLOT, LOGOUT_ITEM);
+
         OPEN.put(player.getUniqueId(), inv);
         player.openInventory(inv);
     }
@@ -103,6 +118,9 @@ public class ProfileSelectionGUI implements Listener {
                 return;
             }
         }
+        if (e.getRawSlot() == LOGOUT_SLOT) {
+            handleLogout(player);
+        }
     }
 
     private void handleSelect(Player player, int index) {
@@ -120,6 +138,11 @@ public class ProfileSelectionGUI implements Listener {
         }
         stopSelection(player);
         player.closeInventory();
+    }
+
+    private void handleLogout(Player player) {
+        stopSelection(player);
+        player.kickPlayer(ChatColor.YELLOW + "Disconnected");
     }
 
     @EventHandler
