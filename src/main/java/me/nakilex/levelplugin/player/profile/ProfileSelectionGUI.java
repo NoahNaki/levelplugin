@@ -154,6 +154,10 @@ public class ProfileSelectionGUI implements Listener {
                 GuiUtil.getNexoItem("check", ChatColor.GREEN + "Delete"));
         inv.setItem(CONFIRM_NO_SLOT,
                 GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel"));
+        // The edit menu closes when this opens; remove the reference so the
+        // close handler doesn't reopen the main menu before the confirm GUI
+        // appears.
+        EDIT_OPEN.remove(player.getUniqueId());
         CONFIRM_OPEN.put(player.getUniqueId(), inv);
         PENDING_SLOT.put(player.getUniqueId(), slotIndex);
         player.openInventory(inv);
@@ -363,7 +367,8 @@ public class ProfileSelectionGUI implements Listener {
             EDIT_OPEN.remove(id);
             PENDING_SLOT.remove(id);
             if (SELECTING.contains(id) && !NAMING.contains(id)
-                    && ProfileManager.getInstance().getActiveSlot(id) == null) {
+                    && ProfileManager.getInstance().getActiveSlot(id) == null
+                    && !CONFIRM_OPEN.containsKey(id)) {
                 Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> open((Player) e.getPlayer()), 1L);
             } else if (SELECTING.contains(id) && ProfileManager.getInstance().getActiveSlot(id) != null) {
                 stopSelection((Player) e.getPlayer());
@@ -376,7 +381,8 @@ public class ProfileSelectionGUI implements Listener {
             CONFIRM_OPEN.remove(id);
             PENDING_SLOT.remove(id);
             if (SELECTING.contains(id) && !NAMING.contains(id)
-                    && ProfileManager.getInstance().getActiveSlot(id) == null) {
+                    && ProfileManager.getInstance().getActiveSlot(id) == null
+                    && !EDIT_OPEN.containsKey(id)) {
                 Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> open((Player) e.getPlayer()), 1L);
             } else if (SELECTING.contains(id) && ProfileManager.getInstance().getActiveSlot(id) != null) {
                 stopSelection((Player) e.getPlayer());
