@@ -157,7 +157,7 @@ public class ProfileSelectionGUI implements Listener {
         for (int i = 0; i < SIZE; i++) inv.setItem(i, FILLER);
         // Build the confirm items dynamically so Nexo is already initialized
         inv.setItem(CONFIRM_YES_SLOT,
-                GuiUtil.getNexoItem("check", ChatColor.GREEN + "Delete"));
+                GuiUtil.getNexoItem("check", ChatColor.GREEN + "Confirm"));
         inv.setItem(CONFIRM_NO_SLOT,
                 GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel"));
         // The edit menu closes when this opens; remove the reference so the
@@ -223,7 +223,10 @@ public class ProfileSelectionGUI implements Listener {
             openConfirmDelete(player, slotIndex);
             return;
         } else if (e.getRawSlot() == BACK_SLOT) {
-            player.closeInventory();
+            EDIT_OPEN.remove(player.getUniqueId());
+            PENDING_SLOT.remove(player.getUniqueId());
+            open(player);
+            return;
         }
     }
 
