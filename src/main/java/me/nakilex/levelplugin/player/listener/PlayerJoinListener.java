@@ -72,6 +72,7 @@ public class PlayerJoinListener implements Listener {
             me.nakilex.levelplugin.quests.def.OfficeErrandsQuest office =
                     (me.nakilex.levelplugin.quests.def.OfficeErrandsQuest) qm.getQuest("officeerrands");
             if (office != null && office.getWorldElevatorBlocks() != null
+                    && office.isWorldElevatorCleared()
                     && !qm.hasCompleted(pid, "officeerrands")) {
                 Main.getInstance().getFakeBlockManager()
                         .showFakeBlocks(player, office.getWorldElevatorBlocks());

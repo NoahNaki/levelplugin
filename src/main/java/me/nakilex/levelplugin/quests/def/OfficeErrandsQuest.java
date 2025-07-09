@@ -32,6 +32,8 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
     private Map<Location, BlockData> worldElevatorBlocks;
     /** Map of the destination elevator area once the elevator disappears. */
     private Map<Location, BlockData> worldElevatorGone;
+    /** Whether the real elevator blocks have been cleared from the world. */
+    private boolean worldElevatorCleared;
 
     private static List<QuestObjective> createObjectives() {
         World world = Bukkit.getWorld("redrocks");
@@ -99,8 +101,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                     }
                 }
             }
-            // Physically clear the elevator so players can walk through
-            applyArea(worldElevatorGone);
+            worldElevatorCleared = false;
 
             // Show the intact elevator for all other online players
             FakeBlockManager fbm = plugin.getFakeBlockManager();
@@ -251,6 +252,15 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                                                             || l.getBlockZ() < -99 || l.getBlockZ() > -92) {
                                                         HandlerList.unregisterAll(this);
                                                         if (worldElevatorGone != null) {
+                                                            if (!worldElevatorCleared) {
+                                                                applyArea(worldElevatorGone);
+                                                                worldElevatorCleared = true;
+                                                                for (Player other : Bukkit.getOnlinePlayers()) {
+                                                                    if (!other.equals(player) && worldElevatorBlocks != null) {
+                                                                        fbm.showFakeBlocks(other, worldElevatorBlocks);
+                                                                    }
+                                                                }
+                                                            }
                                                             if (worldElevatorBlocks != null) {
                                                                 fbm.hideFakeBlocks(player, worldElevatorBlocks.keySet());
                                                             }
@@ -336,6 +346,10 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
 
     public Map<Location, BlockData> getWorldElevatorGone() {
         return worldElevatorGone;
+    }
+
+    public boolean isWorldElevatorCleared() {
+        return worldElevatorCleared;
     }
     @Override
     public void onComplete(Player player, Main plugin) {
