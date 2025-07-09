@@ -99,8 +99,12 @@ public class NewBeginningPart1Quest extends Quest implements QuestScript {
 
                 if (idx >= lines.length) {
                     org.bukkit.event.HandlerList.unregisterAll(listener[0]);
-                    Main.getInstance().getQuestManager().handleTalk(player, "npc536_done");
-                    moveNpc(player, npc, plugin);
+                    // Delay quest completion slightly so the final line can be read
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                        if (!player.isOnline()) return;
+                        Main.getInstance().getQuestManager().handleTalk(player, "npc536_done");
+                        moveNpc(player, npc, plugin);
+                    }, 40L); // 2 seconds
                 }
             }
         };

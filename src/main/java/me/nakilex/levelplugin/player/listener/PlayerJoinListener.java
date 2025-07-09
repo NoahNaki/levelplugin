@@ -68,13 +68,28 @@ public class PlayerJoinListener implements Listener {
             }
 
             net.citizensnpcs.api.npc.NPC moved = net.citizensnpcs.api.CitizensAPI.getNPCRegistry().getById(537);
-            if (moved != null && moved.isSpawned()) {
+            if (moved != null) {
                 me.nakilex.levelplugin.quests.managers.QuestManager qm = Main.getInstance().getQuestManager();
                 me.nakilex.levelplugin.quests.data.Quest nb1 = qm.getQuest("newbeginning1");
                 me.nakilex.levelplugin.quests.gui.QuestState st = qm.getQuestState(player, nb1);
                 if (st != me.nakilex.levelplugin.quests.gui.QuestState.COMPLETED) {
-                    player.hideEntity(Main.getInstance(), moved.getEntity());
-                } else {
+                    // Hide repeatedly in case the NPC spawns later
+                    new org.bukkit.scheduler.BukkitRunnable() {
+                        @Override
+                        public void run() {
+                            if (!player.isOnline()) { cancel(); return; }
+                            me.nakilex.levelplugin.quests.gui.QuestState state = qm.getQuestState(player, nb1);
+                            if (state == me.nakilex.levelplugin.quests.gui.QuestState.COMPLETED) {
+                                player.showEntity(Main.getInstance(), moved.getEntity());
+                                cancel();
+                                return;
+                            }
+                            if (moved.isSpawned()) {
+                                player.hideEntity(Main.getInstance(), moved.getEntity());
+                            }
+                        }
+                    }.runTaskTimer(Main.getInstance(), 0L, 40L);
+                } else if (moved.isSpawned()) {
                     player.showEntity(Main.getInstance(), moved.getEntity());
                 }
             }
