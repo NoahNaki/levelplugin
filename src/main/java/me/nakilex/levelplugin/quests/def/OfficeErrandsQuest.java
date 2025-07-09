@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.quests.def;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.fakeblock.QuestGateManager;
 import me.nakilex.levelplugin.fakeblock.FakeBlockManager;
+import me.nakilex.levelplugin.quests.data.QuestCompletionScript;
 import me.nakilex.levelplugin.quests.data.*;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -25,7 +26,7 @@ import net.citizensnpcs.api.npc.NPC;
 
 import java.util.List;
 
-public class OfficeErrandsQuest extends Quest implements QuestScript {
+public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompletionScript {
 
     /** Cached block data for the destination elevator structure. */
     private Map<Location, BlockData> worldElevatorBlocks;
@@ -289,5 +290,9 @@ public class OfficeErrandsQuest extends Quest implements QuestScript {
                 loc.getBlockX() >= minX && loc.getBlockX() <= maxX &&
                         loc.getBlockY() >= minY && loc.getBlockY() <= maxY &&
                         loc.getBlockZ() >= minZ && loc.getBlockZ() <= maxZ);
+    }
+    @Override
+    public void onComplete(Player player, Main plugin) {
+        plugin.getQuestManager().startQuest(player, "newbeginning1");
     }
 }
