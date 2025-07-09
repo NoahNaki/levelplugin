@@ -67,32 +67,31 @@ public class PlayerJoinListener implements Listener {
                 player.teleport(lobby);
             }
 
-            net.citizensnpcs.api.npc.NPC moved = net.citizensnpcs.api.CitizensAPI.getNPCRegistry().getById(537);
-            if (moved != null) {
-                me.nakilex.levelplugin.quests.managers.QuestManager qm = Main.getInstance().getQuestManager();
-                me.nakilex.levelplugin.quests.data.Quest nb1 = qm.getQuest("newbeginning1");
-                me.nakilex.levelplugin.quests.gui.QuestState st = qm.getQuestState(player, nb1);
-                if (st != me.nakilex.levelplugin.quests.gui.QuestState.COMPLETED) {
-                    // Hide repeatedly in case the NPC spawns later
-                    new org.bukkit.scheduler.BukkitRunnable() {
-                        @Override
-                        public void run() {
-                            if (!player.isOnline()) { cancel(); return; }
-                            me.nakilex.levelplugin.quests.gui.QuestState state = qm.getQuestState(player, nb1);
-                            if (state == me.nakilex.levelplugin.quests.gui.QuestState.COMPLETED) {
-                                player.showEntity(Main.getInstance(), moved.getEntity());
-                                cancel();
-                                return;
-                            }
-                            if (moved.isSpawned()) {
-                                player.hideEntity(Main.getInstance(), moved.getEntity());
-                            }
+            me.nakilex.levelplugin.quests.managers.QuestManager qm = Main.getInstance().getQuestManager();
+            me.nakilex.levelplugin.quests.data.Quest nb1 = qm.getQuest("newbeginning1");
+
+            // Repeatedly hide NPC 537 until quest1 is completed.
+            new org.bukkit.scheduler.BukkitRunnable() {
+                @Override
+                public void run() {
+                    if (!player.isOnline()) { cancel(); return; }
+
+                    net.citizensnpcs.api.npc.NPC moved = net.citizensnpcs.api.CitizensAPI.getNPCRegistry().getById(537);
+                    me.nakilex.levelplugin.quests.gui.QuestState state = qm.getQuestState(player, nb1);
+
+                    if (state == me.nakilex.levelplugin.quests.gui.QuestState.COMPLETED) {
+                        if (moved != null && moved.isSpawned()) {
+                            player.showEntity(Main.getInstance(), moved.getEntity());
                         }
-                    }.runTaskTimer(Main.getInstance(), 0L, 40L);
-                } else if (moved.isSpawned()) {
-                    player.showEntity(Main.getInstance(), moved.getEntity());
+                        cancel();
+                        return;
+                    }
+
+                    if (moved != null && moved.isSpawned()) {
+                        player.hideEntity(Main.getInstance(), moved.getEntity());
+                    }
                 }
-            }
+            }.runTaskTimer(Main.getInstance(), 0L, 40L);
 
             // Additional per-player loading can happen here
         }, 2L);  // 2 ticks

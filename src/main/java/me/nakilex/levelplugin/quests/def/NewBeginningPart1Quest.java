@@ -123,20 +123,24 @@ public class NewBeginningPart1Quest extends Quest implements QuestScript {
                 moved.getEntity().teleport(loc, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN);
                 moved.getEntity().setGravity(false);
             }
+            // Hide from everyone until the player walks away from NPC 536
             for (org.bukkit.entity.Player p : Bukkit.getOnlinePlayers()) {
-                if (!p.equals(player)) {
-                    p.hideEntity(plugin, moved.getEntity());
-                }
+                p.hideEntity(plugin, moved.getEntity());
             }
         }
 
-        // Hide the original NPC once the player walks away
+        // Show the moved NPC only after the player leaves the old one
         new BukkitRunnable() {
+            boolean shown = false;
             @Override
             public void run() {
                 if (!player.isOnline()) { cancel(); return; }
                 if (player.getLocation().distanceSquared(npc.getEntity().getLocation()) > 100) {
                     player.hideEntity(plugin, npc.getEntity());
+                    if (moved != null && moved.isSpawned() && !shown) {
+                        player.showEntity(plugin, moved.getEntity());
+                        shown = true;
+                    }
                     cancel();
                 }
             }
