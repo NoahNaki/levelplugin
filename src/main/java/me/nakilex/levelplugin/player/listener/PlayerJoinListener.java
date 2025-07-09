@@ -58,7 +58,12 @@ public class PlayerJoinListener implements Listener {
                 player.sendMessage(org.bukkit.ChatColor.YELLOW + "You received 20 coins to get started!");
             }
 
+            // Teleport to profile lobby
+            org.bukkit.Location lobby = new org.bukkit.Location(player.getWorld(), 217, 6, 80);
+            player.teleport(lobby);
+
             // 2) Force profile selection menu on join
+            ProfileManager.getInstance().clearActiveSlot(pid);
             ProfileSelectionGUI.startSelection(player);
 
             // Additional per-player loading can happen here

@@ -10,6 +10,7 @@ public class ProfileManager {
 
     private final Map<java.util.UUID, java.util.List<PlayerProfile>> profiles = new HashMap<>();
     private final Map<java.util.UUID, Integer> unlocked = new HashMap<>();
+    private final Map<java.util.UUID, Integer> activeSlot = new HashMap<>();
 
     private ProfileManager() {}
 
@@ -46,5 +47,26 @@ public class ProfileManager {
         if (unlockedSlots < TOTAL_SLOTS) {
             unlocked.put(uuid, unlockedSlots + 1);
         }
+    }
+
+    public void setActiveSlot(UUID uuid, int slot) {
+        activeSlot.put(uuid, slot);
+    }
+
+    public void clearActiveSlot(UUID uuid) {
+        activeSlot.remove(uuid);
+    }
+
+    public Integer getActiveSlot(UUID uuid) {
+        return activeSlot.get(uuid);
+    }
+
+    public void saveActiveLocation(org.bukkit.entity.Player player) {
+        Integer slot = activeSlot.get(player.getUniqueId());
+        if (slot == null) return;
+        me.nakilex.levelplugin.player.config.PlayerConfig cfg =
+                me.nakilex.levelplugin.Main.getInstance().getPlayerConfig();
+        cfg.setProfileLocation(player.getUniqueId(), slot, player.getLocation());
+        cfg.saveConfigFile();
     }
 }

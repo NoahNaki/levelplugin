@@ -40,17 +40,36 @@ public class ProfileSelectionGUI implements Listener {
     private static final Map<UUID, Inventory> OPEN = new HashMap<>();
     private static final Set<UUID> SELECTING = new HashSet<>();
 
+    private static void hideOthers(Player player) {
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (!p.equals(player)) player.hidePlayer(Main.getInstance(), p);
+        }
+    }
+
+    private static void showOthers(Player player) {
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (!p.equals(player)) player.showPlayer(Main.getInstance(), p);
+        }
+    }
+
+    public static boolean isSelecting(Player p) {
+        return SELECTING.contains(p.getUniqueId());
+    }
+
     /**
      * Begin the profile selection process for a player. The GUI will
      * automatically reopen if closed until a profile is selected.
      */
     public static void startSelection(Player player) {
         SELECTING.add(player.getUniqueId());
+        hideOthers(player);
         open(player);
     }
 
     private static void stopSelection(Player player) {
         SELECTING.remove(player.getUniqueId());
+        showOthers(player);
+        Main.getInstance().getPlayerVisibilityManager().apply(player);
     }
 
     public static void open(Player player) {
@@ -136,6 +155,10 @@ public class ProfileSelectionGUI implements Listener {
         } else {
             player.sendMessage(ChatColor.YELLOW + "Selected character " + prof.getName());
         }
+        pm.setActiveSlot(player.getUniqueId(), index);
+        org.bukkit.Location loc = Main.getInstance().getPlayerConfig()
+                .getProfileLocation(player.getUniqueId(), index);
+        if (loc != null) player.teleport(loc);
         stopSelection(player);
         player.closeInventory();
     }
@@ -160,6 +183,20 @@ public class ProfileSelectionGUI implements Listener {
                     }
                 }, 40L); // 2 seconds
             }
+        }
+    }
+
+    @EventHandler
+    public void onMove(org.bukkit.event.player.PlayerMoveEvent e) {
+        if (isSelecting(e.getPlayer()) && e.getFrom().distanceSquared(e.getTo()) > 0) {
+            e.setTo(e.getFrom());
+        }
+    }
+
+    @EventHandler
+    public void onChat(org.bukkit.event.player.AsyncPlayerChatEvent e) {
+        if (isSelecting(e.getPlayer())) {
+            e.setCancelled(true);
         }
     }
 }
