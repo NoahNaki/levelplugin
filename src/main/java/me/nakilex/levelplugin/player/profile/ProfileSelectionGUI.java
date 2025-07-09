@@ -149,7 +149,7 @@ public class ProfileSelectionGUI implements Listener {
         if (meta != null) {
             meta.setDisplayName(ChatColor.YELLOW + profile.getName());
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.YELLOW + "Character Info");
+            // blank divider so the name is visually separated from stats
             lore.add("");
             lore.add(ChatColor.GRAY + "Level: " + ChatColor.WHITE + "1");
             lore.add(ChatColor.GRAY + "XP: " + ChatColor.WHITE + "0%");
@@ -287,9 +287,13 @@ public class ProfileSelectionGUI implements Listener {
         if (open != null && e.getInventory().equals(open)) {
             OPEN.remove(id);
             Player p = (Player) e.getPlayer();
-            if (SELECTING.contains(id) && !NAMING.contains(id)) {
+            if (SELECTING.contains(id) && !NAMING.contains(id)
+                    && ProfileManager.getInstance().getActiveSlot(id) == null
+                    && !EDIT_OPEN.containsKey(id)) {
                 Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-                    if (p.isOnline() && SELECTING.contains(id)) {
+                    if (p.isOnline() && SELECTING.contains(id)
+                            && ProfileManager.getInstance().getActiveSlot(id) == null
+                            && !EDIT_OPEN.containsKey(id)) {
                         open(p);
                     }
                 }, 40L);
@@ -300,7 +304,8 @@ public class ProfileSelectionGUI implements Listener {
         if (edit != null && e.getInventory().equals(edit)) {
             EDIT_OPEN.remove(id);
             PENDING_SLOT.remove(id);
-            if (SELECTING.contains(id) && !NAMING.contains(id)) {
+            if (SELECTING.contains(id) && !NAMING.contains(id)
+                    && ProfileManager.getInstance().getActiveSlot(id) == null) {
                 Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> open((Player) e.getPlayer()), 1L);
             }
         }
