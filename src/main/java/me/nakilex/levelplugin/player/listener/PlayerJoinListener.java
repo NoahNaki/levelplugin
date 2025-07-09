@@ -15,6 +15,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import me.nakilex.levelplugin.player.profile.ProfileSelectionGUI;
+import me.nakilex.levelplugin.player.profile.ProfileManager;
 
 import java.util.List;
 import java.util.UUID;
@@ -58,9 +59,12 @@ public class PlayerJoinListener implements Listener {
                 player.sendMessage(org.bukkit.ChatColor.YELLOW + "You received 20 coins to get started!");
             }
 
-            // Teleport to profile lobby
-            org.bukkit.Location lobby = new org.bukkit.Location(player.getWorld(), 217, 6, 80);
-            player.teleport(lobby);
+            // Teleport to profile lobby in world2
+            org.bukkit.World lobbyWorld = org.bukkit.Bukkit.getWorld("world2");
+            if (lobbyWorld != null) {
+                org.bukkit.Location lobby = new org.bukkit.Location(lobbyWorld, 217, 6, 80);
+                player.teleport(lobby);
+            }
 
             // 2) Force profile selection menu on join
             ProfileManager.getInstance().clearActiveSlot(pid);
