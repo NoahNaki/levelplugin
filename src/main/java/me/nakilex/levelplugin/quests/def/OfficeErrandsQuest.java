@@ -99,6 +99,8 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                     }
                 }
             }
+            // Physically clear the elevator so players can walk through
+            applyArea(worldElevatorGone);
         }
 
         // After blindness wears off, send initial dialog line
@@ -204,7 +206,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
 
                                         // Compute offset inside the office elevator
                                         Location originMin = new Location(e.getTo().getWorld(), minX, 142, minZ);
-                                        Location destMin = new Location(Bukkit.getWorld("world2"), 102, 66, -97);
+                                        Location destMin = new Location(Bukkit.getWorld("world2"), 102, 67, -97);
                                         World destWorld = destMin.getWorld();
 
                                         if (destWorld != null) {
@@ -307,6 +309,14 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                 loc.getBlockX() >= minX && loc.getBlockX() <= maxX &&
                         loc.getBlockY() >= minY && loc.getBlockY() <= maxY &&
                         loc.getBlockZ() >= minZ && loc.getBlockZ() <= maxZ);
+    }
+
+    /** Apply block data directly to the world. */
+    private void applyArea(Map<Location, BlockData> blocks) {
+        if (blocks == null) return;
+        for (var entry : blocks.entrySet()) {
+            entry.getKey().getBlock().setBlockData(entry.getValue(), false);
+        }
     }
     @Override
     public void onComplete(Player player, Main plugin) {
