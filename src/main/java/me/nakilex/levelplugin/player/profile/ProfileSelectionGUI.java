@@ -227,10 +227,7 @@ public class ProfileSelectionGUI implements Listener {
         if (e.getRawSlot() == CONFIRM_YES_SLOT) {
             if (slotIndex >= 0) {
                 ProfileManager pm = ProfileManager.getInstance();
-                pm.getProfiles(player.getUniqueId()).set(slotIndex, null);
-                Main.getInstance().getPlayerConfig()
-                        .setProfileLocation(player.getUniqueId(), slotIndex, null);
-                Main.getInstance().getPlayerConfig().saveConfigFile();
+                pm.deleteProfile(player.getUniqueId(), slotIndex);
                 player.sendMessage(ChatColor.RED + "Profile deleted.");
 
                 Integer active = pm.getActiveSlot(player.getUniqueId());
@@ -258,6 +255,12 @@ public class ProfileSelectionGUI implements Listener {
         }
         List<PlayerProfile> existing = pm.getProfiles(player.getUniqueId());
         boolean firstCreation = existing.stream().allMatch(Objects::isNull);
+
+        Integer active = pm.getActiveSlot(player.getUniqueId());
+        if (active != null && active == index) {
+            player.sendMessage(ChatColor.RED + "You already have this profile selected!");
+            return;
+        }
 
         PlayerProfile prof = pm.getProfile(player.getUniqueId(), index);
         if (prof == null) {

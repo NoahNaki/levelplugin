@@ -43,6 +43,21 @@ public class ProfileManager {
         return p;
     }
 
+    /**
+     * Remove the profile from the given slot and clear any stored location.
+     */
+    public void deleteProfile(UUID uuid, int slot) {
+        List<PlayerProfile> list = getProfiles(uuid);
+        if (slot < 0 || slot >= list.size()) {
+            return;
+        }
+        list.set(slot, null);
+        me.nakilex.levelplugin.player.config.PlayerConfig cfg =
+                me.nakilex.levelplugin.Main.getInstance().getPlayerConfig();
+        cfg.setProfileLocation(uuid, slot, null);
+        cfg.saveConfigFile();
+    }
+
     public void unlockNextSlot(UUID uuid) {
         int unlockedSlots = getUnlockedSlots(uuid);
         if (unlockedSlots < TOTAL_SLOTS) {
