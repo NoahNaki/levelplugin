@@ -70,24 +70,31 @@ public class PlayerJoinListener implements Listener {
             me.nakilex.levelplugin.quests.managers.QuestManager qm = Main.getInstance().getQuestManager();
             me.nakilex.levelplugin.quests.data.Quest nb1 = qm.getQuest("newbeginning1");
 
-            // Repeatedly hide NPC 537 until quest1 is completed.
+            // Repeatedly hide NPC 537 until quest1 is completed, only after the
+            // player has entered the "flatland" world where that NPC resides.
             new org.bukkit.scheduler.BukkitRunnable() {
                 @Override
                 public void run() {
                     if (!player.isOnline()) { cancel(); return; }
 
-                    net.citizensnpcs.api.npc.NPC moved = net.citizensnpcs.api.CitizensAPI.getNPCRegistry().getById(537);
-                    me.nakilex.levelplugin.quests.gui.QuestState state = qm.getQuestState(player, nb1);
+                    net.citizensnpcs.api.npc.NPC moved =
+                            net.citizensnpcs.api.CitizensAPI.getNPCRegistry().getById(537);
+                    me.nakilex.levelplugin.quests.gui.QuestState state =
+                            qm.getQuestState(player, nb1);
 
                     if (state == me.nakilex.levelplugin.quests.gui.QuestState.COMPLETED) {
-                        if (moved != null && moved.isSpawned()) {
+                        if (moved != null && moved.isSpawned()
+                                && player.getWorld().equals(moved.getEntity().getWorld())) {
                             player.showEntity(Main.getInstance(), moved.getEntity());
                         }
                         cancel();
                         return;
                     }
 
-                    if (moved != null && moved.isSpawned()) {
+                    // Wait until the player is actually in the flatland world so
+                    // the NPC can be hidden client-side.
+                    if (moved != null && moved.isSpawned()
+                            && "flatland".equals(player.getWorld().getName())) {
                         player.hideEntity(Main.getInstance(), moved.getEntity());
                     }
                 }
