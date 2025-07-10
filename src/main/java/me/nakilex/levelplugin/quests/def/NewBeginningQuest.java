@@ -55,8 +55,14 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 QuestRewardCompat.create(150, 30, 0, List.of(),
                         List.of(PlayerClass.ARCHER, PlayerClass.WARRIOR,
                                 PlayerClass.MAGE, PlayerClass.ROGUE)),
-                null,
-                null
+                536,
+                List.of(
+                        "Hey you there! I could've sworn no one was standing there a second ago, how did you suddenly appear?",
+                        "You certainly don't look from around here, especially with those clothes, perhaps a noble from another country.",
+                        "Another world you say? Well you wouldn't be the first to make such bold claims, my mom said she once knew someone that claimed the same thing, said they were from a place called, \"ip\".",
+                        "I'm sure you have many questions, how about to start off I show you around my village.",
+                        "First things first, you're going to have to look like you're from this world, go talk to that merchant over there and buy some equipment."
+                )
         );
     }
 
@@ -148,6 +154,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
 
         final Listener[] listener = new Listener[1];
         final org.bukkit.scheduler.BukkitRunnable[] task = new org.bukkit.scheduler.BukkitRunnable[1];
+        final boolean[] paused = new boolean[]{false};
         listener[0] = new Listener() {
             int idx = 1;
 
@@ -159,6 +166,13 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 NPC clicked = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
                 if (clicked.getId() != 536) return;
                 event.setCancelled(true);
+
+                if (paused[0]) {
+                    paused[0] = false;
+                    player.setInvulnerable(true);
+                    player.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.SLOWNESS,
+                            20 * 60, 4, false, false, false));
+                }
 
                 if (idx >= lines.length) return;
                 player.sendMessage(ChatColor.GRAY + "[" + (idx + 1) + "/" + lines.length + "] "
@@ -187,11 +201,12 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
             public void run() {
                 if (!player.isOnline()) { cancel(); return; }
                 if (player.getLocation().distanceSquared(npc.getEntity().getLocation()) > 25) {
-                    player.sendMessage(ChatColor.RED + "You walked away from the NPC.");
-                    org.bukkit.event.HandlerList.unregisterAll(listener[0]);
-                    player.removePotionEffect(org.bukkit.potion.PotionEffectType.SLOWNESS);
-                    player.setInvulnerable(false);
-                    cancel();
+                    if (!paused[0]) {
+                        player.sendMessage(ChatColor.RED + "You walked away from the NPC. Right-click again to continue.");
+                        player.removePotionEffect(org.bukkit.potion.PotionEffectType.SLOWNESS);
+                        player.setInvulnerable(false);
+                        paused[0] = true;
+                    }
                 }
             }
         };
