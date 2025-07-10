@@ -353,6 +353,6 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
     }
     @Override
     public void onComplete(Player player, Main plugin) {
-        plugin.getQuestManager().startQuest(player, "newbeginning1");
+        plugin.getQuestManager().startQuest(player, "newbeginning");
     }
 }

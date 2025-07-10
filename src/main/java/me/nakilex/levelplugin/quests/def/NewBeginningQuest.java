@@ -14,7 +14,11 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.HandlerList;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 
 import java.net.InetSocketAddress;
 import java.util.List;
@@ -22,22 +26,30 @@ import java.util.List;
 /**
  * Intro quest that plays a short conversation with Piwan.
  */
-public class NewBeginningPart1Quest extends Quest implements QuestScript {
+public class NewBeginningQuest extends Quest implements QuestScript {
     private static List<QuestObjective> createObjectives() {
-        // Use a custom target so normal NPC click handling doesn't finish the quest
-        return List.of(new QuestObjective(QuestObjectiveType.TALK, "npc536_done", 1));
+        return List.of(
+                new QuestObjective(QuestObjectiveType.TALK, "npc536_done", 1),
+                new QuestObjective(QuestObjectiveType.SELECT_CLASS, "ANY", 1),
+                new QuestObjective(QuestObjectiveType.BUY, "class_weapon", 1),
+                new QuestObjective(QuestObjectiveType.TALK, "npc537", 1)
+        );
     }
 
-    public NewBeginningPart1Quest() {
+    private final java.util.Set<java.util.UUID> awaitingMerchant = new java.util.HashSet<>();
+    private final java.util.Set<java.util.UUID> soldClothes = new java.util.HashSet<>();
+    private final java.util.Set<java.util.UUID> givenCoins = new java.util.HashSet<>();
+
+    public NewBeginningQuest() {
         super(
-                "newbeginning1",
-                "A New Beginning I",
+                "newbeginning",
+                "A New Beginning",
                 "Meet Piwan after arriving in the new world.",
                 createObjectives(),
                 1,
                 List.of("officeerrands"),
                 null,
-                QuestRewardCompat.create(100, 0, 0, List.of(),
+                QuestRewardCompat.create(150, 30, 0, List.of(),
                         List.of(PlayerClass.ARCHER, PlayerClass.WARRIOR,
                                 PlayerClass.MAGE, PlayerClass.ROGUE)),
                 null,
@@ -62,7 +74,47 @@ public class NewBeginningPart1Quest extends Quest implements QuestScript {
                 }
             }
         }.runTaskTimer(plugin, 20L, 20L);
-   }
+
+        // Listen for interactions with the Starter Merchant
+        Listener merchantListener = new Listener() {
+            @EventHandler(priority = EventPriority.LOWEST)
+            public void onInteract(PlayerInteractEntityEvent event) {
+                if (!event.getPlayer().equals(player)) return;
+                if (event.getHand() == EquipmentSlot.OFF_HAND) return;
+                if (!CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked())) return;
+                NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
+                if (!ChatColor.stripColor(npc.getName()).equalsIgnoreCase("Starter Merchant")) return;
+
+                event.setCancelled(true);
+                if (awaitingMerchant.contains(player.getUniqueId())) return;
+                awaitingMerchant.add(player.getUniqueId());
+                player.sendMessage(ChatColor.YELLOW + npc.getName() + ChatColor.WHITE + ": I'm sorry I can't sell you any equipment if you don't have any money, but those clothes you're wearing, I could certainly buy that off you in-exchange for some coins, whaddya say? Type yes or no.");
+            }
+        };
+
+        Listener chatListener = new Listener() {
+            @EventHandler
+            public void onChat(AsyncPlayerChatEvent event) {
+                if (!event.getPlayer().equals(player)) return;
+                if (!awaitingMerchant.remove(player.getUniqueId())) return;
+                event.setCancelled(true);
+                String msg = event.getMessage().trim().toLowerCase();
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    if (msg.startsWith("y")) {
+                        plugin.getEconomyManager().addCoins(player, 200);
+                        soldClothes.add(player.getUniqueId());
+                        player.sendMessage(ChatColor.GREEN + "You received 200 coins.");
+                        player.performCommand("merchant starter_shop");
+                    } else {
+                        player.sendMessage(ChatColor.YELLOW + "Starter Merchant: Fair enough, have a nice day.");
+                    }
+                });
+            }
+        };
+
+        Bukkit.getPluginManager().registerEvents(merchantListener, plugin);
+        Bukkit.getPluginManager().registerEvents(chatListener, plugin);
+    }
 
     private void playDialog(Player player, Main plugin, NPC npc) {
         InetSocketAddress addr = player.getAddress();
@@ -162,5 +214,71 @@ public class NewBeginningPart1Quest extends Quest implements QuestScript {
                 }
             }
         }.runTaskTimer(plugin, 20L, 20L);
+
+        // Register follow-up dialog with the moved NPC
+        registerFinalDialog(player, plugin);
+    }
+
+    /** Handle Piwan dialog after class selection and weapon purchase. */
+    private void registerFinalDialog(Player player, Main plugin) {
+        Listener[] handler = new Listener[1];
+        handler[0] = new Listener() {
+            int idx = 0;
+
+            @EventHandler(priority = EventPriority.LOWEST)
+            public void onInteract(PlayerInteractEntityEvent event) {
+                if (!event.getPlayer().equals(player)) return;
+                if (event.getHand() == EquipmentSlot.OFF_HAND) return;
+                if (!CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked())) return;
+                NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
+                if (npc.getId() != 537) return;
+
+                PlayerQuestProgress prog = plugin.getQuestManager().getProgress(player.getUniqueId());
+                if (prog == null || !prog.getQuest().getId().equals("newbeginning")) return;
+
+                // Wait until class selected and weapon bought
+                if (prog.getProgress(0) < 1 || prog.getProgress(1) < 1 || prog.getProgress(2) >= 1) {
+                    if (prog.getProgress(0) < 1) {
+                        event.setCancelled(true);
+                        if (!givenCoins.contains(player.getUniqueId()) && !soldClothes.contains(player.getUniqueId())) {
+                            plugin.getEconomyManager().addCoins(player, 100);
+                            givenCoins.add(player.getUniqueId());
+                            player.sendMessage(ChatColor.YELLOW + npc.getName() + ChatColor.WHITE + ": Oh right, I should've realised you wouldn't have any currency belonging to this world, here, you can pay me back in the future.");
+                        } else {
+                            player.sendMessage(ChatColor.YELLOW + npc.getName() + ChatColor.WHITE + ": Alright great now that you look like you belong here, now you just have to tell me what class you'll be going so that we can find you an appropriate weapon.");
+                        }
+                        player.performCommand("class");
+                    }
+                    return;
+                }
+
+                event.setCancelled(true);
+
+                PlayerClass pc = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass;
+                String className = pc.name().substring(0, 1) + pc.name().substring(1).toLowerCase();
+                String[] lines = new String[]{
+                        "Ah I see you went with the " + className + ", a wise choice.",
+                        "Now all that's left is for you to venture forth into the vast world of Eldrin and become stronger!",
+                        "Good luck adventurer! Maybe some day our paths will cross again."
+                };
+
+                if (idx >= lines.length) return;
+                player.sendMessage(ChatColor.GRAY + "[" + (idx + 1) + "/" + lines.length + "] " +
+                        ChatColor.YELLOW + npc.getName() + ChatColor.WHITE + ": " + lines[idx]);
+                player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+                idx++;
+
+                if (idx >= lines.length) {
+                    HandlerList.unregisterAll(handler[0]);
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                        if (player.isOnline()) {
+                            plugin.getQuestManager().handleTalk(player, "npc537");
+                        }
+                    }, 20L);
+                }
+            }
+        };
+
+        Bukkit.getPluginManager().registerEvents(handler[0], plugin);
     }
 }

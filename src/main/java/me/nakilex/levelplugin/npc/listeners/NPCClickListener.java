@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.quests.gui.QuestState;
+import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
@@ -35,6 +36,15 @@ public class NPCClickListener implements Listener {
         if (CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked())) {
             Player player = event.getPlayer();
             NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
+
+            String stripped = org.bukkit.ChatColor.stripColor(npc.getName());
+            if (stripped.equalsIgnoreCase("Starter Merchant")) {
+                PlayerQuestProgress prog = questManager.getProgress(player.getUniqueId());
+                if (prog == null || !prog.getQuest().getId().equals("newbeginning")) {
+                    player.performCommand("merchant starter_shop");
+                    return;
+                }
+            }
 
             if (dialogManager.hasSession(player)) {
                 dialogManager.advanceDialog(player, questManager);

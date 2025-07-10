@@ -62,10 +62,8 @@ public class QuestManager {
         registerQuest(tutorial);
         registerQuest(office);
         registerQuest(dragon);
-        Quest nb1 = new me.nakilex.levelplugin.quests.def.NewBeginningPart1Quest();
-        Quest nb2 = new me.nakilex.levelplugin.quests.def.NewBeginningPart2Quest();
-        registerQuest(nb1);
-        registerQuest(nb2);
+        Quest nb = new me.nakilex.levelplugin.quests.def.NewBeginningQuest();
+        registerQuest(nb);
         plugin.getLogger().info("Registered " + quests.size() + " quests.");
     }
 
