@@ -61,12 +61,19 @@ public class StaticItemListener implements Listener {
                 || item.isSimilar(STATIC_QUEST_BOOK);
     }
 
+    /**
+     * Give the standard static items to the player's hotbar.
+     */
+    public static void giveStaticItems(Player player) {
+        player.getInventory().setItem(6, STATIC_HORSE_SADDLE.clone());
+        player.getInventory().setItem(7, STATIC_QUEST_BOOK.clone());
+        player.getInventory().setItem(8, STATIC_ITEM.clone());
+    }
+
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player p = event.getPlayer();
-        p.getInventory().setItem(6, STATIC_HORSE_SADDLE);
-        p.getInventory().setItem(7, STATIC_QUEST_BOOK);
-        p.getInventory().setItem(8, STATIC_ITEM);
+        giveStaticItems(p);
     }
 
     @EventHandler

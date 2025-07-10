@@ -62,10 +62,12 @@ public class QuestManager {
         registerQuest(tutorial);
         registerQuest(office);
         registerQuest(dragon);
-        Quest nb1 = new me.nakilex.levelplugin.quests.def.NewBeginningPart1Quest();
-        Quest nb2 = new me.nakilex.levelplugin.quests.def.NewBeginningPart2Quest();
-        registerQuest(nb1);
-        registerQuest(nb2);
+        Quest nb = new me.nakilex.levelplugin.quests.def.NewBeginningQuest();
+        Quest seras = new me.nakilex.levelplugin.quests.def.SerasQuest();
+        Quest hawie = new me.nakilex.levelplugin.quests.def.HawieQuest();
+        registerQuest(nb);
+        registerQuest(seras);
+        registerQuest(hawie);
         plugin.getLogger().info("Registered " + quests.size() + " quests.");
     }
 
@@ -280,6 +282,9 @@ public class QuestManager {
                 PlayerClass playerClass = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass;
                 if (classReq != null && playerClass.name().equalsIgnoreCase(classReq)) {
                     updateObjective(player, QuestObjectiveType.BUY, "class_weapon", 1);
+                }
+                if (id >= 16 && id <= 19) {
+                    updateObjective(player, QuestObjectiveType.BUY, "starter_armor", 1);
                 }
             }
         } catch (NumberFormatException ignore) {
@@ -514,8 +519,6 @@ public class QuestManager {
                             + " objective " + i + " -> " + progress.getProgress(i) + "/" + obj.getAmount());
                 }
                 shareProgress(player, progress, i, amount);
-                player.sendMessage("§e[Quest] " + describeObjective(obj) + ": "
-                        + progress.getProgress(i) + "/" + obj.getAmount());
                 if (progress.isComplete()) {
                     if (debug) {
                         plugin.getLogger().info("[QuestDebug] " + player.getName() + " completed " + quest.getId());
@@ -550,8 +553,6 @@ public class QuestManager {
                 }
                 Player p = Bukkit.getPlayer(memberId);
                 if (p != null) {
-                    p.sendMessage("§e[Party Quest] " + describeObjective(obj) + ": "
-                            + other.getProgress(objectiveIndex) + "/" + obj.getAmount());
                     if (other.isComplete()) {
                         if (debug) {
                             plugin.getLogger().info("[QuestDebug] Party member " + p.getName() + " completed " + other.getQuest().getId());
@@ -626,7 +627,22 @@ public class QuestManager {
                 me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + name);
             }
             for (me.nakilex.levelplugin.player.classes.data.PlayerClass pc : reward.getUnlockClasses()) {
-                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + pc.name() + " class");
+                String pretty = pc.name().substring(0,1) + pc.name().substring(1).toLowerCase();
+                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + pretty + " Class");
+            }
+            if ("newbeginning".equals(quest.getId())) {
+                me.nakilex.levelplugin.player.classes.data.PlayerClass pc = StatsManager
+                        .getInstance().getPlayerStats(player.getUniqueId()).playerClass;
+                int id;
+                switch (pc) {
+                    case WARRIOR -> id = 1;
+                    case ROGUE -> id = 2;
+                    case MAGE -> id = 3;
+                    default -> id = 4;
+                }
+                me.nakilex.levelplugin.items.data.CustomItem tpl = plugin.getItemManager().getTemplateById(id);
+                String name = tpl != null ? tpl.getBaseName() : ("Item " + id);
+                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + name);
             }
             me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, " ", 45);
         }
@@ -647,6 +663,9 @@ public class QuestManager {
             case BUY:
                 if ("class_weapon".equalsIgnoreCase(obj.getTarget())) {
                     return "Buy class weapon";
+                }
+                if ("starter_armor".equalsIgnoreCase(obj.getTarget())) {
+                    return "Buy starter armor";
                 }
                 return "Buy " + obj.getTarget();
             case UPGRADE:

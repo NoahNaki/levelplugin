@@ -30,8 +30,10 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
 
     /** Cached block data for the destination elevator structure. */
     private Map<Location, BlockData> worldElevatorBlocks;
-    /** Map of the destination elevator area replaced with air for hiding. */
-    private Map<Location, BlockData> worldElevatorAir;
+    /** Map of the destination elevator area once the elevator disappears. */
+    private Map<Location, BlockData> worldElevatorGone;
+    /** Whether the real elevator blocks have been cleared from the world. */
+    private boolean worldElevatorCleared;
 
     private static List<QuestObjective> createObjectives() {
         World world = Bukkit.getWorld("redrocks");
@@ -78,19 +80,35 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
         // Ensure the destination elevator starts closed for this player
         gates.closeGate(player, worldGateId);
 
-        World flat = Bukkit.getWorld("flatland");
-        if (flat != null && worldElevatorBlocks == null) {
-            worldElevatorBlocks = captureArea(flat,
-                    4248, -34, -1214,
-                    4254, -27, -1207);
+        World world2 = Bukkit.getWorld("world2");
+        if (world2 != null && worldElevatorBlocks == null) {
+            worldElevatorBlocks = captureArea(world2,
+                    101, 66, -92,
+                    107, 76, -99);
             // Exclude the gate door blocks so the QuestGate controls them
             removeArea(worldElevatorBlocks,
-                    4248, -33, -1214,
-                    4254, -29, -1214);
-            worldElevatorAir = new HashMap<>();
+                    101, 67, -92,
+                    107, 73, -92);
+            worldElevatorGone = new HashMap<>();
             BlockData air = org.bukkit.Material.AIR.createBlockData();
-            for (Location l : worldElevatorBlocks.keySet()) {
-                worldElevatorAir.put(l, air);
+            BlockData path = org.bukkit.Material.DIRT_PATH.createBlockData();
+            // Create the final elevator-gone state: air above, dirt path floor
+            for (int x = 101; x <= 107; x++) {
+                for (int z = -99; z <= -92; z++) {
+                    worldElevatorGone.put(new Location(world2, x, 66, z), path);
+                    for (int y = 67; y <= 76; y++) {
+                        worldElevatorGone.put(new Location(world2, x, y, z), air);
+                    }
+                }
+            }
+            worldElevatorCleared = false;
+
+            // Show the intact elevator for all other online players
+            FakeBlockManager fbm = plugin.getFakeBlockManager();
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                if (!p.equals(player)) {
+                    fbm.showFakeBlocks(p, worldElevatorBlocks);
+                }
             }
         }
 
@@ -100,19 +118,17 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
         }, 40L);
 
         // Listen for talking to the Janitor (NPC 516)
-        final Listener[] talkListener = new Listener[1];
-        final int[] idx = {0};
         final boolean[] dialogDone = {false};
-        final String[] lines = new String[] {
+        final List<String> lines = java.util.List.of(
                 "Ilta|Took your time.",
                 "<player>|Didn't realize how late it was.",
                 "Ilta|Time’s slippery in places like this.",
                 "Ilta|One minute you’re working late… next minute, the building’s watching to see if you’ll notice it’s not quite the same as you left it.",
                 "<player>|What’s that supposed to mean?",
                 "Ilta|It means you're not leaving the same way you came in."
-        };
+        );
 
-        talkListener[0] = new Listener() {
+        Listener talkListener = new Listener() {
             @org.bukkit.event.EventHandler(priority = org.bukkit.event.EventPriority.LOWEST)
             public void onInteract(PlayerInteractEntityEvent event) {
                 if (!event.getPlayer().equals(player)) return;
@@ -121,28 +137,19 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                 NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
                 if (npc.getId() != 516) return;
 
-                event.setCancelled(true);
+                if (dialogDone[0]) return;
 
-                if (idx[0] >= lines.length) {
+                if (!plugin.getDialogManager().hasSession(player)) {
                     event.setCancelled(true);
-                    return;
-                }
-
-                String[] parts = lines[idx[0]].split("\\|", 2);
-                String speaker = parts[0].equals("<player>") ? player.getName() : parts[0];
-                String msg = parts[1];
-                player.sendMessage(ChatColor.GRAY + "[" + (idx[0] + 1) + "/" + lines.length + "] " + ChatColor.YELLOW + speaker + ChatColor.WHITE + ": " + msg);
-                player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
-                idx[0]++;
-
-                if (idx[0] >= lines.length) {
-                    dialogDone[0] = true;
-                    gates.openGate(player, gateId);
-                    HandlerList.unregisterAll(talkListener[0]);
+                    plugin.getDialogManager().startDialog(player, lines, npc, () -> {
+                        dialogDone[0] = true;
+                        gates.openGate(player, gateId);
+                        plugin.getQuestManager().handleTalk(player, "npc516");
+                    });
                 }
             }
         };
-        Bukkit.getPluginManager().registerEvents(talkListener[0], plugin);
+        Bukkit.getPluginManager().registerEvents(talkListener, plugin);
 
         // After speaking with the Janitor, detect when the player enters the elevator
         Listener moveListener = new Listener() {
@@ -197,7 +204,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
 
                                         // Compute offset inside the office elevator
                                         Location originMin = new Location(e.getTo().getWorld(), minX, 142, minZ);
-                                        Location destMin = new Location(Bukkit.getWorld("flatland"), 4249, -33, -1212);
+                                        Location destMin = new Location(Bukkit.getWorld("world2"), 102, 67, -97);
                                         World destWorld = destMin.getWorld();
 
                                         if (destWorld != null) {
@@ -208,6 +215,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                                             dest.setYaw(cur.getYaw());
                                             dest.setPitch(cur.getPitch());
                                             player.teleport(dest);
+                                            plugin.getQuestManager().startQuest(player, "newbeginning");
 
                                             FakeBlockManager fbm = plugin.getFakeBlockManager();
                                             if (worldElevatorBlocks != null) {
@@ -229,12 +237,34 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                                                     if (!ev.getPlayer().equals(player)) return;
                                                     Location l = ev.getTo();
                                                     if (!l.getWorld().equals(destWorld)
-                                                            || l.getBlockX() < 4248 || l.getBlockX() > 4254
-                                                            || l.getBlockY() < -34 || l.getBlockY() > -27
-                                                            || l.getBlockZ() < -1214 || l.getBlockZ() > -1207) {
+                                                            || l.getBlockX() < 101 || l.getBlockX() > 107
+                                                            || l.getBlockY() < 66 || l.getBlockY() > 76
+                                                            || l.getBlockZ() < -99 || l.getBlockZ() > -92) {
                                                         HandlerList.unregisterAll(this);
-                                                        if (worldElevatorAir != null) {
-                                                            fbm.showFakeBlocks(player, worldElevatorAir);
+                                                        if (worldElevatorGone != null) {
+                                                            if (!worldElevatorCleared) {
+                                                                applyArea(worldElevatorGone);
+                                                                worldElevatorCleared = true;
+                                                                for (Player other : Bukkit.getOnlinePlayers()) {
+                                                                    if (!other.equals(player) && worldElevatorBlocks != null) {
+                                                                        fbm.showFakeBlocks(other, worldElevatorBlocks);
+                                                                    }
+                                                                }
+                                                            }
+                                                            if (worldElevatorBlocks != null) {
+                                                                fbm.hideFakeBlocks(player, worldElevatorBlocks.keySet());
+                                                            }
+                                                            fbm.showFakeBlocks(player, worldElevatorGone);
+                                                            // Hide hanging entities inside the elevator
+                                                            for (var ent : destWorld.getEntities()) {
+                                                                Location el = ent.getLocation();
+                                                                if (el.getBlockX() >= 101 && el.getBlockX() <= 107
+                                                                        && el.getBlockY() >= 66 && el.getBlockY() <= 76
+                                                                        && el.getBlockZ() >= -99 && el.getBlockZ() <= -92
+                                                                        && ent instanceof org.bukkit.entity.Hanging) {
+                                                                    player.hideEntity(plugin, ent);
+                                                                }
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -291,8 +321,28 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                         loc.getBlockY() >= minY && loc.getBlockY() <= maxY &&
                         loc.getBlockZ() >= minZ && loc.getBlockZ() <= maxZ);
     }
+
+    /** Apply block data directly to the world. */
+    private void applyArea(Map<Location, BlockData> blocks) {
+        if (blocks == null) return;
+        for (var entry : blocks.entrySet()) {
+            entry.getKey().getBlock().setBlockData(entry.getValue(), false);
+        }
+    }
+
+    public Map<Location, BlockData> getWorldElevatorBlocks() {
+        return worldElevatorBlocks;
+    }
+
+    public Map<Location, BlockData> getWorldElevatorGone() {
+        return worldElevatorGone;
+    }
+
+    public boolean isWorldElevatorCleared() {
+        return worldElevatorCleared;
+    }
     @Override
     public void onComplete(Player player, Main plugin) {
-        plugin.getQuestManager().startQuest(player, "newbeginning1");
+        // Quest completion handled on teleport
     }
 }

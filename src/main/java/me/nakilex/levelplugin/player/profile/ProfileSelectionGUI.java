@@ -97,9 +97,23 @@ public class ProfileSelectionGUI implements Listener {
     public static void startSelection(Player player) {
         SELECTING.add(player.getUniqueId());
         hideOthers(player);
+
+        // Save inventory from the currently active profile, if any
+        ProfileManager pm = ProfileManager.getInstance();
+        Integer slot = pm.getActiveSlot(player.getUniqueId());
+        if (slot != null) {
+            me.nakilex.levelplugin.player.config.PlayerConfig cfg = Main.getInstance().getPlayerConfig();
+            cfg.setProfileInventory(player.getUniqueId(), slot, player.getInventory().getContents());
+            cfg.setProfileArmor(player.getUniqueId(), slot, player.getInventory().getArmorContents());
+            cfg.saveConfigFile();
+            player.getInventory().clear();
+            player.getInventory().setArmorContents(null);
+        }
+
         // Allow flight temporarily so the anti-cheat doesn't kick the player
         // while they are frozen in midair waiting for the GUI to open.
         player.setAllowFlight(true);
+        me.nakilex.levelplugin.items.listeners.StaticItemListener.giveStaticItems(player);
         open(player);
     }
 
@@ -110,6 +124,18 @@ public class ProfileSelectionGUI implements Listener {
         // Restore flight state to prevent unintended flying after the menu
         // closes.
         player.setAllowFlight(false);
+    }
+
+    /** Called when a player quits to clear any temporary state. */
+    public static void handleQuit(Player player) {
+        UUID id = player.getUniqueId();
+        SELECTING.remove(id);
+        NAMING.remove(id);
+        OPEN.remove(id);
+        EDIT_OPEN.remove(id);
+        CONFIRM_OPEN.remove(id);
+        PENDING_SLOT.remove(id);
+        FIRST_PROFILE_SLOT.remove(id);
     }
 
     public static void open(Player player) {
@@ -298,9 +324,17 @@ public class ProfileSelectionGUI implements Listener {
 
         player.sendMessage(ChatColor.YELLOW + "Selected character " + prof.getName());
         pm.setActiveSlot(player.getUniqueId(), index);
-        org.bukkit.Location loc = Main.getInstance().getPlayerConfig()
-                .getProfileLocation(player.getUniqueId(), index);
+        me.nakilex.levelplugin.player.config.PlayerConfig cfg = Main.getInstance().getPlayerConfig();
+        org.bukkit.Location loc = cfg.getProfileLocation(player.getUniqueId(), index);
         if (loc != null) player.teleport(loc);
+
+        // Load inventory and armor for this profile
+        player.getInventory().clear();
+        player.getInventory().setArmorContents(null);
+        org.bukkit.inventory.ItemStack[] contents = cfg.getProfileInventory(player.getUniqueId(), index);
+        org.bukkit.inventory.ItemStack[] armor = cfg.getProfileArmor(player.getUniqueId(), index);
+        if (contents.length > 0) player.getInventory().setContents(contents);
+        if (armor.length > 0) player.getInventory().setArmorContents(armor);
         stopSelection(player);
         player.closeInventory();
     }
@@ -335,6 +369,8 @@ public class ProfileSelectionGUI implements Listener {
                         }
                         ProfileManager pm = ProfileManager.getInstance();
                         pm.createProfile(player.getUniqueId(), index, input.trim());
+                        player.getInventory().clear();
+                        me.nakilex.levelplugin.items.listeners.StaticItemListener.giveStaticItems(player);
                         if (firstCreation) {
                             FIRST_PROFILE_SLOT.put(player.getUniqueId(), index);
                         }

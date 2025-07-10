@@ -67,8 +67,18 @@ public class PlayerJoinListener implements Listener {
                 player.teleport(lobby);
             }
 
+            // Show the world elevator for players that haven't finished Office Errands
             me.nakilex.levelplugin.quests.managers.QuestManager qm = Main.getInstance().getQuestManager();
-            me.nakilex.levelplugin.quests.data.Quest nb1 = qm.getQuest("newbeginning1");
+            me.nakilex.levelplugin.quests.def.OfficeErrandsQuest office =
+                    (me.nakilex.levelplugin.quests.def.OfficeErrandsQuest) qm.getQuest("officeerrands");
+            if (office != null && office.getWorldElevatorBlocks() != null
+                    && office.isWorldElevatorCleared()
+                    && !qm.hasCompleted(pid, "officeerrands")) {
+                Main.getInstance().getFakeBlockManager()
+                        .showFakeBlocks(player, office.getWorldElevatorBlocks());
+            }
+
+            me.nakilex.levelplugin.quests.data.Quest nb1 = qm.getQuest("newbeginning");
 
             // Repeatedly hide NPC 537 until quest1 is completed, only after the
             // player has entered the "flatland" world where that NPC resides.

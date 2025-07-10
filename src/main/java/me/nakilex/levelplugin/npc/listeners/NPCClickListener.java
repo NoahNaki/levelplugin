@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.quests.gui.QuestState;
+import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
@@ -36,8 +37,30 @@ public class NPCClickListener implements Listener {
             Player player = event.getPlayer();
             NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
 
+            String stripped = org.bukkit.ChatColor.stripColor(npc.getName());
+            if (stripped.equalsIgnoreCase("Starter Merchant")) {
+                PlayerQuestProgress prog = questManager.getProgress(player.getUniqueId());
+                if (prog == null || !prog.getQuest().getId().equals("newbeginning")) {
+                    player.performCommand("merchant starter_shop");
+                    return;
+                }
+            }
+
+            if (npc.getId() == 536 &&
+                    questManager.hasCompleted(player.getUniqueId(), "newbeginning")) {
+                if (!dialogManager.hasSession(player)) {
+                    dialogManager.startDialog(player,
+                            java.util.List.of("Piwan|You should talk to Seras at <location>, I'm sure she has plenty of tasks for you, though be wary she's a fiery one."),
+                            npc,
+                            null);
+                }
+            }
+
             if (dialogManager.hasSession(player)) {
-                dialogManager.advanceDialog(player, questManager);
+                NPC sessionNpc = dialogManager.getSessionNpc(player);
+                if (sessionNpc != null && sessionNpc.getId() == npc.getId()) {
+                    dialogManager.advanceDialog(player, questManager);
+                }
                 return;
             }
 
