@@ -631,7 +631,7 @@ public class QuestManager {
                 me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + pretty + " Class");
             }
             if ("newbeginning".equals(quest.getId())) {
-                me.nakilex.levelplugin.player.classes.data.PlayerClass pc = me.nakilex.levelplugin.player.stats.StatsManager
+                me.nakilex.levelplugin.player.classes.data.PlayerClass pc = StatsManager
                         .getInstance().getPlayerStats(player.getUniqueId()).playerClass;
                 int id;
                 switch (pc) {
