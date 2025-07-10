@@ -238,6 +238,7 @@ public class NPCDialogManager {
     public void checkDistance(Player player, double maxDistanceSquared) {
         DialogSession session = sessions.get(player.getUniqueId());
         if (session == null) return;
+        if (session.paused) return;
         if (session.npc == null || !session.npc.isSpawned()) return;
         if (player.getLocation().distanceSquared(session.npc.getEntity().getLocation()) > maxDistanceSquared) {
             player.sendMessage(ChatColor.RED + "You walked away from the NPC. Right-click again to continue.");

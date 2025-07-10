@@ -519,8 +519,6 @@ public class QuestManager {
                             + " objective " + i + " -> " + progress.getProgress(i) + "/" + obj.getAmount());
                 }
                 shareProgress(player, progress, i, amount);
-                player.sendMessage("§e[Quest] " + describeObjective(obj) + ": "
-                        + progress.getProgress(i) + "/" + obj.getAmount());
                 if (progress.isComplete()) {
                     if (debug) {
                         plugin.getLogger().info("[QuestDebug] " + player.getName() + " completed " + quest.getId());
@@ -555,8 +553,6 @@ public class QuestManager {
                 }
                 Player p = Bukkit.getPlayer(memberId);
                 if (p != null) {
-                    p.sendMessage("§e[Party Quest] " + describeObjective(obj) + ": "
-                            + other.getProgress(objectiveIndex) + "/" + obj.getAmount());
                     if (other.isComplete()) {
                         if (debug) {
                             plugin.getLogger().info("[QuestDebug] Party member " + p.getName() + " completed " + other.getQuest().getId());

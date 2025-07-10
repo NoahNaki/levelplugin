@@ -112,6 +112,18 @@ public class ProfileSelectionGUI implements Listener {
         player.setAllowFlight(false);
     }
 
+    /** Called when a player quits to clear any temporary state. */
+    public static void handleQuit(Player player) {
+        UUID id = player.getUniqueId();
+        SELECTING.remove(id);
+        NAMING.remove(id);
+        OPEN.remove(id);
+        EDIT_OPEN.remove(id);
+        CONFIRM_OPEN.remove(id);
+        PENDING_SLOT.remove(id);
+        FIRST_PROFILE_SLOT.remove(id);
+    }
+
     public static void open(Player player) {
         Inventory inv = Bukkit.createInventory(null, SIZE, TITLE);
         for (int i = 0; i < SIZE; i++) inv.setItem(i, FILLER);

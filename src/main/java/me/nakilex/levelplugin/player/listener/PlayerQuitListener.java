@@ -34,6 +34,7 @@ public class PlayerQuitListener implements Listener {
             .savePlayer(pid);
         me.nakilex.levelplugin.player.profile.ProfileManager.getInstance()
             .saveActiveLocation(player);
+        me.nakilex.levelplugin.player.profile.ProfileSelectionGUI.handleQuit(player);
         EnvironmentManager.EnvironmentState st = environmentManager.getState(pid);
         String town = st != null ? environmentManager.getTown(pid) : null;
         environmentManager.saveState(pid);
