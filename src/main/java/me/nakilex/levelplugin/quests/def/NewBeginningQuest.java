@@ -18,6 +18,9 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
+import me.nakilex.levelplugin.items.managers.ItemManager;
+import me.nakilex.levelplugin.items.data.CustomItem;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 
 import java.util.List;
 
@@ -30,7 +33,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 new QuestObjective(QuestObjectiveType.TALK, "npc536_done", 1),
                 new QuestObjective(QuestObjectiveType.BUY, "starter_armor", 1),
                 new QuestObjective(QuestObjectiveType.SELECT_CLASS, "ANY", 1),
-                new QuestObjective(QuestObjectiveType.TALK, "npc537", 1)
+                new QuestObjective(QuestObjectiveType.TALK, "npc536_final", 1)
         );
     }
 
@@ -136,11 +139,15 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
         };
 
         // Send the first line immediately when close with numbering
+        player.setInvulnerable(true);
+        player.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.SLOWNESS,
+                20 * 60, 4, false, false, false));
         player.sendMessage(ChatColor.GRAY + "[1/" + lines.length + "] "
                 + ChatColor.YELLOW + npc.getName() + ChatColor.WHITE + ": " + lines[0]);
         player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
 
         final Listener[] listener = new Listener[1];
+        final org.bukkit.scheduler.BukkitRunnable[] task = new org.bukkit.scheduler.BukkitRunnable[1];
         listener[0] = new Listener() {
             int idx = 1;
 
@@ -161,55 +168,34 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
 
                 if (idx >= lines.length) {
                     org.bukkit.event.HandlerList.unregisterAll(listener[0]);
-                    // Delay quest completion slightly so the final line can be read
+                    if (task[0] != null) task[0].cancel();
+                    player.removePotionEffect(org.bukkit.potion.PotionEffectType.SLOWNESS);
+                    player.setInvulnerable(false);
+                    // Delay quest progression slightly so the final line can be read
                     Bukkit.getScheduler().runTaskLater(plugin, () -> {
                         if (!player.isOnline()) return;
                         Main.getInstance().getQuestManager().handleTalk(player, "npc536_done");
-                        moveNpc(player, npc, plugin);
+                        registerFinalDialog(player, plugin);
                     }, 40L); // 2 seconds
                 }
             }
         };
         org.bukkit.Bukkit.getPluginManager().registerEvents(listener[0], plugin);
-    }
 
-    /** Move Piwan to a new location for this player only. */
-    private void moveNpc(Player player, NPC npc, Main plugin) {
-        org.bukkit.Location loc = npc.getEntity().getLocation().clone().add(10, 0, 0);
-
-        // Spawn the moved NPC with id 537 at the new location
-        NPC moved = CitizensAPI.getNPCRegistry().getById(537);
-        if (moved != null) {
-            moved.spawn(loc);
-            if (moved.isSpawned()) {
-                moved.getEntity().teleport(loc, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN);
-                moved.getEntity().setGravity(false);
-            }
-            // Hide from everyone until the player walks away from NPC 536
-            for (org.bukkit.entity.Player p : Bukkit.getOnlinePlayers()) {
-                p.hideEntity(plugin, moved.getEntity());
-            }
-        }
-
-        // Show the moved NPC only after the player leaves the old one
-        new BukkitRunnable() {
-            boolean shown = false;
+        task[0] = new org.bukkit.scheduler.BukkitRunnable() {
             @Override
             public void run() {
                 if (!player.isOnline()) { cancel(); return; }
-                if (player.getLocation().distanceSquared(npc.getEntity().getLocation()) > 100) {
-                    player.hideEntity(plugin, npc.getEntity());
-                    if (moved != null && moved.isSpawned() && !shown) {
-                        player.showEntity(plugin, moved.getEntity());
-                        shown = true;
-                    }
+                if (player.getLocation().distanceSquared(npc.getEntity().getLocation()) > 25) {
+                    player.sendMessage(ChatColor.RED + "You walked away from the NPC.");
+                    org.bukkit.event.HandlerList.unregisterAll(listener[0]);
+                    player.removePotionEffect(org.bukkit.potion.PotionEffectType.SLOWNESS);
+                    player.setInvulnerable(false);
                     cancel();
                 }
             }
-        }.runTaskTimer(plugin, 20L, 20L);
-
-        // Register follow-up dialog with the moved NPC
-        registerFinalDialog(player, plugin);
+        };
+        task[0].runTaskTimer(plugin, 0L, 10L);
     }
 
     /** Handle Piwan dialog after class selection and weapon purchase. */
@@ -224,7 +210,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 if (event.getHand() == EquipmentSlot.OFF_HAND) return;
                 if (!CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked())) return;
                 NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
-                if (npc.getId() != 537) return;
+                if (npc.getId() != 536) return;
 
                 PlayerQuestProgress prog = plugin.getQuestManager().getProgress(player.getUniqueId());
                 if (prog == null || !prog.getQuest().getId().equals("newbeginning")) return;
@@ -269,7 +255,8 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                     HandlerList.unregisterAll(handler[0]);
                     Bukkit.getScheduler().runTaskLater(plugin, () -> {
                         if (player.isOnline()) {
-                            plugin.getQuestManager().handleTalk(player, "npc537");
+                            giveClassWeapon(player);
+                            plugin.getQuestManager().handleTalk(player, "npc536_final");
                         }
                     }, 20L);
                 }
@@ -277,6 +264,31 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
         };
 
         Bukkit.getPluginManager().registerEvents(handler[0], plugin);
+    }
+
+    /** Give the starting weapon based on the player's chosen class. */
+    private void giveClassWeapon(Player player) {
+        PlayerClass pc = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass;
+        int id;
+        switch (pc) {
+            case WARRIOR -> id = 1;
+            case ROGUE -> id = 2;
+            case MAGE -> id = 3;
+            default -> id = 4; // ARCHER or others
+        }
+
+        CustomItem template = ItemManager.getInstance().getCustomItem(id);
+        if (template == null) return;
+
+        CustomItem instance = new CustomItem(
+                template.getId(), template.getBaseName(), template.getRarity(),
+                template.getLevelRequirement(), template.getClassRequirement(),
+                template.getMaterial(), template.getHpRange(), template.getDefRange(),
+                template.getStrRange(), template.getAgiRange(), template.getIntelRange(),
+                template.getDexRange(), template.isEgo(), template.getEgoKey()
+        );
+        ItemManager.getInstance().addInstance(instance);
+        player.getInventory().addItem(ItemUtil.createItemStackFromCustomItem(instance, 1, player));
     }
 
     @Override

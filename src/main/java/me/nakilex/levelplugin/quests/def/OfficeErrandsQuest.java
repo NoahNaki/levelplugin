@@ -131,6 +131,8 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
         };
 
         talkListener[0] = new Listener() {
+            org.bukkit.scheduler.BukkitRunnable task;
+
             @org.bukkit.event.EventHandler(priority = org.bukkit.event.EventPriority.LOWEST)
             public void onInteract(PlayerInteractEntityEvent event) {
                 if (!event.getPlayer().equals(player)) return;
@@ -146,6 +148,25 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                     return;
                 }
 
+                if (idx[0] == 0) {
+                    player.setInvulnerable(true);
+                    player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20 * 60, 4, false, false, false));
+                    task = new org.bukkit.scheduler.BukkitRunnable() {
+                        @Override
+                        public void run() {
+                            if (!player.isOnline()) { cancel(); return; }
+                            if (player.getLocation().distanceSquared(npc.getEntity().getLocation()) > 25) {
+                                player.sendMessage(ChatColor.RED + "You walked away from the NPC.");
+                                HandlerList.unregisterAll(talkListener[0]);
+                                player.removePotionEffect(PotionEffectType.SLOWNESS);
+                                player.setInvulnerable(false);
+                                cancel();
+                            }
+                        }
+                    };
+                    task.runTaskTimer(plugin, 0L, 10L);
+                }
+
                 String[] parts = lines[idx[0]].split("\\|", 2);
                 String speaker = parts[0].equals("<player>") ? player.getName() : parts[0];
                 String msg = parts[1];
@@ -157,6 +178,9 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                     dialogDone[0] = true;
                     gates.openGate(player, gateId);
                     HandlerList.unregisterAll(talkListener[0]);
+                    if (task != null) task.cancel();
+                    player.removePotionEffect(PotionEffectType.SLOWNESS);
+                    player.setInvulnerable(false);
                 }
             }
         };

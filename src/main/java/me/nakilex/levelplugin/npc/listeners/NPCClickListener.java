@@ -46,7 +46,7 @@ public class NPCClickListener implements Listener {
                 }
             }
 
-            if (npc.getId() == 537 &&
+            if (npc.getId() == 536 &&
                     questManager.hasCompleted(player.getUniqueId(), "newbeginning")) {
                 player.sendMessage(org.bukkit.ChatColor.YELLOW + "Piwan" +
                         org.bukkit.ChatColor.WHITE +
