@@ -98,4 +98,5 @@ public class Main extends JavaPlugin {
     public SettingsGUI getSettingsGUI() { return bootstrap.getSettingsGUI(); }
     public me.nakilex.levelplugin.environment.UpgradeGUI getUpgradeGUI() { return bootstrap.getUpgradeGUI(); }
     public me.nakilex.levelplugin.environment.BuildingUpgradeGUI getBuildingUpgradeGUI() { return bootstrap.getBuildingUpgradeGUI(); }
+    public me.nakilex.levelplugin.npc.dialog.NPCDialogManager getDialogManager() { return bootstrap.getDialogManager(); }
 }
