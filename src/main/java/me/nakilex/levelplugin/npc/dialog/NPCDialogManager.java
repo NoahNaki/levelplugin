@@ -34,13 +34,15 @@ public class NPCDialogManager {
         final Quest quest;
         final List<String> lines;
         final NPC npc;
+        final Runnable finish;
         int index = 0;
         boolean paused = false;
 
-        DialogSession(Quest quest, List<String> lines, NPC npc) {
+        DialogSession(Quest quest, List<String> lines, NPC npc, Runnable finish) {
             this.quest = quest;
             this.lines = lines;
             this.npc = npc;
+            this.finish = finish;
         }
     }
 
@@ -82,7 +84,17 @@ public class NPCDialogManager {
         if (lines == null || lines.isEmpty()) return;
         player.setInvulnerable(true);
         player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20 * 60, 4, false, false, false));
-        DialogSession session = new DialogSession(quest, lines, npc);
+        DialogSession session = new DialogSession(quest, lines, npc, null);
+        sessions.put(player.getUniqueId(), session);
+        sendLine(player, session);
+    }
+
+    /** Start a dialog sequence with custom lines and finish callback. */
+    public void startDialog(Player player, List<String> lines, NPC npc, Runnable finish) {
+        if (lines == null || lines.isEmpty()) return;
+        player.setInvulnerable(true);
+        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20 * 60, 4, false, false, false));
+        DialogSession session = new DialogSession(null, lines, npc, finish);
         sessions.put(player.getUniqueId(), session);
         sendLine(player, session);
     }
@@ -143,7 +155,12 @@ public class NPCDialogManager {
 
         if (session.index >= session.lines.size()) {
             endDialog(player);
-            questManager.startQuest(player, session.quest.getId());
+            if (session.quest != null) {
+                questManager.startQuest(player, session.quest.getId());
+            }
+            if (session.finish != null) {
+                session.finish.run();
+            }
             return;
         }
 
@@ -151,10 +168,20 @@ public class NPCDialogManager {
     }
 
     private void sendLine(Player player, DialogSession session) {
-        String line = session.lines.get(session.index);
+        String raw = session.lines.get(session.index);
+        String speaker = session.npc.getName();
+        String line = raw;
+        int bar = raw.indexOf('|');
+        if (bar >= 0) {
+            speaker = raw.substring(0, bar);
+            line = raw.substring(bar + 1);
+            if ("<player>".equalsIgnoreCase(speaker)) {
+                speaker = player.getName();
+            }
+        }
         String msg = ChatColor.DARK_GRAY + "[" + ChatColor.GRAY + (session.index + 1)
                 + "/" + session.lines.size() + ChatColor.DARK_GRAY + "] "
-                + ChatColor.GREEN + session.npc.getName()
+                + ChatColor.YELLOW + speaker
                 + ChatColor.WHITE + ": " + line;
         player.sendMessage(msg);
         player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);

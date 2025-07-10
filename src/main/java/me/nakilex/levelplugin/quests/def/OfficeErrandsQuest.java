@@ -118,21 +118,17 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
         }, 40L);
 
         // Listen for talking to the Janitor (NPC 516)
-        final Listener[] talkListener = new Listener[1];
-        final int[] idx = {0};
         final boolean[] dialogDone = {false};
-        final String[] lines = new String[] {
+        final List<String> lines = java.util.List.of(
                 "Ilta|Took your time.",
                 "<player>|Didn't realize how late it was.",
                 "Ilta|Time’s slippery in places like this.",
                 "Ilta|One minute you’re working late… next minute, the building’s watching to see if you’ll notice it’s not quite the same as you left it.",
                 "<player>|What’s that supposed to mean?",
                 "Ilta|It means you're not leaving the same way you came in."
-        };
+        );
 
-        talkListener[0] = new Listener() {
-            org.bukkit.scheduler.BukkitRunnable task;
-
+        Listener talkListener = new Listener() {
             @org.bukkit.event.EventHandler(priority = org.bukkit.event.EventPriority.LOWEST)
             public void onInteract(PlayerInteractEntityEvent event) {
                 if (!event.getPlayer().equals(player)) return;
@@ -141,50 +137,19 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                 NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
                 if (npc.getId() != 516) return;
 
-                event.setCancelled(true);
+                if (dialogDone[0]) return;
 
-                if (idx[0] >= lines.length) {
+                if (!plugin.getDialogManager().hasSession(player)) {
                     event.setCancelled(true);
-                    return;
-                }
-
-                if (idx[0] == 0) {
-                    player.setInvulnerable(true);
-                    player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20 * 60, 4, false, false, false));
-                    task = new org.bukkit.scheduler.BukkitRunnable() {
-                        @Override
-                        public void run() {
-                            if (!player.isOnline()) { cancel(); return; }
-                            if (player.getLocation().distanceSquared(npc.getEntity().getLocation()) > 25) {
-                                player.sendMessage(ChatColor.RED + "You walked away from the NPC.");
-                                HandlerList.unregisterAll(talkListener[0]);
-                                player.removePotionEffect(PotionEffectType.SLOWNESS);
-                                player.setInvulnerable(false);
-                                cancel();
-                            }
-                        }
-                    };
-                    task.runTaskTimer(plugin, 0L, 10L);
-                }
-
-                String[] parts = lines[idx[0]].split("\\|", 2);
-                String speaker = parts[0].equals("<player>") ? player.getName() : parts[0];
-                String msg = parts[1];
-                player.sendMessage(ChatColor.GRAY + "[" + (idx[0] + 1) + "/" + lines.length + "] " + ChatColor.YELLOW + speaker + ChatColor.WHITE + ": " + msg);
-                player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
-                idx[0]++;
-
-                if (idx[0] >= lines.length) {
-                    dialogDone[0] = true;
-                    gates.openGate(player, gateId);
-                    HandlerList.unregisterAll(talkListener[0]);
-                    if (task != null) task.cancel();
-                    player.removePotionEffect(PotionEffectType.SLOWNESS);
-                    player.setInvulnerable(false);
+                    plugin.getDialogManager().startDialog(player, lines, npc, () -> {
+                        dialogDone[0] = true;
+                        gates.openGate(player, gateId);
+                        plugin.getQuestManager().handleTalk(player, "npc516");
+                    });
                 }
             }
         };
-        Bukkit.getPluginManager().registerEvents(talkListener[0], plugin);
+        Bukkit.getPluginManager().registerEvents(talkListener, plugin);
 
         // After speaking with the Janitor, detect when the player enters the elevator
         Listener moveListener = new Listener() {
