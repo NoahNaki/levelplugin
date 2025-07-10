@@ -19,7 +19,6 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 
-import java.net.InetSocketAddress;
 import java.util.List;
 
 /**
@@ -88,6 +87,10 @@ public class NewBeginningQuest extends Quest implements QuestScript {
                 if (awaitingMerchant.contains(player.getUniqueId())) return;
                 awaitingMerchant.add(player.getUniqueId());
 
+                player.sendMessage(ChatColor.YELLOW + "Starter Merchant" + ChatColor.WHITE +
+                        ": I'm sorry I can't sell you any equipment if you don't have any money, " +
+                        "but those clothes you're wearing, I could certainly buy that off you in-exchange for some coins, whaddya say?");
+
                 Main.getInstance().getDialogManager().startChoiceDialog(player, npc,
                         java.util.List.of("Yes", "No"), choice -> {
                             awaitingMerchant.remove(player.getUniqueId());
@@ -107,26 +110,14 @@ public class NewBeginningQuest extends Quest implements QuestScript {
     }
 
     private void playDialog(Player player, Main plugin, NPC npc) {
-        InetSocketAddress addr = player.getAddress();
-        String ip = addr != null && addr.getAddress() != null ? addr.getAddress().getHostAddress() : "unknown";
         String[] lines = new String[] {
                 "Hey you there! I could've sworn no one was standing there a second ago, how did you suddenly appear?",
                 "You certainly don't look from around here, especially with those clothes, perhaps a noble from another country.",
-                "Another world you say? Well you wouldn't be the first to make such bold claims, my mom said she once knew someone that claimed the same thing, said they were from a place called, \"" + ip + "\".",
+                "Another world you say? Well you wouldn't be the first to make such bold claims, my mom said she once knew someone that claimed the same thing, said they were from a place called, \"ip\".",
                 "I'm sure you have many questions, how about to start off I show you around my village.",
-                "Go to <place>",
-                "First things first, you're going to have to look like you're from this world, Go talk to that merchant over there and buy some equipment.",
-                "Merchant: I'm sorry I can't sell you any equipment if you don't have any money, but those clothes you're wearing, I could certainly buy that off you in-exchange for some coins, whaddya say?",
-                "Yes/No",
-                "If yes: 200 coins",
-                "Open shop and buy armor",
-                "If no: Fair enough, have a nice day.",
-                "Go back and talk to Piwan:",
+                "First things first, you're going to have to look like you're from this world, go talk to that merchant over there and buy some equipment.",
                 "Oh right, I should've realised you wouldn't have any currency belonging to this world, here, you can pay me back in the future.",
-                "Get 100 coins.",
-                "Talk to the NPC again and buy armor.",
-                "Talk to Piwan, alright great now that you look like you belong here, now you just have to tell me what class you'll be going so that we can find you an appropriate weapon.",
-                "/class menu opens",
+                "Alright great now that you look like you belong here, now you just have to tell me what class you'll be going so that we can find you an appropriate weapon.",
                 "Ah you went with the <class>, I should have a spare weapon lying around here somewhere, let's see hmmmm",
                 "AH! here you go.",
                 "Now you're all set, I'm sure our paths will cross again adventurer, now go and explore the vast world of Eldrin."

@@ -83,8 +83,8 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
         World world2 = Bukkit.getWorld("world2");
         if (world2 != null && worldElevatorBlocks == null) {
             worldElevatorBlocks = captureArea(world2,
-                    101, 66, -99,
-                    107, 76, -92);
+                    101, 66, -92,
+                    107, 76, -99);
             // Exclude the gate door blocks so the QuestGate controls them
             removeArea(worldElevatorBlocks,
                     101, 67, -92,
