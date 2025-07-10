@@ -94,6 +94,10 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
                 if (!ChatColor.stripColor(npc.getName()).equalsIgnoreCase("Starter Merchant")) return;
 
+                PlayerQuestProgress prog = plugin.getQuestManager().getProgress(player.getUniqueId());
+                if (prog == null || !prog.getQuest().getId().equals("newbeginning")) return;
+                if (prog.getProgress(0) < 1) return; // wait until Piwan dialog finished
+
                 event.setCancelled(true);
 
                 // After the dialog has been shown once, always open the shop
