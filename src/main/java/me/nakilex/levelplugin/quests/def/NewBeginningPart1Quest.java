@@ -68,10 +68,26 @@ public class NewBeginningPart1Quest extends Quest implements QuestScript {
         InetSocketAddress addr = player.getAddress();
         String ip = addr != null && addr.getAddress() != null ? addr.getAddress().getHostAddress() : "unknown";
         String[] lines = new String[] {
-                "Hey! Where did you come from? ",
-                "I swear you weren’t there a second ago—and those clothes... you're not from around here, are you? A foreign noble, maybe?",
-                "Another world? Huh. Oddly enough, my mom once met someone who said the same—claimed they came from a place called " + ip + ".",
-                "I'm Piwan. I can show you around the village."
+                "Hey you there! I could've sworn no one was standing there a second ago, how did you suddenly appear?",
+                "You certainly don't look from around here, especially with those clothes, perhaps a noble from another country.",
+                "Another world you say? Well you wouldn't be the first to make such bold claims, my mom said she once knew someone that claimed the same thing, said they were from a place called, \"" + ip + "\".",
+                "I'm sure you have many questions, how about to start off I show you around my village.",
+                "Go to <place>",
+                "First things first, you're going to have to look like you're from this world, Go talk to that merchant over there and buy some equipment.",
+                "Merchant: I'm sorry I can't sell you any equipment if you don't have any money, but those clothes you're wearing, I could certainly buy that off you in-exchange for some coins, whaddya say?",
+                "Yes/No",
+                "If yes: 200 coins",
+                "Open shop and buy armor",
+                "If no: Fair enough, have a nice day.",
+                "Go back and talk to Piwan:",
+                "Oh right, I should've realised you wouldn't have any currency belonging to this world, here, you can pay me back in the future.",
+                "Get 100 coins.",
+                "Talk to the NPC again and buy armor.",
+                "Talk to Piwan, alright great now that you look like you belong here, now you just have to tell me what class you'll be going so that we can find you an appropriate weapon.",
+                "/class menu opens",
+                "Ah you went with the <class>, I should have a spare weapon lying around here somewhere, let's see hmmmm",
+                "AH! here you go.",
+                "Now you're all set, I'm sure our paths will cross again adventurer, now go and explore the vast world of Eldrin."
         };
 
         // Send the first line immediately when close with numbering
