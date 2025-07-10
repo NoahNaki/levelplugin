@@ -116,11 +116,6 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 "Another world you say? Well you wouldn't be the first to make such bold claims, my mom said she once knew someone that claimed the same thing, said they were from a place called, \"ip\".",
                 "I'm sure you have many questions, how about to start off I show you around my village.",
                 "First things first, you're going to have to look like you're from this world, go talk to that merchant over there and buy some equipment.",
-                "Oh right, I should've realised you wouldn't have any currency belonging to this world, here, you can pay me back in the future.",
-                "Alright great now that you look like you belong here, now you just have to tell me what class you'll be going so that we can find you an appropriate weapon.",
-                "Ah you went with the <class>, I should have a spare weapon lying around here somewhere, let's see hmmmm",
-                "AH! here you go.",
-                "Now you're all set, I'm sure our paths will cross again adventurer, now go and explore the vast world of Eldrin."
         };
 
         // Send the first line immediately when close with numbering
@@ -217,19 +212,17 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 PlayerQuestProgress prog = plugin.getQuestManager().getProgress(player.getUniqueId());
                 if (prog == null || !prog.getQuest().getId().equals("newbeginning")) return;
 
-                // Wait until class selected and weapon bought
-                if (prog.getProgress(0) < 1 || prog.getProgress(1) < 1 || prog.getProgress(2) >= 1) {
-                    if (prog.getProgress(0) < 1) {
-                        event.setCancelled(true);
-                        if (!givenCoins.contains(player.getUniqueId()) && !soldClothes.contains(player.getUniqueId())) {
-                            plugin.getEconomyManager().addCoins(player, 100);
-                            givenCoins.add(player.getUniqueId());
-                            player.sendMessage(ChatColor.YELLOW + npc.getName() + ChatColor.WHITE + ": Oh right, I should've realised you wouldn't have any currency belonging to this world, here, you can pay me back in the future.");
-                        } else {
-                            player.sendMessage(ChatColor.YELLOW + npc.getName() + ChatColor.WHITE + ": Alright great now that you look like you belong here, now you just have to tell me what class you'll be going so that we can find you an appropriate weapon.");
-                        }
-                        player.performCommand("class");
+                // Wait until the player has selected a class and bought the weapon
+                if (prog.getProgress(1) < 1 || prog.getProgress(2) < 1) {
+                    if (!givenCoins.contains(player.getUniqueId()) && !soldClothes.contains(player.getUniqueId())) {
+                        plugin.getEconomyManager().addCoins(player, 100);
+                        givenCoins.add(player.getUniqueId());
+                        player.sendMessage(ChatColor.YELLOW + npc.getName() + ChatColor.WHITE + ": Oh right, I should've realised you wouldn't have any currency belonging to this world, here, you can pay me back in the future.");
+                    } else {
+                        player.sendMessage(ChatColor.YELLOW + npc.getName() + ChatColor.WHITE + ": Alright great now that you look like you belong here, now you just have to tell me what class you'll be going so that we can find you an appropriate weapon.");
                     }
+                    event.setCancelled(true);
+                    player.performCommand("class");
                     return;
                 }
 
@@ -238,9 +231,9 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 PlayerClass pc = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass;
                 String className = pc.name().substring(0, 1) + pc.name().substring(1).toLowerCase();
                 String[] lines = new String[]{
-                        "Ah I see you went with the " + className + ", a wise choice.",
-                        "Now all that's left is for you to venture forth into the vast world of Eldrin and become stronger!",
-                        "Good luck adventurer! Maybe some day our paths will cross again."
+                        "Ah you went with the " + className + ", I should have a spare weapon lying around here somewhere, let's see hmmmm",
+                        "AH! here you go.",
+                        "Now you're all set, I'm sure our paths will cross again adventurer, now go and explore the vast world of Eldrin."
                 };
 
                 if (idx >= lines.length) return;
