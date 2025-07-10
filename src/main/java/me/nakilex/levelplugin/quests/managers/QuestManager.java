@@ -627,7 +627,22 @@ public class QuestManager {
                 me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + name);
             }
             for (me.nakilex.levelplugin.player.classes.data.PlayerClass pc : reward.getUnlockClasses()) {
-                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + pc.name() + " class");
+                String pretty = pc.name().substring(0,1) + pc.name().substring(1).toLowerCase();
+                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + pretty + " Class");
+            }
+            if ("newbeginning".equals(quest.getId())) {
+                me.nakilex.levelplugin.player.classes.data.PlayerClass pc = me.nakilex.levelplugin.player.stats.StatsManager
+                        .getInstance().getPlayerStats(player.getUniqueId()).playerClass;
+                int id;
+                switch (pc) {
+                    case WARRIOR -> id = 1;
+                    case ROGUE -> id = 2;
+                    case MAGE -> id = 3;
+                    default -> id = 4;
+                }
+                me.nakilex.levelplugin.items.data.CustomItem tpl = plugin.getItemManager().getTemplateById(id);
+                String name = tpl != null ? tpl.getBaseName() : ("Item " + id);
+                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + name);
             }
             me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, " ", 45);
         }

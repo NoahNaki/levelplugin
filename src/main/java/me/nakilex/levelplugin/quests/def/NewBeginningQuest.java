@@ -111,7 +111,9 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 if (awaitingMerchant.contains(player.getUniqueId())) return;
                 awaitingMerchant.add(player.getUniqueId());
 
-                player.sendMessage(ChatColor.YELLOW + "Starter Merchant" + ChatColor.WHITE +
+                player.sendMessage(ChatColor.DARK_GRAY + "[" + ChatColor.GRAY + "1" +
+                        "/1" + ChatColor.DARK_GRAY + "] " +
+                        ChatColor.YELLOW + "Starter Merchant" + ChatColor.WHITE +
                         ": I'm sorry I can't sell you any equipment if you don't have any money, " +
                         "but those clothes you're wearing, I could certainly buy that off you in-exchange for some coins, whaddya say?");
 
@@ -123,7 +125,9 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                                     if (choice == 0) {
                                         plugin.getEconomyManager().addCoins(player, 200);
                                         soldClothes.add(player.getUniqueId());
-                                        player.sendMessage(ChatColor.GREEN + "You received 200 coins.");
+                                        player.sendMessage(ChatColor.GOLD + "You received " +
+                                                ChatColor.YELLOW + "200 ⛃ " +
+                                                ChatColor.GOLD + "coins.");
                                     } else {
                                         player.sendMessage(ChatColor.YELLOW + "Starter Merchant: Fair enough, have a nice day.");
                                     }
