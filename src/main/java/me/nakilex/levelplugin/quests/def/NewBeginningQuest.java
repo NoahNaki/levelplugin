@@ -37,6 +37,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
     private final java.util.Set<java.util.UUID> awaitingMerchant = new java.util.HashSet<>();
     private final java.util.Set<java.util.UUID> soldClothes = new java.util.HashSet<>();
     private final java.util.Set<java.util.UUID> givenCoins = new java.util.HashSet<>();
+    private final java.util.Set<java.util.UUID> readyToShop = new java.util.HashSet<>();
 
     public NewBeginningQuest() {
         super(
@@ -84,6 +85,13 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 if (!ChatColor.stripColor(npc.getName()).equalsIgnoreCase("Starter Merchant")) return;
 
                 event.setCancelled(true);
+
+                // If the player already made a choice, the next click should open the shop
+                if (readyToShop.remove(player.getUniqueId())) {
+                    player.performCommand("merchant starter_shop");
+                    return;
+                }
+
                 if (awaitingMerchant.contains(player.getUniqueId())) return;
                 awaitingMerchant.add(player.getUniqueId());
 
@@ -98,10 +106,10 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                                 plugin.getEconomyManager().addCoins(player, 200);
                                 soldClothes.add(player.getUniqueId());
                                 player.sendMessage(ChatColor.GREEN + "You received 200 coins.");
-                                player.performCommand("merchant starter_shop");
                             } else {
                                 player.sendMessage(ChatColor.YELLOW + "Starter Merchant: Fair enough, have a nice day.");
                             }
+                            readyToShop.add(player.getUniqueId());
                         });
             }
         };
