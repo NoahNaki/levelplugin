@@ -35,6 +35,7 @@ public class NPCDialogManager {
         final List<String> lines;
         final NPC npc;
         int index = 0;
+        boolean paused = false;
 
         DialogSession(Quest quest, List<String> lines, NPC npc) {
             this.quest = quest;
@@ -44,6 +45,11 @@ public class NPCDialogManager {
     }
 
     private final Map<UUID, DialogSession> sessions = new HashMap<>();
+
+    public NPC getSessionNpc(Player player) {
+        DialogSession s = sessions.get(player.getUniqueId());
+        return s != null ? s.npc : null;
+    }
 
     private static class ChoiceSession {
         final NPC npc;
@@ -129,6 +135,12 @@ public class NPCDialogManager {
         DialogSession session = sessions.get(player.getUniqueId());
         if (session == null) return;
 
+        if (session.paused) {
+            session.paused = false;
+            player.setInvulnerable(true);
+            player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20 * 60, 4, false, false, false));
+        }
+
         if (session.index >= session.lines.size()) {
             endDialog(player);
             questManager.startQuest(player, session.quest.getId());
@@ -153,6 +165,18 @@ public class NPCDialogManager {
         player.removePotionEffect(PotionEffectType.SLOWNESS);
         player.setInvulnerable(false);
         sessions.remove(player.getUniqueId());
+    }
+
+    private void pauseDialog(Player player) {
+        DialogSession session = sessions.get(player.getUniqueId());
+        if (session == null) return;
+        player.removePotionEffect(PotionEffectType.SLOWNESS);
+        player.setInvulnerable(false);
+        session.paused = true;
+        ChoiceSession cs = choiceSessions.get(player.getUniqueId());
+        if (cs != null) {
+            finishChoice(player, cs);
+        }
     }
 
     private void sendChoice(Player player, ChoiceSession cs) {
@@ -184,8 +208,8 @@ public class NPCDialogManager {
         if (session == null) return;
         if (session.npc == null || !session.npc.isSpawned()) return;
         if (player.getLocation().distanceSquared(session.npc.getEntity().getLocation()) > maxDistanceSquared) {
-            player.sendMessage(ChatColor.RED + "You walked away from the NPC.");
-            endDialog(player);
+            player.sendMessage(ChatColor.RED + "You walked away from the NPC. Right-click again to continue.");
+            pauseDialog(player);
         }
     }
 }

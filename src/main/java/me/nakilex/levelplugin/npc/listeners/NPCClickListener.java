@@ -54,7 +54,10 @@ public class NPCClickListener implements Listener {
             }
 
             if (dialogManager.hasSession(player)) {
-                dialogManager.advanceDialog(player, questManager);
+                NPC sessionNpc = dialogManager.getSessionNpc(player);
+                if (sessionNpc != null && sessionNpc.getId() == npc.getId()) {
+                    dialogManager.advanceDialog(player, questManager);
+                }
                 return;
             }
 
