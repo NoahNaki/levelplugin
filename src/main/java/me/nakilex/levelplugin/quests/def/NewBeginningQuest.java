@@ -152,6 +152,9 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                                                 java.util.List.of("Starter Merchant|Fair enough, have a nice day."),
                                                 npc,
                                                 null);
+                                        Bukkit.getScheduler().runTaskLater(plugin,
+                                                () -> plugin.getDialogManager().advanceDialog(player, plugin.getQuestManager()),
+                                                1L);
                                     }
                                     readyToShop.add(player.getUniqueId());
                                 }));
