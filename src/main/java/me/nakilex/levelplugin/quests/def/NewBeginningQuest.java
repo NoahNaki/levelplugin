@@ -121,7 +121,16 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                     return;
                 }
 
-                if (awaitingMerchant.contains(player.getUniqueId())) return;
+                if (awaitingMerchant.contains(player.getUniqueId())) {
+                    // Let the existing dialog continue while waiting for the choice
+                    if (plugin.getDialogManager().hasSession(player)) {
+                        NPC sessionNpc = plugin.getDialogManager().getSessionNpc(player);
+                        if (sessionNpc != null && sessionNpc.getId() == npc.getId()) {
+                            plugin.getDialogManager().advanceDialog(player, plugin.getQuestManager());
+                        }
+                    }
+                    return;
+                }
                 awaitingMerchant.add(player.getUniqueId());
 
                 plugin.getDialogManager().startDialog(player,
