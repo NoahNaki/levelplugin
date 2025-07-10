@@ -185,6 +185,7 @@ public class NPCDialogManager {
                 + ChatColor.YELLOW + speaker
                 + ChatColor.WHITE + ": " + line;
         player.sendMessage(msg);
+        ChatFormatter.constructDivider(player, " ", 45);
         player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
         session.index++;
     }
@@ -215,12 +216,17 @@ public class NPCDialogManager {
     private void sendChoice(Player player, ChoiceSession cs) {
         player.sendMessage(ChatColor.AQUA + "Choose your answer:");
         ChatFormatter.constructDivider(player, " ", 45);
+
+        StringBuilder sb = new StringBuilder();
         for (int i = 0; i < cs.options.size(); i++) {
+            if (i > 0) sb.append(ChatColor.GRAY).append(" / ");
             ChatColor col = i == cs.index ? ChatColor.GREEN : ChatColor.WHITE;
-            String option = ChatColor.DARK_GRAY + "[" + col + (i == cs.index ? ChatColor.UNDERLINE : "")
-                    + cs.options.get(i) + ChatColor.DARK_GRAY + "]";
-            ChatFormatter.sendCenteredMessage(player, option);
+            sb.append(ChatColor.DARK_GRAY).append("[")
+                    .append(col).append(i == cs.index ? ChatColor.UNDERLINE : "")
+                    .append(cs.options.get(i))
+                    .append(ChatColor.DARK_GRAY).append("]");
         }
+        ChatFormatter.sendCenteredMessage(player, sb.toString());
         player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
     }
 

@@ -195,14 +195,15 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
 
                 if (prog.getProgress(1) < 1) {
                     if (!givenCoins.contains(player.getUniqueId()) && !soldClothes.contains(player.getUniqueId())) {
-                        plugin.getEconomyManager().addCoins(player, 100);
-                        givenCoins.add(player.getUniqueId());
-                        player.sendMessage(ChatColor.GOLD + "You received "
-                                + ChatColor.YELLOW + "100 ⛃ " + ChatColor.GOLD + "coins.");
                         plugin.getDialogManager().startDialog(player,
                                 java.util.List.of("Piwan|Oh right, I should've realised you wouldn't have any currency belonging to this world, here, you can pay me back in the future."),
                                 npc,
-                                null);
+                                () -> {
+                                    plugin.getEconomyManager().addCoins(player, 100);
+                                    givenCoins.add(player.getUniqueId());
+                                    player.sendMessage(ChatColor.GOLD + "You received "
+                                            + ChatColor.YELLOW + "100 ⛃ " + ChatColor.GOLD + "coins.");
+                                });
                     } else {
                         plugin.getDialogManager().startDialog(player,
                                 java.util.List.of("Piwan|Go ahead and buy some new equipment."),

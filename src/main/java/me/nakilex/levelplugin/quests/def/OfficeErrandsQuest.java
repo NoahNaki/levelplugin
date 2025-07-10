@@ -215,6 +215,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                                             dest.setYaw(cur.getYaw());
                                             dest.setPitch(cur.getPitch());
                                             player.teleport(dest);
+                                            plugin.getQuestManager().startQuest(player, "newbeginning");
 
                                             FakeBlockManager fbm = plugin.getFakeBlockManager();
                                             if (worldElevatorBlocks != null) {
@@ -342,6 +343,6 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
     }
     @Override
     public void onComplete(Player player, Main plugin) {
-        plugin.getQuestManager().startQuest(player, "newbeginning");
+        // Quest completion handled on teleport
     }
 }
