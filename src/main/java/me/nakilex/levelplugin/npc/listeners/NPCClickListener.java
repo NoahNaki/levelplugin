@@ -46,8 +46,11 @@ public class NPCClickListener implements Listener {
                 }
             }
 
-            if (npc.getId() == 537 && questManager.getProgress(player.getUniqueId()) == null) {
-                player.sendMessage(org.bukkit.ChatColor.YELLOW + "Piwan" + org.bukkit.ChatColor.WHITE + ": You should talk to Seras at <location>, I'm sure she has plenty of tasks for you, though be wary she's a fiery one.");
+            if (npc.getId() == 537 &&
+                    questManager.hasCompleted(player.getUniqueId(), "newbeginning")) {
+                player.sendMessage(org.bukkit.ChatColor.YELLOW + "Piwan" +
+                        org.bukkit.ChatColor.WHITE +
+                        ": You should talk to Seras at <location>, I'm sure she has plenty of tasks for you, though be wary she's a fiery one.");
             }
 
             if (dialogManager.hasSession(player)) {
