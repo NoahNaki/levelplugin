@@ -16,7 +16,6 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
-import org.bukkit.event.player.AsyncPlayerChatEvent;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 
@@ -88,32 +87,23 @@ public class NewBeginningQuest extends Quest implements QuestScript {
                 event.setCancelled(true);
                 if (awaitingMerchant.contains(player.getUniqueId())) return;
                 awaitingMerchant.add(player.getUniqueId());
-                player.sendMessage(ChatColor.YELLOW + npc.getName() + ChatColor.WHITE + ": I'm sorry I can't sell you any equipment if you don't have any money, but those clothes you're wearing, I could certainly buy that off you in-exchange for some coins, whaddya say? Type yes or no.");
-            }
-        };
 
-        Listener chatListener = new Listener() {
-            @EventHandler
-            public void onChat(AsyncPlayerChatEvent event) {
-                if (!event.getPlayer().equals(player)) return;
-                if (!awaitingMerchant.remove(player.getUniqueId())) return;
-                event.setCancelled(true);
-                String msg = event.getMessage().trim().toLowerCase();
-                Bukkit.getScheduler().runTask(plugin, () -> {
-                    if (msg.startsWith("y")) {
-                        plugin.getEconomyManager().addCoins(player, 200);
-                        soldClothes.add(player.getUniqueId());
-                        player.sendMessage(ChatColor.GREEN + "You received 200 coins.");
-                        player.performCommand("merchant starter_shop");
-                    } else {
-                        player.sendMessage(ChatColor.YELLOW + "Starter Merchant: Fair enough, have a nice day.");
-                    }
-                });
+                Main.getInstance().getDialogManager().startChoiceDialog(player, npc,
+                        java.util.List.of("Yes", "No"), choice -> {
+                            awaitingMerchant.remove(player.getUniqueId());
+                            if (choice == 0) {
+                                plugin.getEconomyManager().addCoins(player, 200);
+                                soldClothes.add(player.getUniqueId());
+                                player.sendMessage(ChatColor.GREEN + "You received 200 coins.");
+                                player.performCommand("merchant starter_shop");
+                            } else {
+                                player.sendMessage(ChatColor.YELLOW + "Starter Merchant: Fair enough, have a nice day.");
+                            }
+                        });
             }
         };
 
         Bukkit.getPluginManager().registerEvents(merchantListener, plugin);
-        Bukkit.getPluginManager().registerEvents(chatListener, plugin);
     }
 
     private void playDialog(Player player, Main plugin, NPC npc) {

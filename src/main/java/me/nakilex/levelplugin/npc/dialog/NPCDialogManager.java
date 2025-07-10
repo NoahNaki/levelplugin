@@ -2,13 +2,23 @@ package me.nakilex.levelplugin.npc.dialog;
 
 import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
+import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
-import org.bukkit.entity.Player;
 import org.bukkit.Sound;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerItemHeldEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.HandlerList;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import java.util.function.Consumer;
 
 import java.util.HashMap;
 import java.util.List;
@@ -35,8 +45,29 @@ public class NPCDialogManager {
 
     private final Map<UUID, DialogSession> sessions = new HashMap<>();
 
+    private static class ChoiceSession {
+        final NPC npc;
+        final List<String> options;
+        int index = 0;
+        final Consumer<Integer> callback;
+        final Listener listener;
+
+        ChoiceSession(NPC npc, List<String> options, Consumer<Integer> callback, Listener listener) {
+            this.npc = npc;
+            this.options = options;
+            this.callback = callback;
+            this.listener = listener;
+        }
+    }
+
+    private final Map<UUID, ChoiceSession> choiceSessions = new HashMap<>();
+
     public boolean hasSession(Player player) {
         return sessions.containsKey(player.getUniqueId());
+    }
+
+    public boolean hasChoiceSession(Player player) {
+        return choiceSessions.containsKey(player.getUniqueId());
     }
 
     /** Start a dialog sequence for a quest. */
@@ -48,6 +79,49 @@ public class NPCDialogManager {
         DialogSession session = new DialogSession(quest, lines, npc);
         sessions.put(player.getUniqueId(), session);
         sendLine(player, session);
+    }
+
+    /** Present a choice dialog to the player using the scroll wheel. */
+    public void startChoiceDialog(Player player, NPC npc, List<String> options, Consumer<Integer> callback) {
+        if (options == null || options.isEmpty()) return;
+        if (hasChoiceSession(player)) return;
+
+        ChoiceSession[] ref = new ChoiceSession[1];
+        Listener listener = new Listener() {
+            @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+            public void onScroll(PlayerItemHeldEvent e) {
+                if (!e.getPlayer().equals(player)) return;
+                e.setCancelled(true);
+                ChoiceSession cs = ref[0];
+                if (cs == null) return;
+                if (e.getNewSlot() > e.getPreviousSlot()) cs.index++; else cs.index--;
+                if (cs.index < 0) cs.index = cs.options.size() - 1;
+                if (cs.index >= cs.options.size()) cs.index = 0;
+                sendChoice(player, cs);
+            }
+
+            @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+            public void onInteract(PlayerInteractEntityEvent e) {
+                if (!e.getPlayer().equals(player)) return;
+                if (!CitizensAPI.getNPCRegistry().isNPC(e.getRightClicked())) return;
+                NPC n = CitizensAPI.getNPCRegistry().getNPC(e.getRightClicked());
+                if (npc != null && n.getId() != npc.getId()) return;
+                e.setCancelled(true);
+                finishChoice(player, ref[0]);
+            }
+
+            @EventHandler
+            public void onQuit(PlayerQuitEvent e) {
+                if (e.getPlayer().equals(player)) {
+                    finishChoice(player, ref[0]);
+                }
+            }
+        };
+        ChoiceSession cs = new ChoiceSession(npc, options, callback, listener);
+        ref[0] = cs;
+        choiceSessions.put(player.getUniqueId(), cs);
+        Bukkit.getPluginManager().registerEvents(listener, me.nakilex.levelplugin.Main.getInstance());
+        sendChoice(player, cs);
     }
 
     /** Advance the dialog or accept the quest if finished. */
@@ -79,6 +153,29 @@ public class NPCDialogManager {
         player.removePotionEffect(PotionEffectType.SLOWNESS);
         player.setInvulnerable(false);
         sessions.remove(player.getUniqueId());
+    }
+
+    private void sendChoice(Player player, ChoiceSession cs) {
+        StringBuilder sb = new StringBuilder(ChatColor.YELLOW + "Choose: ");
+        for (int i = 0; i < cs.options.size(); i++) {
+            if (i > 0) sb.append(ChatColor.WHITE).append(" / ");
+            if (i == cs.index) {
+                sb.append(ChatColor.GREEN).append(cs.options.get(i));
+            } else {
+                sb.append(ChatColor.GRAY).append(cs.options.get(i));
+            }
+        }
+        player.sendMessage(sb.toString());
+        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+    }
+
+    private void finishChoice(Player player, ChoiceSession cs) {
+        if (cs == null) return;
+        HandlerList.unregisterAll(cs.listener);
+        choiceSessions.remove(player.getUniqueId());
+        if (cs.callback != null) {
+            cs.callback.accept(cs.index);
+        }
     }
 
     /** Cancel dialog if player walks too far from the NPC. */
