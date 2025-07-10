@@ -8,6 +8,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Sound;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -212,16 +213,14 @@ public class NPCDialogManager {
     }
 
     private void sendChoice(Player player, ChoiceSession cs) {
-        StringBuilder sb = new StringBuilder(ChatColor.YELLOW + "Choose: ");
+        player.sendMessage(ChatColor.AQUA + "Choose your answer:");
+        ChatFormatter.constructDivider(player, " ", 45);
         for (int i = 0; i < cs.options.size(); i++) {
-            if (i > 0) sb.append(ChatColor.WHITE).append(" / ");
-            if (i == cs.index) {
-                sb.append(ChatColor.GREEN).append(cs.options.get(i));
-            } else {
-                sb.append(ChatColor.GRAY).append(cs.options.get(i));
-            }
+            ChatColor col = i == cs.index ? ChatColor.GREEN : ChatColor.WHITE;
+            String option = ChatColor.DARK_GRAY + "[" + col + (i == cs.index ? ChatColor.UNDERLINE : "")
+                    + cs.options.get(i) + ChatColor.DARK_GRAY + "]";
+            ChatFormatter.sendCenteredMessage(player, option);
         }
-        player.sendMessage(sb.toString());
         player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
     }
 

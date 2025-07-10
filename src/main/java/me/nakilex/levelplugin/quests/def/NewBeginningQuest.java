@@ -100,6 +100,15 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
 
                 event.setCancelled(true);
 
+                java.util.UUID id = player.getUniqueId();
+
+                // If the player already has coins from Piwan, just open the shop
+                if (givenCoins.contains(id) && !merchantDone.contains(id)) {
+                    merchantDone.add(id);
+                    player.performCommand("merchant starter_shop");
+                    return;
+                }
+
                 // After the dialog has been shown once, always open the shop
                 if (merchantDone.contains(player.getUniqueId())) {
                     player.performCommand("merchant starter_shop");
@@ -188,6 +197,8 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                     if (!givenCoins.contains(player.getUniqueId()) && !soldClothes.contains(player.getUniqueId())) {
                         plugin.getEconomyManager().addCoins(player, 100);
                         givenCoins.add(player.getUniqueId());
+                        player.sendMessage(ChatColor.GOLD + "You received "
+                                + ChatColor.YELLOW + "100 ⛃ " + ChatColor.GOLD + "coins.");
                         plugin.getDialogManager().startDialog(player,
                                 java.util.List.of("Piwan|Oh right, I should've realised you wouldn't have any currency belonging to this world, here, you can pay me back in the future."),
                                 npc,
