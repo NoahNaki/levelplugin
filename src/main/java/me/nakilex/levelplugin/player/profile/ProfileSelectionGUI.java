@@ -335,6 +335,8 @@ public class ProfileSelectionGUI implements Listener {
                         }
                         ProfileManager pm = ProfileManager.getInstance();
                         pm.createProfile(player.getUniqueId(), index, input.trim());
+                        player.getInventory().clear();
+                        me.nakilex.levelplugin.items.listeners.StaticItemListener.giveStaticItems(player);
                         if (firstCreation) {
                             FIRST_PROFILE_SLOT.put(player.getUniqueId(), index);
                         }

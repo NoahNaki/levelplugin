@@ -173,9 +173,14 @@ public class NPCDialogManager {
         player.removePotionEffect(PotionEffectType.SLOWNESS);
         player.setInvulnerable(false);
         session.paused = true;
-        ChoiceSession cs = choiceSessions.get(player.getUniqueId());
+        cancelChoice(player);
+    }
+
+    /** Remove an active choice dialog without triggering its callback. */
+    private void cancelChoice(Player player) {
+        ChoiceSession cs = choiceSessions.remove(player.getUniqueId());
         if (cs != null) {
-            finishChoice(player, cs);
+            HandlerList.unregisterAll(cs.listener);
         }
     }
 
