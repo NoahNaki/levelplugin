@@ -148,7 +148,10 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                                                 ChatColor.YELLOW + "200 ⛃ " +
                                                 ChatColor.GOLD + "coins.");
                                     } else {
-                                        player.sendMessage(ChatColor.YELLOW + "Starter Merchant: Fair enough, have a nice day.");
+                                        plugin.getDialogManager().startDialog(player,
+                                                java.util.List.of("Starter Merchant|Fair enough, have a nice day."),
+                                                npc,
+                                                null);
                                     }
                                     readyToShop.add(player.getUniqueId());
                                 }));
