@@ -99,18 +99,19 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                         ": I'm sorry I can't sell you any equipment if you don't have any money, " +
                         "but those clothes you're wearing, I could certainly buy that off you in-exchange for some coins, whaddya say?");
 
-                Main.getInstance().getDialogManager().startChoiceDialog(player, npc,
-                        java.util.List.of("Yes", "No"), choice -> {
-                            awaitingMerchant.remove(player.getUniqueId());
-                            if (choice == 0) {
-                                plugin.getEconomyManager().addCoins(player, 200);
-                                soldClothes.add(player.getUniqueId());
-                                player.sendMessage(ChatColor.GREEN + "You received 200 coins.");
-                            } else {
-                                player.sendMessage(ChatColor.YELLOW + "Starter Merchant: Fair enough, have a nice day.");
-                            }
-                            readyToShop.add(player.getUniqueId());
-                        });
+                Bukkit.getScheduler().runTask(plugin, () ->
+                        Main.getInstance().getDialogManager().startChoiceDialog(player, npc,
+                                java.util.List.of("Yes", "No"), choice -> {
+                                    awaitingMerchant.remove(player.getUniqueId());
+                                    if (choice == 0) {
+                                        plugin.getEconomyManager().addCoins(player, 200);
+                                        soldClothes.add(player.getUniqueId());
+                                        player.sendMessage(ChatColor.GREEN + "You received 200 coins.");
+                                    } else {
+                                        player.sendMessage(ChatColor.YELLOW + "Starter Merchant: Fair enough, have a nice day.");
+                                    }
+                                    readyToShop.add(player.getUniqueId());
+                                }));
             }
         };
 
