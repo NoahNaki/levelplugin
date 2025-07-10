@@ -29,9 +29,13 @@ public class PlayerQuitListener implements Listener {
         UUID pid = player.getUniqueId();
 
         // Persist player data
-        Main.getInstance()
-            .getPlayerConfig()
-            .savePlayer(pid);
+        me.nakilex.levelplugin.player.config.PlayerConfig cfg = Main.getInstance().getPlayerConfig();
+        Integer slot = me.nakilex.levelplugin.player.profile.ProfileManager.getInstance().getActiveSlot(pid);
+        if (slot != null) {
+            cfg.setProfileInventory(pid, slot, player.getInventory().getContents());
+            cfg.setProfileArmor(pid, slot, player.getInventory().getArmorContents());
+        }
+        cfg.savePlayer(pid);
         me.nakilex.levelplugin.player.profile.ProfileManager.getInstance()
             .saveActiveLocation(player);
         me.nakilex.levelplugin.player.profile.ProfileSelectionGUI.handleQuit(player);

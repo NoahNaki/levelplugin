@@ -274,6 +274,30 @@ public class PlayerConfig {
         }
     }
 
+    public org.bukkit.inventory.ItemStack[] getProfileInventory(java.util.UUID uuid, int slot) {
+        String path = "players." + uuid + ".profiles." + slot + ".inventory";
+        String data = config.getString(path, "");
+        return me.nakilex.levelplugin.utils.InventorySerialUtil.itemStackArrayFromBase64(data);
+    }
+
+    public void setProfileInventory(java.util.UUID uuid, int slot, org.bukkit.inventory.ItemStack[] items) {
+        String path = "players." + uuid + ".profiles." + slot + ".inventory";
+        String data = me.nakilex.levelplugin.utils.InventorySerialUtil.itemStackArrayToBase64(items);
+        config.set(path, data);
+    }
+
+    public org.bukkit.inventory.ItemStack[] getProfileArmor(java.util.UUID uuid, int slot) {
+        String path = "players." + uuid + ".profiles." + slot + ".armor";
+        String data = config.getString(path, "");
+        return me.nakilex.levelplugin.utils.InventorySerialUtil.itemStackArrayFromBase64(data);
+    }
+
+    public void setProfileArmor(java.util.UUID uuid, int slot, org.bukkit.inventory.ItemStack[] items) {
+        String path = "players." + uuid + ".profiles." + slot + ".armor";
+        String data = me.nakilex.levelplugin.utils.InventorySerialUtil.itemStackArrayToBase64(items);
+        config.set(path, data);
+    }
+
     public int getUnlockedProfiles(UUID uuid) {
         return config.getInt("players." + uuid + ".profiles.unlocked", 1);
     }

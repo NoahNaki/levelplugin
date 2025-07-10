@@ -152,6 +152,9 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                                     }
                                     readyToShop.add(player.getUniqueId());
                                 }));
+
+                Bukkit.getScheduler().runTaskLater(plugin, () ->
+                        plugin.getDialogManager().advanceDialog(player, plugin.getQuestManager()), 1L);
             }
         };
 
