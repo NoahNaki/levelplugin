@@ -24,7 +24,7 @@ import java.util.List;
 /**
  * Intro quest that plays a short conversation with Piwan.
  */
-public class NewBeginningQuest extends Quest implements QuestScript {
+public class NewBeginningQuest extends Quest implements QuestScript, QuestCompletionScript {
     private static List<QuestObjective> createObjectives() {
         return List.of(
                 new QuestObjective(QuestObjectiveType.TALK, "npc536_done", 1),
@@ -261,5 +261,10 @@ public class NewBeginningQuest extends Quest implements QuestScript {
         };
 
         Bukkit.getPluginManager().registerEvents(handler[0], plugin);
+    }
+
+    @Override
+    public void onComplete(Player player, Main plugin) {
+        // No additional completion logic
     }
 }

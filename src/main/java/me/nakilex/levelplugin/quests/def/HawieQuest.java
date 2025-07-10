@@ -5,7 +5,7 @@ import me.nakilex.levelplugin.Main;
 import org.bukkit.entity.Player;
 import java.util.List;
 
-public class HawieQuest extends Quest implements QuestScript {
+public class HawieQuest extends Quest implements QuestScript, QuestCompletionScript {
     private static List<QuestObjective> createObjectives() {
         return List.of(
                 new QuestObjective(QuestObjectiveType.COLLECT, "stone", 10),
