@@ -28,8 +28,8 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
     private static List<QuestObjective> createObjectives() {
         return List.of(
                 new QuestObjective(QuestObjectiveType.TALK, "npc536_done", 1),
+                new QuestObjective(QuestObjectiveType.BUY, "starter_armor", 1),
                 new QuestObjective(QuestObjectiveType.SELECT_CLASS, "ANY", 1),
-                new QuestObjective(QuestObjectiveType.BUY, "class_weapon", 1),
                 new QuestObjective(QuestObjectiveType.TALK, "npc537", 1)
         );
     }
@@ -38,6 +38,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
     private final java.util.Set<java.util.UUID> soldClothes = new java.util.HashSet<>();
     private final java.util.Set<java.util.UUID> givenCoins = new java.util.HashSet<>();
     private final java.util.Set<java.util.UUID> readyToShop = new java.util.HashSet<>();
+    private final java.util.Set<java.util.UUID> merchantDone = new java.util.HashSet<>();
 
     public NewBeginningQuest() {
         super(
@@ -86,6 +87,12 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
 
                 event.setCancelled(true);
 
+                // After the dialog has been shown once, always open the shop
+                if (merchantDone.contains(player.getUniqueId())) {
+                    player.performCommand("merchant starter_shop");
+                    return;
+                }
+
                 // If the player already made a choice, the next click should open the shop
                 if (readyToShop.remove(player.getUniqueId())) {
                     player.performCommand("merchant starter_shop");
@@ -103,6 +110,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                         Main.getInstance().getDialogManager().startChoiceDialog(player, npc,
                                 java.util.List.of("Yes", "No"), choice -> {
                                     awaitingMerchant.remove(player.getUniqueId());
+                                    merchantDone.add(player.getUniqueId());
                                     if (choice == 0) {
                                         plugin.getEconomyManager().addCoins(player, 200);
                                         soldClothes.add(player.getUniqueId());
@@ -221,15 +229,21 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 PlayerQuestProgress prog = plugin.getQuestManager().getProgress(player.getUniqueId());
                 if (prog == null || !prog.getQuest().getId().equals("newbeginning")) return;
 
-                // Wait until the player has selected a class and bought the weapon
-                if (prog.getProgress(1) < 1 || prog.getProgress(2) < 1) {
+                // Ensure the player bought armor and selected a class
+                if (prog.getProgress(1) < 1) {
                     if (!givenCoins.contains(player.getUniqueId()) && !soldClothes.contains(player.getUniqueId())) {
                         plugin.getEconomyManager().addCoins(player, 100);
                         givenCoins.add(player.getUniqueId());
                         player.sendMessage(ChatColor.YELLOW + npc.getName() + ChatColor.WHITE + ": Oh right, I should've realised you wouldn't have any currency belonging to this world, here, you can pay me back in the future.");
                     } else {
-                        player.sendMessage(ChatColor.YELLOW + npc.getName() + ChatColor.WHITE + ": Alright great now that you look like you belong here, now you just have to tell me what class you'll be going so that we can find you an appropriate weapon.");
+                        player.sendMessage(ChatColor.YELLOW + npc.getName() + ChatColor.WHITE + ": Go ahead and buy some new equipment.");
                     }
+                    event.setCancelled(true);
+                    return;
+                }
+
+                if (prog.getProgress(2) < 1) {
+                    player.sendMessage(ChatColor.YELLOW + npc.getName() + ChatColor.WHITE + ": Alright great now that you look like you belong here, now you just have to tell me what class you'll be going so that we can find you an appropriate weapon.");
                     event.setCancelled(true);
                     player.performCommand("class");
                     return;

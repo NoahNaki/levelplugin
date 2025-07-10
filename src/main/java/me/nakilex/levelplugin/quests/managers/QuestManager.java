@@ -283,6 +283,9 @@ public class QuestManager {
                 if (classReq != null && playerClass.name().equalsIgnoreCase(classReq)) {
                     updateObjective(player, QuestObjectiveType.BUY, "class_weapon", 1);
                 }
+                if (id >= 16 && id <= 19) {
+                    updateObjective(player, QuestObjectiveType.BUY, "starter_armor", 1);
+                }
             }
         } catch (NumberFormatException ignore) {
         }
@@ -649,6 +652,9 @@ public class QuestManager {
             case BUY:
                 if ("class_weapon".equalsIgnoreCase(obj.getTarget())) {
                     return "Buy class weapon";
+                }
+                if ("starter_armor".equalsIgnoreCase(obj.getTarget())) {
+                    return "Buy starter armor";
                 }
                 return "Buy " + obj.getTarget();
             case UPGRADE:
