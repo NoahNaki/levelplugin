@@ -124,14 +124,11 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 if (awaitingMerchant.contains(player.getUniqueId())) return;
                 awaitingMerchant.add(player.getUniqueId());
 
-                player.sendMessage(ChatColor.DARK_GRAY + "[" + ChatColor.GRAY + "1" +
-                        "/1" + ChatColor.DARK_GRAY + "] " +
-                        ChatColor.YELLOW + "Starter Merchant" + ChatColor.WHITE +
-                        ": I'm sorry I can't sell you any equipment if you don't have any money, " +
-                        "but those clothes you're wearing, I could certainly buy that off you in-exchange for some coins, whaddya say?");
-
-                Bukkit.getScheduler().runTask(plugin, () ->
-                        Main.getInstance().getDialogManager().startChoiceDialog(player, npc,
+                plugin.getDialogManager().startDialog(player,
+                        java.util.List.of("Starter Merchant|I'm sorry I can't sell you any equipment if you don't have any money, " +
+                                "but those clothes you're wearing, I could certainly buy that off you in-exchange for some coins, whaddya say?"),
+                        npc,
+                        () -> plugin.getDialogManager().startChoiceDialog(player, npc,
                                 java.util.List.of("Yes", "No"), choice -> {
                                     awaitingMerchant.remove(player.getUniqueId());
                                     merchantDone.add(player.getUniqueId());
