@@ -136,89 +136,25 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
     }
 
     private void playDialog(Player player, Main plugin, NPC npc) {
-        String[] lines = new String[] {
+        java.util.List<String> lines = java.util.List.of(
                 "Hey you there! I could've sworn no one was standing there a second ago, how did you suddenly appear?",
                 "You certainly don't look from around here, especially with those clothes, perhaps a noble from another country.",
                 "Another world you say? Well you wouldn't be the first to make such bold claims, my mom said she once knew someone that claimed the same thing, said they were from a place called, \"ip\".",
                 "I'm sure you have many questions, how about to start off I show you around my village.",
-                "First things first, you're going to have to look like you're from this world, go talk to that merchant over there and buy some equipment.",
-        };
+                "First things first, you're going to have to look like you're from this world, go talk to that merchant over there and buy some equipment."
+        );
 
-        // Send the first line immediately when close with numbering
-        player.setInvulnerable(true);
-        player.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.SLOWNESS,
-                20 * 60, 4, false, false, false));
-        player.sendMessage(ChatColor.GRAY + "[1/" + lines.length + "] "
-                + ChatColor.YELLOW + npc.getName() + ChatColor.WHITE + ": " + lines[0]);
-        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
-
-        final Listener[] listener = new Listener[1];
-        final org.bukkit.scheduler.BukkitRunnable[] task = new org.bukkit.scheduler.BukkitRunnable[1];
-        final boolean[] paused = new boolean[]{false};
-        listener[0] = new Listener() {
-            int idx = 1;
-
-            @EventHandler(priority = EventPriority.LOWEST)
-            public void onInteract(PlayerInteractEntityEvent event) {
-                if (!event.getPlayer().equals(player)) return;
-                if (event.getHand() == EquipmentSlot.OFF_HAND) return;
-                if (!CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked())) return;
-                NPC clicked = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
-                if (clicked.getId() != 536) return;
-                event.setCancelled(true);
-
-                if (paused[0]) {
-                    paused[0] = false;
-                    player.setInvulnerable(true);
-                    player.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.SLOWNESS,
-                            20 * 60, 4, false, false, false));
-                }
-
-                if (idx >= lines.length) return;
-                player.sendMessage(ChatColor.GRAY + "[" + (idx + 1) + "/" + lines.length + "] "
-                        + ChatColor.YELLOW + npc.getName() + ChatColor.WHITE + ": " + lines[idx]);
-                player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
-                idx++;
-
-                if (idx >= lines.length) {
-                    org.bukkit.event.HandlerList.unregisterAll(listener[0]);
-                    if (task[0] != null) task[0].cancel();
-                    player.removePotionEffect(org.bukkit.potion.PotionEffectType.SLOWNESS);
-                    player.setInvulnerable(false);
-                    // Delay quest progression slightly so the final line can be read
-                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                        if (!player.isOnline()) return;
-                        Main.getInstance().getQuestManager().handleTalk(player, "npc536_done");
-                        registerFinalDialog(player, plugin);
-                    }, 40L); // 2 seconds
-                }
+        plugin.getDialogManager().startDialog(player, lines, npc, () -> {
+            if (player.isOnline()) {
+                Main.getInstance().getQuestManager().handleTalk(player, "npc536_done");
+                registerFinalDialog(player, plugin);
             }
-        };
-        org.bukkit.Bukkit.getPluginManager().registerEvents(listener[0], plugin);
-
-        task[0] = new org.bukkit.scheduler.BukkitRunnable() {
-            @Override
-            public void run() {
-                if (!player.isOnline()) { cancel(); return; }
-                if (player.getLocation().distanceSquared(npc.getEntity().getLocation()) > 25) {
-                    if (!paused[0]) {
-                        player.sendMessage(ChatColor.RED + "You walked away from the NPC. Right-click again to continue.");
-                        player.removePotionEffect(org.bukkit.potion.PotionEffectType.SLOWNESS);
-                        player.setInvulnerable(false);
-                        paused[0] = true;
-                    }
-                }
-            }
-        };
-        task[0].runTaskTimer(plugin, 0L, 10L);
+        });
     }
 
     /** Handle Piwan dialog after class selection and weapon purchase. */
     private void registerFinalDialog(Player player, Main plugin) {
-        Listener[] handler = new Listener[1];
-        handler[0] = new Listener() {
-            int idx = 0;
-
+        Listener handler = new Listener() {
             @EventHandler(priority = EventPriority.LOWEST)
             public void onInteract(PlayerInteractEntityEvent event) {
                 if (!event.getPlayer().equals(player)) return;
@@ -230,55 +166,57 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 PlayerQuestProgress prog = plugin.getQuestManager().getProgress(player.getUniqueId());
                 if (prog == null || !prog.getQuest().getId().equals("newbeginning")) return;
 
-                // Ensure the player bought armor and selected a class
+                event.setCancelled(true);
+
+                if (plugin.getDialogManager().hasSession(player)) {
+                    NPC sessionNpc = plugin.getDialogManager().getSessionNpc(player);
+                    if (sessionNpc != null && sessionNpc.getId() == npc.getId()) {
+                        plugin.getDialogManager().advanceDialog(player, plugin.getQuestManager());
+                    }
+                    return;
+                }
+
                 if (prog.getProgress(1) < 1) {
                     if (!givenCoins.contains(player.getUniqueId()) && !soldClothes.contains(player.getUniqueId())) {
                         plugin.getEconomyManager().addCoins(player, 100);
                         givenCoins.add(player.getUniqueId());
-                        player.sendMessage(ChatColor.YELLOW + npc.getName() + ChatColor.WHITE + ": Oh right, I should've realised you wouldn't have any currency belonging to this world, here, you can pay me back in the future.");
+                        plugin.getDialogManager().startDialog(player,
+                                java.util.List.of("Piwan|Oh right, I should've realised you wouldn't have any currency belonging to this world, here, you can pay me back in the future."),
+                                npc,
+                                null);
                     } else {
-                        player.sendMessage(ChatColor.YELLOW + npc.getName() + ChatColor.WHITE + ": Go ahead and buy some new equipment.");
+                        plugin.getDialogManager().startDialog(player,
+                                java.util.List.of("Piwan|Go ahead and buy some new equipment."),
+                                npc,
+                                null);
                     }
-                    event.setCancelled(true);
                     return;
                 }
 
                 if (prog.getProgress(2) < 1) {
-                    player.sendMessage(ChatColor.YELLOW + npc.getName() + ChatColor.WHITE + ": Alright great now that you look like you belong here, now you just have to tell me what class you'll be going so that we can find you an appropriate weapon.");
-                    event.setCancelled(true);
-                    player.performCommand("class");
+                    plugin.getDialogManager().startDialog(player,
+                            java.util.List.of("Piwan|Alright great now that you look like you belong here, now you just have to tell me what class you'll be going so that we can find you an appropriate weapon."),
+                            npc,
+                            () -> player.performCommand("class"));
                     return;
                 }
 
-                event.setCancelled(true);
-
                 PlayerClass pc = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass;
                 String className = pc.name().substring(0, 1) + pc.name().substring(1).toLowerCase();
-                String[] lines = new String[]{
+                java.util.List<String> lines = java.util.List.of(
                         "Ah you went with the " + className + ", I should have a spare weapon lying around here somewhere, let's see hmmmm",
                         "AH! here you go.",
                         "Now you're all set, I'm sure our paths will cross again adventurer, now go and explore the vast world of Eldrin."
-                };
+                );
 
-                if (idx >= lines.length) return;
-                player.sendMessage(ChatColor.GRAY + "[" + (idx + 1) + "/" + lines.length + "] " +
-                        ChatColor.YELLOW + npc.getName() + ChatColor.WHITE + ": " + lines[idx]);
-                player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
-                idx++;
-
-                if (idx >= lines.length) {
-                    HandlerList.unregisterAll(handler[0]);
-                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                        if (player.isOnline()) {
-                            giveClassWeapon(player);
-                            plugin.getQuestManager().handleTalk(player, "npc536_final");
-                        }
-                    }, 20L);
-                }
+                plugin.getDialogManager().startDialog(player, lines, npc, () -> {
+                    giveClassWeapon(player);
+                    plugin.getQuestManager().handleTalk(player, "npc536_final");
+                });
             }
         };
 
-        Bukkit.getPluginManager().registerEvents(handler[0], plugin);
+        Bukkit.getPluginManager().registerEvents(handler, plugin);
     }
 
     /** Give the starting weapon based on the player's chosen class. */
