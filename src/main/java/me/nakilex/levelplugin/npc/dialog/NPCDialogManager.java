@@ -230,7 +230,7 @@ public class NPCDialogManager {
                     .append(ChatColor.DARK_GRAY).append("]");
         }
         ChatFormatter.sendCenteredMessage(player, sb.toString());
-        ChatFormatter.sendCenteredMessage(player, ChatColor.DARK_GRAY + "(Scroll to cycle)");
+        ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "(Scroll to cycle)");
         player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
     }
 

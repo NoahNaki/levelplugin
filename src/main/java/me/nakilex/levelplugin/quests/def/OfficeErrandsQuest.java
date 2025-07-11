@@ -18,6 +18,7 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.Sound;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import org.bukkit.block.data.BlockData;
 import java.util.Map;
 import java.util.HashMap;
@@ -114,7 +115,10 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
 
         // After blindness wears off, send initial dialog line
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-            player.sendMessage(ChatColor.GRAY + "[1/1] " + player.getName() + ChatColor.WHITE + ": Lights are off... looks like everyone’s gone. Guess that’s my cue.");
+            ChatFormatter.constructDivider(player, " ", 45);
+            player.sendMessage(ChatColor.DARK_GRAY + "[1/1] " + ChatColor.YELLOW + player.getName()
+                    + ChatColor.WHITE + ": Lights are off... looks like everyone’s gone. Guess that’s my cue.");
+            ChatFormatter.constructDivider(player, " ", 45);
         }, 40L);
 
         // Listen for talking to the Janitor (NPC 516)

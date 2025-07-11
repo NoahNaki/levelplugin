@@ -123,12 +123,40 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 }
 
                 if (awaitingMerchant.contains(player.getUniqueId())) {
-                    // Let the existing dialog continue while waiting for the choice
+                    // Resume or restart the dialog if the choice was canceled
                     if (plugin.getDialogManager().hasSession(player)) {
                         NPC sessionNpc = plugin.getDialogManager().getSessionNpc(player);
                         if (sessionNpc != null && sessionNpc.getId() == npc.getId()) {
                             plugin.getDialogManager().advanceDialog(player, plugin.getQuestManager());
                         }
+                    } else if (!plugin.getDialogManager().hasChoiceSession(player)) {
+                        plugin.getDialogManager().startDialog(player,
+                                java.util.List.of("Starter Merchant|I'm sorry I can't sell you any equipment if you don't have any money, " +
+                                        "but those clothes you're wearing, I could certainly buy that off you in-exchange for some coins, whaddya say?"),
+                                npc,
+                                () -> plugin.getDialogManager().startChoiceDialog(player, npc,
+                                        java.util.List.of("Yes", "No"), choice -> {
+                                            awaitingMerchant.remove(player.getUniqueId());
+                                            merchantDone.add(player.getUniqueId());
+                                            if (choice == 0) {
+                                                plugin.getEconomyManager().addCoins(player, 200);
+                                                soldClothes.add(player.getUniqueId());
+                                                player.sendMessage(ChatColor.GOLD + "You received " +
+                                                        ChatColor.YELLOW + "200 ⛃ " +
+                                                        ChatColor.GOLD + "coins.");
+                                            } else {
+                                                plugin.getDialogManager().startDialog(player,
+                                                        java.util.List.of("Starter Merchant|Fair enough, have a nice day."),
+                                                        npc,
+                                                        null);
+                                                Bukkit.getScheduler().runTaskLater(plugin,
+                                                        () -> plugin.getDialogManager().advanceDialog(player, plugin.getQuestManager()),
+                                                        1L);
+                                            }
+                                            readyToShop.add(player.getUniqueId());
+                                        }));
+                        Bukkit.getScheduler().runTaskLater(plugin, () ->
+                                plugin.getDialogManager().advanceDialog(player, plugin.getQuestManager()), 20L);
                     }
                     return;
                 }
