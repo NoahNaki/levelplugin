@@ -2,6 +2,8 @@ package me.nakilex.levelplugin.quests.gui;
 
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.data.Quest;
+import me.nakilex.levelplugin.quests.data.QuestReward;
+import me.nakilex.levelplugin.quests.data.QuestObjective;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import com.nexomc.nexo.api.NexoItems;
 import com.nexomc.nexo.items.ItemBuilder;
@@ -30,7 +32,6 @@ public class QuestGUI {
     private static final int NEXT_PAGE = 53;
     private static final int FILTER_SLOT = 48;
     private static final int SORT_SLOT = 50;
-    private static final int INFO_SLOT = 8;
 
     static final Map<java.util.UUID, Integer> pageMap = new java.util.HashMap<>();
     static final Map<java.util.UUID, Integer> filterMap = new java.util.HashMap<>();
@@ -82,7 +83,7 @@ public class QuestGUI {
         for (int i = start; i < list.size() && slot < ITEMS_PER_PAGE; i++) {
             Quest quest = list.get(i);
             QuestState state = questManager.getQuestState(player, quest);
-            ItemStack item = createQuestItem(player, quest, state, questManager.getProgress(player.getUniqueId()));
+            ItemStack item = createQuestItem(player, quest, state, questManager.getProgress(player.getUniqueId()), questManager);
             gui.setItem(QUEST_SLOTS[slot++], item);
         }
 
@@ -90,23 +91,62 @@ public class QuestGUI {
         if (list.size() > (page + 1) * ITEMS_PER_PAGE) gui.setItem(NEXT_PAGE, getNexoItem("arrow_right", ChatColor.GREEN + "Next"));
         gui.setItem(FILTER_SLOT, createFilterButton(filter));
         gui.setItem(SORT_SLOT, createSortButton(sort));
-        gui.setItem(INFO_SLOT, getNexoItem("info", ChatColor.YELLOW + "Information"));
 
         player.openInventory(gui);
     }
 
-    private static ItemStack createQuestItem(Player player, Quest quest, QuestState state, PlayerQuestProgress progress) {
+    private static ItemStack createQuestItem(Player player, Quest quest, QuestState state,
+                                             PlayerQuestProgress progress, QuestManager qm) {
         String name = state == QuestState.LOCKED ? ChatColor.DARK_GRAY + "???" : state.getColor() + quest.getName();
         ItemStack item = getNexoItem(state.getIconId(), name);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + quest.getDescription());
-            if (progress != null && progress.getQuest().getId().equals(quest.getId())) {
-                for (int i = 0; i < quest.getObjectives().size(); i++) {
-                    lore.add(ChatColor.YELLOW + "Objective " + (i + 1) + ": " + progress.getProgress(i) + "/" + quest.getObjectives().get(i).getAmount());
+
+            if (state == QuestState.COMPLETED) {
+                lore.add(ChatColor.GREEN + quest.getName());
+                lore.add(" ");
+                lore.add(ChatColor.WHITE + quest.getDescription());
+            } else if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS || state == QuestState.TURN_IN_READY) {
+                lore.add(ChatColor.GOLD + quest.getName());
+                lore.add(" ");
+                lore.add(ChatColor.GRAY + quest.getDescription());
+                lore.add(" ");
+                int objIndex = 0;
+                int objProgress = 0;
+                if (progress != null && progress.getQuest().getId().equals(quest.getId())) {
+                    for (int i = 0; i < quest.getObjectives().size(); i++) {
+                        if (progress.getProgress(i) < quest.getObjectives().get(i).getAmount()) {
+                            objIndex = i;
+                            objProgress = progress.getProgress(i);
+                            break;
+                        }
+                    }
                 }
+                QuestObjective obj = quest.getObjectives().get(objIndex);
+                String desc = qm.describeObjective(obj);
+                lore.add(ChatColor.WHITE + desc + ChatColor.GRAY + " (" + objProgress + "/" + obj.getAmount() + ")");
+            } else {
+                lore.add(ChatColor.GRAY + quest.getDescription());
             }
+
+            lore.add(" ");
+            lore.add(ChatColor.GREEN + "Rewards:");
+            if (quest.getReward() != null) {
+                QuestReward r = quest.getReward();
+                if (r.getXp() > 0) lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + r.getXp() + " XP");
+                if (r.getCoins() > 0) lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + r.getCoins() + " Coins");
+                if (r.getGems() > 0) lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + r.getGems() + " Gems");
+                for (int id : r.getItemIds()) {
+                    lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + "Item " + id);
+                }
+                for (var cls : r.getUnlockClasses()) {
+                    lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + "Unlock " + cls.name());
+                }
+            } else {
+                lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + "None");
+            }
+
             meta.setLore(lore);
             meta.setLocalizedName(quest.getId());
             item.setItemMeta(meta);
