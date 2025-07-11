@@ -209,6 +209,16 @@ public class NPCDialogManager {
         cancelChoice(player);
     }
 
+    /** Completely clear any active dialog or choice session for a player. */
+    public void resetDialog(Player player) {
+        DialogSession session = sessions.remove(player.getUniqueId());
+        if (session != null) {
+            player.removePotionEffect(PotionEffectType.SLOWNESS);
+            player.setInvulnerable(false);
+        }
+        cancelChoice(player);
+    }
+
     /** Remove an active choice dialog without triggering its callback. */
     private void cancelChoice(Player player) {
         ChoiceSession cs = choiceSessions.remove(player.getUniqueId());

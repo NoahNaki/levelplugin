@@ -342,6 +342,11 @@ public class ProfileSelectionGUI implements Listener {
         stopSelection(player);
         player.closeInventory();
 
+        // Clear any leftover dialog sessions from previous logout
+        me.nakilex.levelplugin.npc.dialog.NPCDialogManager dm =
+                Main.getInstance().getDialogManager();
+        if (dm != null) dm.resetDialog(player);
+
         // Automatically restart the intro quest if it was reset
         me.nakilex.levelplugin.quests.managers.QuestManager qm =
                 Main.getInstance().getQuestManager();

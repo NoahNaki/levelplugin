@@ -52,6 +52,10 @@ public class PlayerQuitListener implements Listener {
                 Main.getInstance().getQuestManager();
         if (qm != null && !qm.hasCompleted(pid, "officeerrands")) {
             qm.resetQuest(pid, "officeerrands", true);
+            // Also clear any dialog that may be in progress
+            me.nakilex.levelplugin.npc.dialog.NPCDialogManager dm =
+                    Main.getInstance().getDialogManager();
+            if (dm != null) dm.resetDialog(player);
         }
 
     }
