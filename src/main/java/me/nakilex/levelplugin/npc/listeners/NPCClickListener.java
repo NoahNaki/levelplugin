@@ -39,8 +39,8 @@ public class NPCClickListener implements Listener {
 
             String stripped = org.bukkit.ChatColor.stripColor(npc.getName());
             if (stripped.equalsIgnoreCase("Starter Merchant")) {
-                PlayerQuestProgress prog = questManager.getProgress(player.getUniqueId());
-                if (prog == null || !prog.getQuest().getId().equals("newbeginning")) {
+                PlayerQuestProgress prog = questManager.getProgress(player.getUniqueId(), "newbeginning");
+                if (prog == null) {
                     player.performCommand("merchant starter_shop");
                     return;
                 }

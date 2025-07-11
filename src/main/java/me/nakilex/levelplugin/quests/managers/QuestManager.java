@@ -24,7 +24,8 @@ public class QuestManager {
     private final LevelManager levelManager;
     private final Map<String, Quest> quests = new HashMap<>();
     private final Map<Integer, String> npcQuestMap = new HashMap<>();
-    private final Map<UUID, PlayerQuestProgress> activeQuests = new HashMap<>();
+    // Allow multiple quests to be active per player
+    private final Map<UUID, Map<String, PlayerQuestProgress>> activeQuests = new HashMap<>();
     private final Map<UUID, Set<String>> completedQuests = new HashMap<>();
     private final Map<UUID, String> trackedQuests = new HashMap<>();
     private boolean debug = false;
@@ -104,20 +105,25 @@ public class QuestManager {
             if (!completed.isEmpty()) {
                 completedQuests.put(uuid, new HashSet<>(completed));
             }
-            String activeId = sec.getString("active.id");
-            if (activeId != null) {
-                Quest quest = quests.get(activeId);
-                if (quest != null) {
-                    PlayerQuestProgress progress = new PlayerQuestProgress(quest);
-                    ConfigurationSection progSec = sec.getConfigurationSection("active.progress");
+            ConfigurationSection activeSec = sec.getConfigurationSection("active");
+            if (activeSec != null) {
+                Map<String, PlayerQuestProgress> map = new HashMap<>();
+                for (String qid : activeSec.getKeys(false)) {
+                    Quest quest = quests.get(qid);
+                    if (quest == null) continue;
+                    ConfigurationSection progSec = activeSec.getConfigurationSection(qid + ".progress");
+                    PlayerQuestProgress prog = new PlayerQuestProgress(quest);
                     if (progSec != null) {
                         for (String key : progSec.getKeys(false)) {
                             int index = Integer.parseInt(key);
                             int value = progSec.getInt(key);
-                            progress.setProgress(index, value);
+                            prog.setProgress(index, value);
                         }
                     }
-                    activeQuests.put(uuid, progress);
+                    map.put(qid, prog);
+                }
+                if (!map.isEmpty()) {
+                    activeQuests.put(uuid, map);
                 }
             }
             String tracked = sec.getString("tracked");
@@ -139,11 +145,15 @@ public class QuestManager {
             if (completed != null) {
                 sec.set("completed", new ArrayList<>(completed));
             }
-            PlayerQuestProgress progress = activeQuests.get(uuid);
-            if (progress != null) {
-                sec.set("active.id", progress.getQuest().getId());
-                for (int i = 0; i < progress.getQuest().getObjectives().size(); i++) {
-                    sec.set("active.progress." + i, progress.getProgress(i));
+            Map<String, PlayerQuestProgress> map = activeQuests.get(uuid);
+            if (map != null && !map.isEmpty()) {
+                ConfigurationSection activeSec = sec.createSection("active");
+                for (PlayerQuestProgress progress : map.values()) {
+                    String qid = progress.getQuest().getId();
+                    ConfigurationSection qSec = activeSec.createSection(qid + ".progress");
+                    for (int i = 0; i < progress.getQuest().getObjectives().size(); i++) {
+                        qSec.set(String.valueOf(i), progress.getProgress(i));
+                    }
                 }
             }
             String tracked = trackedQuests.get(uuid);
@@ -171,8 +181,9 @@ public class QuestManager {
             return QuestState.COMPLETED;
         }
 
-        PlayerQuestProgress progress = activeQuests.get(player.getUniqueId());
-        if (progress != null && progress.getQuest().getId().equals(quest.getId())) {
+        Map<String, PlayerQuestProgress> map = activeQuests.get(player.getUniqueId());
+        PlayerQuestProgress progress = map == null ? null : map.get(quest.getId());
+        if (progress != null) {
             if (progress.isComplete()) {
                 return QuestState.COMPLETED;
             }
@@ -196,7 +207,11 @@ public class QuestManager {
         if (!requirementsMet(player, quest)) {
             return;
         }
-        activeQuests.put(player.getUniqueId(), new PlayerQuestProgress(quest));
+        Map<String, PlayerQuestProgress> map = activeQuests.computeIfAbsent(player.getUniqueId(), k -> new HashMap<>());
+        if (map.containsKey(id)) {
+            return; // already started
+        }
+        map.put(id, new PlayerQuestProgress(quest));
         // always track the most recently accepted quest
         trackedQuests.put(player.getUniqueId(), quest.getId());
         saveProgress();
@@ -207,8 +222,22 @@ public class QuestManager {
         }
     }
 
+    /**
+     * Get progress for the currently tracked quest, if any.
+     */
     public PlayerQuestProgress getProgress(UUID player) {
-        return activeQuests.get(player);
+        String tracked = trackedQuests.get(player);
+        if (tracked == null) return null;
+        Map<String, PlayerQuestProgress> map = activeQuests.get(player);
+        return map == null ? null : map.get(tracked);
+    }
+
+    /**
+     * Get progress for a specific quest, if the player has it active.
+     */
+    public PlayerQuestProgress getProgress(UUID player, String questId) {
+        Map<String, PlayerQuestProgress> map = activeQuests.get(player);
+        return map == null ? null : map.get(questId);
     }
 
     public void setTrackedQuest(Player player, String questId) {
@@ -225,9 +254,12 @@ public class QuestManager {
         if (quest != null && quest.isMainQuest()) {
             return;
         }
-        PlayerQuestProgress progress = activeQuests.get(player);
-        if (progress != null && progress.getQuest().getId().equals(questId)) {
-            activeQuests.remove(player);
+        Map<String, PlayerQuestProgress> map = activeQuests.get(player);
+        if (map != null) {
+            map.remove(questId);
+            if (map.isEmpty()) {
+                activeQuests.remove(player);
+            }
         }
         Set<String> completed = completedQuests.get(player);
         if (completed != null) {
@@ -241,7 +273,13 @@ public class QuestManager {
     }
 
     public void completeQuest(UUID player, String questId) {
-        activeQuests.remove(player);
+        Map<String, PlayerQuestProgress> map = activeQuests.get(player);
+        if (map != null) {
+            map.remove(questId);
+            if (map.isEmpty()) {
+                activeQuests.remove(player);
+            }
+        }
         completedQuests.computeIfAbsent(player, k -> new HashSet<>()).add(questId);
     }
 
@@ -249,8 +287,9 @@ public class QuestManager {
         if (completedQuests.getOrDefault(player, Collections.emptySet()).contains(questId)) {
             return "§a" + questId + " is completed";
         }
-        PlayerQuestProgress progress = activeQuests.get(player);
-        if (progress != null && progress.getQuest().getId().equals(questId)) {
+        Map<String, PlayerQuestProgress> map = activeQuests.get(player);
+        PlayerQuestProgress progress = map == null ? null : map.get(questId);
+        if (progress != null) {
             StringBuilder sb = new StringBuilder("§e" + questId + " progress:");
             Quest quest = progress.getQuest();
             for (int i = 0; i < quest.getObjectives().size(); i++) {
@@ -519,34 +558,42 @@ public class QuestManager {
 
     private void updateObjective(Player player, QuestObjectiveType type, String target, int amount) {
         UUID uuid = player.getUniqueId();
-        PlayerQuestProgress progress = activeQuests.get(uuid);
-        if (progress == null) return;
-        Quest quest = progress.getQuest();
-        for (int i = 0; i < quest.getObjectives().size(); i++) {
-            QuestObjective obj = quest.getObjectives().get(i);
-            if (obj.getType() == type && obj.getTarget().equalsIgnoreCase(target)) {
-                progress.incrementProgress(i, amount, obj.isAllowOverflow(), obj.getAmount());
-                if (debug) {
-                    plugin.getLogger().info("[QuestDebug] " + player.getName() + " progressed " + quest.getId()
-                            + " objective " + i + " -> " + progress.getProgress(i) + "/" + obj.getAmount());
-                }
-                shareProgress(player, progress, i, amount);
-                if (progress.isComplete()) {
+        Map<String, PlayerQuestProgress> map = activeQuests.get(uuid);
+        if (map == null) return;
+        outer:
+        for (Iterator<Map.Entry<String, PlayerQuestProgress>> it = map.entrySet().iterator(); it.hasNext(); ) {
+            Map.Entry<String, PlayerQuestProgress> entry = it.next();
+            PlayerQuestProgress progress = entry.getValue();
+            Quest quest = progress.getQuest();
+            for (int i = 0; i < quest.getObjectives().size(); i++) {
+                QuestObjective obj = quest.getObjectives().get(i);
+                if (obj.getType() == type && obj.getTarget().equalsIgnoreCase(target)) {
+                    progress.incrementProgress(i, amount, obj.isAllowOverflow(), obj.getAmount());
                     if (debug) {
-                        plugin.getLogger().info("[QuestDebug] " + player.getName() + " completed " + quest.getId());
+                        plugin.getLogger().info("[QuestDebug] " + player.getName() + " progressed " + quest.getId()
+                                + " objective " + i + " -> " + progress.getProgress(i) + "/" + obj.getAmount());
                     }
-                    activeQuests.remove(uuid);
-                    completedQuests.computeIfAbsent(uuid, k -> new HashSet<>()).add(quest.getId());
-                    if (quest.getId().equals(trackedQuests.get(uuid))) {
-                        trackedQuests.remove(uuid);
+                    shareProgress(player, progress, i, amount);
+                    if (progress.isComplete()) {
+                        if (debug) {
+                            plugin.getLogger().info("[QuestDebug] " + player.getName() + " completed " + quest.getId());
+                        }
+                        it.remove();
+                        if (map.isEmpty()) {
+                            activeQuests.remove(uuid);
+                        }
+                        completedQuests.computeIfAbsent(uuid, k -> new HashSet<>()).add(quest.getId());
+                        if (quest.getId().equals(trackedQuests.get(uuid))) {
+                            trackedQuests.remove(uuid);
+                        }
+                        sendCompletionMessage(player, quest);
+                        giveRewards(player, quest);
+                        if (quest instanceof me.nakilex.levelplugin.quests.data.QuestCompletionScript script) {
+                            script.onComplete(player, plugin);
+                        }
                     }
-                    sendCompletionMessage(player, quest);
-                    giveRewards(player, quest);
-                    if (quest instanceof me.nakilex.levelplugin.quests.data.QuestCompletionScript script) {
-                        script.onComplete(player, plugin);
-                    }
+                    break outer;
                 }
-                break;
             }
         }
     }
@@ -556,8 +603,9 @@ public class QuestManager {
         if (party == null) return;
         for (UUID memberId : party.getMembers()) {
             if (memberId.equals(player.getUniqueId())) continue;
-            PlayerQuestProgress other = activeQuests.get(memberId);
-            if (other != null && other.getQuest().getId().equals(progress.getQuest().getId())) {
+            Map<String, PlayerQuestProgress> map = activeQuests.get(memberId);
+            PlayerQuestProgress other = map == null ? null : map.get(progress.getQuest().getId());
+            if (other != null) {
                 QuestObjective obj = progress.getQuest().getObjectives().get(objectiveIndex);
                 other.incrementProgress(objectiveIndex, amount, obj.isAllowOverflow(), obj.getAmount());
                 if (debug) {
@@ -569,7 +617,14 @@ public class QuestManager {
                         if (debug) {
                             plugin.getLogger().info("[QuestDebug] Party member " + p.getName() + " completed " + other.getQuest().getId());
                         }
-                        activeQuests.remove(memberId);
+                        String oid = other.getQuest().getId();
+                        map.remove(oid);
+                        if (map.isEmpty()) {
+                            activeQuests.remove(memberId);
+                        }
+                        if (oid.equals(trackedQuests.get(memberId))) {
+                            trackedQuests.remove(memberId);
+                        }
                         completedQuests.computeIfAbsent(memberId, k -> new HashSet<>()).add(other.getQuest().getId());
                         sendCompletionMessage(p, other.getQuest());
                         giveRewards(p, other.getQuest());

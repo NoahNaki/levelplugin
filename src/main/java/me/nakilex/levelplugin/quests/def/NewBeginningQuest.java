@@ -101,8 +101,8 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
                 if (!ChatColor.stripColor(npc.getName()).equalsIgnoreCase("Starter Merchant")) return;
 
-                PlayerQuestProgress prog = plugin.getQuestManager().getProgress(player.getUniqueId());
-                if (prog == null || !prog.getQuest().getId().equals("newbeginning")) return;
+                PlayerQuestProgress prog = plugin.getQuestManager().getProgress(player.getUniqueId(), "newbeginning");
+                if (prog == null) return;
                 if (prog.getProgress(0) < 1) return; // wait until Piwan dialog finished
 
                 event.setCancelled(true);
@@ -230,8 +230,8 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
                 if (npc.getId() != 536) return;
 
-                PlayerQuestProgress prog = plugin.getQuestManager().getProgress(player.getUniqueId());
-                if (prog == null || !prog.getQuest().getId().equals("newbeginning")) return;
+                PlayerQuestProgress prog = plugin.getQuestManager().getProgress(player.getUniqueId(), "newbeginning");
+                if (prog == null) return;
 
                 event.setCancelled(true);
 

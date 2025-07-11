@@ -110,7 +110,7 @@ public class QuestGUI {
         for (int i = start; i < list.size() && slot < ITEMS_PER_PAGE; i++) {
             Quest quest = list.get(i);
             QuestState state = questManager.getQuestState(player, quest);
-            ItemStack item = createQuestItem(player, quest, state, questManager.getProgress(player.getUniqueId()), questManager);
+            ItemStack item = createQuestItem(player, quest, state, questManager.getProgress(player.getUniqueId(), quest.getId()), questManager);
             gui.setItem(QUEST_SLOTS[slot++], item);
         }
 
