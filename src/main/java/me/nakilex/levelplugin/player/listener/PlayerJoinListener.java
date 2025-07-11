@@ -83,7 +83,8 @@ public class PlayerJoinListener implements Listener {
             if (nbQuest != null && !qm.hasCompleted(pid, "newbeginning")) {
                 // Reset and restart the intro quest using the same logic as the
                 // "/quest" commands so progress never sticks mid-dialog
-                qm.resetQuest(pid, "newbeginning");
+                Main.getInstance().getLogger().info("Resetting intro quest for " + player.getName() + " on login");
+                qm.resetQuest(pid, "newbeginning", true);
                 qm.startQuest(player, "newbeginning");
             }
 
