@@ -47,10 +47,5 @@ public class PlayerQuitListener implements Listener {
             stageManager.despawnForStage(pid, town, st.level, st.stage);
         }
 
-        // Force-reset the intro quest directly via the quest manager so the
-        // player always restarts from the beginning on next login. Using the
-        // command fails from console, so invoke the same logic programmatically.
-        Main.getInstance().getQuestManager()
-                .resetQuest(player.getUniqueId(), "newbeginning", true);
     }
 }

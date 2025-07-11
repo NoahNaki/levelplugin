@@ -78,12 +78,6 @@ public class PlayerJoinListener implements Listener {
                         .showFakeBlocks(player, office.getWorldElevatorBlocks());
             }
 
-            // Restart the intro quest if unfinished. The /quest command cannot
-            // run from console, so we invoke the same logic directly.
-            if (!qm.hasCompleted(pid, "newbeginning")) {
-                Main.getInstance().getLogger().info("Restarting intro quest for " + player.getName() + " on login");
-                qm.startQuest(player, "newbeginning");
-            }
 
             me.nakilex.levelplugin.quests.data.Quest nb1 = qm.getQuest("newbeginning");
 
