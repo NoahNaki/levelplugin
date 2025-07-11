@@ -28,6 +28,10 @@ public class QuestGUIListener implements Listener {
         }
         if (!view.getTitle().equals(QuestGUI.GUI_TITLE)) return;
         if (event.getClickedInventory() != view.getTopInventory()) return;
+
+        me.nakilex.levelplugin.Main.getInstance().getLogger().info(
+                "QuestGUI inventory click rawSlot=" + event.getRawSlot() +
+                        " type=" + event.getClick());
         event.setCancelled(true);
 
         if (!(event.getWhoClicked() instanceof Player player)) return;
@@ -69,6 +73,16 @@ public class QuestGUIListener implements Listener {
 
         var quest = questManager.getQuest(id);
         QuestState state = questManager.getQuestState(player, quest);
+
+        // Debugging output to help diagnose click issues
+        me.nakilex.levelplugin.Main.getInstance().getLogger().info(
+                "QuestGUI click by " + player.getName() +
+                        " type=" + event.getClick() +
+                        " quest=" + id +
+                        " state=" + state);
+
+        player.sendMessage(ChatColor.YELLOW + "DEBUG: click=" + event.getClick() +
+                " quest=" + id + " state=" + state);
 
         if (event.getClick().isRightClick()) {
             if (state == QuestState.AVAILABLE) {
