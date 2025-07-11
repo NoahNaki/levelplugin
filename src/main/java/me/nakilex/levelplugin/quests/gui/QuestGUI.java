@@ -126,7 +126,11 @@ public class QuestGUI {
                                              PlayerQuestProgress progress, QuestManager qm) {
         String name = state == QuestState.LOCKED ? ChatColor.DARK_GRAY + "???" : state.getColor() + quest.getName();
 
+        // Use scroll2 for all active quests unless this one is tracked
         String icon = state.getIconId();
+        if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS || state == QuestState.TURN_IN_READY) {
+            icon = "pack1_scroll2";
+        }
         String tracked = qm.getTrackedQuest(player.getUniqueId());
         if (tracked != null && tracked.equals(quest.getId())) {
             icon = "pack1_scroll4";
