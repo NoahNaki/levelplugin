@@ -41,7 +41,16 @@ public class QuestGUIListener implements Listener {
         if (clicked == null) return;
         ItemMeta meta = clicked.getItemMeta();
         if (meta == null) return;
-        String id = meta.getLocalizedName();
+
+        // Extra debugging info about the clicked item
+        String rawName = meta.getDisplayName();
+        String locName = meta.getLocalizedName();
+        String pdcId = meta.getPersistentDataContainer().has(QuestGUI.QUEST_ID_KEY, PersistentDataType.STRING)
+                ? meta.getPersistentDataContainer().get(QuestGUI.QUEST_ID_KEY, PersistentDataType.STRING)
+                : "null";
+        me.nakilex.levelplugin.Main.getInstance().getLogger().info("Clicked item display='" + rawName + "' local='" + locName + "' pdc='" + pdcId + "'");
+
+        String id = locName;
         if ((id == null || id.isEmpty()) && meta.getPersistentDataContainer().has(QuestGUI.QUEST_ID_KEY, PersistentDataType.STRING)) {
             id = meta.getPersistentDataContainer().get(QuestGUI.QUEST_ID_KEY, PersistentDataType.STRING);
         }
