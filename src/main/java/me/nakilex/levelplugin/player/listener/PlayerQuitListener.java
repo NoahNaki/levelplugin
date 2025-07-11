@@ -47,5 +47,12 @@ public class PlayerQuitListener implements Listener {
             stageManager.despawnForStage(pid, town, st.level, st.stage);
         }
 
+        // Reset the intro quest so it starts fresh next login
+        me.nakilex.levelplugin.quests.managers.QuestManager qm =
+                Main.getInstance().getQuestManager();
+        if (qm != null && !qm.hasCompleted(pid, "officeerrands")) {
+            qm.resetQuest(pid, "officeerrands", true);
+        }
+
     }
 }
