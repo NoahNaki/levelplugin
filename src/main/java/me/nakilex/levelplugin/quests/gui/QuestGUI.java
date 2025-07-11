@@ -96,10 +96,10 @@ public class QuestGUI {
     }
 
     private static ItemStack createQuestItem(Player player, Quest quest, QuestState state, PlayerQuestProgress progress) {
-        ItemStack item = new ItemStack(state.getMaterial());
+        String name = state == QuestState.LOCKED ? ChatColor.DARK_GRAY + "???" : state.getColor() + quest.getName();
+        ItemStack item = getNexoItem(state.getIconId(), name);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(state.getColor() + quest.getName());
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.GRAY + quest.getDescription());
             if (progress != null && progress.getQuest().getId().equals(quest.getId())) {

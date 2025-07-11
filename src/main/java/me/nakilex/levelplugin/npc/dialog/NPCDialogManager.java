@@ -217,7 +217,7 @@ public class NPCDialogManager {
     }
 
     private void sendChoice(Player player, ChoiceSession cs) {
-        ChatFormatter.sendCenteredMessage(player, ChatColor.AQUA + "Chose your answer:");
+        ChatFormatter.sendCenteredMessage(player, ChatColor.AQUA + "Choose your answer:");
         ChatFormatter.constructDivider(player, " ", 45);
 
         StringBuilder sb = new StringBuilder();
