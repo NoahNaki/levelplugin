@@ -265,6 +265,10 @@ public class QuestGUI {
         return PENDING_QUEST.get(id);
     }
 
+    static boolean hasPending(java.util.UUID id) {
+        return PENDING_QUEST.containsKey(id);
+    }
+
     static void clearPending(java.util.UUID id) {
         CONFIRM_OPEN.remove(id);
         PENDING_QUEST.remove(id);

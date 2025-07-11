@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.quests.gui;
 
 import me.nakilex.levelplugin.quests.managers.QuestManager;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -146,7 +147,12 @@ public class QuestGUIListener implements Listener {
     public void onClose(org.bukkit.event.inventory.InventoryCloseEvent e) {
         if (!e.getView().getTitle().equals(QuestGUI.CONFIRM_TITLE)) return;
         Player p = (Player) e.getPlayer();
-        QuestGUI.clearPending(p.getUniqueId());
-        QuestGUI.openQuestGUI(p, questManager, QuestGUI.pageMap.getOrDefault(p.getUniqueId(), 0));
+        if (QuestGUI.hasPending(p.getUniqueId())) {
+            QuestGUI.clearPending(p.getUniqueId());
+            org.bukkit.Bukkit.getScheduler().runTask(
+                    me.nakilex.levelplugin.Main.getInstance(),
+                    () -> QuestGUI.openQuestGUI(p, questManager,
+                            QuestGUI.pageMap.getOrDefault(p.getUniqueId(), 0)));
+        }
     }
 }
