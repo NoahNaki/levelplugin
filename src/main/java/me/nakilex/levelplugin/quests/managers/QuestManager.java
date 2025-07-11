@@ -226,6 +226,10 @@ public class QuestManager {
         if (completed != null) {
             completed.remove(questId);
         }
+        String tracked = trackedQuests.get(player);
+        if (questId.equals(tracked)) {
+            trackedQuests.remove(player);
+        }
     }
 
     public void completeQuest(UUID player, String questId) {

@@ -68,14 +68,18 @@ public class QuestGUIListener implements Listener {
             if (state == QuestState.AVAILABLE) {
                 questManager.startQuest(player, id);
                 player.closeInventory();
+            } else if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS || state == QuestState.TURN_IN_READY) {
+                questManager.resetQuest(player.getUniqueId(), id);
+                player.sendMessage(ChatColor.RED + "Abandoned quest: " + ChatColor.WHITE + questManager.getQuest(id).getName());
+                QuestGUI.openQuestGUI(player, questManager, QuestGUI.pageMap.getOrDefault(player.getUniqueId(),0));
             }
-        }
-
-        if (event.getClick() == ClickType.LEFT) {
-            player.sendMessage(ChatColor.AQUA + "Quest: " + id);
-        }
-
-        if (event.getClick() == ClickType.SHIFT_LEFT) {
+        } else if (event.getClick() == ClickType.LEFT) {
+            if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS || state == QuestState.TURN_IN_READY) {
+                questManager.setTrackedQuest(player, id);
+                player.sendMessage(ChatColor.GREEN + "Tracking quest: " + ChatColor.WHITE + questManager.getQuest(id).getName());
+                QuestGUI.openQuestGUI(player, questManager, QuestGUI.pageMap.getOrDefault(player.getUniqueId(),0));
+            }
+        } else if (event.getClick() == ClickType.SHIFT_LEFT) {
             questManager.setTrackedQuest(player, id);
             player.sendMessage(ChatColor.GREEN + "Now tracking " + id);
         }

@@ -69,6 +69,11 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
 
     @Override
     public void onStart(Player player, Main plugin) {
+        awaitingMerchant.remove(player.getUniqueId());
+        soldClothes.remove(player.getUniqueId());
+        givenCoins.remove(player.getUniqueId());
+        readyToShop.remove(player.getUniqueId());
+        merchantDone.remove(player.getUniqueId());
         new BukkitRunnable() {
             boolean triggered = false;
             @Override

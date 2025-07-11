@@ -5,6 +5,8 @@ import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.data.QuestReward;
 import me.nakilex.levelplugin.quests.data.QuestObjective;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.items.data.CustomItem;
 import com.nexomc.nexo.api.NexoItems;
 import com.nexomc.nexo.items.ItemBuilder;
 import org.bukkit.Bukkit;
@@ -103,48 +105,49 @@ public class QuestGUI {
         if (meta != null) {
             List<String> lore = new ArrayList<>();
 
-            if (state == QuestState.COMPLETED) {
-                lore.add(ChatColor.GREEN + quest.getName());
-                lore.add(" ");
-                lore.add(ChatColor.WHITE + quest.getDescription());
-            } else if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS || state == QuestState.TURN_IN_READY) {
-                lore.add(ChatColor.GOLD + quest.getName());
-                lore.add(" ");
+            if (state != QuestState.LOCKED) {
                 lore.add(ChatColor.GRAY + quest.getDescription());
-                lore.add(" ");
-                int objIndex = 0;
-                int objProgress = 0;
-                if (progress != null && progress.getQuest().getId().equals(quest.getId())) {
-                    for (int i = 0; i < quest.getObjectives().size(); i++) {
-                        if (progress.getProgress(i) < quest.getObjectives().get(i).getAmount()) {
-                            objIndex = i;
-                            objProgress = progress.getProgress(i);
-                            break;
+
+                if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS || state == QuestState.TURN_IN_READY) {
+                    lore.add(" ");
+                    int objIndex = 0;
+                    int objProgress = 0;
+                    if (progress != null && progress.getQuest().getId().equals(quest.getId())) {
+                        for (int i = 0; i < quest.getObjectives().size(); i++) {
+                            if (progress.getProgress(i) < quest.getObjectives().get(i).getAmount()) {
+                                objIndex = i;
+                                objProgress = progress.getProgress(i);
+                                break;
+                            }
                         }
                     }
+                    QuestObjective obj = quest.getObjectives().get(objIndex);
+                    String desc = qm.describeObjective(obj);
+                    lore.add(ChatColor.WHITE + desc + ChatColor.GRAY + " (" + objProgress + "/" + obj.getAmount() + ")");
+                    lore.add(" ");
+                    lore.add(ChatColor.WHITE + "Left-click " + ChatColor.GRAY + "to track");
+                    lore.add(ChatColor.WHITE + "Right-click " + ChatColor.GRAY + "to abandon");
                 }
-                QuestObjective obj = quest.getObjectives().get(objIndex);
-                String desc = qm.describeObjective(obj);
-                lore.add(ChatColor.WHITE + desc + ChatColor.GRAY + " (" + objProgress + "/" + obj.getAmount() + ")");
-            } else {
-                lore.add(ChatColor.GRAY + quest.getDescription());
-            }
 
-            lore.add(" ");
-            lore.add(ChatColor.GREEN + "Rewards:");
-            if (quest.getReward() != null) {
-                QuestReward r = quest.getReward();
-                if (r.getXp() > 0) lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + r.getXp() + " XP");
-                if (r.getCoins() > 0) lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + r.getCoins() + " Coins");
-                if (r.getGems() > 0) lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + r.getGems() + " Gems");
-                for (int id : r.getItemIds()) {
-                    lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + "Item " + id);
+                lore.add(" ");
+                lore.add(ChatColor.GREEN + "Rewards:");
+                if (quest.getReward() != null) {
+                    QuestReward r = quest.getReward();
+                    if (r.getXp() > 0) lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + r.getXp() + " " + ChatColor.GREEN + "XP");
+                    if (r.getCoins() > 0) lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + r.getCoins() + " " + ChatColor.YELLOW + "⛃");
+                    if (r.getGems() > 0) lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + r.getGems() + " " + ChatColor.LIGHT_PURPLE + "✦");
+                    for (int id : r.getItemIds()) {
+                        me.nakilex.levelplugin.items.data.CustomItem tpl = me.nakilex.levelplugin.Main.getInstance().getItemManager().getTemplateById(id);
+                        String in = tpl != null ? tpl.getBaseName() : ("Item " + id);
+                        lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + in);
+                    }
+                    for (var cls : r.getUnlockClasses()) {
+                        String pretty = cls.name().substring(0,1) + cls.name().substring(1).toLowerCase();
+                        lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + pretty + " Class");
+                    }
+                } else {
+                    lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + "None");
                 }
-                for (var cls : r.getUnlockClasses()) {
-                    lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + "Unlock " + cls.name());
-                }
-            } else {
-                lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + "None");
             }
 
             meta.setLore(lore);
