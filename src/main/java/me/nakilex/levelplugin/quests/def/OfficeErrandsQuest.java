@@ -201,7 +201,12 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                                     cancel();
                                     fbm.hideFakeBlock(player, lampLoc);
 
-                                    player.sendMessage(ChatColor.GRAY + "[1/1] " + player.getName() + ChatColor.WHITE + ": Huh that's weird, the elevator light's flickering.");
+                                    ChatFormatter.constructDivider(player, " ", 45);
+                                    player.sendMessage(ChatColor.DARK_GRAY + "[1/1] "
+                                            + ChatColor.YELLOW + player.getName()
+                                            + ChatColor.WHITE
+                                            + ": Huh that's weird, the elevator light's flickering.");
+                                    ChatFormatter.constructDivider(player, " ", 45);
 
                                     Bukkit.getScheduler().runTaskLater(plugin, () -> {
                                         org.bukkit.Location cur = player.getLocation();
