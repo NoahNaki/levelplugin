@@ -47,9 +47,10 @@ public class PlayerQuitListener implements Listener {
             stageManager.despawnForStage(pid, town, st.level, st.stage);
         }
 
-        // Simply run the built-in quest reset command on logout so progress
-        // never persists if a player leaves mid-dialog.
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
-                "quest reset " + player.getName() + " newbeginning");
+        // Force-reset the intro quest directly via the quest manager so the
+        // player always restarts from the beginning on next login. Using the
+        // command fails from console, so invoke the same logic programmatically.
+        Main.getInstance().getQuestManager()
+                .resetQuest(player.getUniqueId(), "newbeginning", true);
     }
 }
