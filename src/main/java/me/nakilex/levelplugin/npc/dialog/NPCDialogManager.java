@@ -132,7 +132,8 @@ public class NPCDialogManager {
             @EventHandler
             public void onQuit(PlayerQuitEvent e) {
                 if (e.getPlayer().equals(player)) {
-                    finishChoice(player, ref[0]);
+                    // Treat quitting like walking away so the dialog can resume
+                    pauseDialog(player);
                 }
             }
         };
