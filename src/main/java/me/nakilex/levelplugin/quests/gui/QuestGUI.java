@@ -121,7 +121,14 @@ public class QuestGUI {
     private static ItemStack createQuestItem(Player player, Quest quest, QuestState state,
                                              PlayerQuestProgress progress, QuestManager qm) {
         String name = state == QuestState.LOCKED ? ChatColor.DARK_GRAY + "???" : state.getColor() + quest.getName();
-        ItemStack item = getNexoItem(state.getIconId(), name);
+
+        String icon = state.getIconId();
+        String tracked = qm.getTrackedQuest(player.getUniqueId());
+        if (tracked != null && tracked.equals(quest.getId())) {
+            icon = "pack1_scroll4";
+        }
+
+        ItemStack item = getNexoItem(icon, name);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             List<String> lore = new ArrayList<>();

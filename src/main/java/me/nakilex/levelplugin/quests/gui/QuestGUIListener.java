@@ -27,6 +27,7 @@ public class QuestGUIListener implements Listener {
             return;
         }
         if (!view.getTitle().equals(QuestGUI.GUI_TITLE)) return;
+        if (event.getClickedInventory() != view.getTopInventory()) return;
         event.setCancelled(true);
 
         if (!(event.getWhoClicked() instanceof Player player)) return;
