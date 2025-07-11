@@ -123,7 +123,10 @@ public class QuestGUIListener implements Listener {
         if (!(event.getWhoClicked() instanceof Player player)) return;
         event.setCancelled(true);
         var inv = QuestGUI.getConfirmInventory(player.getUniqueId());
-        if (inv == null || !event.getView().getTopInventory().equals(inv)) return;
+        if (inv == null) return;
+        if (event.getClickedInventory() != event.getView().getTopInventory()) return;
+        me.nakilex.levelplugin.Main.getInstance().getLogger().info(
+                "Confirm GUI click slot=" + event.getRawSlot());
         if (event.getRawSlot() == QuestGUI.CONFIRM_YES_SLOT) {
             String qId = QuestGUI.getPendingQuest(player.getUniqueId());
             if (qId != null) {
