@@ -3,12 +3,11 @@ package me.nakilex.levelplugin.player.listener;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
-import me.nakilex.levelplugin.quests.managers.QuestManager;
-import me.nakilex.levelplugin.quests.gui.QuestState;
 
 import java.util.List;
 import java.util.UUID;
@@ -48,16 +47,9 @@ public class PlayerQuitListener implements Listener {
             stageManager.despawnForStage(pid, town, st.level, st.stage);
         }
 
-        QuestManager qm = Main.getInstance().getQuestManager();
-        me.nakilex.levelplugin.quests.data.Quest nb = qm.getQuest("newbeginning");
-        if (nb != null) {
-            QuestState state = qm.getQuestState(player, nb);
-            if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS) {
-                // Mirror the behavior of "/quest reset" so the intro quest is
-                // cleared when players log out mid-progress.
-                Main.getInstance().getLogger().info("Resetting intro quest for " + player.getName() + " on logout");
-                qm.resetQuest(pid, nb.getId(), true);
-            }
-        }
+        // Simply run the built-in quest reset command on logout so progress
+        // never persists if a player leaves mid-dialog.
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
+                "quest reset " + player.getName() + " newbeginning");
     }
 }

@@ -78,14 +78,12 @@ public class PlayerJoinListener implements Listener {
                         .showFakeBlocks(player, office.getWorldElevatorBlocks());
             }
 
-            // Restart New Beginning quest if it was reset on logout
-            me.nakilex.levelplugin.quests.data.Quest nbQuest = qm.getQuest("newbeginning");
-            if (nbQuest != null && !qm.hasCompleted(pid, "newbeginning")) {
-                // Reset and restart the intro quest using the same logic as the
-                // "/quest" commands so progress never sticks mid-dialog
-                Main.getInstance().getLogger().info("Resetting intro quest for " + player.getName() + " on login");
-                qm.resetQuest(pid, "newbeginning", true);
-                qm.startQuest(player, "newbeginning");
+            // Restart New Beginning quest using the same command players can run
+            // so it's guaranteed to behave identically.
+            if (!qm.hasCompleted(pid, "newbeginning")) {
+                Main.getInstance().getLogger().info("Restarting intro quest for " + player.getName() + " on login");
+                org.bukkit.Bukkit.dispatchCommand(org.bukkit.Bukkit.getConsoleSender(),
+                        "quest start newbeginning " + player.getName());
             }
 
             me.nakilex.levelplugin.quests.data.Quest nb1 = qm.getQuest("newbeginning");
