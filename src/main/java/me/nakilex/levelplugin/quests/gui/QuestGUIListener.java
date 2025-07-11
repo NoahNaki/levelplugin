@@ -69,24 +69,23 @@ public class QuestGUIListener implements Listener {
         var quest = questManager.getQuest(id);
         QuestState state = questManager.getQuestState(player, quest);
 
-        if (event.getClick() == ClickType.RIGHT) {
+        if (event.getClick().isRightClick()) {
             if (state == QuestState.AVAILABLE) {
                 questManager.startQuest(player, id);
                 player.closeInventory();
             } else if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS || state == QuestState.TURN_IN_READY) {
                 if (!quest.isMainQuest()) {
-                    QuestGUI.openConfirmAbandon(player, quest);
+                    // Delay opening by a tick to avoid click glitches
+                    org.bukkit.Bukkit.getScheduler().runTask(me.nakilex.levelplugin.Main.getInstance(),
+                            () -> QuestGUI.openConfirmAbandon(player, quest));
                 }
             }
-        } else if (event.getClick() == ClickType.LEFT) {
+        } else if (event.getClick().isLeftClick()) {
             if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS || state == QuestState.TURN_IN_READY) {
                 questManager.setTrackedQuest(player, id);
                 player.sendMessage(ChatColor.GREEN + "Tracking quest: " + ChatColor.WHITE + quest.getName());
                 QuestGUI.openQuestGUI(player, questManager, QuestGUI.pageMap.getOrDefault(player.getUniqueId(),0));
             }
-        } else if (event.getClick() == ClickType.SHIFT_LEFT) {
-            questManager.setTrackedQuest(player, id);
-            player.sendMessage(ChatColor.GREEN + "Now tracking " + id);
         }
     }
 

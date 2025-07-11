@@ -211,6 +211,7 @@ public class QuestManager {
 
     public void setTrackedQuest(Player player, String questId) {
         trackedQuests.put(player.getUniqueId(), questId);
+        saveProgress();
     }
 
     public String getTrackedQuest(UUID player) {
@@ -234,6 +235,7 @@ public class QuestManager {
         if (questId.equals(tracked)) {
             trackedQuests.remove(player);
         }
+        saveProgress();
     }
 
     public void completeQuest(UUID player, String questId) {
