@@ -42,8 +42,8 @@ public class QuestGUI {
     // Confirmation menu constants
     public static final String CONFIRM_TITLE = ChatColor.RED + "Confirm Abandon";
     private static final int CONFIRM_SIZE = 27;
-    private static final int CONFIRM_YES_SLOT = 11;
-    private static final int CONFIRM_NO_SLOT = 15;
+    public static final int CONFIRM_YES_SLOT = 11;
+    public static final int CONFIRM_NO_SLOT = 15;
     private static final Map<java.util.UUID, Inventory> CONFIRM_OPEN = new java.util.HashMap<>();
     private static final Map<java.util.UUID, String> PENDING_QUEST = new java.util.HashMap<>();
 
