@@ -199,6 +199,7 @@ public class QuestManager {
         activeQuests.put(player.getUniqueId(), new PlayerQuestProgress(quest));
         // always track the most recently accepted quest
         trackedQuests.put(player.getUniqueId(), quest.getId());
+        saveProgress();
         player.sendMessage("§aStarted quest: " + quest.getName());
 
         if (quest instanceof me.nakilex.levelplugin.quests.data.QuestScript script) {

@@ -16,6 +16,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.NamespacedKey;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.util.*;
 
@@ -38,6 +40,8 @@ public class QuestGUI {
     static final Map<java.util.UUID, Integer> pageMap = new java.util.HashMap<>();
     static final Map<java.util.UUID, Integer> filterMap = new java.util.HashMap<>();
     static final Map<java.util.UUID, Integer> sortMap = new java.util.HashMap<>();
+
+    public static final NamespacedKey QUEST_ID_KEY = new NamespacedKey(Main.getInstance(), "quest_id");
 
     // Confirmation menu constants
     public static final String CONFIRM_TITLE = ChatColor.RED + "Confirm Abandon";
@@ -185,6 +189,7 @@ public class QuestGUI {
 
             meta.setLore(lore);
             meta.setLocalizedName(quest.getId());
+            meta.getPersistentDataContainer().set(QUEST_ID_KEY, PersistentDataType.STRING, quest.getId());
             item.setItemMeta(meta);
         }
         return item;

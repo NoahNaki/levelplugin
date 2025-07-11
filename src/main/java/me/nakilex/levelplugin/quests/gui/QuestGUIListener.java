@@ -10,6 +10,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
 
 public class QuestGUIListener implements Listener {
 
@@ -41,6 +42,9 @@ public class QuestGUIListener implements Listener {
         ItemMeta meta = clicked.getItemMeta();
         if (meta == null) return;
         String id = meta.getLocalizedName();
+        if ((id == null || id.isEmpty()) && meta.getPersistentDataContainer().has(QuestGUI.QUEST_ID_KEY, PersistentDataType.STRING)) {
+            id = meta.getPersistentDataContainer().get(QuestGUI.QUEST_ID_KEY, PersistentDataType.STRING);
+        }
         String name = meta.getDisplayName();
         if (name != null) {
             String stripped = ChatColor.stripColor(name);
@@ -84,8 +88,6 @@ public class QuestGUIListener implements Listener {
                         " quest=" + id +
                         " state=" + state);
 
-        player.sendMessage(ChatColor.YELLOW + "DEBUG: click=" + event.getClick() +
-                " quest=" + id + " state=" + state);
 
         if (event.getClick().isRightClick()) {
             if (state == QuestState.AVAILABLE) {
