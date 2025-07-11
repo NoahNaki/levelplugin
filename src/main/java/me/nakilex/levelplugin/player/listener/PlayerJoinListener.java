@@ -83,7 +83,7 @@ public class PlayerJoinListener implements Listener {
             if (nbQuest != null && !qm.hasCompleted(pid, "newbeginning")) {
                 // Always reset and restart this short intro quest so players
                 // don't get stuck if they logged out mid dialog
-                qm.resetQuest(pid, "newbeginning");
+                qm.resetQuest(pid, "newbeginning", true);
                 qm.startQuest(player, "newbeginning");
             }
 

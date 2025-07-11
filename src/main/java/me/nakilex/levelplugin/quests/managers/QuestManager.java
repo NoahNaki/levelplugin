@@ -250,8 +250,18 @@ public class QuestManager {
     }
 
     public void resetQuest(UUID player, String questId) {
+        resetQuest(player, questId, false);
+    }
+
+    /**
+     * Reset a quest for the given player.
+     *
+     * @param ignoreMain if true, allow resetting even when the quest is marked
+     *                   as a main quest
+     */
+    public void resetQuest(UUID player, String questId, boolean ignoreMain) {
         Quest quest = quests.get(questId);
-        if (quest != null && quest.isMainQuest()) {
+        if (quest != null && quest.isMainQuest() && !ignoreMain) {
             return;
         }
         Map<String, PlayerQuestProgress> map = activeQuests.get(player);

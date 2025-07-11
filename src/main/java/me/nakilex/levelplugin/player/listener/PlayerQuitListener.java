@@ -53,7 +53,7 @@ public class PlayerQuitListener implements Listener {
         if (nb != null) {
             QuestState state = qm.getQuestState(player, nb);
             if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS) {
-                qm.resetQuest(pid, nb.getId());
+                qm.resetQuest(pid, nb.getId(), true);
             }
         }
     }
