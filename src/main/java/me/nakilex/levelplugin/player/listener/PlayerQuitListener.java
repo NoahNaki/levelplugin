@@ -7,6 +7,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
+import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.quests.gui.QuestState;
 
 import java.util.List;
 import java.util.UUID;
@@ -44,6 +46,15 @@ public class PlayerQuitListener implements Listener {
         environmentManager.saveState(pid);
         if (st != null && town != null) {
             stageManager.despawnForStage(pid, town, st.level, st.stage);
+        }
+
+        QuestManager qm = Main.getInstance().getQuestManager();
+        me.nakilex.levelplugin.quests.data.Quest nb = qm.getQuest("newbeginning");
+        if (nb != null) {
+            QuestState state = qm.getQuestState(player, nb);
+            if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS) {
+                qm.resetQuest(pid, nb.getId());
+            }
         }
     }
 }

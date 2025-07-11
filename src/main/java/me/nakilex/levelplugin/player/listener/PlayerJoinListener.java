@@ -78,6 +78,13 @@ public class PlayerJoinListener implements Listener {
                         .showFakeBlocks(player, office.getWorldElevatorBlocks());
             }
 
+            // Restart New Beginning quest if it was reset on logout
+            me.nakilex.levelplugin.quests.data.Quest nbQuest = qm.getQuest("newbeginning");
+            if (nbQuest != null && !qm.hasCompleted(pid, "newbeginning")
+                    && qm.getProgress(pid, "newbeginning") == null) {
+                qm.startQuest(player, "newbeginning");
+            }
+
             me.nakilex.levelplugin.quests.data.Quest nb1 = qm.getQuest("newbeginning");
 
             // Repeatedly hide NPC 537 until quest1 is completed, only after the
