@@ -217,7 +217,7 @@ public class NPCDialogManager {
     }
 
     private void sendChoice(Player player, ChoiceSession cs) {
-        player.sendMessage(ChatColor.AQUA + "Choose your answer:");
+        ChatFormatter.sendCenteredMessage(player, ChatColor.AQUA + "Chose your answer:");
         ChatFormatter.constructDivider(player, " ", 45);
 
         StringBuilder sb = new StringBuilder();
@@ -230,6 +230,7 @@ public class NPCDialogManager {
                     .append(ChatColor.DARK_GRAY).append("]");
         }
         ChatFormatter.sendCenteredMessage(player, sb.toString());
+        ChatFormatter.sendCenteredMessage(player, ChatColor.DARK_GRAY + "(Scroll to cycle)");
         player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
     }
 
