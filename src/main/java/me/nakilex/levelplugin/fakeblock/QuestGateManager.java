@@ -11,6 +11,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.Location;
 import me.nakilex.levelplugin.fakeblock.GateAnimation;
 
@@ -285,6 +286,20 @@ public class QuestGateManager implements Listener {
                     event.setCancelled(true);
                     return;
                 }
+            }
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onInteract(PlayerInteractEvent event) {
+        if (event.getClickedBlock() == null) return;
+        Player player = event.getPlayer();
+        Location loc = event.getClickedBlock().getLocation();
+        for (QuestGate gate : gates.values()) {
+            if (gate.isClosed(player.getUniqueId()) && gate.isInside(loc)) {
+                event.setCancelled(true);
+                blockManager.showFakeBlock(player, loc, gate.getClosedData(loc));
+                break;
             }
         }
     }
