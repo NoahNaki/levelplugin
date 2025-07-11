@@ -55,7 +55,8 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                 null,
                 null,
                 null,
-                java.util.List.of()
+                java.util.List.of(),
+                true
         );
     }
 

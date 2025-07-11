@@ -21,10 +21,14 @@ public class Quest {
     /** Dialog lines shown when starting the quest. */
     private final List<String> dialogLines;
 
+    /** Whether this is considered a main quest. */
+    private final boolean mainQuest;
+
     public Quest(String id, String name, String description, List<QuestObjective> objectives,
                  int levelRequirement, List<String> questRequirements,
                  PlayerClass classRequirement, QuestReward reward,
-                 Integer npcGiverId, List<String> dialogLines) {
+                 Integer npcGiverId, List<String> dialogLines,
+                 boolean mainQuest) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -35,6 +39,7 @@ public class Quest {
         this.reward = reward;
         this.npcGiverId = npcGiverId;
         this.dialogLines = dialogLines;
+        this.mainQuest = mainQuest;
     }
 
     public String getId() {
@@ -75,5 +80,9 @@ public class Quest {
 
     public List<String> getDialogLines() {
         return dialogLines;
+    }
+
+    public boolean isMainQuest() {
+        return mainQuest;
     }
 }

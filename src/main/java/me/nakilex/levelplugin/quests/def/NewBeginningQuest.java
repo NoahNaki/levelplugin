@@ -63,7 +63,8 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                         "Another world you say? Well you wouldn't be the first to make such bold claims, my mom said she once knew someone that claimed the same thing, said they were from a place called, \"ip\".",
                         "I'm sure you have many questions, how about to start off I show you around my village.",
                         "First things first, you're going to have to look like you're from this world, go talk to that merchant over there and buy some equipment."
-                )
+                ),
+                true
         );
     }
 

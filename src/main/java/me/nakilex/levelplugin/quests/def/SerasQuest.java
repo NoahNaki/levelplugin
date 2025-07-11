@@ -31,7 +31,8 @@ public class SerasQuest extends Quest implements QuestScript, QuestCompletionScr
                         "<player>|He told me you could give me some tasks to help out around here.",
                         "Yeah that's true, there's never a still moment in this village that's for sure.",
                         "Follow this path, you'll come across some slimes that have been infesting the forest recently, kill 10 of those and bring back their cores and I'll give you a reward."
-                )
+                ),
+                false
         );
     }
 

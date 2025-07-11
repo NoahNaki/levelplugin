@@ -218,6 +218,10 @@ public class QuestManager {
     }
 
     public void resetQuest(UUID player, String questId) {
+        Quest quest = quests.get(questId);
+        if (quest != null && quest.isMainQuest()) {
+            return;
+        }
         PlayerQuestProgress progress = activeQuests.get(player);
         if (progress != null && progress.getQuest().getId().equals(questId)) {
             activeQuests.remove(player);

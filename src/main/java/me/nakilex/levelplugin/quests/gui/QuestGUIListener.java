@@ -62,21 +62,24 @@ public class QuestGUIListener implements Listener {
         }
         if (id == null || id.isEmpty()) return;
 
-        QuestState state = questManager.getQuestState(player, questManager.getQuest(id));
+        var quest = questManager.getQuest(id);
+        QuestState state = questManager.getQuestState(player, quest);
 
         if (event.getClick() == ClickType.RIGHT) {
             if (state == QuestState.AVAILABLE) {
                 questManager.startQuest(player, id);
                 player.closeInventory();
             } else if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS || state == QuestState.TURN_IN_READY) {
-                questManager.resetQuest(player.getUniqueId(), id);
-                player.sendMessage(ChatColor.RED + "Abandoned quest: " + ChatColor.WHITE + questManager.getQuest(id).getName());
-                QuestGUI.openQuestGUI(player, questManager, QuestGUI.pageMap.getOrDefault(player.getUniqueId(),0));
+                if (!quest.isMainQuest()) {
+                    questManager.resetQuest(player.getUniqueId(), id);
+                    player.sendMessage(ChatColor.RED + "Abandoned quest: " + ChatColor.WHITE + quest.getName());
+                    QuestGUI.openQuestGUI(player, questManager, QuestGUI.pageMap.getOrDefault(player.getUniqueId(),0));
+                }
             }
         } else if (event.getClick() == ClickType.LEFT) {
             if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS || state == QuestState.TURN_IN_READY) {
                 questManager.setTrackedQuest(player, id);
-                player.sendMessage(ChatColor.GREEN + "Tracking quest: " + ChatColor.WHITE + questManager.getQuest(id).getName());
+                player.sendMessage(ChatColor.GREEN + "Tracking quest: " + ChatColor.WHITE + quest.getName());
                 QuestGUI.openQuestGUI(player, questManager, QuestGUI.pageMap.getOrDefault(player.getUniqueId(),0));
             }
         } else if (event.getClick() == ClickType.SHIFT_LEFT) {

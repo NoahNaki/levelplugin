@@ -32,7 +32,8 @@ public class HawieQuest extends Quest implements QuestScript, QuestCompletionScr
                         "If only I was young again, I could build it from the ground up like I did before, although you seem like a capable adventurer, if you help me rebuild my shop, I'll make sure to reward you handsomely.",
                         "Go collect 10 stone, 10 coal, 20 lumber at <location>",
                         "Wow that was fast, with this we can rebuild the shop."
-                )
+                ),
+                false
         );
     }
 

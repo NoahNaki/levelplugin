@@ -124,9 +124,6 @@ public class QuestGUI {
                     QuestObjective obj = quest.getObjectives().get(objIndex);
                     String desc = qm.describeObjective(obj);
                     lore.add(ChatColor.WHITE + desc + ChatColor.GRAY + " (" + objProgress + "/" + obj.getAmount() + ")");
-                    lore.add(" ");
-                    lore.add(ChatColor.WHITE + "Left-click " + ChatColor.GRAY + "to track");
-                    lore.add(ChatColor.WHITE + "Right-click " + ChatColor.GRAY + "to abandon");
                 }
 
                 lore.add(" ");
@@ -147,6 +144,14 @@ public class QuestGUI {
                     }
                 } else {
                     lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + "None");
+                }
+
+                if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS || state == QuestState.TURN_IN_READY) {
+                    lore.add(" ");
+                    lore.add(ChatColor.WHITE + "Left-click " + ChatColor.GRAY + "to track");
+                    if (!quest.isMainQuest()) {
+                        lore.add(ChatColor.WHITE + "Right-click " + ChatColor.GRAY + "to abandon");
+                    }
                 }
             }
 

@@ -23,7 +23,8 @@ public class DragonianQuest extends Quest {
                 QuestRewardCompat.create(200, 100, 0, java.util.List.of(),
                         java.util.List.of(PlayerClass.DRAGONIAN)),
                 533,
-                java.util.List.of("Greetings, mortal.", "Return to me and claim your reward.")
+                java.util.List.of("Greetings, mortal.", "Return to me and claim your reward."),
+                false
         );
     }
 }
