@@ -32,6 +32,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
         return List.of(
                 new QuestObjective(QuestObjectiveType.TALK, "npc536_done", 1),
                 new QuestObjective(QuestObjectiveType.BUY, "starter_armor", 1),
+                new QuestObjective(QuestObjectiveType.TALK, "npc536_again", 1),
                 new QuestObjective(QuestObjectiveType.SELECT_CLASS, "ANY", 1),
                 new QuestObjective(QuestObjectiveType.TALK, "npc536_final", 1)
         );
@@ -232,7 +233,20 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                     plugin.getDialogManager().startDialog(player,
                             java.util.List.of("Piwan|Alright great now that you look like you belong here, now you just have to tell me what class you'll be going so that we can find you an appropriate weapon."),
                             npc,
-                            () -> player.performCommand("class"));
+                            () -> {
+                                plugin.getQuestManager().handleTalk(player, "npc536_again");
+                                Bukkit.getScheduler().runTaskLater(plugin,
+                                        () -> player.performCommand("class"), 20L);
+                            });
+                    return;
+                }
+
+                if (prog.getProgress(3) < 1) {
+                    plugin.getDialogManager().startDialog(player,
+                            java.util.List.of("Piwan|Alright great now that you look like you belong here, now you just have to tell me what class you'll be going so that we can find you an appropriate weapon."),
+                            npc,
+                            () -> Bukkit.getScheduler().runTaskLater(plugin,
+                                    () -> player.performCommand("class"), 20L));
                     return;
                 }
 

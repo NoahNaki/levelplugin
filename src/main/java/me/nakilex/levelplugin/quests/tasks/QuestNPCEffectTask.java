@@ -12,6 +12,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.Location;
+import org.bukkit.Color;
 import org.bukkit.scheduler.BukkitRunnable;
 import java.util.HashMap;
 import java.util.Map;
@@ -67,6 +68,7 @@ public class QuestNPCEffectTask extends BukkitRunnable {
                         disp.setBillboard(Display.Billboard.CENTER);
                         disp.setShadowRadius(0f);
                         disp.setShadowStrength(0f);
+                        disp.setBackgroundColor(org.bukkit.Color.fromARGB(0, 0, 0, 0));
                         disp.setText("<glyph:info>");
                         map.put(npcId, disp);
                         for (Player p : Bukkit.getOnlinePlayers()) {

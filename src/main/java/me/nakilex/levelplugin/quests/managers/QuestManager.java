@@ -744,17 +744,29 @@ public class QuestManager {
     }
 
     private String resolveNpcName(String raw) {
-        String idStr = raw;
+        String idPart = raw;
         if (raw.toLowerCase().startsWith("npc")) {
-            idStr = raw.substring(3);
+            idPart = raw.substring(3);
         }
-        try {
-            int id = Integer.parseInt(idStr);
-            net.citizensnpcs.api.npc.NPC npc = net.citizensnpcs.api.CitizensAPI.getNPCRegistry().getById(id);
-            if (npc != null) {
-                return npc.getName();
+        StringBuilder digits = new StringBuilder();
+        for (int i = 0; i < idPart.length(); i++) {
+            char c = idPart.charAt(i);
+            if (Character.isDigit(c)) {
+                digits.append(c);
+            } else {
+                break;
             }
-        } catch (NumberFormatException ignored) {}
+        }
+        if (digits.length() > 0) {
+            try {
+                int id = Integer.parseInt(digits.toString());
+                net.citizensnpcs.api.npc.NPC npc = net.citizensnpcs.api.CitizensAPI.getNPCRegistry().getById(id);
+                if (npc != null) {
+                    return npc.getName();
+                }
+            } catch (NumberFormatException ignored) {
+            }
+        }
         return raw;
     }
 
