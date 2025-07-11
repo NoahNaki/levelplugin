@@ -53,7 +53,9 @@ public class PlayerQuitListener implements Listener {
         if (nb != null) {
             QuestState state = qm.getQuestState(player, nb);
             if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS) {
-                qm.resetQuest(pid, nb.getId(), true);
+                // Mirror the behavior of "/quest reset" so the intro quest is
+                // cleared when players log out mid-progress.
+                qm.resetQuest(pid, nb.getId());
             }
         }
     }

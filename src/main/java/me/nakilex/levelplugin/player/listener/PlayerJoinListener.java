@@ -81,9 +81,9 @@ public class PlayerJoinListener implements Listener {
             // Restart New Beginning quest if it was reset on logout
             me.nakilex.levelplugin.quests.data.Quest nbQuest = qm.getQuest("newbeginning");
             if (nbQuest != null && !qm.hasCompleted(pid, "newbeginning")) {
-                // Always reset and restart this short intro quest so players
-                // don't get stuck if they logged out mid dialog
-                qm.resetQuest(pid, "newbeginning", true);
+                // Reset and restart the intro quest using the same logic as the
+                // "/quest" commands so progress never sticks mid-dialog
+                qm.resetQuest(pid, "newbeginning");
                 qm.startQuest(player, "newbeginning");
             }
 
