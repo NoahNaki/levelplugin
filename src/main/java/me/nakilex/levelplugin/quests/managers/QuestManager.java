@@ -197,7 +197,8 @@ public class QuestManager {
             return;
         }
         activeQuests.put(player.getUniqueId(), new PlayerQuestProgress(quest));
-        trackedQuests.putIfAbsent(player.getUniqueId(), quest.getId());
+        // always track the most recently accepted quest
+        trackedQuests.put(player.getUniqueId(), quest.getId());
         player.sendMessage("§aStarted quest: " + quest.getName());
 
         if (quest instanceof me.nakilex.levelplugin.quests.data.QuestScript script) {

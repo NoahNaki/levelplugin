@@ -72,6 +72,9 @@ public class QuestGUIListener implements Listener {
         if (id == null || id.isEmpty()) return;
 
         var quest = questManager.getQuest(id);
+        if (quest == null) {
+            return; // Not a quest item
+        }
         QuestState state = questManager.getQuestState(player, quest);
 
         // Debugging output to help diagnose click issues
