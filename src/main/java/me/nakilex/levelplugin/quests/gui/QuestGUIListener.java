@@ -22,6 +22,10 @@ public class QuestGUIListener implements Listener {
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         InventoryView view = event.getView();
+        if (view.getTitle().equals(QuestGUI.CONFIRM_TITLE)) {
+            handleConfirmClick(event);
+            return;
+        }
         if (!view.getTitle().equals(QuestGUI.GUI_TITLE)) return;
         event.setCancelled(true);
 
@@ -71,9 +75,7 @@ public class QuestGUIListener implements Listener {
                 player.closeInventory();
             } else if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS || state == QuestState.TURN_IN_READY) {
                 if (!quest.isMainQuest()) {
-                    questManager.resetQuest(player.getUniqueId(), id);
-                    player.sendMessage(ChatColor.RED + "Abandoned quest: " + ChatColor.WHITE + quest.getName());
-                    QuestGUI.openQuestGUI(player, questManager, QuestGUI.pageMap.getOrDefault(player.getUniqueId(),0));
+                    QuestGUI.openConfirmAbandon(player, quest);
                 }
             }
         } else if (event.getClick() == ClickType.LEFT) {
@@ -86,5 +88,33 @@ public class QuestGUIListener implements Listener {
             questManager.setTrackedQuest(player, id);
             player.sendMessage(ChatColor.GREEN + "Now tracking " + id);
         }
+    }
+
+    private void handleConfirmClick(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) return;
+        event.setCancelled(true);
+        var inv = QuestGUI.getConfirmInventory(player.getUniqueId());
+        if (inv == null || !event.getView().getTopInventory().equals(inv)) return;
+        if (event.getRawSlot() == QuestGUI.CONFIRM_YES_SLOT) {
+            String qId = QuestGUI.getPendingQuest(player.getUniqueId());
+            if (qId != null) {
+                var quest = questManager.getQuest(qId);
+                questManager.resetQuest(player.getUniqueId(), qId);
+                player.sendMessage(ChatColor.RED + "Abandoned quest: " + ChatColor.WHITE + quest.getName());
+            }
+            QuestGUI.clearPending(player.getUniqueId());
+            QuestGUI.openQuestGUI(player, questManager, QuestGUI.pageMap.getOrDefault(player.getUniqueId(),0));
+        } else if (event.getRawSlot() == QuestGUI.CONFIRM_NO_SLOT) {
+            QuestGUI.clearPending(player.getUniqueId());
+            QuestGUI.openQuestGUI(player, questManager, QuestGUI.pageMap.getOrDefault(player.getUniqueId(),0));
+        }
+    }
+
+    @EventHandler
+    public void onClose(org.bukkit.event.inventory.InventoryCloseEvent e) {
+        if (!e.getView().getTitle().equals(QuestGUI.CONFIRM_TITLE)) return;
+        Player p = (Player) e.getPlayer();
+        QuestGUI.clearPending(p.getUniqueId());
+        QuestGUI.openQuestGUI(p, questManager, QuestGUI.pageMap.getOrDefault(p.getUniqueId(), 0));
     }
 }

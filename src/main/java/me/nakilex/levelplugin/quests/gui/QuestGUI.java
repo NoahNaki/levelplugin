@@ -39,9 +39,30 @@ public class QuestGUI {
     static final Map<java.util.UUID, Integer> filterMap = new java.util.HashMap<>();
     static final Map<java.util.UUID, Integer> sortMap = new java.util.HashMap<>();
 
+    // Confirmation menu constants
+    public static final String CONFIRM_TITLE = ChatColor.RED + "Confirm Abandon";
+    private static final int CONFIRM_SIZE = 27;
+    private static final int CONFIRM_YES_SLOT = 11;
+    private static final int CONFIRM_NO_SLOT = 15;
+    private static final Map<java.util.UUID, Inventory> CONFIRM_OPEN = new java.util.HashMap<>();
+    private static final Map<java.util.UUID, String> PENDING_QUEST = new java.util.HashMap<>();
+
     public static void openQuestGUI(Player player, QuestManager questManager) {
         int page = pageMap.getOrDefault(player.getUniqueId(), 0);
         openQuestGUI(player, questManager, page);
+    }
+
+    public static void openConfirmAbandon(Player player, Quest quest) {
+        Inventory inv = Bukkit.createInventory(null, CONFIRM_SIZE, CONFIRM_TITLE);
+        ItemStack filler = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+        ItemMeta fm = filler.getItemMeta();
+        if (fm != null) { fm.setDisplayName(" "); filler.setItemMeta(fm); }
+        for (int i = 0; i < CONFIRM_SIZE; i++) inv.setItem(i, filler);
+        inv.setItem(CONFIRM_YES_SLOT, getNexoItem("check", ChatColor.GREEN + "Confirm"));
+        inv.setItem(CONFIRM_NO_SLOT, getNexoItem("cross", ChatColor.RED + "Cancel"));
+        CONFIRM_OPEN.put(player.getUniqueId(), inv);
+        PENDING_QUEST.put(player.getUniqueId(), quest.getId());
+        player.openInventory(inv);
     }
 
     static void openQuestGUI(Player player, QuestManager questManager, int page) {
@@ -218,5 +239,18 @@ public class QuestGUI {
         ChatColor color = index == current ? ChatColor.WHITE : ChatColor.GRAY;
         ChatColor bullet = index == current ? ChatColor.GREEN : ChatColor.DARK_GRAY;
         return bullet + "- " + color + label;
+    }
+
+    static Inventory getConfirmInventory(java.util.UUID id) {
+        return CONFIRM_OPEN.get(id);
+    }
+
+    static String getPendingQuest(java.util.UUID id) {
+        return PENDING_QUEST.get(id);
+    }
+
+    static void clearPending(java.util.UUID id) {
+        CONFIRM_OPEN.remove(id);
+        PENDING_QUEST.remove(id);
     }
 }
