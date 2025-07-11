@@ -180,6 +180,9 @@ public class NPCDialogManager {
                 speaker = player.getName();
             }
         }
+        if (session.index == 0) {
+            ChatFormatter.constructDivider(player, " ", 45);
+        }
         String msg = ChatColor.DARK_GRAY + "[" + ChatColor.GRAY + (session.index + 1)
                 + "/" + session.lines.size() + ChatColor.DARK_GRAY + "] "
                 + ChatColor.YELLOW + speaker
@@ -242,12 +245,21 @@ public class NPCDialogManager {
     /** Cancel dialog if player walks too far from the NPC. */
     public void checkDistance(Player player, double maxDistanceSquared) {
         DialogSession session = sessions.get(player.getUniqueId());
-        if (session == null) return;
-        if (session.paused) return;
-        if (session.npc == null || !session.npc.isSpawned()) return;
-        if (player.getLocation().distanceSquared(session.npc.getEntity().getLocation()) > maxDistanceSquared) {
+        if (session != null) {
+            if (session.paused) return;
+            if (session.npc != null && session.npc.isSpawned() &&
+                    player.getLocation().distanceSquared(session.npc.getEntity().getLocation()) > maxDistanceSquared) {
+                player.sendMessage(ChatColor.RED + "You walked away from the NPC. Right-click again to continue.");
+                pauseDialog(player);
+                return;
+            }
+        }
+
+        ChoiceSession cs = choiceSessions.get(player.getUniqueId());
+        if (cs != null && cs.npc != null && cs.npc.isSpawned() &&
+                player.getLocation().distanceSquared(cs.npc.getEntity().getLocation()) > maxDistanceSquared) {
             player.sendMessage(ChatColor.RED + "You walked away from the NPC. Right-click again to continue.");
-            pauseDialog(player);
+            cancelChoice(player);
         }
     }
 }

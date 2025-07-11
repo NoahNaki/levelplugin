@@ -333,7 +333,11 @@ public class ProfileSelectionGUI implements Listener {
         player.getInventory().setArmorContents(null);
         org.bukkit.inventory.ItemStack[] contents = cfg.getProfileInventory(player.getUniqueId(), index);
         org.bukkit.inventory.ItemStack[] armor = cfg.getProfileArmor(player.getUniqueId(), index);
-        if (contents.length > 0) player.getInventory().setContents(contents);
+        if (contents.length > 0) {
+            player.getInventory().setContents(contents);
+        } else {
+            me.nakilex.levelplugin.items.listeners.StaticItemListener.giveStaticItems(player);
+        }
         if (armor.length > 0) player.getInventory().setArmorContents(armor);
         stopSelection(player);
         player.closeInventory();

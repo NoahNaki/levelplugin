@@ -604,6 +604,9 @@ public class QuestManager {
      * Display a styled quest completion message to the player.
      */
     private void sendCompletionMessage(Player player, Quest quest) {
+        if ("officeerrands".equalsIgnoreCase(quest.getId())) {
+            return;
+        }
         me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "", 45);
         me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§6§lQuest Complete!");
         me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§e" + quest.getName());

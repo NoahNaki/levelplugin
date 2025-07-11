@@ -160,7 +160,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                                 }));
 
                 Bukkit.getScheduler().runTaskLater(plugin, () ->
-                        plugin.getDialogManager().advanceDialog(player, plugin.getQuestManager()), 1L);
+                        plugin.getDialogManager().advanceDialog(player, plugin.getQuestManager()), 20L);
             }
         };
 
