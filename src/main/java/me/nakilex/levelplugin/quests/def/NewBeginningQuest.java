@@ -32,6 +32,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
         return List.of(
                 new QuestObjective(QuestObjectiveType.TALK, "npc536_done", 1),
                 new QuestObjective(QuestObjectiveType.BUY, "starter_armor", 1),
+                new QuestObjective(QuestObjectiveType.TALK, "npc536_again", 1),
                 new QuestObjective(QuestObjectiveType.SELECT_CLASS, "ANY", 1),
                 new QuestObjective(QuestObjectiveType.TALK, "npc536_final", 1)
         );
@@ -62,12 +63,18 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                         "Another world you say? Well you wouldn't be the first to make such bold claims, my mom said she once knew someone that claimed the same thing, said they were from a place called, \"ip\".",
                         "I'm sure you have many questions, how about to start off I show you around my village.",
                         "First things first, you're going to have to look like you're from this world, go talk to that merchant over there and buy some equipment."
-                )
+                ),
+                true
         );
     }
 
     @Override
     public void onStart(Player player, Main plugin) {
+        awaitingMerchant.remove(player.getUniqueId());
+        soldClothes.remove(player.getUniqueId());
+        givenCoins.remove(player.getUniqueId());
+        readyToShop.remove(player.getUniqueId());
+        merchantDone.remove(player.getUniqueId());
         new BukkitRunnable() {
             boolean triggered = false;
             @Override
@@ -94,8 +101,8 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
                 if (!ChatColor.stripColor(npc.getName()).equalsIgnoreCase("Starter Merchant")) return;
 
-                PlayerQuestProgress prog = plugin.getQuestManager().getProgress(player.getUniqueId());
-                if (prog == null || !prog.getQuest().getId().equals("newbeginning")) return;
+                PlayerQuestProgress prog = plugin.getQuestManager().getProgress(player.getUniqueId(), "newbeginning");
+                if (prog == null) return;
                 if (prog.getProgress(0) < 1) return; // wait until Piwan dialog finished
 
                 event.setCancelled(true);
@@ -122,12 +129,40 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 }
 
                 if (awaitingMerchant.contains(player.getUniqueId())) {
-                    // Let the existing dialog continue while waiting for the choice
+                    // Resume or restart the dialog if the choice was canceled
                     if (plugin.getDialogManager().hasSession(player)) {
                         NPC sessionNpc = plugin.getDialogManager().getSessionNpc(player);
                         if (sessionNpc != null && sessionNpc.getId() == npc.getId()) {
                             plugin.getDialogManager().advanceDialog(player, plugin.getQuestManager());
                         }
+                    } else if (!plugin.getDialogManager().hasChoiceSession(player)) {
+                        plugin.getDialogManager().startDialog(player,
+                                java.util.List.of("Starter Merchant|I'm sorry I can't sell you any equipment if you don't have any money, " +
+                                        "but those clothes you're wearing, I could certainly buy that off you in-exchange for some coins, whaddya say?"),
+                                npc,
+                                () -> plugin.getDialogManager().startChoiceDialog(player, npc,
+                                        java.util.List.of("Yes", "No"), choice -> {
+                                            awaitingMerchant.remove(player.getUniqueId());
+                                            merchantDone.add(player.getUniqueId());
+                                            if (choice == 0) {
+                                                plugin.getEconomyManager().addCoins(player, 200);
+                                                soldClothes.add(player.getUniqueId());
+                                                player.sendMessage(ChatColor.GOLD + "You received " +
+                                                        ChatColor.YELLOW + "200 ⛃ " +
+                                                        ChatColor.GOLD + "coins.");
+                                            } else {
+                                                plugin.getDialogManager().startDialog(player,
+                                                        java.util.List.of("Starter Merchant|Fair enough, have a nice day."),
+                                                        npc,
+                                                        null);
+                                                Bukkit.getScheduler().runTaskLater(plugin,
+                                                        () -> plugin.getDialogManager().advanceDialog(player, plugin.getQuestManager()),
+                                                        1L);
+                                            }
+                                            readyToShop.add(player.getUniqueId());
+                                        }));
+                        Bukkit.getScheduler().runTaskLater(plugin, () ->
+                                plugin.getDialogManager().advanceDialog(player, plugin.getQuestManager()), 20L);
                     }
                     return;
                 }
@@ -160,7 +195,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                                 }));
 
                 Bukkit.getScheduler().runTaskLater(plugin, () ->
-                        plugin.getDialogManager().advanceDialog(player, plugin.getQuestManager()), 1L);
+                        plugin.getDialogManager().advanceDialog(player, plugin.getQuestManager()), 20L);
             }
         };
 
@@ -195,8 +230,8 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
                 if (npc.getId() != 536) return;
 
-                PlayerQuestProgress prog = plugin.getQuestManager().getProgress(player.getUniqueId());
-                if (prog == null || !prog.getQuest().getId().equals("newbeginning")) return;
+                PlayerQuestProgress prog = plugin.getQuestManager().getProgress(player.getUniqueId(), "newbeginning");
+                if (prog == null) return;
 
                 event.setCancelled(true);
 
@@ -232,7 +267,20 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                     plugin.getDialogManager().startDialog(player,
                             java.util.List.of("Piwan|Alright great now that you look like you belong here, now you just have to tell me what class you'll be going so that we can find you an appropriate weapon."),
                             npc,
-                            () -> player.performCommand("class"));
+                            () -> {
+                                plugin.getQuestManager().handleTalk(player, "npc536_again");
+                                Bukkit.getScheduler().runTaskLater(plugin,
+                                        () -> player.performCommand("class"), 20L);
+                            });
+                    return;
+                }
+
+                if (prog.getProgress(3) < 1) {
+                    plugin.getDialogManager().startDialog(player,
+                            java.util.List.of("Piwan|Alright great now that you look like you belong here, now you just have to tell me what class you'll be going so that we can find you an appropriate weapon."),
+                            npc,
+                            () -> Bukkit.getScheduler().runTaskLater(plugin,
+                                    () -> player.performCommand("class"), 20L));
                     return;
                 }
 

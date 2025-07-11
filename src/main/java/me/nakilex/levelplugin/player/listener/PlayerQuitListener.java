@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.player.listener;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -45,5 +46,6 @@ public class PlayerQuitListener implements Listener {
         if (st != null && town != null) {
             stageManager.despawnForStage(pid, town, st.level, st.stage);
         }
+
     }
 }

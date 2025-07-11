@@ -39,7 +39,8 @@ public class TutorialQuest extends Quest {
                         "Hello there! Welcome to the realm.",
                         "Choose a class and buy your first weapon.",
                         "Slay a zombie nearby then speak with me again."
-                )
+                ),
+                false
         );
     }
 }

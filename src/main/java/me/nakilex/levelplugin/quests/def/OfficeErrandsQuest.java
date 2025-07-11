@@ -18,6 +18,7 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.Sound;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import org.bukkit.block.data.BlockData;
 import java.util.Map;
 import java.util.HashMap;
@@ -54,7 +55,8 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                 null,
                 null,
                 null,
-                java.util.List.of()
+                java.util.List.of(),
+                true
         );
     }
 
@@ -114,7 +116,10 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
 
         // After blindness wears off, send initial dialog line
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-            player.sendMessage(ChatColor.GRAY + "[1/1] " + player.getName() + ChatColor.WHITE + ": Lights are off... looks like everyone’s gone. Guess that’s my cue.");
+            ChatFormatter.constructDivider(player, " ", 45);
+            player.sendMessage(ChatColor.DARK_GRAY + "[1/1] " + ChatColor.YELLOW + player.getName()
+                    + ChatColor.WHITE + ": Lights are off... looks like everyone’s gone. Guess that’s my cue.");
+            ChatFormatter.constructDivider(player, " ", 45);
         }, 40L);
 
         // Listen for talking to the Janitor (NPC 516)
@@ -145,6 +150,14 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                         dialogDone[0] = true;
                         gates.openGate(player, gateId);
                         plugin.getQuestManager().handleTalk(player, "npc516");
+
+                        // If the player is already inside the elevator area when
+                        // the dialog finishes, trigger the teleport sequence
+                        Location loc = player.getLocation();
+                        if (loc.getBlockX() >= 27 && loc.getBlockX() <= 31
+                                && loc.getBlockZ() >= -95 && loc.getBlockZ() <= -90) {
+                            startElevatorTeleport(player, loc, plugin, gates, gateId, worldGateId);
+                        }
                     });
                 }
             }
@@ -170,118 +183,122 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                 org.bukkit.Location to = e.getTo();
                 if (to.getBlockX() >= minX && to.getBlockX() <= maxX && to.getBlockZ() >= minZ && to.getBlockZ() <= maxZ) {
                     HandlerList.unregisterAll(this);
-
-                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                        gates.closeGate(player, gateId);
-
-                        World rWorld = Bukkit.getWorld("redrocks");
-                        if (rWorld == null) return;
-                        org.bukkit.Location lampLoc = new org.bukkit.Location(rWorld, 29, 148, -94);
-
-                        FakeBlockManager fbm = plugin.getFakeBlockManager();
-                        org.bukkit.block.data.Lightable off = (org.bukkit.block.data.Lightable) org.bukkit.Material.REDSTONE_LAMP.createBlockData();
-                        off.setLit(false);
-                        org.bukkit.block.data.Lightable on = (org.bukkit.block.data.Lightable) org.bukkit.Material.REDSTONE_LAMP.createBlockData();
-                        on.setLit(true);
-
-                        new org.bukkit.scheduler.BukkitRunnable() {
-                            int ticks = 0;
-                            boolean lit = false;
-
-                            @Override
-                            public void run() {
-                                lit = !lit;
-                                fbm.showFakeBlock(player, lampLoc, lit ? on : off);
-                                ticks += 10;
-                                if (ticks >= 200) {
-                                    cancel();
-                                    fbm.hideFakeBlock(player, lampLoc);
-
-                                    player.sendMessage(ChatColor.GRAY + "[1/1] " + player.getName() + ChatColor.WHITE + ": Huh that's weird, the elevator light's flickering.");
-
-                                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                                        org.bukkit.Location cur = player.getLocation();
-
-                                        // Compute offset inside the office elevator
-                                        Location originMin = new Location(e.getTo().getWorld(), minX, 142, minZ);
-                                        Location destMin = new Location(Bukkit.getWorld("world2"), 102, 67, -97);
-                                        World destWorld = destMin.getWorld();
-
-                                        if (destWorld != null) {
-                                            Location dest = destMin.clone().add(
-                                                    cur.getX() - originMin.getX(),
-                                                    cur.getY() - originMin.getY(),
-                                                    cur.getZ() - originMin.getZ());
-                                            dest.setYaw(cur.getYaw());
-                                            dest.setPitch(cur.getPitch());
-                                            player.teleport(dest);
-                                            plugin.getQuestManager().startQuest(player, "newbeginning");
-
-                                            FakeBlockManager fbm = plugin.getFakeBlockManager();
-                                            if (worldElevatorBlocks != null) {
-                                                fbm.showFakeBlocks(player, worldElevatorBlocks);
-                                            }
-
-                                            // Delay updating the closed gate until the destination chunks load
-                                            Bukkit.getScheduler().runTaskLater(plugin,
-                                                    () -> gates.updatePlayer(player),
-                                                    10L);
-                                            // Open the world elevator two seconds after teleporting
-                                            Bukkit.getScheduler().runTaskLater(plugin,
-                                                    () -> gates.openGate(player, worldGateId),
-                                                    40L);
-
-                                            Listener exitListener = new Listener() {
-                                                @org.bukkit.event.EventHandler
-                                                public void onMove(PlayerMoveEvent ev) {
-                                                    if (!ev.getPlayer().equals(player)) return;
-                                                    Location l = ev.getTo();
-                                                    if (!l.getWorld().equals(destWorld)
-                                                            || l.getBlockX() < 101 || l.getBlockX() > 107
-                                                            || l.getBlockY() < 66 || l.getBlockY() > 76
-                                                            || l.getBlockZ() < -99 || l.getBlockZ() > -92) {
-                                                        HandlerList.unregisterAll(this);
-                                                        if (worldElevatorGone != null) {
-                                                            if (!worldElevatorCleared) {
-                                                                applyArea(worldElevatorGone);
-                                                                worldElevatorCleared = true;
-                                                                for (Player other : Bukkit.getOnlinePlayers()) {
-                                                                    if (!other.equals(player) && worldElevatorBlocks != null) {
-                                                                        fbm.showFakeBlocks(other, worldElevatorBlocks);
-                                                                    }
-                                                                }
-                                                            }
-                                                            if (worldElevatorBlocks != null) {
-                                                                fbm.hideFakeBlocks(player, worldElevatorBlocks.keySet());
-                                                            }
-                                                            fbm.showFakeBlocks(player, worldElevatorGone);
-                                                            // Hide hanging entities inside the elevator
-                                                            for (var ent : destWorld.getEntities()) {
-                                                                Location el = ent.getLocation();
-                                                                if (el.getBlockX() >= 101 && el.getBlockX() <= 107
-                                                                        && el.getBlockY() >= 66 && el.getBlockY() <= 76
-                                                                        && el.getBlockZ() >= -99 && el.getBlockZ() <= -92
-                                                                        && ent instanceof org.bukkit.entity.Hanging) {
-                                                                    player.hideEntity(plugin, ent);
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            };
-                                            Bukkit.getPluginManager().registerEvents(exitListener, plugin);
-
-                                            plugin.getQuestManager().handleTalk(player, "npc516");
-                                        }
-                                    }, 40L);
-                                }
-                            }
-                        }.runTaskTimer(plugin, 0L, 10L);
-                    }, 40L);
+                    startElevatorTeleport(player, to, plugin, gates, gateId, worldGateId);
                 }
             }
         };
         Bukkit.getPluginManager().registerEvents(moveListener, plugin);
+    }
+
+    /** Begin the elevator teleport sequence when the player steps inside. */
+    private void startElevatorTeleport(Player player, Location triggerLoc,
+                                       Main plugin, QuestGateManager gates,
+                                       String gateId, String worldGateId) {
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            gates.closeGate(player, gateId);
+
+            World rWorld = Bukkit.getWorld("redrocks");
+            if (rWorld == null) return;
+            Location lampLoc = new Location(rWorld, 29, 148, -94);
+
+            FakeBlockManager fbm = plugin.getFakeBlockManager();
+            org.bukkit.block.data.Lightable off = (org.bukkit.block.data.Lightable) org.bukkit.Material.REDSTONE_LAMP.createBlockData();
+            off.setLit(false);
+            org.bukkit.block.data.Lightable on = (org.bukkit.block.data.Lightable) org.bukkit.Material.REDSTONE_LAMP.createBlockData();
+            on.setLit(true);
+
+            new org.bukkit.scheduler.BukkitRunnable() {
+                int ticks = 0;
+                boolean lit = false;
+
+                @Override
+                public void run() {
+                    lit = !lit;
+                    fbm.showFakeBlock(player, lampLoc, lit ? on : off);
+                    ticks += 10;
+                    if (ticks >= 200) {
+                        cancel();
+                        fbm.hideFakeBlock(player, lampLoc);
+
+                        ChatFormatter.constructDivider(player, " ", 45);
+                        player.sendMessage(ChatColor.DARK_GRAY + "[1/1] "
+                                + ChatColor.YELLOW + player.getName()
+                                + ChatColor.WHITE
+                                + ": Huh that's weird, the elevator light's flickering.");
+                        ChatFormatter.constructDivider(player, " ", 45);
+
+                        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                            Location cur = player.getLocation();
+
+                            Location originMin = new Location(triggerLoc.getWorld(), 27, 142, -95);
+                            Location destMin = new Location(Bukkit.getWorld("world2"), 102, 67, -97);
+                            World destWorld = destMin.getWorld();
+
+                            if (destWorld != null) {
+                                Location dest = destMin.clone().add(
+                                        cur.getX() - originMin.getX(),
+                                        cur.getY() - originMin.getY(),
+                                        cur.getZ() - originMin.getZ());
+                                dest.setYaw(cur.getYaw());
+                                dest.setPitch(cur.getPitch());
+                                player.teleport(dest);
+                                plugin.getQuestManager().startQuest(player, "newbeginning");
+
+                                if (worldElevatorBlocks != null) {
+                                    fbm.showFakeBlocks(player, worldElevatorBlocks);
+                                }
+
+                                Bukkit.getScheduler().runTaskLater(plugin,
+                                        () -> gates.updatePlayer(player), 10L);
+                                Bukkit.getScheduler().runTaskLater(plugin,
+                                        () -> gates.openGate(player, worldGateId), 40L);
+
+                                Listener exitListener = new Listener() {
+                                    @org.bukkit.event.EventHandler
+                                    public void onMove(PlayerMoveEvent ev) {
+                                        if (!ev.getPlayer().equals(player)) return;
+                                        Location l = ev.getTo();
+                                        if (!l.getWorld().equals(destWorld)
+                                                || l.getBlockX() < 101 || l.getBlockX() > 107
+                                                || l.getBlockY() < 66 || l.getBlockY() > 76
+                                                || l.getBlockZ() < -99 || l.getBlockZ() > -92) {
+                                            HandlerList.unregisterAll(this);
+                                            if (worldElevatorGone != null) {
+                                                if (!worldElevatorCleared) {
+                                                    applyArea(worldElevatorGone);
+                                                    worldElevatorCleared = true;
+                                                    for (Player other : Bukkit.getOnlinePlayers()) {
+                                                        if (!other.equals(player) && worldElevatorBlocks != null) {
+                                                            fbm.showFakeBlocks(other, worldElevatorBlocks);
+                                                        }
+                                                    }
+                                                }
+                                                if (worldElevatorBlocks != null) {
+                                                    fbm.hideFakeBlocks(player, worldElevatorBlocks.keySet());
+                                                }
+                                                fbm.showFakeBlocks(player, worldElevatorGone);
+                                                for (var ent : destWorld.getEntities()) {
+                                                    Location el = ent.getLocation();
+                                                    if (el.getBlockX() >= 101 && el.getBlockX() <= 107
+                                                            && el.getBlockY() >= 66 && el.getBlockY() <= 76
+                                                            && el.getBlockZ() >= -99 && el.getBlockZ() <= -92
+                                                            && ent instanceof org.bukkit.entity.Hanging) {
+                                                        player.hideEntity(plugin, ent);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                };
+                                Bukkit.getPluginManager().registerEvents(exitListener, plugin);
+
+                                plugin.getQuestManager().handleTalk(player, "npc516");
+                            }
+                        }, 40L);
+                    }
+                }
+            }.runTaskTimer(plugin, 0L, 10L);
+        }, 40L);
     }
 
     /** Capture block data from the destination elevator region for reuse. */

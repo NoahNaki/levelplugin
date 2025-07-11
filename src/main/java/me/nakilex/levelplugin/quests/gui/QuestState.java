@@ -1,26 +1,24 @@
 package me.nakilex.levelplugin.quests.gui;
 
 import org.bukkit.ChatColor;
-import org.bukkit.Material;
-
 public enum QuestState {
-    LOCKED(Material.BARRIER, ChatColor.DARK_GRAY),
-    AVAILABLE(Material.YELLOW_STAINED_GLASS_PANE, ChatColor.GOLD),
-    ACCEPTED(Material.PAPER, ChatColor.GOLD),
-    IN_PROGRESS(Material.COMPASS, ChatColor.YELLOW),
-    TURN_IN_READY(Material.EMERALD, ChatColor.GREEN),
-    COMPLETED(Material.ENCHANTED_BOOK, ChatColor.DARK_GREEN);
+    LOCKED("info", ChatColor.DARK_GRAY),
+    AVAILABLE("pack1_scroll2", ChatColor.GOLD),
+    ACCEPTED("pack1_scroll2", ChatColor.GOLD),
+    IN_PROGRESS("pack1_scroll4", ChatColor.YELLOW),
+    TURN_IN_READY("pack1_scroll4", ChatColor.GREEN),
+    COMPLETED("check", ChatColor.DARK_GREEN);
 
-    private final Material material;
+    private final String iconId;
     private final ChatColor color;
 
-    QuestState(Material material, ChatColor color) {
-        this.material = material;
+    QuestState(String iconId, ChatColor color) {
+        this.iconId = iconId;
         this.color = color;
     }
 
-    public Material getMaterial() {
-        return material;
+    public String getIconId() {
+        return iconId;
     }
 
     public ChatColor getColor() {

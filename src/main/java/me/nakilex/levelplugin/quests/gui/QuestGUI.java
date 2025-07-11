@@ -2,7 +2,11 @@ package me.nakilex.levelplugin.quests.gui;
 
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.data.Quest;
+import me.nakilex.levelplugin.quests.data.QuestReward;
+import me.nakilex.levelplugin.quests.data.QuestObjective;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.items.data.CustomItem;
 import com.nexomc.nexo.api.NexoItems;
 import com.nexomc.nexo.items.ItemBuilder;
 import org.bukkit.Bukkit;
@@ -12,6 +16,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.NamespacedKey;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.util.*;
 
@@ -30,15 +36,37 @@ public class QuestGUI {
     private static final int NEXT_PAGE = 53;
     private static final int FILTER_SLOT = 48;
     private static final int SORT_SLOT = 50;
-    private static final int INFO_SLOT = 8;
 
     static final Map<java.util.UUID, Integer> pageMap = new java.util.HashMap<>();
     static final Map<java.util.UUID, Integer> filterMap = new java.util.HashMap<>();
     static final Map<java.util.UUID, Integer> sortMap = new java.util.HashMap<>();
 
+    public static final NamespacedKey QUEST_ID_KEY = new NamespacedKey(Main.getInstance(), "quest_id");
+
+    // Confirmation menu constants
+    public static final String CONFIRM_TITLE = ChatColor.RED + "Confirm Abandon";
+    private static final int CONFIRM_SIZE = 27;
+    public static final int CONFIRM_YES_SLOT = 11;
+    public static final int CONFIRM_NO_SLOT = 15;
+    private static final Map<java.util.UUID, Inventory> CONFIRM_OPEN = new java.util.HashMap<>();
+    private static final Map<java.util.UUID, String> PENDING_QUEST = new java.util.HashMap<>();
+
     public static void openQuestGUI(Player player, QuestManager questManager) {
         int page = pageMap.getOrDefault(player.getUniqueId(), 0);
         openQuestGUI(player, questManager, page);
+    }
+
+    public static void openConfirmAbandon(Player player, Quest quest) {
+        Inventory inv = Bukkit.createInventory(null, CONFIRM_SIZE, CONFIRM_TITLE);
+        ItemStack filler = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+        ItemMeta fm = filler.getItemMeta();
+        if (fm != null) { fm.setDisplayName(" "); filler.setItemMeta(fm); }
+        for (int i = 0; i < CONFIRM_SIZE; i++) inv.setItem(i, filler);
+        inv.setItem(CONFIRM_YES_SLOT, getNexoItem("check", ChatColor.GREEN + "Confirm"));
+        inv.setItem(CONFIRM_NO_SLOT, getNexoItem("cross", ChatColor.RED + "Cancel"));
+        CONFIRM_OPEN.put(player.getUniqueId(), inv);
+        PENDING_QUEST.put(player.getUniqueId(), quest.getId());
+        player.openInventory(inv);
     }
 
     static void openQuestGUI(Player player, QuestManager questManager, int page) {
@@ -82,7 +110,7 @@ public class QuestGUI {
         for (int i = start; i < list.size() && slot < ITEMS_PER_PAGE; i++) {
             Quest quest = list.get(i);
             QuestState state = questManager.getQuestState(player, quest);
-            ItemStack item = createQuestItem(player, quest, state, questManager.getProgress(player.getUniqueId()));
+            ItemStack item = createQuestItem(player, quest, state, questManager.getProgress(player.getUniqueId(), quest.getId()), questManager);
             gui.setItem(QUEST_SLOTS[slot++], item);
         }
 
@@ -90,25 +118,82 @@ public class QuestGUI {
         if (list.size() > (page + 1) * ITEMS_PER_PAGE) gui.setItem(NEXT_PAGE, getNexoItem("arrow_right", ChatColor.GREEN + "Next"));
         gui.setItem(FILTER_SLOT, createFilterButton(filter));
         gui.setItem(SORT_SLOT, createSortButton(sort));
-        gui.setItem(INFO_SLOT, getNexoItem("info", ChatColor.YELLOW + "Information"));
 
         player.openInventory(gui);
     }
 
-    private static ItemStack createQuestItem(Player player, Quest quest, QuestState state, PlayerQuestProgress progress) {
-        ItemStack item = new ItemStack(state.getMaterial());
+    private static ItemStack createQuestItem(Player player, Quest quest, QuestState state,
+                                             PlayerQuestProgress progress, QuestManager qm) {
+        String name = state == QuestState.LOCKED ? ChatColor.DARK_GRAY + "???" : state.getColor() + quest.getName();
+
+        // Use scroll2 for all active quests unless this one is tracked
+        String icon = state.getIconId();
+        if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS || state == QuestState.TURN_IN_READY) {
+            icon = "pack1_scroll2";
+        }
+        String tracked = qm.getTrackedQuest(player.getUniqueId());
+        if (tracked != null && tracked.equals(quest.getId())) {
+            icon = "pack1_scroll4";
+        }
+
+        ItemStack item = getNexoItem(icon, name);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(state.getColor() + quest.getName());
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + quest.getDescription());
-            if (progress != null && progress.getQuest().getId().equals(quest.getId())) {
-                for (int i = 0; i < quest.getObjectives().size(); i++) {
-                    lore.add(ChatColor.YELLOW + "Objective " + (i + 1) + ": " + progress.getProgress(i) + "/" + quest.getObjectives().get(i).getAmount());
+
+            if (state != QuestState.LOCKED) {
+                lore.add(ChatColor.GRAY + quest.getDescription());
+
+                if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS || state == QuestState.TURN_IN_READY) {
+                    lore.add(" ");
+                    int objIndex = 0;
+                    int objProgress = 0;
+                    if (progress != null && progress.getQuest().getId().equals(quest.getId())) {
+                        for (int i = 0; i < quest.getObjectives().size(); i++) {
+                            if (progress.getProgress(i) < quest.getObjectives().get(i).getAmount()) {
+                                objIndex = i;
+                                objProgress = progress.getProgress(i);
+                                break;
+                            }
+                        }
+                    }
+                    QuestObjective obj = quest.getObjectives().get(objIndex);
+                    String desc = qm.describeObjective(obj);
+                    lore.add(ChatColor.WHITE + desc + ChatColor.GRAY + " (" + objProgress + "/" + obj.getAmount() + ")");
+                }
+
+                lore.add(" ");
+                lore.add(ChatColor.GREEN + "Rewards:");
+                if (quest.getReward() != null) {
+                    QuestReward r = quest.getReward();
+                    if (r.getXp() > 0) lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + r.getXp() + " " + ChatColor.GREEN + "XP");
+                    if (r.getCoins() > 0) lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + r.getCoins() + " " + ChatColor.YELLOW + "⛃");
+                    if (r.getGems() > 0) lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + r.getGems() + " " + ChatColor.LIGHT_PURPLE + "✦");
+                    for (int id : r.getItemIds()) {
+                        me.nakilex.levelplugin.items.data.CustomItem tpl = me.nakilex.levelplugin.Main.getInstance().getItemManager().getTemplateById(id);
+                        String in = tpl != null ? tpl.getBaseName() : ("Item " + id);
+                        lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + in);
+                    }
+                    for (var cls : r.getUnlockClasses()) {
+                        String pretty = cls.name().substring(0,1) + cls.name().substring(1).toLowerCase();
+                        lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + pretty + " Class");
+                    }
+                } else {
+                    lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + "None");
+                }
+
+                if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS || state == QuestState.TURN_IN_READY) {
+                    lore.add(" ");
+                    lore.add(ChatColor.WHITE + "Left-click " + ChatColor.GRAY + "to track");
+                    if (!quest.isMainQuest()) {
+                        lore.add(ChatColor.WHITE + "Right-click " + ChatColor.GRAY + "to abandon");
+                    }
                 }
             }
+
             meta.setLore(lore);
             meta.setLocalizedName(quest.getId());
+            meta.getPersistentDataContainer().set(QUEST_ID_KEY, PersistentDataType.STRING, quest.getId());
             item.setItemMeta(meta);
         }
         return item;
@@ -170,5 +255,22 @@ public class QuestGUI {
         ChatColor color = index == current ? ChatColor.WHITE : ChatColor.GRAY;
         ChatColor bullet = index == current ? ChatColor.GREEN : ChatColor.DARK_GRAY;
         return bullet + "- " + color + label;
+    }
+
+    static Inventory getConfirmInventory(java.util.UUID id) {
+        return CONFIRM_OPEN.get(id);
+    }
+
+    static String getPendingQuest(java.util.UUID id) {
+        return PENDING_QUEST.get(id);
+    }
+
+    static boolean hasPending(java.util.UUID id) {
+        return PENDING_QUEST.containsKey(id);
+    }
+
+    static void clearPending(java.util.UUID id) {
+        CONFIRM_OPEN.remove(id);
+        PENDING_QUEST.remove(id);
     }
 }
