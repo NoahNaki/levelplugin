@@ -50,9 +50,10 @@ public class QuestGUIListener implements Listener {
                 : "null";
         me.nakilex.levelplugin.Main.getInstance().getLogger().info("Clicked item display='" + rawName + "' local='" + locName + "' pdc='" + pdcId + "'");
 
-        String id = locName;
-        if ((id == null || id.isEmpty()) && meta.getPersistentDataContainer().has(QuestGUI.QUEST_ID_KEY, PersistentDataType.STRING)) {
-            id = meta.getPersistentDataContainer().get(QuestGUI.QUEST_ID_KEY, PersistentDataType.STRING);
+        // Prefer the persistent quest id stored in the item data
+        String id = pdcId;
+        if (id == null || id.isEmpty()) {
+            id = locName;
         }
         String name = meta.getDisplayName();
         if (name != null) {
