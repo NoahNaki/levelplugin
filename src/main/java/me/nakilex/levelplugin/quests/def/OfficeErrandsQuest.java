@@ -153,22 +153,29 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
 
                 if (dialogDone[0]) return;
 
-                if (!plugin.getDialogManager().hasSession(player)) {
-                    event.setCancelled(true);
-                    plugin.getDialogManager().startDialog(player, lines, npc, () -> {
-                        dialogDone[0] = true;
-                        gates.openGate(player, gateId);
-                        plugin.getQuestManager().handleTalk(player, "npc516");
-
-                        // If the player is already inside the elevator area when
-                        // the dialog finishes, trigger the teleport sequence
-                        Location loc = player.getLocation();
-                        if (loc.getBlockX() >= 27 && loc.getBlockX() <= 31
-                                && loc.getBlockZ() >= -95 && loc.getBlockZ() <= -90) {
-                            startElevatorTeleport(player, loc, plugin, gates, gateId, worldGateId);
-                        }
-                    });
+                if (plugin.getDialogManager().hasSession(player)) {
+                    NPC sessionNpc = plugin.getDialogManager().getSessionNpc(player);
+                    if (sessionNpc != null && sessionNpc.getId() == npc.getId()) {
+                        event.setCancelled(true);
+                        plugin.getDialogManager().advanceDialog(player, plugin.getQuestManager());
+                        return;
+                    }
                 }
+
+                event.setCancelled(true);
+                plugin.getDialogManager().startDialog(player, lines, npc, () -> {
+                    dialogDone[0] = true;
+                    gates.openGate(player, gateId);
+                    plugin.getQuestManager().handleTalk(player, "npc516");
+
+                    // If the player is already inside the elevator area when
+                    // the dialog finishes, trigger the teleport sequence
+                    Location loc = player.getLocation();
+                    if (loc.getBlockX() >= 27 && loc.getBlockX() <= 31
+                            && loc.getBlockZ() >= -95 && loc.getBlockZ() <= -90) {
+                        startElevatorTeleport(player, loc, plugin, gates, gateId, worldGateId);
+                    }
+                });
             }
         };
         register(player, talkListener, plugin);
