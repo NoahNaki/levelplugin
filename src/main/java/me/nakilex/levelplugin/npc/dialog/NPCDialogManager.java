@@ -68,6 +68,8 @@ public class NPCDialogManager implements Listener {
         int index = 0;
         final Consumer<Integer> callback;
         final Listener listener;
+        String questId;
+        String flagBase;
 
         ChoiceSession(NPC npc, List<String> options, Consumer<Integer> callback, Listener listener) {
             this.npc = npc;
@@ -108,8 +110,13 @@ public class NPCDialogManager implements Listener {
         sendLine(player, session);
     }
 
-    /** Present a choice dialog to the player using the scroll wheel. */
-    public void startChoiceDialog(Player player, NPC npc, List<String> options, Consumer<Integer> callback) {
+    /**
+     * Present a choice dialog to the player using the scroll wheel.
+     *
+     * @param questId   optional quest identifier for flag tracking
+     * @param flagBase  if questId is supplied, choice index will be appended to this and stored as a flag
+     */
+    public void startChoiceDialog(Player player, NPC npc, List<String> options, String questId, String flagBase, Consumer<Integer> callback) {
         if (options == null || options.isEmpty()) return;
         if (hasChoiceSession(player)) return;
 
@@ -146,10 +153,17 @@ public class NPCDialogManager implements Listener {
             }
         };
         ChoiceSession cs = new ChoiceSession(npc, options, callback, listener);
+        cs.questId = questId;
+        cs.flagBase = flagBase;
         ref[0] = cs;
         choiceSessions.put(player.getUniqueId(), cs);
         Bukkit.getPluginManager().registerEvents(listener, me.nakilex.levelplugin.Main.getInstance());
         sendChoice(player, cs);
+    }
+
+    /** Convenience overload for backwards compatibility. */
+    public void startChoiceDialog(Player player, NPC npc, List<String> options, Consumer<Integer> callback) {
+        startChoiceDialog(player, npc, options, null, null, callback);
     }
 
     /** Advance the dialog or accept the quest if finished. */
@@ -262,6 +276,10 @@ public class NPCDialogManager implements Listener {
         if (cs == null) return;
         HandlerList.unregisterAll(cs.listener);
         choiceSessions.remove(player.getUniqueId());
+        if (cs.questId != null && cs.flagBase != null) {
+            me.nakilex.levelplugin.Main.getInstance().getQuestManager()
+                    .setFlag(player.getUniqueId(), cs.questId, cs.flagBase + cs.index);
+        }
         if (cs.callback != null) {
             cs.callback.accept(cs.index);
         }

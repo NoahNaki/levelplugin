@@ -111,7 +111,18 @@ public class QuestManager {
                 for (String qid : activeSec.getKeys(false)) {
                     Quest quest = quests.get(qid);
                     if (quest == null) continue;
-                    ConfigurationSection progSec = activeSec.getConfigurationSection(qid + ".progress");
+
+                    ConfigurationSection qSec = activeSec.getConfigurationSection(qid);
+                    ConfigurationSection progSec;
+                    List<String> flagsList = null;
+                    if (qSec != null) {
+                        progSec = qSec.getConfigurationSection("progress");
+                        flagsList = qSec.getStringList("flags");
+                    } else {
+                        progSec = activeSec.getConfigurationSection(qid + ".progress");
+                        flagsList = activeSec.getStringList(qid + ".flags");
+                    }
+
                     PlayerQuestProgress prog = new PlayerQuestProgress(quest);
                     if (progSec != null) {
                         for (String key : progSec.getKeys(false)) {
@@ -120,6 +131,12 @@ public class QuestManager {
                             prog.setProgress(index, value);
                         }
                     }
+                    if (flagsList != null) {
+                        for (String flag : flagsList) {
+                            prog.addFlag(flag);
+                        }
+                    }
+
                     map.put(qid, prog);
                 }
                 if (!map.isEmpty()) {
@@ -150,10 +167,12 @@ public class QuestManager {
                 ConfigurationSection activeSec = sec.createSection("active");
                 for (PlayerQuestProgress progress : map.values()) {
                     String qid = progress.getQuest().getId();
-                    ConfigurationSection qSec = activeSec.createSection(qid + ".progress");
+                    ConfigurationSection qSec = activeSec.createSection(qid);
+                    ConfigurationSection progSec = qSec.createSection("progress");
                     for (int i = 0; i < progress.getQuest().getObjectives().size(); i++) {
-                        qSec.set(String.valueOf(i), progress.getProgress(i));
+                        progSec.set(String.valueOf(i), progress.getProgress(i));
                     }
+                    qSec.set("flags", new ArrayList<>(progress.getFlags()));
                 }
             }
             String tracked = trackedQuests.get(uuid);
@@ -247,6 +266,35 @@ public class QuestManager {
 
     public String getTrackedQuest(UUID player) {
         return trackedQuests.get(player);
+    }
+
+    /** Mark a quest-specific flag for the given player. */
+    public void setFlag(UUID player, String questId, String flag) {
+        Map<String, PlayerQuestProgress> map = activeQuests.get(player);
+        if (map == null) return;
+        PlayerQuestProgress prog = map.get(questId);
+        if (prog != null) {
+            prog.addFlag(flag);
+            saveProgress();
+        }
+    }
+
+    /** Check if the player currently has the specified quest flag. */
+    public boolean hasFlag(UUID player, String questId, String flag) {
+        Map<String, PlayerQuestProgress> map = activeQuests.get(player);
+        PlayerQuestProgress prog = map == null ? null : map.get(questId);
+        return prog != null && prog.hasFlag(flag);
+    }
+
+    /** Remove a quest flag from the player. */
+    public void removeFlag(UUID player, String questId, String flag) {
+        Map<String, PlayerQuestProgress> map = activeQuests.get(player);
+        if (map == null) return;
+        PlayerQuestProgress prog = map.get(questId);
+        if (prog != null) {
+            prog.removeFlag(flag);
+            saveProgress();
+        }
     }
 
     public void resetQuest(UUID player, String questId) {
