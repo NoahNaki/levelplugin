@@ -114,8 +114,38 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
             }.runTaskTimer(plugin, 20L, 20L);
         }
 
-        // Listen for interactions with the Starter Merchant
+        // Allow clicking Piwan to start the intro dialog if it hasn't played yet
         final java.util.UUID pid = player.getUniqueId();
+        Listener startListener = new Listener() {
+            @EventHandler(priority = EventPriority.LOWEST)
+            public void onInteract(PlayerInteractEntityEvent event) {
+                if (!event.getPlayer().getUniqueId().equals(pid)) return;
+                Player pl = event.getPlayer();
+                if (event.getHand() == EquipmentSlot.OFF_HAND) return;
+                if (!CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked())) return;
+                NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
+                if (npc.getId() != 536) return;
+
+                PlayerQuestProgress prog = plugin.getQuestManager().getProgress(pid, "newbeginning");
+                if (prog == null) return;
+                if (prog.getProgress(0) > 0) return;
+
+                event.setCancelled(true);
+
+                if (plugin.getDialogManager().hasSession(pl)) {
+                    NPC sessionNpc = plugin.getDialogManager().getSessionNpc(pl);
+                    if (sessionNpc != null && sessionNpc.getId() == npc.getId()) {
+                        plugin.getDialogManager().advanceDialog(pl, plugin.getQuestManager());
+                    }
+                    return;
+                }
+
+                playDialog(pl, plugin, npc);
+            }
+        };
+        register(player, startListener, plugin);
+
+        // Listen for interactions with the Starter Merchant
         Listener merchantListener = new Listener() {
             @EventHandler(priority = EventPriority.LOWEST)
             public void onInteract(PlayerInteractEntityEvent event) {
