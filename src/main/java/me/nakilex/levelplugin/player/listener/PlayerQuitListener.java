@@ -50,12 +50,18 @@ public class PlayerQuitListener implements Listener {
         // Reset the intro quest only if the player hasn't finished it yet
         me.nakilex.levelplugin.quests.managers.QuestManager qm =
                 Main.getInstance().getQuestManager();
+        boolean reset = false;
         if (qm.getProgress(pid, "officeerrands") != null) {
             qm.cleanupQuest(player, "officeerrands");
             qm.resetQuest(pid, "officeerrands", true);
+            reset = true;
         }
 
-        Main.getInstance().getDialogManager().resetDialog(player);
+        // Only wipe the dialog session if we actually reset the quest so
+        // conversations from other quests can resume on rejoin
+        if (reset) {
+            Main.getInstance().getDialogManager().resetDialog(player);
+        }
 
     }
 }
