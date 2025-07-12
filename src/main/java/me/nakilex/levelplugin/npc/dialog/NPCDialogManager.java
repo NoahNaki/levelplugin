@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
+import me.nakilex.levelplugin.Main;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -29,7 +30,14 @@ import java.util.UUID;
 /**
  * Handles simple dialog sequences with NPCs.
  */
-public class NPCDialogManager {
+public class NPCDialogManager implements Listener {
+
+    private final Main plugin;
+
+    public NPCDialogManager(Main plugin) {
+        this.plugin = plugin;
+        plugin.getServer().getPluginManager().registerEvents(this, plugin);
+    }
 
     private static class DialogSession {
         final Quest quest;
@@ -48,6 +56,7 @@ public class NPCDialogManager {
     }
 
     private final Map<UUID, DialogSession> sessions = new HashMap<>();
+    private final Map<UUID, String> lastLines = new HashMap<>();
 
     public NPC getSessionNpc(Player player) {
         DialogSession s = sessions.get(player.getUniqueId());
@@ -60,6 +69,9 @@ public class NPCDialogManager {
         int index = 0;
         final Consumer<Integer> callback;
         final Listener listener;
+        String questId;
+        String flagBase;
+        String resumeLine;
 
         ChoiceSession(NPC npc, List<String> options, Consumer<Integer> callback, Listener listener) {
             this.npc = npc;
@@ -70,6 +82,25 @@ public class NPCDialogManager {
     }
 
     private final Map<UUID, ChoiceSession> choiceSessions = new HashMap<>();
+    private static class PendingChoice {
+        final NPC npc;
+        final List<String> options;
+        final Consumer<Integer> callback;
+        final String questId;
+        final String flagBase;
+        final String resumeLine;
+
+        PendingChoice(NPC npc, List<String> options, Consumer<Integer> callback, String questId, String flagBase, String resumeLine) {
+            this.npc = npc;
+            this.options = options;
+            this.callback = callback;
+            this.questId = questId;
+            this.flagBase = flagBase;
+            this.resumeLine = resumeLine;
+        }
+    }
+
+    private final Map<UUID, PendingChoice> pendingChoices = new HashMap<>();
 
     public boolean hasSession(Player player) {
         return sessions.containsKey(player.getUniqueId());
@@ -83,6 +114,10 @@ public class NPCDialogManager {
     public void startDialog(Player player, Quest quest, NPC npc) {
         List<String> lines = quest.getDialogLines();
         if (lines == null || lines.isEmpty()) return;
+        if (plugin.getQuestManager().isDebug()) {
+            plugin.getLogger().info("[DialogDebug] startDialog quest=" + quest.getId() +
+                    " player=" + player.getName());
+        }
         player.setInvulnerable(true);
         player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20 * 60, 4, false, false, false));
         DialogSession session = new DialogSession(quest, lines, npc, null);
@@ -93,6 +128,9 @@ public class NPCDialogManager {
     /** Start a dialog sequence with custom lines and finish callback. */
     public void startDialog(Player player, List<String> lines, NPC npc, Runnable finish) {
         if (lines == null || lines.isEmpty()) return;
+        if (plugin.getQuestManager().isDebug()) {
+            plugin.getLogger().info("[DialogDebug] startDialog custom player=" + player.getName());
+        }
         player.setInvulnerable(true);
         player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20 * 60, 4, false, false, false));
         DialogSession session = new DialogSession(null, lines, npc, finish);
@@ -100,10 +138,29 @@ public class NPCDialogManager {
         sendLine(player, session);
     }
 
-    /** Present a choice dialog to the player using the scroll wheel. */
-    public void startChoiceDialog(Player player, NPC npc, List<String> options, Consumer<Integer> callback) {
+    /**
+     * Present a choice dialog to the player using the scroll wheel.
+     *
+     * @param questId   optional quest identifier for flag tracking
+     * @param flagBase  if questId is supplied, choice index will be appended to this and stored as a flag
+     */
+    public void startChoiceDialog(Player player, NPC npc, List<String> options, String questId, String flagBase, Consumer<Integer> callback) {
         if (options == null || options.isEmpty()) return;
         if (hasChoiceSession(player)) return;
+        if (plugin.getQuestManager().isDebug()) {
+            plugin.getLogger().info("[DialogDebug] startChoiceDialog player=" + player.getName() +
+                    " quest=" + questId + " flagBase=" + flagBase);
+        }
+        if (questId != null && flagBase != null) {
+            String pendingFlag = flagBase + "pending";
+            plugin.getQuestManager().setFlag(player.getUniqueId(), questId, pendingFlag);
+            String last = lastLines.get(player.getUniqueId());
+            pendingChoices.put(player.getUniqueId(), new PendingChoice(npc, options, callback, questId, flagBase, last));
+        }
+
+        // Keep the player locked in place while making the choice
+        player.setInvulnerable(true);
+        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20 * 60, 4, false, false, false));
 
         ChoiceSession[] ref = new ChoiceSession[1];
         Listener listener = new Listener() {
@@ -133,15 +190,25 @@ public class NPCDialogManager {
             public void onQuit(PlayerQuitEvent e) {
                 if (e.getPlayer().equals(player)) {
                     // Treat quitting like walking away so the dialog can resume
+                    if (plugin.getQuestManager().isDebug()) {
+                        plugin.getLogger().info("[DialogDebug] player quit during choice " + player.getName());
+                    }
                     pauseDialog(player);
                 }
             }
         };
         ChoiceSession cs = new ChoiceSession(npc, options, callback, listener);
+        cs.questId = questId;
+        cs.flagBase = flagBase;
         ref[0] = cs;
         choiceSessions.put(player.getUniqueId(), cs);
         Bukkit.getPluginManager().registerEvents(listener, me.nakilex.levelplugin.Main.getInstance());
         sendChoice(player, cs);
+    }
+
+    /** Convenience overload for backwards compatibility. */
+    public void startChoiceDialog(Player player, NPC npc, List<String> options, Consumer<Integer> callback) {
+        startChoiceDialog(player, npc, options, null, null, callback);
     }
 
     /** Advance the dialog or accept the quest if finished. */
@@ -171,6 +238,7 @@ public class NPCDialogManager {
 
     private void sendLine(Player player, DialogSession session) {
         String raw = session.lines.get(session.index);
+        lastLines.put(player.getUniqueId(), raw);
         String speaker = session.npc.getName();
         String line = raw;
         int bar = raw.indexOf('|');
@@ -207,6 +275,32 @@ public class NPCDialogManager {
         player.setInvulnerable(false);
         session.paused = true;
         cancelChoice(player);
+        if (plugin.getQuestManager().isDebug()) {
+            plugin.getLogger().info("[DialogDebug] paused dialog for " + player.getName());
+        }
+    }
+
+    /**
+     * Remove any active dialog session entirely, discarding progress.
+     */
+    public void resetDialog(Player player) {
+        cancelChoice(player);
+        sessions.remove(player.getUniqueId());
+        player.removePotionEffect(PotionEffectType.SLOWNESS);
+        player.setInvulnerable(false);
+        lastLines.remove(player.getUniqueId());
+        pendingChoices.remove(player.getUniqueId());
+        if (plugin.getQuestManager().isDebug()) {
+            plugin.getLogger().info("[DialogDebug] reset dialog for " + player.getName());
+        }
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        if (plugin.getQuestManager().isDebug()) {
+            plugin.getLogger().info("[DialogDebug] player quit " + event.getPlayer().getName());
+        }
+        pauseDialog(event.getPlayer());
     }
 
     /** Remove an active choice dialog without triggering its callback. */
@@ -239,9 +333,66 @@ public class NPCDialogManager {
         if (cs == null) return;
         HandlerList.unregisterAll(cs.listener);
         choiceSessions.remove(player.getUniqueId());
+        player.removePotionEffect(PotionEffectType.SLOWNESS);
+        player.setInvulnerable(false);
+        if (plugin.getQuestManager().isDebug()) {
+            plugin.getLogger().info("[DialogDebug] finishChoice player=" + player.getName() +
+                    " quest=" + cs.questId + " choice=" + cs.index);
+        }
+        if (cs.questId != null && cs.flagBase != null) {
+            QuestManager qm = plugin.getQuestManager();
+            qm.removeFlag(player.getUniqueId(), cs.questId, cs.flagBase + "pending");
+            qm.setFlag(player.getUniqueId(), cs.questId, cs.flagBase + cs.index);
+            pendingChoices.remove(player.getUniqueId());
+        }
         if (cs.callback != null) {
             cs.callback.accept(cs.index);
         }
+    }
+
+    /**
+     * If the player has a pending choice for the given NPC, replay the last line
+     * and reopen the choice dialog.
+     *
+     * @return true if a pending choice was resumed
+     */
+    public boolean resumePendingChoice(Player player, NPC npc) {
+        PendingChoice pc = pendingChoices.get(player.getUniqueId());
+        if (pc == null) {
+            if (plugin.getQuestManager().isDebug()) {
+                plugin.getLogger().info("[DialogDebug] no pending choice stored for " + player.getName());
+            }
+            return false;
+        }
+        if (npc != null && pc.npc != null && pc.npc.getId() != npc.getId()) {
+            if (plugin.getQuestManager().isDebug()) {
+                plugin.getLogger().info("[DialogDebug] pending choice NPC mismatch for " + player.getName());
+            }
+            return false;
+        }
+        if (pc.questId != null) {
+            QuestManager qm = plugin.getQuestManager();
+            if (!qm.hasFlag(player.getUniqueId(), pc.questId, pc.flagBase + "pending")) {
+                pendingChoices.remove(player.getUniqueId());
+                if (plugin.getQuestManager().isDebug()) {
+                    plugin.getLogger().info("[DialogDebug] pending choice flag missing for " + player.getName());
+                }
+                return false;
+            }
+        }
+
+        if (plugin.getQuestManager().isDebug()) {
+            plugin.getLogger().info("[DialogDebug] resuming pending choice for " + player.getName());
+        }
+
+        String line = pc.resumeLine;
+        if (line != null) {
+            startDialog(player, java.util.List.of(line), npc, () ->
+                    startChoiceDialog(player, npc, pc.options, pc.questId, pc.flagBase, pc.callback));
+        } else {
+            startChoiceDialog(player, npc, pc.options, pc.questId, pc.flagBase, pc.callback);
+        }
+        return true;
     }
 
     /** Cancel dialog if player walks too far from the NPC. */

@@ -2,6 +2,8 @@ package me.nakilex.levelplugin.player.profile;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -328,6 +330,13 @@ public class ProfileSelectionGUI implements Listener {
         org.bukkit.Location loc = cfg.getProfileLocation(player.getUniqueId(), index);
         if (loc != null) player.teleport(loc);
 
+        // Start the introductory quest for brand new characters
+        QuestManager qm = Main.getInstance().getQuestManager();
+        if (!qm.hasCompleted(player.getUniqueId(), "officeerrands") &&
+                qm.getProgress(player.getUniqueId(), "officeerrands") == null) {
+            qm.startQuest(player, "officeerrands");
+        }
+
         // Load inventory and armor for this profile
         player.getInventory().clear();
         player.getInventory().setArmorContents(null);
@@ -341,6 +350,8 @@ public class ProfileSelectionGUI implements Listener {
         if (armor.length > 0) player.getInventory().setArmorContents(armor);
         stopSelection(player);
         player.closeInventory();
+
+
     }
 
     private void handleEdit(Player player, int index) {

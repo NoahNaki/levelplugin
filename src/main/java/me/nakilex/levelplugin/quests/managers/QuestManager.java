@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.quests.data.*;
 import me.nakilex.levelplugin.quests.gui.QuestState;
+import me.nakilex.levelplugin.quests.data.QuestResetScript;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -111,7 +112,18 @@ public class QuestManager {
                 for (String qid : activeSec.getKeys(false)) {
                     Quest quest = quests.get(qid);
                     if (quest == null) continue;
-                    ConfigurationSection progSec = activeSec.getConfigurationSection(qid + ".progress");
+
+                    ConfigurationSection qSec = activeSec.getConfigurationSection(qid);
+                    ConfigurationSection progSec;
+                    List<String> flagsList = null;
+                    if (qSec != null) {
+                        progSec = qSec.getConfigurationSection("progress");
+                        flagsList = qSec.getStringList("flags");
+                    } else {
+                        progSec = activeSec.getConfigurationSection(qid + ".progress");
+                        flagsList = activeSec.getStringList(qid + ".flags");
+                    }
+
                     PlayerQuestProgress prog = new PlayerQuestProgress(quest);
                     if (progSec != null) {
                         for (String key : progSec.getKeys(false)) {
@@ -120,6 +132,12 @@ public class QuestManager {
                             prog.setProgress(index, value);
                         }
                     }
+                    if (flagsList != null) {
+                        for (String flag : flagsList) {
+                            prog.addFlag(flag);
+                        }
+                    }
+
                     map.put(qid, prog);
                 }
                 if (!map.isEmpty()) {
@@ -150,10 +168,12 @@ public class QuestManager {
                 ConfigurationSection activeSec = sec.createSection("active");
                 for (PlayerQuestProgress progress : map.values()) {
                     String qid = progress.getQuest().getId();
-                    ConfigurationSection qSec = activeSec.createSection(qid + ".progress");
+                    ConfigurationSection qSec = activeSec.createSection(qid);
+                    ConfigurationSection progSec = qSec.createSection("progress");
                     for (int i = 0; i < progress.getQuest().getObjectives().size(); i++) {
-                        qSec.set(String.valueOf(i), progress.getProgress(i));
+                        progSec.set(String.valueOf(i), progress.getProgress(i));
                     }
+                    qSec.set("flags", new ArrayList<>(progress.getFlags()));
                 }
             }
             String tracked = trackedQuests.get(uuid);
@@ -240,6 +260,14 @@ public class QuestManager {
         return map == null ? null : map.get(questId);
     }
 
+    /** Invoke any reset cleanup logic for a quest while the player object is available. */
+    public void cleanupQuest(Player player, String questId) {
+        Quest quest = quests.get(questId);
+        if (quest instanceof QuestResetScript reset) {
+            reset.onReset(player, plugin);
+        }
+    }
+
     public void setTrackedQuest(Player player, String questId) {
         trackedQuests.put(player.getUniqueId(), questId);
         saveProgress();
@@ -247,6 +275,45 @@ public class QuestManager {
 
     public String getTrackedQuest(UUID player) {
         return trackedQuests.get(player);
+    }
+
+    /** Mark a quest-specific flag for the given player. */
+    public void setFlag(UUID player, String questId, String flag) {
+        Map<String, PlayerQuestProgress> map = activeQuests.get(player);
+        if (map == null) return;
+        PlayerQuestProgress prog = map.get(questId);
+        if (prog != null) {
+            prog.addFlag(flag);
+            if (debug) {
+                Player p = Bukkit.getPlayer(player);
+                String name = p != null ? p.getName() : player.toString();
+                plugin.getLogger().info("[QuestDebug] Set flag " + questId + ":" + flag + " for " + name);
+            }
+            saveProgress();
+        }
+    }
+
+    /** Check if the player currently has the specified quest flag. */
+    public boolean hasFlag(UUID player, String questId, String flag) {
+        Map<String, PlayerQuestProgress> map = activeQuests.get(player);
+        PlayerQuestProgress prog = map == null ? null : map.get(questId);
+        return prog != null && prog.hasFlag(flag);
+    }
+
+    /** Remove a quest flag from the player. */
+    public void removeFlag(UUID player, String questId, String flag) {
+        Map<String, PlayerQuestProgress> map = activeQuests.get(player);
+        if (map == null) return;
+        PlayerQuestProgress prog = map.get(questId);
+        if (prog != null) {
+            prog.removeFlag(flag);
+            if (debug) {
+                Player p = Bukkit.getPlayer(player);
+                String name = p != null ? p.getName() : player.toString();
+                plugin.getLogger().info("[QuestDebug] Removed flag " + questId + ":" + flag + " for " + name);
+            }
+            saveProgress();
+        }
     }
 
     public void resetQuest(UUID player, String questId) {
@@ -263,6 +330,10 @@ public class QuestManager {
         Quest quest = quests.get(questId);
         if (quest != null && quest.isMainQuest() && !ignoreMain) {
             return;
+        }
+        Player p = Bukkit.getPlayer(player);
+        if (p != null && quest instanceof QuestResetScript reset) {
+            reset.onReset(p, plugin);
         }
         Map<String, PlayerQuestProgress> map = activeQuests.get(player);
         if (map != null) {
@@ -291,6 +362,11 @@ public class QuestManager {
             }
         }
         completedQuests.computeIfAbsent(player, k -> new HashSet<>()).add(questId);
+        Player p = Bukkit.getPlayer(player);
+        Quest quest = quests.get(questId);
+        if (p != null && quest instanceof QuestResetScript reset) {
+            reset.onReset(p, plugin);
+        }
     }
 
     public String getQuestStatus(UUID player, String questId) {

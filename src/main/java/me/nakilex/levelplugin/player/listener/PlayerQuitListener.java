@@ -29,6 +29,10 @@ public class PlayerQuitListener implements Listener {
         Player player = event.getPlayer();
         UUID pid = player.getUniqueId();
 
+        if (Main.getInstance().getQuestManager().isDebug()) {
+            Main.getInstance().getLogger().info("[QuestDebug] PlayerQuit " + player.getName());
+        }
+
         // Persist player data
         me.nakilex.levelplugin.player.config.PlayerConfig cfg = Main.getInstance().getPlayerConfig();
         Integer slot = me.nakilex.levelplugin.player.profile.ProfileManager.getInstance().getActiveSlot(pid);
@@ -45,6 +49,28 @@ public class PlayerQuitListener implements Listener {
         environmentManager.saveState(pid);
         if (st != null && town != null) {
             stageManager.despawnForStage(pid, town, st.level, st.stage);
+        }
+
+        // Reset the intro quest only if the player hasn't finished it yet
+        me.nakilex.levelplugin.quests.managers.QuestManager qm =
+                Main.getInstance().getQuestManager();
+        boolean reset = false;
+        if (qm.getProgress(pid, "officeerrands") != null) {
+            if (qm.isDebug()) {
+                Main.getInstance().getLogger().info("[QuestDebug] resetting OfficeErrands for " + player.getName());
+            }
+            qm.cleanupQuest(player, "officeerrands");
+            qm.resetQuest(pid, "officeerrands", true);
+            reset = true;
+        }
+
+        // Only wipe the dialog session if we actually reset the quest so
+        // conversations from other quests can resume on rejoin
+        if (reset) {
+            if (qm.isDebug()) {
+                Main.getInstance().getLogger().info("[QuestDebug] clearing dialog session for " + player.getName());
+            }
+            Main.getInstance().getDialogManager().resetDialog(player);
         }
 
     }

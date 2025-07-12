@@ -27,7 +27,7 @@ import java.util.List;
 /**
  * Intro quest that plays a short conversation with Piwan.
  */
-public class NewBeginningQuest extends Quest implements QuestScript, QuestCompletionScript {
+public class NewBeginningQuest extends Quest implements QuestScript, QuestCompletionScript, QuestResetScript {
     private static List<QuestObjective> createObjectives() {
         return List.of(
                 new QuestObjective(QuestObjectiveType.TALK, "npc536_done", 1),
@@ -38,11 +38,10 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
         );
     }
 
-    private final java.util.Set<java.util.UUID> awaitingMerchant = new java.util.HashSet<>();
-    private final java.util.Set<java.util.UUID> soldClothes = new java.util.HashSet<>();
-    private final java.util.Set<java.util.UUID> givenCoins = new java.util.HashSet<>();
-    private final java.util.Set<java.util.UUID> readyToShop = new java.util.HashSet<>();
-    private final java.util.Set<java.util.UUID> merchantDone = new java.util.HashSet<>();
+    /** Per-player listeners registered during the quest. */
+    private final java.util.Map<java.util.UUID, java.util.List<Listener>> listeners = new java.util.HashMap<>();
+
+    // Per-player flags stored via QuestManager now handle these states
 
     public NewBeginningQuest() {
         super(
@@ -68,13 +67,25 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
         );
     }
 
+    /** Register a listener for the player so it can be cleaned up later. */
+    private void register(Player player, Listener listener, Main plugin) {
+        Bukkit.getPluginManager().registerEvents(listener, plugin);
+        listeners.computeIfAbsent(player.getUniqueId(), k -> new java.util.ArrayList<>()).add(listener);
+    }
+
     @Override
     public void onStart(Player player, Main plugin) {
-        awaitingMerchant.remove(player.getUniqueId());
-        soldClothes.remove(player.getUniqueId());
-        givenCoins.remove(player.getUniqueId());
-        readyToShop.remove(player.getUniqueId());
-        merchantDone.remove(player.getUniqueId());
+        // Ensure no lingering dialog effects from a previous bugged session
+        plugin.getDialogManager().resetDialog(player);
+        me.nakilex.levelplugin.quests.managers.QuestManager qm = Main.getInstance().getQuestManager();
+        if (qm.isDebug()) {
+            plugin.getLogger().info("[QuestDebug] Starting NewBeginning for " + player.getName());
+        }
+        qm.removeFlag(player.getUniqueId(), "newbeginning", "awaitingMerchant");
+        qm.removeFlag(player.getUniqueId(), "newbeginning", "soldClothes");
+        qm.removeFlag(player.getUniqueId(), "newbeginning", "givenCoins");
+        qm.removeFlag(player.getUniqueId(), "newbeginning", "readyToShop");
+        qm.removeFlag(player.getUniqueId(), "newbeginning", "merchantDone");
         new BukkitRunnable() {
             boolean triggered = false;
             @Override
@@ -107,28 +118,94 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
 
                 event.setCancelled(true);
 
+                if (qm.isDebug()) {
+                    plugin.getLogger().info("[QuestDebug] Merchant click by " + player.getName() +
+                            " prog0=" + prog.getProgress(0) +
+                            " flags=" + prog.getFlags());
+                }
+
                 java.util.UUID id = player.getUniqueId();
 
+                if (plugin.getDialogManager().resumePendingChoice(player, npc)) {
+                    return;
+                }
+
+                if (qm.hasFlag(id, "newbeginning", "merchant_choice_pending")) {
+                    if (qm.isDebug()) {
+                        plugin.getLogger().info("[QuestDebug] pending merchant choice for " + player.getName());
+                    }
+                    plugin.getDialogManager().startDialog(player,
+                            java.util.List.of("Starter Merchant|I'm sorry I can't sell you any equipment if you don't have any money, " +
+                                    "but those clothes you're wearing, I could certainly buy that off you in-exchange for some coins, whaddya say?"),
+                            npc,
+                            () -> plugin.getDialogManager().startChoiceDialog(player, npc,
+                                    java.util.List.of("Yes", "No"),
+                                    "newbeginning", "merchant_choice_", choice -> {
+                                        qm.removeFlag(player.getUniqueId(), "newbeginning", "awaitingMerchant");
+                                        qm.setFlag(player.getUniqueId(), "newbeginning", "merchantDone");
+                                        if (qm.isDebug()) {
+                                            plugin.getLogger().info("[QuestDebug] merchant choice " + choice + " by " + player.getName());
+                                        }
+                                        if (choice == 0) {
+                                            plugin.getEconomyManager().addCoins(player, 200);
+                                            qm.setFlag(player.getUniqueId(), "newbeginning", "soldClothes");
+                                            player.sendMessage(ChatColor.GOLD + "You received " +
+                                                    ChatColor.YELLOW + "200⛃ " +
+                                                    ChatColor.GOLD + "coins.");
+                                        } else {
+                                            plugin.getDialogManager().startDialog(player,
+                                                    java.util.List.of("Starter Merchant|Fair enough, have a nice day."),
+                                                    npc,
+                                                    null);
+                                            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                                                if (player.isOnline()) {
+                                                    plugin.getDialogManager().advanceDialog(player, plugin.getQuestManager());
+                                                }
+                                            }, 1L);
+                                        }
+                                        if (qm.isDebug()) {
+                                            plugin.getLogger().info("[QuestDebug] flag readyToShop set for " + player.getName());
+                                        }
+                                        qm.setFlag(player.getUniqueId(), "newbeginning", "readyToShop");
+                                    }));
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                            if (player.isOnline()) {
+                                plugin.getDialogManager().advanceDialog(player, plugin.getQuestManager());
+                            }
+                        }, 20L);
+                    return;
+                }
+
                 // If the player already has coins from Piwan, just open the shop
-                if (givenCoins.contains(id) && !merchantDone.contains(id)) {
-                    merchantDone.add(id);
+                if (qm.hasFlag(id, "newbeginning", "givenCoins") && !qm.hasFlag(id, "newbeginning", "merchantDone")) {
+                    if (qm.isDebug()) {
+                        plugin.getLogger().info("[QuestDebug] opening shop for " + player.getName() + " - had coins");
+                    }
+                    qm.setFlag(id, "newbeginning", "merchantDone");
                     player.performCommand("merchant starter_shop");
                     return;
                 }
 
                 // After the dialog has been shown once, always open the shop
-                if (merchantDone.contains(player.getUniqueId())) {
+                if (qm.hasFlag(player.getUniqueId(), "newbeginning", "merchantDone")) {
+                    if (qm.isDebug()) {
+                        plugin.getLogger().info("[QuestDebug] shop reopened for " + player.getName() + " - merchantDone");
+                    }
                     player.performCommand("merchant starter_shop");
                     return;
                 }
 
                 // If the player already made a choice, the next click should open the shop
-                if (readyToShop.remove(player.getUniqueId())) {
+                if (qm.hasFlag(player.getUniqueId(), "newbeginning", "readyToShop")) {
+                    if (qm.isDebug()) {
+                        plugin.getLogger().info("[QuestDebug] shop open for " + player.getName() + " - readyToShop");
+                    }
+                    qm.removeFlag(player.getUniqueId(), "newbeginning", "readyToShop");
                     player.performCommand("merchant starter_shop");
                     return;
                 }
 
-                if (awaitingMerchant.contains(player.getUniqueId())) {
+                if (qm.hasFlag(player.getUniqueId(), "newbeginning", "awaitingMerchant")) {
                     // Resume or restart the dialog if the choice was canceled
                     if (plugin.getDialogManager().hasSession(player)) {
                         NPC sessionNpc = plugin.getDialogManager().getSessionNpc(player);
@@ -141,12 +218,13 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                                         "but those clothes you're wearing, I could certainly buy that off you in-exchange for some coins, whaddya say?"),
                                 npc,
                                 () -> plugin.getDialogManager().startChoiceDialog(player, npc,
-                                        java.util.List.of("Yes", "No"), choice -> {
-                                            awaitingMerchant.remove(player.getUniqueId());
-                                            merchantDone.add(player.getUniqueId());
+                                        java.util.List.of("Yes", "No"),
+                                        "newbeginning", "merchant_choice_", choice -> {
+                                            qm.removeFlag(player.getUniqueId(), "newbeginning", "awaitingMerchant");
+                                            qm.setFlag(player.getUniqueId(), "newbeginning", "merchantDone");
                                             if (choice == 0) {
                                                 plugin.getEconomyManager().addCoins(player, 200);
-                                                soldClothes.add(player.getUniqueId());
+                                                qm.setFlag(player.getUniqueId(), "newbeginning", "soldClothes");
                                                 player.sendMessage(ChatColor.GOLD + "You received " +
                                                         ChatColor.YELLOW + "200 ⛃ " +
                                                         ChatColor.GOLD + "coins.");
@@ -155,30 +233,42 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                                                         java.util.List.of("Starter Merchant|Fair enough, have a nice day."),
                                                         npc,
                                                         null);
-                                                Bukkit.getScheduler().runTaskLater(plugin,
-                                                        () -> plugin.getDialogManager().advanceDialog(player, plugin.getQuestManager()),
-                                                        1L);
+                                                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                                                    if (player.isOnline()) {
+                                                        plugin.getDialogManager().advanceDialog(player, plugin.getQuestManager());
+                                                    }
+                                                }, 1L);
                                             }
-                                            readyToShop.add(player.getUniqueId());
+                                            if (qm.isDebug()) {
+                                                plugin.getLogger().info("[QuestDebug] flag readyToShop set for " + player.getName());
+                                            }
+                                            qm.setFlag(player.getUniqueId(), "newbeginning", "readyToShop");
                                         }));
-                        Bukkit.getScheduler().runTaskLater(plugin, () ->
-                                plugin.getDialogManager().advanceDialog(player, plugin.getQuestManager()), 20L);
+                        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                                if (player.isOnline()) {
+                                    plugin.getDialogManager().advanceDialog(player, plugin.getQuestManager());
+                                }
+                            }, 20L);
                     }
                     return;
                 }
-                awaitingMerchant.add(player.getUniqueId());
+                if (qm.isDebug()) {
+                    plugin.getLogger().info("[QuestDebug] flag awaitingMerchant set for " + player.getName());
+                }
+                qm.setFlag(player.getUniqueId(), "newbeginning", "awaitingMerchant");
 
                 plugin.getDialogManager().startDialog(player,
                         java.util.List.of("Starter Merchant|I'm sorry I can't sell you any equipment if you don't have any money, " +
                                 "but those clothes you're wearing, I could certainly buy that off you in-exchange for some coins, whaddya say?"),
                         npc,
                         () -> plugin.getDialogManager().startChoiceDialog(player, npc,
-                                java.util.List.of("Yes", "No"), choice -> {
-                                    awaitingMerchant.remove(player.getUniqueId());
-                                    merchantDone.add(player.getUniqueId());
+                                java.util.List.of("Yes", "No"),
+                                "newbeginning", "merchant_choice_", choice -> {
+                                    qm.removeFlag(player.getUniqueId(), "newbeginning", "awaitingMerchant");
+                                    qm.setFlag(player.getUniqueId(), "newbeginning", "merchantDone");
                                     if (choice == 0) {
                                         plugin.getEconomyManager().addCoins(player, 200);
-                                        soldClothes.add(player.getUniqueId());
+                                        qm.setFlag(player.getUniqueId(), "newbeginning", "soldClothes");
                                         player.sendMessage(ChatColor.GOLD + "You received " +
                                                 ChatColor.YELLOW + "200 ⛃ " +
                                                 ChatColor.GOLD + "coins.");
@@ -191,15 +281,21 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                                                 () -> plugin.getDialogManager().advanceDialog(player, plugin.getQuestManager()),
                                                 1L);
                                     }
-                                    readyToShop.add(player.getUniqueId());
+                                    if (qm.isDebug()) {
+                                        plugin.getLogger().info("[QuestDebug] flag readyToShop set for " + player.getName());
+                                    }
+                                    qm.setFlag(player.getUniqueId(), "newbeginning", "readyToShop");
                                 }));
 
-                Bukkit.getScheduler().runTaskLater(plugin, () ->
-                        plugin.getDialogManager().advanceDialog(player, plugin.getQuestManager()), 20L);
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                        if (player.isOnline()) {
+                            plugin.getDialogManager().advanceDialog(player, plugin.getQuestManager());
+                        }
+                    }, 20L);
             }
         };
 
-        Bukkit.getPluginManager().registerEvents(merchantListener, plugin);
+        register(player, merchantListener, plugin);
     }
 
     private void playDialog(Player player, Main plugin, NPC npc) {
@@ -221,6 +317,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
 
     /** Handle Piwan dialog after class selection and weapon purchase. */
     private void registerFinalDialog(Player player, Main plugin) {
+        me.nakilex.levelplugin.quests.managers.QuestManager qm = plugin.getQuestManager();
         Listener handler = new Listener() {
             @EventHandler(priority = EventPriority.LOWEST)
             public void onInteract(PlayerInteractEntityEvent event) {
@@ -244,13 +341,14 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 }
 
                 if (prog.getProgress(1) < 1) {
-                    if (!givenCoins.contains(player.getUniqueId()) && !soldClothes.contains(player.getUniqueId())) {
+                    if (!qm.hasFlag(player.getUniqueId(), "newbeginning", "givenCoins") &&
+                            !qm.hasFlag(player.getUniqueId(), "newbeginning", "soldClothes")) {
                         plugin.getDialogManager().startDialog(player,
                                 java.util.List.of("Piwan|Oh right, I should've realised you wouldn't have any currency belonging to this world, here, you can pay me back in the future."),
                                 npc,
                                 () -> {
                                     plugin.getEconomyManager().addCoins(player, 100);
-                                    givenCoins.add(player.getUniqueId());
+                                    qm.setFlag(player.getUniqueId(), "newbeginning", "givenCoins");
                                     player.sendMessage(ChatColor.GOLD + "You received "
                                             + ChatColor.YELLOW + "100 ⛃ " + ChatColor.GOLD + "coins.");
                                 });
@@ -269,8 +367,11 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                             npc,
                             () -> {
                                 plugin.getQuestManager().handleTalk(player, "npc536_again");
-                                Bukkit.getScheduler().runTaskLater(plugin,
-                                        () -> player.performCommand("class"), 20L);
+                                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                                        if (player.isOnline()) {
+                                            player.performCommand("class");
+                                        }
+                                    }, 20L);
                             });
                     return;
                 }
@@ -280,7 +381,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                             java.util.List.of("Piwan|Alright great now that you look like you belong here, now you just have to tell me what class you'll be going so that we can find you an appropriate weapon."),
                             npc,
                             () -> Bukkit.getScheduler().runTaskLater(plugin,
-                                    () -> player.performCommand("class"), 20L));
+                                    () -> { if (player.isOnline()) player.performCommand("class"); }, 20L));
                     return;
                 }
 
@@ -299,7 +400,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
             }
         };
 
-        Bukkit.getPluginManager().registerEvents(handler, plugin);
+        register(player, handler, plugin);
     }
 
     /** Give the starting weapon based on the player's chosen class. */
@@ -325,6 +426,21 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
         );
         ItemManager.getInstance().addInstance(instance);
         player.getInventory().addItem(ItemUtil.createItemStackFromCustomItem(instance, 1, player));
+    }
+
+    @Override
+    public void onReset(Player player, Main plugin) {
+        // Fully clear any dialog session to avoid stuck slowness effects
+        plugin.getDialogManager().resetDialog(player);
+        if (Main.getInstance().getQuestManager().isDebug()) {
+            plugin.getLogger().info("[QuestDebug] Resetting NewBeginning for " + player.getName());
+        }
+        java.util.List<Listener> list = listeners.remove(player.getUniqueId());
+        if (list != null) {
+            for (Listener l : list) {
+                HandlerList.unregisterAll(l);
+            }
+        }
     }
 
     @Override
