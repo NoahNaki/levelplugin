@@ -16,9 +16,7 @@ import org.bukkit.Particle;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Handles per-player settlement levels and upgrades.
@@ -39,6 +37,18 @@ public class EnvironmentManager {
     private final Map<UUID, UUID> coopOwners = new HashMap<>();
     private final Map<UUID, UUID> coopPartners = new HashMap<>();
     private final Map<UUID, UUID> pendingInvites = new HashMap<>();
+
+    // Track placed fake blocks per building so we can resolve overlaps
+    private static class BlockEntry {
+        final String building;
+        final org.bukkit.block.data.BlockData data;
+        BlockEntry(String building, org.bukkit.block.data.BlockData data) {
+            this.building = building;
+            this.data = data;
+        }
+    }
+    private final Map<UUID, Map<String, Map<Location, org.bukkit.block.data.BlockData>>> buildingBlocks = new HashMap<>();
+    private final Map<UUID, Map<Location, java.util.Deque<BlockEntry>>> blockStacks = new HashMap<>();
 
     public static class EnvironmentState {
         public int level;
@@ -204,6 +214,8 @@ public class EnvironmentManager {
             }
         }
         fakeBlockManager.clear(Bukkit.getPlayer(member));
+        buildingBlocks.remove(member);
+        blockStacks.remove(member);
         towns.remove(member);
         origins.remove(member);
         states.remove(member);
@@ -464,6 +476,8 @@ public class EnvironmentManager {
 
         cancelTasks(uuid);
         fakeBlockManager.clear(player);
+        buildingBlocks.remove(uuid);
+        blockStacks.remove(uuid);
         EnvironmentState st = states.remove(uuid);
         String town = towns.remove(uuid);
         origins.remove(uuid);
@@ -622,6 +636,12 @@ public class EnvironmentManager {
         java.util.List<BuildingStageManager.BlockDef> blocks = new java.util.ArrayList<>(stageData.blocks);
         blocks.sort(java.util.Comparator.comparingInt(b -> b.y));
 
+        final Map<Location, org.bukkit.block.data.BlockData> allBlocks = new java.util.HashMap<>();
+        for (var b : stageData.blocks) {
+            Location loc = origin.clone().add(b.x - stageData.ox, b.y - stageData.oy, b.z - stageData.oz);
+            allBlocks.put(loc, b.data);
+        }
+
         final int totalTime = 20 * 20;
         final int blocksPerTick = Math.max(1, blocks.size() / totalTime);
 
@@ -668,6 +688,7 @@ public class EnvironmentManager {
                     }
                     buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
                             .put(building.toLowerCase(), stand);
+                    updateBuildingBlocks(player, building, allBlocks);
                     if (after != null) after.run();
                     cancel();
                 }
@@ -704,6 +725,12 @@ public class EnvironmentManager {
         var newData = buildingStageManager.getStage(building, newLevel, newStage);
         if (newData == null) return;
         var oldData = buildingStageManager.getStage(building, oldLevel, oldStage);
+
+        final Map<Location, org.bukkit.block.data.BlockData> newBlockMap = new java.util.HashMap<>();
+        for (var b : newData.blocks) {
+            Location loc = origin.clone().add(b.x - newData.ox, b.y - newData.oy, b.z - newData.oz);
+            newBlockMap.put(loc, b.data);
+        }
 
         java.util.Map<Integer, java.util.List<BuildingStageManager.BlockDef>> newLayers = new java.util.HashMap<>();
         for (var b : newData.blocks) {
@@ -751,6 +778,7 @@ public class EnvironmentManager {
                     }
                     buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
                             .put(building.toLowerCase(), stand);
+                    updateBuildingBlocks(player, building, newBlockMap);
                     if (after != null) after.run();
                     cancel();
                     return;
@@ -800,6 +828,57 @@ public class EnvironmentManager {
             locs.add(l);
         }
         fakeBlockManager.hideFakeBlocks(player, locs);
+    }
+
+    // ----- Block overlay management -----
+
+    private void addBlocks(Player player, String building, Map<Location, org.bukkit.block.data.BlockData> blocks) {
+        UUID id = player.getUniqueId();
+        var stackMap = blockStacks.computeIfAbsent(id, k -> new HashMap<>());
+        var buildMap = buildingBlocks.computeIfAbsent(id, k -> new HashMap<>());
+        Map<Location, org.bukkit.block.data.BlockData> store = buildMap.computeIfAbsent(building.toLowerCase(), k -> new HashMap<>());
+        for (var e : blocks.entrySet()) {
+            Location loc = e.getKey();
+            org.bukkit.block.data.BlockData data = e.getValue();
+            store.put(loc, data);
+            java.util.Deque<BlockEntry> stack = stackMap.computeIfAbsent(loc, k -> new java.util.ArrayDeque<>());
+            stack.removeIf(b -> b.building.equals(building.toLowerCase()));
+            stack.addLast(new BlockEntry(building.toLowerCase(), data));
+            fakeBlockManager.showFakeBlock(player, loc, data);
+        }
+    }
+
+    private void removeBlocks(Player player, String building, java.util.Set<Location> locs) {
+        UUID id = player.getUniqueId();
+        var stackMap = blockStacks.get(id);
+        var buildMap = buildingBlocks.get(id);
+        if (buildMap != null) buildMap.remove(building.toLowerCase());
+        if (stackMap == null) return;
+        for (Location loc : locs) {
+            java.util.Deque<BlockEntry> stack = stackMap.get(loc);
+            if (stack == null) continue;
+            boolean removed = stack.removeIf(b -> b.building.equals(building.toLowerCase()));
+            if (removed) {
+                if (stack.isEmpty()) {
+                    stackMap.remove(loc);
+                    fakeBlockManager.hideFakeBlock(player, loc);
+                } else {
+                    BlockEntry top = stack.getLast();
+                    fakeBlockManager.showFakeBlock(player, loc, top.data);
+                }
+            }
+        }
+        if (stackMap.isEmpty()) blockStacks.remove(id);
+    }
+
+    private void updateBuildingBlocks(Player player, String building, Map<Location, org.bukkit.block.data.BlockData> newBlocks) {
+        UUID id = player.getUniqueId();
+        Map<String, Map<Location, org.bukkit.block.data.BlockData>> bMap = buildingBlocks.computeIfAbsent(id, k -> new HashMap<>());
+        Map<Location, org.bukkit.block.data.BlockData> old = bMap.get(building.toLowerCase());
+        if (old != null) {
+            removeBlocks(player, building, old.keySet());
+        }
+        addBlocks(player, building, newBlocks);
     }
 
     // ----- Coop management -----
