@@ -214,7 +214,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                             if (pl.isOnline()) {
                                 plugin.getDialogManager().advanceDialog(pl, plugin.getQuestManager());
                             }
-                        }, 20L);
+                        }, 1L);
                     return;
                 }
 
@@ -290,7 +290,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                                 if (pl.isOnline()) {
                                     plugin.getDialogManager().advanceDialog(pl, plugin.getQuestManager());
                                 }
-                            }, 20L);
+                            }, 1L);
                     }
                     return;
                 }
@@ -333,7 +333,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                         if (pl.isOnline()) {
                             plugin.getDialogManager().advanceDialog(pl, plugin.getQuestManager());
                         }
-                    }, 20L);
+                    }, 1L);
             }
         };
 
