@@ -221,6 +221,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
 
     /** Handle Piwan dialog after class selection and weapon purchase. */
     private void registerFinalDialog(Player player, Main plugin) {
+        me.nakilex.levelplugin.quests.managers.QuestManager qm = plugin.getQuestManager();
         Listener handler = new Listener() {
             @EventHandler(priority = EventPriority.LOWEST)
             public void onInteract(PlayerInteractEntityEvent event) {
