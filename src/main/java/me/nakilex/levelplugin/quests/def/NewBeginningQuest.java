@@ -86,21 +86,33 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
         qm.removeFlag(player.getUniqueId(), "newbeginning", "givenCoins");
         qm.removeFlag(player.getUniqueId(), "newbeginning", "readyToShop");
         qm.removeFlag(player.getUniqueId(), "newbeginning", "merchantDone");
-        new BukkitRunnable() {
-            boolean triggered = false;
-            @Override
-            public void run() {
-                NPC npc = CitizensAPI.getNPCRegistry().getById(536);
-                if (npc == null || !npc.isSpawned()) return;
-                if (!player.isOnline()) { cancel(); return; }
-                if (!npc.getEntity().getWorld().equals(player.getWorld())) return;
-                if (!triggered && player.getLocation().distanceSquared(npc.getEntity().getLocation()) <= 100) {
-                    playDialog(player, plugin, npc);
-                    triggered = true;
-                    cancel();
+
+        NPC startNpc = CitizensAPI.getNPCRegistry().getById(536);
+        boolean played = false;
+        if (startNpc != null && startNpc.isSpawned() && player.isOnline() &&
+                startNpc.getEntity().getWorld().equals(player.getWorld()) &&
+                player.getLocation().distanceSquared(startNpc.getEntity().getLocation()) <= 100) {
+            playDialog(player, plugin, startNpc);
+            played = true;
+        }
+
+        if (!played) {
+            new BukkitRunnable() {
+                boolean triggered = false;
+                @Override
+                public void run() {
+                    NPC npc = CitizensAPI.getNPCRegistry().getById(536);
+                    if (npc == null || !npc.isSpawned()) return;
+                    if (!player.isOnline()) { cancel(); return; }
+                    if (!npc.getEntity().getWorld().equals(player.getWorld())) return;
+                    if (!triggered && player.getLocation().distanceSquared(npc.getEntity().getLocation()) <= 100) {
+                        playDialog(player, plugin, npc);
+                        triggered = true;
+                        cancel();
+                    }
                 }
-            }
-        }.runTaskTimer(plugin, 20L, 20L);
+            }.runTaskTimer(plugin, 20L, 20L);
+        }
 
         // Listen for interactions with the Starter Merchant
         Listener merchantListener = new Listener() {
