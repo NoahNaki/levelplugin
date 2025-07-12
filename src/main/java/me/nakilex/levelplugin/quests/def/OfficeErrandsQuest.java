@@ -369,6 +369,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
 
     @Override
     public void onReset(Player player, Main plugin) {
+        plugin.getDialogManager().resetDialog(player);
         java.util.List<Listener> list = listeners.remove(player.getUniqueId());
         if (list != null) {
             for (Listener l : list) {
