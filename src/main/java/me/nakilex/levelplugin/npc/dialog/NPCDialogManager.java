@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
+import me.nakilex.levelplugin.Main;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -29,7 +30,14 @@ import java.util.UUID;
 /**
  * Handles simple dialog sequences with NPCs.
  */
-public class NPCDialogManager {
+public class NPCDialogManager implements Listener {
+
+    private final Main plugin;
+
+    public NPCDialogManager(Main plugin) {
+        this.plugin = plugin;
+        plugin.getServer().getPluginManager().registerEvents(this, plugin);
+    }
 
     private static class DialogSession {
         final Quest quest;
@@ -209,14 +217,9 @@ public class NPCDialogManager {
         cancelChoice(player);
     }
 
-    /** Completely clear any active dialog or choice session for a player. */
-    public void resetDialog(Player player) {
-        DialogSession session = sessions.remove(player.getUniqueId());
-        if (session != null) {
-            player.removePotionEffect(PotionEffectType.SLOWNESS);
-            player.setInvulnerable(false);
-        }
-        cancelChoice(player);
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        pauseDialog(event.getPlayer());
     }
 
     /** Remove an active choice dialog without triggering its callback. */

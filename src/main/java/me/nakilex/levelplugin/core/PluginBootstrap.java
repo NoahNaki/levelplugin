@@ -227,7 +227,7 @@ public class PluginBootstrap {
         broadcastMgr.start();
         settingsManager = new SettingsManager();
         questManager = new QuestManager(plugin, partyManager);
-        dialogManager = new me.nakilex.levelplugin.npc.dialog.NPCDialogManager();
+        dialogManager = new me.nakilex.levelplugin.npc.dialog.NPCDialogManager(plugin);
         scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(plugin, economyManager, gemsManager, partyManager, questManager);
         duelStatsManager = new me.nakilex.levelplugin.leaderboards.DuelStatsManager(plugin);
         leaderboardManager = new me.nakilex.levelplugin.leaderboards.LeaderboardManager(plugin, economyManager, playerConfig, duelStatsManager, settingsManager);

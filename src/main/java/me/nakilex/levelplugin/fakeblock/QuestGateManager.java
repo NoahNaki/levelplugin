@@ -299,6 +299,12 @@ public class QuestGateManager implements Listener {
             if (gate.isClosed(player.getUniqueId()) && gate.isInside(loc)) {
                 event.setCancelled(true);
                 blockManager.showFakeBlock(player, loc, gate.getClosedData(loc));
+                // Resend the fake block shortly after to avoid client-side glitches
+                plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                    if (player.isOnline() && gate.isClosed(player.getUniqueId())) {
+                        blockManager.showFakeBlock(player, loc, gate.getClosedData(loc));
+                    }
+                }, 1L);
                 break;
             }
         }

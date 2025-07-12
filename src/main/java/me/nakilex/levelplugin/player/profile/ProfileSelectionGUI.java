@@ -342,22 +342,7 @@ public class ProfileSelectionGUI implements Listener {
         stopSelection(player);
         player.closeInventory();
 
-        // Clear any leftover dialog sessions from previous logout
-        me.nakilex.levelplugin.npc.dialog.NPCDialogManager dm =
-                Main.getInstance().getDialogManager();
-        if (dm != null) dm.resetDialog(player);
 
-        // Automatically restart the intro quest if it was reset
-        me.nakilex.levelplugin.quests.managers.QuestManager qm =
-                Main.getInstance().getQuestManager();
-        me.nakilex.levelplugin.quests.def.OfficeErrandsQuest office =
-                (me.nakilex.levelplugin.quests.def.OfficeErrandsQuest)
-                        qm.getQuest("officeerrands");
-        if (office != null &&
-                qm.getQuestState(player, office) ==
-                        me.nakilex.levelplugin.quests.gui.QuestState.AVAILABLE) {
-            qm.startQuest(player, "officeerrands");
-        }
     }
 
     private void handleEdit(Player player, int index) {
