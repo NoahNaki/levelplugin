@@ -147,6 +147,10 @@ public class NPCDialogManager implements Listener {
             pendingChoices.put(player.getUniqueId(), new PendingChoice(npc, options, callback, questId, flagBase, last));
         }
 
+        // Keep the player locked in place while making the choice
+        player.setInvulnerable(true);
+        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20 * 60, 4, false, false, false));
+
         ChoiceSession[] ref = new ChoiceSession[1];
         Listener listener = new Listener() {
             @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -306,6 +310,8 @@ public class NPCDialogManager implements Listener {
         if (cs == null) return;
         HandlerList.unregisterAll(cs.listener);
         choiceSessions.remove(player.getUniqueId());
+        player.removePotionEffect(PotionEffectType.SLOWNESS);
+        player.setInvulnerable(false);
         if (cs.questId != null && cs.flagBase != null) {
             QuestManager qm = plugin.getQuestManager();
             qm.removeFlag(player.getUniqueId(), cs.questId, cs.flagBase + "pending");
