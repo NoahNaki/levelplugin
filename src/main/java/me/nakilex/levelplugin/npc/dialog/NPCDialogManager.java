@@ -387,8 +387,14 @@ public class NPCDialogManager implements Listener {
 
         String line = pc.resumeLine;
         if (line != null) {
-            startDialog(player, java.util.List.of(line), npc, () ->
-                    startChoiceDialog(player, npc, pc.options, pc.questId, pc.flagBase, pc.callback));
+            startDialog(player, java.util.List.of(line), npc, null);
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (hasSession(player)) {
+                    advanceDialog(player, plugin.getQuestManager());
+                } else {
+                    startChoiceDialog(player, npc, pc.options, pc.questId, pc.flagBase, pc.callback);
+                }
+            }, 1L);
         } else {
             startChoiceDialog(player, npc, pc.options, pc.questId, pc.flagBase, pc.callback);
         }
@@ -402,8 +408,8 @@ public class NPCDialogManager implements Listener {
             if (session.paused) return;
             if (session.npc != null && session.npc.isSpawned() &&
                     player.getLocation().distanceSquared(session.npc.getEntity().getLocation()) > maxDistanceSquared) {
-                player.sendMessage(ChatColor.RED + "You walked away from the NPC. Right-click again to continue.");
-                pauseDialog(player);
+                player.sendMessage(ChatColor.RED + "You walked away from the NPC. Dialogue cancelled.");
+                resetDialog(player);
                 return;
             }
         }
@@ -411,8 +417,8 @@ public class NPCDialogManager implements Listener {
         ChoiceSession cs = choiceSessions.get(player.getUniqueId());
         if (cs != null && cs.npc != null && cs.npc.isSpawned() &&
                 player.getLocation().distanceSquared(cs.npc.getEntity().getLocation()) > maxDistanceSquared) {
-            player.sendMessage(ChatColor.RED + "You walked away from the NPC. Right-click again to continue.");
-            cancelChoice(player);
+            player.sendMessage(ChatColor.RED + "You walked away from the NPC. Dialogue cancelled.");
+            resetDialog(player);
         }
     }
 }
