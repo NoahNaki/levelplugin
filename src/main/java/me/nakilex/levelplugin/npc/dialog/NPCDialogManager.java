@@ -20,6 +20,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.HandlerList;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scheduler.BukkitTask;
 import java.util.function.Consumer;
 
 import java.util.HashMap;
@@ -57,6 +58,7 @@ public class NPCDialogManager implements Listener {
 
     private final Map<UUID, DialogSession> sessions = new HashMap<>();
     private final Map<UUID, String> lastLines = new HashMap<>();
+    private final Map<UUID, BukkitTask> resumeTasks = new HashMap<>();
 
     public NPC getSessionNpc(Player player) {
         DialogSession s = sessions.get(player.getUniqueId());
@@ -275,6 +277,8 @@ public class NPCDialogManager implements Listener {
         player.setInvulnerable(false);
         session.paused = true;
         cancelChoice(player);
+        BukkitTask task = resumeTasks.remove(player.getUniqueId());
+        if (task != null) task.cancel();
         if (plugin.getQuestManager().isDebug()) {
             plugin.getLogger().info("[DialogDebug] paused dialog for " + player.getName());
         }
@@ -290,6 +294,8 @@ public class NPCDialogManager implements Listener {
         player.setInvulnerable(false);
         lastLines.remove(player.getUniqueId());
         pendingChoices.remove(player.getUniqueId());
+        BukkitTask task = resumeTasks.remove(player.getUniqueId());
+        if (task != null) task.cancel();
         if (plugin.getQuestManager().isDebug()) {
             plugin.getLogger().info("[DialogDebug] reset dialog for " + player.getName());
         }
@@ -335,6 +341,8 @@ public class NPCDialogManager implements Listener {
         choiceSessions.remove(player.getUniqueId());
         player.removePotionEffect(PotionEffectType.SLOWNESS);
         player.setInvulnerable(false);
+        BukkitTask pending = resumeTasks.remove(player.getUniqueId());
+        if (pending != null) pending.cancel();
         if (plugin.getQuestManager().isDebug()) {
             plugin.getLogger().info("[DialogDebug] finishChoice player=" + player.getName() +
                     " quest=" + cs.questId + " choice=" + cs.index);
@@ -388,13 +396,16 @@ public class NPCDialogManager implements Listener {
         String line = pc.resumeLine;
         if (line != null) {
             startDialog(player, java.util.List.of(line), npc, null);
-            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 if (hasSession(player)) {
                     advanceDialog(player, plugin.getQuestManager());
                 } else {
                     startChoiceDialog(player, npc, pc.options, pc.questId, pc.flagBase, pc.callback);
                 }
+                resumeTasks.remove(player.getUniqueId());
             }, 1L);
+            BukkitTask old = resumeTasks.put(player.getUniqueId(), task);
+            if (old != null) old.cancel();
         } else {
             startChoiceDialog(player, npc, pc.options, pc.questId, pc.flagBase, pc.callback);
         }
