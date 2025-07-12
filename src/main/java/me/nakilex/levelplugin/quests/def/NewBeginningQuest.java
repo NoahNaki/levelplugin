@@ -172,131 +172,31 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                     return;
                 }
 
-                if (qm.hasFlag(pid, "newbeginning", "merchant_choice_pending")) {
-                if (qm.isDebug()) {
-                    plugin.getLogger().info("[QuestDebug] pending merchant choice for " + pl.getName());
-                }
-                plugin.getDialogManager().startDialog(pl,
-                            java.util.List.of("Starter Merchant|I'm sorry I can't sell you any equipment if you don't have any money, " +
-                                    "but those clothes you're wearing, I could certainly buy that off you in-exchange for some coins, whaddya say?"),
-                            npc,
-                            () -> plugin.getDialogManager().startChoiceDialog(pl, npc,
-                                    java.util.List.of("Yes", "No"),
-                                    "newbeginning", "merchant_choice_", choice -> {
-                                        qm.removeFlag(pid, "newbeginning", "awaitingMerchant");
-                                        qm.setFlag(pid, "newbeginning", "merchantDone");
-                                        if (qm.isDebug()) {
-                                            plugin.getLogger().info("[QuestDebug] merchant choice " + choice + " by " + pl.getName());
-                                        }
-                                        if (choice == 0) {
-                                            plugin.getEconomyManager().addCoins(pl, 200);
-                                            qm.setFlag(pid, "newbeginning", "soldClothes");
-                                            pl.sendMessage(ChatColor.GOLD + "You received " +
-                                                    ChatColor.YELLOW + "200⛃ " +
-                                                    ChatColor.GOLD + "coins.");
-                                        } else {
-                                            plugin.getDialogManager().startDialog(pl,
-                                                    java.util.List.of("Starter Merchant|Fair enough, have a nice day."),
-                                                    npc,
-                                                    null);
-                                            Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                                                if (pl.isOnline()) {
-                                                    plugin.getDialogManager().advanceDialog(pl, plugin.getQuestManager());
-                                                }
-                                            }, 1L);
-                                        }
-                                        if (qm.isDebug()) {
-                                            plugin.getLogger().info("[QuestDebug] flag readyToShop set for " + pl.getName());
-                                        }
-                                        qm.setFlag(pid, "newbeginning", "readyToShop");
-                                    }));
-                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                            if (pl.isOnline()) {
-                                plugin.getDialogManager().advanceDialog(pl, plugin.getQuestManager());
-                            }
-                        }, 1L);
+                if (plugin.getDialogManager().hasSession(pl)) {
+                    NPC sessionNpc = plugin.getDialogManager().getSessionNpc(pl);
+                    if (sessionNpc != null && sessionNpc.getId() == npc.getId()) {
+                        plugin.getDialogManager().advanceDialog(pl, plugin.getQuestManager());
+                    }
                     return;
                 }
 
-                // If the player already has coins from Piwan, just open the shop
-                if (qm.hasFlag(pid, "newbeginning", "givenCoins") && !qm.hasFlag(pid, "newbeginning", "merchantDone")) {
+                if (qm.hasFlag(pid, "newbeginning", "readyToShop") ||
+                        qm.hasFlag(pid, "newbeginning", "merchantDone")) {
                     if (qm.isDebug()) {
-                        plugin.getLogger().info("[QuestDebug] opening shop for " + pl.getName() + " - had coins");
+                        plugin.getLogger().info("[QuestDebug] opening shop for " + pl.getName());
                     }
+                    qm.removeFlag(pid, "newbeginning", "readyToShop");
                     qm.setFlag(pid, "newbeginning", "merchantDone");
                     pl.performCommand("merchant starter_shop");
                     return;
                 }
 
-                // After the dialog has been shown once, always open the shop
-                if (qm.hasFlag(pid, "newbeginning", "merchantDone")) {
-                    if (qm.isDebug()) {
-                        plugin.getLogger().info("[QuestDebug] shop reopened for " + pl.getName() + " - merchantDone");
-                    }
+                if (qm.hasFlag(pid, "newbeginning", "givenCoins")) {
+                    qm.setFlag(pid, "newbeginning", "merchantDone");
                     pl.performCommand("merchant starter_shop");
                     return;
                 }
 
-                // If the player already made a choice, the next click should open the shop
-                if (qm.hasFlag(pid, "newbeginning", "readyToShop")) {
-                    if (qm.isDebug()) {
-                        plugin.getLogger().info("[QuestDebug] shop open for " + pl.getName() + " - readyToShop");
-                    }
-                    qm.removeFlag(pid, "newbeginning", "readyToShop");
-                    pl.performCommand("merchant starter_shop");
-                    return;
-                }
-
-                if (qm.hasFlag(pid, "newbeginning", "awaitingMerchant")) {
-                    // Resume or restart the dialog if the choice was canceled
-                    if (plugin.getDialogManager().hasSession(pl)) {
-                        NPC sessionNpc = plugin.getDialogManager().getSessionNpc(pl);
-                        if (sessionNpc != null && sessionNpc.getId() == npc.getId()) {
-                            plugin.getDialogManager().advanceDialog(pl, plugin.getQuestManager());
-                        }
-                    } else if (!plugin.getDialogManager().hasChoiceSession(pl)) {
-                        plugin.getDialogManager().startDialog(pl,
-                                java.util.List.of("Starter Merchant|I'm sorry I can't sell you any equipment if you don't have any money, " +
-                                        "but those clothes you're wearing, I could certainly buy that off you in-exchange for some coins, whaddya say?"),
-                                npc,
-                                () -> plugin.getDialogManager().startChoiceDialog(pl, npc,
-                                        java.util.List.of("Yes", "No"),
-                                        "newbeginning", "merchant_choice_", choice -> {
-                                            qm.removeFlag(pid, "newbeginning", "awaitingMerchant");
-                                            qm.setFlag(pid, "newbeginning", "merchantDone");
-                                            if (choice == 0) {
-                                                plugin.getEconomyManager().addCoins(pl, 200);
-                                                qm.setFlag(pid, "newbeginning", "soldClothes");
-                                                pl.sendMessage(ChatColor.GOLD + "You received " +
-                                                        ChatColor.YELLOW + "200 ⛃ " +
-                                                        ChatColor.GOLD + "coins.");
-                                            } else {
-                                                plugin.getDialogManager().startDialog(pl,
-                                                        java.util.List.of("Starter Merchant|Fair enough, have a nice day."),
-                                                        npc,
-                                                        null);
-                                                Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                                                    if (pl.isOnline()) {
-                                                        plugin.getDialogManager().advanceDialog(pl, plugin.getQuestManager());
-                                                    }
-                                                }, 1L);
-                                            }
-                                            if (qm.isDebug()) {
-                                                plugin.getLogger().info("[QuestDebug] flag readyToShop set for " + pl.getName());
-                                            }
-                                            qm.setFlag(pid, "newbeginning", "readyToShop");
-                                        }));
-                        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                                if (pl.isOnline()) {
-                                    plugin.getDialogManager().advanceDialog(pl, plugin.getQuestManager());
-                                }
-                            }, 1L);
-                    }
-                    return;
-                }
-                if (qm.isDebug()) {
-                    plugin.getLogger().info("[QuestDebug] flag awaitingMerchant set for " + pl.getName());
-                }
                 qm.setFlag(pid, "newbeginning", "awaitingMerchant");
 
                 plugin.getDialogManager().startDialog(pl,
@@ -329,11 +229,6 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                                     qm.setFlag(pid, "newbeginning", "readyToShop");
                                 }));
 
-                Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                        if (pl.isOnline()) {
-                            plugin.getDialogManager().advanceDialog(pl, plugin.getQuestManager());
-                        }
-                    }, 1L);
             }
         };
 
