@@ -203,31 +203,33 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                         java.util.List.of("Starter Merchant|I'm sorry I can't sell you any equipment if you don't have any money, " +
                                 "but those clothes you're wearing, I could certainly buy that off you in-exchange for some coins, whaddya say?"),
                         npc,
-                        () -> plugin.getDialogManager().startChoiceDialog(pl, npc,
-                                java.util.List.of("Yes", "No"),
-                                "newbeginning", "merchant_choice_", choice -> {
-                                    qm.removeFlag(pid, "newbeginning", "awaitingMerchant");
-                                    qm.setFlag(pid, "newbeginning", "merchantDone");
-                                    if (choice == 0) {
-                                        plugin.getEconomyManager().addCoins(pl, 200);
-                                        qm.setFlag(pid, "newbeginning", "soldClothes");
-                                        pl.sendMessage(ChatColor.GOLD + "You received " +
-                                                ChatColor.YELLOW + "200 ⛃ " +
-                                                ChatColor.GOLD + "coins.");
-                                    } else {
-                                        plugin.getDialogManager().startDialog(pl,
-                                                java.util.List.of("Starter Merchant|Fair enough, have a nice day."),
-                                                npc,
-                                                null);
-                                        Bukkit.getScheduler().runTaskLater(plugin,
-                                                () -> plugin.getDialogManager().advanceDialog(pl, plugin.getQuestManager()),
-                                                1L);
-                                    }
-                                    if (qm.isDebug()) {
-                                        plugin.getLogger().info("[QuestDebug] flag readyToShop set for " + pl.getName());
-                                    }
-                                    qm.setFlag(pid, "newbeginning", "readyToShop");
-                                }));
+                        () -> Bukkit.getScheduler().runTaskLater(plugin, () ->
+                                plugin.getDialogManager().startChoiceDialog(pl, npc,
+                                        java.util.List.of("Yes", "No"),
+                                        "newbeginning", "merchant_choice_", choice -> {
+                                            qm.removeFlag(pid, "newbeginning", "awaitingMerchant");
+                                            qm.setFlag(pid, "newbeginning", "merchantDone");
+                                            if (choice == 0) {
+                                                plugin.getEconomyManager().addCoins(pl, 200);
+                                                qm.setFlag(pid, "newbeginning", "soldClothes");
+                                                pl.sendMessage(ChatColor.GOLD + "You received " +
+                                                        ChatColor.YELLOW + "200 ⛃ " +
+                                                        ChatColor.GOLD + "coins.");
+                                            } else {
+                                                plugin.getDialogManager().startDialog(pl,
+                                                        java.util.List.of("Starter Merchant|Fair enough, have a nice day."),
+                                                        npc,
+                                                        null);
+                                                Bukkit.getScheduler().runTaskLater(plugin,
+                                                        () -> plugin.getDialogManager().advanceDialog(pl, plugin.getQuestManager()),
+                                                        1L);
+                                            }
+                                            if (qm.isDebug()) {
+                                                plugin.getLogger().info("[QuestDebug] flag readyToShop set for " + pl.getName());
+                                            }
+                                            qm.setFlag(pid, "newbeginning", "readyToShop");
+                                        }),
+                                1L));
 
             }
         };
