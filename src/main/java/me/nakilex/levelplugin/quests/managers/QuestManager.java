@@ -667,9 +667,6 @@ public class QuestManager {
                         if (quest instanceof me.nakilex.levelplugin.quests.data.QuestCompletionScript script) {
                             script.onComplete(player, plugin);
                         }
-                        if (quest instanceof QuestResetScript reset) {
-                            reset.onReset(player, plugin);
-                        }
                     }
                     break outer;
                 }
@@ -709,9 +706,6 @@ public class QuestManager {
                         giveRewards(p, other.getQuest());
                         if (other.getQuest() instanceof me.nakilex.levelplugin.quests.data.QuestCompletionScript script) {
                             script.onComplete(p, plugin);
-                        }
-                        if (other.getQuest() instanceof QuestResetScript reset) {
-                            reset.onReset(p, plugin);
                         }
                     }
                 }

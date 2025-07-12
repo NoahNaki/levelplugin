@@ -295,13 +295,12 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                                                         player.hideEntity(plugin, ent);
                                                     }
                                                 }
+                                                plugin.getQuestManager().cleanupQuest(player, "officeerrands");
                                             }
                                         }
                                     }
                                 };
                                 register(player, exitListener, plugin);
-
-                                plugin.getQuestManager().handleTalk(player, "npc516");
                             }
                         }, 40L);
                     }
