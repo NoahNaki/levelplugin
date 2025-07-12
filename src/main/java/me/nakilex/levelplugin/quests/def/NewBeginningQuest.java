@@ -76,6 +76,9 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
     @Override
     public void onStart(Player player, Main plugin) {
         me.nakilex.levelplugin.quests.managers.QuestManager qm = Main.getInstance().getQuestManager();
+        if (qm.isDebug()) {
+            plugin.getLogger().info("[QuestDebug] Starting NewBeginning for " + player.getName());
+        }
         qm.removeFlag(player.getUniqueId(), "newbeginning", "awaitingMerchant");
         qm.removeFlag(player.getUniqueId(), "newbeginning", "soldClothes");
         qm.removeFlag(player.getUniqueId(), "newbeginning", "givenCoins");
@@ -113,6 +116,12 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
 
                 event.setCancelled(true);
 
+                if (qm.isDebug()) {
+                    plugin.getLogger().info("[QuestDebug] Merchant click by " + player.getName() +
+                            " prog0=" + prog.getProgress(0) +
+                            " flags=" + prog.getFlags());
+                }
+
                 java.util.UUID id = player.getUniqueId();
 
                 if (plugin.getDialogManager().resumePendingChoice(player, npc)) {
@@ -120,6 +129,9 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 }
 
                 if (qm.hasFlag(id, "newbeginning", "merchant_choice_pending")) {
+                    if (qm.isDebug()) {
+                        plugin.getLogger().info("[QuestDebug] pending merchant choice for " + player.getName());
+                    }
                     plugin.getDialogManager().startDialog(player,
                             java.util.List.of("Starter Merchant|I'm sorry I can't sell you any equipment if you don't have any money, " +
                                     "but those clothes you're wearing, I could certainly buy that off you in-exchange for some coins, whaddya say?"),
@@ -129,6 +141,9 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                                     "newbeginning", "merchant_choice_", choice -> {
                                         qm.removeFlag(player.getUniqueId(), "newbeginning", "awaitingMerchant");
                                         qm.setFlag(player.getUniqueId(), "newbeginning", "merchantDone");
+                                        if (qm.isDebug()) {
+                                            plugin.getLogger().info("[QuestDebug] merchant choice " + choice + " by " + player.getName());
+                                        }
                                         if (choice == 0) {
                                             plugin.getEconomyManager().addCoins(player, 200);
                                             qm.setFlag(player.getUniqueId(), "newbeginning", "soldClothes");
@@ -146,6 +161,9 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                                                 }
                                             }, 1L);
                                         }
+                                        if (qm.isDebug()) {
+                                            plugin.getLogger().info("[QuestDebug] flag readyToShop set for " + player.getName());
+                                        }
                                         qm.setFlag(player.getUniqueId(), "newbeginning", "readyToShop");
                                     }));
                     Bukkit.getScheduler().runTaskLater(plugin, () -> {
@@ -158,6 +176,9 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
 
                 // If the player already has coins from Piwan, just open the shop
                 if (qm.hasFlag(id, "newbeginning", "givenCoins") && !qm.hasFlag(id, "newbeginning", "merchantDone")) {
+                    if (qm.isDebug()) {
+                        plugin.getLogger().info("[QuestDebug] opening shop for " + player.getName() + " - had coins");
+                    }
                     qm.setFlag(id, "newbeginning", "merchantDone");
                     player.performCommand("merchant starter_shop");
                     return;
@@ -165,12 +186,18 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
 
                 // After the dialog has been shown once, always open the shop
                 if (qm.hasFlag(player.getUniqueId(), "newbeginning", "merchantDone")) {
+                    if (qm.isDebug()) {
+                        plugin.getLogger().info("[QuestDebug] shop reopened for " + player.getName() + " - merchantDone");
+                    }
                     player.performCommand("merchant starter_shop");
                     return;
                 }
 
                 // If the player already made a choice, the next click should open the shop
                 if (qm.hasFlag(player.getUniqueId(), "newbeginning", "readyToShop")) {
+                    if (qm.isDebug()) {
+                        plugin.getLogger().info("[QuestDebug] shop open for " + player.getName() + " - readyToShop");
+                    }
                     qm.removeFlag(player.getUniqueId(), "newbeginning", "readyToShop");
                     player.performCommand("merchant starter_shop");
                     return;
@@ -210,6 +237,9 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                                                     }
                                                 }, 1L);
                                             }
+                                            if (qm.isDebug()) {
+                                                plugin.getLogger().info("[QuestDebug] flag readyToShop set for " + player.getName());
+                                            }
                                             qm.setFlag(player.getUniqueId(), "newbeginning", "readyToShop");
                                         }));
                         Bukkit.getScheduler().runTaskLater(plugin, () -> {
@@ -219,6 +249,9 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                             }, 20L);
                     }
                     return;
+                }
+                if (qm.isDebug()) {
+                    plugin.getLogger().info("[QuestDebug] flag awaitingMerchant set for " + player.getName());
                 }
                 qm.setFlag(player.getUniqueId(), "newbeginning", "awaitingMerchant");
 
@@ -245,6 +278,9 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                                         Bukkit.getScheduler().runTaskLater(plugin,
                                                 () -> plugin.getDialogManager().advanceDialog(player, plugin.getQuestManager()),
                                                 1L);
+                                    }
+                                    if (qm.isDebug()) {
+                                        plugin.getLogger().info("[QuestDebug] flag readyToShop set for " + player.getName());
                                     }
                                     qm.setFlag(player.getUniqueId(), "newbeginning", "readyToShop");
                                 }));
@@ -392,6 +428,9 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
 
     @Override
     public void onReset(Player player, Main plugin) {
+        if (Main.getInstance().getQuestManager().isDebug()) {
+            plugin.getLogger().info("[QuestDebug] Resetting NewBeginning for " + player.getName());
+        }
         java.util.List<Listener> list = listeners.remove(player.getUniqueId());
         if (list != null) {
             for (Listener l : list) {

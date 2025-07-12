@@ -284,6 +284,11 @@ public class QuestManager {
         PlayerQuestProgress prog = map.get(questId);
         if (prog != null) {
             prog.addFlag(flag);
+            if (debug) {
+                Player p = Bukkit.getPlayer(player);
+                String name = p != null ? p.getName() : player.toString();
+                plugin.getLogger().info("[QuestDebug] Set flag " + questId + ":" + flag + " for " + name);
+            }
             saveProgress();
         }
     }
@@ -302,6 +307,11 @@ public class QuestManager {
         PlayerQuestProgress prog = map.get(questId);
         if (prog != null) {
             prog.removeFlag(flag);
+            if (debug) {
+                Player p = Bukkit.getPlayer(player);
+                String name = p != null ? p.getName() : player.toString();
+                plugin.getLogger().info("[QuestDebug] Removed flag " + questId + ":" + flag + " for " + name);
+            }
             saveProgress();
         }
     }
