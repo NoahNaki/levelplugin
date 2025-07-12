@@ -75,6 +75,8 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
 
     @Override
     public void onStart(Player player, Main plugin) {
+        // Ensure no lingering dialog effects from a previous bugged session
+        plugin.getDialogManager().resetDialog(player);
         me.nakilex.levelplugin.quests.managers.QuestManager qm = Main.getInstance().getQuestManager();
         if (qm.isDebug()) {
             plugin.getLogger().info("[QuestDebug] Starting NewBeginning for " + player.getName());
@@ -428,6 +430,8 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
 
     @Override
     public void onReset(Player player, Main plugin) {
+        // Fully clear any dialog session to avoid stuck slowness effects
+        plugin.getDialogManager().resetDialog(player);
         if (Main.getInstance().getQuestManager().isDebug()) {
             plugin.getLogger().info("[QuestDebug] Resetting NewBeginning for " + player.getName());
         }
