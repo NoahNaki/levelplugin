@@ -217,6 +217,16 @@ public class NPCDialogManager implements Listener {
         cancelChoice(player);
     }
 
+    /**
+     * Remove any active dialog session entirely, discarding progress.
+     */
+    public void resetDialog(Player player) {
+        cancelChoice(player);
+        sessions.remove(player.getUniqueId());
+        player.removePotionEffect(PotionEffectType.SLOWNESS);
+        player.setInvulnerable(false);
+    }
+
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         pauseDialog(event.getPlayer());
