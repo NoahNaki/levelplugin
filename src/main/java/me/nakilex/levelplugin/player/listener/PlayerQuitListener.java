@@ -47,11 +47,13 @@ public class PlayerQuitListener implements Listener {
             stageManager.despawnForStage(pid, town, st.level, st.stage);
         }
 
-        // Reset key quests so dialog resumes cleanly on next login
+        // Reset the intro quest only if the player hasn't finished it yet
         me.nakilex.levelplugin.quests.managers.QuestManager qm =
                 Main.getInstance().getQuestManager();
-        qm.cleanupQuest(player, "officeerrands");
-        qm.resetQuest(pid, "officeerrands", true);
+        if (qm.getProgress(pid, "officeerrands") != null) {
+            qm.cleanupQuest(player, "officeerrands");
+            qm.resetQuest(pid, "officeerrands", true);
+        }
 
         Main.getInstance().getDialogManager().resetDialog(player);
 
