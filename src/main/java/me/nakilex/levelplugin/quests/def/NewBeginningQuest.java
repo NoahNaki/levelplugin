@@ -142,7 +142,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                     return;
                 }
 
-                if (qm.hasFlag(id, "newbeginning", "merchant_choice_pending")) {
+                if (qm.hasFlag(pid, "newbeginning", "merchant_choice_pending")) {
                 if (qm.isDebug()) {
                     plugin.getLogger().info("[QuestDebug] pending merchant choice for " + pl.getName());
                 }
@@ -189,11 +189,11 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 }
 
                 // If the player already has coins from Piwan, just open the shop
-                if (qm.hasFlag(id, "newbeginning", "givenCoins") && !qm.hasFlag(id, "newbeginning", "merchantDone")) {
+                if (qm.hasFlag(pid, "newbeginning", "givenCoins") && !qm.hasFlag(pid, "newbeginning", "merchantDone")) {
                     if (qm.isDebug()) {
                         plugin.getLogger().info("[QuestDebug] opening shop for " + pl.getName() + " - had coins");
                     }
-                    qm.setFlag(id, "newbeginning", "merchantDone");
+                    qm.setFlag(pid, "newbeginning", "merchantDone");
                     pl.performCommand("merchant starter_shop");
                     return;
                 }
