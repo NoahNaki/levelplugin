@@ -56,6 +56,7 @@ public class NPCDialogManager implements Listener {
     }
 
     private final Map<UUID, DialogSession> sessions = new HashMap<>();
+    private final Map<UUID, String> lastLines = new HashMap<>();
 
     public NPC getSessionNpc(Player player) {
         DialogSession s = sessions.get(player.getUniqueId());
@@ -70,6 +71,7 @@ public class NPCDialogManager implements Listener {
         final Listener listener;
         String questId;
         String flagBase;
+        String resumeLine;
 
         ChoiceSession(NPC npc, List<String> options, Consumer<Integer> callback, Listener listener) {
             this.npc = npc;
@@ -80,6 +82,25 @@ public class NPCDialogManager implements Listener {
     }
 
     private final Map<UUID, ChoiceSession> choiceSessions = new HashMap<>();
+    private static class PendingChoice {
+        final NPC npc;
+        final List<String> options;
+        final Consumer<Integer> callback;
+        final String questId;
+        final String flagBase;
+        final String resumeLine;
+
+        PendingChoice(NPC npc, List<String> options, Consumer<Integer> callback, String questId, String flagBase, String resumeLine) {
+            this.npc = npc;
+            this.options = options;
+            this.callback = callback;
+            this.questId = questId;
+            this.flagBase = flagBase;
+            this.resumeLine = resumeLine;
+        }
+    }
+
+    private final Map<UUID, PendingChoice> pendingChoices = new HashMap<>();
 
     public boolean hasSession(Player player) {
         return sessions.containsKey(player.getUniqueId());
@@ -119,6 +140,12 @@ public class NPCDialogManager implements Listener {
     public void startChoiceDialog(Player player, NPC npc, List<String> options, String questId, String flagBase, Consumer<Integer> callback) {
         if (options == null || options.isEmpty()) return;
         if (hasChoiceSession(player)) return;
+        if (questId != null && flagBase != null) {
+            String pendingFlag = flagBase + "pending";
+            plugin.getQuestManager().setFlag(player.getUniqueId(), questId, pendingFlag);
+            String last = lastLines.get(player.getUniqueId());
+            pendingChoices.put(player.getUniqueId(), new PendingChoice(npc, options, callback, questId, flagBase, last));
+        }
 
         ChoiceSession[] ref = new ChoiceSession[1];
         Listener listener = new Listener() {
@@ -193,6 +220,7 @@ public class NPCDialogManager implements Listener {
 
     private void sendLine(Player player, DialogSession session) {
         String raw = session.lines.get(session.index);
+        lastLines.put(player.getUniqueId(), raw);
         String speaker = session.npc.getName();
         String line = raw;
         int bar = raw.indexOf('|');
@@ -239,6 +267,8 @@ public class NPCDialogManager implements Listener {
         sessions.remove(player.getUniqueId());
         player.removePotionEffect(PotionEffectType.SLOWNESS);
         player.setInvulnerable(false);
+        lastLines.remove(player.getUniqueId());
+        pendingChoices.remove(player.getUniqueId());
     }
 
     @EventHandler
@@ -277,12 +307,44 @@ public class NPCDialogManager implements Listener {
         HandlerList.unregisterAll(cs.listener);
         choiceSessions.remove(player.getUniqueId());
         if (cs.questId != null && cs.flagBase != null) {
-            me.nakilex.levelplugin.Main.getInstance().getQuestManager()
-                    .setFlag(player.getUniqueId(), cs.questId, cs.flagBase + cs.index);
+            QuestManager qm = plugin.getQuestManager();
+            qm.removeFlag(player.getUniqueId(), cs.questId, cs.flagBase + "pending");
+            qm.setFlag(player.getUniqueId(), cs.questId, cs.flagBase + cs.index);
+            pendingChoices.remove(player.getUniqueId());
         }
         if (cs.callback != null) {
             cs.callback.accept(cs.index);
         }
+    }
+
+    /**
+     * If the player has a pending choice for the given NPC, replay the last line
+     * and reopen the choice dialog.
+     *
+     * @return true if a pending choice was resumed
+     */
+    public boolean resumePendingChoice(Player player, NPC npc) {
+        PendingChoice pc = pendingChoices.get(player.getUniqueId());
+        if (pc == null) return false;
+        if (npc != null && pc.npc != null && pc.npc.getId() != npc.getId()) {
+            return false;
+        }
+        if (pc.questId != null) {
+            QuestManager qm = plugin.getQuestManager();
+            if (!qm.hasFlag(player.getUniqueId(), pc.questId, pc.flagBase + "pending")) {
+                pendingChoices.remove(player.getUniqueId());
+                return false;
+            }
+        }
+
+        String line = pc.resumeLine;
+        if (line != null) {
+            startDialog(player, java.util.List.of(line), npc, () ->
+                    startChoiceDialog(player, npc, pc.options, pc.questId, pc.flagBase, pc.callback));
+        } else {
+            startChoiceDialog(player, npc, pc.options, pc.questId, pc.flagBase, pc.callback);
+        }
+        return true;
     }
 
     /** Cancel dialog if player walks too far from the NPC. */

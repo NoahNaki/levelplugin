@@ -115,6 +115,10 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
 
                 java.util.UUID id = player.getUniqueId();
 
+                if (plugin.getDialogManager().resumePendingChoice(player, npc)) {
+                    return;
+                }
+
                 // If the player already has coins from Piwan, just open the shop
                 if (qm.hasFlag(id, "newbeginning", "givenCoins") && !qm.hasFlag(id, "newbeginning", "merchantDone")) {
                     qm.setFlag(id, "newbeginning", "merchantDone");
