@@ -27,7 +27,7 @@ import net.citizensnpcs.api.npc.NPC;
 
 import java.util.List;
 
-public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompletionScript {
+public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompletionScript, QuestResetScript {
 
     /** Cached block data for the destination elevator structure. */
     private Map<Location, BlockData> worldElevatorBlocks;
@@ -36,12 +36,21 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
     /** Whether the real elevator blocks have been cleared from the world. */
     private boolean worldElevatorCleared;
 
+    /** Per-player listeners for cleanup when the quest resets. */
+    private final java.util.Map<java.util.UUID, java.util.List<Listener>> listeners = new java.util.HashMap<>();
+
     private static List<QuestObjective> createObjectives() {
         World world = Bukkit.getWorld("redrocks");
         Location beacon = world != null ? new Location(world, 29.5, 142, -92.5) : null;
         return java.util.List.of(
                 new QuestObjective(QuestObjectiveType.TALK, "npc516", 1, beacon)
         );
+    }
+
+    /** Register a listener for this player so it can be cleaned up. */
+    private void register(Player player, Listener listener, Main plugin) {
+        Bukkit.getPluginManager().registerEvents(listener, plugin);
+        listeners.computeIfAbsent(player.getUniqueId(), k -> new java.util.ArrayList<>()).add(listener);
     }
 
     public OfficeErrandsQuest() {
@@ -162,7 +171,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                 }
             }
         };
-        Bukkit.getPluginManager().registerEvents(talkListener, plugin);
+        register(player, talkListener, plugin);
 
         // After speaking with the Janitor, detect when the player enters the elevator
         Listener moveListener = new Listener() {
@@ -187,7 +196,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                 }
             }
         };
-        Bukkit.getPluginManager().registerEvents(moveListener, plugin);
+        register(player, moveListener, plugin);
     }
 
     /** Begin the elevator teleport sequence when the player steps inside. */
@@ -290,7 +299,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                                         }
                                     }
                                 };
-                                Bukkit.getPluginManager().registerEvents(exitListener, plugin);
+                                register(player, exitListener, plugin);
 
                                 plugin.getQuestManager().handleTalk(player, "npc516");
                             }
@@ -357,6 +366,16 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
 
     public boolean isWorldElevatorCleared() {
         return worldElevatorCleared;
+    }
+
+    @Override
+    public void onReset(Player player, Main plugin) {
+        java.util.List<Listener> list = listeners.remove(player.getUniqueId());
+        if (list != null) {
+            for (Listener l : list) {
+                HandlerList.unregisterAll(l);
+            }
+        }
     }
     @Override
     public void onComplete(Player player, Main plugin) {

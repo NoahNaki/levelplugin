@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.quests.data.*;
 import me.nakilex.levelplugin.quests.gui.QuestState;
+import me.nakilex.levelplugin.quests.data.QuestResetScript;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -259,6 +260,14 @@ public class QuestManager {
         return map == null ? null : map.get(questId);
     }
 
+    /** Invoke any reset cleanup logic for a quest while the player object is available. */
+    public void cleanupQuest(Player player, String questId) {
+        Quest quest = quests.get(questId);
+        if (quest instanceof QuestResetScript reset) {
+            reset.onReset(player, plugin);
+        }
+    }
+
     public void setTrackedQuest(Player player, String questId) {
         trackedQuests.put(player.getUniqueId(), questId);
         saveProgress();
@@ -312,6 +321,10 @@ public class QuestManager {
         if (quest != null && quest.isMainQuest() && !ignoreMain) {
             return;
         }
+        Player p = Bukkit.getPlayer(player);
+        if (p != null && quest instanceof QuestResetScript reset) {
+            reset.onReset(p, plugin);
+        }
         Map<String, PlayerQuestProgress> map = activeQuests.get(player);
         if (map != null) {
             map.remove(questId);
@@ -339,6 +352,11 @@ public class QuestManager {
             }
         }
         completedQuests.computeIfAbsent(player, k -> new HashSet<>()).add(questId);
+        Player p = Bukkit.getPlayer(player);
+        Quest quest = quests.get(questId);
+        if (p != null && quest instanceof QuestResetScript reset) {
+            reset.onReset(p, plugin);
+        }
     }
 
     public String getQuestStatus(UUID player, String questId) {
@@ -649,6 +667,9 @@ public class QuestManager {
                         if (quest instanceof me.nakilex.levelplugin.quests.data.QuestCompletionScript script) {
                             script.onComplete(player, plugin);
                         }
+                        if (quest instanceof QuestResetScript reset) {
+                            reset.onReset(player, plugin);
+                        }
                     }
                     break outer;
                 }
@@ -688,6 +709,9 @@ public class QuestManager {
                         giveRewards(p, other.getQuest());
                         if (other.getQuest() instanceof me.nakilex.levelplugin.quests.data.QuestCompletionScript script) {
                             script.onComplete(p, plugin);
+                        }
+                        if (other.getQuest() instanceof QuestResetScript reset) {
+                            reset.onReset(p, plugin);
                         }
                     }
                 }

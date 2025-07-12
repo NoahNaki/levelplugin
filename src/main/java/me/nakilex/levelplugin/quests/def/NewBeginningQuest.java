@@ -27,7 +27,7 @@ import java.util.List;
 /**
  * Intro quest that plays a short conversation with Piwan.
  */
-public class NewBeginningQuest extends Quest implements QuestScript, QuestCompletionScript {
+public class NewBeginningQuest extends Quest implements QuestScript, QuestCompletionScript, QuestResetScript {
     private static List<QuestObjective> createObjectives() {
         return List.of(
                 new QuestObjective(QuestObjectiveType.TALK, "npc536_done", 1),
@@ -37,6 +37,9 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 new QuestObjective(QuestObjectiveType.TALK, "npc536_final", 1)
         );
     }
+
+    /** Per-player listeners registered during the quest. */
+    private final java.util.Map<java.util.UUID, java.util.List<Listener>> listeners = new java.util.HashMap<>();
 
     // Per-player flags stored via QuestManager now handle these states
 
@@ -62,6 +65,12 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 ),
                 true
         );
+    }
+
+    /** Register a listener for the player so it can be cleaned up later. */
+    private void register(Player player, Listener listener, Main plugin) {
+        Bukkit.getPluginManager().registerEvents(listener, plugin);
+        listeners.computeIfAbsent(player.getUniqueId(), k -> new java.util.ArrayList<>()).add(listener);
     }
 
     @Override
@@ -199,7 +208,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
             }
         };
 
-        Bukkit.getPluginManager().registerEvents(merchantListener, plugin);
+        register(player, merchantListener, plugin);
     }
 
     private void playDialog(Player player, Main plugin, NPC npc) {
@@ -301,7 +310,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
             }
         };
 
-        Bukkit.getPluginManager().registerEvents(handler, plugin);
+        register(player, handler, plugin);
     }
 
     /** Give the starting weapon based on the player's chosen class. */
@@ -327,6 +336,16 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
         );
         ItemManager.getInstance().addInstance(instance);
         player.getInventory().addItem(ItemUtil.createItemStackFromCustomItem(instance, 1, player));
+    }
+
+    @Override
+    public void onReset(Player player, Main plugin) {
+        java.util.List<Listener> list = listeners.remove(player.getUniqueId());
+        if (list != null) {
+            for (Listener l : list) {
+                HandlerList.unregisterAll(l);
+            }
+        }
     }
 
     @Override

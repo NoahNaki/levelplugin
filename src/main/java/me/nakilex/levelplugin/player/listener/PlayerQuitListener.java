@@ -50,6 +50,7 @@ public class PlayerQuitListener implements Listener {
         // Reset key quests so dialog resumes cleanly on next login
         me.nakilex.levelplugin.quests.managers.QuestManager qm =
                 Main.getInstance().getQuestManager();
+        qm.cleanupQuest(player, "officeerrands");
         qm.resetQuest(pid, "officeerrands", true);
 
         Main.getInstance().getDialogManager().resetDialog(player);
