@@ -330,11 +330,8 @@ public class ProfileSelectionGUI implements Listener {
         org.bukkit.Location loc = cfg.getProfileLocation(player.getUniqueId(), index);
         if (loc != null) player.teleport(loc);
 
-        // Clear any lingering dialog sessions and restart the Office Errands quest
-        Main plugin = Main.getInstance();
-        NPCDialogManager dm = plugin.getDialogManager();
-        dm.resetDialog(player);
-        QuestManager qm = plugin.getQuestManager();
+        // Start the introductory quest for brand new characters
+        QuestManager qm = Main.getInstance().getQuestManager();
         if (!qm.hasCompleted(player.getUniqueId(), "officeerrands") &&
                 qm.getProgress(player.getUniqueId(), "officeerrands") == null) {
             qm.startQuest(player, "officeerrands");
