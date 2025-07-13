@@ -295,10 +295,15 @@ public class BuildingStageManager {
             if (format == null) return blocks;
             try (var reader = format.getReader(new java.io.FileInputStream(file))) {
                 Clipboard clipboard = reader.read();
+                BlockVector3 min = clipboard.getRegion().getMinimumPoint();
                 for (BlockVector3 vec : clipboard.getRegion()) {
                     var state = clipboard.getBlock(vec);
                     BlockData data = BukkitAdapter.adapt(state.toImmutableState());
-                    blocks.add(new BlockDef(vec.getBlockX(), vec.getBlockY(), vec.getBlockZ(), data));
+                    blocks.add(new BlockDef(
+                            vec.getBlockX() - min.getBlockX(),
+                            vec.getBlockY() - min.getBlockY(),
+                            vec.getBlockZ() - min.getBlockZ(),
+                            data));
                 }
             }
         } catch (Exception e) {
