@@ -38,6 +38,7 @@ public class TownStageManager {
     /** Map of town -> level -> stage -> data */
     private final Map<String, Map<Integer, Map<Integer, TownStage>>> stages = new HashMap<>();
     private final Map<java.util.UUID, Map<String, java.util.List<NPC>>> spawnedNPCs = new HashMap<>();
+    /** Folder containing FAWE schematics for each stage. */
     private final File schemFolder;
     private File file;
     private FileConfiguration config;

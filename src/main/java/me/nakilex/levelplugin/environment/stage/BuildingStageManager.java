@@ -39,6 +39,7 @@ public class BuildingStageManager {
     /** Map of town -> building -> placement offset */
     private final Map<String, Map<String, Placement>> placements = new HashMap<>();
     private final Map<java.util.UUID, Map<String, List<NPC>>> spawnedNPCs = new HashMap<>();
+    /** Folder containing FAWE schematics for each stage. */
     private final File schemFolder;
     private File file;
     private FileConfiguration config;
