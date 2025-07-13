@@ -106,7 +106,7 @@ public class TownStageManager {
             }
         }
 
-        File schematic = new File(schemFolder, name + "_" + level + "_" + stage + ".schem");
+        File schematic = new File(schemFolder, name.toLowerCase() + "_" + level + "_" + stage + ".schem");
         saveSchematic(p1, p2, schematic);
         stages
             .computeIfAbsent(name.toLowerCase(), k -> new java.util.HashMap<>())
@@ -272,7 +272,7 @@ public class TownStageManager {
                             } catch (NumberFormatException ignored) {}
                         }
                     }
-                    File schematic = new File(schemFolder, town + "_" + level + "_" + stage + ".schem");
+                    File schematic = new File(schemFolder, town.toLowerCase() + "_" + level + "_" + stage + ".schem");
                     blocks = loadSchematic(schematic, world);
                     int ox = config.getInt(base + "origin.x", 0);
                     int oy = config.getInt(base + "origin.y", 0);

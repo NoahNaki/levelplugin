@@ -78,7 +78,7 @@ public class BuildingStageManager {
         List<BlockDef> blocks = captureBlocks(pos1, pos2);
 
         // Save a schematic of the selected area using FAWE
-        File schematic = new File(schemFolder, building + "_" + level + "_" + stage + ".schem");
+        File schematic = new File(schemFolder, building.toLowerCase() + "_" + level + "_" + stage + ".schem");
         saveSchematic(pos1, pos2, schematic);
 
         int minX = Math.min(pos1.getBlockX(), pos2.getBlockX());
@@ -361,7 +361,7 @@ public class BuildingStageManager {
                                 } catch (Exception ignore) {}
                             }
                         }
-                        File schematic = new File(schemFolder, building + "_" + level + "_" + stage + ".schem");
+                        File schematic = new File(schemFolder, building.toLowerCase() + "_" + level + "_" + stage + ".schem");
                         List<BlockDef> blockList = loadSchematic(schematic, world);
                         int hx = config.getInt(base + "holo.x", 0);
                         int hy = config.getInt(base + "holo.y", 0);
