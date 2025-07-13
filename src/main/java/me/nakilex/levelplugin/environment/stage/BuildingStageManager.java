@@ -314,6 +314,7 @@ public class BuildingStageManager {
                 for (BlockVector3 vec : clipboard.getRegion()) {
                     var state = clipboard.getBlock(vec);
                     BlockData data = BukkitAdapter.adapt(state.toImmutableState());
+                    if (data.getMaterial() == Material.AIR) continue;
                     blocks.add(new BlockDef(
                             vec.getBlockX() - min.getBlockX(),
                             vec.getBlockY() - min.getBlockY(),
