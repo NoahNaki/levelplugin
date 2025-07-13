@@ -51,6 +51,7 @@ public class PlayerJoinListener implements Listener {
             miningManager.initializePlayer(player);
             environmentManager.initializePlayer(player);
             stageManager.hideNPCsFrom(player);
+            environmentManager.getBuildingNPCManager().hideNPCsFrom(player);
             player.setHealthScaled(true);
             player.setHealthScale(20.0);
 

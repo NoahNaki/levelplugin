@@ -74,6 +74,7 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.environment.EnvironmentManager getEnvironmentManager() { return bootstrap.getEnvironmentManager(); }
     public me.nakilex.levelplugin.environment.stage.TownStageManager getTownStageManager() { return bootstrap.getTownStageManager(); }
     public me.nakilex.levelplugin.environment.stage.BuildingStageManager getBuildingStageManager() { return bootstrap.getBuildingStageManager(); }
+    public me.nakilex.levelplugin.environment.BuildingNPCManager getBuildingNPCManager() { return bootstrap.getBuildingNPCManager(); }
     public me.nakilex.levelplugin.leaderboards.LeaderboardManager getLeaderboardManager() { return bootstrap.getLeaderboardManager(); }
     public me.nakilex.levelplugin.leaderboards.DuelStatsManager getDuelStatsManager() { return bootstrap.getDuelStatsManager(); }
     public Map<UUID, List<net.citizensnpcs.api.npc.NPC>> getActiveBowDrones() { return bootstrap.getActiveBowDrones(); }

@@ -140,6 +140,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.environment.BuildingUpgradeGUI buildingUpgradeGUI;
     private me.nakilex.levelplugin.environment.stage.TownStageManager townStageManager;
     private me.nakilex.levelplugin.environment.stage.BuildingStageManager buildingStageManager;
+    private me.nakilex.levelplugin.environment.BuildingNPCManager buildingNPCManager;
     private me.nakilex.levelplugin.leaderboards.LeaderboardManager leaderboardManager;
     private me.nakilex.levelplugin.leaderboards.DuelStatsManager duelStatsManager;
     private final Map<UUID, List<NPC>> activeBowDrones = new HashMap<>();
@@ -164,7 +165,7 @@ public class PluginBootstrap {
         itemConfig.loadItems();
         storageEvents = new StorageEvents();
         plugin.getServer().getPluginManager().registerEvents(storageEvents, plugin);
-        environmentManager = new me.nakilex.levelplugin.environment.EnvironmentManager(playerConfig, townStageManager, buildingStageManager, fakeBlockManager);
+        environmentManager = new me.nakilex.levelplugin.environment.EnvironmentManager(playerConfig, townStageManager, buildingStageManager, buildingNPCManager, fakeBlockManager);
         upgradeGUI = new me.nakilex.levelplugin.environment.UpgradeGUI(environmentManager);
         buildingUpgradeGUI = new me.nakilex.levelplugin.environment.BuildingUpgradeGUI(environmentManager);
         CitizensAPI.getTraitFactory().registerTrait(net.citizensnpcs.api.trait.TraitInfo.create(MetadataTrait.class).withName("MetadataTrait"));
@@ -245,6 +246,7 @@ public class PluginBootstrap {
         questGateManager = new me.nakilex.levelplugin.fakeblock.QuestGateManager(plugin, fakeBlockManager);
         townStageManager = new me.nakilex.levelplugin.environment.stage.TownStageManager(plugin);
         buildingStageManager = new me.nakilex.levelplugin.environment.stage.BuildingStageManager(plugin);
+        buildingNPCManager = new me.nakilex.levelplugin.environment.BuildingNPCManager(plugin);
         cooldownManager.setLootChestManager(lootChestManager);
         enchantManager = new me.nakilex.levelplugin.enchanting.managers.EnchantManager();
         enchantGUI = new me.nakilex.levelplugin.enchanting.gui.EnchantGUI(enchantManager, economyManager);
@@ -352,6 +354,7 @@ public class PluginBootstrap {
         if (duelStatsManager != null) duelStatsManager.save();
         if (townStageManager != null) townStageManager.despawnAll();
         if (buildingStageManager != null) buildingStageManager.despawnAll();
+        if (buildingNPCManager != null) buildingNPCManager.despawnAll();
         if (dealMaker != null) dealMaker.closeAllTrades();
         plugin.getLogger().info("LevelPlugin has been disabled!");
     }
@@ -422,6 +425,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.environment.BuildingUpgradeGUI getBuildingUpgradeGUI() { return buildingUpgradeGUI; }
     public me.nakilex.levelplugin.environment.stage.TownStageManager getTownStageManager() { return townStageManager; }
     public me.nakilex.levelplugin.environment.stage.BuildingStageManager getBuildingStageManager() { return buildingStageManager; }
+    public me.nakilex.levelplugin.environment.BuildingNPCManager getBuildingNPCManager() { return buildingNPCManager; }
     public me.nakilex.levelplugin.leaderboards.LeaderboardManager getLeaderboardManager() { return leaderboardManager; }
     public me.nakilex.levelplugin.leaderboards.DuelStatsManager getDuelStatsManager() { return duelStatsManager; }
     public ChestHologramListener getChestHologramListener() { return chestHologramListener; }

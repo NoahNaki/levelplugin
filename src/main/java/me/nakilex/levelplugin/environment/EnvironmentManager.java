@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.environment;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.environment.stage.BuildingStageManager;
+import me.nakilex.levelplugin.environment.BuildingNPCManager;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.environment.stage.TownStageManager;
 import me.nakilex.levelplugin.fakeblock.FakeBlockManager;
@@ -29,6 +30,7 @@ public class EnvironmentManager {
     private final PlayerConfig playerConfig;
     private final TownStageManager stageManager;
     private final me.nakilex.levelplugin.environment.stage.BuildingStageManager buildingStageManager;
+    private final BuildingNPCManager buildingNPCManager;
     private final FakeBlockManager fakeBlockManager;
     private final Map<UUID, EnvironmentState> states = new HashMap<>();
     private final Map<UUID, Location> origins = new HashMap<>();
@@ -53,10 +55,12 @@ public class EnvironmentManager {
     public EnvironmentManager(PlayerConfig config,
                               TownStageManager stageManager,
                               me.nakilex.levelplugin.environment.stage.BuildingStageManager buildingStageManager,
+                              BuildingNPCManager buildingNPCManager,
                               FakeBlockManager blockManager) {
         this.playerConfig = config;
         this.stageManager = stageManager;
         this.buildingStageManager = buildingStageManager;
+        this.buildingNPCManager = buildingNPCManager;
         this.fakeBlockManager = blockManager;
     }
 
@@ -66,6 +70,10 @@ public class EnvironmentManager {
 
     public me.nakilex.levelplugin.environment.stage.BuildingStageManager getBuildingStageManager() {
         return buildingStageManager;
+    }
+
+    public BuildingNPCManager getBuildingNPCManager() {
+        return buildingNPCManager;
     }
 
     public String getTown(UUID uuid) {
@@ -201,6 +209,7 @@ public class EnvironmentManager {
         if (bMap != null) {
             for (var e : bMap.entrySet()) {
                 buildingStageManager.despawnForStage(member, e.getKey(), e.getValue().level, e.getValue().stage);
+                buildingNPCManager.despawnForStage(member, e.getKey(), e.getValue().level, e.getValue().stage);
             }
         }
         fakeBlockManager.clear(Bukkit.getPlayer(member));
@@ -265,6 +274,7 @@ public class EnvironmentManager {
                         if (town != null && origin != null) {
                             Location bOrig = getBuildingOrigin(town, entry.getKey(), origin);
                             buildingStageManager.despawnForStage(player.getUniqueId(), entry.getKey(), oldL, oldS);
+                            buildingNPCManager.despawnForStage(player.getUniqueId(), entry.getKey(), oldL, oldS);
                             spawnBuildingUpgrade(player, entry.getKey(), bOrig, oldL, oldS, bs.level, bs.stage);
                         }
                         Main.getInstance().getQuestManager().handleTownUpgrade(player);
@@ -325,6 +335,7 @@ public class EnvironmentManager {
             if (town != null && origin != null) {
                 Location bOrig = getBuildingOrigin(town, building, origin);
                 buildingStageManager.despawnForStage(player.getUniqueId(), building, oldL, oldS);
+                buildingNPCManager.despawnForStage(player.getUniqueId(), building, oldL, oldS);
                 spawnBuildingUpgrade(player, building, bOrig, oldL, oldS, bs.level, bs.stage);
             }
             Main.getInstance().getQuestManager().handleTownUpgrade(player);
@@ -474,6 +485,7 @@ public class EnvironmentManager {
             if (bMap != null) {
                 for (var e : bMap.entrySet()) {
                     buildingStageManager.despawnForStage(uuid, e.getKey(), e.getValue().level, e.getValue().stage);
+                    buildingNPCManager.despawnForStage(uuid, e.getKey(), e.getValue().level, e.getValue().stage);
                 }
             }
         }
@@ -650,6 +662,7 @@ public class EnvironmentManager {
                 if (index >= blocks.size()) {
                     player.playSound(origin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
                     buildingStageManager.spawnForStage(player, building, level, stage, origin);
+                    buildingNPCManager.spawnForStage(player, building, level, stage, origin);
                     // Place the hologram where the stage was defined (+1 Y already stored)
                     Location holo = origin.clone().add(
                             stageData.hx - stageData.ox + 0.5,
@@ -726,6 +739,7 @@ public class EnvironmentManager {
         org.bukkit.Sound[] placeSounds = { org.bukkit.Sound.BLOCK_STONE_PLACE, org.bukkit.Sound.BLOCK_DEEPSLATE_PLACE, org.bukkit.Sound.BLOCK_WOOD_PLACE };
 
         buildingStageManager.despawnForStage(uuid, building, oldLevel, oldStage);
+        buildingNPCManager.despawnForStage(uuid, building, oldLevel, oldStage);
 
         BukkitTask task = new BukkitRunnable() {
             final java.util.Iterator<Integer> it = allY.iterator();
@@ -734,6 +748,7 @@ public class EnvironmentManager {
                 if (!it.hasNext()) {
                     player.playSound(origin, org.bukkit.Sound.BLOCK_ANVIL_USE, 1f, 1f);
                     buildingStageManager.spawnForStage(player, building, newLevel, newStage, origin);
+                    buildingNPCManager.spawnForStage(player, building, newLevel, newStage, origin);
                     Location holo = origin.clone().add(
                             newData.hx - newData.ox + 0.5,
                             newData.hy - newData.oy,
