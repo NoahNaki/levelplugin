@@ -1,1 +1,12 @@
-npcs: {}
+npcs:
+  blacksmith:
+    smith:
+      id: 537
+      level: 1
+      stage: 1
+      world: flatland
+      x: 2025
+      y: -57
+      z: -1227
+      yaw: 0
+      pitch: 0

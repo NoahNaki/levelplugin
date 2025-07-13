@@ -6,6 +6,7 @@ import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.trait.CurrentLocation;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -51,12 +52,13 @@ public class BuildingNPCManager {
                         if (id < 0) continue;
                         int level = config.getInt(base + "level", 1);
                         int stage = config.getInt(base + "stage", 1);
+                        String world = config.getString(base + "world", null);
                         double x = config.getDouble(base + "x");
                         double y = config.getDouble(base + "y");
                         double z = config.getDouble(base + "z");
                         float yaw = (float) config.getDouble(base + "yaw");
                         float pitch = (float) config.getDouble(base + "pitch");
-                        list.add(new NPCPlacement(id, x, y, z, yaw, pitch, level, stage));
+                        list.add(new NPCPlacement(id, world, x, y, z, yaw, pitch, level, stage));
                     }
                 }
                 npcMap.put(building.toLowerCase(), list);
@@ -83,9 +85,16 @@ public class BuildingNPCManager {
                 NPC template = CitizensAPI.getNPCRegistry().getById(np.id);
                 if (template == null) continue;
                 NPC clone = template.copy();
-                Location loc = origin.clone().add(np.x, np.y, np.z);
-                loc.setYaw(np.yaw);
-                loc.setPitch(np.pitch);
+                Location loc;
+                if (np.world != null) {
+                    World w = Bukkit.getWorld(np.world);
+                    if (w == null) continue;
+                    loc = new Location(w, np.x, np.y, np.z, np.yaw, np.pitch);
+                } else {
+                    loc = origin.clone().add(np.x, np.y, np.z);
+                    loc.setYaw(np.yaw);
+                    loc.setPitch(np.pitch);
+                }
                 clone.getOrAddTrait(CurrentLocation.class).setLocation(loc);
                 clone.spawn(loc);
                 if (clone.isSpawned()) {
@@ -143,11 +152,13 @@ public class BuildingNPCManager {
     /** Definition of an NPC relative to a building origin. */
     public static class NPCPlacement {
         public final int id;
+        public final String world;
         public final double x, y, z;
         public final float yaw, pitch;
         public final int level, stage;
-        public NPCPlacement(int id, double x, double y, double z, float yaw, float pitch, int level, int stage) {
+        public NPCPlacement(int id, String world, double x, double y, double z, float yaw, float pitch, int level, int stage) {
             this.id = id;
+            this.world = world;
             this.x = x;
             this.y = y;
             this.z = z;
