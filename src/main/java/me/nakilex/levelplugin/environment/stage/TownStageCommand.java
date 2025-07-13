@@ -67,6 +67,20 @@ public class TownStageCommand implements CommandExecutor, Listener {
                 manager.createStage(name, level, 1, pos1, pos2, origin);
                 p.sendMessage(ChatColor.GREEN + "Stage " + name + " created.");
                 return true;
+            case "schem":
+                if (args.length < 3) return false;
+                Location s1 = StageSelectionStore.getPos1(p.getUniqueId());
+                Location s2 = StageSelectionStore.getPos2(p.getUniqueId());
+                if (s1 == null || s2 == null) {
+                    p.sendMessage(ChatColor.RED + "Select two positions first.");
+                    return true;
+                }
+                String sn = args[1].toLowerCase();
+                int sl = parseInt(args[2], 1);
+                Location o = p.getLocation().getBlock().getLocation();
+                manager.createStageSchem(sn, sl, 1, s1, s2, o);
+                p.sendMessage(ChatColor.GREEN + "Stage " + sn + " schematic saved.");
+                return true;
             case "remove":
                 if (args.length < 3) return false;
                 String rName = args[1].toLowerCase();

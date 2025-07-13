@@ -508,6 +508,14 @@ public class EnvironmentManager {
         var stageData = stageManager.getStage(town, level, stage);
         if (stageData == null) return;
 
+        if (stageData.schematic != null && stageData.schematic.exists()) {
+            Location pasteOrigin = origin.clone().add(-stageData.ox, -stageData.oy, -stageData.oz);
+            stageManager.pasteSchematic(stageData.schematic, pasteOrigin);
+            stageManager.spawnForStage(player, town, level, stage, origin);
+            if (after != null) after.run();
+            return;
+        }
+
         java.util.List<TownStageManager.BlockDef> blocks = new java.util.ArrayList<>(stageData.blocks);
         blocks.sort(java.util.Comparator.comparingInt(b -> b.y));
 
@@ -566,6 +574,14 @@ public class EnvironmentManager {
         var newData = stageManager.getStage(town, newLevel, newStage);
         if (newData == null) return;
         var oldData = stageManager.getStage(town, oldLevel, oldStage);
+
+        if (newData.schematic != null && newData.schematic.exists()) {
+            stageManager.despawnForStage(uuid, town, oldLevel, oldStage);
+            Location pasteOrigin = origin.clone().add(-newData.ox, -newData.oy, -newData.oz);
+            stageManager.pasteSchematic(newData.schematic, pasteOrigin);
+            stageManager.spawnForStage(player, town, newLevel, newStage, origin);
+            return;
+        }
 
         java.util.Map<Integer, java.util.List<TownStageManager.BlockDef>> newLayers = new java.util.HashMap<>();
         for (var b : newData.blocks) {

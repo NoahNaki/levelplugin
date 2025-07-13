@@ -1,1 +1,9 @@
-stages: {}
+stages:
+  castle:
+    '1':
+      world: flatland
+      pos1: {x: 0, y: 0, z: 0}
+      pos2: {x: 0, y: 0, z: 0}
+      schem: schematics/castle_l1_s1.schem
+      npcs: []
+      origin: {x: 0, y: 0, z: 0}

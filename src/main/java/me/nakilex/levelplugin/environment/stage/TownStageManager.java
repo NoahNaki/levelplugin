@@ -4,6 +4,21 @@ import me.nakilex.levelplugin.Main;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
+import com.sk89q.worldedit.WorldEdit;
+import com.sk89q.worldedit.bukkit.BukkitAdapter;
+import com.sk89q.worldedit.extent.clipboard.Clipboard;
+import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormat;
+import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormats;
+import com.sk89q.worldedit.extent.clipboard.io.ClipboardReader;
+import com.sk89q.worldedit.extent.clipboard.io.ClipboardWriter;
+import com.sk89q.worldedit.function.operation.Operation;
+import com.sk89q.worldedit.function.operation.Operations;
+import com.sk89q.worldedit.function.operation.ForwardExtentCopy;
+import com.sk89q.worldedit.math.BlockVector3;
+import com.sk89q.worldedit.session.ClipboardHolder;
+import com.sk89q.worldedit.EditSession;
+import com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard;
+import com.sk89q.worldedit.regions.CuboidRegion;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.trait.CurrentLocation;
@@ -13,6 +28,8 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -93,7 +110,46 @@ public class TownStageManager {
         stages
             .computeIfAbsent(name.toLowerCase(), k -> new java.util.HashMap<>())
             .computeIfAbsent(level, k -> new java.util.HashMap<>())
-            .put(stage, new TownStage(name.toLowerCase(), level, stage, p1, p2, npcs, blocks, ox, oy, oz));
+            .put(stage, new TownStage(name.toLowerCase(), level, stage, p1, p2, npcs, blocks, null, ox, oy, oz));
+        saveConfig();
+    }
+
+    /**
+     * Capture the selected area and export it to a schematic file instead of storing all block data.
+     */
+    public void createStageSchem(String name, int level, int stage, Location p1, Location p2, Location origin) {
+        java.util.List<NPCSpawn> npcs = new java.util.ArrayList<>();
+        int minX = Math.min(p1.getBlockX(), p2.getBlockX());
+        int minY = Math.min(p1.getBlockY(), p2.getBlockY());
+        int minZ = Math.min(p1.getBlockZ(), p2.getBlockZ());
+        int maxX = Math.max(p1.getBlockX(), p2.getBlockX());
+        int maxY = Math.max(p1.getBlockY(), p2.getBlockY());
+        int maxZ = Math.max(p1.getBlockZ(), p2.getBlockZ());
+
+        for (NPC npc : CitizensAPI.getNPCRegistry()) {
+            Location l = npc.isSpawned() ? npc.getEntity().getLocation() : npc.getStoredLocation();
+            if (l == null || !l.getWorld().equals(p1.getWorld())) continue;
+            int x = l.getBlockX();
+            int y = l.getBlockY();
+            int z = l.getBlockZ();
+            if (x >= minX && x <= maxX && y >= minY && y <= maxY && z >= minZ && z <= maxZ) {
+                npcs.add(new NPCSpawn(npc.getId(), x - minX, y - minY, z - minZ, l.getYaw(), l.getPitch()));
+            }
+        }
+
+        int ox = origin.getBlockX() - minX;
+        int oy = origin.getBlockY() - minY;
+        int oz = origin.getBlockZ() - minZ;
+
+        File schemDir = new File(plugin.getDataFolder(), "schematics");
+        schemDir.mkdirs();
+        File out = new File(schemDir, name.toLowerCase() + "_l" + level + "_s" + stage + ".schem");
+        saveSchematic(p1, p2, out);
+
+        stages
+            .computeIfAbsent(name.toLowerCase(), k -> new java.util.HashMap<>())
+            .computeIfAbsent(level, k -> new java.util.HashMap<>())
+            .put(stage, new TownStage(name.toLowerCase(), level, stage, p1, p2, npcs, java.util.Collections.emptyList(), out, ox, oy, oz));
         saveConfig();
     }
 
@@ -203,6 +259,61 @@ public class TownStageManager {
         }
     }
 
+    /** Save the selected region to a schematic file using FAWE. */
+    private void saveSchematic(Location p1, Location p2, File file) {
+        try {
+            int minX = Math.min(p1.getBlockX(), p2.getBlockX());
+            int minY = Math.min(p1.getBlockY(), p2.getBlockY());
+            int minZ = Math.min(p1.getBlockZ(), p2.getBlockZ());
+            int maxX = Math.max(p1.getBlockX(), p2.getBlockX());
+            int maxY = Math.max(p1.getBlockY(), p2.getBlockY());
+            int maxZ = Math.max(p1.getBlockZ(), p2.getBlockZ());
+
+            com.sk89q.worldedit.world.World weWorld = BukkitAdapter.adapt(p1.getWorld());
+            BlockVector3 min = BlockVector3.at(minX, minY, minZ);
+            BlockVector3 max = BlockVector3.at(maxX, maxY, maxZ);
+            CuboidRegion region = new CuboidRegion(weWorld, min, max);
+            BlockArrayClipboard clipboard = new BlockArrayClipboard(region);
+            try (EditSession editSession = WorldEdit.getInstance().newEditSession(weWorld)) {
+                ForwardExtentCopy copy = new ForwardExtentCopy(editSession, region, clipboard, region.getMinimumPoint());
+                Operations.complete(copy);
+            }
+
+            ClipboardFormat format = ClipboardFormats.findByFile(file);
+            if (format == null) {
+                format = ClipboardFormats.findByAlias("schem");
+            }
+            file.getParentFile().mkdirs();
+            try (ClipboardWriter writer = format.getWriter(new java.io.FileOutputStream(file))) {
+                writer.write(clipboard);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /** Paste a schematic file at the given origin using FAWE. */
+    public void pasteSchematic(java.io.File file, Location origin) {
+        try {
+            ClipboardFormat format = ClipboardFormats.findByFile(file);
+            if (format == null) return;
+            try (ClipboardReader reader = format.getReader(new FileInputStream(file))) {
+                Clipboard clipboard = reader.read();
+                com.sk89q.worldedit.world.World weWorld = BukkitAdapter.adapt(origin.getWorld());
+                try (EditSession editSession = WorldEdit.getInstance().newEditSession(weWorld)) {
+                    Operation op = new ClipboardHolder(clipboard)
+                            .createPaste(editSession)
+                            .to(BlockVector3.at(origin.getBlockX(), origin.getBlockY(), origin.getBlockZ()))
+                            .ignoreAirBlocks(true)
+                            .build();
+                    Operations.complete(op);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     private void loadFromConfig() {
         file = new File(plugin.getDataFolder(), "townstages.yml");
         if (!file.exists()) {
@@ -267,13 +378,18 @@ public class TownStageManager {
                             } catch (Exception ignored) {}
                         }
                     }
+                    java.io.File schemFile = null;
+                    String schemPath = config.getString(base + "schem");
+                    if (schemPath != null) {
+                        schemFile = new File(plugin.getDataFolder(), schemPath);
+                    }
                     int ox = config.getInt(base + "origin.x", 0);
                     int oy = config.getInt(base + "origin.y", 0);
                     int oz = config.getInt(base + "origin.z", 0);
                     stages
                         .computeIfAbsent(town.toLowerCase(), k -> new java.util.HashMap<>())
                         .computeIfAbsent(level, k -> new java.util.HashMap<>())
-                        .put(stage, new TownStage(town.toLowerCase(), level, stage, p1, p2, npcs, blocks, ox, oy, oz));
+                        .put(stage, new TownStage(town.toLowerCase(), level, stage, p1, p2, npcs, blocks, schemFile, ox, oy, oz));
                 }
             }
         }
@@ -317,6 +433,9 @@ public class TownStageManager {
                         blockLines.add(b.x + ";" + b.y + ";" + b.z + ";" + b.data.getAsString());
                     }
                     config.set(base + "blocks", blockLines);
+                    if (st.schematic != null) {
+                        config.set(base + "schem", st.schematic.getName());
+                    }
                     config.set(base + "origin.x", st.ox);
                     config.set(base + "origin.y", st.oy);
                     config.set(base + "origin.z", st.oz);
@@ -351,10 +470,13 @@ public class TownStageManager {
         public final Location pos2;
         public final java.util.List<NPCSpawn> npcs;
         public final java.util.List<BlockDef> blocks;
+        /** Optional schematic file instead of explicit blocks. */
+        public final java.io.File schematic;
         public final int ox, oy, oz;
 
         public TownStage(String name, int level, int stage, Location pos1, Location pos2,
                          java.util.List<NPCSpawn> npcs, java.util.List<BlockDef> blocks,
+                         java.io.File schematic,
                          int ox, int oy, int oz) {
             this.name = name;
             this.level = level;
@@ -363,6 +485,7 @@ public class TownStageManager {
             this.pos2 = pos2;
             this.npcs = npcs == null ? java.util.Collections.emptyList() : npcs;
             this.blocks = blocks == null ? java.util.Collections.emptyList() : blocks;
+            this.schematic = schematic;
             this.ox = ox;
             this.oy = oy;
             this.oz = oz;

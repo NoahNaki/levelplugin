@@ -201,7 +201,7 @@ commands:
     usage: /town [start <name>|reset]
   townstage:
     description: Define settlement stage regions
-    usage: /townstage <wand|create|remove|list>
+    usage: /townstage <wand|schem|create|remove|list>
   buildingstage:
     description: Define building stage regions
     usage: /buildingstage <wand|schem|create|remove|list>
