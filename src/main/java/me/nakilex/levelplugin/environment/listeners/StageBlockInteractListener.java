@@ -20,9 +20,15 @@ public class StageBlockInteractListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onInteract(PlayerInteractEvent event) {
-        if (event.getClickedBlock() == null) return;
         Player player = event.getPlayer();
-        Location loc = event.getClickedBlock().getLocation();
+        Location loc = null;
+        if (event.getClickedBlock() != null) {
+            loc = event.getClickedBlock().getLocation();
+        } else {
+            var target = player.getTargetBlockExact(5);
+            if (target != null) loc = target.getLocation();
+        }
+        if (loc == null) return;
         if (!fakeBlockManager.isFakeBlock(player, loc)) return;
 
         event.setCancelled(true);
