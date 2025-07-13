@@ -540,7 +540,8 @@ public class EnvironmentManager {
     }
 
     /**
-     * Upgrade the main town structure, replacing old blocks layer by layer.
+     * Upgrade the main town structure by clearing the old stage and then
+     * placing the new one layer by layer from the bottom up.
      */
     private void spawnStructureUpgrade(Player player, Location origin,
                                        int oldLevel, int oldStage,
@@ -561,16 +562,16 @@ public class EnvironmentManager {
             newLayers.computeIfAbsent(b.y, k -> new java.util.ArrayList<>()).add(b);
         }
 
-        java.util.Map<Integer, java.util.List<Location>> oldLayers = new java.util.HashMap<>();
+        java.util.SortedSet<Integer> allY = new java.util.TreeSet<>(newLayers.keySet());
+
         if (oldData != null) {
+            java.util.List<Location> remove = new java.util.ArrayList<>();
             for (var b : oldData.blocks) {
                 Location l = origin.clone().add(b.x - oldData.ox, b.y - oldData.oy, b.z - oldData.oz);
-                oldLayers.computeIfAbsent(b.y, k -> new java.util.ArrayList<>()).add(l);
+                remove.add(l);
             }
+            fakeBlockManager.hideFakeBlocks(player, remove);
         }
-
-        java.util.Set<Integer> allY = new java.util.TreeSet<>(newLayers.keySet());
-        allY.addAll(oldLayers.keySet());
 
         java.util.Random rand = new java.util.Random();
         org.bukkit.Sound[] breakSounds = { org.bukkit.Sound.BLOCK_STONE_BREAK, org.bukkit.Sound.BLOCK_DEEPSLATE_BREAK, org.bukkit.Sound.BLOCK_WOOD_BREAK };
@@ -589,9 +590,6 @@ public class EnvironmentManager {
                     return;
                 }
                 int y = it.next();
-                java.util.List<Location> toRemove = oldLayers.getOrDefault(y, java.util.Collections.emptyList());
-                fakeBlockManager.hideFakeBlocks(player, toRemove);
-
                 java.util.Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
                 java.util.List<TownStageManager.BlockDef> add = newLayers.getOrDefault(y, java.util.Collections.emptyList());
                 for (var b : add) {
@@ -685,7 +683,8 @@ public class EnvironmentManager {
     }
 
     /**
-     * Upgrade a building by replacing the old stage with the new one layer by layer.
+     * Upgrade a building by first clearing the old stage and then placing the new
+     * stage layer by layer from the bottom up.
      */
     private void spawnBuildingUpgrade(Player player, String building, Location origin,
                                       int oldLevel, int oldStage,
@@ -711,16 +710,16 @@ public class EnvironmentManager {
             newLayers.computeIfAbsent(b.y, k -> new java.util.ArrayList<>()).add(b);
         }
 
-        java.util.Map<Integer, java.util.List<Location>> oldLayers = new java.util.HashMap<>();
+        java.util.SortedSet<Integer> allY = new java.util.TreeSet<>(newLayers.keySet());
+
         if (oldData != null) {
+            java.util.List<Location> toRemove = new java.util.ArrayList<>();
             for (var b : oldData.blocks) {
                 Location l = origin.clone().add(b.x - oldData.ox, b.y - oldData.oy, b.z - oldData.oz);
-                oldLayers.computeIfAbsent(b.y, k -> new java.util.ArrayList<>()).add(l);
+                toRemove.add(l);
             }
+            fakeBlockManager.hideFakeBlocks(player, toRemove);
         }
-
-        java.util.Set<Integer> allY = new java.util.TreeSet<>(newLayers.keySet());
-        allY.addAll(oldLayers.keySet());
 
         java.util.Random rand = new java.util.Random();
         org.bukkit.Sound[] breakSounds = { org.bukkit.Sound.BLOCK_STONE_BREAK, org.bukkit.Sound.BLOCK_DEEPSLATE_BREAK, org.bukkit.Sound.BLOCK_WOOD_BREAK };
@@ -757,9 +756,6 @@ public class EnvironmentManager {
                     return;
                 }
                 int y = it.next();
-                java.util.List<Location> toRemove = oldLayers.getOrDefault(y, java.util.Collections.emptyList());
-                fakeBlockManager.hideFakeBlocks(player, toRemove);
-
                 java.util.Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
                 java.util.List<BuildingStageManager.BlockDef> add = newLayers.getOrDefault(y, java.util.Collections.emptyList());
                 for (var b : add) {
