@@ -202,6 +202,30 @@ public class EnvironmentManager {
         }
     }
 
+    /** Spawn an upgrade hologram for the given building stage. */
+    private void spawnBuildingHologram(Player player, String building,
+                                       me.nakilex.levelplugin.environment.stage.BuildingStageManager.BuildingStage data,
+                                       Location origin) {
+        UUID uuid = player.getUniqueId();
+        Location holo = origin.clone().add(
+                data.hx - data.ox + 0.5,
+                data.hy - data.oy,
+                data.hz - data.oz + 0.5);
+        org.bukkit.entity.ArmorStand stand = holo.getWorld().spawn(holo, org.bukkit.entity.ArmorStand.class);
+        stand.addScoreboardTag("building_hologram:" + building.toLowerCase());
+        stand.setVisible(false);
+        stand.setGravity(false);
+        stand.setCustomName(org.bukkit.ChatColor.YELLOW + "Upgrade " + building + " - 1 Oak Log");
+        stand.setCustomNameVisible(true);
+        stand.setSilent(true);
+        stand.setSmall(true);
+        for (Player p : org.bukkit.Bukkit.getOnlinePlayers()) {
+            if (!p.equals(player)) p.hideEntity(Main.getInstance(), stand);
+        }
+        buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
+                .put(building.toLowerCase(), stand);
+    }
+
     private void removeMemberData(UUID member, String town, EnvironmentState st, Map<String, EnvironmentState> bMap) {
         cancelTasks(member);
         removeAllBuildingHolograms(member);
@@ -652,6 +676,7 @@ public class EnvironmentManager {
             buildingStageManager.pasteSchematic(stageData.schematic, pasteOrigin);
             buildingStageManager.spawnForStage(player, building, level, stage, origin);
             buildingNPCManager.spawnForStage(player, building, level, stage, origin);
+            spawnBuildingHologram(player, building, stageData, origin);
             if (after != null) after.run();
             return;
         }
@@ -750,6 +775,7 @@ public class EnvironmentManager {
             buildingStageManager.pasteSchematic(newData.schematic, pasteOrigin);
             buildingStageManager.spawnForStage(player, building, newLevel, newStage, origin);
             buildingNPCManager.spawnForStage(player, building, newLevel, newStage, origin);
+            spawnBuildingHologram(player, building, newData, origin);
             if (after != null) after.run();
             return;
         }
