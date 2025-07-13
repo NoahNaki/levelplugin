@@ -532,15 +532,8 @@ public class EnvironmentManager {
         var stageData = stageManager.getStage(town, level, stage);
         if (stageData == null) return;
 
-        if (stageData.schematic != null && stageData.schematic.exists()) {
-            Location pasteOrigin = origin.clone().add(-stageData.ox, -stageData.oy, -stageData.oz);
-            stageManager.pasteSchematic(stageData.schematic, pasteOrigin);
-            stageManager.spawnForStage(player, town, level, stage, origin);
-            if (after != null) after.run();
-            return;
-        }
-
-        java.util.List<TownStageManager.BlockDef> blocks = new java.util.ArrayList<>(stageData.blocks);
+        java.util.List<TownStageManager.BlockDef> blocks = new java.util.ArrayList<>(
+                stageManager.getBlocksForStage(stageData));
         blocks.sort(java.util.Comparator.comparingInt(b -> b.y));
 
         final int totalTime = 20 * 20; // 20 seconds in ticks
@@ -599,22 +592,14 @@ public class EnvironmentManager {
         if (newData == null) return;
         var oldData = stageManager.getStage(town, oldLevel, oldStage);
 
-        if (newData.schematic != null && newData.schematic.exists()) {
-            stageManager.despawnForStage(uuid, town, oldLevel, oldStage);
-            Location pasteOrigin = origin.clone().add(-newData.ox, -newData.oy, -newData.oz);
-            stageManager.pasteSchematic(newData.schematic, pasteOrigin);
-            stageManager.spawnForStage(player, town, newLevel, newStage, origin);
-            return;
-        }
-
         java.util.Map<Integer, java.util.List<TownStageManager.BlockDef>> newLayers = new java.util.HashMap<>();
-        for (var b : newData.blocks) {
+        for (var b : stageManager.getBlocksForStage(newData)) {
             newLayers.computeIfAbsent(b.y, k -> new java.util.ArrayList<>()).add(b);
         }
 
         java.util.Map<Integer, java.util.List<Location>> oldLayers = new java.util.HashMap<>();
         if (oldData != null) {
-            for (var b : oldData.blocks) {
+            for (var b : stageManager.getBlocksForStage(oldData)) {
                 Location l = origin.clone().add(b.x - oldData.ox, b.y - oldData.oy, b.z - oldData.oz);
                 oldLayers.computeIfAbsent(b.y, k -> new java.util.ArrayList<>()).add(l);
             }
@@ -671,17 +656,8 @@ public class EnvironmentManager {
         var stageData = buildingStageManager.getStage(building, level, stage);
         if (stageData == null) return;
 
-        if (stageData.schematic != null && stageData.schematic.exists()) {
-            Location pasteOrigin = origin.clone().add(-stageData.ox, -stageData.oy, -stageData.oz);
-            buildingStageManager.pasteSchematic(stageData.schematic, pasteOrigin);
-            buildingStageManager.spawnForStage(player, building, level, stage, origin);
-            buildingNPCManager.spawnForStage(player, building, level, stage, origin);
-            spawnBuildingHologram(player, building, stageData, origin);
-            if (after != null) after.run();
-            return;
-        }
-
-        java.util.List<BuildingStageManager.BlockDef> blocks = new java.util.ArrayList<>(stageData.blocks);
+        java.util.List<BuildingStageManager.BlockDef> blocks = new java.util.ArrayList<>(
+                buildingStageManager.getBlocksForStage(stageData));
         blocks.sort(java.util.Comparator.comparingInt(b -> b.y));
 
         final int totalTime = 20 * 20;
@@ -768,26 +744,14 @@ public class EnvironmentManager {
         if (newData == null) return;
         var oldData = buildingStageManager.getStage(building, oldLevel, oldStage);
 
-        if (newData.schematic != null && newData.schematic.exists()) {
-            buildingStageManager.despawnForStage(uuid, building, oldLevel, oldStage);
-            buildingNPCManager.despawnForStage(uuid, building, oldLevel, oldStage);
-            Location pasteOrigin = origin.clone().add(-newData.ox, -newData.oy, -newData.oz);
-            buildingStageManager.pasteSchematic(newData.schematic, pasteOrigin);
-            buildingStageManager.spawnForStage(player, building, newLevel, newStage, origin);
-            buildingNPCManager.spawnForStage(player, building, newLevel, newStage, origin);
-            spawnBuildingHologram(player, building, newData, origin);
-            if (after != null) after.run();
-            return;
-        }
-
         java.util.Map<Integer, java.util.List<BuildingStageManager.BlockDef>> newLayers = new java.util.HashMap<>();
-        for (var b : newData.blocks) {
+        for (var b : buildingStageManager.getBlocksForStage(newData)) {
             newLayers.computeIfAbsent(b.y, k -> new java.util.ArrayList<>()).add(b);
         }
 
         java.util.Map<Integer, java.util.List<Location>> oldLayers = new java.util.HashMap<>();
         if (oldData != null) {
-            for (var b : oldData.blocks) {
+            for (var b : buildingStageManager.getBlocksForStage(oldData)) {
                 Location l = origin.clone().add(b.x - oldData.ox, b.y - oldData.oy, b.z - oldData.oz);
                 oldLayers.computeIfAbsent(b.y, k -> new java.util.ArrayList<>()).add(l);
             }
@@ -860,7 +824,7 @@ public class EnvironmentManager {
         var st = buildingStageManager.getStage(building, level, stage);
         if (st == null) return;
         java.util.List<Location> locs = new java.util.ArrayList<>();
-        for (var b : st.blocks) {
+        for (var b : buildingStageManager.getBlocksForStage(st)) {
             Location l = origin.clone().add(b.x - st.ox, b.y - st.oy, b.z - st.oz);
             locs.add(l);
         }
@@ -872,7 +836,7 @@ public class EnvironmentManager {
         var st = stageManager.getStage(town, level, stage);
         if (st == null) return;
         java.util.List<Location> locs = new java.util.ArrayList<>();
-        for (var b : st.blocks) {
+        for (var b : stageManager.getBlocksForStage(st)) {
             Location l = origin.clone().add(b.x - st.ox, b.y - st.oy, b.z - st.oz);
             locs.add(l);
         }

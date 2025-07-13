@@ -346,6 +346,48 @@ public class BuildingStageManager {
         }
     }
 
+    /**
+     * Load block definitions from a schematic file for fake block display.
+     */
+    public java.util.List<BlockDef> loadSchematicBlocks(java.io.File file) {
+        java.util.List<BlockDef> list = new java.util.ArrayList<>();
+        try {
+            ClipboardFormat format = ClipboardFormats.findByFile(file);
+            if (format == null) return list;
+            try (ClipboardReader reader = format.getReader(new java.io.FileInputStream(file))) {
+                Clipboard clipboard = reader.read();
+                BlockVector3 min = clipboard.getMinimumPoint();
+                BlockVector3 max = clipboard.getMaximumPoint();
+                for (int x = min.getBlockX(); x <= max.getBlockX(); x++) {
+                    for (int y = min.getBlockY(); y <= max.getBlockY(); y++) {
+                        for (int z = min.getBlockZ(); z <= max.getBlockZ(); z++) {
+                            var state = clipboard.getFullBlock(BlockVector3.at(x, y, z));
+                            if (state.getBlockType().getMaterial().isAir()) continue;
+                            BlockData data = BukkitAdapter.adapt(state);
+                            list.add(new BlockDef(x - min.getBlockX(), y - min.getBlockY(), z - min.getBlockZ(), data));
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    /**
+     * Return block definitions for a stage, loading the schematic on demand
+     * if no explicit blocks are stored.
+     */
+    public java.util.List<BlockDef> getBlocksForStage(BuildingStage st) {
+        if (st == null) return java.util.Collections.emptyList();
+        if (!st.blocks.isEmpty()) return st.blocks;
+        if (st.schematic != null && st.schematic.exists()) {
+            return loadSchematicBlocks(st.schematic);
+        }
+        return java.util.Collections.emptyList();
+    }
+
     private void loadConfig() {
         file = new File(plugin.getDataFolder(), "buildingstages.yml");
         if (!file.exists()) {
