@@ -526,7 +526,13 @@ public class BuildingStageManager {
                         }
                         config.set(base + "blocks", blockLines);
                         if (st.schematic != null) {
-                            config.set(base + "schem", st.schematic.getName());
+                            try {
+                                java.nio.file.Path root = plugin.getDataFolder().toPath();
+                                java.nio.file.Path rel = root.relativize(st.schematic.toPath());
+                                config.set(base + "schem", rel.toString().replace('\\','/'));
+                            } catch (Exception ex) {
+                                config.set(base + "schem", st.schematic.getName());
+                            }
                         }
                         config.set(base + "holo.x", st.hx);
                         config.set(base + "holo.y", st.hy);

@@ -477,7 +477,13 @@ public class TownStageManager {
                     }
                     config.set(base + "blocks", blockLines);
                     if (st.schematic != null) {
-                        config.set(base + "schem", st.schematic.getName());
+                        try {
+                            java.nio.file.Path root = plugin.getDataFolder().toPath();
+                            java.nio.file.Path rel = root.relativize(st.schematic.toPath());
+                            config.set(base + "schem", rel.toString().replace('\\','/'));
+                        } catch (Exception ex) {
+                            config.set(base + "schem", st.schematic.getName());
+                        }
                     }
                     config.set(base + "origin.x", st.ox);
                     config.set(base + "origin.y", st.oy);
