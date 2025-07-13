@@ -252,7 +252,7 @@ public class BuildingStageManager {
         return blocks;
     }
 
-    /** Paste a schematic file at the specified origin using WorldEdit. */
+    /** Paste a schematic file at the specified origin using FastAsyncWorldEdit. */
     public void pasteSchematic(java.io.File file, Location origin) {
         try {
             ClipboardFormat format = ClipboardFormats.findByFile(file);
