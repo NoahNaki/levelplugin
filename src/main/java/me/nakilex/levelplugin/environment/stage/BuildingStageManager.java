@@ -13,6 +13,19 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
+import com.sk89q.worldedit.WorldEdit;
+import com.sk89q.worldedit.bukkit.BukkitAdapter;
+import com.sk89q.worldedit.math.BlockVector3;
+import com.sk89q.worldedit.regions.CuboidRegion;
+import com.sk89q.worldedit.extent.clipboard.Clipboard;
+import com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard;
+import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormats;
+import com.sk89q.worldedit.extent.clipboard.io.ClipboardWriter;
+import com.sk89q.worldedit.extension.input.ForwardExtentCopy;
+import com.sk89q.worldedit.session.ClipboardHolder;
+import com.sk89q.worldedit.EditSession;
+import com.sk89q.worldedit.function.operation.Operations;
+
 import java.io.File;
 import java.util.*;
 
@@ -26,11 +39,14 @@ public class BuildingStageManager {
     /** Map of town -> building -> placement offset */
     private final Map<String, Map<String, Placement>> placements = new HashMap<>();
     private final Map<java.util.UUID, Map<String, List<NPC>>> spawnedNPCs = new HashMap<>();
+    private final File schemFolder;
     private File file;
     private FileConfiguration config;
 
     public BuildingStageManager(Main plugin) {
         this.plugin = plugin;
+        this.schemFolder = new File(plugin.getDataFolder(), "building_schematics");
+        if (!schemFolder.exists()) schemFolder.mkdirs();
         loadConfig();
     }
 
@@ -61,6 +77,10 @@ public class BuildingStageManager {
         List<NPCSpawn> npcs = captureNPCs(pos1, pos2);
         List<BlockDef> blocks = captureBlocks(pos1, pos2);
 
+        // Save a schematic of the selected area using FAWE
+        File schematic = new File(schemFolder, building + "_" + level + "_" + stage + ".schem");
+        saveSchematic(pos1, pos2, schematic);
+
         int minX = Math.min(pos1.getBlockX(), pos2.getBlockX());
         int minY = Math.min(pos1.getBlockY(), pos2.getBlockY());
         int minZ = Math.min(pos1.getBlockZ(), pos2.getBlockZ());
@@ -77,7 +97,7 @@ public class BuildingStageManager {
             .computeIfAbsent(building.toLowerCase(), k -> new HashMap<>())
             .computeIfAbsent(level, k -> new HashMap<>())
             .put(stage, new BuildingStage(building.toLowerCase(), level, stage, pos1, pos2,
-                    npcs, blocks, hx, hy, hz, ox, oy, oz));
+                    npcs, blocks, schematic, hx, hy, hz, ox, oy, oz));
         saveConfig();
     }
 
@@ -240,6 +260,53 @@ public class BuildingStageManager {
         return blocks;
     }
 
+    private void saveSchematic(Location p1, Location p2, File file) {
+        try {
+            int minX = Math.min(p1.getBlockX(), p2.getBlockX());
+            int minY = Math.min(p1.getBlockY(), p2.getBlockY());
+            int minZ = Math.min(p1.getBlockZ(), p2.getBlockZ());
+            int maxX = Math.max(p1.getBlockX(), p2.getBlockX());
+            int maxY = Math.max(p1.getBlockY(), p2.getBlockY());
+            int maxZ = Math.max(p1.getBlockZ(), p2.getBlockZ());
+
+            CuboidRegion region = new CuboidRegion(
+                    BukkitAdapter.adapt(p1.getWorld()),
+                    BlockVector3.at(minX, minY, minZ),
+                    BlockVector3.at(maxX, maxY, maxZ)
+            );
+            Clipboard clipboard = new BlockArrayClipboard(region);
+            try (EditSession session = WorldEdit.getInstance().newEditSession(BukkitAdapter.adapt(p1.getWorld()))) {
+                ForwardExtentCopy copy = new ForwardExtentCopy(session, region, region.getMinimumPoint(), clipboard, region.getMinimumPoint());
+                Operations.complete(copy);
+            }
+            ClipboardWriter writer = ClipboardFormats.findByFile(file).getWriter(new java.io.FileOutputStream(file));
+            try (writer) {
+                writer.write(clipboard);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private List<BlockDef> loadSchematic(File file, World world) {
+        List<BlockDef> blocks = new ArrayList<>();
+        try {
+            var format = ClipboardFormats.findByFile(file);
+            if (format == null) return blocks;
+            try (var reader = format.getReader(new java.io.FileInputStream(file))) {
+                Clipboard clipboard = reader.read();
+                for (BlockVector3 vec : clipboard.getRegion()) {
+                    var state = clipboard.getBlock(vec);
+                    BlockData data = BukkitAdapter.adapt(state.toImmutableState());
+                    blocks.add(new BlockDef(vec.getBlockX(), vec.getBlockY(), vec.getBlockZ(), data));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return blocks;
+    }
+
     private void loadConfig() {
         file = new File(plugin.getDataFolder(), "buildingstages.yml");
         if (!file.exists()) {
@@ -289,20 +356,8 @@ public class BuildingStageManager {
                                 } catch (Exception ignore) {}
                             }
                         }
-                        List<BlockDef> blockList = new ArrayList<>();
-                        if (config.isList(base + "blocks")) {
-                            for (String line : config.getStringList(base + "blocks")) {
-                                String[] parts = line.split(";");
-                                if (parts.length < 4) continue;
-                                try {
-                                    int dx = Integer.parseInt(parts[0]);
-                                    int dy = Integer.parseInt(parts[1]);
-                                    int dz = Integer.parseInt(parts[2]);
-                                    BlockData data = Bukkit.createBlockData(parts[3]);
-                                    blockList.add(new BlockDef(dx, dy, dz, data));
-                                } catch (Exception ignore) {}
-                            }
-                        }
+                        File schematic = new File(schemFolder, building + "_" + level + "_" + stage + ".schem");
+                        List<BlockDef> blockList = loadSchematic(schematic, world);
                         int hx = config.getInt(base + "holo.x", 0);
                         int hy = config.getInt(base + "holo.y", 0);
                         int hz = config.getInt(base + "holo.z", 0);
@@ -313,7 +368,7 @@ public class BuildingStageManager {
                             .computeIfAbsent(building.toLowerCase(), k -> new HashMap<>())
                             .computeIfAbsent(level, k -> new HashMap<>())
                             .put(stage, new BuildingStage(building.toLowerCase(), level, stage,
-                                    pos1, pos2, npcList, blockList, hx, hy, hz, ox, oy, oz));
+                                    pos1, pos2, npcList, blockList, schematic, hx, hy, hz, ox, oy, oz));
                     }
                 }
             }
@@ -367,11 +422,7 @@ public class BuildingStageManager {
                             npcLines.add(npc.id + ";" + npc.x + ";" + npc.y + ";" + npc.z + ";" + npc.yaw + ";" + npc.pitch);
                         }
                         config.set(base + "npcs", npcLines);
-                        List<String> blockLines = new ArrayList<>();
-                        for (BlockDef b : st.blocks) {
-                            blockLines.add(b.x + ";" + b.y + ";" + b.z + ";" + b.data.getAsString());
-                        }
-                        config.set(base + "blocks", blockLines);
+                        config.set(base + "blocks", null); // blocks stored as schematic
                         config.set(base + "holo.x", st.hx);
                         config.set(base + "holo.y", st.hy);
                         config.set(base + "holo.z", st.hz);
@@ -425,11 +476,12 @@ public class BuildingStageManager {
         public final Location pos2;
         public final List<NPCSpawn> npcs;
         public final List<BlockDef> blocks;
+        public final File schematic;
         public final int hx, hy, hz;
         public final int ox, oy, oz;
         public BuildingStage(String name, int level, int stage, Location pos1, Location pos2,
                              List<NPCSpawn> npcs, List<BlockDef> blocks,
-                             int hx, int hy, int hz,
+                             File schematic, int hx, int hy, int hz,
                              int ox, int oy, int oz) {
             this.name = name;
             this.level = level;
@@ -438,6 +490,7 @@ public class BuildingStageManager {
             this.pos2 = pos2;
             this.npcs = npcs == null ? Collections.emptyList() : npcs;
             this.blocks = blocks == null ? Collections.emptyList() : blocks;
+            this.schematic = schematic;
             this.hx = hx;
             this.hy = hy;
             this.hz = hz;
