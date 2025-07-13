@@ -34,12 +34,15 @@ public class StageBlockInteractListener implements Listener {
         event.setCancelled(true);
         BlockData data = fakeBlockManager.getFakeBlock(player, loc);
         if (data != null) {
-            Bukkit.getScheduler().runTaskLater(Main.getInstance(),
+            final Location sendLoc = loc;
+            Bukkit.getScheduler().runTaskLater(
+                    Main.getInstance(),
                     () -> {
                         if (player.isOnline()) {
-                            player.sendBlockChange(loc, data);
+                            player.sendBlockChange(sendLoc, data);
                         }
-                    }, 1L);
+                    },
+                    1L);
         }
     }
 }
