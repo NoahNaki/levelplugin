@@ -10,3 +10,14 @@ npcs:
       z: -1227
       yaw: 0
       pitch: 0
+    foreman:
+      id: 538
+      level: 2
+      stage: 1
+      world: flatland
+      x: 2028
+      y: -57
+      z: -1229
+      yaw: 90
+      pitch: 0
+

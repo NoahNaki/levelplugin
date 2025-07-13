@@ -631,6 +631,15 @@ public class EnvironmentManager {
         var stageData = buildingStageManager.getStage(building, level, stage);
         if (stageData == null) return;
 
+        if (stageData.schematic != null && stageData.schematic.exists()) {
+            Location pasteOrigin = origin.clone().add(-stageData.ox, -stageData.oy, -stageData.oz);
+            buildingStageManager.pasteSchematic(stageData.schematic, pasteOrigin);
+            buildingStageManager.spawnForStage(player, building, level, stage, origin);
+            buildingNPCManager.spawnForStage(player, building, level, stage, origin);
+            if (after != null) after.run();
+            return;
+        }
+
         java.util.List<BuildingStageManager.BlockDef> blocks = new java.util.ArrayList<>(stageData.blocks);
         blocks.sort(java.util.Comparator.comparingInt(b -> b.y));
 
@@ -717,6 +726,17 @@ public class EnvironmentManager {
         var newData = buildingStageManager.getStage(building, newLevel, newStage);
         if (newData == null) return;
         var oldData = buildingStageManager.getStage(building, oldLevel, oldStage);
+
+        if (newData.schematic != null && newData.schematic.exists()) {
+            buildingStageManager.despawnForStage(uuid, building, oldLevel, oldStage);
+            buildingNPCManager.despawnForStage(uuid, building, oldLevel, oldStage);
+            Location pasteOrigin = origin.clone().add(-newData.ox, -newData.oy, -newData.oz);
+            buildingStageManager.pasteSchematic(newData.schematic, pasteOrigin);
+            buildingStageManager.spawnForStage(player, building, newLevel, newStage, origin);
+            buildingNPCManager.spawnForStage(player, building, newLevel, newStage, origin);
+            if (after != null) after.run();
+            return;
+        }
 
         java.util.Map<Integer, java.util.List<BuildingStageManager.BlockDef>> newLayers = new java.util.HashMap<>();
         for (var b : newData.blocks) {

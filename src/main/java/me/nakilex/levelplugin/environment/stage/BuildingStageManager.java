@@ -8,12 +8,24 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import com.sk89q.worldedit.WorldEdit;
+import com.sk89q.worldedit.bukkit.BukkitAdapter;
+import com.sk89q.worldedit.extent.clipboard.Clipboard;
+import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormat;
+import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormats;
+import com.sk89q.worldedit.extent.clipboard.io.ClipboardReader;
+import com.sk89q.worldedit.function.operation.Operation;
+import com.sk89q.worldedit.function.operation.Operations;
+import com.sk89q.worldedit.math.BlockVector3;
+import com.sk89q.worldedit.session.ClipboardHolder;
+import com.sk89q.worldedit.EditSession;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.util.*;
 
 /**
@@ -77,7 +89,7 @@ public class BuildingStageManager {
             .computeIfAbsent(building.toLowerCase(), k -> new HashMap<>())
             .computeIfAbsent(level, k -> new HashMap<>())
             .put(stage, new BuildingStage(building.toLowerCase(), level, stage, pos1, pos2,
-                    npcs, blocks, hx, hy, hz, ox, oy, oz));
+                    npcs, blocks, null, hx, hy, hz, ox, oy, oz));
         saveConfig();
     }
 
@@ -240,6 +252,28 @@ public class BuildingStageManager {
         return blocks;
     }
 
+    /** Paste a schematic file at the specified origin using WorldEdit. */
+    public void pasteSchematic(java.io.File file, Location origin) {
+        try {
+            ClipboardFormat format = ClipboardFormats.findByFile(file);
+            if (format == null) return;
+            try (ClipboardReader reader = format.getReader(new java.io.FileInputStream(file))) {
+                Clipboard clipboard = reader.read();
+                com.sk89q.worldedit.world.World weWorld = BukkitAdapter.adapt(origin.getWorld());
+                try (EditSession editSession = WorldEdit.getInstance().newEditSession(weWorld)) {
+                    Operation op = new ClipboardHolder(clipboard)
+                            .createPaste(editSession)
+                            .to(BlockVector3.at(origin.getBlockX(), origin.getBlockY(), origin.getBlockZ()))
+                            .ignoreAirBlocks(true)
+                            .build();
+                    Operations.complete(op);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     private void loadConfig() {
         file = new File(plugin.getDataFolder(), "buildingstages.yml");
         if (!file.exists()) {
@@ -303,6 +337,11 @@ public class BuildingStageManager {
                                 } catch (Exception ignore) {}
                             }
                         }
+                        java.io.File schemFile = null;
+                        String schemPath = config.getString(base + "schem");
+                        if (schemPath != null) {
+                            schemFile = new File(plugin.getDataFolder(), schemPath);
+                        }
                         int hx = config.getInt(base + "holo.x", 0);
                         int hy = config.getInt(base + "holo.y", 0);
                         int hz = config.getInt(base + "holo.z", 0);
@@ -313,7 +352,7 @@ public class BuildingStageManager {
                             .computeIfAbsent(building.toLowerCase(), k -> new HashMap<>())
                             .computeIfAbsent(level, k -> new HashMap<>())
                             .put(stage, new BuildingStage(building.toLowerCase(), level, stage,
-                                    pos1, pos2, npcList, blockList, hx, hy, hz, ox, oy, oz));
+                                    pos1, pos2, npcList, blockList, schemFile, hx, hy, hz, ox, oy, oz));
                     }
                 }
             }
@@ -372,6 +411,9 @@ public class BuildingStageManager {
                             blockLines.add(b.x + ";" + b.y + ";" + b.z + ";" + b.data.getAsString());
                         }
                         config.set(base + "blocks", blockLines);
+                        if (st.schematic != null) {
+                            config.set(base + "schem", st.schematic.getName());
+                        }
                         config.set(base + "holo.x", st.hx);
                         config.set(base + "holo.y", st.hy);
                         config.set(base + "holo.z", st.hz);
@@ -425,10 +467,13 @@ public class BuildingStageManager {
         public final Location pos2;
         public final List<NPCSpawn> npcs;
         public final List<BlockDef> blocks;
+        /** Optional schematic file used instead of block definitions. */
+        public final java.io.File schematic;
         public final int hx, hy, hz;
         public final int ox, oy, oz;
         public BuildingStage(String name, int level, int stage, Location pos1, Location pos2,
                              List<NPCSpawn> npcs, List<BlockDef> blocks,
+                             java.io.File schematic,
                              int hx, int hy, int hz,
                              int ox, int oy, int oz) {
             this.name = name;
@@ -438,6 +483,7 @@ public class BuildingStageManager {
             this.pos2 = pos2;
             this.npcs = npcs == null ? Collections.emptyList() : npcs;
             this.blocks = blocks == null ? Collections.emptyList() : blocks;
+            this.schematic = schematic;
             this.hx = hx;
             this.hy = hy;
             this.hz = hz;

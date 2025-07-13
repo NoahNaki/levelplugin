@@ -81,7 +81,10 @@ public class BuildingNPCManager {
         }
         list.clear();
         for (NPCPlacement np : placements) {
-            if (np.level == level && np.stage == stage) {
+            // Show the NPC whenever the player's building is at or beyond the
+            // configured requirement. This lets earlier stage NPCs remain
+            // visible after upgrading the building.
+            if (level >= np.level && stage >= np.stage) {
                 NPC template = CitizensAPI.getNPCRegistry().getById(np.id);
                 if (template == null) continue;
                 NPC clone = template.copy();
