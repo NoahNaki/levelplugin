@@ -106,12 +106,13 @@ public class TownStageManager {
             }
         }
 
-        File schematic = new File(schemFolder, name.toLowerCase() + "_" + level + "_" + stage + ".schem");
+        String fileName = name.toLowerCase() + "_" + level + "_" + stage + ".schem";
+        File schematic = new File(schemFolder, fileName);
         saveSchematic(p1, p2, schematic);
         stages
             .computeIfAbsent(name.toLowerCase(), k -> new java.util.HashMap<>())
             .computeIfAbsent(level, k -> new java.util.HashMap<>())
-            .put(stage, new TownStage(name.toLowerCase(), level, stage, p1, p2, npcs, blocks, schematic, ox, oy, oz));
+            .put(stage, new TownStage(name.toLowerCase(), level, stage, p1, p2, npcs, blocks, schematic, fileName, ox, oy, oz));
         saveConfig();
     }
 
@@ -272,7 +273,8 @@ public class TownStageManager {
                             } catch (NumberFormatException ignored) {}
                         }
                     }
-                    File schematic = new File(schemFolder, town.toLowerCase() + "_" + level + "_" + stage + ".schem");
+                    String fileName = config.getString(base + "schematic", town.toLowerCase() + "_" + level + "_" + stage + ".schem");
+                    File schematic = new File(schemFolder, fileName);
                     blocks = loadSchematic(schematic, world);
                     int ox = config.getInt(base + "origin.x", 0);
                     int oy = config.getInt(base + "origin.y", 0);
@@ -280,7 +282,7 @@ public class TownStageManager {
                     stages
                         .computeIfAbsent(town.toLowerCase(), k -> new java.util.HashMap<>())
                         .computeIfAbsent(level, k -> new java.util.HashMap<>())
-                        .put(stage, new TownStage(town.toLowerCase(), level, stage, p1, p2, npcs, blocks, schematic, ox, oy, oz));
+                        .put(stage, new TownStage(town.toLowerCase(), level, stage, p1, p2, npcs, blocks, schematic, fileName, ox, oy, oz));
                 }
             }
         }
@@ -325,6 +327,10 @@ public class TownStageManager {
     private java.util.List<BlockDef> loadSchematic(File file, World world) {
         java.util.List<BlockDef> blocks = new java.util.ArrayList<>();
         try {
+            if (!file.exists()) {
+                plugin.getLogger().warning("Schematic not found: " + file.getName());
+                return blocks;
+            }
             var format = ClipboardFormats.findByFile(file);
             if (format == null) return blocks;
             try (var reader = format.getReader(new java.io.FileInputStream(file))) {
@@ -372,6 +378,7 @@ public class TownStageManager {
                     }
                     config.set(base + "npcs", list);
                     config.set(base + "blocks", null); // blocks stored as schematic
+                    config.set(base + "schematic", st.fileName);
                     config.set(base + "origin.x", st.ox);
                     config.set(base + "origin.y", st.oy);
                     config.set(base + "origin.z", st.oz);
@@ -407,11 +414,12 @@ public class TownStageManager {
         public final java.util.List<NPCSpawn> npcs;
         public final java.util.List<BlockDef> blocks;
         public final File schematic;
+        public final String fileName;
         public final int ox, oy, oz;
 
         public TownStage(String name, int level, int stage, Location pos1, Location pos2,
                          java.util.List<NPCSpawn> npcs, java.util.List<BlockDef> blocks,
-                         File schematic, int ox, int oy, int oz) {
+                         File schematic, String fileName, int ox, int oy, int oz) {
             this.name = name;
             this.level = level;
             this.stage = stage;
@@ -420,6 +428,7 @@ public class TownStageManager {
             this.npcs = npcs == null ? java.util.Collections.emptyList() : npcs;
             this.blocks = blocks == null ? java.util.Collections.emptyList() : blocks;
             this.schematic = schematic;
+            this.fileName = fileName;
             this.ox = ox;
             this.oy = oy;
             this.oz = oz;

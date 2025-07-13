@@ -78,7 +78,8 @@ public class BuildingStageManager {
         List<BlockDef> blocks = captureBlocks(pos1, pos2);
 
         // Save a schematic of the selected area using FAWE
-        File schematic = new File(schemFolder, building.toLowerCase() + "_" + level + "_" + stage + ".schem");
+        String fileName = building.toLowerCase() + "_" + level + "_" + stage + ".schem";
+        File schematic = new File(schemFolder, fileName);
         saveSchematic(pos1, pos2, schematic);
 
         int minX = Math.min(pos1.getBlockX(), pos2.getBlockX());
@@ -97,7 +98,7 @@ public class BuildingStageManager {
             .computeIfAbsent(building.toLowerCase(), k -> new HashMap<>())
             .computeIfAbsent(level, k -> new HashMap<>())
             .put(stage, new BuildingStage(building.toLowerCase(), level, stage, pos1, pos2,
-                    npcs, blocks, schematic, hx, hy, hz, ox, oy, oz));
+                    npcs, blocks, schematic, fileName, hx, hy, hz, ox, oy, oz));
         saveConfig();
     }
 
@@ -291,6 +292,10 @@ public class BuildingStageManager {
     private List<BlockDef> loadSchematic(File file, World world) {
         List<BlockDef> blocks = new ArrayList<>();
         try {
+            if (!file.exists()) {
+                plugin.getLogger().warning("Schematic not found: " + file.getName());
+                return blocks;
+            }
             var format = ClipboardFormats.findByFile(file);
             if (format == null) return blocks;
             try (var reader = format.getReader(new java.io.FileInputStream(file))) {
@@ -361,7 +366,8 @@ public class BuildingStageManager {
                                 } catch (Exception ignore) {}
                             }
                         }
-                        File schematic = new File(schemFolder, building.toLowerCase() + "_" + level + "_" + stage + ".schem");
+                        String fileName = config.getString(base + "schematic", building.toLowerCase() + "_" + level + "_" + stage + ".schem");
+                        File schematic = new File(schemFolder, fileName);
                         List<BlockDef> blockList = loadSchematic(schematic, world);
                         int hx = config.getInt(base + "holo.x", 0);
                         int hy = config.getInt(base + "holo.y", 0);
@@ -373,7 +379,7 @@ public class BuildingStageManager {
                             .computeIfAbsent(building.toLowerCase(), k -> new HashMap<>())
                             .computeIfAbsent(level, k -> new HashMap<>())
                             .put(stage, new BuildingStage(building.toLowerCase(), level, stage,
-                                    pos1, pos2, npcList, blockList, schematic, hx, hy, hz, ox, oy, oz));
+                                    pos1, pos2, npcList, blockList, schematic, fileName, hx, hy, hz, ox, oy, oz));
                     }
                 }
             }
@@ -428,6 +434,7 @@ public class BuildingStageManager {
                         }
                         config.set(base + "npcs", npcLines);
                         config.set(base + "blocks", null); // blocks stored as schematic
+                        config.set(base + "schematic", st.fileName);
                         config.set(base + "holo.x", st.hx);
                         config.set(base + "holo.y", st.hy);
                         config.set(base + "holo.z", st.hz);
@@ -482,11 +489,12 @@ public class BuildingStageManager {
         public final List<NPCSpawn> npcs;
         public final List<BlockDef> blocks;
         public final File schematic;
+        public final String fileName;
         public final int hx, hy, hz;
         public final int ox, oy, oz;
         public BuildingStage(String name, int level, int stage, Location pos1, Location pos2,
                              List<NPCSpawn> npcs, List<BlockDef> blocks,
-                             File schematic, int hx, int hy, int hz,
+                             File schematic, String fileName, int hx, int hy, int hz,
                              int ox, int oy, int oz) {
             this.name = name;
             this.level = level;
@@ -496,6 +504,7 @@ public class BuildingStageManager {
             this.npcs = npcs == null ? Collections.emptyList() : npcs;
             this.blocks = blocks == null ? Collections.emptyList() : blocks;
             this.schematic = schematic;
+            this.fileName = fileName;
             this.hx = hx;
             this.hy = hy;
             this.hz = hz;
