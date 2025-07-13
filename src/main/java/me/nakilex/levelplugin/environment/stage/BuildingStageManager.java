@@ -277,7 +277,7 @@ public class BuildingStageManager {
             );
             Clipboard clipboard = new BlockArrayClipboard(region);
             try (EditSession session = WorldEdit.getInstance().newEditSession(BukkitAdapter.adapt(p1.getWorld()))) {
-                ForwardExtentCopy copy = new ForwardExtentCopy(session, region, region.getMinimumPoint(), clipboard, region.getMinimumPoint());
+                ForwardExtentCopy copy = new ForwardExtentCopy(session, region, clipboard, region.getMinimumPoint());
                 Operations.complete(copy);
             }
             ClipboardWriter writer = ClipboardFormats.findByFile(file).getWriter(new java.io.FileOutputStream(file));
