@@ -688,80 +688,12 @@ public class EnvironmentManager {
 
         var newData = buildingStageManager.getStage(building, newLevel, newStage);
         if (newData == null) return;
-        var oldData = buildingStageManager.getStage(building, oldLevel, oldStage);
 
-        java.util.Map<Integer, java.util.List<BuildingStageManager.BlockDef>> newLayers = new java.util.HashMap<>();
-        for (var b : buildingStageManager.getBlocksForStage(newData)) {
-            newLayers.computeIfAbsent(b.y, k -> new java.util.ArrayList<>()).add(b);
-        }
-
-        java.util.Map<Integer, java.util.List<Location>> oldLayers = new java.util.HashMap<>();
-        if (oldData != null) {
-            for (var b : buildingStageManager.getBlocksForStage(oldData)) {
-                Location l = origin.clone().add(b.x - oldData.ox, b.y - oldData.oy, b.z - oldData.oz);
-                oldLayers.computeIfAbsent(b.y, k -> new java.util.ArrayList<>()).add(l);
-            }
-        }
-
-        java.util.SortedSet<Integer> ys = new java.util.TreeSet<>(newLayers.keySet());
-        ys.addAll(oldLayers.keySet());
-
+        clearBuildingStage(player, building, origin, oldLevel, oldStage);
         buildingStageManager.despawnForStage(uuid, building, oldLevel, oldStage);
         buildingNPCManager.despawnForStage(uuid, building, oldLevel, oldStage);
 
-        java.util.Random rand = new java.util.Random();
-        Sound[] breakSounds = { Sound.BLOCK_STONE_BREAK, Sound.BLOCK_DEEPSLATE_BREAK, Sound.BLOCK_WOOD_BREAK };
-        Sound[] placeSounds = { Sound.BLOCK_STONE_PLACE, Sound.BLOCK_DEEPSLATE_PLACE, Sound.BLOCK_WOOD_PLACE };
-
-        BukkitTask task = new BukkitRunnable() {
-            final java.util.Iterator<Integer> it = ys.iterator();
-            @Override public void run() {
-                if (!player.isOnline()) { cancel(); return; }
-                if (!it.hasNext()) {
-                    player.playSound(origin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
-                    buildingStageManager.spawnForStage(player, building, newLevel, newStage, origin);
-                    buildingNPCManager.spawnForStage(player, building, newLevel, newStage, origin);
-                    Location holo = origin.clone().add(
-                            newData.hx - newData.ox + 0.5,
-                            newData.hy - newData.oy,
-                            newData.hz - newData.oz + 0.5);
-                    org.bukkit.entity.ArmorStand stand = holo.getWorld().spawn(holo, org.bukkit.entity.ArmorStand.class);
-                    stand.addScoreboardTag("building_hologram:" + building.toLowerCase());
-                    stand.setVisible(false);
-                    stand.setGravity(false);
-                    stand.setCustomName(ChatColor.YELLOW + "Upgrade " + building + " - 1 Oak Log");
-                    stand.setCustomNameVisible(true);
-                    stand.setSilent(true);
-                    stand.setSmall(true);
-                    for (Player p : Bukkit.getOnlinePlayers()) {
-                        if (!p.equals(player)) p.hideEntity(Main.getInstance(), stand);
-                    }
-                    buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
-                            .put(building.toLowerCase(), stand);
-                    if (after != null) after.run();
-                    cancel();
-                    return;
-                }
-                int y = it.next();
-                java.util.List<Location> remove = oldLayers.getOrDefault(y, java.util.Collections.emptyList());
-                fakeBlockManager.hideFakeBlocks(player, remove);
-
-                java.util.Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
-                for (var b : newLayers.getOrDefault(y, java.util.Collections.emptyList())) {
-                    Location loc = origin.clone().add(b.x - newData.ox, b.y - newData.oy, b.z - newData.oz);
-                    batch.put(loc, b.data);
-                    Sound breakS = breakSounds[rand.nextInt(breakSounds.length)];
-                    Sound placeS = placeSounds[rand.nextInt(placeSounds.length)];
-                    player.getWorld().playSound(loc, breakS, 0.7f, 1f);
-                    player.getWorld().playSound(loc, placeS, 0.7f, 1f);
-                }
-                fakeBlockManager.showFakeBlocks(player, batch);
-            }
-        }.runTaskTimer(Main.getInstance(), 0L, 5L);
-
-        java.util.List<BukkitTask> tasks = new java.util.ArrayList<>();
-        tasks.add(task);
-        buildTasks.put(uuid, tasks);
+        spawnBuilding(player, building, origin, newLevel, newStage, after);
     }
 
     /** Remove any fake blocks from a previous building stage before upgrading. */
