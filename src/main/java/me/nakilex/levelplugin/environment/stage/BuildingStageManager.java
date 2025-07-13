@@ -14,11 +14,15 @@ import com.sk89q.worldedit.extent.clipboard.Clipboard;
 import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormat;
 import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormats;
 import com.sk89q.worldedit.extent.clipboard.io.ClipboardReader;
+import com.sk89q.worldedit.extent.clipboard.io.ClipboardWriter;
 import com.sk89q.worldedit.function.operation.Operation;
 import com.sk89q.worldedit.function.operation.Operations;
+import com.sk89q.worldedit.function.operation.ForwardExtentCopy;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.session.ClipboardHolder;
 import com.sk89q.worldedit.EditSession;
+import com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard;
+import com.sk89q.worldedit.regions.CuboidRegion;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -66,7 +70,7 @@ public class BuildingStageManager {
         return new HashSet<>(map.keySet());
     }
 
-    /** Create a new stage from the selected area. */
+    /** Create a new stage from the selected area using block data. */
     public void createStage(String building, int level, int stage,
                             Location pos1, Location pos2, Location standLoc,
                             Location origin) {
@@ -90,6 +94,41 @@ public class BuildingStageManager {
             .computeIfAbsent(level, k -> new HashMap<>())
             .put(stage, new BuildingStage(building.toLowerCase(), level, stage, pos1, pos2,
                     npcs, blocks, null, hx, hy, hz, ox, oy, oz));
+        saveConfig();
+    }
+
+    /**
+     * Create a new stage and export the selected area to a schematic file.
+     * The schematic is stored inside the plugin's "schematics" folder.
+     */
+    public void createStageSchem(String building, int level, int stage,
+                                 Location pos1, Location pos2, Location standLoc,
+                                 Location origin) {
+        List<NPCSpawn> npcs = captureNPCs(pos1, pos2);
+
+        int minX = Math.min(pos1.getBlockX(), pos2.getBlockX());
+        int minY = Math.min(pos1.getBlockY(), pos2.getBlockY());
+        int minZ = Math.min(pos1.getBlockZ(), pos2.getBlockZ());
+
+        int hx = standLoc.getBlockX() - minX;
+        int hy = standLoc.getBlockY() - minY;
+        int hz = standLoc.getBlockZ() - minZ;
+
+        int ox = origin.getBlockX() - minX;
+        int oy = origin.getBlockY() - minY;
+        int oz = origin.getBlockZ() - minZ;
+
+        File schemDir = new File(plugin.getDataFolder(), "schematics");
+        schemDir.mkdirs();
+        File file = new File(schemDir,
+                building.toLowerCase() + "_l" + level + "_s" + stage + ".schem");
+        saveSchematic(pos1, pos2, file);
+
+        stages
+            .computeIfAbsent(building.toLowerCase(), k -> new HashMap<>())
+            .computeIfAbsent(level, k -> new HashMap<>())
+            .put(stage, new BuildingStage(building.toLowerCase(), level, stage, pos1, pos2,
+                    npcs, Collections.emptyList(), file, hx, hy, hz, ox, oy, oz));
         saveConfig();
     }
 
@@ -250,6 +289,39 @@ public class BuildingStageManager {
             }
         }
         return blocks;
+    }
+
+    /** Save the selected region to a FAWE schematic file. */
+    private void saveSchematic(Location p1, Location p2, File file) {
+        try {
+            int minX = Math.min(p1.getBlockX(), p2.getBlockX());
+            int minY = Math.min(p1.getBlockY(), p2.getBlockY());
+            int minZ = Math.min(p1.getBlockZ(), p2.getBlockZ());
+            int maxX = Math.max(p1.getBlockX(), p2.getBlockX());
+            int maxY = Math.max(p1.getBlockY(), p2.getBlockY());
+            int maxZ = Math.max(p1.getBlockZ(), p2.getBlockZ());
+
+            com.sk89q.worldedit.world.World weWorld = BukkitAdapter.adapt(p1.getWorld());
+            BlockVector3 min = BlockVector3.at(minX, minY, minZ);
+            BlockVector3 max = BlockVector3.at(maxX, maxY, maxZ);
+            CuboidRegion region = new CuboidRegion(weWorld, min, max);
+            BlockArrayClipboard clipboard = new BlockArrayClipboard(region);
+            try (EditSession editSession = WorldEdit.getInstance().newEditSession(weWorld)) {
+                ForwardExtentCopy copy = new ForwardExtentCopy(editSession, region, clipboard, region.getMinimumPoint());
+                Operations.complete(copy);
+            }
+
+            ClipboardFormat format = ClipboardFormats.findByFile(file);
+            if (format == null) {
+                format = ClipboardFormats.findByAlias("schem");
+            }
+            file.getParentFile().mkdirs();
+            try (ClipboardWriter writer = format.getWriter(new java.io.FileOutputStream(file))) {
+                writer.write(clipboard);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /** Paste a schematic file at the specified origin using FastAsyncWorldEdit. */

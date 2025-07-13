@@ -73,6 +73,22 @@ public class BuildingStageCommand implements CommandExecutor, Listener {
                 manager.createStage(bName, level, stage, pos1, pos2, stand, origin);
                 p.sendMessage(ChatColor.GREEN + "Stage " + bName + " created.");
                 return true;
+            case "schem":
+                if (args.length < 4) return false;
+                Location s1 = StageSelectionStore.getPos1(p.getUniqueId());
+                Location s2 = StageSelectionStore.getPos2(p.getUniqueId());
+                if (s1 == null || s2 == null) {
+                    p.sendMessage(ChatColor.RED + "Select two positions first.");
+                    return true;
+                }
+                String sbName = args[1].toLowerCase();
+                int sLevel = parseInt(args[2], 1);
+                int sStage = parseInt(args[3], 1);
+                Location sStand = p.getLocation().clone().add(0.5, 1.0, 0.5);
+                Location sOrigin = p.getLocation().getBlock().getLocation();
+                manager.createStageSchem(sbName, sLevel, sStage, s1, s2, sStand, sOrigin);
+                p.sendMessage(ChatColor.GREEN + "Stage " + sbName + " schematic saved.");
+                return true;
             case "remove":
                 if (args.length < 4) return false;
                 String rbName = args[1].toLowerCase();

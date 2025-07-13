@@ -204,7 +204,7 @@ commands:
     usage: /townstage <wand|create|remove|list>
   buildingstage:
     description: Define building stage regions
-    usage: /buildingstage <wand|create|remove|list>
+    usage: /buildingstage <wand|schem|create|remove|list>
   townpos1:
     description: Set first selection position for towns
     usage: /townpos1
