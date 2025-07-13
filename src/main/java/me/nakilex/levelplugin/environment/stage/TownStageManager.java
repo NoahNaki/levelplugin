@@ -20,6 +20,7 @@ import com.sk89q.worldedit.extent.clipboard.Clipboard;
 import com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard;
 import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormats;
 import com.sk89q.worldedit.extent.clipboard.io.ClipboardWriter;
+import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormat;
 import com.sk89q.worldedit.function.operation.ForwardExtentCopy;
 import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.function.operation.Operations;
@@ -315,8 +316,15 @@ public class TownStageManager {
                 ForwardExtentCopy copy = new ForwardExtentCopy(session, region, clipboard, region.getMinimumPoint());
                 Operations.complete(copy);
             }
-            ClipboardWriter writer = ClipboardFormats.findByFile(file).getWriter(new java.io.FileOutputStream(file));
-            try (writer) {
+            var format = ClipboardFormats.findByFile(file);
+            if (format == null) {
+                format = ClipboardFormats.findByExtension("schem");
+            }
+            if (format == null) {
+                plugin.getLogger().warning("Unknown schematic format for " + file.getName());
+                return;
+            }
+            try (ClipboardWriter writer = format.getWriter(new java.io.FileOutputStream(file))) {
                 writer.write(clipboard);
             }
         } catch (Exception e) {
@@ -332,6 +340,9 @@ public class TownStageManager {
                 return blocks;
             }
             var format = ClipboardFormats.findByFile(file);
+            if (format == null) {
+                format = ClipboardFormats.findByExtension("schem");
+            }
             if (format == null) return blocks;
             try (var reader = format.getReader(new java.io.FileInputStream(file))) {
                 Clipboard clipboard = reader.read();
