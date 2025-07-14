@@ -28,6 +28,7 @@ public class EnvironmentDistanceListener implements Listener {
 
         double distSq = to.distanceSquared(origin);
         if (distSq <= LOAD_DIST_SQ) {
+            manager.preloadTownChunks(player);
             if (!manager.isTownLoaded(player)) {
                 if (!manager.hasPlayedInitAnimation(player)) {
                     manager.initializePlayerAnimated(player, 20);

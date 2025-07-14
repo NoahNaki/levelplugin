@@ -176,6 +176,7 @@ public class EnvironmentManager {
     /** Load state for player if not present and spawn their structures/NPCs. */
     public void initializePlayer(Player player) {
         loadPlayerState(player);
+        preloadTownChunks(player);
 
         UUID uuid = player.getUniqueId();
         EnvironmentState es = states.get(uuid);
@@ -197,6 +198,7 @@ public class EnvironmentManager {
     /** Load player state and spawn their town with a short animation. */
     public void initializePlayerAnimated(Player player, int ticks) {
         loadPlayerState(player);
+        preloadTownChunks(player);
 
         UUID uuid = player.getUniqueId();
         EnvironmentState es = states.get(uuid);
@@ -442,6 +444,53 @@ public class EnvironmentManager {
                 }
             }
         }.runTaskTimer(Main.getInstance(),0L,1L);
+    }
+
+    /**
+     * Ensure all chunks that contain the player's town and unlocked buildings
+     * are loaded. This prevents fake block updates from forcing asynchronous
+     * chunk loads which can cause errors on some servers.
+     */
+    public void preloadTownChunks(Player player) {
+        UUID base = getBase(player.getUniqueId());
+        EnvironmentState st = states.get(base);
+        Location origin = origins.get(base);
+        if (st == null || origin == null) return;
+
+        java.util.Set<Long> chunks = new java.util.HashSet<>();
+
+        String town = towns.get(base);
+        var stage = stageManager.getStage(town, st.level, st.stage);
+        if (stage != null) {
+            Location baseOrigin = origin.clone().add(0, stage.oy, 0);
+            for (var b : stage.blocks) {
+                int wx = baseOrigin.getBlockX() + b.x - stage.ox;
+                int wz = baseOrigin.getBlockZ() + b.z - stage.oz;
+                long key = (((long) (wx >> 4)) << 32) ^ (wz >> 4 & 0xffffffffL);
+                chunks.add(key);
+            }
+        }
+
+        Map<String, EnvironmentState> bMap = buildingStates.get(base);
+        if (bMap != null) {
+            for (var e : bMap.entrySet()) {
+                var bStage = buildingStageManager.getStage(e.getKey(), e.getValue().level, e.getValue().stage);
+                if (bStage == null) continue;
+                Location bo = getBuildingOrigin(town, e.getKey(), origin).add(0, bStage.oy, 0);
+                for (var b : bStage.blocks) {
+                    int wx = bo.getBlockX() + b.x - bStage.ox;
+                    int wz = bo.getBlockZ() + b.z - bStage.oz;
+                    long key = (((long) (wx >> 4)) << 32) ^ (wz >> 4 & 0xffffffffL);
+                    chunks.add(key);
+                }
+            }
+        }
+
+        for (long key : chunks) {
+            int cx = (int)(key >> 32);
+            int cz = (int)key;
+            origin.getWorld().getChunkAt(cx, cz);
+        }
     }
 
     /** Start a settlement for the player at a fixed location using the given town name. */
