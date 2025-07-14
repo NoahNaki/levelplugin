@@ -64,7 +64,7 @@ public class TownStageManager {
         return stagesMap.get(stage);
     }
 
-    public void createStage(String name, int level, int stage, Location p1, Location p2, Location origin) {
+    public void createStage(String name, int level, int stage, Location p1, Location p2, Location origin, int priority) {
         java.util.List<NPCSpawn> npcs = new java.util.ArrayList<>();
         java.util.List<BlockDef> blocks = new java.util.ArrayList<>();
         var boxMinX = Math.min(p1.getBlockX(), p2.getBlockX());
@@ -114,7 +114,7 @@ public class TownStageManager {
         stages
             .computeIfAbsent(name.toLowerCase(), k -> new java.util.HashMap<>())
             .computeIfAbsent(level, k -> new java.util.HashMap<>())
-            .put(stage, new TownStage(name.toLowerCase(), level, stage, p1, p2, npcs, blocks, schematic, fileName, ox, oy, oz));
+            .put(stage, new TownStage(name.toLowerCase(), level, stage, p1, p2, npcs, blocks, schematic, fileName, priority, ox, oy, oz));
         saveConfig();
     }
 
@@ -278,13 +278,14 @@ public class TownStageManager {
                     String fileName = config.getString(base + "schematic", town.toLowerCase() + "_" + level + "_" + stage + ".schem");
                     File schematic = new File(schemFolder, fileName);
                     blocks = loadSchematic(schematic, world);
+                    int priority = config.getInt(base + "priority", 0);
                     int ox = config.getInt(base + "origin.x", 0);
                     int oy = config.getInt(base + "origin.y", 0);
                     int oz = config.getInt(base + "origin.z", 0);
                     stages
                         .computeIfAbsent(town.toLowerCase(), k -> new java.util.HashMap<>())
                         .computeIfAbsent(level, k -> new java.util.HashMap<>())
-                        .put(stage, new TownStage(town.toLowerCase(), level, stage, p1, p2, npcs, blocks, schematic, fileName, ox, oy, oz));
+                        .put(stage, new TownStage(town.toLowerCase(), level, stage, p1, p2, npcs, blocks, schematic, fileName, priority, ox, oy, oz));
                 }
             }
         }
@@ -392,6 +393,7 @@ public class TownStageManager {
                     config.set(base + "npcs", list);
                     config.set(base + "blocks", null); // blocks stored as schematic
                     config.set(base + "schematic", st.fileName);
+                    config.set(base + "priority", st.priority);
                     config.set(base + "origin.x", st.ox);
                     config.set(base + "origin.y", st.oy);
                     config.set(base + "origin.z", st.oz);
@@ -428,11 +430,14 @@ public class TownStageManager {
         public final java.util.List<BlockDef> blocks;
         public final File schematic;
         public final String fileName;
+        /** Priority used when placing blocks for this stage. Higher wins. */
+        public final int priority;
         public final int ox, oy, oz;
 
         public TownStage(String name, int level, int stage, Location pos1, Location pos2,
                          java.util.List<NPCSpawn> npcs, java.util.List<BlockDef> blocks,
-                         File schematic, String fileName, int ox, int oy, int oz) {
+                         File schematic, String fileName, int priority,
+                         int ox, int oy, int oz) {
             this.name = name;
             this.level = level;
             this.stage = stage;
@@ -442,6 +447,7 @@ public class TownStageManager {
             this.blocks = blocks == null ? java.util.Collections.emptyList() : blocks;
             this.schematic = schematic;
             this.fileName = fileName;
+            this.priority = priority;
             this.ox = ox;
             this.oy = oy;
             this.oz = oz;
