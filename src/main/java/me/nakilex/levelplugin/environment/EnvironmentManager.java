@@ -567,12 +567,29 @@ public class EnvironmentManager {
         class Change { Location loc; org.bukkit.block.data.BlockData data; Change(Location l, org.bukkit.block.data.BlockData d){this.loc=l;this.data=d;} }
         java.util.List<Change> changes = new java.util.ArrayList<>();
         java.util.Set<String> newKeys = new java.util.HashSet<>();
+        java.util.Map<String, TownStageManager.BlockDef> oldMap = new java.util.HashMap<>();
+
+        if (oldData != null) {
+            for (var b : oldData.blocks) {
+                Location loc = oldOrigin.clone().add(b.x - oldData.ox, b.y - oldData.oy, b.z - oldData.oz);
+                String key = loc.getBlockX()+":"+loc.getBlockY()+":"+loc.getBlockZ();
+                oldMap.put(key, b);
+            }
+        }
 
         for (var b : newData.blocks) {
             Location loc = newOrigin.clone().add(b.x - newData.ox, b.y - newData.oy, b.z - newData.oz);
             String key = loc.getBlockX()+":"+loc.getBlockY()+":"+loc.getBlockZ();
             newKeys.add(key);
-            changes.add(new Change(loc, b.data));
+            org.bukkit.block.data.BlockData current = loc.getBlock().getBlockData();
+            TownStageManager.BlockDef oldB = oldMap.get(key);
+            boolean apply = false;
+            if (oldB != null && current.equals(oldB.data)) {
+                apply = true;
+            } else if (oldB == null && current.getMaterial() == org.bukkit.Material.AIR) {
+                apply = true;
+            }
+            if (apply) changes.add(new Change(loc, b.data));
         }
 
         if (oldData != null) {
@@ -581,7 +598,10 @@ public class EnvironmentManager {
                 Location loc = oldOrigin.clone().add(b.x - oldData.ox, b.y - oldData.oy, b.z - oldData.oz);
                 String key = loc.getBlockX()+":"+loc.getBlockY()+":"+loc.getBlockZ();
                 if (!newKeys.contains(key)) {
-                    changes.add(new Change(loc, air));
+                    org.bukkit.block.data.BlockData current = loc.getBlock().getBlockData();
+                    if (current.equals(b.data)) {
+                        changes.add(new Change(loc, air));
+                    }
                 }
             }
         }
@@ -729,12 +749,29 @@ public class EnvironmentManager {
         class Change { Location loc; org.bukkit.block.data.BlockData data; Change(Location l, org.bukkit.block.data.BlockData d){this.loc=l;this.data=d;} }
         java.util.List<Change> changes = new java.util.ArrayList<>();
         java.util.Set<String> newKeys = new java.util.HashSet<>();
+        java.util.Map<String, BuildingStageManager.BlockDef> oldMap = new java.util.HashMap<>();
+
+        if (oldData != null) {
+            for (var b : oldData.blocks) {
+                Location loc = oldOrigin.clone().add(b.x - oldData.ox, b.y - oldData.oy, b.z - oldData.oz);
+                String key = loc.getBlockX()+":"+loc.getBlockY()+":"+loc.getBlockZ();
+                oldMap.put(key, b);
+            }
+        }
 
         for (var b : newData.blocks) {
             Location loc = newOrigin.clone().add(b.x - newData.ox, b.y - newData.oy, b.z - newData.oz);
             String key = loc.getBlockX()+":"+loc.getBlockY()+":"+loc.getBlockZ();
             newKeys.add(key);
-            changes.add(new Change(loc, b.data));
+            org.bukkit.block.data.BlockData current = loc.getBlock().getBlockData();
+            BuildingStageManager.BlockDef oldB = oldMap.get(key);
+            boolean apply = false;
+            if (oldB != null && current.equals(oldB.data)) {
+                apply = true;
+            } else if (oldB == null && current.getMaterial() == org.bukkit.Material.AIR) {
+                apply = true;
+            }
+            if (apply) changes.add(new Change(loc, b.data));
         }
 
         if (oldData != null) {
@@ -743,7 +780,10 @@ public class EnvironmentManager {
                 Location loc = oldOrigin.clone().add(b.x - oldData.ox, b.y - oldData.oy, b.z - oldData.oz);
                 String key = loc.getBlockX()+":"+loc.getBlockY()+":"+loc.getBlockZ();
                 if (!newKeys.contains(key)) {
-                    changes.add(new Change(loc, air));
+                    org.bukkit.block.data.BlockData current = loc.getBlock().getBlockData();
+                    if (current.equals(b.data)) {
+                        changes.add(new Change(loc, air));
+                    }
                 }
             }
         }
