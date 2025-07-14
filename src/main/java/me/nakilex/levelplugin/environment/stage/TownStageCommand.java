@@ -63,8 +63,13 @@ public class TownStageCommand implements CommandExecutor, Listener {
                 }
                 String name = args[1].toLowerCase();
                 int level = parseInt(args[2], 1);
+                int priority = 0;
+                if (args.length > 3) {
+                    priority = parseInt(args[3], 0);
+                    if (priority < 0) priority = 0;
+                }
                 Location origin = p.getLocation().getBlock().getLocation();
-                manager.createStage(name, level, 1, pos1, pos2, origin);
+                manager.createStage(name, level, 1, pos1, pos2, origin, priority);
                 p.sendMessage(ChatColor.GREEN + "Stage " + name + " created.");
                 return true;
             case "remove":

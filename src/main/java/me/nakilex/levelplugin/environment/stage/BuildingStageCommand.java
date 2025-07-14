@@ -63,14 +63,19 @@ public class BuildingStageCommand implements CommandExecutor, Listener {
                     p.sendMessage(ChatColor.RED + "Select two positions first.");
                     return true;
                 }
-                // Arguments: <building> <level> <stage>
+                // Arguments: <building> <level> <stage> [priority]
                 String bName = args[1].toLowerCase();
                 int level = parseInt(args[2], 1);
                 int stage = parseInt(args[3], 1);
+                int priority = 0;
+                if (args.length > 4) {
+                    priority = parseInt(args[4], 0);
+                    if (priority < 0) priority = 0;
+                }
                 // Save where the player ran the command and raise it one block
                 Location stand = p.getLocation().clone().add(0.5, 1.0, 0.5);
                 Location origin = p.getLocation().getBlock().getLocation();
-                manager.createStage(bName, level, stage, pos1, pos2, stand, origin);
+                manager.createStage(bName, level, stage, pos1, pos2, stand, origin, priority);
                 p.sendMessage(ChatColor.GREEN + "Stage " + bName + " created.");
                 return true;
             case "remove":
