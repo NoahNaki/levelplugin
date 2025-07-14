@@ -565,11 +565,11 @@ public class EnvironmentManager {
             newLayers.computeIfAbsent(b.y, k -> new java.util.ArrayList<>()).add(b);
         }
 
-        java.util.Map<Integer, java.util.List<Location>> oldLayers = new java.util.HashMap<>();
+        java.util.Map<Integer, java.util.Map<Location, org.bukkit.block.data.BlockData>> oldLayers = new java.util.HashMap<>();
         if (oldData != null) {
             for (var b : oldData.blocks) {
                 Location l = origin.clone().add(b.x - oldData.ox, b.y - oldData.oy, b.z - oldData.oz);
-                oldLayers.computeIfAbsent(b.y, k -> new java.util.ArrayList<>()).add(l);
+                oldLayers.computeIfAbsent(b.y, k -> new java.util.HashMap<>()).put(l, b.data);
             }
         }
 
@@ -594,19 +594,21 @@ public class EnvironmentManager {
                 java.util.Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
                 java.util.List<TownStageManager.BlockDef> add = newLayers.getOrDefault(y, java.util.Collections.emptyList());
 
-                // Map of new block locations for quick lookup
                 java.util.Set<Location> newLocs = new java.util.HashSet<>();
+                java.util.Map<Location, org.bukkit.block.data.BlockData> oldMap =
+                        oldLayers.getOrDefault(y, java.util.Collections.emptyMap());
                 for (var b : add) {
                     Location loc = origin.clone().add(b.x - newData.ox, b.y - newData.oy, b.z - newData.oz);
-                    batch.put(loc, b.data);
                     newLocs.add(loc);
+                    org.bukkit.block.data.BlockData prev = oldMap.get(loc);
+                    if (prev == null || !prev.equals(b.data)) {
+                        batch.put(loc, b.data);
+                    }
                 }
 
-                // Replace any leftover blocks from the previous stage with air
-                java.util.List<Location> toRemove = oldLayers.getOrDefault(y, java.util.Collections.emptyList());
-                for (Location loc : toRemove) {
-                    if (!newLocs.contains(loc)) {
-                        batch.put(loc, org.bukkit.Bukkit.createBlockData(org.bukkit.Material.AIR));
+                for (var entry : oldMap.entrySet()) {
+                    if (!newLocs.contains(entry.getKey())) {
+                        batch.put(entry.getKey(), org.bukkit.Bukkit.createBlockData(org.bukkit.Material.AIR));
                     }
                 }
 
@@ -729,11 +731,11 @@ public class EnvironmentManager {
             newLayers.computeIfAbsent(b.y, k -> new java.util.ArrayList<>()).add(b);
         }
 
-        java.util.Map<Integer, java.util.List<Location>> oldLayers = new java.util.HashMap<>();
+        java.util.Map<Integer, java.util.Map<Location, org.bukkit.block.data.BlockData>> oldLayers = new java.util.HashMap<>();
         if (oldData != null) {
             for (var b : oldData.blocks) {
                 Location l = origin.clone().add(b.x - oldData.ox, b.y - oldData.oy, b.z - oldData.oz);
-                oldLayers.computeIfAbsent(b.y, k -> new java.util.ArrayList<>()).add(l);
+                oldLayers.computeIfAbsent(b.y, k -> new java.util.HashMap<>()).put(l, b.data);
             }
         }
 
@@ -777,16 +779,20 @@ public class EnvironmentManager {
                 java.util.List<BuildingStageManager.BlockDef> add = newLayers.getOrDefault(y, java.util.Collections.emptyList());
 
                 java.util.Set<Location> newLocs = new java.util.HashSet<>();
+                java.util.Map<Location, org.bukkit.block.data.BlockData> oldMap =
+                        oldLayers.getOrDefault(y, java.util.Collections.emptyMap());
                 for (var b : add) {
                     Location loc = origin.clone().add(b.x - newData.ox, b.y - newData.oy, b.z - newData.oz);
-                    batch.put(loc, b.data);
                     newLocs.add(loc);
+                    org.bukkit.block.data.BlockData prev = oldMap.get(loc);
+                    if (prev == null || !prev.equals(b.data)) {
+                        batch.put(loc, b.data);
+                    }
                 }
 
-                java.util.List<Location> toRemove = oldLayers.getOrDefault(y, java.util.Collections.emptyList());
-                for (Location loc : toRemove) {
-                    if (!newLocs.contains(loc)) {
-                        batch.put(loc, org.bukkit.Bukkit.createBlockData(org.bukkit.Material.AIR));
+                for (var entry : oldMap.entrySet()) {
+                    if (!newLocs.contains(entry.getKey())) {
+                        batch.put(entry.getKey(), org.bukkit.Bukkit.createBlockData(org.bukkit.Material.AIR));
                     }
                 }
 
