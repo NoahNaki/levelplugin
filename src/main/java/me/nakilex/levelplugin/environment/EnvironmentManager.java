@@ -496,8 +496,7 @@ public class EnvironmentManager {
         if (town == null) return;
         var stageData = stageManager.getStage(town, level, stage);
         if (stageData == null) return;
-        // Adjust origin so Y is based on the stage's recorded offset
-        Location baseOrigin = origin.clone().add(0, stageData.oy, 0);
+
 
         java.util.List<TownStageManager.BlockDef> blocks = new java.util.ArrayList<>(stageData.blocks);
         blocks.sort(java.util.Comparator.comparingInt(b -> b.y));
@@ -516,7 +515,7 @@ public class EnvironmentManager {
                 Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
                 for (int i = 0; i < blocksPerTick && index < blocks.size(); i++, index++) {
                     TownStageManager.BlockDef b = blocks.get(index);
-                    Location loc = baseOrigin.clone().add(b.x - stageData.ox, b.y - stageData.oy, b.z - stageData.oz);
+                    Location loc = origin.clone().add(b.x - stageData.ox, b.y - stageData.oy, b.z - stageData.oz);
                     batch.put(loc, b.data);
                     Sound breakS = breakSounds[rand.nextInt(breakSounds.length)];
                     Sound placeS = placeSounds[rand.nextInt(placeSounds.length)];
@@ -525,8 +524,8 @@ public class EnvironmentManager {
                 }
                 fakeBlockManager.showFakeBlocks(player, batch);
                 if (index >= blocks.size()) {
-                    player.playSound(baseOrigin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
-                    stageManager.spawnForStage(player, town, level, stage, baseOrigin);
+                    player.playSound(origin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
+                    stageManager.spawnForStage(player, town, level, stage, origin);
                     if (after != null) after.run();
                     cancel();
                 }
@@ -559,10 +558,8 @@ public class EnvironmentManager {
         if (newData == null) return;
         var oldData = stageManager.getStage(town, oldLevel, oldStage);
 
-        // Adjust origin so Y is based on each stage's stored offset
-        Location newOrigin = origin.clone().add(0, newData.oy, 0);
-        Location oldOrigin = origin.clone();
-        if (oldData != null) oldOrigin.add(0, oldData.oy, 0);
+        Location newOrigin = origin;
+        Location oldOrigin = origin;
 
         class Change { Location loc; org.bukkit.block.data.BlockData data; Change(Location l, org.bukkit.block.data.BlockData d){this.loc=l;this.data=d;} }
         java.util.List<Change> changes = new java.util.ArrayList<>();
@@ -631,8 +628,8 @@ public class EnvironmentManager {
                 }
                 fakeBlockManager.showFakeBlocks(player, batch);
                 if (index >= changes.size()) {
-                    player.playSound(newOrigin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
-                    stageManager.spawnForStage(player, town, newLevel, newStage, newOrigin);
+                    player.playSound(origin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
+                    stageManager.spawnForStage(player, town, newLevel, newStage, origin);
                     cancel();
                 }
             }
@@ -651,8 +648,7 @@ public class EnvironmentManager {
         if (town == null) return;
         var stageData = buildingStageManager.getStage(building, level, stage);
         if (stageData == null) return;
-        // Adjust origin so Y is based on the stage's recorded offset
-        Location baseOrigin = origin.clone().add(0, stageData.oy, 0);
+
 
         java.util.List<BuildingStageManager.BlockDef> blocks = new java.util.ArrayList<>(stageData.blocks);
         blocks.sort(java.util.Comparator.comparingInt(b -> b.y));
@@ -671,7 +667,7 @@ public class EnvironmentManager {
                 Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
                 for (int i = 0; i < blocksPerTick && index < blocks.size(); i++, index++) {
                     BuildingStageManager.BlockDef b = blocks.get(index);
-                    Location loc = baseOrigin.clone().add(
+                    Location loc = origin.clone().add(
                             b.x - stageData.ox,
                             b.y - stageData.oy,
                             b.z - stageData.oz);
@@ -683,10 +679,10 @@ public class EnvironmentManager {
                 }
                 fakeBlockManager.showFakeBlocks(player, batch);
                 if (index >= blocks.size()) {
-                    player.playSound(baseOrigin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
-                    buildingStageManager.spawnForStage(player, building, level, stage, baseOrigin);
+                    player.playSound(origin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
+                    buildingStageManager.spawnForStage(player, building, level, stage, origin);
                     // Place the hologram where the stage was defined (+1 Y already stored)
-                    Location holo = baseOrigin.clone().add(
+                    Location holo = origin.clone().add(
                             stageData.hx - stageData.ox + 0.5,
                             stageData.hy - stageData.oy,
                             stageData.hz - stageData.oz + 0.5);
@@ -741,10 +737,8 @@ public class EnvironmentManager {
         if (newData == null) return;
         var oldData = buildingStageManager.getStage(building, oldLevel, oldStage);
 
-        // Adjust origin so Y is based on each stage's stored offset
-        Location newOrigin = origin.clone().add(0, newData.oy, 0);
-        Location oldOrigin = origin.clone();
-        if (oldData != null) oldOrigin.add(0, oldData.oy, 0);
+        Location newOrigin = origin;
+        Location oldOrigin = origin;
 
         class Change { Location loc; org.bukkit.block.data.BlockData data; Change(Location l, org.bukkit.block.data.BlockData d){this.loc=l;this.data=d;} }
         java.util.List<Change> changes = new java.util.ArrayList<>();
@@ -813,9 +807,9 @@ public class EnvironmentManager {
                 }
                 fakeBlockManager.showFakeBlocks(player, batch);
                 if (index >= changes.size()) {
-                    player.playSound(newOrigin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
-                    buildingStageManager.spawnForStage(player, building, newLevel, newStage, newOrigin);
-                    Location holo = newOrigin.clone().add(
+                    player.playSound(origin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
+                    buildingStageManager.spawnForStage(player, building, newLevel, newStage, origin);
+                    Location holo = origin.clone().add(
                             newData.hx - newData.ox + 0.5,
                             newData.hy - newData.oy,
                             newData.hz - newData.oz + 0.5);
@@ -847,10 +841,9 @@ public class EnvironmentManager {
     private void clearBuildingStage(Player player, String building, Location origin, int level, int stage) {
         var st = buildingStageManager.getStage(building, level, stage);
         if (st == null) return;
-        Location baseOrigin = origin.clone().add(0, st.oy, 0);
         java.util.List<Location> locs = new java.util.ArrayList<>();
         for (var b : st.blocks) {
-            Location l = baseOrigin.clone().add(b.x - st.ox, b.y - st.oy, b.z - st.oz);
+            Location l = origin.clone().add(b.x - st.ox, b.y - st.oy, b.z - st.oz);
             locs.add(l);
         }
         fakeBlockManager.hideFakeBlocks(player, locs);
@@ -860,10 +853,9 @@ public class EnvironmentManager {
     private void clearTownStage(Player player, String town, Location origin, int level, int stage) {
         var st = stageManager.getStage(town, level, stage);
         if (st == null) return;
-        Location baseOrigin = origin.clone().add(0, st.oy, 0);
         java.util.List<Location> locs = new java.util.ArrayList<>();
         for (var b : st.blocks) {
-            Location l = baseOrigin.clone().add(b.x - st.ox, b.y - st.oy, b.z - st.oz);
+            Location l = origin.clone().add(b.x - st.ox, b.y - st.oy, b.z - st.oz);
             locs.add(l);
         }
         fakeBlockManager.hideFakeBlocks(player, locs);
