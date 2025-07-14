@@ -614,7 +614,7 @@ public class EnvironmentManager {
                     String k = key(c.loc);
                     int exist = priMap.getOrDefault(k, Integer.MIN_VALUE);
                     int newPr = newData.priority;
-                    if (exist > newPr) continue;
+                    if (exist > newPr && c.loc.getBlock().getType() != org.bukkit.Material.AIR) continue;
                     batch.put(c.loc, c.data);
                     if (c.data.getMaterial() == org.bukkit.Material.AIR) {
                         priMap.remove(k);
@@ -676,7 +676,7 @@ public class EnvironmentManager {
                             b.z - stageData.oz);
                     String k = key(loc);
                     int exist = priMap.getOrDefault(k, Integer.MIN_VALUE);
-                    if (exist > stageData.priority) continue;
+                    if (exist > stageData.priority && loc.getBlock().getType() != org.bukkit.Material.AIR) continue;
                     batch.put(loc, b.data);
                     priMap.put(k, stageData.priority);
                     Sound breakS = breakSounds[rand.nextInt(breakSounds.length)];
@@ -793,7 +793,7 @@ public class EnvironmentManager {
                     String k = key(c.loc);
                     int exist = priMap.getOrDefault(k, Integer.MIN_VALUE);
                     int newPr = newData.priority;
-                    if (exist > newPr) continue;
+                    if (exist > newPr && c.loc.getBlock().getType() != org.bukkit.Material.AIR) continue;
                     batch.put(c.loc, c.data);
                     if (c.data.getMaterial() == org.bukkit.Material.AIR) {
                         priMap.remove(k);
