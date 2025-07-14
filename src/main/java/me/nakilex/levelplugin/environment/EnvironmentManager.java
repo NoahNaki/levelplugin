@@ -348,7 +348,8 @@ public class EnvironmentManager {
 
     private static final String TOWN_WORLD = "flatland";
     private static final int TOWN_X = 2010;
-    private static final int TOWN_Y = -59;
+    // Raise the starting Y coordinate by 5 blocks
+    private static final int TOWN_Y = -54;
     private static final int TOWN_Z = -1242;
 
     public Location getTownStartLocation() {
@@ -499,7 +500,7 @@ public class EnvironmentManager {
         java.util.List<TownStageManager.BlockDef> blocks = new java.util.ArrayList<>(stageData.blocks);
         blocks.sort(java.util.Comparator.comparingInt(b -> b.y));
 
-        final int totalTime = 20 * 20; // 20 seconds in ticks
+        final int totalTime = 5 * 20; // 5 seconds in ticks
         final int blocksPerTick = Math.max(1, blocks.size() / totalTime);
 
         java.util.Random rand = new java.util.Random();
@@ -540,8 +541,8 @@ public class EnvironmentManager {
     }
 
     /**
-     * Upgrade the main town structure by swapping all blocks from the old stage
-     * with those of the new stage in a single step.
+     * Upgrade the main town structure with a progressive build animation
+     * instead of swapping blocks instantly.
      */
     private void spawnStructureUpgrade(Player player, Location origin,
                                        int oldLevel, int oldStage,
@@ -556,27 +557,63 @@ public class EnvironmentManager {
         if (newData == null) return;
         var oldData = stageManager.getStage(town, oldLevel, oldStage);
 
-        java.util.Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
-        java.util.Set<Location> newLocs = new java.util.HashSet<>();
+        class Change { Location loc; org.bukkit.block.data.BlockData data; Change(Location l, org.bukkit.block.data.BlockData d){this.loc=l;this.data=d;} }
+        java.util.List<Change> changes = new java.util.ArrayList<>();
+        java.util.Set<String> newKeys = new java.util.HashSet<>();
 
         for (var b : newData.blocks) {
             Location loc = origin.clone().add(b.x - newData.ox, b.y - newData.oy, b.z - newData.oz);
-            newLocs.add(loc);
-            batch.put(loc, b.data);
+            String key = loc.getBlockX()+":"+loc.getBlockY()+":"+loc.getBlockZ();
+            newKeys.add(key);
+            changes.add(new Change(loc, b.data));
         }
 
         if (oldData != null) {
+            var air = org.bukkit.Bukkit.createBlockData(org.bukkit.Material.AIR);
             for (var b : oldData.blocks) {
                 Location loc = origin.clone().add(b.x - oldData.ox, b.y - oldData.oy, b.z - oldData.oz);
-                if (!newLocs.contains(loc)) {
-                    batch.put(loc, org.bukkit.Bukkit.createBlockData(org.bukkit.Material.AIR));
+                String key = loc.getBlockX()+":"+loc.getBlockY()+":"+loc.getBlockZ();
+                if (!newKeys.contains(key)) {
+                    changes.add(new Change(loc, air));
                 }
             }
         }
 
-        fakeBlockManager.showFakeBlocks(player, batch);
-        player.playSound(origin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
-        stageManager.spawnForStage(player, town, newLevel, newStage, origin);
+        // sort changes bottom-up for a nicer effect
+        changes.sort(java.util.Comparator.comparingInt(c -> c.loc.getBlockY()));
+
+        final int totalTime = 5 * 20; // 5 seconds in ticks
+        final int blocksPerTick = Math.max(1, changes.size() / totalTime);
+
+        java.util.Random rand = new java.util.Random();
+        Sound[] breakSounds = { Sound.BLOCK_STONE_BREAK, Sound.BLOCK_DEEPSLATE_BREAK, Sound.BLOCK_WOOD_BREAK };
+        Sound[] placeSounds = { Sound.BLOCK_STONE_PLACE, Sound.BLOCK_DEEPSLATE_PLACE, Sound.BLOCK_WOOD_PLACE };
+
+        BukkitTask task = new BukkitRunnable() {
+            int index = 0;
+            @Override public void run() {
+                if (!player.isOnline()) { cancel(); return; }
+                Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
+                for (int i = 0; i < blocksPerTick && index < changes.size(); i++, index++) {
+                    Change c = changes.get(index);
+                    batch.put(c.loc, c.data);
+                    Sound breakS = breakSounds[rand.nextInt(breakSounds.length)];
+                    Sound placeS = placeSounds[rand.nextInt(placeSounds.length)];
+                    player.getWorld().playSound(c.loc, breakS, 0.7f, 1f);
+                    player.getWorld().playSound(c.loc, placeS, 0.7f, 1f);
+                }
+                fakeBlockManager.showFakeBlocks(player, batch);
+                if (index >= changes.size()) {
+                    player.playSound(origin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
+                    stageManager.spawnForStage(player, town, newLevel, newStage, origin);
+                    cancel();
+                }
+            }
+        }.runTaskTimer(Main.getInstance(), 0L, 1L);
+
+        java.util.List<BukkitTask> tasks = new java.util.ArrayList<>();
+        tasks.add(task);
+        buildTasks.put(uuid, tasks);
     }
 
     /** Spawn a specific building stage relative to the town origin. */
@@ -591,7 +628,7 @@ public class EnvironmentManager {
         java.util.List<BuildingStageManager.BlockDef> blocks = new java.util.ArrayList<>(stageData.blocks);
         blocks.sort(java.util.Comparator.comparingInt(b -> b.y));
 
-        final int totalTime = 20 * 20;
+        final int totalTime = 5 * 20; // 5 seconds in ticks
         final int blocksPerTick = Math.max(1, blocks.size() / totalTime);
 
         java.util.Random rand = new java.util.Random();
@@ -653,8 +690,8 @@ public class EnvironmentManager {
     }
 
     /**
-     * Upgrade a building by replacing all blocks of the previous stage with
-     * those of the next stage in one go.
+     * Upgrade a building with a progressive build animation rather than
+     * swapping blocks instantly.
      */
     private void spawnBuildingUpgrade(Player player, String building, Location origin,
                                       int oldLevel, int oldStage,
@@ -675,45 +712,81 @@ public class EnvironmentManager {
         if (newData == null) return;
         var oldData = buildingStageManager.getStage(building, oldLevel, oldStage);
 
-        java.util.Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
-        java.util.Set<Location> newLocs = new java.util.HashSet<>();
+        class Change { Location loc; org.bukkit.block.data.BlockData data; Change(Location l, org.bukkit.block.data.BlockData d){this.loc=l;this.data=d;} }
+        java.util.List<Change> changes = new java.util.ArrayList<>();
+        java.util.Set<String> newKeys = new java.util.HashSet<>();
 
         for (var b : newData.blocks) {
             Location loc = origin.clone().add(b.x - newData.ox, b.y - newData.oy, b.z - newData.oz);
-            newLocs.add(loc);
-            batch.put(loc, b.data);
+            String key = loc.getBlockX()+":"+loc.getBlockY()+":"+loc.getBlockZ();
+            newKeys.add(key);
+            changes.add(new Change(loc, b.data));
         }
 
         if (oldData != null) {
+            var air = org.bukkit.Bukkit.createBlockData(org.bukkit.Material.AIR);
             for (var b : oldData.blocks) {
                 Location loc = origin.clone().add(b.x - oldData.ox, b.y - oldData.oy, b.z - oldData.oz);
-                if (!newLocs.contains(loc)) {
-                    batch.put(loc, org.bukkit.Bukkit.createBlockData(org.bukkit.Material.AIR));
+                String key = loc.getBlockX()+":"+loc.getBlockY()+":"+loc.getBlockZ();
+                if (!newKeys.contains(key)) {
+                    changes.add(new Change(loc, air));
                 }
             }
         }
 
-        fakeBlockManager.showFakeBlocks(player, batch);
-        player.playSound(origin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
-        buildingStageManager.spawnForStage(player, building, newLevel, newStage, origin);
-        Location holo = origin.clone().add(
-                newData.hx - newData.ox + 0.5,
-                newData.hy - newData.oy,
-                newData.hz - newData.oz + 0.5);
-        org.bukkit.entity.ArmorStand stand = holo.getWorld().spawn(holo, org.bukkit.entity.ArmorStand.class);
-        stand.addScoreboardTag("building_hologram:" + building.toLowerCase());
-        stand.setVisible(false);
-        stand.setGravity(false);
-        stand.setCustomName(ChatColor.YELLOW + "Upgrade " + building + " - 1 Oak Log");
-        stand.setCustomNameVisible(true);
-        stand.setSilent(true);
-        stand.setSmall(true);
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            if (!p.equals(player)) p.hideEntity(Main.getInstance(), stand);
-        }
-        buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
-                .put(building.toLowerCase(), stand);
-        if (after != null) after.run();
+        // sort bottom-up for nicer effect
+        changes.sort(java.util.Comparator.comparingInt(c -> c.loc.getBlockY()));
+
+        final int totalTime = 5 * 20; // 5 seconds in ticks
+        final int blocksPerTick = Math.max(1, changes.size() / totalTime);
+
+        java.util.Random rand = new java.util.Random();
+        Sound[] breakSounds = { Sound.BLOCK_STONE_BREAK, Sound.BLOCK_DEEPSLATE_BREAK, Sound.BLOCK_WOOD_BREAK };
+        Sound[] placeSounds = { Sound.BLOCK_STONE_PLACE, Sound.BLOCK_DEEPSLATE_PLACE, Sound.BLOCK_WOOD_PLACE };
+
+        BukkitTask task = new BukkitRunnable() {
+            int index = 0;
+            @Override public void run() {
+                if (!player.isOnline()) { cancel(); return; }
+                Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
+                for (int i = 0; i < blocksPerTick && index < changes.size(); i++, index++) {
+                    Change c = changes.get(index);
+                    batch.put(c.loc, c.data);
+                    Sound breakS = breakSounds[rand.nextInt(breakSounds.length)];
+                    Sound placeS = placeSounds[rand.nextInt(placeSounds.length)];
+                    player.getWorld().playSound(c.loc, breakS, 0.7f, 1f);
+                    player.getWorld().playSound(c.loc, placeS, 0.7f, 1f);
+                }
+                fakeBlockManager.showFakeBlocks(player, batch);
+                if (index >= changes.size()) {
+                    player.playSound(origin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
+                    buildingStageManager.spawnForStage(player, building, newLevel, newStage, origin);
+                    Location holo = origin.clone().add(
+                            newData.hx - newData.ox + 0.5,
+                            newData.hy - newData.oy,
+                            newData.hz - newData.oz + 0.5);
+                    org.bukkit.entity.ArmorStand stand = holo.getWorld().spawn(holo, org.bukkit.entity.ArmorStand.class);
+                    stand.addScoreboardTag("building_hologram:" + building.toLowerCase());
+                    stand.setVisible(false);
+                    stand.setGravity(false);
+                    stand.setCustomName(ChatColor.YELLOW + "Upgrade " + building + " - 1 Oak Log");
+                    stand.setCustomNameVisible(true);
+                    stand.setSilent(true);
+                    stand.setSmall(true);
+                    for (Player p : Bukkit.getOnlinePlayers()) {
+                        if (!p.equals(player)) p.hideEntity(Main.getInstance(), stand);
+                    }
+                    buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
+                            .put(building.toLowerCase(), stand);
+                    if (after != null) after.run();
+                    cancel();
+                }
+            }
+        }.runTaskTimer(Main.getInstance(), 0L, 1L);
+
+        java.util.List<BukkitTask> tasks = new java.util.ArrayList<>();
+        tasks.add(task);
+        buildTasks.put(uuid, tasks);
     }
 
     /** Remove any fake blocks from a previous building stage before upgrading. */
