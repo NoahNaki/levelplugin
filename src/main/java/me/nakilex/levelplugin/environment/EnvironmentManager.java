@@ -557,9 +557,8 @@ public class EnvironmentManager {
         if (newData == null) return;
         var oldData = stageManager.getStage(town, oldLevel, oldStage);
 
-        if (oldData != null) {
-            clearTownStage(player, town, origin, oldLevel, oldStage);
-        }
+        // Don't clear the old stage all at once so the upgrade looks smooth.
+        // Old blocks are removed per-layer below instead.
 
         java.util.Map<Integer, java.util.List<TownStageManager.BlockDef>> newLayers = new java.util.HashMap<>();
         for (var b : newData.blocks) {
@@ -710,9 +709,8 @@ public class EnvironmentManager {
         if (newData == null) return;
         var oldData = buildingStageManager.getStage(building, oldLevel, oldStage);
 
-        if (oldData != null) {
-            clearBuildingStage(player, building, origin, oldLevel, oldStage);
-        }
+        // Keep the previous stage visible and remove its blocks per layer
+        // during the upgrade for a smoother transition.
 
         java.util.Map<Integer, java.util.List<BuildingStageManager.BlockDef>> newLayers = new java.util.HashMap<>();
         for (var b : newData.blocks) {
