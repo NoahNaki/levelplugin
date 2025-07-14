@@ -78,6 +78,11 @@ public class EnvironmentManager {
         return towns.get(uuid);
     }
 
+    /** Get the origin location for the player's town if it exists. */
+    public Location getOrigin(UUID uuid) {
+        return origins.get(getBase(uuid));
+    }
+
     private UUID getBase(UUID uuid) {
         return coopOwners.getOrDefault(uuid, uuid);
     }
