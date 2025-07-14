@@ -322,7 +322,7 @@ public class PluginBootstrap {
             upgradeGUI,
             buildingUpgradeGUI,
             new me.nakilex.levelplugin.environment.listeners.BuildingHologramListener(buildingUpgradeGUI),
-            new me.nakilex.levelplugin.environment.listeners.StageBlockInteractListener(fakeBlockManager)
+            new me.nakilex.levelplugin.environment.listeners.StageBlockInteractListener(plugin, fakeBlockManager)
         );
         plugin.getServer().getPluginManager().registerEvents(beaconManager, plugin);
         TaskRegistry.startTasks(plugin, horseConfigManager, horseManager);

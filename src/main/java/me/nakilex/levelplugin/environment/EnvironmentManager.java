@@ -557,6 +557,10 @@ public class EnvironmentManager {
         if (newData == null) return;
         var oldData = stageManager.getStage(town, oldLevel, oldStage);
 
+        if (oldData != null) {
+            clearTownStage(player, town, origin, oldLevel, oldStage);
+        }
+
         java.util.Map<Integer, java.util.List<TownStageManager.BlockDef>> newLayers = new java.util.HashMap<>();
         for (var b : newData.blocks) {
             newLayers.computeIfAbsent(b.y, k -> new java.util.ArrayList<>()).add(b);
@@ -705,6 +709,10 @@ public class EnvironmentManager {
         var newData = buildingStageManager.getStage(building, newLevel, newStage);
         if (newData == null) return;
         var oldData = buildingStageManager.getStage(building, oldLevel, oldStage);
+
+        if (oldData != null) {
+            clearBuildingStage(player, building, origin, oldLevel, oldStage);
+        }
 
         java.util.Map<Integer, java.util.List<BuildingStageManager.BlockDef>> newLayers = new java.util.HashMap<>();
         for (var b : newData.blocks) {
