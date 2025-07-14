@@ -42,6 +42,12 @@ public class EnvironmentManager {
     /** Track placed block priorities for each player (location key -> priority). */
     private final Map<UUID, Map<String, Integer>> blockPriorities = new HashMap<>();
 
+    /** Players currently viewing their town (fake blocks active). */
+    private final java.util.Set<UUID> loadedPlayers = new java.util.HashSet<>();
+
+    /** Players that already saw the initial build animation. */
+    private final java.util.Set<UUID> playedInitAnimation = new java.util.HashSet<>();
+
     private static String key(Location loc) {
         return loc.getWorld().getName() + ":" + loc.getBlockX() + ":" + loc.getBlockY() + ":" + loc.getBlockZ();
     }
@@ -76,6 +82,32 @@ public class EnvironmentManager {
 
     public String getTown(UUID uuid) {
         return towns.get(uuid);
+    }
+
+    /** Get the origin location for the player's town if it exists. */
+    public Location getOrigin(UUID uuid) {
+        return origins.get(getBase(uuid));
+    }
+
+    /** Whether the player's town is currently loaded for them. */
+    public boolean isTownLoaded(Player player) {
+        return loadedPlayers.contains(player.getUniqueId());
+    }
+
+    /** Internal setter for loaded state. */
+    public void markTownLoaded(Player player, boolean loaded) {
+        UUID id = player.getUniqueId();
+        if (loaded) loadedPlayers.add(id); else loadedPlayers.remove(id);
+    }
+
+    /** Track that the initial animation has played for this player. */
+    public void markAnimationPlayed(Player player) {
+        playedInitAnimation.add(getBase(player.getUniqueId()));
+    }
+
+    /** Check if the player already saw the initial build animation. */
+    public boolean hasPlayedInitAnimation(Player player) {
+        return playedInitAnimation.contains(getBase(player.getUniqueId()));
     }
 
     private UUID getBase(UUID uuid) {
@@ -123,7 +155,7 @@ public class EnvironmentManager {
     }
 
     /** Load state for player from config without spawning any structures. */
-    private void loadPlayerState(Player player) {
+    public void loadPlayerState(Player player) {
         UUID uuid = player.getUniqueId();
 
         UUID owner = playerConfig.getCoopOwner(uuid);
@@ -144,6 +176,7 @@ public class EnvironmentManager {
     /** Load state for player if not present and spawn their structures/NPCs. */
     public void initializePlayer(Player player) {
         loadPlayerState(player);
+        preloadTownChunks(player);
 
         UUID uuid = player.getUniqueId();
         EnvironmentState es = states.get(uuid);
@@ -152,18 +185,33 @@ public class EnvironmentManager {
             Map<String, EnvironmentState> bMap = buildingStates.get(uuid);
             final Map<String, EnvironmentState> finalBMap = bMap == null ? null : new java.util.HashMap<>(bMap);
             final Location finalOrigin = origin;
-            final Runnable after;
             if (finalBMap != null) {
-                after = () -> {
-                    for (var e : finalBMap.entrySet()) {
-                        Location bOrig = getBuildingOrigin(towns.get(uuid), e.getKey(), finalOrigin);
-                        spawnBuilding(player, e.getKey(), bOrig, e.getValue().level, e.getValue().stage, null);
-                    }
-                };
-            } else {
-                after = null;
+                for (var e : finalBMap.entrySet()) {
+                    Location bOrig = getBuildingOrigin(towns.get(uuid), e.getKey(), finalOrigin);
+                    spawnBuildingInstant(player, e.getKey(), bOrig, e.getValue().level, e.getValue().stage);
+                }
             }
-            spawnStructure(player, finalOrigin, es.level, es.stage, after);
+            spawnStructureInstant(player, finalOrigin, es.level, es.stage);
+        }
+    }
+
+    /** Load player state and spawn their town with a short animation. */
+    public void initializePlayerAnimated(Player player, int ticks) {
+        loadPlayerState(player);
+        preloadTownChunks(player);
+
+        UUID uuid = player.getUniqueId();
+        EnvironmentState es = states.get(uuid);
+        Location origin = origins.get(uuid);
+        if (origin != null) {
+            Map<String, EnvironmentState> bMap = buildingStates.get(uuid);
+            if (bMap != null) {
+                for (var e : bMap.entrySet()) {
+                    Location bOrig = getBuildingOrigin(towns.get(uuid), e.getKey(), origin);
+                    spawnBuildingTimed(player, e.getKey(), bOrig, e.getValue().level, e.getValue().stage, null, ticks);
+                }
+            }
+            spawnStructureTimed(player, origin, es.level, es.stage, null, ticks);
         }
     }
 
@@ -398,6 +446,53 @@ public class EnvironmentManager {
         }.runTaskTimer(Main.getInstance(),0L,1L);
     }
 
+    /**
+     * Ensure all chunks that contain the player's town and unlocked buildings
+     * are loaded. This prevents fake block updates from forcing asynchronous
+     * chunk loads which can cause errors on some servers.
+     */
+    public void preloadTownChunks(Player player) {
+        UUID base = getBase(player.getUniqueId());
+        EnvironmentState st = states.get(base);
+        Location origin = origins.get(base);
+        if (st == null || origin == null) return;
+
+        java.util.Set<Long> chunks = new java.util.HashSet<>();
+
+        String town = towns.get(base);
+        var stage = stageManager.getStage(town, st.level, st.stage);
+        if (stage != null) {
+            Location baseOrigin = origin.clone().add(0, stage.oy, 0);
+            for (var b : stage.blocks) {
+                int wx = baseOrigin.getBlockX() + b.x - stage.ox;
+                int wz = baseOrigin.getBlockZ() + b.z - stage.oz;
+                long key = (((long) (wx >> 4)) << 32) ^ (wz >> 4 & 0xffffffffL);
+                chunks.add(key);
+            }
+        }
+
+        Map<String, EnvironmentState> bMap = buildingStates.get(base);
+        if (bMap != null) {
+            for (var e : bMap.entrySet()) {
+                var bStage = buildingStageManager.getStage(e.getKey(), e.getValue().level, e.getValue().stage);
+                if (bStage == null) continue;
+                Location bo = getBuildingOrigin(town, e.getKey(), origin).add(0, bStage.oy, 0);
+                for (var b : bStage.blocks) {
+                    int wx = bo.getBlockX() + b.x - bStage.ox;
+                    int wz = bo.getBlockZ() + b.z - bStage.oz;
+                    long key = (((long) (wx >> 4)) << 32) ^ (wz >> 4 & 0xffffffffL);
+                    chunks.add(key);
+                }
+            }
+        }
+
+        for (long key : chunks) {
+            int cx = (int)(key >> 32);
+            int cz = (int)key;
+            origin.getWorld().getChunkAt(cx, cz);
+        }
+    }
+
     /** Start a settlement for the player at a fixed location using the given town name. */
     public void startTown(Player player, String townName) {
         UUID uuid = player.getUniqueId();
@@ -491,11 +586,31 @@ public class EnvironmentManager {
         player.sendMessage(ChatColor.RED + "Your settlement has been reset.");
     }
 
+    /** Remove all fake blocks and NPCs for this player's view without deleting data. */
+    public void unloadPlayerTown(Player player) {
+        UUID base = getBase(player.getUniqueId());
+        EnvironmentState st = states.get(base);
+        String town = towns.get(base);
+        Location origin = origins.get(base);
+        Map<String, EnvironmentState> bMap = buildingStates.get(base);
+        if (town != null && st != null && origin != null) {
+            stageManager.despawnForStage(player.getUniqueId(), town, st.level, st.stage);
+            if (bMap != null) {
+                for (var e : bMap.entrySet()) {
+                    buildingStageManager.despawnForStage(player.getUniqueId(), e.getKey(), e.getValue().level, e.getValue().stage);
+                }
+            }
+        }
+        removeAllBuildingHolograms(player.getUniqueId());
+        fakeBlockManager.clear(player);
+        blockPriorities.remove(player.getUniqueId());
+    }
+
     /**
      * Spawn the structure for the given player and stage with a simple build
      * animation and sound effects.
      */
-    private void spawnStructure(Player player, Location origin, int level, int stage, Runnable after) {
+    private void spawnStructureTimed(Player player, Location origin, int level, int stage, Runnable after, int totalTime) {
         UUID uuid = player.getUniqueId();
         cancelTasks(uuid);
         fakeBlockManager.clear(player);
@@ -509,7 +624,6 @@ public class EnvironmentManager {
         java.util.List<TownStageManager.BlockDef> blocks = new java.util.ArrayList<>(stageData.blocks);
         blocks.sort(java.util.Comparator.comparingInt(b -> b.y));
 
-        final int totalTime = 5 * 20; // 5 seconds in ticks
         final int blocksPerTick = Math.max(1, blocks.size() / totalTime);
 
         java.util.Random rand = new java.util.Random();
@@ -545,8 +659,67 @@ public class EnvironmentManager {
         buildTasks.put(uuid, tasks);
     }
 
+    private void spawnStructure(Player player, Location origin, int level, int stage, Runnable after) {
+        spawnStructureTimed(player, origin, level, stage, after, 5 * 20);
+    }
+
     private void spawnStructure(Player player, Location origin, int level, int stage) {
         spawnStructure(player, origin, level, stage, null);
+    }
+
+    private void spawnStructureQuick(Player player, Location origin, int level, int stage) {
+        spawnStructureTimed(player, origin, level, stage, null, 20);
+    }
+
+    /**
+     * Spawn the structure instantly without any build animation. Used when
+     * reloading chunks so the player still sees the correct town stage.
+     */
+    private void spawnStructureInstant(Player player, Location origin, int level, int stage) {
+        UUID uuid = player.getUniqueId();
+        String town = towns.get(uuid);
+        if (town == null) return;
+        var stageData = stageManager.getStage(town, level, stage);
+        if (stageData == null) return;
+        Location baseOrigin = origin.clone().add(0, stageData.oy, 0);
+
+        Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
+        Map<String, Integer> priMap = blockPriorities.computeIfAbsent(uuid, k -> new java.util.HashMap<>());
+        for (var b : stageData.blocks) {
+            Location loc = baseOrigin.clone().add(b.x - stageData.ox, b.y - stageData.oy, b.z - stageData.oz);
+            batch.put(loc, b.data);
+            priMap.put(key(loc), stageData.priority);
+        }
+        fakeBlockManager.showFakeBlocks(player, batch);
+        stageManager.spawnForStage(player, town, level, stage, baseOrigin);
+    }
+
+    /**
+     * Resend fake blocks for the main structure inside a specific chunk.
+     */
+    private void resendStructureForChunk(Player player, Location origin, int level, int stage,
+                                         int cx, int cz) {
+        UUID uuid = player.getUniqueId();
+        String town = towns.get(uuid);
+        if (town == null) return;
+        var stageData = stageManager.getStage(town, level, stage);
+        if (stageData == null) return;
+        Location baseOrigin = origin.clone().add(0, stageData.oy, 0);
+
+        Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
+        Map<String, Integer> priMap = blockPriorities.computeIfAbsent(uuid, k -> new java.util.HashMap<>());
+        for (var b : stageData.blocks) {
+            Location loc = baseOrigin.clone().add(b.x - stageData.ox, b.y - stageData.oy, b.z - stageData.oz);
+            int lcx = loc.getBlockX() >> 4;
+            int lcz = loc.getBlockZ() >> 4;
+            if (lcx == cx && lcz == cz) {
+                batch.put(loc, b.data);
+                priMap.put(key(loc), stageData.priority);
+            }
+        }
+        if (!batch.isEmpty()) {
+            fakeBlockManager.showFakeBlocks(player, batch);
+        }
     }
 
     /**
@@ -641,7 +814,7 @@ public class EnvironmentManager {
     }
 
     /** Spawn a specific building stage relative to the town origin. */
-    private void spawnBuilding(Player player, String building, Location origin, int level, int stage, Runnable after) {
+    private void spawnBuildingTimed(Player player, String building, Location origin, int level, int stage, Runnable after, int totalTime) {
         UUID uuid = player.getUniqueId();
         removeBuildingHologram(uuid, building);
         String town = towns.get(player.getUniqueId());
@@ -654,7 +827,6 @@ public class EnvironmentManager {
         java.util.List<BuildingStageManager.BlockDef> blocks = new java.util.ArrayList<>(stageData.blocks);
         blocks.sort(java.util.Comparator.comparingInt(b -> b.y));
 
-        final int totalTime = 5 * 20; // 5 seconds in ticks
         final int blocksPerTick = Math.max(1, blocks.size() / totalTime);
 
         java.util.Random rand = new java.util.Random();
@@ -717,8 +889,84 @@ public class EnvironmentManager {
         buildTasks.put(uuid, tasks);
     }
 
+    private void spawnBuilding(Player player, String building, Location origin, int level, int stage, Runnable after) {
+        spawnBuildingTimed(player, building, origin, level, stage, after, 5 * 20);
+    }
+
     private void spawnBuilding(Player player, String building, Location origin, int level, int stage) {
         spawnBuilding(player, building, origin, level, stage, null);
+    }
+
+    private void spawnBuildingQuick(Player player, String building, Location origin, int level, int stage) {
+        spawnBuildingTimed(player, building, origin, level, stage, null, 20);
+    }
+
+    /**
+     * Spawn a building stage instantly without animation. Used when chunks are
+     * reloaded so players continue to see their buildings.
+     */
+    private void spawnBuildingInstant(Player player, String building, Location origin, int level, int stage) {
+        UUID uuid = player.getUniqueId();
+        removeBuildingHologram(uuid, building);
+        String town = towns.get(uuid);
+        if (town == null) return;
+        var stageData = buildingStageManager.getStage(building, level, stage);
+        if (stageData == null) return;
+        Location baseOrigin = origin.clone().add(0, stageData.oy, 0);
+
+        Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
+        Map<String, Integer> priMap = blockPriorities.computeIfAbsent(uuid, k -> new java.util.HashMap<>());
+        for (var b : stageData.blocks) {
+            Location loc = baseOrigin.clone().add(b.x - stageData.ox, b.y - stageData.oy, b.z - stageData.oz);
+            batch.put(loc, b.data);
+            priMap.put(key(loc), stageData.priority);
+        }
+        fakeBlockManager.showFakeBlocks(player, batch);
+        buildingStageManager.spawnForStage(player, building, level, stage, baseOrigin);
+
+        Location holo = baseOrigin.clone().add(
+                stageData.hx - stageData.ox + 0.5,
+                stageData.hy - stageData.oy,
+                stageData.hz - stageData.oz + 0.5);
+        org.bukkit.entity.ArmorStand stand = holo.getWorld().spawn(holo, org.bukkit.entity.ArmorStand.class);
+        stand.addScoreboardTag("building_hologram:" + building.toLowerCase());
+        stand.setVisible(false);
+        stand.setGravity(false);
+        stand.setCustomName(ChatColor.YELLOW + "Upgrade " + building + " - 1 Oak Log");
+        stand.setCustomNameVisible(true);
+        stand.setSilent(true);
+        stand.setSmall(true);
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (!p.equals(player)) p.hideEntity(Main.getInstance(), stand);
+        }
+        buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
+                .put(building.toLowerCase(), stand);
+    }
+
+    /**
+     * Resend fake blocks for a building only within the specified chunk.
+     */
+    private void resendBuildingForChunk(Player player, String building, Location origin,
+                                        int level, int stage, int cx, int cz) {
+        UUID uuid = player.getUniqueId();
+        var stageData = buildingStageManager.getStage(building, level, stage);
+        if (stageData == null) return;
+        Location baseOrigin = origin.clone().add(0, stageData.oy, 0);
+
+        Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
+        Map<String, Integer> priMap = blockPriorities.computeIfAbsent(uuid, k -> new java.util.HashMap<>());
+        for (var b : stageData.blocks) {
+            Location loc = baseOrigin.clone().add(b.x - stageData.ox, b.y - stageData.oy, b.z - stageData.oz);
+            int lcx = loc.getBlockX() >> 4;
+            int lcz = loc.getBlockZ() >> 4;
+            if (lcx == cx && lcz == cz) {
+                batch.put(loc, b.data);
+                priMap.put(key(loc), stageData.priority);
+            }
+        }
+        if (!batch.isEmpty()) {
+            fakeBlockManager.showFakeBlocks(player, batch);
+        }
     }
 
     /**
@@ -945,6 +1193,32 @@ public class EnvironmentManager {
 
     public void leave(Player player) {
         resetTown(player);
+    }
+
+    /**
+     * Resend the player's town and building fake blocks for a specific chunk.
+     * Only blocks within the loaded chunk are resent to avoid triggering
+     * additional chunk loads.
+     */
+    public void handleChunkLoad(Player player, org.bukkit.Chunk chunk) {
+        UUID base = getBase(player.getUniqueId());
+        EnvironmentState st = states.get(base);
+        Location origin = origins.get(base);
+        if (st == null || origin == null) return;
+        int cx = chunk.getX();
+        int cz = chunk.getZ();
+
+        // resend structure blocks inside the chunk
+        resendStructureForChunk(player, origin, st.level, st.stage, cx, cz);
+
+        Map<String, EnvironmentState> bMap = buildingStates.get(base);
+        if (bMap != null) {
+            for (var e : bMap.entrySet()) {
+                Location bOrigin = getBuildingOrigin(towns.get(base), e.getKey(), origin);
+                resendBuildingForChunk(player, e.getKey(), bOrigin, e.getValue().level,
+                        e.getValue().stage, cx, cz);
+            }
+        }
     }
 
     public void transfer(Player owner, Player newOwner) {
