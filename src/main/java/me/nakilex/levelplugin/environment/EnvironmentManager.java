@@ -500,7 +500,7 @@ public class EnvironmentManager {
         java.util.List<TownStageManager.BlockDef> blocks = new java.util.ArrayList<>(stageData.blocks);
         blocks.sort(java.util.Comparator.comparingInt(b -> b.y));
 
-        final int totalTime = 20 * 20; // 20 seconds in ticks
+        final int totalTime = 5 * 20; // 5 seconds in ticks
         final int blocksPerTick = Math.max(1, blocks.size() / totalTime);
 
         java.util.Random rand = new java.util.Random();
@@ -582,7 +582,7 @@ public class EnvironmentManager {
         // sort changes bottom-up for a nicer effect
         changes.sort(java.util.Comparator.comparingInt(c -> c.loc.getBlockY()));
 
-        final int totalTime = 20 * 20; // 20 seconds in ticks
+        final int totalTime = 5 * 20; // 5 seconds in ticks
         final int blocksPerTick = Math.max(1, changes.size() / totalTime);
 
         java.util.Random rand = new java.util.Random();
@@ -628,7 +628,7 @@ public class EnvironmentManager {
         java.util.List<BuildingStageManager.BlockDef> blocks = new java.util.ArrayList<>(stageData.blocks);
         blocks.sort(java.util.Comparator.comparingInt(b -> b.y));
 
-        final int totalTime = 20 * 20;
+        final int totalTime = 5 * 20; // 5 seconds in ticks
         final int blocksPerTick = Math.max(1, blocks.size() / totalTime);
 
         java.util.Random rand = new java.util.Random();
