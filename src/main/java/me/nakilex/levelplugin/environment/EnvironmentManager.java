@@ -583,7 +583,9 @@ public class EnvironmentManager {
         Map<String, Integer> priMap = blockPriorities.computeIfAbsent(uuid, k -> new java.util.HashMap<>());
         for (var b : stageData.blocks) {
             Location loc = baseOrigin.clone().add(b.x - stageData.ox, b.y - stageData.oy, b.z - stageData.oz);
-            if (loc.getChunk().getX() == cx && loc.getChunk().getZ() == cz) {
+            int lcx = loc.getBlockX() >> 4;
+            int lcz = loc.getBlockZ() >> 4;
+            if (lcx == cx && lcz == cz) {
                 batch.put(loc, b.data);
                 priMap.put(key(loc), stageData.priority);
             }
@@ -821,7 +823,9 @@ public class EnvironmentManager {
         Map<String, Integer> priMap = blockPriorities.computeIfAbsent(uuid, k -> new java.util.HashMap<>());
         for (var b : stageData.blocks) {
             Location loc = baseOrigin.clone().add(b.x - stageData.ox, b.y - stageData.oy, b.z - stageData.oz);
-            if (loc.getChunk().getX() == cx && loc.getChunk().getZ() == cz) {
+            int lcx = loc.getBlockX() >> 4;
+            int lcz = loc.getBlockZ() >> 4;
+            if (lcx == cx && lcz == cz) {
                 batch.put(loc, b.data);
                 priMap.put(key(loc), stageData.priority);
             }
