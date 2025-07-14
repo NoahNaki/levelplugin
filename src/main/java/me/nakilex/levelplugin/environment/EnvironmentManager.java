@@ -591,18 +591,30 @@ public class EnvironmentManager {
                     return;
                 }
                 int y = it.next();
-                java.util.List<Location> toRemove = oldLayers.getOrDefault(y, java.util.Collections.emptyList());
-                fakeBlockManager.hideFakeBlocks(player, toRemove);
-
                 java.util.Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
                 java.util.List<TownStageManager.BlockDef> add = newLayers.getOrDefault(y, java.util.Collections.emptyList());
+
+                // Map of new block locations for quick lookup
+                java.util.Set<Location> newLocs = new java.util.HashSet<>();
                 for (var b : add) {
                     Location loc = origin.clone().add(b.x - newData.ox, b.y - newData.oy, b.z - newData.oz);
                     batch.put(loc, b.data);
+                    newLocs.add(loc);
+                }
+
+                // Replace any leftover blocks from the previous stage with air
+                java.util.List<Location> toRemove = oldLayers.getOrDefault(y, java.util.Collections.emptyList());
+                for (Location loc : toRemove) {
+                    if (!newLocs.contains(loc)) {
+                        batch.put(loc, org.bukkit.Bukkit.createBlockData(org.bukkit.Material.AIR));
+                    }
+                }
+
+                for (var entry : batch.entrySet()) {
                     Sound breakS = breakSounds[rand.nextInt(breakSounds.length)];
                     Sound placeS = placeSounds[rand.nextInt(placeSounds.length)];
-                    player.getWorld().playSound(loc, breakS, 0.7f, 1f);
-                    player.getWorld().playSound(loc, placeS, 0.7f, 1f);
+                    player.getWorld().playSound(entry.getKey(), breakS, 0.7f, 1f);
+                    player.getWorld().playSound(entry.getKey(), placeS, 0.7f, 1f);
                 }
                 fakeBlockManager.showFakeBlocks(player, batch);
             }
@@ -761,18 +773,28 @@ public class EnvironmentManager {
                     return;
                 }
                 int y = it.next();
-                java.util.List<Location> toRemove = oldLayers.getOrDefault(y, java.util.Collections.emptyList());
-                fakeBlockManager.hideFakeBlocks(player, toRemove);
-
                 java.util.Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
                 java.util.List<BuildingStageManager.BlockDef> add = newLayers.getOrDefault(y, java.util.Collections.emptyList());
+
+                java.util.Set<Location> newLocs = new java.util.HashSet<>();
                 for (var b : add) {
                     Location loc = origin.clone().add(b.x - newData.ox, b.y - newData.oy, b.z - newData.oz);
                     batch.put(loc, b.data);
+                    newLocs.add(loc);
+                }
+
+                java.util.List<Location> toRemove = oldLayers.getOrDefault(y, java.util.Collections.emptyList());
+                for (Location loc : toRemove) {
+                    if (!newLocs.contains(loc)) {
+                        batch.put(loc, org.bukkit.Bukkit.createBlockData(org.bukkit.Material.AIR));
+                    }
+                }
+
+                for (var entry : batch.entrySet()) {
                     Sound breakS = breakSounds[rand.nextInt(breakSounds.length)];
                     Sound placeS = placeSounds[rand.nextInt(placeSounds.length)];
-                    player.getWorld().playSound(loc, breakS, 0.7f, 1f);
-                    player.getWorld().playSound(loc, placeS, 0.7f, 1f);
+                    player.getWorld().playSound(entry.getKey(), breakS, 0.7f, 1f);
+                    player.getWorld().playSound(entry.getKey(), placeS, 0.7f, 1f);
                 }
                 fakeBlockManager.showFakeBlocks(player, batch);
             }
