@@ -42,6 +42,12 @@ public class EnvironmentManager {
     /** Track placed block priorities for each player (location key -> priority). */
     private final Map<UUID, Map<String, Integer>> blockPriorities = new HashMap<>();
 
+    /** Players currently viewing their town (fake blocks active). */
+    private final java.util.Set<UUID> loadedPlayers = new java.util.HashSet<>();
+
+    /** Players that already saw the initial build animation. */
+    private final java.util.Set<UUID> playedInitAnimation = new java.util.HashSet<>();
+
     private static String key(Location loc) {
         return loc.getWorld().getName() + ":" + loc.getBlockX() + ":" + loc.getBlockY() + ":" + loc.getBlockZ();
     }
@@ -81,6 +87,27 @@ public class EnvironmentManager {
     /** Get the origin location for the player's town if it exists. */
     public Location getOrigin(UUID uuid) {
         return origins.get(getBase(uuid));
+    }
+
+    /** Whether the player's town is currently loaded for them. */
+    public boolean isTownLoaded(Player player) {
+        return loadedPlayers.contains(player.getUniqueId());
+    }
+
+    /** Internal setter for loaded state. */
+    public void markTownLoaded(Player player, boolean loaded) {
+        UUID id = player.getUniqueId();
+        if (loaded) loadedPlayers.add(id); else loadedPlayers.remove(id);
+    }
+
+    /** Track that the initial animation has played for this player. */
+    public void markAnimationPlayed(Player player) {
+        playedInitAnimation.add(getBase(player.getUniqueId()));
+    }
+
+    /** Check if the player already saw the initial build animation. */
+    public boolean hasPlayedInitAnimation(Player player) {
+        return playedInitAnimation.contains(getBase(player.getUniqueId()));
     }
 
     private UUID getBase(UUID uuid) {
@@ -128,7 +155,7 @@ public class EnvironmentManager {
     }
 
     /** Load state for player from config without spawning any structures. */
-    private void loadPlayerState(Player player) {
+    public void loadPlayerState(Player player) {
         UUID uuid = player.getUniqueId();
 
         UUID owner = playerConfig.getCoopOwner(uuid);
@@ -164,6 +191,25 @@ public class EnvironmentManager {
                 }
             }
             spawnStructureInstant(player, finalOrigin, es.level, es.stage);
+        }
+    }
+
+    /** Load player state and spawn their town with a short animation. */
+    public void initializePlayerAnimated(Player player, int ticks) {
+        loadPlayerState(player);
+
+        UUID uuid = player.getUniqueId();
+        EnvironmentState es = states.get(uuid);
+        Location origin = origins.get(uuid);
+        if (origin != null) {
+            Map<String, EnvironmentState> bMap = buildingStates.get(uuid);
+            if (bMap != null) {
+                for (var e : bMap.entrySet()) {
+                    Location bOrig = getBuildingOrigin(towns.get(uuid), e.getKey(), origin);
+                    spawnBuildingTimed(player, e.getKey(), bOrig, e.getValue().level, e.getValue().stage, null, ticks);
+                }
+            }
+            spawnStructureTimed(player, origin, es.level, es.stage, null, ticks);
         }
     }
 
@@ -491,11 +537,31 @@ public class EnvironmentManager {
         player.sendMessage(ChatColor.RED + "Your settlement has been reset.");
     }
 
+    /** Remove all fake blocks and NPCs for this player's view without deleting data. */
+    public void unloadPlayerTown(Player player) {
+        UUID base = getBase(player.getUniqueId());
+        EnvironmentState st = states.get(base);
+        String town = towns.get(base);
+        Location origin = origins.get(base);
+        Map<String, EnvironmentState> bMap = buildingStates.get(base);
+        if (town != null && st != null && origin != null) {
+            stageManager.despawnForStage(player.getUniqueId(), town, st.level, st.stage);
+            if (bMap != null) {
+                for (var e : bMap.entrySet()) {
+                    buildingStageManager.despawnForStage(player.getUniqueId(), e.getKey(), e.getValue().level, e.getValue().stage);
+                }
+            }
+        }
+        removeAllBuildingHolograms(player.getUniqueId());
+        fakeBlockManager.clear(player);
+        blockPriorities.remove(player.getUniqueId());
+    }
+
     /**
      * Spawn the structure for the given player and stage with a simple build
      * animation and sound effects.
      */
-    private void spawnStructure(Player player, Location origin, int level, int stage, Runnable after) {
+    private void spawnStructureTimed(Player player, Location origin, int level, int stage, Runnable after, int totalTime) {
         UUID uuid = player.getUniqueId();
         cancelTasks(uuid);
         fakeBlockManager.clear(player);
@@ -509,7 +575,6 @@ public class EnvironmentManager {
         java.util.List<TownStageManager.BlockDef> blocks = new java.util.ArrayList<>(stageData.blocks);
         blocks.sort(java.util.Comparator.comparingInt(b -> b.y));
 
-        final int totalTime = 5 * 20; // 5 seconds in ticks
         final int blocksPerTick = Math.max(1, blocks.size() / totalTime);
 
         java.util.Random rand = new java.util.Random();
@@ -545,8 +610,16 @@ public class EnvironmentManager {
         buildTasks.put(uuid, tasks);
     }
 
+    private void spawnStructure(Player player, Location origin, int level, int stage, Runnable after) {
+        spawnStructureTimed(player, origin, level, stage, after, 5 * 20);
+    }
+
     private void spawnStructure(Player player, Location origin, int level, int stage) {
         spawnStructure(player, origin, level, stage, null);
+    }
+
+    private void spawnStructureQuick(Player player, Location origin, int level, int stage) {
+        spawnStructureTimed(player, origin, level, stage, null, 20);
     }
 
     /**
@@ -692,7 +765,7 @@ public class EnvironmentManager {
     }
 
     /** Spawn a specific building stage relative to the town origin. */
-    private void spawnBuilding(Player player, String building, Location origin, int level, int stage, Runnable after) {
+    private void spawnBuildingTimed(Player player, String building, Location origin, int level, int stage, Runnable after, int totalTime) {
         UUID uuid = player.getUniqueId();
         removeBuildingHologram(uuid, building);
         String town = towns.get(player.getUniqueId());
@@ -705,7 +778,6 @@ public class EnvironmentManager {
         java.util.List<BuildingStageManager.BlockDef> blocks = new java.util.ArrayList<>(stageData.blocks);
         blocks.sort(java.util.Comparator.comparingInt(b -> b.y));
 
-        final int totalTime = 5 * 20; // 5 seconds in ticks
         final int blocksPerTick = Math.max(1, blocks.size() / totalTime);
 
         java.util.Random rand = new java.util.Random();
@@ -768,8 +840,16 @@ public class EnvironmentManager {
         buildTasks.put(uuid, tasks);
     }
 
+    private void spawnBuilding(Player player, String building, Location origin, int level, int stage, Runnable after) {
+        spawnBuildingTimed(player, building, origin, level, stage, after, 5 * 20);
+    }
+
     private void spawnBuilding(Player player, String building, Location origin, int level, int stage) {
         spawnBuilding(player, building, origin, level, stage, null);
+    }
+
+    private void spawnBuildingQuick(Player player, String building, Location origin, int level, int stage) {
+        spawnBuildingTimed(player, building, origin, level, stage, null, 20);
     }
 
     /**

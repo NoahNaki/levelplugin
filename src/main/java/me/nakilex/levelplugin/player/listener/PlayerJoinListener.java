@@ -49,7 +49,7 @@ public class PlayerJoinListener implements Listener {
             StatsManager.getInstance().recalcDerivedStats(player);
             levelManager.initializePlayer(player);
             miningManager.initializePlayer(player);
-            environmentManager.initializePlayer(player);
+            environmentManager.loadPlayerState(player);
             stageManager.hideNPCsFrom(player);
             player.setHealthScaled(true);
             player.setHealthScale(20.0);
