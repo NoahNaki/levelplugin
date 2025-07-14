@@ -74,7 +74,7 @@ public class BuildingStageManager {
     /** Create a new stage from the selected area. */
     public void createStage(String building, int level, int stage,
                             Location pos1, Location pos2, Location standLoc,
-                            Location origin) {
+                            Location origin, int priority) {
         List<NPCSpawn> npcs = captureNPCs(pos1, pos2);
         List<BlockDef> blocks = captureBlocks(pos1, pos2);
 
@@ -99,7 +99,7 @@ public class BuildingStageManager {
             .computeIfAbsent(building.toLowerCase(), k -> new HashMap<>())
             .computeIfAbsent(level, k -> new HashMap<>())
             .put(stage, new BuildingStage(building.toLowerCase(), level, stage, pos1, pos2,
-                    npcs, blocks, schematic, fileName, hx, hy, hz, ox, oy, oz));
+                    npcs, blocks, schematic, fileName, priority, hx, hy, hz, ox, oy, oz));
         saveConfig();
     }
 
@@ -384,6 +384,7 @@ public class BuildingStageManager {
                         int hx = config.getInt(base + "holo.x", 0);
                         int hy = config.getInt(base + "holo.y", 0);
                         int hz = config.getInt(base + "holo.z", 0);
+                        int priority = config.getInt(base + "priority", 0);
                         int ox = config.getInt(base + "origin.x", 0);
                         int oy = config.getInt(base + "origin.y", 0);
                         int oz = config.getInt(base + "origin.z", 0);
@@ -391,7 +392,8 @@ public class BuildingStageManager {
                             .computeIfAbsent(building.toLowerCase(), k -> new HashMap<>())
                             .computeIfAbsent(level, k -> new HashMap<>())
                             .put(stage, new BuildingStage(building.toLowerCase(), level, stage,
-                                    pos1, pos2, npcList, blockList, schematic, fileName, hx, hy, hz, ox, oy, oz));
+                                    pos1, pos2, npcList, blockList, schematic, fileName, priority,
+                                    hx, hy, hz, ox, oy, oz));
                     }
                 }
             }
@@ -450,6 +452,7 @@ public class BuildingStageManager {
                         config.set(base + "holo.x", st.hx);
                         config.set(base + "holo.y", st.hy);
                         config.set(base + "holo.z", st.hz);
+                        config.set(base + "priority", st.priority);
                         config.set(base + "origin.x", st.ox);
                         config.set(base + "origin.y", st.oy);
                         config.set(base + "origin.z", st.oz);
@@ -502,11 +505,14 @@ public class BuildingStageManager {
         public final List<BlockDef> blocks;
         public final File schematic;
         public final String fileName;
+        /** Priority used when placing blocks for this stage. Higher wins. */
+        public final int priority;
         public final int hx, hy, hz;
         public final int ox, oy, oz;
         public BuildingStage(String name, int level, int stage, Location pos1, Location pos2,
                              List<NPCSpawn> npcs, List<BlockDef> blocks,
-                             File schematic, String fileName, int hx, int hy, int hz,
+                             File schematic, String fileName, int priority,
+                             int hx, int hy, int hz,
                              int ox, int oy, int oz) {
             this.name = name;
             this.level = level;
@@ -517,6 +523,7 @@ public class BuildingStageManager {
             this.blocks = blocks == null ? Collections.emptyList() : blocks;
             this.schematic = schematic;
             this.fileName = fileName;
+            this.priority = priority;
             this.hx = hx;
             this.hy = hy;
             this.hz = hz;

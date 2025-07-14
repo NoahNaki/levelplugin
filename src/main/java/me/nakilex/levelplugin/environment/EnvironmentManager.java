@@ -39,6 +39,12 @@ public class EnvironmentManager {
     private final Map<UUID, UUID> coopOwners = new HashMap<>();
     private final Map<UUID, UUID> coopPartners = new HashMap<>();
     private final Map<UUID, UUID> pendingInvites = new HashMap<>();
+    /** Track placed block priorities for each player (location key -> priority). */
+    private final Map<UUID, Map<String, Integer>> blockPriorities = new HashMap<>();
+
+    private static String key(Location loc) {
+        return loc.getWorld().getName() + ":" + loc.getBlockX() + ":" + loc.getBlockY() + ":" + loc.getBlockZ();
+    }
 
     public static class EnvironmentState {
         public int level;
@@ -204,6 +210,7 @@ public class EnvironmentManager {
             }
         }
         fakeBlockManager.clear(Bukkit.getPlayer(member));
+        blockPriorities.remove(member);
         towns.remove(member);
         origins.remove(member);
         states.remove(member);
@@ -595,6 +602,7 @@ public class EnvironmentManager {
         java.util.Random rand = new java.util.Random();
         Sound[] breakSounds = { Sound.BLOCK_STONE_BREAK, Sound.BLOCK_DEEPSLATE_BREAK, Sound.BLOCK_WOOD_BREAK };
         Sound[] placeSounds = { Sound.BLOCK_STONE_PLACE, Sound.BLOCK_DEEPSLATE_PLACE, Sound.BLOCK_WOOD_PLACE };
+        Map<String, Integer> priMap = blockPriorities.computeIfAbsent(uuid, k -> new HashMap<>());
 
         BukkitTask task = new BukkitRunnable() {
             int index = 0;
@@ -603,7 +611,16 @@ public class EnvironmentManager {
                 Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
                 for (int i = 0; i < blocksPerTick && index < changes.size(); i++, index++) {
                     Change c = changes.get(index);
+                    String k = key(c.loc);
+                    int exist = priMap.getOrDefault(k, Integer.MIN_VALUE);
+                    int newPr = newData.priority;
+                    if (exist > newPr) continue;
                     batch.put(c.loc, c.data);
+                    if (c.data.getMaterial() == org.bukkit.Material.AIR) {
+                        priMap.remove(k);
+                    } else {
+                        priMap.put(k, newPr);
+                    }
                     Sound breakS = breakSounds[rand.nextInt(breakSounds.length)];
                     Sound placeS = placeSounds[rand.nextInt(placeSounds.length)];
                     player.getWorld().playSound(c.loc, breakS, 0.7f, 1f);
@@ -644,6 +661,8 @@ public class EnvironmentManager {
         Sound[] breakSounds = { Sound.BLOCK_STONE_BREAK, Sound.BLOCK_DEEPSLATE_BREAK, Sound.BLOCK_WOOD_BREAK };
         Sound[] placeSounds = { Sound.BLOCK_STONE_PLACE, Sound.BLOCK_DEEPSLATE_PLACE, Sound.BLOCK_WOOD_PLACE };
 
+        Map<String, Integer> priMap = blockPriorities.computeIfAbsent(uuid, k -> new HashMap<>());
+
         BukkitTask task = new BukkitRunnable() {
             int index = 0;
             @Override public void run() {
@@ -655,7 +674,11 @@ public class EnvironmentManager {
                             b.x - stageData.ox,
                             b.y - stageData.oy,
                             b.z - stageData.oz);
+                    String k = key(loc);
+                    int exist = priMap.getOrDefault(k, Integer.MIN_VALUE);
+                    if (exist > stageData.priority) continue;
                     batch.put(loc, b.data);
+                    priMap.put(k, stageData.priority);
                     Sound breakS = breakSounds[rand.nextInt(breakSounds.length)];
                     Sound placeS = placeSounds[rand.nextInt(placeSounds.length)];
                     player.getWorld().playSound(loc, breakS, 0.7f, 1f);
@@ -758,6 +781,8 @@ public class EnvironmentManager {
         Sound[] breakSounds = { Sound.BLOCK_STONE_BREAK, Sound.BLOCK_DEEPSLATE_BREAK, Sound.BLOCK_WOOD_BREAK };
         Sound[] placeSounds = { Sound.BLOCK_STONE_PLACE, Sound.BLOCK_DEEPSLATE_PLACE, Sound.BLOCK_WOOD_PLACE };
 
+        Map<String, Integer> priMap = blockPriorities.computeIfAbsent(uuid, k -> new HashMap<>());
+
         BukkitTask task = new BukkitRunnable() {
             int index = 0;
             @Override public void run() {
@@ -765,7 +790,16 @@ public class EnvironmentManager {
                 Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
                 for (int i = 0; i < blocksPerTick && index < changes.size(); i++, index++) {
                     Change c = changes.get(index);
+                    String k = key(c.loc);
+                    int exist = priMap.getOrDefault(k, Integer.MIN_VALUE);
+                    int newPr = newData.priority;
+                    if (exist > newPr) continue;
                     batch.put(c.loc, c.data);
+                    if (c.data.getMaterial() == org.bukkit.Material.AIR) {
+                        priMap.remove(k);
+                    } else {
+                        priMap.put(k, newPr);
+                    }
                     Sound breakS = breakSounds[rand.nextInt(breakSounds.length)];
                     Sound placeS = placeSounds[rand.nextInt(placeSounds.length)];
                     player.getWorld().playSound(c.loc, breakS, 0.7f, 1f);
@@ -812,6 +846,8 @@ public class EnvironmentManager {
         for (var b : st.blocks) {
             Location l = baseOrigin.clone().add(b.x - st.ox, b.y - st.oy, b.z - st.oz);
             locs.add(l);
+            Map<String, Integer> priMap = blockPriorities.get(player.getUniqueId());
+            if (priMap != null) priMap.remove(key(l));
         }
         fakeBlockManager.hideFakeBlocks(player, locs);
     }
@@ -825,6 +861,8 @@ public class EnvironmentManager {
         for (var b : st.blocks) {
             Location l = baseOrigin.clone().add(b.x - st.ox, b.y - st.oy, b.z - st.oz);
             locs.add(l);
+            Map<String, Integer> priMap = blockPriorities.get(player.getUniqueId());
+            if (priMap != null) priMap.remove(key(l));
         }
         fakeBlockManager.hideFakeBlocks(player, locs);
     }
