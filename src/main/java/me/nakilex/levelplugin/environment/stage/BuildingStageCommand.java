@@ -106,9 +106,9 @@ public class BuildingStageCommand implements CommandExecutor, Listener {
                         tMinY + townStage.oy,
                         tMinZ + townStage.oz);
                 int dx = buildOrigin.getBlockX() - townOrigin.getBlockX();
-                int dy = buildOrigin.getBlockY() - townOrigin.getBlockY();
+                // Ignore the Y difference to allow flexible placement height
                 int dz = buildOrigin.getBlockZ() - townOrigin.getBlockZ();
-                manager.linkBuilding(town, lbName, dx, dy, dz);
+                manager.linkBuilding(town, lbName, dx, 0, dz);
                 p.sendMessage(ChatColor.GREEN + "Linked " + lbName + " to " + town + ".");
                 return true;
             default:
