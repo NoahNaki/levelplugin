@@ -102,4 +102,15 @@ public class FakeBlockManager {
             }
         }
     }
+
+    /** Return the fake block data at the given location for this player or null. */
+    public BlockData getFakeBlock(Player player, Location loc) {
+        Map<Location, BlockData> map = playerBlocks.get(player.getUniqueId());
+        return map != null ? map.get(loc) : null;
+    }
+
+    /** Check if the player currently sees a fake block at the given location. */
+    public boolean isFakeBlock(Player player, Location loc) {
+        return getFakeBlock(player, loc) != null;
+    }
 }

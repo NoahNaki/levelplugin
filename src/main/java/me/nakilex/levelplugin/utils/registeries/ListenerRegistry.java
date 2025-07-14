@@ -66,6 +66,9 @@ import me.nakilex.levelplugin.fasttravel.FastTravelManager;
 import me.nakilex.levelplugin.fakeblock.ModelGateManager;
 import me.nakilex.levelplugin.motd.MotdManager;
 import me.nakilex.levelplugin.environment.UpgradeGUI;
+import me.nakilex.levelplugin.environment.BuildingUpgradeGUI;
+import me.nakilex.levelplugin.environment.listeners.BuildingHologramListener;
+import me.nakilex.levelplugin.environment.listeners.StageBlockInteractListener;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.PluginManager;
 
@@ -95,8 +98,9 @@ public class ListenerRegistry {
                                         FastTravelGUI fastTravelGUI,
                                         MotdManager motdManager,
                                         UpgradeGUI upgradeGUI,
-                                        me.nakilex.levelplugin.environment.BuildingUpgradeGUI buildingUpgradeGUI,
-                                        me.nakilex.levelplugin.environment.listeners.BuildingHologramListener hologramListener) {
+                                        BuildingUpgradeGUI buildingUpgradeGUI,
+                                        BuildingHologramListener hologramListener,
+                                        StageBlockInteractListener stageBlockInteractListener) {
 
 
         PluginManager pm = plugin.getServer().getPluginManager();
@@ -190,6 +194,7 @@ public class ListenerRegistry {
         pm.registerEvents(upgradeGUI, plugin);
         pm.registerEvents(buildingUpgradeGUI, plugin);
         pm.registerEvents(hologramListener, plugin);
+        pm.registerEvents(stageBlockInteractListener, plugin);
         pm.registerEvents(new me.nakilex.levelplugin.player.profile.ProfileSelectionGUI(), plugin);
 
 
