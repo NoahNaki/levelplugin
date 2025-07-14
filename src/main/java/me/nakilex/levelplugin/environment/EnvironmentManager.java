@@ -152,18 +152,13 @@ public class EnvironmentManager {
             Map<String, EnvironmentState> bMap = buildingStates.get(uuid);
             final Map<String, EnvironmentState> finalBMap = bMap == null ? null : new java.util.HashMap<>(bMap);
             final Location finalOrigin = origin;
-            final Runnable after;
             if (finalBMap != null) {
-                after = () -> {
-                    for (var e : finalBMap.entrySet()) {
-                        Location bOrig = getBuildingOrigin(towns.get(uuid), e.getKey(), finalOrigin);
-                        spawnBuilding(player, e.getKey(), bOrig, e.getValue().level, e.getValue().stage, null);
-                    }
-                };
-            } else {
-                after = null;
+                for (var e : finalBMap.entrySet()) {
+                    Location bOrig = getBuildingOrigin(towns.get(uuid), e.getKey(), finalOrigin);
+                    spawnBuildingInstant(player, e.getKey(), bOrig, e.getValue().level, e.getValue().stage);
+                }
             }
-            spawnStructure(player, finalOrigin, es.level, es.stage, after);
+            spawnStructureInstant(player, finalOrigin, es.level, es.stage);
         }
     }
 
@@ -550,6 +545,29 @@ public class EnvironmentManager {
     }
 
     /**
+     * Spawn the structure instantly without any build animation. Used when
+     * reloading chunks so the player still sees the correct town stage.
+     */
+    private void spawnStructureInstant(Player player, Location origin, int level, int stage) {
+        UUID uuid = player.getUniqueId();
+        String town = towns.get(uuid);
+        if (town == null) return;
+        var stageData = stageManager.getStage(town, level, stage);
+        if (stageData == null) return;
+        Location baseOrigin = origin.clone().add(0, stageData.oy, 0);
+
+        Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
+        Map<String, Integer> priMap = blockPriorities.computeIfAbsent(uuid, k -> new java.util.HashMap<>());
+        for (var b : stageData.blocks) {
+            Location loc = baseOrigin.clone().add(b.x - stageData.ox, b.y - stageData.oy, b.z - stageData.oz);
+            batch.put(loc, b.data);
+            priMap.put(key(loc), stageData.priority);
+        }
+        fakeBlockManager.showFakeBlocks(player, batch);
+        stageManager.spawnForStage(player, town, level, stage, baseOrigin);
+    }
+
+    /**
      * Upgrade the main town structure with a progressive build animation
      * instead of swapping blocks instantly.
      */
@@ -719,6 +737,48 @@ public class EnvironmentManager {
 
     private void spawnBuilding(Player player, String building, Location origin, int level, int stage) {
         spawnBuilding(player, building, origin, level, stage, null);
+    }
+
+    /**
+     * Spawn a building stage instantly without animation. Used when chunks are
+     * reloaded so players continue to see their buildings.
+     */
+    private void spawnBuildingInstant(Player player, String building, Location origin, int level, int stage) {
+        UUID uuid = player.getUniqueId();
+        removeBuildingHologram(uuid, building);
+        String town = towns.get(uuid);
+        if (town == null) return;
+        var stageData = buildingStageManager.getStage(building, level, stage);
+        if (stageData == null) return;
+        Location baseOrigin = origin.clone().add(0, stageData.oy, 0);
+
+        Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
+        Map<String, Integer> priMap = blockPriorities.computeIfAbsent(uuid, k -> new java.util.HashMap<>());
+        for (var b : stageData.blocks) {
+            Location loc = baseOrigin.clone().add(b.x - stageData.ox, b.y - stageData.oy, b.z - stageData.oz);
+            batch.put(loc, b.data);
+            priMap.put(key(loc), stageData.priority);
+        }
+        fakeBlockManager.showFakeBlocks(player, batch);
+        buildingStageManager.spawnForStage(player, building, level, stage, baseOrigin);
+
+        Location holo = baseOrigin.clone().add(
+                stageData.hx - stageData.ox + 0.5,
+                stageData.hy - stageData.oy,
+                stageData.hz - stageData.oz + 0.5);
+        org.bukkit.entity.ArmorStand stand = holo.getWorld().spawn(holo, org.bukkit.entity.ArmorStand.class);
+        stand.addScoreboardTag("building_hologram:" + building.toLowerCase());
+        stand.setVisible(false);
+        stand.setGravity(false);
+        stand.setCustomName(ChatColor.YELLOW + "Upgrade " + building + " - 1 Oak Log");
+        stand.setCustomNameVisible(true);
+        stand.setSilent(true);
+        stand.setSmall(true);
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (!p.equals(player)) p.hideEntity(Main.getInstance(), stand);
+        }
+        buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
+                .put(building.toLowerCase(), stand);
     }
 
     /**
@@ -945,6 +1005,24 @@ public class EnvironmentManager {
 
     public void leave(Player player) {
         resetTown(player);
+    }
+
+    /** Resend the player's town and building fake blocks when a chunk loads. */
+    public void handleChunkLoad(Player player) {
+        UUID base = getBase(player.getUniqueId());
+        EnvironmentState st = states.get(base);
+        Location origin = origins.get(base);
+        if (st == null || origin == null) return;
+
+        spawnStructureInstant(player, origin, st.level, st.stage);
+
+        Map<String, EnvironmentState> bMap = buildingStates.get(base);
+        if (bMap != null) {
+            for (var e : bMap.entrySet()) {
+                Location bOrigin = getBuildingOrigin(towns.get(base), e.getKey(), origin);
+                spawnBuildingInstant(player, e.getKey(), bOrigin, e.getValue().level, e.getValue().stage);
+            }
+        }
     }
 
     public void transfer(Player owner, Player newOwner) {
