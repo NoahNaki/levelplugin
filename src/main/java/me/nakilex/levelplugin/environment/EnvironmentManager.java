@@ -568,6 +568,32 @@ public class EnvironmentManager {
     }
 
     /**
+     * Resend fake blocks for the main structure inside a specific chunk.
+     */
+    private void resendStructureForChunk(Player player, Location origin, int level, int stage,
+                                         int cx, int cz) {
+        UUID uuid = player.getUniqueId();
+        String town = towns.get(uuid);
+        if (town == null) return;
+        var stageData = stageManager.getStage(town, level, stage);
+        if (stageData == null) return;
+        Location baseOrigin = origin.clone().add(0, stageData.oy, 0);
+
+        Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
+        Map<String, Integer> priMap = blockPriorities.computeIfAbsent(uuid, k -> new java.util.HashMap<>());
+        for (var b : stageData.blocks) {
+            Location loc = baseOrigin.clone().add(b.x - stageData.ox, b.y - stageData.oy, b.z - stageData.oz);
+            if (loc.getChunk().getX() == cx && loc.getChunk().getZ() == cz) {
+                batch.put(loc, b.data);
+                priMap.put(key(loc), stageData.priority);
+            }
+        }
+        if (!batch.isEmpty()) {
+            fakeBlockManager.showFakeBlocks(player, batch);
+        }
+    }
+
+    /**
      * Upgrade the main town structure with a progressive build animation
      * instead of swapping blocks instantly.
      */
@@ -779,6 +805,30 @@ public class EnvironmentManager {
         }
         buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
                 .put(building.toLowerCase(), stand);
+    }
+
+    /**
+     * Resend fake blocks for a building only within the specified chunk.
+     */
+    private void resendBuildingForChunk(Player player, String building, Location origin,
+                                        int level, int stage, int cx, int cz) {
+        UUID uuid = player.getUniqueId();
+        var stageData = buildingStageManager.getStage(building, level, stage);
+        if (stageData == null) return;
+        Location baseOrigin = origin.clone().add(0, stageData.oy, 0);
+
+        Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
+        Map<String, Integer> priMap = blockPriorities.computeIfAbsent(uuid, k -> new java.util.HashMap<>());
+        for (var b : stageData.blocks) {
+            Location loc = baseOrigin.clone().add(b.x - stageData.ox, b.y - stageData.oy, b.z - stageData.oz);
+            if (loc.getChunk().getX() == cx && loc.getChunk().getZ() == cz) {
+                batch.put(loc, b.data);
+                priMap.put(key(loc), stageData.priority);
+            }
+        }
+        if (!batch.isEmpty()) {
+            fakeBlockManager.showFakeBlocks(player, batch);
+        }
     }
 
     /**
@@ -1007,20 +1057,28 @@ public class EnvironmentManager {
         resetTown(player);
     }
 
-    /** Resend the player's town and building fake blocks when a chunk loads. */
-    public void handleChunkLoad(Player player) {
+    /**
+     * Resend the player's town and building fake blocks for a specific chunk.
+     * Only blocks within the loaded chunk are resent to avoid triggering
+     * additional chunk loads.
+     */
+    public void handleChunkLoad(Player player, org.bukkit.Chunk chunk) {
         UUID base = getBase(player.getUniqueId());
         EnvironmentState st = states.get(base);
         Location origin = origins.get(base);
         if (st == null || origin == null) return;
+        int cx = chunk.getX();
+        int cz = chunk.getZ();
 
-        spawnStructureInstant(player, origin, st.level, st.stage);
+        // resend structure blocks inside the chunk
+        resendStructureForChunk(player, origin, st.level, st.stage, cx, cz);
 
         Map<String, EnvironmentState> bMap = buildingStates.get(base);
         if (bMap != null) {
             for (var e : bMap.entrySet()) {
                 Location bOrigin = getBuildingOrigin(towns.get(base), e.getKey(), origin);
-                spawnBuildingInstant(player, e.getKey(), bOrigin, e.getValue().level, e.getValue().stage);
+                resendBuildingForChunk(player, e.getKey(), bOrigin, e.getValue().level,
+                        e.getValue().stage, cx, cz);
             }
         }
     }

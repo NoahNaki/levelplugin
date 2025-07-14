@@ -25,7 +25,7 @@ public class EnvironmentChunkListener implements Listener {
             int pcx = player.getLocation().getChunk().getX();
             int pcz = player.getLocation().getChunk().getZ();
             if (Math.abs(pcx - cx) <= view && Math.abs(pcz - cz) <= view) {
-                environmentManager.handleChunkLoad(player);
+                environmentManager.handleChunkLoad(player, chunk);
             }
         }
     }
