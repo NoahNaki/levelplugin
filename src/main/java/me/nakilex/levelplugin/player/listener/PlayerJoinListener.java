@@ -51,6 +51,7 @@ public class PlayerJoinListener implements Listener {
             levelManager.initializePlayer(player);
             miningManager.initializePlayer(player);
             environmentManager.loadPlayerState(player);
+            environmentManager.preloadTownChunks(player);
             stageManager.hideNPCsFrom(player);
             player.setHealthScaled(true);
             player.setHealthScale(20.0);
@@ -111,6 +112,21 @@ public class PlayerJoinListener implements Listener {
                     }
                 }
             }.runTaskTimer(Main.getInstance(), 0L, 40L);
+
+            // Spawn the town immediately if the player logs in nearby
+            org.bukkit.Location origin = environmentManager.getOrigin(pid);
+            if (origin != null && origin.getWorld().equals(player.getWorld())
+                    && player.getLocation().distanceSquared(origin) <= 350 * 350) {
+                if (!environmentManager.isTownLoaded(player)) {
+                    if (!environmentManager.hasPlayedInitAnimation(player)) {
+                        environmentManager.initializePlayerAnimated(player, 20);
+                        environmentManager.markAnimationPlayed(player);
+                    } else {
+                        environmentManager.initializePlayer(player);
+                    }
+                    environmentManager.markTownLoaded(player, true);
+                }
+            }
 
             // Additional per-player loading can happen here
         }, 2L);  // 2 ticks
