@@ -194,6 +194,49 @@ public class EnvironmentManager {
         return true;
     }
 
+    /**
+     * Check if all blocks for the town inside a specific chunk match the
+     * schematic. This is a lighter version of {@link #doTownBlocksMatch} used
+     * to verify chunks individually during loading.
+     */
+    private boolean doesTownChunkMatch(Player player, int cx, int cz) {
+        UUID base = getBase(player.getUniqueId());
+        EnvironmentState st = states.get(base);
+        Location origin = origins.get(base);
+        String town = towns.get(base);
+        if (st == null || origin == null || town == null) return true;
+
+        var stage = stageManager.getStage(town, st.level, st.stage);
+        if (stage != null) {
+            Location baseOrigin = origin.clone().add(0, stage.oy, 0);
+            for (var b : stage.blocks) {
+                Location loc = baseOrigin.clone().add(b.x - stage.ox, b.y - stage.oy, b.z - stage.oz);
+                if ((loc.getBlockX() >> 4) != cx || (loc.getBlockZ() >> 4) != cz) continue;
+                if (!loc.getBlock().getBlockData().matches(b.data)) {
+                    return false;
+                }
+            }
+        }
+
+        Map<String, EnvironmentState> bMap = buildingStates.get(base);
+        if (bMap != null) {
+            for (var e : bMap.entrySet()) {
+                var bs = buildingStageManager.getStage(e.getKey(), e.getValue().level, e.getValue().stage);
+                if (bs == null) continue;
+                Location bo = getBuildingOrigin(town, e.getKey(), origin).add(0, bs.oy, 0);
+                for (var b : bs.blocks) {
+                    Location loc = bo.clone().add(b.x - bs.ox, b.y - bs.oy, b.z - bs.oz);
+                    if ((loc.getBlockX() >> 4) != cx || (loc.getBlockZ() >> 4) != cz) continue;
+                    if (!loc.getBlock().getBlockData().matches(b.data)) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
+
     /** Build the hologram text for a building upgrade based on the player's
      *  current resources. */
     private java.util.List<String> formatBuildingHologram(Player player, String building, int level, int stage) {
@@ -447,7 +490,7 @@ public class EnvironmentManager {
         }
     }
 
-    /** Periodically verify that a player's town chunks are loaded. */
+    /** Periodically verify that a player's town chunks are loaded and correct. */
     private void startTownLoadCheck(Player player) {
         UUID base = getBase(player.getUniqueId());
         if (townCheckTasks.containsKey(base)) return;
@@ -458,17 +501,35 @@ public class EnvironmentManager {
                     cancelTownLoadCheck(base);
                     return;
                 }
-                if (areTownChunksLoaded(p)) {
-                    if (doTownBlocksMatch(p)) {
-                        cancelTownLoadCheck(base);
-                    } else {
-                        initializePlayer(p);
+
+                Location origin = origins.get(base);
+                if (origin == null) {
+                    cancelTownLoadCheck(base);
+                    return;
+                }
+
+                boolean allOk = true;
+                for (long key : collectTownChunks(base)) {
+                    int cx = (int) (key >> 32);
+                    int cz = (int) key;
+                    org.bukkit.Chunk c = origin.getWorld().getChunkAt(cx, cz);
+                    if (!c.isLoaded()) {
+                        allOk = false;
+                        preloadTownChunks(p);
+                        break;
                     }
-                } else {
-                    preloadTownChunks(p);
+                    if (!doesTownChunkMatch(p, cx, cz)) {
+                        allOk = false;
+                        initializePlayer(p);
+                        break;
+                    }
+                }
+
+                if (allOk) {
+                    cancelTownLoadCheck(base);
                 }
             }
-        }.runTaskTimer(Main.getInstance(), 60L, 60L);
+        }.runTaskTimer(Main.getInstance(), 20L, 20L);
         townCheckTasks.put(base, task);
     }
 
