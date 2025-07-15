@@ -35,15 +35,24 @@ public class PlayerQuitListener implements Listener {
 
         // Persist player data
         me.nakilex.levelplugin.player.config.PlayerConfig cfg = Main.getInstance().getPlayerConfig();
-        Integer slot = me.nakilex.levelplugin.player.profile.ProfileManager.getInstance().getActiveSlot(pid);
-        if (slot != null) {
-            cfg.setProfileInventory(pid, slot, player.getInventory().getContents());
-            cfg.setProfileArmor(pid, slot, player.getInventory().getArmorContents());
+        boolean profilesEnabled = Main.getInstance().getCustomConfig()
+                .getBoolean("features.profiles", true);
+        if (profilesEnabled) {
+            Integer slot = me.nakilex.levelplugin.player.profile.ProfileManager.getInstance().getActiveSlot(pid);
+            if (slot != null) {
+                cfg.setProfileInventory(pid, slot, player.getInventory().getContents());
+                cfg.setProfileArmor(pid, slot, player.getInventory().getArmorContents());
+            }
+        } else {
+            cfg.setProfileInventory(pid, 0, player.getInventory().getContents());
+            cfg.setProfileArmor(pid, 0, player.getInventory().getArmorContents());
         }
         cfg.savePlayer(pid);
         me.nakilex.levelplugin.player.profile.ProfileManager.getInstance()
             .saveActiveLocation(player);
-        me.nakilex.levelplugin.player.profile.ProfileSelectionGUI.handleQuit(player);
+        if (profilesEnabled) {
+            me.nakilex.levelplugin.player.profile.ProfileSelectionGUI.handleQuit(player);
+        }
         EnvironmentManager.EnvironmentState st = environmentManager.getState(pid);
         String town = st != null ? environmentManager.getTown(pid) : null;
         environmentManager.saveState(pid);

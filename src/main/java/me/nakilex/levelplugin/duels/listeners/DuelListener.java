@@ -29,79 +29,7 @@ public class DuelListener implements Listener {
 
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
-        // Must be left-click in air/block while sneaking
-        if ((event.getAction() != Action.LEFT_CLICK_AIR && event.getAction() != Action.LEFT_CLICK_BLOCK)
-            || !event.getPlayer().isSneaking()) {
-            return;
-        }
-        Player player = event.getPlayer();
-
-        // RayTrace up to ~4 blocks for a Player in front
-        double range = 4.0;
-        RayTraceResult result = player.getWorld().rayTraceEntities(
-            player.getEyeLocation(),
-            player.getEyeLocation().getDirection(),
-            range,
-            (entity) -> entity instanceof Player && !entity.equals(player)
-        );
-        if (result == null) return;
-        Entity hitEntity = result.getHitEntity();
-        if (!(hitEntity instanceof Player)) return;
-
-        Player target = (Player) hitEntity;
-        DuelManager manager = DuelManager.getInstance();
-
-        if (me.nakilex.levelplugin.Main.getInstance().getIgnoreManager().isIgnoring(target.getUniqueId(), player.getUniqueId())
-            || me.nakilex.levelplugin.Main.getInstance().getIgnoreManager().isIgnoring(player.getUniqueId(), target.getUniqueId())) {
-            ChatFormatter.sendCenteredMessage(player, ChatColor.RED + "Cannot duel that player.");
-            return;
-        }
-
-        // ← NEW: Prevent sending/receiving if either player is already in a duel
-        if (manager.areInAnyDuel(player) || manager.areInAnyDuel(target)) {
-            ChatFormatter.sendCenteredMessage(player,
-                ChatColor.RED + "Either you or they are in a duel already!");
-            return;
-        }
-
-        // 2) Check if there's a pending request from target -> me
-        DuelRequest pendingToMe = manager.getRequest(player.getUniqueId());
-        if (pendingToMe != null && pendingToMe.getRequester().equals(target.getUniqueId())) {
-            boolean accepted = manager.acceptRequest(player);
-            if (accepted) {
-                ChatFormatter.sendCenteredMessage(player,
-                    "§aYou accepted " + target.getName() + "’s duel request!");
-                ChatFormatter.sendCenteredMessage(target,
-                    "§aYour duel request was accepted by " + player.getName() + "!");
-            }
-            return;
-        }
-
-        // 3) Check if there's a request from me -> target
-        DuelRequest pendingToTarget = manager.getRequest(target.getUniqueId());
-        if (pendingToTarget != null && pendingToTarget.getRequester().equals(player.getUniqueId())) {
-            ChatFormatter.sendCenteredMessage(player,
-                "§cYou have already sent a duel request to " + target.getName() + "!");
-            return;
-        }
-
-        // 4) Cooldown check
-        long now = System.currentTimeMillis();
-        long lastTime = lastRequestTime.getOrDefault(player.getUniqueId(), 0L);
-        if ((now - lastTime) < REQUEST_COOLDOWN_MS) {
-            ChatFormatter.sendCenteredMessage(player,
-                "§cWait a few seconds before sending another duel request!");
-            return;
-        }
-        lastRequestTime.put(player.getUniqueId(), now);
-
-        // 5) Create and notify
-        manager.createRequest(player, target);
-        ChatFormatter.sendCenteredMessage(player,
-            "§6You have sent a duel request to " + target.getName() + "!");
-        ChatFormatter.sendCenteredMessage(target,
-            "§e" + player.getName() + " has challenged you to a duel! Expires in 10s.");
-        sendCenteredAcceptDecline(target, player.getName());
+        // Duel requests via shift left-click have been removed
     }
 
 
@@ -254,46 +182,7 @@ public class DuelListener implements Listener {
 
     @EventHandler
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
-        if (!(event.getEntity() instanceof Player) || !(event.getDamager() instanceof Player)) {
-            return;
-        }
-
-        Player victim = (Player) event.getEntity();
-        Player attacker = (Player) event.getDamager();
-        DuelManager manager = DuelManager.getInstance();
-
-        // Only treat sneak‐hit as a duel request/accept
-        if (!attacker.isSneaking()) {
-            return;
-        }
-        event.setCancelled(true);
-
-        // ← NEW: Prevent sending/receiving if either player is already in a duel
-        if (manager.areInAnyDuel(attacker) || manager.areInAnyDuel(victim)) {
-            ChatFormatter.sendCenteredMessage(attacker,
-                ChatColor.RED + "Either you or they are in a duel already!");
-            return;
-        }
-
-        // Accept an existing request?
-        DuelRequest existing = manager.getRequest(attacker.getUniqueId());
-        if (existing != null && existing.getRequester().equals(victim.getUniqueId())) {
-            manager.acceptRequest(attacker);
-            return;
-        }
-
-        if (me.nakilex.levelplugin.Main.getInstance().getIgnoreManager().isIgnoring(victim.getUniqueId(), attacker.getUniqueId())
-            || me.nakilex.levelplugin.Main.getInstance().getIgnoreManager().isIgnoring(attacker.getUniqueId(), victim.getUniqueId())) {
-            ChatFormatter.sendCenteredMessage(attacker, ChatColor.RED + "Cannot duel that player.");
-            return;
-        }
-
-        // Otherwise, send a new request
-        manager.createRequest(attacker, victim);
-        ChatFormatter.sendCenteredMessage(attacker,
-            "§6You have sent a duel request to " + victim.getName() + "!");
-        ChatFormatter.sendCenteredMessage(victim,
-            "§e" + attacker.getName() + " has challenged you to a duel! Expires in 10s.");
-        sendDuelRequestMessage(victim, attacker.getName());
+        // Shift-left click duel requests removed
+        return;
     }
 }

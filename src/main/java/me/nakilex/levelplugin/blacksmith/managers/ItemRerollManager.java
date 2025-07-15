@@ -33,7 +33,6 @@ public class ItemRerollManager {
         }
 
         ItemStack updated = ItemUtil.createItemStackFromCustomItem(item, stack.getAmount(), player);
-        ItemUtil.copyEgoData(stack, updated, item, player);
         ItemUtil.applyUpdatedStack(stack, updated);
 
         int after = getValue(item, stat);

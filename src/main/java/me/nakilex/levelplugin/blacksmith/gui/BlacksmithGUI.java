@@ -6,7 +6,6 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.blacksmith.managers.ItemRepairManager;
 import me.nakilex.levelplugin.blacksmith.managers.ItemUpgradeManager;
 import me.nakilex.levelplugin.blacksmith.managers.ItemRerollManager;
-import me.nakilex.levelplugin.ego.EgoWeaponManager;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
