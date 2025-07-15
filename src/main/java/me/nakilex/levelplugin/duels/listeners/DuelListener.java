@@ -253,33 +253,5 @@ public class DuelListener implements Listener {
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
         // Shift-left click duel requests removed
         return;
-
-        // ← NEW: Prevent sending/receiving if either player is already in a duel
-        if (manager.areInAnyDuel(attacker) || manager.areInAnyDuel(victim)) {
-            ChatFormatter.sendCenteredMessage(attacker,
-                ChatColor.RED + "Either you or they are in a duel already!");
-            return;
-        }
-
-        // Accept an existing request?
-        DuelRequest existing = manager.getRequest(attacker.getUniqueId());
-        if (existing != null && existing.getRequester().equals(victim.getUniqueId())) {
-            manager.acceptRequest(attacker);
-            return;
-        }
-
-        if (me.nakilex.levelplugin.Main.getInstance().getIgnoreManager().isIgnoring(victim.getUniqueId(), attacker.getUniqueId())
-            || me.nakilex.levelplugin.Main.getInstance().getIgnoreManager().isIgnoring(attacker.getUniqueId(), victim.getUniqueId())) {
-            ChatFormatter.sendCenteredMessage(attacker, ChatColor.RED + "Cannot duel that player.");
-            return;
-        }
-
-        // Otherwise, send a new request
-        manager.createRequest(attacker, victim);
-        ChatFormatter.sendCenteredMessage(attacker,
-            "§6You have sent a duel request to " + victim.getName() + "!");
-        ChatFormatter.sendCenteredMessage(victim,
-            "§e" + attacker.getName() + " has challenged you to a duel! Expires in 10s.");
-        sendDuelRequestMessage(victim, attacker.getName());
     }
 }
