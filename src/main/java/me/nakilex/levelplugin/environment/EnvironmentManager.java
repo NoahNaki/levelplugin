@@ -312,44 +312,66 @@ public class EnvironmentManager {
 
     /** Load state for player if not present and spawn their structures/NPCs. */
     public void initializePlayer(Player player) {
-        loadPlayerState(player);
-        preloadTownChunks(player);
-
-        UUID uuid = player.getUniqueId();
-        EnvironmentState es = states.get(uuid);
-        Location origin = origins.get(uuid);
-        if (origin != null) {
-            Map<String, EnvironmentState> bMap = buildingStates.get(uuid);
-            final Map<String, EnvironmentState> finalBMap = bMap == null ? null : new java.util.HashMap<>(bMap);
-            final Location finalOrigin = origin;
-            if (finalBMap != null) {
-                for (var e : finalBMap.entrySet()) {
-                    Location bOrig = getBuildingOrigin(towns.get(uuid), e.getKey(), finalOrigin);
-                    spawnBuildingInstant(player, e.getKey(), bOrig, e.getValue().level, e.getValue().stage);
-                }
-            }
-            spawnStructureInstant(player, finalOrigin, es.level, es.stage);
-        }
+        initializePlayerInternal(player, false, 20);
     }
 
     /** Load player state and spawn their town with a short animation. */
     public void initializePlayerAnimated(Player player, int ticks) {
-        loadPlayerState(player);
-        preloadTownChunks(player);
+        initializePlayerInternal(player, true, ticks);
+    }
 
-        UUID uuid = player.getUniqueId();
-        EnvironmentState es = states.get(uuid);
-        Location origin = origins.get(uuid);
-        if (origin != null) {
-            Map<String, EnvironmentState> bMap = buildingStates.get(uuid);
-            if (bMap != null) {
-                for (var e : bMap.entrySet()) {
-                    Location bOrig = getBuildingOrigin(towns.get(uuid), e.getKey(), origin);
-                    spawnBuildingTimed(player, e.getKey(), bOrig, e.getValue().level, e.getValue().stage, null, ticks);
+    private void initializePlayerInternal(Player player, boolean animated, int ticks) {
+        loadPlayerState(player);
+        boolean ready = preloadTownChunks(player);
+
+        Runnable spawn = () -> {
+            UUID uuid = player.getUniqueId();
+            EnvironmentState es = states.get(uuid);
+            Location origin = origins.get(uuid);
+            if (origin != null && es != null) {
+                Map<String, EnvironmentState> bMap = buildingStates.get(uuid);
+                final Map<String, EnvironmentState> finalBMap = bMap == null ? null : new java.util.HashMap<>(bMap);
+                final Location finalOrigin = origin;
+                if (finalBMap != null) {
+                    for (var e : finalBMap.entrySet()) {
+                        Location bOrig = getBuildingOrigin(towns.get(uuid), e.getKey(), finalOrigin);
+                        if (animated) {
+                            spawnBuildingTimed(player, e.getKey(), bOrig, e.getValue().level, e.getValue().stage, null, ticks);
+                        } else {
+                            spawnBuildingInstant(player, e.getKey(), bOrig, e.getValue().level, e.getValue().stage);
+                        }
+                    }
+                }
+                if (animated) {
+                    spawnStructureTimed(player, finalOrigin, es.level, es.stage, null, ticks);
+                } else {
+                    spawnStructureInstant(player, finalOrigin, es.level, es.stage);
                 }
             }
-            spawnStructureTimed(player, origin, es.level, es.stage, null, ticks);
+        };
+
+        if (ready) {
+            spawn.run();
+        } else {
+            waitForChunks(player, spawn);
         }
+    }
+
+    /** Repeatedly check for chunk completion then run the given action. */
+    private void waitForChunks(Player player, Runnable action) {
+        UUID base = getBase(player.getUniqueId());
+        new BukkitRunnable() {
+            @Override public void run() {
+                Player p = Bukkit.getPlayer(base);
+                if (p == null || !p.isOnline()) { cancel(); return; }
+                if (areTownChunksLoaded(p)) {
+                    action.run();
+                    cancel();
+                } else {
+                    preloadTownChunks(p);
+                }
+            }
+        }.runTaskTimer(Main.getInstance(), 5L, 5L);
     }
 
     public EnvironmentState getState(UUID uuid) {
