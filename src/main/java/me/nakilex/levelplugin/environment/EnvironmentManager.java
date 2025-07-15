@@ -29,6 +29,8 @@ import java.util.UUID;
 public class EnvironmentManager {
     public static final int MAX_LEVEL = 3;
     private static final int STAGES_PER_LEVEL = 3;
+    /** Maximum times we try loading a single chunk before giving up. */
+    private static final int MAX_CHUNK_ATTEMPTS = 5;
     private final PlayerConfig playerConfig;
     private final TownStageManager stageManager;
     private final me.nakilex.levelplugin.environment.stage.BuildingStageManager buildingStageManager;
@@ -47,6 +49,10 @@ public class EnvironmentManager {
     private final Map<UUID, Map<String, Integer>> blockPriorities = new HashMap<>();
     /** Keep track of chunks force-loaded for each player so they can be released later. */
     private final Map<UUID, java.util.Set<Long>> loadedChunks = new java.util.HashMap<>();
+    /** Chunks still waiting to load for each player. */
+    private final Map<UUID, java.util.Set<Long>> pendingChunkLoads = new java.util.HashMap<>();
+    /** Attempts made per chunk so we can retry a few times. */
+    private final Map<UUID, java.util.Map<Long, Integer>> chunkRetryCount = new java.util.HashMap<>();
     /** Repeating tasks that ensure chunks finish loading. */
     private final Map<UUID, BukkitTask> chunkLoadTasks = new java.util.HashMap<>();
     /** Periodic tasks that recheck if a town is fully loaded. */
@@ -693,8 +699,9 @@ public class EnvironmentManager {
 
     /**
      * Ensure all chunks that contain the player's town and unlocked buildings
-     * are loaded. This prevents fake block updates from forcing asynchronous
-     * chunk loads which can cause errors on some servers.
+     * are loaded. Each chunk will be requested multiple times until it is
+     * reported loaded by the server to mirror how Minecraft loads chunks
+     * naturally.
      */
     public boolean preloadTownChunks(Player player) {
         UUID base = getBase(player.getUniqueId());
@@ -702,69 +709,64 @@ public class EnvironmentManager {
         Location origin = origins.get(base);
         if (st == null || origin == null) return true;
 
-        debugLog("Preloading chunks for " + player.getName() + " at "
-                + origin.getBlockX() + "," + origin.getBlockY() + "," + origin.getBlockZ());
-
-        java.util.Set<Long> chunks = collectTownChunks(base);
-
+        java.util.Set<Long> required = collectTownChunks(base);
         java.util.Set<Long> loaded = loadedChunks.computeIfAbsent(base, k -> new java.util.HashSet<>());
-        loaded.addAll(chunks);
+        java.util.Set<Long> pending = pendingChunkLoads.computeIfAbsent(base, k -> new java.util.HashSet<>());
+        java.util.Map<Long, Integer> attempts = chunkRetryCount.computeIfAbsent(base, k -> new java.util.HashMap<>());
 
-        final Location baseOrigin = origin;
+        debugLog("Preloading " + required.size() + " chunks for " + player.getName());
 
-        java.util.function.BooleanSupplier verify = () -> {
-            boolean all = true;
-            int loadedCount = 0;
-            for (long key : chunks) {
-                int cx = (int) (key >> 32);
-                int cz = (int) key;
-                org.bukkit.Chunk chunk = baseOrigin.getWorld().getChunkAt(cx, cz);
-                if (!chunk.isLoaded()) {
-                    debugLog("Loading chunk " + cx + "," + cz);
-                    chunk.load(true);
-                    all = false;
-                } else {
-                    loadedCount++;
+        boolean allLoaded = true;
+
+        for (long key : required) {
+            int cx = (int) (key >> 32);
+            int cz = (int) key;
+            org.bukkit.World world = origin.getWorld();
+            org.bukkit.Chunk chunk = world.getChunkAt(cx, cz);
+
+            if (!chunk.isLoaded()) {
+                allLoaded = false;
+                pending.add(key);
+                int tries = attempts.getOrDefault(key, 0);
+                if (tries < MAX_CHUNK_ATTEMPTS) {
+                    debugLog("Request load for chunk " + cx + "," + cz + " attempt " + (tries + 1));
+                    world.loadChunk(cx, cz, true);
+                    attempts.put(key, tries + 1);
+                } else if (tries == MAX_CHUNK_ATTEMPTS) {
+                    debugLog("Chunk " + cx + "," + cz + " still not loaded after " + MAX_CHUNK_ATTEMPTS + " tries");
+                    attempts.put(key, tries + 1); // avoid repeated log
                 }
+            } else {
+                loaded.add(key);
                 chunk.addPluginChunkTicket(Main.getInstance());
+                pending.remove(key);
+                attempts.remove(key);
             }
-            int percent = (int) ((loadedCount / (double) chunks.size()) * 100);
-            debugLog("Progress " + loadedCount + "/" + chunks.size() + " (" + percent + "%) for " + player.getName());
-            if (all) {
-                BukkitTask t = chunkLoadTasks.remove(base);
-                if (t != null) t.cancel();
-                debugLog("Completed chunk preload for " + player.getName());
-            }
-            return all;
-        };
-
-        boolean complete = verify.getAsBoolean();
-
-        if (!complete && !chunkLoadTasks.containsKey(base)) {
-            debugLog("Starting chunk reload task for " + player.getName());
-            BukkitTask task = new BukkitRunnable() {
-                @Override public void run() {
-                    Player p = Bukkit.getPlayer(base);
-                    if (p == null || !p.isOnline()) {
-                        BukkitTask t = chunkLoadTasks.remove(base);
-                        if (t != null) t.cancel();
-                        return;
-                    }
-                    if (verify.getAsBoolean()) {
-                        cancel();
-                    }
-                }
-            }.runTaskTimer(Main.getInstance(), 5L, 5L);
-            chunkLoadTasks.put(base, task);
         }
 
-        if (!complete) {
+        if (!allLoaded) {
+            if (!chunkLoadTasks.containsKey(base)) {
+                debugLog("Scheduling chunk verify task for " + player.getName());
+                BukkitTask task = new BukkitRunnable() {
+                    @Override public void run() {
+                        Player p = Bukkit.getPlayer(base);
+                        if (p == null || !p.isOnline()) { cancelTownLoadCheck(base); cancel(); return; }
+                        if (preloadTownChunks(p)) cancel();
+                    }
+                }.runTaskTimer(Main.getInstance(), 20L, 20L);
+                chunkLoadTasks.put(base, task);
+            }
             startTownLoadCheck(player);
         } else {
+            BukkitTask t = chunkLoadTasks.remove(base);
+            if (t != null) t.cancel();
             cancelTownLoadCheck(base);
+            pendingChunkLoads.remove(base);
+            chunkRetryCount.remove(base);
+            debugLog("Completed chunk preload for " + player.getName());
         }
 
-        return complete;
+        return allLoaded;
     }
 
     /** Start a settlement for the player at a fixed location using the given town name. */
@@ -1474,6 +1476,15 @@ public class EnvironmentManager {
         if (st == null || origin == null) return;
         int cx = chunk.getX();
         int cz = chunk.getZ();
+
+        // mark this chunk as loaded for retry tracking
+        java.util.Set<Long> pending = pendingChunkLoads.get(base);
+        if (pending != null) {
+            long key = (((long) cx) << 32) ^ (cz & 0xffffffffL);
+            pending.remove(key);
+            java.util.Map<Long, Integer> tries = chunkRetryCount.get(base);
+            if (tries != null) tries.remove(key);
+        }
 
         // resend structure blocks inside the chunk
         resendStructureForChunk(player, origin, st.level, st.stage, cx, cz);
