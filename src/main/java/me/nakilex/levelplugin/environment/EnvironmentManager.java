@@ -41,6 +41,8 @@ public class EnvironmentManager {
     private final Map<UUID, UUID> pendingInvites = new HashMap<>();
     /** Track placed block priorities for each player (location key -> priority). */
     private final Map<UUID, Map<String, Integer>> blockPriorities = new HashMap<>();
+    /** Keep track of chunks force-loaded for each player so they can be released later. */
+    private final Map<UUID, java.util.Set<Long>> loadedChunks = new java.util.HashMap<>();
 
     /** Players currently viewing their town (fake blocks active). */
     private final java.util.Set<UUID> loadedPlayers = new java.util.HashSet<>();
@@ -508,10 +510,14 @@ public class EnvironmentManager {
             }
         }
 
+        java.util.Set<Long> loaded = loadedChunks.computeIfAbsent(base, k -> new java.util.HashSet<>());
         for (long key : chunks) {
-            int cx = (int)(key >> 32);
-            int cz = (int)key;
-            origin.getWorld().getChunkAt(cx, cz);
+            int cx = (int) (key >> 32);
+            int cz = (int) key;
+            org.bukkit.Chunk chunk = origin.getWorld().getChunkAt(cx, cz);
+            chunk.load(true);
+            chunk.addPluginChunkTicket(Main.getInstance());
+            loaded.add(key);
         }
     }
 
@@ -591,7 +597,7 @@ public class EnvironmentManager {
         fakeBlockManager.clear(player);
         EnvironmentState st = states.remove(uuid);
         String town = towns.remove(uuid);
-        origins.remove(uuid);
+        Location origin = origins.remove(uuid);
         Map<String, EnvironmentState> bMap = buildingStates.remove(uuid);
         removeAllBuildingHolograms(uuid);
         if (town != null && st != null) {
@@ -600,6 +606,15 @@ public class EnvironmentManager {
                 for (var e : bMap.entrySet()) {
                     buildingStageManager.despawnForStage(uuid, e.getKey(), e.getValue().level, e.getValue().stage);
                 }
+            }
+        }
+        java.util.Set<Long> loaded = loadedChunks.remove(uuid);
+        if (loaded != null && origin != null) {
+            for (long key : loaded) {
+                int cx = (int) (key >> 32);
+                int cz = (int) key;
+                org.bukkit.Chunk chunk = origin.getWorld().getChunkAt(cx, cz);
+                chunk.removePluginChunkTicket(Main.getInstance());
             }
         }
         playerConfig.clearEnvironmentData(uuid);
@@ -626,6 +641,16 @@ public class EnvironmentManager {
         removeAllBuildingHolograms(player.getUniqueId());
         fakeBlockManager.clear(player);
         blockPriorities.remove(player.getUniqueId());
+        java.util.Set<Long> loaded = loadedChunks.remove(base);
+        if (loaded != null) {
+            for (long key : loaded) {
+                int cx = (int) (key >> 32);
+                int cz = (int) key;
+                org.bukkit.Chunk chunk = origin.getWorld().getChunkAt(cx, cz);
+                chunk.removePluginChunkTicket(Main.getInstance());
+                // allow chunk to unload naturally
+            }
+        }
     }
 
     /**
