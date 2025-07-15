@@ -652,6 +652,7 @@ public class EnvironmentManager {
         }
     }
 
+    // All towns reside in the "flatland" world for now
     private static final String TOWN_WORLD = "flatland";
     private static final int TOWN_X = 2010;
     // Raise the starting Y coordinate by 5 blocks
@@ -714,7 +715,8 @@ public class EnvironmentManager {
         java.util.Set<Long> pending = pendingChunkLoads.computeIfAbsent(base, k -> new java.util.HashSet<>());
         java.util.Map<Long, Integer> attempts = chunkRetryCount.computeIfAbsent(base, k -> new java.util.HashMap<>());
 
-        debugLog("Preloading " + required.size() + " chunks for " + player.getName());
+        debugLog("Preloading " + required.size() + " chunks in "
+                + origin.getWorld().getName() + " for " + player.getName());
 
         boolean allLoaded = true;
 
