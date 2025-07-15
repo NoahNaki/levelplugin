@@ -123,17 +123,29 @@ public class EnvironmentManager {
             nextStage = 1;
             nextLevel++;
         }
-        boolean hasLog = player.getInventory().containsAtLeast(new org.bukkit.inventory.ItemStack(org.bukkit.Material.OAK_LOG, 1), 1);
-        String reqLine = (hasLog ? ChatColor.GREEN + "\u2714" : ChatColor.RED + "\u2718") +
+
+        // Example requirements - currently hardcoded to 1 oak log and no coins
+        int logCost = 1;
+        boolean hasLog = player.getInventory().containsAtLeast(
+                new org.bukkit.inventory.ItemStack(org.bukkit.Material.OAK_LOG, logCost), logCost);
+        String logLine = (hasLog ? ChatColor.GREEN + "✔" : ChatColor.RED + "✘") +
                 ChatColor.GRAY + " - " + ChatColor.WHITE + "Oak Log" +
-                ChatColor.GRAY + " x" + ChatColor.WHITE + "1";
+                ChatColor.GRAY + " x" + ChatColor.WHITE + logCost;
+
+        int coinCost = 0;
+        int coins = Main.getInstance().getEconomyManager().getBalance(player);
+        boolean hasCoins = coins >= coinCost;
+        String coinLine = (hasCoins ? ChatColor.GREEN + "✔" : ChatColor.RED + "✘") +
+                ChatColor.GRAY + " - " + ChatColor.WHITE + coinCost + " coins " + ChatColor.GOLD + "\u26C3";
 
         return ChatColor.GREEN + "" + ChatColor.BOLD + "Upgrade " + ChatColor.WHITE + building +
-                ChatColor.GOLD + " STAGE " + ChatColor.YELLOW + stage + " " +
+                "\n" + ChatColor.GOLD + ChatColor.BOLD + "STAGE " + ChatColor.YELLOW + stage + " " +
                 ChatColor.GREEN + ">" + ChatColor.DARK_GREEN + ">" + ChatColor.GREEN + ">" + ChatColor.DARK_GREEN + "> " +
                 ChatColor.GOLD + "STAGE " + ChatColor.YELLOW + nextStage +
+                "\n" + ChatColor.DARK_GRAY + ChatColor.STRIKETHROUGH + "--------------------" +
                 "\n" + ChatColor.AQUA + "Requirements:" +
-                "\n" + reqLine;
+                "\n" + logLine +
+                "\n" + coinLine;
     }
 
     private UUID getBase(UUID uuid) {
