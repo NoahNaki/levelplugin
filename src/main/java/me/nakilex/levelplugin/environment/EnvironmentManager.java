@@ -400,8 +400,12 @@ public class EnvironmentManager {
 
         if (ready) {
             spawn.run();
+            // Verify chunks are correctly loaded after spawning
+            startTownLoadCheck(player);
         } else {
             waitForChunks(player, spawn);
+            // Start periodic checks so the town is spawned once chunks load
+            startTownLoadCheck(player);
         }
     }
 
@@ -1479,13 +1483,20 @@ public class EnvironmentManager {
         int cx = chunk.getX();
         int cz = chunk.getZ();
 
+        long key = (((long) cx) << 32) ^ (cz & 0xffffffffL);
+
         // mark this chunk as loaded for retry tracking
         java.util.Set<Long> pending = pendingChunkLoads.get(base);
         if (pending != null) {
-            long key = (((long) cx) << 32) ^ (cz & 0xffffffffL);
             pending.remove(key);
             java.util.Map<Long, Integer> tries = chunkRetryCount.get(base);
             if (tries != null) tries.remove(key);
+        }
+
+        // keep the chunk loaded if it is part of the town
+        if (collectTownChunks(base).contains(key)) {
+            chunk.addPluginChunkTicket(Main.getInstance());
+            loadedChunks.computeIfAbsent(base, k -> new java.util.HashSet<>()).add(key);
         }
 
         // resend structure blocks inside the chunk
@@ -1499,6 +1510,9 @@ public class EnvironmentManager {
                         e.getValue().stage, cx, cz);
             }
         }
+
+        // Ensure any missing structures are respawned once the chunk is ready
+        startTownLoadCheck(player);
     }
 
     public void transfer(Player owner, Player newOwner) {
