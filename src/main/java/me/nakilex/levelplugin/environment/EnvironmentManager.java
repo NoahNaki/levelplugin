@@ -132,21 +132,28 @@ public class EnvironmentManager {
         int logCost = 1;
         boolean hasLog = player.getInventory().containsAtLeast(
                 new org.bukkit.inventory.ItemStack(org.bukkit.Material.OAK_LOG, logCost), logCost);
-        String logLine = (hasLog ? ChatColor.GREEN + "✔" : ChatColor.RED + "✘") +
-                ChatColor.GRAY + " - " + ChatColor.WHITE + "Oak Log" +
-                ChatColor.GRAY + " x" + ChatColor.WHITE + logCost;
+        String logLine = (hasLog
+                ? ChatColor.GREEN.toString() + "✔"
+                : ChatColor.RED.toString() + "✘")
+                + ChatColor.GRAY + " - " + ChatColor.WHITE + "Oak Log"
+                + ChatColor.GRAY + " x" + ChatColor.WHITE + logCost;
 
         int coinCost = 0;
         int coins = Main.getInstance().getEconomyManager().getBalance(player);
         boolean hasCoins = coins >= coinCost;
-        String coinLine = (hasCoins ? ChatColor.GREEN + "✔" : ChatColor.RED + "✘") +
-                ChatColor.GRAY + " - " + ChatColor.WHITE + coinCost + " coins " + ChatColor.GOLD + "\u26C3";
+        String coinLine = (hasCoins
+                ? ChatColor.GREEN.toString() + "✔"
+                : ChatColor.RED.toString() + "✘")
+                + ChatColor.GRAY + " - " + ChatColor.WHITE + coinCost + " coins "
+                + ChatColor.GOLD + "\u26C3";
 
         java.util.List<String> lines = new java.util.ArrayList<>();
         lines.add(ChatColor.GREEN + "" + ChatColor.BOLD + "Upgrade " + ChatColor.WHITE + building);
-        lines.add(ChatColor.GOLD + ChatColor.BOLD + "STAGE " + ChatColor.YELLOW + stage + " " +
-                ChatColor.GREEN + ">" + ChatColor.DARK_GREEN + ">" + ChatColor.GREEN + ">" + ChatColor.DARK_GREEN + "> " +
-                ChatColor.GOLD + "STAGE " + ChatColor.YELLOW + nextStage);
+        lines.add(ChatColor.GOLD.toString() + ChatColor.BOLD + "STAGE "
+                + ChatColor.YELLOW + stage + " "
+                + ChatColor.GREEN + ">" + ChatColor.DARK_GREEN + ">"
+                + ChatColor.GREEN + ">" + ChatColor.DARK_GREEN + "> "
+                + ChatColor.GOLD + "STAGE " + ChatColor.YELLOW + nextStage);
         lines.add(ChatColor.DARK_GRAY + ChatColor.STRIKETHROUGH.toString() + "--------------------");
         lines.add(ChatColor.AQUA + "Requirements:");
         lines.add(logLine);
