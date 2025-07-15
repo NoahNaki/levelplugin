@@ -49,6 +49,8 @@ public class EnvironmentManager {
     private final Map<UUID, java.util.Set<Long>> loadedChunks = new java.util.HashMap<>();
     /** Repeating tasks that ensure chunks finish loading. */
     private final Map<UUID, BukkitTask> chunkLoadTasks = new java.util.HashMap<>();
+    /** Periodic tasks that recheck if a town is fully loaded. */
+    private final Map<UUID, BukkitTask> townCheckTasks = new java.util.HashMap<>();
 
     /** Players currently viewing their town (fake blocks active). */
     private final java.util.Set<UUID> loadedPlayers = new java.util.HashSet<>();
@@ -127,6 +129,21 @@ public class EnvironmentManager {
     /** Check if the player already saw the initial build animation. */
     public boolean hasPlayedInitAnimation(Player player) {
         return playedInitAnimation.contains(getBase(player.getUniqueId()));
+    }
+
+    /** Check if all chunks for the player's town are currently loaded. */
+    public boolean areTownChunksLoaded(Player player) {
+        UUID base = getBase(player.getUniqueId());
+        Location origin = origins.get(base);
+        if (origin == null) return true;
+        for (long key : collectTownChunks(base)) {
+            int cx = (int) (key >> 32);
+            int cz = (int) key;
+            if (!origin.getWorld().getChunkAt(cx, cz).isLoaded()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /** Build the hologram text for a building upgrade based on the player's
@@ -237,6 +254,43 @@ public class EnvironmentManager {
         }
     }
 
+    /** Collect all chunk coordinates for the player's town and buildings. */
+    private java.util.Set<Long> collectTownChunks(UUID base) {
+        EnvironmentState st = states.get(base);
+        Location origin = origins.get(base);
+        String town = towns.get(base);
+        if (st == null || origin == null || town == null) {
+            return java.util.Collections.emptySet();
+        }
+        java.util.Set<Long> chunks = new java.util.HashSet<>();
+        var stage = stageManager.getStage(town, st.level, st.stage);
+        if (stage != null) {
+            Location baseOrigin = origin.clone().add(0, stage.oy, 0);
+            for (var b : stage.blocks) {
+                int wx = baseOrigin.getBlockX() + b.x - stage.ox;
+                int wz = baseOrigin.getBlockZ() + b.z - stage.oz;
+                long key = (((long) (wx >> 4)) << 32) ^ (wz >> 4 & 0xffffffffL);
+                chunks.add(key);
+            }
+        }
+
+        Map<String, EnvironmentState> bMap = buildingStates.get(base);
+        if (bMap != null) {
+            for (var e : bMap.entrySet()) {
+                var bStage = buildingStageManager.getStage(e.getKey(), e.getValue().level, e.getValue().stage);
+                if (bStage == null) continue;
+                Location bo = getBuildingOrigin(town, e.getKey(), origin).add(0, bStage.oy, 0);
+                for (var b : bStage.blocks) {
+                    int wx = bo.getBlockX() + b.x - bStage.ox;
+                    int wz = bo.getBlockZ() + b.z - bStage.oz;
+                    long key = (((long) (wx >> 4)) << 32) ^ (wz >> 4 & 0xffffffffL);
+                    chunks.add(key);
+                }
+            }
+        }
+        return chunks;
+    }
+
     /** Load state for player from config without spawning any structures. */
     public void loadPlayerState(Player player) {
         UUID uuid = player.getUniqueId();
@@ -313,6 +367,36 @@ public class EnvironmentManager {
         if (chk != null) {
             chk.cancel();
         }
+        BukkitTask verify = townCheckTasks.remove(uuid);
+        if (verify != null) {
+            verify.cancel();
+        }
+    }
+
+    /** Periodically verify that a player's town chunks are loaded. */
+    private void startTownLoadCheck(Player player) {
+        UUID base = getBase(player.getUniqueId());
+        if (townCheckTasks.containsKey(base)) return;
+        BukkitTask task = new BukkitRunnable() {
+            @Override public void run() {
+                Player p = Bukkit.getPlayer(base);
+                if (p == null || !p.isOnline()) {
+                    cancelTownLoadCheck(base);
+                    return;
+                }
+                if (areTownChunksLoaded(p)) {
+                    cancelTownLoadCheck(base);
+                } else {
+                    preloadTownChunks(p);
+                }
+            }
+        }.runTaskTimer(Main.getInstance(), 60L, 60L);
+        townCheckTasks.put(base, task);
+    }
+
+    private void cancelTownLoadCheck(UUID base) {
+        BukkitTask t = townCheckTasks.remove(base);
+        if (t != null) t.cancel();
     }
 
     private void removeBuildingHologram(UUID uuid, String building) {
@@ -544,43 +628,16 @@ public class EnvironmentManager {
      * are loaded. This prevents fake block updates from forcing asynchronous
      * chunk loads which can cause errors on some servers.
      */
-    public void preloadTownChunks(Player player) {
+    public boolean preloadTownChunks(Player player) {
         UUID base = getBase(player.getUniqueId());
         EnvironmentState st = states.get(base);
         Location origin = origins.get(base);
-        if (st == null || origin == null) return;
+        if (st == null || origin == null) return true;
 
         debugLog("Preloading chunks for " + player.getName() + " at "
                 + origin.getBlockX() + "," + origin.getBlockY() + "," + origin.getBlockZ());
 
-        java.util.Set<Long> chunks = new java.util.HashSet<>();
-
-        String town = towns.get(base);
-        var stage = stageManager.getStage(town, st.level, st.stage);
-        if (stage != null) {
-            Location baseOrigin = origin.clone().add(0, stage.oy, 0);
-            for (var b : stage.blocks) {
-                int wx = baseOrigin.getBlockX() + b.x - stage.ox;
-                int wz = baseOrigin.getBlockZ() + b.z - stage.oz;
-                long key = (((long) (wx >> 4)) << 32) ^ (wz >> 4 & 0xffffffffL);
-                chunks.add(key);
-            }
-        }
-
-        Map<String, EnvironmentState> bMap = buildingStates.get(base);
-        if (bMap != null) {
-            for (var e : bMap.entrySet()) {
-                var bStage = buildingStageManager.getStage(e.getKey(), e.getValue().level, e.getValue().stage);
-                if (bStage == null) continue;
-                Location bo = getBuildingOrigin(town, e.getKey(), origin).add(0, bStage.oy, 0);
-                for (var b : bStage.blocks) {
-                    int wx = bo.getBlockX() + b.x - bStage.ox;
-                    int wz = bo.getBlockZ() + b.z - bStage.oz;
-                    long key = (((long) (wx >> 4)) << 32) ^ (wz >> 4 & 0xffffffffL);
-                    chunks.add(key);
-                }
-            }
-        }
+        java.util.Set<Long> chunks = collectTownChunks(base);
 
         java.util.Set<Long> loaded = loadedChunks.computeIfAbsent(base, k -> new java.util.HashSet<>());
         loaded.addAll(chunks);
@@ -632,6 +689,14 @@ public class EnvironmentManager {
             }.runTaskTimer(Main.getInstance(), 5L, 5L);
             chunkLoadTasks.put(base, task);
         }
+
+        if (!complete) {
+            startTownLoadCheck(player);
+        } else {
+            cancelTownLoadCheck(base);
+        }
+
+        return complete;
     }
 
     /** Start a settlement for the player at a fixed location using the given town name. */
