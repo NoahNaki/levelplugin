@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.environment.listeners;
 
 import me.nakilex.levelplugin.environment.EnvironmentManager;
+import me.nakilex.levelplugin.Main;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -44,6 +45,9 @@ public class EnvironmentDistanceListener implements Listener {
         Double prev = previousDistance.put(id, dist);
 
         if (dist * dist <= LOAD_DIST_SQ) {
+            if (EnvironmentManager.isDebug()) {
+                Main.getInstance().getLogger().info("[ChunkDebug] Player " + player.getName() + " within " + dist + " of town");
+            }
             manager.preloadTownChunks(player);
             if (!manager.isTownLoaded(player)) {
                 if (!manager.hasPlayedInitAnimation(player)) {
@@ -64,6 +68,9 @@ public class EnvironmentDistanceListener implements Listener {
             }
         } else if (dist * dist > UNLOAD_DIST_SQ) {
             if (manager.isTownLoaded(player)) {
+                if (EnvironmentManager.isDebug()) {
+                    Main.getInstance().getLogger().info("[ChunkDebug] Unloading town view for " + player.getName());
+                }
                 manager.unloadPlayerTown(player);
                 manager.markTownLoaded(player, false);
             }

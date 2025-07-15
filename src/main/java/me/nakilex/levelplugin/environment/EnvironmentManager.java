@@ -60,6 +60,17 @@ public class EnvironmentManager {
         return loc.getWorld().getName() + ":" + loc.getBlockX() + ":" + loc.getBlockY() + ":" + loc.getBlockZ();
     }
 
+    /** Whether chunk loading debug is enabled. */
+    public static boolean isDebug() {
+        return Main.getInstance().getCustomConfig().getBoolean("debug.chunk-loading", false);
+    }
+
+    private static void debugLog(String msg) {
+        if (isDebug()) {
+            Main.getInstance().getLogger().info("[ChunkDebug] " + msg);
+        }
+    }
+
     public static class EnvironmentState {
         public int level;
         public int stage;
@@ -539,6 +550,9 @@ public class EnvironmentManager {
         Location origin = origins.get(base);
         if (st == null || origin == null) return;
 
+        debugLog("Preloading chunks for " + player.getName() + " at "
+                + origin.getBlockX() + "," + origin.getBlockY() + "," + origin.getBlockZ());
+
         java.util.Set<Long> chunks = new java.util.HashSet<>();
 
         String town = towns.get(base);
@@ -575,19 +589,26 @@ public class EnvironmentManager {
 
         java.util.function.BooleanSupplier verify = () -> {
             boolean all = true;
+            int loadedCount = 0;
             for (long key : chunks) {
                 int cx = (int) (key >> 32);
                 int cz = (int) key;
                 org.bukkit.Chunk chunk = baseOrigin.getWorld().getChunkAt(cx, cz);
                 if (!chunk.isLoaded()) {
+                    debugLog("Loading chunk " + cx + "," + cz);
                     chunk.load(true);
                     all = false;
+                } else {
+                    loadedCount++;
                 }
                 chunk.addPluginChunkTicket(Main.getInstance());
             }
+            int percent = (int) ((loadedCount / (double) chunks.size()) * 100);
+            debugLog("Progress " + loadedCount + "/" + chunks.size() + " (" + percent + "%) for " + player.getName());
             if (all) {
                 BukkitTask t = chunkLoadTasks.remove(base);
                 if (t != null) t.cancel();
+                debugLog("Completed chunk preload for " + player.getName());
             }
             return all;
         };
@@ -595,6 +616,7 @@ public class EnvironmentManager {
         boolean complete = verify.getAsBoolean();
 
         if (!complete && !chunkLoadTasks.containsKey(base)) {
+            debugLog("Starting chunk reload task for " + player.getName());
             BukkitTask task = new BukkitRunnable() {
                 @Override public void run() {
                     Player p = Bukkit.getPlayer(base);
@@ -603,7 +625,9 @@ public class EnvironmentManager {
                         if (t != null) t.cancel();
                         return;
                     }
-                    if (verify.getAsBoolean()) cancel();
+                    if (verify.getAsBoolean()) {
+                        cancel();
+                    }
                 }
             }.runTaskTimer(Main.getInstance(), 5L, 5L);
             chunkLoadTasks.put(base, task);

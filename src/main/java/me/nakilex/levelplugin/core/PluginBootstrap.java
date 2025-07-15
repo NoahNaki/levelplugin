@@ -455,6 +455,9 @@ public class PluginBootstrap {
         if (!customConfig.contains("features.quests")) {
             customConfig.set("features.quests", true);
         }
+        if (!customConfig.contains("debug.chunk-loading")) {
+            customConfig.set("debug.chunk-loading", false);
+        }
         try {
             customConfig.save(customConfigFile);
         } catch (IOException e) {

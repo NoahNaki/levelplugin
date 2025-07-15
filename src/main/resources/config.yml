@@ -4,3 +4,5 @@ features:
   trade: true
   auction-house: true
   quests: true
+debug:
+  chunk-loading: false
