@@ -575,8 +575,9 @@ public class EnvironmentManager {
         final int ox = origin.getBlockX() >> 4;
         final int oz = origin.getBlockZ() >> 4;
         sorted.sort(java.util.Comparator.comparingInt(k -> {
-            int cx = (int) (k >> 32);
-            int cz = (int) k;
+            long key = k;
+            int cx = (int) (key >> 32);
+            int cz = (int) key;
             return Math.abs(cx - ox) + Math.abs(cz - oz);
         }));
         final java.util.Deque<Long> queue = new java.util.ArrayDeque<>(sorted);
