@@ -22,11 +22,30 @@ public class EnvironmentDistanceListener implements Listener {
     /** Stop triggering repeated loads once within this distance. */
     private static final double STOP_LOAD_DIST = 10.0;
 
+    // Cuboid region that encompasses the town area
+    private static final int REGION_MIN_X = 1905;
+    private static final int REGION_MAX_X = 2133;
+    private static final int REGION_MIN_Y = -64;
+    private static final int REGION_MAX_Y = 69;
+    private static final int REGION_MIN_Z = -1357;
+    private static final int REGION_MAX_Z = -1138;
+
     private final Map<java.util.UUID, Double> lastLoadDistance = new HashMap<>();
     private final Map<java.util.UUID, Double> previousDistance = new HashMap<>();
 
     public EnvironmentDistanceListener(EnvironmentManager manager) {
         this.manager = manager;
+    }
+
+    /** Check whether a location falls inside the defined town cuboid. */
+    private boolean inTownRegion(Location loc) {
+        if (loc == null) return false;
+        int x = loc.getBlockX();
+        int y = loc.getBlockY();
+        int z = loc.getBlockZ();
+        return x >= REGION_MIN_X && x <= REGION_MAX_X
+                && y >= REGION_MIN_Y && y <= REGION_MAX_Y
+                && z >= REGION_MIN_Z && z <= REGION_MAX_Z;
     }
 
     @EventHandler
@@ -43,6 +62,14 @@ public class EnvironmentDistanceListener implements Listener {
 
         java.util.UUID id = player.getUniqueId();
         Double prev = previousDistance.put(id, dist);
+
+        // While inside the defined region, keep verifying chunk state
+        if (inTownRegion(to)) {
+            if (EnvironmentManager.isDebug()) {
+                Main.getInstance().getLogger().info("[ChunkDebug] Player " + player.getName() + " inside town region");
+            }
+            manager.preloadTownChunks(player);
+        }
 
         if (dist * dist <= LOAD_DIST_SQ) {
             if (EnvironmentManager.isDebug()) {
