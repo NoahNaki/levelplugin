@@ -22,19 +22,33 @@ public class EnvironmentDistanceListener implements Listener {
     /** Stop triggering repeated loads once within this distance. */
     private static final double STOP_LOAD_DIST = 10.0;
 
-    // Cuboid region that encompasses the town area
-    private static final int REGION_MIN_X = 1905;
-    private static final int REGION_MAX_X = 2133;
-    private static final int REGION_MIN_Y = -64;
-    private static final int REGION_MAX_Y = 69;
-    private static final int REGION_MIN_Z = -1357;
-    private static final int REGION_MAX_Z = -1138;
+    // Two opposite corners of the cuboid selection containing the town
+    private static final int REGION_X1 = 2133;
+    private static final int REGION_Y1 = -64;
+    private static final int REGION_Z1 = -1138;
+    private static final int REGION_X2 = 1905;
+    private static final int REGION_Y2 = 69;
+    private static final int REGION_Z2 = -1357;
+
+    // Derived min/max values for easier checks
+    private static final int REGION_MIN_X = Math.min(REGION_X1, REGION_X2);
+    private static final int REGION_MAX_X = Math.max(REGION_X1, REGION_X2);
+    private static final int REGION_MIN_Y = Math.min(REGION_Y1, REGION_Y2);
+    private static final int REGION_MAX_Y = Math.max(REGION_Y1, REGION_Y2);
+    private static final int REGION_MIN_Z = Math.min(REGION_Z1, REGION_Z2);
+    private static final int REGION_MAX_Z = Math.max(REGION_Z1, REGION_Z2);
 
     private final Map<java.util.UUID, Double> lastLoadDistance = new HashMap<>();
     private final Map<java.util.UUID, Double> previousDistance = new HashMap<>();
 
     public EnvironmentDistanceListener(EnvironmentManager manager) {
         this.manager = manager;
+    }
+
+    private static void debug(String msg) {
+        if (EnvironmentManager.isDebug()) {
+            Main.getInstance().getLogger().info("[DistanceDebug] " + msg);
+        }
     }
 
     /** Check whether a location falls inside the defined town cuboid. */
@@ -56,25 +70,35 @@ public class EnvironmentDistanceListener implements Listener {
         if (to == null || (to.getBlockX() == from.getBlockX() && to.getBlockZ() == from.getBlockZ())) return;
 
         Location origin = manager.getOrigin(player.getUniqueId());
-        if (origin == null || !origin.getWorld().equals(to.getWorld())) return;
+        if (origin == null) {
+            debug("No origin set for " + player.getName());
+            return;
+        }
+        if (!origin.getWorld().equals(to.getWorld())) {
+            return;
+        }
 
         double dist = to.distance(origin);
 
         java.util.UUID id = player.getUniqueId();
         Double prev = previousDistance.put(id, dist);
 
-        // While inside the defined region, keep verifying chunk state
-        if (inTownRegion(to)) {
-            if (EnvironmentManager.isDebug()) {
-                Main.getInstance().getLogger().info("[ChunkDebug] Player " + player.getName() + " inside town region");
-            }
+        boolean inside = inTownRegion(to);
+        boolean wasInside = inTownRegion(from);
+
+        if (inside && !wasInside) {
+            debug("Player " + player.getName() + " entered town region at "
+                    + to.getBlockX() + "," + to.getBlockY() + "," + to.getBlockZ());
+        } else if (!inside && wasInside) {
+            debug("Player " + player.getName() + " left town region");
+        }
+
+        if (inside) {
             manager.preloadTownChunks(player);
         }
 
         if (dist * dist <= LOAD_DIST_SQ) {
-            if (EnvironmentManager.isDebug()) {
-                Main.getInstance().getLogger().info("[ChunkDebug] Player " + player.getName() + " within " + dist + " of town");
-            }
+            debug("Player " + player.getName() + " within " + dist + " blocks of town");
             manager.preloadTownChunks(player);
             if (!manager.isTownLoaded(player)) {
                 if (!manager.hasPlayedInitAnimation(player)) {
@@ -95,9 +119,7 @@ public class EnvironmentDistanceListener implements Listener {
             }
         } else if (dist * dist > UNLOAD_DIST_SQ) {
             if (manager.isTownLoaded(player)) {
-                if (EnvironmentManager.isDebug()) {
-                    Main.getInstance().getLogger().info("[ChunkDebug] Unloading town view for " + player.getName());
-                }
+                debug("Unloading town view for " + player.getName());
                 manager.unloadPlayerTown(player);
                 manager.markTownLoaded(player, false);
             }
