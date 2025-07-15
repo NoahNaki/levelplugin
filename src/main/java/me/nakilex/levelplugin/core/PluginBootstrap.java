@@ -435,17 +435,29 @@ public class PluginBootstrap {
     private void createCustomConfig() {
         customConfigFile = new File(plugin.getDataFolder(), "config.yml");
         if (!customConfigFile.exists()) {
-            customConfigFile.getParentFile().mkdirs();
-            try {
-                customConfigFile.createNewFile();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            plugin.saveResource("config.yml", false);
         }
-        customConfig = new YamlConfiguration();
+        customConfig = YamlConfiguration.loadConfiguration(customConfigFile);
+
+        // Initialize debug feature toggles with defaults
+        if (!customConfig.contains("features.profiles")) {
+            customConfig.set("features.profiles", true);
+        }
+        if (!customConfig.contains("features.environment")) {
+            customConfig.set("features.environment", true);
+        }
+        if (!customConfig.contains("features.trade")) {
+            customConfig.set("features.trade", true);
+        }
+        if (!customConfig.contains("features.auction-house")) {
+            customConfig.set("features.auction-house", true);
+        }
+        if (!customConfig.contains("features.quests")) {
+            customConfig.set("features.quests", true);
+        }
         try {
-            customConfig.load(customConfigFile);
-        } catch (IOException | InvalidConfigurationException e) {
+            customConfig.save(customConfigFile);
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }

@@ -16,6 +16,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import me.nakilex.levelplugin.player.profile.ProfileSelectionGUI;
 import me.nakilex.levelplugin.player.profile.ProfileManager;
+import me.nakilex.levelplugin.items.listeners.StaticItemListener;
 
 import java.util.List;
 import java.util.UUID;
@@ -115,10 +116,35 @@ public class PlayerJoinListener implements Listener {
         }, 2L);  // 2 ticks
 
         // Delay profile menu so gravity settles the player
-        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-            if (!player.isOnline()) return;
-            ProfileManager.getInstance().clearActiveSlot(pid);
-            ProfileSelectionGUI.startSelection(player);
-        }, 30L);  // ~1.5 seconds
+        boolean profilesEnabled = Main.getInstance().getCustomConfig()
+                .getBoolean("features.profiles", true);
+        if (!profilesEnabled) {
+            ProfileManager pm = ProfileManager.getInstance();
+            if (pm.getProfile(pid, 0) == null) {
+                pm.createProfile(pid, 0, "Profile 1");
+            }
+            pm.setActiveSlot(pid, 0);
+            me.nakilex.levelplugin.player.config.PlayerConfig cfg =
+                    Main.getInstance().getPlayerConfig();
+            org.bukkit.Location loc = cfg.getProfileLocation(pid, 0);
+            if (loc != null) player.teleport(loc);
+            player.getInventory().clear();
+            player.getInventory().setArmorContents(null);
+            org.bukkit.inventory.ItemStack[] contents =
+                    cfg.getProfileInventory(pid, 0);
+            org.bukkit.inventory.ItemStack[] armor = cfg.getProfileArmor(pid, 0);
+            if (contents.length > 0) {
+                player.getInventory().setContents(contents);
+            } else {
+                StaticItemListener.giveStaticItems(player);
+            }
+            if (armor.length > 0) player.getInventory().setArmorContents(armor);
+        } else {
+            Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+                if (!player.isOnline()) return;
+                ProfileManager.getInstance().clearActiveSlot(pid);
+                ProfileSelectionGUI.startSelection(player);
+            }, 30L);  // ~1.5 seconds
+        }
     }
 }

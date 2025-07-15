@@ -1,0 +1,6 @@
+features:
+  profiles: true
+  environment: true
+  trade: true
+  auction-house: true
+  quests: true
