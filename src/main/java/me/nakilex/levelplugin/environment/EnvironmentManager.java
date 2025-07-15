@@ -10,6 +10,9 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Display;
+import org.bukkit.entity.TextDisplay;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.Particle;
@@ -35,7 +38,8 @@ public class EnvironmentManager {
     private final Map<UUID, String> towns = new HashMap<>();
     private final Map<UUID, Map<String, EnvironmentState>> buildingStates = new HashMap<>();
     private final Map<UUID, java.util.List<BukkitTask>> buildTasks = new HashMap<>();
-    private final Map<UUID, Map<String, org.bukkit.entity.ArmorStand>> buildingHolograms = new HashMap<>();
+    /** Hologram lines per building per player. */
+    private final Map<UUID, Map<String, java.util.List<org.bukkit.entity.TextDisplay>>> buildingHolograms = new HashMap<>();
     private final Map<UUID, UUID> coopOwners = new HashMap<>();
     private final Map<UUID, UUID> coopPartners = new HashMap<>();
     private final Map<UUID, UUID> pendingInvites = new HashMap<>();
@@ -116,7 +120,7 @@ public class EnvironmentManager {
 
     /** Build the hologram text for a building upgrade based on the player's
      *  current resources. */
-    private String formatBuildingHologram(Player player, String building, int level, int stage) {
+    private java.util.List<String> formatBuildingHologram(Player player, String building, int level, int stage) {
         int nextLevel = level;
         int nextStage = stage + 1;
         if (nextStage > STAGES_PER_LEVEL) {
@@ -138,14 +142,37 @@ public class EnvironmentManager {
         String coinLine = (hasCoins ? ChatColor.GREEN + "✔" : ChatColor.RED + "✘") +
                 ChatColor.GRAY + " - " + ChatColor.WHITE + coinCost + " coins " + ChatColor.GOLD + "\u26C3";
 
-        return ChatColor.GREEN + "" + ChatColor.BOLD + "Upgrade " + ChatColor.WHITE + building +
-                "\n" + ChatColor.GOLD + ChatColor.BOLD + "STAGE " + ChatColor.YELLOW + stage + " " +
+        java.util.List<String> lines = new java.util.ArrayList<>();
+        lines.add(ChatColor.GREEN + "" + ChatColor.BOLD + "Upgrade " + ChatColor.WHITE + building);
+        lines.add(ChatColor.GOLD + ChatColor.BOLD + "STAGE " + ChatColor.YELLOW + stage + " " +
                 ChatColor.GREEN + ">" + ChatColor.DARK_GREEN + ">" + ChatColor.GREEN + ">" + ChatColor.DARK_GREEN + "> " +
-                ChatColor.GOLD + "STAGE " + ChatColor.YELLOW + nextStage +
-                "\n" + ChatColor.DARK_GRAY + ChatColor.STRIKETHROUGH + "--------------------" +
-                "\n" + ChatColor.AQUA + "Requirements:" +
-                "\n" + logLine +
-                "\n" + coinLine;
+                ChatColor.GOLD + "STAGE " + ChatColor.YELLOW + nextStage);
+        lines.add(ChatColor.DARK_GRAY + ChatColor.STRIKETHROUGH.toString() + "--------------------");
+        lines.add(ChatColor.AQUA + "Requirements:");
+        lines.add(logLine);
+        lines.add(coinLine);
+        return lines;
+    }
+
+    /** Spawn TextDisplay hologram lines at the given location. */
+    private java.util.List<TextDisplay> spawnHologramLines(Player player, Location base, java.util.List<String> lines, String tag) {
+        java.util.List<TextDisplay> displays = new java.util.ArrayList<>();
+        double offset = 0.0;
+        for (String text : lines) {
+            Location loc = base.clone().add(0, offset, 0);
+            TextDisplay td = (TextDisplay) base.getWorld().spawnEntity(loc, EntityType.TEXT_DISPLAY);
+            td.setBillboard(Display.Billboard.CENTER);
+            td.setShadowRadius(0f);
+            td.setShadowStrength(0f);
+            td.setText(text);
+            td.addScoreboardTag("building_hologram:" + tag.toLowerCase());
+            displays.add(td);
+            offset -= 0.25;
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                if (!p.equals(player)) p.hideEntity(Main.getInstance(), td);
+            }
+        }
+        return displays;
     }
 
     private UUID getBase(UUID uuid) {
@@ -273,9 +300,11 @@ public class EnvironmentManager {
     private void removeBuildingHologram(UUID uuid, String building) {
         var map = buildingHolograms.get(uuid);
         if (map != null) {
-            var stand = map.remove(building.toLowerCase());
-            if (stand != null && !stand.isDead()) {
-                stand.remove();
+            var list = map.remove(building.toLowerCase());
+            if (list != null) {
+                for (var disp : list) {
+                    if (disp != null && !disp.isDead()) disp.remove();
+                }
             }
             if (map.isEmpty()) buildingHolograms.remove(uuid);
         }
@@ -284,8 +313,12 @@ public class EnvironmentManager {
     private void removeAllBuildingHolograms(UUID uuid) {
         var map = buildingHolograms.remove(uuid);
         if (map != null) {
-            for (var stand : map.values()) {
-                if (stand != null && !stand.isDead()) stand.remove();
+            for (var list : map.values()) {
+                if (list != null) {
+                    for (var disp : list) {
+                        if (disp != null && !disp.isDead()) disp.remove();
+                    }
+                }
             }
         }
     }
@@ -963,19 +996,10 @@ public class EnvironmentManager {
                             stageData.hx - stageData.ox + 0.5,
                             stageData.hy - stageData.oy,
                             stageData.hz - stageData.oz + 0.5);
-                    org.bukkit.entity.ArmorStand stand = holo.getWorld().spawn(holo, org.bukkit.entity.ArmorStand.class);
-                    stand.addScoreboardTag("building_hologram:" + building.toLowerCase());
-                    stand.setVisible(false);
-                    stand.setGravity(false);
-                    stand.setCustomName(formatBuildingHologram(player, building, level, stage));
-                    stand.setCustomNameVisible(true);
-                    stand.setSilent(true);
-                    stand.setSmall(true);
-                    for (Player p : Bukkit.getOnlinePlayers()) {
-                        if (!p.equals(player)) p.hideEntity(Main.getInstance(), stand);
-                    }
+                    java.util.List<String> textLines = formatBuildingHologram(player, building, level, stage);
+                    java.util.List<TextDisplay> displays = spawnHologramLines(player, holo, textLines, building);
                     buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
-                            .put(building.toLowerCase(), stand);
+                            .put(building.toLowerCase(), displays);
                     if (after != null) after.run();
                     cancel();
                 }
@@ -1026,19 +1050,10 @@ public class EnvironmentManager {
                 stageData.hx - stageData.ox + 0.5,
                 stageData.hy - stageData.oy,
                 stageData.hz - stageData.oz + 0.5);
-        org.bukkit.entity.ArmorStand stand = holo.getWorld().spawn(holo, org.bukkit.entity.ArmorStand.class);
-        stand.addScoreboardTag("building_hologram:" + building.toLowerCase());
-        stand.setVisible(false);
-        stand.setGravity(false);
-        stand.setCustomName(formatBuildingHologram(player, building, level, stage));
-        stand.setCustomNameVisible(true);
-        stand.setSilent(true);
-        stand.setSmall(true);
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            if (!p.equals(player)) p.hideEntity(Main.getInstance(), stand);
-        }
+        java.util.List<String> textLines = formatBuildingHologram(player, building, level, stage);
+        java.util.List<TextDisplay> displays = spawnHologramLines(player, holo, textLines, building);
         buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
-                .put(building.toLowerCase(), stand);
+                .put(building.toLowerCase(), displays);
     }
 
     /**
@@ -1159,19 +1174,10 @@ public class EnvironmentManager {
                             newData.hx - newData.ox + 0.5,
                             newData.hy - newData.oy,
                             newData.hz - newData.oz + 0.5);
-                    org.bukkit.entity.ArmorStand stand = holo.getWorld().spawn(holo, org.bukkit.entity.ArmorStand.class);
-                    stand.addScoreboardTag("building_hologram:" + building.toLowerCase());
-                    stand.setVisible(false);
-                    stand.setGravity(false);
-                    stand.setCustomName(formatBuildingHologram(player, building, newLevel, newStage));
-                    stand.setCustomNameVisible(true);
-                    stand.setSilent(true);
-                    stand.setSmall(true);
-                    for (Player p : Bukkit.getOnlinePlayers()) {
-                        if (!p.equals(player)) p.hideEntity(Main.getInstance(), stand);
-                    }
+                    java.util.List<String> textLines = formatBuildingHologram(player, building, newLevel, newStage);
+                    java.util.List<TextDisplay> displays = spawnHologramLines(player, holo, textLines, building);
                     buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
-                            .put(building.toLowerCase(), stand);
+                            .put(building.toLowerCase(), displays);
                     if (after != null) after.run();
                     cancel();
                 }
