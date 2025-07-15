@@ -12,10 +12,10 @@ import java.util.Map;
 
 public class EnvironmentDistanceListener implements Listener {
     private final EnvironmentManager manager;
-    // Begin loading the town when players are within 200 blocks instead of 150
-    private static final double LOAD_DIST_SQ = 200 * 200;
-    // Unload once they move beyond 250 blocks to keep a buffer
-    private static final double UNLOAD_DIST_SQ = 250 * 250;
+    // Begin loading the town when players are within 350 blocks
+    private static final double LOAD_DIST_SQ = 350 * 350;
+    // Unload once they move beyond 400 blocks to keep a buffer
+    private static final double UNLOAD_DIST_SQ = 400 * 400;
     /** Distance player must move closer before loading again. */
     private static final double RELOAD_STEP = 30.0;
     /** Stop triggering repeated loads once within this distance. */

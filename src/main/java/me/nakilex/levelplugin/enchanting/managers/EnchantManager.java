@@ -76,7 +76,6 @@ public class EnchantManager {
         item.incrementEnchantCount();
 
         ItemStack updated = ItemUtil.createItemStackFromCustomItem(item, stack.getAmount(), player);
-        ItemUtil.copyEgoData(stack, updated, item, player);
         ItemUtil.applyUpdatedStack(stack, updated);
         ItemManager.getInstance().addInstance(item);
         return prefix;

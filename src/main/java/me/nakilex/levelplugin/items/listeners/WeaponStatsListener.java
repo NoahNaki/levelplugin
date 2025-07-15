@@ -250,27 +250,12 @@ public class WeaponStatsListener implements Listener {
 
     public void addWeaponStats(Player player, CustomItem customItem, ItemStack stack) {
         StatsManager.PlayerStats ps = statsManager.getPlayerStats(player.getUniqueId());
-        me.nakilex.levelplugin.ego.EgoRarity rarity = me.nakilex.levelplugin.ego.EgoRarity.COMMON;
-        int rank = 1;
-        if (stack.hasItemMeta()) {
-            PersistentDataContainer pdc = stack.getItemMeta().getPersistentDataContainer();
-            if (pdc.has(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING)) {
-                try { rarity = me.nakilex.levelplugin.ego.EgoRarity.valueOf(pdc.get(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING)); } catch (Exception ignored) {}
-            }
-            rank = pdc.getOrDefault(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
-        }
-        if (ItemUtil.rarityAllows(rarity, StatsManager.StatType.HP))
-            ps.bonusHealthStat   += ItemUtil.scaleEgoStat(customItem.getHp(), rarity, rank);
-        if (ItemUtil.rarityAllows(rarity, StatsManager.StatType.DEF))
-            ps.bonusDefenceStat  += ItemUtil.scaleEgoStat(customItem.getDef(), rarity, rank);
-        if (ItemUtil.rarityAllows(rarity, StatsManager.StatType.STR))
-            ps.bonusStrength     += ItemUtil.scaleEgoStat(customItem.getStr(), rarity, rank);
-        if (ItemUtil.rarityAllows(rarity, StatsManager.StatType.AGI))
-            ps.bonusAgility      += ItemUtil.scaleEgoStat(customItem.getAgi(), rarity, rank);
-        if (ItemUtil.rarityAllows(rarity, StatsManager.StatType.INT))
-            ps.bonusIntelligence += ItemUtil.scaleEgoStat(customItem.getIntel(), rarity, rank);
-        if (ItemUtil.rarityAllows(rarity, StatsManager.StatType.DEX))
-            ps.bonusDexterity    += ItemUtil.scaleEgoStat(customItem.getDex(), rarity, rank);
+        ps.bonusHealthStat   += customItem.getHp();
+        ps.bonusDefenceStat  += customItem.getDef();
+        ps.bonusStrength     += customItem.getStr();
+        ps.bonusAgility      += customItem.getAgi();
+        ps.bonusIntelligence += customItem.getIntel();
+        ps.bonusDexterity    += customItem.getDex();
     }
 
     public void removeWeaponStats(Player player, CustomItem customItem, ItemStack stack) {
@@ -278,27 +263,12 @@ public class WeaponStatsListener implements Listener {
             + player.getName() + ", itemID=" + customItem.getId());
 
         StatsManager.PlayerStats ps = statsManager.getPlayerStats(player.getUniqueId());
-        me.nakilex.levelplugin.ego.EgoRarity rarity = me.nakilex.levelplugin.ego.EgoRarity.COMMON;
-        int rank = 1;
-        if (stack.hasItemMeta()) {
-            PersistentDataContainer pdc = stack.getItemMeta().getPersistentDataContainer();
-            if (pdc.has(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING)) {
-                try { rarity = me.nakilex.levelplugin.ego.EgoRarity.valueOf(pdc.get(ItemUtil.EGO_RARITY_KEY, PersistentDataType.STRING)); } catch (Exception ignored) {}
-            }
-            rank = pdc.getOrDefault(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, 1);
-        }
-        if (ItemUtil.rarityAllows(rarity, StatsManager.StatType.HP))
-            ps.bonusHealthStat   = Math.max(0, ps.bonusHealthStat   - ItemUtil.scaleEgoStat(customItem.getHp(), rarity, rank));
-        if (ItemUtil.rarityAllows(rarity, StatsManager.StatType.DEF))
-            ps.bonusDefenceStat  = Math.max(0, ps.bonusDefenceStat  - ItemUtil.scaleEgoStat(customItem.getDef(), rarity, rank));
-        if (ItemUtil.rarityAllows(rarity, StatsManager.StatType.STR))
-            ps.bonusStrength     = Math.max(0, ps.bonusStrength     - ItemUtil.scaleEgoStat(customItem.getStr(), rarity, rank));
-        if (ItemUtil.rarityAllows(rarity, StatsManager.StatType.AGI))
-            ps.bonusAgility      = Math.max(0, ps.bonusAgility      - ItemUtil.scaleEgoStat(customItem.getAgi(), rarity, rank));
-        if (ItemUtil.rarityAllows(rarity, StatsManager.StatType.INT))
-            ps.bonusIntelligence = Math.max(0, ps.bonusIntelligence - ItemUtil.scaleEgoStat(customItem.getIntel(), rarity, rank));
-        if (ItemUtil.rarityAllows(rarity, StatsManager.StatType.DEX))
-            ps.bonusDexterity    = Math.max(0, ps.bonusDexterity    - ItemUtil.scaleEgoStat(customItem.getDex(), rarity, rank));
+        ps.bonusHealthStat   = Math.max(0, ps.bonusHealthStat   - customItem.getHp());
+        ps.bonusDefenceStat  = Math.max(0, ps.bonusDefenceStat  - customItem.getDef());
+        ps.bonusStrength     = Math.max(0, ps.bonusStrength     - customItem.getStr());
+        ps.bonusAgility      = Math.max(0, ps.bonusAgility      - customItem.getAgi());
+        ps.bonusIntelligence = Math.max(0, ps.bonusIntelligence - customItem.getIntel());
+        ps.bonusDexterity    = Math.max(0, ps.bonusDexterity    - customItem.getDex());
 
         // IMMEDIATELY recalc all derived stats (this will:
         //  • recompute maxHealth → setMaxHealth(...)

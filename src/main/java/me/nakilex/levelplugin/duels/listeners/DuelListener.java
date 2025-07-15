@@ -29,11 +29,8 @@ public class DuelListener implements Listener {
 
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
-        // Must be left-click in air/block while sneaking
-        if ((event.getAction() != Action.LEFT_CLICK_AIR && event.getAction() != Action.LEFT_CLICK_BLOCK)
-            || !event.getPlayer().isSneaking()) {
-            return;
-        }
+        // Duel requests via shift left-click have been removed
+        return;
         Player player = event.getPlayer();
 
         // RayTrace up to ~4 blocks for a Player in front
@@ -254,19 +251,8 @@ public class DuelListener implements Listener {
 
     @EventHandler
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
-        if (!(event.getEntity() instanceof Player) || !(event.getDamager() instanceof Player)) {
-            return;
-        }
-
-        Player victim = (Player) event.getEntity();
-        Player attacker = (Player) event.getDamager();
-        DuelManager manager = DuelManager.getInstance();
-
-        // Only treat sneak‐hit as a duel request/accept
-        if (!attacker.isSneaking()) {
-            return;
-        }
-        event.setCancelled(true);
+        // Shift-left click duel requests removed
+        return;
 
         // ← NEW: Prevent sending/receiving if either player is already in a duel
         if (manager.areInAnyDuel(attacker) || manager.areInAnyDuel(victim)) {

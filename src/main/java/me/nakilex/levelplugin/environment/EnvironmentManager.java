@@ -110,6 +110,28 @@ public class EnvironmentManager {
         return playedInitAnimation.contains(getBase(player.getUniqueId()));
     }
 
+    /** Build the hologram text for a building upgrade based on the player's
+     *  current resources. */
+    private String formatBuildingHologram(Player player, String building, int level, int stage) {
+        int nextLevel = level;
+        int nextStage = stage + 1;
+        if (nextStage > STAGES_PER_LEVEL) {
+            nextStage = 1;
+            nextLevel++;
+        }
+        boolean hasLog = player.getInventory().containsAtLeast(new org.bukkit.inventory.ItemStack(org.bukkit.Material.OAK_LOG, 1), 1);
+        String reqLine = (hasLog ? ChatColor.GREEN + "\u2714" : ChatColor.RED + "\u2718") +
+                ChatColor.GRAY + " - " + ChatColor.WHITE + "Oak Log" +
+                ChatColor.GRAY + " x" + ChatColor.WHITE + "1";
+
+        return ChatColor.GREEN + "" + ChatColor.BOLD + "Upgrade " + ChatColor.WHITE + building +
+                ChatColor.GOLD + " STAGE " + ChatColor.YELLOW + stage + " " +
+                ChatColor.GREEN + ">" + ChatColor.DARK_GREEN + ">" + ChatColor.GREEN + ">" + ChatColor.DARK_GREEN + "> " +
+                ChatColor.GOLD + "STAGE " + ChatColor.YELLOW + nextStage +
+                "\n" + ChatColor.AQUA + "Requirements:" +
+                "\n" + reqLine;
+    }
+
     private UUID getBase(UUID uuid) {
         return coopOwners.getOrDefault(uuid, uuid);
     }
@@ -869,7 +891,7 @@ public class EnvironmentManager {
                     stand.addScoreboardTag("building_hologram:" + building.toLowerCase());
                     stand.setVisible(false);
                     stand.setGravity(false);
-                    stand.setCustomName(ChatColor.YELLOW + "Upgrade " + building + " - 1 Oak Log");
+                    stand.setCustomName(formatBuildingHologram(player, building, level, stage));
                     stand.setCustomNameVisible(true);
                     stand.setSilent(true);
                     stand.setSmall(true);
@@ -932,7 +954,7 @@ public class EnvironmentManager {
         stand.addScoreboardTag("building_hologram:" + building.toLowerCase());
         stand.setVisible(false);
         stand.setGravity(false);
-        stand.setCustomName(ChatColor.YELLOW + "Upgrade " + building + " - 1 Oak Log");
+        stand.setCustomName(formatBuildingHologram(player, building, level, stage));
         stand.setCustomNameVisible(true);
         stand.setSilent(true);
         stand.setSmall(true);
@@ -1065,7 +1087,7 @@ public class EnvironmentManager {
                     stand.addScoreboardTag("building_hologram:" + building.toLowerCase());
                     stand.setVisible(false);
                     stand.setGravity(false);
-                    stand.setCustomName(ChatColor.YELLOW + "Upgrade " + building + " - 1 Oak Log");
+                    stand.setCustomName(formatBuildingHologram(player, building, newLevel, newStage));
                     stand.setCustomNameVisible(true);
                     stand.setSilent(true);
                     stand.setSmall(true);
