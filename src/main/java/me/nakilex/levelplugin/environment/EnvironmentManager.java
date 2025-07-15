@@ -43,6 +43,8 @@ public class EnvironmentManager {
     private final Map<UUID, Map<String, Integer>> blockPriorities = new HashMap<>();
     /** Keep track of chunks force-loaded for each player so they can be released later. */
     private final Map<UUID, java.util.Set<Long>> loadedChunks = new java.util.HashMap<>();
+    /** Repeating tasks that ensure chunks finish loading. */
+    private final Map<UUID, BukkitTask> chunkLoadTasks = new java.util.HashMap<>();
 
     /** Players currently viewing their town (fake blocks active). */
     private final java.util.Set<UUID> loadedPlayers = new java.util.HashSet<>();
@@ -249,6 +251,10 @@ public class EnvironmentManager {
             for (BukkitTask t : tasks) {
                 t.cancel();
             }
+        }
+        BukkitTask chk = chunkLoadTasks.remove(uuid);
+        if (chk != null) {
+            chk.cancel();
         }
     }
 
@@ -511,13 +517,45 @@ public class EnvironmentManager {
         }
 
         java.util.Set<Long> loaded = loadedChunks.computeIfAbsent(base, k -> new java.util.HashSet<>());
-        for (long key : chunks) {
-            int cx = (int) (key >> 32);
-            int cz = (int) key;
-            org.bukkit.Chunk chunk = origin.getWorld().getChunkAt(cx, cz);
-            chunk.load(true);
-            chunk.addPluginChunkTicket(Main.getInstance());
-            loaded.add(key);
+        loaded.addAll(chunks);
+
+        final java.util.Set<Long> target = new java.util.HashSet<>(chunks);
+        final Location baseOrigin = origin;
+
+        Runnable loader = () -> {
+            boolean allLoaded = true;
+            for (long key : target) {
+                int cx = (int) (key >> 32);
+                int cz = (int) key;
+                org.bukkit.Chunk chunk = baseOrigin.getWorld().getChunkAt(cx, cz);
+                if (!chunk.isLoaded()) {
+                    chunk.load(true);
+                    allLoaded = false;
+                }
+                chunk.addPluginChunkTicket(Main.getInstance());
+            }
+            if (allLoaded) {
+                BukkitTask t = chunkLoadTasks.remove(base);
+                if (t != null) t.cancel();
+            }
+        };
+
+        loader.run();
+
+        if (!target.isEmpty() && !chunkLoadTasks.containsKey(base)) {
+            BukkitTask task = new BukkitRunnable() {
+                @Override public void run() {
+                    Player p = Bukkit.getPlayer(base);
+                    if (p == null || !p.isOnline()) {
+                        BukkitTask t = chunkLoadTasks.remove(base);
+                        if (t != null) t.cancel();
+                        return;
+                    }
+                    loader.run();
+                    if (!chunkLoadTasks.containsKey(base)) cancel();
+                }
+            }.runTaskTimer(Main.getInstance(), 20L, 20L);
+            chunkLoadTasks.put(base, task);
         }
     }
 
@@ -626,6 +664,7 @@ public class EnvironmentManager {
     /** Remove all fake blocks and NPCs for this player's view without deleting data. */
     public void unloadPlayerTown(Player player) {
         UUID base = getBase(player.getUniqueId());
+        cancelTasks(base);
         EnvironmentState st = states.get(base);
         String town = towns.get(base);
         Location origin = origins.get(base);
