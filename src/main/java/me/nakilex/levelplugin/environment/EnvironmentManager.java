@@ -571,22 +571,35 @@ public class EnvironmentManager {
         java.util.Set<Long> loaded = loadedChunks.computeIfAbsent(base, k -> new java.util.HashSet<>());
         loaded.addAll(chunks);
 
-        final java.util.Set<Long> target = new java.util.HashSet<>(chunks);
+        final java.util.List<Long> sorted = new java.util.ArrayList<>(chunks);
+        final int ox = origin.getBlockX() >> 4;
+        final int oz = origin.getBlockZ() >> 4;
+        sorted.sort(java.util.Comparator.comparingInt(k -> {
+            int cx = (int) (k >> 32);
+            int cz = (int) k;
+            return Math.abs(cx - ox) + Math.abs(cz - oz);
+        }));
+        final java.util.Deque<Long> queue = new java.util.ArrayDeque<>(sorted);
         final Location baseOrigin = origin;
 
         Runnable loader = () -> {
-            boolean allLoaded = true;
-            for (long key : target) {
+            int batch = 0;
+            java.util.Iterator<Long> it = queue.iterator();
+            while (it.hasNext() && batch < 5) {
+                long key = it.next();
                 int cx = (int) (key >> 32);
                 int cz = (int) key;
                 org.bukkit.Chunk chunk = baseOrigin.getWorld().getChunkAt(cx, cz);
                 if (!chunk.isLoaded()) {
                     chunk.load(true);
-                    allLoaded = false;
+                }
+                if (chunk.isLoaded()) {
+                    it.remove();
                 }
                 chunk.addPluginChunkTicket(Main.getInstance());
+                batch++;
             }
-            if (allLoaded) {
+            if (queue.isEmpty()) {
                 BukkitTask t = chunkLoadTasks.remove(base);
                 if (t != null) t.cancel();
             }
@@ -594,7 +607,7 @@ public class EnvironmentManager {
 
         loader.run();
 
-        if (!target.isEmpty() && !chunkLoadTasks.containsKey(base)) {
+        if (!queue.isEmpty() && !chunkLoadTasks.containsKey(base)) {
             BukkitTask task = new BukkitRunnable() {
                 @Override public void run() {
                     Player p = Bukkit.getPlayer(base);
@@ -604,9 +617,9 @@ public class EnvironmentManager {
                         return;
                     }
                     loader.run();
-                    if (!chunkLoadTasks.containsKey(base)) cancel();
+                    if (queue.isEmpty()) cancel();
                 }
-            }.runTaskTimer(Main.getInstance(), 20L, 20L);
+            }.runTaskTimer(Main.getInstance(), 2L, 2L);
             chunkLoadTasks.put(base, task);
         }
     }
