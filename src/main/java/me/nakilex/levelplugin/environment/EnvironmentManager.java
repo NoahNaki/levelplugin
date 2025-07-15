@@ -146,6 +146,48 @@ public class EnvironmentManager {
         return true;
     }
 
+    /**
+     * Compare the real world blocks against the schematic for the player's town.
+     * This is a best-effort attempt to detect when fake block data was lost
+     * during chunk loads. If any block differs from what the schematic expects,
+     * the town will be respawned for the player.
+     */
+    private boolean doTownBlocksMatch(Player player) {
+        UUID base = getBase(player.getUniqueId());
+        EnvironmentState st = states.get(base);
+        Location origin = origins.get(base);
+        String town = towns.get(base);
+        if (st == null || origin == null || town == null) return true;
+
+        var stage = stageManager.getStage(town, st.level, st.stage);
+        if (stage != null) {
+            Location baseOrigin = origin.clone().add(0, stage.oy, 0);
+            for (var b : stage.blocks) {
+                Location loc = baseOrigin.clone().add(b.x - stage.ox, b.y - stage.oy, b.z - stage.oz);
+                if (!loc.getBlock().getBlockData().matches(b.data)) {
+                    return false;
+                }
+            }
+        }
+
+        Map<String, EnvironmentState> bMap = buildingStates.get(base);
+        if (bMap != null) {
+            for (var e : bMap.entrySet()) {
+                var bs = buildingStageManager.getStage(e.getKey(), e.getValue().level, e.getValue().stage);
+                if (bs == null) continue;
+                Location bo = getBuildingOrigin(town, e.getKey(), origin).add(0, bs.oy, 0);
+                for (var b : bs.blocks) {
+                    Location loc = bo.clone().add(b.x - bs.ox, b.y - bs.oy, b.z - bs.oz);
+                    if (!loc.getBlock().getBlockData().matches(b.data)) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
+
     /** Build the hologram text for a building upgrade based on the player's
      *  current resources. */
     private java.util.List<String> formatBuildingHologram(Player player, String building, int level, int stage) {
@@ -407,7 +449,11 @@ public class EnvironmentManager {
                     return;
                 }
                 if (areTownChunksLoaded(p)) {
-                    cancelTownLoadCheck(base);
+                    if (doTownBlocksMatch(p)) {
+                        cancelTownLoadCheck(base);
+                    } else {
+                        initializePlayer(p);
+                    }
                 } else {
                     preloadTownChunks(p);
                 }
