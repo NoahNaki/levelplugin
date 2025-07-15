@@ -35,16 +35,10 @@ public class PhoenixHunterSpell implements Listener {
             public void run() {
                 for (Player p : Bukkit.getOnlinePlayers()) {
                     ItemStack item = p.getInventory().getItemInMainHand();
-                    if (item != null && item.hasItemMeta()) {
-                        var pdc = item.getItemMeta().getPersistentDataContainer();
-                        if (pdc.has(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING)) {
-                            String id = pdc.get(ItemUtil.EGO_ID_KEY, PersistentDataType.STRING);
-                            if (id != null && id.startsWith("phoenix") && VALID_WEAPONS.contains(item.getType())) {
-                                MythicBukkit.inst().getAPIHelper().castSkill(p, "Flameborn");
-                                Main.getPlugin().getLogger().info("[PH] passive Flameborn for " + p.getName());
-                                castSpell(p, "LLR"); // Phoenix Totem passive
-                            }
-                        }
+                    if (item != null && item.hasItemMeta() && VALID_WEAPONS.contains(item.getType())) {
+                        MythicBukkit.inst().getAPIHelper().castSkill(p, "Flameborn");
+                        Main.getPlugin().getLogger().info("[PH] passive Flameborn for " + p.getName());
+                        castSpell(p, "LLR");
                     }
                 }
             }

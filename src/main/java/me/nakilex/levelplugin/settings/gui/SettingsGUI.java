@@ -5,8 +5,7 @@ import me.nakilex.levelplugin.settings.data.PlayerSettings;
 import me.nakilex.levelplugin.settings.data.PlayerVisibility;
 import me.nakilex.levelplugin.leaderboards.LeaderboardType;
 import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
-import com.nexomc.nexo.api.NexoItems;
-import com.nexomc.nexo.items.ItemBuilder;
+import me.nakilex.levelplugin.utils.GuiUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -18,11 +17,17 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.Arrays;
+import java.util.*;
 
 public class SettingsGUI implements Listener {
 
+    private enum Filter { ALL, SOCIAL, VISUAL, COMBAT }
+
+    private static final int GUI_SIZE = 45;
+    private static final int FILTER_SLOT = 36;
+
     private final SettingsManager settingsManager;
+    private final Map<UUID, Filter> filters = new HashMap<>();
 
     public SettingsGUI(SettingsManager settingsManager) {
         this.settingsManager = settingsManager;
@@ -30,63 +35,81 @@ public class SettingsGUI implements Listener {
 
     public void openSettingsMenu(Player player) {
         PlayerSettings playerSettings = settingsManager.getSettings(player);
+        Filter filter = filters.getOrDefault(player.getUniqueId(), Filter.ALL);
 
-        Inventory gui = Bukkit.createInventory(null, 27, "Settings");
+        Inventory gui = Bukkit.createInventory(null, GUI_SIZE, "Settings");
 
         // Back button
-        gui.setItem(0, getNexoItem("arrow_left2", "§7Back"));
+        gui.setItem(0, GuiUtil.getNexoItem("arrow_left2", "§7Back"));
 
         // Damage Chat toggle
-        gui.setItem(10, createSettingItem(
-            playerSettings.isDmgChatEnabled(),
-            "§bDamage Chat",
-            "/dmgchat"
-        ));
+        if (filter == Filter.ALL || filter == Filter.COMBAT) {
+            gui.setItem(10, createSettingItem(
+                    playerSettings.isDmgChatEnabled(),
+                    "§bDamage Chat",
+                    "/dmgchat"
+            ));
+        }
 
         // Damage Numbers toggle
-        gui.setItem(11, createSettingItem(
-            playerSettings.isDmgNumberEnabled(),
-            "§bDamage Numbers",
-            "/dmgnumber"
-        ));
+        if (filter == Filter.ALL || filter == Filter.COMBAT) {
+            gui.setItem(11, createSettingItem(
+                    playerSettings.isDmgNumberEnabled(),
+                    "§bDamage Numbers",
+                    "/dmgnumber"
+            ));
+        }
 
         // Drop Details (hologram) toggle
-        gui.setItem(12, createSettingItem(
-            playerSettings.isDropDetailsEnabled(),
-            "§bDrop Details",
-            "/toggle dropdetails"
-        ));
+        if (filter == Filter.ALL || filter == Filter.VISUAL) {
+            gui.setItem(12, createSettingItem(
+                    playerSettings.isDropDetailsEnabled(),
+                    "§bDrop Details",
+                    "/toggle dropdetails"
+            ));
+        }
 
         // Drop Details Chat toggle
-        gui.setItem(13, createSettingItem(
-            playerSettings.isDropDetailsChatEnabled(),
-            "§bDrop Details Chat",
-            "/toggle dropdetailschat"
-        ));
+        if (filter == Filter.ALL || filter == Filter.VISUAL) {
+            gui.setItem(13, createSettingItem(
+                    playerSettings.isDropDetailsChatEnabled(),
+                    "§bDrop Details Chat",
+                    "/toggle dropdetailschat"
+            ));
+        }
 
         // Party Glow toggle
-        gui.setItem(14, createSettingItem(
-            playerSettings.isPartyGlowEnabled(),
-            "§bParty Glow",
-            "/partyglow"
-        ));
+        if (filter == Filter.ALL || filter == Filter.SOCIAL) {
+            gui.setItem(14, createSettingItem(
+                    playerSettings.isPartyGlowEnabled(),
+                    "§bParty Glow",
+                    "/partyglow"
+            ));
+        }
 
         // Friend Glow toggle
-        gui.setItem(15, createSettingItem(
-            playerSettings.isFriendGlowEnabled(),
-            "§bFriend Glow",
-            "/friendglow"
-        ));
+        if (filter == Filter.ALL || filter == Filter.SOCIAL) {
+            gui.setItem(15, createSettingItem(
+                    playerSettings.isFriendGlowEnabled(),
+                    "§bFriend Glow",
+                    "/friendglow"
+            ));
+        }
 
         // Balance visibility toggle
-        gui.setItem(16, createSettingItem(
-            playerSettings.isBalancePublic(),
-            "§ePublic Balance",
-            "/toggle balancepublic"
-        ));
+        if (filter == Filter.ALL || filter == Filter.SOCIAL) {
+            gui.setItem(16, createSettingItem(
+                    playerSettings.isBalancePublic(),
+                    "§ePublic Balance",
+                    "/toggle balancepublic"
+            ));
+        }
 
-        // Player visibility mode
-        gui.setItem(17, createVisibilityItem(playerSettings.getPlayerVisibility()));
+        if (filter == Filter.ALL || filter == Filter.SOCIAL) {
+            gui.setItem(17, createVisibilityItem(playerSettings.getPlayerVisibility()));
+        }
+
+        gui.setItem(FILTER_SLOT, createFilterItem(filter));
 
         // Filler border
         ItemStack filler = createItem(Material.GRAY_STAINED_GLASS_PANE, " ", " ");
@@ -100,14 +123,19 @@ public class SettingsGUI implements Listener {
     }
 
     private ItemStack createSettingItem(boolean isEnabled, String name, String command) {
-        Material mat = isEnabled ? Material.SLIME_BALL : Material.FIREWORK_STAR;
-        String status = isEnabled ? "§aEnabled" : "§cDisabled";
-        return createItem(mat, name,
-            "",
-            "§7Status: " + status,
-            "",
-            "§eClick to toggle and run " + command
-        );
+        ItemStack base = GuiUtil.getNexoItem(isEnabled ? "check" : "cross", name);
+        ItemMeta meta = base.getItemMeta();
+        if (meta != null) {
+            List<String> lore = new ArrayList<>();
+            lore.add(" ");
+            lore.add("§7Status: " + (isEnabled ? "§aEnabled" : "§cDisabled"));
+            lore.add(" ");
+            lore.add("§eClick to toggle and run " + command);
+            meta.setLore(lore);
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            base.setItemMeta(meta);
+        }
+        return base;
     }
 
     private ItemStack createItem(Material mat, String name, String... loreLines) {
@@ -138,17 +166,7 @@ public class SettingsGUI implements Listener {
                 "§eClick to cycle");
     }
 
-    private ItemStack getNexoItem(String id, String name) {
-        ItemBuilder builder = NexoItems.itemFromId(id);
-        if (builder == null) return new ItemStack(Material.BARRIER);
-        ItemStack item = builder.build();
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(name);
-            item.setItemMeta(meta);
-        }
-        return item;
-    }
+
 
     private void updateSettingItem(Inventory inventory, int slot, boolean enabled, String name, String command) {
         inventory.setItem(slot, createSettingItem(enabled, name, command));
@@ -156,6 +174,22 @@ public class SettingsGUI implements Listener {
 
     private void updateVisibilityItem(Inventory inv, PlayerVisibility vis) {
         inv.setItem(17, createVisibilityItem(vis));
+    }
+
+    private ItemStack createFilterItem(Filter filter) {
+        String name = switch (filter) {
+            case ALL -> "§bFilter: All";
+            case SOCIAL -> "§bFilter: Social";
+            case VISUAL -> "§bFilter: Visual";
+            case COMBAT -> "§bFilter: Combat";
+        };
+        ItemStack it = GuiUtil.getNexoItem("refresh", name);
+        ItemMeta meta = it.getItemMeta();
+        if (meta != null) {
+            meta.setLore(Collections.singletonList("§7Click to change filter"));
+            it.setItemMeta(meta);
+        }
+        return it;
     }
 
     @EventHandler
@@ -174,6 +208,18 @@ public class SettingsGUI implements Listener {
 
         if (slot == 0) {
             player.openInventory(StatsInventory.getStatsMenu(player));
+            return;
+        }
+
+        if (slot == FILTER_SLOT) {
+            Filter next = switch (filters.getOrDefault(player.getUniqueId(), Filter.ALL)) {
+                case ALL -> Filter.SOCIAL;
+                case SOCIAL -> Filter.VISUAL;
+                case VISUAL -> Filter.COMBAT;
+                case COMBAT -> Filter.ALL;
+            };
+            filters.put(player.getUniqueId(), next);
+            openSettingsMenu(player);
             return;
         }
 

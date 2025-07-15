@@ -27,30 +27,8 @@ public class PlayerRightClicksPlayerListener implements Listener {
                 return;
             }
 
-            // Check if trading by shift right-click is enabled and the player meets permission requirements
-            if (configValues.ENABLE_TRADE_BY_RIGHTCLICK_PLAYER && (configValues.toggleUseWithoutPermission()
-                || p.hasPermission("trade.tradebyclick")
-                || p.hasPermission("trade.*"))) {
-
-                // Ensure the player is sneaking (shift right-click)
-                if (!p.isSneaking()) return;
-
-                Player target = (Player) e.getRightClicked();
-                DealMaker dm = Main.getPlugin().getDealMaker();
-
-                // Handle trade cooldowns and requests
-                if (dm.addPlayerToCooldown(p)) {
-                    if (dm.madePlayerARequest(target, p)) {
-                        dm.acceptTrade(p, target);
-                    } else {
-                        boolean success = dm.makeTradeOffer(p, target);
-                        if (success) {
-                            p.sendMessage(Main.PREFIX + String.format(
-                                messageStrings.getTranslation(Translations.TRADE_REQUEST_SENT), target.getName()));
-                        }
-                    }
-                }
-            }
+            // Shift right-click trading removed
+            return;
         }
     }
 }

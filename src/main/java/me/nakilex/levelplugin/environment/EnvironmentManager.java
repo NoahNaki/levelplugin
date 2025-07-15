@@ -10,6 +10,9 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Display;
+import org.bukkit.entity.TextDisplay;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.Particle;
@@ -26,6 +29,8 @@ import java.util.UUID;
 public class EnvironmentManager {
     public static final int MAX_LEVEL = 3;
     private static final int STAGES_PER_LEVEL = 3;
+    /** Maximum times we try loading a single chunk before giving up. */
+    private static final int MAX_CHUNK_ATTEMPTS = 5;
     private final PlayerConfig playerConfig;
     private final TownStageManager stageManager;
     private final me.nakilex.levelplugin.environment.stage.BuildingStageManager buildingStageManager;
@@ -35,12 +40,23 @@ public class EnvironmentManager {
     private final Map<UUID, String> towns = new HashMap<>();
     private final Map<UUID, Map<String, EnvironmentState>> buildingStates = new HashMap<>();
     private final Map<UUID, java.util.List<BukkitTask>> buildTasks = new HashMap<>();
-    private final Map<UUID, Map<String, org.bukkit.entity.ArmorStand>> buildingHolograms = new HashMap<>();
+    /** Hologram lines per building per player. */
+    private final Map<UUID, Map<String, java.util.List<org.bukkit.entity.TextDisplay>>> buildingHolograms = new HashMap<>();
     private final Map<UUID, UUID> coopOwners = new HashMap<>();
     private final Map<UUID, UUID> coopPartners = new HashMap<>();
     private final Map<UUID, UUID> pendingInvites = new HashMap<>();
     /** Track placed block priorities for each player (location key -> priority). */
     private final Map<UUID, Map<String, Integer>> blockPriorities = new HashMap<>();
+    /** Keep track of chunks force-loaded for each player so they can be released later. */
+    private final Map<UUID, java.util.Set<Long>> loadedChunks = new java.util.HashMap<>();
+    /** Chunks still waiting to load for each player. */
+    private final Map<UUID, java.util.Set<Long>> pendingChunkLoads = new java.util.HashMap<>();
+    /** Attempts made per chunk so we can retry a few times. */
+    private final Map<UUID, java.util.Map<Long, Integer>> chunkRetryCount = new java.util.HashMap<>();
+    /** Repeating tasks that ensure chunks finish loading. */
+    private final Map<UUID, BukkitTask> chunkLoadTasks = new java.util.HashMap<>();
+    /** Periodic tasks that recheck if a town is fully loaded. */
+    private final Map<UUID, BukkitTask> townCheckTasks = new java.util.HashMap<>();
 
     /** Players currently viewing their town (fake blocks active). */
     private final java.util.Set<UUID> loadedPlayers = new java.util.HashSet<>();
@@ -50,6 +66,17 @@ public class EnvironmentManager {
 
     private static String key(Location loc) {
         return loc.getWorld().getName() + ":" + loc.getBlockX() + ":" + loc.getBlockY() + ":" + loc.getBlockZ();
+    }
+
+    /** Whether chunk loading debug is enabled. */
+    public static boolean isDebug() {
+        return Main.getInstance().getCustomConfig().getBoolean("debug.chunk-loading", false);
+    }
+
+    private static void debugLog(String msg) {
+        if (isDebug()) {
+            Main.getInstance().getLogger().info("[ChunkDebug] " + msg);
+        }
     }
 
     public static class EnvironmentState {
@@ -110,6 +137,127 @@ public class EnvironmentManager {
         return playedInitAnimation.contains(getBase(player.getUniqueId()));
     }
 
+    /** Check if all chunks for the player's town are currently loaded. */
+    public boolean areTownChunksLoaded(Player player) {
+        UUID base = getBase(player.getUniqueId());
+        Location origin = origins.get(base);
+        if (origin == null) return true;
+        for (long key : collectTownChunks(base)) {
+            int cx = (int) (key >> 32);
+            int cz = (int) key;
+            if (!origin.getWorld().getChunkAt(cx, cz).isLoaded()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Compare the real world blocks against the schematic for the player's town.
+     * This is a best-effort attempt to detect when fake block data was lost
+     * during chunk loads. If any block differs from what the schematic expects,
+     * the town will be respawned for the player.
+     */
+    private boolean doTownBlocksMatch(Player player) {
+        UUID base = getBase(player.getUniqueId());
+        EnvironmentState st = states.get(base);
+        Location origin = origins.get(base);
+        String town = towns.get(base);
+        if (st == null || origin == null || town == null) return true;
+
+        var stage = stageManager.getStage(town, st.level, st.stage);
+        if (stage != null) {
+            Location baseOrigin = origin.clone().add(0, stage.oy, 0);
+            for (var b : stage.blocks) {
+                Location loc = baseOrigin.clone().add(b.x - stage.ox, b.y - stage.oy, b.z - stage.oz);
+                if (!loc.getBlock().getBlockData().matches(b.data)) {
+                    return false;
+                }
+            }
+        }
+
+        Map<String, EnvironmentState> bMap = buildingStates.get(base);
+        if (bMap != null) {
+            for (var e : bMap.entrySet()) {
+                var bs = buildingStageManager.getStage(e.getKey(), e.getValue().level, e.getValue().stage);
+                if (bs == null) continue;
+                Location bo = getBuildingOrigin(town, e.getKey(), origin).add(0, bs.oy, 0);
+                for (var b : bs.blocks) {
+                    Location loc = bo.clone().add(b.x - bs.ox, b.y - bs.oy, b.z - bs.oz);
+                    if (!loc.getBlock().getBlockData().matches(b.data)) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /** Build the hologram text for a building upgrade based on the player's
+     *  current resources. */
+    private java.util.List<String> formatBuildingHologram(Player player, String building, int level, int stage) {
+        int nextLevel = level;
+        int nextStage = stage + 1;
+        if (nextStage > STAGES_PER_LEVEL) {
+            nextStage = 1;
+            nextLevel++;
+        }
+
+        // Example requirements - currently hardcoded to 1 oak log and no coins
+        int logCost = 1;
+        boolean hasLog = player.getInventory().containsAtLeast(
+                new org.bukkit.inventory.ItemStack(org.bukkit.Material.OAK_LOG, logCost), logCost);
+        String logLine = (hasLog
+                ? ChatColor.GREEN.toString() + "✔"
+                : ChatColor.RED.toString() + "✘")
+                + ChatColor.GRAY + " - " + ChatColor.WHITE + "Oak Log"
+                + ChatColor.GRAY + " x" + ChatColor.WHITE + logCost;
+
+        int coinCost = 0;
+        int coins = Main.getInstance().getEconomyManager().getBalance(player);
+        boolean hasCoins = coins >= coinCost;
+        String coinLine = (hasCoins
+                ? ChatColor.GREEN.toString() + "✔"
+                : ChatColor.RED.toString() + "✘")
+                + ChatColor.GRAY + " - " + ChatColor.WHITE + coinCost + " coins "
+                + ChatColor.GOLD + "\u26C3";
+
+        java.util.List<String> lines = new java.util.ArrayList<>();
+        lines.add(ChatColor.GREEN + "" + ChatColor.BOLD + "Upgrade " + ChatColor.WHITE + building);
+        lines.add(ChatColor.GOLD.toString() + ChatColor.BOLD + "STAGE "
+                + ChatColor.YELLOW + stage + " "
+                + ChatColor.GREEN + ">" + ChatColor.DARK_GREEN + ">"
+                + ChatColor.GREEN + ">" + ChatColor.DARK_GREEN + "> "
+                + ChatColor.GOLD + "STAGE " + ChatColor.YELLOW + nextStage);
+        lines.add(ChatColor.DARK_GRAY + ChatColor.STRIKETHROUGH.toString() + "--------------------");
+        lines.add(ChatColor.AQUA + "Requirements:");
+        lines.add(logLine);
+        lines.add(coinLine);
+        return lines;
+    }
+
+    /** Spawn TextDisplay hologram lines at the given location. */
+    private java.util.List<TextDisplay> spawnHologramLines(Player player, Location base, java.util.List<String> lines, String tag) {
+        java.util.List<TextDisplay> displays = new java.util.ArrayList<>();
+        double offset = 0.0;
+        for (String text : lines) {
+            Location loc = base.clone().add(0, offset, 0);
+            TextDisplay td = (TextDisplay) base.getWorld().spawnEntity(loc, EntityType.TEXT_DISPLAY);
+            td.setBillboard(Display.Billboard.CENTER);
+            td.setShadowRadius(0f);
+            td.setShadowStrength(0f);
+            td.setText(text);
+            td.addScoreboardTag("building_hologram:" + tag.toLowerCase());
+            displays.add(td);
+            offset -= 0.25;
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                if (!p.equals(player)) p.hideEntity(Main.getInstance(), td);
+            }
+        }
+        return displays;
+    }
+
     private UUID getBase(UUID uuid) {
         return coopOwners.getOrDefault(uuid, uuid);
     }
@@ -154,6 +302,43 @@ public class EnvironmentManager {
         }
     }
 
+    /** Collect all chunk coordinates for the player's town and buildings. */
+    private java.util.Set<Long> collectTownChunks(UUID base) {
+        EnvironmentState st = states.get(base);
+        Location origin = origins.get(base);
+        String town = towns.get(base);
+        if (st == null || origin == null || town == null) {
+            return java.util.Collections.emptySet();
+        }
+        java.util.Set<Long> chunks = new java.util.HashSet<>();
+        var stage = stageManager.getStage(town, st.level, st.stage);
+        if (stage != null) {
+            Location baseOrigin = origin.clone().add(0, stage.oy, 0);
+            for (var b : stage.blocks) {
+                int wx = baseOrigin.getBlockX() + b.x - stage.ox;
+                int wz = baseOrigin.getBlockZ() + b.z - stage.oz;
+                long key = (((long) (wx >> 4)) << 32) ^ (wz >> 4 & 0xffffffffL);
+                chunks.add(key);
+            }
+        }
+
+        Map<String, EnvironmentState> bMap = buildingStates.get(base);
+        if (bMap != null) {
+            for (var e : bMap.entrySet()) {
+                var bStage = buildingStageManager.getStage(e.getKey(), e.getValue().level, e.getValue().stage);
+                if (bStage == null) continue;
+                Location bo = getBuildingOrigin(town, e.getKey(), origin).add(0, bStage.oy, 0);
+                for (var b : bStage.blocks) {
+                    int wx = bo.getBlockX() + b.x - bStage.ox;
+                    int wz = bo.getBlockZ() + b.z - bStage.oz;
+                    long key = (((long) (wx >> 4)) << 32) ^ (wz >> 4 & 0xffffffffL);
+                    chunks.add(key);
+                }
+            }
+        }
+        return chunks;
+    }
+
     /** Load state for player from config without spawning any structures. */
     public void loadPlayerState(Player player) {
         UUID uuid = player.getUniqueId();
@@ -175,44 +360,66 @@ public class EnvironmentManager {
 
     /** Load state for player if not present and spawn their structures/NPCs. */
     public void initializePlayer(Player player) {
-        loadPlayerState(player);
-        preloadTownChunks(player);
-
-        UUID uuid = player.getUniqueId();
-        EnvironmentState es = states.get(uuid);
-        Location origin = origins.get(uuid);
-        if (origin != null) {
-            Map<String, EnvironmentState> bMap = buildingStates.get(uuid);
-            final Map<String, EnvironmentState> finalBMap = bMap == null ? null : new java.util.HashMap<>(bMap);
-            final Location finalOrigin = origin;
-            if (finalBMap != null) {
-                for (var e : finalBMap.entrySet()) {
-                    Location bOrig = getBuildingOrigin(towns.get(uuid), e.getKey(), finalOrigin);
-                    spawnBuildingInstant(player, e.getKey(), bOrig, e.getValue().level, e.getValue().stage);
-                }
-            }
-            spawnStructureInstant(player, finalOrigin, es.level, es.stage);
-        }
+        initializePlayerInternal(player, false, 20);
     }
 
     /** Load player state and spawn their town with a short animation. */
     public void initializePlayerAnimated(Player player, int ticks) {
-        loadPlayerState(player);
-        preloadTownChunks(player);
+        initializePlayerInternal(player, true, ticks);
+    }
 
-        UUID uuid = player.getUniqueId();
-        EnvironmentState es = states.get(uuid);
-        Location origin = origins.get(uuid);
-        if (origin != null) {
-            Map<String, EnvironmentState> bMap = buildingStates.get(uuid);
-            if (bMap != null) {
-                for (var e : bMap.entrySet()) {
-                    Location bOrig = getBuildingOrigin(towns.get(uuid), e.getKey(), origin);
-                    spawnBuildingTimed(player, e.getKey(), bOrig, e.getValue().level, e.getValue().stage, null, ticks);
+    private void initializePlayerInternal(Player player, boolean animated, int ticks) {
+        loadPlayerState(player);
+        boolean ready = preloadTownChunks(player);
+
+        Runnable spawn = () -> {
+            UUID uuid = player.getUniqueId();
+            EnvironmentState es = states.get(uuid);
+            Location origin = origins.get(uuid);
+            if (origin != null && es != null) {
+                Map<String, EnvironmentState> bMap = buildingStates.get(uuid);
+                final Map<String, EnvironmentState> finalBMap = bMap == null ? null : new java.util.HashMap<>(bMap);
+                final Location finalOrigin = origin;
+                if (finalBMap != null) {
+                    for (var e : finalBMap.entrySet()) {
+                        Location bOrig = getBuildingOrigin(towns.get(uuid), e.getKey(), finalOrigin);
+                        if (animated) {
+                            spawnBuildingTimed(player, e.getKey(), bOrig, e.getValue().level, e.getValue().stage, null, ticks);
+                        } else {
+                            spawnBuildingInstant(player, e.getKey(), bOrig, e.getValue().level, e.getValue().stage);
+                        }
+                    }
+                }
+                if (animated) {
+                    spawnStructureTimed(player, finalOrigin, es.level, es.stage, null, ticks);
+                } else {
+                    spawnStructureInstant(player, finalOrigin, es.level, es.stage);
                 }
             }
-            spawnStructureTimed(player, origin, es.level, es.stage, null, ticks);
+        };
+
+        if (ready) {
+            spawn.run();
+        } else {
+            waitForChunks(player, spawn);
         }
+    }
+
+    /** Repeatedly check for chunk completion then run the given action. */
+    private void waitForChunks(Player player, Runnable action) {
+        UUID base = getBase(player.getUniqueId());
+        new BukkitRunnable() {
+            @Override public void run() {
+                Player p = Bukkit.getPlayer(base);
+                if (p == null || !p.isOnline()) { cancel(); return; }
+                if (areTownChunksLoaded(p)) {
+                    action.run();
+                    cancel();
+                } else {
+                    preloadTownChunks(p);
+                }
+            }
+        }.runTaskTimer(Main.getInstance(), 5L, 5L);
     }
 
     public EnvironmentState getState(UUID uuid) {
@@ -226,14 +433,54 @@ public class EnvironmentManager {
                 t.cancel();
             }
         }
+        BukkitTask chk = chunkLoadTasks.remove(uuid);
+        if (chk != null) {
+            chk.cancel();
+        }
+        BukkitTask verify = townCheckTasks.remove(uuid);
+        if (verify != null) {
+            verify.cancel();
+        }
+    }
+
+    /** Periodically verify that a player's town chunks are loaded. */
+    private void startTownLoadCheck(Player player) {
+        UUID base = getBase(player.getUniqueId());
+        if (townCheckTasks.containsKey(base)) return;
+        BukkitTask task = new BukkitRunnable() {
+            @Override public void run() {
+                Player p = Bukkit.getPlayer(base);
+                if (p == null || !p.isOnline()) {
+                    cancelTownLoadCheck(base);
+                    return;
+                }
+                if (areTownChunksLoaded(p)) {
+                    if (doTownBlocksMatch(p)) {
+                        cancelTownLoadCheck(base);
+                    } else {
+                        initializePlayer(p);
+                    }
+                } else {
+                    preloadTownChunks(p);
+                }
+            }
+        }.runTaskTimer(Main.getInstance(), 60L, 60L);
+        townCheckTasks.put(base, task);
+    }
+
+    private void cancelTownLoadCheck(UUID base) {
+        BukkitTask t = townCheckTasks.remove(base);
+        if (t != null) t.cancel();
     }
 
     private void removeBuildingHologram(UUID uuid, String building) {
         var map = buildingHolograms.get(uuid);
         if (map != null) {
-            var stand = map.remove(building.toLowerCase());
-            if (stand != null && !stand.isDead()) {
-                stand.remove();
+            var list = map.remove(building.toLowerCase());
+            if (list != null) {
+                for (var disp : list) {
+                    if (disp != null && !disp.isDead()) disp.remove();
+                }
             }
             if (map.isEmpty()) buildingHolograms.remove(uuid);
         }
@@ -242,8 +489,12 @@ public class EnvironmentManager {
     private void removeAllBuildingHolograms(UUID uuid) {
         var map = buildingHolograms.remove(uuid);
         if (map != null) {
-            for (var stand : map.values()) {
-                if (stand != null && !stand.isDead()) stand.remove();
+            for (var list : map.values()) {
+                if (list != null) {
+                    for (var disp : list) {
+                        if (disp != null && !disp.isDead()) disp.remove();
+                    }
+                }
             }
         }
     }
@@ -401,6 +652,7 @@ public class EnvironmentManager {
         }
     }
 
+    // All towns reside in the "flatland" world for now
     private static final String TOWN_WORLD = "flatland";
     private static final int TOWN_X = 2010;
     // Raise the starting Y coordinate by 5 blocks
@@ -448,49 +700,75 @@ public class EnvironmentManager {
 
     /**
      * Ensure all chunks that contain the player's town and unlocked buildings
-     * are loaded. This prevents fake block updates from forcing asynchronous
-     * chunk loads which can cause errors on some servers.
+     * are loaded. Each chunk will be requested multiple times until it is
+     * reported loaded by the server to mirror how Minecraft loads chunks
+     * naturally.
      */
-    public void preloadTownChunks(Player player) {
+    public boolean preloadTownChunks(Player player) {
         UUID base = getBase(player.getUniqueId());
         EnvironmentState st = states.get(base);
         Location origin = origins.get(base);
-        if (st == null || origin == null) return;
+        if (st == null || origin == null) return true;
 
-        java.util.Set<Long> chunks = new java.util.HashSet<>();
+        java.util.Set<Long> required = collectTownChunks(base);
+        java.util.Set<Long> loaded = loadedChunks.computeIfAbsent(base, k -> new java.util.HashSet<>());
+        java.util.Set<Long> pending = pendingChunkLoads.computeIfAbsent(base, k -> new java.util.HashSet<>());
+        java.util.Map<Long, Integer> attempts = chunkRetryCount.computeIfAbsent(base, k -> new java.util.HashMap<>());
 
-        String town = towns.get(base);
-        var stage = stageManager.getStage(town, st.level, st.stage);
-        if (stage != null) {
-            Location baseOrigin = origin.clone().add(0, stage.oy, 0);
-            for (var b : stage.blocks) {
-                int wx = baseOrigin.getBlockX() + b.x - stage.ox;
-                int wz = baseOrigin.getBlockZ() + b.z - stage.oz;
-                long key = (((long) (wx >> 4)) << 32) ^ (wz >> 4 & 0xffffffffL);
-                chunks.add(key);
-            }
-        }
+        debugLog("Preloading " + required.size() + " chunks in "
+                + origin.getWorld().getName() + " for " + player.getName());
 
-        Map<String, EnvironmentState> bMap = buildingStates.get(base);
-        if (bMap != null) {
-            for (var e : bMap.entrySet()) {
-                var bStage = buildingStageManager.getStage(e.getKey(), e.getValue().level, e.getValue().stage);
-                if (bStage == null) continue;
-                Location bo = getBuildingOrigin(town, e.getKey(), origin).add(0, bStage.oy, 0);
-                for (var b : bStage.blocks) {
-                    int wx = bo.getBlockX() + b.x - bStage.ox;
-                    int wz = bo.getBlockZ() + b.z - bStage.oz;
-                    long key = (((long) (wx >> 4)) << 32) ^ (wz >> 4 & 0xffffffffL);
-                    chunks.add(key);
+        boolean allLoaded = true;
+
+        for (long key : required) {
+            int cx = (int) (key >> 32);
+            int cz = (int) key;
+            org.bukkit.World world = origin.getWorld();
+            org.bukkit.Chunk chunk = world.getChunkAt(cx, cz);
+
+            if (!chunk.isLoaded()) {
+                allLoaded = false;
+                pending.add(key);
+                int tries = attempts.getOrDefault(key, 0);
+                if (tries < MAX_CHUNK_ATTEMPTS) {
+                    debugLog("Request load for chunk " + cx + "," + cz + " attempt " + (tries + 1));
+                    world.loadChunk(cx, cz, true);
+                    attempts.put(key, tries + 1);
+                } else if (tries == MAX_CHUNK_ATTEMPTS) {
+                    debugLog("Chunk " + cx + "," + cz + " still not loaded after " + MAX_CHUNK_ATTEMPTS + " tries");
+                    attempts.put(key, tries + 1); // avoid repeated log
                 }
+            } else {
+                loaded.add(key);
+                chunk.addPluginChunkTicket(Main.getInstance());
+                pending.remove(key);
+                attempts.remove(key);
             }
         }
 
-        for (long key : chunks) {
-            int cx = (int)(key >> 32);
-            int cz = (int)key;
-            origin.getWorld().getChunkAt(cx, cz);
+        if (!allLoaded) {
+            if (!chunkLoadTasks.containsKey(base)) {
+                debugLog("Scheduling chunk verify task for " + player.getName());
+                BukkitTask task = new BukkitRunnable() {
+                    @Override public void run() {
+                        Player p = Bukkit.getPlayer(base);
+                        if (p == null || !p.isOnline()) { cancelTownLoadCheck(base); cancel(); return; }
+                        if (preloadTownChunks(p)) cancel();
+                    }
+                }.runTaskTimer(Main.getInstance(), 20L, 20L);
+                chunkLoadTasks.put(base, task);
+            }
+            startTownLoadCheck(player);
+        } else {
+            BukkitTask t = chunkLoadTasks.remove(base);
+            if (t != null) t.cancel();
+            cancelTownLoadCheck(base);
+            pendingChunkLoads.remove(base);
+            chunkRetryCount.remove(base);
+            debugLog("Completed chunk preload for " + player.getName());
         }
+
+        return allLoaded;
     }
 
     /** Start a settlement for the player at a fixed location using the given town name. */
@@ -569,7 +847,7 @@ public class EnvironmentManager {
         fakeBlockManager.clear(player);
         EnvironmentState st = states.remove(uuid);
         String town = towns.remove(uuid);
-        origins.remove(uuid);
+        Location origin = origins.remove(uuid);
         Map<String, EnvironmentState> bMap = buildingStates.remove(uuid);
         removeAllBuildingHolograms(uuid);
         if (town != null && st != null) {
@@ -578,6 +856,15 @@ public class EnvironmentManager {
                 for (var e : bMap.entrySet()) {
                     buildingStageManager.despawnForStage(uuid, e.getKey(), e.getValue().level, e.getValue().stage);
                 }
+            }
+        }
+        java.util.Set<Long> loaded = loadedChunks.remove(uuid);
+        if (loaded != null && origin != null) {
+            for (long key : loaded) {
+                int cx = (int) (key >> 32);
+                int cz = (int) key;
+                org.bukkit.Chunk chunk = origin.getWorld().getChunkAt(cx, cz);
+                chunk.removePluginChunkTicket(Main.getInstance());
             }
         }
         playerConfig.clearEnvironmentData(uuid);
@@ -589,6 +876,7 @@ public class EnvironmentManager {
     /** Remove all fake blocks and NPCs for this player's view without deleting data. */
     public void unloadPlayerTown(Player player) {
         UUID base = getBase(player.getUniqueId());
+        cancelTasks(base);
         EnvironmentState st = states.get(base);
         String town = towns.get(base);
         Location origin = origins.get(base);
@@ -604,6 +892,16 @@ public class EnvironmentManager {
         removeAllBuildingHolograms(player.getUniqueId());
         fakeBlockManager.clear(player);
         blockPriorities.remove(player.getUniqueId());
+        java.util.Set<Long> loaded = loadedChunks.remove(base);
+        if (loaded != null) {
+            for (long key : loaded) {
+                int cx = (int) (key >> 32);
+                int cz = (int) key;
+                org.bukkit.Chunk chunk = origin.getWorld().getChunkAt(cx, cz);
+                chunk.removePluginChunkTicket(Main.getInstance());
+                // allow chunk to unload naturally
+            }
+        }
     }
 
     /**
@@ -865,19 +1163,10 @@ public class EnvironmentManager {
                             stageData.hx - stageData.ox + 0.5,
                             stageData.hy - stageData.oy,
                             stageData.hz - stageData.oz + 0.5);
-                    org.bukkit.entity.ArmorStand stand = holo.getWorld().spawn(holo, org.bukkit.entity.ArmorStand.class);
-                    stand.addScoreboardTag("building_hologram:" + building.toLowerCase());
-                    stand.setVisible(false);
-                    stand.setGravity(false);
-                    stand.setCustomName(ChatColor.YELLOW + "Upgrade " + building + " - 1 Oak Log");
-                    stand.setCustomNameVisible(true);
-                    stand.setSilent(true);
-                    stand.setSmall(true);
-                    for (Player p : Bukkit.getOnlinePlayers()) {
-                        if (!p.equals(player)) p.hideEntity(Main.getInstance(), stand);
-                    }
+                    java.util.List<String> textLines = formatBuildingHologram(player, building, level, stage);
+                    java.util.List<TextDisplay> displays = spawnHologramLines(player, holo, textLines, building);
                     buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
-                            .put(building.toLowerCase(), stand);
+                            .put(building.toLowerCase(), displays);
                     if (after != null) after.run();
                     cancel();
                 }
@@ -928,19 +1217,10 @@ public class EnvironmentManager {
                 stageData.hx - stageData.ox + 0.5,
                 stageData.hy - stageData.oy,
                 stageData.hz - stageData.oz + 0.5);
-        org.bukkit.entity.ArmorStand stand = holo.getWorld().spawn(holo, org.bukkit.entity.ArmorStand.class);
-        stand.addScoreboardTag("building_hologram:" + building.toLowerCase());
-        stand.setVisible(false);
-        stand.setGravity(false);
-        stand.setCustomName(ChatColor.YELLOW + "Upgrade " + building + " - 1 Oak Log");
-        stand.setCustomNameVisible(true);
-        stand.setSilent(true);
-        stand.setSmall(true);
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            if (!p.equals(player)) p.hideEntity(Main.getInstance(), stand);
-        }
+        java.util.List<String> textLines = formatBuildingHologram(player, building, level, stage);
+        java.util.List<TextDisplay> displays = spawnHologramLines(player, holo, textLines, building);
         buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
-                .put(building.toLowerCase(), stand);
+                .put(building.toLowerCase(), displays);
     }
 
     /**
@@ -1061,19 +1341,10 @@ public class EnvironmentManager {
                             newData.hx - newData.ox + 0.5,
                             newData.hy - newData.oy,
                             newData.hz - newData.oz + 0.5);
-                    org.bukkit.entity.ArmorStand stand = holo.getWorld().spawn(holo, org.bukkit.entity.ArmorStand.class);
-                    stand.addScoreboardTag("building_hologram:" + building.toLowerCase());
-                    stand.setVisible(false);
-                    stand.setGravity(false);
-                    stand.setCustomName(ChatColor.YELLOW + "Upgrade " + building + " - 1 Oak Log");
-                    stand.setCustomNameVisible(true);
-                    stand.setSilent(true);
-                    stand.setSmall(true);
-                    for (Player p : Bukkit.getOnlinePlayers()) {
-                        if (!p.equals(player)) p.hideEntity(Main.getInstance(), stand);
-                    }
+                    java.util.List<String> textLines = formatBuildingHologram(player, building, newLevel, newStage);
+                    java.util.List<TextDisplay> displays = spawnHologramLines(player, holo, textLines, building);
                     buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
-                            .put(building.toLowerCase(), stand);
+                            .put(building.toLowerCase(), displays);
                     if (after != null) after.run();
                     cancel();
                 }
@@ -1207,6 +1478,15 @@ public class EnvironmentManager {
         if (st == null || origin == null) return;
         int cx = chunk.getX();
         int cz = chunk.getZ();
+
+        // mark this chunk as loaded for retry tracking
+        java.util.Set<Long> pending = pendingChunkLoads.get(base);
+        if (pending != null) {
+            long key = (((long) cx) << 32) ^ (cz & 0xffffffffL);
+            pending.remove(key);
+            java.util.Map<Long, Integer> tries = chunkRetryCount.get(base);
+            if (tries != null) tries.remove(key);
+        }
 
         // resend structure blocks inside the chunk
         resendStructureForChunk(player, origin, st.level, st.stage, cx, cz);

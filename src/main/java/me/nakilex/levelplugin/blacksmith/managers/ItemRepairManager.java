@@ -47,7 +47,6 @@ public class ItemRepairManager {
 
         // Rebuild display (if needed)
         ItemStack updated = ItemUtil.createItemStackFromCustomItem(item, itemStack.getAmount(), player);
-        ItemUtil.copyEgoData(itemStack, updated, item, player);
         ItemUtil.applyUpdatedStack(itemStack, updated);
 
         return true;
