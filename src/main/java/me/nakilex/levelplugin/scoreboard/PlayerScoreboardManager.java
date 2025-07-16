@@ -128,8 +128,16 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         }
         idx++; line--;
 
-        String date = plugin.getCalendarManager().getFormattedDate();
-        current[idx] = ChatColor.GOLD + date;
+        String date = plugin.getCalendarManager().getSeasonDate();
+        current[idx] = ChatColor.WHITE + date;
+        if (!current[idx].equals(prev[idx])) {
+            setLine(board, obj, idx, line, current[idx]);
+        }
+        idx++; line--;
+
+        String time = plugin.getCalendarManager().getTimeString() + " " +
+                plugin.getCalendarManager().getWeatherIcon();
+        current[idx] = ChatColor.GRAY + time;
         if (!current[idx].equals(prev[idx])) {
             setLine(board, obj, idx, line, current[idx]);
         }
