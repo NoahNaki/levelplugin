@@ -128,6 +128,13 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         }
         idx++; line--;
 
+        // spacer above calendar
+        current[idx] = " ";
+        if (!current[idx].equals(prev[idx])) {
+            setLine(board, obj, idx, line, current[idx]);
+        }
+        idx++; line--;
+
         String date = plugin.getCalendarManager().getSeasonDate();
         current[idx] = ChatColor.WHITE + date;
         if (!current[idx].equals(prev[idx])) {
@@ -135,9 +142,15 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         }
         idx++; line--;
 
-        String time = plugin.getCalendarManager().getTimeString() + " " +
-                plugin.getCalendarManager().getWeatherIcon();
+        String time = plugin.getCalendarManager().getTimeString() + " " + ChatColor.YELLOW + plugin.getCalendarManager().getWeatherGlyph();
         current[idx] = ChatColor.GRAY + time;
+        if (!current[idx].equals(prev[idx])) {
+            setLine(board, obj, idx, line, current[idx]);
+        }
+        idx++; line--;
+
+        // spacer below calendar
+        current[idx] = " ";
         if (!current[idx].equals(prev[idx])) {
             setLine(board, obj, idx, line, current[idx]);
         }

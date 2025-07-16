@@ -17,6 +17,18 @@ public class CalendarManager {
     private static final int[] MONTH_TO_SEASON = {0,0,0,1,1,1,2,2,2,3,3,3};
     private static final int[] MONTH_TO_PHASE = {1,2,0,1,2,0,1,2,0,1,2,0};
 
+    // Custom glyphs defined in the resource pack
+    private static final String GLYPH_WINTER = "\uA443";
+    private static final String GLYPH_THUNDER = "\uA444";
+    private static final String GLYPH_SUMMER = "\uA445";
+    private static final String GLYPH_SPRING = "\uA446";
+    private static final String GLYPH_SNOW = "\uA447";
+    private static final String GLYPH_RAIN = "\uA448";
+    private static final String GLYPH_HOT = "\uA449";
+    private static final String GLYPH_FALL = "\uA44A";
+    private static final String GLYPH_COLD = "\uA44B";
+    private static final String GLYPH_CLOUD = "\uA44C";
+
     public CalendarManager(Main plugin) {
         this.plugin = plugin;
         new BukkitRunnable() {
@@ -55,11 +67,29 @@ public class CalendarManager {
         return "Year " + year + " - " + month + "/" + day;
     }
 
-    /** Returns date like "Early Spring 18th" for scoreboard display. */
+    /**
+     * Returns date like "ꑆ Early Spring 18th" with the custom season glyph.
+     */
     public String getSeasonDate() {
         int season = MONTH_TO_SEASON[month - 1];
         int phase = MONTH_TO_PHASE[month - 1];
-        return PHASES[phase] + " " + SEASONS[season] + " " + ordinal(day);
+        String glyph = getSeasonGlyph(season);
+        return glyph + " " + PHASES[phase] + " " + SEASONS[season] + " " + ordinal(day);
+    }
+
+    /** Glyph representing the current season. */
+    public String getSeasonGlyph() {
+        return getSeasonGlyph(MONTH_TO_SEASON[month - 1]);
+    }
+
+    private String getSeasonGlyph(int seasonIndex) {
+        switch (seasonIndex) {
+            case 0: return GLYPH_WINTER;
+            case 1: return GLYPH_SPRING;
+            case 2: return GLYPH_SUMMER;
+            case 3: return GLYPH_FALL;
+            default: return GLYPH_CLOUD;
+        }
     }
 
     /** Returns 12h clock time such as "9:00am" based on world time. */
@@ -75,14 +105,23 @@ public class CalendarManager {
         return String.format("%d:%02d%s", hour12, minutes, ampm);
     }
 
-    /** Return a simple weather icon representing time of day or storm. */
-    public String getWeatherIcon() {
+    /**
+     * Return a glyph representing current weather and time of day.
+     */
+    public String getWeatherGlyph() {
         World world = Bukkit.getWorlds().isEmpty() ? null : Bukkit.getWorlds().get(0);
-        if (world == null) return "";
-        if (world.hasStorm()) return "\u2602"; // umbrella
+        if (world == null) return GLYPH_CLOUD;
+        if (world.isThundering()) return GLYPH_THUNDER;
+        if (world.hasStorm()) {
+            org.bukkit.block.Biome biome = world.getBiome(world.getSpawnLocation());
+            if (biome.name().contains("SNOW")) {
+                return GLYPH_SNOW;
+            }
+            return GLYPH_RAIN;
+        }
         long t = world.getTime();
-        if (t >= 13000 && t < 23000) return "\u263E"; // moon
-        return "\u2600"; // sun
+        if (t >= 13000 && t < 23000) return GLYPH_COLD;
+        return GLYPH_HOT;
     }
 
     private static String ordinal(int n) {
