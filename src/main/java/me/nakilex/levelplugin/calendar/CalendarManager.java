@@ -17,17 +17,17 @@ public class CalendarManager {
     private static final int[] MONTH_TO_SEASON = {0,0,0,1,1,1,2,2,2,3,3,3};
     private static final int[] MONTH_TO_PHASE = {1,2,0,1,2,0,1,2,0,1,2,0};
 
-    // Custom glyphs defined in the resource pack
-    private static final String GLYPH_WINTER = "\uA443";
-    private static final String GLYPH_THUNDER = "\uA444";
-    private static final String GLYPH_SUMMER = "\uA445";
-    private static final String GLYPH_SPRING = "\uA446";
-    private static final String GLYPH_SNOW = "\uA447";
-    private static final String GLYPH_RAIN = "\uA448";
-    private static final String GLYPH_HOT = "\uA449";
-    private static final String GLYPH_FALL = "\uA44A";
-    private static final String GLYPH_COLD = "\uA44B";
-    private static final String GLYPH_CLOUD = "\uA44C";
+    // Tokens for glyphs defined in the resource pack
+    private static final String GLYPH_WINTER = "<glyph:winter>";
+    private static final String GLYPH_THUNDER = "<glyph:thunder>";
+    private static final String GLYPH_SUMMER = "<glyph:summer>";
+    private static final String GLYPH_SPRING = "<glyph:spring>";
+    private static final String GLYPH_SNOW = "<glyph:snow>";
+    private static final String GLYPH_RAIN = "<glyph:rain>";
+    private static final String GLYPH_HOT = "<glyph:hot>";
+    private static final String GLYPH_FALL = "<glyph:fall>";
+    private static final String GLYPH_COLD = "<glyph:cold>";
+    private static final String GLYPH_CLOUD = "<glyph:cloud>";
 
     public CalendarManager(Main plugin) {
         this.plugin = plugin;
