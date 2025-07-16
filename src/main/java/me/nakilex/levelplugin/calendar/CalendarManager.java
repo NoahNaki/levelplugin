@@ -4,9 +4,18 @@ import me.nakilex.levelplugin.Main;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.event.Listener;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.weather.WeatherChangeEvent;
+import org.bukkit.event.weather.ThunderChangeEvent;
+import java.util.Random;
 
-public class CalendarManager {
+public class CalendarManager implements Listener {
     private final Main plugin;
+    private World world;
+    private final Random random = new Random();
+    private String baseWeatherGlyph = GLYPH_HOT;
+    private String overrideWeatherGlyph = null;
     private final int[] monthLengths = {31,28,31,30,31,30,31,31,30,31,30,31};
     private int year = 0;
     private int month = 1; // 1-12
@@ -31,6 +40,13 @@ public class CalendarManager {
 
     public CalendarManager(Main plugin) {
         this.plugin = plugin;
+        this.world = Bukkit.getWorld("world2");
+        if (this.world == null && !Bukkit.getWorlds().isEmpty()) {
+            this.world = Bukkit.getWorlds().get(0);
+        }
+        Bukkit.getPluginManager().registerEvents(this, plugin);
+        chooseDailyWeather();
+        updateOverride();
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -40,7 +56,6 @@ public class CalendarManager {
     }
 
     private void checkDay() {
-        World world = Bukkit.getWorlds().isEmpty() ? null : Bukkit.getWorlds().get(0);
         if (world == null) return;
         long dayCount = world.getFullTime() / 24000L;
         if (dayCount != lastDayCount) {
@@ -59,6 +74,8 @@ public class CalendarManager {
                 year++;
             }
         }
+        chooseDailyWeather();
+        updateOverride();
         plugin.getScoreboardManager().updateAll();
     }
 
@@ -94,7 +111,6 @@ public class CalendarManager {
 
     /** Returns 12h clock time such as "9:00am" based on world time. */
     public String getTimeString() {
-        World world = Bukkit.getWorlds().isEmpty() ? null : Bukkit.getWorlds().get(0);
         if (world == null) return "0:00am";
         long t = world.getTime();
         int hours24 = (int)((t + 6000) % 24000) / 1000;
@@ -109,19 +125,59 @@ public class CalendarManager {
      * Return a glyph representing current weather and time of day.
      */
     public String getWeatherGlyph() {
-        World world = Bukkit.getWorlds().isEmpty() ? null : Bukkit.getWorlds().get(0);
-        if (world == null) return GLYPH_CLOUD;
-        if (world.isThundering()) return GLYPH_THUNDER;
+        if (overrideWeatherGlyph != null) return overrideWeatherGlyph;
+        return baseWeatherGlyph;
+    }
+
+    private void chooseDailyWeather() {
+        int pick = random.nextInt(4); // hot, hot, cloud, cold
+        switch (pick) {
+            case 0:
+            case 1:
+                baseWeatherGlyph = GLYPH_HOT;
+                break;
+            case 2:
+                baseWeatherGlyph = GLYPH_CLOUD;
+                break;
+            default:
+                baseWeatherGlyph = GLYPH_COLD;
+                break;
+        }
+    }
+
+    private void updateOverride() {
+        if (world == null) {
+            overrideWeatherGlyph = GLYPH_CLOUD;
+            return;
+        }
+        if (world.isThundering()) {
+            overrideWeatherGlyph = GLYPH_THUNDER;
+            return;
+        }
         if (world.hasStorm()) {
             org.bukkit.block.Biome biome = world.getBiome(world.getSpawnLocation());
             if (biome.name().contains("SNOW")) {
-                return GLYPH_SNOW;
+                overrideWeatherGlyph = GLYPH_SNOW;
+            } else {
+                overrideWeatherGlyph = GLYPH_RAIN;
             }
-            return GLYPH_RAIN;
+            return;
         }
-        long t = world.getTime();
-        if (t >= 13000 && t < 23000) return GLYPH_COLD;
-        return GLYPH_HOT;
+        overrideWeatherGlyph = null;
+    }
+
+    @EventHandler
+    public void onWeatherChange(WeatherChangeEvent event) {
+        if (!event.getWorld().equals(world)) return;
+        updateOverride();
+        plugin.getScoreboardManager().updateAll();
+    }
+
+    @EventHandler
+    public void onThunderChange(ThunderChangeEvent event) {
+        if (!event.getWorld().equals(world)) return;
+        updateOverride();
+        plugin.getScoreboardManager().updateAll();
     }
 
     private static String ordinal(int n) {
