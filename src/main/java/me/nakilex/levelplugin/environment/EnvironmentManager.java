@@ -466,7 +466,7 @@ public class EnvironmentManager {
                     preloadTownChunks(p);
                 }
             }
-        }.runTaskTimer(Main.getInstance(), 5L, 5L);
+        }.runTaskTimer(Main.getInstance(), 20L, 20L);
     }
 
     public EnvironmentState getState(UUID uuid) {
@@ -789,15 +789,21 @@ public class EnvironmentManager {
             int cx = (int) (key >> 32);
             int cz = (int) key;
             org.bukkit.World world = origin.getWorld();
-            org.bukkit.Chunk chunk = world.getChunkAt(cx, cz);
+            org.bukkit.Chunk chunk = world.isChunkLoaded(cx, cz) ? world.getChunkAt(cx, cz) : null;
 
-            if (!chunk.isLoaded()) {
+            if (chunk == null) {
                 allLoaded = false;
                 pending.add(key);
                 int tries = attempts.getOrDefault(key, 0);
                 if (tries < MAX_CHUNK_ATTEMPTS) {
                     debugLog("Request load for chunk " + cx + "," + cz + " attempt " + (tries + 1));
-                    world.loadChunk(cx, cz, true);
+                    world.getChunkAtAsync(cx, cz, true).thenAccept(ch ->
+                            Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+                                loaded.add(key);
+                                ch.addPluginChunkTicket(Main.getInstance());
+                                pending.remove(key);
+                                attempts.remove(key);
+                            }));
                     attempts.put(key, tries + 1);
                 } else if (tries == MAX_CHUNK_ATTEMPTS) {
                     debugLog("Chunk " + cx + "," + cz + " still not loaded after " + MAX_CHUNK_ATTEMPTS + " tries");

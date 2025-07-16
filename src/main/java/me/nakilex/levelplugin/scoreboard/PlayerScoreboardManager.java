@@ -32,6 +32,7 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
 
     private final Map<UUID, Scoreboard> boards = new HashMap<>();
     private final String[] entries = new String[15];
+    private final Map<UUID, String[]> lastLines = new HashMap<>();
 
     /**
      * Exposes the internal scoreboard instance for other managers.
@@ -108,15 +109,31 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         if (board == null) return;
         Objective obj = board.getObjective("stats");
         if (obj == null) return;
-        board.getEntries().forEach(board::resetScores);
+        String[] prev = lastLines.computeIfAbsent(player.getUniqueId(), k -> new String[entries.length]);
+        String[] current = new String[entries.length];
 
         int line = 15;
         int idx = 0;
         String coinStr = java.text.NumberFormat.getIntegerInstance().format(economyManager.getBalance(player));
-        setLine(board, obj, idx++, line--, ChatColor.YELLOW + "⛃ " + ChatColor.WHITE + "Coins: " + ChatColor.YELLOW + coinStr);
+        current[idx] = ChatColor.YELLOW + "⛃ " + ChatColor.WHITE + "Coins: " + ChatColor.YELLOW + coinStr;
+        if (!current[idx].equals(prev[idx])) {
+            setLine(board, obj, idx, line, current[idx]);
+        }
+        idx++; line--;
 
         String gemStr = java.text.NumberFormat.getIntegerInstance().format(gemsManager.getTotalUnits(player));
-        setLine(board, obj, idx++, line--, ChatColor.LIGHT_PURPLE + "✦ " + ChatColor.WHITE + "Gems: " + ChatColor.LIGHT_PURPLE + gemStr);
+        current[idx] = ChatColor.LIGHT_PURPLE + "✦ " + ChatColor.WHITE + "Gems: " + ChatColor.LIGHT_PURPLE + gemStr;
+        if (!current[idx].equals(prev[idx])) {
+            setLine(board, obj, idx, line, current[idx]);
+        }
+        idx++; line--;
+
+        String date = plugin.getCalendarManager().getFormattedDate();
+        current[idx] = ChatColor.GOLD + date;
+        if (!current[idx].equals(prev[idx])) {
+            setLine(board, obj, idx, line, current[idx]);
+        }
+        idx++; line--;
 
         PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId());
         Quest quest = progress != null ? progress.getQuest() : null;
@@ -126,9 +143,17 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
             if (other != null) quest = other;
         }
         if (quest != null) {
-            setLine(board, obj, idx++, line--,
-                    ChatColor.GREEN + "Quest: " + ChatColor.WHITE + quest.getName());
-            setLine(board, obj, idx++, line--, ChatColor.GREEN + "Progress:");
+            current[idx] = ChatColor.GREEN + "Quest: " + ChatColor.WHITE + quest.getName();
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
+
+            current[idx] = ChatColor.GREEN + "Progress:";
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
             int progIndex = 0;
             int progValue = 0;
             if (progress != null && progress.getQuest().getId().equals(quest.getId())) {
@@ -142,23 +167,38 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
             }
             QuestObjective currentObj = quest.getObjectives().get(progIndex);
             String desc = questManager.describeObjective(currentObj);
-            setLine(board, obj, idx++, line--,
-                    ChatColor.GRAY + "- " + desc + ": " + progValue + "/" + currentObj.getAmount());
+            current[idx] = ChatColor.GRAY + "- " + desc + ": " + progValue + "/" + currentObj.getAmount();
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
         }
 
         Party party = partyManager.getParty(player.getUniqueId());
         if (party != null) {
-            setLine(board, obj, idx++, line--, ChatColor.AQUA + "Party:");
+            current[idx] = ChatColor.AQUA + "Party:";
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
             for (UUID memberId : party.getMembers()) {
                 Player member = Bukkit.getPlayer(memberId);
                 if (member != null && member.isOnline()) {
                     int lvl = levelManager.getLevel(member);
                     String hp = (int) member.getHealth() + "/" + (int) member.getMaxHealth();
-                    setLine(board, obj, idx++, line--, ChatColor.GRAY + "[" + lvl + "] " + ChatColor.WHITE + member.getName() + " " + ChatColor.GRAY + hp + " " + ChatColor.RED + "\u2764");
+                    current[idx] = ChatColor.GRAY + "[" + lvl + "] " + ChatColor.WHITE + member.getName() + " " + ChatColor.GRAY + hp + " " + ChatColor.RED + "\u2764";
+                    if (!current[idx].equals(prev[idx])) {
+                        setLine(board, obj, idx, line, current[idx]);
+                    }
+                    idx++; line--;
                 } else {
                     String name = Bukkit.getOfflinePlayer(memberId).getName();
                     if (name == null) name = "Unknown";
-                    setLine(board, obj, idx++, line--, ChatColor.GRAY + "- " + name);
+                    current[idx] = ChatColor.GRAY + "- " + name;
+                    if (!current[idx].equals(prev[idx])) {
+                        setLine(board, obj, idx, line, current[idx]);
+                    }
+                    idx++; line--;
                 }
                 if (line <= 1) break;
             }
@@ -167,5 +207,14 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         // Apply party and friend glow scoreboard entries if enabled
         plugin.getPartyGlowManager().applyGlowScoreboard(player);
         plugin.getFriendGlowManager().applyGlowScoreboard(player);
+
+        for (int i = idx; i < prev.length; i++) {
+            if (prev[i] != null) {
+                board.resetScores(entries[i]);
+                Team t = board.getTeam("line" + i);
+                if (t != null) t.setPrefix("");
+            }
+        }
+        lastLines.put(player.getUniqueId(), current);
     }
 }

@@ -132,6 +132,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.fasttravel.FastTravelManager fastTravelManager;
     private me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI fastTravelGUI;
     private me.nakilex.levelplugin.motd.MotdManager motdManager;
+    private me.nakilex.levelplugin.calendar.CalendarManager calendarManager;
     private me.nakilex.levelplugin.fakeblock.FakeBlockManager fakeBlockManager;
     private me.nakilex.levelplugin.fakeblock.QuestGateManager questGateManager;
     private me.nakilex.levelplugin.fakeblock.ModelGateManager modelGateManager;
@@ -229,6 +230,7 @@ public class PluginBootstrap {
         questManager = new QuestManager(plugin, partyManager);
         dialogManager = new me.nakilex.levelplugin.npc.dialog.NPCDialogManager(plugin);
         scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(plugin, economyManager, gemsManager, partyManager, questManager);
+        calendarManager = new me.nakilex.levelplugin.calendar.CalendarManager(plugin);
         duelStatsManager = new me.nakilex.levelplugin.leaderboards.DuelStatsManager(plugin);
         leaderboardManager = new me.nakilex.levelplugin.leaderboards.LeaderboardManager(plugin, economyManager, playerConfig, duelStatsManager, settingsManager);
         partyGlowManager = new PartyGlowManager(plugin, partyManager, scoreboardManager::getBoard);
@@ -343,7 +345,7 @@ public class PluginBootstrap {
         if (itemConfig != null) itemConfig.saveItems();
         if (playerConfig != null) playerConfig.saveAllPlayers();
         if (storageManager != null) storageManager.saveAllStorages();
-        if (auctionHouseManager != null) auctionHouseManager.saveAuctions();
+        if (auctionHouseManager != null) auctionHouseManager.saveAuctionsSync();
         if (lootChestManager != null) lootChestManager.removeAllChests();
         if (me.nakilex.levelplugin.player.mining.listeners.OreMiningListener.getInstance() != null) me.nakilex.levelplugin.player.mining.listeners.OreMiningListener.getInstance().removeAllHolograms();
         if (questManager != null) questManager.saveProgress();
@@ -431,6 +433,7 @@ public class PluginBootstrap {
     public SettingsManager getSettingsManager() { return settingsManager; }
     public SettingsGUI getSettingsGUI() { return settingsGUI; }
     public MeteorListener getMeteorListener() { return meteorListener; }
+    public me.nakilex.levelplugin.calendar.CalendarManager getCalendarManager() { return calendarManager; }
 
     private void createCustomConfig() {
         customConfigFile = new File(plugin.getDataFolder(), "config.yml");

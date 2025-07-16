@@ -12,6 +12,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
 
@@ -41,6 +42,8 @@ public class AuctionHouseManager {
     private final File file;
     private final FileConfiguration config;
     private final List<AuctionItem> auctions = new ArrayList<>();
+    /** Lock to guard file saves when running asynchronously. */
+    private final Object saveLock = new Object();
 
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
@@ -289,7 +292,25 @@ public class AuctionHouseManager {
         }
     }
 
-    public synchronized void saveAuctions() {
+    /**
+     * Persist auction data asynchronously to avoid main thread blocking.
+     */
+    public void saveAuctions() {
+        Bukkit.getScheduler().runTaskAsynchronously(Main.getInstance(), () -> {
+            synchronized (saveLock) {
+                saveAuctionsInternal();
+            }
+        });
+    }
+
+    /** Perform the actual file write on the current thread. */
+    public void saveAuctionsSync() {
+        synchronized (saveLock) {
+            saveAuctionsInternal();
+        }
+    }
+
+    private void saveAuctionsInternal() {
         config.set("auctions", null);
         for (int i = 0; i < auctions.size(); i++) {
             AuctionItem ai = auctions.get(i);
