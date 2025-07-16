@@ -14,6 +14,7 @@ public enum PlayerClass {
     DEATHKNIGHT(1),
     ARCTICKNIGHT(1),
     DRAGONWARRIOR(1),
+    OVERLORD(1),
     DEADEYE(1),
 
     // legacy / misc classes kept for compatibility

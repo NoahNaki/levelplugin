@@ -43,6 +43,7 @@ import me.nakilex.levelplugin.spells.WarriorSpell;
 import me.nakilex.levelplugin.spells.DeathKnightSpell;
 import me.nakilex.levelplugin.spells.AbyssionSpell;
 import me.nakilex.levelplugin.spells.MageSpell;
+import me.nakilex.levelplugin.spells.OverlordSpell;
 import me.nakilex.levelplugin.spells.DragonianSpell;
 import me.nakilex.levelplugin.spells.DragonWarriorSpell;
 import me.nakilex.levelplugin.spells.WindruneSpell;
@@ -162,6 +163,7 @@ public class ListenerRegistry {
         pm.registerEvents(new WarriorSpell(), plugin);
         pm.registerEvents(new DeathKnightSpell(), plugin);
         pm.registerEvents(new MageSpell(), plugin);
+        pm.registerEvents(new OverlordSpell(), plugin);
         pm.registerEvents(new AbyssionSpell(), plugin);
         pm.registerEvents(new DragonWarriorSpell(), plugin);
         pm.registerEvents(new DragonianSpell(), plugin);
