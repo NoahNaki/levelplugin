@@ -99,4 +99,5 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.environment.UpgradeGUI getUpgradeGUI() { return bootstrap.getUpgradeGUI(); }
     public me.nakilex.levelplugin.environment.BuildingUpgradeGUI getBuildingUpgradeGUI() { return bootstrap.getBuildingUpgradeGUI(); }
     public me.nakilex.levelplugin.npc.dialog.NPCDialogManager getDialogManager() { return bootstrap.getDialogManager(); }
+    public me.nakilex.levelplugin.calendar.CalendarManager getCalendarManager() { return bootstrap.getCalendarManager(); }
 }
