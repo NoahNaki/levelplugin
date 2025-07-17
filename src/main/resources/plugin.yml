@@ -214,3 +214,4 @@ commands:
   cutscene:
     description: Play or manage cutscenes
     usage: /cutscene <play|list|reload>
+
