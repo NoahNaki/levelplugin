@@ -2,6 +2,9 @@ package me.nakilex.levelplugin.quests.tasks;
 
 import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
+import me.nakilex.levelplugin.quests.data.QuestObjective;
+import me.nakilex.levelplugin.quests.data.QuestObjectiveType;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
@@ -59,8 +62,33 @@ public class QuestNPCEffectTask extends BukkitRunnable {
 
                 var quest = questManager.getQuest(entry.getValue());
                 QuestState state = questManager.getQuestState(player, quest);
-                boolean show = state == QuestState.AVAILABLE || state == QuestState.TURN_IN_READY;
-                if (show) {
+
+                // Determine which glyph, if any, should be displayed
+                String glyph = null;
+                if (state == QuestState.AVAILABLE) {
+                    glyph = "<glyph:info>"; // quest available
+                } else if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS || state == QuestState.TURN_IN_READY) {
+                    PlayerQuestProgress prog = questManager.getProgress(player.getUniqueId(), quest.getId());
+                    int idx = 0;
+                    if (prog != null) {
+                        for (int i = 0; i < quest.getObjectives().size(); i++) {
+                            if (prog.getProgress(i) < quest.getObjectives().get(i).getAmount()) {
+                                idx = i;
+                                break;
+                            }
+                        }
+                    }
+                    QuestObjective obj = quest.getObjectives().get(idx);
+                    if (obj.getType() == QuestObjectiveType.TALK &&
+                            obj.getTarget().toLowerCase().startsWith("npc" + npcId)) {
+                        boolean last = idx == quest.getObjectives().size() - 1;
+                        glyph = last ? "<glyph:check>" : "<glyph:alert>";
+                    } else if (state == QuestState.TURN_IN_READY) {
+                        glyph = "<glyph:check>"; // fallback for completed quests
+                    }
+                }
+
+                if (glyph != null) {
                     player.spawnParticle(Particle.HAPPY_VILLAGER, npc.getEntity().getLocation().add(0, 2, 0), 1, 0, 0, 0, 0);
 
                     Location loc = npc.getEntity().getLocation().add(0, 2.4, 0);
@@ -70,7 +98,7 @@ public class QuestNPCEffectTask extends BukkitRunnable {
                         disp.setShadowRadius(0f);
                         disp.setShadowStrength(0f);
                         disp.setBackgroundColor(org.bukkit.Color.fromARGB(0, 0, 0, 0));
-                        disp.setText("<glyph:info>");
+                        disp.setText(glyph);
                         map.put(npcId, disp);
                         for (Player p : Bukkit.getOnlinePlayers()) {
                             if (!p.equals(player)) {
@@ -81,6 +109,9 @@ public class QuestNPCEffectTask extends BukkitRunnable {
                         disp.teleport(loc);
                         if (!player.canSee(disp)) {
                             player.showEntity(Main.getInstance(), disp);
+                        }
+                        if (!glyph.equals(disp.getText())) {
+                            disp.setText(glyph);
                         }
                     }
                 } else if (disp != null) {

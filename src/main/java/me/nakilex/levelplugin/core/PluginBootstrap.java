@@ -133,6 +133,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI fastTravelGUI;
     private me.nakilex.levelplugin.motd.MotdManager motdManager;
     private me.nakilex.levelplugin.calendar.CalendarManager calendarManager;
+    private me.nakilex.levelplugin.cutscene.CutsceneManager cutsceneManager;
     private me.nakilex.levelplugin.fakeblock.FakeBlockManager fakeBlockManager;
     private me.nakilex.levelplugin.fakeblock.QuestGateManager questGateManager;
     private me.nakilex.levelplugin.fakeblock.ModelGateManager modelGateManager;
@@ -252,6 +253,8 @@ public class PluginBootstrap {
         enchantGUI = new me.nakilex.levelplugin.enchanting.gui.EnchantGUI(enchantManager, economyManager);
         StatsManager.getInstance().setLevelManager(levelManager);
         modelSetManager = new me.nakilex.levelplugin.mob.config.ModelSetManager(plugin);
+        cutsceneManager = new me.nakilex.levelplugin.cutscene.CutsceneManager(plugin);
+        cutsceneManager.loadCutscenes();
     }
 
     private void setupCustomConfig() {
@@ -433,6 +436,7 @@ public class PluginBootstrap {
     public SettingsManager getSettingsManager() { return settingsManager; }
     public SettingsGUI getSettingsGUI() { return settingsGUI; }
     public MeteorListener getMeteorListener() { return meteorListener; }
+    public me.nakilex.levelplugin.cutscene.CutsceneManager getCutsceneManager() { return cutsceneManager; }
     public me.nakilex.levelplugin.calendar.CalendarManager getCalendarManager() { return calendarManager; }
 
     private void createCustomConfig() {

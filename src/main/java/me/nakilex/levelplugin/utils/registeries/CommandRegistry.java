@@ -153,5 +153,6 @@ public class CommandRegistry {
         plugin.getCommand("townpos1").setExecutor(new TownPosCommand(true));
         plugin.getCommand("townpos2").setExecutor(new TownPosCommand(false));
 
+        plugin.getCommand("cutscene").setExecutor(new me.nakilex.levelplugin.cutscene.commands.CutsceneCommand(plugin.getCutsceneManager()));
     }
 }
