@@ -128,7 +128,7 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         idx++; line--;
 
         String gemStr = java.text.NumberFormat.getIntegerInstance().format(gemsManager.getTotalUnits(player));
-        current[idx] = ChatColor.AQUA + "<glyph:diamond_icon> " + ChatColor.WHITE + "Gems: " + ChatColor.AQUA + gemStr;
+        current[idx] = ChatColor.AQUA + "<glyph:purple_orb_icon> " + ChatColor.WHITE + "Gems: " + ChatColor.AQUA + gemStr;
         if (!current[idx].equals(prev[idx])) {
             setLine(board, obj, idx, line, current[idx]);
         }

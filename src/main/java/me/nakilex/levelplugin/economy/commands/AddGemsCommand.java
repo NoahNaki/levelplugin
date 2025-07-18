@@ -60,6 +60,6 @@ public class AddGemsCommand implements CommandExecutor {
         if (newTotal < 0) newTotal = 0;
         gemsManager.setTotalUnits(player, newTotal);
         player.sendMessage((amt >= 0 ? "You received " : "You lost ")
-                + Math.abs(amt) + " " + ChatColor.AQUA + "<glyph:diamond_icon>");
+                + Math.abs(amt) + " " + ChatColor.AQUA + "<glyph:purple_orb_icon>");
     }
 }

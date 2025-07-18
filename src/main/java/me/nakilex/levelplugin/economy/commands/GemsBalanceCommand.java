@@ -22,7 +22,7 @@ public class GemsBalanceCommand implements CommandExecutor {
         }
         Player p = (Player) sender;
         int bal = gemsManager.getTotalUnits(p);
-        p.sendMessage("Your gems: " + ChatColor.AQUA + bal + " <glyph:diamond_icon>");
+        p.sendMessage("Your gems: " + ChatColor.AQUA + bal + " <glyph:purple_orb_icon>");
         return true;
     }
 }
