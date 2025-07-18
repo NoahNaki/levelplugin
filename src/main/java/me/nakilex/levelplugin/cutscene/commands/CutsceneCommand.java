@@ -17,7 +17,7 @@ public class CutsceneCommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage(ChatColor.GREEN + "/cutscene play <id> | list | reload | record <id> | addframe [duration] | stop");
+            sender.sendMessage(ChatColor.GREEN + "/cutscene play <id> | list | reload | record <id> | addframe [duration] | stop | cancel");
             return true;
         }
         String sub = args[0].toLowerCase();
@@ -75,6 +75,18 @@ public class CutsceneCommand implements CommandExecutor {
                 }
                 manager.finishRecording(player);
                 sender.sendMessage(ChatColor.GREEN + "Cutscene saved.");
+                return true;
+            case "cancel":
+                if (!(sender instanceof Player player)) {
+                    sender.sendMessage(ChatColor.RED + "Only players can cancel recording.");
+                    return true;
+                }
+                if (!manager.isRecording(player)) {
+                    sender.sendMessage(ChatColor.RED + "You are not recording a cutscene.");
+                    return true;
+                }
+                manager.cancelRecording(player);
+                sender.sendMessage(ChatColor.YELLOW + "Recording cancelled.");
                 return true;
             case "reload":
                 manager.loadCutscenes();

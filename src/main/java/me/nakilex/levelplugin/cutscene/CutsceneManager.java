@@ -4,6 +4,10 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.cutscene.frames.Frame;
 import me.nakilex.levelplugin.cutscene.frames.TeleportFrame;
 import me.nakilex.levelplugin.cutscene.frames.Keyframe;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.Material;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.GameMode;
@@ -132,11 +136,24 @@ public class CutsceneManager {
 
     /** Recording API **/
     public void startRecording(Player player, String id) {
-        recordings.put(player.getUniqueId(), new RecordingSession(id));
+        if (recordings.containsKey(player.getUniqueId())) return;
+        RecordingSession session = new RecordingSession(id, player);
+        recordings.put(player.getUniqueId(), session);
+
+        player.getInventory().clear();
+        player.getInventory().setItem(0, createTool(Material.STICK, ChatColor.GOLD + "Add Frame"));
+        player.getInventory().setItem(7, createTool(Material.LIME_DYE, ChatColor.GREEN + "Save"));
+        player.getInventory().setItem(8, createTool(Material.BARRIER, ChatColor.RED + "Cancel"));
     }
 
     public boolean isRecording(Player player) {
         return recordings.containsKey(player.getUniqueId());
+    }
+
+    public void cancelRecording(Player player) {
+        RecordingSession session = recordings.remove(player.getUniqueId());
+        if (session == null) return;
+        restoreInventory(player, session);
     }
 
     public void addFrame(Player player, long duration) {
@@ -175,6 +192,7 @@ public class CutsceneManager {
             e.printStackTrace();
         }
         loadCutscenes();
+        restoreInventory(player, session);
     }
 
     private void restore(Player player) {
@@ -189,9 +207,13 @@ public class CutsceneManager {
     private static class RecordingSession {
         final String id;
         final List<TeleportFrame> frames = new ArrayList<>();
+        final ItemStack[] contents;
+        final ItemStack[] armor;
 
-        RecordingSession(String id) {
+        RecordingSession(String id, Player player) {
             this.id = id;
+            this.contents = player.getInventory().getContents().clone();
+            this.armor = player.getInventory().getArmorContents().clone();
         }
     }
 
@@ -205,5 +227,20 @@ public class CutsceneManager {
             this.allowFlight = allowFlight;
             this.flying = flying;
         }
+    }
+
+    private ItemStack createTool(Material mat, String name) {
+        ItemStack item = new ItemStack(mat);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(name);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private void restoreInventory(Player player, RecordingSession session) {
+        player.getInventory().setContents(session.contents);
+        player.getInventory().setArmorContents(session.armor);
     }
 }
