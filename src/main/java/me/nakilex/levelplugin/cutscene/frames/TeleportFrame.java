@@ -89,6 +89,7 @@ public class TeleportFrame implements Frame {
                     public void run() {
                         if (t >= ticks) {
                             player.teleport(target);
+                            playEffects(player);
                             cancel();
                             return;
                         }
@@ -105,9 +106,21 @@ public class TeleportFrame implements Frame {
                 }.runTaskTimer(plugin, 0L, 1L);
             } else {
                 player.teleport(target);
+                playEffects(player);
                 return null;
             }
+        } else {
+            playEffects(player);
+            return null;
         }
+        return null;
+    }
+
+    private double smooth(double t) {
+        return 3 * t * t - 2 * t * t * t; // smoothstep
+    }
+
+    private void playEffects(Player player) {
         if (title != null || subtitle != null) {
             String t = title == null ? "" : ChatColor.translateAlternateColorCodes('&', title);
             String sub = subtitle == null ? "" : ChatColor.translateAlternateColorCodes('&', subtitle);
@@ -124,10 +137,5 @@ public class TeleportFrame implements Frame {
             String cmd = command.replace("%player%", player.getName());
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
         }
-        return null;
-    }
-
-    private double smooth(double t) {
-        return 3 * t * t - 2 * t * t * t; // smoothstep
     }
 }
