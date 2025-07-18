@@ -71,7 +71,7 @@ public class ClassMenuListener implements Listener {
                 try {
                     me.nakilex.levelplugin.Main.getInstance().getEconomyManager().deductCoins(player, cost);
                 } catch (IllegalArgumentException ex) {
-                    player.sendMessage(ChatColor.RED + "Not enough coins! Cost: " + ChatColor.GOLD + "⛃ " + cost);
+                    player.sendMessage(ChatColor.RED + "Not enough coins! Cost: " + ChatColor.GOLD + "<glyph:coins_icon> " + cost);
                     return;
                 }
             }

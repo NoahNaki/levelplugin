@@ -39,7 +39,7 @@ public class ClassMenu {
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Eternal Fury " + ChatColor.GRAY + "(Combo: RRR)",
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
-                ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,
+                ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "<glyph:coins_icon> " + cost,
                 ChatColor.GRAY + "Requires Level: " + ChatColor.YELLOW + PlayerClass.BARBARIAN.getRequiredLevel(),
                 "",
                 ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
@@ -66,7 +66,7 @@ public class ClassMenu {
                 "(Combo: Sneak + Left Click)",
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
-                ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,
+                ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "<glyph:coins_icon> " + cost,
                 ChatColor.GRAY + "Requires Level: " + ChatColor.YELLOW + PlayerClass.WARRIOR.getRequiredLevel(),
                 "",
             ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
@@ -87,7 +87,7 @@ public class ClassMenu {
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Last Stand " + ChatColor.GRAY + "(Combo: RRR)",
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
-                ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,
+                ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "<glyph:coins_icon> " + cost,
                 ChatColor.GRAY + "Requires Level: " + ChatColor.YELLOW + PlayerClass.PALADIN.getRequiredLevel(),
                 "",
                 ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
@@ -110,7 +110,7 @@ public class ClassMenu {
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Dragon Piercer " + ChatColor.GRAY + "(Combo: LLL)",
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
-                ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,
+                ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "<glyph:coins_icon> " + cost,
                 ChatColor.GRAY + "Requires Level: " + ChatColor.YELLOW + PlayerClass.ARCHER.getRequiredLevel(),
                 "",
                 ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
@@ -135,7 +135,7 @@ public class ClassMenu {
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Phoenix Rebirth " + ChatColor.GRAY + "(Combo: RRR)",
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
-                ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,
+                ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "<glyph:coins_icon> " + cost,
                 ChatColor.GRAY + "Requires Level: " + ChatColor.YELLOW + PlayerClass.PHOENIXHUNTER.getRequiredLevel(),
                 "",
                 ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
@@ -162,7 +162,7 @@ public class ClassMenu {
                     "(Combo: RRR)",
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
-                ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,
+                ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "<glyph:coins_icon> " + cost,
                 ChatColor.GRAY + "Requires Level: " + ChatColor.YELLOW + PlayerClass.MAGE.getRequiredLevel(),
                 "",
                 ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
@@ -189,7 +189,7 @@ public class ClassMenu {
                     "(Combo: RRR)",
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
-                ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "⛃ " + cost,
+                ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "<glyph:coins_icon> " + cost,
                 ChatColor.GRAY + "Requires Level: " + ChatColor.YELLOW + PlayerClass.ROGUE.getRequiredLevel(),
                 "",
                 ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"

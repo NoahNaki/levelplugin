@@ -41,7 +41,7 @@ public class GemsManager {
             else if (mat == SHARD) baseName = "Gem Shard";
             else /* mat==CLUSTER */  baseName = "Gem Cluster";
 
-            meta.setDisplayName(ChatColor.LIGHT_PURPLE + baseName);
+            meta.setDisplayName(ChatColor.AQUA + baseName);
 
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.GRAY + "Currency");
@@ -49,14 +49,14 @@ public class GemsManager {
 
             // 3) Decorative count line:
             int totalUnits = qty * unitValue;
-            String formatted = String.format("%,d ✦", totalUnits);
+            String formatted = String.format("%,d <glyph:purple_orb_icon>", totalUnits);
 
 // styling chunks
             String dashFmt = ChatColor.DARK_PURPLE.toString()
                 + ChatColor.BOLD
                 + ChatColor.STRIKETHROUGH;
             String reset   = ChatColor.RESET.toString();
-            String midFmt  = ChatColor.LIGHT_PURPLE.toString()
+            String midFmt  = ChatColor.AQUA.toString()
                 + ChatColor.BOLD;
 
             String line = dashFmt + "---"           // strike the three hyphens

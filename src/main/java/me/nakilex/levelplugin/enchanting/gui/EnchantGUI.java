@@ -66,7 +66,7 @@ public class EnchantGUI implements Listener {
         ItemMeta meta = item.getItemMeta();
         meta.setDisplayName(ChatColor.LIGHT_PURPLE + "Enchant");
         meta.setLore(Collections.singletonList(cost > 0
-                ? ChatColor.GRAY + "Cost: " + ChatColor.GOLD + "⛃ " + cost
+                ? ChatColor.GRAY + "Cost: " + ChatColor.GOLD + "<glyph:coins_icon> " + cost
                 : ChatColor.GRAY + "Place item to enchant"));
         item.setItemMeta(meta);
         return item;

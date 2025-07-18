@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.economy.commands;
 
 import me.nakilex.levelplugin.economy.managers.GemsManager;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -59,6 +60,6 @@ public class AddGemsCommand implements CommandExecutor {
         if (newTotal < 0) newTotal = 0;
         gemsManager.setTotalUnits(player, newTotal);
         player.sendMessage((amt >= 0 ? "You received " : "You lost ")
-                + Math.abs(amt) + " gems.");
+                + Math.abs(amt) + " " + ChatColor.LIGHT_PURPLE + "<glyph:purple_orb_icon>");
     }
 }

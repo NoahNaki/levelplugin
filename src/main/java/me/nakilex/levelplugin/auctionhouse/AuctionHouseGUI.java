@@ -25,7 +25,7 @@ import me.nakilex.levelplugin.items.data.ItemRarity;
 import java.util.*;
 
 public class AuctionHouseGUI implements Listener {
-    private static final String TITLE = "Auction House";
+    private static final String TITLE = ChatColor.GOLD + "<glyph:judge_gavel_icon> Auction House";
     private static final int SIZE = 54;
     private static final int SELL_SLOT = 49;
     private static final int PREV_PAGE = 45;
@@ -118,9 +118,9 @@ public class AuctionHouseGUI implements Listener {
                 List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
                 lore.add(" ");
                 int bid = ai.getCurrentBid() > 0 ? ai.getCurrentBid() : ai.getStartingPrice();
-                lore.add(ChatColor.GOLD + "" + ChatColor.BOLD + "Bid" + ChatColor.WHITE + ": " + bid + ChatColor.YELLOW + " ⛃");
+                lore.add(ChatColor.GOLD + "" + ChatColor.BOLD + "Bid" + ChatColor.WHITE + ": " + bid + ChatColor.YELLOW + " <glyph:coins_icon>");
                 if (ai.getBinPrice() > 0) {
-                    lore.add(ChatColor.GOLD + "" + ChatColor.BOLD + "BIN" + ChatColor.WHITE + ": " + ai.getBinPrice() + ChatColor.YELLOW + " ⛃");
+                    lore.add(ChatColor.GOLD + "" + ChatColor.BOLD + "BIN" + ChatColor.WHITE + ": " + ai.getBinPrice() + ChatColor.YELLOW + " <glyph:coins_icon>");
                 }
                 long left = (ai.getEndTime() - System.currentTimeMillis()) / 1000;
                 long mins = left / 60;
@@ -590,9 +590,9 @@ public class AuctionHouseGUI implements Listener {
                 List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
                 lore.add(" ");
                 int bid = ai.getCurrentBid() > 0 ? ai.getCurrentBid() : ai.getStartingPrice();
-                lore.add(ChatColor.GOLD + "" + ChatColor.BOLD + "Bid" + ChatColor.WHITE + ": " + bid + ChatColor.YELLOW + " ⛃");
+                lore.add(ChatColor.GOLD + "" + ChatColor.BOLD + "Bid" + ChatColor.WHITE + ": " + bid + ChatColor.YELLOW + " <glyph:coins_icon>");
                 if (ai.getBinPrice() > 0) {
-                    lore.add(ChatColor.GOLD + "" + ChatColor.BOLD + "BIN" + ChatColor.WHITE + ": " + ai.getBinPrice() + ChatColor.YELLOW + " ⛃");
+                    lore.add(ChatColor.GOLD + "" + ChatColor.BOLD + "BIN" + ChatColor.WHITE + ": " + ai.getBinPrice() + ChatColor.YELLOW + " <glyph:coins_icon>");
                 }
                 long left = (ai.getEndTime() - System.currentTimeMillis()) / 1000;
                 long mins = left / 60;

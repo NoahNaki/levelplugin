@@ -769,13 +769,13 @@ public class QuestManager {
         QuestReward reward = quest.getReward();
         if (reward != null) {
             if (reward.getXp() > 0) {
-                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + reward.getXp() + " §aXP");
+                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + reward.getXp() + " <glyph:experience_orb_icon>");
             }
             if (reward.getCoins() > 0) {
-                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + reward.getCoins() + " §e⛃");
+                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + reward.getCoins() + " <glyph:coins_icon>");
             }
             if (reward.getGems() > 0) {
-                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + reward.getGems() + " §d✦");
+                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + reward.getGems() + " §d<glyph:purple_orb_icon>");
             }
             for (int id : reward.getItemIds()) {
                 me.nakilex.levelplugin.items.data.CustomItem tpl = plugin.getItemManager().getTemplateById(id);

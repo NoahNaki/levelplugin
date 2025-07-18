@@ -69,7 +69,13 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         if (sm == null) return;
         Scoreboard board = sm.getNewScoreboard();
         Objective obj = board.registerNewObjective("stats", "dummy", ChatColor.GREEN + "Player Stats");
-        obj.setDisplaySlot(DisplaySlot.SIDEBAR);
+        try {
+            // Paper 1.20+ includes an overload allowing sidebar numbers to be hidden
+            java.lang.reflect.Method m = obj.getClass().getMethod("setDisplaySlot", DisplaySlot.class, boolean.class);
+            m.invoke(obj, DisplaySlot.SIDEBAR, false);
+        } catch (Throwable ignore) {
+            obj.setDisplaySlot(DisplaySlot.SIDEBAR);
+        }
         boards.put(player.getUniqueId(), board);
         player.setScoreboard(board);
         updateBoard(player);
@@ -116,14 +122,14 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         int line = 15;
         int idx = 0;
         String coinStr = java.text.NumberFormat.getIntegerInstance().format(economyManager.getBalance(player));
-        current[idx] = ChatColor.YELLOW + "⛃ " + ChatColor.WHITE + "Coins: " + ChatColor.YELLOW + coinStr;
+        current[idx] = ChatColor.YELLOW + "<glyph:coins_icon> " + ChatColor.WHITE + "Coins: " + ChatColor.YELLOW + coinStr;
         if (!current[idx].equals(prev[idx])) {
             setLine(board, obj, idx, line, current[idx]);
         }
         idx++; line--;
 
         String gemStr = java.text.NumberFormat.getIntegerInstance().format(gemsManager.getTotalUnits(player));
-        current[idx] = ChatColor.LIGHT_PURPLE + "✦ " + ChatColor.WHITE + "Gems: " + ChatColor.LIGHT_PURPLE + gemStr;
+        current[idx] = ChatColor.LIGHT_PURPLE + "<glyph:purple_orb_icon> " + ChatColor.WHITE + "Gems: " + ChatColor.LIGHT_PURPLE + gemStr;
         if (!current[idx].equals(prev[idx])) {
             setLine(board, obj, idx, line, current[idx]);
         }

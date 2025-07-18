@@ -97,8 +97,8 @@ public class AuctionHouseManager {
         auctions.add(new AuctionItem(seller.getUniqueId(), item.clone(), startPrice, binPrice, hours, tax));
         saveAuctions();
         sendItemMessage(seller, item, ChatColor.GOLD + "Your <item> has been listed for "
-                + ChatColor.YELLOW + priceBasis + " ⛃" + ChatColor.GOLD + ".");
-        seller.sendMessage(ChatColor.GRAY + "Tax on sale: " + ChatColor.YELLOW + tax + " ⛃" + ChatColor.GRAY + ".");
+                + ChatColor.YELLOW + priceBasis + " <glyph:coins_icon>" + ChatColor.GOLD + ".");
+        seller.sendMessage(ChatColor.GRAY + "Tax on sale: " + ChatColor.YELLOW + tax + " <glyph:coins_icon>" + ChatColor.GRAY + ".");
         String id = null;
         CustomItem c = ItemManager.getInstance().getCustomItemFromItemStack(item);
         if (c != null) {
@@ -117,11 +117,11 @@ public class AuctionHouseManager {
         int minBid = Math.max(ai.getStartingPrice(), ai.getCurrentBid() + 1);
         if (amount < minBid) {
             bidder.sendMessage(ChatColor.RED + "Bid must be at least "
-                    + ChatColor.YELLOW + minBid + " ⛃");
+                    + ChatColor.YELLOW + minBid + " <glyph:coins_icon>");
             return false;
         }
         if (economyManager.getBalance(bidder) < amount) {
-            bidder.sendMessage(ChatColor.RED + "Not enough " + ChatColor.YELLOW + "⛃" + ChatColor.RED + "!");
+            bidder.sendMessage(ChatColor.RED + "Not enough " + ChatColor.YELLOW + "<glyph:coins_icon>" + ChatColor.RED + "!");
             return false;
         }
         // refund previous bidder
@@ -154,7 +154,7 @@ public class AuctionHouseManager {
         int price = ai.getBinPrice();
         if (price <= 0) return false;
         if (economyManager.getBalance(buyer) < price) {
-            buyer.sendMessage(ChatColor.RED + "Not enough " + ChatColor.YELLOW + "⛃" + ChatColor.RED + "!");
+            buyer.sendMessage(ChatColor.RED + "Not enough " + ChatColor.YELLOW + "<glyph:coins_icon>" + ChatColor.RED + "!");
             return false;
         }
         economyManager.deductCoins(buyer, price);
@@ -168,10 +168,10 @@ public class AuctionHouseManager {
         Player seller = Bukkit.getPlayer(ai.getSeller());
         if (seller != null) {
             sendItemMessage(seller, ai.getItem(), ChatColor.GOLD + "Your <item> sold for "
-                    + ChatColor.YELLOW + payout + " ⛃" + ChatColor.GOLD + ".");
+                    + ChatColor.YELLOW + payout + " <glyph:coins_icon>" + ChatColor.GOLD + ".");
         }
         sendItemMessage(buyer, ai.getItem(), ChatColor.GREEN + "You bought <item> for "
-                + ChatColor.YELLOW + price + " ⛃" + ChatColor.GREEN + ".");
+                + ChatColor.YELLOW + price + " <glyph:coins_icon>" + ChatColor.GREEN + ".");
         String id = null;
         me.nakilex.levelplugin.items.data.CustomItem c = me.nakilex.levelplugin.items.managers.ItemManager.getInstance().getCustomItemFromItemStack(ai.getItem());
         if (c != null) {
@@ -224,12 +224,12 @@ public class AuctionHouseManager {
                     if (buyer != null) {
                         buyer.getInventory().addItem(ai.getItem());
                         sendItemMessage(buyer, ai.getItem(), ChatColor.GREEN + "You won <item> for "
-                                + ChatColor.YELLOW + ai.getCurrentBid() + " ⛃" + ChatColor.GREEN + ".");
+                                + ChatColor.YELLOW + ai.getCurrentBid() + " <glyph:coins_icon>" + ChatColor.GREEN + ".");
                     }
                     Player seller = Bukkit.getPlayer(ai.getSeller());
                     if (seller != null) {
                         sendItemMessage(seller, ai.getItem(), ChatColor.GOLD + "Your <item> sold for "
-                                + ChatColor.YELLOW + payout + " ⛃" + ChatColor.GOLD + ".");
+                                + ChatColor.YELLOW + payout + " <glyph:coins_icon>" + ChatColor.GOLD + ".");
                         String id = null;
                         CustomItem c = ItemManager.getInstance().getCustomItemFromItemStack(ai.getItem());
                         if (c != null) {

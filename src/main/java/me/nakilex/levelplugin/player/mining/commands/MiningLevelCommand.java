@@ -27,9 +27,9 @@ public class MiningLevelCommand implements CommandExecutor {
 
         player.sendMessage("§6Mining Level: §e" + level);
         if (level < miningManager.getMaxLevel()) {
-            player.sendMessage("§7XP: §e" + xp + "§7/§e" + needed);
+            player.sendMessage("§7<glyph:experience_orb_icon>: §e" + xp + "§7/§e" + needed);
         } else {
-            player.sendMessage("§7XP: §eMAX");
+            player.sendMessage("§7<glyph:experience_orb_icon>: §eMAX");
         }
         return true;
     }

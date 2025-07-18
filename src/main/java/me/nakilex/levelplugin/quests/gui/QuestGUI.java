@@ -166,9 +166,9 @@ public class QuestGUI {
                 lore.add(ChatColor.GREEN + "Rewards:");
                 if (quest.getReward() != null) {
                     QuestReward r = quest.getReward();
-                    if (r.getXp() > 0) lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + r.getXp() + " " + ChatColor.GREEN + "XP");
-                    if (r.getCoins() > 0) lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + r.getCoins() + " " + ChatColor.YELLOW + "⛃");
-                    if (r.getGems() > 0) lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + r.getGems() + " " + ChatColor.LIGHT_PURPLE + "✦");
+                    if (r.getXp() > 0) lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + r.getXp() + " <glyph:experience_orb_icon>");
+                    if (r.getCoins() > 0) lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + r.getCoins() + " <glyph:coins_icon>");
+                    if (r.getGems() > 0) lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + r.getGems() + " " + ChatColor.LIGHT_PURPLE + "<glyph:purple_orb_icon>");
                     for (int id : r.getItemIds()) {
                         me.nakilex.levelplugin.items.data.CustomItem tpl = me.nakilex.levelplugin.Main.getInstance().getItemManager().getTemplateById(id);
                         String in = tpl != null ? tpl.getBaseName() : ("Item " + id);
