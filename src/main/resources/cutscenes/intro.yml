@@ -1,0 +1,35 @@
+id: "intro"
+frames:
+  - pos: "100 64 200 180 0"
+    world: "world"
+    speed: 4
+    duration: 0
+    title: "&aWelcome"
+    subtitle: "&eTo the Realm"
+    actionBar: "&7Enjoy your stay!"
+    sound: "minecraft:entity.ender_dragon.growl"
+    command: "say Cutscene started for %player%"
+  - pos: "105 64 200 180 0"
+    world: "world"
+    lookAt: "100 64 200"
+    duration: 1000
+    type: key
+    actionBar: "&bCircling..."
+  - pos: "105 64 205 180 0"
+    world: "world"
+    lookAt: "100 64 200"
+    duration: 1000
+    type: key
+    command: "say Teleported midway"
+  - pos: "100 64 205 180 0"
+    world: "world"
+    lookAt: "100 64 200"
+    duration: 1000
+    type: key
+  - pos: "100 64 200 180 0"
+    world: "world"
+    speed: 4
+    duration: 0
+    title: "&dThe End"
+    subtitle: "&6Thanks for watching"
+    command: "say Cutscene complete for %player%"

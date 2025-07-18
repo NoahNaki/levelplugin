@@ -211,3 +211,7 @@ commands:
   townpos2:
     description: Set second selection position for towns
     usage: /townpos2
+  cutscene:
+    description: Play or manage cutscenes
+    usage: /cutscene <play id [player]|list|reload|record id|addframe [duration]|stop|cancel|skip [player]>
+

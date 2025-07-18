@@ -201,7 +201,7 @@ public class ListenerRegistry {
             pm.registerEvents(new me.nakilex.levelplugin.player.profile.ProfileSelectionGUI(), plugin);
         }
 
-
+        pm.registerEvents(new me.nakilex.levelplugin.cutscene.editor.EditorListener(plugin.getCutsceneManager()), plugin);
 
         ArrowUtils arrowUtils = new ArrowUtils(plugin);
         pm.registerEvents(arrowUtils, plugin);

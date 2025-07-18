@@ -109,6 +109,15 @@ public class SettingsGUI implements Listener {
             gui.setItem(17, createVisibilityItem(playerSettings.getPlayerVisibility()));
         }
 
+        // Auto-skip Cutscenes toggle
+        if (filter == Filter.ALL || filter == Filter.VISUAL) {
+            gui.setItem(18, createSettingItem(
+                    playerSettings.isAutoSkipCutscenes(),
+                    "§bAuto Skip Cutscenes",
+                    ""
+            ));
+        }
+
         gui.setItem(FILTER_SLOT, createFilterItem(filter));
 
         // Filler border
@@ -130,7 +139,11 @@ public class SettingsGUI implements Listener {
             lore.add(" ");
             lore.add("§7Status: " + (isEnabled ? "§aEnabled" : "§cDisabled"));
             lore.add(" ");
-            lore.add("§eClick to toggle and run " + command);
+            if (command != null && !command.isBlank()) {
+                lore.add("§eClick to toggle and run " + command);
+            } else {
+                lore.add("§eClick to toggle");
+            }
             meta.setLore(lore);
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             base.setItemMeta(meta);
@@ -270,6 +283,10 @@ public class SettingsGUI implements Listener {
             updateVisibilityItem(event.getInventory(), settings.getPlayerVisibility());
             me.nakilex.levelplugin.Main.getInstance()
                 .getPlayerVisibilityManager().updatePlayer(player);
+        } else if (slot == 18) {
+            settings.toggleAutoSkipCutscenes();
+            updateSettingItem(event.getInventory(), 18,
+                settings.isAutoSkipCutscenes(), "§bAuto Skip Cutscenes", "");
         }
     }
 }

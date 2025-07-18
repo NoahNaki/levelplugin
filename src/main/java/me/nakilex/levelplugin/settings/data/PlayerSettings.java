@@ -12,6 +12,7 @@ public class PlayerSettings {
     private boolean friendGlow = true;
     private boolean balancePublic = true;
     private PlayerVisibility playerVisibility = PlayerVisibility.SHOW_ALL;
+    private boolean autoSkipCutscenes = false;
 
     public boolean isDmgChatEnabled() {
         return dmgChat;
@@ -80,6 +81,14 @@ public class PlayerSettings {
             case FRIENDS_ONLY -> playerVisibility = PlayerVisibility.HIDE_ALL;
             case HIDE_ALL -> playerVisibility = PlayerVisibility.SHOW_ALL;
         }
+    }
+
+    public boolean isAutoSkipCutscenes() {
+        return autoSkipCutscenes;
+    }
+
+    public void toggleAutoSkipCutscenes() {
+        autoSkipCutscenes = !autoSkipCutscenes;
     }
 }
 
