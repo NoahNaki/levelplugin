@@ -129,7 +129,7 @@ public class HorseGUI implements Listener {
             "",
             "§cYour current horse will be deleted.",
             "",
-            "§7Cost: §6⛃" + REROLL_COST,
+            "§7Cost: §6<glyph:coins_icon>" + REROLL_COST,
             "",
             "§7Click to buy a new horse!"
         );
@@ -176,7 +176,7 @@ public class HorseGUI implements Listener {
         // Check if the player has enough coins
         int playerBalance = economyManager.getBalance(player);
         if (playerBalance < REROLL_COST) {
-            player.sendMessage("§cYou don't have enough coins to buy a new horse! (Cost: §6" + REROLL_COST + " coins§c)");
+            player.sendMessage("§cYou don't have enough coins to buy a new horse! (Cost: §6" + REROLL_COST + " <glyph:coins_icon>§c)");
             return;
         }
 
@@ -188,6 +188,6 @@ public class HorseGUI implements Listener {
         // Update the horse stats immediately in the GUI
         updateHorseInfo(inventory, playerUUID);
 
-        player.sendMessage("§aYou bought a new horse for §6" + REROLL_COST + " coins§a!");
+        player.sendMessage("§aYou bought a new horse for §6" + REROLL_COST + " <glyph:coins_icon>§a!");
     }
 }

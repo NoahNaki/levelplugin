@@ -131,14 +131,14 @@ public class MerchantGUI implements Listener {
                 + ChatColor.RED + "✘ "
                 + mItem.getCost()
                 + " "
-                + ChatColor.GOLD + "⛃");
+                + ChatColor.GOLD + "<glyph:coins_icon>");
 
             if (mItem.getGems() > 0) {
                 lore.add(ChatColor.GRAY + "- "
                     + ChatColor.RED + "✘ "
                     + mItem.getGems()
                     + " "
-                    + ChatColor.LIGHT_PURPLE + "✦");
+                    + ChatColor.AQUA + "<glyph:diamond_icon>");
             }
 
 
@@ -241,7 +241,7 @@ public class MerchantGUI implements Listener {
                 : ChatColor.RED   + "✘ ")
                 + mItem.getCost()
                 + " "
-                + ChatColor.GOLD + "⛃";
+                + ChatColor.GOLD + "<glyph:coins_icon>";
 
             // Replace the line immediately after the header
             int lineIdx = headerIdx + 1;
@@ -316,8 +316,8 @@ public class MerchantGUI implements Listener {
                         "You purchased " +
                         purchasedItem.getItemMeta().getDisplayName() +
                         ChatColor.GREEN + " for " +
-                        ChatColor.YELLOW + coinCost + " ⛃ coins" +
-                        (gemCost > 0 ? ChatColor.GRAY + " and " + ChatColor.LIGHT_PURPLE + gemCost + "✦" : "") +
+                        ChatColor.YELLOW + coinCost + " <glyph:coins_icon> coins" +
+                        (gemCost > 0 ? ChatColor.GRAY + " and " + ChatColor.AQUA + gemCost + "<glyph:diamond_icon>" : "") +
                         ChatColor.GREEN + ".");
             }
         }
@@ -363,7 +363,7 @@ public class MerchantGUI implements Listener {
                         + (afford ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
                         + mItem.getCost()
                         + " "
-                        + ChatColor.GOLD + "⛃"
+                        + ChatColor.GOLD + "<glyph:coins_icon>"
                 );
             }
 
@@ -377,7 +377,7 @@ public class MerchantGUI implements Listener {
                             + (afford ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
                             + mItem.getGems()
                             + " "
-                            + ChatColor.LIGHT_PURPLE + "✦"
+                            + ChatColor.AQUA + "<glyph:diamond_icon>"
                     );
                 }
             }

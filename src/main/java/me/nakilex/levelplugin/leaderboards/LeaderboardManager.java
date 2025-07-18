@@ -138,7 +138,7 @@ public class LeaderboardManager {
             String name = off.getName() != null ? off.getName() : e.getKey().toString();
             String value = color + e.getValue();
             if (type == LeaderboardType.BALANCE) {
-                value += " \u26C3"; // ⛃ symbol
+                value += " <glyph:coins_icon>";
             } else if (type == LeaderboardType.DUELS) {
                 value += " \uD83D\uDDE1"; // 🗡 symbol
             }

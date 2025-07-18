@@ -185,7 +185,7 @@ public class BlacksmithGUI implements Listener {
         } else {
             meta.setDisplayName("§aUpgrade");
             if (upgradeCost > 0) {
-                lore.add("§7Cost: §6⛃ " + upgradeCost);
+                lore.add("§7Cost: §6<glyph:coins_icon> " + upgradeCost);
                 lore.add("§7Success Chance: §6" + successChance + "%");
             } else {
                 lore.add("§7Place an item in upgrade slot.");
@@ -203,7 +203,7 @@ public class BlacksmithGUI implements Listener {
         meta.setDisplayName("§bRepair Item");
         List<String> lore = new ArrayList<>();
         if (cost > 0) {
-            lore.add("§7Cost: §6⛃ " + cost);
+            lore.add("§7Cost: §6<glyph:coins_icon> " + cost);
         } else {
             lore.add("§7Place an item in the repair slot.");
         }
@@ -218,7 +218,7 @@ public class BlacksmithGUI implements Listener {
         if (meta != null) {
             List<String> lore = new ArrayList<>();
             if (cost > 0) {
-                lore.add("§7Cost: §6⛃ " + cost);
+                lore.add("§7Cost: §6<glyph:coins_icon> " + cost);
             } else {
                 lore.add("§7Place item and placeholder.");
             }
@@ -235,7 +235,7 @@ public class BlacksmithGUI implements Listener {
         meta.setDisplayName("§cRepair All Items");
         List<String> lore = new ArrayList<>();
         if (totalCost > 0) {
-            lore.add("§7Total Cost: §6⛃ " + totalCost);
+            lore.add("§7Total Cost: §6<glyph:coins_icon> " + totalCost);
         } else {
             lore.add("§7No damaged items found.");
         }
@@ -398,7 +398,7 @@ public class BlacksmithGUI implements Listener {
                 try {
                     economyManager.deductCoins(player, cost);
                 } catch (IllegalArgumentException ex) {
-                    player.sendMessage("§cNot enough coins! Upgrade cost: §6⛃ " + cost);
+                    player.sendMessage("§cNot enough coins! Upgrade cost: §6<glyph:coins_icon> " + cost);
                     return;
                 }
                 if (upgradeManager.attemptUpgrade(player, item, ci)) {
@@ -420,7 +420,7 @@ public class BlacksmithGUI implements Listener {
                 try {
                     economyManager.deductCoins(player, cost);
                 } catch (IllegalArgumentException ex) {
-                    player.sendMessage("§cNot enough coins to repair! Cost: §6⛃ " + cost);
+                    player.sendMessage("§cNot enough coins to repair! Cost: §6<glyph:coins_icon> " + cost);
                     return;
                 }
                 if (repairManager.repairItem(player, item, ci)) {
@@ -451,7 +451,7 @@ public class BlacksmithGUI implements Listener {
                 try {
                     economyManager.deductCoins(player, cost);
                 } catch (IllegalArgumentException ex) {
-                    player.sendMessage("§cNot enough coins to reroll! Cost: §6⛃" + cost);
+                    player.sendMessage("§cNot enough coins to reroll! Cost: §6<glyph:coins_icon>" + cost);
                     return;
                 }
 
@@ -492,7 +492,7 @@ public class BlacksmithGUI implements Listener {
         try {
             economyManager.deductCoins(player, totalCost);
         } catch (IllegalArgumentException ex) {
-            player.sendMessage("§cYou need §6⛃ " + totalCost + " §cto repair all items.");
+            player.sendMessage("§cYou need §6<glyph:coins_icon> " + totalCost + " §cto repair all items.");
             return;
         }
         for (ItemStack item : toRepair) {
@@ -503,7 +503,7 @@ public class BlacksmithGUI implements Listener {
                 Main.getInstance().getQuestManager().handleRepair(player, String.valueOf(ci.getId()));
             }
         }
-        player.sendMessage("§aAll items repaired! Total cost: §6⛃ " + totalCost);
+        player.sendMessage("§aAll items repaired! Total cost: §6<glyph:coins_icon> " + totalCost);
     }
 
     private void updateActionButton(Player player, Inventory gui, String title) {

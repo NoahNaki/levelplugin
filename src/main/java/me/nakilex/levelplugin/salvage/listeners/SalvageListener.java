@@ -177,9 +177,9 @@ public class SalvageListener implements Listener {
 
         if (totalCoins > 0 || totalGems > 0) {
             StringBuilder msg = new StringBuilder(ChatColor.GOLD + "You received ");
-            if (totalCoins > 0) msg.append(ChatColor.YELLOW).append(totalCoins).append(" ⛃ " + ChatColor.GOLD + "coins");
+            if (totalCoins > 0) msg.append(ChatColor.YELLOW).append(totalCoins).append(" <glyph:coins_icon> " + ChatColor.GOLD + "coins");
             if (totalCoins > 0 && totalGems > 0) msg.append(ChatColor.GOLD + " and ");
-            if (totalGems > 0) msg.append(ChatColor.LIGHT_PURPLE).append(totalGems).append(ChatColor.LIGHT_PURPLE + " ✦ "  + ChatColor.GOLD + "gems");
+            if (totalGems > 0) msg.append(ChatColor.AQUA).append(totalGems).append(ChatColor.AQUA + " <glyph:diamond_icon> "  + ChatColor.GOLD + "gems");
             msg.append("!");
             player.sendMessage(msg.toString());
             Main.getInstance().getQuestManager().handleSalvage(player, "ANY");

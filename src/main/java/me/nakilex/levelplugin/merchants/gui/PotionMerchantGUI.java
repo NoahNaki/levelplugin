@@ -126,7 +126,7 @@ public class PotionMerchantGUI implements Listener {
         lore.add(ChatColor.GRAY + "Charges: " + ChatColor.YELLOW + potion.getCharges());
         lore.add(ChatColor.GRAY + "Cooldown: " + ChatColor.AQUA + potion.getCooldownSeconds() + "s");
         lore.add("");
-        lore.add(ChatColor.GOLD + "Price: " + ChatColor.GREEN + potion.getCooldownSeconds() + " ⛃");
+        lore.add(ChatColor.GOLD + "Price: " + ChatColor.GREEN + potion.getCooldownSeconds() + " <glyph:coins_icon>");
         meta.setLore(lore);
         potionItem.setItemMeta(meta);
         return potionItem;
@@ -209,9 +209,9 @@ public class PotionMerchantGUI implements Listener {
             lore.add("");
 
             if (playerCoins < potion.getCooldownSeconds()) {
-                lore.add(ChatColor.GOLD + "Price: " + ChatColor.RED + "✘ " + potion.getCooldownSeconds() + " ⛃");
+                lore.add(ChatColor.GOLD + "Price: " + ChatColor.RED + "✘ " + potion.getCooldownSeconds() + " <glyph:coins_icon>");
             } else {
-                lore.add(ChatColor.GOLD + "Price: " + ChatColor.GREEN + "✔ " + potion.getCooldownSeconds() + " ⛃");
+                lore.add(ChatColor.GOLD + "Price: " + ChatColor.GREEN + "✔ " + potion.getCooldownSeconds() + " <glyph:coins_icon>");
             }
             meta.setLore(lore);
             stack.setItemMeta(meta);

@@ -42,8 +42,8 @@ public class AddMiningXPCommand implements CommandExecutor {
         }
 
         miningManager.addXP(target, amount);
-        sender.sendMessage("§aGave " + amount + " Mining XP to " + target.getName());
-        target.sendMessage("§aYou have received " + amount + " Mining XP!");
+        sender.sendMessage("§aGave " + amount + " Mining <glyph:experience_orb_icon> to " + target.getName());
+        target.sendMessage("§aYou have received " + amount + " Mining <glyph:experience_orb_icon>!");
         return true;
     }
 }

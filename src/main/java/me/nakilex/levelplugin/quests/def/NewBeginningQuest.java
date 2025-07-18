@@ -213,7 +213,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                                                 plugin.getEconomyManager().addCoins(pl, 200);
                                                 qm.setFlag(pid, "newbeginning", "soldClothes");
                                                 pl.sendMessage(ChatColor.GOLD + "You received " +
-                                                        ChatColor.YELLOW + "200 ⛃ " +
+                                                        ChatColor.YELLOW + "200 <glyph:coins_icon> " +
                                                         ChatColor.GOLD + "coins.");
                                             } else {
                                                 plugin.getDialogManager().startDialog(pl,
@@ -291,7 +291,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                                     plugin.getEconomyManager().addCoins(pl, 100);
                                     qm.setFlag(pid, "newbeginning", "givenCoins");
                                     pl.sendMessage(ChatColor.GOLD + "You received "
-                                            + ChatColor.YELLOW + "100 ⛃ " + ChatColor.GOLD + "coins.");
+                                            + ChatColor.YELLOW + "100 <glyph:coins_icon> " + ChatColor.GOLD + "coins.");
                                 });
                     } else {
                         plugin.getDialogManager().startDialog(pl,

@@ -75,10 +75,10 @@ public class StorageGUI {
         if (currentPage == pages.size() - 1) {
             if (confirmUnlock) {
                 nextItem = getNexoItem("check",
-                        ChatColor.GREEN + "Confirm " + currentPageCost + " ⛃");
+                        ChatColor.GREEN + "Confirm " + currentPageCost + " <glyph:coins_icon>");
             } else {
                 nextItem = getNexoItem("arrow_right",
-                        ChatColor.GRAY + "Unlock Page: " + ChatColor.YELLOW + currentPageCost + " ⛃");
+                        ChatColor.GRAY + "Unlock Page: " + ChatColor.YELLOW + currentPageCost + " <glyph:coins_icon>");
             }
         } else {
             nextItem = getNexoItem("arrow_right", ChatColor.YELLOW + "Next Page");

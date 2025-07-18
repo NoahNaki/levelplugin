@@ -106,7 +106,7 @@ public class FastTravelGUI implements Listener {
                 if(unlocked){
                     int cost=(int)player.getLocation().distance(pt.getLocation());
                     lore.add(ChatColor.GRAY+"Teleportation Cost:");
-                    lore.add(ChatColor.WHITE+""+cost+ChatColor.YELLOW+" ⛃");
+                    lore.add(ChatColor.WHITE+""+cost+ChatColor.YELLOW+" <glyph:coins_icon>");
                 } else {
                     lore.add(ChatColor.DARK_GRAY+"Locked");
                 }

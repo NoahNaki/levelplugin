@@ -171,7 +171,7 @@ public class MythicMobDeathListener implements Listener {
             // 6) Chat message
             if (isChatEnabled(player)) {
                 player.sendMessage(
-                    "§7You earned §f+" + awardedExp + " §aXP §7and §f+" + coins + " §e⛃"
+                    "§7You earned §f+" + awardedExp + " <glyph:experience_orb_icon> §7and §f+" + coins + " <glyph:coins_icon>"
                 );
             }
         }
@@ -185,7 +185,7 @@ public class MythicMobDeathListener implements Listener {
         // 1) XP line
         String xpLine = ChatColor.GRAY + "["
             + ChatColor.WHITE + "+" + xp + " "
-            + ChatColor.GREEN  + "XP"
+            + ChatColor.GREEN  + "<glyph:experience_orb_icon>"
             + ChatColor.GRAY + "]";
 
         ArmorStand xpStand = loc.getWorld().spawn(loc, ArmorStand.class, as -> {
@@ -199,7 +199,7 @@ public class MythicMobDeathListener implements Listener {
         // 2) Coins line, half a block below
         String coinLine = ChatColor.GRAY + "["
             + ChatColor.WHITE + "+" + coins + " "
-            + ChatColor.GOLD   + "⛃"
+            + ChatColor.GOLD   + "<glyph:coins_icon>"
             + ChatColor.GRAY + "]";
 
         Location coinLoc = loc.clone().add(0, -0.3, 0);
