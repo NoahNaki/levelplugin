@@ -77,6 +77,7 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
 
     public void removeBoard(Player player) {
         boards.remove(player.getUniqueId());
+        lastLines.remove(player.getUniqueId());
         player.setScoreboard(Bukkit.getScoreboardManager().getMainScoreboard());
     }
 
