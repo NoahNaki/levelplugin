@@ -70,6 +70,7 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         Scoreboard board = sm.getNewScoreboard();
         Objective obj = board.registerNewObjective("stats", "dummy", ChatColor.GREEN + "Player Stats");
         try {
+            // Paper 1.20+ includes an overload allowing sidebar numbers to be hidden
             java.lang.reflect.Method m = obj.getClass().getMethod("setDisplaySlot", DisplaySlot.class, boolean.class);
             m.invoke(obj, DisplaySlot.SIDEBAR, false);
         } catch (Throwable ignore) {
@@ -128,7 +129,7 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         idx++; line--;
 
         String gemStr = java.text.NumberFormat.getIntegerInstance().format(gemsManager.getTotalUnits(player));
-        current[idx] = ChatColor.AQUA + "<glyph:purple_orb_icon> " + ChatColor.WHITE + "Gems: " + ChatColor.AQUA + gemStr;
+        current[idx] = ChatColor.LIGHT_PURPLE + "<glyph:purple_orb_icon> " + ChatColor.WHITE + "Gems: " + ChatColor.LIGHT_PURPLE + gemStr;
         if (!current[idx].equals(prev[idx])) {
             setLine(board, obj, idx, line, current[idx]);
         }
