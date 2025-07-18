@@ -7,6 +7,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
 
 public class TeleportFrame implements Frame {
     private final Location location;
@@ -17,9 +18,11 @@ public class TeleportFrame implements Frame {
     private final String actionBar;
     private final String sound;
     private final String command;
+    /** blocks per second, <=0 means instant */
+    private final double speed;
 
     public TeleportFrame(Location location, long durationMs, String title, String subtitle,
-                         String actionBar, String sound, String command, String worldName) {
+                         String actionBar, String sound, String command, String worldName, double speed) {
         this.location = location;
         this.durationMs = durationMs;
         this.title = title;
@@ -28,6 +31,7 @@ public class TeleportFrame implements Frame {
         this.sound = sound;
         this.command = command;
         this.worldName = worldName;
+        this.speed = speed;
     }
 
     @Override
@@ -43,17 +47,61 @@ public class TeleportFrame implements Frame {
         return worldName;
     }
 
+    public double getSpeed() {
+        return speed;
+    }
+
+    private static float wrapAngle(float angle) {
+        angle = angle % 360f;
+        if (angle >= 180f) angle -= 360f;
+        if (angle < -180f) angle += 360f;
+        return angle;
+    }
+
     @Override
     public void play(Player player, Main plugin) {
         if (location != null) {
-            Location target = location;
+            Location target = location.clone();
             if (worldName != null) {
                 var world = plugin.getServer().getWorld(worldName);
                 if (world != null) {
                     target.setWorld(world);
                 }
             }
-            player.teleport(target);
+
+            if (speed > 0) {
+                Location start = player.getLocation().clone();
+                double distance = start.distance(target);
+                long ticks = Math.max(1L, Math.round(distance / speed * 20.0));
+
+                double dx = (target.getX() - start.getX()) / (double) ticks;
+                double dy = (target.getY() - start.getY()) / (double) ticks;
+                double dz = (target.getZ() - start.getZ()) / (double) ticks;
+                float dyaw = wrapAngle(target.getYaw() - start.getYaw()) / (float) ticks;
+                float dpitch = (target.getPitch() - start.getPitch()) / (float) ticks;
+
+                new BukkitRunnable() {
+                    long t = 0;
+                    Location curr = start.clone();
+
+                    @Override
+                    public void run() {
+                        if (t >= ticks) {
+                            player.teleport(target);
+                            cancel();
+                            return;
+                        }
+
+                        curr.add(dx, dy, dz);
+                        curr.setYaw(start.getYaw() + dyaw * (t + 1));
+                        curr.setPitch(start.getPitch() + dpitch * (t + 1));
+                        player.teleport(curr);
+                        t++;
+                    }
+                }.runTaskTimer(plugin, 0L, 1L);
+            } else {
+                player.teleport(target);
+            }
         }
         if (title != null || subtitle != null) {
             String t = title == null ? "" : ChatColor.translateAlternateColorCodes('&', title);

@@ -2,6 +2,7 @@ id: "intro"
 frames:
   - pos: "100 64 200 180 0"
     world: "world"
+    speed: 4
     duration: 2000
     title: "&aWelcome"
     subtitle: "&eTo the Realm"
@@ -27,6 +28,7 @@ frames:
     type: key
   - pos: "100 64 200 180 0"
     world: "world"
+    speed: 4
     duration: 1500
     title: "&dThe End"
     subtitle: "&6Thanks for watching"

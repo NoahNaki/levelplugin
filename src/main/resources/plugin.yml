@@ -213,5 +213,5 @@ commands:
     usage: /townpos2
   cutscene:
     description: Play or manage cutscenes
-    usage: /cutscene <play|list|reload|record|addframe|stop|cancel>
+    usage: /cutscene <play id [player]|list|reload|record id|addframe [duration]|stop|cancel>
 

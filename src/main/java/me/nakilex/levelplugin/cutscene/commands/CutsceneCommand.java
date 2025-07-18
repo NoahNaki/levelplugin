@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.cutscene.commands;
 
 import me.nakilex.levelplugin.cutscene.CutsceneManager;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -17,22 +18,31 @@ public class CutsceneCommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage(ChatColor.GREEN + "/cutscene play <id> | list | reload | record <id> | addframe [duration] | stop | cancel");
+            sender.sendMessage(ChatColor.GREEN + "/cutscene play <id> [player] | list | reload | record <id> | addframe [duration] | stop | cancel");
             return true;
         }
         String sub = args[0].toLowerCase();
         switch (sub) {
             case "play":
-                if (!(sender instanceof Player player)) {
-                    sender.sendMessage(ChatColor.RED + "Only players can run this.");
-                    return true;
-                }
                 if (args.length < 2) {
-                    sender.sendMessage(ChatColor.RED + "Usage: /cutscene play <id>");
+                    sender.sendMessage(ChatColor.RED + "Usage: /cutscene play <id> [player]");
                     return true;
                 }
-                manager.playCutscene(player, args[1]);
-                sender.sendMessage(ChatColor.YELLOW + "Playing cutscene " + args[1]);
+                Player target;
+                if (args.length >= 3) {
+                    target = Bukkit.getPlayer(args[2]);
+                    if (target == null) {
+                        sender.sendMessage(ChatColor.RED + "Player not found.");
+                        return true;
+                    }
+                } else if (sender instanceof Player p) {
+                    target = p;
+                } else {
+                    sender.sendMessage(ChatColor.RED + "Specify a player.");
+                    return true;
+                }
+                manager.playCutscene(target, args[1]);
+                sender.sendMessage(ChatColor.YELLOW + "Playing cutscene " + args[1] + " for " + target.getName());
                 return true;
             case "record":
                 if (!(sender instanceof Player player)) {

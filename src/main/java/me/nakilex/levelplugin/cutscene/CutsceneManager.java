@@ -56,6 +56,7 @@ public class CutsceneManager {
                 String type = map.containsKey("type") ? (String) map.get("type") : "teleport";
                 String lookAtStr = (String) map.get("lookAt");
                 long duration = map.get("duration") != null ? ((Number) map.get("duration")).longValue() : 2000L;
+                double speed = map.get("speed") != null ? ((Number) map.get("speed")).doubleValue() : 0.0;
                 String title = (String) map.get("title");
                 String subtitle = (String) map.get("subtitle");
                 String actionBar = (String) map.get("actionBar");
@@ -90,7 +91,7 @@ public class CutsceneManager {
                 if ("key".equalsIgnoreCase(type) || "keyframe".equalsIgnoreCase(type)) {
                     frames.add(new Keyframe(loc, lookAt, duration, world));
                 } else {
-                    frames.add(new TeleportFrame(loc, duration, title, subtitle, actionBar, sound, command, world));
+                    frames.add(new TeleportFrame(loc, duration, title, subtitle, actionBar, sound, command, world, speed));
                 }
             }
             cutscenes.put(id, new Cutscene(id, frames));
@@ -110,8 +111,33 @@ public class CutsceneManager {
         player.setAllowFlight(true);
         long delay = 0L;
         List<BukkitTask> tasks = new ArrayList<>();
+        Location curr = player.getLocation().clone();
         for (Frame frame : cs.getFrames()) {
-            long ticks = Math.max(1L, frame.getDuration() / 50L);
+            long ticks;
+            if (frame instanceof TeleportFrame tf && tf.getSpeed() > 0 && tf.getLocation() != null) {
+                Location target = tf.getLocation().clone();
+                if (tf.getWorldName() != null) {
+                    var w = plugin.getServer().getWorld(tf.getWorldName());
+                    if (w != null) target.setWorld(w);
+                }
+                if (curr.getWorld() != null && target.getWorld() != null && curr.getWorld().equals(target.getWorld())) {
+                    double dist = curr.distance(target);
+                    ticks = Math.max(1L, Math.round(dist / tf.getSpeed() * 20.0));
+                } else {
+                    ticks = Math.max(1L, tf.getDuration() / 50L);
+                }
+                curr = target;
+            } else {
+                ticks = Math.max(1L, frame.getDuration() / 50L);
+                if (frame instanceof Keyframe k && k.getLocation() != null) {
+                    Location t = k.getLocation().clone();
+                    if (k.getWorldName() != null) {
+                        var w = plugin.getServer().getWorld(k.getWorldName());
+                        if (w != null) t.setWorld(w);
+                    }
+                    curr = t;
+                }
+            }
             BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, () -> frame.play(player, plugin), delay);
             tasks.add(task);
             delay += ticks;
@@ -160,7 +186,7 @@ public class CutsceneManager {
         RecordingSession session = recordings.get(player.getUniqueId());
         if (session == null) return;
         Location loc = player.getLocation();
-        TeleportFrame frame = new TeleportFrame(loc, duration, null, null, null, null, null, loc.getWorld().getName());
+        TeleportFrame frame = new TeleportFrame(loc, duration, null, null, null, null, null, loc.getWorld().getName(), 0);
         session.frames.add(frame);
     }
 
@@ -183,6 +209,9 @@ public class CutsceneManager {
                 map.put("world", frame.getWorldName());
             }
             map.put("duration", frame.getDuration());
+            if (frame.getSpeed() > 0) {
+                map.put("speed", frame.getSpeed());
+            }
             list.add(map);
         }
         cfg.set("frames", list);
