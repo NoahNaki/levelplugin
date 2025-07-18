@@ -114,6 +114,10 @@ public class CutsceneManager {
     public void playCutscene(Player player, String id) {
         Cutscene cs = cutscenes.get(id);
         if (cs == null) return;
+        var settings = plugin.getSettingsManager();
+        if (settings != null && settings.getSettings(player).isAutoSkipCutscenes()) {
+            return;
+        }
         stopCutscene(player);
         states.put(player.getUniqueId(), new PlayerState(player.getGameMode(), player.getAllowFlight(), player.isFlying()));
         player.setGameMode(GameMode.SPECTATOR);
