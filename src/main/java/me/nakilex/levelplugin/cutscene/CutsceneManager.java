@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.cutscene.frames.Frame;
 import me.nakilex.levelplugin.cutscene.frames.TeleportFrame;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.GameMode;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -18,6 +19,7 @@ public class CutsceneManager {
     private final Map<String, Cutscene> cutscenes = new HashMap<>();
     private final Map<UUID, List<BukkitTask>> active = new HashMap<>();
     private final Map<UUID, RecordingSession> recordings = new HashMap<>();
+    private final Map<UUID, PlayerState> states = new HashMap<>();
 
     public CutsceneManager(Main plugin) {
         this.plugin = plugin;
@@ -38,6 +40,7 @@ public class CutsceneManager {
             List<Frame> frames = new ArrayList<>();
             for (Map<?, ?> map : framesSec) {
                 String pos = (String) map.get("pos");
+                String world = (String) map.get("world");
                 long duration = map.get("duration") != null ? ((Number) map.get("duration")).longValue() : 2000L;
                 String title = (String) map.get("title");
                 String subtitle = (String) map.get("subtitle");
@@ -53,10 +56,11 @@ public class CutsceneManager {
                         double z = Double.parseDouble(parts[2]);
                         float yaw = Float.parseFloat(parts[3]);
                         float pitch = Float.parseFloat(parts[4]);
-                        loc = new Location(plugin.getServer().getWorlds().get(0), x, y, z, yaw, pitch);
+                        var worldObj = world != null ? Bukkit.getWorld(world) : plugin.getServer().getWorlds().get(0);
+                        loc = new Location(worldObj, x, y, z, yaw, pitch);
                     }
                 }
-                frames.add(new TeleportFrame(loc, duration, title, subtitle, actionBar, sound, command));
+                frames.add(new TeleportFrame(loc, duration, title, subtitle, actionBar, sound, command, world));
             }
             cutscenes.put(id, new Cutscene(id, frames));
         }
@@ -70,6 +74,9 @@ public class CutsceneManager {
         Cutscene cs = cutscenes.get(id);
         if (cs == null) return;
         stopCutscene(player);
+        states.put(player.getUniqueId(), new PlayerState(player.getGameMode(), player.getAllowFlight(), player.isFlying()));
+        player.setGameMode(GameMode.SPECTATOR);
+        player.setAllowFlight(true);
         long delay = 0L;
         List<BukkitTask> tasks = new ArrayList<>();
         for (Frame frame : cs.getFrames()) {
@@ -78,7 +85,10 @@ public class CutsceneManager {
             tasks.add(task);
             delay += ticks;
         }
-        BukkitTask endTask = Bukkit.getScheduler().runTaskLater(plugin, () -> active.remove(player.getUniqueId()), delay);
+        BukkitTask endTask = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            active.remove(player.getUniqueId());
+            restore(player);
+        }, delay);
         tasks.add(endTask);
         active.put(player.getUniqueId(), tasks);
     }
@@ -90,6 +100,7 @@ public class CutsceneManager {
                 task.cancel();
             }
         }
+        restore(player);
     }
 
     /** Recording API **/
@@ -105,7 +116,7 @@ public class CutsceneManager {
         RecordingSession session = recordings.get(player.getUniqueId());
         if (session == null) return;
         Location loc = player.getLocation();
-        TeleportFrame frame = new TeleportFrame(loc, duration, null, null, null, null, null);
+        TeleportFrame frame = new TeleportFrame(loc, duration, null, null, null, null, null, loc.getWorld().getName());
         session.frames.add(frame);
     }
 
@@ -125,6 +136,7 @@ public class CutsceneManager {
             if (l != null) {
                 String pos = l.getX() + " " + l.getY() + " " + l.getZ() + " " + l.getYaw() + " " + l.getPitch();
                 map.put("pos", pos);
+                map.put("world", frame.getWorldName());
             }
             map.put("duration", frame.getDuration());
             list.add(map);
@@ -138,12 +150,33 @@ public class CutsceneManager {
         loadCutscenes();
     }
 
+    private void restore(Player player) {
+        PlayerState state = states.remove(player.getUniqueId());
+        if (state != null) {
+            player.setGameMode(state.mode);
+            player.setAllowFlight(state.allowFlight);
+            player.setFlying(state.flying);
+        }
+    }
+
     private static class RecordingSession {
         final String id;
         final List<TeleportFrame> frames = new ArrayList<>();
 
         RecordingSession(String id) {
             this.id = id;
+        }
+    }
+
+    private static class PlayerState {
+        final GameMode mode;
+        final boolean allowFlight;
+        final boolean flying;
+
+        PlayerState(GameMode mode, boolean allowFlight, boolean flying) {
+            this.mode = mode;
+            this.allowFlight = allowFlight;
+            this.flying = flying;
         }
     }
 }

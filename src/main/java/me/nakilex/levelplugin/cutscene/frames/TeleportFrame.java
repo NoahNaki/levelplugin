@@ -10,6 +10,7 @@ import org.bukkit.entity.Player;
 
 public class TeleportFrame implements Frame {
     private final Location location;
+    private final String worldName;
     private final long durationMs;
     private final String title;
     private final String subtitle;
@@ -18,7 +19,7 @@ public class TeleportFrame implements Frame {
     private final String command;
 
     public TeleportFrame(Location location, long durationMs, String title, String subtitle,
-                         String actionBar, String sound, String command) {
+                         String actionBar, String sound, String command, String worldName) {
         this.location = location;
         this.durationMs = durationMs;
         this.title = title;
@@ -26,6 +27,7 @@ public class TeleportFrame implements Frame {
         this.actionBar = actionBar;
         this.sound = sound;
         this.command = command;
+        this.worldName = worldName;
     }
 
     @Override
@@ -37,10 +39,21 @@ public class TeleportFrame implements Frame {
         return location;
     }
 
+    public String getWorldName() {
+        return worldName;
+    }
+
     @Override
     public void play(Player player, Main plugin) {
         if (location != null) {
-            player.teleport(location);
+            Location target = location;
+            if (worldName != null) {
+                var world = plugin.getServer().getWorld(worldName);
+                if (world != null) {
+                    target.setWorld(world);
+                }
+            }
+            player.teleport(target);
         }
         if (title != null || subtitle != null) {
             String t = title == null ? "" : ChatColor.translateAlternateColorCodes('&', title);
