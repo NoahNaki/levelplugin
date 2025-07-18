@@ -113,7 +113,6 @@ public class TeleportFrame implements Frame {
             playEffects(player);
             return null;
         }
-        return null;
     }
 
     private double smooth(double t) {
