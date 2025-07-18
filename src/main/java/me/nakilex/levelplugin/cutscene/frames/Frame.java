@@ -5,5 +5,11 @@ import org.bukkit.entity.Player;
 
 public interface Frame {
     long getDuration();
-    void play(Player player, Main plugin);
+
+    /**
+     * Play this frame for the given player.
+     *
+     * @return a BukkitTask representing the movement task, or null if none
+     */
+    org.bukkit.scheduler.BukkitTask play(Player player, Main plugin);
 }

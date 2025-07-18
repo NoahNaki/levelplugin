@@ -142,10 +142,11 @@ public class CutsceneManager {
                 }
                 if (curr.getWorld() != null && target.getWorld() != null && curr.getWorld().equals(target.getWorld())) {
                     double dist = curr.distance(target);
-                    long move = Math.max(1L, Math.round(dist / tf.getSpeed() * 20.0));
-                    ticks = move + Math.max(0L, tf.getDuration() / 50L);
+                    double scaled = Math.pow(tf.getSpeed(), 1.5);
+                    long move = Math.max(1L, Math.round(dist / scaled * 20.0));
+                    ticks = move + Math.round(tf.getDuration() / 50.0);
                 } else {
-                    ticks = Math.max(1L, tf.getDuration() / 50L);
+                    ticks = Math.round(tf.getDuration() / 50.0);
                 }
                 curr = target;
             } else {
@@ -159,7 +160,12 @@ public class CutsceneManager {
                     curr = t;
                 }
             }
-            BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, () -> frame.play(player, plugin), delay);
+            BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                BukkitTask inner = frame.play(player, plugin);
+                if (inner != null) {
+                    tasks.add(inner);
+                }
+            }, delay);
             tasks.add(task);
             delay += ticks;
         }

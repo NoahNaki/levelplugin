@@ -59,7 +59,7 @@ public class TeleportFrame implements Frame {
     }
 
     @Override
-    public void play(Player player, Main plugin) {
+    public org.bukkit.scheduler.BukkitTask play(Player player, Main plugin) {
         if (location != null) {
             Location target = location.clone();
             if (worldName != null) {
@@ -81,7 +81,7 @@ public class TeleportFrame implements Frame {
                 float dyaw = wrapAngle(target.getYaw() - start.getYaw());
                 float dpitch = target.getPitch() - start.getPitch();
 
-                new BukkitRunnable() {
+                return new BukkitRunnable() {
                     long t = 0;
                     Location curr = start.clone();
 
@@ -105,6 +105,7 @@ public class TeleportFrame implements Frame {
                 }.runTaskTimer(plugin, 0L, 1L);
             } else {
                 player.teleport(target);
+                return null;
             }
         }
         if (title != null || subtitle != null) {
@@ -123,6 +124,7 @@ public class TeleportFrame implements Frame {
             String cmd = command.replace("%player%", player.getName());
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
         }
+        return null;
     }
 
     private double smooth(double t) {

@@ -60,8 +60,8 @@ public class Keyframe implements Frame {
     }
 
     @Override
-    public void play(Player player, Main plugin) {
-        if (location == null) return;
+    public org.bukkit.scheduler.BukkitTask play(Player player, Main plugin) {
+        if (location == null) return null;
 
         Location target = location.clone();
         if (worldName != null) {
@@ -80,7 +80,7 @@ public class Keyframe implements Frame {
         float dyaw = wrapAngle(target.getYaw() - start.getYaw());
         float dpitch = target.getPitch() - start.getPitch();
 
-        new BukkitRunnable() {
+        return new BukkitRunnable() {
             long t = 0;
             Location curr = start.clone();
 
