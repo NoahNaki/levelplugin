@@ -168,6 +168,8 @@ public class CutsceneManager {
 
         player.getInventory().clear();
         player.getInventory().setItem(0, createTool(Material.STICK, ChatColor.GOLD + "Add Frame"));
+        player.getInventory().setItem(1, createTool(Material.FEATHER, ChatColor.AQUA + "Speed: " + session.speed));
+        player.getInventory().setItem(2, createTool(Material.ENDER_PEARL, ChatColor.YELLOW + (session.movement ? "Mode: Move" : "Mode: Teleport")));
         player.getInventory().setItem(7, createTool(Material.LIME_DYE, ChatColor.GREEN + "Save"));
         player.getInventory().setItem(8, createTool(Material.BARRIER, ChatColor.RED + "Cancel"));
     }
@@ -186,7 +188,8 @@ public class CutsceneManager {
         RecordingSession session = recordings.get(player.getUniqueId());
         if (session == null) return;
         Location loc = player.getLocation();
-        TeleportFrame frame = new TeleportFrame(loc, duration, null, null, null, null, null, loc.getWorld().getName(), 0);
+        double speed = session.movement ? session.speed : 0;
+        TeleportFrame frame = new TeleportFrame(loc, duration, null, null, null, null, null, loc.getWorld().getName(), speed);
         session.frames.add(frame);
     }
 
@@ -238,6 +241,8 @@ public class CutsceneManager {
         final List<TeleportFrame> frames = new ArrayList<>();
         final ItemStack[] contents;
         final ItemStack[] armor;
+        int speed = 4;
+        boolean movement = true;
 
         RecordingSession(String id, Player player) {
             this.id = id;
@@ -271,5 +276,26 @@ public class CutsceneManager {
     private void restoreInventory(Player player, RecordingSession session) {
         player.getInventory().setContents(session.contents);
         player.getInventory().setArmorContents(session.armor);
+    }
+
+    public void changeSpeed(Player player, int delta) {
+        RecordingSession session = recordings.get(player.getUniqueId());
+        if (session == null) return;
+        session.speed += delta;
+        if (session.speed > 10) session.speed = 1;
+        if (session.speed < 1) session.speed = 10;
+        updateEditorItems(player, session);
+    }
+
+    public void toggleMovement(Player player) {
+        RecordingSession session = recordings.get(player.getUniqueId());
+        if (session == null) return;
+        session.movement = !session.movement;
+        updateEditorItems(player, session);
+    }
+
+    private void updateEditorItems(Player player, RecordingSession session) {
+        player.getInventory().setItem(1, createTool(Material.FEATHER, ChatColor.AQUA + "Speed: " + session.speed));
+        player.getInventory().setItem(2, createTool(Material.ENDER_PEARL, ChatColor.YELLOW + (session.movement ? "Mode: Move" : "Mode: Teleport")));
     }
 }
