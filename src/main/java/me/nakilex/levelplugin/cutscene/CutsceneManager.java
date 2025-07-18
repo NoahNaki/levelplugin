@@ -162,6 +162,8 @@ public class CutsceneManager {
             tasks.add(task);
             delay += ticks;
         }
+        PlayerState st = states.get(player.getUniqueId());
+        if (st != null) st.endLocation = curr.clone();
         BukkitTask endTask = Bukkit.getScheduler().runTaskLater(plugin, () -> {
             active.remove(player.getUniqueId());
             restore(player);
@@ -178,6 +180,20 @@ public class CutsceneManager {
             }
         }
         restore(player);
+    }
+
+    public void skipCutscene(Player player) {
+        List<BukkitTask> list = active.remove(player.getUniqueId());
+        if (list != null) {
+            for (BukkitTask task : list) {
+                task.cancel();
+            }
+        }
+        PlayerState state = states.remove(player.getUniqueId());
+        if (state != null && state.endLocation != null) {
+            player.teleport(state.endLocation);
+        }
+        restore(player, state);
     }
 
     /** Recording API **/
@@ -249,6 +265,10 @@ public class CutsceneManager {
 
     private void restore(Player player) {
         PlayerState state = states.remove(player.getUniqueId());
+        restore(player, state);
+    }
+
+    private void restore(Player player, PlayerState state) {
         if (state != null) {
             player.setGameMode(state.mode);
             player.setAllowFlight(state.allowFlight);
@@ -277,6 +297,7 @@ public class CutsceneManager {
         final GameMode mode;
         final boolean allowFlight;
         final boolean flying;
+        Location endLocation;
 
         PlayerState(GameMode mode, boolean allowFlight, boolean flying) {
             this.mode = mode;

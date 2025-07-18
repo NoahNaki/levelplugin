@@ -105,11 +105,11 @@ public class CutsceneCommand implements CommandExecutor {
                         sender.sendMessage(ChatColor.RED + "Player not found.");
                         return true;
                     }
-                    manager.stopCutscene(p);
+                    manager.skipCutscene(p);
                     sender.sendMessage(ChatColor.GREEN + "Skipped cutscene for " + p.getName());
                     return true;
                 } else if (sender instanceof Player self) {
-                    manager.stopCutscene(self);
+                    manager.skipCutscene(self);
                     sender.sendMessage(ChatColor.GREEN + "Cutscene skipped.");
                     return true;
                 } else {
