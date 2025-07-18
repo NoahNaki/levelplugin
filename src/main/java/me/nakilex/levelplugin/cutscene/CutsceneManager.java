@@ -29,6 +29,7 @@ public class CutsceneManager {
     private final Map<UUID, List<BukkitTask>> active = new HashMap<>();
     private final Map<UUID, RecordingSession> recordings = new HashMap<>();
     private final Map<UUID, PlayerState> states = new HashMap<>();
+    private final Set<UUID> awaitingTitle = new HashSet<>();
 
     /** Returns true if the player is currently in a cutscene. */
     public boolean isInCutscene(Player player) {
@@ -116,6 +117,25 @@ public class CutsceneManager {
         if (cs == null) return;
         var settings = plugin.getSettingsManager();
         if (settings != null && settings.getSettings(player).isAutoSkipCutscenes()) {
+            Location end = null;
+            for (Frame f : cs.getFrames()) {
+                if (f instanceof TeleportFrame tf && tf.getLocation() != null) {
+                    end = tf.getLocation().clone();
+                    if (tf.getWorldName() != null) {
+                        var w = plugin.getServer().getWorld(tf.getWorldName());
+                        if (w != null) end.setWorld(w);
+                    }
+                } else if (f instanceof Keyframe k && k.getLocation() != null) {
+                    end = k.getLocation().clone();
+                    if (k.getWorldName() != null) {
+                        var w = plugin.getServer().getWorld(k.getWorldName());
+                        if (w != null) end.setWorld(w);
+                    }
+                }
+            }
+            if (end != null) {
+                player.teleport(end);
+            }
             return;
         }
         stopCutscene(player);
@@ -214,6 +234,7 @@ public class CutsceneManager {
         player.getInventory().setItem(1, createTool(Material.FEATHER, ChatColor.AQUA + "Speed: " + session.speed));
         player.getInventory().setItem(2, createTool(Material.ENDER_PEARL, ChatColor.YELLOW + (session.movement ? "Mode: Move" : "Mode: Teleport")));
         player.getInventory().setItem(3, createTool(Material.CLOCK, ChatColor.LIGHT_PURPLE + "Pause: " + session.pause + "ms"));
+        player.getInventory().setItem(4, createTool(Material.PAPER, ChatColor.BLUE + "Add Title"));
         player.getInventory().setItem(7, createTool(Material.LIME_DYE, ChatColor.GREEN + "Save"));
         player.getInventory().setItem(8, createTool(Material.BARRIER, ChatColor.RED + "Cancel"));
     }
@@ -241,6 +262,37 @@ public class CutsceneManager {
         RecordingSession session = recordings.get(player.getUniqueId());
         if (session == null) return;
         addFrame(player, session.pause);
+    }
+
+    public boolean isAwaitingTitle(Player player) {
+        return awaitingTitle.contains(player.getUniqueId());
+    }
+
+    public void promptTitle(Player player) {
+        if (!recordings.containsKey(player.getUniqueId())) return;
+        awaitingTitle.add(player.getUniqueId());
+        player.sendMessage(ChatColor.YELLOW + "Type title as '&5Main_sub' or 'cancel'");
+    }
+
+    public void handleTitleChat(Player player, String message) {
+        if (!awaitingTitle.remove(player.getUniqueId())) return;
+        if (message.equalsIgnoreCase("cancel")) {
+            player.sendMessage(ChatColor.RED + "Title entry cancelled.");
+            return;
+        }
+        RecordingSession session = recordings.get(player.getUniqueId());
+        if (session == null) return;
+        String main = message;
+        String sub = "";
+        int space = message.indexOf(' ');
+        if (space >= 0) {
+            main = message.substring(0, space);
+            sub = message.substring(space + 1);
+        }
+        main = main.replace('_', ' ');
+        TeleportFrame frame = new TeleportFrame(null, session.pause, main, sub, null, null, null, null, 0);
+        session.frames.add(frame);
+        player.sendMessage(ChatColor.GREEN + "Title frame added.");
     }
 
     public void finishRecording(Player player) {

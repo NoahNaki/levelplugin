@@ -7,6 +7,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -40,6 +41,10 @@ public class EditorListener implements Listener {
             manager.cancelRecording(event.getPlayer());
             event.getPlayer().sendMessage(ChatColor.RED + "Recording cancelled");
             event.setCancelled(true);
+        } else if (name.contains("Add Title")) {
+            manager.promptTitle(event.getPlayer());
+            event.getPlayer().sendMessage(ChatColor.YELLOW + "Type title in chat or 'cancel'");
+            event.setCancelled(true);
         } else if (name.contains("Speed:")) {
             if (action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK) {
                 manager.changeSpeed(event.getPlayer(), 1);
@@ -58,5 +63,13 @@ public class EditorListener implements Listener {
             }
             event.setCancelled(true);
         }
+    }
+
+    @EventHandler
+    public void onChat(AsyncPlayerChatEvent event) {
+        if (!manager.isRecording(event.getPlayer())) return;
+        if (!manager.isAwaitingTitle(event.getPlayer())) return;
+        event.setCancelled(true);
+        manager.handleTitleChat(event.getPlayer(), event.getMessage());
     }
 }
