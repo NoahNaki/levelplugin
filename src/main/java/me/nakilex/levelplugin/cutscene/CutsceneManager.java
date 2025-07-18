@@ -49,7 +49,7 @@ public class CutsceneManager {
             for (Map<?, ?> map : framesSec) {
                 String pos = (String) map.get("pos");
                 String world = (String) map.get("world");
-                String type = (String) map.getOrDefault("type", "teleport");
+                String type = map.containsKey("type") ? (String) map.get("type") : "teleport";
                 String lookAtStr = (String) map.get("lookAt");
                 long duration = map.get("duration") != null ? ((Number) map.get("duration")).longValue() : 2000L;
                 String title = (String) map.get("title");
