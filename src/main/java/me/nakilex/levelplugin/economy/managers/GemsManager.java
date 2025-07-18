@@ -49,7 +49,7 @@ public class GemsManager {
 
             // 3) Decorative count line:
             int totalUnits = qty * unitValue;
-            String formatted = String.format("%,d <glyph:diamond_icon>", totalUnits);
+            String formatted = String.format("%,d <glyph:purple_orb_icon>", totalUnits);
 
 // styling chunks
             String dashFmt = ChatColor.DARK_PURPLE.toString()

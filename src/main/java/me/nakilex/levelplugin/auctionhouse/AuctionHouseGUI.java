@@ -25,7 +25,7 @@ import me.nakilex.levelplugin.items.data.ItemRarity;
 import java.util.*;
 
 public class AuctionHouseGUI implements Listener {
-    private static final String TITLE = "Auction House";
+    private static final String TITLE = ChatColor.GOLD + "<glyph:judge_gavel_icon> Auction House";
     private static final int SIZE = 54;
     private static final int SELL_SLOT = 49;
     private static final int PREV_PAGE = 45;

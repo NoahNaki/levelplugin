@@ -138,7 +138,7 @@ public class MerchantGUI implements Listener {
                     + ChatColor.RED + "✘ "
                     + mItem.getGems()
                     + " "
-                    + ChatColor.AQUA + "<glyph:diamond_icon>");
+                    + ChatColor.AQUA + "<glyph:purple_orb_icon>");
             }
 
 
@@ -317,7 +317,7 @@ public class MerchantGUI implements Listener {
                         purchasedItem.getItemMeta().getDisplayName() +
                         ChatColor.GREEN + " for " +
                         ChatColor.YELLOW + coinCost + " <glyph:coins_icon> coins" +
-                        (gemCost > 0 ? ChatColor.GRAY + " and " + ChatColor.AQUA + gemCost + "<glyph:diamond_icon>" : "") +
+                        (gemCost > 0 ? ChatColor.GRAY + " and " + ChatColor.AQUA + gemCost + "<glyph:purple_orb_icon>" : "") +
                         ChatColor.GREEN + ".");
             }
         }
@@ -377,7 +377,7 @@ public class MerchantGUI implements Listener {
                             + (afford ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
                             + mItem.getGems()
                             + " "
-                            + ChatColor.AQUA + "<glyph:diamond_icon>"
+                            + ChatColor.AQUA + "<glyph:purple_orb_icon>"
                     );
                 }
             }
