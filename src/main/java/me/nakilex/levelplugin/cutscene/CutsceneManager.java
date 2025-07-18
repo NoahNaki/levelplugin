@@ -17,6 +17,7 @@ public class CutsceneManager {
     private final Main plugin;
     private final Map<String, Cutscene> cutscenes = new HashMap<>();
     private final Map<UUID, List<BukkitTask>> active = new HashMap<>();
+    private final Map<UUID, RecordingSession> recordings = new HashMap<>();
 
     public CutsceneManager(Main plugin) {
         this.plugin = plugin;
@@ -88,6 +89,61 @@ public class CutsceneManager {
             for (BukkitTask task : list) {
                 task.cancel();
             }
+        }
+    }
+
+    /** Recording API **/
+    public void startRecording(Player player, String id) {
+        recordings.put(player.getUniqueId(), new RecordingSession(id));
+    }
+
+    public boolean isRecording(Player player) {
+        return recordings.containsKey(player.getUniqueId());
+    }
+
+    public void addFrame(Player player, long duration) {
+        RecordingSession session = recordings.get(player.getUniqueId());
+        if (session == null) return;
+        Location loc = player.getLocation();
+        TeleportFrame frame = new TeleportFrame(loc, duration, null, null, null, null, null);
+        session.frames.add(frame);
+    }
+
+    public void finishRecording(Player player) {
+        RecordingSession session = recordings.remove(player.getUniqueId());
+        if (session == null) return;
+
+        File dir = new File(plugin.getDataFolder(), "cutscenes");
+        if (!dir.exists()) dir.mkdirs();
+        File file = new File(dir, session.id + ".yml");
+        YamlConfiguration cfg = new YamlConfiguration();
+        cfg.set("id", session.id);
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (TeleportFrame frame : session.frames) {
+            Map<String, Object> map = new HashMap<>();
+            Location l = frame.getLocation();
+            if (l != null) {
+                String pos = l.getX() + " " + l.getY() + " " + l.getZ() + " " + l.getYaw() + " " + l.getPitch();
+                map.put("pos", pos);
+            }
+            map.put("duration", frame.getDuration());
+            list.add(map);
+        }
+        cfg.set("frames", list);
+        try {
+            cfg.save(file);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        loadCutscenes();
+    }
+
+    private static class RecordingSession {
+        final String id;
+        final List<TeleportFrame> frames = new ArrayList<>();
+
+        RecordingSession(String id) {
+            this.id = id;
         }
     }
 }

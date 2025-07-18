@@ -17,7 +17,7 @@ public class CutsceneCommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage(ChatColor.GREEN + "/cutscene play <id> | list | reload");
+            sender.sendMessage(ChatColor.GREEN + "/cutscene play <id> | list | reload | record <id> | addframe [duration] | stop");
             return true;
         }
         String sub = args[0].toLowerCase();
@@ -33,6 +33,48 @@ public class CutsceneCommand implements CommandExecutor {
                 }
                 manager.playCutscene(player, args[1]);
                 sender.sendMessage(ChatColor.YELLOW + "Playing cutscene " + args[1]);
+                return true;
+            case "record":
+                if (!(sender instanceof Player player)) {
+                    sender.sendMessage(ChatColor.RED + "Only players can record.");
+                    return true;
+                }
+                if (args.length < 2) {
+                    sender.sendMessage(ChatColor.RED + "Usage: /cutscene record <id>");
+                    return true;
+                }
+                manager.startRecording(player, args[1]);
+                sender.sendMessage(ChatColor.GREEN + "Recording cutscene " + args[1]);
+                return true;
+            case "addframe":
+                if (!(sender instanceof Player player)) {
+                    sender.sendMessage(ChatColor.RED + "Only players can add frames.");
+                    return true;
+                }
+                if (!manager.isRecording(player)) {
+                    sender.sendMessage(ChatColor.RED + "You are not recording a cutscene.");
+                    return true;
+                }
+                long dur = 2000L;
+                if (args.length >= 2) {
+                    try {
+                        dur = Long.parseLong(args[1]);
+                    } catch (NumberFormatException ignored) {}
+                }
+                manager.addFrame(player, dur);
+                sender.sendMessage(ChatColor.YELLOW + "Added frame with duration " + dur + "ms");
+                return true;
+            case "stop":
+                if (!(sender instanceof Player player)) {
+                    sender.sendMessage(ChatColor.RED + "Only players can stop recording.");
+                    return true;
+                }
+                if (!manager.isRecording(player)) {
+                    sender.sendMessage(ChatColor.RED + "You are not recording a cutscene.");
+                    return true;
+                }
+                manager.finishRecording(player);
+                sender.sendMessage(ChatColor.GREEN + "Cutscene saved.");
                 return true;
             case "reload":
                 manager.loadCutscenes();

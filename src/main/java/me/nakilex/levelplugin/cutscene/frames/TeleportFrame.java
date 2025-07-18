@@ -33,6 +33,10 @@ public class TeleportFrame implements Frame {
         return durationMs;
     }
 
+    public Location getLocation() {
+        return location;
+    }
+
     @Override
     public void play(Player player, Main plugin) {
         if (location != null) {
