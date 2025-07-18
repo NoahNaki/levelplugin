@@ -51,6 +51,26 @@ public class TeleportFrame implements Frame {
         return speed;
     }
 
+    public String getTitle() {
+        return title;
+    }
+
+    public String getSubtitle() {
+        return subtitle;
+    }
+
+    public String getActionBar() {
+        return actionBar;
+    }
+
+    public String getSound() {
+        return sound;
+    }
+
+    public String getCommand() {
+        return command;
+    }
+
     private static float wrapAngle(float angle) {
         angle = angle % 360f;
         if (angle >= 180f) angle -= 360f;

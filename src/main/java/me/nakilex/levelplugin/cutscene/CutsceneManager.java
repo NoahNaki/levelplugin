@@ -254,7 +254,11 @@ public class CutsceneManager {
         if (session == null) return;
         Location loc = player.getLocation();
         double speed = session.movement ? session.speed : 0;
-        TeleportFrame frame = new TeleportFrame(loc, duration, null, null, null, null, null, loc.getWorld().getName(), speed);
+        String t = session.pendingTitle;
+        String sub = session.pendingSubtitle;
+        session.pendingTitle = null;
+        session.pendingSubtitle = null;
+        TeleportFrame frame = new TeleportFrame(loc, duration, t, sub, null, null, null, loc.getWorld().getName(), speed);
         session.frames.add(frame);
     }
 
@@ -290,14 +294,22 @@ public class CutsceneManager {
             sub = message.substring(space + 1);
         }
         main = main.replace('_', ' ');
-        TeleportFrame frame = new TeleportFrame(null, session.pause, main, sub, null, null, null, null, 0);
-        session.frames.add(frame);
-        player.sendMessage(ChatColor.GREEN + "Title frame added.");
+        session.pendingTitle = main;
+        session.pendingSubtitle = sub;
+        player.sendMessage(ChatColor.GREEN + "Title will apply to the next frame.");
     }
 
     public void finishRecording(Player player) {
         RecordingSession session = recordings.remove(player.getUniqueId());
         if (session == null) return;
+
+        if (session.pendingTitle != null || session.pendingSubtitle != null) {
+            TeleportFrame frame = new TeleportFrame(null, 0L, session.pendingTitle,
+                    session.pendingSubtitle, null, null, null, null, 0);
+            session.frames.add(frame);
+            session.pendingTitle = null;
+            session.pendingSubtitle = null;
+        }
 
         File dir = new File(plugin.getDataFolder(), "cutscenes");
         if (!dir.exists()) dir.mkdirs();
@@ -316,6 +328,21 @@ public class CutsceneManager {
             map.put("duration", frame.getDuration());
             if (frame.getSpeed() > 0) {
                 map.put("speed", frame.getSpeed());
+            }
+            if (frame.getTitle() != null) {
+                map.put("title", frame.getTitle());
+            }
+            if (frame.getSubtitle() != null) {
+                map.put("subtitle", frame.getSubtitle());
+            }
+            if (frame.getActionBar() != null) {
+                map.put("actionBar", frame.getActionBar());
+            }
+            if (frame.getSound() != null) {
+                map.put("sound", frame.getSound());
+            }
+            if (frame.getCommand() != null && !frame.getCommand().isEmpty()) {
+                map.put("command", frame.getCommand());
             }
             list.add(map);
         }
@@ -352,6 +379,8 @@ public class CutsceneManager {
         int speed = 4;
         boolean movement = true;
         long pause = 0L;
+        String pendingTitle = null;
+        String pendingSubtitle = null;
 
         RecordingSession(String id, Player player) {
             this.id = id;
