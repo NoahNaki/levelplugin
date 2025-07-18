@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.cutscene;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.cutscene.frames.Frame;
 import me.nakilex.levelplugin.cutscene.frames.TeleportFrame;
+import me.nakilex.levelplugin.cutscene.frames.Keyframe;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.GameMode;
@@ -48,6 +49,8 @@ public class CutsceneManager {
             for (Map<?, ?> map : framesSec) {
                 String pos = (String) map.get("pos");
                 String world = (String) map.get("world");
+                String type = (String) map.getOrDefault("type", "teleport");
+                String lookAtStr = (String) map.get("lookAt");
                 long duration = map.get("duration") != null ? ((Number) map.get("duration")).longValue() : 2000L;
                 String title = (String) map.get("title");
                 String subtitle = (String) map.get("subtitle");
@@ -67,7 +70,24 @@ public class CutsceneManager {
                         loc = new Location(worldObj, x, y, z, yaw, pitch);
                     }
                 }
-                frames.add(new TeleportFrame(loc, duration, title, subtitle, actionBar, sound, command, world));
+
+                Location lookAt = null;
+                if (lookAtStr != null) {
+                    String[] pa = lookAtStr.split(" ");
+                    if (pa.length >= 3) {
+                        double lx = Double.parseDouble(pa[0]);
+                        double ly = Double.parseDouble(pa[1]);
+                        double lz = Double.parseDouble(pa[2]);
+                        var worldObj = world != null ? Bukkit.getWorld(world) : plugin.getServer().getWorlds().get(0);
+                        lookAt = new Location(worldObj, lx, ly, lz);
+                    }
+                }
+
+                if ("key".equalsIgnoreCase(type) || "keyframe".equalsIgnoreCase(type)) {
+                    frames.add(new Keyframe(loc, lookAt, duration, world));
+                } else {
+                    frames.add(new TeleportFrame(loc, duration, title, subtitle, actionBar, sound, command, world));
+                }
             }
             cutscenes.put(id, new Cutscene(id, frames));
         }

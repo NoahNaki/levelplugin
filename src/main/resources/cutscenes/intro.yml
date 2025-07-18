@@ -8,12 +8,24 @@ frames:
     actionBar: "&7Enjoy your stay!"
     sound: "minecraft:entity.ender_dragon.growl"
     command: "say Cutscene started for %player%"
-  - pos: "105 64 205 90 0"
+  - pos: "105 64 200 180 0"
     world: "world"
+    lookAt: "100 64 200"
     duration: 1500
-    actionBar: "&bLook around!"
-    command: "say Teleported to next frame"
-  - pos: "110 64 210 0 0"
+    type: key
+    actionBar: "&bCircling..."
+  - pos: "105 64 205 180 0"
+    world: "world"
+    lookAt: "100 64 200"
+    duration: 1500
+    type: key
+    command: "say Teleported midway"
+  - pos: "100 64 205 180 0"
+    world: "world"
+    lookAt: "100 64 200"
+    duration: 1500
+    type: key
+  - pos: "100 64 200 180 0"
     world: "world"
     duration: 1500
     title: "&dThe End"
