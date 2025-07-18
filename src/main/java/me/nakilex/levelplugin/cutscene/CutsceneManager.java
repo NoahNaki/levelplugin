@@ -8,6 +8,10 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.Material;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.ChatColor;
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.HoverEvent;
+import net.md_5.bungee.api.chat.TextComponent;
+import net.md_5.bungee.api.chat.hover.content.Text;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.GameMode;
@@ -116,6 +120,11 @@ public class CutsceneManager {
         player.setAllowFlight(true);
         var sbManager = plugin.getScoreboardManager();
         if (sbManager != null) sbManager.removeBoard(player);
+
+        TextComponent skip = new TextComponent(ChatColor.YELLOW + "[Skip Cutscene]");
+        skip.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/cutscene skip"));
+        skip.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text("Click to skip")));
+        player.spigot().sendMessage(skip);
         long delay = 0L;
         List<BukkitTask> tasks = new ArrayList<>();
         Location curr = player.getLocation().clone();

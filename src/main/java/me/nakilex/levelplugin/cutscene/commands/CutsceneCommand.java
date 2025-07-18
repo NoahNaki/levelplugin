@@ -18,7 +18,7 @@ public class CutsceneCommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage(ChatColor.GREEN + "/cutscene play <id> [player] | list | reload | record <id> | addframe [duration] | stop | cancel");
+            sender.sendMessage(ChatColor.GREEN + "/cutscene play <id> [player] | list | reload | record <id> | addframe [duration] | stop | cancel | skip [player]");
             return true;
         }
         String sub = args[0].toLowerCase();
@@ -98,6 +98,24 @@ public class CutsceneCommand implements CommandExecutor {
                 manager.cancelRecording(player);
                 sender.sendMessage(ChatColor.YELLOW + "Recording cancelled.");
                 return true;
+            case "skip":
+                if (args.length >= 2) {
+                    Player p = Bukkit.getPlayer(args[1]);
+                    if (p == null) {
+                        sender.sendMessage(ChatColor.RED + "Player not found.");
+                        return true;
+                    }
+                    manager.stopCutscene(p);
+                    sender.sendMessage(ChatColor.GREEN + "Skipped cutscene for " + p.getName());
+                    return true;
+                } else if (sender instanceof Player self) {
+                    manager.stopCutscene(self);
+                    sender.sendMessage(ChatColor.GREEN + "Cutscene skipped.");
+                    return true;
+                } else {
+                    sender.sendMessage(ChatColor.RED + "Specify a player.");
+                    return true;
+                }
             case "reload":
                 manager.loadCutscenes();
                 sender.sendMessage(ChatColor.GREEN + "Cutscenes reloaded.");

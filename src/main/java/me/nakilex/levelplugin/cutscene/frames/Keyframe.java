@@ -74,11 +74,11 @@ public class Keyframe implements Frame {
         Location start = player.getLocation().clone();
         long ticks = Math.max(1L, durationMs / 50L);
 
-        double dx = (target.getX() - start.getX()) / (double) ticks;
-        double dy = (target.getY() - start.getY()) / (double) ticks;
-        double dz = (target.getZ() - start.getZ()) / (double) ticks;
-        float dyaw = wrapAngle(target.getYaw() - start.getYaw()) / (float) ticks;
-        float dpitch = (target.getPitch() - start.getPitch()) / (float) ticks;
+        double dx = target.getX() - start.getX();
+        double dy = target.getY() - start.getY();
+        double dz = target.getZ() - start.getZ();
+        float dyaw = wrapAngle(target.getYaw() - start.getYaw());
+        float dpitch = target.getPitch() - start.getPitch();
 
         new BukkitRunnable() {
             long t = 0;
@@ -92,15 +92,18 @@ public class Keyframe implements Frame {
                     return;
                 }
 
-                curr.add(dx, dy, dz);
+                double pct = smooth((t + 1) / (double) ticks);
+                curr.setX(start.getX() + dx * pct);
+                curr.setY(start.getY() + dy * pct);
+                curr.setZ(start.getZ() + dz * pct);
                 float yaw;
                 float pitch;
                 if (lookAt != null) {
                     yaw = lookYaw(curr, lookAt);
                     pitch = lookPitch(curr, lookAt);
                 } else {
-                    yaw = start.getYaw() + dyaw * (t + 1);
-                    pitch = start.getPitch() + dpitch * (t + 1);
+                    yaw = start.getYaw() + dyaw * (float) pct;
+                    pitch = start.getPitch() + dpitch * (float) pct;
                 }
                 curr.setYaw(yaw);
                 curr.setPitch(pitch);
@@ -109,5 +112,9 @@ public class Keyframe implements Frame {
                 t++;
             }
         }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    private double smooth(double t) {
+        return 3 * t * t - 2 * t * t * t;
     }
 }

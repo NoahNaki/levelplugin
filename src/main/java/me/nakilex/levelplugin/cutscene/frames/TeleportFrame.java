@@ -75,11 +75,11 @@ public class TeleportFrame implements Frame {
                 double scaled = Math.pow(speed, 1.5); // amplify high speeds
                 long ticks = Math.max(1L, Math.round(distance / scaled * 20.0));
 
-                double dx = (target.getX() - start.getX()) / (double) ticks;
-                double dy = (target.getY() - start.getY()) / (double) ticks;
-                double dz = (target.getZ() - start.getZ()) / (double) ticks;
-                float dyaw = wrapAngle(target.getYaw() - start.getYaw()) / (float) ticks;
-                float dpitch = (target.getPitch() - start.getPitch()) / (float) ticks;
+                double dx = target.getX() - start.getX();
+                double dy = target.getY() - start.getY();
+                double dz = target.getZ() - start.getZ();
+                float dyaw = wrapAngle(target.getYaw() - start.getYaw());
+                float dpitch = target.getPitch() - start.getPitch();
 
                 new BukkitRunnable() {
                     long t = 0;
@@ -93,9 +93,12 @@ public class TeleportFrame implements Frame {
                             return;
                         }
 
-                        curr.add(dx, dy, dz);
-                        curr.setYaw(start.getYaw() + dyaw * (t + 1));
-                        curr.setPitch(start.getPitch() + dpitch * (t + 1));
+                        double pct = smooth((t + 1) / (double) ticks);
+                        curr.setX(start.getX() + dx * pct);
+                        curr.setY(start.getY() + dy * pct);
+                        curr.setZ(start.getZ() + dz * pct);
+                        curr.setYaw(start.getYaw() + dyaw * (float) pct);
+                        curr.setPitch(start.getPitch() + dpitch * (float) pct);
                         player.teleport(curr);
                         t++;
                     }
@@ -120,5 +123,9 @@ public class TeleportFrame implements Frame {
             String cmd = command.replace("%player%", player.getName());
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
         }
+    }
+
+    private double smooth(double t) {
+        return 3 * t * t - 2 * t * t * t; // smoothstep
     }
 }
