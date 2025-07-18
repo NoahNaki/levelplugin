@@ -1,0 +1,18 @@
+id: "intro"
+frames:
+  - pos: "100 64 200 180 0"
+    duration: 2000
+    title: "&aWelcome"
+    subtitle: "&eTo the Realm"
+    actionBar: "&7Enjoy your stay!"
+    sound: "minecraft:entity.ender_dragon.growl"
+    command: "say Cutscene started for %player%"
+  - pos: "105 64 205 90 0"
+    duration: 1500
+    actionBar: "&bLook around!"
+    command: "say Teleported to next frame"
+  - pos: "110 64 210 0 0"
+    duration: 1500
+    title: "&dThe End"
+    subtitle: "&6Thanks for watching"
+    command: "say Cutscene complete for %player%"
