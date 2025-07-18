@@ -70,8 +70,9 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         Scoreboard board = sm.getNewScoreboard();
         Objective obj = board.registerNewObjective("stats", "dummy", ChatColor.GREEN + "Player Stats");
         try {
-            obj.setDisplaySlot(DisplaySlot.SIDEBAR, false);
-        } catch (NoSuchMethodError e) {
+            java.lang.reflect.Method m = obj.getClass().getMethod("setDisplaySlot", DisplaySlot.class, boolean.class);
+            m.invoke(obj, DisplaySlot.SIDEBAR, false);
+        } catch (Throwable ignore) {
             obj.setDisplaySlot(DisplaySlot.SIDEBAR);
         }
         boards.put(player.getUniqueId(), board);
@@ -127,7 +128,7 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         idx++; line--;
 
         String gemStr = java.text.NumberFormat.getIntegerInstance().format(gemsManager.getTotalUnits(player));
-        current[idx] = ChatColor.AQUA + "<glyph:purple_orb_icon> " + ChatColor.WHITE + "Gems: " + ChatColor.AQUA + gemStr;
+        current[idx] = ChatColor.AQUA + "<glyph:diamond_icon> " + ChatColor.WHITE + "Gems: " + ChatColor.AQUA + gemStr;
         if (!current[idx].equals(prev[idx])) {
             setLine(board, obj, idx, line, current[idx]);
         }

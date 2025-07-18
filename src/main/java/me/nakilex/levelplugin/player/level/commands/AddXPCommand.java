@@ -44,8 +44,8 @@ public class AddXPCommand implements CommandExecutor {
 
         // Grant XP to player and their active Ego weapon
         levelManager.addXP(target, amount);
-        sender.sendMessage("§aGave " + amount + " XP to " + target.getName());
-        target.sendMessage("§aYou have received " + amount + " XP!");
+        sender.sendMessage("§aGave " + amount + " <glyph:experience_orb_icon> to " + target.getName());
+        target.sendMessage("§aYou have received " + amount + " <glyph:experience_orb_icon>!");
 
         return true;
     }

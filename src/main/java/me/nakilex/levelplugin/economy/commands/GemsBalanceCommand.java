@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.economy.commands;
 
 import me.nakilex.levelplugin.economy.managers.GemsManager;
+import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -21,7 +22,7 @@ public class GemsBalanceCommand implements CommandExecutor {
         }
         Player p = (Player) sender;
         int bal = gemsManager.getTotalUnits(p);
-        p.sendMessage("Your gems: " + bal);
+        p.sendMessage("Your gems: " + ChatColor.AQUA + bal + " <glyph:diamond_icon>");
         return true;
     }
 }

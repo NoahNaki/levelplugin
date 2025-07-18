@@ -264,7 +264,7 @@ public class EnvironmentManager {
                 ? ChatColor.GREEN.toString() + "✔"
                 : ChatColor.RED.toString() + "✘")
                 + ChatColor.GRAY + " - " + ChatColor.WHITE + coinCost + " coins "
-                + ChatColor.GOLD + "\u26C3";
+                + ChatColor.GOLD + " <glyph:coins_icon>";
 
         java.util.List<String> lines = new java.util.ArrayList<>();
         lines.add(ChatColor.GREEN + "" + ChatColor.BOLD + "Upgrade " + ChatColor.WHITE + building);
