@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.player.attributes.managers;
 
 import me.nakilex.levelplugin.player.attributes.managers.ManaIndicatorManager;
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.DefaultFontInfo;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -11,9 +12,15 @@ import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 
 public class ActionBarTask extends BukkitRunnable {
+    private final Main plugin;
+
+    public ActionBarTask(Main plugin) {
+        this.plugin = plugin;
+    }
     @Override
     public void run() {
         for (Player player : Bukkit.getOnlinePlayers()) {
+            if (plugin.getCutsceneManager().isInCutscene(player)) continue;
             StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
 
             double hp = player.getHealth();

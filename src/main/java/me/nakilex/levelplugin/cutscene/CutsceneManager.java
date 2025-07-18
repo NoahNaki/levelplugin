@@ -26,6 +26,11 @@ public class CutsceneManager {
     private final Map<UUID, RecordingSession> recordings = new HashMap<>();
     private final Map<UUID, PlayerState> states = new HashMap<>();
 
+    /** Returns true if the player is currently in a cutscene. */
+    public boolean isInCutscene(Player player) {
+        return active.containsKey(player.getUniqueId());
+    }
+
     public CutsceneManager(Main plugin) {
         this.plugin = plugin;
     }
@@ -109,6 +114,8 @@ public class CutsceneManager {
         states.put(player.getUniqueId(), new PlayerState(player.getGameMode(), player.getAllowFlight(), player.isFlying()));
         player.setGameMode(GameMode.SPECTATOR);
         player.setAllowFlight(true);
+        var sbManager = plugin.getScoreboardManager();
+        if (sbManager != null) sbManager.removeBoard(player);
         long delay = 0L;
         List<BukkitTask> tasks = new ArrayList<>();
         Location curr = player.getLocation().clone();
@@ -234,6 +241,8 @@ public class CutsceneManager {
             player.setAllowFlight(state.allowFlight);
             player.setFlying(state.flying);
         }
+        var sbManager = plugin.getScoreboardManager();
+        if (sbManager != null) sbManager.createBoard(player);
     }
 
     private static class RecordingSession {

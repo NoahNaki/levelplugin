@@ -72,7 +72,8 @@ public class TeleportFrame implements Frame {
             if (speed > 0) {
                 Location start = player.getLocation().clone();
                 double distance = start.distance(target);
-                long ticks = Math.max(1L, Math.round(distance / speed * 20.0));
+                double scaled = Math.pow(speed, 1.5); // amplify high speeds
+                long ticks = Math.max(1L, Math.round(distance / scaled * 20.0));
 
                 double dx = (target.getX() - start.getX()) / (double) ticks;
                 double dy = (target.getY() - start.getY()) / (double) ticks;
