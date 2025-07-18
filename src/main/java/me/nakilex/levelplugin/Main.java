@@ -95,6 +95,7 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.quests.managers.BeaconManager getBeaconManager() { return bootstrap.getBeaconManager(); }
     public me.nakilex.levelplugin.quests.managers.QuestManager getQuestManager() { return bootstrap.getQuestManager(); }
     public me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI getAuctionHouseGUI() { return bootstrap.getAuctionHouseGUI(); }
+    public me.nakilex.levelplugin.settings.managers.SettingsManager getSettingsManager() { return bootstrap.getSettingsManager(); }
     public SettingsGUI getSettingsGUI() { return bootstrap.getSettingsGUI(); }
     public me.nakilex.levelplugin.environment.UpgradeGUI getUpgradeGUI() { return bootstrap.getUpgradeGUI(); }
     public me.nakilex.levelplugin.environment.BuildingUpgradeGUI getBuildingUpgradeGUI() { return bootstrap.getBuildingUpgradeGUI(); }
