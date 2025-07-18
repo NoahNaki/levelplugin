@@ -29,7 +29,7 @@ public class EditorListener implements Listener {
         Action action = event.getAction();
 
         if (name.contains("Add Frame")) {
-            manager.addFrame(event.getPlayer(), 2000L);
+            manager.addFrame(event.getPlayer());
             event.getPlayer().sendMessage(ChatColor.GRAY + "Added frame");
             event.setCancelled(true);
         } else if (name.contains("Save")) {
@@ -49,6 +49,13 @@ public class EditorListener implements Listener {
             event.setCancelled(true);
         } else if (name.contains("Mode:")) {
             manager.toggleMovement(event.getPlayer());
+            event.setCancelled(true);
+        } else if (name.contains("Pause:")) {
+            if (action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK) {
+                manager.changePause(event.getPlayer(), 500L);
+            } else if (action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK) {
+                manager.changePause(event.getPlayer(), -500L);
+            }
             event.setCancelled(true);
         }
     }

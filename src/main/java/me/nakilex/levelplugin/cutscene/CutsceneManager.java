@@ -142,7 +142,8 @@ public class CutsceneManager {
                 }
                 if (curr.getWorld() != null && target.getWorld() != null && curr.getWorld().equals(target.getWorld())) {
                     double dist = curr.distance(target);
-                    ticks = Math.max(1L, Math.round(dist / tf.getSpeed() * 20.0));
+                    long move = Math.max(1L, Math.round(dist / tf.getSpeed() * 20.0));
+                    ticks = move + Math.max(0L, tf.getDuration() / 50L);
                 } else {
                     ticks = Math.max(1L, tf.getDuration() / 50L);
                 }
@@ -206,6 +207,7 @@ public class CutsceneManager {
         player.getInventory().setItem(0, createTool(Material.STICK, ChatColor.GOLD + "Add Frame"));
         player.getInventory().setItem(1, createTool(Material.FEATHER, ChatColor.AQUA + "Speed: " + session.speed));
         player.getInventory().setItem(2, createTool(Material.ENDER_PEARL, ChatColor.YELLOW + (session.movement ? "Mode: Move" : "Mode: Teleport")));
+        player.getInventory().setItem(3, createTool(Material.CLOCK, ChatColor.LIGHT_PURPLE + "Pause: " + session.pause + "ms"));
         player.getInventory().setItem(7, createTool(Material.LIME_DYE, ChatColor.GREEN + "Save"));
         player.getInventory().setItem(8, createTool(Material.BARRIER, ChatColor.RED + "Cancel"));
     }
@@ -227,6 +229,12 @@ public class CutsceneManager {
         double speed = session.movement ? session.speed : 0;
         TeleportFrame frame = new TeleportFrame(loc, duration, null, null, null, null, null, loc.getWorld().getName(), speed);
         session.frames.add(frame);
+    }
+
+    public void addFrame(Player player) {
+        RecordingSession session = recordings.get(player.getUniqueId());
+        if (session == null) return;
+        addFrame(player, session.pause);
     }
 
     public void finishRecording(Player player) {
@@ -285,6 +293,7 @@ public class CutsceneManager {
         final ItemStack[] armor;
         int speed = 4;
         boolean movement = true;
+        long pause = 0L;
 
         RecordingSession(String id, Player player) {
             this.id = id;
@@ -337,8 +346,17 @@ public class CutsceneManager {
         updateEditorItems(player, session);
     }
 
+    public void changePause(Player player, long delta) {
+        RecordingSession session = recordings.get(player.getUniqueId());
+        if (session == null) return;
+        session.pause += delta;
+        if (session.pause < 0) session.pause = 0;
+        updateEditorItems(player, session);
+    }
+
     private void updateEditorItems(Player player, RecordingSession session) {
         player.getInventory().setItem(1, createTool(Material.FEATHER, ChatColor.AQUA + "Speed: " + session.speed));
         player.getInventory().setItem(2, createTool(Material.ENDER_PEARL, ChatColor.YELLOW + (session.movement ? "Mode: Move" : "Mode: Teleport")));
+        player.getInventory().setItem(3, createTool(Material.CLOCK, ChatColor.LIGHT_PURPLE + "Pause: " + session.pause + "ms"));
     }
 }
