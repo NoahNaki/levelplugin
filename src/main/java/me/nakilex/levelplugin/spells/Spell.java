@@ -117,8 +117,18 @@ public class Spell {
 
         // 0) Requirement check (weapon type + class)
         ItemStack hand = player.getInventory().getItemInMainHand();
-        if (hand == null || hand.getType() == Material.AIR ||
-            (!allowedWeapons.isEmpty() && !allowedWeapons.contains(hand.getType()))) {
+        Material matCheck = hand != null ? hand.getType() : Material.AIR;
+        if (hand != null && hand.hasItemMeta()) {
+            var pdc = hand.getItemMeta().getPersistentDataContainer();
+            if (pdc.has(me.nakilex.levelplugin.items.utils.ItemUtil.TEMPLATE_MATERIAL_KEY,
+                        org.bukkit.persistence.PersistentDataType.STRING)) {
+                String stored = pdc.get(me.nakilex.levelplugin.items.utils.ItemUtil.TEMPLATE_MATERIAL_KEY,
+                                       org.bukkit.persistence.PersistentDataType.STRING);
+                try { matCheck = Material.valueOf(stored); } catch (Exception ignore) {}
+            }
+        }
+        if (hand == null || matCheck == Material.AIR ||
+                (!allowedWeapons.isEmpty() && !allowedWeapons.contains(matCheck))) {
             player.sendMessage("§cYou can't cast " + displayName + " with this weapon.");
             return;
         }
