@@ -273,7 +273,7 @@ public class ItemsBrowser implements CommandExecutor, Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent e) {
-        if (!e.getView().getTitle().startsWith(ChatColor.GRAY + "Items Browser")) return;
+        if (!e.getView().getTitle().startsWith(ChatColor.BLACK + "Items Browser")) return;
         e.setCancelled(true);
 
         Player player = (Player) e.getWhoClicked();
