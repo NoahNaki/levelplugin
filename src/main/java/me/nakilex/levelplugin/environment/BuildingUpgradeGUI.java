@@ -56,17 +56,33 @@ public class BuildingUpgradeGUI implements Listener {
     @EventHandler
     public void onClick(InventoryClickEvent e) {
         String title = e.getView().getTitle();
-        if (!title.startsWith(TITLE_PREFIX)) return;
+        if (!title.startsWith(TITLE_PREFIX)) {
+            me.nakilex.levelplugin.Main.getInstance().getLogger().info(
+                    "[BuildingUpgradeGUI] ignore title=" + title);
+            return;
+        }
         e.setCancelled(true);
         UUID id = e.getWhoClicked().getUniqueId();
         String building = open.get(id);
-        if (building == null) return;
+        if (building == null) {
+            me.nakilex.levelplugin.Main.getInstance().getLogger().info(
+                    "[BuildingUpgradeGUI] ignore unknown player=" + e.getWhoClicked().getName());
+            return;
+        }
         me.nakilex.levelplugin.Main.getInstance().getLogger().info(
                 "[BuildingUpgradeGUI] click rawSlot=" + e.getRawSlot() +
                         " building=" + building +
                         " player=" + e.getWhoClicked().getName());
-        if (e.getClickedInventory() != e.getView().getTopInventory()) return; // ignore player inventory clicks
-        if (e.getRawSlot() != 13) return; // only react to our GUI slot
+        if (e.getClickedInventory() != e.getView().getTopInventory()) {
+            me.nakilex.levelplugin.Main.getInstance().getLogger().info(
+                    "[BuildingUpgradeGUI] ignore click in player inventory");
+            return; // ignore player inventory clicks
+        }
+        if (e.getRawSlot() != 13) {
+            me.nakilex.levelplugin.Main.getInstance().getLogger().info(
+                    "[BuildingUpgradeGUI] ignore slot=" + e.getRawSlot());
+            return; // only react to our GUI slot
+        }
         Player p = (Player) e.getWhoClicked();
         if (p.getInventory().contains(Material.OAK_LOG)) {
             p.getInventory().removeItem(new ItemStack(Material.OAK_LOG, 1));
