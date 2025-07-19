@@ -24,8 +24,10 @@ import java.util.*;
  */
 public class ClassSpellListener implements Listener {
 
-    /** Track sneaking timers for Witch hold-shift ability */
-    private final Map<UUID, BukkitTask> holdTasks = new HashMap<>();
+    /** Repeating task applying the hold-shift counter each tick while sneaking */
+    private final Map<UUID, BukkitTask> holdCountTasks = new HashMap<>();
+    /** Repeating task attempting to cast the hold-shift spell each tick */
+    private final Map<UUID, BukkitTask> holdCastTasks = new HashMap<>();
     /** Track last unsneak times for Witch double-sneak detection */
     private final Map<UUID, Long> lastUnsneak = new HashMap<>();
 
@@ -234,20 +236,28 @@ public class ClassSpellListener implements Listener {
                     MythicBukkit.inst().getAPIHelper().castSkill(p, "mf_class_witch_shiftshift");
                 }
 
-                // schedule hold-shift check
-                // Cast the hold-shift skill shortly after the timer aura
-                // finishes stacking (20 ticks) so the stacks are still
-                // present when the Mythic conditions are evaluated.
-                BukkitTask task = Bukkit.getScheduler().runTaskLater(
+                BukkitTask countTask = Bukkit.getScheduler().runTaskTimer(
+                        Main.getPlugin(),
+                        () -> {
+                            if (p.isOnline() && p.isSneaking()) {
+                                MythicBukkit.inst().getAPIHelper().castSkill(p, "mf_class_witch_holdshift_cruibile_count");
+                            }
+                        },
+                        0L, 1L
+                );
+                BukkitTask castTask = Bukkit.getScheduler().runTaskTimer(
                         Main.getPlugin(),
                         () -> {
                             if (p.isOnline() && p.isSneaking()) {
                                 MythicBukkit.inst().getAPIHelper().castSkill(p, "mf_class_witch_holdshift");
                             }
                         },
-                        20L
+                        0L, 1L
                 );
-                BukkitTask old = holdTasks.put(p.getUniqueId(), task);
+
+                BukkitTask old = holdCountTasks.put(p.getUniqueId(), countTask);
+                if (old != null) old.cancel();
+                old = holdCastTasks.put(p.getUniqueId(), castTask);
                 if (old != null) old.cancel();
             }
         } else {
@@ -255,7 +265,9 @@ public class ClassSpellListener implements Listener {
 
             if (pc == PlayerClass.WITCH) {
                 lastUnsneak.put(p.getUniqueId(), System.currentTimeMillis());
-                BukkitTask task = holdTasks.remove(p.getUniqueId());
+                BukkitTask task = holdCountTasks.remove(p.getUniqueId());
+                if (task != null) task.cancel();
+                task = holdCastTasks.remove(p.getUniqueId());
                 if (task != null) task.cancel();
             }
         }
