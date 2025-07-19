@@ -145,6 +145,14 @@ public class EffectRegistry {
         register("MYTHIC_FROZEN_SHIELD", new MythicSkillEffect("Frozen_Shield"));
         register("MYTHIC_PERMAFROST_LANCE", new MythicSkillEffect("Permafrost_Lance"));
 
+        // --- Witch Mythic skills ---
+        register("MF_CLASS_WITCH_NORMALATTACK", new MythicSkillEffect("mf_class_witch_normalattack"));
+        register("MF_CLASS_WITCH_RIGHTCLICK", new MythicSkillEffect("mf_class_witch_rightclick"));
+        register("MF_CLASS_WITCH_SNEAK_LEFTCLICK", new MythicSkillEffect("mf_class_witch_sneak_leftclick"));
+        register("MF_CLASS_WITCH_SNEAK_RIGHTCLICK", new MythicSkillEffect("mf_class_witch_sneak_rightclick"));
+        register("MF_CLASS_WITCH_SHIFTSHIFT", new MythicSkillEffect("mf_class_witch_shiftshift"));
+        register("MF_CLASS_WITCH_HOLDSHIFT", new MythicSkillEffect("mf_class_witch_holdshift"));
+
 
 
 

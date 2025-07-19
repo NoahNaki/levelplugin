@@ -496,7 +496,7 @@ public class SpellManager {
         ));
         mageMap.put("LRL", new Spell(
             "blink", "Blink", "LRL",
-            6.0,
+            8.0,
             1,
             3,
             WeaponType.WAND.getMaterials(),
