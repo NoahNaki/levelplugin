@@ -13,6 +13,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.TextDisplay;
+import org.bukkit.entity.Interaction;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.Particle;
@@ -42,8 +43,8 @@ public class EnvironmentManager {
     private final Map<UUID, java.util.List<BukkitTask>> buildTasks = new HashMap<>();
     /** Hologram lines per building per player. */
     private final Map<UUID, Map<String, java.util.List<org.bukkit.entity.TextDisplay>>> buildingHolograms = new HashMap<>();
-    /** Invisible armor stands used for clicking holograms. */
-    private final Map<UUID, Map<String, org.bukkit.entity.ArmorStand>> hologramStands = new HashMap<>();
+    /** Invisible interaction entities used for clicking holograms. */
+    private final Map<UUID, Map<String, org.bukkit.entity.Interaction>> hologramInteractions = new HashMap<>();
     private final Map<UUID, UUID> coopOwners = new HashMap<>();
     private final Map<UUID, UUID> coopPartners = new HashMap<>();
     private final Map<UUID, UUID> pendingInvites = new HashMap<>();
@@ -286,20 +287,17 @@ public class EnvironmentManager {
     private java.util.List<TextDisplay> spawnHologramLines(Player player, Location base, java.util.List<String> lines, String tag) {
         java.util.List<TextDisplay> displays = new java.util.ArrayList<>();
 
-        // Spawn an invisible armor stand for interaction
-        org.bukkit.entity.ArmorStand stand = base.getWorld().spawn(base, org.bukkit.entity.ArmorStand.class, as -> {
-            as.setInvisible(true);
-            as.setSmall(true);
-            as.setGravity(false);
-            as.setMarker(false);
-            as.setSilent(true);
-            as.addScoreboardTag("building_hologram:" + tag.toLowerCase());
+        // Spawn an invisible interaction entity for reliable clicking
+        org.bukkit.entity.Interaction clicker = base.getWorld().spawn(base, org.bukkit.entity.Interaction.class, it -> {
+            it.setInteractionWidth(1.0f);
+            it.setInteractionHeight(2.0f);
+            it.addScoreboardTag("building_hologram:" + tag.toLowerCase());
         });
         for (Player p : Bukkit.getOnlinePlayers()) {
-            if (!p.equals(player)) p.hideEntity(Main.getInstance(), stand);
+            if (!p.equals(player)) p.hideEntity(Main.getInstance(), clicker);
         }
-        hologramStands.computeIfAbsent(player.getUniqueId(), k -> new java.util.HashMap<>())
-                .put(tag.toLowerCase(), stand);
+        hologramInteractions.computeIfAbsent(player.getUniqueId(), k -> new java.util.HashMap<>())
+                .put(tag.toLowerCase(), clicker);
 
         double offset = 0.0;
         for (String text : lines) {
@@ -567,11 +565,11 @@ public class EnvironmentManager {
             }
             if (map.isEmpty()) buildingHolograms.remove(uuid);
         }
-        var standMap = hologramStands.get(uuid);
-        if (standMap != null) {
-            var stand = standMap.remove(building.toLowerCase());
-            if (stand != null && !stand.isDead()) stand.remove();
-            if (standMap.isEmpty()) hologramStands.remove(uuid);
+        var interactMap = hologramInteractions.get(uuid);
+        if (interactMap != null) {
+            var clicker = interactMap.remove(building.toLowerCase());
+            if (clicker != null && !clicker.isDead()) clicker.remove();
+            if (interactMap.isEmpty()) hologramInteractions.remove(uuid);
         }
     }
 
@@ -586,10 +584,10 @@ public class EnvironmentManager {
                 }
             }
         }
-        var standMap = hologramStands.remove(uuid);
-        if (standMap != null) {
-            for (var stand : standMap.values()) {
-                if (stand != null && !stand.isDead()) stand.remove();
+        var interactMap = hologramInteractions.remove(uuid);
+        if (interactMap != null) {
+            for (var clicker : interactMap.values()) {
+                if (clicker != null && !clicker.isDead()) clicker.remove();
             }
         }
     }
