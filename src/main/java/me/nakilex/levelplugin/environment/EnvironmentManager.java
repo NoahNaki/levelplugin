@@ -289,8 +289,9 @@ public class EnvironmentManager {
 
         // Spawn an invisible interaction entity for reliable clicking
         org.bukkit.entity.Interaction clicker = base.getWorld().spawn(base, org.bukkit.entity.Interaction.class, it -> {
-            it.setInteractionWidth(1.0f);
-            it.setInteractionHeight(2.0f);
+            // Make the clickable area large so players don't miss the hologram
+            it.setInteractionWidth(3.0f);
+            it.setInteractionHeight(3.0f);
             it.addScoreboardTag("building_hologram:" + tag.toLowerCase());
         });
         for (Player p : Bukkit.getOnlinePlayers()) {
