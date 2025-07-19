@@ -715,13 +715,9 @@ public class EnvironmentManager {
     public void investBuilding(Player player, String building, int amount) {
         loadPlayerState(player);
         UUID base = getBase(player.getUniqueId());
-        Map<String, EnvironmentState> bMap = buildingStates.get(base);
-        if (bMap == null) {
-            player.sendMessage(ChatColor.RED + "You have no settlement buildings.");
-            return;
-        }
-        EnvironmentState bs = bMap.get(building.toLowerCase());
-        if (bs == null) {
+        Map<String, EnvironmentState> bMap = buildingStates.computeIfAbsent(base, k -> new java.util.HashMap<>());
+        EnvironmentState bs = bMap.computeIfAbsent(building.toLowerCase(), k -> new EnvironmentState(1, 1));
+        if (buildingStageManager.getStage(building, bs.level, bs.stage) == null) {
             player.sendMessage(ChatColor.RED + "Unknown building.");
             return;
         }

@@ -19,21 +19,16 @@ public class BuildingHologramListener implements Listener {
     }
 
     private void handleInteract(org.bukkit.entity.Player player, org.bukkit.entity.Entity entity, Runnable cancelAction) {
-        Main.getPlugin().getLogger().info("[DBG] BuildingHologramListener triggered by "
-                + player.getName() + " on " + entity.getType());
         if (entity instanceof ArmorStand || entity instanceof TextDisplay || entity instanceof Interaction) {
             for (String tag : entity.getScoreboardTags()) {
-                Main.getPlugin().getLogger().info("[DBG] checking tag " + tag);
                 if (tag.startsWith("building_hologram:")) {
                     String building = tag.substring("building_hologram:".length());
-                    Main.getPlugin().getLogger().info("[DBG] opening building GUI for " + building);
                     cancelAction.run();
                     gui.open(player, building);
                     return;
                 }
             }
         }
-        Main.getPlugin().getLogger().info("[DBG] entity was not a building hologram");
     }
 
     @EventHandler(priority = org.bukkit.event.EventPriority.HIGHEST, ignoreCancelled = true)
