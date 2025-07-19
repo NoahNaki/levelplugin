@@ -65,6 +65,7 @@ import me.nakilex.levelplugin.environment.UpgradeGUI;
 import me.nakilex.levelplugin.environment.stage.TownStageCommand;
 import me.nakilex.levelplugin.environment.stage.BuildingStageCommand;
 import me.nakilex.levelplugin.environment.stage.TownPosCommand;
+import me.nakilex.levelplugin.environment.TestHologramCommand;
 
 public class CommandRegistry {
 
@@ -154,5 +155,6 @@ public class CommandRegistry {
         plugin.getCommand("townpos2").setExecutor(new TownPosCommand(false));
 
         plugin.getCommand("cutscene").setExecutor(new me.nakilex.levelplugin.cutscene.commands.CutsceneCommand(plugin.getCutsceneManager()));
+        plugin.getCommand("testhologram").setExecutor(new me.nakilex.levelplugin.environment.TestHologramCommand(plugin.getEnvironmentManager()));
     }
 }

@@ -317,6 +317,14 @@ public class EnvironmentManager {
         return displays;
     }
 
+    /** Spawn a simple test hologram for debugging purposes. */
+    public void spawnTestHologram(Player player, Location location) {
+        java.util.List<String> lines = java.util.Arrays.asList(
+                ChatColor.AQUA + "Test Hologram",
+                ChatColor.GRAY + "Right-click");
+        spawnHologramLines(player, location, lines, "test");
+    }
+
     private UUID getBase(UUID uuid) {
         return coopOwners.getOrDefault(uuid, uuid);
     }
