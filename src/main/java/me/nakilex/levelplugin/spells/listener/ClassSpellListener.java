@@ -31,6 +31,8 @@ public class ClassSpellListener implements Listener {
     private final Map<UUID, BukkitTask> holdCastTasks = new HashMap<>();
     /** Track last unsneak times for Witch double-sneak detection */
     private final Map<UUID, Long> lastUnsneak = new HashMap<>();
+    /** Repeating task casting crouch-start skills while the player sneaks */
+    private final Map<UUID, BukkitTask> startCastTasks = new HashMap<>();
 
     private enum Trigger { LEFT, LEFT_SNEAK, RIGHT, RIGHT_SNEAK, SNEAK_START, SNEAK_END }
 
@@ -268,6 +270,20 @@ public class ClassSpellListener implements Listener {
                 if (old != null) old.cancel();
                 old = holdCastTasks.put(p.getUniqueId(), castTask);
                 if (old != null) old.cancel();
+            } else if (pc == PlayerClass.MAGE || pc == PlayerClass.ABYSSION) {
+                BukkitTask task = Bukkit.getScheduler().runTaskTimer(
+                        Main.getPlugin(),
+                        () -> {
+                            if (p.isOnline() && p.isSneaking()) {
+                                for (String id : tr.sneakStart) {
+                                    MythicBukkit.inst().getAPIHelper().castSkill(p, id);
+                                }
+                            }
+                        },
+                        0L, 1L
+                );
+                BukkitTask old = startCastTasks.put(p.getUniqueId(), task);
+                if (old != null) old.cancel();
             }
         } else {
             cast(p, tr.sneakEnd, pc);
@@ -277,6 +293,9 @@ public class ClassSpellListener implements Listener {
                 BukkitTask task = holdCountTasks.remove(p.getUniqueId());
                 if (task != null) task.cancel();
                 task = holdCastTasks.remove(p.getUniqueId());
+                if (task != null) task.cancel();
+            } else if (pc == PlayerClass.MAGE || pc == PlayerClass.ABYSSION) {
+                BukkitTask task = startCastTasks.remove(p.getUniqueId());
                 if (task != null) task.cancel();
             }
         }
