@@ -280,6 +280,8 @@ public class EnvironmentManager {
         lines.add(ChatColor.AQUA + "Requirements:");
         lines.add(logLine);
         lines.add(coinLine);
+        lines.add(ChatColor.YELLOW.toString() + ChatColor.UNDERLINE
+                + "Right-Click to upgrade this building");
         return lines;
     }
 
