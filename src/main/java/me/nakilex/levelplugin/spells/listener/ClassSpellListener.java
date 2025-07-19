@@ -133,7 +133,7 @@ public class ClassSpellListener implements Listener {
         t.sneakStart = List.of("LLR");
         MAP.put(PlayerClass.DRAGONWARRIOR, t);
 
-        // Windrune class (sneak start/stop different)
+        // Windrune class (known internally as GALEGLAIVE)
         t = new Triggers();
         t.leftSneak = List.of("RRR");
         t.left = List.of("BASIC_ATTACK");
@@ -141,7 +141,7 @@ public class ClassSpellListener implements Listener {
         t.right = List.of("LRL");
         t.sneakStart = List.of("LRR");
         t.sneakEnd = List.of("RLL");
-        MAP.put(PlayerClass.WINDRUNE, t);
+        MAP.put(PlayerClass.GALEGLAIVE, t);
 
         // Arctic Knight class
         t = new Triggers();
