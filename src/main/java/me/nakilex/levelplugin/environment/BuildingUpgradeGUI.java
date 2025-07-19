@@ -19,8 +19,6 @@ import java.util.*;
 public class BuildingUpgradeGUI implements Listener {
     private static final String TITLE_PREFIX = ChatColor.BLACK + "Upgrade ";
     private final EnvironmentManager manager;
-    private final Map<UUID, String> open = new HashMap<>();
-
     public BuildingUpgradeGUI(EnvironmentManager manager) {
         this.manager = manager;
     }
@@ -49,7 +47,6 @@ public class BuildingUpgradeGUI implements Listener {
                 ChatColor.GREEN + "Invest 1 Oak Log",
                 ChatColor.GRAY + "Click to invest towards",
                 ChatColor.GRAY + "the next upgrade."));
-        open.put(p.getUniqueId(), building.toLowerCase());
         p.openInventory(inv);
     }
 
@@ -62,13 +59,7 @@ public class BuildingUpgradeGUI implements Listener {
             return;
         }
         e.setCancelled(true);
-        UUID id = e.getWhoClicked().getUniqueId();
-        String building = open.get(id);
-        if (building == null) {
-            me.nakilex.levelplugin.Main.getInstance().getLogger().info(
-                    "[BuildingUpgradeGUI] ignore unknown player=" + e.getWhoClicked().getName());
-            return;
-        }
+        String building = title.substring(TITLE_PREFIX.length()).toLowerCase();
         me.nakilex.levelplugin.Main.getInstance().getLogger().info(
                 "[BuildingUpgradeGUI] click rawSlot=" + e.getRawSlot() +
                         " building=" + building +
@@ -102,7 +93,6 @@ public class BuildingUpgradeGUI implements Listener {
     public void onClose(InventoryCloseEvent e) {
         String title = e.getView().getTitle();
         if (title.startsWith(TITLE_PREFIX)) {
-            open.remove(e.getPlayer().getUniqueId());
             me.nakilex.levelplugin.Main.getInstance().getLogger().info(
                     "[BuildingUpgradeGUI] closed by " + e.getPlayer().getName());
         }
