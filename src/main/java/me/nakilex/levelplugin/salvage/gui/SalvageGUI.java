@@ -16,7 +16,7 @@ import java.util.Arrays;
 public class SalvageGUI {
 
     private static final int GUI_SIZE = 54;
-    private static final String GUI_TITLE = ChatColor.DARK_GREEN + "Salvage Items";
+    private static final String GUI_TITLE = ChatColor.BLACK + "Salvage Items";
 
     public static void openMerchantGUI(Player player) {
         Inventory gui = Bukkit.createInventory(null, GUI_SIZE, GUI_TITLE);

@@ -17,7 +17,7 @@ import java.util.*;
 
 /** GUI for investing materials into a specific building upgrade. */
 public class BuildingUpgradeGUI implements Listener {
-    private static final String TITLE_PREFIX = ChatColor.DARK_GREEN + "Upgrade ";
+    private static final String TITLE_PREFIX = ChatColor.BLACK + "Upgrade ";
     private final EnvironmentManager manager;
     private final Map<UUID, String> open = new HashMap<>();
 

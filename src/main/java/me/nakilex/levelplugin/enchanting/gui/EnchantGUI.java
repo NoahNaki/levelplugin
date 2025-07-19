@@ -24,7 +24,7 @@ import java.util.*;
 public class EnchantGUI implements Listener {
     private static final int SIZE = 27;
     private static final int INFO_SLOT = 8;
-    private static final String TITLE = ChatColor.DARK_PURPLE + "Enchant";
+    private static final String TITLE = ChatColor.BLACK + "Enchant";
 
     private final EnchantManager manager;
     private final EconomyManager economy;

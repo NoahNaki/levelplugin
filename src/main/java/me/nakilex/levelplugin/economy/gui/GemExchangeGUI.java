@@ -24,7 +24,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import me.nakilex.levelplugin.utils.GuiUtil;
 
 public class GemExchangeGUI implements Listener {
-    private static final String TITLE = ChatColor.DARK_PURPLE + "Gem Exchange";
+    private static final String TITLE = ChatColor.BLACK + "Gem Exchange";
     private static final Material FRAGMENT = Material.MEDIUM_AMETHYST_BUD;
     private static final Material SHARD    = Material.AMETHYST_SHARD;
     private static final Material CLUSTER  = Material.AMETHYST_CLUSTER;

@@ -23,7 +23,7 @@ import java.util.*;
 
 public class QuestGUI {
 
-    public static final String GUI_TITLE = ChatColor.DARK_GREEN + "Quests";
+    public static final String GUI_TITLE = ChatColor.BLACK + "Quests";
     private static final int GUI_SIZE = 54;
     private static final int[] QUEST_SLOTS = {
             10,11,12,13,14,15,16,
@@ -166,7 +166,10 @@ public class QuestGUI {
                 lore.add(ChatColor.GREEN + "Rewards:");
                 if (quest.getReward() != null) {
                     QuestReward r = quest.getReward();
-                    if (r.getXp() > 0) lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + r.getXp() + " <glyph:experience_orb_icon>");
+                    if (r.getXp() > 0) {
+                        String expLabel = net.md_5.bungee.api.ChatColor.of("#47b587") + "EXP";
+                        lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + r.getXp() + " <glyph:experience_orb_icon> " + expLabel);
+                    }
                     if (r.getCoins() > 0) lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + r.getCoins() + " <glyph:coins_icon>");
                     if (r.getGems() > 0) lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + r.getGems() + " " + ChatColor.LIGHT_PURPLE + "<glyph:purple_orb_icon>");
                     for (int id : r.getItemIds()) {

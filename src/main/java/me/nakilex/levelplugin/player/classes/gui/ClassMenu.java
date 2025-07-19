@@ -16,7 +16,7 @@ public class ClassMenu {
 
     public static Inventory getClassSelectionMenu(Player player) {
         // Create an inventory with 27 slots
-        Inventory inv = Bukkit.createInventory(null, 27, ChatColor.DARK_GREEN + "Choose Your Class");
+        Inventory inv = Bukkit.createInventory(null, 27, ChatColor.BLACK + "Choose Your Class");
 
         int level = me.nakilex.levelplugin.player.level.managers.LevelManager.getInstance().getLevel(player);
         me.nakilex.levelplugin.player.classes.data.PlayerClass current =

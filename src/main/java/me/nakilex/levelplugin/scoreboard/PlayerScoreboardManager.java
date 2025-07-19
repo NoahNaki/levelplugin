@@ -122,7 +122,7 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         int line = 15;
         int idx = 0;
         String coinStr = java.text.NumberFormat.getIntegerInstance().format(economyManager.getBalance(player));
-        current[idx] = ChatColor.YELLOW + "<glyph:coins_icon> " + ChatColor.WHITE + "Coins: " + ChatColor.YELLOW + coinStr;
+        current[idx] = ChatColor.GOLD + "<glyph:coins_icon> " + ChatColor.WHITE + "Coins: " + ChatColor.GOLD + coinStr;
         if (!current[idx].equals(prev[idx])) {
             setLine(board, obj, idx, line, current[idx]);
         }

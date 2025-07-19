@@ -320,7 +320,7 @@ public class SpellGUI {
 
         if (classKey == null) {
             player.sendMessage(ChatColor.RED + "Select a class to view its spells.");
-            Inventory gui = Bukkit.createInventory(null, 27, ChatColor.DARK_GREEN + "Spell Book");
+            Inventory gui = Bukkit.createInventory(null, 27, ChatColor.BLACK + "Spell Book");
             ItemStack filler = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
             ItemMeta fm = filler.getItemMeta();
             fm.setDisplayName(" ");
@@ -331,7 +331,7 @@ public class SpellGUI {
         }
 
         // Create a 27-slot inventory titled "Spell Book"
-        Inventory gui = Bukkit.createInventory(null, 27, ChatColor.DARK_GREEN + "Spell Book");
+        Inventory gui = Bukkit.createInventory(null, 27, ChatColor.BLACK + "Spell Book");
 
         // Fill all slots with dark gray stained glass panes as fillers
         ItemStack filler = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);

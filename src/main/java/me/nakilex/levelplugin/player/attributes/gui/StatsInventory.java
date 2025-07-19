@@ -177,7 +177,8 @@ public class StatsInventory {
             int barLen = 15;
             int filled = (int) Math.round(p / 100.0 * barLen);
             String bar = ChatColor.GREEN + "" + "-".repeat(Math.max(filled,0)) + ChatColor.WHITE + "" + "-".repeat(Math.max(barLen - filled,0));
-            lore.add(bar + " " + ChatColor.YELLOW + currentXP + ChatColor.GOLD + "/" + ChatColor.YELLOW + nextLevelXP);
+            String expLabel = net.md_5.bungee.api.ChatColor.of("#47b587") + "EXP";
+            lore.add(bar + " " + ChatColor.YELLOW + currentXP + ChatColor.GOLD + "/" + ChatColor.YELLOW + nextLevelXP + " <glyph:experience_orb_icon> " + expLabel);
         } else {
             int mLevel = miningManager.getLevel(player);
             int next = miningManager.getXpRequired(mLevel);
