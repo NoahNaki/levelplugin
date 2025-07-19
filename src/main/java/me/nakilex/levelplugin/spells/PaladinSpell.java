@@ -96,7 +96,8 @@ public class PaladinSpell implements Listener {
             player.sendMessage("§cYou must hold a valid paladin weapon!");
             return;
         }
-        spell.castEffect(player);
-        StatsManager.getInstance().recalcDerivedStats(player);
+        if (spell.castEffect(player)) {
+            StatsManager.getInstance().recalcDerivedStats(player);
+        }
     }
 }

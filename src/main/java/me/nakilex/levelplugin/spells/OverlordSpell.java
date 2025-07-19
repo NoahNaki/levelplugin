@@ -94,11 +94,14 @@ public class OverlordSpell implements Listener {
 
     private void castSpell(Player player, String combo) {
         Spell spell = SpellManager.getInstance().getSpell("overlord", combo);
+        boolean success;
         if (spell == null) {
-            MythicBukkit.inst().getAPIHelper().castSkill(player, combo);
-            return;
+            success = MythicBukkit.inst().getAPIHelper().castSkill(player, combo);
+        } else {
+            success = spell.castEffect(player);
         }
-        spell.castEffect(player);
-        StatsManager.getInstance().recalcDerivedStats(player);
+        if (success) {
+            StatsManager.getInstance().recalcDerivedStats(player);
+        }
     }
 }

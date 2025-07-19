@@ -109,7 +109,8 @@ public class MageSpell implements Listener {
             MythicBukkit.inst().getAPIHelper().castSkill(player, combo);
             return;
         }
-        spell.castEffect(player);
-        StatsManager.getInstance().recalcDerivedStats(player);
+        if (spell.castEffect(player)) {
+            StatsManager.getInstance().recalcDerivedStats(player);
+        }
     }
 }
