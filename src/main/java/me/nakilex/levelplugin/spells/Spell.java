@@ -9,9 +9,12 @@ import me.nakilex.levelplugin.spells.effect.SpellEffect;
 import me.nakilex.levelplugin.spells.managers.CooldownManager;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.spells.registry.EffectRegistry;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 
 
 import java.util.List;
@@ -117,10 +120,26 @@ public class Spell {
 
         // 0) Requirement check (weapon type + class)
         ItemStack hand = player.getInventory().getItemInMainHand();
-        if (hand == null || hand.getType() == Material.AIR ||
-            (!allowedWeapons.isEmpty() && !allowedWeapons.contains(hand.getType()))) {
+        if (hand == null || hand.getType() == Material.AIR) {
             player.sendMessage("§cYou can't cast " + displayName + " with this weapon.");
             return;
+        }
+        Material mat = hand.getType();
+        if (!allowedWeapons.isEmpty() && !allowedWeapons.contains(mat)) {
+            Material baseMat = mat;
+            if (hand.hasItemMeta()) {
+                PersistentDataContainer pdc = hand.getItemMeta().getPersistentDataContainer();
+                if (pdc.has(ItemUtil.TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING)) {
+                    String stored = pdc.get(ItemUtil.TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING);
+                    try {
+                        baseMat = Material.valueOf(stored);
+                    } catch (IllegalArgumentException ignored) {}
+                }
+            }
+            if (!allowedWeapons.contains(baseMat)) {
+                player.sendMessage("§cYou can't cast " + displayName + " with this weapon.");
+                return;
+            }
         }
         me.nakilex.levelplugin.items.data.CustomItem ci = me.nakilex.levelplugin.items.managers.ItemManager
                 .getInstance().getCustomItemFromItemStack(hand);

@@ -35,7 +35,10 @@ public class OverlordSpell implements Listener {
 
     private boolean validWeapon(Player player) {
         ItemStack item = player.getInventory().getItemInMainHand();
-        if (item == null || item.getType() == Material.AIR) return false;
+        if (item == null || item.getType() == Material.AIR) {
+            player.sendMessage("§cYou must hold a valid overlord weapon!");
+            return false;
+        }
 
         if (WeaponType.isValidMageWeapon(item)) return true;
 
@@ -51,6 +54,7 @@ public class OverlordSpell implements Listener {
         }
 
         Main.getPlugin().getLogger().info("[OV DBG] invalid weapon " + item.getType());
+        player.sendMessage("§cYou must hold a valid overlord weapon!");
         return false;
     }
 
@@ -83,10 +87,6 @@ public class OverlordSpell implements Listener {
         Spell spell = SpellManager.getInstance().getSpell("overlord", combo);
         if (spell == null) {
             MythicBukkit.inst().getAPIHelper().castSkill(player, combo);
-            return;
-        }
-        if (!spell.getAllowedWeapons().contains(player.getInventory().getItemInMainHand().getType())) {
-            player.sendMessage("§cYou must hold a valid overlord weapon!");
             return;
         }
         spell.castEffect(player);
