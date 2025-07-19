@@ -773,7 +773,8 @@ public class QuestManager {
                 me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + reward.getXp() + " <glyph:experience_orb_icon> " + expLabel);
             }
             if (reward.getCoins() > 0) {
-                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + reward.getCoins() + " <glyph:coins_icon>");
+                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player,
+                        "§a- §7" + reward.getCoins() + " <glyph:coins_icon> §6coins");
             }
             if (reward.getGems() > 0) {
                 me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + reward.getGems() + " §d<glyph:purple_orb_icon>");

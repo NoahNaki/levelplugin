@@ -64,8 +64,14 @@ public class AddCoinsCommand implements CommandExecutor {
         if (newBal < 0) newBal = 0;
         economy.setBalance(playerId, newBal);
         if (online != null) {
-            online.sendMessage((amount >= 0 ? "You received " : "You lost ")
-                    + Math.abs(amount) + " coins." );
+            if (amount >= 0) {
+                String coinText = Math.abs(amount) + " <glyph:coins_icon> "
+                        + org.bukkit.ChatColor.GOLD + "coins";
+                online.sendMessage(org.bukkit.ChatColor.GREEN + "You received "
+                        + coinText + org.bukkit.ChatColor.GREEN + ".");
+            } else {
+                online.sendMessage("You lost " + Math.abs(amount) + " coins.");
+            }
         }
     }
 }
