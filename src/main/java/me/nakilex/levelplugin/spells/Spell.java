@@ -117,13 +117,29 @@ public class Spell {
 
         // 0) Requirement check (weapon type + class)
         ItemStack hand = player.getInventory().getItemInMainHand();
-        if (hand == null || hand.getType() == Material.AIR ||
-            (!allowedWeapons.isEmpty() && !allowedWeapons.contains(hand.getType()))) {
+        if (hand == null || hand.getType() == Material.AIR) {
             player.sendMessage("§cYou can't cast " + displayName + " with this weapon.");
             return;
         }
+
         me.nakilex.levelplugin.items.data.CustomItem ci = me.nakilex.levelplugin.items.managers.ItemManager
                 .getInstance().getCustomItemFromItemStack(hand);
+
+        // Check weapon material first. If it's not an allowed material, we only
+        // permit the cast when the custom item's class requirement matches the
+        // player's class.
+        boolean materialAllowed = allowedWeapons.isEmpty() || allowedWeapons.contains(hand.getType());
+
+        me.nakilex.levelplugin.player.classes.data.PlayerClass playerClass =
+                StatsManager.getInstance().getPlayerStats(pid).playerClass;
+
+        if (!materialAllowed) {
+            if (ci == null) {
+                player.sendMessage("§cYou can't cast " + displayName + " with this weapon.");
+                return;
+            }
+        }
+
         if (ci != null) {
             String reqRaw = ci.getClassRequirement();
             me.nakilex.levelplugin.player.classes.data.PlayerClass req = null;
@@ -132,13 +148,16 @@ public class Spell {
                     req = me.nakilex.levelplugin.player.classes.data.PlayerClass.valueOf(reqRaw.toUpperCase());
                 }
             } catch (IllegalArgumentException ignored) {}
-            me.nakilex.levelplugin.player.classes.data.PlayerClass playerClass =
-                    StatsManager.getInstance().getPlayerStats(pid).playerClass;
+
             if (!me.nakilex.levelplugin.player.classes.data.ClassUtil.meetsRequirement(playerClass, req)) {
                 player.sendMessage("§cYou are not the right class to cast spells with this weapon.");
                 return;
             }
+        } else if (!materialAllowed) {
+            player.sendMessage("§cYou can't cast " + displayName + " with this weapon.");
+            return;
         }
+
         // rank and ego requirements removed
 
         // 1) Cooldown guard

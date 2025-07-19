@@ -32,7 +32,7 @@ public class OverlordSpell implements Listener {
 
     private boolean validWeapon(Player player) {
         ItemStack item = player.getInventory().getItemInMainHand();
-        boolean ok = item != null && VALID_WEAPONS.contains(item.getType());
+        boolean ok = item != null && WeaponType.isValidMageWeapon(item);
         if (!ok) {
             Main.getPlugin().getLogger().info("[OV DBG] invalid weapon " + (item == null ? "null" : item.getType().name()));
         }
