@@ -66,6 +66,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -464,6 +465,38 @@ public class PluginBootstrap {
         }
         if (!customConfig.contains("debug.chunk-loading")) {
             customConfig.set("debug.chunk-loading", false);
+        }
+        if (!customConfig.contains("tips.delay")) {
+            customConfig.set("tips.delay", 120);
+        }
+        if (!customConfig.contains("tips.messages")) {
+            customConfig.set("tips.messages", Arrays.asList(
+                    "You can type [item] to link what you're holding in chat!",
+                    "Don\u2019t forget to spend your skill points!",
+                    "You can trade &d<glyph:purple_orb_icon> &rat a Gem Exchanger.",
+                    "You can change your class at anytime using /class",
+                    "Type /settings to toggle different visual features",
+                    "Every mobility spell scales with agility!",
+                    "You can trade with others using /trade <username>",
+                    "You can sell your unwanted items at a Scrapper for <glyph:coins_icon> &6coins & <glyph:purple_orb_icon> &dgems&f!"
+            ));
+        }
+        if (!customConfig.contains("leaderboards.level.world")) {
+            customConfig.set("leaderboards.level.world", "flatland");
+            customConfig.set("leaderboards.level.x", 100);
+            customConfig.set("leaderboards.level.y", -50);
+            customConfig.set("leaderboards.level.z", 100);
+            customConfig.set("leaderboards.level.type", "LEVEL");
+            customConfig.set("leaderboards.duels.world", "flatland");
+            customConfig.set("leaderboards.duels.x", 105);
+            customConfig.set("leaderboards.duels.y", -50);
+            customConfig.set("leaderboards.duels.z", 100);
+            customConfig.set("leaderboards.duels.type", "DUELS");
+            customConfig.set("leaderboards.balance.world", "flatland");
+            customConfig.set("leaderboards.balance.x", 110);
+            customConfig.set("leaderboards.balance.y", -50);
+            customConfig.set("leaderboards.balance.z", 100);
+            customConfig.set("leaderboards.balance.type", "BALANCE");
         }
         try {
             customConfig.save(customConfigFile);

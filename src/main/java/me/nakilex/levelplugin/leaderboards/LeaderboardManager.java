@@ -18,8 +18,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Loads leaderboard definitions from leaderboards.yml and displays them
- * using holograms.
+ * Loads leaderboard definitions from config.yml and displays them using holograms.
  */
 public class LeaderboardManager {
     private final Main plugin;
@@ -28,7 +27,7 @@ public class LeaderboardManager {
     private final DuelStatsManager duelStats;
     private final SettingsManager settingsManager;
 
-    private File file;
+    private final File file;
     private FileConfiguration config;
     private final Map<String, Leaderboard> boards = new HashMap<>();
 
@@ -38,16 +37,13 @@ public class LeaderboardManager {
         this.playerConfig = pCfg;
         this.duelStats = duelStats;
         this.settingsManager = settingsManager;
+        this.file = new File(plugin.getDataFolder(), "config.yml");
         load();
         plugin.getLogger().info("Loaded " + boards.size() + " leaderboard(s)");
         updateAll();
     }
 
     private void load() {
-        file = new File(plugin.getDataFolder(), "leaderboards.yml");
-        if (!file.exists()) {
-            plugin.saveResource("leaderboards.yml", false);
-        }
         config = YamlConfiguration.loadConfiguration(file);
         boards.clear();
         ConfigurationSection sec = config.getConfigurationSection("leaderboards");
@@ -194,7 +190,7 @@ public class LeaderboardManager {
         try {
             config.save(file);
         } catch (IOException e) {
-            plugin.getLogger().severe("Failed to save leaderboards.yml: " + e.getMessage());
+            plugin.getLogger().severe("Failed to save config.yml: " + e.getMessage());
         }
     }
 

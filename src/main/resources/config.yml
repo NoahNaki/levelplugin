@@ -6,3 +6,37 @@ features:
   quests: true
 debug:
   chunk-loading: false
+
+# Tips configuration
+tips:
+  delay: 120
+  messages:
+    - "You can type [item] to link what you're holding in chat!"
+    - "Don’t forget to spend your skill points!"
+    - "You can trade &d<glyph:purple_orb_icon> &rat a Gem Exchanger."
+    - "You can change your class at anytime using /class"
+    - "Type /settings to toggle different visual features"
+    - "Every mobility spell scales with agility!"
+    - "You can trade with others using /trade <username>"
+    - "You can sell your unwanted items at a Scrapper for <glyph:coins_icon> &6coins & <glyph:purple_orb_icon> &dgems&f!"
+
+# Leaderboard locations
+leaderboards:
+  level:
+    world: flatland
+    x: 100
+    y: -50
+    z: 100
+    type: LEVEL
+  duels:
+    world: flatland
+    x: 105
+    y: -50
+    z: 100
+    type: DUELS
+  balance:
+    world: flatland
+    x: 110
+    y: -50
+    z: 100
+    type: BALANCE
