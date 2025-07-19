@@ -127,13 +127,10 @@ public class Spell {
                 try { matCheck = Material.valueOf(stored); } catch (Exception ignore) {}
             }
         }
-        if (hand == null || matCheck == Material.AIR ||
-                (!allowedWeapons.isEmpty() && !allowedWeapons.contains(matCheck))) {
-            player.sendMessage("§cYou can't cast " + displayName + " with this weapon.");
-            return;
-        }
-        me.nakilex.levelplugin.items.data.CustomItem ci = me.nakilex.levelplugin.items.managers.ItemManager
-                .getInstance().getCustomItemFromItemStack(hand);
+        me.nakilex.levelplugin.items.data.CustomItem ci =
+                me.nakilex.levelplugin.items.managers.ItemManager.getInstance()
+                        .getCustomItemFromItemStack(hand);
+        boolean skipWeaponCheck = false;
         if (ci != null) {
             String reqRaw = ci.getClassRequirement();
             me.nakilex.levelplugin.player.classes.data.PlayerClass req = null;
@@ -142,12 +139,22 @@ public class Spell {
                     req = me.nakilex.levelplugin.player.classes.data.PlayerClass.valueOf(reqRaw.toUpperCase());
                 }
             } catch (IllegalArgumentException ignored) {}
+
             me.nakilex.levelplugin.player.classes.data.PlayerClass playerClass =
                     StatsManager.getInstance().getPlayerStats(pid).playerClass;
             if (!me.nakilex.levelplugin.player.classes.data.ClassUtil.meetsRequirement(playerClass, req)) {
                 player.sendMessage("§cYou are not the right class to cast spells with this weapon.");
                 return;
             }
+
+            // If the item explicitly requires this class, allow any material
+            skipWeaponCheck = req != null;
+        }
+
+        if (hand == null || matCheck == Material.AIR ||
+                (!skipWeaponCheck && !allowedWeapons.isEmpty() && !allowedWeapons.contains(matCheck))) {
+            player.sendMessage("§cYou can't cast " + displayName + " with this weapon.");
+            return;
         }
         // rank and ego requirements removed
 
