@@ -17,6 +17,7 @@ public class SpellManager {
 
     private final EffectRegistry effectRegistry;
     private final Map<String, Map<String, Spell>> spellsByClass = new HashMap<>();
+    private final Map<String, Map<String, Spell>> spellsById = new HashMap<>();
     private Main plugin;
 
     private static final List<Material> WARRIOR_WEAPONS = new ArrayList<>();
@@ -51,6 +52,15 @@ public class SpellManager {
         Map<String, Spell> classMap = spellsByClass.get(className.toLowerCase());
         if (classMap == null) return null;
         return classMap.get(combo);
+    }
+
+    /**
+     * Lookup a spell by its id rather than combo.
+     */
+    public Spell getSpellById(String className, String id) {
+        Map<String, Spell> classMap = spellsById.get(className.toLowerCase());
+        if (classMap == null) return null;
+        return classMap.get(id.toLowerCase());
     }
 
     public Map<String, Spell> getSpellsByClass(String className) {
@@ -109,6 +119,9 @@ public class SpellManager {
             "MYTHIC_DRAGON_PIERCER", 0.0
         ));
         spellsByClass.put("archer", Collections.unmodifiableMap(archerMap));
+        Map<String, Spell> archerIdMap = new HashMap<>();
+        for (Spell s : archerMap.values()) archerIdMap.put(s.getId().toLowerCase(), s);
+        spellsById.put("archer", Collections.unmodifiableMap(archerIdMap));
         plugin.getLogger().info("[SPELLS] Archer combos: " + archerMap.keySet());
 
         // — PHOENIXHUNTER CLASS —
@@ -161,6 +174,9 @@ public class SpellManager {
             "MYTHIC_PHOENIX_REBIRTH", 0.0
         ));
         spellsByClass.put("phoenixhunter", Collections.unmodifiableMap(phoenixMap));
+        Map<String, Spell> phoenixIdMap = new HashMap<>();
+        for (Spell s : phoenixMap.values()) phoenixIdMap.put(s.getId().toLowerCase(), s);
+        spellsById.put("phoenixhunter", Collections.unmodifiableMap(phoenixIdMap));
         plugin.getLogger().info("[SPELLS] PhoenixHunter combos: " + phoenixMap.keySet());
 
         // — DEADEYE CLASS —
@@ -208,6 +224,9 @@ public class SpellManager {
             "MYTHIC_AIR_STRIKE", 0.0
         ));
         spellsByClass.put("deadeye", Collections.unmodifiableMap(deadeyeMap));
+        Map<String, Spell> deadeyeIdMap = new HashMap<>();
+        for (Spell s : deadeyeMap.values()) deadeyeIdMap.put(s.getId().toLowerCase(), s);
+        spellsById.put("deadeye", Collections.unmodifiableMap(deadeyeIdMap));
         plugin.getLogger().info("[SPELLS] Deadeye combos: " + deadeyeMap.keySet());
 
         // — WARRIOR CLASS —
@@ -263,6 +282,9 @@ public class SpellManager {
             "MYTHIC_RAMPAGE", 0.0
         ));
         spellsByClass.put("warrior", Collections.unmodifiableMap(warriorMap));
+        Map<String, Spell> warriorIdMap = new HashMap<>();
+        for (Spell s : warriorMap.values()) warriorIdMap.put(s.getId().toLowerCase(), s);
+        spellsById.put("warrior", Collections.unmodifiableMap(warriorIdMap));
         plugin.getLogger().info("[SPELLS] Warrior combos: " + warriorMap.keySet());
 
         // — BARBARIAN CLASS —
@@ -311,6 +333,9 @@ public class SpellManager {
             "MYTHIC_ETERNAL_FURY", 0.0
         ));
         spellsByClass.put("barbarian", Collections.unmodifiableMap(barbarianMap));
+        Map<String, Spell> barbarianIdMap = new HashMap<>();
+        for (Spell s : barbarianMap.values()) barbarianIdMap.put(s.getId().toLowerCase(), s);
+        spellsById.put("barbarian", Collections.unmodifiableMap(barbarianIdMap));
         plugin.getLogger().info("[SPELLS] Barbarian combos: " + barbarianMap.keySet());
 
         // — PALADIN CLASS —
@@ -359,6 +384,9 @@ public class SpellManager {
             "MYTHIC_LAST_STAND", 0.0
         ));
         spellsByClass.put("paladin", Collections.unmodifiableMap(paladinMap));
+        Map<String, Spell> paladinIdMap = new HashMap<>();
+        for (Spell s : paladinMap.values()) paladinIdMap.put(s.getId().toLowerCase(), s);
+        spellsById.put("paladin", Collections.unmodifiableMap(paladinIdMap));
         plugin.getLogger().info("[SPELLS] Paladin combos: " + paladinMap.keySet());
 
         // — DEATH KNIGHT CLASS —
@@ -407,6 +435,9 @@ public class SpellManager {
             "MYTHIC_DEATH_SENTENCE", 0.0
         ));
         spellsByClass.put("deathknight", Collections.unmodifiableMap(deathMap));
+        Map<String, Spell> deathIdMap = new HashMap<>();
+        for (Spell s : deathMap.values()) deathIdMap.put(s.getId().toLowerCase(), s);
+        spellsById.put("deathknight", Collections.unmodifiableMap(deathIdMap));
         plugin.getLogger().info("[SPELLS] DeathKnight combos: " + deathMap.keySet());
 
         // — ABYSSION CLASS —
@@ -448,6 +479,9 @@ public class SpellManager {
             "MYTHIC_ABYSSAL_SMASH", 0.0
         ));
         spellsByClass.put("abyssion", Collections.unmodifiableMap(abyssionMap));
+        Map<String, Spell> abyssionIdMap = new HashMap<>();
+        for (Spell s : abyssionMap.values()) abyssionIdMap.put(s.getId().toLowerCase(), s);
+        spellsById.put("abyssion", Collections.unmodifiableMap(abyssionIdMap));
         plugin.getLogger().info("[SPELLS] Abyssion combos: " + abyssionMap.keySet());
 
         // — MAGE CLASS —
@@ -490,6 +524,9 @@ public class SpellManager {
             "MYTHIC_INFERNO_CHAINS", 0.0
         ));
         spellsByClass.put("mage", Collections.unmodifiableMap(mageMap));
+        Map<String, Spell> mageIdMap = new HashMap<>();
+        for (Spell s : mageMap.values()) mageIdMap.put(s.getId().toLowerCase(), s);
+        spellsById.put("mage", Collections.unmodifiableMap(mageIdMap));
         plugin.getLogger().info("[SPELLS] Mage combos: " + mageMap.keySet());
 
         // — DRAGONIAN CLASS —
@@ -531,6 +568,9 @@ public class SpellManager {
             "MYTHIC_DRAGONIAN_LS_T", 0.0
         ));
         spellsByClass.put("dragonian", Collections.unmodifiableMap(dragonianMap));
+        Map<String, Spell> dragonianIdMap = new HashMap<>();
+        for (Spell s : dragonianMap.values()) dragonianIdMap.put(s.getId().toLowerCase(), s);
+        spellsById.put("dragonian", Collections.unmodifiableMap(dragonianIdMap));
         plugin.getLogger().info("[SPELLS] Dragonian combos: " + dragonianMap.keySet());
 
         // — DRAGON WARRIOR CLASS —
@@ -572,6 +612,9 @@ public class SpellManager {
             "MYTHIC_DRAGONBORN", 0.0
         ));
         spellsByClass.put("dragonwarrior", Collections.unmodifiableMap(dragonwarriorMap));
+        Map<String, Spell> dragonwarriorIdMap = new HashMap<>();
+        for (Spell s : dragonwarriorMap.values()) dragonwarriorIdMap.put(s.getId().toLowerCase(), s);
+        spellsById.put("dragonwarrior", Collections.unmodifiableMap(dragonwarriorIdMap));
         plugin.getLogger().info("[SPELLS] DragonWarrior combos: " + dragonwarriorMap.keySet());
 
         // — WINDRUNE CLASS —
@@ -620,6 +663,9 @@ public class SpellManager {
             "MYTHIC_WINDBOUND_FURY", 0.0
         ));
         spellsByClass.put("windrune", Collections.unmodifiableMap(windruneMap));
+        Map<String, Spell> windruneIdMap = new HashMap<>();
+        for (Spell s : windruneMap.values()) windruneIdMap.put(s.getId().toLowerCase(), s);
+        spellsById.put("windrune", Collections.unmodifiableMap(windruneIdMap));
         plugin.getLogger().info("[SPELLS] Windrune combos: " + windruneMap.keySet());
 
         // — ARCTIC KNIGHT CLASS —
@@ -668,6 +714,9 @@ public class SpellManager {
             "MYTHIC_PERMAFROST_LANCE", 0.0
         ));
         spellsByClass.put("arctic", Collections.unmodifiableMap(arcticMap));
+        Map<String, Spell> arcticIdMap = new HashMap<>();
+        for (Spell s : arcticMap.values()) arcticIdMap.put(s.getId().toLowerCase(), s);
+        spellsById.put("arctic", Collections.unmodifiableMap(arcticIdMap));
         plugin.getLogger().info("[SPELLS] Arctic combos: " + arcticMap.keySet());
 
 

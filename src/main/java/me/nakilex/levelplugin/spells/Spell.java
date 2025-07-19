@@ -12,6 +12,7 @@ import me.nakilex.levelplugin.spells.registry.EffectRegistry;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import me.nakilex.levelplugin.items.data.WeaponType;
 
 
 import java.util.List;
@@ -117,13 +118,20 @@ public class Spell {
 
         // 0) Requirement check (weapon type + class)
         ItemStack hand = player.getInventory().getItemInMainHand();
-        if (hand == null || hand.getType() == Material.AIR ||
-            (!allowedWeapons.isEmpty() && !allowedWeapons.contains(hand.getType()))) {
-            player.sendMessage("§cYou can't cast " + displayName + " with this weapon.");
-            return;
+        Material matCheck = hand != null ? hand.getType() : Material.AIR;
+        if (hand != null && hand.hasItemMeta()) {
+            var pdc = hand.getItemMeta().getPersistentDataContainer();
+            if (pdc.has(me.nakilex.levelplugin.items.utils.ItemUtil.TEMPLATE_MATERIAL_KEY,
+                        org.bukkit.persistence.PersistentDataType.STRING)) {
+                String stored = pdc.get(me.nakilex.levelplugin.items.utils.ItemUtil.TEMPLATE_MATERIAL_KEY,
+                                       org.bukkit.persistence.PersistentDataType.STRING);
+                try { matCheck = Material.valueOf(stored); } catch (Exception ignore) {}
+            }
         }
-        me.nakilex.levelplugin.items.data.CustomItem ci = me.nakilex.levelplugin.items.managers.ItemManager
-                .getInstance().getCustomItemFromItemStack(hand);
+        me.nakilex.levelplugin.items.data.CustomItem ci =
+                me.nakilex.levelplugin.items.managers.ItemManager.getInstance()
+                        .getCustomItemFromItemStack(hand);
+        boolean skipWeaponCheck = false;
         if (ci != null) {
             String reqRaw = ci.getClassRequirement();
             me.nakilex.levelplugin.player.classes.data.PlayerClass req = null;
@@ -132,10 +140,30 @@ public class Spell {
                     req = me.nakilex.levelplugin.player.classes.data.PlayerClass.valueOf(reqRaw.toUpperCase());
                 }
             } catch (IllegalArgumentException ignored) {}
+
             me.nakilex.levelplugin.player.classes.data.PlayerClass playerClass =
                     StatsManager.getInstance().getPlayerStats(pid).playerClass;
             if (!me.nakilex.levelplugin.player.classes.data.ClassUtil.meetsRequirement(playerClass, req)) {
                 player.sendMessage("§cYou are not the right class to cast spells with this weapon.");
+                return;
+            }
+
+            // If the item explicitly requires this class, allow any material
+            skipWeaponCheck = req != null;
+        }
+
+        if (hand == null || matCheck == Material.AIR) {
+            return; // empty hand - silently fail
+        }
+
+        if (!skipWeaponCheck && !allowedWeapons.isEmpty()) {
+            WeaponType type = WeaponType.matchType(hand);
+            if (type == null) {
+                // Not a weapon, ignore without messaging
+                return;
+            }
+            if (!allowedWeapons.contains(matCheck)) {
+                player.sendMessage("§cYou can't cast " + displayName + " with this weapon.");
                 return;
             }
         }
