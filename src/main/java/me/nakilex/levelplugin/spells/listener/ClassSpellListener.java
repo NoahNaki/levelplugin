@@ -235,9 +235,9 @@ public class ClassSpellListener implements Listener {
                 }
 
                 // schedule hold-shift check
-                // Cast hold-shift skill a little after the aura stacks reach
-                // the required threshold (~1.25s). This ensures the Mythic
-                // skill conditions have time to accumulate.
+                // Cast hold-shift skill well after the aura stacks reach
+                // the required threshold (~1.5s). This gives Mythic
+                // conditions ample time to accumulate before casting.
                 BukkitTask task = Bukkit.getScheduler().runTaskLater(
                         Main.getPlugin(),
                         () -> {
@@ -245,7 +245,7 @@ public class ClassSpellListener implements Listener {
                                 MythicBukkit.inst().getAPIHelper().castSkill(p, "mf_class_witch_holdshift");
                             }
                         },
-                        30L
+                        40L
                 );
                 BukkitTask old = holdTasks.put(p.getUniqueId(), task);
                 if (old != null) old.cancel();
