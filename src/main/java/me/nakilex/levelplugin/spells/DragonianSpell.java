@@ -96,8 +96,7 @@ public class DragonianSpell implements Listener {
             player.sendMessage("§cYou must hold a valid dragonian weapon!");
             return;
         }
-        if (spell.castEffect(player)) {
-            StatsManager.getInstance().recalcDerivedStats(player);
-        }
+        spell.castEffect(player);
+        StatsManager.getInstance().recalcDerivedStats(player);
     }
 }

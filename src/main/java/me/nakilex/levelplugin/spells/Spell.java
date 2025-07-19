@@ -9,12 +9,9 @@ import me.nakilex.levelplugin.spells.effect.SpellEffect;
 import me.nakilex.levelplugin.spells.managers.CooldownManager;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.spells.registry.EffectRegistry;
-import me.nakilex.levelplugin.items.utils.ItemUtil;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.persistence.PersistentDataContainer;
-import org.bukkit.persistence.PersistentDataType;
 
 
 import java.util.List;
@@ -111,13 +108,7 @@ public class Spell {
     /**
      * Handles cooldown, mana deduction, and effect dispatch.
      */
-    /**
-     * Attempts to cast this spell for the given player.
-     *
-     * @param player caster
-     * @return {@code true} if the spell successfully executed
-     */
-    public boolean castEffect(Player player) {
+    public void castEffect(Player player) {
         UUID pid = player.getUniqueId();
 
         // Debug initial cast attempt
@@ -126,28 +117,10 @@ public class Spell {
 
         // 0) Requirement check (weapon type + class)
         ItemStack hand = player.getInventory().getItemInMainHand();
-        if (hand == null || hand.getType() == Material.AIR) {
+        if (hand == null || hand.getType() == Material.AIR ||
+            (!allowedWeapons.isEmpty() && !allowedWeapons.contains(hand.getType()))) {
             player.sendMessage("§cYou can't cast " + displayName + " with this weapon.");
-            return false;
-        }
-        Material mat = hand.getType();
-        boolean weaponAllowed = true;
-        Material baseMat = mat;
-        if (!allowedWeapons.isEmpty()) {
-            if (!allowedWeapons.contains(mat)) {
-                if (hand.hasItemMeta()) {
-                    PersistentDataContainer pdc = hand.getItemMeta().getPersistentDataContainer();
-                    if (pdc.has(ItemUtil.TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING)) {
-                        String stored = pdc.get(ItemUtil.TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING);
-                        try {
-                            baseMat = Material.valueOf(stored);
-                        } catch (IllegalArgumentException ignored) {}
-                    }
-                }
-                if (!allowedWeapons.contains(baseMat)) {
-                    weaponAllowed = false;
-                }
-            }
+            return;
         }
         me.nakilex.levelplugin.items.data.CustomItem ci = me.nakilex.levelplugin.items.managers.ItemManager
                 .getInstance().getCustomItemFromItemStack(hand);
@@ -163,15 +136,8 @@ public class Spell {
                     StatsManager.getInstance().getPlayerStats(pid).playerClass;
             if (!me.nakilex.levelplugin.player.classes.data.ClassUtil.meetsRequirement(playerClass, req)) {
                 player.sendMessage("§cYou are not the right class to cast spells with this weapon.");
-                return false;
+                return;
             }
-            if (!weaponAllowed) {
-                weaponAllowed = true;
-            }
-        }
-        if (!weaponAllowed) {
-            player.sendMessage("§cYou can't cast " + displayName + " with this weapon.");
-            return false;
         }
         // rank and ego requirements removed
 
@@ -179,7 +145,7 @@ public class Spell {
         if (cooldownMgr.isOnCooldown(pid, id)) {
             long rem = cooldownMgr.getRemainingTime(pid, id);
             //player.sendMessage("§c" + displayName + " cooling down: " + (rem/1000) + "s left");
-            return false;
+            return;
         }
 
         // 2) Build our context (starts with default effectKey)
@@ -195,7 +161,7 @@ public class Spell {
         var ps    = StatsManager.getInstance().getPlayerStats(pid);
         if (ps.getCurrentMana() < Math.ceil(cost)) {
             player.sendMessage("§cNot enough mana (" + cost + ") to cast " + displayName);
-            return false;
+            return;
         }
 
         // 5) Attempt to fire effects first to see if Mythic cooldown allows it
@@ -213,7 +179,7 @@ public class Spell {
 
         if (!success) {
             // Effect failed (likely Mythic cooldown) so skip cost/cooldown
-            return false;
+            return;
         }
 
         int intCost = (int)Math.ceil(cost);
@@ -227,7 +193,6 @@ public class Spell {
 
         // 6) Start cooldown (ctx.getFinalCooldown returns 0 if applyCooldown==false)
         cooldownMgr.setCooldown(pid, id, ctx.getFinalCooldown() / 1000.0);
-        return true;
     }
 
 

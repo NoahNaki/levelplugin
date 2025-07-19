@@ -2,11 +2,7 @@ package me.nakilex.levelplugin.spells;
 
 import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.data.WeaponType;
-import me.nakilex.levelplugin.items.managers.ItemManager;
-import me.nakilex.levelplugin.player.classes.data.ClassUtil;
-import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import org.bukkit.Material;
@@ -23,7 +19,7 @@ import java.util.EnumSet;
 import java.util.Set;
 
 /**
- * Listener mapping interactions to MythicMobs skills for the Overlord class.
+ * Listener mapping player interactions to MythicMobs skills for the Overlord class.
  */
 public class OverlordSpell implements Listener {
 
@@ -36,27 +32,11 @@ public class OverlordSpell implements Listener {
 
     private boolean validWeapon(Player player) {
         ItemStack item = player.getInventory().getItemInMainHand();
-        if (item == null || item.getType() == Material.AIR) {
-            player.sendMessage("§cYou must hold a valid overlord weapon!");
-            return false;
+        boolean ok = item != null && VALID_WEAPONS.contains(item.getType());
+        if (!ok) {
+            Main.getPlugin().getLogger().info("[OV DBG] invalid weapon " + (item == null ? "null" : item.getType().name()));
         }
-
-        if (WeaponType.isValidMageWeapon(item)) return true;
-
-        CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(item);
-        if (ci != null) {
-            String reqRaw = ci.getClassRequirement();
-            if (reqRaw != null && !reqRaw.isBlank()) {
-                try {
-                    PlayerClass req = PlayerClass.valueOf(reqRaw.toUpperCase());
-                    if (ClassUtil.isMageFamily(req)) return true;
-                } catch (IllegalArgumentException ignored) {}
-            }
-        }
-
-        Main.getPlugin().getLogger().info("[OV DBG] invalid weapon " + item.getType());
-        player.sendMessage("§cYou must hold a valid overlord weapon!");
-        return false;
+        return ok;
     }
 
     @EventHandler
@@ -65,7 +45,7 @@ public class OverlordSpell implements Listener {
         if (!isOverlord(player) || !validWeapon(player)) return;
 
         if (player.isSneaking()) {
-            castSpell(player, "RRR"); // Ultimate
+            castSpell(player, "RRR"); // Dark Ascension
         } else {
             castSpell(player, "BASIC_ATTACK"); // Dark Bolt
         }
@@ -74,14 +54,12 @@ public class OverlordSpell implements Listener {
     @EventHandler
     public void onRightClick(PlayerInteractEvent event) {
         if (event.getHand() == null || event.getHand().ordinal() != 0) return;
-        if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK)
-            return;
+        if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         Player player = event.getPlayer();
         if (!isOverlord(player) || !validWeapon(player)) return;
         event.setCancelled(true);
 
-        // Summon minions on right click
-        castSpell(player, "LRL");
+        castSpell(player, "LRL"); // Summon minions
     }
 
     @EventHandler
@@ -89,19 +67,20 @@ public class OverlordSpell implements Listener {
         if (!event.isSneaking()) return;
         Player player = event.getPlayer();
         if (!isOverlord(player) || !validWeapon(player)) return;
-        castSpell(player, "LRR");
+        castSpell(player, "LRR"); // Cruible Assault
     }
 
     private void castSpell(Player player, String combo) {
         Spell spell = SpellManager.getInstance().getSpell("overlord", combo);
-        boolean success;
         if (spell == null) {
-            success = MythicBukkit.inst().getAPIHelper().castSkill(player, combo);
-        } else {
-            success = spell.castEffect(player);
+            MythicBukkit.inst().getAPIHelper().castSkill(player, combo);
+            return;
         }
-        if (success) {
-            StatsManager.getInstance().recalcDerivedStats(player);
+        if (!spell.getAllowedWeapons().contains(player.getInventory().getItemInMainHand().getType())) {
+            player.sendMessage("§cYou must hold a valid overlord weapon!");
+            return;
         }
+        spell.castEffect(player);
+        StatsManager.getInstance().recalcDerivedStats(player);
     }
 }

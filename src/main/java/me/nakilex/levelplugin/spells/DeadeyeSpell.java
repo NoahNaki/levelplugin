@@ -86,8 +86,7 @@ public class DeadeyeSpell implements Listener {
             player.sendMessage("§cYou must hold a valid deadeye weapon!");
             return;
         }
-        if (spell.castEffect(player)) {
-            StatsManager.getInstance().recalcDerivedStats(player);
-        }
+        spell.castEffect(player);
+        StatsManager.getInstance().recalcDerivedStats(player);
     }
 }

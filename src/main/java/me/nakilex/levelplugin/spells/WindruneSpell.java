@@ -102,8 +102,7 @@ public class WindruneSpell implements Listener {
             player.sendMessage("§cYou must hold a valid windrune weapon!");
             return;
         }
-        if (spell.castEffect(player)) {
-            StatsManager.getInstance().recalcDerivedStats(player);
-        }
+        spell.castEffect(player);
+        StatsManager.getInstance().recalcDerivedStats(player);
     }
 }
