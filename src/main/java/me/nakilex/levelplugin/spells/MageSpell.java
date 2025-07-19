@@ -5,6 +5,10 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.data.WeaponType;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
+import me.nakilex.levelplugin.items.data.CustomItem;
+import me.nakilex.levelplugin.items.managers.ItemManager;
+import me.nakilex.levelplugin.player.classes.data.ClassUtil;
+import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -33,12 +37,25 @@ public class MageSpell implements Listener {
 
     private boolean validWeapon(Player player) {
         ItemStack item = player.getInventory().getItemInMainHand();
-        boolean ok = item != null && WeaponType.isValidMageWeapon(item);
-        if (!ok) {
-            String t = item == null ? "null" : item.getType().name();
-            Main.getPlugin().getLogger().info("[MG DBG] invalid weapon " + t);
+        if (item == null || item.getType() == Material.AIR) return false;
+
+        // 1) Direct material check for vanilla wands
+        if (WeaponType.isValidMageWeapon(item)) return true;
+
+        // 2) Fallback to custom item class requirement
+        CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(item);
+        if (ci != null) {
+            String reqRaw = ci.getClassRequirement();
+            if (reqRaw != null && !reqRaw.isBlank()) {
+                try {
+                    PlayerClass req = PlayerClass.valueOf(reqRaw.toUpperCase());
+                    if (ClassUtil.isMageFamily(req)) return true;
+                } catch (IllegalArgumentException ignored) {}
+            }
         }
-        return ok;
+
+        Main.getPlugin().getLogger().info("[MG DBG] invalid weapon " + item.getType());
+        return false;
     }
 
     @EventHandler
