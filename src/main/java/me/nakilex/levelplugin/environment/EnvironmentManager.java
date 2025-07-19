@@ -42,6 +42,8 @@ public class EnvironmentManager {
     private final Map<UUID, java.util.List<BukkitTask>> buildTasks = new HashMap<>();
     /** Hologram lines per building per player. */
     private final Map<UUID, Map<String, java.util.List<org.bukkit.entity.TextDisplay>>> buildingHolograms = new HashMap<>();
+    /** Invisible armor stands used for clicking holograms. */
+    private final Map<UUID, Map<String, org.bukkit.entity.ArmorStand>> hologramStands = new HashMap<>();
     private final Map<UUID, UUID> coopOwners = new HashMap<>();
     private final Map<UUID, UUID> coopPartners = new HashMap<>();
     private final Map<UUID, UUID> pendingInvites = new HashMap<>();
@@ -283,6 +285,22 @@ public class EnvironmentManager {
     /** Spawn TextDisplay hologram lines at the given location. */
     private java.util.List<TextDisplay> spawnHologramLines(Player player, Location base, java.util.List<String> lines, String tag) {
         java.util.List<TextDisplay> displays = new java.util.ArrayList<>();
+
+        // Spawn an invisible armor stand for interaction
+        org.bukkit.entity.ArmorStand stand = base.getWorld().spawn(base, org.bukkit.entity.ArmorStand.class, as -> {
+            as.setInvisible(true);
+            as.setSmall(true);
+            as.setGravity(false);
+            as.setMarker(false);
+            as.setSilent(true);
+            as.addScoreboardTag("building_hologram:" + tag.toLowerCase());
+        });
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (!p.equals(player)) p.hideEntity(Main.getInstance(), stand);
+        }
+        hologramStands.computeIfAbsent(player.getUniqueId(), k -> new java.util.HashMap<>())
+                .put(tag.toLowerCase(), stand);
+
         double offset = 0.0;
         for (String text : lines) {
             Location loc = base.clone().add(0, offset, 0);
@@ -549,6 +567,12 @@ public class EnvironmentManager {
             }
             if (map.isEmpty()) buildingHolograms.remove(uuid);
         }
+        var standMap = hologramStands.get(uuid);
+        if (standMap != null) {
+            var stand = standMap.remove(building.toLowerCase());
+            if (stand != null && !stand.isDead()) stand.remove();
+            if (standMap.isEmpty()) hologramStands.remove(uuid);
+        }
     }
 
     private void removeAllBuildingHolograms(UUID uuid) {
@@ -560,6 +584,12 @@ public class EnvironmentManager {
                         if (disp != null && !disp.isDead()) disp.remove();
                     }
                 }
+            }
+        }
+        var standMap = hologramStands.remove(uuid);
+        if (standMap != null) {
+            for (var stand : standMap.values()) {
+                if (stand != null && !stand.isDead()) stand.remove();
             }
         }
     }
