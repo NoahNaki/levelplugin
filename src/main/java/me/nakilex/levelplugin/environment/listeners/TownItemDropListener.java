@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.environment.listeners;
 
 import me.nakilex.levelplugin.environment.EnvironmentManager;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -44,6 +45,7 @@ public class TownItemDropListener implements Listener {
         var player = event.getPlayer();
         if (manager.isTownLoaded(player) && inTownRegion(player.getLocation())) {
             event.setCancelled(true);
+            player.sendMessage(ChatColor.RED + "You cannot drop inside this town.");
         }
     }
 }
