@@ -6,3 +6,36 @@ features:
   quests: true
 debug:
   chunk-loading: false
+motd:
+  line1: "§x§C§A§0§0§0§0§lR§x§D§5§2§2§2§2§lU§x§D§F§4§4§4§4§lN§x§E§A§6§5§6§5§lE§x§F§4§8§7§8§7§lF§x§F§F§A§9§A§9§lO§x§D§F§9§A§9§A§lR§x§B§E§8§B§8§B§lG§x§9§E§7§B§7§B§lE §x§5§D§5§D§5§D§l☽     "
+  line2: "§8A new adventure awaits you!           "
+tips:
+  delay: 120
+  messages:
+    - "You can type [item] to link what you're holding in chat!"
+    - "Don’t forget to spend your skill points!"
+    - "You can trade &d<glyph:purple_orb_icon> &rat a Gem Exchanger."
+    - "You can change your class at anytime using /class"
+    - "Type /settings to toggle different visual features"
+    - "Every mobility spell scales with agility!"
+    - "You can trade with others using /trade <username>"
+    - "You can sell your unwanted items at a Scrapper for <glyph:coins_icon> &6coins & <glyph:purple_orb_icon> &dgems&f!"
+leaderboards:
+  level:
+    world: flatland
+    x: 100
+    y: -50
+    z: 100
+    type: LEVEL
+  duels:
+    world: flatland
+    x: 105
+    y: -50
+    z: 100
+    type: DUELS
+  balance:
+    world: flatland
+    x: 110
+    y: -50
+    z: 100
+    type: BALANCE

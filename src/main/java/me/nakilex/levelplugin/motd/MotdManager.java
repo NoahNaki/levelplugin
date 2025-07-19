@@ -3,18 +3,15 @@ package me.nakilex.levelplugin.motd;
 import me.nakilex.levelplugin.Main;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.server.ServerListPingEvent;
-import java.io.File;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class MotdManager implements Listener {
     private final Main plugin;
     private FileConfiguration config;
-    private File configFile;
 
     private static final Pattern GRADIENT_PATTERN =
             Pattern.compile("<gradient:((?:#[0-9a-fA-F]{6}:?)+)>(.*?)</gradient>");
@@ -28,14 +25,7 @@ public class MotdManager implements Listener {
     }
 
     public void reload() {
-        if (!plugin.getDataFolder().exists()) {
-            plugin.getDataFolder().mkdirs();
-        }
-        configFile = new File(plugin.getDataFolder(), "motd.yml");
-        if (!configFile.exists()) {
-            plugin.saveResource("motd.yml", false);
-        }
-        config = YamlConfiguration.loadConfiguration(configFile);
+        config = plugin.getCustomConfig();
     }
 
     @EventHandler
@@ -44,11 +34,11 @@ public class MotdManager implements Listener {
     }
 
     public String getLine1() {
-        return format(config.getString("line1", ""));
+        return format(config.getString("motd.line1", ""));
     }
 
     public String getLine2() {
-        return format(config.getString("line2", ""));
+        return format(config.getString("motd.line2", ""));
     }
 
     private String format(String line) {

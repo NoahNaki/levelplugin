@@ -10,15 +10,12 @@ import org.bukkit.World;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Loads leaderboard definitions from leaderboards.yml and displays them
+ * Loads leaderboard definitions from the plugin configuration and displays them
  * using holograms.
  */
 public class LeaderboardManager {
@@ -28,7 +25,6 @@ public class LeaderboardManager {
     private final DuelStatsManager duelStats;
     private final SettingsManager settingsManager;
 
-    private File file;
     private FileConfiguration config;
     private final Map<String, Leaderboard> boards = new HashMap<>();
 
@@ -44,11 +40,7 @@ public class LeaderboardManager {
     }
 
     private void load() {
-        file = new File(plugin.getDataFolder(), "leaderboards.yml");
-        if (!file.exists()) {
-            plugin.saveResource("leaderboards.yml", false);
-        }
-        config = YamlConfiguration.loadConfiguration(file);
+        config = plugin.getCustomConfig();
         boards.clear();
         ConfigurationSection sec = config.getConfigurationSection("leaderboards");
         if (sec == null) return;
@@ -188,14 +180,6 @@ public class LeaderboardManager {
             .sorted((a,b) -> Integer.compare(b.getValue(), a.getValue()))
             .limit(limit)
             .collect(Collectors.toList());
-    }
-
-    public void save() {
-        try {
-            config.save(file);
-        } catch (IOException e) {
-            plugin.getLogger().severe("Failed to save leaderboards.yml: " + e.getMessage());
-        }
     }
 
     /** Reload the leaderboard configuration from disk. */

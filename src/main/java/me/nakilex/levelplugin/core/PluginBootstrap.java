@@ -465,6 +465,48 @@ public class PluginBootstrap {
         if (!customConfig.contains("debug.chunk-loading")) {
             customConfig.set("debug.chunk-loading", false);
         }
+        if (!customConfig.contains("motd.line1")) {
+            customConfig.set("motd.line1", "§x§C§A§0§0§0§0§lR§x§D§5§2§2§2§2§lU§x§D§F§4§4§4§4§lN§x§E§A§6§5§6§5§lE§x§F§4§8§7§8§7§lF§x§F§F§A§9§A§9§lO§x§D§F§9§A§9§A§lR§x§B§E§8§B§8§B§lG§x§9§E§7§B§7§B§lE §x§5§D§5§D§5§D§l☽     ");
+        }
+        if (!customConfig.contains("motd.line2")) {
+            customConfig.set("motd.line2", "§8A new adventure awaits you!           ");
+        }
+        if (!customConfig.contains("tips.delay")) {
+            customConfig.set("tips.delay", 120);
+        }
+        if (!customConfig.contains("tips.messages")) {
+            customConfig.set("tips.messages", java.util.List.of(
+                "You can type [item] to link what you're holding in chat!",
+                "Don’t forget to spend your skill points!",
+                "You can trade &d<glyph:purple_orb_icon> &rat a Gem Exchanger.",
+                "You can change your class at anytime using /class",
+                "Type /settings to toggle different visual features",
+                "Every mobility spell scales with agility!",
+                "You can trade with others using /trade <username>",
+                "You can sell your unwanted items at a Scrapper for <glyph:coins_icon> &6coins & <glyph:purple_orb_icon> &dgems&f!"
+            ));
+        }
+        if (!customConfig.contains("leaderboards")) {
+            org.bukkit.configuration.ConfigurationSection sec = customConfig.createSection("leaderboards");
+            org.bukkit.configuration.ConfigurationSection lvl = sec.createSection("level");
+            lvl.set("world", "flatland");
+            lvl.set("x", 100);
+            lvl.set("y", -50);
+            lvl.set("z", 100);
+            lvl.set("type", "LEVEL");
+            org.bukkit.configuration.ConfigurationSection duels = sec.createSection("duels");
+            duels.set("world", "flatland");
+            duels.set("x", 105);
+            duels.set("y", -50);
+            duels.set("z", 100);
+            duels.set("type", "DUELS");
+            org.bukkit.configuration.ConfigurationSection bal = sec.createSection("balance");
+            bal.set("world", "flatland");
+            bal.set("x", 110);
+            bal.set("y", -50);
+            bal.set("z", 100);
+            bal.set("type", "BALANCE");
+        }
         try {
             customConfig.save(customConfigFile);
         } catch (IOException e) {
