@@ -719,6 +719,56 @@ public class SpellManager {
         spellsById.put("arctic", Collections.unmodifiableMap(arcticIdMap));
         plugin.getLogger().info("[SPELLS] Arctic combos: " + arcticMap.keySet());
 
+        // — WITCH CLASS —
+        Map<String, Spell> witchMap = new HashMap<>();
+        witchMap.put("mf_class_witch_normalattack", new Spell(
+                "mf_class_witch_normalattack", "Witch Strike", "LEFT",
+                0.0,
+                MythicSkillConfig.getCooldownSeconds("mf_class_witch_normalattack"), 1,
+                WeaponType.SWORD.getMaterials(),
+                "mf_class_witch_normalattack", 0.0
+        ));
+        witchMap.put("mf_class_witch_rightclick", new Spell(
+                "mf_class_witch_rightclick", "Crucible Hurl", "RIGHT",
+                6.0,
+                MythicSkillConfig.getCooldownSeconds("mf_class_witch_rightclick"), 3,
+                WeaponType.SWORD.getMaterials(),
+                "mf_class_witch_rightclick", 0.0
+        ));
+        witchMap.put("mf_class_witch_sneak_leftclick", new Spell(
+                "mf_class_witch_sneak_leftclick", "Witch Sweep", "LEFT_SNEAK",
+                8.0,
+                MythicSkillConfig.getCooldownSeconds("mf_class_witch_sneak_leftclick"), 5,
+                WeaponType.SWORD.getMaterials(),
+                "mf_class_witch_sneak_leftclick", 0.0
+        ));
+        witchMap.put("mf_class_witch_sneak_rightclick", new Spell(
+                "mf_class_witch_sneak_rightclick", "Witch Cauldron", "RIGHT_SNEAK",
+                10.0,
+                MythicSkillConfig.getCooldownSeconds("mf_class_witch_sneak_rightclick"), 5,
+                WeaponType.SWORD.getMaterials(),
+                "mf_class_witch_sneak_rightclick", 0.0
+        ));
+        witchMap.put("mf_class_witch_shiftshift", new Spell(
+                "mf_class_witch_shiftshift", "Witch Dash", "DOUBLE_SNEAK",
+                8.0,
+                MythicSkillConfig.getCooldownSeconds("mf_class_witch_shiftshift"), 4,
+                WeaponType.SWORD.getMaterials(),
+                "mf_class_witch_shiftshift", 0.0
+        ));
+        witchMap.put("mf_class_witch_holdshift", new Spell(
+                "mf_class_witch_holdshift", "Witch Ritual", "HOLD_SNEAK",
+                20.0,
+                MythicSkillConfig.getCooldownSeconds("mf_class_witch_holdshift"), 10,
+                WeaponType.SWORD.getMaterials(),
+                "mf_class_witch_holdshift", 0.0
+        ));
+        spellsByClass.put("witch", Collections.unmodifiableMap(witchMap));
+        Map<String, Spell> witchIdMap = new HashMap<>();
+        for (Spell s : witchMap.values()) witchIdMap.put(s.getId().toLowerCase(), s);
+        spellsById.put("witch", Collections.unmodifiableMap(witchIdMap));
+        plugin.getLogger().info("[SPELLS] Witch combos: " + witchMap.keySet());
+
 
     }
 
