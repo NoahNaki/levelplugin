@@ -76,11 +76,9 @@ public class OverlordSpell implements Listener {
             MythicBukkit.inst().getAPIHelper().castSkill(player, combo);
             return;
         }
-        if (!spell.getAllowedWeapons().contains(player.getInventory().getItemInMainHand().getType())) {
-            player.sendMessage("§cYou must hold a valid overlord weapon!");
-            return;
+        boolean ok = spell.castEffect(player);
+        if (ok) {
+            StatsManager.getInstance().recalcDerivedStats(player);
         }
-        spell.castEffect(player);
-        StatsManager.getInstance().recalcDerivedStats(player);
     }
 }

@@ -108,7 +108,7 @@ public class Spell {
     /**
      * Handles cooldown, mana deduction, and effect dispatch.
      */
-    public void castEffect(Player player) {
+    public boolean castEffect(Player player) {
         UUID pid = player.getUniqueId();
 
         // Debug initial cast attempt
@@ -119,7 +119,7 @@ public class Spell {
         ItemStack hand = player.getInventory().getItemInMainHand();
         if (hand == null || hand.getType() == Material.AIR) {
             player.sendMessage("§cYou can't cast " + displayName + " with this weapon.");
-            return;
+            return false;
         }
 
         me.nakilex.levelplugin.items.data.CustomItem ci = me.nakilex.levelplugin.items.managers.ItemManager
@@ -136,7 +136,7 @@ public class Spell {
         if (!materialAllowed) {
             if (ci == null) {
                 player.sendMessage("§cYou can't cast " + displayName + " with this weapon.");
-                return;
+                return false;
             }
         }
 
@@ -151,11 +151,11 @@ public class Spell {
 
             if (!me.nakilex.levelplugin.player.classes.data.ClassUtil.meetsRequirement(playerClass, req)) {
                 player.sendMessage("§cYou are not the right class to cast spells with this weapon.");
-                return;
+                return false;
             }
         } else if (!materialAllowed) {
             player.sendMessage("§cYou can't cast " + displayName + " with this weapon.");
-            return;
+            return false;
         }
 
         // rank and ego requirements removed
@@ -164,7 +164,7 @@ public class Spell {
         if (cooldownMgr.isOnCooldown(pid, id)) {
             long rem = cooldownMgr.getRemainingTime(pid, id);
             //player.sendMessage("§c" + displayName + " cooling down: " + (rem/1000) + "s left");
-            return;
+            return false;
         }
 
         // 2) Build our context (starts with default effectKey)
@@ -180,7 +180,7 @@ public class Spell {
         var ps    = StatsManager.getInstance().getPlayerStats(pid);
         if (ps.getCurrentMana() < Math.ceil(cost)) {
             player.sendMessage("§cNot enough mana (" + cost + ") to cast " + displayName);
-            return;
+            return false;
         }
 
         // 5) Attempt to fire effects first to see if Mythic cooldown allows it
@@ -198,7 +198,7 @@ public class Spell {
 
         if (!success) {
             // Effect failed (likely Mythic cooldown) so skip cost/cooldown
-            return;
+            return false;
         }
 
         int intCost = (int)Math.ceil(cost);
@@ -212,6 +212,7 @@ public class Spell {
 
         // 6) Start cooldown (ctx.getFinalCooldown returns 0 if applyCooldown==false)
         cooldownMgr.setCooldown(pid, id, ctx.getFinalCooldown() / 1000.0);
+        return true;
     }
 
 

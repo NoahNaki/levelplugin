@@ -91,7 +91,9 @@ public class WarriorSpell implements Listener {
             player.sendMessage("§cYou must hold a valid warrior weapon!");
             return;
         }
-        spell.castEffect(player);
-        StatsManager.getInstance().recalcDerivedStats(player);
+        boolean ok = spell.castEffect(player);
+        if (ok) {
+            StatsManager.getInstance().recalcDerivedStats(player);
+        }
     }
 }

@@ -96,7 +96,9 @@ public class ArcherSpell implements Listener {
             player.sendMessage("§cYou must hold a valid archer weapon!");
             return;
         }
-        spell.castEffect(player);
-        StatsManager.getInstance().recalcDerivedStats(player);
+        boolean ok = spell.castEffect(player);
+        if (ok) {
+            StatsManager.getInstance().recalcDerivedStats(player);
+        }
     }
 }
