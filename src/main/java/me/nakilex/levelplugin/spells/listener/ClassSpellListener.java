@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.spells.Spell;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -12,6 +13,8 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
+import org.bukkit.scheduler.BukkitTask;
+import me.nakilex.levelplugin.Main;
 
 import java.util.*;
 
@@ -20,6 +23,11 @@ import java.util.*;
  * This replaces many duplicated *Spell listener classes.
  */
 public class ClassSpellListener implements Listener {
+
+    /** Track sneaking timers for Witch hold-shift ability */
+    private final Map<UUID, BukkitTask> holdTasks = new HashMap<>();
+    /** Track last unsneak times for Witch double-sneak detection */
+    private final Map<UUID, Long> lastUnsneak = new HashMap<>();
 
     private enum Trigger { LEFT, LEFT_SNEAK, RIGHT, RIGHT_SNEAK, SNEAK_START, SNEAK_END }
 
@@ -158,7 +166,11 @@ public class ClassSpellListener implements Listener {
         t.leftSneak = List.of("mf_class_witch_sneak_leftclick");
         t.right = List.of("mf_class_witch_rightclick");
         t.rightSneak = List.of("mf_class_witch_sneak_rightclick");
-        t.sneakStart = List.of("mf_class_witch_holdshift", "mf_class_witch_shiftshift");
+        t.sneakStart = List.of(
+                // start counters for hold or double crouch
+                "mf_class_witch_holdshift_cruibile_count",
+                "mf_class_witch_shiftshift_cruibile_count"
+        );
         MAP.put(PlayerClass.WITCH, t);
     }
 
@@ -210,8 +222,36 @@ public class ClassSpellListener implements Listener {
         if (tr == null) return;
         if (event.isSneaking()) {
             cast(p, tr.sneakStart, pc);
+
+            if (pc == PlayerClass.WITCH) {
+                long now = System.currentTimeMillis();
+                Long last = lastUnsneak.get(p.getUniqueId());
+                if (last != null && now - last <= 500) {
+                    // double crouch
+                    MythicBukkit.inst().getAPIHelper().castSkill(p, "mf_class_witch_shiftshift");
+                }
+
+                // schedule hold-shift check
+                BukkitTask task = Bukkit.getScheduler().runTaskLater(
+                        Main.getPlugin(),
+                        () -> {
+                            if (p.isOnline() && p.isSneaking()) {
+                                MythicBukkit.inst().getAPIHelper().castSkill(p, "mf_class_witch_holdshift");
+                            }
+                        },
+                        20L
+                );
+                BukkitTask old = holdTasks.put(p.getUniqueId(), task);
+                if (old != null) old.cancel();
+            }
         } else {
             cast(p, tr.sneakEnd, pc);
+
+            if (pc == PlayerClass.WITCH) {
+                lastUnsneak.put(p.getUniqueId(), System.currentTimeMillis());
+                BukkitTask task = holdTasks.remove(p.getUniqueId());
+                if (task != null) task.cancel();
+            }
         }
     }
 }
