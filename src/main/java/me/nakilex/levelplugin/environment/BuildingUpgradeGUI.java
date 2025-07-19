@@ -38,6 +38,8 @@ public class BuildingUpgradeGUI implements Listener {
     }
 
     public void open(Player p, String building) {
+        me.nakilex.levelplugin.Main.getInstance().getLogger().info(
+                "[BuildingUpgradeGUI] open player=" + p.getName() + " building=" + building);
         Inventory inv = Bukkit.createInventory(null, 27, TITLE_PREFIX + building);
         ItemStack filler = createItem(Material.GRAY_STAINED_GLASS_PANE, " ");
         for (int i = 0; i < inv.getSize(); i++) {
@@ -59,14 +61,23 @@ public class BuildingUpgradeGUI implements Listener {
         UUID id = e.getWhoClicked().getUniqueId();
         String building = open.get(id);
         if (building == null) return;
+        me.nakilex.levelplugin.Main.getInstance().getLogger().info(
+                "[BuildingUpgradeGUI] click rawSlot=" + e.getRawSlot() +
+                        " building=" + building +
+                        " player=" + e.getWhoClicked().getName());
         if (e.getClickedInventory() != e.getView().getTopInventory()) return; // ignore player inventory clicks
         if (e.getRawSlot() != 13) return; // only react to our GUI slot
         Player p = (Player) e.getWhoClicked();
         if (p.getInventory().contains(Material.OAK_LOG)) {
             p.getInventory().removeItem(new ItemStack(Material.OAK_LOG, 1));
+            me.nakilex.levelplugin.Main.getInstance().getLogger().info(
+                    "[BuildingUpgradeGUI] investing 1 log for " + p.getName() +
+                            " building=" + building);
             manager.investBuilding(p, building, 1);
             open(p, building);
         } else {
+            me.nakilex.levelplugin.Main.getInstance().getLogger().info(
+                    "[BuildingUpgradeGUI] missing log for " + p.getName());
             p.sendMessage(ChatColor.RED + "You need an oak log to invest!");
         }
     }
@@ -76,6 +87,8 @@ public class BuildingUpgradeGUI implements Listener {
         String title = e.getView().getTitle();
         if (title.startsWith(TITLE_PREFIX)) {
             open.remove(e.getPlayer().getUniqueId());
+            me.nakilex.levelplugin.Main.getInstance().getLogger().info(
+                    "[BuildingUpgradeGUI] closed by " + e.getPlayer().getName());
         }
     }
 }

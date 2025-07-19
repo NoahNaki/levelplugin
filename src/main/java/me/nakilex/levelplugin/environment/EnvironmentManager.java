@@ -713,11 +713,18 @@ public class EnvironmentManager {
 
     /** Invest materials towards upgrading a specific building. */
     public void investBuilding(Player player, String building, int amount) {
+        me.nakilex.levelplugin.Main.getInstance().getLogger().info(
+                "[EnvironmentManager] investBuilding player=" + player.getName() +
+                        " building=" + building +
+                        " amount=" + amount);
         loadPlayerState(player);
         UUID base = getBase(player.getUniqueId());
         Map<String, EnvironmentState> bMap = buildingStates.computeIfAbsent(base, k -> new java.util.HashMap<>());
         EnvironmentState bs = bMap.computeIfAbsent(building.toLowerCase(), k -> new EnvironmentState(1, 1));
         if (buildingStageManager.getStage(building, bs.level, bs.stage) == null) {
+            me.nakilex.levelplugin.Main.getInstance().getLogger().info(
+                    "[EnvironmentManager] stage not found building=" + building +
+                            " level=" + bs.level + " stage=" + bs.stage);
             player.sendMessage(ChatColor.RED + "Unknown building.");
             return;
         }
@@ -727,6 +734,10 @@ public class EnvironmentManager {
             int oldL = bs.level;
             int oldS = bs.stage;
             advance(bs);
+            me.nakilex.levelplugin.Main.getInstance().getLogger().info(
+                    "[EnvironmentManager] upgraded building=" + building +
+                            " from L" + oldL + " S" + oldS +
+                            " to L" + bs.level + " S" + bs.stage);
             player.sendMessage(ChatColor.GREEN + building + " upgraded to L" + bs.level + " S" + bs.stage);
             String town = towns.get(base);
             Location origin = origins.get(base);
@@ -738,6 +749,10 @@ public class EnvironmentManager {
             Main.getInstance().getQuestManager().handleTownUpgrade(player);
             saveState(base);
         } else {
+            me.nakilex.levelplugin.Main.getInstance().getLogger().info(
+                    "[EnvironmentManager] invested " + amount +
+                            " logs into building=" + building +
+                            " progress=" + bs.invested);
             player.sendMessage(ChatColor.GREEN + "Invested " + amount + " oak log.");
         }
     }
