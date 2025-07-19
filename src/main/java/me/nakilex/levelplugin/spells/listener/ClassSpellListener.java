@@ -166,9 +166,12 @@ public class ClassSpellListener implements Listener {
         t.leftSneak = List.of("mf_class_witch_sneak_leftclick");
         t.right = List.of("mf_class_witch_rightclick");
         t.rightSneak = List.of("mf_class_witch_sneak_rightclick");
+        // hold-shift counter begins on crouch
         t.sneakStart = List.of(
-                // start counters for hold or double crouch
-                "mf_class_witch_holdshift_cruibile_count",
+                "mf_class_witch_holdshift_cruibile_count"
+        );
+        // double-crouch counter starts when the player uncrouches
+        t.sneakEnd = List.of(
                 "mf_class_witch_shiftshift_cruibile_count"
         );
         MAP.put(PlayerClass.WITCH, t);
@@ -242,7 +245,7 @@ public class ClassSpellListener implements Listener {
                                 MythicBukkit.inst().getAPIHelper().castSkill(p, "mf_class_witch_holdshift");
                             }
                         },
-                        25L
+                        30L
                 );
                 BukkitTask old = holdTasks.put(p.getUniqueId(), task);
                 if (old != null) old.cancel();
