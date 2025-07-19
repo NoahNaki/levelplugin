@@ -13,6 +13,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.TextDisplay;
+import org.bukkit.entity.Interaction;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.Particle;
@@ -42,6 +43,8 @@ public class EnvironmentManager {
     private final Map<UUID, java.util.List<BukkitTask>> buildTasks = new HashMap<>();
     /** Hologram lines per building per player. */
     private final Map<UUID, Map<String, java.util.List<org.bukkit.entity.TextDisplay>>> buildingHolograms = new HashMap<>();
+    /** Invisible interaction entities used for clicking holograms. */
+    private final Map<UUID, Map<String, org.bukkit.entity.Interaction>> hologramInteractions = new HashMap<>();
     private final Map<UUID, UUID> coopOwners = new HashMap<>();
     private final Map<UUID, UUID> coopPartners = new HashMap<>();
     private final Map<UUID, UUID> pendingInvites = new HashMap<>();
@@ -277,12 +280,30 @@ public class EnvironmentManager {
         lines.add(ChatColor.AQUA + "Requirements:");
         lines.add(logLine);
         lines.add(coinLine);
+        lines.add(ChatColor.YELLOW.toString() + ChatColor.UNDERLINE
+                + "Right-Click to upgrade this building");
         return lines;
     }
 
     /** Spawn TextDisplay hologram lines at the given location. */
     private java.util.List<TextDisplay> spawnHologramLines(Player player, Location base, java.util.List<String> lines, String tag) {
         java.util.List<TextDisplay> displays = new java.util.ArrayList<>();
+
+        // Spawn an invisible interaction entity for reliable clicking
+        double bottomOffset = -(lines.size() - 1) * 0.25;
+        Location clickLoc = base.clone().add(0, bottomOffset, 0);
+        org.bukkit.entity.Interaction clicker = clickLoc.getWorld().spawn(clickLoc, org.bukkit.entity.Interaction.class, it -> {
+            // Make the clickable area large so players don't miss the hologram
+            it.setInteractionWidth(1.0f);
+            it.setInteractionHeight(1.0f);
+            it.addScoreboardTag("building_hologram:" + tag.toLowerCase());
+        });
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (!p.equals(player)) p.hideEntity(Main.getInstance(), clicker);
+        }
+        hologramInteractions.computeIfAbsent(player.getUniqueId(), k -> new java.util.HashMap<>())
+                .put(tag.toLowerCase(), clicker);
+
         double offset = 0.0;
         for (String text : lines) {
             Location loc = base.clone().add(0, offset, 0);
@@ -299,6 +320,14 @@ public class EnvironmentManager {
             }
         }
         return displays;
+    }
+
+    /** Spawn a simple test hologram for debugging purposes. */
+    public void spawnTestHologram(Player player, Location location) {
+        java.util.List<String> lines = java.util.Arrays.asList(
+                ChatColor.AQUA + "Test Hologram",
+                ChatColor.GRAY + "Right-click");
+        spawnHologramLines(player, location, lines, "test");
     }
 
     private UUID getBase(UUID uuid) {
@@ -549,6 +578,12 @@ public class EnvironmentManager {
             }
             if (map.isEmpty()) buildingHolograms.remove(uuid);
         }
+        var interactMap = hologramInteractions.get(uuid);
+        if (interactMap != null) {
+            var clicker = interactMap.remove(building.toLowerCase());
+            if (clicker != null && !clicker.isDead()) clicker.remove();
+            if (interactMap.isEmpty()) hologramInteractions.remove(uuid);
+        }
     }
 
     private void removeAllBuildingHolograms(UUID uuid) {
@@ -560,6 +595,12 @@ public class EnvironmentManager {
                         if (disp != null && !disp.isDead()) disp.remove();
                     }
                 }
+            }
+        }
+        var interactMap = hologramInteractions.remove(uuid);
+        if (interactMap != null) {
+            for (var clicker : interactMap.values()) {
+                if (clicker != null && !clicker.isDead()) clicker.remove();
             }
         }
     }
@@ -1232,7 +1273,7 @@ public class EnvironmentManager {
                     // Place the hologram where the stage was defined (+1 Y already stored)
                     Location holo = baseOrigin.clone().add(
                             stageData.hx - stageData.ox + 0.5,
-                            stageData.hy - stageData.oy,
+                            stageData.hy - stageData.oy + 2,
                             stageData.hz - stageData.oz + 0.5);
                     java.util.List<String> textLines = formatBuildingHologram(player, building, level, stage);
                     java.util.List<TextDisplay> displays = spawnHologramLines(player, holo, textLines, building);
@@ -1286,7 +1327,7 @@ public class EnvironmentManager {
 
         Location holo = baseOrigin.clone().add(
                 stageData.hx - stageData.ox + 0.5,
-                stageData.hy - stageData.oy,
+                stageData.hy - stageData.oy + 2,
                 stageData.hz - stageData.oz + 0.5);
         java.util.List<String> textLines = formatBuildingHologram(player, building, level, stage);
         java.util.List<TextDisplay> displays = spawnHologramLines(player, holo, textLines, building);
@@ -1410,7 +1451,7 @@ public class EnvironmentManager {
                     buildingStageManager.spawnForStage(player, building, newLevel, newStage, newOrigin);
                     Location holo = newOrigin.clone().add(
                             newData.hx - newData.ox + 0.5,
-                            newData.hy - newData.oy,
+                            newData.hy - newData.oy + 2,
                             newData.hz - newData.oz + 0.5);
                     java.util.List<String> textLines = formatBuildingHologram(player, building, newLevel, newStage);
                     java.util.List<TextDisplay> displays = spawnHologramLines(player, holo, textLines, building);
