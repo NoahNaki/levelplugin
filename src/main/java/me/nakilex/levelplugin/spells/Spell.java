@@ -125,20 +125,22 @@ public class Spell {
             return;
         }
         Material mat = hand.getType();
-        if (!allowedWeapons.isEmpty() && !allowedWeapons.contains(mat)) {
-            Material baseMat = mat;
-            if (hand.hasItemMeta()) {
-                PersistentDataContainer pdc = hand.getItemMeta().getPersistentDataContainer();
-                if (pdc.has(ItemUtil.TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING)) {
-                    String stored = pdc.get(ItemUtil.TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING);
-                    try {
-                        baseMat = Material.valueOf(stored);
-                    } catch (IllegalArgumentException ignored) {}
+        boolean weaponAllowed = true;
+        Material baseMat = mat;
+        if (!allowedWeapons.isEmpty()) {
+            if (!allowedWeapons.contains(mat)) {
+                if (hand.hasItemMeta()) {
+                    PersistentDataContainer pdc = hand.getItemMeta().getPersistentDataContainer();
+                    if (pdc.has(ItemUtil.TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING)) {
+                        String stored = pdc.get(ItemUtil.TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING);
+                        try {
+                            baseMat = Material.valueOf(stored);
+                        } catch (IllegalArgumentException ignored) {}
+                    }
                 }
-            }
-            if (!allowedWeapons.contains(baseMat)) {
-                player.sendMessage("§cYou can't cast " + displayName + " with this weapon.");
-                return;
+                if (!allowedWeapons.contains(baseMat)) {
+                    weaponAllowed = false;
+                }
             }
         }
         me.nakilex.levelplugin.items.data.CustomItem ci = me.nakilex.levelplugin.items.managers.ItemManager
@@ -157,6 +159,13 @@ public class Spell {
                 player.sendMessage("§cYou are not the right class to cast spells with this weapon.");
                 return;
             }
+            if (!weaponAllowed) {
+                weaponAllowed = true;
+            }
+        }
+        if (!weaponAllowed) {
+            player.sendMessage("§cYou can't cast " + displayName + " with this weapon.");
+            return;
         }
         // rank and ego requirements removed
 
