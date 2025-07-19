@@ -315,6 +315,7 @@ public class SpellGUI {
             case GALEGLAIVE -> "windrune";
             case ARCTICKNIGHT -> "arctic";
             case DRAGONWARRIOR -> "dragonwarrior";
+            case WITCH -> "witch";
             default -> null;
         };
 

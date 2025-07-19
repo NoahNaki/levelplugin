@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.spells.Spell;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -12,6 +13,9 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
+import org.bukkit.scheduler.BukkitTask;
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.items.data.WeaponType;
 
 import java.util.*;
 
@@ -20,6 +24,15 @@ import java.util.*;
  * This replaces many duplicated *Spell listener classes.
  */
 public class ClassSpellListener implements Listener {
+
+    /** Repeating task applying the hold-shift counter each tick while sneaking */
+    private final Map<UUID, BukkitTask> holdCountTasks = new HashMap<>();
+    /** Repeating task attempting to cast the hold-shift spell each tick */
+    private final Map<UUID, BukkitTask> holdCastTasks = new HashMap<>();
+    /** Track last unsneak times for Witch double-sneak detection */
+    private final Map<UUID, Long> lastUnsneak = new HashMap<>();
+    /** Repeating task casting crouch-start skills while the player sneaks */
+    private final Map<UUID, BukkitTask> startCastTasks = new HashMap<>();
 
     private enum Trigger { LEFT, LEFT_SNEAK, RIGHT, RIGHT_SNEAK, SNEAK_START, SNEAK_END }
 
@@ -151,6 +164,28 @@ public class ClassSpellListener implements Listener {
         t.right = List.of("glacial_impalement");
         t.sneakStart = List.of("arctic_charge");
         MAP.put(PlayerClass.ARCTICKNIGHT, t);
+
+        // Witch class
+        t = new Triggers();
+        t.left = List.of("mf_class_witch_normalattack");
+        t.leftSneak = List.of("mf_class_witch_sneak_leftclick");
+        t.right = List.of("mf_class_witch_rightclick");
+        t.rightSneak = List.of("mf_class_witch_sneak_rightclick");
+        // hold-shift counter begins on crouch
+        t.sneakStart = List.of(
+                "mf_class_witch_holdshift_cruibile_count"
+        );
+        // double-crouch counter starts when the player uncrouches
+        t.sneakEnd = List.of(
+                "mf_class_witch_shiftshift_cruibile_count"
+        );
+        MAP.put(PlayerClass.WITCH, t);
+
+        // Rogue class (no default combos yet)
+        MAP.put(PlayerClass.ROGUE, new Triggers());
+
+        // Cleric class (no default combos yet)
+        MAP.put(PlayerClass.CLERIC, new Triggers());
     }
 
     private void cast(Player player, List<String> combos, PlayerClass pc) {
@@ -188,9 +223,11 @@ public class ClassSpellListener implements Listener {
         PlayerClass pc = getClass(p);
         Triggers tr = MAP.get(pc);
         if (tr == null) return;
-        event.setCancelled(true);
-        if (p.isSneaking()) cast(p, tr.rightSneak, pc);
-        else cast(p, tr.right, pc);
+        boolean weapon = WeaponType.matchType(event.getItem()) != null;
+        if (weapon) {
+            event.setCancelled(true);
+            if (p.isSneaking()) cast(p, tr.rightSneak, pc); else cast(p, tr.right, pc);
+        }
     }
 
     @EventHandler
@@ -201,8 +238,66 @@ public class ClassSpellListener implements Listener {
         if (tr == null) return;
         if (event.isSneaking()) {
             cast(p, tr.sneakStart, pc);
+
+            if (pc == PlayerClass.WITCH) {
+                long now = System.currentTimeMillis();
+                Long last = lastUnsneak.get(p.getUniqueId());
+                if (last != null && now - last <= 500) {
+                    // double crouch
+                    MythicBukkit.inst().getAPIHelper().castSkill(p, "mf_class_witch_shiftshift");
+                }
+
+                BukkitTask countTask = Bukkit.getScheduler().runTaskTimer(
+                        Main.getPlugin(),
+                        () -> {
+                            if (p.isOnline() && p.isSneaking()) {
+                                MythicBukkit.inst().getAPIHelper().castSkill(p, "mf_class_witch_holdshift_cruibile_count");
+                            }
+                        },
+                        0L, 1L
+                );
+                BukkitTask castTask = Bukkit.getScheduler().runTaskTimer(
+                        Main.getPlugin(),
+                        () -> {
+                            if (p.isOnline() && p.isSneaking()) {
+                                MythicBukkit.inst().getAPIHelper().castSkill(p, "mf_class_witch_holdshift");
+                            }
+                        },
+                        0L, 1L
+                );
+
+                BukkitTask old = holdCountTasks.put(p.getUniqueId(), countTask);
+                if (old != null) old.cancel();
+                old = holdCastTasks.put(p.getUniqueId(), castTask);
+                if (old != null) old.cancel();
+            } else if (pc == PlayerClass.MAGE || pc == PlayerClass.ABYSSION) {
+                BukkitTask task = Bukkit.getScheduler().runTaskTimer(
+                        Main.getPlugin(),
+                        () -> {
+                            if (p.isOnline() && p.isSneaking()) {
+                                for (String id : tr.sneakStart) {
+                                    MythicBukkit.inst().getAPIHelper().castSkill(p, id);
+                                }
+                            }
+                        },
+                        0L, 1L
+                );
+                BukkitTask old = startCastTasks.put(p.getUniqueId(), task);
+                if (old != null) old.cancel();
+            }
         } else {
             cast(p, tr.sneakEnd, pc);
+
+            if (pc == PlayerClass.WITCH) {
+                lastUnsneak.put(p.getUniqueId(), System.currentTimeMillis());
+                BukkitTask task = holdCountTasks.remove(p.getUniqueId());
+                if (task != null) task.cancel();
+                task = holdCastTasks.remove(p.getUniqueId());
+                if (task != null) task.cancel();
+            } else if (pc == PlayerClass.MAGE || pc == PlayerClass.ABYSSION) {
+                BukkitTask task = startCastTasks.remove(p.getUniqueId());
+                if (task != null) task.cancel();
+            }
         }
     }
 }
