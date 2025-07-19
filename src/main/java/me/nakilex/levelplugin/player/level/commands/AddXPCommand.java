@@ -44,8 +44,9 @@ public class AddXPCommand implements CommandExecutor {
 
         // Grant XP to player and their active Ego weapon
         levelManager.addXP(target, amount);
-        sender.sendMessage("§aGave " + amount + " <glyph:experience_orb_icon> to " + target.getName());
-        target.sendMessage("§aYou have received " + amount + " <glyph:experience_orb_icon>!");
+        String expLabel = net.md_5.bungee.api.ChatColor.of("#47b587") + "EXP";
+        sender.sendMessage("§aGave " + amount + " <glyph:experience_orb_icon> " + expLabel + " §ato " + target.getName());
+        target.sendMessage("§aYou have received " + amount + " <glyph:experience_orb_icon> " + expLabel + "!");
 
         return true;
     }

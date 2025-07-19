@@ -26,10 +26,11 @@ public class MiningLevelCommand implements CommandExecutor {
         int needed = level >= miningManager.getMaxLevel() ? 0 : miningManager.getXpRequired(level);
 
         player.sendMessage("§6Mining Level: §e" + level);
+        String expLabel = net.md_5.bungee.api.ChatColor.of("#47b587") + "EXP";
         if (level < miningManager.getMaxLevel()) {
-            player.sendMessage("§7<glyph:experience_orb_icon>: §e" + xp + "§7/§e" + needed);
+            player.sendMessage("§7<glyph:experience_orb_icon> " + expLabel + "§7: §e" + xp + "§7/§e" + needed);
         } else {
-            player.sendMessage("§7<glyph:experience_orb_icon>: §eMAX");
+            player.sendMessage("§7<glyph:experience_orb_icon> " + expLabel + "§7: §eMAX");
         }
         return true;
     }

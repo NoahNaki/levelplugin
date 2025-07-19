@@ -28,7 +28,7 @@ import java.util.*;
  */
 public class SubclassGUI implements Listener {
 
-    public static final String TITLE = ChatColor.DARK_AQUA + "Select Class";
+    public static final String TITLE = ChatColor.BLACK + "Select Class";
 
     private static final int GUI_SIZE = 54; // full chest
     private static final int[] CLASS_SLOTS = {

@@ -769,7 +769,8 @@ public class QuestManager {
         QuestReward reward = quest.getReward();
         if (reward != null) {
             if (reward.getXp() > 0) {
-                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + reward.getXp() + " <glyph:experience_orb_icon>");
+                String expLabel = net.md_5.bungee.api.ChatColor.of("#47b587") + "EXP";
+                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + reward.getXp() + " <glyph:experience_orb_icon> " + expLabel);
             }
             if (reward.getCoins() > 0) {
                 me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + reward.getCoins() + " <glyph:coins_icon>");

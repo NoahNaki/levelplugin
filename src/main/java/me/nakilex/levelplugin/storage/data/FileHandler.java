@@ -68,7 +68,7 @@ public class FileHandler {
                 Inventory page = Bukkit.createInventory(
                     null,
                     54,
-                    ChatColor.DARK_GREEN + "Personal Storage (Page " + pageIndex + ")"
+                    ChatColor.BLACK + "Personal Storage (Page " + pageIndex + ")"
                 );
 
                 for (int slot = 0; slot < items.size(); slot++) {

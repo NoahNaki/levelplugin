@@ -49,7 +49,7 @@ public class ItemsBrowser implements CommandExecutor, Listener {
     }
 
     private String title(int page) {
-        return ChatColor.GRAY + "Items Browser - Page " + (page + 1);
+        return ChatColor.BLACK + "Items Browser - Page " + (page + 1);
     }
 
     private static ItemStack createMenuItem(Material mat, String name, String... loreLines) {

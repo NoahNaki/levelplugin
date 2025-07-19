@@ -170,8 +170,9 @@ public class MythicMobDeathListener implements Listener {
 
             // 6) Chat message
             if (isChatEnabled(player)) {
+                String expLabel = net.md_5.bungee.api.ChatColor.of("#47b587") + "EXP";
                 player.sendMessage(
-                    "§7You earned §f+" + awardedExp + " <glyph:experience_orb_icon> §7and §f+" + coins + " <glyph:coins_icon>"
+                    "§7You earned §f+" + awardedExp + " <glyph:experience_orb_icon> " + expLabel + " §7and §f+" + coins + " <glyph:coins_icon>"
                 );
             }
         }
@@ -185,7 +186,8 @@ public class MythicMobDeathListener implements Listener {
         // 1) XP line
         String xpLine = ChatColor.GRAY + "["
             + ChatColor.WHITE + "+" + xp + " "
-            + ChatColor.GREEN  + "<glyph:experience_orb_icon>"
+            + ChatColor.GREEN  + "<glyph:experience_orb_icon> "
+            + net.md_5.bungee.api.ChatColor.of("#47b587") + "EXP"
             + ChatColor.GRAY + "]";
 
         ArmorStand xpStand = loc.getWorld().spawn(loc, ArmorStand.class, as -> {
