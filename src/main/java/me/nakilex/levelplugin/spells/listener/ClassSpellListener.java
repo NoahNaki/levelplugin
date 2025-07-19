@@ -36,129 +36,129 @@ public class ClassSpellListener implements Listener {
     static {
         // Archer class
         Triggers t = new Triggers();
-        t.leftSneak = List.of("RRR");
-        t.left = List.of("BASIC_ATTACK");
-        t.rightSneak = List.of("LLL");
-        t.right = List.of("LRL");
-        t.sneakStart = List.of("LLR");
+        t.leftSneak = List.of("bow_drone");
+        t.left = List.of("quick_shot");
+        t.rightSneak = List.of("dragon_piercer");
+        t.right = List.of("backstep");
+        t.sneakStart = List.of("arrow_barrage");
         MAP.put(PlayerClass.ARCHER, t);
 
         // Phoenix Hunter class
         t = new Triggers();
-        t.leftSneak = List.of("RRR");
-        t.left = List.of("BASIC_ATTACK");
-        t.rightSneak = List.of("LLL");
-        t.right = List.of("LRL");
-        t.sneakStart = List.of("LRR");
+        t.leftSneak = List.of("phoenix_rebirth");
+        t.left = List.of("blazing_feathers");
+        t.rightSneak = List.of("pyroclasmic_barrage");
+        t.right = List.of("ashdance");
+        t.sneakStart = List.of("flameburst_convergence");
         MAP.put(PlayerClass.PHOENIXHUNTER, t);
 
         // Mage class
         t = new Triggers();
-        t.leftSneak = List.of("RRR");
-        t.left = List.of("BASIC_ATTACK");
-        t.rightSneak = List.of("LLL");
-        t.right = List.of("LRL");
-        t.sneakStart = List.of("LRR");
+        t.leftSneak = List.of("inferno_chains");
+        t.left = List.of("fireball");
+        t.rightSneak = List.of("meteor");
+        t.right = List.of("blink");
+        t.sneakStart = List.of("frost_nova");
         MAP.put(PlayerClass.MAGE, t);
 
         // Warrior class
         t = new Triggers();
-        t.leftSneak = List.of("RLL");
-        t.left = List.of("BASIC_ATTACK");
-        t.rightSneak = List.of("LRR");
-        t.right = List.of("LRL");
-        t.sneakStart = List.of("LLR");
+        t.leftSneak = List.of("shockwave");
+        t.left = List.of("brutal_strike");
+        t.rightSneak = List.of("chain_hook");
+        t.right = List.of("charge");
+        t.sneakStart = List.of("shield_barrier");
         MAP.put(PlayerClass.WARRIOR, t);
 
         // Barbarian class
         t = new Triggers();
-        t.leftSneak = List.of("RRR");
-        t.left = List.of("BASIC_ATTACK");
-        t.rightSneak = List.of("LLL");
-        t.right = List.of("LRL");
-        t.sneakStart = List.of("LLR");
+        t.leftSneak = List.of("eternal_fury");
+        t.left = List.of("rageblade");
+        t.rightSneak = List.of("double_edge");
+        t.right = List.of("primal_axe");
+        t.sneakStart = List.of("war_cry");
         MAP.put(PlayerClass.BARBARIAN, t);
 
         // Paladin class
         t = new Triggers();
-        t.leftSneak = List.of("RRR");
-        t.left = List.of("BASIC_ATTACK");
-        t.rightSneak = List.of("LLL");
-        t.right = List.of("LRL");
-        t.sneakStart = List.of("LRR");
+        t.leftSneak = List.of("last_stand");
+        t.left = List.of("holy_strike");
+        t.rightSneak = List.of("heavenly_shield");
+        t.right = List.of("bound_seal");
+        t.sneakStart = List.of("hammer_of_justice");
         MAP.put(PlayerClass.PALADIN, t);
 
         // Deadeye class
         t = new Triggers();
-        t.leftSneak = List.of("RRR");
-        t.left = List.of("BASIC_ATTACK");
-        t.rightSneak = List.of("LLL");
-        t.right = List.of("LRL");
-        t.sneakStart = List.of("LRR");
+        t.leftSneak = List.of("air_strike");
+        t.left = List.of("pistol_shot");
+        t.rightSneak = List.of("focus_shot");
+        t.right = List.of("shotgun_blast");
+        t.sneakStart = List.of("sniper_backup");
         MAP.put(PlayerClass.DEADEYE, t);
 
         // Death Knight class (two combos on sneak start)
         t = new Triggers();
-        t.leftSneak = List.of("RRR");
-        t.left = List.of("BASIC_ATTACK");
-        t.rightSneak = List.of("LLL");
-        t.right = List.of("LRL");
-        t.sneakStart = List.of("LRR", "LLR");
+        t.leftSneak = List.of("death_sentence");
+        t.left = List.of("death_strike");
+        t.rightSneak = List.of("necrotic_whirlwind");
+        t.right = List.of("phantom_charge");
+        t.sneakStart = List.of("wraithbound_chains", "soul_barrier");
         MAP.put(PlayerClass.DEATHKNIGHT, t);
 
         // Abyssion class
         t = new Triggers();
-        t.leftSneak = List.of("RRR");
-        t.left = List.of("BASIC_ATTACK");
-        t.rightSneak = List.of("LLL");
-        t.right = List.of("LRL");
-        t.sneakStart = List.of("RLL");
+        t.leftSneak = List.of("abyssal_smash");
+        t.left = List.of("aqua_slash");
+        t.rightSneak = List.of("tidal_wave");
+        t.right = List.of("abyssal_dash");
+        t.sneakStart = List.of("aqua_aura");
         MAP.put(PlayerClass.ABYSSION, t);
 
         // Dragonian class
         t = new Triggers();
-        t.leftSneak = List.of("RRR");
-        t.left = List.of("BASIC_ATTACK");
-        t.rightSneak = List.of("LLL");
-        t.right = List.of("LRL");
-        t.sneakStart = List.of("LLR");
+        t.leftSneak = List.of("taotie_dragon");
+        t.left = List.of("dragonian_slash");
+        t.rightSneak = List.of("dragonian_rs");
+        t.right = List.of("dragonian_lunge");
+        t.sneakStart = List.of("dragonian_ss");
         MAP.put(PlayerClass.DRAGONIAN, t);
 
         // Dragon Warrior class
         t = new Triggers();
-        t.leftSneak = List.of("RRR");
-        t.left = List.of("BASIC_ATTACK");
-        t.rightSneak = List.of("LLL");
-        t.right = List.of("LRL");
-        t.sneakStart = List.of("LLR");
+        t.leftSneak = List.of("dragonborn");
+        t.left = List.of("dragon_slash");
+        t.rightSneak = List.of("dragon_breath");
+        t.right = List.of("dragon_dash");
+        t.sneakStart = List.of("dragon_zone");
         MAP.put(PlayerClass.DRAGONWARRIOR, t);
 
         // Windrune class (known internally as GALEGLAIVE)
         t = new Triggers();
-        t.leftSneak = List.of("RRR");
-        t.left = List.of("BASIC_ATTACK");
-        t.rightSneak = List.of("LLL");
-        t.right = List.of("LRL");
-        t.sneakStart = List.of("LRR");
-        t.sneakEnd = List.of("RLL");
+        t.leftSneak = List.of("windbound_fury");
+        t.left = List.of("gale_slash");
+        t.rightSneak = List.of("dancing_blade");
+        t.right = List.of("vault");
+        t.sneakStart = List.of("cloudpiercer");
+        t.sneakEnd = List.of("torrent");
         MAP.put(PlayerClass.GALEGLAIVE, t);
 
         // Arctic Knight class
         t = new Triggers();
-        t.leftSneak = List.of("RRR");
-        t.left = List.of("BASIC_ATTACK");
-        t.rightSneak = List.of("LLL");
-        t.right = List.of("LRL");
-        t.sneakStart = List.of("LLR");
+        t.leftSneak = List.of("permafrost_lance");
+        t.left = List.of("frost_strike");
+        t.rightSneak = List.of("frozen_shield");
+        t.right = List.of("glacial_impalement");
+        t.sneakStart = List.of("arctic_charge");
         MAP.put(PlayerClass.ARCTICKNIGHT, t);
     }
 
     private void cast(Player player, List<String> combos, PlayerClass pc) {
         if (combos == null) return;
-        for (String combo : combos) {
-            Spell spell = SpellManager.getInstance().getSpell(pc.name().toLowerCase(), combo);
+        for (String id : combos) {
+            Spell spell = SpellManager.getInstance().getSpellById(pc.name().toLowerCase(), id);
             if (spell == null) {
-                MythicBukkit.inst().getAPIHelper().castSkill(player, combo);
+                MythicBukkit.inst().getAPIHelper().castSkill(player, id);
             } else {
                 spell.castEffect(player);
                 StatsManager.getInstance().recalcDerivedStats(player);
