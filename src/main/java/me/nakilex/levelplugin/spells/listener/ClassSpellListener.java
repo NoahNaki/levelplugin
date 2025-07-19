@@ -15,6 +15,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.scheduler.BukkitTask;
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.items.data.WeaponType;
 
 import java.util.*;
 
@@ -220,9 +221,11 @@ public class ClassSpellListener implements Listener {
         PlayerClass pc = getClass(p);
         Triggers tr = MAP.get(pc);
         if (tr == null) return;
-        event.setCancelled(true);
-        if (p.isSneaking()) cast(p, tr.rightSneak, pc);
-        else cast(p, tr.right, pc);
+        boolean weapon = WeaponType.matchType(event.getItem()) != null;
+        if (weapon) {
+            event.setCancelled(true);
+            if (p.isSneaking()) cast(p, tr.rightSneak, pc); else cast(p, tr.right, pc);
+        }
     }
 
     @EventHandler
