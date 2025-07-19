@@ -294,8 +294,8 @@ public class EnvironmentManager {
         Location clickLoc = base.clone().add(0, bottomOffset, 0);
         org.bukkit.entity.Interaction clicker = clickLoc.getWorld().spawn(clickLoc, org.bukkit.entity.Interaction.class, it -> {
             // Make the clickable area large so players don't miss the hologram
-            it.setInteractionWidth(3.0f);
-            it.setInteractionHeight(3.0f);
+            it.setInteractionWidth(1.0f);
+            it.setInteractionHeight(1.0f);
             it.addScoreboardTag("building_hologram:" + tag.toLowerCase());
         });
         for (Player p : Bukkit.getOnlinePlayers()) {
