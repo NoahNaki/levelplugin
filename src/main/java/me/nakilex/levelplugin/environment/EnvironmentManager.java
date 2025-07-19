@@ -1232,7 +1232,7 @@ public class EnvironmentManager {
                     // Place the hologram where the stage was defined (+1 Y already stored)
                     Location holo = baseOrigin.clone().add(
                             stageData.hx - stageData.ox + 0.5,
-                            stageData.hy - stageData.oy,
+                            stageData.hy - stageData.oy + 2,
                             stageData.hz - stageData.oz + 0.5);
                     java.util.List<String> textLines = formatBuildingHologram(player, building, level, stage);
                     java.util.List<TextDisplay> displays = spawnHologramLines(player, holo, textLines, building);
@@ -1286,7 +1286,7 @@ public class EnvironmentManager {
 
         Location holo = baseOrigin.clone().add(
                 stageData.hx - stageData.ox + 0.5,
-                stageData.hy - stageData.oy,
+                stageData.hy - stageData.oy + 2,
                 stageData.hz - stageData.oz + 0.5);
         java.util.List<String> textLines = formatBuildingHologram(player, building, level, stage);
         java.util.List<TextDisplay> displays = spawnHologramLines(player, holo, textLines, building);
@@ -1410,7 +1410,7 @@ public class EnvironmentManager {
                     buildingStageManager.spawnForStage(player, building, newLevel, newStage, newOrigin);
                     Location holo = newOrigin.clone().add(
                             newData.hx - newData.ox + 0.5,
-                            newData.hy - newData.oy,
+                            newData.hy - newData.oy + 2,
                             newData.hz - newData.oz + 0.5);
                     java.util.List<String> textLines = formatBuildingHologram(player, building, newLevel, newStage);
                     java.util.List<TextDisplay> displays = spawnHologramLines(player, holo, textLines, building);
