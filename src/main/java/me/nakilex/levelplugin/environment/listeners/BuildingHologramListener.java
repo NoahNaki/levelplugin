@@ -15,7 +15,7 @@ public class BuildingHologramListener implements Listener {
         this.gui = gui;
     }
 
-    @EventHandler
+    @EventHandler(priority = org.bukkit.event.EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInteract(PlayerInteractEntityEvent event) {
         var entity = event.getRightClicked();
         if (entity instanceof ArmorStand || entity instanceof TextDisplay) {
