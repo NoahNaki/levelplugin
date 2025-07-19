@@ -106,3 +106,39 @@ icon_blink:
   material: COAL
   permission: icon_blink
   itemname: icon_blink
+
+frigid_lance_arctic_knight:
+  Pack:
+    generate_model: false
+    model: arctic_model/frigid_lance_arctic_knight
+    custom_model_data: 2058
+  material: STONE_SWORD
+  permission: frigid_lance_arctic_knight
+  itemname: frigid_lance_arctic_knight
+
+frigid_lance_arctic_knight_darkice:
+  Pack:
+    generate_model: false
+    model: arctic_model/frigid_lance_arctic_knight_darkice
+    custom_model_data: 2059
+  material: STONE_SWORD
+  permission: frigid_lance_arctic_knight_darkice
+  itemname: frigid_lance_arctic_knight_darkice
+
+windreaver_gale_glaive:
+  Pack:
+    generate_model: false
+    model: windrune_model/windreaver_gale_glaive
+    custom_model_data: 2068
+  material: STONE_SWORD
+  permission: windreaver_gale_glaive
+  itemname: windreaver_gale_glaive
+
+windreaver_gale_glaive_ancient:
+  Pack:
+    generate_model: false
+    model: windrune_model/windreaver_gale_glaive_ancient
+    custom_model_data: 2069
+  material: STONE_SWORD
+  permission: windreaver_gale_glaive_ancient
+  itemname: windreaver_gale_glaive_ancient
