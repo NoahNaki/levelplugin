@@ -673,26 +673,26 @@ public class SpellManager {
         // — OVERLORD CLASS —
         Map<String, Spell> overlordMap = new HashMap<>();
         overlordMap.put("BASIC_ATTACK", new Spell(
-                "dark_bolt", "Dark Bolt", "BASIC_ATTACK",
+                "witch_basic", "Dark Bolt", "BASIC_ATTACK",
                 0.0,
-                MythicSkillConfig.getCooldownSeconds("mf_class_overlord_normalattack"),
+                MythicSkillConfig.getCooldownSeconds("mf_class_witch_normalattack"),
                 1,
                 WeaponType.WAND.getMaterials(),
-                "MYTHIC_OVERLORD_DARK_BOLT", 0.0
+                "MYTHIC_OVERLORD_BASIC", 0.0
         ));
         overlordMap.put("LRL", new Spell(
-                "summon_minions", "Summon Minions", "LRL",
+                "witch_rightclick", "Summon Minions", "LRL",
                 10.0,
-                MythicSkillConfig.getCooldownSeconds("mf_class_overlord_summon_minions"), 5,
+                MythicSkillConfig.getCooldownSeconds("mf_class_witch_rightclick"), 5,
                 WeaponType.WAND.getMaterials(),
-                "MYTHIC_OVERLORD_SUMMON_MINIONS", 0.0
+                "MYTHIC_OVERLORD_RIGHTCLICK", 0.0
         ));
         overlordMap.put("RRR", new Spell(
-                "dark_ascension", "Dark Ascension", "RRR",
+                "witch_holdshift", "Dark Ascension", "RRR",
                 20.0,
-                MythicSkillConfig.getCooldownSeconds("mf_class_overlord_ultimate"), 10,
+                MythicSkillConfig.getCooldownSeconds("mf_class_witch_holdshift"), 10,
                 WeaponType.WAND.getMaterials(),
-                "MYTHIC_OVERLORD_ULTIMATE", 0.0
+                "MYTHIC_OVERLORD_HOLDSHIFT", 0.0
         ));
         spellsByClass.put("overlord", Collections.unmodifiableMap(overlordMap));
         plugin.getLogger().info("[SPELLS] Overlord combos: " + overlordMap.keySet());
