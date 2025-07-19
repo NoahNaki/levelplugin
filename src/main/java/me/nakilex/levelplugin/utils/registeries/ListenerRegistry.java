@@ -47,6 +47,7 @@ import me.nakilex.levelplugin.spells.DragonianSpell;
 import me.nakilex.levelplugin.spells.DragonWarriorSpell;
 import me.nakilex.levelplugin.spells.WindruneSpell;
 import me.nakilex.levelplugin.spells.ArcticKnightSpell;
+import me.nakilex.levelplugin.spells.OverlordSpell;
 import me.nakilex.levelplugin.spells.gui.SpellGUIListener;
 import me.nakilex.levelplugin.spells.listener.*;
 import me.nakilex.levelplugin.player.classes.gui.SubclassGUI;
@@ -168,6 +169,7 @@ public class ListenerRegistry {
         pm.registerEvents(new SubclassGUI(), plugin);
         pm.registerEvents(new WindruneSpell(), plugin);
         pm.registerEvents(new ArcticKnightSpell(), plugin);
+        pm.registerEvents(new OverlordSpell(), plugin);
         pm.registerEvents(new ChestHologramListener(lootChestManager), plugin);
         pm.registerEvents(new LootChestShutdownListener(plugin, lootChestManager), plugin);
 

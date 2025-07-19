@@ -145,6 +145,11 @@ public class EffectRegistry {
         register("MYTHIC_FROZEN_SHIELD", new MythicSkillEffect("Frozen_Shield"));
         register("MYTHIC_PERMAFROST_LANCE", new MythicSkillEffect("Permafrost_Lance"));
 
+        // --- Overlord Mythic skills ---
+        register("MYTHIC_OVERLORD_DARK_BOLT", new MythicSkillEffect("mf_class_overlord_normalattack"));
+        register("MYTHIC_OVERLORD_SUMMON_MINIONS", new MythicSkillEffect("mf_class_overlord_summon_minions"));
+        register("MYTHIC_OVERLORD_ULTIMATE", new MythicSkillEffect("mf_class_overlord_ultimate"));
+
 
 
 
