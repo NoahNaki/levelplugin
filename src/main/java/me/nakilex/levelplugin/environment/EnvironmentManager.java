@@ -717,6 +717,10 @@ public class EnvironmentManager {
         UUID base = getBase(player.getUniqueId());
         Map<String, EnvironmentState> bMap = buildingStates.computeIfAbsent(base, k -> new java.util.HashMap<>());
         EnvironmentState bs = bMap.computeIfAbsent(building.toLowerCase(), k -> new EnvironmentState(1, 1));
+        if (buildingStageManager.getStage(building, bs.level, bs.stage) == null) {
+            player.sendMessage(ChatColor.RED + "Unknown building.");
+            return;
+        }
         bs.invested += amount;
         if (bs.invested >= 1) {
             bs.invested = 0;

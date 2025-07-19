@@ -59,7 +59,8 @@ public class BuildingUpgradeGUI implements Listener {
         UUID id = e.getWhoClicked().getUniqueId();
         String building = open.get(id);
         if (building == null) return;
-        if (e.getSlot() != 13) return;
+        if (e.getClickedInventory() != e.getView().getTopInventory()) return; // ignore player inventory clicks
+        if (e.getRawSlot() != 13) return; // only react to our GUI slot
         Player p = (Player) e.getWhoClicked();
         if (p.getInventory().contains(Material.OAK_LOG)) {
             p.getInventory().removeItem(new ItemStack(Material.OAK_LOG, 1));
