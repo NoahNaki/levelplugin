@@ -16,6 +16,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.EnumSet;
@@ -81,6 +82,14 @@ public class OverlordSpell implements Listener {
 
         // Summon minions on right click
         castSpell(player, "LRL");
+    }
+
+    @EventHandler
+    public void onToggleSneak(PlayerToggleSneakEvent event) {
+        if (!event.isSneaking()) return;
+        Player player = event.getPlayer();
+        if (!isOverlord(player) || !validWeapon(player)) return;
+        castSpell(player, "LRR");
     }
 
     private void castSpell(Player player, String combo) {
