@@ -177,6 +177,12 @@ public class ClassSpellListener implements Listener {
                 "mf_class_witch_shiftshift_cruibile_count"
         );
         MAP.put(PlayerClass.WITCH, t);
+
+        // Rogue class (no default combos yet)
+        MAP.put(PlayerClass.ROGUE, new Triggers());
+
+        // Cleric class (no default combos yet)
+        MAP.put(PlayerClass.CLERIC, new Triggers());
     }
 
     private void cast(Player player, List<String> combos, PlayerClass pc) {

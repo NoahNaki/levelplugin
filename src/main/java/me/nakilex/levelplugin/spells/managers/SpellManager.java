@@ -179,6 +179,18 @@ public class SpellManager {
         spellsById.put("phoenixhunter", Collections.unmodifiableMap(phoenixIdMap));
         plugin.getLogger().info("[SPELLS] PhoenixHunter combos: " + phoenixMap.keySet());
 
+        // — ROGUE CLASS —
+        Map<String, Spell> rogueMap = new HashMap<>();
+        spellsByClass.put("rogue", Collections.unmodifiableMap(rogueMap));
+        spellsById.put("rogue", Collections.emptyMap());
+        plugin.getLogger().info("[SPELLS] Rogue combos: " + rogueMap.keySet());
+
+        // — CLERIC CLASS —
+        Map<String, Spell> clericMap = new HashMap<>();
+        spellsByClass.put("cleric", Collections.unmodifiableMap(clericMap));
+        spellsById.put("cleric", Collections.emptyMap());
+        plugin.getLogger().info("[SPELLS] Cleric combos: " + clericMap.keySet());
+
         // — DEADEYE CLASS —
         Map<String, Spell> deadeyeMap = new HashMap<>();
         deadeyeMap.put("BASIC_ATTACK", new Spell(
