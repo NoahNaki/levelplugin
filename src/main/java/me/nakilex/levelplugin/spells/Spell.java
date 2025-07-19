@@ -12,6 +12,7 @@ import me.nakilex.levelplugin.spells.registry.EffectRegistry;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import me.nakilex.levelplugin.items.data.WeaponType;
 
 
 import java.util.List;
@@ -151,10 +152,20 @@ public class Spell {
             skipWeaponCheck = req != null;
         }
 
-        if (hand == null || matCheck == Material.AIR ||
-                (!skipWeaponCheck && !allowedWeapons.isEmpty() && !allowedWeapons.contains(matCheck))) {
-            player.sendMessage("§cYou can't cast " + displayName + " with this weapon.");
-            return;
+        if (hand == null || matCheck == Material.AIR) {
+            return; // empty hand - silently fail
+        }
+
+        if (!skipWeaponCheck && !allowedWeapons.isEmpty()) {
+            WeaponType type = WeaponType.matchType(hand);
+            if (type == null) {
+                // Not a weapon, ignore without messaging
+                return;
+            }
+            if (!allowedWeapons.contains(matCheck)) {
+                player.sendMessage("§cYou can't cast " + displayName + " with this weapon.");
+                return;
+            }
         }
         // rank and ego requirements removed
 
