@@ -151,6 +151,15 @@ public class ClassSpellListener implements Listener {
         t.right = List.of("glacial_impalement");
         t.sneakStart = List.of("arctic_charge");
         MAP.put(PlayerClass.ARCTICKNIGHT, t);
+
+        // Witch class
+        t = new Triggers();
+        t.left = List.of("mf_class_witch_normalattack");
+        t.leftSneak = List.of("mf_class_witch_sneak_leftclick");
+        t.right = List.of("mf_class_witch_rightclick");
+        t.rightSneak = List.of("mf_class_witch_sneak_rightclick");
+        t.sneakStart = List.of("mf_class_witch_holdshift", "mf_class_witch_shiftshift");
+        MAP.put(PlayerClass.WITCH, t);
     }
 
     private void cast(Player player, List<String> combos, PlayerClass pc) {
