@@ -290,7 +290,9 @@ public class EnvironmentManager {
         java.util.List<TextDisplay> displays = new java.util.ArrayList<>();
 
         // Spawn an invisible interaction entity for reliable clicking
-        org.bukkit.entity.Interaction clicker = base.getWorld().spawn(base, org.bukkit.entity.Interaction.class, it -> {
+        double bottomOffset = -(lines.size() - 1) * 0.25;
+        Location clickLoc = base.clone().add(0, bottomOffset, 0);
+        org.bukkit.entity.Interaction clicker = clickLoc.getWorld().spawn(clickLoc, org.bukkit.entity.Interaction.class, it -> {
             // Make the clickable area large so players don't miss the hologram
             it.setInteractionWidth(3.0f);
             it.setInteractionHeight(3.0f);
