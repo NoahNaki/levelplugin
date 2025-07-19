@@ -687,6 +687,13 @@ public class SpellManager {
                 WeaponType.WAND.getMaterials(),
                 "MYTHIC_OVERLORD_RIGHTCLICK", 0.0
         ));
+        overlordMap.put("LRR", new Spell(
+                "witch_shiftshift", "Cruible Assault", "LRR",
+                8.0,
+                MythicSkillConfig.getCooldownSeconds("mf_class_witch_shiftshift"), 5,
+                WeaponType.WAND.getMaterials(),
+                "MYTHIC_OVERLORD_SHIFTSHIFT", 0.0
+        ));
         overlordMap.put("RRR", new Spell(
                 "witch_holdshift", "Dark Ascension", "RRR",
                 20.0,

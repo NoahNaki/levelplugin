@@ -149,6 +149,7 @@ public class EffectRegistry {
         register("MYTHIC_OVERLORD_BASIC", new MythicSkillEffect("mf_class_witch_normalattack"));
         register("MYTHIC_OVERLORD_RIGHTCLICK", new MythicSkillEffect("mf_class_witch_rightclick"));
         register("MYTHIC_OVERLORD_HOLDSHIFT", new MythicSkillEffect("mf_class_witch_holdshift"));
+        register("MYTHIC_OVERLORD_SHIFTSHIFT", new MythicSkillEffect("mf_class_witch_shiftshift"));
 
 
 
