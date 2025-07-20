@@ -1124,7 +1124,7 @@ public class EnvironmentManager {
                                        int oldLevel, int oldStage,
                                        int newLevel, int newStage) {
         UUID uuid = player.getUniqueId();
-        cancelTasks(uuid);
+        cancelBuildTask(uuid, TOWN_TASK_KEY);
 
         String town = towns.get(uuid);
         if (town == null) return;
@@ -1203,9 +1203,8 @@ public class EnvironmentManager {
             }
         }.runTaskTimer(Main.getInstance(), 0L, 1L);
 
-        java.util.List<BukkitTask> tasks = new java.util.ArrayList<>();
-        tasks.add(task);
-        buildTasks.put(uuid, tasks);
+        buildTasks.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
+            .put(TOWN_TASK_KEY, task);
     }
 
     /** Spawn a specific building stage relative to the town origin. */
