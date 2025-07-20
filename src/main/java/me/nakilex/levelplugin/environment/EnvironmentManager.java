@@ -1302,7 +1302,7 @@ public class EnvironmentManager {
     }
 
     private void spawnBuilding(Player player, String building, Location origin, int level, int stage, Runnable after) {
-        spawnBuildingTimed(player, building, origin, level, stage, after, 5 * 20);
+        spawnBuildingTimed(player, building, origin, level, stage, after, 6 * 20);
     }
 
     private void spawnBuilding(Player player, String building, Location origin, int level, int stage) {
@@ -1425,7 +1425,7 @@ public class EnvironmentManager {
         // sort bottom-up for nicer effect
         changes.sort(java.util.Comparator.comparingInt(c -> c.loc.getBlockY()));
 
-        final int totalTime = 5 * 20; // 5 seconds in ticks
+        final int totalTime = 6 * 20; // 6 seconds in ticks
         final int blocksPerTick = Math.max(1, changes.size() / totalTime);
 
         java.util.Random rand = new java.util.Random();
