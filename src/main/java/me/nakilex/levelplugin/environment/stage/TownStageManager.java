@@ -35,8 +35,8 @@ import java.util.Set;
  */
 public class TownStageManager {
     private final Main plugin;
-    /** Map of town -> level -> stage -> data */
-    private final Map<String, Map<Integer, Map<Integer, TownStage>>> stages = new HashMap<>();
+    /** Map of town -> stage -> data */
+    private final Map<String, Map<Integer, TownStage>> stages = new HashMap<>();
     private final Map<java.util.UUID, Map<String, java.util.List<NPC>>> spawnedNPCs = new HashMap<>();
     /** Folder containing FAWE schematics for each stage. */
     private final File schemFolder;
@@ -55,16 +55,14 @@ public class TownStageManager {
         return new java.util.HashSet<>(stages.keySet());
     }
 
-    public TownStage getStage(String town, int level, int stage) {
+    public TownStage getStage(String town, int stage) {
         if (town == null) return null;
-        var levels = stages.get(town.toLowerCase());
-        if (levels == null) return null;
-        var stagesMap = levels.get(level);
-        if (stagesMap == null) return null;
-        return stagesMap.get(stage);
+        var map = stages.get(town.toLowerCase());
+        if (map == null) return null;
+        return map.get(stage);
     }
 
-    public void createStage(String name, int level, int stage, Location p1, Location p2, Location origin, int priority) {
+    public void createStage(String name, int stage, Location p1, Location p2, Location origin, int priority) {
         java.util.List<NPCSpawn> npcs = new java.util.ArrayList<>();
         java.util.List<BlockDef> blocks = new java.util.ArrayList<>();
         var boxMinX = Math.min(p1.getBlockX(), p2.getBlockX());
@@ -108,24 +106,20 @@ public class TownStageManager {
             }
         }
 
-        String fileName = name.toLowerCase() + "_" + level + "_" + stage + ".schem";
+        String fileName = name.toLowerCase() + "_" + stage + ".schem";
         File schematic = new File(schemFolder, fileName);
         saveSchematic(p1, p2, schematic);
         stages
             .computeIfAbsent(name.toLowerCase(), k -> new java.util.HashMap<>())
-            .computeIfAbsent(level, k -> new java.util.HashMap<>())
-            .put(stage, new TownStage(name.toLowerCase(), level, stage, p1, p2, npcs, blocks, schematic, fileName, priority, ox, oy, oz));
+            .put(stage, new TownStage(name.toLowerCase(), stage, p1, p2, npcs, blocks, schematic, fileName, priority, ox, oy, oz));
         saveConfig();
     }
 
-    public boolean removeStage(String name, int level, int stage) {
-        var levels = stages.get(name.toLowerCase());
-        if (levels == null) return false;
-        var map = levels.get(level);
+    public boolean removeStage(String name, int stage) {
+        var map = stages.get(name.toLowerCase());
         if (map == null) return false;
         if (map.remove(stage) != null) {
-            if (map.isEmpty()) levels.remove(level);
-            if (levels.isEmpty()) stages.remove(name.toLowerCase());
+            if (map.isEmpty()) stages.remove(name.toLowerCase());
             saveConfig();
             return true;
         }
@@ -135,12 +129,12 @@ public class TownStageManager {
     // NPCs should stand directly on the ground
     private static final double NPC_SPAWN_Y_OFFSET = 0.0;
 
-    public void spawnForStage(org.bukkit.entity.Player viewer, String town, int level, int stage, Location origin) {
-        TownStage ts = getStage(town, level, stage);
+    public void spawnForStage(org.bukkit.entity.Player viewer, String town, int stage, Location origin) {
+        TownStage ts = getStage(town, stage);
         if (ts == null || origin == null || viewer == null) return;
         java.util.UUID id = viewer.getUniqueId();
         var map = spawnedNPCs.computeIfAbsent(id, k -> new java.util.HashMap<>());
-        String key = town.toLowerCase() + ":" + level + ":" + stage;
+        String key = town.toLowerCase() + ":" + stage;
         var list = map.computeIfAbsent(key, k -> new java.util.ArrayList<>());
         for (NPC npc : list) {
             if (npc.isSpawned()) npc.despawn();
@@ -184,10 +178,10 @@ public class TownStageManager {
         }
     }
 
-    public void despawnForStage(java.util.UUID viewerId, String town, int level, int stage) {
+    public void despawnForStage(java.util.UUID viewerId, String town, int stage) {
         var map = spawnedNPCs.get(viewerId);
         if (map == null) return;
-        String key = town.toLowerCase() + ":" + level + ":" + stage;
+        String key = town.toLowerCase() + ":" + stage;
         var list = map.remove(key);
         if (list != null) {
             for (NPC npc : list) {
@@ -234,29 +228,20 @@ public class TownStageManager {
         for (String town : config.getConfigurationSection("stages").getKeys(false)) {
             var townSec = config.getConfigurationSection("stages." + town);
             if (townSec == null) continue;
-            for (String lvlKey : townSec.getKeys(false)) {
-                int level;
+            for (String stKey : townSec.getKeys(false)) {
+                int stage;
                 try {
-                    level = Integer.parseInt(lvlKey);
+                    stage = Integer.parseInt(stKey);
                 } catch (NumberFormatException ex) {
-                    continue; // skip non-numeric keys
+                    continue; // skip invalid stage keys
                 }
-                var lvlSec = config.getConfigurationSection("stages." + town + "." + lvlKey);
-                if (lvlSec == null) continue;
-                for (String stKey : lvlSec.getKeys(false)) {
-                    int stage;
-                    try {
-                        stage = Integer.parseInt(stKey);
-                    } catch (NumberFormatException ex) {
-                        continue; // skip invalid stage keys
-                    }
-                    String base = "stages." + town + "." + lvlKey + "." + stKey + ".";
-                    String worldName = config.getString(base + "world");
-                    World world = Bukkit.getWorld(worldName);
-                    if (world == null) continue;
-                    Location p1 = readLocation(world, base + "pos1");
-                    Location p2 = readLocation(world, base + "pos2");
-                    if (p1 == null || p2 == null) continue;
+                String base = "stages." + town + "." + stKey + ".";
+                String worldName = config.getString(base + "world");
+                World world = Bukkit.getWorld(worldName);
+                if (world == null) continue;
+                Location p1 = readLocation(world, base + "pos1");
+                Location p2 = readLocation(world, base + "pos2");
+                if (p1 == null || p2 == null) continue;
                     java.util.List<NPCSpawn> npcs = new java.util.ArrayList<>();
                     java.util.List<BlockDef> blocks;
                     if (config.isList(base + "npcs")) {
@@ -275,7 +260,7 @@ public class TownStageManager {
                             } catch (NumberFormatException ignored) {}
                         }
                     }
-                    String fileName = config.getString(base + "schematic", town.toLowerCase() + "_" + level + "_" + stage + ".schem");
+                    String fileName = config.getString(base + "schematic", town.toLowerCase() + "_" + stage + ".schem");
                     File schematic = new File(schemFolder, fileName);
                     blocks = loadSchematic(schematic, world);
                     int priority = config.getInt(base + "priority", 0);
@@ -284,8 +269,7 @@ public class TownStageManager {
                     int oz = config.getInt(base + "origin.z", 0);
                     stages
                         .computeIfAbsent(town.toLowerCase(), k -> new java.util.HashMap<>())
-                        .computeIfAbsent(level, k -> new java.util.HashMap<>())
-                        .put(stage, new TownStage(town.toLowerCase(), level, stage, p1, p2, npcs, blocks, schematic, fileName, priority, ox, oy, oz));
+                        .put(stage, new TownStage(town.toLowerCase(), stage, p1, p2, npcs, blocks, schematic, fileName, priority, ox, oy, oz));
                 }
             }
         }
@@ -370,12 +354,10 @@ public class TownStageManager {
         config.set("stages", null);
         for (var entryTown : stages.entrySet()) {
             String town = entryTown.getKey();
-            for (var entryLevel : entryTown.getValue().entrySet()) {
-                int level = entryLevel.getKey();
-                for (var entryStage : entryLevel.getValue().entrySet()) {
-                    int stage = entryStage.getKey();
-                    TownStage st = entryStage.getValue();
-                    String base = "stages." + town + "." + level + "." + stage + ".";
+            for (var entryStage : entryTown.getValue().entrySet()) {
+                int stage = entryStage.getKey();
+                TownStage st = entryStage.getValue();
+                String base = "stages." + town + "." + stage + ".";
                     Location p1 = st.pos1;
                     Location p2 = st.pos2;
                     config.set(base + "world", p1.getWorld().getName());
@@ -422,7 +404,6 @@ public class TownStageManager {
     /** Simple storage class for a town stage area. */
     public static class TownStage {
         public final String name;
-        public final int level;
         public final int stage;
         public final Location pos1;
         public final Location pos2;
@@ -434,12 +415,11 @@ public class TownStageManager {
         public final int priority;
         public final int ox, oy, oz;
 
-        public TownStage(String name, int level, int stage, Location pos1, Location pos2,
+        public TownStage(String name, int stage, Location pos1, Location pos2,
                          java.util.List<NPCSpawn> npcs, java.util.List<BlockDef> blocks,
                          File schematic, String fileName, int priority,
                          int ox, int oy, int oz) {
             this.name = name;
-            this.level = level;
             this.stage = stage;
             this.pos1 = pos1;
             this.pos2 = pos2;

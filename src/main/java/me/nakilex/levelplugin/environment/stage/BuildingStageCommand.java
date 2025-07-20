@@ -91,7 +91,7 @@ public class BuildingStageCommand implements CommandExecutor, Listener {
                 if (args.length < 3) return false;
                 String lbName = args[1].toLowerCase();
                 String town = args[2].toLowerCase();
-                var townStage = plugin.getTownStageManager().getStage(town, 1, 1);
+                var townStage = plugin.getTownStageManager().getStage(town, 1);
                 if (townStage == null) {
                     p.sendMessage(ChatColor.RED + "Unknown town.");
                     return true;

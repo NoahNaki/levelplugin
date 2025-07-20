@@ -57,7 +57,7 @@ public class PlayerQuitListener implements Listener {
         String town = st != null ? environmentManager.getTown(pid) : null;
         environmentManager.saveState(pid);
         if (st != null && town != null) {
-            stageManager.despawnForStage(pid, town, st.level, st.stage);
+            stageManager.despawnForStage(pid, town, st.stage);
         }
 
         // Reset the intro quest only if the player hasn't finished it yet

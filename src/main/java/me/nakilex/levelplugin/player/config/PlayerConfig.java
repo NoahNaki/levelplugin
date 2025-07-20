@@ -128,20 +128,14 @@ public class PlayerConfig {
 
     // ----- Environment Progress -----
 
-    public int getEnvironmentLevel(UUID uuid) {
-        String path = "players." + uuid + ".environment.level";
-        return config.getInt(path, 1);
-    }
-
     public int getEnvironmentStage(UUID uuid) {
         String path = "players." + uuid + ".environment.stage";
         return config.getInt(path, 1);
     }
 
-    public void setEnvironmentState(UUID uuid, int level, int stage) {
-        String base = "players." + uuid + ".environment.";
-        config.set(base + "level", level);
-        config.set(base + "stage", stage);
+    public void setEnvironmentStage(UUID uuid, int stage) {
+        String path = "players." + uuid + ".environment.stage";
+        config.set(path, stage);
     }
 
     /** Get the stored origin location of a player's settlement or null if not set. */
