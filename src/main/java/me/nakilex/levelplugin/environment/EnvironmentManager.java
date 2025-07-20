@@ -1144,8 +1144,8 @@ public class EnvironmentManager {
 
         for (var b : newData.blocks) {
             Location loc = newOrigin.clone().add(b.x - newData.ox, b.y - newData.oy, b.z - newData.oz);
-            String key = loc.getBlockX()+":"+loc.getBlockY()+":"+loc.getBlockZ();
-            newKeys.add(key);
+            String locKey = loc.getBlockX()+":"+loc.getBlockY()+":"+loc.getBlockZ();
+            newKeys.add(locKey);
             changes.add(new Change(loc, b.data));
         }
 
@@ -1153,8 +1153,8 @@ public class EnvironmentManager {
             var air = org.bukkit.Bukkit.createBlockData(org.bukkit.Material.AIR);
             for (var b : oldData.blocks) {
                 Location loc = oldOrigin.clone().add(b.x - oldData.ox, b.y - oldData.oy, b.z - oldData.oz);
-                String key = loc.getBlockX()+":"+loc.getBlockY()+":"+loc.getBlockZ();
-                if (!newKeys.contains(key)) {
+                String locKey = loc.getBlockX()+":"+loc.getBlockY()+":"+loc.getBlockZ();
+                if (!newKeys.contains(locKey)) {
                     changes.add(new Change(loc, air));
                 }
             }
@@ -1384,8 +1384,8 @@ public class EnvironmentManager {
 
         for (var b : newData.blocks) {
             Location loc = newOrigin.clone().add(b.x - newData.ox, b.y - newData.oy, b.z - newData.oz);
-            String key = loc.getBlockX()+":"+loc.getBlockY()+":"+loc.getBlockZ();
-            newKeys.add(key);
+            String locKey = loc.getBlockX()+":"+loc.getBlockY()+":"+loc.getBlockZ();
+            newKeys.add(locKey);
             changes.add(new Change(loc, b.data));
         }
 
@@ -1393,8 +1393,8 @@ public class EnvironmentManager {
             var air = org.bukkit.Bukkit.createBlockData(org.bukkit.Material.AIR);
             for (var b : oldData.blocks) {
                 Location loc = oldOrigin.clone().add(b.x - oldData.ox, b.y - oldData.oy, b.z - oldData.oz);
-                String key = loc.getBlockX()+":"+loc.getBlockY()+":"+loc.getBlockZ();
-                if (!newKeys.contains(key)) {
+                String locKey = loc.getBlockX()+":"+loc.getBlockY()+":"+loc.getBlockZ();
+                if (!newKeys.contains(locKey)) {
                     changes.add(new Change(loc, air));
                 }
             }
