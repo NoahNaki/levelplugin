@@ -1363,6 +1363,8 @@ public class EnvironmentManager {
                                       int oldStage, int newStage,
                                       Runnable after) {
         UUID uuid = player.getUniqueId();
+        String key = building.toLowerCase();
+        cancelBuildTask(uuid, key);
         removeTownHologram(uuid, building);
         String town = towns.get(uuid);
         if (town == null) return;
