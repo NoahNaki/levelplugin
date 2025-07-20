@@ -1169,13 +1169,6 @@ public class EnvironmentManager {
         java.util.List<Change> changes = new java.util.ArrayList<>();
         java.util.Set<String> newKeys = new java.util.HashSet<>();
 
-        for (var b : newData.blocks) {
-            Location loc = newOrigin.clone().add(b.x - newData.ox, b.y - newData.oy, b.z - newData.oz);
-            String key = loc.getBlockX()+":"+loc.getBlockY()+":"+loc.getBlockZ();
-            newKeys.add(key);
-            changes.add(new Change(loc, b.data));
-        }
-
         if (oldData != null) {
             var air = org.bukkit.Bukkit.createBlockData(org.bukkit.Material.AIR);
             for (var b : oldData.blocks) {
@@ -1185,6 +1178,13 @@ public class EnvironmentManager {
                     changes.add(new Change(loc, air));
                 }
             }
+        }
+
+        for (var b : newData.blocks) {
+            Location loc = newOrigin.clone().add(b.x - newData.ox, b.y - newData.oy, b.z - newData.oz);
+            String key = loc.getBlockX()+":"+loc.getBlockY()+":"+loc.getBlockZ();
+            newKeys.add(key);
+            changes.add(new Change(loc, b.data));
         }
 
         // sort changes bottom-up for a nicer effect
@@ -1409,13 +1409,6 @@ public class EnvironmentManager {
         java.util.List<Change> changes = new java.util.ArrayList<>();
         java.util.Set<String> newKeys = new java.util.HashSet<>();
 
-        for (var b : newData.blocks) {
-            Location loc = newOrigin.clone().add(b.x - newData.ox, b.y - newData.oy, b.z - newData.oz);
-            String key = loc.getBlockX()+":"+loc.getBlockY()+":"+loc.getBlockZ();
-            newKeys.add(key);
-            changes.add(new Change(loc, b.data));
-        }
-
         if (oldData != null) {
             var air = org.bukkit.Bukkit.createBlockData(org.bukkit.Material.AIR);
             for (var b : oldData.blocks) {
@@ -1425,6 +1418,13 @@ public class EnvironmentManager {
                     changes.add(new Change(loc, air));
                 }
             }
+        }
+
+        for (var b : newData.blocks) {
+            Location loc = newOrigin.clone().add(b.x - newData.ox, b.y - newData.oy, b.z - newData.oz);
+            String key = loc.getBlockX()+":"+loc.getBlockY()+":"+loc.getBlockZ();
+            newKeys.add(key);
+            changes.add(new Change(loc, b.data));
         }
 
         // sort bottom-up for nicer effect
