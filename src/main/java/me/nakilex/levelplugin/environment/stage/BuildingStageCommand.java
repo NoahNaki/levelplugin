@@ -63,25 +63,27 @@ public class BuildingStageCommand implements CommandExecutor, Listener {
                     p.sendMessage(ChatColor.RED + "Select two positions first.");
                     return true;
                 }
-                // Arguments: <building> <stage> [priority]
+                // Arguments: <building> <level> <stage> [priority]
                 String bName = args[1].toLowerCase();
-                int stage = parseInt(args[2], 1);
+                int level = parseInt(args[2], 1);
+                int stage = parseInt(args[3], 1);
                 int priority = 0;
-                if (args.length > 3) {
-                    priority = parseInt(args[3], 0);
+                if (args.length > 4) {
+                    priority = parseInt(args[4], 0);
                     if (priority < 0) priority = 0;
                 }
                 // Save where the player ran the command and raise it one block
                 Location stand = p.getLocation().clone().add(0.5, 1.0, 0.5);
                 Location origin = p.getLocation().getBlock().getLocation();
-                manager.createStage(bName, stage, pos1, pos2, stand, origin, priority);
+                manager.createStage(bName, level, stage, pos1, pos2, stand, origin, priority);
                 p.sendMessage(ChatColor.GREEN + "Stage " + bName + " created.");
                 return true;
             case "remove":
-                if (args.length < 3) return false;
+                if (args.length < 4) return false;
                 String rbName = args[1].toLowerCase();
-                int rStage = parseInt(args[2], 1);
-                if (manager.removeStage(rbName, rStage)) {
+                int rLevel = parseInt(args[2], 1);
+                int rStage = parseInt(args[3], 1);
+                if (manager.removeStage(rbName, rLevel, rStage)) {
                     p.sendMessage(ChatColor.GREEN + "Stage removed.");
                 } else {
                     p.sendMessage(ChatColor.RED + "Stage not found.");
