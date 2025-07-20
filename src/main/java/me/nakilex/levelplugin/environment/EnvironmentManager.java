@@ -823,9 +823,9 @@ public class EnvironmentManager {
         // initialize building progress for all defined buildings of this town
         var buildingNames = buildingStageManager.getBuildings(townName);
         if (!buildingNames.isEmpty()) {
-            Map<String, EnvironmentState> map = new java.util.HashMap<>();
+            Map<String, BuildingState> map = new java.util.HashMap<>();
             for (String b : buildingNames) {
-                map.put(b.toLowerCase(), new EnvironmentState(1,1));
+                map.put(b.toLowerCase(), new BuildingState(1));
             }
             buildingStates.put(uuid, map);
         }
@@ -863,7 +863,7 @@ public class EnvironmentManager {
             // member leaving
             EnvironmentState st = states.get(base);
             String town = towns.get(base);
-            Map<String, EnvironmentState> bMap = buildingStates.get(base);
+            Map<String, BuildingState> bMap = buildingStates.get(base);
             removeMemberData(uuid, town, st, bMap);
             coopPartners.remove(base);
             player.sendMessage(ChatColor.RED + "You have left the town.");
@@ -874,7 +874,7 @@ public class EnvironmentManager {
         if (partner != null) {
             EnvironmentState st = states.get(uuid);
             String town = towns.get(uuid);
-            Map<String, EnvironmentState> bMap = buildingStates.get(uuid);
+            Map<String, BuildingState> bMap = buildingStates.get(uuid);
             removeMemberData(partner, town, st, bMap);
         }
 
@@ -915,7 +915,7 @@ public class EnvironmentManager {
         EnvironmentState st = states.get(base);
         String town = towns.get(base);
         Location origin = origins.get(base);
-        Map<String, EnvironmentState> bMap = buildingStates.get(base);
+        Map<String, BuildingState> bMap = buildingStates.get(base);
         if (town != null && st != null && origin != null) {
             stageManager.despawnForStage(player.getUniqueId(), town, st.level, st.stage);
             if (bMap != null) {
@@ -1487,7 +1487,7 @@ public class EnvironmentManager {
         }
         EnvironmentState st = states.get(ownerId);
         String town = towns.get(ownerId);
-        Map<String, EnvironmentState> bMap = buildingStates.get(ownerId);
+        Map<String, BuildingState> bMap = buildingStates.get(ownerId);
         removeMemberData(partner, town, st, bMap);
         coopPartners.remove(ownerId);
         owner.sendMessage(ChatColor.RED + "Removed " + target.getName() + " from the town.");
@@ -1553,7 +1553,7 @@ public class EnvironmentManager {
         // Move data
         EnvironmentState st = states.remove(ownerId);
         states.put(partner, st);
-        Map<String, EnvironmentState> bMap = buildingStates.remove(ownerId);
+        Map<String, BuildingState> bMap = buildingStates.remove(ownerId);
         if (bMap != null) buildingStates.put(partner, bMap);
         Location origin = origins.remove(ownerId);
         if (origin != null) origins.put(partner, origin);
