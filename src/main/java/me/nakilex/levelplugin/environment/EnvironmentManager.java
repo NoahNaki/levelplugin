@@ -1029,7 +1029,8 @@ public class EnvironmentManager {
     }
 
     private void spawnStructure(Player player, Location origin, int level, int stage, Runnable after) {
-        spawnStructureTimed(player, origin, level, stage, after, 5 * 20);
+        // run the build animation over ~6 seconds
+        spawnStructureTimed(player, origin, level, stage, after, 6 * 20);
     }
 
     private void spawnStructure(Player player, Location origin, int level, int stage) {
@@ -1138,7 +1139,8 @@ public class EnvironmentManager {
         // sort changes bottom-up for a nicer effect
         changes.sort(java.util.Comparator.comparingInt(c -> c.loc.getBlockY()));
 
-        final int totalTime = 5 * 20; // 5 seconds in ticks
+        // play upgrade animation over ~6 seconds
+        final int totalTime = 6 * 20; // 6 seconds in ticks
         final int blocksPerTick = Math.max(1, changes.size() / totalTime);
 
         java.util.Random rand = new java.util.Random();
@@ -1250,7 +1252,8 @@ public class EnvironmentManager {
     }
 
     private void spawnBuilding(Player player, String building, Location origin, int stage, Runnable after) {
-        spawnBuildingTimed(player, building, origin, stage, after, 5 * 20);
+        // building construction animation lasts ~6 seconds
+        spawnBuildingTimed(player, building, origin, stage, after, 6 * 20);
     }
 
     private void spawnBuilding(Player player, String building, Location origin, int stage) {
@@ -1371,7 +1374,8 @@ public class EnvironmentManager {
         // sort bottom-up for nicer effect
         changes.sort(java.util.Comparator.comparingInt(c -> c.loc.getBlockY()));
 
-        final int totalTime = 5 * 20; // 5 seconds in ticks
+        // build upgrade animation runs for ~6 seconds
+        final int totalTime = 6 * 20; // 6 seconds in ticks
         final int blocksPerTick = Math.max(1, changes.size() / totalTime);
 
         java.util.Random rand = new java.util.Random();
@@ -1564,19 +1568,23 @@ public class EnvironmentManager {
             loadedChunks.computeIfAbsent(base, k -> new java.util.HashSet<>()).add(key);
         }
 
-        // resend structure blocks inside the chunk
-        resendStructureForChunk(player, origin, st.level, st.stage, cx, cz);
+        // skip resending blocks if a build animation is active to avoid
+        // overriding the visual effect
+        if (!buildTasks.containsKey(base)) {
+            // resend structure blocks inside the chunk
+            resendStructureForChunk(player, origin, st.level, st.stage, cx, cz);
 
-        Map<String, BuildingState> bMap = buildingStates.get(base);
-        if (bMap != null) {
-            for (var e : bMap.entrySet()) {
-                Location bOrigin = getBuildingOrigin(towns.get(base), e.getKey(), origin);
-                resendBuildingForChunk(player, e.getKey(), bOrigin, e.getValue().stage, cx, cz);
+            Map<String, BuildingState> bMap = buildingStates.get(base);
+            if (bMap != null) {
+                for (var e : bMap.entrySet()) {
+                    Location bOrigin = getBuildingOrigin(towns.get(base), e.getKey(), origin);
+                    resendBuildingForChunk(player, e.getKey(), bOrigin, e.getValue().stage, cx, cz);
+                }
             }
-        }
 
-        // Ensure any missing structures are respawned once the chunk is ready
-        startTownLoadCheck(player);
+            // Ensure any missing structures are respawned once the chunk is ready
+            startTownLoadCheck(player);
+        }
     }
 
     public void transfer(Player owner, Player newOwner) {
