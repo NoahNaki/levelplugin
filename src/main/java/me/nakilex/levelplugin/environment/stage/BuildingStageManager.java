@@ -333,52 +333,39 @@ public class BuildingStageManager {
             for (String building : config.getConfigurationSection("stages").getKeys(false)) {
                 var buildSec = config.getConfigurationSection("stages." + building);
                 if (buildSec == null) continue;
-                for (String stageKey : buildSec.getKeys(false)) {
+                for (String key : buildSec.getKeys(false)) {
+                    var stageSec = config.getConfigurationSection("stages." + building + "." + key);
+                    if (stageSec == null) continue;
+                    // Determine if this child represents a stage directly (new format)
+                    boolean direct = stageSec.isConfigurationSection("pos1");
+                    if (direct) {
                         int stage;
                         try {
-                            stage = Integer.parseInt(stageKey);
+                            stage = Integer.parseInt(key);
                         } catch (NumberFormatException ex) {
                             continue;
                         }
-                        String base = "stages." + building + "." + stageKey + ".";
-                        World world = Bukkit.getWorld(config.getString(base + "world"));
-                        if (world == null) continue;
-                        Location pos1 = readLocation(world, base + "pos1");
-                        Location pos2 = readLocation(world, base + "pos2");
-                        if (pos1 == null || pos2 == null) continue;
-                        List<NPCSpawn> npcList = new ArrayList<>();
-                        if (config.isList(base + "npcs")) {
-                            for (Object o : config.getList(base + "npcs")) {
-                                if (!(o instanceof String s)) continue;
-                                String[] parts = s.split(";");
-                                if (parts.length < 6) continue;
-                                try {
-                                    int id = Integer.parseInt(parts[0]);
-                                    int dx = Integer.parseInt(parts[1]);
-                                    int dy = Integer.parseInt(parts[2]);
-                                    int dz = Integer.parseInt(parts[3]);
-                                    float yaw = Float.parseFloat(parts[4]);
-                                    float pitch = Float.parseFloat(parts[5]);
-                                    npcList.add(new NPCSpawn(id, dx, dy, dz, yaw, pitch));
-                                } catch (Exception ignore) {}
-                            }
+                        loadStage(building, stage, "stages." + building + "." + key + ".");
+                    } else {
+                        // legacy format: levels contain stage sections
+                        int level;
+                        try {
+                            level = Integer.parseInt(key);
+                        } catch (NumberFormatException ex) {
+                            continue;
                         }
-                        String fileName = config.getString(base + "schematic", building.toLowerCase() + "_" + stage + ".schem");
-                        File schematic = new File(schemFolder, fileName);
-                        List<BlockDef> blockList = loadSchematic(schematic, world);
-                        int hx = config.getInt(base + "holo.x", 0);
-                        int hy = config.getInt(base + "holo.y", 0);
-                        int hz = config.getInt(base + "holo.z", 0);
-                        int priority = config.getInt(base + "priority", 0);
-                        int ox = config.getInt(base + "origin.x", 0);
-                        int oy = config.getInt(base + "origin.y", 0);
-                        int oz = config.getInt(base + "origin.z", 0);
-                        stages
-                            .computeIfAbsent(building.toLowerCase(), k -> new HashMap<>())
-                            .put(stage, new BuildingStage(building.toLowerCase(), stage,
-                                    pos1, pos2, npcList, blockList, schematic, fileName, priority,
-                                    hx, hy, hz, ox, oy, oz));
+                        for (String stageKey : stageSec.getKeys(false)) {
+                            int stage;
+                            try {
+                                stage = Integer.parseInt(stageKey);
+                            } catch (NumberFormatException ex) {
+                                continue;
+                            }
+                            String base = "stages." + building + "." + key + "." + stageKey + ".";
+                            loadStage(building, stage, base);
+                        }
                     }
+                }
             }
         }
 
@@ -404,6 +391,52 @@ public class BuildingStageManager {
         int y = config.getInt(path + ".y");
         int z = config.getInt(path + ".z");
         return new Location(world, x, y, z);
+    }
+
+    /**
+     * Helper to load a single stage definition from configuration.
+     */
+    private void loadStage(String building, int stage, String base) {
+        World world = Bukkit.getWorld(config.getString(base + "world"));
+        if (world == null) return;
+        Location pos1 = readLocation(world, base + "pos1");
+        Location pos2 = readLocation(world, base + "pos2");
+        if (pos1 == null || pos2 == null) return;
+
+        List<NPCSpawn> npcList = new ArrayList<>();
+        if (config.isList(base + "npcs")) {
+            for (Object o : config.getList(base + "npcs")) {
+                if (!(o instanceof String s)) continue;
+                String[] parts = s.split(";");
+                if (parts.length < 6) continue;
+                try {
+                    int id = Integer.parseInt(parts[0]);
+                    int dx = Integer.parseInt(parts[1]);
+                    int dy = Integer.parseInt(parts[2]);
+                    int dz = Integer.parseInt(parts[3]);
+                    float yaw = Float.parseFloat(parts[4]);
+                    float pitch = Float.parseFloat(parts[5]);
+                    npcList.add(new NPCSpawn(id, dx, dy, dz, yaw, pitch));
+                } catch (Exception ignore) {
+                }
+            }
+        }
+        String fileName = config.getString(base + "schematic", building.toLowerCase() + "_" + stage + ".schem");
+        File schematic = new File(schemFolder, fileName);
+        List<BlockDef> blockList = loadSchematic(schematic, world);
+        int hx = config.getInt(base + "holo.x", 0);
+        int hy = config.getInt(base + "holo.y", 0);
+        int hz = config.getInt(base + "holo.z", 0);
+        int priority = config.getInt(base + "priority", 0);
+        int ox = config.getInt(base + "origin.x", 0);
+        int oy = config.getInt(base + "origin.y", 0);
+        int oz = config.getInt(base + "origin.z", 0);
+
+        stages
+            .computeIfAbsent(building.toLowerCase(), k -> new HashMap<>())
+            .put(stage, new BuildingStage(building.toLowerCase(), stage,
+                    pos1, pos2, npcList, blockList, schematic, fileName, priority,
+                    hx, hy, hz, ox, oy, oz));
     }
 
     private void saveConfig() {
