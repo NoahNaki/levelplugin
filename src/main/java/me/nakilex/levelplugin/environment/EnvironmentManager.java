@@ -1601,6 +1601,7 @@ public class EnvironmentManager {
 
         owner.sendMessage(ChatColor.GREEN + "Transferred town ownership to " + newOwner.getName() + ".");
         newOwner.sendMessage(ChatColor.GREEN + "You are now the town owner.");
+    }
 
     public void sendInfo(Player player) {
         UUID base = getBase(player.getUniqueId());
