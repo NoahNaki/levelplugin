@@ -690,6 +690,8 @@ public class EnvironmentManager {
             Location origin = origins.get(base);
             if (town != null && origin != null) {
                 stageManager.despawnForStage(player.getUniqueId(), town, oldLevel, oldStage);
+                // Clear fake blocks from the previous stage before showing the upgrade
+                clearTownStage(player, town, origin, oldLevel, oldStage);
                 spawnStructureUpgrade(player, origin, oldLevel, oldStage, state.level, state.stage);
             }
             Main.getInstance().getQuestManager().handleTownUpgrade(player);
@@ -724,6 +726,8 @@ public class EnvironmentManager {
             if (town != null && origin != null) {
                 Location bOrig = getBuildingOrigin(town, building, origin);
                 buildingStageManager.despawnForStage(player.getUniqueId(), building, oldS);
+                // Clear blocks from the previous stage so upgrades apply correctly
+                clearBuildingStage(player, building, bOrig, oldS);
                 spawnBuildingUpgrade(player, building, bOrig, oldS, bs.stage);
             }
             Main.getInstance().getQuestManager().handleTownUpgrade(player);
