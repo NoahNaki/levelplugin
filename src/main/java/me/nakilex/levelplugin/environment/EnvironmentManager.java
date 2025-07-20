@@ -66,6 +66,8 @@ public class EnvironmentManager {
 
     /** Players for whom chunk tasks are temporarily paused. */
     private final java.util.Set<UUID> chunkPaused = new java.util.HashSet<>();
+    /** Timers that auto-resume chunk tasks after a delay. */
+    private final java.util.Map<UUID, BukkitTask> chunkResumeTimers = new java.util.HashMap<>();
 
     private static String key(Location loc) {
         return loc.getWorld().getName() + ":" + loc.getBlockX() + ":" + loc.getBlockY() + ":" + loc.getBlockZ();
@@ -588,15 +590,32 @@ public class EnvironmentManager {
         if (load != null) load.cancel();
         BukkitTask verify = townCheckTasks.remove(base);
         if (verify != null) verify.cancel();
+        BukkitTask timer = chunkResumeTimers.remove(base);
+        if (timer != null) timer.cancel();
+        timer = new BukkitRunnable() {
+            @Override public void run() {
+                chunkResumeTimers.remove(base);
+                resumeChunkTasks(base);
+            }
+        }.runTaskLater(Main.getInstance(), 120L);
+        chunkResumeTimers.put(base, timer);
     }
 
     /** Resume chunk tasks after a pause. */
-    private void resumeChunkTasks(Player player) {
-        if (player == null || !player.isOnline()) return;
-        UUID base = getBase(player.getUniqueId());
+    private void resumeChunkTasks(UUID base) {
         chunkPaused.remove(base);
-        preloadTownChunks(player);
-        startTownLoadCheck(player);
+        BukkitTask timer = chunkResumeTimers.remove(base);
+        if (timer != null) timer.cancel();
+        Player p = Bukkit.getPlayer(base);
+        if (p != null && p.isOnline()) {
+            preloadTownChunks(p);
+            startTownLoadCheck(p);
+        }
+    }
+
+    private void resumeChunkTasks(Player player) {
+        if (player != null)
+            resumeChunkTasks(getBase(player.getUniqueId()));
     }
 
     private void removeBuildingHologram(UUID uuid, String building) {
@@ -1030,6 +1049,7 @@ public class EnvironmentManager {
     private void spawnStructureTimed(Player player, Location origin, int level, int stage, Runnable after, int totalTime) {
         UUID uuid = player.getUniqueId();
         cancelBuildTask(uuid, TOWN_TASK_KEY);
+
         fakeBlockManager.clear(player);
         String town = towns.get(player.getUniqueId());
         if (town == null) return;
@@ -1113,6 +1133,7 @@ public class EnvironmentManager {
         }
         fakeBlockManager.showFakeBlocks(player, batch);
         stageManager.spawnForStage(player, town, level, stage, baseOrigin);
+        resumeChunkTasks(player);
     }
 
     /**
@@ -1152,6 +1173,9 @@ public class EnvironmentManager {
                                        int newLevel, int newStage) {
         UUID uuid = player.getUniqueId();
         cancelBuildTask(uuid, TOWN_TASK_KEY);
+
+        UUID base = getBase(uuid);
+        pauseChunkTasks(base);
 
         String town = towns.get(uuid);
         if (town == null) return;
@@ -1241,6 +1265,7 @@ public class EnvironmentManager {
         String key = building.toLowerCase();
         cancelBuildTask(uuid, key);
         removeTownHologram(uuid, building);
+
         String town = towns.get(player.getUniqueId());
         if (town == null) return;
         var stageData = buildingStageManager.getStage(building, stage);
@@ -1326,11 +1351,12 @@ public class EnvironmentManager {
         String key = building.toLowerCase();
         cancelBuildTask(uuid, key);
         removeTownHologram(uuid, building);
-        String town = towns.get(uuid);
-        if (town == null) return;
 
         UUID base = getBase(uuid);
         pauseChunkTasks(base);
+
+        String town = towns.get(uuid);
+        if (town == null) return;
         var stageData = buildingStageManager.getStage(building, stage);
         if (stageData == null) return;
         Location baseOrigin = origin.clone().add(0, stageData.oy, 0);
@@ -1344,6 +1370,7 @@ public class EnvironmentManager {
         }
         fakeBlockManager.showFakeBlocks(player, batch);
         buildingStageManager.spawnForStage(player, building, stage, baseOrigin);
+        resumeChunkTasks(player);
 
         Location holo = baseOrigin.clone().add(
             stageData.hx - stageData.ox + 0.5,
@@ -1397,6 +1424,10 @@ public class EnvironmentManager {
         String key = building.toLowerCase();
         cancelBuildTask(uuid, key);
         removeTownHologram(uuid, building);
+
+        UUID base = getBase(uuid);
+        pauseChunkTasks(base);
+
         String town = towns.get(uuid);
         if (town == null) return;
 
