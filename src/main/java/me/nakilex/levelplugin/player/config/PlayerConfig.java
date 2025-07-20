@@ -180,19 +180,13 @@ public class PlayerConfig {
         config.set("players." + uuid + ".environment.town", town);
     }
 
-    public int getBuildingLevel(UUID uuid, String building) {
-        String path = "players." + uuid + ".environment.buildings." + building + ".level";
-        return config.getInt(path, 1);
-    }
-
     public int getBuildingStage(UUID uuid, String building) {
         String path = "players." + uuid + ".environment.buildings." + building + ".stage";
         return config.getInt(path, 1);
     }
 
-    public void setBuildingState(UUID uuid, String building, int level, int stage) {
+    public void setBuildingStage(UUID uuid, String building, int stage) {
         String base = "players." + uuid + ".environment.buildings." + building + ".";
-        config.set(base + "level", level);
         config.set(base + "stage", stage);
     }
 
