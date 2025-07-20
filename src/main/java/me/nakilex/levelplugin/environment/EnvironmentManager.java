@@ -638,7 +638,6 @@ public class EnvironmentManager {
                     }
                 }
                 // all buildings maxed -> upgrade town
-            }
             int oldStage = state.stage;
             advance(state);
             player.sendMessage(ChatColor.GREEN + "Settlement upgraded to Stage " + state.stage + "!");
@@ -1602,7 +1601,6 @@ public class EnvironmentManager {
 
         owner.sendMessage(ChatColor.GREEN + "Transferred town ownership to " + newOwner.getName() + ".");
         newOwner.sendMessage(ChatColor.GREEN + "You are now the town owner.");
-    }
 
     public void sendInfo(Player player) {
         UUID base = getBase(player.getUniqueId());
@@ -1619,4 +1617,5 @@ public class EnvironmentManager {
             player.sendMessage(ChatColor.YELLOW + "Partner: " + Bukkit.getOfflinePlayer(partner).getName());
         }
     }
+}
 }
