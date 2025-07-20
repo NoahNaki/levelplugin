@@ -565,6 +565,28 @@ public class EnvironmentManager {
         }
     }
 
+    /** Remove a hologram for all town members. */
+    private void removeTownHologram(UUID member, String building) {
+        UUID base = getBase(member);
+        removeBuildingHologram(base, building);
+        UUID partner = coopPartners.get(base);
+        if (partner != null) removeBuildingHologram(partner, building);
+    }
+
+    /** Remove every hologram currently spawned. */
+    public void removeAllHolograms() {
+        for (var map : buildingHolograms.values()) {
+            for (var list : map.values()) {
+                if (list != null) {
+                    for (var disp : list) {
+                        if (disp != null && !disp.isDead()) disp.remove();
+                    }
+                }
+            }
+        }
+        buildingHolograms.clear();
+    }
+
     private void removeAllBuildingHolograms(UUID uuid) {
         var map = buildingHolograms.remove(uuid);
         if (map != null) {
@@ -1163,7 +1185,7 @@ public class EnvironmentManager {
     /** Spawn a specific building stage relative to the town origin. */
     private void spawnBuildingTimed(Player player, String building, Location origin, int stage, Runnable after, int totalTime) {
         UUID uuid = player.getUniqueId();
-        removeBuildingHologram(uuid, building);
+        removeTownHologram(uuid, building);
         String town = towns.get(player.getUniqueId());
         if (town == null) return;
         var stageData = buildingStageManager.getStage(building, stage);
@@ -1245,7 +1267,7 @@ public class EnvironmentManager {
      */
     private void spawnBuildingInstant(Player player, String building, Location origin, int stage) {
         UUID uuid = player.getUniqueId();
-        removeBuildingHologram(uuid, building);
+        removeTownHologram(uuid, building);
         String town = towns.get(uuid);
         if (town == null) return;
         var stageData = buildingStageManager.getStage(building, stage);
@@ -1311,7 +1333,7 @@ public class EnvironmentManager {
                                       int oldStage, int newStage,
                                       Runnable after) {
         UUID uuid = player.getUniqueId();
-        removeBuildingHologram(uuid, building);
+        removeTownHologram(uuid, building);
         String town = towns.get(uuid);
         if (town == null) return;
 

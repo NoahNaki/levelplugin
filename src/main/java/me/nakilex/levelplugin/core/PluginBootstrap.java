@@ -354,7 +354,10 @@ public class PluginBootstrap {
         if (me.nakilex.levelplugin.player.mining.listeners.OreMiningListener.getInstance() != null) me.nakilex.levelplugin.player.mining.listeners.OreMiningListener.getInstance().removeAllHolograms();
         if (questManager != null) questManager.saveProgress();
         if (modelGateManager != null) modelGateManager.removeAllGates();
-        if (environmentManager != null) environmentManager.saveAll();
+        if (environmentManager != null) {
+            environmentManager.removeAllHolograms();
+            environmentManager.saveAll();
+        }
         if (leaderboardManager != null) leaderboardManager.removeAll();
         if (duelStatsManager != null) duelStatsManager.save();
         if (townStageManager != null) townStageManager.despawnAll();
