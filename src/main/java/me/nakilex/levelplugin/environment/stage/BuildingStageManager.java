@@ -34,8 +34,8 @@ import java.util.*;
  */
 public class BuildingStageManager {
     private final Main plugin;
-    /** Map of building -> level -> stage -> data */
-    private final Map<String, Map<Integer, Map<Integer, BuildingStage>>> stages = new HashMap<>();
+    /** Map of building -> stage -> data */
+    private final Map<String, Map<Integer, BuildingStage>> stages = new HashMap<>();
     /** Map of town -> building -> placement offset */
     private final Map<String, Map<String, Placement>> placements = new HashMap<>();
     private final Map<java.util.UUID, Map<String, List<NPC>>> spawnedNPCs = new HashMap<>();
@@ -56,12 +56,10 @@ public class BuildingStageManager {
         return new HashSet<>(stages.keySet());
     }
 
-    public BuildingStage getStage(String building, int level, int stage) {
+    public BuildingStage getStage(String building, int stage) {
         var buildMap = stages.get(building.toLowerCase());
         if (buildMap == null) return null;
-        var levelMap = buildMap.get(level);
-        if (levelMap == null) return null;
-        return levelMap.get(stage);
+        return buildMap.get(stage);
     }
 
     /** Return all building names defined for a town. */
@@ -72,14 +70,14 @@ public class BuildingStageManager {
     }
 
     /** Create a new stage from the selected area. */
-    public void createStage(String building, int level, int stage,
+    public void createStage(String building, int stage,
                             Location pos1, Location pos2, Location standLoc,
                             Location origin, int priority) {
         List<NPCSpawn> npcs = captureNPCs(pos1, pos2);
         List<BlockDef> blocks = captureBlocks(pos1, pos2);
 
         // Save a schematic of the selected area using FAWE
-        String fileName = building.toLowerCase() + "_" + level + "_" + stage + ".schem";
+        String fileName = building.toLowerCase() + "_" + stage + ".schem";
         File schematic = new File(schemFolder, fileName);
         saveSchematic(pos1, pos2, schematic);
 
@@ -97,19 +95,15 @@ public class BuildingStageManager {
 
         stages
             .computeIfAbsent(building.toLowerCase(), k -> new HashMap<>())
-            .computeIfAbsent(level, k -> new HashMap<>())
-            .put(stage, new BuildingStage(building.toLowerCase(), level, stage, pos1, pos2,
+            .put(stage, new BuildingStage(building.toLowerCase(), stage, pos1, pos2,
                     npcs, blocks, schematic, fileName, priority, hx, hy, hz, ox, oy, oz));
         saveConfig();
     }
 
-    public boolean removeStage(String building, int level, int stage) {
+    public boolean removeStage(String building, int stage) {
         var buildMap = stages.get(building.toLowerCase());
         if (buildMap == null) return false;
-        var levelMap = buildMap.get(level);
-        if (levelMap == null) return false;
-        if (levelMap.remove(stage) != null) {
-            if (levelMap.isEmpty()) buildMap.remove(level);
+        if (buildMap.remove(stage) != null) {
             if (buildMap.isEmpty()) stages.remove(building.toLowerCase());
             saveConfig();
             return true;
@@ -133,7 +127,7 @@ public class BuildingStageManager {
 
     /** Absolute origin location recorded when the building stage was created. */
     public Location getStageOrigin(String building) {
-        BuildingStage st = getStage(building, 1, 1);
+        BuildingStage st = getStage(building, 1);
         if (st == null) return null;
         int minX = Math.min(st.pos1.getBlockX(), st.pos2.getBlockX());
         int minY = Math.min(st.pos1.getBlockY(), st.pos2.getBlockY());
@@ -144,13 +138,12 @@ public class BuildingStageManager {
     // Offset for spawning NPCs. Use zero so they stand directly on the ground.
     private static final double NPC_SPAWN_Y_OFFSET = 0.0;
 
-    public void spawnForStage(Player viewer, String building, int level,
-                              int stage, Location origin) {
-        BuildingStage st = getStage(building, level, stage);
+    public void spawnForStage(Player viewer, String building, int stage, Location origin) {
+        BuildingStage st = getStage(building, stage);
         if (st == null || origin == null || viewer == null) return;
         UUID id = viewer.getUniqueId();
         var map = spawnedNPCs.computeIfAbsent(id, k -> new HashMap<>());
-        String key = building.toLowerCase() + ":" + level + ":" + stage;
+        String key = building.toLowerCase() + ":" + stage;
         List<NPC> list = map.computeIfAbsent(key, k -> new ArrayList<>());
         for (NPC npc : list) {
             if (npc.isSpawned()) npc.despawn();
@@ -183,10 +176,10 @@ public class BuildingStageManager {
         }
     }
 
-    public void despawnForStage(UUID viewerId, String building, int level, int stage) {
+    public void despawnForStage(UUID viewerId, String building, int stage) {
         var map = spawnedNPCs.get(viewerId);
         if (map == null) return;
-        String key = building.toLowerCase() + ":" + level + ":" + stage;
+        String key = building.toLowerCase() + ":" + stage;
         List<NPC> list = map.remove(key);
         if (list != null) {
             for (NPC npc : list) {
@@ -339,23 +332,14 @@ public class BuildingStageManager {
             for (String building : config.getConfigurationSection("stages").getKeys(false)) {
                 var buildSec = config.getConfigurationSection("stages." + building);
                 if (buildSec == null) continue;
-                for (String lvlKey : buildSec.getKeys(false)) {
-                    int level;
+                for (String stageKey : buildSec.getKeys(false)) {
+                    int stage;
                     try {
-                        level = Integer.parseInt(lvlKey);
+                        stage = Integer.parseInt(stageKey);
                     } catch (NumberFormatException ex) {
                         continue;
                     }
-                    var lvlSec = config.getConfigurationSection("stages." + building + "." + lvlKey);
-                    if (lvlSec == null) continue;
-                    for (String stageKey : lvlSec.getKeys(false)) {
-                        int stage;
-                        try {
-                            stage = Integer.parseInt(stageKey);
-                        } catch (NumberFormatException ex) {
-                            continue;
-                        }
-                        String base = "stages." + building + "." + lvlKey + "." + stageKey + ".";
+                    String base = "stages." + building + "." + stageKey + ".";
                         World world = Bukkit.getWorld(config.getString(base + "world"));
                         if (world == null) continue;
                         Location pos1 = readLocation(world, base + "pos1");
@@ -378,7 +362,7 @@ public class BuildingStageManager {
                                 } catch (Exception ignore) {}
                             }
                         }
-                        String fileName = config.getString(base + "schematic", building.toLowerCase() + "_" + level + "_" + stage + ".schem");
+                        String fileName = config.getString(base + "schematic", building.toLowerCase() + "_" + stage + ".schem");
                         File schematic = new File(schemFolder, fileName);
                         List<BlockDef> blockList = loadSchematic(schematic, world);
                         int hx = config.getInt(base + "holo.x", 0);
@@ -390,12 +374,10 @@ public class BuildingStageManager {
                         int oz = config.getInt(base + "origin.z", 0);
                         stages
                             .computeIfAbsent(building.toLowerCase(), k -> new HashMap<>())
-                            .computeIfAbsent(level, k -> new HashMap<>())
-                            .put(stage, new BuildingStage(building.toLowerCase(), level, stage,
+                            .put(stage, new BuildingStage(building.toLowerCase(), stage,
                                     pos1, pos2, npcList, blockList, schematic, fileName, priority,
                                     hx, hy, hz, ox, oy, oz));
                     }
-                }
             }
         }
 
@@ -427,17 +409,15 @@ public class BuildingStageManager {
         config.set("stages", null);
         for (var buildEntry : stages.entrySet()) {
             String building = buildEntry.getKey();
-            for (var levelEntry : buildEntry.getValue().entrySet()) {
-                int level = levelEntry.getKey();
-                for (var stageEntry : levelEntry.getValue().entrySet()) {
-                    int stage = stageEntry.getKey();
-                    BuildingStage st = stageEntry.getValue();
-                    String base = "stages." + building + "." + level + "." + stage + ".";
-                        Location p1 = st.pos1;
-                        Location p2 = st.pos2;
-                        config.set(base + "world", p1.getWorld().getName());
-                        config.set(base + "pos1.x", p1.getBlockX());
-                        config.set(base + "pos1.y", p1.getBlockY());
+            for (var stageEntry : buildEntry.getValue().entrySet()) {
+                int stage = stageEntry.getKey();
+                BuildingStage st = stageEntry.getValue();
+                String base = "stages." + building + "." + stage + ".";
+                    Location p1 = st.pos1;
+                    Location p2 = st.pos2;
+                    config.set(base + "world", p1.getWorld().getName());
+                    config.set(base + "pos1.x", p1.getBlockX());
+                    config.set(base + "pos1.y", p1.getBlockY());
                         config.set(base + "pos1.z", p1.getBlockZ());
                         config.set(base + "pos2.x", p2.getBlockX());
                         config.set(base + "pos2.y", p2.getBlockY());
@@ -456,9 +436,8 @@ public class BuildingStageManager {
                         config.set(base + "origin.x", st.ox);
                         config.set(base + "origin.y", st.oy);
                         config.set(base + "origin.z", st.oz);
-                    }
-                }
             }
+        }
 
         config.set("links", null);
         for (var townEntry : placements.entrySet()) {
@@ -497,7 +476,6 @@ public class BuildingStageManager {
     /** Data for an individual building stage area. */
     public static class BuildingStage {
         public final String name;
-        public final int level;
         public final int stage;
         public final Location pos1;
         public final Location pos2;
@@ -509,13 +487,12 @@ public class BuildingStageManager {
         public final int priority;
         public final int hx, hy, hz;
         public final int ox, oy, oz;
-        public BuildingStage(String name, int level, int stage, Location pos1, Location pos2,
+        public BuildingStage(String name, int stage, Location pos1, Location pos2,
                              List<NPCSpawn> npcs, List<BlockDef> blocks,
                              File schematic, String fileName, int priority,
                              int hx, int hy, int hz,
                              int ox, int oy, int oz) {
             this.name = name;
-            this.level = level;
             this.stage = stage;
             this.pos1 = pos1;
             this.pos2 = pos2;

@@ -56,34 +56,32 @@ public class BuildingStageCommand implements CommandExecutor, Listener {
                 }
                 return true;
             case "create":
-                if (args.length < 4) return false;
+                if (args.length < 3) return false;
                 Location pos1 = StageSelectionStore.getPos1(p.getUniqueId());
                 Location pos2 = StageSelectionStore.getPos2(p.getUniqueId());
                 if (pos1 == null || pos2 == null) {
                     p.sendMessage(ChatColor.RED + "Select two positions first.");
                     return true;
                 }
-                // Arguments: <building> <level> <stage> [priority]
+                // Arguments: <building> <stage> [priority]
                 String bName = args[1].toLowerCase();
-                int level = parseInt(args[2], 1);
-                int stage = parseInt(args[3], 1);
+                int stage = parseInt(args[2], 1);
                 int priority = 0;
-                if (args.length > 4) {
-                    priority = parseInt(args[4], 0);
+                if (args.length > 3) {
+                    priority = parseInt(args[3], 0);
                     if (priority < 0) priority = 0;
                 }
                 // Save where the player ran the command and raise it one block
                 Location stand = p.getLocation().clone().add(0.5, 1.0, 0.5);
                 Location origin = p.getLocation().getBlock().getLocation();
-                manager.createStage(bName, level, stage, pos1, pos2, stand, origin, priority);
+                manager.createStage(bName, stage, pos1, pos2, stand, origin, priority);
                 p.sendMessage(ChatColor.GREEN + "Stage " + bName + " created.");
                 return true;
             case "remove":
-                if (args.length < 4) return false;
+                if (args.length < 3) return false;
                 String rbName = args[1].toLowerCase();
-                int rLevel = parseInt(args[2], 1);
-                int rStage = parseInt(args[3], 1);
-                if (manager.removeStage(rbName, rLevel, rStage)) {
+                int rStage = parseInt(args[2], 1);
+                if (manager.removeStage(rbName, rStage)) {
                     p.sendMessage(ChatColor.GREEN + "Stage removed.");
                 } else {
                     p.sendMessage(ChatColor.RED + "Stage not found.");
