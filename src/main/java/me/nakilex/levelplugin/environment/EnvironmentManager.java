@@ -27,8 +27,6 @@ import java.util.UUID;
  * Handles per-player settlement levels and upgrades.
  */
 public class EnvironmentManager {
-    public static final int MAX_LEVEL = 3;
-    private static final int STAGES_PER_LEVEL = 3;
     /** Maximum times we try loading a single chunk before giving up. */
     private static final int MAX_CHUNK_ATTEMPTS = 5;
     private final PlayerConfig playerConfig;
@@ -38,10 +36,10 @@ public class EnvironmentManager {
     private final Map<UUID, EnvironmentState> states = new HashMap<>();
     private final Map<UUID, Location> origins = new HashMap<>();
     private final Map<UUID, String> towns = new HashMap<>();
-    private final Map<UUID, Map<String, EnvironmentState>> buildingStates = new HashMap<>();
+    private final Map<UUID, Map<String, BuildingState>> buildingStates = new HashMap<>();
     private final Map<UUID, java.util.List<BukkitTask>> buildTasks = new HashMap<>();
-    /** Hologram lines per building per player. */
-    private final Map<UUID, Map<String, java.util.List<org.bukkit.entity.TextDisplay>>> buildingHolograms = new HashMap<>();
+    /** Hologram entities per building per player. */
+    private final Map<UUID, Map<String, java.util.List<org.bukkit.entity.Entity>>> buildingHolograms = new HashMap<>();
     private final Map<UUID, UUID> coopOwners = new HashMap<>();
     private final Map<UUID, UUID> coopPartners = new HashMap<>();
     private final Map<UUID, UUID> pendingInvites = new HashMap<>();
@@ -85,6 +83,14 @@ public class EnvironmentManager {
         public int invested;
         public EnvironmentState(int level, int stage) {
             this.level = level;
+            this.stage = stage;
+        }
+    }
+
+    public static class BuildingState {
+        public int stage;
+        public int invested;
+        public BuildingState(int stage) {
             this.stage = stage;
         }
     }
@@ -176,10 +182,10 @@ public class EnvironmentManager {
             }
         }
 
-        Map<String, EnvironmentState> bMap = buildingStates.get(base);
+        Map<String, BuildingState> bMap = buildingStates.get(base);
         if (bMap != null) {
             for (var e : bMap.entrySet()) {
-                var bs = buildingStageManager.getStage(e.getKey(), e.getValue().level, e.getValue().stage);
+                var bs = buildingStageManager.getStage(e.getKey(), e.getValue().stage);
                 if (bs == null) continue;
                 Location bo = getBuildingOrigin(town, e.getKey(), origin).add(0, bs.oy, 0);
                 for (var b : bs.blocks) {
@@ -218,10 +224,10 @@ public class EnvironmentManager {
             }
         }
 
-        Map<String, EnvironmentState> bMap = buildingStates.get(base);
+        Map<String, BuildingState> bMap = buildingStates.get(base);
         if (bMap != null) {
             for (var e : bMap.entrySet()) {
-                var bs = buildingStageManager.getStage(e.getKey(), e.getValue().level, e.getValue().stage);
+                var bs = buildingStageManager.getStage(e.getKey(), e.getValue().stage);
                 if (bs == null) continue;
                 Location bo = getBuildingOrigin(town, e.getKey(), origin).add(0, bs.oy, 0);
                 for (var b : bs.blocks) {
@@ -239,13 +245,8 @@ public class EnvironmentManager {
 
     /** Build the hologram text for a building upgrade based on the player's
      *  current resources. */
-    private java.util.List<String> formatBuildingHologram(Player player, String building, int level, int stage) {
-        int nextLevel = level;
+    private java.util.List<String> formatBuildingHologram(Player player, String building, int stage) {
         int nextStage = stage + 1;
-        if (nextStage > STAGES_PER_LEVEL) {
-            nextStage = 1;
-            nextLevel++;
-        }
 
         // Example requirements - currently hardcoded to 1 oak log and no coins
         int logCost = 1;
@@ -277,12 +278,26 @@ public class EnvironmentManager {
         lines.add(ChatColor.AQUA + "Requirements:");
         lines.add(logLine);
         lines.add(coinLine);
+        lines.add(ChatColor.YELLOW.toString() + ChatColor.UNDERLINE + "Right-click to upgrade!");
         return lines;
     }
 
-    /** Spawn TextDisplay hologram lines at the given location. */
-    private java.util.List<TextDisplay> spawnHologramLines(Player player, Location base, java.util.List<String> lines, String tag) {
-        java.util.List<TextDisplay> displays = new java.util.ArrayList<>();
+    /** Spawn hologram entities at the given location. */
+    private java.util.List<org.bukkit.entity.Entity> spawnHologramLines(Player player, Location base,
+                                                                       java.util.List<String> lines, String tag) {
+        java.util.List<org.bukkit.entity.Entity> entities = new java.util.ArrayList<>();
+
+        // Spawn an invisible interaction to enlarge the clickable area
+        org.bukkit.entity.Interaction hitbox = (org.bukkit.entity.Interaction)
+                base.getWorld().spawnEntity(base, EntityType.INTERACTION);
+        hitbox.setInteractionWidth(1.5f);
+        hitbox.setInteractionHeight((float) (lines.size() * 0.25 + 0.5));
+        hitbox.addScoreboardTag("building_hologram:" + tag.toLowerCase());
+        entities.add(hitbox);
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (!p.equals(player)) p.hideEntity(Main.getInstance(), hitbox);
+        }
+
         double offset = 0.0;
         for (String text : lines) {
             Location loc = base.clone().add(0, offset, 0);
@@ -292,13 +307,13 @@ public class EnvironmentManager {
             td.setShadowStrength(0f);
             td.setText(text);
             td.addScoreboardTag("building_hologram:" + tag.toLowerCase());
-            displays.add(td);
+            entities.add(td);
             offset -= 0.25;
             for (Player p : Bukkit.getOnlinePlayers()) {
                 if (!p.equals(player)) p.hideEntity(Main.getInstance(), td);
             }
         }
-        return displays;
+        return entities;
     }
 
     private UUID getBase(UUID uuid) {
@@ -309,7 +324,7 @@ public class EnvironmentManager {
         states.put(member, states.get(owner));
         origins.put(member, origins.get(owner));
         towns.put(member, towns.get(owner));
-        Map<String, EnvironmentState> map = buildingStates.get(owner);
+        Map<String, BuildingState> map = buildingStates.get(owner);
         if (map != null) {
             buildingStates.put(member, map);
         }
@@ -335,11 +350,10 @@ public class EnvironmentManager {
         }
 
         if (towns.containsKey(uuid) && !buildingStates.containsKey(uuid)) {
-            Map<String, EnvironmentState> map = new java.util.HashMap<>();
+            Map<String, BuildingState> map = new java.util.HashMap<>();
             for (String b : playerConfig.getStoredBuildings(uuid)) {
-                int bl = playerConfig.getBuildingLevel(uuid, b);
                 int bs = playerConfig.getBuildingStage(uuid, b);
-                map.put(b.toLowerCase(), new EnvironmentState(bl, bs));
+                map.put(b.toLowerCase(), new BuildingState(bs));
             }
             if (!map.isEmpty()) buildingStates.put(uuid, map);
         }
@@ -365,10 +379,10 @@ public class EnvironmentManager {
             }
         }
 
-        Map<String, EnvironmentState> bMap = buildingStates.get(base);
+        Map<String, BuildingState> bMap = buildingStates.get(base);
         if (bMap != null) {
             for (var e : bMap.entrySet()) {
-                var bStage = buildingStageManager.getStage(e.getKey(), e.getValue().level, e.getValue().stage);
+                var bStage = buildingStageManager.getStage(e.getKey(), e.getValue().stage);
                 if (bStage == null) continue;
                 Location bo = getBuildingOrigin(town, e.getKey(), origin).add(0, bStage.oy, 0);
                 for (var b : bStage.blocks) {
@@ -420,16 +434,16 @@ public class EnvironmentManager {
             EnvironmentState es = states.get(uuid);
             Location origin = origins.get(uuid);
             if (origin != null && es != null) {
-                Map<String, EnvironmentState> bMap = buildingStates.get(uuid);
-                final Map<String, EnvironmentState> finalBMap = bMap == null ? null : new java.util.HashMap<>(bMap);
+                Map<String, BuildingState> bMap = buildingStates.get(uuid);
+                final Map<String, BuildingState> finalBMap = bMap == null ? null : new java.util.HashMap<>(bMap);
                 final Location finalOrigin = origin;
                 if (finalBMap != null) {
                     for (var e : finalBMap.entrySet()) {
                         Location bOrig = getBuildingOrigin(towns.get(uuid), e.getKey(), finalOrigin);
                         if (animated) {
-                            spawnBuildingTimed(player, e.getKey(), bOrig, e.getValue().level, e.getValue().stage, null, ticks);
+                            spawnBuildingTimed(player, e.getKey(), bOrig, e.getValue().stage, null, ticks);
                         } else {
-                            spawnBuildingInstant(player, e.getKey(), bOrig, e.getValue().level, e.getValue().stage);
+                            spawnBuildingInstant(player, e.getKey(), bOrig, e.getValue().stage);
                         }
                     }
                 }
@@ -551,6 +565,28 @@ public class EnvironmentManager {
         }
     }
 
+    /** Remove a hologram for all town members. */
+    private void removeTownHologram(UUID member, String building) {
+        UUID base = getBase(member);
+        removeBuildingHologram(base, building);
+        UUID partner = coopPartners.get(base);
+        if (partner != null) removeBuildingHologram(partner, building);
+    }
+
+    /** Remove every hologram currently spawned. */
+    public void removeAllHolograms() {
+        for (var map : buildingHolograms.values()) {
+            for (var list : map.values()) {
+                if (list != null) {
+                    for (var disp : list) {
+                        if (disp != null && !disp.isDead()) disp.remove();
+                    }
+                }
+            }
+        }
+        buildingHolograms.clear();
+    }
+
     private void removeAllBuildingHolograms(UUID uuid) {
         var map = buildingHolograms.remove(uuid);
         if (map != null) {
@@ -564,13 +600,13 @@ public class EnvironmentManager {
         }
     }
 
-    private void removeMemberData(UUID member, String town, EnvironmentState st, Map<String, EnvironmentState> bMap) {
+    private void removeMemberData(UUID member, String town, EnvironmentState st, Map<String, BuildingState> bMap) {
         cancelTasks(member);
         removeAllBuildingHolograms(member);
         stageManager.despawnForStage(member, town, st.level, st.stage);
         if (bMap != null) {
             for (var e : bMap.entrySet()) {
-                buildingStageManager.despawnForStage(member, e.getKey(), e.getValue().level, e.getValue().stage);
+                buildingStageManager.despawnForStage(member, e.getKey(), e.getValue().stage);
             }
         }
         fakeBlockManager.clear(Bukkit.getPlayer(member));
@@ -594,10 +630,10 @@ public class EnvironmentManager {
             playerConfig.setEnvironmentState(base, s.level, s.stage);
             String town = towns.get(base);
             if (town != null) playerConfig.setEnvironmentTown(base, town);
-            Map<String, EnvironmentState> bMap = buildingStates.get(base);
+            Map<String, BuildingState> bMap = buildingStates.get(base);
             if (bMap != null) {
                 for (var e : bMap.entrySet()) {
-                    playerConfig.setBuildingState(base, e.getKey(), e.getValue().level, e.getValue().stage);
+                    playerConfig.setBuildingStage(base, e.getKey(), e.getValue().stage);
                 }
             }
             UUID partner = coopPartners.get(base);
@@ -622,29 +658,6 @@ public class EnvironmentManager {
         state.invested += amount;
         if (state.invested >= 1) {
             state.invested = 0;
-            Map<String, EnvironmentState> bMap = buildingStates.get(base);
-            if (bMap != null && !bMap.isEmpty()) {
-                for (var entry : bMap.entrySet()) {
-                    EnvironmentState bs = entry.getValue();
-                    if (bs.level < MAX_LEVEL || bs.stage < STAGES_PER_LEVEL) {
-                        int oldL = bs.level;
-                        int oldS = bs.stage;
-                        advance(bs);
-                        player.sendMessage(ChatColor.GREEN + "" + entry.getKey() + " upgraded to L" + bs.level + " S" + bs.stage);
-                        String town = towns.get(base);
-                        Location origin = origins.get(base);
-                        if (town != null && origin != null) {
-                            Location bOrig = getBuildingOrigin(town, entry.getKey(), origin);
-                            buildingStageManager.despawnForStage(player.getUniqueId(), entry.getKey(), oldL, oldS);
-                            spawnBuildingUpgrade(player, entry.getKey(), bOrig, oldL, oldS, bs.level, bs.stage);
-                        }
-                        Main.getInstance().getQuestManager().handleTownUpgrade(player);
-                        saveState(base);
-                        return;
-                    }
-                }
-                // all buildings maxed -> upgrade town
-            }
             int oldLevel = state.level;
             int oldStage = state.stage;
             advance(state);
@@ -654,14 +667,6 @@ public class EnvironmentManager {
             if (town != null && origin != null) {
                 stageManager.despawnForStage(player.getUniqueId(), town, oldLevel, oldStage);
                 spawnStructureUpgrade(player, origin, oldLevel, oldStage, state.level, state.stage);
-                // reset building progress for new level
-                Map<String, EnvironmentState> reset = buildingStates.get(base);
-                if (reset != null) {
-                    for (var e : reset.values()) {
-                        e.level = 1;
-                        e.stage = 1;
-                    }
-                }
             }
             Main.getInstance().getQuestManager().handleTownUpgrade(player);
             saveState(base);
@@ -674,12 +679,12 @@ public class EnvironmentManager {
     public void investBuilding(Player player, String building, int amount) {
         loadPlayerState(player);
         UUID base = getBase(player.getUniqueId());
-        Map<String, EnvironmentState> bMap = buildingStates.get(base);
+        Map<String, BuildingState> bMap = buildingStates.get(base);
         if (bMap == null) {
             player.sendMessage(ChatColor.RED + "You have no settlement buildings.");
             return;
         }
-        EnvironmentState bs = bMap.get(building.toLowerCase());
+        BuildingState bs = bMap.get(building.toLowerCase());
         if (bs == null) {
             player.sendMessage(ChatColor.RED + "Unknown building.");
             return;
@@ -687,16 +692,15 @@ public class EnvironmentManager {
         bs.invested += amount;
         if (bs.invested >= 1) {
             bs.invested = 0;
-            int oldL = bs.level;
             int oldS = bs.stage;
             advance(bs);
-            player.sendMessage(ChatColor.GREEN + building + " upgraded to L" + bs.level + " S" + bs.stage);
+            player.sendMessage(ChatColor.GREEN + building + " upgraded to Stage " + bs.stage);
             String town = towns.get(base);
             Location origin = origins.get(base);
             if (town != null && origin != null) {
                 Location bOrig = getBuildingOrigin(town, building, origin);
-                buildingStageManager.despawnForStage(player.getUniqueId(), building, oldL, oldS);
-                spawnBuildingUpgrade(player, building, bOrig, oldL, oldS, bs.level, bs.stage);
+                buildingStageManager.despawnForStage(player.getUniqueId(), building, oldS);
+                spawnBuildingUpgrade(player, building, bOrig, oldS, bs.stage);
             }
             Main.getInstance().getQuestManager().handleTownUpgrade(player);
             saveState(base);
@@ -707,14 +711,10 @@ public class EnvironmentManager {
 
     private void advance(EnvironmentState state) {
         state.stage++;
-        if (state.stage > STAGES_PER_LEVEL) {
-            state.stage = 1;
-            if (state.level < MAX_LEVEL) {
-                state.level++;
-            } else {
-                state.stage = STAGES_PER_LEVEL;
-            }
-        }
+    }
+
+    private void advance(BuildingState state) {
+        state.stage++;
     }
 
     // All towns reside in the "flatland" world for now
@@ -859,9 +859,9 @@ public class EnvironmentManager {
         // initialize building progress for all defined buildings of this town
         var buildingNames = buildingStageManager.getBuildings(townName);
         if (!buildingNames.isEmpty()) {
-            Map<String, EnvironmentState> map = new java.util.HashMap<>();
+            Map<String, BuildingState> map = new java.util.HashMap<>();
             for (String b : buildingNames) {
-                map.put(b.toLowerCase(), new EnvironmentState(1,1));
+                map.put(b.toLowerCase(), new BuildingState(1));
             }
             buildingStates.put(uuid, map);
         }
@@ -870,14 +870,14 @@ public class EnvironmentManager {
         playerConfig.saveConfigFile();
 
         final EnvironmentState state = states.computeIfAbsent(uuid, id -> new EnvironmentState(1, 1));
-        Map<String, EnvironmentState> bMap = buildingStates.get(uuid);
-        final Map<String, EnvironmentState> finalBMap = bMap == null ? null : new java.util.HashMap<>(bMap);
+        Map<String, BuildingState> bMap = buildingStates.get(uuid);
+        final Map<String, BuildingState> finalBMap = bMap == null ? null : new java.util.HashMap<>(bMap);
         final Runnable after;
         if (finalBMap != null) {
             after = () -> {
                 for (var e : finalBMap.entrySet()) {
                     Location bo = getBuildingOrigin(townName.toLowerCase(), e.getKey(), origin);
-                    spawnBuilding(player, e.getKey(), bo, e.getValue().level, e.getValue().stage, null);
+                    spawnBuilding(player, e.getKey(), bo, e.getValue().stage, null);
                 }
             };
         } else {
@@ -899,7 +899,7 @@ public class EnvironmentManager {
             // member leaving
             EnvironmentState st = states.get(base);
             String town = towns.get(base);
-            Map<String, EnvironmentState> bMap = buildingStates.get(base);
+            Map<String, BuildingState> bMap = buildingStates.get(base);
             removeMemberData(uuid, town, st, bMap);
             coopPartners.remove(base);
             player.sendMessage(ChatColor.RED + "You have left the town.");
@@ -910,7 +910,7 @@ public class EnvironmentManager {
         if (partner != null) {
             EnvironmentState st = states.get(uuid);
             String town = towns.get(uuid);
-            Map<String, EnvironmentState> bMap = buildingStates.get(uuid);
+            Map<String, BuildingState> bMap = buildingStates.get(uuid);
             removeMemberData(partner, town, st, bMap);
         }
 
@@ -919,13 +919,13 @@ public class EnvironmentManager {
         EnvironmentState st = states.remove(uuid);
         String town = towns.remove(uuid);
         Location origin = origins.remove(uuid);
-        Map<String, EnvironmentState> bMap = buildingStates.remove(uuid);
+        Map<String, BuildingState> bMap = buildingStates.remove(uuid);
         removeAllBuildingHolograms(uuid);
         if (town != null && st != null) {
             stageManager.despawnForStage(uuid, town, st.level, st.stage);
             if (bMap != null) {
                 for (var e : bMap.entrySet()) {
-                    buildingStageManager.despawnForStage(uuid, e.getKey(), e.getValue().level, e.getValue().stage);
+                    buildingStageManager.despawnForStage(uuid, e.getKey(), e.getValue().stage);
                 }
             }
         }
@@ -951,12 +951,12 @@ public class EnvironmentManager {
         EnvironmentState st = states.get(base);
         String town = towns.get(base);
         Location origin = origins.get(base);
-        Map<String, EnvironmentState> bMap = buildingStates.get(base);
+        Map<String, BuildingState> bMap = buildingStates.get(base);
         if (town != null && st != null && origin != null) {
             stageManager.despawnForStage(player.getUniqueId(), town, st.level, st.stage);
             if (bMap != null) {
                 for (var e : bMap.entrySet()) {
-                    buildingStageManager.despawnForStage(player.getUniqueId(), e.getKey(), e.getValue().level, e.getValue().stage);
+                    buildingStageManager.despawnForStage(player.getUniqueId(), e.getKey(), e.getValue().stage);
                 }
             }
         }
@@ -1183,12 +1183,12 @@ public class EnvironmentManager {
     }
 
     /** Spawn a specific building stage relative to the town origin. */
-    private void spawnBuildingTimed(Player player, String building, Location origin, int level, int stage, Runnable after, int totalTime) {
+    private void spawnBuildingTimed(Player player, String building, Location origin, int stage, Runnable after, int totalTime) {
         UUID uuid = player.getUniqueId();
-        removeBuildingHologram(uuid, building);
+        removeTownHologram(uuid, building);
         String town = towns.get(player.getUniqueId());
         if (town == null) return;
-        var stageData = buildingStageManager.getStage(building, level, stage);
+        var stageData = buildingStageManager.getStage(building, stage);
         if (stageData == null) return;
         // Adjust origin so Y is based on the stage's recorded offset
         Location baseOrigin = origin.clone().add(0, stageData.oy, 0);
@@ -1228,14 +1228,14 @@ public class EnvironmentManager {
                 fakeBlockManager.showFakeBlocks(player, batch);
                 if (index >= blocks.size()) {
                     player.playSound(baseOrigin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
-                    buildingStageManager.spawnForStage(player, building, level, stage, baseOrigin);
+                    buildingStageManager.spawnForStage(player, building, stage, baseOrigin);
                     // Place the hologram where the stage was defined (+1 Y already stored)
                     Location holo = baseOrigin.clone().add(
                         stageData.hx - stageData.ox + 0.5,
-                        stageData.hy - stageData.oy,
+                        stageData.hy - stageData.oy + 2,
                         stageData.hz - stageData.oz + 0.5);
-                    java.util.List<String> textLines = formatBuildingHologram(player, building, level, stage);
-                    java.util.List<TextDisplay> displays = spawnHologramLines(player, holo, textLines, building);
+                    java.util.List<String> textLines = formatBuildingHologram(player, building, stage);
+                    java.util.List<org.bukkit.entity.Entity> displays = spawnHologramLines(player, holo, textLines, building);
                     buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
                         .put(building.toLowerCase(), displays);
                     if (after != null) after.run();
@@ -1249,28 +1249,28 @@ public class EnvironmentManager {
         buildTasks.put(uuid, tasks);
     }
 
-    private void spawnBuilding(Player player, String building, Location origin, int level, int stage, Runnable after) {
-        spawnBuildingTimed(player, building, origin, level, stage, after, 5 * 20);
+    private void spawnBuilding(Player player, String building, Location origin, int stage, Runnable after) {
+        spawnBuildingTimed(player, building, origin, stage, after, 5 * 20);
     }
 
-    private void spawnBuilding(Player player, String building, Location origin, int level, int stage) {
-        spawnBuilding(player, building, origin, level, stage, null);
+    private void spawnBuilding(Player player, String building, Location origin, int stage) {
+        spawnBuilding(player, building, origin, stage, null);
     }
 
-    private void spawnBuildingQuick(Player player, String building, Location origin, int level, int stage) {
-        spawnBuildingTimed(player, building, origin, level, stage, null, 20);
+    private void spawnBuildingQuick(Player player, String building, Location origin, int stage) {
+        spawnBuildingTimed(player, building, origin, stage, null, 20);
     }
 
     /**
      * Spawn a building stage instantly without animation. Used when chunks are
      * reloaded so players continue to see their buildings.
      */
-    private void spawnBuildingInstant(Player player, String building, Location origin, int level, int stage) {
+    private void spawnBuildingInstant(Player player, String building, Location origin, int stage) {
         UUID uuid = player.getUniqueId();
-        removeBuildingHologram(uuid, building);
+        removeTownHologram(uuid, building);
         String town = towns.get(uuid);
         if (town == null) return;
-        var stageData = buildingStageManager.getStage(building, level, stage);
+        var stageData = buildingStageManager.getStage(building, stage);
         if (stageData == null) return;
         Location baseOrigin = origin.clone().add(0, stageData.oy, 0);
 
@@ -1282,14 +1282,14 @@ public class EnvironmentManager {
             priMap.put(key(loc), stageData.priority);
         }
         fakeBlockManager.showFakeBlocks(player, batch);
-        buildingStageManager.spawnForStage(player, building, level, stage, baseOrigin);
+        buildingStageManager.spawnForStage(player, building, stage, baseOrigin);
 
         Location holo = baseOrigin.clone().add(
             stageData.hx - stageData.ox + 0.5,
-            stageData.hy - stageData.oy,
+            stageData.hy - stageData.oy + 2,
             stageData.hz - stageData.oz + 0.5);
-        java.util.List<String> textLines = formatBuildingHologram(player, building, level, stage);
-        java.util.List<TextDisplay> displays = spawnHologramLines(player, holo, textLines, building);
+        java.util.List<String> textLines = formatBuildingHologram(player, building, stage);
+        java.util.List<org.bukkit.entity.Entity> displays = spawnHologramLines(player, holo, textLines, building);
         buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
             .put(building.toLowerCase(), displays);
     }
@@ -1298,9 +1298,9 @@ public class EnvironmentManager {
      * Resend fake blocks for a building only within the specified chunk.
      */
     private void resendBuildingForChunk(Player player, String building, Location origin,
-                                        int level, int stage, int cx, int cz) {
+                                        int stage, int cx, int cz) {
         UUID uuid = player.getUniqueId();
-        var stageData = buildingStageManager.getStage(building, level, stage);
+        var stageData = buildingStageManager.getStage(building, stage);
         if (stageData == null) return;
         Location baseOrigin = origin.clone().add(0, stageData.oy, 0);
 
@@ -1325,23 +1325,21 @@ public class EnvironmentManager {
      * swapping blocks instantly.
      */
     private void spawnBuildingUpgrade(Player player, String building, Location origin,
-                                      int oldLevel, int oldStage,
-                                      int newLevel, int newStage) {
-        spawnBuildingUpgrade(player, building, origin, oldLevel, oldStage, newLevel, newStage, null);
+                                      int oldStage, int newStage) {
+        spawnBuildingUpgrade(player, building, origin, oldStage, newStage, null);
     }
 
     private void spawnBuildingUpgrade(Player player, String building, Location origin,
-                                      int oldLevel, int oldStage,
-                                      int newLevel, int newStage,
+                                      int oldStage, int newStage,
                                       Runnable after) {
         UUID uuid = player.getUniqueId();
-        removeBuildingHologram(uuid, building);
+        removeTownHologram(uuid, building);
         String town = towns.get(uuid);
         if (town == null) return;
 
-        var newData = buildingStageManager.getStage(building, newLevel, newStage);
+        var newData = buildingStageManager.getStage(building, newStage);
         if (newData == null) return;
-        var oldData = buildingStageManager.getStage(building, oldLevel, oldStage);
+        var oldData = buildingStageManager.getStage(building, oldStage);
 
         // Adjust origin so Y is based on each stage's stored offset
         Location newOrigin = origin.clone().add(0, newData.oy, 0);
@@ -1407,13 +1405,13 @@ public class EnvironmentManager {
                 fakeBlockManager.showFakeBlocks(player, batch);
                 if (index >= changes.size()) {
                     player.playSound(newOrigin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
-                    buildingStageManager.spawnForStage(player, building, newLevel, newStage, newOrigin);
+                    buildingStageManager.spawnForStage(player, building, newStage, newOrigin);
                     Location holo = newOrigin.clone().add(
                         newData.hx - newData.ox + 0.5,
-                        newData.hy - newData.oy,
+                        newData.hy - newData.oy + 2,
                         newData.hz - newData.oz + 0.5);
-                    java.util.List<String> textLines = formatBuildingHologram(player, building, newLevel, newStage);
-                    java.util.List<TextDisplay> displays = spawnHologramLines(player, holo, textLines, building);
+                    java.util.List<String> textLines = formatBuildingHologram(player, building, newStage);
+                    java.util.List<org.bukkit.entity.Entity> displays = spawnHologramLines(player, holo, textLines, building);
                     buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
                         .put(building.toLowerCase(), displays);
                     if (after != null) after.run();
@@ -1428,8 +1426,8 @@ public class EnvironmentManager {
     }
 
     /** Remove any fake blocks from a previous building stage before upgrading. */
-    private void clearBuildingStage(Player player, String building, Location origin, int level, int stage) {
-        var st = buildingStageManager.getStage(building, level, stage);
+    private void clearBuildingStage(Player player, String building, Location origin, int stage) {
+        var st = buildingStageManager.getStage(building, stage);
         if (st == null) return;
         Location baseOrigin = origin.clone().add(0, st.oy, 0);
         java.util.List<Location> locs = new java.util.ArrayList<>();
@@ -1525,7 +1523,7 @@ public class EnvironmentManager {
         }
         EnvironmentState st = states.get(ownerId);
         String town = towns.get(ownerId);
-        Map<String, EnvironmentState> bMap = buildingStates.get(ownerId);
+        Map<String, BuildingState> bMap = buildingStates.get(ownerId);
         removeMemberData(partner, town, st, bMap);
         coopPartners.remove(ownerId);
         owner.sendMessage(ChatColor.RED + "Removed " + target.getName() + " from the town.");
@@ -1569,12 +1567,11 @@ public class EnvironmentManager {
         // resend structure blocks inside the chunk
         resendStructureForChunk(player, origin, st.level, st.stage, cx, cz);
 
-        Map<String, EnvironmentState> bMap = buildingStates.get(base);
+        Map<String, BuildingState> bMap = buildingStates.get(base);
         if (bMap != null) {
             for (var e : bMap.entrySet()) {
                 Location bOrigin = getBuildingOrigin(towns.get(base), e.getKey(), origin);
-                resendBuildingForChunk(player, e.getKey(), bOrigin, e.getValue().level,
-                    e.getValue().stage, cx, cz);
+                resendBuildingForChunk(player, e.getKey(), bOrigin, e.getValue().stage, cx, cz);
             }
         }
 
@@ -1592,7 +1589,7 @@ public class EnvironmentManager {
         // Move data
         EnvironmentState st = states.remove(ownerId);
         states.put(partner, st);
-        Map<String, EnvironmentState> bMap = buildingStates.remove(ownerId);
+        Map<String, BuildingState> bMap = buildingStates.remove(ownerId);
         if (bMap != null) buildingStates.put(partner, bMap);
         Location origin = origins.remove(ownerId);
         if (origin != null) origins.put(partner, origin);
@@ -1610,7 +1607,7 @@ public class EnvironmentManager {
         playerConfig.setEnvironmentTown(partner, town);
         if (bMap != null) {
             for (var e : bMap.entrySet()) {
-                playerConfig.setBuildingState(partner, e.getKey(), e.getValue().level, e.getValue().stage);
+                playerConfig.setBuildingStage(partner, e.getKey(), e.getValue().stage);
             }
         }
         playerConfig.setEnvironmentState(partner, st.level, st.stage);
