@@ -1390,8 +1390,8 @@ public class EnvironmentManager {
     }
 
     /** Remove any fake blocks from a previous building stage before upgrading. */
-    private void clearBuildingStage(Player player, String building, Location origin, int level, int stage) {
-        var st = buildingStageManager.getStage(building, level, stage);
+    private void clearBuildingStage(Player player, String building, Location origin, int stage) {
+        var st = buildingStageManager.getStage(building, stage);
         if (st == null) return;
         Location baseOrigin = origin.clone().add(0, st.oy, 0);
         java.util.List<Location> locs = new java.util.ArrayList<>();
