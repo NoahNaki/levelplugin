@@ -22,7 +22,6 @@ public class TestHologramCommand implements CommandExecutor {
             return true;
         }
         Location loc = p.getLocation().add(0, 2, 0);
-        manager.spawnTestHologram(p, loc);
         p.sendMessage(ChatColor.GREEN + "Spawned test hologram.");
         return true;
     }

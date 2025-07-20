@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.environment.listeners;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.environment.BuildingUpgradeGUI;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.entity.Interaction;
@@ -20,6 +21,9 @@ public class BuildingHologramListener implements Listener {
 
     private void handleInteract(org.bukkit.entity.Player player, org.bukkit.entity.Entity entity, Runnable cancelAction) {
         if (entity instanceof ArmorStand || entity instanceof TextDisplay || entity instanceof Interaction) {
+            if (player.getOpenInventory().getTitle().startsWith(ChatColor.BLACK + "Upgrade ")) {
+                return;
+            }
             for (String tag : entity.getScoreboardTags()) {
                 if (tag.startsWith("building_hologram:")) {
                     String building = tag.substring("building_hologram:".length());
