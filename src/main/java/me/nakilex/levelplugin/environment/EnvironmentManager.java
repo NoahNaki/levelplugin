@@ -29,6 +29,7 @@ import java.util.UUID;
 public class EnvironmentManager {
     /** Maximum times we try loading a single chunk before giving up. */
     private static final int MAX_CHUNK_ATTEMPTS = 5;
+    private static final String TOWN_TASK_KEY = "__town__";
     private final PlayerConfig playerConfig;
     private final TownStageManager stageManager;
     private final me.nakilex.levelplugin.environment.stage.BuildingStageManager buildingStageManager;
@@ -37,7 +38,8 @@ public class EnvironmentManager {
     private final Map<UUID, Location> origins = new HashMap<>();
     private final Map<UUID, String> towns = new HashMap<>();
     private final Map<UUID, Map<String, BuildingState>> buildingStates = new HashMap<>();
-    private final Map<UUID, java.util.List<BukkitTask>> buildTasks = new HashMap<>();
+    /** Active build tasks per player and building key. */
+    private final Map<UUID, Map<String, BukkitTask>> buildTasks = new HashMap<>();
     /** Hologram entities per building per player. */
     private final Map<UUID, Map<String, java.util.List<org.bukkit.entity.Entity>>> buildingHolograms = new HashMap<>();
     private final Map<UUID, UUID> coopOwners = new HashMap<>();
@@ -487,13 +489,35 @@ public class EnvironmentManager {
         return states.get(uuid);
     }
 
-    private void cancelTasks(UUID uuid) {
-        java.util.List<BukkitTask> tasks = buildTasks.remove(uuid);
-        if (tasks != null) {
-            for (BukkitTask t : tasks) {
+    /** Cancel all active build tasks for the player. */
+    private void cancelBuildTasks(UUID uuid) {
+        Map<String, BukkitTask> map = buildTasks.remove(uuid);
+        if (map != null) {
+            for (BukkitTask t : map.values()) {
                 t.cancel();
             }
         }
+    }
+
+    /** Cancel a build task for a specific building if present. */
+    private void cancelBuildTask(UUID uuid, String key) {
+        Map<String, BukkitTask> map = buildTasks.get(uuid);
+        if (map == null) return;
+        BukkitTask t = map.remove(key);
+        if (t != null) t.cancel();
+        if (map.isEmpty()) buildTasks.remove(uuid);
+    }
+
+    /** Remove task mapping without cancelling (called after completion). */
+    private void clearFinishedTask(UUID uuid, String key) {
+        Map<String, BukkitTask> map = buildTasks.get(uuid);
+        if (map == null) return;
+        map.remove(key);
+        if (map.isEmpty()) buildTasks.remove(uuid);
+    }
+
+    private void cancelTasks(UUID uuid) {
+        cancelBuildTasks(uuid);
         BukkitTask chk = chunkLoadTasks.remove(uuid);
         if (chk != null) {
             chk.cancel();
@@ -981,7 +1005,7 @@ public class EnvironmentManager {
      */
     private void spawnStructureTimed(Player player, Location origin, int level, int stage, Runnable after, int totalTime) {
         UUID uuid = player.getUniqueId();
-        cancelTasks(uuid);
+        cancelBuildTask(uuid, TOWN_TASK_KEY);
         fakeBlockManager.clear(player);
         String town = towns.get(player.getUniqueId());
         if (town == null) return;
@@ -1018,14 +1042,14 @@ public class EnvironmentManager {
                     player.playSound(baseOrigin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
                     stageManager.spawnForStage(player, town, level, stage, baseOrigin);
                     if (after != null) after.run();
+                    clearFinishedTask(uuid, TOWN_TASK_KEY);
                     cancel();
                 }
             }
         }.runTaskTimer(Main.getInstance(), 0L, 1L);
 
-        java.util.List<BukkitTask> tasks = new java.util.ArrayList<>();
-        tasks.add(task);
-        buildTasks.put(uuid, tasks);
+        buildTasks.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
+            .put(TOWN_TASK_KEY, task);
     }
 
     private void spawnStructure(Player player, Location origin, int level, int stage, Runnable after) {
@@ -1187,6 +1211,8 @@ public class EnvironmentManager {
     /** Spawn a specific building stage relative to the town origin. */
     private void spawnBuildingTimed(Player player, String building, Location origin, int stage, Runnable after, int totalTime) {
         UUID uuid = player.getUniqueId();
+        String key = building.toLowerCase();
+        cancelBuildTask(uuid, key);
         removeTownHologram(uuid, building);
         String town = towns.get(player.getUniqueId());
         if (town == null) return;
@@ -1241,14 +1267,14 @@ public class EnvironmentManager {
                     buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
                         .put(building.toLowerCase(), displays);
                     if (after != null) after.run();
+                    clearFinishedTask(uuid, key);
                     cancel();
                 }
             }
         }.runTaskTimer(Main.getInstance(), 0L, 1L);
 
-        java.util.List<BukkitTask> tasks = new java.util.ArrayList<>();
-        tasks.add(task);
-        buildTasks.put(uuid, tasks);
+        buildTasks.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
+            .put(key, task);
     }
 
     private void spawnBuilding(Player player, String building, Location origin, int stage, Runnable after) {
@@ -1270,6 +1296,8 @@ public class EnvironmentManager {
      */
     private void spawnBuildingInstant(Player player, String building, Location origin, int stage) {
         UUID uuid = player.getUniqueId();
+        String key = building.toLowerCase();
+        cancelBuildTask(uuid, key);
         removeTownHologram(uuid, building);
         String town = towns.get(uuid);
         if (town == null) return;
@@ -1419,14 +1447,14 @@ public class EnvironmentManager {
                     buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
                         .put(building.toLowerCase(), displays);
                     if (after != null) after.run();
+                    clearFinishedTask(uuid, key);
                     cancel();
                 }
             }
         }.runTaskTimer(Main.getInstance(), 0L, 1L);
 
-        java.util.List<BukkitTask> tasks = new java.util.ArrayList<>();
-        tasks.add(task);
-        buildTasks.put(uuid, tasks);
+        buildTasks.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
+            .put(key, task);
     }
 
     /** Remove any fake blocks from a previous building stage before upgrading. */
@@ -1570,7 +1598,7 @@ public class EnvironmentManager {
 
         // skip resending blocks if a build animation is active to avoid
         // overriding the visual effect
-        if (!buildTasks.containsKey(base)) {
+        if (!buildTasks.containsKey(base) || buildTasks.get(base).isEmpty()) {
             // resend structure blocks inside the chunk
             resendStructureForChunk(player, origin, st.level, st.stage, cx, cz);
 
