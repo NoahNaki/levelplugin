@@ -13,6 +13,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.TextDisplay;
+import org.bukkit.entity.Interaction;
+import org.bukkit.entity.Entity;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.Particle;
@@ -41,7 +43,7 @@ public class EnvironmentManager {
     private final Map<UUID, Map<String, EnvironmentState>> buildingStates = new HashMap<>();
     private final Map<UUID, java.util.List<BukkitTask>> buildTasks = new HashMap<>();
     /** Hologram lines per building per player. */
-    private final Map<UUID, Map<String, java.util.List<org.bukkit.entity.TextDisplay>>> buildingHolograms = new HashMap<>();
+    private final Map<UUID, Map<String, java.util.List<org.bukkit.entity.Entity>>> buildingHolograms = new HashMap<>();
     private final Map<UUID, UUID> coopOwners = new HashMap<>();
     private final Map<UUID, UUID> coopPartners = new HashMap<>();
     private final Map<UUID, UUID> pendingInvites = new HashMap<>();
@@ -277,12 +279,13 @@ public class EnvironmentManager {
         lines.add(ChatColor.AQUA + "Requirements:");
         lines.add(logLine);
         lines.add(coinLine);
+        lines.add(ChatColor.YELLOW.toString() + ChatColor.UNDERLINE + "Right-Click to upgrade");
         return lines;
     }
 
     /** Spawn TextDisplay hologram lines at the given location. */
-    private java.util.List<TextDisplay> spawnHologramLines(Player player, Location base, java.util.List<String> lines, String tag) {
-        java.util.List<TextDisplay> displays = new java.util.ArrayList<>();
+    private java.util.List<org.bukkit.entity.Entity> spawnHologramLines(Player player, Location base, java.util.List<String> lines, String tag) {
+        java.util.List<org.bukkit.entity.Entity> displays = new java.util.ArrayList<>();
         double offset = 0.0;
         for (String text : lines) {
             Location loc = base.clone().add(0, offset, 0);
@@ -298,6 +301,13 @@ public class EnvironmentManager {
                 if (!p.equals(player)) p.hideEntity(Main.getInstance(), td);
             }
         }
+        // interaction area for clicking
+        Interaction inter = (Interaction) base.getWorld().spawnEntity(
+            base.clone().add(0, -0.25 * (lines.size() - 1) / 2.0, 0), EntityType.INTERACTION);
+        inter.setInteractionWidth(1.5f);
+        inter.setInteractionHeight((float) (lines.size() * 0.25 + 0.5));
+        inter.addScoreboardTag("building_hologram:" + tag.toLowerCase());
+        displays.add(inter);
         return displays;
     }
 
@@ -543,8 +553,8 @@ public class EnvironmentManager {
         if (map != null) {
             var list = map.remove(building.toLowerCase());
             if (list != null) {
-                for (var disp : list) {
-                    if (disp != null && !disp.isDead()) disp.remove();
+                for (var ent : list) {
+                    if (ent != null && !ent.isDead()) ent.remove();
                 }
             }
             if (map.isEmpty()) buildingHolograms.remove(uuid);
@@ -556,8 +566,8 @@ public class EnvironmentManager {
         if (map != null) {
             for (var list : map.values()) {
                 if (list != null) {
-                    for (var disp : list) {
-                        if (disp != null && !disp.isDead()) disp.remove();
+                    for (var ent : list) {
+                        if (ent != null && !ent.isDead()) ent.remove();
                     }
                 }
             }
@@ -1232,10 +1242,10 @@ public class EnvironmentManager {
                     // Place the hologram where the stage was defined (+1 Y already stored)
                     Location holo = baseOrigin.clone().add(
                         stageData.hx - stageData.ox + 0.5,
-                        stageData.hy - stageData.oy,
+                        stageData.hy - stageData.oy + 2,
                         stageData.hz - stageData.oz + 0.5);
                     java.util.List<String> textLines = formatBuildingHologram(player, building, level, stage);
-                    java.util.List<TextDisplay> displays = spawnHologramLines(player, holo, textLines, building);
+                    java.util.List<org.bukkit.entity.Entity> displays = spawnHologramLines(player, holo, textLines, building);
                     buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
                         .put(building.toLowerCase(), displays);
                     if (after != null) after.run();
@@ -1286,10 +1296,10 @@ public class EnvironmentManager {
 
         Location holo = baseOrigin.clone().add(
             stageData.hx - stageData.ox + 0.5,
-            stageData.hy - stageData.oy,
+            stageData.hy - stageData.oy + 2,
             stageData.hz - stageData.oz + 0.5);
         java.util.List<String> textLines = formatBuildingHologram(player, building, level, stage);
-        java.util.List<TextDisplay> displays = spawnHologramLines(player, holo, textLines, building);
+        java.util.List<org.bukkit.entity.Entity> displays = spawnHologramLines(player, holo, textLines, building);
         buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
             .put(building.toLowerCase(), displays);
     }
@@ -1410,10 +1420,10 @@ public class EnvironmentManager {
                     buildingStageManager.spawnForStage(player, building, newLevel, newStage, newOrigin);
                     Location holo = newOrigin.clone().add(
                         newData.hx - newData.ox + 0.5,
-                        newData.hy - newData.oy,
+                        newData.hy - newData.oy + 2,
                         newData.hz - newData.oz + 0.5);
                     java.util.List<String> textLines = formatBuildingHologram(player, building, newLevel, newStage);
-                    java.util.List<TextDisplay> displays = spawnHologramLines(player, holo, textLines, building);
+                    java.util.List<org.bukkit.entity.Entity> displays = spawnHologramLines(player, holo, textLines, building);
                     buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
                         .put(building.toLowerCase(), displays);
                     if (after != null) after.run();

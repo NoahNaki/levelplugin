@@ -214,7 +214,4 @@ commands:
   cutscene:
     description: Play or manage cutscenes
     usage: /cutscene <play id [player]|list|reload|record id|addframe [duration]|stop|cancel|skip [player]>
-  testhologram:
-    description: Spawn a simple test hologram
-    usage: /testhologram
 
