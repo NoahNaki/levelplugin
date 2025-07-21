@@ -84,6 +84,19 @@ public class EnvironmentManager {
         }
     }
 
+    /** Convert a lowercase, space-separated name into capitalized words. */
+    public static String beautifyWords(String name) {
+        String[] parts = name.toLowerCase().split(" ");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < parts.length; i++) {
+            if (parts[i].isEmpty()) continue;
+            sb.append(Character.toUpperCase(parts[i].charAt(0)))
+              .append(parts[i].substring(1));
+            if (i < parts.length - 1) sb.append(' ');
+        }
+        return sb.toString();
+    }
+
     public static class EnvironmentState {
         public int level;
         public int stage;
@@ -275,8 +288,9 @@ public class EnvironmentManager {
                 org.bukkit.Material mat = entry.getKey();
                 int amt = entry.getValue();
                 boolean has = player.getInventory().containsAtLeast(new org.bukkit.inventory.ItemStack(mat, amt), amt);
+                String matName = beautifyWords(mat.name().toLowerCase().replace('_', ' '));
                 String line = (has ? ChatColor.GREEN + "\u2714" : ChatColor.RED + "\u2718")
-                        + ChatColor.GRAY + " - " + ChatColor.WHITE + mat.name().toLowerCase().replace('_', ' ')
+                        + ChatColor.GRAY + " - " + ChatColor.WHITE + matName
                         + ChatColor.GRAY + " x" + ChatColor.WHITE + amt;
                 reqLines.add(line);
             }
