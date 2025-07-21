@@ -12,6 +12,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import me.nakilex.levelplugin.utils.GuiUtil;
 
 import java.util.*;
 
@@ -39,7 +40,7 @@ public class BuildingUpgradeGUI implements Listener {
         me.nakilex.levelplugin.Main.getInstance().getLogger().info(
                 "[BuildingUpgradeGUI] open player=" + p.getName() + " building=" + building);
         Inventory inv = Bukkit.createInventory(null, 27, TITLE_PREFIX + building);
-        ItemStack filler = createItem(Material.GRAY_STAINED_GLASS_PANE, " ");
+        ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
         for (int i = 0; i < inv.getSize(); i++) {
             inv.setItem(i, filler);
         }
@@ -55,8 +56,9 @@ public class BuildingUpgradeGUI implements Listener {
             }
             lore.add(ChatColor.WHITE + "" + nextData.coinCost + " coins");
         }
-        lore.add(ChatColor.GREEN + "Click to upgrade");
         inv.setItem(13, createItem(Material.EMERALD_BLOCK, ChatColor.GREEN + "Upgrade", lore.toArray(new String[0])));
+        inv.setItem(11, GuiUtil.getNexoItem("check", ChatColor.GREEN + "Confirm"));
+        inv.setItem(15, GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel"));
         p.openInventory(inv);
     }
 
@@ -79,14 +81,19 @@ public class BuildingUpgradeGUI implements Listener {
                     "[BuildingUpgradeGUI] ignore click in player inventory");
             return; // ignore player inventory clicks
         }
-        if (e.getRawSlot() != 13) {
+        int slot = e.getRawSlot();
+        if (slot != 11 && slot != 15) {
             me.nakilex.levelplugin.Main.getInstance().getLogger().info(
-                    "[BuildingUpgradeGUI] ignore slot=" + e.getRawSlot());
-            return; // only react to our GUI slot
+                    "[BuildingUpgradeGUI] ignore slot=" + slot);
+            return; // only react to confirm/cancel slots
         }
         Player p = (Player) e.getWhoClicked();
-        manager.attemptUpgradeBuilding(p, building);
-        open(p, building);
+        if (slot == 11) {
+            manager.attemptUpgradeBuilding(p, building);
+            open(p, building);
+        } else {
+            p.closeInventory();
+        }
     }
 
     @EventHandler
