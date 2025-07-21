@@ -51,7 +51,7 @@ public class BuildingUpgradeGUI implements Listener {
             lore.add(ChatColor.GRAY + "Upgrade cost:");
             for (var e : nextData.materialCost.entrySet()) {
                 String matName = EnvironmentManager.beautifyWords(e.getKey().name().toLowerCase().replace('_', ' '));
-                lore.add(ChatColor.WHITE + e.getValue() + " " + matName);
+                lore.add(ChatColor.WHITE + "" + e.getValue() + " " + matName);
             }
             lore.add(ChatColor.WHITE + "" + nextData.coinCost + " coins");
         }

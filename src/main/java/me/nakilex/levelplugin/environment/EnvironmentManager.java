@@ -297,7 +297,7 @@ public class EnvironmentManager {
             int coinCost = nextData.coinCost;
             boolean hasCoins = coins >= coinCost;
             String coinLine = (hasCoins ? ChatColor.GREEN + "\u2714" : ChatColor.RED + "\u2718")
-                    + ChatColor.GRAY + " - " + ChatColor.WHITE + coinCost + " coins "
+                    + ChatColor.GRAY + " - " + ChatColor.WHITE + "" + coinCost + " coins "
                     + ChatColor.GOLD + " <glyph:coins_icon>";
             reqLines.add(coinLine);
         }
