@@ -28,7 +28,8 @@ public class TaskRegistry {
 
         PlayerScoreboardManager sbManager = plugin.getScoreboardManager();
         if (sbManager != null) {
-            new ScoreboardTask(sbManager).runTaskTimer(plugin, 20L, 20L);
+            // update scoreboard every 2 seconds instead of each second
+            new ScoreboardTask(sbManager).runTaskTimer(plugin, 40L, 40L);
         }
 
         LeaderboardManager lbManager = plugin.getLeaderboardManager();

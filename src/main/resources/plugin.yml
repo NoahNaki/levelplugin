@@ -214,4 +214,7 @@ commands:
   cutscene:
     description: Play or manage cutscenes
     usage: /cutscene <play id [player]|list|reload|record id|addframe [duration]|stop|cancel|skip [player]>
+  showtps:
+    description: Toggle TPS display on the scoreboard
+    usage: /showtps
 
