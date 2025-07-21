@@ -96,7 +96,8 @@ public class BuildingStageManager {
         stages
             .computeIfAbsent(building.toLowerCase(), k -> new HashMap<>())
             .put(stage, new BuildingStage(building.toLowerCase(), stage, pos1, pos2,
-                    npcs, blocks, schematic, fileName, priority, hx, hy, hz, ox, oy, oz));
+                    npcs, blocks, schematic, fileName, priority, hx, hy, hz, ox, oy, oz,
+                    null, 0));
         saveConfig();
     }
 
@@ -432,11 +433,35 @@ public class BuildingStageManager {
         int oy = config.getInt(base + "origin.y", 0);
         int oz = config.getInt(base + "origin.z", 0);
 
+        java.util.Map<org.bukkit.Material, Integer> matCost = new java.util.HashMap<>();
+        int coinCost = 0;
+        if (config.isConfigurationSection(base + "upgrade_cost")) {
+            var uSec = config.getConfigurationSection(base + "upgrade_cost");
+            if (uSec != null) {
+                coinCost = uSec.getInt("coins", 0);
+                var mSec = uSec.getConfigurationSection("materials");
+                if (mSec == null) {
+                    // fallback to legacy key
+                    mSec = uSec.getConfigurationSection("items");
+                }
+                if (mSec != null) {
+                    for (String key : mSec.getKeys(false)) {
+                        try {
+                            org.bukkit.Material mat = org.bukkit.Material.valueOf(key.toUpperCase());
+                            int amt = mSec.getInt(key, 0);
+                            if (amt > 0) matCost.put(mat, amt);
+                        } catch (IllegalArgumentException ignore) {
+                        }
+                    }
+                }
+            }
+        }
+
         stages
             .computeIfAbsent(building.toLowerCase(), k -> new HashMap<>())
             .put(stage, new BuildingStage(building.toLowerCase(), stage,
                     pos1, pos2, npcList, blockList, schematic, fileName, priority,
-                    hx, hy, hz, ox, oy, oz));
+                    hx, hy, hz, ox, oy, oz, matCost, coinCost));
     }
 
     private void saveConfig() {
@@ -470,6 +495,17 @@ public class BuildingStageManager {
                         config.set(base + "origin.x", st.ox);
                         config.set(base + "origin.y", st.oy);
                         config.set(base + "origin.z", st.oz);
+                        if (!st.materialCost.isEmpty() || st.coinCost > 0) {
+                            String ucBase = base + "upgrade_cost.";
+                            config.set(ucBase + "coins", st.coinCost);
+                            if (!st.materialCost.isEmpty()) {
+                                for (var me : st.materialCost.entrySet()) {
+                                    config.set(ucBase + "materials." + me.getKey().name().toLowerCase(), me.getValue());
+                                }
+                            } else {
+                                config.set(ucBase + "materials", null);
+                            }
+                        }
             }
         }
 
@@ -521,11 +557,16 @@ public class BuildingStageManager {
         public final int priority;
         public final int hx, hy, hz;
         public final int ox, oy, oz;
+        public final java.util.Map<org.bukkit.Material, Integer> materialCost;
+        public final int coinCost;
+
         public BuildingStage(String name, int stage, Location pos1, Location pos2,
                              List<NPCSpawn> npcs, List<BlockDef> blocks,
                              File schematic, String fileName, int priority,
                              int hx, int hy, int hz,
-                             int ox, int oy, int oz) {
+                             int ox, int oy, int oz,
+                             java.util.Map<org.bukkit.Material, Integer> materialCost,
+                             int coinCost) {
             this.name = name;
             this.stage = stage;
             this.pos1 = pos1;
@@ -541,6 +582,8 @@ public class BuildingStageManager {
             this.ox = ox;
             this.oy = oy;
             this.oz = oz;
+            this.materialCost = materialCost == null ? java.util.Collections.emptyMap() : materialCost;
+            this.coinCost = coinCost;
         }
     }
 

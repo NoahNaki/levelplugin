@@ -12,6 +12,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import me.nakilex.levelplugin.utils.GuiUtil;
 
 import java.util.*;
 
@@ -38,15 +39,45 @@ public class BuildingUpgradeGUI implements Listener {
     public void open(Player p, String building) {
         me.nakilex.levelplugin.Main.getInstance().getLogger().info(
                 "[BuildingUpgradeGUI] open player=" + p.getName() + " building=" + building);
-        Inventory inv = Bukkit.createInventory(null, 27, TITLE_PREFIX + building);
-        ItemStack filler = createItem(Material.GRAY_STAINED_GLASS_PANE, " ");
+        String nice = EnvironmentManager.beautifyWords(building.replace('_', ' '));
+        Inventory inv = Bukkit.createInventory(null, 27, TITLE_PREFIX + nice);
+        ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
         for (int i = 0; i < inv.getSize(); i++) {
             inv.setItem(i, filler);
         }
-        inv.setItem(13, createItem(Material.OAK_LOG,
-                ChatColor.GREEN + "Invest 1 Oak Log",
-                ChatColor.GRAY + "Click to invest towards",
-                ChatColor.GRAY + "the next upgrade."));
+
+        int stage = manager.getPlayerBuildingStage(p, building);
+        var nextData = manager.getBuildingStageManager().getStage(building, stage + 1);
+        java.util.List<String> lore = new java.util.ArrayList<>();
+        if (nextData != null) {
+            lore.add(ChatColor.GRAY + "Upgrade cost:");
+            int coins = me.nakilex.levelplugin.Main.getInstance().getEconomyManager().getBalance(p);
+            for (var e : nextData.materialCost.entrySet()) {
+                org.bukkit.Material mat = e.getKey();
+                int amt = e.getValue();
+                boolean has = p.getInventory().containsAtLeast(new ItemStack(mat, amt), amt);
+                String matName = EnvironmentManager.beautifyWords(mat.name().toLowerCase().replace('_', ' '));
+                String prefix = has ? ChatColor.GREEN + "\u2714" : ChatColor.RED + "\u2718";
+                String line = prefix + ChatColor.GRAY + " - "
+                        + ChatColor.WHITE + amt + ChatColor.DARK_GRAY + "x "
+                        + ChatColor.WHITE + matName;
+                lore.add(line);
+            }
+            boolean hasCoins = coins >= nextData.coinCost;
+            String prefix = hasCoins ? ChatColor.GREEN + "\u2714" : ChatColor.RED + "\u2718";
+            String coinLine = prefix + ChatColor.GRAY + " - "
+                    + ChatColor.WHITE + nextData.coinCost + " coins "
+                    + ChatColor.GOLD + " <glyph:coins_icon>";
+            lore.add(coinLine);
+        }
+        ItemStack confirm = GuiUtil.getNexoItem("check", ChatColor.GREEN + "Confirm");
+        ItemMeta cm = confirm.getItemMeta();
+        if (cm != null && !lore.isEmpty()) {
+            cm.setLore(lore);
+            confirm.setItemMeta(cm);
+        }
+        inv.setItem(11, confirm);
+        inv.setItem(15, GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel"));
         p.openInventory(inv);
     }
 
@@ -59,7 +90,7 @@ public class BuildingUpgradeGUI implements Listener {
             return;
         }
         e.setCancelled(true);
-        String building = title.substring(TITLE_PREFIX.length()).toLowerCase();
+        String building = title.substring(TITLE_PREFIX.length()).toLowerCase().replace(' ', '_');
         me.nakilex.levelplugin.Main.getInstance().getLogger().info(
                 "[BuildingUpgradeGUI] click rawSlot=" + e.getRawSlot() +
                         " building=" + building +
@@ -69,23 +100,18 @@ public class BuildingUpgradeGUI implements Listener {
                     "[BuildingUpgradeGUI] ignore click in player inventory");
             return; // ignore player inventory clicks
         }
-        if (e.getRawSlot() != 13) {
+        int slot = e.getRawSlot();
+        if (slot != 11 && slot != 15) {
             me.nakilex.levelplugin.Main.getInstance().getLogger().info(
-                    "[BuildingUpgradeGUI] ignore slot=" + e.getRawSlot());
-            return; // only react to our GUI slot
+                    "[BuildingUpgradeGUI] ignore slot=" + slot);
+            return; // only react to confirm/cancel slots
         }
         Player p = (Player) e.getWhoClicked();
-        if (p.getInventory().contains(Material.OAK_LOG)) {
-            p.getInventory().removeItem(new ItemStack(Material.OAK_LOG, 1));
-            me.nakilex.levelplugin.Main.getInstance().getLogger().info(
-                    "[BuildingUpgradeGUI] investing 1 log for " + p.getName() +
-                            " building=" + building);
-            manager.investBuilding(p, building, 1);
+        if (slot == 11) {
+            manager.attemptUpgradeBuilding(p, building);
             open(p, building);
         } else {
-            me.nakilex.levelplugin.Main.getInstance().getLogger().info(
-                    "[BuildingUpgradeGUI] missing log for " + p.getName());
-            p.sendMessage(ChatColor.RED + "You need an oak log to invest!");
+            p.closeInventory();
         }
     }
 

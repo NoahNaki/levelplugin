@@ -84,6 +84,19 @@ public class EnvironmentManager {
         }
     }
 
+    /** Convert a lowercase, space-separated name into capitalized words. */
+    public static String beautifyWords(String name) {
+        String[] parts = name.toLowerCase().split(" ");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < parts.length; i++) {
+            if (parts[i].isEmpty()) continue;
+            sb.append(Character.toUpperCase(parts[i].charAt(0)))
+              .append(parts[i].substring(1));
+            if (i < parts.length - 1) sb.append(' ');
+        }
+        return sb.toString();
+    }
+
     public static class EnvironmentState {
         public int level;
         public int stage;
@@ -127,6 +140,17 @@ public class EnvironmentManager {
     /** Get the origin location for the player's town if it exists. */
     public Location getOrigin(UUID uuid) {
         return origins.get(getBase(uuid));
+    }
+
+    /** Get the current stage of a player's building. */
+    public int getPlayerBuildingStage(Player player, String building) {
+        loadPlayerState(player);
+        java.util.UUID base = getBase(player.getUniqueId());
+        java.util.Map<String, BuildingState> map = buildingStates.get(base);
+        if (map == null) return 1;
+        BuildingState bs = map.get(building.toLowerCase());
+        if (bs == null) return 1;
+        return bs.stage;
     }
 
     /** Whether the player's town is currently loaded for them. */
@@ -255,31 +279,38 @@ public class EnvironmentManager {
     private java.util.List<String> formatBuildingHologram(Player player, String building, int stage) {
         int nextStage = stage + 1;
 
-        // Example requirements - currently hardcoded to 1 oak log and no coins
-        int logCost = 1;
-        boolean hasLog = player.getInventory().containsAtLeast(
-            new org.bukkit.inventory.ItemStack(org.bukkit.Material.OAK_LOG, logCost), logCost);
-        String logLine = (hasLog
-            ? ChatColor.GREEN.toString() + "✔"
-            : ChatColor.RED.toString() + "✘")
-            + ChatColor.GRAY + " - " + ChatColor.WHITE + "Oak Log"
-            + ChatColor.GRAY + " x" + ChatColor.WHITE + logCost;
-
-        int coinCost = 0;
-        int coins = Main.getInstance().getEconomyManager().getBalance(player);
-        boolean hasCoins = coins >= coinCost;
-        String coinLine = (hasCoins
-            ? ChatColor.GREEN.toString() + "✔"
-            : ChatColor.RED.toString() + "✘")
-            + ChatColor.GRAY + " - " + ChatColor.WHITE + coinCost + " coins "
-            + ChatColor.GOLD + " <glyph:coins_icon>";
-
-        java.util.List<String> lines = new java.util.ArrayList<>();
+        var nextData = buildingStageManager.getStage(building, nextStage);
         String niceName = java.util.Arrays.stream(building.replace('_', ' ').split(" "))
                 .filter(part -> !part.isEmpty())
                 .map(part -> Character.toUpperCase(part.charAt(0)) + part.substring(1).toLowerCase())
                 .collect(java.util.stream.Collectors.joining(" "));
-        lines.add(ChatColor.GREEN + "" + ChatColor.BOLD + "UPGRADE " + ChatColor.WHITE + niceName);
+
+        if (nextData == null) {
+            return null; // no further upgrades, don't show hologram
+        }
+
+        java.util.List<String> reqLines = new java.util.ArrayList<>();
+        int coins = Main.getInstance().getEconomyManager().getBalance(player);
+        for (var entry : nextData.materialCost.entrySet()) {
+            org.bukkit.Material mat = entry.getKey();
+            int amt = entry.getValue();
+            boolean has = player.getInventory().containsAtLeast(new org.bukkit.inventory.ItemStack(mat, amt), amt);
+            String matName = beautifyWords(mat.name().toLowerCase().replace('_', ' '));
+            String line = (has ? ChatColor.GREEN + "\u2714" : ChatColor.RED + "\u2718")
+                    + ChatColor.GRAY + " - " + ChatColor.WHITE + matName
+                    + ChatColor.GRAY + " x" + ChatColor.WHITE + amt;
+            reqLines.add(line);
+        }
+        int coinCost = nextData.coinCost;
+        boolean hasCoins = coins >= coinCost;
+        String coinLine = (hasCoins ? ChatColor.GREEN + "\u2714" : ChatColor.RED + "\u2718")
+                + ChatColor.GRAY + " - " + ChatColor.WHITE + "" + coinCost + " coins "
+                + ChatColor.GOLD + " <glyph:coins_icon>";
+        reqLines.add(coinLine);
+
+        java.util.List<String> lines = new java.util.ArrayList<>();
+        String verb = stage == 1 ? "CONSTRUCT" : "UPGRADE";
+        lines.add(ChatColor.GREEN + "" + ChatColor.BOLD + verb + " " + ChatColor.WHITE + niceName);
         lines.add(ChatColor.GOLD.toString() + ChatColor.BOLD + "STAGE "
             + ChatColor.YELLOW + stage + " "
             + ChatColor.GREEN + ">" + ChatColor.DARK_GREEN + ">"
@@ -287,8 +318,7 @@ public class EnvironmentManager {
             + ChatColor.GOLD + ChatColor.BOLD.toString() + "STAGE " + ChatColor.YELLOW + nextStage);
         lines.add(ChatColor.DARK_GRAY + ChatColor.STRIKETHROUGH.toString() + "--------------------");
         lines.add(ChatColor.AQUA + "Requirements:");
-        lines.add(logLine);
-        lines.add(coinLine);
+        lines.addAll(reqLines);
         lines.add(ChatColor.YELLOW.toString() + ChatColor.UNDERLINE + "Right-click to upgrade!");
         return lines;
     }
@@ -296,6 +326,10 @@ public class EnvironmentManager {
     /** Spawn hologram entities at the given location. */
     private java.util.List<org.bukkit.entity.Entity> spawnHologramLines(Player player, Location base,
                                                                        java.util.List<String> lines, String tag) {
+        if (lines == null || lines.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+
         java.util.List<org.bukkit.entity.Entity> entities = new java.util.ArrayList<>();
 
         // Spawn an invisible interaction entity for reliable clicking
@@ -781,6 +815,39 @@ public class EnvironmentManager {
         } else {
             player.sendMessage(ChatColor.GREEN + "Invested " + amount + " oak log.");
         }
+    }
+
+    /** Attempt to upgrade a building by paying its configured cost. */
+    public void attemptUpgradeBuilding(Player player, String building) {
+        int currentStage = getPlayerBuildingStage(player, building);
+        var nextStageData = buildingStageManager.getStage(building, currentStage + 1);
+        if (nextStageData == null) {
+            player.sendMessage(ChatColor.RED + "Building is fully upgraded.");
+            return;
+        }
+        // Check materials
+        for (var entry : nextStageData.materialCost.entrySet()) {
+            org.bukkit.Material mat = entry.getKey();
+            int amt = entry.getValue();
+            if (!player.getInventory().containsAtLeast(new org.bukkit.inventory.ItemStack(mat, amt), amt)) {
+                player.sendMessage(ChatColor.RED + "Missing required materials for upgrade.");
+                return;
+            }
+        }
+        int coinCost = nextStageData.coinCost;
+        int balance = Main.getInstance().getEconomyManager().getBalance(player);
+        if (balance < coinCost) {
+            player.sendMessage(ChatColor.RED + "You need " + coinCost + " coins.");
+            return;
+        }
+        // Deduct items
+        for (var entry : nextStageData.materialCost.entrySet()) {
+            player.getInventory().removeItem(new org.bukkit.inventory.ItemStack(entry.getKey(), entry.getValue()));
+        }
+        if (coinCost > 0) {
+            Main.getInstance().getEconomyManager().deductCoins(player, coinCost);
+        }
+        investBuilding(player, building, 1);
     }
 
     private void advance(EnvironmentState state) {
@@ -1323,9 +1390,11 @@ public class EnvironmentManager {
                         stageData.hy - stageData.oy + 2,
                         stageData.hz - stageData.oz + 0.5);
                     java.util.List<String> textLines = formatBuildingHologram(player, building, stage);
-                    java.util.List<org.bukkit.entity.Entity> displays = spawnHologramLines(player, holo, textLines, building);
-                    buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
-                        .put(building.toLowerCase(), displays);
+                    if (textLines != null && !textLines.isEmpty()) {
+                        java.util.List<org.bukkit.entity.Entity> displays = spawnHologramLines(player, holo, textLines, building);
+                        buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
+                            .put(building.toLowerCase(), displays);
+                    }
                     if (after != null) after.run();
                     clearFinishedTask(uuid, key);
                     cancel();
@@ -1385,9 +1454,11 @@ public class EnvironmentManager {
             stageData.hy - stageData.oy + 2,
             stageData.hz - stageData.oz + 0.5);
         java.util.List<String> textLines = formatBuildingHologram(player, building, stage);
-        java.util.List<org.bukkit.entity.Entity> displays = spawnHologramLines(player, holo, textLines, building);
-        buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
-            .put(building.toLowerCase(), displays);
+        if (textLines != null && !textLines.isEmpty()) {
+            java.util.List<org.bukkit.entity.Entity> displays = spawnHologramLines(player, holo, textLines, building);
+            buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
+                .put(building.toLowerCase(), displays);
+        }
     }
 
     /**
@@ -1514,9 +1585,11 @@ public class EnvironmentManager {
                         newData.hy - newData.oy + 2,
                         newData.hz - newData.oz + 0.5);
                     java.util.List<String> textLines = formatBuildingHologram(player, building, newStage);
-                    java.util.List<org.bukkit.entity.Entity> displays = spawnHologramLines(player, holo, textLines, building);
-                    buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
-                        .put(building.toLowerCase(), displays);
+                    if (textLines != null && !textLines.isEmpty()) {
+                        java.util.List<org.bukkit.entity.Entity> displays = spawnHologramLines(player, holo, textLines, building);
+                        buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
+                            .put(building.toLowerCase(), displays);
+                    }
                     if (after != null) after.run();
                     resumeChunkTasks(player);
                     clearFinishedTask(uuid, key);
