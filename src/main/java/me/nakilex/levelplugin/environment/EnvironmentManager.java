@@ -301,8 +301,9 @@ public class EnvironmentManager {
         // Spawn an invisible interaction to enlarge the clickable area
         org.bukkit.entity.Interaction hitbox = (org.bukkit.entity.Interaction)
                 base.getWorld().spawnEntity(base, EntityType.INTERACTION);
+        // Expand interaction area to roughly a 2x2 box around the hologram
         hitbox.setInteractionWidth(2.0f);
-        hitbox.setInteractionHeight((float) (lines.size() * 0.25 + 1.0));
+        hitbox.setInteractionHeight(2.0f);
         hitbox.addScoreboardTag("building_hologram:" + tag.toLowerCase());
         entities.add(hitbox);
         for (Player p : Bukkit.getOnlinePlayers()) {
