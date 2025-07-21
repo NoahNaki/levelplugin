@@ -279,35 +279,39 @@ public class EnvironmentManager {
     private java.util.List<String> formatBuildingHologram(Player player, String building, int stage) {
         int nextStage = stage + 1;
 
-        // Example requirements - currently hardcoded to 1 oak log and no coins
         var nextData = buildingStageManager.getStage(building, nextStage);
-        java.util.List<String> reqLines = new java.util.ArrayList<>();
-        int coins = Main.getInstance().getEconomyManager().getBalance(player);
-        if (nextData != null) {
-            for (var entry : nextData.materialCost.entrySet()) {
-                org.bukkit.Material mat = entry.getKey();
-                int amt = entry.getValue();
-                boolean has = player.getInventory().containsAtLeast(new org.bukkit.inventory.ItemStack(mat, amt), amt);
-                String matName = beautifyWords(mat.name().toLowerCase().replace('_', ' '));
-                String line = (has ? ChatColor.GREEN + "\u2714" : ChatColor.RED + "\u2718")
-                        + ChatColor.GRAY + " - " + ChatColor.WHITE + matName
-                        + ChatColor.GRAY + " x" + ChatColor.WHITE + amt;
-                reqLines.add(line);
-            }
-            int coinCost = nextData.coinCost;
-            boolean hasCoins = coins >= coinCost;
-            String coinLine = (hasCoins ? ChatColor.GREEN + "\u2714" : ChatColor.RED + "\u2718")
-                    + ChatColor.GRAY + " - " + ChatColor.WHITE + "" + coinCost + " coins "
-                    + ChatColor.GOLD + " <glyph:coins_icon>";
-            reqLines.add(coinLine);
-        }
-
-        java.util.List<String> lines = new java.util.ArrayList<>();
         String niceName = java.util.Arrays.stream(building.replace('_', ' ').split(" "))
                 .filter(part -> !part.isEmpty())
                 .map(part -> Character.toUpperCase(part.charAt(0)) + part.substring(1).toLowerCase())
                 .collect(java.util.stream.Collectors.joining(" "));
-        lines.add(ChatColor.GREEN + "" + ChatColor.BOLD + "UPGRADE " + ChatColor.WHITE + niceName);
+
+        if (nextData == null) {
+            return java.util.Collections.singletonList(
+                ChatColor.GOLD + "" + ChatColor.BOLD + niceName + " MAX LEVEL!");
+        }
+
+        java.util.List<String> reqLines = new java.util.ArrayList<>();
+        int coins = Main.getInstance().getEconomyManager().getBalance(player);
+        for (var entry : nextData.materialCost.entrySet()) {
+            org.bukkit.Material mat = entry.getKey();
+            int amt = entry.getValue();
+            boolean has = player.getInventory().containsAtLeast(new org.bukkit.inventory.ItemStack(mat, amt), amt);
+            String matName = beautifyWords(mat.name().toLowerCase().replace('_', ' '));
+            String line = (has ? ChatColor.GREEN + "\u2714" : ChatColor.RED + "\u2718")
+                    + ChatColor.GRAY + " - " + ChatColor.WHITE + matName
+                    + ChatColor.GRAY + " x" + ChatColor.WHITE + amt;
+            reqLines.add(line);
+        }
+        int coinCost = nextData.coinCost;
+        boolean hasCoins = coins >= coinCost;
+        String coinLine = (hasCoins ? ChatColor.GREEN + "\u2714" : ChatColor.RED + "\u2718")
+                + ChatColor.GRAY + " - " + ChatColor.WHITE + "" + coinCost + " coins "
+                + ChatColor.GOLD + " <glyph:coins_icon>";
+        reqLines.add(coinLine);
+
+        java.util.List<String> lines = new java.util.ArrayList<>();
+        String verb = stage == 1 ? "CONSTRUCT" : "UPGRADE";
+        lines.add(ChatColor.GREEN + "" + ChatColor.BOLD + verb + " " + ChatColor.WHITE + niceName);
         lines.add(ChatColor.GOLD.toString() + ChatColor.BOLD + "STAGE "
             + ChatColor.YELLOW + stage + " "
             + ChatColor.GREEN + ">" + ChatColor.DARK_GREEN + ">"
