@@ -129,6 +129,17 @@ public class EnvironmentManager {
         return origins.get(getBase(uuid));
     }
 
+    /** Get the current stage of a player's building. */
+    public int getPlayerBuildingStage(Player player, String building) {
+        loadPlayerState(player);
+        java.util.UUID base = getBase(player.getUniqueId());
+        java.util.Map<String, BuildingState> map = buildingStates.get(base);
+        if (map == null) return 1;
+        BuildingState bs = map.get(building.toLowerCase());
+        if (bs == null) return 1;
+        return bs.stage;
+    }
+
     /** Whether the player's town is currently loaded for them. */
     public boolean isTownLoaded(Player player) {
         return loadedPlayers.contains(player.getUniqueId());
@@ -256,23 +267,26 @@ public class EnvironmentManager {
         int nextStage = stage + 1;
 
         // Example requirements - currently hardcoded to 1 oak log and no coins
-        int logCost = 1;
-        boolean hasLog = player.getInventory().containsAtLeast(
-            new org.bukkit.inventory.ItemStack(org.bukkit.Material.OAK_LOG, logCost), logCost);
-        String logLine = (hasLog
-            ? ChatColor.GREEN.toString() + "✔"
-            : ChatColor.RED.toString() + "✘")
-            + ChatColor.GRAY + " - " + ChatColor.WHITE + "Oak Log"
-            + ChatColor.GRAY + " x" + ChatColor.WHITE + logCost;
-
-        int coinCost = 0;
+        var nextData = buildingStageManager.getStage(building, nextStage);
+        java.util.List<String> reqLines = new java.util.ArrayList<>();
         int coins = Main.getInstance().getEconomyManager().getBalance(player);
-        boolean hasCoins = coins >= coinCost;
-        String coinLine = (hasCoins
-            ? ChatColor.GREEN.toString() + "✔"
-            : ChatColor.RED.toString() + "✘")
-            + ChatColor.GRAY + " - " + ChatColor.WHITE + coinCost + " coins "
-            + ChatColor.GOLD + " <glyph:coins_icon>";
+        if (nextData != null) {
+            for (var entry : nextData.materialCost.entrySet()) {
+                org.bukkit.Material mat = entry.getKey();
+                int amt = entry.getValue();
+                boolean has = player.getInventory().containsAtLeast(new org.bukkit.inventory.ItemStack(mat, amt), amt);
+                String line = (has ? ChatColor.GREEN + "\u2714" : ChatColor.RED + "\u2718")
+                        + ChatColor.GRAY + " - " + ChatColor.WHITE + mat.name().toLowerCase().replace('_', ' ')
+                        + ChatColor.GRAY + " x" + ChatColor.WHITE + amt;
+                reqLines.add(line);
+            }
+            int coinCost = nextData.coinCost;
+            boolean hasCoins = coins >= coinCost;
+            String coinLine = (hasCoins ? ChatColor.GREEN + "\u2714" : ChatColor.RED + "\u2718")
+                    + ChatColor.GRAY + " - " + ChatColor.WHITE + coinCost + " coins "
+                    + ChatColor.GOLD + " <glyph:coins_icon>";
+            reqLines.add(coinLine);
+        }
 
         java.util.List<String> lines = new java.util.ArrayList<>();
         String niceName = java.util.Arrays.stream(building.replace('_', ' ').split(" "))
@@ -287,8 +301,7 @@ public class EnvironmentManager {
             + ChatColor.GOLD + ChatColor.BOLD.toString() + "STAGE " + ChatColor.YELLOW + nextStage);
         lines.add(ChatColor.DARK_GRAY + ChatColor.STRIKETHROUGH.toString() + "--------------------");
         lines.add(ChatColor.AQUA + "Requirements:");
-        lines.add(logLine);
-        lines.add(coinLine);
+        lines.addAll(reqLines);
         lines.add(ChatColor.YELLOW.toString() + ChatColor.UNDERLINE + "Right-click to upgrade!");
         return lines;
     }
@@ -781,6 +794,39 @@ public class EnvironmentManager {
         } else {
             player.sendMessage(ChatColor.GREEN + "Invested " + amount + " oak log.");
         }
+    }
+
+    /** Attempt to upgrade a building by paying its configured cost. */
+    public void attemptUpgradeBuilding(Player player, String building) {
+        int currentStage = getPlayerBuildingStage(player, building);
+        var nextStageData = buildingStageManager.getStage(building, currentStage + 1);
+        if (nextStageData == null) {
+            player.sendMessage(ChatColor.RED + "Building is fully upgraded.");
+            return;
+        }
+        // Check materials
+        for (var entry : nextStageData.materialCost.entrySet()) {
+            org.bukkit.Material mat = entry.getKey();
+            int amt = entry.getValue();
+            if (!player.getInventory().containsAtLeast(new org.bukkit.inventory.ItemStack(mat, amt), amt)) {
+                player.sendMessage(ChatColor.RED + "Missing required materials for upgrade.");
+                return;
+            }
+        }
+        int coinCost = nextStageData.coinCost;
+        int balance = Main.getInstance().getEconomyManager().getBalance(player);
+        if (balance < coinCost) {
+            player.sendMessage(ChatColor.RED + "You need " + coinCost + " coins.");
+            return;
+        }
+        // Deduct items
+        for (var entry : nextStageData.materialCost.entrySet()) {
+            player.getInventory().removeItem(new org.bukkit.inventory.ItemStack(entry.getKey(), entry.getValue()));
+        }
+        if (coinCost > 0) {
+            Main.getInstance().getEconomyManager().deductCoins(player, coinCost);
+        }
+        investBuilding(player, building, 1);
     }
 
     private void advance(EnvironmentState state) {
