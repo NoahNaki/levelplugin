@@ -120,6 +120,15 @@ public class EnvironmentManager {
         return buildingStageManager;
     }
 
+    public int getPlayerBuildingStage(UUID uuid, String building) {
+        UUID base = getBase(uuid);
+        Map<String, BuildingState> map = buildingStates.get(base);
+        if (map == null) return 1;
+        BuildingState bs = map.get(building.toLowerCase());
+        if (bs == null) return 1;
+        return bs.stage;
+    }
+
     public String getTown(UUID uuid) {
         return towns.get(uuid);
     }
@@ -255,24 +264,28 @@ public class EnvironmentManager {
     private java.util.List<String> formatBuildingHologram(Player player, String building, int stage) {
         int nextStage = stage + 1;
 
-        // Example requirements - currently hardcoded to 1 oak log and no coins
-        int logCost = 1;
-        boolean hasLog = player.getInventory().containsAtLeast(
-            new org.bukkit.inventory.ItemStack(org.bukkit.Material.OAK_LOG, logCost), logCost);
-        String logLine = (hasLog
-            ? ChatColor.GREEN.toString() + "✔"
-            : ChatColor.RED.toString() + "✘")
-            + ChatColor.GRAY + " - " + ChatColor.WHITE + "Oak Log"
-            + ChatColor.GRAY + " x" + ChatColor.WHITE + logCost;
-
+        var nextStageData = buildingStageManager.getStage(building, nextStage);
+        java.util.Map<org.bukkit.Material, Integer> costItems = java.util.Collections.emptyMap();
         int coinCost = 0;
+        if (nextStageData != null) {
+            costItems = nextStageData.itemCost;
+            coinCost = nextStageData.coinCost;
+        }
         int coins = Main.getInstance().getEconomyManager().getBalance(player);
+        java.util.List<String> requirementLines = new java.util.ArrayList<>();
+        for (var entry : costItems.entrySet()) {
+            int amt = entry.getValue();
+            org.bukkit.Material mat = entry.getKey();
+            boolean hasMat = player.getInventory().containsAtLeast(new org.bukkit.inventory.ItemStack(mat, amt), amt);
+            String line = (hasMat ? ChatColor.GREEN + "✔" : ChatColor.RED + "✘")
+                    + ChatColor.GRAY + " - " + ChatColor.WHITE + mat.name().toLowerCase().replace('_', ' ')
+                    + ChatColor.GRAY + " x" + ChatColor.WHITE + amt;
+            requirementLines.add(line);
+        }
         boolean hasCoins = coins >= coinCost;
-        String coinLine = (hasCoins
-            ? ChatColor.GREEN.toString() + "✔"
-            : ChatColor.RED.toString() + "✘")
-            + ChatColor.GRAY + " - " + ChatColor.WHITE + coinCost + " coins "
-            + ChatColor.GOLD + " <glyph:coins_icon>";
+        requirementLines.add((hasCoins ? ChatColor.GREEN + "✔" : ChatColor.RED + "✘")
+                + ChatColor.GRAY + " - " + ChatColor.WHITE + coinCost + " coins "
+                + ChatColor.GOLD + " <glyph:coins_icon>");
 
         java.util.List<String> lines = new java.util.ArrayList<>();
         String niceName = java.util.Arrays.stream(building.replace('_', ' ').split(" "))
@@ -287,8 +300,7 @@ public class EnvironmentManager {
             + ChatColor.GOLD + ChatColor.BOLD.toString() + "STAGE " + ChatColor.YELLOW + nextStage);
         lines.add(ChatColor.DARK_GRAY + ChatColor.STRIKETHROUGH.toString() + "--------------------");
         lines.add(ChatColor.AQUA + "Requirements:");
-        lines.add(logLine);
-        lines.add(coinLine);
+        lines.addAll(requirementLines);
         lines.add(ChatColor.YELLOW.toString() + ChatColor.UNDERLINE + "Right-click to upgrade!");
         return lines;
     }
@@ -763,24 +775,41 @@ public class EnvironmentManager {
             player.sendMessage(ChatColor.RED + "Unknown building.");
             return;
         }
-        bs.invested += amount;
-        if (bs.invested >= 1) {
-            bs.invested = 0;
-            int oldS = bs.stage;
-            advance(bs);
-            player.sendMessage(ChatColor.GREEN + building + " upgraded to Stage " + bs.stage);
-            String town = towns.get(base);
-            Location origin = origins.get(base);
-            if (town != null && origin != null) {
-                Location bOrig = getBuildingOrigin(town, building, origin);
-                buildingStageManager.despawnForStage(player.getUniqueId(), building, oldS);
-                spawnBuildingUpgrade(player, building, bOrig, oldS, bs.stage);
-            }
-            Main.getInstance().getQuestManager().handleTownUpgrade(player);
-            saveState(base);
-        } else {
-            player.sendMessage(ChatColor.GREEN + "Invested " + amount + " oak log.");
+        int nextStage = bs.stage + 1;
+        var stageData = buildingStageManager.getStage(building, nextStage);
+        if (stageData == null) {
+            player.sendMessage(ChatColor.RED + "Max stage reached.");
+            return;
         }
+        for (var entry : stageData.itemCost.entrySet()) {
+            if (!player.getInventory().containsAtLeast(new org.bukkit.inventory.ItemStack(entry.getKey(), entry.getValue()), entry.getValue())) {
+                player.sendMessage(ChatColor.RED + "Missing required materials.");
+                return;
+            }
+        }
+        if (Main.getInstance().getEconomyManager().getBalance(player) < stageData.coinCost) {
+            player.sendMessage(ChatColor.RED + "Not enough coins.");
+            return;
+        }
+        for (var entry : stageData.itemCost.entrySet()) {
+            player.getInventory().removeItem(new org.bukkit.inventory.ItemStack(entry.getKey(), entry.getValue()));
+        }
+        if (stageData.coinCost > 0) {
+            Main.getInstance().getEconomyManager().deductCoins(player, stageData.coinCost);
+        }
+
+        int oldS = bs.stage;
+        advance(bs);
+        player.sendMessage(ChatColor.GREEN + building + " upgraded to Stage " + bs.stage);
+        String town = towns.get(base);
+        Location origin = origins.get(base);
+        if (town != null && origin != null) {
+            Location bOrig = getBuildingOrigin(town, building, origin);
+            buildingStageManager.despawnForStage(player.getUniqueId(), building, oldS);
+            spawnBuildingUpgrade(player, building, bOrig, oldS, bs.stage);
+        }
+        Main.getInstance().getQuestManager().handleTownUpgrade(player);
+        saveState(base);
     }
 
     private void advance(EnvironmentState state) {

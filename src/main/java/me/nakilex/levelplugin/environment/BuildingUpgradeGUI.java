@@ -43,10 +43,20 @@ public class BuildingUpgradeGUI implements Listener {
         for (int i = 0; i < inv.getSize(); i++) {
             inv.setItem(i, filler);
         }
+        var bs = manager.getBuildingStageManager().getStage(building, manager.getPlayerBuildingStage(p.getUniqueId(), building) + 1);
+        java.util.List<String> lore = new java.util.ArrayList<>();
+        if (bs != null) {
+            for (var entry : bs.itemCost.entrySet()) {
+                lore.add(ChatColor.GRAY + "- " + entry.getValue() + " " + entry.getKey().name().toLowerCase());
+            }
+            if (bs.coinCost > 0) {
+                lore.add(ChatColor.GRAY + "- " + bs.coinCost + " coins");
+            }
+        }
+        lore.add(ChatColor.GRAY + "Click to invest towards");
+        lore.add(ChatColor.GRAY + "the next upgrade.");
         inv.setItem(13, createItem(Material.OAK_LOG,
-                ChatColor.GREEN + "Invest 1 Oak Log",
-                ChatColor.GRAY + "Click to invest towards",
-                ChatColor.GRAY + "the next upgrade."));
+                ChatColor.GREEN + "Upgrade", lore.toArray(new String[0])));
         p.openInventory(inv);
     }
 
@@ -75,18 +85,8 @@ public class BuildingUpgradeGUI implements Listener {
             return; // only react to our GUI slot
         }
         Player p = (Player) e.getWhoClicked();
-        if (p.getInventory().contains(Material.OAK_LOG)) {
-            p.getInventory().removeItem(new ItemStack(Material.OAK_LOG, 1));
-            me.nakilex.levelplugin.Main.getInstance().getLogger().info(
-                    "[BuildingUpgradeGUI] investing 1 log for " + p.getName() +
-                            " building=" + building);
-            manager.investBuilding(p, building, 1);
-            open(p, building);
-        } else {
-            me.nakilex.levelplugin.Main.getInstance().getLogger().info(
-                    "[BuildingUpgradeGUI] missing log for " + p.getName());
-            p.sendMessage(ChatColor.RED + "You need an oak log to invest!");
-        }
+        manager.investBuilding(p, building, 1);
+        open(p, building);
     }
 
     @EventHandler

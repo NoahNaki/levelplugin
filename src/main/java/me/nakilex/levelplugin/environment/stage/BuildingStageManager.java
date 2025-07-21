@@ -96,7 +96,8 @@ public class BuildingStageManager {
         stages
             .computeIfAbsent(building.toLowerCase(), k -> new HashMap<>())
             .put(stage, new BuildingStage(building.toLowerCase(), stage, pos1, pos2,
-                    npcs, blocks, schematic, fileName, priority, hx, hy, hz, ox, oy, oz));
+                    npcs, blocks, schematic, fileName, priority, hx, hy, hz, ox, oy, oz,
+                    java.util.Collections.emptyMap(), 0));
         saveConfig();
     }
 
@@ -432,11 +433,23 @@ public class BuildingStageManager {
         int oy = config.getInt(base + "origin.y", 0);
         int oz = config.getInt(base + "origin.z", 0);
 
+        java.util.Map<org.bukkit.Material, Integer> itemCost = new java.util.HashMap<>();
+        if (config.isConfigurationSection(base + "upgrade_cost.items")) {
+            var cSec = config.getConfigurationSection(base + "upgrade_cost.items");
+            for (String key : cSec.getKeys(false)) {
+                org.bukkit.Material mat = org.bukkit.Material.matchMaterial(key);
+                if (mat != null) {
+                    itemCost.put(mat, cSec.getInt(key, 0));
+                }
+            }
+        }
+        int coinCost = config.getInt(base + "upgrade_cost.coins", 0);
+
         stages
             .computeIfAbsent(building.toLowerCase(), k -> new HashMap<>())
             .put(stage, new BuildingStage(building.toLowerCase(), stage,
                     pos1, pos2, npcList, blockList, schematic, fileName, priority,
-                    hx, hy, hz, ox, oy, oz));
+                    hx, hy, hz, ox, oy, oz, itemCost, coinCost));
     }
 
     private void saveConfig() {
@@ -466,10 +479,16 @@ public class BuildingStageManager {
                         config.set(base + "holo.x", st.hx);
                         config.set(base + "holo.y", st.hy);
                         config.set(base + "holo.z", st.hz);
-                        config.set(base + "priority", st.priority);
-                        config.set(base + "origin.x", st.ox);
-                        config.set(base + "origin.y", st.oy);
-                        config.set(base + "origin.z", st.oz);
+                    config.set(base + "priority", st.priority);
+                    config.set(base + "origin.x", st.ox);
+                    config.set(base + "origin.y", st.oy);
+                    config.set(base + "origin.z", st.oz);
+                    String costBase = base + "upgrade_cost.";
+                    config.set(costBase + "items", null);
+                    for (var entry : st.itemCost.entrySet()) {
+                        config.set(costBase + "items." + entry.getKey().name(), entry.getValue());
+                    }
+                    config.set(costBase + "coins", st.coinCost);
             }
         }
 
@@ -521,11 +540,15 @@ public class BuildingStageManager {
         public final int priority;
         public final int hx, hy, hz;
         public final int ox, oy, oz;
+        public final java.util.Map<org.bukkit.Material, Integer> itemCost;
+        public final int coinCost;
         public BuildingStage(String name, int stage, Location pos1, Location pos2,
                              List<NPCSpawn> npcs, List<BlockDef> blocks,
                              File schematic, String fileName, int priority,
                              int hx, int hy, int hz,
-                             int ox, int oy, int oz) {
+                             int ox, int oy, int oz,
+                             java.util.Map<org.bukkit.Material, Integer> itemCost,
+                             int coinCost) {
             this.name = name;
             this.stage = stage;
             this.pos1 = pos1;
@@ -541,6 +564,8 @@ public class BuildingStageManager {
             this.ox = ox;
             this.oy = oy;
             this.oz = oz;
+            this.itemCost = itemCost == null ? java.util.Collections.emptyMap() : itemCost;
+            this.coinCost = coinCost;
         }
     }
 
