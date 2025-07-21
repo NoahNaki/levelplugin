@@ -57,6 +57,8 @@ public class EnvironmentManager {
     private final Map<UUID, BukkitTask> chunkLoadTasks = new java.util.HashMap<>();
     /** Periodic tasks that recheck if a town is fully loaded. */
     private final Map<UUID, BukkitTask> townCheckTasks = new java.util.HashMap<>();
+    /** Cached set of chunk keys for each player's town to avoid recomputation. */
+    private final Map<UUID, java.util.Set<Long>> townChunkCache = new java.util.HashMap<>();
 
     /** Players currently viewing their town (fake blocks active). */
     private final java.util.Set<UUID> loadedPlayers = new java.util.HashSet<>();
@@ -189,90 +191,12 @@ public class EnvironmentManager {
         return true;
     }
 
-    /**
-     * Compare the real world blocks against the schematic for the player's town.
-     * This is a best-effort attempt to detect when fake block data was lost
-     * during chunk loads. If any block differs from what the schematic expects,
-     * the town will be respawned for the player.
+    /*
+     * Previous versions compared real blocks against the schematic on every
+     * chunk load to detect desynchronization. These checks proved extremely
+     * expensive and rarely provided useful recovery, so they have been removed
+     * in favor of simply ensuring chunks are loaded.
      */
-    private boolean doTownBlocksMatch(Player player) {
-        UUID base = getBase(player.getUniqueId());
-        EnvironmentState st = states.get(base);
-        Location origin = origins.get(base);
-        String town = towns.get(base);
-        if (st == null || origin == null || town == null) return true;
-
-        var stage = stageManager.getStage(town, st.level, st.stage);
-        if (stage != null) {
-            Location baseOrigin = origin.clone().add(0, stage.oy, 0);
-            for (var b : stage.blocks) {
-                Location loc = baseOrigin.clone().add(b.x - stage.ox, b.y - stage.oy, b.z - stage.oz);
-                if (!loc.getBlock().getBlockData().matches(b.data)) {
-                    return false;
-                }
-            }
-        }
-
-        Map<String, BuildingState> bMap = buildingStates.get(base);
-        if (bMap != null) {
-            for (var e : bMap.entrySet()) {
-                var bs = buildingStageManager.getStage(e.getKey(), e.getValue().stage);
-                if (bs == null) continue;
-                Location bo = getBuildingOrigin(town, e.getKey(), origin).add(0, bs.oy, 0);
-                for (var b : bs.blocks) {
-                    Location loc = bo.clone().add(b.x - bs.ox, b.y - bs.oy, b.z - bs.oz);
-                    if (!loc.getBlock().getBlockData().matches(b.data)) {
-                        return false;
-                    }
-                }
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * Check if all blocks for the town inside a specific chunk match the
-     * schematic. This is a lighter version of {@link #doTownBlocksMatch} used
-     * to verify chunks individually during loading.
-     */
-    private boolean doesTownChunkMatch(Player player, int cx, int cz) {
-        UUID base = getBase(player.getUniqueId());
-        EnvironmentState st = states.get(base);
-        Location origin = origins.get(base);
-        String town = towns.get(base);
-        if (st == null || origin == null || town == null) return true;
-
-        var stage = stageManager.getStage(town, st.level, st.stage);
-        if (stage != null) {
-            Location baseOrigin = origin.clone().add(0, stage.oy, 0);
-            for (var b : stage.blocks) {
-                Location loc = baseOrigin.clone().add(b.x - stage.ox, b.y - stage.oy, b.z - stage.oz);
-                if ((loc.getBlockX() >> 4) != cx || (loc.getBlockZ() >> 4) != cz) continue;
-                if (!loc.getBlock().getBlockData().matches(b.data)) {
-                    return false;
-                }
-            }
-        }
-
-        Map<String, BuildingState> bMap = buildingStates.get(base);
-        if (bMap != null) {
-            for (var e : bMap.entrySet()) {
-                var bs = buildingStageManager.getStage(e.getKey(), e.getValue().stage);
-                if (bs == null) continue;
-                Location bo = getBuildingOrigin(town, e.getKey(), origin).add(0, bs.oy, 0);
-                for (var b : bs.blocks) {
-                    Location loc = bo.clone().add(b.x - bs.ox, b.y - bs.oy, b.z - bs.oz);
-                    if ((loc.getBlockX() >> 4) != cx || (loc.getBlockZ() >> 4) != cz) continue;
-                    if (!loc.getBlock().getBlockData().matches(b.data)) {
-                        return false;
-                    }
-                }
-            }
-        }
-
-        return true;
-    }
 
     /** Build the hologram text for a building upgrade based on the player's
      *  current resources. */
@@ -408,8 +332,8 @@ public class EnvironmentManager {
         }
     }
 
-    /** Collect all chunk coordinates for the player's town and buildings. */
-    private java.util.Set<Long> collectTownChunks(UUID base) {
+    /** Compute all chunk coordinates for the player's town and buildings. */
+    private java.util.Set<Long> computeTownChunks(UUID base) {
         EnvironmentState st = states.get(base);
         Location origin = origins.get(base);
         String town = towns.get(base);
@@ -443,6 +367,18 @@ public class EnvironmentManager {
             }
         }
         return chunks;
+    }
+
+    /**
+     * Get the cached chunk set for this player, computing if necessary.
+     */
+    private java.util.Set<Long> collectTownChunks(UUID base) {
+        return townChunkCache.computeIfAbsent(base, this::computeTownChunks);
+    }
+
+    /** Invalidate cached chunk coordinates for the player. */
+    private void invalidateTownChunks(UUID base) {
+        townChunkCache.remove(base);
     }
 
     /** Load state for player from config without spawning any structures. */
@@ -595,24 +531,18 @@ public class EnvironmentManager {
                     return;
                 }
 
-                boolean allOk = true;
+                boolean allLoaded = true;
                 for (long key : collectTownChunks(base)) {
                     int cx = (int) (key >> 32);
                     int cz = (int) key;
-                    org.bukkit.Chunk c = origin.getWorld().getChunkAt(cx, cz);
-                    if (!c.isLoaded()) {
-                        allOk = false;
+                    if (!origin.getWorld().isChunkLoaded(cx, cz)) {
+                        allLoaded = false;
                         preloadTownChunks(p);
-                        break;
-                    }
-                    if (!doesTownChunkMatch(p, cx, cz)) {
-                        allOk = false;
-                        initializePlayer(p);
                         break;
                     }
                 }
 
-                if (allOk) {
+                if (allLoaded) {
                     cancelTownLoadCheck(base);
                 }
             }
@@ -724,6 +654,7 @@ public class EnvironmentManager {
         states.remove(member);
         buildingStates.remove(member);
         coopOwners.remove(member);
+        invalidateTownChunks(member);
         playerConfig.clearEnvironmentData(member);
         playerConfig.saveConfigFile();
     }
@@ -769,6 +700,7 @@ public class EnvironmentManager {
             int oldLevel = state.level;
             int oldStage = state.stage;
             advance(state);
+            invalidateTownChunks(base);
             player.sendMessage(ChatColor.GREEN + "Settlement upgraded to Level " + state.level + " Stage " + state.stage + "!");
             String town = towns.get(base);
             Location origin = origins.get(base);
@@ -802,6 +734,7 @@ public class EnvironmentManager {
             bs.invested = 0;
             int oldS = bs.stage;
             advance(bs);
+            invalidateTownChunks(base);
             player.sendMessage(ChatColor.GREEN + building + " upgraded to Stage " + bs.stage);
             String town = towns.get(base);
             Location origin = origins.get(base);
@@ -1010,6 +943,7 @@ public class EnvironmentManager {
         playerConfig.setEnvironmentOrigin(uuid, origin);
         playerConfig.setEnvironmentTown(uuid, townName.toLowerCase());
         playerConfig.saveConfigFile();
+        invalidateTownChunks(uuid);
 
         final EnvironmentState state = states.computeIfAbsent(uuid, id -> new EnvironmentState(1, 1));
         Map<String, BuildingState> bMap = buildingStates.get(uuid);
@@ -1045,6 +979,7 @@ public class EnvironmentManager {
             removeMemberData(uuid, town, st, bMap);
             coopPartners.remove(base);
             player.sendMessage(ChatColor.RED + "You have left the town.");
+            invalidateTownChunks(base);
             return;
         }
 
@@ -1054,6 +989,7 @@ public class EnvironmentManager {
             String town = towns.get(uuid);
             Map<String, BuildingState> bMap = buildingStates.get(uuid);
             removeMemberData(partner, town, st, bMap);
+            invalidateTownChunks(uuid);
         }
 
         cancelTasks(uuid);
@@ -1084,6 +1020,7 @@ public class EnvironmentManager {
         playerConfig.clearCoop(uuid);
         playerConfig.saveConfigFile();
         player.sendMessage(ChatColor.RED + "Your settlement has been reset.");
+        invalidateTownChunks(uuid);
     }
 
     /** Remove all fake blocks and NPCs for this player's view without deleting data. */
@@ -1777,6 +1714,9 @@ public class EnvironmentManager {
         if (origin != null) origins.put(partner, origin);
         String town = towns.remove(ownerId);
         if (town != null) towns.put(partner, town);
+
+        invalidateTownChunks(ownerId);
+        invalidateTownChunks(partner);
 
         coopOwners.put(ownerId, partner);
         coopPartners.remove(ownerId);

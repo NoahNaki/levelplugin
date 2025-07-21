@@ -33,6 +33,8 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
     private final Map<UUID, Scoreboard> boards = new HashMap<>();
     private final String[] entries = new String[15];
     private final Map<UUID, String[]> lastLines = new HashMap<>();
+    /** Players that enabled TPS display. */
+    private final java.util.Set<UUID> showTps = new java.util.HashSet<>();
 
     /**
      * Exposes the internal scoreboard instance for other managers.
@@ -85,6 +87,22 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         boards.remove(player.getUniqueId());
         lastLines.remove(player.getUniqueId());
         player.setScoreboard(Bukkit.getScoreboardManager().getMainScoreboard());
+        showTps.remove(player.getUniqueId());
+    }
+
+    /** Toggle TPS display for this player. */
+    public boolean toggleTps(Player player) {
+        UUID id = player.getUniqueId();
+        boolean enabled;
+        if (showTps.contains(id)) {
+            showTps.remove(id);
+            enabled = false;
+        } else {
+            showTps.add(id);
+            enabled = true;
+        }
+        updateBoard(player);
+        return enabled;
     }
 
     public void updateAll() {
@@ -230,6 +248,15 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
                 }
                 if (line <= 1) break;
             }
+        }
+
+        if (showTps.contains(player.getUniqueId())) {
+            double tps = Bukkit.getTPS()[0];
+            current[idx] = ChatColor.DARK_AQUA + "TPS: " + String.format("%.1f", tps);
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
         }
 
         // Apply party and friend glow scoreboard entries if enabled

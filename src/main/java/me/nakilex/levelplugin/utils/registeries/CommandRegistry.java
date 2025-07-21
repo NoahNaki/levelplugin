@@ -137,6 +137,7 @@ public class CommandRegistry {
         plugin.getCommand("gemexchange").setExecutor(new GemExchangeCommand(gemGui));
         plugin.getCommand("tipsreload").setExecutor(new TipsReloadCommand(tipsCfg, broadcastMgr));
         plugin.getCommand("toggle").setExecutor(new ToggleCommand(plugin));
+        plugin.getCommand("showtps").setExecutor(new me.nakilex.levelplugin.scoreboard.ShowTpsCommand(plugin.getScoreboardManager()));
         plugin.getCommand("auctionhouse").setExecutor(new AuctionCommand(auctionMgr, auctionGui));
         plugin.getCommand("quest").setExecutor(new QuestCommand(questManager));
         plugin.getCommand("location").setExecutor(new LocationCommand(fastTravelManager));
