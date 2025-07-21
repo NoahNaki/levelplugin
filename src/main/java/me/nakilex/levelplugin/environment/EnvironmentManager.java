@@ -275,12 +275,16 @@ public class EnvironmentManager {
             + ChatColor.GOLD + " <glyph:coins_icon>";
 
         java.util.List<String> lines = new java.util.ArrayList<>();
-        lines.add(ChatColor.GREEN + "" + ChatColor.BOLD + "Upgrade " + ChatColor.WHITE + building);
+        String niceName = java.util.Arrays.stream(building.replace('_', ' ').split(" "))
+                .filter(part -> !part.isEmpty())
+                .map(part -> Character.toUpperCase(part.charAt(0)) + part.substring(1).toLowerCase())
+                .collect(java.util.stream.Collectors.joining(" "));
+        lines.add(ChatColor.GREEN + "" + ChatColor.BOLD + "UPGRADE " + ChatColor.WHITE + niceName);
         lines.add(ChatColor.GOLD.toString() + ChatColor.BOLD + "STAGE "
             + ChatColor.YELLOW + stage + " "
             + ChatColor.GREEN + ">" + ChatColor.DARK_GREEN + ">"
             + ChatColor.GREEN + ">" + ChatColor.DARK_GREEN + "> "
-            + ChatColor.GOLD + "STAGE " + ChatColor.YELLOW + nextStage);
+            + ChatColor.GOLD + ChatColor.BOLD.toString() + "STAGE " + ChatColor.YELLOW + nextStage);
         lines.add(ChatColor.DARK_GRAY + ChatColor.STRIKETHROUGH.toString() + "--------------------");
         lines.add(ChatColor.AQUA + "Requirements:");
         lines.add(logLine);
@@ -297,8 +301,8 @@ public class EnvironmentManager {
         // Spawn an invisible interaction to enlarge the clickable area
         org.bukkit.entity.Interaction hitbox = (org.bukkit.entity.Interaction)
                 base.getWorld().spawnEntity(base, EntityType.INTERACTION);
-        hitbox.setInteractionWidth(1.5f);
-        hitbox.setInteractionHeight((float) (lines.size() * 0.25 + 0.5));
+        hitbox.setInteractionWidth(2.0f);
+        hitbox.setInteractionHeight((float) (lines.size() * 0.25 + 1.0));
         hitbox.addScoreboardTag("building_hologram:" + tag.toLowerCase());
         entities.add(hitbox);
         for (Player p : Bukkit.getOnlinePlayers()) {
