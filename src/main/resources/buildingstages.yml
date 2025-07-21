@@ -21,11 +21,6 @@ stages:
         x: 87
         y: 8
         z: 101
-      upgrade_cost:
-        items:
-          RAW_IRON: 10
-          COAL: 10
-        coins: 100
     '2':
       world: flatland
       pos1:
@@ -47,6 +42,11 @@ stages:
         x: 87
         y: 8
         z: 101
+      upgrade_cost:
+        items:
+          RAW_IRON: 10
+          COAL: 10
+        coins: 100
     '3':
       world: flatland
       pos1:

@@ -43,14 +43,23 @@ public class BuildingUpgradeGUI implements Listener {
         for (int i = 0; i < inv.getSize(); i++) {
             inv.setItem(i, filler);
         }
-        var bs = manager.getBuildingStageManager().getStage(building, manager.getPlayerBuildingStage(p.getUniqueId(), building) + 1);
+        var bs = manager.getBuildingStageManager().getStage(
+                building,
+                manager.getPlayerBuildingStage(p.getUniqueId(), building) + 1);
         java.util.List<String> lore = new java.util.ArrayList<>();
         if (bs != null) {
             for (var entry : bs.itemCost.entrySet()) {
-                lore.add(ChatColor.GRAY + "- " + entry.getValue() + " " + entry.getKey().name().toLowerCase());
+                int amt = entry.getValue();
+                Material mat = entry.getKey();
+                boolean has = p.getInventory().containsAtLeast(new ItemStack(mat, amt), amt);
+                lore.add((has ? ChatColor.GREEN + "✔" : ChatColor.RED + "✘") +
+                        ChatColor.GRAY + " - " + ChatColor.WHITE + mat.name().toLowerCase().replace('_', ' ') +
+                        ChatColor.GRAY + " x" + ChatColor.WHITE + amt);
             }
             if (bs.coinCost > 0) {
-                lore.add(ChatColor.GRAY + "- " + bs.coinCost + " coins");
+                boolean hasCoins = me.nakilex.levelplugin.Main.getInstance().getEconomyManager().getBalance(p) >= bs.coinCost;
+                lore.add((hasCoins ? ChatColor.GREEN + "✔" : ChatColor.RED + "✘") +
+                        ChatColor.GRAY + " - " + ChatColor.WHITE + bs.coinCost + " coins" + ChatColor.GOLD + " <glyph:coins_icon>");
             }
         }
         lore.add(ChatColor.GRAY + "Click to invest towards");
