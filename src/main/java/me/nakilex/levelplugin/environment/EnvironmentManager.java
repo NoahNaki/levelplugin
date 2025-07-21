@@ -299,9 +299,12 @@ public class EnvironmentManager {
         java.util.List<org.bukkit.entity.Entity> entities = new java.util.ArrayList<>();
 
         // Spawn an invisible interaction to enlarge the clickable area
+        // Center the hitbox around the hologram text so it covers all lines
+        Location center = base.clone().add(0,
+                -(float) (lines.size() - 1) * 0.25f / 2f, 0);
         org.bukkit.entity.Interaction hitbox = (org.bukkit.entity.Interaction)
-                base.getWorld().spawnEntity(base, EntityType.INTERACTION);
-        // Expand interaction area to roughly a 2x2 box around the hologram
+                base.getWorld().spawnEntity(center, EntityType.INTERACTION);
+        // Expand interaction area to roughly a 2x2 box
         hitbox.setInteractionWidth(2.0f);
         hitbox.setInteractionHeight(2.0f);
         hitbox.addScoreboardTag("building_hologram:" + tag.toLowerCase());
