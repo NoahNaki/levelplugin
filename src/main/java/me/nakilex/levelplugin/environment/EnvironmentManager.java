@@ -286,8 +286,7 @@ public class EnvironmentManager {
                 .collect(java.util.stream.Collectors.joining(" "));
 
         if (nextData == null) {
-            return java.util.Collections.singletonList(
-                ChatColor.GOLD + "" + ChatColor.BOLD + niceName + " MAX LEVEL!");
+            return null; // no further upgrades, don't show hologram
         }
 
         java.util.List<String> reqLines = new java.util.ArrayList<>();
@@ -327,6 +326,10 @@ public class EnvironmentManager {
     /** Spawn hologram entities at the given location. */
     private java.util.List<org.bukkit.entity.Entity> spawnHologramLines(Player player, Location base,
                                                                        java.util.List<String> lines, String tag) {
+        if (lines == null || lines.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+
         java.util.List<org.bukkit.entity.Entity> entities = new java.util.ArrayList<>();
 
         // Spawn an invisible interaction entity for reliable clicking
@@ -1387,9 +1390,11 @@ public class EnvironmentManager {
                         stageData.hy - stageData.oy + 2,
                         stageData.hz - stageData.oz + 0.5);
                     java.util.List<String> textLines = formatBuildingHologram(player, building, stage);
-                    java.util.List<org.bukkit.entity.Entity> displays = spawnHologramLines(player, holo, textLines, building);
-                    buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
-                        .put(building.toLowerCase(), displays);
+                    if (textLines != null && !textLines.isEmpty()) {
+                        java.util.List<org.bukkit.entity.Entity> displays = spawnHologramLines(player, holo, textLines, building);
+                        buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
+                            .put(building.toLowerCase(), displays);
+                    }
                     if (after != null) after.run();
                     clearFinishedTask(uuid, key);
                     cancel();
@@ -1449,9 +1454,11 @@ public class EnvironmentManager {
             stageData.hy - stageData.oy + 2,
             stageData.hz - stageData.oz + 0.5);
         java.util.List<String> textLines = formatBuildingHologram(player, building, stage);
-        java.util.List<org.bukkit.entity.Entity> displays = spawnHologramLines(player, holo, textLines, building);
-        buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
-            .put(building.toLowerCase(), displays);
+        if (textLines != null && !textLines.isEmpty()) {
+            java.util.List<org.bukkit.entity.Entity> displays = spawnHologramLines(player, holo, textLines, building);
+            buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
+                .put(building.toLowerCase(), displays);
+        }
     }
 
     /**
@@ -1578,9 +1585,11 @@ public class EnvironmentManager {
                         newData.hy - newData.oy + 2,
                         newData.hz - newData.oz + 0.5);
                     java.util.List<String> textLines = formatBuildingHologram(player, building, newStage);
-                    java.util.List<org.bukkit.entity.Entity> displays = spawnHologramLines(player, holo, textLines, building);
-                    buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
-                        .put(building.toLowerCase(), displays);
+                    if (textLines != null && !textLines.isEmpty()) {
+                        java.util.List<org.bukkit.entity.Entity> displays = spawnHologramLines(player, holo, textLines, building);
+                        buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
+                            .put(building.toLowerCase(), displays);
+                    }
                     if (after != null) after.run();
                     resumeChunkTasks(player);
                     clearFinishedTask(uuid, key);
