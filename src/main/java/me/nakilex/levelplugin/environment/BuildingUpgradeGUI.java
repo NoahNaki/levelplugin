@@ -39,7 +39,8 @@ public class BuildingUpgradeGUI implements Listener {
     public void open(Player p, String building) {
         me.nakilex.levelplugin.Main.getInstance().getLogger().info(
                 "[BuildingUpgradeGUI] open player=" + p.getName() + " building=" + building);
-        Inventory inv = Bukkit.createInventory(null, 27, TITLE_PREFIX + building);
+        String nice = EnvironmentManager.beautifyWords(building.replace('_', ' '));
+        Inventory inv = Bukkit.createInventory(null, 27, TITLE_PREFIX + nice);
         ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
         for (int i = 0; i < inv.getSize(); i++) {
             inv.setItem(i, filler);
@@ -56,8 +57,13 @@ public class BuildingUpgradeGUI implements Listener {
             }
             lore.add(ChatColor.WHITE + "" + nextData.coinCost + " coins");
         }
-        inv.setItem(13, createItem(Material.EMERALD_BLOCK, ChatColor.GREEN + "Upgrade", lore.toArray(new String[0])));
-        inv.setItem(11, GuiUtil.getNexoItem("check", ChatColor.GREEN + "Confirm"));
+        ItemStack confirm = GuiUtil.getNexoItem("check", ChatColor.GREEN + "Confirm");
+        ItemMeta cm = confirm.getItemMeta();
+        if (cm != null && !lore.isEmpty()) {
+            cm.setLore(lore);
+            confirm.setItemMeta(cm);
+        }
+        inv.setItem(11, confirm);
         inv.setItem(15, GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel"));
         p.openInventory(inv);
     }
@@ -71,7 +77,7 @@ public class BuildingUpgradeGUI implements Listener {
             return;
         }
         e.setCancelled(true);
-        String building = title.substring(TITLE_PREFIX.length()).toLowerCase();
+        String building = title.substring(TITLE_PREFIX.length()).toLowerCase().replace(' ', '_');
         me.nakilex.levelplugin.Main.getInstance().getLogger().info(
                 "[BuildingUpgradeGUI] click rawSlot=" + e.getRawSlot() +
                         " building=" + building +
