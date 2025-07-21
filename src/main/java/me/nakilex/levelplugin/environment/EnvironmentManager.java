@@ -57,6 +57,8 @@ public class EnvironmentManager {
     private final Map<UUID, BukkitTask> chunkLoadTasks = new java.util.HashMap<>();
     /** Periodic tasks that recheck if a town is fully loaded. */
     private final Map<UUID, BukkitTask> townCheckTasks = new java.util.HashMap<>();
+    /** Cached set of chunk keys for each player's town to avoid recomputation. */
+    private final Map<UUID, java.util.Set<Long>> townChunkCache = new java.util.HashMap<>();
 
     /** Players currently viewing their town (fake blocks active). */
     private final java.util.Set<UUID> loadedPlayers = new java.util.HashSet<>();
@@ -408,8 +410,8 @@ public class EnvironmentManager {
         }
     }
 
-    /** Collect all chunk coordinates for the player's town and buildings. */
-    private java.util.Set<Long> collectTownChunks(UUID base) {
+    /** Compute all chunk coordinates for the player's town and buildings. */
+    private java.util.Set<Long> computeTownChunks(UUID base) {
         EnvironmentState st = states.get(base);
         Location origin = origins.get(base);
         String town = towns.get(base);
@@ -443,6 +445,18 @@ public class EnvironmentManager {
             }
         }
         return chunks;
+    }
+
+    /**
+     * Get the cached chunk set for this player, computing if necessary.
+     */
+    private java.util.Set<Long> collectTownChunks(UUID base) {
+        return townChunkCache.computeIfAbsent(base, this::computeTownChunks);
+    }
+
+    /** Invalidate cached chunk coordinates for the player. */
+    private void invalidateTownChunks(UUID base) {
+        townChunkCache.remove(base);
     }
 
     /** Load state for player from config without spawning any structures. */
@@ -724,6 +738,7 @@ public class EnvironmentManager {
         states.remove(member);
         buildingStates.remove(member);
         coopOwners.remove(member);
+        invalidateTownChunks(member);
         playerConfig.clearEnvironmentData(member);
         playerConfig.saveConfigFile();
     }
@@ -769,6 +784,7 @@ public class EnvironmentManager {
             int oldLevel = state.level;
             int oldStage = state.stage;
             advance(state);
+            invalidateTownChunks(base);
             player.sendMessage(ChatColor.GREEN + "Settlement upgraded to Level " + state.level + " Stage " + state.stage + "!");
             String town = towns.get(base);
             Location origin = origins.get(base);
@@ -802,6 +818,7 @@ public class EnvironmentManager {
             bs.invested = 0;
             int oldS = bs.stage;
             advance(bs);
+            invalidateTownChunks(base);
             player.sendMessage(ChatColor.GREEN + building + " upgraded to Stage " + bs.stage);
             String town = towns.get(base);
             Location origin = origins.get(base);
@@ -1010,6 +1027,7 @@ public class EnvironmentManager {
         playerConfig.setEnvironmentOrigin(uuid, origin);
         playerConfig.setEnvironmentTown(uuid, townName.toLowerCase());
         playerConfig.saveConfigFile();
+        invalidateTownChunks(uuid);
 
         final EnvironmentState state = states.computeIfAbsent(uuid, id -> new EnvironmentState(1, 1));
         Map<String, BuildingState> bMap = buildingStates.get(uuid);
@@ -1045,6 +1063,7 @@ public class EnvironmentManager {
             removeMemberData(uuid, town, st, bMap);
             coopPartners.remove(base);
             player.sendMessage(ChatColor.RED + "You have left the town.");
+            invalidateTownChunks(base);
             return;
         }
 
@@ -1054,6 +1073,7 @@ public class EnvironmentManager {
             String town = towns.get(uuid);
             Map<String, BuildingState> bMap = buildingStates.get(uuid);
             removeMemberData(partner, town, st, bMap);
+            invalidateTownChunks(uuid);
         }
 
         cancelTasks(uuid);
@@ -1084,6 +1104,7 @@ public class EnvironmentManager {
         playerConfig.clearCoop(uuid);
         playerConfig.saveConfigFile();
         player.sendMessage(ChatColor.RED + "Your settlement has been reset.");
+        invalidateTownChunks(uuid);
     }
 
     /** Remove all fake blocks and NPCs for this player's view without deleting data. */
@@ -1777,6 +1798,9 @@ public class EnvironmentManager {
         if (origin != null) origins.put(partner, origin);
         String town = towns.remove(ownerId);
         if (town != null) towns.put(partner, town);
+
+        invalidateTownChunks(ownerId);
+        invalidateTownChunks(partner);
 
         coopOwners.put(ownerId, partner);
         coopPartners.remove(ownerId);
