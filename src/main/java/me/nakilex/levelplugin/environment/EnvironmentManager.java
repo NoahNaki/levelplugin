@@ -275,12 +275,16 @@ public class EnvironmentManager {
             + ChatColor.GOLD + " <glyph:coins_icon>";
 
         java.util.List<String> lines = new java.util.ArrayList<>();
-        lines.add(ChatColor.GREEN + "" + ChatColor.BOLD + "Upgrade " + ChatColor.WHITE + building);
+        String niceName = java.util.Arrays.stream(building.replace('_', ' ').split(" "))
+                .filter(part -> !part.isEmpty())
+                .map(part -> Character.toUpperCase(part.charAt(0)) + part.substring(1).toLowerCase())
+                .collect(java.util.stream.Collectors.joining(" "));
+        lines.add(ChatColor.GREEN + "" + ChatColor.BOLD + "UPGRADE " + ChatColor.WHITE + niceName);
         lines.add(ChatColor.GOLD.toString() + ChatColor.BOLD + "STAGE "
             + ChatColor.YELLOW + stage + " "
             + ChatColor.GREEN + ">" + ChatColor.DARK_GREEN + ">"
             + ChatColor.GREEN + ">" + ChatColor.DARK_GREEN + "> "
-            + ChatColor.GOLD + "STAGE " + ChatColor.YELLOW + nextStage);
+            + ChatColor.GOLD + ChatColor.BOLD.toString() + "STAGE " + ChatColor.YELLOW + nextStage);
         lines.add(ChatColor.DARK_GRAY + ChatColor.STRIKETHROUGH.toString() + "--------------------");
         lines.add(ChatColor.AQUA + "Requirements:");
         lines.add(logLine);
@@ -294,15 +298,19 @@ public class EnvironmentManager {
                                                                        java.util.List<String> lines, String tag) {
         java.util.List<org.bukkit.entity.Entity> entities = new java.util.ArrayList<>();
 
-        // Spawn an invisible interaction to enlarge the clickable area
-        org.bukkit.entity.Interaction hitbox = (org.bukkit.entity.Interaction)
-                base.getWorld().spawnEntity(base, EntityType.INTERACTION);
-        hitbox.setInteractionWidth(1.5f);
-        hitbox.setInteractionHeight((float) (lines.size() * 0.25 + 0.5));
-        hitbox.addScoreboardTag("building_hologram:" + tag.toLowerCase());
-        entities.add(hitbox);
+        // Spawn an invisible interaction entity for reliable clicking
+        double bottomOffset = -(lines.size() - 1) * 0.25;
+        Location clickLoc = base.clone().add(0, bottomOffset, 0);
+        org.bukkit.entity.Interaction clicker = clickLoc.getWorld().spawn(
+                clickLoc, org.bukkit.entity.Interaction.class, it -> {
+                    // Make the clickable area large so players don't miss the hologram
+                    it.setInteractionWidth(2.0f);
+                    it.setInteractionHeight(2.0f);
+                    it.addScoreboardTag("building_hologram:" + tag.toLowerCase());
+                });
+        entities.add(clicker);
         for (Player p : Bukkit.getOnlinePlayers()) {
-            if (!p.equals(player)) p.hideEntity(Main.getInstance(), hitbox);
+            if (!p.equals(player)) p.hideEntity(Main.getInstance(), clicker);
         }
 
         double offset = 0.0;
