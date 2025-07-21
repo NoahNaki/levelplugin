@@ -440,13 +440,18 @@ public class BuildingStageManager {
             if (uSec != null) {
                 coinCost = uSec.getInt("coins", 0);
                 var mSec = uSec.getConfigurationSection("materials");
+                if (mSec == null) {
+                    // fallback to legacy key
+                    mSec = uSec.getConfigurationSection("items");
+                }
                 if (mSec != null) {
                     for (String key : mSec.getKeys(false)) {
                         try {
                             org.bukkit.Material mat = org.bukkit.Material.valueOf(key.toUpperCase());
                             int amt = mSec.getInt(key, 0);
                             if (amt > 0) matCost.put(mat, amt);
-                        } catch (IllegalArgumentException ignore) {}
+                        } catch (IllegalArgumentException ignore) {
+                        }
                     }
                 }
             }

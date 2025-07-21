@@ -26,3 +26,81 @@ stages:
         materials:
           raw_iron: 10
           coal: 10
+    '2':
+      world: flatland
+      pos1:
+        x: 4814
+        y: -61
+        z: -1356
+      pos2:
+        x: 4597
+        y: 116
+        z: -1145
+      npcs: []
+      schematic: foundation_2.schem
+      holo:
+        x: 88
+        y: 9
+        z: 102
+      priority: 2
+      origin:
+        x: 87
+        y: 8
+        z: 101
+      upgrade_cost:
+        coins: 100
+        materials:
+          raw_iron: 10
+          coal: 10
+    '3':
+      world: flatland
+      pos1:
+        x: 4814
+        y: -61
+        z: -1356
+      pos2:
+        x: 4597
+        y: 116
+        z: -1145
+      npcs: []
+      schematic: foundation_3.schem
+      holo:
+        x: 88
+        y: 9
+        z: 102
+      priority: 3
+      origin:
+        x: 87
+        y: 8
+        z: 101
+      upgrade_cost:
+        coins: 0
+    '4':
+      world: flatland
+      pos1:
+        x: 4814
+        y: -61
+        z: -1356
+      pos2:
+        x: 4597
+        y: 116
+        z: -1145
+      npcs: []
+      schematic: foundation_4.schem
+      holo:
+        x: 88
+        y: 9
+        z: 102
+      priority: 4
+      origin:
+        x: 87
+        y: 8
+        z: 101
+      upgrade_cost:
+        coins: 0
+links:
+  town:
+    foundation:
+      x: -8
+      y: 0
+      z: -10
