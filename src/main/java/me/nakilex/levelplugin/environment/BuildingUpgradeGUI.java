@@ -51,11 +51,24 @@ public class BuildingUpgradeGUI implements Listener {
         java.util.List<String> lore = new java.util.ArrayList<>();
         if (nextData != null) {
             lore.add(ChatColor.GRAY + "Upgrade cost:");
+            int coins = me.nakilex.levelplugin.Main.getInstance().getEconomyManager().getBalance(p);
             for (var e : nextData.materialCost.entrySet()) {
-                String matName = EnvironmentManager.beautifyWords(e.getKey().name().toLowerCase().replace('_', ' '));
-                lore.add(ChatColor.WHITE + "" + e.getValue() + " " + matName);
+                org.bukkit.Material mat = e.getKey();
+                int amt = e.getValue();
+                boolean has = p.getInventory().containsAtLeast(new ItemStack(mat, amt), amt);
+                String matName = EnvironmentManager.beautifyWords(mat.name().toLowerCase().replace('_', ' '));
+                String prefix = has ? ChatColor.GREEN + "\u2714" : ChatColor.RED + "\u2718";
+                String line = prefix + ChatColor.GRAY + " - "
+                        + ChatColor.WHITE + amt + ChatColor.DARK_GRAY + "x "
+                        + ChatColor.WHITE + matName;
+                lore.add(line);
             }
-            lore.add(ChatColor.WHITE + "" + nextData.coinCost + " coins");
+            boolean hasCoins = coins >= nextData.coinCost;
+            String prefix = hasCoins ? ChatColor.GREEN + "\u2714" : ChatColor.RED + "\u2718";
+            String coinLine = prefix + ChatColor.GRAY + " - "
+                    + ChatColor.WHITE + nextData.coinCost + " coins "
+                    + ChatColor.GOLD + " <glyph:coins_icon>";
+            lore.add(coinLine);
         }
         ItemStack confirm = GuiUtil.getNexoItem("check", ChatColor.GREEN + "Confirm");
         ItemMeta cm = confirm.getItemMeta();
