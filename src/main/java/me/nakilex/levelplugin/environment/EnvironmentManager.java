@@ -298,19 +298,19 @@ public class EnvironmentManager {
                                                                        java.util.List<String> lines, String tag) {
         java.util.List<org.bukkit.entity.Entity> entities = new java.util.ArrayList<>();
 
-        // Spawn an invisible interaction to enlarge the clickable area
-        // Center the hitbox around the hologram text so it covers all lines
-        Location center = base.clone().add(0,
-                -(float) (lines.size() - 1) * 0.25f / 2f, 0);
-        org.bukkit.entity.Interaction hitbox = (org.bukkit.entity.Interaction)
-                base.getWorld().spawnEntity(center, EntityType.INTERACTION);
-        // Expand interaction area to roughly a 2x2 box
-        hitbox.setInteractionWidth(2.0f);
-        hitbox.setInteractionHeight(2.0f);
-        hitbox.addScoreboardTag("building_hologram:" + tag.toLowerCase());
-        entities.add(hitbox);
+        // Spawn an invisible interaction entity for reliable clicking
+        double bottomOffset = -(lines.size() - 1) * 0.25;
+        Location clickLoc = base.clone().add(0, bottomOffset, 0);
+        org.bukkit.entity.Interaction clicker = clickLoc.getWorld().spawn(
+                clickLoc, org.bukkit.entity.Interaction.class, it -> {
+                    // Make the clickable area large so players don't miss the hologram
+                    it.setInteractionWidth(2.0f);
+                    it.setInteractionHeight(2.0f);
+                    it.addScoreboardTag("building_hologram:" + tag.toLowerCase());
+                });
+        entities.add(clicker);
         for (Player p : Bukkit.getOnlinePlayers()) {
-            if (!p.equals(player)) p.hideEntity(Main.getInstance(), hitbox);
+            if (!p.equals(player)) p.hideEntity(Main.getInstance(), clicker);
         }
 
         double offset = 0.0;
