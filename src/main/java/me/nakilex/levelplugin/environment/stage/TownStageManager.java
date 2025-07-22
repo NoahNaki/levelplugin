@@ -61,7 +61,9 @@ public class TownStageManager {
         if (levels == null) return null;
         var stagesMap = levels.get(level);
         if (stagesMap == null) return null;
-        return stagesMap.get(stage);
+        TownStage st = stagesMap.get(stage);
+        if (st != null) ensureLoaded(st);
+        return st;
     }
 
     public void createStage(String name, int level, int stage, Location p1, Location p2, Location origin, int priority) {
@@ -111,10 +113,12 @@ public class TownStageManager {
         String fileName = name.toLowerCase() + "_" + level + "_" + stage + ".schem";
         File schematic = new File(schemFolder, fileName);
         saveSchematic(p1, p2, schematic);
+        TownStage ts = new TownStage(name.toLowerCase(), level, stage, p1, p2, npcs, blocks, schematic, fileName, priority, ox, oy, oz);
+        computeChunkMap(ts);
         stages
             .computeIfAbsent(name.toLowerCase(), k -> new java.util.HashMap<>())
             .computeIfAbsent(level, k -> new java.util.HashMap<>())
-            .put(stage, new TownStage(name.toLowerCase(), level, stage, p1, p2, npcs, blocks, schematic, fileName, priority, ox, oy, oz));
+            .put(stage, ts);
         saveConfig();
     }
 
@@ -366,6 +370,26 @@ public class TownStageManager {
         return blocks;
     }
 
+    private void computeChunkMap(TownStage st) {
+        java.util.Map<Long, java.util.List<BlockDef>> map = new java.util.HashMap<>();
+        for (BlockDef b : st.blocks) {
+            int cx = (b.x - st.ox) >> 4;
+            int cz = (b.z - st.oz) >> 4;
+            long key = (((long) cx) << 32) ^ (cz & 0xffffffffL);
+            map.computeIfAbsent(key, k -> new java.util.ArrayList<>()).add(b);
+        }
+        st.chunkBlocks = map;
+    }
+
+    private void ensureLoaded(TownStage st) {
+        if (st.blocks == null) {
+            st.blocks = loadSchematic(st.schematic, st.pos1.getWorld());
+        }
+        if (st.chunkBlocks == null) {
+            computeChunkMap(st);
+        }
+    }
+
     private void saveConfig() {
         config.set("stages", null);
         for (var entryTown : stages.entrySet()) {
@@ -427,7 +451,8 @@ public class TownStageManager {
         public final Location pos1;
         public final Location pos2;
         public final java.util.List<NPCSpawn> npcs;
-        public final java.util.List<BlockDef> blocks;
+        public java.util.List<BlockDef> blocks;
+        public java.util.Map<Long, java.util.List<BlockDef>> chunkBlocks;
         public final File schematic;
         public final String fileName;
         /** Priority used when placing blocks for this stage. Higher wins. */
@@ -444,7 +469,8 @@ public class TownStageManager {
             this.pos1 = pos1;
             this.pos2 = pos2;
             this.npcs = npcs == null ? java.util.Collections.emptyList() : npcs;
-            this.blocks = blocks == null ? java.util.Collections.emptyList() : blocks;
+            this.blocks = blocks == null ? null : blocks;
+            this.chunkBlocks = null;
             this.schematic = schematic;
             this.fileName = fileName;
             this.priority = priority;

@@ -29,6 +29,8 @@ import java.util.UUID;
 public class EnvironmentManager {
     /** Maximum times we try loading a single chunk before giving up. */
     private static final int MAX_CHUNK_ATTEMPTS = 5;
+    /** Upper limit of block updates sent per tick during build animations. */
+    private static final int MAX_BLOCKS_PER_TICK = 32;
     private static final String TOWN_TASK_KEY = "__town__";
     private final PlayerConfig playerConfig;
     private final TownStageManager stageManager;
@@ -59,6 +61,12 @@ public class EnvironmentManager {
     private final Map<UUID, BukkitTask> townCheckTasks = new java.util.HashMap<>();
     /** Cached set of chunk keys for each player's town to avoid recomputation. */
     private final Map<UUID, java.util.Set<Long>> townChunkCache = new java.util.HashMap<>();
+    /** Cached mapping of chunk -> block map for each player's main structure. */
+    private final Map<UUID, Map<Long, Map<Location, org.bukkit.block.data.BlockData>>> townChunkBlocks = new java.util.HashMap<>();
+    /** Cached mapping of chunk -> block map for each building per player. */
+    private final Map<UUID, Map<String, Map<Long, Map<Location, org.bukkit.block.data.BlockData>>>> buildingChunkBlocks = new java.util.HashMap<>();
+    /** Players whose settlement chunks have fully loaded. */
+    private final java.util.Set<UUID> fullyLoaded = new java.util.HashSet<>();
 
     /** Players currently viewing their town (fake blocks active). */
     private final java.util.Set<UUID> loadedPlayers = new java.util.HashSet<>();
@@ -340,15 +348,19 @@ public class EnvironmentManager {
         if (st == null || origin == null || town == null) {
             return java.util.Collections.emptySet();
         }
+
         java.util.Set<Long> chunks = new java.util.HashSet<>();
+        Map<Long, Map<Location, org.bukkit.block.data.BlockData>> structMap = new java.util.HashMap<>();
+        Map<String, Map<Long, Map<Location, org.bukkit.block.data.BlockData>>> buildMap = new java.util.HashMap<>();
+
         var stage = stageManager.getStage(town, st.level, st.stage);
         if (stage != null) {
             Location baseOrigin = origin.clone().add(0, stage.oy, 0);
             for (var b : stage.blocks) {
-                int wx = baseOrigin.getBlockX() + b.x - stage.ox;
-                int wz = baseOrigin.getBlockZ() + b.z - stage.oz;
-                long key = (((long) (wx >> 4)) << 32) ^ (wz >> 4 & 0xffffffffL);
+                Location loc = baseOrigin.clone().add(b.x - stage.ox, b.y - stage.oy, b.z - stage.oz);
+                long key = (((long) (loc.getBlockX() >> 4)) << 32) ^ (loc.getBlockZ() >> 4 & 0xffffffffL);
                 chunks.add(key);
+                structMap.computeIfAbsent(key, k -> new java.util.HashMap<>()).put(loc, b.data);
             }
         }
 
@@ -358,14 +370,20 @@ public class EnvironmentManager {
                 var bStage = buildingStageManager.getStage(e.getKey(), e.getValue().stage);
                 if (bStage == null) continue;
                 Location bo = getBuildingOrigin(town, e.getKey(), origin).add(0, bStage.oy, 0);
+                Map<Long, Map<Location, org.bukkit.block.data.BlockData>> chunkMap = new java.util.HashMap<>();
                 for (var b : bStage.blocks) {
-                    int wx = bo.getBlockX() + b.x - bStage.ox;
-                    int wz = bo.getBlockZ() + b.z - bStage.oz;
-                    long key = (((long) (wx >> 4)) << 32) ^ (wz >> 4 & 0xffffffffL);
+                    Location loc = bo.clone().add(b.x - bStage.ox, b.y - bStage.oy, b.z - bStage.oz);
+                    long key = (((long) (loc.getBlockX() >> 4)) << 32) ^ (loc.getBlockZ() >> 4 & 0xffffffffL);
                     chunks.add(key);
+                    chunkMap.computeIfAbsent(key, k -> new java.util.HashMap<>()).put(loc, b.data);
                 }
+                buildMap.put(e.getKey().toLowerCase(), chunkMap);
             }
         }
+
+        townChunkBlocks.put(base, structMap);
+        buildingChunkBlocks.put(base, buildMap);
+
         return chunks;
     }
 
@@ -379,6 +397,9 @@ public class EnvironmentManager {
     /** Invalidate cached chunk coordinates for the player. */
     private void invalidateTownChunks(UUID base) {
         townChunkCache.remove(base);
+        townChunkBlocks.remove(base);
+        buildingChunkBlocks.remove(base);
+        fullyLoaded.remove(base);
     }
 
     /** Load state for player from config without spawning any structures. */
@@ -546,7 +567,7 @@ public class EnvironmentManager {
                     cancelTownLoadCheck(base);
                 }
             }
-        }.runTaskTimer(Main.getInstance(), 20L, 20L);
+        }.runTaskTimer(Main.getInstance(), 60L, 60L);
         townCheckTasks.put(base, task);
     }
 
@@ -709,6 +730,7 @@ public class EnvironmentManager {
                 spawnStructureUpgrade(player, origin, oldLevel, oldStage, state.level, state.stage);
             }
             Main.getInstance().getQuestManager().handleTownUpgrade(player);
+            computeTownChunks(base);
             saveState(base);
         } else {
             player.sendMessage(ChatColor.GREEN + "Invested " + amount + " oak log.");
@@ -744,6 +766,7 @@ public class EnvironmentManager {
                 spawnBuildingUpgrade(player, building, bOrig, oldS, bs.stage);
             }
             Main.getInstance().getQuestManager().handleTownUpgrade(player);
+            computeTownChunks(base);
             saveState(base);
         } else {
             player.sendMessage(ChatColor.GREEN + "Invested " + amount + " oak log.");
@@ -849,6 +872,7 @@ public class EnvironmentManager {
         Location origin = origins.get(base);
         if (st == null || origin == null) return true;
         if (chunkPaused.contains(base)) return false;
+        if (fullyLoaded.contains(base)) return true;
 
         java.util.Set<Long> required = collectTownChunks(base);
         java.util.Set<Long> loaded = loadedChunks.computeIfAbsent(base, k -> new java.util.HashSet<>());
@@ -893,6 +917,7 @@ public class EnvironmentManager {
         }
 
         if (!allLoaded) {
+            fullyLoaded.remove(base);
             if (!chunkLoadTasks.containsKey(base)) {
                 debugLog("Scheduling chunk verify task for " + player.getName());
                 BukkitTask task = new BukkitRunnable() {
@@ -901,7 +926,7 @@ public class EnvironmentManager {
                         if (p == null || !p.isOnline()) { cancelTownLoadCheck(base); cancel(); return; }
                         if (preloadTownChunks(p)) cancel();
                     }
-                }.runTaskTimer(Main.getInstance(), 20L, 20L);
+                }.runTaskTimer(Main.getInstance(), 60L, 60L);
                 chunkLoadTasks.put(base, task);
             }
             startTownLoadCheck(player);
@@ -912,6 +937,7 @@ public class EnvironmentManager {
             pendingChunkLoads.remove(base);
             chunkRetryCount.remove(base);
             debugLog("Completed chunk preload for " + player.getName());
+            fullyLoaded.add(base);
         }
 
         return allLoaded;
@@ -1073,7 +1099,8 @@ public class EnvironmentManager {
         java.util.List<TownStageManager.BlockDef> blocks = new java.util.ArrayList<>(stageData.blocks);
         blocks.sort(java.util.Comparator.comparingInt(b -> b.y));
 
-        final int blocksPerTick = Math.max(1, blocks.size() / totalTime);
+        int calc = Math.max(1, blocks.size() / totalTime);
+        final int blocksPerTick = Math.min(MAX_BLOCKS_PER_TICK, calc);
 
         java.util.Random rand = new java.util.Random();
         Sound[] breakSounds = { Sound.BLOCK_STONE_BREAK, Sound.BLOCK_DEEPSLATE_BREAK, Sound.BLOCK_WOOD_BREAK };
@@ -1158,22 +1185,20 @@ public class EnvironmentManager {
         if (town == null) return;
         var stageData = stageManager.getStage(town, level, stage);
         if (stageData == null) return;
-        Location baseOrigin = origin.clone().add(0, stageData.oy, 0);
+
+        Map<Long, Map<Location, org.bukkit.block.data.BlockData>> chunkMap = townChunkBlocks.get(getBase(uuid));
+        if (chunkMap == null) return;
+        long cKey = (((long) cx) << 32) ^ (cz & 0xffffffffL);
+        Map<Location, org.bukkit.block.data.BlockData> blocks = chunkMap.get(cKey);
+        if (blocks == null || blocks.isEmpty()) return;
 
         Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
         Map<String, Integer> priMap = blockPriorities.computeIfAbsent(uuid, k -> new java.util.HashMap<>());
-        for (var b : stageData.blocks) {
-            Location loc = baseOrigin.clone().add(b.x - stageData.ox, b.y - stageData.oy, b.z - stageData.oz);
-            int lcx = loc.getBlockX() >> 4;
-            int lcz = loc.getBlockZ() >> 4;
-            if (lcx == cx && lcz == cz) {
-                batch.put(loc, b.data);
-                priMap.put(key(loc), stageData.priority);
-            }
+        for (var e : blocks.entrySet()) {
+            batch.put(e.getKey(), e.getValue());
+            priMap.put(key(e.getKey()), stageData.priority);
         }
-        if (!batch.isEmpty()) {
-            fakeBlockManager.showFakeBlocks(player, batch);
-        }
+        fakeBlockManager.showFakeBlocks(player, batch);
     }
 
     /**
@@ -1228,7 +1253,8 @@ public class EnvironmentManager {
 
         // play upgrade animation over ~6 seconds
         final int totalTime = 6 * 20; // 6 seconds in ticks
-        final int blocksPerTick = Math.max(1, changes.size() / totalTime);
+        int calc2 = Math.max(1, changes.size() / totalTime);
+        final int blocksPerTick = Math.min(MAX_BLOCKS_PER_TICK, calc2);
 
         java.util.Random rand = new java.util.Random();
         Sound[] breakSounds = { Sound.BLOCK_STONE_BREAK, Sound.BLOCK_DEEPSLATE_BREAK, Sound.BLOCK_WOOD_BREAK };
@@ -1288,7 +1314,8 @@ public class EnvironmentManager {
         java.util.List<BuildingStageManager.BlockDef> blocks = new java.util.ArrayList<>(stageData.blocks);
         blocks.sort(java.util.Comparator.comparingInt(b -> b.y));
 
-        final int blocksPerTick = Math.max(1, blocks.size() / totalTime);
+        int calc3 = Math.max(1, blocks.size() / totalTime);
+        final int blocksPerTick = Math.min(MAX_BLOCKS_PER_TICK, calc3);
 
         java.util.Random rand = new java.util.Random();
         Sound[] breakSounds = { Sound.BLOCK_STONE_BREAK, Sound.BLOCK_DEEPSLATE_BREAK, Sound.BLOCK_WOOD_BREAK };
@@ -1406,22 +1433,22 @@ public class EnvironmentManager {
         UUID uuid = player.getUniqueId();
         var stageData = buildingStageManager.getStage(building, stage);
         if (stageData == null) return;
-        Location baseOrigin = origin.clone().add(0, stageData.oy, 0);
+
+        Map<String, Map<Long, Map<Location, org.bukkit.block.data.BlockData>>> pMap = buildingChunkBlocks.get(getBase(uuid));
+        if (pMap == null) return;
+        Map<Long, Map<Location, org.bukkit.block.data.BlockData>> chunkMap = pMap.get(building.toLowerCase());
+        if (chunkMap == null) return;
+        long cKey = (((long) cx) << 32) ^ (cz & 0xffffffffL);
+        Map<Location, org.bukkit.block.data.BlockData> blocks = chunkMap.get(cKey);
+        if (blocks == null || blocks.isEmpty()) return;
 
         Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
         Map<String, Integer> priMap = blockPriorities.computeIfAbsent(uuid, k -> new java.util.HashMap<>());
-        for (var b : stageData.blocks) {
-            Location loc = baseOrigin.clone().add(b.x - stageData.ox, b.y - stageData.oy, b.z - stageData.oz);
-            int lcx = loc.getBlockX() >> 4;
-            int lcz = loc.getBlockZ() >> 4;
-            if (lcx == cx && lcz == cz) {
-                batch.put(loc, b.data);
-                priMap.put(key(loc), stageData.priority);
-            }
+        for (var e : blocks.entrySet()) {
+            batch.put(e.getKey(), e.getValue());
+            priMap.put(key(e.getKey()), stageData.priority);
         }
-        if (!batch.isEmpty()) {
-            fakeBlockManager.showFakeBlocks(player, batch);
-        }
+        fakeBlockManager.showFakeBlocks(player, batch);
     }
 
     /**
@@ -1483,7 +1510,8 @@ public class EnvironmentManager {
 
         // build upgrade animation runs for ~6 seconds
         final int totalTime = 6 * 20; // 6 seconds in ticks
-        final int blocksPerTick = Math.max(1, changes.size() / totalTime);
+        int calc4 = Math.max(1, changes.size() / totalTime);
+        final int blocksPerTick = Math.min(MAX_BLOCKS_PER_TICK, calc4);
 
         java.util.Random rand = new java.util.Random();
         Sound[] breakSounds = { Sound.BLOCK_STONE_BREAK, Sound.BLOCK_DEEPSLATE_BREAK, Sound.BLOCK_WOOD_BREAK };

@@ -59,7 +59,9 @@ public class BuildingStageManager {
     public BuildingStage getStage(String building, int stage) {
         var buildMap = stages.get(building.toLowerCase());
         if (buildMap == null) return null;
-        return buildMap.get(stage);
+        BuildingStage st = buildMap.get(stage);
+        if (st != null) ensureLoaded(st);
+        return st;
     }
 
     /** Return all building names defined for a town. */
@@ -93,11 +95,13 @@ public class BuildingStageManager {
         int oy = origin.getBlockY() - minY;
         int oz = origin.getBlockZ() - minZ;
 
+        BuildingStage bs = new BuildingStage(building.toLowerCase(), stage, pos1, pos2,
+                npcs, blocks, schematic, fileName, priority, hx, hy, hz, ox, oy, oz,
+                null, 0);
+        computeChunkMap(bs);
         stages
             .computeIfAbsent(building.toLowerCase(), k -> new HashMap<>())
-            .put(stage, new BuildingStage(building.toLowerCase(), stage, pos1, pos2,
-                    npcs, blocks, schematic, fileName, priority, hx, hy, hz, ox, oy, oz,
-                    null, 0));
+            .put(stage, bs);
         saveConfig();
     }
 
@@ -324,6 +328,26 @@ public class BuildingStageManager {
         return blocks;
     }
 
+    private void computeChunkMap(BuildingStage st) {
+        java.util.Map<Long, java.util.List<BlockDef>> map = new java.util.HashMap<>();
+        for (BlockDef b : st.blocks) {
+            int cx = (b.x - st.ox) >> 4;
+            int cz = (b.z - st.oz) >> 4;
+            long key = (((long) cx) << 32) ^ (cz & 0xffffffffL);
+            map.computeIfAbsent(key, k -> new java.util.ArrayList<>()).add(b);
+        }
+        st.chunkBlocks = map;
+    }
+
+    private void ensureLoaded(BuildingStage st) {
+        if (st.blocks == null) {
+            st.blocks = loadSchematic(st.schematic, st.pos1.getWorld());
+        }
+        if (st.chunkBlocks == null) {
+            computeChunkMap(st);
+        }
+    }
+
     private void loadConfig() {
         file = new File(plugin.getDataFolder(), "buildingstages.yml");
         if (!file.exists()) {
@@ -424,7 +448,7 @@ public class BuildingStageManager {
         }
         String fileName = config.getString(base + "schematic", building.toLowerCase() + "_" + stage + ".schem");
         File schematic = new File(schemFolder, fileName);
-        List<BlockDef> blockList = loadSchematic(schematic, world);
+        List<BlockDef> blockList = null;
         int hx = config.getInt(base + "holo.x", 0);
         int hy = config.getInt(base + "holo.y", 0);
         int hz = config.getInt(base + "holo.z", 0);
@@ -457,11 +481,12 @@ public class BuildingStageManager {
             }
         }
 
+        BuildingStage bs = new BuildingStage(building.toLowerCase(), stage,
+                pos1, pos2, npcList, blockList, schematic, fileName, priority,
+                hx, hy, hz, ox, oy, oz, matCost, coinCost);
         stages
             .computeIfAbsent(building.toLowerCase(), k -> new HashMap<>())
-            .put(stage, new BuildingStage(building.toLowerCase(), stage,
-                    pos1, pos2, npcList, blockList, schematic, fileName, priority,
-                    hx, hy, hz, ox, oy, oz, matCost, coinCost));
+            .put(stage, bs);
     }
 
     private void saveConfig() {
@@ -550,7 +575,8 @@ public class BuildingStageManager {
         public final Location pos1;
         public final Location pos2;
         public final List<NPCSpawn> npcs;
-        public final List<BlockDef> blocks;
+        public List<BlockDef> blocks;
+        public java.util.Map<Long, java.util.List<BlockDef>> chunkBlocks;
         public final File schematic;
         public final String fileName;
         /** Priority used when placing blocks for this stage. Higher wins. */
@@ -572,7 +598,8 @@ public class BuildingStageManager {
             this.pos1 = pos1;
             this.pos2 = pos2;
             this.npcs = npcs == null ? Collections.emptyList() : npcs;
-            this.blocks = blocks == null ? Collections.emptyList() : blocks;
+            this.blocks = blocks == null ? null : blocks;
+            this.chunkBlocks = null;
             this.schematic = schematic;
             this.fileName = fileName;
             this.priority = priority;
