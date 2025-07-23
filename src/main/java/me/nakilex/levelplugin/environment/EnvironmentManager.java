@@ -57,8 +57,10 @@ public class EnvironmentManager {
     private final Map<UUID, java.util.Map<Long, Integer>> chunkRetryCount = new java.util.HashMap<>();
     /** Repeating tasks that ensure chunks finish loading. */
     private final Map<UUID, BukkitTask> chunkLoadTasks = new java.util.HashMap<>();
-    /** Periodic tasks that recheck if a town is fully loaded. */
-    private final Map<UUID, BukkitTask> townCheckTasks = new java.util.HashMap<>();
+    /** Players that require periodic checks for chunk loading. */
+    private final java.util.Set<UUID> townCheckList = new java.util.HashSet<>();
+    /** Single repeating task that verifies chunks for all players. */
+    private BukkitTask globalTownCheckTask;
     /** Cached set of chunk keys for each player's town to avoid recomputation. */
     private final Map<UUID, java.util.Set<Long>> townChunkCache = new java.util.HashMap<>();
     /** Cached mapping of chunk -> block map for each player's main structure. */
@@ -527,53 +529,60 @@ public class EnvironmentManager {
         if (chk != null) {
             chk.cancel();
         }
-        BukkitTask verify = townCheckTasks.remove(uuid);
-        if (verify != null) {
-            verify.cancel();
-        }
+        cancelTownLoadCheck(uuid);
     }
 
     /** Periodically verify that a player's town chunks are loaded and correct. */
     private void startTownLoadCheck(Player player) {
         UUID base = getBase(player.getUniqueId());
-        if (townCheckTasks.containsKey(base)) return;
-        BukkitTask task = new BukkitRunnable() {
+        if (!townCheckList.add(base)) return;
+        if (globalTownCheckTask != null) return;
+        globalTownCheckTask = new BukkitRunnable() {
             @Override public void run() {
-                if (chunkPaused.contains(base)) return;
-                Player p = Bukkit.getPlayer(base);
-                if (p == null || !p.isOnline()) {
-                    cancelTownLoadCheck(base);
-                    return;
-                }
+                java.util.Iterator<UUID> it = townCheckList.iterator();
+                while (it.hasNext()) {
+                    UUID b = it.next();
+                    if (chunkPaused.contains(b)) continue;
+                    Player p = Bukkit.getPlayer(b);
+                    if (p == null || !p.isOnline()) {
+                        it.remove();
+                        continue;
+                    }
 
-                Location origin = origins.get(base);
-                if (origin == null) {
-                    cancelTownLoadCheck(base);
-                    return;
-                }
+                    Location origin = origins.get(b);
+                    if (origin == null) {
+                        it.remove();
+                        continue;
+                    }
 
-                boolean allLoaded = true;
-                for (long key : collectTownChunks(base)) {
-                    int cx = (int) (key >> 32);
-                    int cz = (int) key;
-                    if (!origin.getWorld().isChunkLoaded(cx, cz)) {
-                        allLoaded = false;
-                        preloadTownChunks(p);
-                        break;
+                    boolean allLoaded = true;
+                    for (long key : collectTownChunks(b)) {
+                        int cx = (int) (key >> 32);
+                        int cz = (int) key;
+                        if (!origin.getWorld().isChunkLoaded(cx, cz)) {
+                            allLoaded = false;
+                            preloadTownChunks(p);
+                            break;
+                        }
+                    }
+                    if (allLoaded) {
+                        it.remove();
                     }
                 }
-
-                if (allLoaded) {
-                    cancelTownLoadCheck(base);
+                if (townCheckList.isEmpty()) {
+                    globalTownCheckTask.cancel();
+                    globalTownCheckTask = null;
                 }
             }
         }.runTaskTimer(Main.getInstance(), 60L, 60L);
-        townCheckTasks.put(base, task);
     }
 
     private void cancelTownLoadCheck(UUID base) {
-        BukkitTask t = townCheckTasks.remove(base);
-        if (t != null) t.cancel();
+        townCheckList.remove(base);
+        if (townCheckList.isEmpty() && globalTownCheckTask != null) {
+            globalTownCheckTask.cancel();
+            globalTownCheckTask = null;
+        }
     }
 
     /** Temporarily stop chunk-related tasks for the player. */
@@ -581,8 +590,7 @@ public class EnvironmentManager {
         chunkPaused.add(base);
         BukkitTask load = chunkLoadTasks.remove(base);
         if (load != null) load.cancel();
-        BukkitTask verify = townCheckTasks.remove(base);
-        if (verify != null) verify.cancel();
+        cancelTownLoadCheck(base);
         BukkitTask timer = chunkResumeTimers.remove(base);
         if (timer != null) timer.cancel();
         timer = new BukkitRunnable() {
