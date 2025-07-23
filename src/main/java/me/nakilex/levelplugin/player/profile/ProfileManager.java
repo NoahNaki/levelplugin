@@ -14,17 +14,31 @@ public class ProfileManager {
 
     private ProfileManager() {}
 
-    private List<PlayerProfile> createList() {
+    private List<PlayerProfile> loadProfiles(UUID uuid) {
         List<PlayerProfile> list = new ArrayList<>(Collections.nCopies(TOTAL_SLOTS, null));
+        me.nakilex.levelplugin.player.config.PlayerConfig cfg =
+                me.nakilex.levelplugin.Main.getInstance().getPlayerConfig();
+        for (int i = 0; i < TOTAL_SLOTS; i++) {
+            String name = cfg.getProfileName(uuid, i);
+            if (name != null) {
+                list.set(i, new PlayerProfile(i, name));
+            }
+        }
+        int un = cfg.getUnlockedProfiles(uuid);
+        unlocked.put(uuid, un);
         return list;
     }
 
     public List<PlayerProfile> getProfiles(UUID uuid) {
-        return profiles.computeIfAbsent(uuid, k -> createList());
+        return profiles.computeIfAbsent(uuid, this::loadProfiles);
     }
 
     public int getUnlockedSlots(UUID uuid) {
-        return unlocked.getOrDefault(uuid, 1);
+        return unlocked.computeIfAbsent(uuid, id -> {
+            me.nakilex.levelplugin.player.config.PlayerConfig cfg =
+                    me.nakilex.levelplugin.Main.getInstance().getPlayerConfig();
+            return cfg.getUnlockedProfiles(id);
+        });
     }
 
     public PlayerProfile getProfile(UUID uuid, int slot) {
@@ -40,6 +54,10 @@ public class ProfileManager {
         if (name == null || name.isBlank()) name = "Profile " + (slot + 1);
         PlayerProfile p = new PlayerProfile(slot, name);
         list.set(slot, p);
+        me.nakilex.levelplugin.player.config.PlayerConfig cfg =
+                me.nakilex.levelplugin.Main.getInstance().getPlayerConfig();
+        cfg.setProfileName(uuid, slot, name);
+        cfg.saveConfigFile();
         return p;
     }
 
@@ -55,13 +73,19 @@ public class ProfileManager {
         me.nakilex.levelplugin.player.config.PlayerConfig cfg =
                 me.nakilex.levelplugin.Main.getInstance().getPlayerConfig();
         cfg.setProfileLocation(uuid, slot, null);
+        cfg.setProfileName(uuid, slot, null);
         cfg.saveConfigFile();
     }
 
     public void unlockNextSlot(UUID uuid) {
         int unlockedSlots = getUnlockedSlots(uuid);
         if (unlockedSlots < TOTAL_SLOTS) {
-            unlocked.put(uuid, unlockedSlots + 1);
+            unlockedSlots++;
+            unlocked.put(uuid, unlockedSlots);
+            me.nakilex.levelplugin.player.config.PlayerConfig cfg =
+                    me.nakilex.levelplugin.Main.getInstance().getPlayerConfig();
+            cfg.setUnlockedProfiles(uuid, unlockedSlots);
+            cfg.saveConfigFile();
         }
     }
 

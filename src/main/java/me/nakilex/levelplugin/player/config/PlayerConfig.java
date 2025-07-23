@@ -236,6 +236,18 @@ public class PlayerConfig {
 
     // ----- Profile Data -----
 
+    /** Get the stored profile name for a slot or null if not set. */
+    public String getProfileName(UUID uuid, int slot) {
+        String path = "players." + uuid + ".profiles." + slot + ".name";
+        return config.getString(path, null);
+    }
+
+    /** Store the profile name for a slot. */
+    public void setProfileName(UUID uuid, int slot, String name) {
+        String path = "players." + uuid + ".profiles." + slot + ".name";
+        config.set(path, name);
+    }
+
     public org.bukkit.Location getProfileLocation(UUID uuid, int slot) {
         String base = "players." + uuid + ".profiles." + slot + ".";
         if (!config.contains(base + "world")) return null;
