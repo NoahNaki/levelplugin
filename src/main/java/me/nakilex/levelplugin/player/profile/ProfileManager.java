@@ -21,7 +21,9 @@ public class ProfileManager {
         for (int i = 0; i < TOTAL_SLOTS; i++) {
             String name = cfg.getProfileName(uuid, i);
             if (name != null) {
-                list.set(i, new PlayerProfile(i, name));
+                PlayerProfile prof = new PlayerProfile(i, name);
+                prof.setPlayMinutes(cfg.getProfilePlayTime(uuid, i));
+                list.set(i, prof);
             }
         }
         int un = cfg.getUnlockedProfiles(uuid);
@@ -53,10 +55,12 @@ public class ProfileManager {
         if (list.get(slot) != null) return list.get(slot);
         if (name == null || name.isBlank()) name = "Profile " + (slot + 1);
         PlayerProfile p = new PlayerProfile(slot, name);
+        p.setPlayMinutes(0);
         list.set(slot, p);
         me.nakilex.levelplugin.player.config.PlayerConfig cfg =
                 me.nakilex.levelplugin.Main.getInstance().getPlayerConfig();
         cfg.setProfileName(uuid, slot, name);
+        cfg.setProfilePlayTime(uuid, slot, 0);
         cfg.saveConfigFile();
         return p;
     }
@@ -74,6 +78,7 @@ public class ProfileManager {
                 me.nakilex.levelplugin.Main.getInstance().getPlayerConfig();
         cfg.setProfileLocation(uuid, slot, null);
         cfg.setProfileName(uuid, slot, null);
+        cfg.setProfilePlayTime(uuid, slot, 0);
         cfg.saveConfigFile();
     }
 
@@ -107,6 +112,18 @@ public class ProfileManager {
         me.nakilex.levelplugin.player.config.PlayerConfig cfg =
                 me.nakilex.levelplugin.Main.getInstance().getPlayerConfig();
         cfg.setProfileLocation(player.getUniqueId(), slot, player.getLocation());
+        cfg.saveConfigFile();
+    }
+
+    public void addPlayMinutes(java.util.UUID uuid, int minutes) {
+        Integer slot = activeSlot.get(uuid);
+        if (slot == null) return;
+        PlayerProfile prof = getProfile(uuid, slot);
+        if (prof == null) return;
+        prof.addPlayMinutes(minutes);
+        me.nakilex.levelplugin.player.config.PlayerConfig cfg =
+                me.nakilex.levelplugin.Main.getInstance().getPlayerConfig();
+        cfg.setProfilePlayTime(uuid, slot, prof.getPlayMinutes());
         cfg.saveConfigFile();
     }
 }

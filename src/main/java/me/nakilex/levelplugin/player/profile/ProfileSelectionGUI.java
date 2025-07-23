@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
+import me.nakilex.levelplugin.environment.EnvironmentManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -225,11 +226,14 @@ public class ProfileSelectionGUI implements Listener {
             int completed = qm.getCompletedQuestCount(player.getUniqueId());
             int total = qm.getTotalQuestCount();
 
-            int playMinutes = player.getStatistic(org.bukkit.Statistic.PLAY_ONE_MINUTE) / 1200;
+            int playMinutes = profile.getPlayMinutes();
+
+            String className = me.nakilex.levelplugin.environment.EnvironmentManager
+                    .beautifyWords(pc.name().toLowerCase().replace('_', ' '));
 
             lore.add(ChatColor.GRAY + "Level: " + ChatColor.WHITE + level);
             lore.add(ChatColor.GRAY + "XP: " + ChatColor.WHITE + pct + "%");
-            lore.add(ChatColor.GRAY + "Class: " + ChatColor.WHITE + pc.name());
+            lore.add(ChatColor.GRAY + "Class: " + ChatColor.WHITE + className);
             lore.add(ChatColor.GRAY + "Finished Quests: " + ChatColor.WHITE + completed + "/" + total);
             lore.add(ChatColor.GRAY + "Playtime: " + ChatColor.WHITE + playMinutes + "m");
             lore.add("");

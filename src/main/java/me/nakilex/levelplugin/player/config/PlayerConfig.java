@@ -304,6 +304,16 @@ public class PlayerConfig {
         config.set(path, data);
     }
 
+    public int getProfilePlayTime(java.util.UUID uuid, int slot) {
+        String path = "players." + uuid + ".profiles." + slot + ".playtime";
+        return config.getInt(path, 0);
+    }
+
+    public void setProfilePlayTime(java.util.UUID uuid, int slot, int minutes) {
+        String path = "players." + uuid + ".profiles." + slot + ".playtime";
+        config.set(path, minutes);
+    }
+
     public int getUnlockedProfiles(UUID uuid) {
         return config.getInt("players." + uuid + ".profiles.unlocked", 1);
     }
