@@ -793,10 +793,10 @@ public class EnvironmentManager {
 
     // All towns reside in the "flatland" world for now
     private static final String TOWN_WORLD = "world2";
-    private static final int TOWN_X = 191;
+    private static final int TOWN_X = 192;
     // Raise the starting Y coordinate by 5 blocks
     private static final int TOWN_Y = 65;
-    private static final int TOWN_Z = -69;
+    private static final int TOWN_Z = -71;
 
     public Location getTownStartLocation() {
         return new Location(Bukkit.getWorld(TOWN_WORLD), TOWN_X, TOWN_Y, TOWN_Z);

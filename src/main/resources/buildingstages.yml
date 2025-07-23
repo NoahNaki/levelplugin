@@ -1,4 +1,305 @@
 stages:
+  blacksmith:
+    '1':
+      world: flatland
+      pos1:
+        x: 4814
+        y: -61
+        z: -1356
+      pos2:
+        x: 4597
+        y: 116
+        z: -1145
+      npcs: []
+      schematic: blacksmith_1.schem
+      holo:
+        x: 105
+        y: 9
+        z: 123
+      priority: 10
+      origin:
+        x: 104
+        y: 7
+        z: 122
+    '2':
+      world: flatland
+      pos1:
+        x: 4814
+        y: -61
+        z: -1356
+      pos2:
+        x: 4597
+        y: 116
+        z: -1145
+      npcs: []
+      schematic: blacksmith_2.schem
+      holo:
+        x: 105
+        y: 9
+        z: 123
+      priority: 10
+      origin:
+        x: 104
+        y: 8
+        z: 122
+  fountain:
+    '1':
+      world: flatland
+      pos1:
+        x: 4814
+        y: -61
+        z: -1356
+      pos2:
+        x: 4597
+        y: 116
+        z: -1145
+      npcs: []
+      schematic: fountain_1.schem
+      holo:
+        x: 130
+        y: 8
+        z: 100
+      priority: 10
+      origin:
+        x: 129
+        y: 6
+        z: 99
+    '2':
+      world: flatland
+      pos1:
+        x: 4814
+        y: -61
+        z: -1356
+      pos2:
+        x: 4597
+        y: 116
+        z: -1145
+      npcs: []
+      schematic: fountain_2.schem
+      holo:
+        x: 130
+        y: 8
+        z: 100
+      priority: 10
+      origin:
+        x: 129
+        y: 6
+        z: 99
+  library:
+    '1':
+      world: flatland
+      pos1:
+        x: 4814
+        y: -61
+        z: -1356
+      pos2:
+        x: 4597
+        y: 116
+        z: -1145
+      npcs: []
+      schematic: library_1.schem
+      holo:
+        x: 131
+        y: 8
+        z: 116
+      priority: 10
+      origin:
+        x: 130
+        y: 6
+        z: 115
+    '2':
+      world: flatland
+      pos1:
+        x: 4814
+        y: -61
+        z: -1356
+      pos2:
+        x: 4597
+        y: 116
+        z: -1145
+      npcs: []
+      schematic: library_2.schem
+      holo:
+        x: 131
+        y: 8
+        z: 116
+      priority: 10
+      origin:
+        x: 130
+        y: 6
+        z: 115
+  housing:
+    '1':
+      world: flatland
+      pos1:
+        x: 4814
+        y: -61
+        z: -1356
+      pos2:
+        x: 4597
+        y: 116
+        z: -1145
+      npcs: []
+      schematic: housing_1.schem
+      holo:
+        x: 90
+        y: 3
+        z: 48
+      priority: 0
+      origin:
+        x: 89
+        y: 2
+        z: 47
+    '2':
+      world: flatland
+      pos1:
+        x: 4814
+        y: -61
+        z: -1356
+      pos2:
+        x: 4597
+        y: 116
+        z: -1145
+      npcs: []
+      schematic: housing_2.schem
+      holo:
+        x: 90
+        y: 3
+        z: 48
+      priority: 10
+      origin:
+        x: 89
+        y: 2
+        z: 47
+  more_housing:
+    '1':
+      world: flatland
+      pos1:
+        x: 4814
+        y: -61
+        z: -1356
+      pos2:
+        x: 4597
+        y: 116
+        z: -1145
+      npcs: []
+      schematic: more_housing_1.schem
+      holo:
+        x: 102
+        y: 3
+        z: 48
+      priority: 0
+      origin:
+        x: 101
+        y: 2
+        z: 47
+    '2':
+      world: flatland
+      pos1:
+        x: 4814
+        y: -61
+        z: -1356
+      pos2:
+        x: 4597
+        y: 116
+        z: -1145
+      npcs: []
+      schematic: more_housing_2.schem
+      holo:
+        x: 102
+        y: 3
+        z: 48
+      priority: 10
+      origin:
+        x: 101
+        y: 2
+        z: 47
+  city_center:
+    '1':
+      world: flatland
+      pos1:
+        x: 4814
+        y: -61
+        z: -1356
+      pos2:
+        x: 4597
+        y: 116
+        z: -1145
+      npcs: []
+      schematic: city_center_1.schem
+      holo:
+        x: 91
+        y: 8
+        z: 72
+      priority: 10
+      origin:
+        x: 90
+        y: 6
+        z: 71
+    '2':
+      world: flatland
+      pos1:
+        x: 4814
+        y: -61
+        z: -1356
+      pos2:
+        x: 4597
+        y: 116
+        z: -1145
+      npcs: []
+      schematic: city_center_2.schem
+      holo:
+        x: 91
+        y: 8
+        z: 72
+      priority: 10
+      origin:
+        x: 90
+        y: 6
+        z: 71
+  enchanter:
+    '1':
+      world: flatland
+      pos1:
+        x: 4814
+        y: -61
+        z: -1356
+      pos2:
+        x: 4597
+        y: 116
+        z: -1145
+      npcs: []
+      schematic: enchanter_1.schem
+      holo:
+        x: 102
+        y: 9
+        z: 71
+      priority: 0
+      origin:
+        x: 101
+        y: 7
+        z: 70
+    '2':
+      world: flatland
+      pos1:
+        x: 4814
+        y: -61
+        z: -1356
+      pos2:
+        x: 4597
+        y: 116
+        z: -1145
+      npcs: []
+      schematic: enchanter_2.schem
+      holo:
+        x: 102
+        y: 9
+        z: 71
+      priority: 10
+      origin:
+        x: 101
+        y: 7
+        z: 70
   foundation:
     '1':
       world: flatland
@@ -16,16 +317,11 @@ stages:
         x: 88
         y: 9
         z: 102
-      priority: 1
+      priority: 0
       origin:
         x: 87
         y: 8
         z: 101
-      upgrade_cost:
-        coins: 100
-        materials:
-          raw_iron: 10
-          coal: 10
     '2':
       world: flatland
       pos1:
@@ -50,8 +346,8 @@ stages:
       upgrade_cost:
         coins: 100
         materials:
-          raw_iron: 10
           coal: 10
+          raw_iron: 10
     '3':
       world: flatland
       pos1:
@@ -73,8 +369,6 @@ stages:
         x: 87
         y: 8
         z: 101
-      upgrade_cost:
-        coins: 0
     '4':
       world: flatland
       pos1:
@@ -96,10 +390,36 @@ stages:
         x: 87
         y: 8
         z: 101
-      upgrade_cost:
-        coins: 0
 links:
   town:
+    blacksmith:
+      x: 9
+      y: 0
+      z: 11
+    fountain:
+      x: 34
+      y: 0
+      z: -12
+    library:
+      x: 35
+      y: 0
+      z: 4
+    housing:
+      x: -6
+      y: 0
+      z: -64
+    more_housing:
+      x: 6
+      y: 0
+      z: -64
+    city_center:
+      x: -5
+      y: 0
+      z: -40
+    enchanter:
+      x: 6
+      y: 0
+      z: -41
     foundation:
       x: -8
       y: 0

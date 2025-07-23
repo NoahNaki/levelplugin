@@ -1,1 +1,20 @@
-stages: {}
+stages:
+  town:
+    '1':
+      '1':
+        world: flatland
+        pos1:
+          x: 4814
+          y: -61
+          z: -1356
+        pos2:
+          x: 4597
+          y: 116
+          z: -1145
+        npcs: []
+        schematic: town_1_1.schem
+        priority: 1
+        origin:
+          x: 95
+          y: 8
+          z: 111
