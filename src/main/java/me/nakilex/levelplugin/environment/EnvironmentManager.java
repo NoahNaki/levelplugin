@@ -960,11 +960,10 @@ public class EnvironmentManager {
             after = null;
         }
         final Location finalOrigin = origin;
-        final Runnable spawn = () -> {
-            spawnStructure(player, finalOrigin, state.level, state.stage, after);
-            player.sendMessage(ChatColor.YELLOW + "Settlement created at " + finalOrigin.getBlockX()+","+finalOrigin.getBlockY()+","+finalOrigin.getBlockZ());
-        };
-        teleportWithEffect(player, origin, spawn);
+        spawnStructure(player, finalOrigin, state.level, state.stage, after);
+        player.sendMessage(ChatColor.YELLOW + "Settlement created at " +
+                finalOrigin.getBlockX() + "," + finalOrigin.getBlockY() + "," +
+                finalOrigin.getBlockZ());
     }
 
     /** Remove the player's settlement so they can start over. */
