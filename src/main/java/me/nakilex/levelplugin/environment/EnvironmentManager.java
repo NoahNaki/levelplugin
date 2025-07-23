@@ -928,9 +928,10 @@ public class EnvironmentManager {
             player.sendMessage(ChatColor.RED + "Unknown town type.");
             return;
         }
-        // Use the player's current position as the origin so the settlement
-        // spawns right where they arrive in the new world.
-        Location origin = player.getLocation().getBlock().getLocation();
+        // Spawn the settlement at the predefined origin position instead of at
+        // the player's location. The player has already been teleported by the
+        // quest logic so we don't move them again here.
+        Location origin = getTownStartLocation();
         origins.put(uuid, origin);
         towns.put(uuid, townName.toLowerCase());
         // initialize building progress for all defined buildings of this town
