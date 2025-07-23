@@ -143,10 +143,28 @@ public class ProfileSelectionGUI implements Listener {
     }
 
     public static void open(Player player) {
+        ProfileManager pm = ProfileManager.getInstance();
+
+        // When switching profiles via the command, persist the current profile
+        // state before showing the selection menu. startSelection() already
+        // handles this, so only run here if the player isn't in selection mode.
+        if (!SELECTING.contains(player.getUniqueId())) {
+            Integer slot = pm.getActiveSlot(player.getUniqueId());
+            if (slot != null) {
+                me.nakilex.levelplugin.player.config.PlayerConfig cfg =
+                        Main.getInstance().getPlayerConfig();
+                cfg.setProfileInventory(player.getUniqueId(), slot,
+                        player.getInventory().getContents());
+                cfg.setProfileArmor(player.getUniqueId(), slot,
+                        player.getInventory().getArmorContents());
+                pm.saveActiveLocation(player);
+                cfg.saveConfigFile();
+            }
+        }
+
         Inventory inv = Bukkit.createInventory(null, SIZE, TITLE);
         for (int i = 0; i < SIZE; i++) inv.setItem(i, FILLER);
 
-        ProfileManager pm = ProfileManager.getInstance();
         int unlocked = pm.getUnlockedSlots(player.getUniqueId());
         List<PlayerProfile> list = pm.getProfiles(player.getUniqueId());
 
