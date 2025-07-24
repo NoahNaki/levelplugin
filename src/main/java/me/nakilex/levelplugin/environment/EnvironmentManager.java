@@ -840,6 +840,7 @@ public class EnvironmentManager {
         Location origin = origins.remove(uuid);
         Map<String, BuildingState> bMap = buildingStates.remove(uuid);
         removeAllBuildingHolograms(uuid);
+        blockPriorities.remove(uuid);
         if (town != null && st != null) {
             clearStructure(origin, town, st.level, st.stage);
             stageManager.despawnForStage(uuid, town, st.level, st.stage);
