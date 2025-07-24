@@ -234,6 +234,33 @@ public class PlayerConfig {
         config.set(base + "buildings", null);
     }
 
+    // ----- Global Town Ownership -----
+
+    /** Get the UUID of the player who owns the specified global town. */
+    public java.util.UUID getTownOwner(String town) {
+        String path = "global_towns." + town.toLowerCase() + ".owner";
+        String val = config.getString(path, null);
+        return val != null ? java.util.UUID.fromString(val) : null;
+    }
+
+    /** Set or clear the owner UUID for a global town. */
+    public void setTownOwner(String town, java.util.UUID owner) {
+        String path = "global_towns." + town.toLowerCase() + ".owner";
+        config.set(path, owner != null ? owner.toString() : null);
+    }
+
+    /** Remove the owner entry for a town. */
+    public void clearTownOwner(String town) {
+        setTownOwner(town, null);
+    }
+
+    /** All town names that currently have a registered owner. */
+    public java.util.Set<String> getGlobalTownNames() {
+        if (!config.isConfigurationSection("global_towns"))
+            return java.util.Collections.emptySet();
+        return config.getConfigurationSection("global_towns").getKeys(false);
+    }
+
     // ----- Profile Data -----
 
     /** Get the stored profile name for a slot or null if not set. */

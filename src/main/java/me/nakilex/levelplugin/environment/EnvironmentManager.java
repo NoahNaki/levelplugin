@@ -43,6 +43,8 @@ public class EnvironmentManager {
     private final Map<UUID, UUID> coopOwners = new HashMap<>();
     private final Map<UUID, UUID> coopPartners = new HashMap<>();
     private final Map<UUID, UUID> pendingInvites = new HashMap<>();
+    /** Mapping of town name -> owning player UUID. */
+    private final Map<String, UUID> townOwners = new HashMap<>();
     /** Track placed block priorities for each player (location key -> priority). */
     private final Map<UUID, Map<String, Integer>> blockPriorities = new HashMap<>();
     /** Keep track of chunks force-loaded for each player so they can be released later. */
@@ -129,6 +131,12 @@ public class EnvironmentManager {
         this.playerConfig = config;
         this.stageManager = stageManager;
         this.buildingStageManager = buildingStageManager;
+        for (String town : config.getGlobalTownNames()) {
+            java.util.UUID owner = config.getTownOwner(town);
+            if (owner != null) {
+                townOwners.put(town.toLowerCase(), owner);
+            }
+        }
     }
 
     public TownStageManager getStageManager() {
@@ -931,12 +939,20 @@ public class EnvironmentManager {
             player.sendMessage(ChatColor.RED + "Unknown town type.");
             return;
         }
+        String townKey = townName.toLowerCase();
+        UUID owner = townOwners.get(townKey);
+        if (owner != null && !owner.equals(uuid)) {
+            player.sendMessage(ChatColor.RED + "That town already belongs to another player.");
+            return;
+        }
         // Spawn the settlement at the predefined origin position instead of at
         // the player's location. The player has already been teleported by the
         // quest logic so we don't move them again here.
         Location origin = getTownStartLocation();
         origins.put(uuid, origin);
-        towns.put(uuid, townName.toLowerCase());
+        towns.put(uuid, townKey);
+        townOwners.put(townKey, uuid);
+        playerConfig.setTownOwner(townKey, uuid);
         // initialize building progress for all defined buildings of this town
         var buildingNames = buildingStageManager.getBuildings(townName);
         if (!buildingNames.isEmpty()) {
@@ -1004,12 +1020,16 @@ public class EnvironmentManager {
         Map<String, BuildingState> bMap = buildingStates.remove(uuid);
         removeAllBuildingHolograms(uuid);
         if (town != null && st != null) {
+            clearStructure(origin, town, st.level, st.stage);
             stageManager.despawnForStage(uuid, town, st.level, st.stage);
             if (bMap != null) {
                 for (var e : bMap.entrySet()) {
+                    clearBuildingStructure(origin, town, e.getKey(), e.getValue().stage);
                     buildingStageManager.despawnForStage(uuid, e.getKey(), e.getValue().stage);
                 }
             }
+            townOwners.remove(town.toLowerCase());
+            playerConfig.clearTownOwner(town.toLowerCase());
         }
         java.util.Set<Long> loaded = loadedChunks.remove(uuid);
         if (loaded != null && origin != null) {
@@ -1147,6 +1167,30 @@ public class EnvironmentManager {
         applyBlocks(batch);
         stageManager.spawnForStage(player, town, level, stage, baseOrigin);
         resumeChunkTasks(player);
+    }
+
+    /** Remove all blocks for the specified town stage. */
+    private void clearStructure(Location origin, String town, int level, int stage) {
+        if (origin == null || town == null) return;
+        var data = stageManager.getStage(town, level, stage);
+        if (data == null) return;
+        Location baseOrigin = origin.clone().add(0, data.oy, 0);
+        for (var b : data.blocks) {
+            Location loc = baseOrigin.clone().add(b.x - data.ox, b.y - data.oy, b.z - data.oz);
+            loc.getBlock().setType(org.bukkit.Material.AIR, false);
+        }
+    }
+
+    /** Remove all blocks for a building stage. */
+    private void clearBuildingStructure(Location townOrigin, String town, String building, int stage) {
+        if (townOrigin == null || town == null) return;
+        var data = buildingStageManager.getStage(building, stage);
+        if (data == null) return;
+        Location base = getBuildingOrigin(town, building, townOrigin).add(0, data.oy, 0);
+        for (var b : data.blocks) {
+            Location loc = base.clone().add(b.x - data.ox, b.y - data.oy, b.z - data.oz);
+            loc.getBlock().setType(org.bukkit.Material.AIR, false);
+        }
     }
 
     /**
