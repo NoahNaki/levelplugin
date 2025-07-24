@@ -28,7 +28,7 @@ public class GuildMemberGUI implements Listener {
     private final GuildGUI guildGUI;
 
     private static final int SIZE = 54;
-    private static final String TITLE = ChatColor.AQUA + "Guild Menu";
+    private static final String TITLE = ChatColor.BLACK + "Guild Menu";
 
     private static final int[] MEMBER_SLOTS = {
             10,11,12,13,14,15,16,

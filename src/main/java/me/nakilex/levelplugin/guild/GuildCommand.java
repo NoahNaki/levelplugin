@@ -38,6 +38,25 @@ public class GuildCommand implements CommandExecutor {
 
         String sub = args[0].toLowerCase();
         switch (sub) {
+            case "help":
+                player.sendMessage(ChatColor.YELLOW + "Guild Commands:");
+                player.sendMessage(ChatColor.GRAY + "/guild create <name>" + ChatColor.WHITE + " - Create a guild");
+                player.sendMessage(ChatColor.GRAY + "/guild invite <player>" + ChatColor.WHITE + " - Invite a player");
+                player.sendMessage(ChatColor.GRAY + "/guild accept" + ChatColor.WHITE + " - Accept an invite");
+                player.sendMessage(ChatColor.GRAY + "/guild kick <player>" + ChatColor.WHITE + " - Kick a member");
+                player.sendMessage(ChatColor.GRAY + "/guild promote <player>" + ChatColor.WHITE + " - Transfer leadership");
+                player.sendMessage(ChatColor.GRAY + "/guild leave" + ChatColor.WHITE + " - Leave your guild");
+                player.sendMessage(ChatColor.GRAY + "/guild alliance <guild>" + ChatColor.WHITE + " - Request alliance");
+                player.sendMessage(ChatColor.GRAY + "/guild allyaccept <guild>" + ChatColor.WHITE + " - Accept alliance");
+                player.sendMessage(ChatColor.GRAY + "/guild allydeny <guild>" + ChatColor.WHITE + " - Deny alliance");
+                player.sendMessage(ChatColor.GRAY + "/guild allyrevoke <guild>" + ChatColor.WHITE + " - Revoke alliance");
+                player.sendMessage(ChatColor.GRAY + "/guild hostile <guild>" + ChatColor.WHITE + " - Declare hostility");
+                player.sendMessage(ChatColor.GRAY + "/guild neutral <guild>" + ChatColor.WHITE + " - Request neutrality");
+                player.sendMessage(ChatColor.GRAY + "/guild neutralaccept <guild>" + ChatColor.WHITE + " - Accept neutrality");
+                player.sendMessage(ChatColor.GRAY + "/guild neutraldeny <guild>" + ChatColor.WHITE + " - Deny neutrality");
+                player.sendMessage(ChatColor.GRAY + "/guild menu" + ChatColor.WHITE + " - Open member menu");
+                player.sendMessage(ChatColor.GRAY + "/guild list" + ChatColor.WHITE + " - Browse guilds");
+                return true;
             case "create":
                 if (args.length < 2) {
                     player.sendMessage(ChatColor.RED + "Usage: /guild create <name>");

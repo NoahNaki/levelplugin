@@ -41,7 +41,7 @@ public class PotionBrowser implements CommandExecutor, Listener {
     }
 
     private String title(int page) {
-        return ChatColor.GRAY + "Potions - Page " + (page + 1);
+        return ChatColor.BLACK + "Potions - Page " + (page + 1);
     }
 
     private static ItemStack nexoItem(String id, String name) {
@@ -105,7 +105,7 @@ public class PotionBrowser implements CommandExecutor, Listener {
     @EventHandler
     public void onClick(InventoryClickEvent e) {
         if (!(e.getWhoClicked() instanceof Player player)) return;
-        if (!e.getView().getTitle().startsWith(ChatColor.GRAY + "Potions")) return;
+        if (!e.getView().getTitle().startsWith(ChatColor.BLACK + "Potions")) return;
         e.setCancelled(true);
         ItemStack clicked = e.getCurrentItem();
         if (clicked == null || !clicked.hasItemMeta()) return;

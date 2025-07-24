@@ -21,7 +21,7 @@ import java.util.List;
 public class RerollBrowser implements CommandExecutor, Listener {
 
     private static final int SIZE = 27;
-    private static final String TITLE = "Reroll Items";
+    private static final String TITLE = ChatColor.BLACK + "Reroll Items";
 
     private final JavaPlugin plugin;
 
