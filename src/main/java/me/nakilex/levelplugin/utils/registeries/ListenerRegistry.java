@@ -172,7 +172,6 @@ public class ListenerRegistry {
         pm.registerEvents(hologramListener, plugin);
         pm.registerEvents(stageBlockInteractListener, plugin);
         pm.registerEvents(new me.nakilex.levelplugin.environment.listeners.TownItemDropListener(plugin.getEnvironmentManager()), plugin);
-        pm.registerEvents(new me.nakilex.levelplugin.environment.listeners.EnvironmentChunkListener(plugin.getEnvironmentManager()), plugin);
         pm.registerEvents(new me.nakilex.levelplugin.environment.listeners.EnvironmentDistanceListener(plugin.getEnvironmentManager()), plugin);
         if (plugin.getCustomConfig().getBoolean("features.profiles", true)) {
             pm.registerEvents(new me.nakilex.levelplugin.player.profile.ProfileSelectionGUI(), plugin);
