@@ -51,7 +51,6 @@ public class PlayerJoinListener implements Listener {
             levelManager.initializePlayer(player);
             miningManager.initializePlayer(player);
             environmentManager.loadPlayerState(player);
-            environmentManager.preloadTownChunks(player);
             stageManager.hideNPCsFrom(player);
             player.setHealthScaled(true);
             player.setHealthScale(20.0);

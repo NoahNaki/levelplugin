@@ -93,13 +93,9 @@ public class EnvironmentDistanceListener implements Listener {
             debug("Player " + player.getName() + " left town region");
         }
 
-        if (inside) {
-            manager.preloadTownChunks(player);
-        }
 
         if (dist * dist <= LOAD_DIST_SQ) {
             debug("Player " + player.getName() + " within " + dist + " blocks of town");
-            manager.preloadTownChunks(player);
             if (!manager.isTownLoaded(player)) {
                 if (!manager.hasPlayedInitAnimation(player)) {
                     manager.initializePlayerAnimated(player, 20);
@@ -112,7 +108,6 @@ public class EnvironmentDistanceListener implements Listener {
             } else {
                 Double last = lastLoadDistance.get(id);
                 if (last != null && prev != null && dist < prev && last - dist >= RELOAD_STEP && dist > STOP_LOAD_DIST) {
-                    manager.preloadTownChunks(player);
                     manager.initializePlayer(player);
                     lastLoadDistance.put(id, dist);
                 }

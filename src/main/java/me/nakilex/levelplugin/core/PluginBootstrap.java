@@ -167,7 +167,7 @@ public class PluginBootstrap {
         itemConfig.loadItems();
         storageEvents = new StorageEvents();
         plugin.getServer().getPluginManager().registerEvents(storageEvents, plugin);
-        environmentManager = new me.nakilex.levelplugin.environment.EnvironmentManager(playerConfig, townStageManager, buildingStageManager, fakeBlockManager);
+        environmentManager = new me.nakilex.levelplugin.environment.EnvironmentManager(playerConfig, townStageManager, buildingStageManager);
         upgradeGUI = new me.nakilex.levelplugin.environment.UpgradeGUI(environmentManager);
         buildingUpgradeGUI = new me.nakilex.levelplugin.environment.BuildingUpgradeGUI(environmentManager);
         CitizensAPI.getTraitFactory().registerTrait(net.citizensnpcs.api.trait.TraitInfo.create(MetadataTrait.class).withName("MetadataTrait"));
@@ -328,7 +328,7 @@ public class PluginBootstrap {
             upgradeGUI,
             buildingUpgradeGUI,
             new me.nakilex.levelplugin.environment.listeners.BuildingHologramListener(buildingUpgradeGUI),
-            new me.nakilex.levelplugin.environment.listeners.StageBlockInteractListener(plugin, fakeBlockManager)
+            new me.nakilex.levelplugin.environment.listeners.StageBlockInteractListener()
         );
         plugin.getServer().getPluginManager().registerEvents(beaconManager, plugin);
         TaskRegistry.startTasks(plugin, horseConfigManager, horseManager);
