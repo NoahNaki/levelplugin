@@ -19,6 +19,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.Sound;
 import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.environment.EnvironmentManager;
 import org.bukkit.block.data.BlockData;
 import java.util.Map;
 import java.util.HashMap;
@@ -259,6 +260,8 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                                 dest.setPitch(cur.getPitch());
                                 player.teleport(dest);
                                 plugin.getQuestManager().startQuest(player, "newbeginning");
+                                EnvironmentManager env = Main.getInstance().getEnvironmentManager();
+                                env.startTown(player, "town");
 
                                 if (worldElevatorBlocks != null) {
                                     fbm.showFakeBlocks(player, worldElevatorBlocks);

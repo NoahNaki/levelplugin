@@ -928,6 +928,9 @@ public class EnvironmentManager {
             player.sendMessage(ChatColor.RED + "Unknown town type.");
             return;
         }
+        // Spawn the settlement at the predefined origin position instead of at
+        // the player's location. The player has already been teleported by the
+        // quest logic so we don't move them again here.
         Location origin = getTownStartLocation();
         origins.put(uuid, origin);
         towns.put(uuid, townName.toLowerCase());
@@ -960,11 +963,10 @@ public class EnvironmentManager {
             after = null;
         }
         final Location finalOrigin = origin;
-        final Runnable spawn = () -> {
-            spawnStructure(player, finalOrigin, state.level, state.stage, after);
-            player.sendMessage(ChatColor.YELLOW + "Settlement created at " + finalOrigin.getBlockX()+","+finalOrigin.getBlockY()+","+finalOrigin.getBlockZ());
-        };
-        teleportWithEffect(player, origin, spawn);
+        spawnStructure(player, finalOrigin, state.level, state.stage, after);
+        player.sendMessage(ChatColor.YELLOW + "Settlement created at " +
+                finalOrigin.getBlockX() + "," + finalOrigin.getBlockY() + "," +
+                finalOrigin.getBlockZ());
     }
 
     /** Remove the player's settlement so they can start over. */
