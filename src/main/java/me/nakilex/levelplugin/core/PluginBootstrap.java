@@ -220,7 +220,7 @@ public class PluginBootstrap {
         friendManager = new FriendManager();
         guildManager = me.nakilex.levelplugin.guild.GuildManager.getInstance();
         guildGUI = new me.nakilex.levelplugin.guild.GuildGUI(guildManager);
-        guildMemberGUI = new me.nakilex.levelplugin.guild.GuildMemberGUI(guildManager);
+        guildMemberGUI = new me.nakilex.levelplugin.guild.GuildMemberGUI(guildManager, guildGUI);
         gemsManager = new GemsManager();
         gemGui = new GemExchangeGUI(plugin, gemsManager);
         auctionHouseManager = new me.nakilex.levelplugin.auctionhouse.AuctionHouseManager(plugin, economyManager);

@@ -11,6 +11,8 @@ public class Guild {
     private final Set<UUID> members = new HashSet<>();
     private final Set<String> allies = new HashSet<>();
     private final Set<String> hostiles = new HashSet<>();
+    /** Optional guild message of the day. */
+    private String motd = "";
 
     public Guild(String name, UUID leader) {
         this.name = name;
@@ -36,6 +38,15 @@ public class Guild {
 
     public Set<String> getHostiles() {
         return hostiles;
+    }
+
+    /** Current guild message of the day. */
+    public String getMotd() {
+        return motd;
+    }
+
+    public void setMotd(String motd) {
+        this.motd = motd == null ? "" : motd;
     }
 
     public boolean addMember(UUID id) {
