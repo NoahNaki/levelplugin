@@ -11,6 +11,8 @@ public class Guild {
     private final Set<UUID> members = new HashSet<>();
     private final Set<String> allies = new HashSet<>();
     private final Set<String> hostiles = new HashSet<>();
+    /** Pending applicants mapped to timestamp applied. */
+    private final Map<UUID, Long> applicants = new LinkedHashMap<>();
     /** Optional guild message of the day. */
     private String motd = "";
 
@@ -40,6 +42,11 @@ public class Guild {
         return hostiles;
     }
 
+    /** Map of applicants and when they applied. */
+    public Map<UUID, Long> getApplicants() {
+        return applicants;
+    }
+
     /** Current guild message of the day. */
     public String getMotd() {
         return motd;
@@ -51,6 +58,17 @@ public class Guild {
 
     public boolean addMember(UUID id) {
         return members.add(id);
+    }
+
+    /** Add an applicant with the current timestamp. */
+    public boolean addApplicant(UUID id) {
+        if (members.contains(id)) return false;
+        return applicants.putIfAbsent(id, System.currentTimeMillis()) == null;
+    }
+
+    /** Remove applicant. */
+    public boolean removeApplicant(UUID id) {
+        return applicants.remove(id) != null;
     }
 
     public boolean removeMember(UUID id) {

@@ -26,6 +26,7 @@ import java.util.*;
 public class GuildMemberGUI implements Listener {
     private final GuildManager manager;
     private final GuildGUI guildGUI;
+    private final GuildApplicantsGUI applicantsGUI;
 
     private static final int SIZE = 54;
     private static final String TITLE = ChatColor.BLACK + "Guild Menu";
@@ -54,9 +55,10 @@ public class GuildMemberGUI implements Listener {
     private final Set<UUID> awaitingSearch = new HashSet<>();
     private final Set<UUID> awaitingMotd = new HashSet<>();
 
-    public GuildMemberGUI(GuildManager manager, GuildGUI guildGUI) {
+    public GuildMemberGUI(GuildManager manager, GuildGUI guildGUI, GuildApplicantsGUI applicantsGUI) {
         this.manager = manager;
         this.guildGUI = guildGUI;
+        this.applicantsGUI = applicantsGUI;
         Bukkit.getPluginManager().registerEvents(this, Main.getInstance());
     }
 
@@ -130,10 +132,25 @@ public class GuildMemberGUI implements Listener {
         if (members.size() > (page + 1) * ITEMS_PER_PAGE) {
             inv.setItem(NEXT_SLOT, GuiUtil.getNexoItem("arrow_right", ChatColor.GREEN + "Next"));
         }
-        inv.setItem(HOME_SLOT, GuiUtil.getNexoItem("home", ChatColor.YELLOW + "Back"));
+        ItemStack infoItem = GuiUtil.getNexoItem("home", ChatColor.YELLOW + "Guild Info");
+        ItemMeta infoMeta = infoItem.getItemMeta();
+        if (infoMeta != null) {
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Leader: " + ChatColor.WHITE + g.getLeaderName());
+            lore.add(ChatColor.GRAY + "Members: " + ChatColor.WHITE + g.getMembers().size());
+            infoMeta.setLore(lore);
+            infoItem.setItemMeta(infoMeta);
+        }
+        inv.setItem(HOME_SLOT, infoItem);
         inv.setItem(SEARCH_SLOT, createSearchButton(term));
         inv.setItem(MOTD_SLOT, createMotdButton(g, player));
-        inv.setItem(CAMERA_SLOT, GuiUtil.getNexoItem("camera", ChatColor.YELLOW + "Coming Soon"));
+        ItemStack camItem;
+        if (g.getLeader().equals(player.getUniqueId())) {
+            camItem = GuiUtil.getNexoItem("camera", ChatColor.YELLOW + "Applicants");
+        } else {
+            camItem = GuiUtil.getNexoItem("camera", ChatColor.YELLOW + "Coming Soon");
+        }
+        inv.setItem(CAMERA_SLOT, camItem);
         inv.setItem(SORT_SLOT, createSortButton(sort));
         inv.setItem(INFO_SLOT, GuiUtil.getNexoItem("info", ChatColor.YELLOW + "Information"));
         inv.setItem(REFRESH_SLOT, GuiUtil.getNexoItem("refresh", ChatColor.RED + "Refresh"));
@@ -211,8 +228,11 @@ public class GuildMemberGUI implements Listener {
             open(player, p + 1);
             return;
         }
-        if (slot == HOME_SLOT) {
-            guildGUI.open(player);
+        if (slot == CAMERA_SLOT) {
+            Guild g = manager.getGuild(player.getUniqueId());
+            if (g != null && g.getLeader().equals(player.getUniqueId())) {
+                applicantsGUI.open(player);
+            }
             return;
         }
         if (slot == SEARCH_SLOT) {

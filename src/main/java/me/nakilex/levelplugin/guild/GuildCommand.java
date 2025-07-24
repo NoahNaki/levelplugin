@@ -7,7 +7,6 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-
 import java.util.UUID;
 
 public class GuildCommand implements CommandExecutor {
@@ -54,9 +53,26 @@ public class GuildCommand implements CommandExecutor {
                 player.sendMessage(ChatColor.GRAY + "/guild neutral <guild>" + ChatColor.WHITE + " - Request neutrality");
                 player.sendMessage(ChatColor.GRAY + "/guild neutralaccept <guild>" + ChatColor.WHITE + " - Accept neutrality");
                 player.sendMessage(ChatColor.GRAY + "/guild neutraldeny <guild>" + ChatColor.WHITE + " - Deny neutrality");
+                player.sendMessage(ChatColor.GRAY + "/guild apply <guild>" + ChatColor.WHITE + " - Apply to a guild");
                 player.sendMessage(ChatColor.GRAY + "/guild menu" + ChatColor.WHITE + " - Open member menu");
                 player.sendMessage(ChatColor.GRAY + "/guild list" + ChatColor.WHITE + " - Browse guilds");
                 return true;
+            case "apply":
+                if (args.length < 2) {
+                    player.sendMessage(ChatColor.RED + "Usage: /guild apply <name>");
+                    return true;
+                }
+                if (manager.apply(id, args[1])) {
+                    player.sendMessage(ChatColor.GREEN + "Application sent to " + args[1] + ".");
+                    Guild target = manager.getGuild(args[1]);
+                    if (target != null) {
+                        Player lead = Bukkit.getPlayer(target.getLeader());
+                        if (lead != null) lead.sendMessage(ChatColor.YELLOW + player.getName() + " applied to join your guild.");
+                    }
+                } else {
+                    player.sendMessage(ChatColor.RED + "Could not apply to that guild.");
+                }
+                break;
             case "create":
                 if (args.length < 2) {
                     player.sendMessage(ChatColor.RED + "Usage: /guild create <name>");
