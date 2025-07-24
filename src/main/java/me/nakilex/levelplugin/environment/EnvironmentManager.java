@@ -4,7 +4,6 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.environment.stage.BuildingStageManager;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.environment.stage.TownStageManager;
-import me.nakilex.levelplugin.fakeblock.FakeBlockManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -33,7 +32,6 @@ public class EnvironmentManager {
     private final PlayerConfig playerConfig;
     private final TownStageManager stageManager;
     private final me.nakilex.levelplugin.environment.stage.BuildingStageManager buildingStageManager;
-    private final FakeBlockManager fakeBlockManager;
     private final Map<UUID, EnvironmentState> states = new HashMap<>();
     private final Map<UUID, Location> origins = new HashMap<>();
     private final Map<UUID, String> towns = new HashMap<>();
@@ -99,6 +97,14 @@ public class EnvironmentManager {
         return sb.toString();
     }
 
+    /** Physically set blocks for all players instead of showing fake blocks. */
+    private static void applyBlocks(Map<Location, org.bukkit.block.data.BlockData> blocks) {
+        if (blocks == null || blocks.isEmpty()) return;
+        for (var entry : blocks.entrySet()) {
+            entry.getKey().getBlock().setBlockData(entry.getValue(), false);
+        }
+    }
+
     public static class EnvironmentState {
         public int level;
         public int stage;
@@ -119,12 +125,10 @@ public class EnvironmentManager {
 
     public EnvironmentManager(PlayerConfig config,
                               TownStageManager stageManager,
-                              me.nakilex.levelplugin.environment.stage.BuildingStageManager buildingStageManager,
-                              FakeBlockManager blockManager) {
+                              me.nakilex.levelplugin.environment.stage.BuildingStageManager buildingStageManager) {
         this.playerConfig = config;
         this.stageManager = stageManager;
         this.buildingStageManager = buildingStageManager;
-        this.fakeBlockManager = blockManager;
     }
 
     public TownStageManager getStageManager() {
@@ -647,7 +651,6 @@ public class EnvironmentManager {
                 buildingStageManager.despawnForStage(member, e.getKey(), e.getValue().stage);
             }
         }
-        fakeBlockManager.clear(Bukkit.getPlayer(member));
         blockPriorities.remove(member);
         towns.remove(member);
         origins.remove(member);
@@ -928,6 +931,9 @@ public class EnvironmentManager {
             player.sendMessage(ChatColor.RED + "Unknown town type.");
             return;
         }
+        // Spawn the settlement at the predefined origin position instead of at
+        // the player's location. The player has already been teleported by the
+        // quest logic so we don't move them again here.
         Location origin = getTownStartLocation();
         origins.put(uuid, origin);
         towns.put(uuid, townName.toLowerCase());
@@ -960,11 +966,10 @@ public class EnvironmentManager {
             after = null;
         }
         final Location finalOrigin = origin;
-        final Runnable spawn = () -> {
-            spawnStructure(player, finalOrigin, state.level, state.stage, after);
-            player.sendMessage(ChatColor.YELLOW + "Settlement created at " + finalOrigin.getBlockX()+","+finalOrigin.getBlockY()+","+finalOrigin.getBlockZ());
-        };
-        teleportWithEffect(player, origin, spawn);
+        spawnStructure(player, finalOrigin, state.level, state.stage, after);
+        player.sendMessage(ChatColor.YELLOW + "Settlement created at " +
+                finalOrigin.getBlockX() + "," + finalOrigin.getBlockY() + "," +
+                finalOrigin.getBlockZ());
     }
 
     /** Remove the player's settlement so they can start over. */
@@ -993,7 +998,6 @@ public class EnvironmentManager {
         }
 
         cancelTasks(uuid);
-        fakeBlockManager.clear(player);
         EnvironmentState st = states.remove(uuid);
         String town = towns.remove(uuid);
         Location origin = origins.remove(uuid);
@@ -1040,7 +1044,6 @@ public class EnvironmentManager {
             }
         }
         removeAllBuildingHolograms(player.getUniqueId());
-        fakeBlockManager.clear(player);
         blockPriorities.remove(player.getUniqueId());
         java.util.Set<Long> loaded = loadedChunks.remove(base);
         if (loaded != null) {
@@ -1061,8 +1064,6 @@ public class EnvironmentManager {
     private void spawnStructureTimed(Player player, Location origin, int level, int stage, Runnable after, int totalTime) {
         UUID uuid = player.getUniqueId();
         cancelBuildTask(uuid, TOWN_TASK_KEY);
-
-        fakeBlockManager.clear(player);
         String town = towns.get(player.getUniqueId());
         if (town == null) return;
         var stageData = stageManager.getStage(town, level, stage);
@@ -1093,7 +1094,7 @@ public class EnvironmentManager {
                     player.getWorld().playSound(loc, breakS, 0.7f, 1f);
                     player.getWorld().playSound(loc, placeS, 0.7f, 1f);
                 }
-                fakeBlockManager.showFakeBlocks(player, batch);
+                applyBlocks(batch);
                 if (index >= blocks.size()) {
                     player.playSound(baseOrigin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
                     stageManager.spawnForStage(player, town, level, stage, baseOrigin);
@@ -1143,7 +1144,7 @@ public class EnvironmentManager {
             batch.put(loc, b.data);
             priMap.put(key(loc), stageData.priority);
         }
-        fakeBlockManager.showFakeBlocks(player, batch);
+        applyBlocks(batch);
         stageManager.spawnForStage(player, town, level, stage, baseOrigin);
         resumeChunkTasks(player);
     }
@@ -1172,7 +1173,7 @@ public class EnvironmentManager {
             }
         }
         if (!batch.isEmpty()) {
-            fakeBlockManager.showFakeBlocks(player, batch);
+            applyBlocks(batch);
         }
     }
 
@@ -1257,7 +1258,7 @@ public class EnvironmentManager {
                     player.getWorld().playSound(c.loc, breakS, 0.7f, 1f);
                     player.getWorld().playSound(c.loc, placeS, 0.7f, 1f);
                 }
-                fakeBlockManager.showFakeBlocks(player, batch);
+                applyBlocks(batch);
                 if (index >= changes.size()) {
                     player.playSound(newOrigin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
                     stageManager.spawnForStage(player, town, newLevel, newStage, newOrigin);
@@ -1317,7 +1318,7 @@ public class EnvironmentManager {
                     player.getWorld().playSound(loc, breakS, 0.7f, 1f);
                     player.getWorld().playSound(loc, placeS, 0.7f, 1f);
                 }
-                fakeBlockManager.showFakeBlocks(player, batch);
+                applyBlocks(batch);
                 if (index >= blocks.size()) {
                     player.playSound(baseOrigin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
                     buildingStageManager.spawnForStage(player, building, stage, baseOrigin);
@@ -1382,7 +1383,7 @@ public class EnvironmentManager {
             batch.put(loc, b.data);
             priMap.put(key(loc), stageData.priority);
         }
-        fakeBlockManager.showFakeBlocks(player, batch);
+        applyBlocks(batch);
         buildingStageManager.spawnForStage(player, building, stage, baseOrigin);
         resumeChunkTasks(player);
 
@@ -1420,7 +1421,7 @@ public class EnvironmentManager {
             }
         }
         if (!batch.isEmpty()) {
-            fakeBlockManager.showFakeBlocks(player, batch);
+            applyBlocks(batch);
         }
     }
 
@@ -1513,7 +1514,7 @@ public class EnvironmentManager {
                     player.getWorld().playSound(c.loc, breakS, 0.7f, 1f);
                     player.getWorld().playSound(c.loc, placeS, 0.7f, 1f);
                 }
-                fakeBlockManager.showFakeBlocks(player, batch);
+                applyBlocks(batch);
                 if (index >= changes.size()) {
                     player.playSound(newOrigin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
                     buildingStageManager.spawnForStage(player, building, newStage, newOrigin);
@@ -1551,7 +1552,9 @@ public class EnvironmentManager {
             Map<String, Integer> priMap = blockPriorities.get(player.getUniqueId());
             if (priMap != null) priMap.remove(key(l));
         }
-        fakeBlockManager.hideFakeBlocks(player, locs);
+        for (Location l : locs) {
+            l.getBlock().setType(org.bukkit.Material.AIR, false);
+        }
     }
 
     /** Remove fake blocks from a previous town stage before upgrading. */
@@ -1566,7 +1569,9 @@ public class EnvironmentManager {
             Map<String, Integer> priMap = blockPriorities.get(player.getUniqueId());
             if (priMap != null) priMap.remove(key(l));
         }
-        fakeBlockManager.hideFakeBlocks(player, locs);
+        for (Location l : locs) {
+            l.getBlock().setType(org.bukkit.Material.AIR, false);
+        }
     }
 
     // ----- Coop management -----

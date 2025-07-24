@@ -109,10 +109,8 @@ public class BuildingUpgradeGUI implements Listener {
         Player p = (Player) e.getWhoClicked();
         if (slot == 11) {
             manager.attemptUpgradeBuilding(p, building);
-            open(p, building);
-        } else {
-            p.closeInventory();
         }
+        p.closeInventory();
     }
 
     @EventHandler

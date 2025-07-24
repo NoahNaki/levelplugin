@@ -175,11 +175,6 @@ public class TownStageManager {
                 clone.getEntity().teleport(loc, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN);
                 clone.getEntity().setGravity(false);
             }
-            for (org.bukkit.entity.Player p : Bukkit.getOnlinePlayers()) {
-                if (!p.equals(viewer)) {
-                    p.hideEntity(plugin, clone.getEntity());
-                }
-            }
             list.add(clone);
         }
     }
@@ -216,9 +211,7 @@ public class TownStageManager {
         for (var map : spawnedNPCs.values()) {
             for (var list : map.values()) {
                 for (NPC npc : list) {
-                    if (npc.isSpawned()) {
-                        viewer.hideEntity(plugin, npc.getEntity());
-                    }
+                    // NPCs are now public; do nothing
                 }
             }
         }

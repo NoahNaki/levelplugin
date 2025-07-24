@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.player.listener;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
+import me.nakilex.levelplugin.player.profile.ProfileManager;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -48,8 +49,10 @@ public class PlayerQuitListener implements Listener {
             cfg.setProfileArmor(pid, 0, player.getInventory().getArmorContents());
         }
         cfg.savePlayer(pid);
-        me.nakilex.levelplugin.player.profile.ProfileManager.getInstance()
-            .saveActiveLocation(player);
+        me.nakilex.levelplugin.player.profile.ProfileManager pm =
+                me.nakilex.levelplugin.player.profile.ProfileManager.getInstance();
+        pm.saveActiveLocation(player);
+        pm.addPlayMinutes(pid, 0); // flush playtime to config
         if (profilesEnabled) {
             me.nakilex.levelplugin.player.profile.ProfileSelectionGUI.handleQuit(player);
         }

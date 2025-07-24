@@ -929,6 +929,16 @@ public class QuestManager {
         return quests.keySet();
     }
 
+    /** Number of quests the player has completed. */
+    public int getCompletedQuestCount(java.util.UUID player) {
+        return completedQuests.getOrDefault(player, java.util.Collections.emptySet()).size();
+    }
+
+    /** Total number of registered quests. */
+    public int getTotalQuestCount() {
+        return quests.size();
+    }
+
     public boolean hasCompleted(UUID player, String questId) {
         return completedQuests.getOrDefault(player, Collections.emptySet()).contains(questId);
     }

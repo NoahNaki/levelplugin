@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
+import me.nakilex.levelplugin.environment.EnvironmentManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -100,13 +101,14 @@ public class ProfileSelectionGUI implements Listener {
         SELECTING.add(player.getUniqueId());
         hideOthers(player);
 
-        // Save inventory from the currently active profile, if any
+        // Save state from the currently active profile, if any
         ProfileManager pm = ProfileManager.getInstance();
         Integer slot = pm.getActiveSlot(player.getUniqueId());
         if (slot != null) {
             me.nakilex.levelplugin.player.config.PlayerConfig cfg = Main.getInstance().getPlayerConfig();
             cfg.setProfileInventory(player.getUniqueId(), slot, player.getInventory().getContents());
             cfg.setProfileArmor(player.getUniqueId(), slot, player.getInventory().getArmorContents());
+            pm.saveActiveLocation(player);
             cfg.saveConfigFile();
             player.getInventory().clear();
             player.getInventory().setArmorContents(null);
@@ -141,10 +143,28 @@ public class ProfileSelectionGUI implements Listener {
     }
 
     public static void open(Player player) {
+        ProfileManager pm = ProfileManager.getInstance();
+
+        // When switching profiles via the command, persist the current profile
+        // state before showing the selection menu. startSelection() already
+        // handles this, so only run here if the player isn't in selection mode.
+        if (!SELECTING.contains(player.getUniqueId())) {
+            Integer slot = pm.getActiveSlot(player.getUniqueId());
+            if (slot != null) {
+                me.nakilex.levelplugin.player.config.PlayerConfig cfg =
+                        Main.getInstance().getPlayerConfig();
+                cfg.setProfileInventory(player.getUniqueId(), slot,
+                        player.getInventory().getContents());
+                cfg.setProfileArmor(player.getUniqueId(), slot,
+                        player.getInventory().getArmorContents());
+                pm.saveActiveLocation(player);
+                cfg.saveConfigFile();
+            }
+        }
+
         Inventory inv = Bukkit.createInventory(null, SIZE, TITLE);
         for (int i = 0; i < SIZE; i++) inv.setItem(i, FILLER);
 
-        ProfileManager pm = ProfileManager.getInstance();
         int unlocked = pm.getUnlockedSlots(player.getUniqueId());
         List<PlayerProfile> list = pm.getProfiles(player.getUniqueId());
 
@@ -159,7 +179,7 @@ public class ProfileSelectionGUI implements Listener {
                 inv.setItem(slot,
                         GuiUtil.getNexoItem("plus", ChatColor.GREEN + "[+] Create character"));
             } else {
-                inv.setItem(slot, createProfileItem(prof));
+                inv.setItem(slot, createProfileItem(player, prof));
             }
         }
 
@@ -197,7 +217,7 @@ public class ProfileSelectionGUI implements Listener {
         player.openInventory(inv);
     }
 
-    private static ItemStack createProfileItem(PlayerProfile profile) {
+    private static ItemStack createProfileItem(Player player, PlayerProfile profile) {
         ItemStack item = new ItemStack(Material.NAME_TAG);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
@@ -205,11 +225,35 @@ public class ProfileSelectionGUI implements Listener {
             List<String> lore = new ArrayList<>();
             // blank divider so the name is visually separated from stats
             lore.add("");
-            lore.add(ChatColor.GRAY + "Level: " + ChatColor.WHITE + "1");
-            lore.add(ChatColor.GRAY + "XP: " + ChatColor.WHITE + "0%");
-            lore.add(ChatColor.GRAY + "Class: " + ChatColor.WHITE + "None");
-            lore.add(ChatColor.GRAY + "Finished Quests: " + ChatColor.WHITE + "0/0");
-            lore.add(ChatColor.GRAY + "Playtime: " + ChatColor.WHITE + "0m");
+
+            me.nakilex.levelplugin.player.level.managers.LevelManager lm =
+                    me.nakilex.levelplugin.player.level.managers.LevelManager.getInstance();
+            me.nakilex.levelplugin.player.attributes.managers.StatsManager sm =
+                    me.nakilex.levelplugin.player.attributes.managers.StatsManager.getInstance();
+            me.nakilex.levelplugin.quests.managers.QuestManager qm =
+                    me.nakilex.levelplugin.Main.getInstance().getQuestManager();
+
+            int level = lm.getLevel(player);
+            int xp = lm.getXP(player);
+            int needed = lm.getXpNeededForNextLevel(player);
+            int pct = needed > 0 ? (int) Math.round((xp * 100.0) / needed) : 100;
+
+            me.nakilex.levelplugin.player.classes.data.PlayerClass pc =
+                    sm.getPlayerStats(player.getUniqueId()).playerClass;
+
+            int completed = qm.getCompletedQuestCount(player.getUniqueId());
+            int total = qm.getTotalQuestCount();
+
+            int playMinutes = profile.getPlayMinutes();
+
+            String className = me.nakilex.levelplugin.environment.EnvironmentManager
+                    .beautifyWords(pc.name().toLowerCase().replace('_', ' '));
+
+            lore.add(ChatColor.GRAY + "Level: " + ChatColor.WHITE + level);
+            lore.add(ChatColor.GRAY + "XP: " + ChatColor.WHITE + pct + "%");
+            lore.add(ChatColor.GRAY + "Class: " + ChatColor.WHITE + className);
+            lore.add(ChatColor.GRAY + "Finished Quests: " + ChatColor.WHITE + completed + "/" + total);
+            lore.add(ChatColor.GRAY + "Playtime: " + ChatColor.WHITE + playMinutes + "m");
             lore.add("");
             lore.add(ChatColor.WHITE + "Left-click " + ChatColor.GRAY + "to select this profile");
             lore.add(ChatColor.WHITE + "Right-click " + ChatColor.GRAY + "to edit this profile");
