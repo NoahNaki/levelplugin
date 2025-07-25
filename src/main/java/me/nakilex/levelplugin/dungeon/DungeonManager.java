@@ -143,7 +143,11 @@ public class DungeonManager {
         if (world == null) return;
         try (EditSession session = WorldEdit.getInstance().newEditSession(BukkitAdapter.adapt(world))) {
             ClipboardHolder holder = new ClipboardHolder(template.getClipboard());
-            holder.setTransform(new AffineTransform().rotateY(rotation * 90));
+            AffineTransform transform = new AffineTransform();
+            transform = transform.translate(-template.getCenterX(), 0, -template.getCenterZ());
+            transform = transform.rotateY(rotation * 90);
+            transform = transform.translate(template.getCenterX(), 0, template.getCenterZ());
+            holder.setTransform(transform);
             Operation op = holder.createPaste(session)
                     .to(BlockVector3.at(
                             center.getBlockX() - Math.round(template.getCenterX()),
