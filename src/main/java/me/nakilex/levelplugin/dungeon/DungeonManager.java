@@ -42,11 +42,11 @@ public class DungeonManager {
             plugin.getLogger().warning("Flatland world not found for dungeon templates.");
             return;
         }
-        deadEnd = RoomTemplate.capture(world, 145, -58, -4781, 125, -60, -4761);
-        straight = RoomTemplate.capture(world, 145, -58, -4849, 125, -60, -4869);
-        corner = RoomTemplate.capture(world, 145, -58, -4803, 125, -60, -4783);
-        tJunction = RoomTemplate.capture(world, 145, -60, -4825, 125, -58, -4805);
-        crossroad = RoomTemplate.capture(world, 145, -58, -4827, 125, -60, -4847);
+        deadEnd = RoomTemplate.capture(world, 150, -25, -5323, 110, -57, -5283);
+        straight = RoomTemplate.capture(world, 110, -57, -5288, 150, -25, -5242);
+        corner = RoomTemplate.capture(world, 110, -57, -5241, 150, -25, -5201);
+        tJunction = RoomTemplate.capture(world, 110, -57, -5200, 150, -25, -5160);
+        crossroad = RoomTemplate.capture(world, 150, -25, -5159, 110, -57, -5119);
         entrance = RoomTemplate.capture(world, 151, -60, -4849, 171, -58, -4869);
 
         // Determine spacing using crossroad connectors
@@ -133,12 +133,14 @@ public class DungeonManager {
     private void pasteRoom(Dungeon dungeon, RoomTemplate template, int rotation, Location center) {
         World world = center.getWorld();
         if (world == null) return;
+        int baseY = center.getBlockY();
+        int connectorY = template.getConnectorMinY();
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
             if (b.data.getMaterial() == Material.REDSTONE_BLOCK) continue; // skip markers
             int[] vec = RoomTemplate.rotate(b.x - (int)Math.round(template.getCenterX()),
                     b.z - (int)Math.round(template.getCenterZ()), rotation);
             int wx = center.getBlockX() + vec[0];
-            int wy = center.getBlockY() + (b.y - template.getMinY());
+            int wy = baseY + (b.y - connectorY);
             int wz = center.getBlockZ() + vec[1];
             world.getBlockAt(wx, wy, wz).setBlockData(b.data, false);
         }

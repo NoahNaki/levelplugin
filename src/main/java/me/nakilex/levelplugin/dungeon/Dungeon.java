@@ -44,7 +44,7 @@ public class Dungeon {
                 int[] vec = RoomTemplate.rotate(b.x - (int)Math.round(r.template.getCenterX()),
                         b.z - (int)Math.round(r.template.getCenterZ()), r.rotation);
                 int wx = r.center.getBlockX() + vec[0];
-                int wy = r.center.getBlockY() + (b.y - r.template.getMinY());
+                int wy = r.center.getBlockY() + (b.y - r.template.getConnectorMinY());
                 int wz = r.center.getBlockZ() + vec[1];
                 world.getBlockAt(wx, wy, wz).setType(Material.AIR, false);
             }

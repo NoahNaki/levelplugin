@@ -25,12 +25,13 @@ public class RoomTemplate {
     }
 
     public static class Connector {
-        public final int x, y, z;
+        /** X/Z center of the connector and lowest Y of the marker stack */
+        public final int x, z, bottomY;
         public final Direction facing;
-        public Connector(int x, int y, int z, Direction facing) {
+        public Connector(int x, int z, int bottomY, Direction facing) {
             this.x = x;
-            this.y = y;
             this.z = z;
+            this.bottomY = bottomY;
             this.facing = facing;
         }
     }
@@ -39,6 +40,7 @@ public class RoomTemplate {
     private final List<Connector> connectors;
     private final int width, height, depth;
     private final int minY;
+    private final int connectorMinY;
     private final double centerX, centerZ;
 
     public RoomTemplate(List<BlockDef> blocks, List<Connector> connectors,
@@ -49,6 +51,9 @@ public class RoomTemplate {
         this.height = height;
         this.depth = depth;
         this.minY = minY;
+        int lowest = Integer.MAX_VALUE;
+        for (Connector c : connectors) lowest = Math.min(lowest, c.bottomY);
+        this.connectorMinY = lowest == Integer.MAX_VALUE ? 0 : lowest;
         this.centerX = (width - 1) / 2.0;
         this.centerZ = (depth - 1) / 2.0;
     }
@@ -59,6 +64,7 @@ public class RoomTemplate {
     public int getHeight() { return height; }
     public int getDepth() { return depth; }
     public int getMinY() { return minY; }
+    public int getConnectorMinY() { return connectorMinY; }
     public double getCenterX() { return centerX; }
     public double getCenterZ() { return centerZ; }
 
@@ -135,18 +141,19 @@ public class RoomTemplate {
             }
             // compute center of group
             double sx = 0, sy = 0, sz = 0;
+            int minGroupY = Integer.MAX_VALUE;
             for (Location l : group) {
                 sx += l.getBlockX();
                 sy += l.getBlockY();
                 sz += l.getBlockZ();
+                if (l.getBlockY() < minGroupY) minGroupY = l.getBlockY();
             }
             int cx = (int)Math.round(sx / group.size()) - minX;
-            int cy = (int)Math.round(sy / group.size()) - minY;
             int cz = (int)Math.round(sz / group.size()) - minZ;
             int dx = cx - (int)Math.round((width - 1) / 2.0);
             int dz = cz - (int)Math.round((depth - 1) / 2.0);
             Direction dir = Direction.fromDelta(dx, dz);
-            connectors.add(new Connector(cx, cy, cz, dir));
+            connectors.add(new Connector(cx, cz, minGroupY - minY, dir));
         }
 
         return new RoomTemplate(blocks, connectors, width, height, depth, minY);
