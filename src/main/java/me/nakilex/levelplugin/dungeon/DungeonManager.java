@@ -38,7 +38,7 @@ public class DungeonManager {
             return;
         }
         deadEnd = RoomTemplate.capture(world, 145, -58, -4781, 125, -60, -4761);
-        straight = RoomTemplate.capture(world, 125, -58, -4849, -145, -60, -4869);
+        straight = RoomTemplate.capture(world, 145, -58, -4849, 125, -60, -4869);
         corner = RoomTemplate.capture(world, 145, -58, -4803, 125, -60, -4783);
         tJunction = RoomTemplate.capture(world, 145, -60, -4825, 125, -58, -4805);
         crossroad = RoomTemplate.capture(world, 145, -58, -4827, 125, -60, -4847);
@@ -66,16 +66,27 @@ public class DungeonManager {
 
         Random rand = new Random();
         Map<Point, Set<Direction>> graph = new HashMap<>();
-        Point cur = new Point(0, 0);
-        graph.putIfAbsent(cur, new HashSet<>());
+        Set<Point> placed = new HashSet<>();
 
-        for (int i = 1; i < rooms; i++) {
+        Point start = new Point(0, 0);
+        graph.put(start, new HashSet<>());
+        placed.add(start);
+
+        while (placed.size() < rooms) {
+            // pick random existing room to branch from
+            Point[] arr = placed.toArray(new Point[0]);
+            Point cur = arr[rand.nextInt(arr.length)];
+
             Direction dir = Direction.random(rand);
             Point next = cur.move(dir);
+
+            graph.putIfAbsent(cur, new HashSet<>());
             graph.putIfAbsent(next, new HashSet<>());
+
             graph.get(cur).add(dir);
             graph.get(next).add(dir.opposite());
-            cur = next;
+
+            placed.add(next);
         }
 
         for (var entry : graph.entrySet()) {
@@ -116,6 +127,7 @@ public class DungeonManager {
         World world = center.getWorld();
         if (world == null) return;
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
+            if (b.data.getMaterial() == Material.REDSTONE_BLOCK) continue; // skip markers
             int[] vec = RoomTemplate.rotate(b.x - (int)Math.round(template.getCenterX()),
                     b.z - (int)Math.round(template.getCenterZ()), rotation);
             int wx = center.getBlockX() + vec[0];
