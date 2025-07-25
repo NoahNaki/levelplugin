@@ -42,11 +42,11 @@ public class DungeonManager {
             plugin.getLogger().warning("Flatland world not found for dungeon templates.");
             return;
         }
-        deadEnd = RoomTemplate.capture(world, 150, -25, -5323, 110, -57, -5283);
-        straight = RoomTemplate.capture(world, 110, -57, -5288, 150, -25, -5242);
-        corner = RoomTemplate.capture(world, 110, -57, -5241, 150, -25, -5201);
-        tJunction = RoomTemplate.capture(world, 110, -57, -5200, 150, -25, -5160);
-        crossroad = RoomTemplate.capture(world, 150, -25, -5159, 110, -57, -5119);
+        deadEnd = RoomTemplate.capture(world, -29, -60, -5198, 11, -28, -5238);
+        straight = RoomTemplate.capture(world, 11, -28, -5114, -29, -60, -5154);
+        corner = RoomTemplate.capture(world, 11, -28, -5156, -29, -60, -5196);
+        tJunction = RoomTemplate.capture(world, -29, -60, -5072, 11, -28, -5112);
+        crossroad = RoomTemplate.capture(world, 11, -28, -5030, -29, -60, -5070);
         entrance = RoomTemplate.capture(world, 151, -60, -4849, 171, -58, -4869);
 
         // Determine spacing using crossroad connectors

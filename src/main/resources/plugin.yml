@@ -219,5 +219,5 @@ commands:
     usage: /showtps
   dungeon:
     description: Manage custom dungeons
-    usage: /dungeon <create|play|delete>
+    usage: /dungeon <create|delete>
 
