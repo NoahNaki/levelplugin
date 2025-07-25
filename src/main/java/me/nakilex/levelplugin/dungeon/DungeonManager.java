@@ -16,12 +16,15 @@ import java.util.*;
 public class DungeonManager {
     private final Main plugin;
     private final Map<String, Dungeon> dungeons = new HashMap<>();
+    private final Map<String, DungeonLayout> layouts = new HashMap<>();
+    private final DungeonEditor editor;
 
     private RoomTemplate deadEnd;
     private RoomTemplate straight;
     private RoomTemplate corner;
     private RoomTemplate tJunction;
     private RoomTemplate crossroad;
+    private RoomTemplate entrance;
 
     /** spacing between cell centers */
     private int step;
@@ -29,6 +32,8 @@ public class DungeonManager {
     public DungeonManager(Main plugin) {
         this.plugin = plugin;
         loadTemplates();
+        this.editor = new DungeonEditor(this);
+        Bukkit.getPluginManager().registerEvents(editor, plugin);
     }
 
     private void loadTemplates() {
@@ -42,6 +47,7 @@ public class DungeonManager {
         corner = RoomTemplate.capture(world, 145, -58, -4803, 125, -60, -4783);
         tJunction = RoomTemplate.capture(world, 145, -60, -4825, 125, -58, -4805);
         crossroad = RoomTemplate.capture(world, 145, -58, -4827, 125, -60, -4847);
+        entrance = RoomTemplate.capture(world, 151, -60, -4849, 171, -58, -4869);
 
         // Determine spacing using crossroad connectors
         List<RoomTemplate.Connector> con = crossroad.getConnectors();
@@ -92,7 +98,7 @@ public class DungeonManager {
         for (var entry : graph.entrySet()) {
             Point p = entry.getKey();
             Set<Direction> dirs = entry.getValue();
-            RoomTemplate templ = chooseTemplate(dirs);
+            RoomTemplate templ = chooseTemplate(RoomType.HALLWAY, dirs);
             int rotation = findRotation(templ, dirs);
             Location center = origin.clone().add(p.x * step, 0, p.z * step);
             pasteRoom(dungeon, templ, rotation, center);
@@ -102,7 +108,8 @@ public class DungeonManager {
         return true;
     }
 
-    private RoomTemplate chooseTemplate(Set<Direction> dirs) {
+    private RoomTemplate chooseTemplate(RoomType type, Set<Direction> dirs) {
+        if (type == RoomType.ENTRANCE) return entrance;
         switch (dirs.size()) {
             case 1 -> { return deadEnd; }
             case 2 -> {
@@ -144,6 +151,40 @@ public class DungeonManager {
         d.delete();
         return true;
     }
+
+    public void saveLayout(String name, DungeonLayout layout) {
+        layouts.put(name.toLowerCase(), layout);
+    }
+
+    public boolean playDungeon(Player player, String name) {
+        DungeonLayout layout = layouts.get(name.toLowerCase());
+        if (layout == null) return false;
+        Location origin = player.getLocation();
+        Dungeon dungeon = new Dungeon(player.getWorld(), name);
+
+        for (int x = 0; x < DungeonLayout.WIDTH; x++) {
+            for (int y = 0; y < DungeonLayout.HEIGHT; y++) {
+                RoomType type = layout.get(x, y);
+                if (type == RoomType.NONE) continue;
+
+                Set<Direction> dirs = new HashSet<>();
+                if (layout.get(x + 1, y) != RoomType.NONE) dirs.add(Direction.EAST);
+                if (layout.get(x - 1, y) != RoomType.NONE) dirs.add(Direction.WEST);
+                if (layout.get(x, y + 1) != RoomType.NONE) dirs.add(Direction.SOUTH);
+                if (layout.get(x, y - 1) != RoomType.NONE) dirs.add(Direction.NORTH);
+
+                RoomTemplate templ = chooseTemplate(type, dirs);
+                int rotation = findRotation(templ, dirs);
+                Location center = origin.clone().add(x * step, 0, y * step);
+                pasteRoom(dungeon, templ, rotation, center);
+            }
+        }
+
+        dungeons.put(name.toLowerCase(), dungeon);
+        return true;
+    }
+
+    public DungeonEditor getEditor() { return editor; }
 
     private record Point(int x, int z) {
         Point move(Direction dir) {

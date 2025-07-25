@@ -25,16 +25,17 @@ public class DungeonCommand implements CommandExecutor {
         String sub = args[0].toLowerCase();
         switch (sub) {
             case "create" -> {
-                if (args.length < 3) {
-                    player.sendMessage(ChatColor.RED + "Usage: /dungeon create <name> <rooms>");
+                manager.getEditor().open(player);
+                return true;
+            }
+            case "play" -> {
+                if (args.length < 2) {
+                    player.sendMessage(ChatColor.RED + "Usage: /dungeon play <name>");
                     return true;
                 }
-                String name = args[1];
-                int count;
-                try { count = Integer.parseInt(args[2]); } catch (NumberFormatException e) { player.sendMessage(ChatColor.RED + "Invalid number."); return true; }
-                boolean ok = manager.createDungeon(player, name, count);
-                if (ok) player.sendMessage(ChatColor.YELLOW + "Dungeon created.");
-                else player.sendMessage(ChatColor.RED + "Could not create dungeon.");
+                boolean ok = manager.playDungeon(player, args[1]);
+                if (ok) player.sendMessage(ChatColor.YELLOW + "Dungeon spawned.");
+                else player.sendMessage(ChatColor.RED + "Layout not found.");
                 return true;
             }
             case "delete" -> {
