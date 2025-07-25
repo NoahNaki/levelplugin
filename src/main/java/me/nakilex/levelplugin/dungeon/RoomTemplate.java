@@ -4,15 +4,6 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
-import com.sk89q.worldedit.WorldEdit;
-import com.sk89q.worldedit.EditSession;
-import com.sk89q.worldedit.bukkit.BukkitAdapter;
-import com.sk89q.worldedit.extent.clipboard.Clipboard;
-import com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard;
-import com.sk89q.worldedit.function.operation.ForwardExtentCopy;
-import com.sk89q.worldedit.function.operation.Operations;
-import com.sk89q.worldedit.math.BlockVector3;
-import com.sk89q.worldedit.regions.CuboidRegion;
 
 import java.util.*;
 
@@ -51,18 +42,15 @@ public class RoomTemplate {
     private final int minY;
     private final int connectorMinY;
     private final double centerX, centerZ;
-    private final Clipboard clipboard;
 
     public RoomTemplate(List<BlockDef> blocks, List<Connector> connectors,
-                        int width, int height, int depth, int minY,
-                        Clipboard clipboard) {
+                        int width, int height, int depth, int minY) {
         this.blocks = blocks;
         this.connectors = connectors;
         this.width = width;
         this.height = height;
         this.depth = depth;
         this.minY = minY;
-        this.clipboard = clipboard;
         int lowest = Integer.MAX_VALUE;
         for (Connector c : connectors) lowest = Math.min(lowest, c.bottomY);
         this.connectorMinY = lowest == Integer.MAX_VALUE ? 0 : lowest;
@@ -79,7 +67,6 @@ public class RoomTemplate {
     public int getConnectorMinY() { return connectorMinY; }
     public double getCenterX() { return centerX; }
     public double getCenterZ() { return centerZ; }
-    public Clipboard getClipboard() { return clipboard; }
 
     /**
      * Rotate a 2D X/Z vector around the template center.
@@ -112,17 +99,6 @@ public class RoomTemplate {
 
         List<BlockDef> blocks = new ArrayList<>();
         Set<Location> markerBlocks = new HashSet<>();
-
-        CuboidRegion region = new CuboidRegion(
-                BukkitAdapter.adapt(world),
-                BlockVector3.at(minX, minY, minZ),
-                BlockVector3.at(maxX, maxY, maxZ)
-        );
-        BlockArrayClipboard clipboard = new BlockArrayClipboard(region);
-        try (EditSession session = WorldEdit.getInstance().newEditSession(BukkitAdapter.adapt(world))) {
-            ForwardExtentCopy copy = new ForwardExtentCopy(session, region, clipboard, region.getMinimumPoint());
-            Operations.complete(copy);
-        }
 
         for (int x = minX; x <= maxX; x++) {
             for (int y = minY; y <= maxY; y++) {
@@ -180,7 +156,7 @@ public class RoomTemplate {
             connectors.add(new Connector(cx, cz, minGroupY - minY, dir));
         }
 
-        return new RoomTemplate(blocks, connectors, width, height, depth, minY, clipboard);
+        return new RoomTemplate(blocks, connectors, width, height, depth, minY);
     }
 
     /**
@@ -198,5 +174,66 @@ public class RoomTemplate {
     private static Direction rotate(Direction dir, int rotation) {
         int ord = (dir.ordinal() + rotation) & 3;
         return Direction.values()[ord];
+    }
+
+    /** Rotate block data for directional blocks to match rotation. */
+    public static BlockData rotateBlockData(BlockData data, int rotation) {
+        if (rotation % 4 == 0) return data;
+        BlockData copy = data.clone();
+        if (copy instanceof org.bukkit.block.data.Directional dir) {
+            org.bukkit.block.BlockFace face = dir.getFacing();
+            dir.setFacing(rotateFace(face, rotation));
+            return copy;
+        }
+        if (copy instanceof org.bukkit.block.data.Rotatable rot) {
+            org.bukkit.block.BlockFace face = rot.getRotation();
+            rot.setRotation(rotateFace(face, rotation));
+            return copy;
+        }
+        if (copy instanceof org.bukkit.block.data.Orientable orient) {
+            org.bukkit.Axis axis = orient.getAxis();
+            switch (axis) {
+                case X -> orient.setAxis(rotation % 2 == 0 ? org.bukkit.Axis.X : org.bukkit.Axis.Z);
+                case Z -> orient.setAxis(rotation % 2 == 0 ? org.bukkit.Axis.Z : org.bukkit.Axis.X);
+                default -> {}
+            }
+            return copy;
+        }
+        if (copy instanceof org.bukkit.block.data.MultipleFacing multi) {
+            boolean n = multi.hasFace(org.bukkit.block.BlockFace.NORTH);
+            boolean e = multi.hasFace(org.bukkit.block.BlockFace.EAST);
+            boolean s = multi.hasFace(org.bukkit.block.BlockFace.SOUTH);
+            boolean w = multi.hasFace(org.bukkit.block.BlockFace.WEST);
+            multi.setFace(org.bukkit.block.BlockFace.NORTH, false);
+            multi.setFace(org.bukkit.block.BlockFace.EAST, false);
+            multi.setFace(org.bukkit.block.BlockFace.SOUTH, false);
+            multi.setFace(org.bukkit.block.BlockFace.WEST, false);
+            org.bukkit.block.BlockFace[] order = {
+                    org.bukkit.block.BlockFace.NORTH,
+                    org.bukkit.block.BlockFace.EAST,
+                    org.bukkit.block.BlockFace.SOUTH,
+                    org.bukkit.block.BlockFace.WEST
+            };
+            boolean[] faces = {n, e, s, w};
+            for (int i = 0; i < 4; i++) {
+                if (faces[i]) {
+                    multi.setFace(order[(i + rotation) & 3], true);
+                }
+            }
+            return copy;
+        }
+        return copy;
+    }
+
+    private static org.bukkit.block.BlockFace rotateFace(org.bukkit.block.BlockFace face, int rotation) {
+        org.bukkit.block.BlockFace[] order = {
+                org.bukkit.block.BlockFace.NORTH,
+                org.bukkit.block.BlockFace.EAST,
+                org.bukkit.block.BlockFace.SOUTH,
+                org.bukkit.block.BlockFace.WEST
+        };
+        int idx = java.util.Arrays.asList(order).indexOf(face);
+        if (idx < 0) return face;
+        return order[(idx + rotation) & 3];
     }
 }
