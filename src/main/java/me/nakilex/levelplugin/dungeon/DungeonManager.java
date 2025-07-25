@@ -38,7 +38,7 @@ public class DungeonManager {
             return;
         }
         deadEnd = RoomTemplate.capture(world, 145, -58, -4781, 125, -60, -4761);
-        straight = RoomTemplate.capture(world, 125, -58, -4849, -145, -60, 4869);
+        straight = RoomTemplate.capture(world, 125, -58, -4849, -145, -60, -4869);
         corner = RoomTemplate.capture(world, 145, -58, -4803, 125, -60, -4783);
         tJunction = RoomTemplate.capture(world, 145, -60, -4825, 125, -58, -4805);
         crossroad = RoomTemplate.capture(world, 145, -58, -4827, 125, -60, -4847);
