@@ -4,6 +4,15 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
+import com.sk89q.worldedit.WorldEdit;
+import com.sk89q.worldedit.EditSession;
+import com.sk89q.worldedit.bukkit.BukkitAdapter;
+import com.sk89q.worldedit.extent.clipboard.Clipboard;
+import com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard;
+import com.sk89q.worldedit.function.operation.ForwardExtentCopy;
+import com.sk89q.worldedit.function.operation.Operations;
+import com.sk89q.worldedit.math.BlockVector3;
+import com.sk89q.worldedit.regions.CuboidRegion;
 
 import java.util.*;
 
@@ -42,15 +51,18 @@ public class RoomTemplate {
     private final int minY;
     private final int connectorMinY;
     private final double centerX, centerZ;
+    private final Clipboard clipboard;
 
     public RoomTemplate(List<BlockDef> blocks, List<Connector> connectors,
-                        int width, int height, int depth, int minY) {
+                        int width, int height, int depth, int minY,
+                        Clipboard clipboard) {
         this.blocks = blocks;
         this.connectors = connectors;
         this.width = width;
         this.height = height;
         this.depth = depth;
         this.minY = minY;
+        this.clipboard = clipboard;
         int lowest = Integer.MAX_VALUE;
         for (Connector c : connectors) lowest = Math.min(lowest, c.bottomY);
         this.connectorMinY = lowest == Integer.MAX_VALUE ? 0 : lowest;
@@ -67,6 +79,7 @@ public class RoomTemplate {
     public int getConnectorMinY() { return connectorMinY; }
     public double getCenterX() { return centerX; }
     public double getCenterZ() { return centerZ; }
+    public Clipboard getClipboard() { return clipboard; }
 
     /**
      * Rotate a 2D X/Z vector around the template center.
@@ -99,6 +112,17 @@ public class RoomTemplate {
 
         List<BlockDef> blocks = new ArrayList<>();
         Set<Location> markerBlocks = new HashSet<>();
+
+        CuboidRegion region = new CuboidRegion(
+                BukkitAdapter.adapt(world),
+                BlockVector3.at(minX, minY, minZ),
+                BlockVector3.at(maxX, maxY, maxZ)
+        );
+        BlockArrayClipboard clipboard = new BlockArrayClipboard(region);
+        try (EditSession session = WorldEdit.getInstance().newEditSession(BukkitAdapter.adapt(world))) {
+            ForwardExtentCopy copy = new ForwardExtentCopy(session, region, clipboard, region.getMinimumPoint());
+            Operations.complete(copy);
+        }
 
         for (int x = minX; x <= maxX; x++) {
             for (int y = minY; y <= maxY; y++) {
@@ -156,7 +180,7 @@ public class RoomTemplate {
             connectors.add(new Connector(cx, cz, minGroupY - minY, dir));
         }
 
-        return new RoomTemplate(blocks, connectors, width, height, depth, minY);
+        return new RoomTemplate(blocks, connectors, width, height, depth, minY, clipboard);
     }
 
     /**

@@ -6,6 +6,14 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import com.sk89q.worldedit.WorldEdit;
+import com.sk89q.worldedit.EditSession;
+import com.sk89q.worldedit.math.BlockVector3;
+import com.sk89q.worldedit.math.transform.AffineTransform;
+import com.sk89q.worldedit.bukkit.BukkitAdapter;
+import com.sk89q.worldedit.extent.clipboard.ClipboardHolder;
+import com.sk89q.worldedit.function.operation.Operation;
+import com.sk89q.worldedit.function.operation.Operations;
 
 import java.util.*;
 
@@ -133,16 +141,31 @@ public class DungeonManager {
     private void pasteRoom(Dungeon dungeon, RoomTemplate template, int rotation, Location center) {
         World world = center.getWorld();
         if (world == null) return;
+        try (EditSession session = WorldEdit.getInstance().newEditSession(BukkitAdapter.adapt(world))) {
+            ClipboardHolder holder = new ClipboardHolder(template.getClipboard());
+            holder.setTransform(new AffineTransform().rotateY(rotation * 90));
+            Operation op = holder.createPaste(session)
+                    .to(BlockVector3.at(
+                            center.getBlockX() - Math.round(template.getCenterX()),
+                            center.getBlockY() - template.getConnectorMinY(),
+                            center.getBlockZ() - Math.round(template.getCenterZ())))
+                    .ignoreAirBlocks(true)
+                    .build();
+            Operations.complete(op);
+            session.flushQueue();
+        }
+
+        // remove marker blocks after paste
         int baseY = center.getBlockY();
         int connectorY = template.getConnectorMinY();
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
-            if (b.data.getMaterial() == Material.REDSTONE_BLOCK) continue; // skip markers
+            if (b.data.getMaterial() != Material.REDSTONE_BLOCK) continue;
             int[] vec = RoomTemplate.rotate(b.x - (int)Math.round(template.getCenterX()),
                     b.z - (int)Math.round(template.getCenterZ()), rotation);
             int wx = center.getBlockX() + vec[0];
             int wy = baseY + (b.y - connectorY);
             int wz = center.getBlockZ() + vec[1];
-            world.getBlockAt(wx, wy, wz).setBlockData(b.data, false);
+            world.getBlockAt(wx, wy, wz).setType(Material.AIR, false);
         }
         dungeon.addRoom(new Dungeon.RoomInstance(template, rotation, center.clone()));
     }
