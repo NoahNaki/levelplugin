@@ -91,6 +91,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.guild.GuildManager guildManager;
     private me.nakilex.levelplugin.guild.GuildGUI guildGUI;
     private me.nakilex.levelplugin.guild.GuildMemberGUI guildMemberGUI;
+    private me.nakilex.levelplugin.guild.GuildApplicantsGUI guildApplicantsGUI;
     private PartyGlowManager partyGlowManager;
     private me.nakilex.levelplugin.friend.FriendManager friendManager;
     private me.nakilex.levelplugin.friend.FriendGlowManager friendGlowManager;
@@ -220,7 +221,9 @@ public class PluginBootstrap {
         friendManager = new FriendManager();
         guildManager = me.nakilex.levelplugin.guild.GuildManager.getInstance();
         guildGUI = new me.nakilex.levelplugin.guild.GuildGUI(guildManager);
-        guildMemberGUI = new me.nakilex.levelplugin.guild.GuildMemberGUI(guildManager);
+        guildApplicantsGUI = new me.nakilex.levelplugin.guild.GuildApplicantsGUI(guildManager);
+        guildMemberGUI = new me.nakilex.levelplugin.guild.GuildMemberGUI(guildManager, guildGUI, guildApplicantsGUI);
+        guildApplicantsGUI.setMemberGUI(guildMemberGUI);
         gemsManager = new GemsManager();
         gemGui = new GemExchangeGUI(plugin, gemsManager);
         auctionHouseManager = new me.nakilex.levelplugin.auctionhouse.AuctionHouseManager(plugin, economyManager);
@@ -383,6 +386,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.guild.GuildManager getGuildManager() { return guildManager; }
     public me.nakilex.levelplugin.guild.GuildGUI getGuildGUI() { return guildGUI; }
     public me.nakilex.levelplugin.guild.GuildMemberGUI getGuildMemberGUI() { return guildMemberGUI; }
+    public me.nakilex.levelplugin.guild.GuildApplicantsGUI getGuildApplicantsGUI() { return guildApplicantsGUI; }
     public PartyGlowManager getPartyGlowManager() { return partyGlowManager; }
     public me.nakilex.levelplugin.friend.FriendManager getFriendManager() { return friendManager; }
     public me.nakilex.levelplugin.friend.FriendGlowManager getFriendGlowManager() { return friendGlowManager; }

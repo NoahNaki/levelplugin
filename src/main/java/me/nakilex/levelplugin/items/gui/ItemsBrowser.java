@@ -49,7 +49,7 @@ public class ItemsBrowser implements CommandExecutor, Listener {
     }
 
     private String title(int page) {
-        return ChatColor.GRAY + "Items Browser - Page " + (page + 1);
+        return ChatColor.BLACK + "Items Browser - Page " + (page + 1);
     }
 
     private static ItemStack createMenuItem(Material mat, String name, String... loreLines) {
@@ -273,7 +273,7 @@ public class ItemsBrowser implements CommandExecutor, Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent e) {
-        if (!e.getView().getTitle().startsWith(ChatColor.GRAY + "Items Browser")) return;
+        if (!e.getView().getTitle().startsWith(ChatColor.BLACK + "Items Browser")) return;
         e.setCancelled(true);
 
         Player player = (Player) e.getWhoClicked();

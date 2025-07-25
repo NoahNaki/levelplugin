@@ -75,6 +75,31 @@ public class GuildManager {
         return true;
     }
 
+    // ----- Applications -----
+
+    /** Apply to join a guild. */
+    public boolean apply(UUID player, String guildName) {
+        Guild g = guilds.get(guildName);
+        if (g == null) return false;
+        if (playerGuild.containsKey(player)) return false;
+        return g.addApplicant(player);
+    }
+
+    public boolean acceptApplicant(String guildName, UUID applicant) {
+        Guild g = guilds.get(guildName);
+        if (g == null) return false;
+        if (!g.removeApplicant(applicant)) return false;
+        g.addMember(applicant);
+        playerGuild.put(applicant, guildName);
+        return true;
+    }
+
+    public boolean denyApplicant(String guildName, UUID applicant) {
+        Guild g = guilds.get(guildName);
+        if (g == null) return false;
+        return g.removeApplicant(applicant);
+    }
+
     // ----- Alliance / Neutrality Requests -----
     public boolean requestAlliance(String from, String to) {
         Guild gA = guilds.get(from);

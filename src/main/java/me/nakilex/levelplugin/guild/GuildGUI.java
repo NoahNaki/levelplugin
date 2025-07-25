@@ -17,7 +17,7 @@ public class GuildGUI {
 
     private final GuildManager manager;
     private static final int SIZE = 54;
-    private static final String TITLE = ChatColor.AQUA + "Guilds";
+    private static final String TITLE = ChatColor.BLACK + "Guilds";
 
     public GuildGUI(GuildManager manager) {
         this.manager = manager;
@@ -31,6 +31,7 @@ public class GuildGUI {
                 inv.setItem(i, filler);
             }
         }
+        boolean noGuild = manager.getGuild(player.getUniqueId()) == null;
         for (Guild g : manager.getGuilds()) {
             OfflinePlayer lp = Bukkit.getOfflinePlayer(g.getLeader());
             List<String> lore = new ArrayList<>();
@@ -38,6 +39,13 @@ public class GuildGUI {
             lore.add(ChatColor.WHITE + "Members: " + g.getMembers().size());
             lore.add(ChatColor.GREEN + "Allies: " + String.join(", ", g.getAllies()));
             lore.add(ChatColor.RED + "Hostile: " + String.join(", ", g.getHostiles()));
+            if (noGuild) {
+                if (g.getApplicants().containsKey(player.getUniqueId())) {
+                    lore.add(ChatColor.GRAY + "Status: " + ChatColor.YELLOW + "Pending");
+                } else {
+                    lore.add(ChatColor.WHITE + "Left-click " + ChatColor.GRAY + "to apply");
+                }
+            }
             ItemStack head = HeadUtil.createPlayerHead(lp, ChatColor.GOLD + g.getName(), lore);
             inv.addItem(head);
         }

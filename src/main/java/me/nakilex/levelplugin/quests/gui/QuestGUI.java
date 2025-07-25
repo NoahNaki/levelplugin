@@ -44,7 +44,7 @@ public class QuestGUI {
     public static final NamespacedKey QUEST_ID_KEY = new NamespacedKey(Main.getInstance(), "quest_id");
 
     // Confirmation menu constants
-    public static final String CONFIRM_TITLE = ChatColor.RED + "Confirm Abandon";
+    public static final String CONFIRM_TITLE = ChatColor.BLACK + "Confirm Abandon";
     private static final int CONFIRM_SIZE = 27;
     public static final int CONFIRM_YES_SLOT = 11;
     public static final int CONFIRM_NO_SLOT = 15;
