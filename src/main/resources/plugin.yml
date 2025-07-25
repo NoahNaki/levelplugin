@@ -217,4 +217,7 @@ commands:
   showtps:
     description: Toggle TPS display on the scoreboard
     usage: /showtps
+  dungeon:
+    description: Create or delete simple dungeons
+    usage: /dungeon <create|delete>
 
