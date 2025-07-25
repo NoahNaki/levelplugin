@@ -147,6 +147,18 @@ public class GuildMemberGUI implements Listener {
         ItemStack camItem;
         if (g.getLeader().equals(player.getUniqueId())) {
             camItem = GuiUtil.getNexoItem("camera", ChatColor.YELLOW + "Applicants");
+            ItemMeta meta = camItem.getItemMeta();
+            if (meta != null) {
+                int count = g.getApplicants().size();
+                List<String> lore = new ArrayList<>();
+                if (count > 0) {
+                    lore.add(ChatColor.GRAY + "Pending: " + ChatColor.WHITE + count);
+                } else {
+                    lore.add(ChatColor.GRAY + "No pending applications");
+                }
+                meta.setLore(lore);
+                camItem.setItemMeta(meta);
+            }
         } else {
             camItem = GuiUtil.getNexoItem("camera", ChatColor.YELLOW + "Coming Soon");
         }
@@ -159,15 +171,15 @@ public class GuildMemberGUI implements Listener {
     }
 
     private ItemStack createSearchButton(String term) {
-        ItemStack it = GuiUtil.getNexoItem("search", ChatColor.AQUA + "Search");
+        ItemStack it = GuiUtil.getNexoItem("search", ChatColor.GOLD + "Search");
         ItemMeta meta = it.getItemMeta();
         if (meta != null) {
             List<String> lore = new ArrayList<>();
             if (!term.isEmpty()) {
-                lore.add(ChatColor.GRAY + "Current: " + ChatColor.YELLOW + term);
+                lore.add(ChatColor.GRAY + "Current: " + ChatColor.WHITE + term);
                 lore.add(ChatColor.GRAY + "Right-click to clear");
             } else {
-                lore.add(ChatColor.GRAY + "Left-click to search");
+                lore.add(ChatColor.GRAY + "Click to enter a term");
             }
             meta.setLore(lore);
             it.setItemMeta(meta);
@@ -205,7 +217,8 @@ public class GuildMemberGUI implements Listener {
                 lore.add(b + "- " + c + opts[i]);
             }
             lore.add(" ");
-            lore.add(ChatColor.WHITE + "Click to cycle");
+            lore.add(ChatColor.WHITE + "Left-Click " + ChatColor.GRAY + "to go forward");
+            lore.add(ChatColor.WHITE + "Right-Click " + ChatColor.GRAY + "to go backward");
             meta.setLore(lore);
             it.setItemMeta(meta);
         }
@@ -254,7 +267,11 @@ public class GuildMemberGUI implements Listener {
         }
         if (slot == SORT_SLOT) {
             int m = sortModes.getOrDefault(player.getUniqueId(), 0);
-            m = (m + 1) % 3;
+            if (e.getClick() == ClickType.RIGHT) {
+                m = (m + 3 - 1) % 3;
+            } else {
+                m = (m + 1) % 3;
+            }
             sortModes.put(player.getUniqueId(), m);
             open(player, pageMap.getOrDefault(player.getUniqueId(), 0));
             return;
