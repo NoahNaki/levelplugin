@@ -241,6 +241,7 @@ public class DungeonManager {
         Location origin = player.getLocation();
         Dungeon dungeon = new Dungeon(player.getWorld(), name);
 
+        int layoutStep = layout.getStep() > 0 ? layout.getStep() : step;
         int entranceX = -1, entranceZ = -1;
         for (int x = 0; x < DungeonLayout.WIDTH; x++) {
             for (int z = 0; z < DungeonLayout.HEIGHT; z++) {
@@ -266,7 +267,7 @@ public class DungeonManager {
                         : findRotation(templ, dirs);
                 int offX = (entranceX == -1) ? 0 : entranceX;
                 int offZ = (entranceZ == -1) ? 0 : entranceZ;
-                Location center = origin.clone().add((x - offX) * step, 0, (y - offZ) * step);
+                Location center = origin.clone().add((x - offX) * layoutStep, 0, (y - offZ) * layoutStep);
                 String mob = layout.getMob(x, y);
                 pasteRoom(dungeon, templ, rotation, center, mob);
             }

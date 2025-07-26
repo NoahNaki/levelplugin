@@ -50,7 +50,7 @@ public class DungeonBuilder implements Listener {
 
         // spawn existing rooms
         Location origin = player.getLocation().getBlock().getLocation();
-        int step = manager.getStep();
+        int step = layout.getStep() > 0 ? layout.getStep() : manager.getStep();
 
         int entranceX = -1, entranceZ = -1;
         for (int x = 0; x < DungeonLayout.WIDTH; x++) {
@@ -509,6 +509,17 @@ public class DungeonBuilder implements Listener {
         return Direction.values()[(dir.ordinal() + rot) & 3];
     }
 
+    private static int gcd(int a, int b) {
+        if (a == 0) return b;
+        if (b == 0) return a;
+        while (b != 0) {
+            int t = a % b;
+            a = b;
+            b = t;
+        }
+        return Math.abs(a);
+    }
+
     private static class ConnectorInfo {
         final Location location;
         final Direction facing;
@@ -595,7 +606,14 @@ public class DungeonBuilder implements Listener {
             Dungeon.RoomInstance first = dungeon.getRooms().get(0);
             int originX = first.center.getBlockX();
             int originZ = first.center.getBlockZ();
-            int step = manager.getStep();
+            int step = 0;
+            for (Dungeon.RoomInstance r : dungeon.getRooms()) {
+                int dx = Math.abs(r.center.getBlockX() - originX);
+                int dz = Math.abs(r.center.getBlockZ() - originZ);
+                if (dx != 0) step = gcd(step, dx);
+                if (dz != 0) step = gcd(step, dz);
+            }
+            if (step <= 0) step = manager.getStep();
             int offX = DungeonLayout.WIDTH / 2;
             int offZ = DungeonLayout.HEIGHT / 2;
             for (int i = 0; i < dungeon.getRooms().size(); i++) {
@@ -615,6 +633,7 @@ public class DungeonBuilder implements Listener {
                     layout.setMob(lx, lz, r.mob);
                 }
             }
+            layout.setStep(step);
             return layout;
         }
     }

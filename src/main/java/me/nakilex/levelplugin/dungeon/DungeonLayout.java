@@ -7,6 +7,7 @@ public class DungeonLayout {
     private final RoomType[][] grid = new RoomType[WIDTH][HEIGHT];
     private final int[][] rotation = new int[WIDTH][HEIGHT];
     private final String[][] mobs = new String[WIDTH][HEIGHT];
+    private int step = 0;
 
     public DungeonLayout() {
         for (int x = 0; x < WIDTH; x++) {
@@ -46,6 +47,14 @@ public class DungeonLayout {
     public void setMob(int x, int y, String mob) {
         if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return;
         mobs[x][y] = mob;
+    }
+
+    public int getStep() {
+        return step;
+    }
+
+    public void setStep(int step) {
+        this.step = step;
     }
 
     public boolean hasEntrance() {
