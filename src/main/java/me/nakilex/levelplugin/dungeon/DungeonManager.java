@@ -53,9 +53,10 @@ public class DungeonManager {
         crossroad = RoomTemplate.capture(world, 11, -28, -5030, -29, -60, -5070);
         entrance = RoomTemplate.capture(world, 151, -60, -4849, 171, -58, -4869);
 
-        // Place rooms using a fixed grid based on the crossroad width.
-        // This keeps room centers spaced so connectors meet without overlap.
-        step = crossroad.getWidth();
+        // Place rooms using a fixed grid slightly larger than the crossroad
+        // template width so adjacent rooms don't overlap. Each room center is
+        // offset one block further in the direction of placement.
+        step = crossroad.getWidth() + 1;
     }
 
     public boolean createDungeon(Player player, String name, int rooms) {
