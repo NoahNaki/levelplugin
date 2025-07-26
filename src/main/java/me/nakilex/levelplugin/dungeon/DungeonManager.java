@@ -6,6 +6,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.block.data.BlockData;
 
 import java.util.*;
 
@@ -17,14 +18,18 @@ public class DungeonManager {
     private final Main plugin;
     private final Map<String, Dungeon> dungeons = new HashMap<>();
     private final Map<String, DungeonLayout> layouts = new HashMap<>();
-    private final DungeonEditor editor;
+    private final DungeonBuilder builder;
 
     private RoomTemplate deadEnd;
     private RoomTemplate straight;
-    private RoomTemplate corner;
+    private RoomTemplate cornerLeft;
+    private RoomTemplate cornerRight;
     private RoomTemplate tJunction;
     private RoomTemplate crossroad;
     private RoomTemplate entrance;
+    private RoomTemplate boss;
+    private RoomTemplate combatLeft;
+    private RoomTemplate combatRight;
 
     /** spacing between cell centers */
     private int step;
@@ -32,9 +37,21 @@ public class DungeonManager {
     public DungeonManager(Main plugin) {
         this.plugin = plugin;
         loadTemplates();
-        this.editor = new DungeonEditor(this);
-        Bukkit.getPluginManager().registerEvents(editor, plugin);
+        this.builder = new DungeonBuilder(this);
+        Bukkit.getPluginManager().registerEvents(builder, plugin);
     }
+
+    public RoomTemplate getEntrance() { return entrance; }
+    public RoomTemplate getDeadEnd() { return deadEnd; }
+    public RoomTemplate getStraight() { return straight; }
+    public RoomTemplate getCornerLeft() { return cornerLeft; }
+    public RoomTemplate getCornerRight() { return cornerRight; }
+    public RoomTemplate getTJunction() { return tJunction; }
+    public RoomTemplate getCrossroad() { return crossroad; }
+    public RoomTemplate getBoss() { return boss; }
+    public RoomTemplate getCombatLeft() { return combatLeft; }
+    public RoomTemplate getCombatRight() { return combatRight; }
+    public int getStep() { return step; }
 
     private void loadTemplates() {
         World world = Bukkit.getWorld("flatland");
@@ -44,10 +61,16 @@ public class DungeonManager {
         }
         deadEnd = RoomTemplate.capture(world, -29, -60, -5198, 11, -28, -5238);
         straight = RoomTemplate.capture(world, 11, -28, -5114, -29, -60, -5154);
-        corner = RoomTemplate.capture(world, 11, -28, -5156, -29, -60, -5196);
+        cornerLeft = RoomTemplate.capture(world, 11, -28, -5156, -29, -60, -5196);
+        cornerRight = RoomTemplate.capture(world, 11, -28, -5156, -29, -60, -5196);
         tJunction = RoomTemplate.capture(world, -29, -60, -5072, 11, -28, -5112);
         crossroad = RoomTemplate.capture(world, 11, -28, -5030, -29, -60, -5070);
-        entrance = RoomTemplate.capture(world, 151, -60, -4849, 171, -58, -4869);
+        entrance = deadEnd; // use the single-exit room as the entrance
+        // new boss room region provided by the map builder
+        boss = RoomTemplate.capture(world, 43, -14, -5006, -23, -54, -4922);
+        RoomTemplate combat = RoomTemplate.capture(world, 65, -42, -5059, 105, -13, -5100);
+        combatRight = combat;
+        combatLeft = flipEntrances(combat);
 
         // Determine spacing using crossroad connectors
         List<RoomTemplate.Connector> con = crossroad.getConnectors();
@@ -115,7 +138,7 @@ public class DungeonManager {
             case 2 -> {
                 boolean opp = dirs.contains(Direction.NORTH) && dirs.contains(Direction.SOUTH)
                         || dirs.contains(Direction.EAST) && dirs.contains(Direction.WEST);
-                return opp ? straight : corner;
+                return opp ? straight : cornerRight;
             }
             case 3 -> { return tJunction; }
             case 4 -> { return crossroad; }
@@ -130,23 +153,53 @@ public class DungeonManager {
         return 0;
     }
 
-    private void pasteRoom(Dungeon dungeon, RoomTemplate template, int rotation, Location center) {
+    public record PasteResult(boolean success, double overlap, Map<Location, BlockData> replaced) {}
+
+    public PasteResult pasteRoom(Dungeon dungeon, RoomTemplate template, int rotation, Location center) {
         World world = center.getWorld();
-        if (world == null) return;
+        if (world == null) return new PasteResult(false, 1.0, Map.of());
 
         int baseY = center.getBlockY();
         int connectorY = template.getConnectorMinY();
+        int total = 0;
+        int collisions = 0;
+
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
-            if (b.data.getMaterial() == Material.REDSTONE_BLOCK) continue;
+            Material mat = b.data.getMaterial();
+            if (mat == Material.REDSTONE_BLOCK || mat == Material.PINK_WOOL || mat == Material.LIME_WOOL) continue;
             int[] vec = RoomTemplate.rotate(b.x - (int) Math.round(template.getCenterX()),
                     b.z - (int) Math.round(template.getCenterZ()), rotation);
             int wx = center.getBlockX() + vec[0];
             int wy = baseY + (b.y - connectorY);
             int wz = center.getBlockZ() + vec[1];
+            if (world.getBlockAt(wx, wy, wz).getType() != Material.AIR) {
+                // ignore connector layers
+                if (b.y - connectorY > 2) collisions++;
+            }
+            total++;
+        }
+        double overlap = total == 0 ? 0.0 : (double) collisions / total;
+        if (overlap > 0.10) {
+            return new PasteResult(false, overlap, Map.of());
+        }
+
+        Map<Location, BlockData> replaced = new HashMap<>();
+
+        for (RoomTemplate.BlockDef b : template.getBlocks()) {
+            Material mat = b.data.getMaterial();
+            if (mat == Material.REDSTONE_BLOCK || mat == Material.PINK_WOOL || mat == Material.LIME_WOOL) continue;
+            int[] vec = RoomTemplate.rotate(b.x - (int) Math.round(template.getCenterX()),
+                    b.z - (int) Math.round(template.getCenterZ()), rotation);
+            int wx = center.getBlockX() + vec[0];
+            int wy = baseY + (b.y - connectorY);
+            int wz = center.getBlockZ() + vec[1];
+            Location l = new Location(world, wx, wy, wz);
+            replaced.put(l, world.getBlockAt(wx, wy, wz).getBlockData());
             BlockData data = RoomTemplate.rotateBlockData(b.data, rotation);
             world.getBlockAt(wx, wy, wz).setBlockData(data, false);
         }
         dungeon.addRoom(new Dungeon.RoomInstance(template, rotation, center.clone()));
+        return new PasteResult(true, overlap, replaced);
     }
 
     public boolean deleteDungeon(String name) {
@@ -188,7 +241,15 @@ public class DungeonManager {
         return true;
     }
 
-    public DungeonEditor getEditor() { return editor; }
+    public DungeonBuilder getBuilder() { return builder; }
+
+    private static RoomTemplate flipEntrances(RoomTemplate src) {
+        List<RoomTemplate.Connector> list = new ArrayList<>();
+        for (RoomTemplate.Connector c : src.getConnectors()) {
+            list.add(new RoomTemplate.Connector(c.x, c.z, c.bottomY, c.facing, !c.entrance));
+        }
+        return new RoomTemplate(src.getBlocks(), list, src.getWidth(), src.getHeight(), src.getDepth(), src.getMinY());
+    }
 
     private record Point(int x, int z) {
         Point move(Direction dir) {

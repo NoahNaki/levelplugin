@@ -25,8 +25,12 @@ public class DungeonCommand implements CommandExecutor {
         String sub = args[0].toLowerCase();
         switch (sub) {
             case "create" -> {
-                manager.getEditor().open(player);
-                player.sendMessage(ChatColor.YELLOW + "Opened dungeon editor.");
+                manager.getBuilder().start(player);
+                player.sendMessage(ChatColor.YELLOW + "Entered dungeon edit mode.");
+                return true;
+            }
+            case "undo" -> {
+                manager.getBuilder().undo(player);
                 return true;
             }
             case "play" -> {
