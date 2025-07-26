@@ -217,4 +217,7 @@ commands:
   showtps:
     description: Toggle TPS display on the scoreboard
     usage: /showtps
+  codex:
+    description: Open the discovery codex
+    usage: /codex
 
