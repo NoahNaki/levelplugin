@@ -141,8 +141,8 @@ public class DungeonManager {
         int baseY = center.getBlockY();
         int connectorY = template.getConnectorMinY();
 
-        /*
-        // check for overlaps first
+        // check for overlaps first. allow overlap on connector layers so rooms
+        // can connect seamlessly.
         java.util.Set<Integer> ignoreLayers = template.getConnectorLayers();
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
             if (b.data.getMaterial() == Material.PINK_WOOL ||
@@ -157,7 +157,6 @@ public class DungeonManager {
                 return null;
             }
         }
-        */
 
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
             if (b.data.getMaterial() == Material.PINK_WOOL ||

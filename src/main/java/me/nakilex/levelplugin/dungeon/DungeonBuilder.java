@@ -98,7 +98,7 @@ public class DungeonBuilder implements Listener {
                 e.getPlayer().sendMessage(ChatColor.RED + "Not enough space for entrance");
                 return;
             }
-            List<Integer> ids = spawnConnectors(s, manager.getEntranceTemplate(), 0, loc);
+            List<Integer> ids = spawnConnectors(s, manager.getEntranceTemplate(), 0, loc, null);
             s.history.push(new Placement(null, ids));
             s.entrancePlaced = true;
             e.getPlayer().sendMessage(ChatColor.GREEN + "Entrance placed. Use /dungeon undo to remove.");
@@ -106,17 +106,33 @@ public class DungeonBuilder implements Listener {
         }
     }
 
-    private List<Integer> spawnConnectors(Session s, RoomTemplate templ, int rotation, Location center) {
+    /**
+     * Spawn holograms for all unused connectors of a template. The "used" location
+     * represents the connector that was just connected to another room and should
+     * not create another hologram.
+     */
+    private List<Integer> spawnConnectors(Session s, RoomTemplate templ, int rotation, Location center, Location used) {
         List<Integer> ids = new ArrayList<>();
         for (RoomTemplate.Connector c : templ.getConnectors()) {
-            int[] vec = RoomTemplate.rotate(c.x - (int)Math.round(templ.getCenterX()), c.z - (int)Math.round(templ.getCenterZ()), rotation);
+            int[] vec = RoomTemplate.rotate(c.x - (int) Math.round(templ.getCenterX()),
+                    c.z - (int) Math.round(templ.getCenterZ()), rotation);
             int wx = center.getBlockX() + vec[0];
             int wy = center.getBlockY() + (c.bottomY - templ.getConnectorMinY());
             int wz = center.getBlockZ() + vec[1];
+            if (used != null && used.getBlockX() == wx && used.getBlockY() == wy && used.getBlockZ() == wz)
+                continue; // skip connector just used to attach new room
+            // don't spawn if another connector already exists here
+            boolean occupied = s.connectors.values().stream()
+                    .anyMatch(ci -> ci.location.getBlockX() == wx && ci.location.getBlockY() == wy && ci.location.getBlockZ() == wz);
+            if (occupied) continue;
+
             Location holo = new Location(center.getWorld(), wx + 0.5, wy + 1.1, wz + 0.5);
             int id = s.nextId++;
             List<org.bukkit.entity.Entity> ents = spawnHologram(s.player, holo, id);
-            s.connectors.put(id, new ConnectorInfo(new Location(center.getWorld(), wx, wy, wz), Direction.values()[(c.facing.ordinal() + rotation) & 3], ents));
+            s.connectors.put(id,
+                    new ConnectorInfo(new Location(center.getWorld(), wx, wy, wz),
+                            Direction.values()[(c.facing.ordinal() + rotation) & 3],
+                            ents));
             ids.add(id);
         }
         return ids;
@@ -201,7 +217,7 @@ public class DungeonBuilder implements Listener {
                     s.connectors.put(id, new ConnectorInfo(info.location, info.facing, ents));
                     e.getWhoClicked().sendMessage(ChatColor.RED + "Room overlaps existing blocks");
                 } else {
-                    List<Integer> ids = spawnConnectors(s, tmpl, rot, center);
+                    List<Integer> ids = spawnConnectors(s, tmpl, rot, center, info.location);
                     s.history.push(new Placement(info, ids));
                     e.getWhoClicked().sendMessage(ChatColor.GREEN + name + " placed. Use /dungeon undo to undo.");
                 }
