@@ -161,7 +161,7 @@ public class DungeonManager {
 
     public PasteResult pasteRoom(Dungeon dungeon, RoomTemplate template, int rotation, Location center, String mob) {
         World world = center.getWorld();
-        if (world == null) return new PasteResult(false, 1.0, Map.of(), null);
+        if (world == null) return new PasteResult(false, 1.0, Map.<Location, BlockData>of(), null);
 
         int baseY = center.getBlockY();
         int connectorY = template.getConnectorMinY();
@@ -193,7 +193,7 @@ public class DungeonManager {
         }
         double overlap = total == 0 ? 0.0 : (double) collisions / total;
         if (overlap > 0.10) {
-            return new PasteResult(false, overlap, Map.of());
+            return new PasteResult(false, overlap, Map.<Location, BlockData>of(), null);
         }
 
         Map<Location, BlockData> replaced = new HashMap<>();
