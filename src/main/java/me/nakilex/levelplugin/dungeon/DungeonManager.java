@@ -5,6 +5,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.Material;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 
 import java.util.*;
@@ -133,7 +134,7 @@ public class DungeonManager {
         return 0;
     }
 
-    private void pasteRoom(Dungeon dungeon, RoomTemplate template, int rotation, Location center) {
+    public void pasteRoom(Dungeon dungeon, RoomTemplate template, int rotation, Location center) {
         World world = center.getWorld();
         if (world == null) return;
 
