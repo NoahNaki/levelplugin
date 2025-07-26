@@ -125,6 +125,14 @@ public class DungeonManager {
         return 0;
     }
 
+    /**
+     * Paste a room using manual block placement. Connector marker blocks
+     * (pink wool or redstone) are ignored when checking for collisions and are
+     * never placed. Any blocks on layers containing these markers are also
+     * excluded from collision checks so adjoining rooms can share those layers.
+     * If more than 20% of the remaining blocks would collide with existing
+     * structures, the placement fails and returns {@code null}.
+     */
     public Dungeon.RoomInstance pasteRoom(Dungeon dungeon, RoomTemplate template, int rotation, Location center) {
         World world = center.getWorld();
         if (world == null) return null;
