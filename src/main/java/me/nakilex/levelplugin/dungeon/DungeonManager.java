@@ -53,7 +53,9 @@ public class DungeonManager {
         crossroad = RoomTemplate.capture(world, 11, -28, -5030, -29, -60, -5070);
         entrance = RoomTemplate.capture(world, 151, -60, -4849, 171, -58, -4869);
 
-        // Place rooms using a grid based on the crossroad template width.
+        // Place rooms using a grid based on the crossroad template width. This
+        // matches the alignment logic from the earlier working version where
+        // doorways lined up cleanly without overlaps or gaps.
         // Using width - 1 ensures doorway layers line up exactly without
         // leaving gaps or causing overlap.
         step = crossroad.getWidth() - 1;
