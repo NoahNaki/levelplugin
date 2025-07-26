@@ -39,6 +39,66 @@ public class DungeonBuilder implements Listener {
     public void start(Player player) {
         Session s = new Session(player);
         sessions.put(player.getUniqueId(), s);
+        setupInventory(player);
+        player.sendMessage(ChatColor.YELLOW + "Right-click to place the entrance at your feet.");
+    }
+
+    public void edit(Player player, DungeonLayout layout) {
+        Session s = new Session(player);
+        sessions.put(player.getUniqueId(), s);
+        setupInventory(player);
+
+        // spawn existing rooms
+        Location origin = player.getLocation().getBlock().getLocation();
+        int step = manager.getStep();
+
+        int entranceX = -1, entranceZ = -1;
+        for (int x = 0; x < DungeonLayout.WIDTH; x++) {
+            for (int z = 0; z < DungeonLayout.HEIGHT; z++) {
+                if (layout.get(x, z) == RoomType.ENTRANCE) { entranceX = x; entranceZ = z; break; }
+            }
+            if (entranceX != -1) break;
+        }
+
+        for (int x = 0; x < DungeonLayout.WIDTH; x++) {
+            for (int z = 0; z < DungeonLayout.HEIGHT; z++) {
+                RoomType type = layout.get(x, z);
+                if (type == RoomType.NONE) continue;
+
+                Set<Direction> dirs = new HashSet<>();
+                if (layout.get(x + 1, z) != RoomType.NONE) dirs.add(Direction.EAST);
+                if (layout.get(x - 1, z) != RoomType.NONE) dirs.add(Direction.WEST);
+                if (layout.get(x, z + 1) != RoomType.NONE) dirs.add(Direction.SOUTH);
+                if (layout.get(x, z - 1) != RoomType.NONE) dirs.add(Direction.NORTH);
+
+                RoomTemplate templ = manager.chooseTemplate(type, dirs);
+                int rotation = (type == RoomType.COMBAT || type == RoomType.BOSS || type == RoomType.ENTRANCE)
+                        ? layout.getRotation(x, z)
+                        : manager.findRotation(templ, dirs);
+                Location center = origin.clone().add(x * step, 0, z * step);
+                String mob = layout.getMob(x, z);
+                manager.pasteRoom(s.dungeon, templ, rotation, center, mob);
+
+                // spawn connectors only for open sides
+                for (RoomTemplate.Connector c : templ.getConnectors()) {
+                    Direction dir = rotate(c.facing, rotation);
+                    if (dirs.contains(dir)) continue; // neighbour already present
+                    int[] vec = RoomTemplate.rotate(c.x - (int)Math.round(templ.getCenterX()),
+                            c.z - (int)Math.round(templ.getCenterZ()), rotation);
+                    Location loc = center.clone().add(vec[0], c.bottomY - templ.getConnectorMinY(), vec[1]);
+                    ConnectorInfo info = spawnConnector(s, loc, dir);
+                    s.connectors.put(info.interaction.getEntityId(), info);
+                }
+            }
+        }
+
+        s.placingEntrance = (entranceX == -1);
+        if (entranceX == -1) {
+            player.sendMessage(ChatColor.YELLOW + "Right-click to place the entrance at your feet.");
+        }
+    }
+
+    private void setupInventory(Player player) {
         player.getInventory().clear();
         ItemStack wool = new ItemStack(Material.LIME_WOOL);
         ItemMeta meta = wool.getItemMeta();
@@ -55,7 +115,6 @@ public class DungeonBuilder implements Listener {
         if (cm != null) cm.setDisplayName(ChatColor.RED + "Cancel");
         cancel.setItemMeta(cm);
         player.getInventory().setItem(8, cancel);
-        player.sendMessage(ChatColor.YELLOW + "Right-click to place the entrance at your feet.");
     }
 
     public void undo(Player player) {
@@ -216,6 +275,7 @@ public class DungeonBuilder implements Listener {
         }
         DungeonLayout layout = s.buildLayout();
         manager.saveLayout(msg, layout);
+        s.cancel();
         event.getPlayer().sendMessage(ChatColor.GREEN + "Dungeon saved as '" + msg + "'");
         event.getPlayer().getInventory().clear();
         sessions.remove(event.getPlayer().getUniqueId());

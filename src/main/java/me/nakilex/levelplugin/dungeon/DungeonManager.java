@@ -131,7 +131,7 @@ public class DungeonManager {
         return true;
     }
 
-    private RoomTemplate chooseTemplate(RoomType type, Set<Direction> dirs) {
+    public RoomTemplate chooseTemplate(RoomType type, Set<Direction> dirs) {
         if (type == RoomType.ENTRANCE) return entrance;
         if (type == RoomType.BOSS) return boss;
         if (type == RoomType.COMBAT) return combatRight;
@@ -148,7 +148,7 @@ public class DungeonManager {
         }
     }
 
-    private int findRotation(RoomTemplate template, Set<Direction> target) {
+    public int findRotation(RoomTemplate template, Set<Direction> target) {
         for (int r = 0; r < 4; r++) {
             if (template.getRotatedDirections(r).equals(target)) return r;
         }
@@ -228,6 +228,10 @@ public class DungeonManager {
 
     public void saveLayout(String name, DungeonLayout layout) {
         layouts.put(name.toLowerCase(), layout);
+    }
+
+    public DungeonLayout getLayout(String name) {
+        return layouts.get(name.toLowerCase());
     }
 
     public boolean playDungeon(Player player, String name) {

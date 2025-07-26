@@ -7,6 +7,8 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import me.nakilex.levelplugin.dungeon.DungeonLayout;
+
 public class DungeonCommand implements CommandExecutor {
     private final DungeonManager manager;
 
@@ -27,6 +29,20 @@ public class DungeonCommand implements CommandExecutor {
             case "create" -> {
                 manager.getBuilder().start(player);
                 player.sendMessage(ChatColor.YELLOW + "Entered dungeon edit mode.");
+                return true;
+            }
+            case "edit" -> {
+                if (args.length < 2) {
+                    player.sendMessage(ChatColor.RED + "Usage: /dungeon edit <name>");
+                    return true;
+                }
+                DungeonLayout layout = manager.getLayout(args[1]);
+                if (layout == null) {
+                    player.sendMessage(ChatColor.RED + "Layout not found.");
+                    return true;
+                }
+                manager.getBuilder().edit(player, layout);
+                player.sendMessage(ChatColor.YELLOW + "Editing dungeon '" + args[1] + "'.");
                 return true;
             }
             case "undo" -> {
