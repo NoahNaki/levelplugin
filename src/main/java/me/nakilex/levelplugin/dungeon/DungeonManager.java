@@ -62,7 +62,8 @@ public class DungeonManager {
         tJunction = RoomTemplate.capture(world, -29, -60, -5072, 11, -28, -5112);
         crossroad = RoomTemplate.capture(world, 11, -28, -5030, -29, -60, -5070);
         entrance = deadEnd; // use the single-exit room as the entrance
-        boss = RoomTemplate.capture(world, 418, 0, -4412, 480, -39, -4494);
+        // new boss room region provided by the map builder
+        boss = RoomTemplate.capture(world, 43, -14, -5006, -23, -54, -4922);
 
         // Determine spacing using crossroad connectors
         List<RoomTemplate.Connector> con = crossroad.getConnectors();
