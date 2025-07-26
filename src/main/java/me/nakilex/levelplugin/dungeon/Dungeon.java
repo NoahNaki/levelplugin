@@ -51,4 +51,19 @@ public class Dungeon {
         }
         rooms.clear();
     }
+
+    /** Remove the most recently placed room. */
+    public boolean removeLastRoom() {
+        if (rooms.isEmpty()) return false;
+        RoomInstance r = rooms.remove(rooms.size() - 1);
+        for (RoomTemplate.BlockDef b : r.template.getBlocks()) {
+            int[] vec = RoomTemplate.rotate(b.x - (int)Math.round(r.template.getCenterX()),
+                    b.z - (int)Math.round(r.template.getCenterZ()), r.rotation);
+            int wx = r.center.getBlockX() + vec[0];
+            int wy = r.center.getBlockY() + (b.y - r.template.getConnectorMinY());
+            int wz = r.center.getBlockZ() + vec[1];
+            world.getBlockAt(wx, wy, wz).setType(Material.AIR, false);
+        }
+        return true;
+    }
 }

@@ -134,12 +134,26 @@ public class DungeonManager {
         return 0;
     }
 
-    public void pasteRoom(Dungeon dungeon, RoomTemplate template, int rotation, Location center) {
+    public Dungeon.RoomInstance pasteRoom(Dungeon dungeon, RoomTemplate template, int rotation, Location center) {
         World world = center.getWorld();
-        if (world == null) return;
+        if (world == null) return null;
 
         int baseY = center.getBlockY();
         int connectorY = template.getConnectorMinY();
+
+        // check for overlaps first
+        for (RoomTemplate.BlockDef b : template.getBlocks()) {
+            if (b.data.getMaterial() == Material.PINK_WOOL) continue;
+            int[] vec = RoomTemplate.rotate(b.x - (int) Math.round(template.getCenterX()),
+                    b.z - (int) Math.round(template.getCenterZ()), rotation);
+            int wx = center.getBlockX() + vec[0];
+            int wy = baseY + (b.y - connectorY);
+            int wz = center.getBlockZ() + vec[1];
+            if (world.getBlockAt(wx, wy, wz).getType() != Material.AIR) {
+                return null;
+            }
+        }
+
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
             if (b.data.getMaterial() == Material.PINK_WOOL) continue;
             int[] vec = RoomTemplate.rotate(b.x - (int) Math.round(template.getCenterX()),
@@ -150,7 +164,9 @@ public class DungeonManager {
             BlockData data = RoomTemplate.rotateBlockData(b.data, rotation);
             world.getBlockAt(wx, wy, wz).setBlockData(data, false);
         }
-        dungeon.addRoom(new Dungeon.RoomInstance(template, rotation, center.clone()));
+        Dungeon.RoomInstance inst = new Dungeon.RoomInstance(template, rotation, center.clone());
+        dungeon.addRoom(inst);
+        return inst;
     }
 
     public boolean deleteDungeon(String name) {

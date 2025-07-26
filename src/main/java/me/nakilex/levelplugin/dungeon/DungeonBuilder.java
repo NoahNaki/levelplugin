@@ -52,6 +52,7 @@ public class DungeonBuilder implements Listener {
         final Player player;
         final Dungeon dungeon;
         final Map<Integer, ConnectorInfo> connectors = new HashMap<>();
+        final Deque<Placement> history = new ArrayDeque<>();
         int nextId = 0;
         boolean entrancePlaced = false;
         int pending = -1;
@@ -71,6 +72,15 @@ public class DungeonBuilder implements Listener {
         }
     }
 
+    /** Information about a placed room used for undo. */
+    private static class Placement {
+        final ConnectorInfo replaced;
+        final List<Integer> newIds;
+        Placement(ConnectorInfo replaced, List<Integer> newIds) {
+            this.replaced = replaced; this.newIds = newIds;
+        }
+    }
+
     @EventHandler
     public void onUse(PlayerInteractEvent e) {
         Session s = sessions.get(e.getPlayer().getUniqueId());
@@ -83,14 +93,21 @@ public class DungeonBuilder implements Listener {
                 return;
             }
             Location loc = e.getPlayer().getLocation();
-            manager.pasteRoom(s.dungeon, manager.getEntranceTemplate(), 0, loc);
-            spawnConnectors(s, manager.getEntranceTemplate(), 0, loc);
+            Dungeon.RoomInstance inst = manager.pasteRoom(s.dungeon, manager.getEntranceTemplate(), 0, loc);
+            if (inst == null) {
+                e.getPlayer().sendMessage(ChatColor.RED + "Not enough space for entrance");
+                return;
+            }
+            List<Integer> ids = spawnConnectors(s, manager.getEntranceTemplate(), 0, loc);
+            s.history.push(new Placement(null, ids));
             s.entrancePlaced = true;
+            e.getPlayer().sendMessage(ChatColor.GREEN + "Entrance placed. Use /dungeon undo to remove.");
             e.setCancelled(true);
         }
     }
 
-    private void spawnConnectors(Session s, RoomTemplate templ, int rotation, Location center) {
+    private List<Integer> spawnConnectors(Session s, RoomTemplate templ, int rotation, Location center) {
+        List<Integer> ids = new ArrayList<>();
         for (RoomTemplate.Connector c : templ.getConnectors()) {
             int[] vec = RoomTemplate.rotate(c.x - (int)Math.round(templ.getCenterX()), c.z - (int)Math.round(templ.getCenterZ()), rotation);
             int wx = center.getBlockX() + vec[0];
@@ -100,7 +117,9 @@ public class DungeonBuilder implements Listener {
             int id = s.nextId++;
             List<org.bukkit.entity.Entity> ents = spawnHologram(s.player, holo, id);
             s.connectors.put(id, new ConnectorInfo(new Location(center.getWorld(), wx, wy, wz), Direction.values()[(c.facing.ordinal() + rotation) & 3], ents));
+            ids.add(id);
         }
+        return ids;
     }
 
     private List<org.bukkit.entity.Entity> spawnHologram(Player viewer, Location at, int id) {
@@ -163,18 +182,29 @@ public class DungeonBuilder implements Listener {
             ItemStack it = e.getCurrentItem();
             if (it == null) return;
             RoomTemplate tmpl = null;
-            if (it.getType() == Material.RED_WOOL) tmpl = manager.getDeadEndTemplate();
-            if (it.getType() == Material.ORANGE_WOOL) tmpl = manager.getStraightTemplate();
-            if (it.getType() == Material.GREEN_WOOL) tmpl = manager.getCornerTemplate();
-            if (it.getType() == Material.BLUE_WOOL) tmpl = manager.getTJunctionTemplate();
-            if (it.getType() == Material.PURPLE_WOOL) tmpl = manager.getCrossroadTemplate();
+            String name = "Room";
+            if (it.getType() == Material.RED_WOOL) { tmpl = manager.getDeadEndTemplate(); name = "Dead End"; }
+            if (it.getType() == Material.ORANGE_WOOL) { tmpl = manager.getStraightTemplate(); name = "Straight"; }
+            if (it.getType() == Material.GREEN_WOOL) { tmpl = manager.getCornerTemplate(); name = "Corner"; }
+            if (it.getType() == Material.BLUE_WOOL) { tmpl = manager.getTJunctionTemplate(); name = "T-Junction"; }
+            if (it.getType() == Material.PURPLE_WOOL) { tmpl = manager.getCrossroadTemplate(); name = "Crossroad"; }
             if (tmpl != null) {
                 ConnectorInfo info = s.connectors.remove(s.pending);
                 if (info != null) info.entities.forEach(org.bukkit.entity.Entity::remove);
                 int rot = yawToRotation(e.getWhoClicked().getLocation().getYaw());
                 Location center = computeCenter(tmpl, rot, info.location, info.facing.opposite());
-                manager.pasteRoom(s.dungeon, tmpl, rot, center);
-                spawnConnectors(s, tmpl, rot, center);
+                Dungeon.RoomInstance inst = manager.pasteRoom(s.dungeon, tmpl, rot, center);
+                if (inst == null) {
+                    // restore connector
+                    int id = s.nextId++;
+                    List<org.bukkit.entity.Entity> ents = spawnHologram(s.player, info.location.clone().add(0.5,1.1,0.5), id);
+                    s.connectors.put(id, new ConnectorInfo(info.location, info.facing, ents));
+                    e.getWhoClicked().sendMessage(ChatColor.RED + "Room overlaps existing blocks");
+                } else {
+                    List<Integer> ids = spawnConnectors(s, tmpl, rot, center);
+                    s.history.push(new Placement(info, ids));
+                    e.getWhoClicked().sendMessage(ChatColor.GREEN + name + " placed. Use /dungeon undo to undo.");
+                }
             }
             s.pending = -1;
             e.getWhoClicked().closeInventory();
@@ -207,5 +237,30 @@ public class DungeonBuilder implements Listener {
             }
         }
         return target;
+    }
+
+    /** Undo the last placed room for the player editing a dungeon. */
+    public void undo(Player player) {
+        Session s = sessions.get(player.getUniqueId());
+        if (s == null) {
+            player.sendMessage(ChatColor.RED + "Not editing a dungeon.");
+            return;
+        }
+        Placement p = s.history.pollLast();
+        if (p == null) {
+            player.sendMessage(ChatColor.RED + "Nothing to undo.");
+            return;
+        }
+        s.dungeon.removeLastRoom();
+        for (int id : p.newIds) {
+            ConnectorInfo info = s.connectors.remove(id);
+            if (info != null) info.entities.forEach(org.bukkit.entity.Entity::remove);
+        }
+        if (p.replaced != null) {
+            int id = s.nextId++;
+            List<org.bukkit.entity.Entity> ents = spawnHologram(player, p.replaced.location.clone().add(0.5,1.1,0.5), id);
+            s.connectors.put(id, new ConnectorInfo(p.replaced.location, p.replaced.facing, ents));
+        }
+        player.sendMessage(ChatColor.YELLOW + "Undid last room.");
     }
 }

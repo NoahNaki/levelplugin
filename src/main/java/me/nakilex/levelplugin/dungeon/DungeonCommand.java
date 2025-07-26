@@ -49,6 +49,10 @@ public class DungeonCommand implements CommandExecutor {
                 else player.sendMessage(ChatColor.RED + "Dungeon not found.");
                 return true;
             }
+            case "undo" -> {
+                manager.getBuilder().undo(player);
+                return true;
+            }
             default -> {
                 return false;
             }
