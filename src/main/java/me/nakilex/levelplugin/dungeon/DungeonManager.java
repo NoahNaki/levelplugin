@@ -144,9 +144,11 @@ public class DungeonManager {
         return 0;
     }
 
-    public boolean pasteRoom(Dungeon dungeon, RoomTemplate template, int rotation, Location center) {
+    public record PasteResult(boolean success, double overlap) {}
+
+    public PasteResult pasteRoom(Dungeon dungeon, RoomTemplate template, int rotation, Location center) {
         World world = center.getWorld();
-        if (world == null) return false;
+        if (world == null) return new PasteResult(false, 1.0);
 
         int baseY = center.getBlockY();
         int connectorY = template.getConnectorMinY();
@@ -167,8 +169,9 @@ public class DungeonManager {
             }
             total++;
         }
-        if (total > 0 && (double) collisions / total > 0.1) {
-            return false;
+        double overlap = total == 0 ? 0.0 : (double) collisions / total;
+        if (overlap > 0.05) {
+            return new PasteResult(false, overlap);
         }
 
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
@@ -183,7 +186,7 @@ public class DungeonManager {
             world.getBlockAt(wx, wy, wz).setBlockData(data, false);
         }
         dungeon.addRoom(new Dungeon.RoomInstance(template, rotation, center.clone()));
-        return true;
+        return new PasteResult(true, overlap);
     }
 
     public boolean deleteDungeon(String name) {

@@ -67,8 +67,9 @@ public class DungeonBuilder implements Listener {
         } else {
             loc = player.getLocation().getBlock().getLocation();
         }
-        boolean ok = manager.pasteRoom(s.dungeon, manager.getEntrance(), 0, loc);
-        if (!ok) {
+        DungeonManager.PasteResult result = manager.pasteRoom(s.dungeon, manager.getEntrance(), 0, loc);
+        player.sendMessage(ChatColor.GRAY + String.format("Overlap: %.1f%%", result.overlap() * 100));
+        if (!result.success()) {
             player.sendMessage(ChatColor.RED + "Cannot place entrance here.");
             return;
         }
@@ -167,8 +168,9 @@ public class DungeonBuilder implements Listener {
         int[] vec = RoomTemplate.rotate(match.x - (int) Math.round(templ.getCenterX()),
                 match.z - (int) Math.round(templ.getCenterZ()), rotation);
         Location center = base.clone().subtract(vec[0], match.bottomY - templ.getConnectorMinY(), vec[1]);
-        boolean ok = manager.pasteRoom(s.dungeon, templ, rotation, center);
-        if (!ok) {
+        DungeonManager.PasteResult result = manager.pasteRoom(s.dungeon, templ, rotation, center);
+        s.player.sendMessage(ChatColor.GRAY + String.format("Overlap: %.1f%%", result.overlap() * 100));
+        if (!result.success()) {
             s.player.sendMessage(ChatColor.RED + "Room collides with existing blocks.");
             return;
         }
