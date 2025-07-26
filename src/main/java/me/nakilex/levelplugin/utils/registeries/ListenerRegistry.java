@@ -45,6 +45,7 @@ import me.nakilex.levelplugin.quests.listeners.QuestKillListener;
 import me.nakilex.levelplugin.quests.listeners.QuestCraftListener;
 import me.nakilex.levelplugin.quests.gui.QuestGUIListener;
 import me.nakilex.levelplugin.npc.listeners.NPCDialogMoveListener;
+import me.nakilex.levelplugin.dungeon.DungeonMobSpawnListener;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.fasttravel.listeners.WaystoneListener;
 import me.nakilex.levelplugin.fasttravel.listeners.ExplorationListener;
@@ -175,6 +176,7 @@ public class ListenerRegistry {
                 plugin.getMobRewardsConfig(),
                 plugin.getBossConfig(),
                 plugin.getCodexManager()), plugin);
+        pm.registerEvents(new DungeonMobSpawnListener(plugin.getDungeonManager()), plugin);
         pm.registerEvents(hologramListener, plugin);
         pm.registerEvents(stageBlockInteractListener, plugin);
         pm.registerEvents(new me.nakilex.levelplugin.environment.listeners.TownItemDropListener(plugin.getEnvironmentManager()), plugin);
