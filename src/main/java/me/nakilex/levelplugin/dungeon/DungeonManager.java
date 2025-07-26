@@ -153,7 +153,7 @@ public class DungeonManager {
             int wx = center.getBlockX() + vec[0];
             int wy = baseY + (b.y - connectorY);
             int wz = center.getBlockZ() + vec[1];
-            if (world.getBlockAt(wx, wy, wz).getType() != Material.AIR &&
+            if (!world.getBlockAt(wx, wy, wz).getType().isAir() &&
                     !ignoreLayers.contains(b.y)) {
                 return null;
             }
