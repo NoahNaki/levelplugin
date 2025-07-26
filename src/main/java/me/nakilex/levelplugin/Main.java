@@ -15,6 +15,9 @@ import me.nakilex.levelplugin.settings.gui.SettingsGUI;
 import me.nakilex.levelplugin.trade.data.ConfigValues;
 import me.nakilex.levelplugin.trade.utils.MessageStrings;
 import me.nakilex.levelplugin.utils.DealMaker;
+import me.nakilex.levelplugin.codex.CodexManager;
+import me.nakilex.levelplugin.codex.CodexGUI;
+import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -68,6 +71,7 @@ public class Main extends JavaPlugin {
     public ItemManager getItemManager() { return bootstrap.getItemManager(); }
     public me.nakilex.levelplugin.auctionhouse.AuctionHouseManager getAuctionHouseManager() { return bootstrap.getAuctionHouseManager(); }
     public FileConfiguration getBossConfig() { return bootstrap.getBossConfig(); }
+    public MobRewardsConfig getMobRewardsConfig() { return bootstrap.getMobRewardsConfig(); }
     public me.nakilex.levelplugin.utils.registeries.CommandRegistry getCommandRegistry() { return null; }
     public me.nakilex.levelplugin.utils.registeries.ListenerRegistry getListenerRegistry() { return null; }
     public me.nakilex.levelplugin.spells.registry.EffectRegistry getEffectRegistry() { return null; }
@@ -102,4 +106,6 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.npc.dialog.NPCDialogManager getDialogManager() { return bootstrap.getDialogManager(); }
     public me.nakilex.levelplugin.calendar.CalendarManager getCalendarManager() { return bootstrap.getCalendarManager(); }
     public me.nakilex.levelplugin.cutscene.CutsceneManager getCutsceneManager() { return bootstrap.getCutsceneManager(); }
+    public CodexManager getCodexManager() { return bootstrap.getCodexManager(); }
+    public CodexGUI getCodexGUI() { return bootstrap.getCodexGUI(); }
 }

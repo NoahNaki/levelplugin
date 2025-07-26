@@ -30,6 +30,8 @@ import me.nakilex.levelplugin.party.PartyGlowManager;
 import me.nakilex.levelplugin.friend.FriendManager;
 import me.nakilex.levelplugin.friend.FriendGlowManager;
 import me.nakilex.levelplugin.friend.PlayerVisibilityManager;
+import me.nakilex.levelplugin.codex.CodexManager;
+import me.nakilex.levelplugin.codex.CodexGUI;
 import me.nakilex.levelplugin.friend.IgnoreManager;
 import me.nakilex.levelplugin.friend.FriendRequestListener;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
@@ -153,6 +155,8 @@ public class PluginBootstrap {
     private SettingsManager settingsManager;
     private SettingsGUI settingsGUI;
     private MeteorListener meteorListener;
+    private me.nakilex.levelplugin.codex.CodexManager codexManager;
+    private me.nakilex.levelplugin.codex.CodexGUI codexGUI;
 
     public PluginBootstrap(Main plugin) {
         this.plugin = plugin;
@@ -179,6 +183,8 @@ public class PluginBootstrap {
             return;
         }
         mobRewardsConfig = new MobRewardsConfig(plugin);
+        codexManager = new me.nakilex.levelplugin.codex.CodexManager(playerConfig, mobRewardsConfig, bossConfig);
+        codexGUI = new me.nakilex.levelplugin.codex.CodexGUI(codexManager);
         registerCommandsAndListeners();
         new ItemsBrowser(plugin);
         new me.nakilex.levelplugin.items.tools.gui.ToolBrowser(plugin);
@@ -302,7 +308,8 @@ public class PluginBootstrap {
             questManager,
             fastTravelManager,
             motdManager,
-            upgradeGUI
+            upgradeGUI,
+            codexGUI
         );
         ListenerRegistry.registerListeners(
             plugin,
@@ -446,6 +453,8 @@ public class PluginBootstrap {
     public MeteorListener getMeteorListener() { return meteorListener; }
     public me.nakilex.levelplugin.cutscene.CutsceneManager getCutsceneManager() { return cutsceneManager; }
     public me.nakilex.levelplugin.calendar.CalendarManager getCalendarManager() { return calendarManager; }
+    public me.nakilex.levelplugin.codex.CodexManager getCodexManager() { return codexManager; }
+    public me.nakilex.levelplugin.codex.CodexGUI getCodexGUI() { return codexGUI; }
 
     private void createCustomConfig() {
         customConfigFile = new File(plugin.getDataFolder(), "config.yml");

@@ -48,6 +48,8 @@ import me.nakilex.levelplugin.party.PartyCommands;
 import me.nakilex.levelplugin.party.PartyGlowCommand;
 import me.nakilex.levelplugin.friend.FriendCommand;
 import me.nakilex.levelplugin.friend.FriendGlowCommand;
+import me.nakilex.levelplugin.codex.CodexGUI;
+import me.nakilex.levelplugin.codex.CodexCommand;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.horse.managers.HorseManager;
 import me.nakilex.levelplugin.party.PartyManager;
@@ -95,7 +97,8 @@ public class CommandRegistry {
                                         QuestManager questManager,
                                         FastTravelManager fastTravelManager,
                                         me.nakilex.levelplugin.motd.MotdManager motdManager,
-                                        UpgradeGUI upgradeGUI) {
+                                        UpgradeGUI upgradeGUI,
+                                        CodexGUI codexGUI) {
 
 
         plugin.getCommand("addpoints").setExecutor(new AddPointsCommand());
@@ -153,6 +156,8 @@ public class CommandRegistry {
         plugin.getCommand("buildingstage").setExecutor(new BuildingStageCommand(plugin, plugin.getBuildingStageManager()));
         plugin.getCommand("townpos1").setExecutor(new TownPosCommand(true));
         plugin.getCommand("townpos2").setExecutor(new TownPosCommand(false));
+
+        plugin.getCommand("codex").setExecutor(new CodexCommand(codexGUI));
 
         plugin.getCommand("cutscene").setExecutor(new me.nakilex.levelplugin.cutscene.commands.CutsceneCommand(plugin.getCutsceneManager()));
     }
