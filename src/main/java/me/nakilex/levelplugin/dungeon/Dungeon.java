@@ -28,6 +28,7 @@ public class Dungeon {
     private final String name;
     private final List<RoomInstance> rooms = new ArrayList<>();
     private final Set<BlockPos> occupied = new HashSet<>();
+    private final Set<BlockPos> connectorOccupied = new HashSet<>();
 
     private record BlockPos(int x, int y, int z) {}
 
@@ -43,13 +44,16 @@ public class Dungeon {
         for (RoomTemplate.BlockDef b : inst.template.getBlocks()) {
             if (b.data.getMaterial() == org.bukkit.Material.PINK_WOOL ||
                 b.data.getMaterial() == org.bukkit.Material.REDSTONE_BLOCK) continue;
-            if (inst.template.getConnectorLayers().contains(b.y)) continue;
             int[] vec = RoomTemplate.rotate(b.x - (int)Math.round(inst.template.getCenterX()),
                     b.z - (int)Math.round(inst.template.getCenterZ()), inst.rotation);
             int wx = inst.center.getBlockX() + vec[0];
             int wy = inst.center.getBlockY() + (b.y - inst.template.getConnectorMinY());
             int wz = inst.center.getBlockZ() + vec[1];
-            occupied.add(new BlockPos(wx, wy, wz));
+            if (inst.template.isConnectorBlock(b.x, b.y, b.z)) {
+                connectorOccupied.add(new BlockPos(wx, wy, wz));
+            } else {
+                occupied.add(new BlockPos(wx, wy, wz));
+            }
         }
     }
 
@@ -63,7 +67,9 @@ public class Dungeon {
                 int wy = r.center.getBlockY() + (b.y - r.template.getConnectorMinY());
                 int wz = r.center.getBlockZ() + vec[1];
                 world.getBlockAt(wx, wy, wz).setType(Material.AIR, false);
-                occupied.remove(new BlockPos(wx, wy, wz));
+                BlockPos pos = new BlockPos(wx, wy, wz);
+                occupied.remove(pos);
+                connectorOccupied.remove(pos);
             }
         }
         rooms.clear();
@@ -80,12 +86,19 @@ public class Dungeon {
             int wy = r.center.getBlockY() + (b.y - r.template.getConnectorMinY());
             int wz = r.center.getBlockZ() + vec[1];
             world.getBlockAt(wx, wy, wz).setType(Material.AIR, false);
-            occupied.remove(new BlockPos(wx, wy, wz));
+            BlockPos pos = new BlockPos(wx, wy, wz);
+            occupied.remove(pos);
+            connectorOccupied.remove(pos);
         }
         return true;
     }
 
     public boolean isOccupied(int x, int y, int z) {
-        return occupied.contains(new BlockPos(x, y, z));
+        BlockPos pos = new BlockPos(x, y, z);
+        return occupied.contains(pos) || connectorOccupied.contains(pos);
+    }
+
+    public boolean isConnectorOccupied(int x, int y, int z) {
+        return connectorOccupied.contains(new BlockPos(x, y, z));
     }
 }

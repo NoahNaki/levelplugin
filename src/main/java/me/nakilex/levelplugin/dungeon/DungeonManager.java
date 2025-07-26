@@ -144,7 +144,6 @@ public class DungeonManager {
         // Check overlaps using our own placed blocks instead of relying solely on
         // world state. Blocks on connector layers may overlap, while all others
         // must be free both in the world and in the dungeon occupancy set.
-        java.util.Set<Integer> ignoreLayers = template.getConnectorLayers();
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
             if (b.data.getMaterial() == Material.PINK_WOOL ||
                     b.data.getMaterial() == Material.REDSTONE_BLOCK) continue;
@@ -153,16 +152,16 @@ public class DungeonManager {
             int wx = center.getBlockX() + vec[0];
             int wy = baseY + (b.y - connectorY);
             int wz = center.getBlockZ() + vec[1];
-            if (!ignoreLayers.contains(b.y)) {
-                if (!world.getBlockAt(wx, wy, wz).getType().isAir()) return null;
-                if (dungeon.isOccupied(wx, wy, wz)) return null;
+
+            boolean connector = template.isConnectorBlock(b.x, b.y, b.z);
+            Material worldMat = world.getBlockAt(wx, wy, wz).getType();
+
+            if (connector) {
+                if (!worldMat.isAir() && !dungeon.isConnectorOccupied(wx, wy, wz)) return null;
+                if (dungeon.isOccupied(wx, wy, wz) && !dungeon.isConnectorOccupied(wx, wy, wz)) return null;
             } else {
-                // connector layer: still block placement allowed, but avoid
-                // overlapping with non-air terrain outside the dungeon
-                if (!world.getBlockAt(wx, wy, wz).getType().isAir() &&
-                        dungeon.isOccupied(wx, wy, wz)) {
-                    return null;
-                }
+                if (!worldMat.isAir()) return null;
+                if (dungeon.isOccupied(wx, wy, wz)) return null;
             }
         }
 

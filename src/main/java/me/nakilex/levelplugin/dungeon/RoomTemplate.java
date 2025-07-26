@@ -25,14 +25,26 @@ public class RoomTemplate {
     }
 
     public static class Connector {
-        /** X/Z center of the connector and lowest Y of the marker stack */
-        public final int x, z, bottomY;
+        /** X/Z center and vertical bounds of the marker stack */
+        public final int x, z, bottomY, topY;
+        public final int minX, maxX, minZ, maxZ;
         public final Direction facing;
-        public Connector(int x, int z, int bottomY, Direction facing) {
+        public Connector(int x, int z, int bottomY, int topY,
+                          int minX, int maxX, int minZ, int maxZ,
+                          Direction facing) {
             this.x = x;
             this.z = z;
             this.bottomY = bottomY;
+            this.topY = topY;
+            this.minX = minX;
+            this.maxX = maxX;
+            this.minZ = minZ;
+            this.maxZ = maxZ;
             this.facing = facing;
+        }
+
+        public boolean contains(int x, int y, int z) {
+            return x >= minX && x <= maxX && z >= minZ && z <= maxZ && y >= bottomY && y <= topY;
         }
     }
 
@@ -72,6 +84,14 @@ public class RoomTemplate {
     public java.util.Set<Integer> getConnectorLayers() { return connectorLayers; }
     public double getCenterX() { return centerX; }
     public double getCenterZ() { return centerZ; }
+
+    /** Determine if the given block coordinates are inside any connector area. */
+    public boolean isConnectorBlock(int x, int y, int z) {
+        for (Connector c : connectors) {
+            if (c.contains(x, y, z)) return true;
+        }
+        return false;
+    }
 
     /**
      * Rotate a 2D X/Z vector around the template center.
@@ -132,9 +152,20 @@ public class RoomTemplate {
             Deque<Location> stack = new ArrayDeque<>();
             stack.push(loc);
             visited.add(loc);
+            int minGX = Integer.MAX_VALUE, minGY = Integer.MAX_VALUE, minGZ = Integer.MAX_VALUE;
+            int maxGX = Integer.MIN_VALUE, maxGY = Integer.MIN_VALUE, maxGZ = Integer.MIN_VALUE;
             while (!stack.isEmpty()) {
                 Location l = stack.pop();
                 group.add(l);
+                int bx = l.getBlockX();
+                int by = l.getBlockY();
+                int bz = l.getBlockZ();
+                if (bx < minGX) minGX = bx;
+                if (by < minGY) minGY = by;
+                if (bz < minGZ) minGZ = bz;
+                if (bx > maxGX) maxGX = bx;
+                if (by > maxGY) maxGY = by;
+                if (bz > maxGZ) maxGZ = bz;
                 for (int dx = -1; dx <= 1; dx++) {
                     for (int dy = -1; dy <= 1; dy++) {
                         for (int dz = -1; dz <= 1; dz++) {
@@ -147,21 +178,24 @@ public class RoomTemplate {
                     }
                 }
             }
-            // compute center of group
-            double sx = 0, sy = 0, sz = 0;
-            int minGroupY = Integer.MAX_VALUE;
-            for (Location l : group) {
-                sx += l.getBlockX();
-                sy += l.getBlockY();
-                sz += l.getBlockZ();
-                if (l.getBlockY() < minGroupY) minGroupY = l.getBlockY();
-            }
-            int cx = (int)Math.round(sx / group.size()) - minX;
-            int cz = (int)Math.round(sz / group.size()) - minZ;
+            double cxWorld = (minGX + maxGX) / 2.0;
+            double czWorld = (minGZ + maxGZ) / 2.0;
+            int cx = (int)Math.round(cxWorld) - minX;
+            int cz = (int)Math.round(czWorld) - minZ;
             int dx = cx - (int)Math.round((width - 1) / 2.0);
             int dz = cz - (int)Math.round((depth - 1) / 2.0);
             Direction dir = Direction.fromDelta(dx, dz);
-            connectors.add(new Connector(cx, cz, minGroupY - minY, dir));
+            connectors.add(new Connector(
+                    cx,
+                    cz,
+                    minGY - minY,
+                    maxGY - minY,
+                    minGX - minX,
+                    maxGX - minX,
+                    minGZ - minZ,
+                    maxGZ - minZ,
+                    dir));
+            for (int ly = minGY - minY; ly <= maxGY - minY; ly++) layers.add(ly);
         }
 
         return new RoomTemplate(blocks, connectors, layers, width, height, depth, minY);
