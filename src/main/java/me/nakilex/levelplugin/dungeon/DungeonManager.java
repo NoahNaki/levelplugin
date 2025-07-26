@@ -27,6 +27,7 @@ public class DungeonManager {
     private RoomTemplate tJunction;
     private RoomTemplate crossroad;
     private RoomTemplate entrance;
+    private RoomTemplate boss;
 
     /** spacing between cell centers */
     private int step;
@@ -45,6 +46,7 @@ public class DungeonManager {
     public RoomTemplate getCornerRight() { return cornerRight; }
     public RoomTemplate getTJunction() { return tJunction; }
     public RoomTemplate getCrossroad() { return crossroad; }
+    public RoomTemplate getBoss() { return boss; }
 
     private void loadTemplates() {
         World world = Bukkit.getWorld("flatland");
@@ -59,6 +61,7 @@ public class DungeonManager {
         tJunction = RoomTemplate.capture(world, -29, -60, -5072, 11, -28, -5112);
         crossroad = RoomTemplate.capture(world, 11, -28, -5030, -29, -60, -5070);
         entrance = RoomTemplate.capture(world, 151, -60, -4849, 171, -58, -4869);
+        boss = RoomTemplate.capture(world, 418, 0, -4412, 480, -39, -4494);
 
         // Determine spacing using crossroad connectors
         List<RoomTemplate.Connector> con = crossroad.getConnectors();

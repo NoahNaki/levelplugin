@@ -114,6 +114,7 @@ public class DungeonBuilder implements Listener {
                 case LIME_WOOL -> manager.getCornerRight();
                 case BLUE_WOOL -> manager.getTJunction();
                 case PURPLE_WOOL -> manager.getCrossroad();
+                case BLACK_WOOL -> manager.getBoss();
                 default -> null;
             };
             if (templ != null) {
@@ -129,15 +130,38 @@ public class DungeonBuilder implements Listener {
         Location base = info.location;
         int rotation = 0;
         RoomTemplate.Connector match = null;
-        for (int r = 0; r < 4; r++) {
-            for (RoomTemplate.Connector c : templ.getConnectors()) {
-                if (rotate(c.facing, r) == info.facing.opposite()) {
-                    rotation = r;
-                    match = c;
-                    break;
+
+        // Special handling for left/right corners to ensure exit orientation
+        if (templ == manager.getCornerLeft() || templ == manager.getCornerRight()) {
+            boolean right = templ == manager.getCornerRight();
+            Direction exitDir = rotate(info.facing, right ? 1 : 3);
+            outer:
+            for (int r = 0; r < 4; r++) {
+                for (RoomTemplate.Connector c : templ.getConnectors()) {
+                    if (rotate(c.facing, r) != info.facing.opposite()) continue;
+                    for (RoomTemplate.Connector o : templ.getConnectors()) {
+                        if (o == c) continue;
+                        if (rotate(o.facing, r) == exitDir) {
+                            rotation = r;
+                            match = c;
+                            break outer;
+                        }
+                    }
                 }
             }
-            if (match != null) break;
+        }
+
+        if (match == null) {
+            for (int r = 0; r < 4; r++) {
+                for (RoomTemplate.Connector c : templ.getConnectors()) {
+                    if (rotate(c.facing, r) == info.facing.opposite()) {
+                        rotation = r;
+                        match = c;
+                        break;
+                    }
+                }
+                if (match != null) break;
+            }
         }
         if (match == null) return;
         int[] vec = RoomTemplate.rotate(match.x - (int) Math.round(templ.getCenterX()),
@@ -148,7 +172,7 @@ public class DungeonBuilder implements Listener {
             s.player.sendMessage(ChatColor.RED + "Room collides with existing blocks.");
             return;
         }
-        removeConnector(info);
+        removeConnector(s, info);
         List<ConnectorInfo> added = spawnConnectors(s, center, templ, rotation, info);
         s.history.push(new History(info, added, new Dungeon.RoomInstance(templ, rotation, center.clone())));
     }
@@ -184,9 +208,10 @@ public class DungeonBuilder implements Listener {
         return new ConnectorInfo(loc, dir, s.player, inter, display);
     }
 
-    private void removeConnector(ConnectorInfo info) {
+    private void removeConnector(Session s, ConnectorInfo info) {
         info.interaction.remove();
         info.display.remove();
+        s.connectors.remove(info.interaction.getEntityId());
     }
 
     private Inventory createRoomSelect() {
@@ -207,6 +232,7 @@ public class DungeonBuilder implements Listener {
         inv.setItem(3, item(Material.LIME_WOOL, ChatColor.GREEN + "Corner Right"));
         inv.setItem(4, item(Material.BLUE_WOOL, ChatColor.BLUE + "T-Junction"));
         inv.setItem(5, item(Material.PURPLE_WOOL, ChatColor.LIGHT_PURPLE + "Crossroad"));
+        inv.setItem(8, item(Material.BLACK_WOOL, ChatColor.DARK_GRAY + "Boss"));
         return inv;
     }
 
@@ -272,9 +298,7 @@ public class DungeonBuilder implements Listener {
                 world.getBlockAt(l).setType(Material.AIR, false);
             }
             for (ConnectorInfo c : h.added) {
-                c.interaction.remove();
-                c.display.remove();
-                connectors.remove(c.interaction.getEntityId());
+                DungeonBuilder.this.removeConnector(this, c);
             }
             if (h.used != null) {
                 ConnectorInfo restored = DungeonBuilder.this.spawnConnector(this, h.used.location, h.used.facing);
