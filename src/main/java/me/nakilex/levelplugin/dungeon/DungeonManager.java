@@ -167,7 +167,7 @@ public class DungeonManager {
             }
             total++;
         }
-        if (total > 0 && (double) collisions / total > 0.2) {
+        if (total > 0 && (double) collisions / total > 0.1) {
             return false;
         }
 
