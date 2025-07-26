@@ -5,6 +5,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
@@ -74,7 +75,7 @@ public class DungeonBuilder implements Listener {
             return;
         }
         s.history.push(new History(null, spawnConnectors(s, loc, manager.getEntrance(), 0, null),
-                new Dungeon.RoomInstance(manager.getEntrance(), 0, loc.clone())));
+                new Dungeon.RoomInstance(manager.getEntrance(), 0, loc.clone()), result.replaced()));
         s.placingEntrance = false;
         player.sendMessage(ChatColor.GREEN + "Entrance placed. Use holograms to add rooms.");
     }
@@ -176,7 +177,7 @@ public class DungeonBuilder implements Listener {
         }
         removeConnector(s, info);
         List<ConnectorInfo> added = spawnConnectors(s, center, templ, rotation, info);
-        s.history.push(new History(info, added, new Dungeon.RoomInstance(templ, rotation, center.clone())));
+        s.history.push(new History(info, added, new Dungeon.RoomInstance(templ, rotation, center.clone()), result.replaced()));
     }
 
     private List<ConnectorInfo> spawnConnectors(Session s, Location center, RoomTemplate templ, int rotation, ConnectorInfo used) {
@@ -269,10 +270,13 @@ public class DungeonBuilder implements Listener {
         final ConnectorInfo used;
         final List<ConnectorInfo> added;
         final Dungeon.RoomInstance instance;
-        History(ConnectorInfo used, List<ConnectorInfo> added, Dungeon.RoomInstance inst) {
+        final Map<Location, BlockData> replaced;
+        History(ConnectorInfo used, List<ConnectorInfo> added,
+                Dungeon.RoomInstance inst, Map<Location, BlockData> replaced) {
             this.used = used;
             this.added = added;
             this.instance = inst;
+            this.replaced = replaced;
         }
     }
 
@@ -291,13 +295,8 @@ public class DungeonBuilder implements Listener {
             History h = history.poll();
             if (h == null) return;
             World world = h.instance.center.getWorld();
-            for (RoomTemplate.BlockDef b : h.instance.template.getBlocks()) {
-                Material mat = b.data.getMaterial();
-                if (mat == Material.REDSTONE_BLOCK || mat == Material.PINK_WOOL) continue;
-                int[] vec = RoomTemplate.rotate(b.x - (int) Math.round(h.instance.template.getCenterX()),
-                        b.z - (int) Math.round(h.instance.template.getCenterZ()), h.instance.rotation);
-                Location l = h.instance.center.clone().add(vec[0], b.y - h.instance.template.getConnectorMinY(), vec[1]);
-                world.getBlockAt(l).setType(Material.AIR, false);
+            for (Map.Entry<Location, BlockData> e : h.replaced.entrySet()) {
+                world.getBlockAt(e.getKey()).setBlockData(e.getValue(), false);
             }
             for (ConnectorInfo c : h.added) {
                 DungeonBuilder.this.removeConnector(this, c);

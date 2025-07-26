@@ -144,11 +144,11 @@ public class DungeonManager {
         return 0;
     }
 
-    public record PasteResult(boolean success, double overlap) {}
+    public record PasteResult(boolean success, double overlap, Map<Location, BlockData> replaced) {}
 
     public PasteResult pasteRoom(Dungeon dungeon, RoomTemplate template, int rotation, Location center) {
         World world = center.getWorld();
-        if (world == null) return new PasteResult(false, 1.0);
+        if (world == null) return new PasteResult(false, 1.0, Map.of());
 
         int baseY = center.getBlockY();
         int connectorY = template.getConnectorMinY();
@@ -170,9 +170,11 @@ public class DungeonManager {
             total++;
         }
         double overlap = total == 0 ? 0.0 : (double) collisions / total;
-        if (overlap > 0.05) {
-            return new PasteResult(false, overlap);
+        if (overlap > 0.02) {
+            return new PasteResult(false, overlap, Map.of());
         }
+
+        Map<Location, BlockData> replaced = new HashMap<>();
 
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
             Material mat = b.data.getMaterial();
@@ -182,11 +184,13 @@ public class DungeonManager {
             int wx = center.getBlockX() + vec[0];
             int wy = baseY + (b.y - connectorY);
             int wz = center.getBlockZ() + vec[1];
+            Location l = new Location(world, wx, wy, wz);
+            replaced.put(l, world.getBlockAt(wx, wy, wz).getBlockData());
             BlockData data = RoomTemplate.rotateBlockData(b.data, rotation);
             world.getBlockAt(wx, wy, wz).setBlockData(data, false);
         }
         dungeon.addRoom(new Dungeon.RoomInstance(template, rotation, center.clone()));
-        return new PasteResult(true, overlap);
+        return new PasteResult(true, overlap, replaced);
     }
 
     public boolean deleteDungeon(String name) {
