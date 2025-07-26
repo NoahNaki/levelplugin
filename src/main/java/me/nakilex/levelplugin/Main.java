@@ -17,6 +17,7 @@ import me.nakilex.levelplugin.trade.utils.MessageStrings;
 import me.nakilex.levelplugin.utils.DealMaker;
 import me.nakilex.levelplugin.codex.CodexManager;
 import me.nakilex.levelplugin.codex.CodexGUI;
+import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -70,6 +71,7 @@ public class Main extends JavaPlugin {
     public ItemManager getItemManager() { return bootstrap.getItemManager(); }
     public me.nakilex.levelplugin.auctionhouse.AuctionHouseManager getAuctionHouseManager() { return bootstrap.getAuctionHouseManager(); }
     public FileConfiguration getBossConfig() { return bootstrap.getBossConfig(); }
+    public MobRewardsConfig getMobRewardsConfig() { return bootstrap.getMobRewardsConfig(); }
     public me.nakilex.levelplugin.utils.registeries.CommandRegistry getCommandRegistry() { return null; }
     public me.nakilex.levelplugin.utils.registeries.ListenerRegistry getListenerRegistry() { return null; }
     public me.nakilex.levelplugin.spells.registry.EffectRegistry getEffectRegistry() { return null; }
