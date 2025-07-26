@@ -241,11 +241,6 @@ public class DungeonManager {
         Location origin = player.getLocation();
         Dungeon dungeon = new Dungeon(player.getWorld(), name);
 
-        // Use the global spacing between rooms when replaying the layout
-        // Stored step values can become incorrect if the builder moved
-        // rooms manually, so relying on the manager value prevents
-        // overlaps that would stop rooms from pasting.
-        int layoutStep = step;
         int entranceX = -1, entranceZ = -1;
         for (int x = 0; x < DungeonLayout.WIDTH; x++) {
             for (int z = 0; z < DungeonLayout.HEIGHT; z++) {
@@ -269,9 +264,9 @@ public class DungeonManager {
                 int rotation = (type == RoomType.COMBAT || type == RoomType.BOSS || type == RoomType.ENTRANCE)
                         ? layout.getRotation(x, y)
                         : findRotation(templ, dirs);
-                int offX = (entranceX == -1) ? 0 : entranceX;
-                int offZ = (entranceZ == -1) ? 0 : entranceZ;
-                Location center = origin.clone().add((x - offX) * layoutStep, 0, (y - offZ) * layoutStep);
+                int diffX = layout.getOffsetX(x, y);
+                int diffZ = layout.getOffsetZ(x, y);
+                Location center = origin.clone().add(diffX, 0, diffZ);
                 String mob = layout.getMob(x, y);
                 pasteRoom(dungeon, templ, rotation, center, mob);
             }

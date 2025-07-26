@@ -48,9 +48,8 @@ public class DungeonBuilder implements Listener {
         sessions.put(player.getUniqueId(), s);
         setupInventory(player);
 
-        // spawn existing rooms
+        // spawn existing rooms relative to the entrance
         Location origin = player.getLocation().getBlock().getLocation();
-        int step = layout.getStep() > 0 ? layout.getStep() : manager.getStep();
 
         int entranceX = -1, entranceZ = -1;
         for (int x = 0; x < DungeonLayout.WIDTH; x++) {
@@ -100,9 +99,9 @@ public class DungeonBuilder implements Listener {
                 int rotation = (type == RoomType.COMBAT || type == RoomType.BOSS || type == RoomType.ENTRANCE)
                         ? layout.getRotation(x, z)
                         : manager.findRotation(templ, dirs);
-                int offX = (entranceX == -1) ? 0 : entranceX;
-                int offZ = (entranceZ == -1) ? 0 : entranceZ;
-                Location center = origin.clone().add((x - offX) * step, 0, (z - offZ) * step);
+                int diffX = layout.getOffsetX(x, z);
+                int diffZ = layout.getOffsetZ(x, z);
+                Location center = origin.clone().add(diffX, 0, diffZ);
                 String mob = layout.getMob(x, z);
                 manager.pasteRoom(s.dungeon, templ, rotation, center, mob);
 
@@ -596,16 +595,18 @@ public class DungeonBuilder implements Listener {
             Dungeon.RoomInstance first = dungeon.getRooms().get(0);
             int originX = first.center.getBlockX();
             int originZ = first.center.getBlockZ();
-            // Rooms are always placed using the manager step spacing, so keep
-            // the same value rather than deriving it from differences which can
-            // produce incorrect results.
+            // Grid coordinates still use the manager step, but store exact
+            // offsets relative to the entrance so rooms can be recreated even
+            // if some templates use slightly different spacing.
             int step = manager.getStep();
             int offX = DungeonLayout.WIDTH / 2;
             int offZ = DungeonLayout.HEIGHT / 2;
             for (int i = 0; i < dungeon.getRooms().size(); i++) {
                 Dungeon.RoomInstance r = dungeon.getRooms().get(i);
-                int dx = Math.round((float)(r.center.getBlockX() - originX) / step);
-                int dz = Math.round((float)(r.center.getBlockZ() - originZ) / step);
+                int diffX = r.center.getBlockX() - originX;
+                int diffZ = r.center.getBlockZ() - originZ;
+                int dx = Math.round((float) diffX / step);
+                int dz = Math.round((float) diffZ / step);
                 RoomTemplate t = r.template;
                 RoomType type = i == 0 ? RoomType.ENTRANCE :
                         (t == manager.getBoss() ? RoomType.BOSS :
@@ -618,6 +619,7 @@ public class DungeonBuilder implements Listener {
                 if (type == RoomType.COMBAT) {
                     layout.setMob(lx, lz, r.mob);
                 }
+                layout.setOffset(lx, lz, diffX, diffZ);
             }
             layout.setStep(step);
             return layout;

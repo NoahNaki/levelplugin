@@ -7,6 +7,8 @@ public class DungeonLayout {
     private final RoomType[][] grid = new RoomType[WIDTH][HEIGHT];
     private final int[][] rotation = new int[WIDTH][HEIGHT];
     private final String[][] mobs = new String[WIDTH][HEIGHT];
+    private final int[][] offsetX = new int[WIDTH][HEIGHT];
+    private final int[][] offsetZ = new int[WIDTH][HEIGHT];
     private int step = 0;
 
     public DungeonLayout() {
@@ -15,6 +17,8 @@ public class DungeonLayout {
                 grid[x][y] = RoomType.NONE;
                 rotation[x][y] = 0;
                 mobs[x][y] = null;
+                offsetX[x][y] = 0;
+                offsetZ[x][y] = 0;
             }
         }
     }
@@ -47,6 +51,22 @@ public class DungeonLayout {
     public void setMob(int x, int y, String mob) {
         if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return;
         mobs[x][y] = mob;
+    }
+
+    public int getOffsetX(int x, int y) {
+        if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return 0;
+        return offsetX[x][y];
+    }
+
+    public int getOffsetZ(int x, int y) {
+        if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return 0;
+        return offsetZ[x][y];
+    }
+
+    public void setOffset(int x, int y, int offX, int offZ) {
+        if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return;
+        offsetX[x][y] = offX;
+        offsetZ[x][y] = offZ;
     }
 
     public int getStep() {
