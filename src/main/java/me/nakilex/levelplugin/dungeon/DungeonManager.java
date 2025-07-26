@@ -164,9 +164,10 @@ public class DungeonManager {
             boolean connectorLayer = template.getConnectorLayers().contains(b.y);
 
             if (connectorLayer) {
-                if (!worldMat.isAir() && !dungeon.isConnectorOccupied(wx, wy, wz))
-                    return null;
-                if (dungeon.isOccupied(wx, wy, wz) && !dungeon.isConnectorOccupied(wx, wy, wz))
+                // allow overlap with existing dungeon blocks on connector layers
+                // only block placement if the world already contains non-dungeon
+                // blocks to avoid destroying outside structures
+                if (!worldMat.isAir() && !dungeon.isOccupied(wx, wy, wz) && !dungeon.isConnectorOccupied(wx, wy, wz))
                     return null;
             } else {
                 if (!worldMat.isAir() && !dungeon.isOccupied(wx, wy, wz) && !dungeon.isConnectorOccupied(wx, wy, wz))
