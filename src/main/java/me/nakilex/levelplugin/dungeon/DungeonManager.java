@@ -64,8 +64,8 @@ public class DungeonManager {
                 case SOUTH -> southZ = c.z;
             }
         }
-        step = Math.max(Math.abs(eastX - westX), Math.abs(southZ - northZ)) + 1;
-        if (step <= 0) step = crossroad.getWidth() - 1;
+        step = Math.max(Math.abs(eastX - westX), Math.abs(southZ - northZ)) + 2;
+        if (step <= 0) step = crossroad.getWidth();
     }
 
     public boolean createDungeon(Player player, String name, int rooms) {
