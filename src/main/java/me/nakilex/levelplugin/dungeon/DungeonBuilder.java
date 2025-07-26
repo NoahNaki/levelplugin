@@ -19,6 +19,7 @@ import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import me.nakilex.levelplugin.utils.GuiUtil;
 
 import java.util.*;
 
@@ -131,43 +132,61 @@ public class DungeonBuilder implements Listener {
     public void onInv(InventoryClickEvent event) {
         Player player = (Player) event.getWhoClicked();
         Session s = sessions.get(player.getUniqueId());
-        if (s == null) return;
-        if (s.pending == null) return;
-        String title = event.getView().getTitle();
-        if (!title.startsWith(ChatColor.DARK_GREEN + "Select")) return;
+        if (s == null || s.pending == null) return;
+
+        String rawTitle = ChatColor.stripColor(event.getView().getTitle());
+        if (!rawTitle.startsWith("Select") && !rawTitle.endsWith("Variants")) return;
+
         event.setCancelled(true);
         ItemStack item = event.getCurrentItem();
-        if (item == null) return;
-        if (title.contains("Room")) {
-            if (item.getType() == Material.YELLOW_WOOL) {
-                player.openInventory(createVariantSelect());
-            } else if (item.getType() == Material.GRAY_WOOL) {
-                player.openInventory(createCombatVariantSelect());
+        if (item == null || !item.hasItemMeta()) return;
+        String name = ChatColor.stripColor(item.getItemMeta().getDisplayName());
+
+        switch (rawTitle) {
+            case "Select Room" -> {
+                Material type = item.getType();
+                if (type == Material.YELLOW_WOOL) {
+                    player.openInventory(createVariantSelect());
+                } else if (type == Material.RED_WOOL) {
+                    player.openInventory(createCombatVariantSelect());
+                } else if (type == Material.BLACK_WOOL) {
+                    placeVariant(s, manager.getBoss());
+                    player.closeInventory();
+                }
             }
-        } else if (title.contains("Variant")) {
-            RoomTemplate templ = switch (item.getType()) {
-                case RED_WOOL -> manager.getDeadEnd();
-                case ORANGE_WOOL -> manager.getStraight();
-                case GREEN_WOOL -> manager.getCornerLeft();
-                case LIME_WOOL -> manager.getCornerRight();
-                case BLUE_WOOL -> manager.getTJunction();
-                case PURPLE_WOOL -> manager.getCrossroad();
-                case BLACK_WOOL -> manager.getBoss();
-                default -> null;
-            };
-            if (templ != null) {
-                placeVariant(s, templ);
-                player.closeInventory();
+            case "Hallway Variants" -> {
+                if (name.equalsIgnoreCase("Back")) {
+                    player.openInventory(createRoomSelect());
+                    return;
+                }
+                RoomTemplate templ = switch (item.getType()) {
+                    case RED_WOOL -> manager.getDeadEnd();
+                    case ORANGE_WOOL -> manager.getStraight();
+                    case GREEN_WOOL -> manager.getCornerLeft();
+                    case LIME_WOOL -> manager.getCornerRight();
+                    case BLUE_WOOL -> manager.getTJunction();
+                    case PURPLE_WOOL -> manager.getCrossroad();
+                    default -> null;
+                };
+                if (templ != null) {
+                    placeVariant(s, templ);
+                    player.closeInventory();
+                }
             }
-        } else if (title.contains("Combat")) {
-            RoomTemplate templ = switch (item.getType()) {
-                case GRAY_WOOL -> manager.getCombatLeft();
-                case LIGHT_GRAY_WOOL -> manager.getCombatRight();
-                default -> null;
-            };
-            if (templ != null) {
-                placeVariant(s, templ);
-                player.closeInventory();
+            case "Combat Variants" -> {
+                if (name.equalsIgnoreCase("Back")) {
+                    player.openInventory(createRoomSelect());
+                    return;
+                }
+                RoomTemplate templ = switch (item.getType()) {
+                    case GRAY_WOOL -> manager.getCombatLeft();
+                    case LIGHT_GRAY_WOOL -> manager.getCombatRight();
+                    default -> null;
+                };
+                if (templ != null) {
+                    placeVariant(s, templ);
+                    player.closeInventory();
+                }
             }
         }
     }
@@ -307,37 +326,48 @@ public class DungeonBuilder implements Listener {
     }
 
     private Inventory createRoomSelect() {
-        Inventory inv = Bukkit.createInventory(null, 9, ChatColor.DARK_GREEN + "Select Room");
-        ItemStack hall = new ItemStack(Material.YELLOW_WOOL);
-        ItemMeta meta = hall.getItemMeta();
-        if (meta != null) meta.setDisplayName(ChatColor.YELLOW + "Hallway");
-        hall.setItemMeta(meta);
-        inv.setItem(0, hall);
+        Inventory inv = Bukkit.createInventory(null, 27, ChatColor.DARK_GREEN + "Select Room");
 
-        ItemStack combat = new ItemStack(Material.GRAY_WOOL);
-        ItemMeta cm = combat.getItemMeta();
-        if (cm != null) cm.setDisplayName(ChatColor.GRAY + "Combat Room");
-        combat.setItemMeta(cm);
-        inv.setItem(1, combat);
+        ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
+        for (int i = 0; i < 27; i++) inv.setItem(i, filler);
+
+        ItemStack hall = item(Material.YELLOW_WOOL, ChatColor.YELLOW + "Hallway");
+        ItemStack boss = item(Material.BLACK_WOOL, ChatColor.DARK_GRAY + "Boss Room");
+        ItemStack combat = item(Material.RED_WOOL, ChatColor.RED + "Combat Room");
+
+        inv.setItem(11, hall);
+        inv.setItem(13, boss);
+        inv.setItem(15, combat);
         return inv;
     }
 
     private Inventory createVariantSelect() {
-        Inventory inv = Bukkit.createInventory(null, 9, ChatColor.DARK_GREEN + "Select Variant");
-        inv.setItem(0, item(Material.RED_WOOL, ChatColor.RED + "Dead End"));
-        inv.setItem(1, item(Material.ORANGE_WOOL, ChatColor.GOLD + "Straight"));
-        inv.setItem(2, item(Material.GREEN_WOOL, ChatColor.GREEN + "Corner Left"));
-        inv.setItem(3, item(Material.LIME_WOOL, ChatColor.GREEN + "Corner Right"));
-        inv.setItem(4, item(Material.BLUE_WOOL, ChatColor.BLUE + "T-Junction"));
-        inv.setItem(5, item(Material.PURPLE_WOOL, ChatColor.LIGHT_PURPLE + "Crossroad"));
-        inv.setItem(8, item(Material.BLACK_WOOL, ChatColor.DARK_GRAY + "Boss"));
+        Inventory inv = Bukkit.createInventory(null, 27, ChatColor.DARK_GREEN + "Hallway Variants");
+
+        ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
+        for (int i = 0; i < 27; i++) inv.setItem(i, filler);
+
+        inv.setItem(10, item(Material.RED_WOOL, ChatColor.RED + "Dead End"));
+        inv.setItem(12, item(Material.ORANGE_WOOL, ChatColor.GOLD + "Straight"));
+        inv.setItem(14, item(Material.GREEN_WOOL, ChatColor.GREEN + "Corner Left"));
+        inv.setItem(16, item(Material.LIME_WOOL, ChatColor.GREEN + "Corner Right"));
+        inv.setItem(20, item(Material.BLUE_WOOL, ChatColor.BLUE + "T-Junction"));
+        inv.setItem(22, item(Material.PURPLE_WOOL, ChatColor.LIGHT_PURPLE + "Crossroad"));
+
+        inv.setItem(18, GuiUtil.getNexoItem("arrow_left", ChatColor.YELLOW + "Back"));
         return inv;
     }
 
     private Inventory createCombatVariantSelect() {
-        Inventory inv = Bukkit.createInventory(null, 9, ChatColor.DARK_GREEN + "Select Combat Room");
-        inv.setItem(0, item(Material.GRAY_WOOL, ChatColor.GRAY + "Combat Left"));
-        inv.setItem(1, item(Material.LIGHT_GRAY_WOOL, ChatColor.GRAY + "Combat Right"));
+        Inventory inv = Bukkit.createInventory(null, 27, ChatColor.DARK_GREEN + "Combat Variants");
+
+        ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
+        for (int i = 0; i < 27; i++) inv.setItem(i, filler);
+
+        inv.setItem(11, item(Material.GRAY_WOOL, ChatColor.GRAY + "Combat Left"));
+        inv.setItem(15, item(Material.LIGHT_GRAY_WOOL, ChatColor.GRAY + "Combat Right"));
+
+        inv.setItem(18, GuiUtil.getNexoItem("arrow_left", ChatColor.YELLOW + "Back"));
         return inv;
     }
 
