@@ -75,7 +75,9 @@ public class DungeonBuilder implements Listener {
                 int rotation = (type == RoomType.COMBAT || type == RoomType.BOSS || type == RoomType.ENTRANCE)
                         ? layout.getRotation(x, z)
                         : manager.findRotation(templ, dirs);
-                Location center = origin.clone().add(x * step, 0, z * step);
+                int offX = (entranceX == -1) ? 0 : entranceX;
+                int offZ = (entranceZ == -1) ? 0 : entranceZ;
+                Location center = origin.clone().add((x - offX) * step, 0, (z - offZ) * step);
                 String mob = layout.getMob(x, z);
                 manager.pasteRoom(s.dungeon, templ, rotation, center, mob);
 
@@ -554,6 +556,10 @@ public class DungeonBuilder implements Listener {
             while (!history.isEmpty()) {
                 undo();
             }
+            for (ConnectorInfo c : new ArrayList<>(connectors.values())) {
+                DungeonBuilder.this.removeConnector(this, c);
+            }
+            dungeon.delete();
         }
 
         DungeonLayout buildLayout() {

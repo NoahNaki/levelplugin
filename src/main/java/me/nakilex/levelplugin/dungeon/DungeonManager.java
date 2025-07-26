@@ -240,6 +240,14 @@ public class DungeonManager {
         Location origin = player.getLocation();
         Dungeon dungeon = new Dungeon(player.getWorld(), name);
 
+        int entranceX = -1, entranceZ = -1;
+        for (int x = 0; x < DungeonLayout.WIDTH; x++) {
+            for (int z = 0; z < DungeonLayout.HEIGHT; z++) {
+                if (layout.get(x, z) == RoomType.ENTRANCE) { entranceX = x; entranceZ = z; break; }
+            }
+            if (entranceX != -1) break;
+        }
+
         for (int x = 0; x < DungeonLayout.WIDTH; x++) {
             for (int y = 0; y < DungeonLayout.HEIGHT; y++) {
                 RoomType type = layout.get(x, y);
@@ -255,7 +263,9 @@ public class DungeonManager {
                 int rotation = (type == RoomType.COMBAT || type == RoomType.BOSS || type == RoomType.ENTRANCE)
                         ? layout.getRotation(x, y)
                         : findRotation(templ, dirs);
-                Location center = origin.clone().add(x * step, 0, y * step);
+                int offX = (entranceX == -1) ? 0 : entranceX;
+                int offZ = (entranceZ == -1) ? 0 : entranceZ;
+                Location center = origin.clone().add((x - offX) * step, 0, (y - offZ) * step);
                 String mob = layout.getMob(x, y);
                 pasteRoom(dungeon, templ, rotation, center, mob);
             }
