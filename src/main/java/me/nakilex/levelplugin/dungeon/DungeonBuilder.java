@@ -42,7 +42,7 @@ public class DungeonBuilder implements Listener {
         if (meta != null) meta.setDisplayName(ChatColor.GREEN + "Place Entrance");
         wool.setItemMeta(meta);
         player.getInventory().addItem(wool);
-        player.sendMessage(ChatColor.YELLOW + "Right-click a block to place the entrance.");
+        player.sendMessage(ChatColor.YELLOW + "Right-click to place the entrance at your feet.");
     }
 
     public void undo(Player player) {
@@ -55,12 +55,18 @@ public class DungeonBuilder implements Listener {
         Player player = event.getPlayer();
         Session s = sessions.get(player.getUniqueId());
         if (s == null) return;
-        if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+        Action action = event.getAction();
+        if (action != Action.RIGHT_CLICK_BLOCK && action != Action.RIGHT_CLICK_AIR) return;
         ItemStack hand = event.getItem();
         if (hand == null || hand.getType() != Material.LIME_WOOL) return;
         event.setCancelled(true);
         if (!s.placingEntrance) return;
-        Location loc = event.getClickedBlock().getLocation().add(0, 1, 0);
+        Location loc;
+        if (event.getClickedBlock() != null) {
+            loc = event.getClickedBlock().getLocation().add(0, 1, 0);
+        } else {
+            loc = player.getLocation().getBlock().getLocation();
+        }
         boolean ok = manager.pasteRoom(s.dungeon, manager.getEntrance(), 0, loc);
         if (!ok) {
             player.sendMessage(ChatColor.RED + "Cannot place entrance here.");
@@ -162,10 +168,13 @@ public class DungeonBuilder implements Listener {
     }
 
     private ConnectorInfo spawnConnector(Session s, Location loc, Direction dir) {
-        Interaction inter = (Interaction) loc.getWorld().spawn(loc, Interaction.class);
-        inter.setInvulnerable(true);
-        inter.setGravity(false);
-        inter.addScoreboardTag("dungeon_builder");
+        Interaction inter = loc.getWorld().spawn(loc, Interaction.class, i -> {
+            i.setInvulnerable(true);
+            i.setGravity(false);
+            i.setInteractionWidth(2.0f);
+            i.setInteractionHeight(2.0f);
+            i.addScoreboardTag("dungeon_hologram");
+        });
         TextDisplay display = (TextDisplay) loc.getWorld().spawn(loc.clone().add(0, 1.2, 0), TextDisplay.class);
         display.setBillboard(org.bukkit.entity.Display.Billboard.CENTER);
         display.setText(ChatColor.AQUA + "Place room");
