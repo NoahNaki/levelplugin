@@ -157,7 +157,7 @@ public class DungeonManager {
 
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
             Material mat = b.data.getMaterial();
-            if (mat == Material.REDSTONE_BLOCK || mat == Material.PINK_WOOL) continue;
+            if (mat == Material.REDSTONE_BLOCK || mat == Material.PINK_WOOL || mat == Material.LIME_WOOL) continue;
             int[] vec = RoomTemplate.rotate(b.x - (int) Math.round(template.getCenterX()),
                     b.z - (int) Math.round(template.getCenterZ()), rotation);
             int wx = center.getBlockX() + vec[0];
@@ -178,7 +178,7 @@ public class DungeonManager {
 
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
             Material mat = b.data.getMaterial();
-            if (mat == Material.REDSTONE_BLOCK || mat == Material.PINK_WOOL) continue;
+            if (mat == Material.REDSTONE_BLOCK || mat == Material.PINK_WOOL || mat == Material.LIME_WOOL) continue;
             int[] vec = RoomTemplate.rotate(b.x - (int) Math.round(template.getCenterX()),
                     b.z - (int) Math.round(template.getCenterZ()), rotation);
             int wx = center.getBlockX() + vec[0];

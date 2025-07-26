@@ -10,7 +10,9 @@ import java.util.*;
 /**
  * Represents a cuboid room template loaded from the flatland world.
  * Stores block data relative to the template origin as well as
- * redstone block connector positions.
+ * connector positions marked with pink wool or redstone blocks. If a lime
+ * wool block sits on top of a connector marker the connector is treated as
+ * the preferred entrance.
  */
 public class RoomTemplate {
     public static class BlockDef {
@@ -28,11 +30,13 @@ public class RoomTemplate {
         /** X/Z center of the connector and lowest Y of the marker stack */
         public final int x, z, bottomY;
         public final Direction facing;
-        public Connector(int x, int z, int bottomY, Direction facing) {
+        public final boolean entrance;
+        public Connector(int x, int z, int bottomY, Direction facing, boolean entrance) {
             this.x = x;
             this.z = z;
             this.bottomY = bottomY;
             this.facing = facing;
+            this.entrance = entrance;
         }
     }
 
@@ -99,6 +103,7 @@ public class RoomTemplate {
 
         List<BlockDef> blocks = new ArrayList<>();
         Set<Location> markerBlocks = new HashSet<>();
+        Set<Location> limeBlocks = new HashSet<>();
 
         for (int x = minX; x <= maxX; x++) {
             for (int y = minY; y <= maxY; y++) {
@@ -107,8 +112,11 @@ public class RoomTemplate {
                     BlockData data = loc.getBlock().getBlockData();
                     if (data.getMaterial() != Material.AIR) {
                         blocks.add(new BlockDef(x - minX, y - minY, z - minZ, data));
-                        if (data.getMaterial() == Material.REDSTONE_BLOCK) {
+                        Material mat = data.getMaterial();
+                        if (mat == Material.REDSTONE_BLOCK || mat == Material.PINK_WOOL) {
                             markerBlocks.add(loc);
+                        } else if (mat == Material.LIME_WOOL) {
+                            limeBlocks.add(loc);
                         }
                     }
                 }
@@ -153,7 +161,12 @@ public class RoomTemplate {
             int dx = cx - (int)Math.round((width - 1) / 2.0);
             int dz = cz - (int)Math.round((depth - 1) / 2.0);
             Direction dir = Direction.fromDelta(dx, dz);
-            connectors.add(new Connector(cx, cz, minGroupY - minY, dir));
+            boolean entrance = false;
+            for (Location l : group) {
+                Location above = l.clone().add(0, 1, 0);
+                if (limeBlocks.contains(above)) { entrance = true; break; }
+            }
+            connectors.add(new Connector(cx, cz, minGroupY - minY, dir, entrance));
         }
 
         return new RoomTemplate(blocks, connectors, width, height, depth, minY);
