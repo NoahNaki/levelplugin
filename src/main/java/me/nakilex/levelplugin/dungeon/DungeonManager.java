@@ -47,6 +47,7 @@ public class DungeonManager {
     public RoomTemplate getTJunction() { return tJunction; }
     public RoomTemplate getCrossroad() { return crossroad; }
     public RoomTemplate getBoss() { return boss; }
+    public int getStep() { return step; }
 
     private void loadTemplates() {
         World world = Bukkit.getWorld("flatland");
@@ -170,7 +171,7 @@ public class DungeonManager {
             total++;
         }
         double overlap = total == 0 ? 0.0 : (double) collisions / total;
-        if (overlap > 0.02) {
+        if (overlap > 0.05) {
             return new PasteResult(false, overlap, Map.of());
         }
 

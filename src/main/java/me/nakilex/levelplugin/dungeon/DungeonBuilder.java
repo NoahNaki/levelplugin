@@ -15,6 +15,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -42,7 +43,17 @@ public class DungeonBuilder implements Listener {
         ItemMeta meta = wool.getItemMeta();
         if (meta != null) meta.setDisplayName(ChatColor.GREEN + "Place Entrance");
         wool.setItemMeta(meta);
-        player.getInventory().addItem(wool);
+        player.getInventory().setItem(0, wool);
+        ItemStack save = new ItemStack(Material.EMERALD);
+        ItemMeta sm = save.getItemMeta();
+        if (sm != null) sm.setDisplayName(ChatColor.AQUA + "Save");
+        save.setItemMeta(sm);
+        player.getInventory().setItem(7, save);
+        ItemStack cancel = new ItemStack(Material.BARRIER);
+        ItemMeta cm = cancel.getItemMeta();
+        if (cm != null) cm.setDisplayName(ChatColor.RED + "Cancel");
+        cancel.setItemMeta(cm);
+        player.getInventory().setItem(8, cancel);
         player.sendMessage(ChatColor.YELLOW + "Right-click to place the entrance at your feet.");
     }
 
@@ -59,7 +70,23 @@ public class DungeonBuilder implements Listener {
         Action action = event.getAction();
         if (action != Action.RIGHT_CLICK_BLOCK && action != Action.RIGHT_CLICK_AIR) return;
         ItemStack hand = event.getItem();
-        if (hand == null || hand.getType() != Material.LIME_WOOL) return;
+        if (hand == null) return;
+        Material type = hand.getType();
+        if (type == Material.EMERALD) {
+            event.setCancelled(true);
+            s.awaitingName = true;
+            player.sendMessage(ChatColor.YELLOW + "Type dungeon name in chat or 'cancel'.");
+            return;
+        }
+        if (type == Material.BARRIER) {
+            event.setCancelled(true);
+            s.cancel();
+            sessions.remove(player.getUniqueId());
+            player.getInventory().clear();
+            player.sendMessage(ChatColor.RED + "Dungeon build cancelled.");
+            return;
+        }
+        if (type != Material.LIME_WOOL) return;
         event.setCancelled(true);
         if (!s.placingEntrance) return;
         Location loc;
@@ -131,6 +158,24 @@ public class DungeonBuilder implements Listener {
                 player.closeInventory();
             }
         }
+    }
+
+    @EventHandler
+    public void onChat(AsyncPlayerChatEvent event) {
+        Session s = sessions.get(event.getPlayer().getUniqueId());
+        if (s == null || !s.awaitingName) return;
+        event.setCancelled(true);
+        String msg = event.getMessage().trim();
+        if (msg.equalsIgnoreCase("cancel")) {
+            s.awaitingName = false;
+            event.getPlayer().sendMessage(ChatColor.RED + "Save cancelled.");
+            return;
+        }
+        DungeonLayout layout = s.buildLayout();
+        manager.saveLayout(msg, layout);
+        event.getPlayer().sendMessage(ChatColor.GREEN + "Dungeon saved as '" + msg + "'");
+        event.getPlayer().getInventory().clear();
+        sessions.remove(event.getPlayer().getUniqueId());
     }
 
     private void placeVariant(Session s, RoomTemplate templ) {
@@ -229,6 +274,7 @@ public class DungeonBuilder implements Listener {
         display.setText(ChatColor.AQUA + "Place room");
         display.setShadowRadius(0);
         display.setShadowStrength(0);
+        display.addScoreboardTag("dungeon_hologram");
         return new ConnectorInfo(loc, dir, s.player, inter, display);
     }
 
@@ -308,6 +354,7 @@ public class DungeonBuilder implements Listener {
         final Map<Integer, ConnectorInfo> connectors = new HashMap<>();
         boolean placingEntrance = true;
         ConnectorInfo pending;
+        boolean awaitingName = false;
         Session(Player player) {
             this.player = player;
             this.dungeon = new Dungeon(player.getWorld(), player.getName() + "_builder");
@@ -338,6 +385,31 @@ public class DungeonBuilder implements Listener {
                 ConnectorInfo restored = DungeonBuilder.this.spawnConnector(this, h.used.location, h.used.facing);
                 connectors.put(restored.interaction.getEntityId(), restored);
             }
+        }
+
+        void cancel() {
+            while (!history.isEmpty()) {
+                undo();
+            }
+        }
+
+        DungeonLayout buildLayout() {
+            DungeonLayout layout = new DungeonLayout();
+            if (dungeon.getRooms().isEmpty()) return layout;
+            Dungeon.RoomInstance first = dungeon.getRooms().get(0);
+            int originX = first.center.getBlockX();
+            int originZ = first.center.getBlockZ();
+            int step = manager.getStep();
+            int offX = DungeonLayout.WIDTH / 2;
+            int offZ = DungeonLayout.HEIGHT / 2;
+            for (int i = 0; i < dungeon.getRooms().size(); i++) {
+                Dungeon.RoomInstance r = dungeon.getRooms().get(i);
+                int dx = Math.round((float)(r.center.getBlockX() - originX) / step);
+                int dz = Math.round((float)(r.center.getBlockZ() - originZ) / step);
+                RoomType type = i == 0 ? RoomType.ENTRANCE : RoomType.HALLWAY;
+                layout.set(offX + dx, offZ + dz, type);
+            }
+            return layout;
         }
     }
 }

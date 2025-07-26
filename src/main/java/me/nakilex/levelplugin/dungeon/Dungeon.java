@@ -37,6 +37,10 @@ public class Dungeon {
         rooms.add(inst);
     }
 
+    public List<RoomInstance> getRooms() {
+        return rooms;
+    }
+
     /** Remove all placed blocks for this dungeon. */
     public void delete() {
         for (RoomInstance r : rooms) {
