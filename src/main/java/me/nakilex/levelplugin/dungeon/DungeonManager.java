@@ -64,7 +64,7 @@ public class DungeonManager {
                 case SOUTH -> southZ = c.z;
             }
         }
-        step = Math.max(Math.abs(eastX - westX), Math.abs(southZ - northZ));
+        step = Math.max(Math.abs(eastX - westX), Math.abs(southZ - northZ)) + 1;
         if (step <= 0) step = crossroad.getWidth() - 1;
     }
 
