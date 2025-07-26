@@ -68,14 +68,21 @@ public class DungeonBuilder implements Listener {
         } else {
             loc = player.getLocation().getBlock().getLocation();
         }
-        DungeonManager.PasteResult result = manager.pasteRoom(s.dungeon, manager.getEntrance(), 0, loc);
+        Direction facing = Direction.fromYaw(player.getLocation().getYaw());
+        RoomTemplate entrance = manager.getEntrance();
+        RoomTemplate.Connector conn = entrance.getConnectors().get(0);
+        int rot = 0;
+        for (int r = 0; r < 4; r++) {
+            if (rotate(conn.facing, r) == facing) { rot = r; break; }
+        }
+        DungeonManager.PasteResult result = manager.pasteRoom(s.dungeon, entrance, rot, loc);
         player.sendMessage(ChatColor.GRAY + String.format("Overlap: %.1f%%", result.overlap() * 100));
         if (!result.success()) {
             player.sendMessage(ChatColor.RED + "Cannot place entrance here.");
             return;
         }
-        s.history.push(new History(null, spawnConnectors(s, loc, manager.getEntrance(), 0, null),
-                new Dungeon.RoomInstance(manager.getEntrance(), 0, loc.clone()), result.replaced()));
+        s.history.push(new History(null, spawnConnectors(s, loc, entrance, rot, null),
+                new Dungeon.RoomInstance(entrance, rot, loc.clone()), result.replaced()));
         s.placingEntrance = false;
         player.sendMessage(ChatColor.GREEN + "Entrance placed. Use holograms to add rooms.");
     }
@@ -300,6 +307,18 @@ public class DungeonBuilder implements Listener {
             }
             for (ConnectorInfo c : h.added) {
                 DungeonBuilder.this.removeConnector(this, c);
+            }
+            // remove any stray holograms within connector locations
+            for (RoomTemplate.Connector rc : h.instance.template.getConnectors()) {
+                int[] vec = RoomTemplate.rotate(rc.x - (int) Math.round(h.instance.template.getCenterX()),
+                        rc.z - (int) Math.round(h.instance.template.getCenterZ()), h.instance.rotation);
+                Location loc = h.instance.center.clone().add(vec[0], rc.bottomY - h.instance.template.getConnectorMinY(), vec[1]);
+                for (var ent : loc.getWorld().getNearbyEntities(loc, 1.5, 2.5, 1.5)) {
+                    if (ent.getScoreboardTags().contains("dungeon_hologram")) {
+                        ent.remove();
+                        connectors.remove(ent.getEntityId());
+                    }
+                }
             }
             if (h.used != null) {
                 ConnectorInfo restored = DungeonBuilder.this.spawnConnector(this, h.used.location, h.used.facing);

@@ -23,4 +23,15 @@ public enum Direction {
             return dz > 0 ? SOUTH : NORTH;
         }
     }
+
+    /** Convert a yaw angle to the nearest cardinal direction. */
+    public static Direction fromYaw(float yaw) {
+        int idx = Math.floorMod(Math.round(yaw / 90f), 4);
+        return switch (idx) {
+            case 0 -> SOUTH;
+            case 1 -> WEST;
+            case 2 -> NORTH;
+            default -> EAST;
+        };
+    }
 }

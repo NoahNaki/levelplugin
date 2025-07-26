@@ -60,8 +60,8 @@ public class DungeonManager {
         cornerRight = RoomTemplate.capture(world, 11, -28, -5156, -29, -60, -5196);
         tJunction = RoomTemplate.capture(world, -29, -60, -5072, 11, -28, -5112);
         crossroad = RoomTemplate.capture(world, 11, -28, -5030, -29, -60, -5070);
-        entrance = RoomTemplate.capture(world, 151, -60, -4849, 171, -58, -4869);
-        boss = RoomTemplate.capture(world, 418, 0, -4412, 480, -39, -4494);
+        entrance = deadEnd; // use the single-exit room as the entrance
+        boss = RoomTemplate.capture(world, -23, -54, -5006, 43, -14, 4922);
 
         // Determine spacing using crossroad connectors
         List<RoomTemplate.Connector> con = crossroad.getConnectors();
