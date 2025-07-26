@@ -141,27 +141,38 @@ public class DungeonManager {
         int baseY = center.getBlockY();
         int connectorY = template.getConnectorMinY();
 
-        // Check overlaps using our own placed blocks instead of relying solely on
-        // world state. Blocks on connector layers may overlap, while all others
-        // must be free both in the world and in the dungeon occupancy set.
+        // Check overlaps using our own placed blocks. Blocks that reside on a
+        // connector layer may overlap existing connector blocks, but all other
+        // blocks must be free both in the world and in the dungeon occupancy set.
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
-            if (b.data.getMaterial() == Material.PINK_WOOL ||
-                    b.data.getMaterial() == Material.REDSTONE_BLOCK) continue;
             int[] vec = RoomTemplate.rotate(b.x - (int) Math.round(template.getCenterX()),
                     b.z - (int) Math.round(template.getCenterZ()), rotation);
             int wx = center.getBlockX() + vec[0];
             int wy = baseY + (b.y - connectorY);
             int wz = center.getBlockZ() + vec[1];
-
-            boolean connector = template.isConnectorBlock(b.x, b.y, b.z);
             Material worldMat = world.getBlockAt(wx, wy, wz).getType();
 
-            if (connector) {
-                if (!worldMat.isAir() && !dungeon.isConnectorOccupied(wx, wy, wz)) return null;
-                if (dungeon.isOccupied(wx, wy, wz) && !dungeon.isConnectorOccupied(wx, wy, wz)) return null;
+            // Skip marker blocks entirely - they are never placed.
+            if (b.data.getMaterial() == Material.PINK_WOOL ||
+                    b.data.getMaterial() == Material.REDSTONE_BLOCK) {
+                // still respect world terrain for markers
+                if (!worldMat.isAir() && !dungeon.isOccupied(wx, wy, wz) && !dungeon.isConnectorOccupied(wx, wy, wz))
+                    return null;
+                continue;
+            }
+
+            boolean connectorLayer = template.getConnectorLayers().contains(b.y);
+
+            if (connectorLayer) {
+                if (!worldMat.isAir() && !dungeon.isConnectorOccupied(wx, wy, wz))
+                    return null;
+                if (dungeon.isOccupied(wx, wy, wz) && !dungeon.isConnectorOccupied(wx, wy, wz))
+                    return null;
             } else {
-                if (!worldMat.isAir()) return null;
-                if (dungeon.isOccupied(wx, wy, wz)) return null;
+                if (!worldMat.isAir() && !dungeon.isOccupied(wx, wy, wz) && !dungeon.isConnectorOccupied(wx, wy, wz))
+                    return null;
+                if (dungeon.isOccupied(wx, wy, wz) || dungeon.isConnectorOccupied(wx, wy, wz))
+                    return null;
             }
         }
 

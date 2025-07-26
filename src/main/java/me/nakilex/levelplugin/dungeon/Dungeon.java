@@ -42,13 +42,17 @@ public class Dungeon {
     public void addRoom(RoomInstance inst) {
         rooms.add(inst);
         for (RoomTemplate.BlockDef b : inst.template.getBlocks()) {
-            if (b.data.getMaterial() == org.bukkit.Material.PINK_WOOL ||
-                b.data.getMaterial() == org.bukkit.Material.REDSTONE_BLOCK) continue;
             int[] vec = RoomTemplate.rotate(b.x - (int)Math.round(inst.template.getCenterX()),
                     b.z - (int)Math.round(inst.template.getCenterZ()), inst.rotation);
             int wx = inst.center.getBlockX() + vec[0];
             int wy = inst.center.getBlockY() + (b.y - inst.template.getConnectorMinY());
             int wz = inst.center.getBlockZ() + vec[1];
+            if (b.data.getMaterial() == org.bukkit.Material.PINK_WOOL ||
+                b.data.getMaterial() == org.bukkit.Material.REDSTONE_BLOCK) {
+                // markers are not placed but still mark connector occupancy
+                connectorOccupied.add(new BlockPos(wx, wy, wz));
+                continue;
+            }
             if (inst.template.isConnectorBlock(b.x, b.y, b.z)) {
                 connectorOccupied.add(new BlockPos(wx, wy, wz));
             } else {
