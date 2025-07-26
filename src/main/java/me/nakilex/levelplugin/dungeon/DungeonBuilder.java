@@ -206,14 +206,24 @@ public class DungeonBuilder implements Listener {
         }
 
         if (match == null) {
-            outer:
-            for (int r = 0; r < 4; r++) {
-                for (RoomTemplate.Connector c : templ.getConnectors()) {
-                    if (!c.entrance) continue;
-                    if (rotate(c.facing, r) == info.facing.opposite()) {
-                        rotation = r;
-                        match = c;
-                        break outer;
+            List<RoomTemplate.Connector> entrances = new ArrayList<>();
+            for (RoomTemplate.Connector c : templ.getConnectors()) {
+                if (c.entrance) entrances.add(c);
+            }
+
+            if (entrances.size() == 1) {
+                RoomTemplate.Connector c = entrances.get(0);
+                rotation = (info.facing.opposite().ordinal() - c.facing.ordinal()) & 3;
+                match = c;
+            } else {
+                outer:
+                for (int r = 0; r < 4; r++) {
+                    for (RoomTemplate.Connector c : entrances) {
+                        if (rotate(c.facing, r) == info.facing.opposite()) {
+                            rotation = r;
+                            match = c;
+                            break outer;
+                        }
                     }
                 }
             }
