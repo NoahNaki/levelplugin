@@ -141,6 +141,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.fakeblock.FakeBlockManager fakeBlockManager;
     private me.nakilex.levelplugin.fakeblock.QuestGateManager questGateManager;
     private me.nakilex.levelplugin.fakeblock.ModelGateManager modelGateManager;
+    private me.nakilex.levelplugin.dungeon.DungeonManager dungeonManager;
     private me.nakilex.levelplugin.environment.EnvironmentManager environmentManager;
     private me.nakilex.levelplugin.environment.UpgradeGUI upgradeGUI;
     private me.nakilex.levelplugin.environment.BuildingUpgradeGUI buildingUpgradeGUI;
@@ -256,6 +257,7 @@ public class PluginBootstrap {
         motdManager = new me.nakilex.levelplugin.motd.MotdManager(plugin);
         fakeBlockManager = new me.nakilex.levelplugin.fakeblock.FakeBlockManager();
         questGateManager = new me.nakilex.levelplugin.fakeblock.QuestGateManager(plugin, fakeBlockManager);
+        dungeonManager = new me.nakilex.levelplugin.dungeon.DungeonManager(plugin);
         townStageManager = new me.nakilex.levelplugin.environment.stage.TownStageManager(plugin);
         buildingStageManager = new me.nakilex.levelplugin.environment.stage.BuildingStageManager(plugin);
         cooldownManager.setLootChestManager(lootChestManager);
@@ -438,6 +440,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.fakeblock.FakeBlockManager getFakeBlockManager() { return fakeBlockManager; }
     public me.nakilex.levelplugin.fakeblock.QuestGateManager getQuestGateManager() { return questGateManager; }
     public me.nakilex.levelplugin.fakeblock.ModelGateManager getModelGateManager() { return modelGateManager; }
+    public me.nakilex.levelplugin.dungeon.DungeonManager getDungeonManager() { return dungeonManager; }
     public me.nakilex.levelplugin.environment.EnvironmentManager getEnvironmentManager() { return environmentManager; }
     public me.nakilex.levelplugin.environment.UpgradeGUI getUpgradeGUI() { return upgradeGUI; }
     public me.nakilex.levelplugin.environment.BuildingUpgradeGUI getBuildingUpgradeGUI() { return buildingUpgradeGUI; }
