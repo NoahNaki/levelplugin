@@ -52,6 +52,7 @@ public class DungeonManager {
     public RoomTemplate getCombatLeft() { return combatLeft; }
     public RoomTemplate getCombatRight() { return combatRight; }
     public int getStep() { return step; }
+    public Main getPlugin() { return plugin; }
 
     private void loadTemplates() {
         World world = Bukkit.getWorld("flatland");

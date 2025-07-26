@@ -60,8 +60,33 @@ public class DungeonBuilder implements Listener {
             if (entranceX != -1) break;
         }
 
+        // place entrance first so it becomes the first room in the dungeon list
+        if (entranceX != -1) {
+            RoomType type = layout.get(entranceX, entranceZ);
+            Set<Direction> dirs = new HashSet<>();
+            if (layout.get(entranceX + 1, entranceZ) != RoomType.NONE) dirs.add(Direction.EAST);
+            if (layout.get(entranceX - 1, entranceZ) != RoomType.NONE) dirs.add(Direction.WEST);
+            if (layout.get(entranceX, entranceZ + 1) != RoomType.NONE) dirs.add(Direction.SOUTH);
+            if (layout.get(entranceX, entranceZ - 1) != RoomType.NONE) dirs.add(Direction.NORTH);
+            RoomTemplate templ = manager.chooseTemplate(type, dirs);
+            int rotation = layout.getRotation(entranceX, entranceZ);
+            Location center = origin.clone();
+            String mob = layout.getMob(entranceX, entranceZ);
+            manager.pasteRoom(s.dungeon, templ, rotation, center, mob);
+            for (RoomTemplate.Connector c : templ.getConnectors()) {
+                Direction dir = rotate(c.facing, rotation);
+                if (dirs.contains(dir)) continue;
+                int[] vec = RoomTemplate.rotate(c.x - (int)Math.round(templ.getCenterX()),
+                        c.z - (int)Math.round(templ.getCenterZ()), rotation);
+                Location loc = center.clone().add(vec[0], c.bottomY - templ.getConnectorMinY(), vec[1]);
+                ConnectorInfo info = spawnConnector(s, loc, dir);
+                s.connectors.put(info.interaction.getEntityId(), info);
+            }
+        }
+
         for (int x = 0; x < DungeonLayout.WIDTH; x++) {
             for (int z = 0; z < DungeonLayout.HEIGHT; z++) {
+                if (x == entranceX && z == entranceZ) continue;
                 RoomType type = layout.get(x, z);
                 if (type == RoomType.NONE) continue;
 
@@ -275,12 +300,14 @@ public class DungeonBuilder implements Listener {
             event.getPlayer().sendMessage(ChatColor.RED + "Save cancelled.");
             return;
         }
-        DungeonLayout layout = s.buildLayout();
-        manager.saveLayout(msg, layout);
-        s.cancel();
-        event.getPlayer().sendMessage(ChatColor.GREEN + "Dungeon saved as '" + msg + "'");
-        event.getPlayer().getInventory().clear();
-        sessions.remove(event.getPlayer().getUniqueId());
+        Bukkit.getScheduler().runTask(manager.getPlugin(), () -> {
+            DungeonLayout layout = s.buildLayout();
+            manager.saveLayout(msg, layout);
+            s.cancel();
+            event.getPlayer().sendMessage(ChatColor.GREEN + "Dungeon saved as '" + msg + "'");
+            event.getPlayer().getInventory().clear();
+            sessions.remove(event.getPlayer().getUniqueId());
+        });
     }
 
     private void placeVariant(Session s, RoomTemplate templ) {
