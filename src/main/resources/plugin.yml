@@ -220,4 +220,8 @@ commands:
   dungeon:
     description: Manage custom dungeons
     usage: /dungeon <create|play|delete|undo>
+  codex:
+    description: Open the discovery codex
+    usage: /codex
+
 
