@@ -6,6 +6,8 @@ import org.bukkit.Material;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Represents a generated dungeon instance consisting of placed rooms.
@@ -25,6 +27,9 @@ public class Dungeon {
     private final World world;
     private final String name;
     private final List<RoomInstance> rooms = new ArrayList<>();
+    private final Set<BlockPos> occupied = new HashSet<>();
+
+    private record BlockPos(int x, int y, int z) {}
 
     public Dungeon(World world, String name) {
         this.world = world;
@@ -35,6 +40,17 @@ public class Dungeon {
 
     public void addRoom(RoomInstance inst) {
         rooms.add(inst);
+        for (RoomTemplate.BlockDef b : inst.template.getBlocks()) {
+            if (b.data.getMaterial() == org.bukkit.Material.PINK_WOOL ||
+                b.data.getMaterial() == org.bukkit.Material.REDSTONE_BLOCK) continue;
+            if (inst.template.getConnectorLayers().contains(b.y)) continue;
+            int[] vec = RoomTemplate.rotate(b.x - (int)Math.round(inst.template.getCenterX()),
+                    b.z - (int)Math.round(inst.template.getCenterZ()), inst.rotation);
+            int wx = inst.center.getBlockX() + vec[0];
+            int wy = inst.center.getBlockY() + (b.y - inst.template.getConnectorMinY());
+            int wz = inst.center.getBlockZ() + vec[1];
+            occupied.add(new BlockPos(wx, wy, wz));
+        }
     }
 
     /** Remove all placed blocks for this dungeon. */
@@ -47,6 +63,7 @@ public class Dungeon {
                 int wy = r.center.getBlockY() + (b.y - r.template.getConnectorMinY());
                 int wz = r.center.getBlockZ() + vec[1];
                 world.getBlockAt(wx, wy, wz).setType(Material.AIR, false);
+                occupied.remove(new BlockPos(wx, wy, wz));
             }
         }
         rooms.clear();
@@ -63,7 +80,12 @@ public class Dungeon {
             int wy = r.center.getBlockY() + (b.y - r.template.getConnectorMinY());
             int wz = r.center.getBlockZ() + vec[1];
             world.getBlockAt(wx, wy, wz).setType(Material.AIR, false);
+            occupied.remove(new BlockPos(wx, wy, wz));
         }
         return true;
+    }
+
+    public boolean isOccupied(int x, int y, int z) {
+        return occupied.contains(new BlockPos(x, y, z));
     }
 }
