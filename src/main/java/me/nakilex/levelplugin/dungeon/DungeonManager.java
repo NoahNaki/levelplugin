@@ -141,9 +141,9 @@ public class DungeonManager {
         int baseY = center.getBlockY();
         int connectorY = template.getConnectorMinY();
 
-        // Check overlaps using our own placed blocks. Blocks that reside on a
-        // connector layer may overlap existing connector blocks, but all other
-        // blocks must be free both in the world and in the dungeon occupancy set.
+        // Determine how many blocks would collide with existing structures.
+        int total = 0;
+        int collisions = 0;
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
             int[] vec = RoomTemplate.rotate(b.x - (int) Math.round(template.getCenterX()),
                     b.z - (int) Math.round(template.getCenterZ()), rotation);
@@ -152,29 +152,33 @@ public class DungeonManager {
             int wz = center.getBlockZ() + vec[1];
             Material worldMat = world.getBlockAt(wx, wy, wz).getType();
 
-            // Skip marker blocks entirely - they are never placed.
+            // Skip marker blocks entirely - they are never placed but still count
+            // as collisions if they would overwrite the natural world outside the
+            // dungeon.
             if (b.data.getMaterial() == Material.PINK_WOOL ||
                     b.data.getMaterial() == Material.REDSTONE_BLOCK) {
-                // still respect world terrain for markers
-                if (!worldMat.isAir() && !dungeon.isOccupied(wx, wy, wz) && !dungeon.isConnectorOccupied(wx, wy, wz))
-                    return null;
+                if (!worldMat.isAir() && !dungeon.isOccupied(wx, wy, wz) && !dungeon.isConnectorOccupied(wx, wy, wz)) {
+                    collisions++;
+                }
                 continue;
             }
 
+            // Blocks on connector layers are ignored when counting collisions so
+            // rooms may join seamlessly.
             boolean connectorLayer = template.getConnectorLayers().contains(b.y);
-
             if (connectorLayer) {
-                // allow overlap with existing dungeon blocks on connector layers
-                // only block placement if the world already contains non-dungeon
-                // blocks to avoid destroying outside structures
-                if (!worldMat.isAir() && !dungeon.isOccupied(wx, wy, wz) && !dungeon.isConnectorOccupied(wx, wy, wz))
-                    return null;
-            } else {
-                if (!worldMat.isAir() && !dungeon.isOccupied(wx, wy, wz) && !dungeon.isConnectorOccupied(wx, wy, wz))
-                    return null;
-                if (dungeon.isOccupied(wx, wy, wz) || dungeon.isConnectorOccupied(wx, wy, wz))
-                    return null;
+                continue;
             }
+
+            total++;
+            if ((!worldMat.isAir() && !dungeon.isOccupied(wx, wy, wz) && !dungeon.isConnectorOccupied(wx, wy, wz)) ||
+                dungeon.isOccupied(wx, wy, wz) || dungeon.isConnectorOccupied(wx, wy, wz)) {
+                collisions++;
+            }
+        }
+
+        if (total > 0 && collisions > total * 0.2) {
+            return null;
         }
 
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
