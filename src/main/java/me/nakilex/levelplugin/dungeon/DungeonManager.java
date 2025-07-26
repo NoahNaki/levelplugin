@@ -143,7 +143,8 @@ public class DungeonManager {
 
         // check for overlaps first
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
-            if (b.data.getMaterial() == Material.PINK_WOOL) continue;
+            if (b.data.getMaterial() == Material.PINK_WOOL ||
+                    b.data.getMaterial() == Material.REDSTONE_BLOCK) continue;
             int[] vec = RoomTemplate.rotate(b.x - (int) Math.round(template.getCenterX()),
                     b.z - (int) Math.round(template.getCenterZ()), rotation);
             int wx = center.getBlockX() + vec[0];
@@ -155,7 +156,8 @@ public class DungeonManager {
         }
 
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
-            if (b.data.getMaterial() == Material.PINK_WOOL) continue;
+            if (b.data.getMaterial() == Material.PINK_WOOL ||
+                    b.data.getMaterial() == Material.REDSTONE_BLOCK) continue;
             int[] vec = RoomTemplate.rotate(b.x - (int) Math.round(template.getCenterX()),
                     b.z - (int) Math.round(template.getCenterZ()), rotation);
             int wx = center.getBlockX() + vec[0];

@@ -10,7 +10,7 @@ import java.util.*;
 /**
  * Represents a cuboid room template loaded from the flatland world.
  * Stores block data relative to the template origin as well as
- * pink wool connector positions.
+ * connector marker positions (pink wool or redstone block).
  */
 public class RoomTemplate {
     public static class BlockDef {
@@ -107,7 +107,8 @@ public class RoomTemplate {
                     BlockData data = loc.getBlock().getBlockData();
                     if (data.getMaterial() != Material.AIR) {
                         blocks.add(new BlockDef(x - minX, y - minY, z - minZ, data));
-                        if (data.getMaterial() == Material.PINK_WOOL) {
+                        if (data.getMaterial() == Material.PINK_WOOL ||
+                            data.getMaterial() == Material.REDSTONE_BLOCK) {
                             markerBlocks.add(loc);
                         }
                     }
