@@ -142,9 +142,11 @@ public class DungeonManager {
         int connectorY = template.getConnectorMinY();
 
         // check for overlaps first
+        java.util.Set<Integer> ignoreLayers = template.getConnectorLayers();
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
             if (b.data.getMaterial() == Material.PINK_WOOL ||
-                    b.data.getMaterial() == Material.REDSTONE_BLOCK) continue;
+                    b.data.getMaterial() == Material.REDSTONE_BLOCK ||
+                    ignoreLayers.contains(b.y)) continue;
             int[] vec = RoomTemplate.rotate(b.x - (int) Math.round(template.getCenterX()),
                     b.z - (int) Math.round(template.getCenterZ()), rotation);
             int wx = center.getBlockX() + vec[0];

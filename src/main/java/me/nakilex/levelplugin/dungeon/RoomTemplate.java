@@ -38,15 +38,19 @@ public class RoomTemplate {
 
     private final List<BlockDef> blocks;
     private final List<Connector> connectors;
+    /** Y layers containing connector marker blocks */
+    private final java.util.Set<Integer> connectorLayers;
     private final int width, height, depth;
     private final int minY;
     private final int connectorMinY;
     private final double centerX, centerZ;
 
     public RoomTemplate(List<BlockDef> blocks, List<Connector> connectors,
+                        java.util.Set<Integer> connectorLayers,
                         int width, int height, int depth, int minY) {
         this.blocks = blocks;
         this.connectors = connectors;
+        this.connectorLayers = connectorLayers;
         this.width = width;
         this.height = height;
         this.depth = depth;
@@ -65,6 +69,7 @@ public class RoomTemplate {
     public int getDepth() { return depth; }
     public int getMinY() { return minY; }
     public int getConnectorMinY() { return connectorMinY; }
+    public java.util.Set<Integer> getConnectorLayers() { return connectorLayers; }
     public double getCenterX() { return centerX; }
     public double getCenterZ() { return centerZ; }
 
@@ -99,6 +104,7 @@ public class RoomTemplate {
 
         List<BlockDef> blocks = new ArrayList<>();
         Set<Location> markerBlocks = new HashSet<>();
+        java.util.Set<Integer> layers = new java.util.HashSet<>();
 
         for (int x = minX; x <= maxX; x++) {
             for (int y = minY; y <= maxY; y++) {
@@ -110,6 +116,7 @@ public class RoomTemplate {
                         if (data.getMaterial() == Material.PINK_WOOL ||
                             data.getMaterial() == Material.REDSTONE_BLOCK) {
                             markerBlocks.add(loc);
+                            layers.add(y - minY);
                         }
                     }
                 }
@@ -157,7 +164,7 @@ public class RoomTemplate {
             connectors.add(new Connector(cx, cz, minGroupY - minY, dir));
         }
 
-        return new RoomTemplate(blocks, connectors, width, height, depth, minY);
+        return new RoomTemplate(blocks, connectors, layers, width, height, depth, minY);
     }
 
     /**
