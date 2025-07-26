@@ -133,6 +133,8 @@ public class DungeonManager {
 
     private RoomTemplate chooseTemplate(RoomType type, Set<Direction> dirs) {
         if (type == RoomType.ENTRANCE) return entrance;
+        if (type == RoomType.BOSS) return boss;
+        if (type == RoomType.COMBAT) return combatRight;
         switch (dirs.size()) {
             case 1 -> { return deadEnd; }
             case 2 -> {
@@ -246,7 +248,9 @@ public class DungeonManager {
                 if (layout.get(x, y - 1) != RoomType.NONE) dirs.add(Direction.NORTH);
 
                 RoomTemplate templ = chooseTemplate(type, dirs);
-                int rotation = findRotation(templ, dirs);
+                int rotation = (type == RoomType.COMBAT || type == RoomType.BOSS || type == RoomType.ENTRANCE)
+                        ? layout.getRotation(x, y)
+                        : findRotation(templ, dirs);
                 Location center = origin.clone().add(x * step, 0, y * step);
                 String mob = layout.getMob(x, y);
                 pasteRoom(dungeon, templ, rotation, center, mob);
