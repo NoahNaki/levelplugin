@@ -241,7 +241,11 @@ public class DungeonManager {
         Location origin = player.getLocation();
         Dungeon dungeon = new Dungeon(player.getWorld(), name);
 
-        int layoutStep = layout.getStep() > 0 ? layout.getStep() : step;
+        // Use the global spacing between rooms when replaying the layout
+        // Stored step values can become incorrect if the builder moved
+        // rooms manually, so relying on the manager value prevents
+        // overlaps that would stop rooms from pasting.
+        int layoutStep = step;
         int entranceX = -1, entranceZ = -1;
         for (int x = 0; x < DungeonLayout.WIDTH; x++) {
             for (int z = 0; z < DungeonLayout.HEIGHT; z++) {
