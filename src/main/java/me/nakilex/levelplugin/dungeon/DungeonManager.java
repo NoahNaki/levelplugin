@@ -53,19 +53,9 @@ public class DungeonManager {
         crossroad = RoomTemplate.capture(world, 11, -28, -5030, -29, -60, -5070);
         entrance = RoomTemplate.capture(world, 151, -60, -4849, 171, -58, -4869);
 
-        // Determine spacing using crossroad connectors
-        List<RoomTemplate.Connector> con = crossroad.getConnectors();
-        int eastX = 0, westX = 0, northZ = 0, southZ = 0;
-        for (RoomTemplate.Connector c : con) {
-            switch (c.facing) {
-                case EAST -> eastX = c.x;
-                case WEST -> westX = c.x;
-                case NORTH -> northZ = c.z;
-                case SOUTH -> southZ = c.z;
-            }
-        }
-        step = Math.max(Math.abs(eastX - westX), Math.abs(southZ - northZ)) + 2;
-        if (step <= 0) step = crossroad.getWidth();
+        // Place rooms using a fixed grid based on the crossroad width.
+        // This keeps room centers spaced so connectors meet without overlap.
+        step = crossroad.getWidth();
     }
 
     public boolean createDungeon(Player player, String name, int rooms) {
