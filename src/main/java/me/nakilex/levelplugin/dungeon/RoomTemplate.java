@@ -222,6 +222,26 @@ public class RoomTemplate {
             }
             return copy;
         }
+        if (copy instanceof org.bukkit.block.data.type.Wall wall) {
+            org.bukkit.block.BlockFace[] order = {
+                    org.bukkit.block.BlockFace.NORTH,
+                    org.bukkit.block.BlockFace.EAST,
+                    org.bukkit.block.BlockFace.SOUTH,
+                    org.bukkit.block.BlockFace.WEST
+            };
+            org.bukkit.block.data.type.Wall.Height n = wall.getHeight(org.bukkit.block.BlockFace.NORTH);
+            org.bukkit.block.data.type.Wall.Height e = wall.getHeight(org.bukkit.block.BlockFace.EAST);
+            org.bukkit.block.data.type.Wall.Height s = wall.getHeight(org.bukkit.block.BlockFace.SOUTH);
+            org.bukkit.block.data.type.Wall.Height w = wall.getHeight(org.bukkit.block.BlockFace.WEST);
+            org.bukkit.block.data.type.Wall.Height[] heights = {n, e, s, w};
+            for (org.bukkit.block.BlockFace f : order) {
+                wall.setHeight(f, org.bukkit.block.data.type.Wall.Height.NONE);
+            }
+            for (int i = 0; i < 4; i++) {
+                wall.setHeight(order[(i + rotation) & 3], heights[i]);
+            }
+            return copy;
+        }
         return copy;
     }
 
