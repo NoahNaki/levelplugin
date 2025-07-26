@@ -237,7 +237,7 @@ public class DungeonBuilder implements Listener {
         }
     }
 
-    private static class Session {
+    private class Session {
         final Player player;
         final Dungeon dungeon;
         final Deque<History> history = new ArrayDeque<>();
