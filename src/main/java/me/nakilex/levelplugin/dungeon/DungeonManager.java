@@ -17,7 +17,7 @@ public class DungeonManager {
     private final Main plugin;
     private final Map<String, Dungeon> dungeons = new HashMap<>();
     private final Map<String, DungeonLayout> layouts = new HashMap<>();
-    private final DungeonEditor editor;
+    private final DungeonBuilder builder;
 
     private RoomTemplate deadEnd;
     private RoomTemplate straight;
@@ -32,9 +32,16 @@ public class DungeonManager {
     public DungeonManager(Main plugin) {
         this.plugin = plugin;
         loadTemplates();
-        this.editor = new DungeonEditor(this);
-        Bukkit.getPluginManager().registerEvents(editor, plugin);
+        this.builder = new DungeonBuilder(this);
+        Bukkit.getPluginManager().registerEvents(builder, plugin);
     }
+
+    public RoomTemplate getEntrance() { return entrance; }
+    public RoomTemplate getDeadEnd() { return deadEnd; }
+    public RoomTemplate getStraight() { return straight; }
+    public RoomTemplate getCorner() { return corner; }
+    public RoomTemplate getTJunction() { return tJunction; }
+    public RoomTemplate getCrossroad() { return crossroad; }
 
     private void loadTemplates() {
         World world = Bukkit.getWorld("flatland");
@@ -130,12 +137,32 @@ public class DungeonManager {
         return 0;
     }
 
-    private void pasteRoom(Dungeon dungeon, RoomTemplate template, int rotation, Location center) {
+    public boolean pasteRoom(Dungeon dungeon, RoomTemplate template, int rotation, Location center) {
         World world = center.getWorld();
-        if (world == null) return;
+        if (world == null) return false;
 
         int baseY = center.getBlockY();
         int connectorY = template.getConnectorMinY();
+        int total = 0;
+        int collisions = 0;
+
+        for (RoomTemplate.BlockDef b : template.getBlocks()) {
+            if (b.data.getMaterial() == Material.REDSTONE_BLOCK) continue;
+            int[] vec = RoomTemplate.rotate(b.x - (int) Math.round(template.getCenterX()),
+                    b.z - (int) Math.round(template.getCenterZ()), rotation);
+            int wx = center.getBlockX() + vec[0];
+            int wy = baseY + (b.y - connectorY);
+            int wz = center.getBlockZ() + vec[1];
+            if (world.getBlockAt(wx, wy, wz).getType() != Material.AIR) {
+                // ignore connector layers
+                if (b.y - connectorY > 2) collisions++;
+            }
+            total++;
+        }
+        if (total > 0 && (double) collisions / total > 0.2) {
+            return false;
+        }
+
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
             if (b.data.getMaterial() == Material.REDSTONE_BLOCK) continue;
             int[] vec = RoomTemplate.rotate(b.x - (int) Math.round(template.getCenterX()),
@@ -147,6 +174,7 @@ public class DungeonManager {
             world.getBlockAt(wx, wy, wz).setBlockData(data, false);
         }
         dungeon.addRoom(new Dungeon.RoomInstance(template, rotation, center.clone()));
+        return true;
     }
 
     public boolean deleteDungeon(String name) {
@@ -188,7 +216,7 @@ public class DungeonManager {
         return true;
     }
 
-    public DungeonEditor getEditor() { return editor; }
+    public DungeonBuilder getBuilder() { return builder; }
 
     private record Point(int x, int z) {
         Point move(Direction dir) {
