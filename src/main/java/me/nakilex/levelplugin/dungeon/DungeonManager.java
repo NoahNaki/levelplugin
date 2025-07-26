@@ -28,6 +28,8 @@ public class DungeonManager {
     private RoomTemplate crossroad;
     private RoomTemplate entrance;
     private RoomTemplate boss;
+    private RoomTemplate combatLeft;
+    private RoomTemplate combatRight;
 
     /** spacing between cell centers */
     private int step;
@@ -47,6 +49,8 @@ public class DungeonManager {
     public RoomTemplate getTJunction() { return tJunction; }
     public RoomTemplate getCrossroad() { return crossroad; }
     public RoomTemplate getBoss() { return boss; }
+    public RoomTemplate getCombatLeft() { return combatLeft; }
+    public RoomTemplate getCombatRight() { return combatRight; }
     public int getStep() { return step; }
 
     private void loadTemplates() {
@@ -64,6 +68,9 @@ public class DungeonManager {
         entrance = deadEnd; // use the single-exit room as the entrance
         // new boss room region provided by the map builder
         boss = RoomTemplate.capture(world, 43, -14, -5006, -23, -54, -4922);
+        RoomTemplate combat = RoomTemplate.capture(world, 65, -42, -5059, 105, -13, -5100);
+        combatRight = combat;
+        combatLeft = flipEntrances(combat);
 
         // Determine spacing using crossroad connectors
         List<RoomTemplate.Connector> con = crossroad.getConnectors();
@@ -172,7 +179,7 @@ public class DungeonManager {
             total++;
         }
         double overlap = total == 0 ? 0.0 : (double) collisions / total;
-        if (overlap > 0.05) {
+        if (overlap > 0.10) {
             return new PasteResult(false, overlap, Map.of());
         }
 
@@ -235,6 +242,14 @@ public class DungeonManager {
     }
 
     public DungeonBuilder getBuilder() { return builder; }
+
+    private static RoomTemplate flipEntrances(RoomTemplate src) {
+        List<RoomTemplate.Connector> list = new ArrayList<>();
+        for (RoomTemplate.Connector c : src.getConnectors()) {
+            list.add(new RoomTemplate.Connector(c.x, c.z, c.bottomY, c.facing, !c.entrance));
+        }
+        return new RoomTemplate(src.getBlocks(), list, src.getWidth(), src.getHeight(), src.getDepth(), src.getMinY());
+    }
 
     private record Point(int x, int z) {
         Point move(Direction dir) {

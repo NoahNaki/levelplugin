@@ -141,6 +141,8 @@ public class DungeonBuilder implements Listener {
         if (title.contains("Room")) {
             if (item.getType() == Material.YELLOW_WOOL) {
                 player.openInventory(createVariantSelect());
+            } else if (item.getType() == Material.GRAY_WOOL) {
+                player.openInventory(createCombatVariantSelect());
             }
         } else if (title.contains("Variant")) {
             RoomTemplate templ = switch (item.getType()) {
@@ -151,6 +153,16 @@ public class DungeonBuilder implements Listener {
                 case BLUE_WOOL -> manager.getTJunction();
                 case PURPLE_WOOL -> manager.getCrossroad();
                 case BLACK_WOOL -> manager.getBoss();
+                default -> null;
+            };
+            if (templ != null) {
+                placeVariant(s, templ);
+                player.closeInventory();
+            }
+        } else if (title.contains("Combat")) {
+            RoomTemplate templ = switch (item.getType()) {
+                case GRAY_WOOL -> manager.getCombatLeft();
+                case LIGHT_GRAY_WOOL -> manager.getCombatRight();
                 default -> null;
             };
             if (templ != null) {
@@ -301,6 +313,12 @@ public class DungeonBuilder implements Listener {
         if (meta != null) meta.setDisplayName(ChatColor.YELLOW + "Hallway");
         hall.setItemMeta(meta);
         inv.setItem(0, hall);
+
+        ItemStack combat = new ItemStack(Material.GRAY_WOOL);
+        ItemMeta cm = combat.getItemMeta();
+        if (cm != null) cm.setDisplayName(ChatColor.GRAY + "Combat Room");
+        combat.setItemMeta(cm);
+        inv.setItem(1, combat);
         return inv;
     }
 
@@ -313,6 +331,13 @@ public class DungeonBuilder implements Listener {
         inv.setItem(4, item(Material.BLUE_WOOL, ChatColor.BLUE + "T-Junction"));
         inv.setItem(5, item(Material.PURPLE_WOOL, ChatColor.LIGHT_PURPLE + "Crossroad"));
         inv.setItem(8, item(Material.BLACK_WOOL, ChatColor.DARK_GRAY + "Boss"));
+        return inv;
+    }
+
+    private Inventory createCombatVariantSelect() {
+        Inventory inv = Bukkit.createInventory(null, 9, ChatColor.DARK_GREEN + "Select Combat Room");
+        inv.setItem(0, item(Material.GRAY_WOOL, ChatColor.GRAY + "Combat Left"));
+        inv.setItem(1, item(Material.LIGHT_GRAY_WOOL, ChatColor.GRAY + "Combat Right"));
         return inv;
     }
 
