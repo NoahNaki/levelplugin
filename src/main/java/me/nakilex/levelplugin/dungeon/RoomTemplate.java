@@ -1,0 +1,315 @@
+package me.nakilex.levelplugin.dungeon;
+
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.block.data.BlockData;
+
+import java.util.*;
+
+/**
+ * Represents a cuboid room template loaded from the flatland world.
+ * Stores block data relative to the template origin as well as
+ * connector marker positions (pink wool or redstone block).
+ */
+public class RoomTemplate {
+    public static class BlockDef {
+        public final int x, y, z;
+        public final BlockData data;
+        public BlockDef(int x, int y, int z, BlockData data) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.data = data;
+        }
+    }
+
+    public static class Connector {
+        /** X/Z center and vertical bounds of the marker stack */
+        public final int x, z, bottomY, topY;
+        public final int minX, maxX, minZ, maxZ;
+        public final Direction facing;
+        public Connector(int x, int z, int bottomY, int topY,
+                          int minX, int maxX, int minZ, int maxZ,
+                          Direction facing) {
+            this.x = x;
+            this.z = z;
+            this.bottomY = bottomY;
+            this.topY = topY;
+            this.minX = minX;
+            this.maxX = maxX;
+            this.minZ = minZ;
+            this.maxZ = maxZ;
+            this.facing = facing;
+        }
+
+        public boolean contains(int x, int y, int z) {
+            return x >= minX && x <= maxX && z >= minZ && z <= maxZ && y >= bottomY && y <= topY;
+        }
+    }
+
+    private final List<BlockDef> blocks;
+    private final List<Connector> connectors;
+    /** Y layers containing connector marker blocks */
+    private final java.util.Set<Integer> connectorLayers;
+    private final int width, height, depth;
+    private final int minY;
+    private final int connectorMinY;
+    private final double centerX, centerZ;
+
+    public RoomTemplate(List<BlockDef> blocks, List<Connector> connectors,
+                        java.util.Set<Integer> connectorLayers,
+                        int width, int height, int depth, int minY) {
+        this.blocks = blocks;
+        this.connectors = connectors;
+        this.connectorLayers = connectorLayers;
+        this.width = width;
+        this.height = height;
+        this.depth = depth;
+        this.minY = minY;
+        int lowest = Integer.MAX_VALUE;
+        for (Connector c : connectors) lowest = Math.min(lowest, c.bottomY);
+        this.connectorMinY = lowest == Integer.MAX_VALUE ? 0 : lowest;
+        this.centerX = (width - 1) / 2.0;
+        this.centerZ = (depth - 1) / 2.0;
+    }
+
+    public List<BlockDef> getBlocks() { return blocks; }
+    public List<Connector> getConnectors() { return connectors; }
+    public int getWidth() { return width; }
+    public int getHeight() { return height; }
+    public int getDepth() { return depth; }
+    public int getMinY() { return minY; }
+    public int getConnectorMinY() { return connectorMinY; }
+    public java.util.Set<Integer> getConnectorLayers() { return connectorLayers; }
+    public double getCenterX() { return centerX; }
+    public double getCenterZ() { return centerZ; }
+
+    /** Determine if the given block coordinates are inside any connector area. */
+    public boolean isConnectorBlock(int x, int y, int z) {
+        for (Connector c : connectors) {
+            if (c.contains(x, y, z)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Rotate a 2D X/Z vector around the template center.
+     */
+    public static int[] rotate(double x, double z, int rotation) {
+        double rx, rz;
+        switch (rotation & 3) {
+            case 0 -> {
+                rx = x;
+                rz = z;
+            }
+            case 1 -> {
+                rx = -z;
+                rz = x;
+            }
+            case 2 -> {
+                rx = -x;
+                rz = -z;
+            }
+            default -> {
+                rx = z;
+                rz = -x;
+            }
+        }
+        return new int[] { (int)Math.round(rx), (int)Math.round(rz) };
+    }
+
+    /**
+     * Load a template from the given cuboid region in the world.
+     */
+    public static RoomTemplate capture(World world,
+                                       int x1, int y1, int z1,
+                                       int x2, int y2, int z2) {
+        int minX = Math.min(x1, x2);
+        int maxX = Math.max(x1, x2);
+        int minY = Math.min(y1, y2);
+        int maxY = Math.max(y1, y2);
+        int minZ = Math.min(z1, z2);
+        int maxZ = Math.max(z1, z2);
+
+        int width = maxX - minX + 1;
+        int height = maxY - minY + 1;
+        int depth = maxZ - minZ + 1;
+
+        List<BlockDef> blocks = new ArrayList<>();
+        Set<Location> markerBlocks = new HashSet<>();
+        java.util.Set<Integer> layers = new java.util.HashSet<>();
+
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    Location loc = new Location(world, x, y, z);
+                    BlockData data = loc.getBlock().getBlockData();
+                    if (data.getMaterial() != Material.AIR) {
+                        blocks.add(new BlockDef(x - minX, y - minY, z - minZ, data));
+                        if (data.getMaterial() == Material.PINK_WOOL ||
+                            data.getMaterial() == Material.REDSTONE_BLOCK) {
+                            markerBlocks.add(loc);
+                            layers.add(y - minY);
+                        }
+                    }
+                }
+            }
+        }
+
+        // group connectors by contiguous marker blocks
+        List<Connector> connectors = new ArrayList<>();
+        Set<Location> visited = new HashSet<>();
+        for (Location loc : markerBlocks) {
+            if (visited.contains(loc)) continue;
+            List<Location> group = new ArrayList<>();
+            Deque<Location> stack = new ArrayDeque<>();
+            stack.push(loc);
+            visited.add(loc);
+            int minGX = Integer.MAX_VALUE, minGY = Integer.MAX_VALUE, minGZ = Integer.MAX_VALUE;
+            int maxGX = Integer.MIN_VALUE, maxGY = Integer.MIN_VALUE, maxGZ = Integer.MIN_VALUE;
+            while (!stack.isEmpty()) {
+                Location l = stack.pop();
+                group.add(l);
+                int bx = l.getBlockX();
+                int by = l.getBlockY();
+                int bz = l.getBlockZ();
+                if (bx < minGX) minGX = bx;
+                if (by < minGY) minGY = by;
+                if (bz < minGZ) minGZ = bz;
+                if (bx > maxGX) maxGX = bx;
+                if (by > maxGY) maxGY = by;
+                if (bz > maxGZ) maxGZ = bz;
+                for (int dx = -1; dx <= 1; dx++) {
+                    for (int dy = -1; dy <= 1; dy++) {
+                        for (int dz = -1; dz <= 1; dz++) {
+                            if (Math.abs(dx) + Math.abs(dy) + Math.abs(dz) != 1) continue;
+                            Location n = l.clone().add(dx, dy, dz);
+                            if (markerBlocks.contains(n) && visited.add(n)) {
+                                stack.push(n);
+                            }
+                        }
+                    }
+                }
+            }
+            double cxWorld = (minGX + maxGX) / 2.0;
+            double czWorld = (minGZ + maxGZ) / 2.0;
+            int cx = (int)Math.round(cxWorld) - minX;
+            int cz = (int)Math.round(czWorld) - minZ;
+            int dx = cx - (int)Math.round((width - 1) / 2.0);
+            int dz = cz - (int)Math.round((depth - 1) / 2.0);
+            Direction dir = Direction.fromDelta(dx, dz);
+            connectors.add(new Connector(
+                    cx,
+                    cz,
+                    minGY - minY,
+                    maxGY - minY,
+                    minGX - minX,
+                    maxGX - minX,
+                    minGZ - minZ,
+                    maxGZ - minZ,
+                    dir));
+            for (int ly = minGY - minY; ly <= maxGY - minY; ly++) layers.add(ly);
+        }
+
+        return new RoomTemplate(blocks, connectors, layers, width, height, depth, minY);
+    }
+
+    /**
+     * Get the set of connector directions for a given rotation.
+     */
+    public java.util.Set<Direction> getRotatedDirections(int rotation) {
+        java.util.Set<Direction> set = new java.util.HashSet<>();
+        for (Connector c : connectors) {
+            Direction dir = rotate(c.facing, rotation);
+            set.add(dir);
+        }
+        return set;
+    }
+
+    private static Direction rotate(Direction dir, int rotation) {
+        int ord = (dir.ordinal() + rotation) & 3;
+        return Direction.values()[ord];
+    }
+
+    /** Rotate block data for directional blocks to match rotation. */
+    public static BlockData rotateBlockData(BlockData data, int rotation) {
+        if (rotation % 4 == 0) return data;
+        BlockData copy = data.clone();
+        if (copy instanceof org.bukkit.block.data.Directional dir) {
+            org.bukkit.block.BlockFace face = dir.getFacing();
+            dir.setFacing(rotateFace(face, rotation));
+            return copy;
+        }
+        if (copy instanceof org.bukkit.block.data.Rotatable rot) {
+            org.bukkit.block.BlockFace face = rot.getRotation();
+            rot.setRotation(rotateFace(face, rotation));
+            return copy;
+        }
+        if (copy instanceof org.bukkit.block.data.Orientable orient) {
+            org.bukkit.Axis axis = orient.getAxis();
+            switch (axis) {
+                case X -> orient.setAxis(rotation % 2 == 0 ? org.bukkit.Axis.X : org.bukkit.Axis.Z);
+                case Z -> orient.setAxis(rotation % 2 == 0 ? org.bukkit.Axis.Z : org.bukkit.Axis.X);
+                default -> {}
+            }
+            return copy;
+        }
+        if (copy instanceof org.bukkit.block.data.MultipleFacing multi) {
+            boolean n = multi.hasFace(org.bukkit.block.BlockFace.NORTH);
+            boolean e = multi.hasFace(org.bukkit.block.BlockFace.EAST);
+            boolean s = multi.hasFace(org.bukkit.block.BlockFace.SOUTH);
+            boolean w = multi.hasFace(org.bukkit.block.BlockFace.WEST);
+            multi.setFace(org.bukkit.block.BlockFace.NORTH, false);
+            multi.setFace(org.bukkit.block.BlockFace.EAST, false);
+            multi.setFace(org.bukkit.block.BlockFace.SOUTH, false);
+            multi.setFace(org.bukkit.block.BlockFace.WEST, false);
+            org.bukkit.block.BlockFace[] order = {
+                    org.bukkit.block.BlockFace.NORTH,
+                    org.bukkit.block.BlockFace.EAST,
+                    org.bukkit.block.BlockFace.SOUTH,
+                    org.bukkit.block.BlockFace.WEST
+            };
+            boolean[] faces = {n, e, s, w};
+            for (int i = 0; i < 4; i++) {
+                if (faces[i]) {
+                    multi.setFace(order[(i + rotation) & 3], true);
+                }
+            }
+            return copy;
+        }
+        if (copy instanceof org.bukkit.block.data.type.Wall wall) {
+            org.bukkit.block.BlockFace[] order = {
+                    org.bukkit.block.BlockFace.NORTH,
+                    org.bukkit.block.BlockFace.EAST,
+                    org.bukkit.block.BlockFace.SOUTH,
+                    org.bukkit.block.BlockFace.WEST
+            };
+            org.bukkit.block.data.type.Wall.Height n = wall.getHeight(org.bukkit.block.BlockFace.NORTH);
+            org.bukkit.block.data.type.Wall.Height e = wall.getHeight(org.bukkit.block.BlockFace.EAST);
+            org.bukkit.block.data.type.Wall.Height s = wall.getHeight(org.bukkit.block.BlockFace.SOUTH);
+            org.bukkit.block.data.type.Wall.Height w = wall.getHeight(org.bukkit.block.BlockFace.WEST);
+            org.bukkit.block.data.type.Wall.Height[] heights = {n, e, s, w};
+            for (org.bukkit.block.BlockFace f : order) {
+                wall.setHeight(f, org.bukkit.block.data.type.Wall.Height.NONE);
+            }
+            for (int i = 0; i < 4; i++) {
+                wall.setHeight(order[(i + rotation) & 3], heights[i]);
+            }
+            return copy;
+        }
+        return copy;
+    }
+
+    private static org.bukkit.block.BlockFace rotateFace(org.bukkit.block.BlockFace face, int rotation) {
+        org.bukkit.block.BlockFace[] order = {
+                org.bukkit.block.BlockFace.NORTH,
+                org.bukkit.block.BlockFace.EAST,
+                org.bukkit.block.BlockFace.SOUTH,
+                org.bukkit.block.BlockFace.WEST
+        };
+        int idx = java.util.Arrays.asList(order).indexOf(face);
+        if (idx < 0) return face;
+        return order[(idx + rotation) & 3];
+    }
+}
