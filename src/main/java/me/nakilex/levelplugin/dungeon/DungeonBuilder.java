@@ -110,7 +110,8 @@ public class DungeonBuilder implements Listener {
             RoomTemplate templ = switch (item.getType()) {
                 case RED_WOOL -> manager.getDeadEnd();
                 case ORANGE_WOOL -> manager.getStraight();
-                case GREEN_WOOL -> manager.getCorner();
+                case GREEN_WOOL -> manager.getCornerLeft();
+                case LIME_WOOL -> manager.getCornerRight();
                 case BLUE_WOOL -> manager.getTJunction();
                 case PURPLE_WOOL -> manager.getCrossroad();
                 default -> null;
@@ -202,9 +203,10 @@ public class DungeonBuilder implements Listener {
         Inventory inv = Bukkit.createInventory(null, 9, ChatColor.DARK_GREEN + "Select Variant");
         inv.setItem(0, item(Material.RED_WOOL, ChatColor.RED + "Dead End"));
         inv.setItem(1, item(Material.ORANGE_WOOL, ChatColor.GOLD + "Straight"));
-        inv.setItem(2, item(Material.GREEN_WOOL, ChatColor.GREEN + "Corner"));
-        inv.setItem(3, item(Material.BLUE_WOOL, ChatColor.BLUE + "T-Junction"));
-        inv.setItem(4, item(Material.PURPLE_WOOL, ChatColor.LIGHT_PURPLE + "Crossroad"));
+        inv.setItem(2, item(Material.GREEN_WOOL, ChatColor.GREEN + "Corner Left"));
+        inv.setItem(3, item(Material.LIME_WOOL, ChatColor.GREEN + "Corner Right"));
+        inv.setItem(4, item(Material.BLUE_WOOL, ChatColor.BLUE + "T-Junction"));
+        inv.setItem(5, item(Material.PURPLE_WOOL, ChatColor.LIGHT_PURPLE + "Crossroad"));
         return inv;
     }
 
@@ -262,7 +264,8 @@ public class DungeonBuilder implements Listener {
             if (h == null) return;
             World world = h.instance.center.getWorld();
             for (RoomTemplate.BlockDef b : h.instance.template.getBlocks()) {
-                if (b.data.getMaterial() == Material.REDSTONE_BLOCK) continue;
+                Material mat = b.data.getMaterial();
+                if (mat == Material.REDSTONE_BLOCK || mat == Material.PINK_WOOL) continue;
                 int[] vec = RoomTemplate.rotate(b.x - (int) Math.round(h.instance.template.getCenterX()),
                         b.z - (int) Math.round(h.instance.template.getCenterZ()), h.instance.rotation);
                 Location l = h.instance.center.clone().add(vec[0], b.y - h.instance.template.getConnectorMinY(), vec[1]);
