@@ -15,10 +15,32 @@ public class Dungeon {
         public final RoomTemplate template;
         public final int rotation;
         public final Location center;
-        public RoomInstance(RoomTemplate template, int rotation, Location center) {
+        public final int minX, minY, minZ, maxX, maxY, maxZ;
+        public final String mob;
+        public RoomInstance(RoomTemplate template, int rotation, Location center,
+                            int minX, int minY, int minZ,
+                            int maxX, int maxY, int maxZ,
+                            String mob) {
             this.template = template;
             this.rotation = rotation;
             this.center = center;
+            this.minX = minX;
+            this.minY = minY;
+            this.minZ = minZ;
+            this.maxX = maxX;
+            this.maxY = maxY;
+            this.maxZ = maxZ;
+            this.mob = mob;
+        }
+
+        public boolean contains(Location loc) {
+            if (!loc.getWorld().equals(center.getWorld())) return false;
+            int x = loc.getBlockX();
+            int y = loc.getBlockY();
+            int z = loc.getBlockZ();
+            return x >= minX && x <= maxX
+                && y >= minY && y <= maxY
+                && z >= minZ && z <= maxZ;
         }
     }
 

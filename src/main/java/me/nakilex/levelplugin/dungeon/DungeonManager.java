@@ -124,7 +124,7 @@ public class DungeonManager {
             RoomTemplate templ = chooseTemplate(RoomType.HALLWAY, dirs);
             int rotation = findRotation(templ, dirs);
             Location center = origin.clone().add(p.x * step, 0, p.z * step);
-            pasteRoom(dungeon, templ, rotation, center);
+            pasteRoom(dungeon, templ, rotation, center, null);
         }
 
         dungeons.put(name.toLowerCase(), dungeon);
@@ -153,16 +153,23 @@ public class DungeonManager {
         return 0;
     }
 
-    public record PasteResult(boolean success, double overlap, Map<Location, BlockData> replaced) {}
+    public record PasteResult(boolean success, double overlap, Map<Location, BlockData> replaced, Dungeon.RoomInstance instance) {}
 
     public PasteResult pasteRoom(Dungeon dungeon, RoomTemplate template, int rotation, Location center) {
+        return pasteRoom(dungeon, template, rotation, center, null);
+    }
+
+    public PasteResult pasteRoom(Dungeon dungeon, RoomTemplate template, int rotation, Location center, String mob) {
         World world = center.getWorld();
-        if (world == null) return new PasteResult(false, 1.0, Map.of());
+        if (world == null) return new PasteResult(false, 1.0, Map.of(), null);
 
         int baseY = center.getBlockY();
         int connectorY = template.getConnectorMinY();
         int total = 0;
         int collisions = 0;
+
+        int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
 
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
             Material mat = b.data.getMaterial();
@@ -176,6 +183,12 @@ public class DungeonManager {
                 // ignore connector layers
                 if (b.y - connectorY > 2) collisions++;
             }
+            if (wx < minX) minX = wx;
+            if (wy < minY) minY = wy;
+            if (wz < minZ) minZ = wz;
+            if (wx > maxX) maxX = wx;
+            if (wy > maxY) maxY = wy;
+            if (wz > maxZ) maxZ = wz;
             total++;
         }
         double overlap = total == 0 ? 0.0 : (double) collisions / total;
@@ -198,8 +211,10 @@ public class DungeonManager {
             BlockData data = RoomTemplate.rotateBlockData(b.data, rotation);
             world.getBlockAt(wx, wy, wz).setBlockData(data, false);
         }
-        dungeon.addRoom(new Dungeon.RoomInstance(template, rotation, center.clone()));
-        return new PasteResult(true, overlap, replaced);
+        Dungeon.RoomInstance inst = new Dungeon.RoomInstance(template, rotation, center.clone(),
+                minX, minY, minZ, maxX, maxY, maxZ, mob);
+        dungeon.addRoom(inst);
+        return new PasteResult(true, overlap, replaced, inst);
     }
 
     public boolean deleteDungeon(String name) {
@@ -233,7 +248,8 @@ public class DungeonManager {
                 RoomTemplate templ = chooseTemplate(type, dirs);
                 int rotation = findRotation(templ, dirs);
                 Location center = origin.clone().add(x * step, 0, y * step);
-                pasteRoom(dungeon, templ, rotation, center);
+                String mob = layout.getMob(x, y);
+                pasteRoom(dungeon, templ, rotation, center, mob);
             }
         }
 
@@ -242,6 +258,16 @@ public class DungeonManager {
     }
 
     public DungeonBuilder getBuilder() { return builder; }
+
+    public Collection<Dungeon> getActiveDungeons() {
+        return dungeons.values();
+    }
+
+    public Set<String> getAvailableMobs() {
+        var sec = plugin.getMobRewardsConfig().getConfig().getConfigurationSection("mobs");
+        if (sec == null) return Set.of();
+        return sec.getKeys(false);
+    }
 
     private static RoomTemplate flipEntrances(RoomTemplate src) {
         List<RoomTemplate.Connector> list = new ArrayList<>();
