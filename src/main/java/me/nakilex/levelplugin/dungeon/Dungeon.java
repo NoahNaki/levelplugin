@@ -42,8 +42,8 @@ public class Dungeon {
     public void addRoom(RoomInstance inst) {
         rooms.add(inst);
         for (RoomTemplate.BlockDef b : inst.template.getBlocks()) {
-            int[] vec = RoomTemplate.rotate(b.x - (int)Math.round(inst.template.getCenterX()),
-                    b.z - (int)Math.round(inst.template.getCenterZ()), inst.rotation);
+            int[] vec = RoomTemplate.rotate(b.x - inst.template.getCenterX(),
+                    b.z - inst.template.getCenterZ(), inst.rotation);
             int wx = inst.center.getBlockX() + vec[0];
             int wy = inst.center.getBlockY() + (b.y - inst.template.getConnectorMinY());
             int wz = inst.center.getBlockZ() + vec[1];
@@ -65,8 +65,8 @@ public class Dungeon {
     public void delete() {
         for (RoomInstance r : rooms) {
             for (RoomTemplate.BlockDef b : r.template.getBlocks()) {
-                int[] vec = RoomTemplate.rotate(b.x - (int)Math.round(r.template.getCenterX()),
-                        b.z - (int)Math.round(r.template.getCenterZ()), r.rotation);
+                int[] vec = RoomTemplate.rotate(b.x - r.template.getCenterX(),
+                        b.z - r.template.getCenterZ(), r.rotation);
                 int wx = r.center.getBlockX() + vec[0];
                 int wy = r.center.getBlockY() + (b.y - r.template.getConnectorMinY());
                 int wz = r.center.getBlockZ() + vec[1];
@@ -84,8 +84,8 @@ public class Dungeon {
         if (rooms.isEmpty()) return false;
         RoomInstance r = rooms.remove(rooms.size() - 1);
         for (RoomTemplate.BlockDef b : r.template.getBlocks()) {
-            int[] vec = RoomTemplate.rotate(b.x - (int)Math.round(r.template.getCenterX()),
-                    b.z - (int)Math.round(r.template.getCenterZ()), r.rotation);
+            int[] vec = RoomTemplate.rotate(b.x - r.template.getCenterX(),
+                    b.z - r.template.getCenterZ(), r.rotation);
             int wx = r.center.getBlockX() + vec[0];
             int wy = r.center.getBlockY() + (b.y - r.template.getConnectorMinY());
             int wz = r.center.getBlockZ() + vec[1];

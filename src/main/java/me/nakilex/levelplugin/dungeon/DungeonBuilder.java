@@ -114,8 +114,8 @@ public class DungeonBuilder implements Listener {
     private List<Integer> spawnConnectors(Session s, RoomTemplate templ, int rotation, Location center, Location used) {
         List<Integer> ids = new ArrayList<>();
         for (RoomTemplate.Connector c : templ.getConnectors()) {
-            int[] vec = RoomTemplate.rotate(c.x - (int) Math.round(templ.getCenterX()),
-                    c.z - (int) Math.round(templ.getCenterZ()), rotation);
+            int[] vec = RoomTemplate.rotate(c.x - templ.getCenterX(),
+                    c.z - templ.getCenterZ(), rotation);
             int wx = center.getBlockX() + vec[0];
             int wy = center.getBlockY() + (c.bottomY - templ.getConnectorMinY());
             int wz = center.getBlockZ() + vec[1];
@@ -245,7 +245,7 @@ public class DungeonBuilder implements Listener {
         for (RoomTemplate.Connector c : tmpl.getConnectors()) {
             Direction dir = Direction.values()[(c.facing.ordinal() + rotation) & 3];
             if (dir == facing) {
-                int[] vec = RoomTemplate.rotate(c.x - (int)Math.round(tmpl.getCenterX()), c.z - (int)Math.round(tmpl.getCenterZ()), rotation);
+                int[] vec = RoomTemplate.rotate(c.x - tmpl.getCenterX(), c.z - tmpl.getCenterZ(), rotation);
                 int cx = target.getBlockX() - vec[0];
                 int cy = target.getBlockY() - (c.bottomY - tmpl.getConnectorMinY());
                 int cz = target.getBlockZ() - vec[1];

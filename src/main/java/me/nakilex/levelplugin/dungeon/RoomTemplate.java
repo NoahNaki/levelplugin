@@ -96,13 +96,27 @@ public class RoomTemplate {
     /**
      * Rotate a 2D X/Z vector around the template center.
      */
-    public static int[] rotate(int x, int z, int rotation) {
-        return switch (rotation & 3) {
-            case 0 -> new int[]{x, z};
-            case 1 -> new int[]{-z, x};
-            case 2 -> new int[]{-x, -z};
-            default -> new int[]{z, -x};
-        };
+    public static int[] rotate(double x, double z, int rotation) {
+        double rx, rz;
+        switch (rotation & 3) {
+            case 0 -> {
+                rx = x;
+                rz = z;
+            }
+            case 1 -> {
+                rx = -z;
+                rz = x;
+            }
+            case 2 -> {
+                rx = -x;
+                rz = -z;
+            }
+            default -> {
+                rx = z;
+                rz = -x;
+            }
+        }
+        return new int[] { (int)Math.round(rx), (int)Math.round(rz) };
     }
 
     /**
