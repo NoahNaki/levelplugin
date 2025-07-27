@@ -96,7 +96,8 @@ public class DungeonBuilder implements Listener {
                 if (layout.get(x, z - 1) != RoomType.NONE) dirs.add(Direction.NORTH);
 
                 RoomTemplate templ = manager.chooseTemplate(type, dirs);
-                int rotation = (type == RoomType.COMBAT || type == RoomType.BOSS || type == RoomType.ENTRANCE)
+                int rotation = (type == RoomType.COMBAT || type == RoomType.BOSS || type == RoomType.ENTRANCE
+                        || type == RoomType.TJUNCTION_LEFT || type == RoomType.TJUNCTION_RIGHT)
                         ? layout.getRotation(x, z)
                         : manager.findRotation(templ, dirs);
                 int diffX = layout.getOffsetX(x, z);
@@ -639,7 +640,9 @@ public class DungeonBuilder implements Listener {
                 RoomType type = i == 0 ? RoomType.ENTRANCE :
                         (t == manager.getBoss() ? RoomType.BOSS :
                                 (t == manager.getCombatLeft() || t == manager.getCombatRight()
-                                        ? RoomType.COMBAT : RoomType.HALLWAY));
+                                        ? RoomType.COMBAT :
+                                        (t == manager.getTJunctionLeft() ? RoomType.TJUNCTION_LEFT :
+                                                (t == manager.getTJunctionRight() ? RoomType.TJUNCTION_RIGHT : RoomType.HALLWAY))));
                 int lx = offX + dx;
                 int lz = offZ + dz;
                 layout.set(lx, lz, type);

@@ -143,6 +143,8 @@ public class DungeonManager {
         if (type == RoomType.ENTRANCE) return entrance;
         if (type == RoomType.BOSS) return boss;
         if (type == RoomType.COMBAT) return combatRight;
+        if (type == RoomType.TJUNCTION_LEFT) return tJunctionLeft;
+        if (type == RoomType.TJUNCTION_RIGHT) return tJunctionRight;
         switch (dirs.size()) {
             case 1 -> { return deadEnd; }
             case 2 -> {
@@ -268,7 +270,8 @@ public class DungeonManager {
                 if (layout.get(x, y - 1) != RoomType.NONE) dirs.add(Direction.NORTH);
 
                 RoomTemplate templ = chooseTemplate(type, dirs);
-                int rotation = (type == RoomType.COMBAT || type == RoomType.BOSS || type == RoomType.ENTRANCE)
+                int rotation = (type == RoomType.COMBAT || type == RoomType.BOSS || type == RoomType.ENTRANCE
+                        || type == RoomType.TJUNCTION_LEFT || type == RoomType.TJUNCTION_RIGHT)
                         ? layout.getRotation(x, y)
                         : findRotation(templ, dirs);
                 int diffX = layout.getOffsetX(x, y);
