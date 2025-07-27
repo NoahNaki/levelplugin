@@ -31,7 +31,10 @@ public class DungeonMobSpawnListener implements Listener {
                 if (room.mob == null || triggered.contains(room)) continue;
                 if (room.contains(to)) {
                     for (int i = 0; i < 5; i++) {
-                        MythicBukkit.inst().getMobManager().spawnMob(room.mob, room.center, 1.0);
+                        double x = room.minX + 1 + Math.random() * (room.maxX - room.minX - 1);
+                        double z = room.minZ + 1 + Math.random() * (room.maxZ - room.minZ - 1);
+                        Location spawn = new Location(room.center.getWorld(), x + 0.5, room.center.getY(), z + 0.5);
+                        MythicBukkit.inst().getMobManager().spawnMob(room.mob, spawn, 1.0);
                     }
                     triggered.add(room);
                 }

@@ -253,7 +253,8 @@ public class DungeonBuilder implements Listener {
                     case ORANGE_WOOL -> manager.getStraight();
                     case GREEN_WOOL -> manager.getCornerLeft();
                     case LIME_WOOL -> manager.getCornerRight();
-                    case BLUE_WOOL -> manager.getTJunction();
+                    case BLUE_WOOL -> manager.getTJunctionLeft();
+                    case CYAN_WOOL -> manager.getTJunctionRight();
                     case PURPLE_WOOL -> manager.getCrossroad();
                     default -> null;
                 };
@@ -331,6 +332,29 @@ public class DungeonBuilder implements Listener {
                             match = c;
                             break outer;
                         }
+                    }
+                }
+            }
+        }
+
+        // Handle T-junction variants with a dedicated left/right side exit
+        if (match == null && (templ == manager.getTJunctionLeft() || templ == manager.getTJunctionRight())) {
+            boolean right = templ == manager.getTJunctionRight();
+            Direction side = rotate(info.facing, right ? 1 : 3);
+            Direction forward = info.facing;
+            outer:
+            for (int r = 0; r < 4; r++) {
+                for (RoomTemplate.Connector c : templ.getConnectors()) {
+                    if (rotate(c.facing, r) != info.facing.opposite()) continue;
+                    Set<Direction> others = new HashSet<>();
+                    for (RoomTemplate.Connector o : templ.getConnectors()) {
+                        if (o == c) continue;
+                        others.add(rotate(o.facing, r));
+                    }
+                    if (others.contains(side) && others.contains(forward)) {
+                        rotation = r;
+                        match = c;
+                        break outer;
                     }
                 }
             }
@@ -458,8 +482,9 @@ public class DungeonBuilder implements Listener {
         inv.setItem(12, item(Material.ORANGE_WOOL, ChatColor.GOLD + "Straight"));
         inv.setItem(14, item(Material.GREEN_WOOL, ChatColor.GREEN + "Corner Left"));
         inv.setItem(16, item(Material.LIME_WOOL, ChatColor.GREEN + "Corner Right"));
-        inv.setItem(20, item(Material.BLUE_WOOL, ChatColor.BLUE + "T-Junction"));
-        inv.setItem(22, item(Material.PURPLE_WOOL, ChatColor.LIGHT_PURPLE + "Crossroad"));
+        inv.setItem(20, item(Material.BLUE_WOOL, ChatColor.BLUE + "T-Junction Left"));
+        inv.setItem(22, item(Material.CYAN_WOOL, ChatColor.BLUE + "T-Junction Right"));
+        inv.setItem(24, item(Material.PURPLE_WOOL, ChatColor.LIGHT_PURPLE + "Crossroad"));
 
         inv.setItem(18, GuiUtil.getNexoItem("arrow_left", ChatColor.YELLOW + "Back"));
         return inv;
