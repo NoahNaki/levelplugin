@@ -8,6 +8,8 @@ import org.bukkit.Material;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.player.PlayerPortalEvent;
 
 import java.util.*;
 
@@ -416,6 +418,20 @@ public class DungeonManager {
                 }
                 checkInstance(e.getTo().getWorld());
             }
+        }
+
+        @org.bukkit.event.EventHandler(priority = EventPriority.HIGHEST)
+        public void onPortal(PlayerPortalEvent e) {
+            Instance inst = instances.get(e.getFrom().getWorld());
+            if (inst == null) return;
+            e.setCancelled(true);
+            java.util.UUID id = e.getPlayer().getUniqueId();
+            Location back = inst.returnLocations.remove(id);
+            if (back != null) {
+                e.getPlayer().sendMessage(ChatColor.GREEN + "Dungeon '" + inst.layout + "' completed!");
+                e.getPlayer().teleport(back);
+            }
+            checkInstance(e.getFrom().getWorld());
         }
 
         @org.bukkit.event.EventHandler

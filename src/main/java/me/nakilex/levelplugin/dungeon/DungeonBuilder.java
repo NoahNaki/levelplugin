@@ -618,6 +618,7 @@ public class DungeonBuilder implements Listener {
                 ConnectorInfo restored = DungeonBuilder.this.spawnConnector(this, h.used.location, h.used.facing);
                 connectors.put(restored.interaction.getEntityId(), restored);
             }
+            dungeon.removeRoom(h.instance);
         }
 
         void cancel() {
