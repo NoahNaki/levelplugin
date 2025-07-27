@@ -67,7 +67,7 @@ public class DungeonBuilder implements Listener {
             if (layout.get(entranceX - 1, entranceZ) != RoomType.NONE) dirs.add(Direction.WEST);
             if (layout.get(entranceX, entranceZ + 1) != RoomType.NONE) dirs.add(Direction.SOUTH);
             if (layout.get(entranceX, entranceZ - 1) != RoomType.NONE) dirs.add(Direction.NORTH);
-            RoomTemplate templ = manager.chooseTemplate(type, dirs);
+            RoomTemplate templ = manager.getTemplate(layout.getTemplate(entranceX, entranceZ));
             int rotation = layout.getRotation(entranceX, entranceZ);
             Location center = origin.clone();
             String mob = layout.getMob(entranceX, entranceZ);
@@ -95,11 +95,8 @@ public class DungeonBuilder implements Listener {
                 if (layout.get(x, z + 1) != RoomType.NONE) dirs.add(Direction.SOUTH);
                 if (layout.get(x, z - 1) != RoomType.NONE) dirs.add(Direction.NORTH);
 
-                RoomTemplate templ = manager.chooseTemplate(type, dirs);
-                int rotation = (type == RoomType.COMBAT || type == RoomType.BOSS || type == RoomType.ENTRANCE
-                        || type == RoomType.TJUNCTION_LEFT || type == RoomType.TJUNCTION_RIGHT)
-                        ? layout.getRotation(x, z)
-                        : manager.findRotation(templ, dirs);
+                RoomTemplate templ = manager.getTemplate(layout.getTemplate(x, z));
+                int rotation = layout.getRotation(x, z);
                 int diffX = layout.getOffsetX(x, z);
                 int diffZ = layout.getOffsetZ(x, z);
                 Location center = origin.clone().add(diffX, 0, diffZ);
@@ -234,13 +231,15 @@ public class DungeonBuilder implements Listener {
                 if (type == Material.YELLOW_WOOL) {
                     player.openInventory(createVariantSelect());
                 } else if (type == Material.RED_WOOL) {
-                    if (event.getClick().isRightClick()) {
-                        player.openInventory(createMobSelect());
-                    } else {
-                        player.openInventory(createCombatVariantSelect());
-                    }
+                    player.openInventory(createCombatVariantSelect());
                 } else if (type == Material.BLACK_WOOL) {
                     placeVariant(s, manager.getBoss());
+                    player.closeInventory();
+                } else if (type == Material.OBSIDIAN) {
+                    placeVariant(s, manager.getExit());
+                    player.closeInventory();
+                } else if (type == Material.BOOKSHELF) {
+                    placeVariant(s, manager.getLibrary());
                     player.closeInventory();
                 }
             }
@@ -275,17 +274,21 @@ public class DungeonBuilder implements Listener {
                     default -> null;
                 };
                 if (templ != null) {
-                    placeVariant(s, templ);
-                    player.closeInventory();
+                    s.selectedTemplate = templ;
+                    player.openInventory(createMobSelect());
                 }
             }
             case "Select Mob" -> {
                 if (name.equalsIgnoreCase("Back")) {
-                    player.openInventory(createRoomSelect());
+                    player.openInventory(createCombatVariantSelect());
                     return;
                 }
                 s.selectedMob = name;
-                player.openInventory(createCombatVariantSelect());
+                if (s.selectedTemplate != null) {
+                    placeVariant(s, s.selectedTemplate);
+                    player.closeInventory();
+                    s.selectedTemplate = null;
+                }
             }
         }
     }
@@ -303,6 +306,11 @@ public class DungeonBuilder implements Listener {
         }
         Bukkit.getScheduler().runTask(manager.getPlugin(), () -> {
             DungeonLayout layout = s.buildLayout();
+            if (!layout.hasEntrance() || !layout.hasExit()) {
+                event.getPlayer().sendMessage(ChatColor.RED + "Dungeon requires an entrance and exit.");
+                s.awaitingName = false;
+                return;
+            }
             manager.saveLayout(msg, layout);
             s.cancel();
             event.getPlayer().sendMessage(ChatColor.GREEN + "Dungeon saved as '" + msg + "'");
@@ -463,6 +471,8 @@ public class DungeonBuilder implements Listener {
         ItemStack hall = item(Material.YELLOW_WOOL, ChatColor.YELLOW + "Hallway");
         ItemStack boss = item(Material.BLACK_WOOL, ChatColor.DARK_GRAY + "Boss Room");
         ItemStack combat = item(Material.RED_WOOL, ChatColor.RED + "Combat Room");
+        ItemStack exitRoom = item(Material.OBSIDIAN, ChatColor.DARK_PURPLE + "Exit Room");
+        ItemStack library = item(Material.BOOKSHELF, ChatColor.GOLD + "Library");
         ItemMeta cMeta = combat.getItemMeta();
         if (cMeta != null) {
             cMeta.setLore(Arrays.asList(ChatColor.WHITE + "Left-click to place",
@@ -470,9 +480,11 @@ public class DungeonBuilder implements Listener {
             combat.setItemMeta(cMeta);
         }
 
-        inv.setItem(11, hall);
-        inv.setItem(13, boss);
-        inv.setItem(15, combat);
+        inv.setItem(10, hall);
+        inv.setItem(12, boss);
+        inv.setItem(14, combat);
+        inv.setItem(16, exitRoom);
+        inv.setItem(18, library);
         return inv;
     }
 
@@ -576,6 +588,7 @@ public class DungeonBuilder implements Listener {
         ConnectorInfo pending;
         boolean awaitingName = false;
         String selectedMob = null;
+        RoomTemplate selectedTemplate = null;
         Session(Player player) {
             this.player = player;
             this.dungeon = new Dungeon(player.getWorld(), player.getName() + "_builder");
@@ -606,6 +619,7 @@ public class DungeonBuilder implements Listener {
                 ConnectorInfo restored = DungeonBuilder.this.spawnConnector(this, h.used.location, h.used.facing);
                 connectors.put(restored.interaction.getEntityId(), restored);
             }
+            dungeon.removeRoom(h.instance);
         }
 
         void cancel() {
@@ -641,11 +655,14 @@ public class DungeonBuilder implements Listener {
                         (t == manager.getBoss() ? RoomType.BOSS :
                                 (t == manager.getCombatLeft() || t == manager.getCombatRight()
                                         ? RoomType.COMBAT :
-                                        (t == manager.getTJunctionLeft() ? RoomType.TJUNCTION_LEFT :
-                                                (t == manager.getTJunctionRight() ? RoomType.TJUNCTION_RIGHT : RoomType.HALLWAY))));
+                                        (t == manager.getLibrary() ? RoomType.LIBRARY :
+                                                (t == manager.getExit() ? RoomType.EXIT :
+                                                        (t == manager.getTJunctionLeft() ? RoomType.TJUNCTION_LEFT :
+                                                                (t == manager.getTJunctionRight() ? RoomType.TJUNCTION_RIGHT : RoomType.HALLWAY))))));
                 int lx = offX + dx;
                 int lz = offZ + dz;
                 layout.set(lx, lz, type);
+                layout.setTemplate(lx, lz, manager.identifyTemplate(t));
                 layout.setRotation(lx, lz, r.rotation);
                 if (type == RoomType.COMBAT) {
                     layout.setMob(lx, lz, r.mob);

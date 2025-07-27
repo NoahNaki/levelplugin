@@ -86,6 +86,7 @@ public class ListenerRegistry {
                                          PlayerScoreboardManager scoreboardManager,
                                         FastTravelManager fastTravelManager,
                                         FastTravelGUI fastTravelGUI,
+                                        me.nakilex.levelplugin.dungeon.gui.DungeonListGUI dungeonListGUI,
                                         MotdManager motdManager,
                                         UpgradeGUI upgradeGUI,
                                         BuildingUpgradeGUI buildingUpgradeGUI,
@@ -168,6 +169,7 @@ public class ListenerRegistry {
         pm.registerEvents(new WaystoneListener(fastTravelGUI, fastTravelManager, plugin.getModelGateManager()), plugin);
         pm.registerEvents(new ExplorationListener(fastTravelManager), plugin);
         pm.registerEvents(new FastTravelRespawnListener(fastTravelManager), plugin);
+        pm.registerEvents(dungeonListGUI, plugin);
         pm.registerEvents(motdManager, plugin);
         pm.registerEvents(upgradeGUI, plugin);
         pm.registerEvents(buildingUpgradeGUI, plugin);

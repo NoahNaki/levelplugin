@@ -59,6 +59,11 @@ public class Dungeon {
         rooms.add(inst);
     }
 
+    /** Remove a room that was previously added. */
+    public void removeRoom(RoomInstance inst) {
+        rooms.remove(inst);
+    }
+
     public List<RoomInstance> getRooms() {
         return rooms;
     }

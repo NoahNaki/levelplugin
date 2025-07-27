@@ -219,7 +219,7 @@ commands:
     usage: /showtps
   dungeon:
     description: Manage custom dungeons
-    usage: /dungeon <create|play|delete|undo>
+    usage: /dungeon <create|play|delete|undo|list>
   codex:
     description: Open the discovery codex
     usage: /codex

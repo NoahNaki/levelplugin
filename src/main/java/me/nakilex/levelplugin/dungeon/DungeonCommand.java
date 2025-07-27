@@ -59,6 +59,10 @@ public class DungeonCommand implements CommandExecutor {
                 else player.sendMessage(ChatColor.RED + "Layout not found.");
                 return true;
             }
+            case "list" -> {
+                Main.getInstance().getDungeonListGUI().open(player);
+                return true;
+            }
             case "delete" -> {
                 if (args.length < 2) {
                     player.sendMessage(ChatColor.RED + "Usage: /dungeon delete <name>");
