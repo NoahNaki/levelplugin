@@ -25,6 +25,8 @@ public class DungeonManager {
     private RoomTemplate cornerLeft;
     private RoomTemplate cornerRight;
     private RoomTemplate tJunction;
+    private RoomTemplate tJunctionLeft;
+    private RoomTemplate tJunctionRight;
     private RoomTemplate crossroad;
     private RoomTemplate entrance;
     private RoomTemplate boss;
@@ -47,6 +49,8 @@ public class DungeonManager {
     public RoomTemplate getCornerLeft() { return cornerLeft; }
     public RoomTemplate getCornerRight() { return cornerRight; }
     public RoomTemplate getTJunction() { return tJunction; }
+    public RoomTemplate getTJunctionLeft() { return tJunctionLeft; }
+    public RoomTemplate getTJunctionRight() { return tJunctionRight; }
     public RoomTemplate getCrossroad() { return crossroad; }
     public RoomTemplate getBoss() { return boss; }
     public RoomTemplate getCombatLeft() { return combatLeft; }
@@ -65,6 +69,9 @@ public class DungeonManager {
         cornerLeft = RoomTemplate.capture(world, 11, -28, -5156, -29, -60, -5196);
         cornerRight = RoomTemplate.capture(world, 11, -28, -5156, -29, -60, -5196);
         tJunction = RoomTemplate.capture(world, -29, -60, -5072, 11, -28, -5112);
+        // create distinct instances so we can differentiate left/right variants
+        tJunctionLeft = RoomTemplate.capture(world, -29, -60, -5072, 11, -28, -5112);
+        tJunctionRight = RoomTemplate.capture(world, -29, -60, -5072, 11, -28, -5112);
         crossroad = RoomTemplate.capture(world, 11, -28, -5030, -29, -60, -5070);
         entrance = deadEnd; // use the single-exit room as the entrance
         // new boss room region provided by the map builder
@@ -136,6 +143,8 @@ public class DungeonManager {
         if (type == RoomType.ENTRANCE) return entrance;
         if (type == RoomType.BOSS) return boss;
         if (type == RoomType.COMBAT) return combatRight;
+        if (type == RoomType.TJUNCTION_LEFT) return tJunctionLeft;
+        if (type == RoomType.TJUNCTION_RIGHT) return tJunctionRight;
         switch (dirs.size()) {
             case 1 -> { return deadEnd; }
             case 2 -> {
@@ -261,7 +270,8 @@ public class DungeonManager {
                 if (layout.get(x, y - 1) != RoomType.NONE) dirs.add(Direction.NORTH);
 
                 RoomTemplate templ = chooseTemplate(type, dirs);
-                int rotation = (type == RoomType.COMBAT || type == RoomType.BOSS || type == RoomType.ENTRANCE)
+                int rotation = (type == RoomType.COMBAT || type == RoomType.BOSS || type == RoomType.ENTRANCE
+                        || type == RoomType.TJUNCTION_LEFT || type == RoomType.TJUNCTION_RIGHT)
                         ? layout.getRotation(x, y)
                         : findRotation(templ, dirs);
                 int diffX = layout.getOffsetX(x, y);

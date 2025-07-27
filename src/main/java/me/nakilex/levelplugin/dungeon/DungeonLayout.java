@@ -1,8 +1,10 @@
 package me.nakilex.levelplugin.dungeon;
 
 public class DungeonLayout {
-    public static final int WIDTH = 9;
-    public static final int HEIGHT = 6;
+    // Increased grid size to accommodate larger layouts and ensure
+    // rooms far from the entrance (like the boss room) are persisted.
+    public static final int WIDTH = 15;
+    public static final int HEIGHT = 11;
 
     private final RoomType[][] grid = new RoomType[WIDTH][HEIGHT];
     private final int[][] rotation = new int[WIDTH][HEIGHT];
