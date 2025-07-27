@@ -301,6 +301,8 @@ public class DungeonManager {
         Instance inst = new Instance(dungeon, name);
         inst.returnLocations.put(player.getUniqueId(), player.getLocation());
         instances.put(world, inst);
+        world.setDifficulty(org.bukkit.Difficulty.NORMAL);
+        world.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, true);
         player.teleport(origin);
     }
 
@@ -374,7 +376,11 @@ public class DungeonManager {
     public DungeonBuilder getBuilder() { return builder; }
 
     public Collection<Dungeon> getActiveDungeons() {
-        return dungeons.values();
+        java.util.List<Dungeon> list = new java.util.ArrayList<>(dungeons.values());
+        for (Instance inst : instances.values()) {
+            list.add(inst.dungeon);
+        }
+        return list;
     }
 
     public Set<String> getAvailableMobs() {
@@ -403,22 +409,6 @@ public class DungeonManager {
     }
 
     private class InstanceListener implements org.bukkit.event.Listener {
-        @org.bukkit.event.EventHandler
-        public void onMove(org.bukkit.event.player.PlayerMoveEvent e) {
-            if (e.getTo() == null) return;
-            Instance inst = instances.get(e.getTo().getWorld());
-            if (inst == null) return;
-            if (e.getTo().getBlock().getType() == Material.NETHER_PORTAL &&
-                    e.getFrom().getBlock().getType() != Material.NETHER_PORTAL) {
-                java.util.UUID id = e.getPlayer().getUniqueId();
-                Location back = inst.returnLocations.remove(id);
-                if (back != null) {
-                    e.getPlayer().sendMessage(ChatColor.GREEN + "Dungeon '" + inst.layout + "' completed!");
-                    e.getPlayer().teleport(back);
-                }
-                checkInstance(e.getTo().getWorld());
-            }
-        }
 
         @org.bukkit.event.EventHandler(priority = EventPriority.HIGHEST)
         public void onPortal(PlayerPortalEvent e) {
