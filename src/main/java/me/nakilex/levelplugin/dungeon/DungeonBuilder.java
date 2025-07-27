@@ -337,21 +337,24 @@ public class DungeonBuilder implements Listener {
             }
         }
 
-        // Handle T-junction variants with a dedicated left/right side exit
+        // Handle T-junction variants with orientation-specific side exits
         if (match == null && (templ == manager.getTJunctionLeft() || templ == manager.getTJunctionRight())) {
             boolean right = templ == manager.getTJunctionRight();
-            Direction side = rotate(info.facing, right ? 1 : 3);
-            Direction forward = info.facing;
+            Direction sideDir = rotate(info.facing, right ? 1 : 3);
+            Direction forwardDir = info.facing;
             outer:
             for (int r = 0; r < 4; r++) {
                 for (RoomTemplate.Connector c : templ.getConnectors()) {
                     if (rotate(c.facing, r) != info.facing.opposite()) continue;
-                    Set<Direction> others = new HashSet<>();
+                    boolean foundSide = false;
+                    boolean foundForward = false;
                     for (RoomTemplate.Connector o : templ.getConnectors()) {
                         if (o == c) continue;
-                        others.add(rotate(o.facing, r));
+                        Direction d = rotate(o.facing, r);
+                        if (d == sideDir) foundSide = true;
+                        if (d == forwardDir) foundForward = true;
                     }
-                    if (others.contains(side) && others.contains(forward)) {
+                    if (foundSide && foundForward) {
                         rotation = r;
                         match = c;
                         break outer;
