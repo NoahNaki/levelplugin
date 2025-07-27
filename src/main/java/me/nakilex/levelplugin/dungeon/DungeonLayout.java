@@ -87,4 +87,13 @@ public class DungeonLayout {
         }
         return false;
     }
+
+    public boolean hasExit() {
+        for (int x = 0; x < WIDTH; x++) {
+            for (int y = 0; y < HEIGHT; y++) {
+                if (grid[x][y] == RoomType.EXIT) return true;
+            }
+        }
+        return false;
+    }
 }

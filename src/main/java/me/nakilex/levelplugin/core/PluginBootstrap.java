@@ -135,6 +135,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.quests.managers.BeaconManager beaconManager;
     private me.nakilex.levelplugin.fasttravel.FastTravelManager fastTravelManager;
     private me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI fastTravelGUI;
+    private me.nakilex.levelplugin.dungeon.gui.DungeonListGUI dungeonListGUI;
     private me.nakilex.levelplugin.motd.MotdManager motdManager;
     private me.nakilex.levelplugin.calendar.CalendarManager calendarManager;
     private me.nakilex.levelplugin.cutscene.CutsceneManager cutsceneManager;
@@ -258,6 +259,8 @@ public class PluginBootstrap {
         fakeBlockManager = new me.nakilex.levelplugin.fakeblock.FakeBlockManager();
         questGateManager = new me.nakilex.levelplugin.fakeblock.QuestGateManager(plugin, fakeBlockManager);
         dungeonManager = new me.nakilex.levelplugin.dungeon.DungeonManager(plugin);
+        dungeonManager.cleanupOldInstanceWorlds();
+        dungeonListGUI = new me.nakilex.levelplugin.dungeon.gui.DungeonListGUI(dungeonManager);
         townStageManager = new me.nakilex.levelplugin.environment.stage.TownStageManager(plugin);
         buildingStageManager = new me.nakilex.levelplugin.environment.stage.BuildingStageManager(plugin);
         cooldownManager.setLootChestManager(lootChestManager);
@@ -336,6 +339,7 @@ public class PluginBootstrap {
             scoreboardManager,
             fastTravelManager,
             fastTravelGUI,
+            dungeonListGUI,
             motdManager,
             upgradeGUI,
             buildingUpgradeGUI,
@@ -363,6 +367,7 @@ public class PluginBootstrap {
         if (storageManager != null) storageManager.saveAllStorages();
         if (auctionHouseManager != null) auctionHouseManager.saveAuctionsSync();
         if (lootChestManager != null) lootChestManager.removeAllChests();
+        if (dungeonManager != null) dungeonManager.cleanupInstances();
         if (me.nakilex.levelplugin.player.mining.listeners.OreMiningListener.getInstance() != null) me.nakilex.levelplugin.player.mining.listeners.OreMiningListener.getInstance().removeAllHolograms();
         if (questManager != null) questManager.saveProgress();
         if (modelGateManager != null) modelGateManager.removeAllGates();
@@ -458,6 +463,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.calendar.CalendarManager getCalendarManager() { return calendarManager; }
     public me.nakilex.levelplugin.codex.CodexManager getCodexManager() { return codexManager; }
     public me.nakilex.levelplugin.codex.CodexGUI getCodexGUI() { return codexGUI; }
+    public me.nakilex.levelplugin.dungeon.gui.DungeonListGUI getDungeonListGUI() { return dungeonListGUI; }
 
     private void createCustomConfig() {
         customConfigFile = new File(plugin.getDataFolder(), "config.yml");

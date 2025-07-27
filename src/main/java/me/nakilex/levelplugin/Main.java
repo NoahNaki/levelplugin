@@ -109,4 +109,5 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.cutscene.CutsceneManager getCutsceneManager() { return bootstrap.getCutsceneManager(); }
     public CodexManager getCodexManager() { return bootstrap.getCodexManager(); }
     public CodexGUI getCodexGUI() { return bootstrap.getCodexGUI(); }
+    public me.nakilex.levelplugin.dungeon.gui.DungeonListGUI getDungeonListGUI() { return bootstrap.getDungeonListGUI(); }
 }

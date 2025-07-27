@@ -7,5 +7,6 @@ public enum RoomType {
     TJUNCTION_LEFT,
     TJUNCTION_RIGHT,
     COMBAT,
+    EXIT,
     BOSS;
 }

@@ -97,6 +97,7 @@ public class DungeonBuilder implements Listener {
 
                 RoomTemplate templ = manager.chooseTemplate(type, dirs);
                 int rotation = (type == RoomType.COMBAT || type == RoomType.BOSS || type == RoomType.ENTRANCE
+                        || type == RoomType.EXIT
                         || type == RoomType.TJUNCTION_LEFT || type == RoomType.TJUNCTION_RIGHT)
                         ? layout.getRotation(x, z)
                         : manager.findRotation(templ, dirs);
@@ -242,6 +243,9 @@ public class DungeonBuilder implements Listener {
                 } else if (type == Material.BLACK_WOOL) {
                     placeVariant(s, manager.getBoss());
                     player.closeInventory();
+                } else if (type == Material.OBSIDIAN) {
+                    placeVariant(s, manager.getExit());
+                    player.closeInventory();
                 }
             }
             case "Hallway Variants" -> {
@@ -303,6 +307,11 @@ public class DungeonBuilder implements Listener {
         }
         Bukkit.getScheduler().runTask(manager.getPlugin(), () -> {
             DungeonLayout layout = s.buildLayout();
+            if (!layout.hasEntrance() || !layout.hasExit()) {
+                event.getPlayer().sendMessage(ChatColor.RED + "Dungeon requires an entrance and exit.");
+                s.awaitingName = false;
+                return;
+            }
             manager.saveLayout(msg, layout);
             s.cancel();
             event.getPlayer().sendMessage(ChatColor.GREEN + "Dungeon saved as '" + msg + "'");
@@ -463,6 +472,7 @@ public class DungeonBuilder implements Listener {
         ItemStack hall = item(Material.YELLOW_WOOL, ChatColor.YELLOW + "Hallway");
         ItemStack boss = item(Material.BLACK_WOOL, ChatColor.DARK_GRAY + "Boss Room");
         ItemStack combat = item(Material.RED_WOOL, ChatColor.RED + "Combat Room");
+        ItemStack exitRoom = item(Material.OBSIDIAN, ChatColor.DARK_PURPLE + "Exit Room");
         ItemMeta cMeta = combat.getItemMeta();
         if (cMeta != null) {
             cMeta.setLore(Arrays.asList(ChatColor.WHITE + "Left-click to place",
@@ -470,9 +480,10 @@ public class DungeonBuilder implements Listener {
             combat.setItemMeta(cMeta);
         }
 
-        inv.setItem(11, hall);
-        inv.setItem(13, boss);
-        inv.setItem(15, combat);
+        inv.setItem(10, hall);
+        inv.setItem(12, boss);
+        inv.setItem(14, combat);
+        inv.setItem(16, exitRoom);
         return inv;
     }
 
@@ -641,8 +652,9 @@ public class DungeonBuilder implements Listener {
                         (t == manager.getBoss() ? RoomType.BOSS :
                                 (t == manager.getCombatLeft() || t == manager.getCombatRight()
                                         ? RoomType.COMBAT :
-                                        (t == manager.getTJunctionLeft() ? RoomType.TJUNCTION_LEFT :
-                                                (t == manager.getTJunctionRight() ? RoomType.TJUNCTION_RIGHT : RoomType.HALLWAY))));
+                                        (t == manager.getExit() ? RoomType.EXIT :
+                                                (t == manager.getTJunctionLeft() ? RoomType.TJUNCTION_LEFT :
+                                                        (t == manager.getTJunctionRight() ? RoomType.TJUNCTION_RIGHT : RoomType.HALLWAY)))));
                 int lx = offX + dx;
                 int lz = offZ + dz;
                 layout.set(lx, lz, type);

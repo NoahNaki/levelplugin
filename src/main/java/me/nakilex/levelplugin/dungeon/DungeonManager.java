@@ -5,6 +5,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.Material;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.block.data.BlockData;
 
@@ -32,15 +33,19 @@ public class DungeonManager {
     private RoomTemplate boss;
     private RoomTemplate combatLeft;
     private RoomTemplate combatRight;
+    private RoomTemplate exit;
 
     /** spacing between cell centers */
     private int step;
+
+    private final Map<World, Instance> instances = new HashMap<>();
 
     public DungeonManager(Main plugin) {
         this.plugin = plugin;
         loadTemplates();
         this.builder = new DungeonBuilder(this);
         Bukkit.getPluginManager().registerEvents(builder, plugin);
+        Bukkit.getPluginManager().registerEvents(new InstanceListener(), plugin);
     }
 
     public RoomTemplate getEntrance() { return entrance; }
@@ -55,6 +60,7 @@ public class DungeonManager {
     public RoomTemplate getBoss() { return boss; }
     public RoomTemplate getCombatLeft() { return combatLeft; }
     public RoomTemplate getCombatRight() { return combatRight; }
+    public RoomTemplate getExit() { return exit; }
     public int getStep() { return step; }
     public Main getPlugin() { return plugin; }
 
@@ -79,6 +85,7 @@ public class DungeonManager {
         RoomTemplate combat = RoomTemplate.capture(world, 65, -42, -5059, 105, -13, -5100);
         combatRight = combat;
         combatLeft = flipEntrances(combat);
+        exit = RoomTemplate.capture(world, 91, -45, -5222, 56, -24, -5199);
 
         // Determine spacing using crossroad connectors
         List<RoomTemplate.Connector> con = crossroad.getConnectors();
@@ -143,6 +150,7 @@ public class DungeonManager {
         if (type == RoomType.ENTRANCE) return entrance;
         if (type == RoomType.BOSS) return boss;
         if (type == RoomType.COMBAT) return combatRight;
+        if (type == RoomType.EXIT) return exit;
         if (type == RoomType.TJUNCTION_LEFT) return tJunctionLeft;
         if (type == RoomType.TJUNCTION_RIGHT) return tJunctionRight;
         switch (dirs.size()) {
@@ -244,6 +252,80 @@ public class DungeonManager {
         return layouts.get(name.toLowerCase());
     }
 
+    public void startInstance(Player player, String name) {
+        DungeonLayout layout = layouts.get(name.toLowerCase());
+        if (layout == null) {
+            player.sendMessage(ChatColor.RED + "Dungeon not found.");
+            return;
+        }
+        String worldName = "dgn_" + name.toLowerCase() + "_" + System.currentTimeMillis();
+        org.bukkit.WorldCreator wc = new org.bukkit.WorldCreator(worldName);
+        wc.generator(new VoidWorldGenerator());
+        World world = Bukkit.createWorld(wc);
+        if (world == null) return;
+        Location origin = new Location(world, 0, 64, 0);
+        Dungeon dungeon = new Dungeon(world, name);
+
+        int entranceX = -1, entranceZ = -1;
+        for (int x = 0; x < DungeonLayout.WIDTH; x++) {
+            for (int z = 0; z < DungeonLayout.HEIGHT; z++) {
+                if (layout.get(x, z) == RoomType.ENTRANCE) { entranceX = x; entranceZ = z; break; }
+            }
+            if (entranceX != -1) break;
+        }
+
+        for (int x = 0; x < DungeonLayout.WIDTH; x++) {
+            for (int y = 0; y < DungeonLayout.HEIGHT; y++) {
+                RoomType type = layout.get(x, y);
+                if (type == RoomType.NONE) continue;
+                java.util.Set<Direction> dirs = new java.util.HashSet<>();
+                if (layout.get(x + 1, y) != RoomType.NONE) dirs.add(Direction.EAST);
+                if (layout.get(x - 1, y) != RoomType.NONE) dirs.add(Direction.WEST);
+                if (layout.get(x, y + 1) != RoomType.NONE) dirs.add(Direction.SOUTH);
+                if (layout.get(x, y - 1) != RoomType.NONE) dirs.add(Direction.NORTH);
+                RoomTemplate templ = chooseTemplate(type, dirs);
+                int rotation = (type == RoomType.COMBAT || type == RoomType.BOSS || type == RoomType.ENTRANCE
+                        || type == RoomType.EXIT
+                        || type == RoomType.TJUNCTION_LEFT || type == RoomType.TJUNCTION_RIGHT)
+                        ? layout.getRotation(x, y) : findRotation(templ, dirs);
+                int diffX = layout.getOffsetX(x, y);
+                int diffZ = layout.getOffsetZ(x, y);
+                Location center = origin.clone().add(diffX, 0, diffZ);
+                String mob = layout.getMob(x, y);
+                pasteRoom(dungeon, templ, rotation, center, mob);
+            }
+        }
+
+        Instance inst = new Instance(dungeon);
+        inst.returnLocations.put(player.getUniqueId(), player.getLocation());
+        instances.put(world, inst);
+        player.teleport(origin);
+    }
+
+    public void cleanupInstances() {
+        for (World w : new java.util.ArrayList<>(instances.keySet())) {
+            removeWorld(w);
+        }
+    }
+
+    public void cleanupOldInstanceWorlds() {
+        java.io.File folder = plugin.getServer().getWorldContainer();
+        java.io.File[] dirs = folder.listFiles((f) -> f.isDirectory() && f.getName().startsWith("dgn_"));
+        if (dirs != null) {
+            for (java.io.File d : dirs) {
+                if (Bukkit.getWorld(d.getName()) != null) continue;
+                deleteDir(d);
+            }
+        }
+    }
+
+    private void deleteDir(java.io.File dir) {
+        if (dir.isDirectory()) {
+            for (java.io.File f : dir.listFiles()) deleteDir(f);
+        }
+        dir.delete();
+    }
+
     public boolean playDungeon(Player player, String name) {
         DungeonLayout layout = layouts.get(name.toLowerCase());
         if (layout == null) return false;
@@ -271,6 +353,7 @@ public class DungeonManager {
 
                 RoomTemplate templ = chooseTemplate(type, dirs);
                 int rotation = (type == RoomType.COMBAT || type == RoomType.BOSS || type == RoomType.ENTRANCE
+                        || type == RoomType.EXIT
                         || type == RoomType.TJUNCTION_LEFT || type == RoomType.TJUNCTION_RIGHT)
                         ? layout.getRotation(x, y)
                         : findRotation(templ, dirs);
@@ -298,12 +381,59 @@ public class DungeonManager {
         return sec.getKeys(false);
     }
 
+    public Set<String> getLayoutNames() {
+        return layouts.keySet();
+    }
+
     private static RoomTemplate flipEntrances(RoomTemplate src) {
         List<RoomTemplate.Connector> list = new ArrayList<>();
         for (RoomTemplate.Connector c : src.getConnectors()) {
             list.add(new RoomTemplate.Connector(c.x, c.z, c.bottomY, c.facing, !c.entrance));
         }
         return new RoomTemplate(src.getBlocks(), list, src.getWidth(), src.getHeight(), src.getDepth(), src.getMinY());
+    }
+
+    private static class Instance {
+        final Dungeon dungeon;
+        final Map<java.util.UUID, Location> returnLocations = new HashMap<>();
+        Instance(Dungeon d) { this.dungeon = d; }
+    }
+
+    private class InstanceListener implements org.bukkit.event.Listener {
+        @org.bukkit.event.EventHandler
+        public void onMove(org.bukkit.event.player.PlayerMoveEvent e) {
+            if (e.getTo() == null) return;
+            Instance inst = instances.get(e.getTo().getWorld());
+            if (inst == null) return;
+            if (e.getTo().getBlock().getType() == Material.NETHER_PORTAL &&
+                    e.getFrom().getBlock().getType() != Material.NETHER_PORTAL) {
+                java.util.UUID id = e.getPlayer().getUniqueId();
+                Location back = inst.returnLocations.remove(id);
+                if (back != null) e.getPlayer().teleport(back);
+                checkInstance(e.getTo().getWorld());
+            }
+        }
+
+        @org.bukkit.event.EventHandler
+        public void onQuit(org.bukkit.event.player.PlayerQuitEvent e) {
+            Instance inst = instances.get(e.getPlayer().getWorld());
+            if (inst == null) return;
+            inst.returnLocations.remove(e.getPlayer().getUniqueId());
+            checkInstance(e.getPlayer().getWorld());
+        }
+    }
+
+    private void checkInstance(World world) {
+        Instance inst = instances.get(world);
+        if (inst != null && inst.returnLocations.isEmpty()) {
+            removeWorld(world);
+        }
+    }
+
+    private void removeWorld(World world) {
+        instances.remove(world);
+        Bukkit.unloadWorld(world, false);
+        deleteDir(world.getWorldFolder());
     }
 
     private record Point(int x, int z) {
