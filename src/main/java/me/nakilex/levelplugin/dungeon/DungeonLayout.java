@@ -7,6 +7,7 @@ public class DungeonLayout {
     public static final int HEIGHT = 11;
 
     private final RoomType[][] grid = new RoomType[WIDTH][HEIGHT];
+    private final TemplateType[][] templates = new TemplateType[WIDTH][HEIGHT];
     private final int[][] rotation = new int[WIDTH][HEIGHT];
     private final String[][] mobs = new String[WIDTH][HEIGHT];
     private final int[][] offsetX = new int[WIDTH][HEIGHT];
@@ -17,6 +18,7 @@ public class DungeonLayout {
         for (int x = 0; x < WIDTH; x++) {
             for (int y = 0; y < HEIGHT; y++) {
                 grid[x][y] = RoomType.NONE;
+                templates[x][y] = TemplateType.NONE;
                 rotation[x][y] = 0;
                 mobs[x][y] = null;
                 offsetX[x][y] = 0;
@@ -33,6 +35,16 @@ public class DungeonLayout {
     public void set(int x, int y, RoomType type) {
         if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return;
         grid[x][y] = type;
+    }
+
+    public TemplateType getTemplate(int x, int y) {
+        if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return TemplateType.NONE;
+        return templates[x][y];
+    }
+
+    public void setTemplate(int x, int y, TemplateType t) {
+        if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return;
+        templates[x][y] = t;
     }
 
     public int getRotation(int x, int y) {

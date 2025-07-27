@@ -67,7 +67,7 @@ public class DungeonBuilder implements Listener {
             if (layout.get(entranceX - 1, entranceZ) != RoomType.NONE) dirs.add(Direction.WEST);
             if (layout.get(entranceX, entranceZ + 1) != RoomType.NONE) dirs.add(Direction.SOUTH);
             if (layout.get(entranceX, entranceZ - 1) != RoomType.NONE) dirs.add(Direction.NORTH);
-            RoomTemplate templ = manager.chooseTemplate(type, dirs);
+            RoomTemplate templ = manager.getTemplate(layout.getTemplate(entranceX, entranceZ));
             int rotation = layout.getRotation(entranceX, entranceZ);
             Location center = origin.clone();
             String mob = layout.getMob(entranceX, entranceZ);
@@ -95,12 +95,8 @@ public class DungeonBuilder implements Listener {
                 if (layout.get(x, z + 1) != RoomType.NONE) dirs.add(Direction.SOUTH);
                 if (layout.get(x, z - 1) != RoomType.NONE) dirs.add(Direction.NORTH);
 
-                RoomTemplate templ = manager.chooseTemplate(type, dirs);
-                int rotation = (type == RoomType.COMBAT || type == RoomType.BOSS || type == RoomType.ENTRANCE
-                        || type == RoomType.EXIT || type == RoomType.LIBRARY
-                        || type == RoomType.TJUNCTION_LEFT || type == RoomType.TJUNCTION_RIGHT)
-                        ? layout.getRotation(x, z)
-                        : manager.findRotation(templ, dirs);
+                RoomTemplate templ = manager.getTemplate(layout.getTemplate(x, z));
+                int rotation = layout.getRotation(x, z);
                 int diffX = layout.getOffsetX(x, z);
                 int diffZ = layout.getOffsetZ(x, z);
                 Location center = origin.clone().add(diffX, 0, diffZ);
@@ -666,6 +662,7 @@ public class DungeonBuilder implements Listener {
                 int lx = offX + dx;
                 int lz = offZ + dz;
                 layout.set(lx, lz, type);
+                layout.setTemplate(lx, lz, manager.identifyTemplate(t));
                 layout.setRotation(lx, lz, r.rotation);
                 if (type == RoomType.COMBAT) {
                     layout.setMob(lx, lz, r.mob);

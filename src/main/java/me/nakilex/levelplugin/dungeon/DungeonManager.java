@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.dungeon;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.dungeon.TemplateType;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -67,6 +68,46 @@ public class DungeonManager {
     public RoomTemplate getExit() { return exit; }
     public int getStep() { return step; }
     public Main getPlugin() { return plugin; }
+
+    /** Return the template instance for the given identifier. */
+    public RoomTemplate getTemplate(TemplateType type) {
+        return switch (type) {
+            case ENTRANCE -> entrance;
+            case DEAD_END -> deadEnd;
+            case STRAIGHT -> straight;
+            case CORNER_LEFT -> cornerLeft;
+            case CORNER_RIGHT -> cornerRight;
+            case TJUNCTION -> tJunction;
+            case TJUNCTION_LEFT -> tJunctionLeft;
+            case TJUNCTION_RIGHT -> tJunctionRight;
+            case CROSSROAD -> crossroad;
+            case BOSS -> boss;
+            case COMBAT_LEFT -> combatLeft;
+            case COMBAT_RIGHT -> combatRight;
+            case LIBRARY -> library;
+            case EXIT -> exit;
+            default -> null;
+        };
+    }
+
+    /** Identify which TemplateType maps to the given template instance. */
+    public TemplateType identifyTemplate(RoomTemplate t) {
+        if (t == entrance) return TemplateType.ENTRANCE;
+        if (t == deadEnd) return TemplateType.DEAD_END;
+        if (t == straight) return TemplateType.STRAIGHT;
+        if (t == cornerLeft) return TemplateType.CORNER_LEFT;
+        if (t == cornerRight) return TemplateType.CORNER_RIGHT;
+        if (t == tJunction) return TemplateType.TJUNCTION;
+        if (t == tJunctionLeft) return TemplateType.TJUNCTION_LEFT;
+        if (t == tJunctionRight) return TemplateType.TJUNCTION_RIGHT;
+        if (t == crossroad) return TemplateType.CROSSROAD;
+        if (t == boss) return TemplateType.BOSS;
+        if (t == combatLeft) return TemplateType.COMBAT_LEFT;
+        if (t == combatRight) return TemplateType.COMBAT_RIGHT;
+        if (t == library) return TemplateType.LIBRARY;
+        if (t == exit) return TemplateType.EXIT;
+        return TemplateType.NONE;
+    }
 
     private void loadTemplates() {
         World world = Bukkit.getWorld("flatland");
@@ -272,28 +313,12 @@ public class DungeonManager {
         Location origin = new Location(world, 0, 64, 0);
         Dungeon dungeon = new Dungeon(world, name);
 
-        int entranceX = -1, entranceZ = -1;
-        for (int x = 0; x < DungeonLayout.WIDTH; x++) {
-            for (int z = 0; z < DungeonLayout.HEIGHT; z++) {
-                if (layout.get(x, z) == RoomType.ENTRANCE) { entranceX = x; entranceZ = z; break; }
-            }
-            if (entranceX != -1) break;
-        }
-
         for (int x = 0; x < DungeonLayout.WIDTH; x++) {
             for (int y = 0; y < DungeonLayout.HEIGHT; y++) {
                 RoomType type = layout.get(x, y);
                 if (type == RoomType.NONE) continue;
-                java.util.Set<Direction> dirs = new java.util.HashSet<>();
-                if (layout.get(x + 1, y) != RoomType.NONE) dirs.add(Direction.EAST);
-                if (layout.get(x - 1, y) != RoomType.NONE) dirs.add(Direction.WEST);
-                if (layout.get(x, y + 1) != RoomType.NONE) dirs.add(Direction.SOUTH);
-                if (layout.get(x, y - 1) != RoomType.NONE) dirs.add(Direction.NORTH);
-                RoomTemplate templ = chooseTemplate(type, dirs);
-                int rotation = (type == RoomType.COMBAT || type == RoomType.BOSS || type == RoomType.ENTRANCE
-                        || type == RoomType.EXIT || type == RoomType.LIBRARY
-                        || type == RoomType.TJUNCTION_LEFT || type == RoomType.TJUNCTION_RIGHT)
-                        ? layout.getRotation(x, y) : findRotation(templ, dirs);
+                RoomTemplate templ = getTemplate(layout.getTemplate(x, y));
+                int rotation = layout.getRotation(x, y);
                 int diffX = layout.getOffsetX(x, y);
                 int diffZ = layout.getOffsetZ(x, y);
                 Location center = origin.clone().add(diffX, 0, diffZ);
@@ -340,31 +365,13 @@ public class DungeonManager {
         Location origin = player.getLocation();
         Dungeon dungeon = new Dungeon(player.getWorld(), name);
 
-        int entranceX = -1, entranceZ = -1;
-        for (int x = 0; x < DungeonLayout.WIDTH; x++) {
-            for (int z = 0; z < DungeonLayout.HEIGHT; z++) {
-                if (layout.get(x, z) == RoomType.ENTRANCE) { entranceX = x; entranceZ = z; break; }
-            }
-            if (entranceX != -1) break;
-        }
-
         for (int x = 0; x < DungeonLayout.WIDTH; x++) {
             for (int y = 0; y < DungeonLayout.HEIGHT; y++) {
                 RoomType type = layout.get(x, y);
                 if (type == RoomType.NONE) continue;
 
-                Set<Direction> dirs = new HashSet<>();
-                if (layout.get(x + 1, y) != RoomType.NONE) dirs.add(Direction.EAST);
-                if (layout.get(x - 1, y) != RoomType.NONE) dirs.add(Direction.WEST);
-                if (layout.get(x, y + 1) != RoomType.NONE) dirs.add(Direction.SOUTH);
-                if (layout.get(x, y - 1) != RoomType.NONE) dirs.add(Direction.NORTH);
-
-                RoomTemplate templ = chooseTemplate(type, dirs);
-                int rotation = (type == RoomType.COMBAT || type == RoomType.BOSS || type == RoomType.ENTRANCE
-                        || type == RoomType.EXIT || type == RoomType.LIBRARY
-                        || type == RoomType.TJUNCTION_LEFT || type == RoomType.TJUNCTION_RIGHT)
-                        ? layout.getRotation(x, y)
-                        : findRotation(templ, dirs);
+                RoomTemplate templ = getTemplate(layout.getTemplate(x, y));
+                int rotation = layout.getRotation(x, y);
                 int diffX = layout.getOffsetX(x, y);
                 int diffZ = layout.getOffsetZ(x, y);
                 Location center = origin.clone().add(diffX, 0, diffZ);
