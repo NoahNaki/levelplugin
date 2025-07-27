@@ -97,7 +97,7 @@ public class DungeonBuilder implements Listener {
 
                 RoomTemplate templ = manager.chooseTemplate(type, dirs);
                 int rotation = (type == RoomType.COMBAT || type == RoomType.BOSS || type == RoomType.ENTRANCE
-                        || type == RoomType.EXIT
+                        || type == RoomType.EXIT || type == RoomType.LIBRARY
                         || type == RoomType.TJUNCTION_LEFT || type == RoomType.TJUNCTION_RIGHT)
                         ? layout.getRotation(x, z)
                         : manager.findRotation(templ, dirs);
@@ -241,6 +241,9 @@ public class DungeonBuilder implements Listener {
                     player.closeInventory();
                 } else if (type == Material.OBSIDIAN) {
                     placeVariant(s, manager.getExit());
+                    player.closeInventory();
+                } else if (type == Material.BOOKSHELF) {
+                    placeVariant(s, manager.getLibrary());
                     player.closeInventory();
                 }
             }
@@ -473,6 +476,7 @@ public class DungeonBuilder implements Listener {
         ItemStack boss = item(Material.BLACK_WOOL, ChatColor.DARK_GRAY + "Boss Room");
         ItemStack combat = item(Material.RED_WOOL, ChatColor.RED + "Combat Room");
         ItemStack exitRoom = item(Material.OBSIDIAN, ChatColor.DARK_PURPLE + "Exit Room");
+        ItemStack library = item(Material.BOOKSHELF, ChatColor.GOLD + "Library");
         ItemMeta cMeta = combat.getItemMeta();
         if (cMeta != null) {
             cMeta.setLore(Arrays.asList(ChatColor.WHITE + "Left-click to place",
@@ -484,6 +488,7 @@ public class DungeonBuilder implements Listener {
         inv.setItem(12, boss);
         inv.setItem(14, combat);
         inv.setItem(16, exitRoom);
+        inv.setItem(18, library);
         return inv;
     }
 
@@ -654,9 +659,10 @@ public class DungeonBuilder implements Listener {
                         (t == manager.getBoss() ? RoomType.BOSS :
                                 (t == manager.getCombatLeft() || t == manager.getCombatRight()
                                         ? RoomType.COMBAT :
-                                        (t == manager.getExit() ? RoomType.EXIT :
-                                                (t == manager.getTJunctionLeft() ? RoomType.TJUNCTION_LEFT :
-                                                        (t == manager.getTJunctionRight() ? RoomType.TJUNCTION_RIGHT : RoomType.HALLWAY)))));
+                                        (t == manager.getLibrary() ? RoomType.LIBRARY :
+                                                (t == manager.getExit() ? RoomType.EXIT :
+                                                        (t == manager.getTJunctionLeft() ? RoomType.TJUNCTION_LEFT :
+                                                                (t == manager.getTJunctionRight() ? RoomType.TJUNCTION_RIGHT : RoomType.HALLWAY))))));
                 int lx = offX + dx;
                 int lz = offZ + dz;
                 layout.set(lx, lz, type);

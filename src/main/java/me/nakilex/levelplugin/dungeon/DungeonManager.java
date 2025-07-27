@@ -35,6 +35,7 @@ public class DungeonManager {
     private RoomTemplate boss;
     private RoomTemplate combatLeft;
     private RoomTemplate combatRight;
+    private RoomTemplate library;
     private RoomTemplate exit;
 
     /** spacing between cell centers */
@@ -62,6 +63,7 @@ public class DungeonManager {
     public RoomTemplate getBoss() { return boss; }
     public RoomTemplate getCombatLeft() { return combatLeft; }
     public RoomTemplate getCombatRight() { return combatRight; }
+    public RoomTemplate getLibrary() { return library; }
     public RoomTemplate getExit() { return exit; }
     public int getStep() { return step; }
     public Main getPlugin() { return plugin; }
@@ -88,6 +90,7 @@ public class DungeonManager {
         combatRight = combat;
         combatLeft = flipEntrances(combat);
         exit = RoomTemplate.capture(world, 91, -45, -5222, 56, -24, -5199);
+        library = RoomTemplate.capture(world, 74, -11, -5172, 112, -39, -5122);
 
         // Determine spacing using crossroad connectors
         List<RoomTemplate.Connector> con = crossroad.getConnectors();
@@ -152,6 +155,7 @@ public class DungeonManager {
         if (type == RoomType.ENTRANCE) return entrance;
         if (type == RoomType.BOSS) return boss;
         if (type == RoomType.COMBAT) return combatRight;
+        if (type == RoomType.LIBRARY) return library;
         if (type == RoomType.EXIT) return exit;
         if (type == RoomType.TJUNCTION_LEFT) return tJunctionLeft;
         if (type == RoomType.TJUNCTION_RIGHT) return tJunctionRight;
@@ -287,7 +291,7 @@ public class DungeonManager {
                 if (layout.get(x, y - 1) != RoomType.NONE) dirs.add(Direction.NORTH);
                 RoomTemplate templ = chooseTemplate(type, dirs);
                 int rotation = (type == RoomType.COMBAT || type == RoomType.BOSS || type == RoomType.ENTRANCE
-                        || type == RoomType.EXIT
+                        || type == RoomType.EXIT || type == RoomType.LIBRARY
                         || type == RoomType.TJUNCTION_LEFT || type == RoomType.TJUNCTION_RIGHT)
                         ? layout.getRotation(x, y) : findRotation(templ, dirs);
                 int diffX = layout.getOffsetX(x, y);
@@ -357,7 +361,7 @@ public class DungeonManager {
 
                 RoomTemplate templ = chooseTemplate(type, dirs);
                 int rotation = (type == RoomType.COMBAT || type == RoomType.BOSS || type == RoomType.ENTRANCE
-                        || type == RoomType.EXIT
+                        || type == RoomType.EXIT || type == RoomType.LIBRARY
                         || type == RoomType.TJUNCTION_LEFT || type == RoomType.TJUNCTION_RIGHT)
                         ? layout.getRotation(x, y)
                         : findRotation(templ, dirs);
