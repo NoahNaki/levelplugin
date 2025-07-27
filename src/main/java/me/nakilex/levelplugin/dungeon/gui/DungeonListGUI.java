@@ -1,7 +1,6 @@
 package me.nakilex.levelplugin.dungeon.gui;
 
 import me.nakilex.levelplugin.dungeon.DungeonManager;
-import me.nakilex.levelplugin.dungeon.RoomType;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
