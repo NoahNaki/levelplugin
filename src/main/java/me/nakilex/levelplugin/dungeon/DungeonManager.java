@@ -69,10 +69,9 @@ public class DungeonManager {
         cornerLeft = RoomTemplate.capture(world, 11, -28, -5156, -29, -60, -5196);
         cornerRight = RoomTemplate.capture(world, 11, -28, -5156, -29, -60, -5196);
         tJunction = RoomTemplate.capture(world, -29, -60, -5072, 11, -28, -5112);
-        // left/right variants share the same base template but allow
-        // orientation-specific placement in the builder
-        tJunctionLeft = tJunction;
-        tJunctionRight = tJunction;
+        // create distinct instances so we can differentiate left/right variants
+        tJunctionLeft = RoomTemplate.capture(world, -29, -60, -5072, 11, -28, -5112);
+        tJunctionRight = RoomTemplate.capture(world, -29, -60, -5072, 11, -28, -5112);
         crossroad = RoomTemplate.capture(world, 11, -28, -5030, -29, -60, -5070);
         entrance = deadEnd; // use the single-exit room as the entrance
         // new boss room region provided by the map builder
