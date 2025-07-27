@@ -25,7 +25,6 @@ public class DungeonListGUI implements Listener {
 
     public DungeonListGUI(DungeonManager manager) {
         this.manager = manager;
-        Bukkit.getPluginManager().registerEvents(this, manager.getPlugin());
     }
 
     public void open(Player player) {
