@@ -296,7 +296,7 @@ public class DungeonManager {
             }
         }
 
-        Instance inst = new Instance(dungeon);
+        Instance inst = new Instance(dungeon, name);
         inst.returnLocations.put(player.getUniqueId(), player.getLocation());
         instances.put(world, inst);
         player.teleport(origin);
@@ -395,8 +395,9 @@ public class DungeonManager {
 
     private static class Instance {
         final Dungeon dungeon;
+        final String layout;
         final Map<java.util.UUID, Location> returnLocations = new HashMap<>();
-        Instance(Dungeon d) { this.dungeon = d; }
+        Instance(Dungeon d, String layout) { this.dungeon = d; this.layout = layout; }
     }
 
     private class InstanceListener implements org.bukkit.event.Listener {
@@ -409,7 +410,10 @@ public class DungeonManager {
                     e.getFrom().getBlock().getType() != Material.NETHER_PORTAL) {
                 java.util.UUID id = e.getPlayer().getUniqueId();
                 Location back = inst.returnLocations.remove(id);
-                if (back != null) e.getPlayer().teleport(back);
+                if (back != null) {
+                    e.getPlayer().sendMessage(ChatColor.GREEN + "Dungeon '" + inst.layout + "' completed!");
+                    e.getPlayer().teleport(back);
+                }
                 checkInstance(e.getTo().getWorld());
             }
         }

@@ -235,11 +235,7 @@ public class DungeonBuilder implements Listener {
                 if (type == Material.YELLOW_WOOL) {
                     player.openInventory(createVariantSelect());
                 } else if (type == Material.RED_WOOL) {
-                    if (event.getClick().isRightClick()) {
-                        player.openInventory(createMobSelect());
-                    } else {
-                        player.openInventory(createCombatVariantSelect());
-                    }
+                    player.openInventory(createCombatVariantSelect());
                 } else if (type == Material.BLACK_WOOL) {
                     placeVariant(s, manager.getBoss());
                     player.closeInventory();
@@ -279,17 +275,21 @@ public class DungeonBuilder implements Listener {
                     default -> null;
                 };
                 if (templ != null) {
-                    placeVariant(s, templ);
-                    player.closeInventory();
+                    s.selectedTemplate = templ;
+                    player.openInventory(createMobSelect());
                 }
             }
             case "Select Mob" -> {
                 if (name.equalsIgnoreCase("Back")) {
-                    player.openInventory(createRoomSelect());
+                    player.openInventory(createCombatVariantSelect());
                     return;
                 }
                 s.selectedMob = name;
-                player.openInventory(createCombatVariantSelect());
+                if (s.selectedTemplate != null) {
+                    placeVariant(s, s.selectedTemplate);
+                    player.closeInventory();
+                    s.selectedTemplate = null;
+                }
             }
         }
     }
@@ -587,6 +587,7 @@ public class DungeonBuilder implements Listener {
         ConnectorInfo pending;
         boolean awaitingName = false;
         String selectedMob = null;
+        RoomTemplate selectedTemplate = null;
         Session(Player player) {
             this.player = player;
             this.dungeon = new Dungeon(player.getWorld(), player.getName() + "_builder");
