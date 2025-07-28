@@ -38,7 +38,11 @@ public class DungeonManager {
      * {@code frost_palace}.
      */
     public static String normalizeKey(String name) {
-        return name.toLowerCase().replace(' ', '_');
+        if (name == null) return "";
+        String cleaned = org.bukkit.ChatColor.stripColor(name);
+        cleaned = cleaned.replaceAll("\\s+", "_");
+        cleaned = cleaned.toLowerCase();
+        return cleaned;
     }
 
     private RoomTemplate deadEnd;
