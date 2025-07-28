@@ -128,7 +128,7 @@ public class DungeonManager {
         tJunctionLeft = RoomTemplate.capture(world, -29, -60, -5072, 11, -28, -5112);
         tJunctionRight = RoomTemplate.capture(world, -29, -60, -5072, 11, -28, -5112);
         crossroad = RoomTemplate.capture(world, 11, -28, -5030, -29, -60, -5070);
-        hallway = RoomTemplate.capture(world, 63, -44, -5021, 89, -21, -5003);
+        hallway = RoomTemplate.capture(world, 63, -44, -5021, 103, -21, -4981);
         entrance = deadEnd; // use the single-exit room as the entrance
         // new boss room region provided by the map builder
         boss = RoomTemplate.capture(world, 43, -14, -5006, -23, -54, -4922);
@@ -311,7 +311,10 @@ public class DungeonManager {
             return;
         }
         String worldName = "dgn_" + name.toLowerCase() + "_" + System.currentTimeMillis();
-        org.bukkit.WorldCreator wc = new org.bukkit.WorldCreator(worldName);
+        java.io.File container = plugin.getServer().getWorldContainer();
+        java.io.File tmpDir = new java.io.File(container, "tmp_dungeons");
+        tmpDir.mkdirs();
+        org.bukkit.WorldCreator wc = new org.bukkit.WorldCreator("tmp_dungeons/" + worldName);
         wc.generator(new VoidWorldGenerator());
         World world = Bukkit.createWorld(wc);
         if (world == null) return;
@@ -347,7 +350,8 @@ public class DungeonManager {
     }
 
     public void cleanupOldInstanceWorlds() {
-        java.io.File folder = plugin.getServer().getWorldContainer();
+        java.io.File container = plugin.getServer().getWorldContainer();
+        java.io.File folder = new java.io.File(container, "tmp_dungeons");
         java.io.File[] dirs = folder.listFiles((f) -> f.isDirectory() && f.getName().startsWith("dgn_"));
         if (dirs != null) {
             for (java.io.File d : dirs) {
