@@ -205,6 +205,8 @@ public class DungeonManager {
         Location origin = player.getLocation();
         Dungeon dungeon = new Dungeon(player.getWorld(), name);
 
+        long debugStart = System.currentTimeMillis();
+
         Random rand = new Random();
         Map<Point, Set<Direction>> graph = new HashMap<>();
         Set<Point> placed = new HashSet<>();
@@ -230,6 +232,10 @@ public class DungeonManager {
             placed.add(next);
         }
 
+        player.sendMessage(ChatColor.GRAY + "[Debug] Graph in "
+                + (System.currentTimeMillis() - debugStart) + "ms");
+        long buildStart = System.currentTimeMillis();
+
         for (var entry : graph.entrySet()) {
             Point p = entry.getKey();
             Set<Direction> dirs = entry.getValue();
@@ -240,6 +246,8 @@ public class DungeonManager {
         }
 
         dungeons.put(key, dungeon);
+        player.sendMessage(ChatColor.GRAY + "[Debug] Built in "
+                + (System.currentTimeMillis() - buildStart) + "ms");
         return true;
     }
 
@@ -533,14 +541,18 @@ public class DungeonManager {
             player.sendMessage(ChatColor.RED + "Dungeon not found.");
             return;
         }
+        long debugStart = System.currentTimeMillis();
         String worldName = "dgn_" + keyName + "_" + System.currentTimeMillis();
         org.bukkit.WorldCreator wc = new org.bukkit.WorldCreator(worldName);
         wc.generator(new VoidWorldGenerator());
         World world = Bukkit.createWorld(wc);
         if (world == null) return;
+        player.sendMessage(ChatColor.GRAY + "[Debug] World created in "
+                + (System.currentTimeMillis() - debugStart) + "ms");
         Location origin = new Location(world, 0, 64, 0);
         Dungeon dungeon = new Dungeon(world, keyName);
 
+        long taskStart = System.currentTimeMillis();
         java.util.List<BuildTask> tasks = new java.util.ArrayList<>();
         for (int x = 0; x < DungeonLayout.WIDTH; x++) {
             for (int y = 0; y < DungeonLayout.HEIGHT; y++) {
@@ -555,6 +567,10 @@ public class DungeonManager {
                 tasks.add(new BuildTask(templ, rotation, center, mob));
             }
         }
+        player.sendMessage(ChatColor.GRAY + "[Debug] Prepared tasks in "
+                + (System.currentTimeMillis() - taskStart) + "ms");
+
+        long pasteStart = System.currentTimeMillis();
 
         Instance inst = new Instance(dungeon, keyName);
         inst.returnLocations.put(player.getUniqueId(), player.getLocation());
@@ -570,6 +586,8 @@ public class DungeonManager {
             public void run() {
                 if (idx >= tasks.size()) {
                     cancel();
+                    player.sendMessage(ChatColor.GRAY + "[Debug] Pasted rooms in "
+                            + (System.currentTimeMillis() - pasteStart) + "ms");
                     return;
                 }
                 BuildTask t = tasks.get(idx++);
@@ -606,6 +624,7 @@ public class DungeonManager {
         String key = normalizeKey(name);
         DungeonLayout layout = getLayout(name);
         if (layout == null) return false;
+        long debugStart = System.currentTimeMillis();
         Location origin = player.getLocation();
         Dungeon dungeon = new Dungeon(player.getWorld(), key);
         for (int x = 0; x < DungeonLayout.WIDTH; x++) {
@@ -623,6 +642,8 @@ public class DungeonManager {
             }
         }
         dungeons.put(key, dungeon);
+        player.sendMessage(ChatColor.GRAY + "[Debug] Spawned in "
+                + (System.currentTimeMillis() - debugStart) + "ms");
         return true;
     }
 
