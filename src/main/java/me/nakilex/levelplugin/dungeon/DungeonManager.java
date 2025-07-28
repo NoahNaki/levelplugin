@@ -426,10 +426,30 @@ public class DungeonManager {
     }
 
     public void saveLayout(String key, String displayName, DungeonLayout layout) {
+        saveLayout(null, key, displayName, layout);
+    }
+
+    /** Save a layout and report timing to the player if provided. */
+    public void saveLayout(Player player, String key, String displayName, DungeonLayout layout) {
         String lower = normalizeKey(key);
         layouts.put(lower, layout);
         layoutDisplay.put(lower, displayName);
-        saveLayouts();
+
+        if (player == null) {
+            saveLayouts();
+            return;
+        }
+
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            long start = System.currentTimeMillis();
+            synchronized (saveLock) {
+                saveLayoutsInternal();
+            }
+            long total = System.currentTimeMillis() - start;
+            plugin.getLogger().info("[Dungeon] Layouts saved in " + total + "ms");
+            Bukkit.getScheduler().runTask(plugin, () ->
+                    player.sendMessage(ChatColor.GRAY + "[Debug] Layout saved in " + total + "ms"));
+        });
     }
 
     public DungeonLayout getLayout(String name) {
@@ -506,7 +526,8 @@ public class DungeonManager {
             synchronized (saveLock) {
                 saveLayoutsInternal();
             }
-            plugin.getLogger().info("[Dungeon] Layouts saved in " + (System.currentTimeMillis() - start) + "ms");
+            long total = System.currentTimeMillis() - start;
+            plugin.getLogger().info("[Dungeon] Layouts saved in " + total + "ms");
         });
     }
 
@@ -520,12 +541,17 @@ public class DungeonManager {
     }
 
     private void saveLayoutsInternal() {
+        long start = System.currentTimeMillis();
+
         if (layoutFile == null) {
             layoutFile = new java.io.File(plugin.getDataFolder(), "dungeons.yml");
         }
         if (layoutConfig == null) {
             layoutConfig = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(layoutFile);
         }
+
+        long init = System.currentTimeMillis();
+
         layoutConfig.set("layouts", null);
         org.bukkit.configuration.ConfigurationSection root = layoutConfig.createSection("layouts");
         for (String key : layouts.keySet()) {
@@ -553,7 +579,18 @@ public class DungeonManager {
                 }
             }
         }
-        try { layoutConfig.save(layoutFile); } catch (Exception e) { e.printStackTrace(); }
+
+        long built = System.currentTimeMillis();
+
+        try {
+            layoutConfig.save(layoutFile);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        long saved = System.currentTimeMillis();
+        plugin.getLogger().info("[Dungeon] Save debug -> init:" + (init - start)
+                + "ms, build:" + (built - init) + "ms, disk:" + (saved - built) + "ms");
     }
 
     public void startInstance(Player player, String name) {
