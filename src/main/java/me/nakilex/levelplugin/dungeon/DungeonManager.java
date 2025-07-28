@@ -422,30 +422,36 @@ public class DungeonManager {
             try { layoutFile.createNewFile(); } catch (Exception ignored) {}
         }
         layoutConfig = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(layoutFile);
-        if (!layoutConfig.isConfigurationSection("layouts")) return;
-        for (String rawKey : layoutConfig.getConfigurationSection("layouts").getKeys(false)) {
-            String base = "layouts." + rawKey + ".";
-            String display = layoutConfig.getString(base + "display", rawKey);
-            int stepVal = layoutConfig.getInt(base + "step", 0);
-            java.util.List<String> cells = layoutConfig.getStringList(base + "cells");
+        org.bukkit.configuration.ConfigurationSection root = layoutConfig.getConfigurationSection("layouts");
+        if (root == null) return;
+        for (String rawKey : root.getKeys(false)) {
+            org.bukkit.configuration.ConfigurationSection sec = root.getConfigurationSection(rawKey);
+            if (sec == null) continue;
+            String display = sec.getString("display", rawKey);
+            int stepVal = sec.getInt("step", 0);
             DungeonLayout layout = new DungeonLayout();
             layout.setStep(stepVal);
-            for (String cell : cells) {
-                String[] parts = cell.split(",");
-                if (parts.length < 8) continue;
-                int x = Integer.parseInt(parts[0]);
-                int y = Integer.parseInt(parts[1]);
-                RoomType type = RoomType.valueOf(parts[2]);
-                TemplateType t = TemplateType.valueOf(parts[3]);
-                int rot = Integer.parseInt(parts[4]);
-                String mob = parts[5].isEmpty() ? null : parts[5];
-                int offX = Integer.parseInt(parts[6]);
-                int offZ = Integer.parseInt(parts[7]);
-                layout.set(x, y, type);
-                layout.setTemplate(x, y, t);
-                layout.setRotation(x, y, rot);
-                layout.setMob(x, y, mob);
-                layout.setOffset(x, y, offX, offZ);
+            org.bukkit.configuration.ConfigurationSection cells = sec.getConfigurationSection("cells");
+            if (cells != null) {
+                for (String coord : cells.getKeys(false)) {
+                    org.bukkit.configuration.ConfigurationSection cell = cells.getConfigurationSection(coord);
+                    if (cell == null) continue;
+                    String[] parts = coord.split(",");
+                    if (parts.length != 2) continue;
+                    int x = Integer.parseInt(parts[0]);
+                    int y = Integer.parseInt(parts[1]);
+                    RoomType type = RoomType.valueOf(cell.getString("type", "NONE"));
+                    TemplateType t = TemplateType.valueOf(cell.getString("template", "NONE"));
+                    int rot = cell.getInt("rotation", 0);
+                    String mob = cell.getString("mob", null);
+                    int offX = cell.getInt("offsetX", 0);
+                    int offZ = cell.getInt("offsetZ", 0);
+                    layout.set(x, y, type);
+                    layout.setTemplate(x, y, t);
+                    layout.setRotation(x, y, rot);
+                    layout.setMob(x, y, mob);
+                    layout.setOffset(x, y, offX, offZ);
+                }
             }
             String key = normalizeKey(rawKey);
             layouts.put(key, layout);
@@ -461,12 +467,13 @@ public class DungeonManager {
             layoutConfig = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(layoutFile);
         }
         layoutConfig.set("layouts", null);
+        org.bukkit.configuration.ConfigurationSection root = layoutConfig.createSection("layouts");
         for (String key : layouts.keySet()) {
-            String base = "layouts." + key + ".";
             DungeonLayout layout = layouts.get(key);
-            layoutConfig.set(base + "display", layoutDisplay.getOrDefault(key, key));
-            layoutConfig.set(base + "step", layout.getStep());
-            java.util.List<String> cells = new java.util.ArrayList<>();
+            org.bukkit.configuration.ConfigurationSection sec = root.createSection(key);
+            sec.set("display", layoutDisplay.getOrDefault(key, key));
+            sec.set("step", layout.getStep());
+            org.bukkit.configuration.ConfigurationSection cells = sec.createSection("cells");
             for (int x = 0; x < DungeonLayout.WIDTH; x++) {
                 for (int y = 0; y < DungeonLayout.HEIGHT; y++) {
                     RoomType type = layout.get(x, y);
@@ -476,10 +483,15 @@ public class DungeonManager {
                     String mob = layout.getMob(x, y);
                     int offX = layout.getOffsetX(x, y);
                     int offZ = layout.getOffsetZ(x, y);
-                    cells.add(x + "," + y + "," + type.name() + "," + t.name() + "," + rot + "," + (mob == null ? "" : mob) + "," + offX + "," + offZ);
+                    org.bukkit.configuration.ConfigurationSection cell = cells.createSection(x + "," + y);
+                    cell.set("type", type.name());
+                    cell.set("template", t.name());
+                    cell.set("rotation", rot);
+                    if (mob != null) cell.set("mob", mob);
+                    cell.set("offsetX", offX);
+                    cell.set("offsetZ", offZ);
                 }
             }
-            layoutConfig.set(base + "cells", cells);
         }
         try { layoutConfig.save(layoutFile); } catch (Exception e) { e.printStackTrace(); }
     }
