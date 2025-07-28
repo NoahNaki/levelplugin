@@ -8,6 +8,7 @@ import org.bukkit.World;
 import org.bukkit.Material;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
+import org.bukkit.WorldType;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.Skull;
 import org.bukkit.entity.TextDisplay;
@@ -545,7 +546,13 @@ public class DungeonManager {
         String worldName = "dgn_" + keyName + "_" + System.currentTimeMillis();
         org.bukkit.WorldCreator wc = new org.bukkit.WorldCreator(worldName);
         wc.generator(new VoidWorldGenerator());
+        wc.type(WorldType.FLAT);
+        wc.generateStructures(false);
         World world = Bukkit.createWorld(wc);
+        if (world != null) {
+            world.setKeepSpawnInMemory(false);
+            world.setAutoSave(false);
+        }
         if (world == null) return;
         player.sendMessage(ChatColor.GRAY + "[Debug] World created in "
                 + (System.currentTimeMillis() - debugStart) + "ms");
