@@ -326,7 +326,7 @@ public class DungeonManager {
                 }
             }
         }
-        // place nether portals or wool markers and exit holograms
+        // place nether portals and exit holograms
         for (RoomTemplate.Marker m : template.getPortals()) {
             int[] vec = RoomTemplate.rotate(m.x - (int) Math.round(template.getCenterX()),
                     m.z - (int) Math.round(template.getCenterZ()), rotation);
@@ -335,13 +335,9 @@ public class DungeonManager {
             int wz = center.getBlockZ() + vec[1];
             Location loc = new Location(world, wx, wy, wz);
             replaced.put(loc, world.getBlockAt(wx, wy, wz).getBlockData());
-            if (preview) {
-                world.getBlockAt(wx, wy, wz).setType(Material.MAGENTA_WOOL, false);
-            } else {
-                world.getBlockAt(wx, wy, wz).setType(Material.NETHER_PORTAL, false);
-            }
+            world.getBlockAt(wx, wy, wz).setType(Material.NETHER_PORTAL, false);
         }
-        if (!preview && template == entrance) {
+        if (template == entrance) {
             for (RoomTemplate.Marker m : template.getExitMarkers()) {
                 int[] vec = RoomTemplate.rotate(m.x - (int) Math.round(template.getCenterX()),
                         m.z - (int) Math.round(template.getCenterZ()), rotation);
@@ -352,17 +348,6 @@ public class DungeonManager {
                 td.setShadowRadius(0);
                 td.setShadowStrength(0);
                 td.addScoreboardTag("dungeon_exit");
-            }
-        } else if (preview) {
-            for (RoomTemplate.Marker m : template.getExitMarkers()) {
-                int[] vec = RoomTemplate.rotate(m.x - (int) Math.round(template.getCenterX()),
-                        m.z - (int) Math.round(template.getCenterZ()), rotation);
-                int wx = center.getBlockX() + vec[0];
-                int wy = baseY + (m.y - connectorY);
-                int wz = center.getBlockZ() + vec[1];
-                Location loc = new Location(world, wx, wy, wz);
-                replaced.put(loc, world.getBlockAt(wx, wy, wz).getBlockData());
-                world.getBlockAt(wx, wy, wz).setType(Material.RED_WOOL, false);
             }
         }
         Dungeon.RoomInstance inst = new Dungeon.RoomInstance(template, rotation, center.clone(),
