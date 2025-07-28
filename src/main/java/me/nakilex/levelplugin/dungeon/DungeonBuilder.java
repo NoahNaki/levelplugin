@@ -72,7 +72,7 @@ public class DungeonBuilder implements Listener {
             int rotation = layout.getRotation(entranceX, entranceZ);
             Location center = origin.clone();
             String mob = layout.getMob(entranceX, entranceZ);
-            manager.pasteRoom(s.dungeon, templ, rotation, center, mob);
+            manager.pasteRoom(s.dungeon, templ, rotation, center, mob, true);
             for (RoomTemplate.Connector c : templ.getConnectors()) {
                 Direction dir = rotate(c.facing, rotation);
                 if (dirs.contains(dir)) continue;
@@ -102,7 +102,7 @@ public class DungeonBuilder implements Listener {
                 int diffZ = layout.getOffsetZ(x, z);
                 Location center = origin.clone().add(diffX, 0, diffZ);
                 String mob = layout.getMob(x, z);
-                manager.pasteRoom(s.dungeon, templ, rotation, center, mob);
+                manager.pasteRoom(s.dungeon, templ, rotation, center, mob, true);
 
                 // spawn connectors only for open sides
                 for (RoomTemplate.Connector c : templ.getConnectors()) {
@@ -202,7 +202,7 @@ public class DungeonBuilder implements Listener {
         for (int r = 0; r < 4; r++) {
             if (rotate(conn.facing, r) == facing) { rot = r; break; }
         }
-        DungeonManager.PasteResult result = manager.pasteRoom(s.dungeon, entrance, rot, loc, null);
+        DungeonManager.PasteResult result = manager.pasteRoom(s.dungeon, entrance, rot, loc, null, true);
         player.sendMessage(ChatColor.GRAY + String.format("Overlap: %.1f%%", result.overlap() * 100));
         if (!result.success()) {
             player.sendMessage(ChatColor.RED + "Cannot place entrance here.");
@@ -451,7 +451,7 @@ public class DungeonBuilder implements Listener {
                 match.z - (int) Math.round(templ.getCenterZ()), rotation);
         Location center = base.clone().subtract(vec[0], match.bottomY - templ.getConnectorMinY(), vec[1]);
         String mob = (templ == manager.getCombatLeft() || templ == manager.getCombatRight()) ? s.selectedMob : null;
-        DungeonManager.PasteResult result = manager.pasteRoom(s.dungeon, templ, rotation, center, mob);
+        DungeonManager.PasteResult result = manager.pasteRoom(s.dungeon, templ, rotation, center, mob, true);
         s.player.sendMessage(ChatColor.GRAY + String.format("Overlap: %.1f%%", result.overlap() * 100));
         if (!result.success()) {
             s.player.sendMessage(ChatColor.RED + "Room collides with existing blocks.");

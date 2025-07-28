@@ -68,6 +68,18 @@ public class Dungeon {
         return rooms;
     }
 
+    /**
+     * Find the room instance containing the given location.
+     * @param loc world location to check
+     * @return matching RoomInstance or null if none
+     */
+    public RoomInstance getRoomContaining(Location loc) {
+        for (RoomInstance r : rooms) {
+            if (r.contains(loc)) return r;
+        }
+        return null;
+    }
+
     /** Remove all placed blocks for this dungeon. */
     public void delete() {
         for (RoomInstance r : rooms) {

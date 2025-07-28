@@ -215,7 +215,7 @@ public class DungeonManager {
             RoomTemplate templ = chooseTemplate(RoomType.HALLWAY, dirs);
             int rotation = findRotation(templ, dirs);
             Location center = origin.clone().add(p.x * step, 0, p.z * step);
-            pasteRoom(dungeon, templ, rotation, center, null);
+            pasteRoom(dungeon, templ, rotation, center, null, false);
         }
 
         dungeons.put(name.toLowerCase(), dungeon);
@@ -253,10 +253,14 @@ public class DungeonManager {
     public record PasteResult(boolean success, double overlap, Map<Location, BlockData> replaced, Dungeon.RoomInstance instance) {}
 
     public PasteResult pasteRoom(Dungeon dungeon, RoomTemplate template, int rotation, Location center) {
-        return pasteRoom(dungeon, template, rotation, center, null);
+        return pasteRoom(dungeon, template, rotation, center, null, false);
     }
 
     public PasteResult pasteRoom(Dungeon dungeon, RoomTemplate template, int rotation, Location center, String mob) {
+        return pasteRoom(dungeon, template, rotation, center, mob, false);
+    }
+
+    public PasteResult pasteRoom(Dungeon dungeon, RoomTemplate template, int rotation, Location center, String mob, boolean preview) {
         World world = center.getWorld();
         if (world == null) return new PasteResult(false, 1.0, Map.<Location, BlockData>of(), null);
 
@@ -315,7 +319,7 @@ public class DungeonManager {
                 }
             }
         }
-        // place nether portals and exit holograms
+        // place nether portals or wool markers and exit holograms
         for (RoomTemplate.Marker m : template.getPortals()) {
             int[] vec = RoomTemplate.rotate(m.x - (int) Math.round(template.getCenterX()),
                     m.z - (int) Math.round(template.getCenterZ()), rotation);
@@ -324,18 +328,35 @@ public class DungeonManager {
             int wz = center.getBlockZ() + vec[1];
             Location loc = new Location(world, wx, wy, wz);
             replaced.put(loc, world.getBlockAt(wx, wy, wz).getBlockData());
-            world.getBlockAt(wx, wy, wz).setType(Material.NETHER_PORTAL, false);
+            if (preview) {
+                world.getBlockAt(wx, wy, wz).setType(Material.MAGENTA_WOOL, false);
+            } else {
+                world.getBlockAt(wx, wy, wz).setType(Material.NETHER_PORTAL, false);
+            }
         }
-        for (RoomTemplate.Marker m : template.getExitMarkers()) {
-            int[] vec = RoomTemplate.rotate(m.x - (int) Math.round(template.getCenterX()),
-                    m.z - (int) Math.round(template.getCenterZ()), rotation);
-            Location loc = center.clone().add(vec[0] + 0.5, m.y - connectorY + 1.2, vec[1] + 0.5);
-            TextDisplay td = (TextDisplay) world.spawn(loc, TextDisplay.class);
-            td.setBillboard(org.bukkit.entity.Display.Billboard.CENTER);
-            td.setText(ChatColor.RED.toString() + ChatColor.BOLD + "EXIT");
-            td.setShadowRadius(0);
-            td.setShadowStrength(0);
-            td.addScoreboardTag("dungeon_exit");
+        if (!preview && template == entrance) {
+            for (RoomTemplate.Marker m : template.getExitMarkers()) {
+                int[] vec = RoomTemplate.rotate(m.x - (int) Math.round(template.getCenterX()),
+                        m.z - (int) Math.round(template.getCenterZ()), rotation);
+                Location loc = center.clone().add(vec[0] + 0.5, m.y - connectorY + 1.2, vec[1] + 0.5);
+                TextDisplay td = (TextDisplay) world.spawn(loc, TextDisplay.class);
+                td.setBillboard(org.bukkit.entity.Display.Billboard.CENTER);
+                td.setText(ChatColor.RED.toString() + ChatColor.BOLD + "EXIT");
+                td.setShadowRadius(0);
+                td.setShadowStrength(0);
+                td.addScoreboardTag("dungeon_exit");
+            }
+        } else if (preview) {
+            for (RoomTemplate.Marker m : template.getExitMarkers()) {
+                int[] vec = RoomTemplate.rotate(m.x - (int) Math.round(template.getCenterX()),
+                        m.z - (int) Math.round(template.getCenterZ()), rotation);
+                int wx = center.getBlockX() + vec[0];
+                int wy = baseY + (m.y - connectorY);
+                int wz = center.getBlockZ() + vec[1];
+                Location loc = new Location(world, wx, wy, wz);
+                replaced.put(loc, world.getBlockAt(wx, wy, wz).getBlockData());
+                world.getBlockAt(wx, wy, wz).setType(Material.RED_WOOL, false);
+            }
         }
         Dungeon.RoomInstance inst = new Dungeon.RoomInstance(template, rotation, center.clone(),
                 minX, minY, minZ, maxX, maxY, maxZ, mob);
@@ -382,7 +403,7 @@ public class DungeonManager {
                 int diffZ = layout.getOffsetZ(x, y);
                 Location center = origin.clone().add(diffX, 0, diffZ);
                 String mob = layout.getMob(x, y);
-                pasteRoom(dungeon, templ, rotation, center, mob);
+                pasteRoom(dungeon, templ, rotation, center, mob, false);
             }
         }
 
@@ -435,7 +456,7 @@ public class DungeonManager {
                 int diffZ = layout.getOffsetZ(x, y);
                 Location center = origin.clone().add(diffX, 0, diffZ);
                 String mob = layout.getMob(x, y);
-                pasteRoom(dungeon, templ, rotation, center, mob);
+                pasteRoom(dungeon, templ, rotation, center, mob, false);
             }
         }
 
@@ -479,21 +500,27 @@ public class DungeonManager {
         Instance(Dungeon d, String layout) { this.dungeon = d; this.layout = layout; }
     }
 
-    private class InstanceListener implements org.bukkit.event.Listener {
+        private class InstanceListener implements org.bukkit.event.Listener {
 
-        @org.bukkit.event.EventHandler(priority = EventPriority.HIGHEST)
-        public void onPortal(PlayerPortalEvent e) {
-            Instance inst = instances.get(e.getFrom().getWorld());
-            if (inst == null) return;
-            e.setCancelled(true);
-            java.util.UUID id = e.getPlayer().getUniqueId();
-            Location back = inst.returnLocations.remove(id);
-            if (back != null) {
-                e.getPlayer().sendMessage(ChatColor.GREEN + "Dungeon '" + inst.layout + "' completed!");
-                e.getPlayer().teleport(back);
+            @org.bukkit.event.EventHandler(priority = EventPriority.HIGHEST)
+            public void onPortal(PlayerPortalEvent e) {
+                Instance inst = instances.get(e.getFrom().getWorld());
+                if (inst == null) return;
+                e.setCancelled(true);
+                java.util.UUID id = e.getPlayer().getUniqueId();
+                Location back = inst.returnLocations.remove(id);
+                if (back != null) {
+                    Dungeon.RoomInstance room = inst.dungeon.getRoomContaining(e.getFrom());
+                    boolean completed = room != null && room.template == exit;
+                    if (completed) {
+                        sendCompleteMessage(e.getPlayer(), inst.layout);
+                    } else {
+                        sendExitMessage(e.getPlayer(), inst.layout);
+                    }
+                    e.getPlayer().teleport(back);
+                }
+                checkInstance(e.getFrom().getWorld());
             }
-            checkInstance(e.getFrom().getWorld());
-        }
 
         @org.bukkit.event.EventHandler
         public void onQuit(org.bukkit.event.player.PlayerQuitEvent e) {
@@ -501,6 +528,20 @@ public class DungeonManager {
             if (inst == null) return;
             inst.returnLocations.remove(e.getPlayer().getUniqueId());
             checkInstance(e.getPlayer().getWorld());
+        }
+
+        private void sendCompleteMessage(Player player, String layout) {
+            me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§5§l-", 45);
+            me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§d§lDUNGEON COMPLETE!");
+            me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§7You finished the §5" + layout + "§7 dungeon.");
+            me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§5§l-", 45);
+        }
+
+        private void sendExitMessage(Player player, String layout) {
+            me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§c§l-", 45);
+            me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§c§lDUNGEON EXITED");
+            me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§7You left the §5" + layout + "§7 dungeon.");
+            me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§c§l-", 45);
         }
     }
 
