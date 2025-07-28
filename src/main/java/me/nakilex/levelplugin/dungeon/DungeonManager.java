@@ -155,7 +155,8 @@ public class DungeonManager {
         exit = RoomTemplate.capture(world, 91, -45, -5222, 56, -24, -5199);
         library = RoomTemplate.capture(world, 74, -11, -5172, 112, -39, -5122);
         hallway = RoomTemplate.capture(world, 63, -44, -5021, 89, -21, -5003);
-        treasureLeft = RoomTemplate.capture(world, 69, -59, -4991, 107, -57, -4952);
+        // Provided by the map builder: 107,-57,-4991 to 69,-28,-4952
+        treasureLeft = RoomTemplate.capture(world, 107, -57, -4991, 69, -28, -4952);
         treasureTRight = RoomTemplate.capture(world, 85, -51, -5292, 45, -22, -5253);
         decorStone = RoomTemplate.capture(world, 89, -29, -4921, 71, -55, -4906);
         decorChest = RoomTemplate.capture(world, 119, -52, -4900, 104, -29, -4918);

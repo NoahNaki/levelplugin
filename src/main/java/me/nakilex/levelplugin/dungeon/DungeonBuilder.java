@@ -22,6 +22,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import me.nakilex.levelplugin.utils.GuiUtil;
 
 import java.util.*;
+import java.awt.Point;
 
 /**
  * Simplified in‑world dungeon builder using connector holograms. This is not a
@@ -687,12 +688,19 @@ public class DungeonBuilder implements Listener {
             int step = manager.getStep();
             int offX = DungeonLayout.WIDTH / 2;
             int offZ = DungeonLayout.HEIGHT / 2;
+            java.util.Set<java.awt.Point> used = new java.util.HashSet<>();
             for (int i = 0; i < dungeon.getRooms().size(); i++) {
                 Dungeon.RoomInstance r = dungeon.getRooms().get(i);
                 int diffX = r.center.getBlockX() - originX;
                 int diffZ = r.center.getBlockZ() - originZ;
                 int dx = Math.round((float) diffX / step);
                 int dz = Math.round((float) diffZ / step);
+                java.awt.Point key = new java.awt.Point(dx, dz);
+                while (used.contains(key)) {
+                    dx++;
+                    key = new java.awt.Point(dx, dz);
+                }
+                used.add(key);
                 RoomTemplate t = r.template;
                 RoomType type = i == 0 ? RoomType.ENTRANCE :
                         (t == manager.getBoss() ? RoomType.BOSS :
