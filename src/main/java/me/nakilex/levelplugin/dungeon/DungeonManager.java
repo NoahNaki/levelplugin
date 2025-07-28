@@ -30,7 +30,14 @@ public class DungeonManager {
     private org.bukkit.configuration.file.FileConfiguration layoutConfig;
     private final DungeonBuilder builder;
 
-    private static String normalizeKey(String name) {
+    /**
+     * Normalize a dungeon name for storage/lookup.
+     * <p>
+     * Spaces become underscores and the result is lower case so
+     * names typed as "Frost Palace" map to a key of
+     * {@code frost_palace}.
+     */
+    public static String normalizeKey(String name) {
         return name.toLowerCase().replace(' ', '_');
     }
 

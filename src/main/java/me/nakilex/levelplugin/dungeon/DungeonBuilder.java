@@ -357,7 +357,7 @@ public class DungeonBuilder implements Listener {
                 return;
             }
             String display = msg;
-            String key = display.replaceAll("\\s+", "_");
+            String key = DungeonManager.normalizeKey(display);
             if (manager.layoutExists(display)) {
                 event.getPlayer().sendMessage(ChatColor.RED + "A dungeon with that name already exists.");
                 s.awaitingName = false;
