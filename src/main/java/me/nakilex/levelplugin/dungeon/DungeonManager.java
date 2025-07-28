@@ -9,6 +9,8 @@ import org.bukkit.Material;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.Skull;
+import com.destroystokyo.paper.profile.PlayerProfile;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerPortalEvent;
 
@@ -302,6 +304,13 @@ public class DungeonManager {
             replaced.put(l, world.getBlockAt(wx, wy, wz).getBlockData());
             BlockData data = RoomTemplate.rotateBlockData(b.data, rotation);
             world.getBlockAt(wx, wy, wz).setBlockData(data, false);
+            if (b.profile != null) {
+                var state = world.getBlockAt(wx, wy, wz).getState();
+                if (state instanceof Skull skull) {
+                    skull.setPlayerProfile(b.profile);
+                    skull.update(false, false);
+                }
+            }
         }
         Dungeon.RoomInstance inst = new Dungeon.RoomInstance(template, rotation, center.clone(),
                 minX, minY, minZ, maxX, maxY, maxZ, mob);

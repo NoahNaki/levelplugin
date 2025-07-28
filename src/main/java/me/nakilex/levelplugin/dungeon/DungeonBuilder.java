@@ -129,6 +129,12 @@ public class DungeonBuilder implements Listener {
         if (meta != null) meta.setDisplayName(ChatColor.GREEN + "Place Entrance");
         wool.setItemMeta(meta);
         player.getInventory().setItem(0, wool);
+        ItemStack undo = new ItemStack(Material.ARROW);
+        ItemMeta um = undo.getItemMeta();
+        if (um != null) um.setDisplayName(ChatColor.YELLOW + "Undo");
+        undo.setItemMeta(um);
+        player.getInventory().setItem(6, undo);
+
         ItemStack save = new ItemStack(Material.EMERALD);
         ItemMeta sm = save.getItemMeta();
         if (sm != null) sm.setDisplayName(ChatColor.AQUA + "Save");
@@ -156,6 +162,11 @@ public class DungeonBuilder implements Listener {
         ItemStack hand = event.getItem();
         if (hand == null) return;
         Material type = hand.getType();
+        if (type == Material.ARROW) {
+            event.setCancelled(true);
+            s.undo();
+            return;
+        }
         if (type == Material.EMERALD) {
             event.setCancelled(true);
             s.awaitingName = true;
@@ -340,25 +351,6 @@ public class DungeonBuilder implements Listener {
         int rotation = 0;
         RoomTemplate.Connector match = null;
 
-        // Special handling for left/right corners to ensure exit orientation
-        if (templ == manager.getCornerLeft() || templ == manager.getCornerRight()) {
-            boolean right = templ == manager.getCornerRight();
-            Direction exitDir = rotate(info.facing, right ? 1 : 3);
-            outer:
-            for (int r = 0; r < 4; r++) {
-                for (RoomTemplate.Connector c : templ.getConnectors()) {
-                    if (rotate(c.facing, r) != info.facing.opposite()) continue;
-                    for (RoomTemplate.Connector o : templ.getConnectors()) {
-                        if (o == c) continue;
-                        if (rotate(o.facing, r) == exitDir) {
-                            rotation = r;
-                            match = c;
-                            break outer;
-                        }
-                    }
-                }
-            }
-        }
 
         // Handle T-junction variants with orientation-specific side exits
         if (match == null && (templ == manager.getTJunctionLeft() || templ == manager.getTJunctionRight())) {

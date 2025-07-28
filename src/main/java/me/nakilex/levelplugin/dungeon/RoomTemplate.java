@@ -4,6 +4,8 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.Skull;
+import com.destroystokyo.paper.profile.PlayerProfile;
 
 import java.util.*;
 
@@ -18,11 +20,13 @@ public class RoomTemplate {
     public static class BlockDef {
         public final int x, y, z;
         public final BlockData data;
-        public BlockDef(int x, int y, int z, BlockData data) {
+        public final PlayerProfile profile;
+        public BlockDef(int x, int y, int z, BlockData data, PlayerProfile profile) {
             this.x = x;
             this.y = y;
             this.z = z;
             this.data = data;
+            this.profile = profile;
         }
     }
 
@@ -111,7 +115,12 @@ public class RoomTemplate {
                     Location loc = new Location(world, x, y, z);
                     BlockData data = loc.getBlock().getBlockData();
                     if (data.getMaterial() != Material.AIR) {
-                        blocks.add(new BlockDef(x - minX, y - minY, z - minZ, data));
+                        PlayerProfile profile = null;
+                        var state = loc.getBlock().getState();
+                        if (state instanceof Skull skull) {
+                            profile = skull.getPlayerProfile();
+                        }
+                        blocks.add(new BlockDef(x - minX, y - minY, z - minZ, data, profile));
                         Material mat = data.getMaterial();
                         if (mat == Material.REDSTONE_BLOCK || mat == Material.PINK_WOOL) {
                             markerBlocks.add(loc);
