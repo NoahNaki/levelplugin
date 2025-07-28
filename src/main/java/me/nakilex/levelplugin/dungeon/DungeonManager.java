@@ -10,6 +10,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.Skull;
+import org.bukkit.entity.TextDisplay;
 import com.destroystokyo.paper.profile.PlayerProfile;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerPortalEvent;
@@ -146,7 +147,7 @@ public class DungeonManager {
         tJunctionLeft = RoomTemplate.capture(world, -29, -60, -5072, 11, -28, -5112);
         tJunctionRight = RoomTemplate.capture(world, -29, -60, -5072, 11, -28, -5112);
         crossroad = RoomTemplate.capture(world, 11, -28, -5030, -29, -60, -5070);
-        entrance = RoomTemplate.capture(world, -212, -71, -5328, -126, -27, -5229);
+        entrance = RoomTemplate.capture(world, -212, -77, -5334, -125, -36, -5227);
         // new boss room region provided by the map builder
         boss = RoomTemplate.capture(world, 43, -14, -5006, -23, -54, -4922);
         RoomTemplate combat = RoomTemplate.capture(world, 65, -42, -5059, 105, -13, -5100);
