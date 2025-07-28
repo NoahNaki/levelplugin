@@ -32,6 +32,7 @@ public class DungeonManager {
     private RoomTemplate tJunctionLeft;
     private RoomTemplate tJunctionRight;
     private RoomTemplate crossroad;
+    private RoomTemplate hallway;
     private RoomTemplate entrance;
     private RoomTemplate boss;
     private RoomTemplate combatLeft;
@@ -61,6 +62,7 @@ public class DungeonManager {
     public RoomTemplate getTJunctionLeft() { return tJunctionLeft; }
     public RoomTemplate getTJunctionRight() { return tJunctionRight; }
     public RoomTemplate getCrossroad() { return crossroad; }
+    public RoomTemplate getHallway() { return hallway; }
     public RoomTemplate getBoss() { return boss; }
     public RoomTemplate getCombatLeft() { return combatLeft; }
     public RoomTemplate getCombatRight() { return combatRight; }
@@ -81,6 +83,7 @@ public class DungeonManager {
             case TJUNCTION_LEFT -> tJunctionLeft;
             case TJUNCTION_RIGHT -> tJunctionRight;
             case CROSSROAD -> crossroad;
+            case HALLWAY -> hallway;
             case BOSS -> boss;
             case COMBAT_LEFT -> combatLeft;
             case COMBAT_RIGHT -> combatRight;
@@ -101,6 +104,7 @@ public class DungeonManager {
         if (t == tJunctionLeft) return TemplateType.TJUNCTION_LEFT;
         if (t == tJunctionRight) return TemplateType.TJUNCTION_RIGHT;
         if (t == crossroad) return TemplateType.CROSSROAD;
+        if (t == hallway) return TemplateType.HALLWAY;
         if (t == boss) return TemplateType.BOSS;
         if (t == combatLeft) return TemplateType.COMBAT_LEFT;
         if (t == combatRight) return TemplateType.COMBAT_RIGHT;
@@ -132,6 +136,7 @@ public class DungeonManager {
         combatLeft = flipEntrances(combat);
         exit = RoomTemplate.capture(world, 91, -45, -5222, 56, -24, -5199);
         library = RoomTemplate.capture(world, 74, -11, -5172, 112, -39, -5122);
+        hallway = RoomTemplate.capture(world, 63, -44, -5021, 89, -21, -5003);
 
         // Determine spacing using crossroad connectors
         List<RoomTemplate.Connector> con = crossroad.getConnectors();
