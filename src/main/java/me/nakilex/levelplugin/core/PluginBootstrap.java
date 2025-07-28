@@ -367,7 +367,10 @@ public class PluginBootstrap {
         if (storageManager != null) storageManager.saveAllStorages();
         if (auctionHouseManager != null) auctionHouseManager.saveAuctionsSync();
         if (lootChestManager != null) lootChestManager.removeAllChests();
-        if (dungeonManager != null) dungeonManager.cleanupInstances();
+        if (dungeonManager != null) {
+            dungeonManager.cleanupInstances();
+            dungeonManager.saveLayouts();
+        }
         if (me.nakilex.levelplugin.player.mining.listeners.OreMiningListener.getInstance() != null) me.nakilex.levelplugin.player.mining.listeners.OreMiningListener.getInstance().removeAllHolograms();
         if (questManager != null) questManager.saveProgress();
         if (modelGateManager != null) modelGateManager.removeAllGates();

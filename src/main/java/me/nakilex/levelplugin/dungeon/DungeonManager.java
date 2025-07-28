@@ -26,6 +26,8 @@ public class DungeonManager {
     private final Map<String, Dungeon> dungeons = new HashMap<>();
     private final Map<String, DungeonLayout> layouts = new HashMap<>();
     private final Map<String, String> layoutDisplay = new HashMap<>();
+    private java.io.File layoutFile;
+    private org.bukkit.configuration.file.FileConfiguration layoutConfig;
     private final DungeonBuilder builder;
 
     private static String normalizeKey(String name) {
@@ -60,6 +62,7 @@ public class DungeonManager {
     public DungeonManager(Main plugin) {
         this.plugin = plugin;
         loadTemplates();
+        loadLayouts();
         this.builder = new DungeonBuilder(this);
         Bukkit.getPluginManager().registerEvents(builder, plugin);
         Bukkit.getPluginManager().registerEvents(new InstanceListener(), plugin);
@@ -357,16 +360,26 @@ public class DungeonManager {
     }
 
     public boolean deleteDungeon(String name) {
-        Dungeon d = dungeons.remove(normalizeKey(name));
-        if (d == null) return false;
-        d.delete();
-        return true;
+        String key = normalizeKey(name);
+        boolean removed = false;
+        Dungeon d = dungeons.remove(key);
+        if (d != null) {
+            d.delete();
+            removed = true;
+        }
+        if (layouts.remove(key) != null) {
+            layoutDisplay.remove(key);
+            saveLayouts();
+            removed = true;
+        }
+        return removed;
     }
 
     public void saveLayout(String key, String displayName, DungeonLayout layout) {
         String lower = normalizeKey(key);
         layouts.put(lower, layout);
         layoutDisplay.put(lower, displayName);
+        saveLayouts();
     }
 
     public DungeonLayout getLayout(String name) {
@@ -384,6 +397,73 @@ public class DungeonManager {
 
     public String getDisplayName(String key) {
         return layoutDisplay.getOrDefault(normalizeKey(key), key);
+    }
+
+    private void loadLayouts() {
+        layoutFile = new java.io.File(plugin.getDataFolder(), "dungeons.yml");
+        if (!layoutFile.exists()) {
+            try { layoutFile.createNewFile(); } catch (Exception ignored) {}
+        }
+        layoutConfig = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(layoutFile);
+        if (!layoutConfig.isConfigurationSection("layouts")) return;
+        for (String key : layoutConfig.getConfigurationSection("layouts").getKeys(false)) {
+            String base = "layouts." + key + ".";
+            String display = layoutConfig.getString(base + "display", key);
+            int stepVal = layoutConfig.getInt(base + "step", 0);
+            java.util.List<String> cells = layoutConfig.getStringList(base + "cells");
+            DungeonLayout layout = new DungeonLayout();
+            layout.setStep(stepVal);
+            for (String cell : cells) {
+                String[] parts = cell.split(",");
+                if (parts.length < 8) continue;
+                int x = Integer.parseInt(parts[0]);
+                int y = Integer.parseInt(parts[1]);
+                RoomType type = RoomType.valueOf(parts[2]);
+                TemplateType t = TemplateType.valueOf(parts[3]);
+                int rot = Integer.parseInt(parts[4]);
+                String mob = parts[5].isEmpty() ? null : parts[5];
+                int offX = Integer.parseInt(parts[6]);
+                int offZ = Integer.parseInt(parts[7]);
+                layout.set(x, y, type);
+                layout.setTemplate(x, y, t);
+                layout.setRotation(x, y, rot);
+                layout.setMob(x, y, mob);
+                layout.setOffset(x, y, offX, offZ);
+            }
+            layouts.put(key, layout);
+            layoutDisplay.put(key, display);
+        }
+    }
+
+    public void saveLayouts() {
+        if (layoutFile == null) {
+            layoutFile = new java.io.File(plugin.getDataFolder(), "dungeons.yml");
+        }
+        if (layoutConfig == null) {
+            layoutConfig = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(layoutFile);
+        }
+        layoutConfig.set("layouts", null);
+        for (String key : layouts.keySet()) {
+            String base = "layouts." + key + ".";
+            DungeonLayout layout = layouts.get(key);
+            layoutConfig.set(base + "display", layoutDisplay.getOrDefault(key, key));
+            layoutConfig.set(base + "step", layout.getStep());
+            java.util.List<String> cells = new java.util.ArrayList<>();
+            for (int x = 0; x < DungeonLayout.WIDTH; x++) {
+                for (int y = 0; y < DungeonLayout.HEIGHT; y++) {
+                    RoomType type = layout.get(x, y);
+                    if (type == RoomType.NONE) continue;
+                    TemplateType t = layout.getTemplate(x, y);
+                    int rot = layout.getRotation(x, y);
+                    String mob = layout.getMob(x, y);
+                    int offX = layout.getOffsetX(x, y);
+                    int offZ = layout.getOffsetZ(x, y);
+                    cells.add(x + "," + y + "," + type.name() + "," + t.name() + "," + rot + "," + (mob == null ? "" : mob) + "," + offX + "," + offZ);
+                }
+            }
+            layoutConfig.set(base + "cells", cells);
+        }
+        try { layoutConfig.save(layoutFile); } catch (Exception e) { e.printStackTrace(); }
     }
 
     public void startInstance(Player player, String name) {
