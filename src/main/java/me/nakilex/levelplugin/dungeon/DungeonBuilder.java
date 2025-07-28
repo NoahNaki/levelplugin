@@ -351,6 +351,29 @@ public class DungeonBuilder implements Listener {
         int rotation = 0;
         RoomTemplate.Connector match = null;
 
+        // Ensure corner variants maintain the correct turn direction. When
+        // placing a corner we want the second exit to appear either to the
+        // left or right of the entrance depending on which template was
+        // selected.
+        if (templ == manager.getCornerLeft() || templ == manager.getCornerRight()) {
+            boolean right = templ == manager.getCornerRight();
+            Direction exitDir = rotate(info.facing, right ? 1 : 3);
+            outer:
+            for (int r = 0; r < 4; r++) {
+                for (RoomTemplate.Connector c : templ.getConnectors()) {
+                    if (rotate(c.facing, r) != info.facing.opposite()) continue;
+                    for (RoomTemplate.Connector o : templ.getConnectors()) {
+                        if (o == c) continue;
+                        if (rotate(o.facing, r) == exitDir) {
+                            rotation = r;
+                            match = c;
+                            break outer;
+                        }
+                    }
+                }
+            }
+        }
+
 
         // Handle T-junction variants with orientation-specific side exits
         if (match == null && (templ == manager.getTJunctionLeft() || templ == manager.getTJunctionRight())) {
