@@ -541,6 +541,7 @@ public class DungeonManager {
         Location origin = new Location(world, 0, 64, 0);
         Dungeon dungeon = new Dungeon(world, keyName);
 
+        java.util.List<BuildTask> tasks = new java.util.ArrayList<>();
         for (int x = 0; x < DungeonLayout.WIDTH; x++) {
             for (int y = 0; y < DungeonLayout.HEIGHT; y++) {
                 RoomType type = layout.get(x, y);
@@ -551,7 +552,7 @@ public class DungeonManager {
                 int diffZ = layout.getOffsetZ(x, y);
                 Location center = origin.clone().add(diffX, 0, diffZ);
                 String mob = layout.getMob(x, y);
-                pasteRoom(dungeon, templ, rotation, center, mob, false);
+                tasks.add(new BuildTask(templ, rotation, center, mob));
             }
         }
 
@@ -561,6 +562,20 @@ public class DungeonManager {
         world.setDifficulty(org.bukkit.Difficulty.NORMAL);
         world.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, true);
         player.teleport(origin);
+
+        new org.bukkit.scheduler.BukkitRunnable() {
+            int idx = 0;
+
+            @Override
+            public void run() {
+                if (idx >= tasks.size()) {
+                    cancel();
+                    return;
+                }
+                BuildTask t = tasks.get(idx++);
+                pasteRoom(dungeon, t.template(), t.rotation(), t.center(), t.mob(), false);
+            }
+        }.runTaskTimer(plugin, 1L, 1L);
     }
 
     public void cleanupInstances() {
@@ -715,4 +730,6 @@ public class DungeonManager {
             };
         }
     }
+
+    private record BuildTask(RoomTemplate template, int rotation, Location center, String mob) {}
 }
