@@ -509,7 +509,6 @@ public class DungeonManager {
 
     public void startInstance(Player player, String name) {
         String keyName = normalizeKey(name);
-        player.sendMessage(ChatColor.GRAY + "Looking for layout key: " + keyName);
         DungeonLayout layout = getLayout(name);
         if (layout == null) {
             player.sendMessage(ChatColor.RED + "Dungeon not found.");
@@ -571,7 +570,6 @@ public class DungeonManager {
 
     public boolean playDungeon(Player player, String name) {
         String key = normalizeKey(name);
-        player.sendMessage(ChatColor.GRAY + "Looking for layout key: " + key);
         DungeonLayout layout = getLayout(name);
         if (layout == null) return false;
         Location origin = player.getLocation();
