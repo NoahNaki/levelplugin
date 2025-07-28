@@ -316,7 +316,7 @@ public class ProfileSelectionGUI implements Listener {
                     // Teleport back to the lobby world before forcing profile
                     // selection again. Delay reopening slightly so the player
                     // lands on the ground first.
-                    org.bukkit.World lobbyWorld = Bukkit.getWorld("world2");
+                    org.bukkit.World lobbyWorld = Bukkit.getWorld("world");
                     if (lobbyWorld != null) {
                         player.teleport(new org.bukkit.Location(lobbyWorld, 217, 6, 80));
                     }

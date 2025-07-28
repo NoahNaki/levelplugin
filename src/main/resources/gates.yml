@@ -28,7 +28,7 @@ gates:
     animation: ELEVATOR
     duration: 40
   world_elevator:
-    world: world2
+    world: world
     pos1:
       x: 101
       y: 67

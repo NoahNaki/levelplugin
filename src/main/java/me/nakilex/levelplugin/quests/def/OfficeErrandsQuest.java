@@ -92,7 +92,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
         // Ensure the destination elevator starts closed for this player
         gates.closeGate(player, worldGateId);
 
-        World world2 = Bukkit.getWorld("world2");
+        World world2 = Bukkit.getWorld("world");
         if (world2 != null && worldElevatorBlocks == null) {
             worldElevatorBlocks = captureArea(world2,
                     101, 66, -92,
@@ -248,7 +248,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                             Location cur = player.getLocation();
 
                             Location originMin = new Location(triggerLoc.getWorld(), 27, 142, -95);
-                            Location destMin = new Location(Bukkit.getWorld("world2"), 102, 67, -97);
+                            Location destMin = new Location(Bukkit.getWorld("world"), 102, 67, -97);
                             World destWorld = destMin.getWorld();
 
                             if (destWorld != null) {

@@ -62,8 +62,8 @@ public class PlayerJoinListener implements Listener {
                         + org.bukkit.ChatColor.GOLD + "coins" + org.bukkit.ChatColor.YELLOW + " to get started!");
             }
 
-            // Teleport to profile lobby in world2
-            org.bukkit.World lobbyWorld = org.bukkit.Bukkit.getWorld("world2");
+            // Teleport to profile lobby in world
+            org.bukkit.World lobbyWorld = org.bukkit.Bukkit.getWorld("world");
             if (lobbyWorld != null) {
                 org.bukkit.Location lobby = new org.bukkit.Location(lobbyWorld, 217, 6, 80);
                 player.teleport(lobby);
