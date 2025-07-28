@@ -406,9 +406,9 @@ public class DungeonManager {
         }
         layoutConfig = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(layoutFile);
         if (!layoutConfig.isConfigurationSection("layouts")) return;
-        for (String key : layoutConfig.getConfigurationSection("layouts").getKeys(false)) {
-            String base = "layouts." + key + ".";
-            String display = layoutConfig.getString(base + "display", key);
+        for (String rawKey : layoutConfig.getConfigurationSection("layouts").getKeys(false)) {
+            String base = "layouts." + rawKey + ".";
+            String display = layoutConfig.getString(base + "display", rawKey);
             int stepVal = layoutConfig.getInt(base + "step", 0);
             java.util.List<String> cells = layoutConfig.getStringList(base + "cells");
             DungeonLayout layout = new DungeonLayout();
@@ -430,6 +430,7 @@ public class DungeonManager {
                 layout.setMob(x, y, mob);
                 layout.setOffset(x, y, offX, offZ);
             }
+            String key = normalizeKey(rawKey);
             layouts.put(key, layout);
             layoutDisplay.put(key, display);
         }
