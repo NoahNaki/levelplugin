@@ -287,38 +287,57 @@ public class DungeonManager {
 
         int baseY = center.getBlockY();
         int connectorY = template.getConnectorMinY();
-        int total = 0;
         int collisions = 0;
+        int total = 0;
+        double overlap = 0.0;
 
         int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
         int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
 
-        for (RoomTemplate.BlockDef b : template.getBlocks()) {
-            Material mat = b.data.getMaterial();
-            if (mat == Material.REDSTONE_BLOCK || mat == Material.PINK_WOOL || mat == Material.LIME_WOOL) continue;
-            int[] vec = RoomTemplate.rotate(b.x - (int) Math.round(template.getCenterX()),
-                    b.z - (int) Math.round(template.getCenterZ()), rotation);
-            int wx = center.getBlockX() + vec[0];
-            int wy = baseY + (b.y - connectorY);
-            int wz = center.getBlockZ() + vec[1];
-            if (world.getBlockAt(wx, wy, wz).getType() != Material.AIR) {
-                // ignore connector layers
-                if (b.y - connectorY > 2) collisions++;
+        if (preview) {
+            for (RoomTemplate.BlockDef b : template.getBlocks()) {
+                Material mat = b.data.getMaterial();
+                if (mat == Material.REDSTONE_BLOCK || mat == Material.PINK_WOOL || mat == Material.LIME_WOOL) continue;
+                int[] vec = RoomTemplate.rotate(b.x - (int) Math.round(template.getCenterX()),
+                        b.z - (int) Math.round(template.getCenterZ()), rotation);
+                int wx = center.getBlockX() + vec[0];
+                int wy = baseY + (b.y - connectorY);
+                int wz = center.getBlockZ() + vec[1];
+                if (world.getBlockAt(wx, wy, wz).getType() != Material.AIR) {
+                    if (b.y - connectorY > 2) collisions++;
+                }
+                if (wx < minX) minX = wx;
+                if (wy < minY) minY = wy;
+                if (wz < minZ) minZ = wz;
+                if (wx > maxX) maxX = wx;
+                if (wy > maxY) maxY = wy;
+                if (wz > maxZ) maxZ = wz;
+                total++;
             }
-            if (wx < minX) minX = wx;
-            if (wy < minY) minY = wy;
-            if (wz < minZ) minZ = wz;
-            if (wx > maxX) maxX = wx;
-            if (wy > maxY) maxY = wy;
-            if (wz > maxZ) maxZ = wz;
-            total++;
-        }
-        double overlap = total == 0 ? 0.0 : (double) collisions / total;
-        if (overlap > 0.10) {
-            return new PasteResult(false, overlap, Map.<Location, BlockData>of(), null);
+            overlap = total == 0 ? 0.0 : (double) collisions / total;
+            if (overlap > 0.10) {
+                return new PasteResult(false, overlap, Map.of(), null);
+            }
+        } else {
+            // bounds only
+            for (RoomTemplate.BlockDef b : template.getBlocks()) {
+                Material mat = b.data.getMaterial();
+                if (mat == Material.REDSTONE_BLOCK || mat == Material.PINK_WOOL || mat == Material.LIME_WOOL) continue;
+                int[] vec = RoomTemplate.rotate(b.x - (int) Math.round(template.getCenterX()),
+                        b.z - (int) Math.round(template.getCenterZ()), rotation);
+                int wx = center.getBlockX() + vec[0];
+                int wy = baseY + (b.y - connectorY);
+                int wz = center.getBlockZ() + vec[1];
+                if (wx < minX) minX = wx;
+                if (wy < minY) minY = wy;
+                if (wz < minZ) minZ = wz;
+                if (wx > maxX) maxX = wx;
+                if (wy > maxY) maxY = wy;
+                if (wz > maxZ) maxZ = wz;
+            }
         }
 
-        Map<Location, BlockData> replaced = new HashMap<>();
+        Map<Location, BlockData> replaced = preview ? new HashMap<>() : Map.of();
 
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
             Material mat = b.data.getMaterial();
@@ -329,7 +348,7 @@ public class DungeonManager {
             int wy = baseY + (b.y - connectorY);
             int wz = center.getBlockZ() + vec[1];
             Location l = new Location(world, wx, wy, wz);
-            replaced.put(l, world.getBlockAt(wx, wy, wz).getBlockData());
+            if (preview) replaced.put(l, world.getBlockAt(wx, wy, wz).getBlockData());
             BlockData data = RoomTemplate.rotateBlockData(b.data, rotation);
             world.getBlockAt(wx, wy, wz).setBlockData(data, false);
             if (b.profile != null) {
@@ -348,7 +367,7 @@ public class DungeonManager {
             int wy = baseY + (m.y - connectorY);
             int wz = center.getBlockZ() + vec[1];
             Location loc = new Location(world, wx, wy, wz);
-            replaced.put(loc, world.getBlockAt(wx, wy, wz).getBlockData());
+            if (preview) replaced.put(loc, world.getBlockAt(wx, wy, wz).getBlockData());
             world.getBlockAt(wx, wy, wz).setType(Material.NETHER_PORTAL, false);
         }
         if (template == entrance) {
@@ -522,14 +541,6 @@ public class DungeonManager {
         Location origin = new Location(world, 0, 64, 0);
         Dungeon dungeon = new Dungeon(world, keyName);
 
-        int total = 0;
-        for (int x = 0; x < DungeonLayout.WIDTH; x++) {
-            for (int y = 0; y < DungeonLayout.HEIGHT; y++) {
-                if (layout.get(x, y) != RoomType.NONE) total++;
-            }
-        }
-        int done = 0;
-        int stage = -1;
         for (int x = 0; x < DungeonLayout.WIDTH; x++) {
             for (int y = 0; y < DungeonLayout.HEIGHT; y++) {
                 RoomType type = layout.get(x, y);
@@ -541,15 +552,8 @@ public class DungeonManager {
                 Location center = origin.clone().add(diffX, 0, diffZ);
                 String mob = layout.getMob(x, y);
                 pasteRoom(dungeon, templ, rotation, center, mob, false);
-                done++;
-                int newStage = (int)Math.floor((double)done / total * 6);
-                if (newStage != stage) {
-                    stage = newStage;
-                    me.nakilex.levelplugin.utils.LoadingScreen.show(player, (double)done / total);
-                }
             }
         }
-        me.nakilex.levelplugin.utils.LoadingScreen.show(player, 1.0);
 
         Instance inst = new Instance(dungeon, keyName);
         inst.returnLocations.put(player.getUniqueId(), player.getLocation());
@@ -589,14 +593,6 @@ public class DungeonManager {
         if (layout == null) return false;
         Location origin = player.getLocation();
         Dungeon dungeon = new Dungeon(player.getWorld(), key);
-        int total = 0;
-        for (int x = 0; x < DungeonLayout.WIDTH; x++) {
-            for (int y = 0; y < DungeonLayout.HEIGHT; y++) {
-                if (layout.get(x, y) != RoomType.NONE) total++;
-            }
-        }
-        int done = 0;
-        int stage = -1;
         for (int x = 0; x < DungeonLayout.WIDTH; x++) {
             for (int y = 0; y < DungeonLayout.HEIGHT; y++) {
                 RoomType type = layout.get(x, y);
@@ -609,16 +605,8 @@ public class DungeonManager {
                 Location center = origin.clone().add(diffX, 0, diffZ);
                 String mob = layout.getMob(x, y);
                 pasteRoom(dungeon, templ, rotation, center, mob, false);
-                done++;
-                int newStage = (int)Math.floor((double)done / total * 6);
-                if (newStage != stage) {
-                    stage = newStage;
-                    me.nakilex.levelplugin.utils.LoadingScreen.show(player, (double)done / total);
-                }
             }
         }
-        me.nakilex.levelplugin.utils.LoadingScreen.show(player, 1.0);
-
         dungeons.put(key, dungeon);
         return true;
     }
