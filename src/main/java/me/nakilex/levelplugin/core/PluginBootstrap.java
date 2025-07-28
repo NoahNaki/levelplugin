@@ -370,6 +370,7 @@ public class PluginBootstrap {
         if (dungeonManager != null) {
             dungeonManager.cleanupInstances();
             dungeonManager.saveLayouts();
+            dungeonManager.getBuilder().cancelAll();
         }
         if (me.nakilex.levelplugin.player.mining.listeners.OreMiningListener.getInstance() != null) me.nakilex.levelplugin.player.mining.listeners.OreMiningListener.getInstance().removeAllHolograms();
         if (questManager != null) questManager.saveProgress();

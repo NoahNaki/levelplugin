@@ -37,6 +37,21 @@ public class DungeonBuilder implements Listener {
         this.manager = manager;
     }
 
+    /** Cancel all active builder sessions, removing placed rooms and holograms. */
+    public void cancelAll() {
+        for (UUID id : new java.util.ArrayList<>(sessions.keySet())) {
+            Session s = sessions.remove(id);
+            if (s != null) {
+                s.cancel();
+                Player p = Bukkit.getPlayer(id);
+                if (p != null) {
+                    p.getInventory().clear();
+                    p.sendMessage(ChatColor.RED + "Dungeon build cancelled.");
+                }
+            }
+        }
+    }
+
     public void start(Player player) {
         Session s = new Session(player);
         sessions.put(player.getUniqueId(), s);
@@ -343,6 +358,11 @@ public class DungeonBuilder implements Listener {
             }
             String display = msg;
             String key = display.replaceAll("\\s+", "_");
+            if (manager.layoutExists(display)) {
+                event.getPlayer().sendMessage(ChatColor.RED + "A dungeon with that name already exists.");
+                s.awaitingName = false;
+                return;
+            }
             manager.saveLayout(key, display, layout);
             s.cancel();
             event.getPlayer().sendMessage(ChatColor.GREEN + "Dungeon saved as '" + key + "'");

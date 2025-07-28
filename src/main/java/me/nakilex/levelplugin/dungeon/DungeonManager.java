@@ -375,6 +375,15 @@ public class DungeonManager {
         return removed;
     }
 
+    public boolean layoutExists(String name) {
+        String key = normalizeKey(name);
+        if (layouts.containsKey(key)) return true;
+        for (String disp : layoutDisplay.values()) {
+            if (disp.equalsIgnoreCase(name)) return true;
+        }
+        return false;
+    }
+
     public void saveLayout(String key, String displayName, DungeonLayout layout) {
         String lower = normalizeKey(key);
         layouts.put(lower, layout);
@@ -387,6 +396,14 @@ public class DungeonManager {
         DungeonLayout layout = layouts.get(key);
         if (layout == null) {
             layout = layouts.get(name.toLowerCase());
+        }
+        if (layout == null) {
+            for (var entry : layoutDisplay.entrySet()) {
+                if (entry.getValue().equalsIgnoreCase(name)) {
+                    layout = layouts.get(entry.getKey());
+                    break;
+                }
+            }
         }
         return layout;
     }
@@ -470,7 +487,7 @@ public class DungeonManager {
     public void startInstance(Player player, String name) {
         String keyName = normalizeKey(name);
         player.sendMessage(ChatColor.GRAY + "Looking for layout key: " + keyName);
-        DungeonLayout layout = layouts.get(keyName);
+        DungeonLayout layout = getLayout(name);
         if (layout == null) {
             player.sendMessage(ChatColor.RED + "Dungeon not found.");
             return;
@@ -532,7 +549,7 @@ public class DungeonManager {
     public boolean playDungeon(Player player, String name) {
         String key = normalizeKey(name);
         player.sendMessage(ChatColor.GRAY + "Looking for layout key: " + key);
-        DungeonLayout layout = layouts.get(key);
+        DungeonLayout layout = getLayout(name);
         if (layout == null) return false;
         Location origin = player.getLocation();
         Dungeon dungeon = new Dungeon(player.getWorld(), key);
