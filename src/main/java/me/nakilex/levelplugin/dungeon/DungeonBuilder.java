@@ -22,6 +22,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import me.nakilex.levelplugin.utils.GuiUtil;
 
 import java.util.*;
+import java.awt.Point;
 
 /**
  * Simplified in‑world dungeon builder using connector holograms. This is not a
@@ -34,6 +35,21 @@ public class DungeonBuilder implements Listener {
 
     public DungeonBuilder(DungeonManager manager) {
         this.manager = manager;
+    }
+
+    /** Cancel all active builder sessions, removing placed rooms and holograms. */
+    public void cancelAll() {
+        for (UUID id : new java.util.ArrayList<>(sessions.keySet())) {
+            Session s = sessions.remove(id);
+            if (s != null) {
+                s.cancel();
+                Player p = Bukkit.getPlayer(id);
+                if (p != null) {
+                    p.getInventory().clear();
+                    p.sendMessage(ChatColor.RED + "Dungeon build cancelled.");
+                }
+            }
+        }
     }
 
     public void start(Player player) {
@@ -71,7 +87,7 @@ public class DungeonBuilder implements Listener {
             int rotation = layout.getRotation(entranceX, entranceZ);
             Location center = origin.clone();
             String mob = layout.getMob(entranceX, entranceZ);
-            manager.pasteRoom(s.dungeon, templ, rotation, center, mob);
+            manager.pasteRoom(s.dungeon, templ, rotation, center, mob, true);
             for (RoomTemplate.Connector c : templ.getConnectors()) {
                 Direction dir = rotate(c.facing, rotation);
                 if (dirs.contains(dir)) continue;
@@ -101,7 +117,7 @@ public class DungeonBuilder implements Listener {
                 int diffZ = layout.getOffsetZ(x, z);
                 Location center = origin.clone().add(diffX, 0, diffZ);
                 String mob = layout.getMob(x, z);
-                manager.pasteRoom(s.dungeon, templ, rotation, center, mob);
+                manager.pasteRoom(s.dungeon, templ, rotation, center, mob, true);
 
                 // spawn connectors only for open sides
                 for (RoomTemplate.Connector c : templ.getConnectors()) {
@@ -129,6 +145,12 @@ public class DungeonBuilder implements Listener {
         if (meta != null) meta.setDisplayName(ChatColor.GREEN + "Place Entrance");
         wool.setItemMeta(meta);
         player.getInventory().setItem(0, wool);
+        ItemStack undo = new ItemStack(Material.ARROW);
+        ItemMeta um = undo.getItemMeta();
+        if (um != null) um.setDisplayName(ChatColor.YELLOW + "Undo");
+        undo.setItemMeta(um);
+        player.getInventory().setItem(6, undo);
+
         ItemStack save = new ItemStack(Material.EMERALD);
         ItemMeta sm = save.getItemMeta();
         if (sm != null) sm.setDisplayName(ChatColor.AQUA + "Save");
@@ -156,6 +178,11 @@ public class DungeonBuilder implements Listener {
         ItemStack hand = event.getItem();
         if (hand == null) return;
         Material type = hand.getType();
+        if (type == Material.ARROW) {
+            event.setCancelled(true);
+            s.undo();
+            return;
+        }
         if (type == Material.EMERALD) {
             event.setCancelled(true);
             s.awaitingName = true;
@@ -181,12 +208,16 @@ public class DungeonBuilder implements Listener {
         }
         Direction facing = Direction.fromYaw(player.getLocation().getYaw());
         RoomTemplate entrance = manager.getEntrance();
+        if (entrance.getConnectors().isEmpty()) {
+            player.sendMessage(ChatColor.RED + "Entrance template missing connectors.");
+            return;
+        }
         RoomTemplate.Connector conn = entrance.getConnectors().get(0);
         int rot = 0;
         for (int r = 0; r < 4; r++) {
             if (rotate(conn.facing, r) == facing) { rot = r; break; }
         }
-        DungeonManager.PasteResult result = manager.pasteRoom(s.dungeon, entrance, rot, loc, null);
+        DungeonManager.PasteResult result = manager.pasteRoom(s.dungeon, entrance, rot, loc, null, true);
         player.sendMessage(ChatColor.GRAY + String.format("Overlap: %.1f%%", result.overlap() * 100));
         if (!result.success()) {
             player.sendMessage(ChatColor.RED + "Cannot place entrance here.");
@@ -227,23 +258,37 @@ public class DungeonBuilder implements Listener {
 
         switch (rawTitle) {
             case "Select Room" -> {
-                Material type = item.getType();
-                if (type == Material.YELLOW_WOOL) {
+                if (name.equalsIgnoreCase("Basic Room")) {
                     player.openInventory(createVariantSelect());
-                } else if (type == Material.RED_WOOL) {
+                } else if (name.equalsIgnoreCase("Hallway")) {
+                    placeVariant(s, manager.getHallway());
+                    player.closeInventory();
+                } else if (name.equalsIgnoreCase("Treasure Room Left")) {
+                    placeVariant(s, manager.getTreasureLeft());
+                    player.closeInventory();
+                } else if (name.equalsIgnoreCase("Treasure Room T-Section Right")) {
+                    placeVariant(s, manager.getTreasureTRight());
+                    player.closeInventory();
+                } else if (name.equalsIgnoreCase("Decor Stone Room")) {
+                    placeVariant(s, manager.getDecorStone());
+                    player.closeInventory();
+                } else if (name.equalsIgnoreCase("Decor Chest Room")) {
+                    placeVariant(s, manager.getDecorChest());
+                    player.closeInventory();
+                } else if (item.getType() == Material.RED_WOOL) {
                     player.openInventory(createCombatVariantSelect());
-                } else if (type == Material.BLACK_WOOL) {
+                } else if (item.getType() == Material.BLACK_WOOL) {
                     placeVariant(s, manager.getBoss());
                     player.closeInventory();
-                } else if (type == Material.OBSIDIAN) {
+                } else if (item.getType() == Material.OBSIDIAN) {
                     placeVariant(s, manager.getExit());
                     player.closeInventory();
-                } else if (type == Material.BOOKSHELF) {
+                } else if (item.getType() == Material.BOOKSHELF) {
                     placeVariant(s, manager.getLibrary());
                     player.closeInventory();
                 }
             }
-            case "Hallway Variants" -> {
+            case "Basic Room Variants" -> {
                 if (name.equalsIgnoreCase("Back")) {
                     player.openInventory(createRoomSelect());
                     return;
@@ -311,9 +356,16 @@ public class DungeonBuilder implements Listener {
                 s.awaitingName = false;
                 return;
             }
-            manager.saveLayout(msg, layout);
+            String display = msg;
+            String key = DungeonManager.normalizeKey(display);
+            if (manager.layoutExists(display)) {
+                event.getPlayer().sendMessage(ChatColor.RED + "A dungeon with that name already exists.");
+                s.awaitingName = false;
+                return;
+            }
+            manager.saveLayout(key, display, layout);
             s.cancel();
-            event.getPlayer().sendMessage(ChatColor.GREEN + "Dungeon saved as '" + msg + "'");
+            event.getPlayer().sendMessage(ChatColor.GREEN + "Dungeon saved as '" + key + "'");
             event.getPlayer().getInventory().clear();
             sessions.remove(event.getPlayer().getUniqueId());
         });
@@ -326,7 +378,10 @@ public class DungeonBuilder implements Listener {
         int rotation = 0;
         RoomTemplate.Connector match = null;
 
-        // Special handling for left/right corners to ensure exit orientation
+        // Ensure corner variants maintain the correct turn direction. When
+        // placing a corner we want the second exit to appear either to the
+        // left or right of the entrance depending on which template was
+        // selected.
         if (templ == manager.getCornerLeft() || templ == manager.getCornerRight()) {
             boolean right = templ == manager.getCornerRight();
             Direction exitDir = rotate(info.facing, right ? 1 : 3);
@@ -345,6 +400,7 @@ public class DungeonBuilder implements Listener {
                 }
             }
         }
+
 
         // Handle T-junction variants with orientation-specific side exits
         if (match == null && (templ == manager.getTJunctionLeft() || templ == manager.getTJunctionRight())) {
@@ -408,12 +464,16 @@ public class DungeonBuilder implements Listener {
                 if (match != null) break;
             }
         }
+        if (match == null && !templ.getConnectors().isEmpty()) {
+            match = templ.getConnectors().get(0);
+            rotation = (info.facing.opposite().ordinal() - match.facing.ordinal()) & 3;
+        }
         if (match == null) return;
         int[] vec = RoomTemplate.rotate(match.x - (int) Math.round(templ.getCenterX()),
                 match.z - (int) Math.round(templ.getCenterZ()), rotation);
         Location center = base.clone().subtract(vec[0], match.bottomY - templ.getConnectorMinY(), vec[1]);
         String mob = (templ == manager.getCombatLeft() || templ == manager.getCombatRight()) ? s.selectedMob : null;
-        DungeonManager.PasteResult result = manager.pasteRoom(s.dungeon, templ, rotation, center, mob);
+        DungeonManager.PasteResult result = manager.pasteRoom(s.dungeon, templ, rotation, center, mob, true);
         s.player.sendMessage(ChatColor.GRAY + String.format("Overlap: %.1f%%", result.overlap() * 100));
         if (!result.success()) {
             s.player.sendMessage(ChatColor.RED + "Room collides with existing blocks.");
@@ -468,7 +528,12 @@ public class DungeonBuilder implements Listener {
         ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
         for (int i = 0; i < 27; i++) inv.setItem(i, filler);
 
-        ItemStack hall = item(Material.YELLOW_WOOL, ChatColor.YELLOW + "Hallway");
+        ItemStack basic = item(Material.YELLOW_WOOL, ChatColor.YELLOW + "Basic Room");
+        ItemStack hall = item(Material.BROWN_WOOL, ChatColor.YELLOW + "Hallway");
+        ItemStack treasureLeft = item(Material.GOLD_BLOCK, ChatColor.GOLD + "Treasure Room Left");
+        ItemStack treasureTRight = item(Material.GOLD_BLOCK, ChatColor.GOLD + "Treasure Room T-Section Right");
+        ItemStack decorStone = item(Material.STONE, ChatColor.GRAY + "Decor Stone Room");
+        ItemStack decorChest = item(Material.CHEST, ChatColor.YELLOW + "Decor Chest Room");
         ItemStack boss = item(Material.BLACK_WOOL, ChatColor.DARK_GRAY + "Boss Room");
         ItemStack combat = item(Material.RED_WOOL, ChatColor.RED + "Combat Room");
         ItemStack exitRoom = item(Material.OBSIDIAN, ChatColor.DARK_PURPLE + "Exit Room");
@@ -480,27 +545,32 @@ public class DungeonBuilder implements Listener {
             combat.setItemMeta(cMeta);
         }
 
-        inv.setItem(10, hall);
-        inv.setItem(12, boss);
-        inv.setItem(14, combat);
-        inv.setItem(16, exitRoom);
-        inv.setItem(18, library);
+        inv.setItem(10, basic);
+        inv.setItem(11, hall);
+        inv.setItem(12, treasureLeft);
+        inv.setItem(13, treasureTRight);
+        inv.setItem(14, decorStone);
+        inv.setItem(15, decorChest);
+        inv.setItem(16, boss);
+        inv.setItem(17, combat);
+        inv.setItem(18, exitRoom);
+        inv.setItem(26, library);
         return inv;
     }
 
     private Inventory createVariantSelect() {
-        Inventory inv = Bukkit.createInventory(null, 27, ChatColor.DARK_GREEN + "Hallway Variants");
+        Inventory inv = Bukkit.createInventory(null, 27, ChatColor.DARK_GREEN + "Basic Room Variants");
 
         ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
         for (int i = 0; i < 27; i++) inv.setItem(i, filler);
 
-        inv.setItem(10, item(Material.RED_WOOL, ChatColor.RED + "Dead End"));
-        inv.setItem(12, item(Material.ORANGE_WOOL, ChatColor.GOLD + "Straight"));
-        inv.setItem(14, item(Material.GREEN_WOOL, ChatColor.GREEN + "Corner Left"));
-        inv.setItem(16, item(Material.LIME_WOOL, ChatColor.GREEN + "Corner Right"));
-        inv.setItem(20, item(Material.BLUE_WOOL, ChatColor.BLUE + "T-Junction Left"));
-        inv.setItem(22, item(Material.CYAN_WOOL, ChatColor.BLUE + "T-Junction Right"));
-        inv.setItem(24, item(Material.PURPLE_WOOL, ChatColor.LIGHT_PURPLE + "Crossroad"));
+        inv.setItem(10, item(Material.RED_WOOL, ChatColor.RED + "Basic Room Dead End"));
+        inv.setItem(12, item(Material.ORANGE_WOOL, ChatColor.GOLD + "Basic Room Straight"));
+        inv.setItem(14, item(Material.GREEN_WOOL, ChatColor.GREEN + "Basic Room Corner Left"));
+        inv.setItem(16, item(Material.LIME_WOOL, ChatColor.GREEN + "Basic Room Corner Right"));
+        inv.setItem(20, item(Material.BLUE_WOOL, ChatColor.BLUE + "Basic Room T-Section Left"));
+        inv.setItem(22, item(Material.CYAN_WOOL, ChatColor.BLUE + "Basic Room T-Section Right"));
+        inv.setItem(24, item(Material.PURPLE_WOOL, ChatColor.LIGHT_PURPLE + "Basic Room Crossroad"));
 
         inv.setItem(18, GuiUtil.getNexoItem("arrow_left", ChatColor.YELLOW + "Back"));
         return inv;
@@ -615,6 +685,17 @@ public class DungeonBuilder implements Listener {
                     }
                 }
             }
+            // remove exit holograms placed by this room
+            for (RoomTemplate.Marker m : h.instance.template.getExitMarkers()) {
+                int[] vec = RoomTemplate.rotate(m.x - (int) Math.round(h.instance.template.getCenterX()),
+                        m.z - (int) Math.round(h.instance.template.getCenterZ()), h.instance.rotation);
+                Location loc = h.instance.center.clone().add(vec[0], m.y - h.instance.template.getConnectorMinY(), vec[1]);
+                for (var ent : loc.getWorld().getNearbyEntities(loc, 1.5, 2.5, 1.5)) {
+                    if (ent.getScoreboardTags().contains("dungeon_exit")) {
+                        ent.remove();
+                    }
+                }
+            }
             if (h.used != null) {
                 ConnectorInfo restored = DungeonBuilder.this.spawnConnector(this, h.used.location, h.used.facing);
                 connectors.put(restored.interaction.getEntityId(), restored);
@@ -644,12 +725,19 @@ public class DungeonBuilder implements Listener {
             int step = manager.getStep();
             int offX = DungeonLayout.WIDTH / 2;
             int offZ = DungeonLayout.HEIGHT / 2;
+            java.util.Set<java.awt.Point> used = new java.util.HashSet<>();
             for (int i = 0; i < dungeon.getRooms().size(); i++) {
                 Dungeon.RoomInstance r = dungeon.getRooms().get(i);
                 int diffX = r.center.getBlockX() - originX;
                 int diffZ = r.center.getBlockZ() - originZ;
                 int dx = Math.round((float) diffX / step);
                 int dz = Math.round((float) diffZ / step);
+                java.awt.Point key = new java.awt.Point(dx, dz);
+                while (used.contains(key)) {
+                    dx++;
+                    key = new java.awt.Point(dx, dz);
+                }
+                used.add(key);
                 RoomTemplate t = r.template;
                 RoomType type = i == 0 ? RoomType.ENTRANCE :
                         (t == manager.getBoss() ? RoomType.BOSS :

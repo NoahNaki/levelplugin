@@ -4,6 +4,8 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.Skull;
+import com.destroystokyo.paper.profile.PlayerProfile;
 
 import java.util.*;
 
@@ -18,11 +20,13 @@ public class RoomTemplate {
     public static class BlockDef {
         public final int x, y, z;
         public final BlockData data;
-        public BlockDef(int x, int y, int z, BlockData data) {
+        public final PlayerProfile profile;
+        public BlockDef(int x, int y, int z, BlockData data, PlayerProfile profile) {
             this.x = x;
             this.y = y;
             this.z = z;
             this.data = data;
+            this.profile = profile;
         }
     }
 
@@ -40,17 +44,32 @@ public class RoomTemplate {
         }
     }
 
+    /** Simple coordinate used for portal and hologram markers. */
+    public static class Marker {
+        public final int x, y, z;
+        public Marker(int x, int y, int z) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+    }
+
     private final List<BlockDef> blocks;
     private final List<Connector> connectors;
+    private final List<Marker> portals;
+    private final List<Marker> exits;
     private final int width, height, depth;
     private final int minY;
     private final int connectorMinY;
     private final double centerX, centerZ;
 
     public RoomTemplate(List<BlockDef> blocks, List<Connector> connectors,
+                        List<Marker> portals, List<Marker> exits,
                         int width, int height, int depth, int minY) {
         this.blocks = blocks;
         this.connectors = connectors;
+        this.portals = portals;
+        this.exits = exits;
         this.width = width;
         this.height = height;
         this.depth = depth;
@@ -71,6 +90,8 @@ public class RoomTemplate {
     public int getConnectorMinY() { return connectorMinY; }
     public double getCenterX() { return centerX; }
     public double getCenterZ() { return centerZ; }
+    public List<Marker> getPortals() { return portals; }
+    public List<Marker> getExitMarkers() { return exits; }
 
     /**
      * Rotate a 2D X/Z vector around the template center.
@@ -89,7 +110,8 @@ public class RoomTemplate {
      */
     public static RoomTemplate capture(World world,
                                        int x1, int y1, int z1,
-                                       int x2, int y2, int z2) {
+                                       int x2, int y2, int z2,
+                                       boolean recordExit) {
         int minX = Math.min(x1, x2);
         int maxX = Math.max(x1, x2);
         int minY = Math.min(y1, y2);
@@ -104,6 +126,8 @@ public class RoomTemplate {
         List<BlockDef> blocks = new ArrayList<>();
         Set<Location> markerBlocks = new HashSet<>();
         Set<Location> limeBlocks = new HashSet<>();
+        List<Marker> portalMarks = new ArrayList<>();
+        List<Marker> exitMarks = new ArrayList<>();
 
         for (int x = minX; x <= maxX; x++) {
             for (int y = minY; y <= maxY; y++) {
@@ -111,12 +135,23 @@ public class RoomTemplate {
                     Location loc = new Location(world, x, y, z);
                     BlockData data = loc.getBlock().getBlockData();
                     if (data.getMaterial() != Material.AIR) {
-                        blocks.add(new BlockDef(x - minX, y - minY, z - minZ, data));
+                        PlayerProfile profile = null;
+                        var state = loc.getBlock().getState();
+                        if (state instanceof Skull skull) {
+                            profile = skull.getPlayerProfile();
+                        }
                         Material mat = data.getMaterial();
-                        if (mat == Material.REDSTONE_BLOCK || mat == Material.PINK_WOOL) {
-                            markerBlocks.add(loc);
-                        } else if (mat == Material.LIME_WOOL) {
-                            limeBlocks.add(loc);
+                        if (mat == Material.MAGENTA_WOOL) {
+                            portalMarks.add(new Marker(x - minX, y - minY, z - minZ));
+                        } else if (mat == Material.RED_WOOL && recordExit) {
+                            exitMarks.add(new Marker(x - minX, y - minY, z - minZ));
+                        } else {
+                            blocks.add(new BlockDef(x - minX, y - minY, z - minZ, data, profile));
+                            if (mat == Material.REDSTONE_BLOCK || mat == Material.PINK_WOOL) {
+                                markerBlocks.add(loc);
+                            } else if (mat == Material.LIME_WOOL) {
+                                limeBlocks.add(loc);
+                            }
                         }
                     }
                 }
@@ -169,7 +204,7 @@ public class RoomTemplate {
             connectors.add(new Connector(cx, cz, minGroupY - minY, dir, entrance));
         }
 
-        return new RoomTemplate(blocks, connectors, width, height, depth, minY);
+        return new RoomTemplate(blocks, connectors, portalMarks, exitMarks, width, height, depth, minY);
     }
 
     /**

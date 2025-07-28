@@ -68,6 +68,18 @@ public class Dungeon {
         return rooms;
     }
 
+    /**
+     * Find the room instance containing the given location.
+     * @param loc world location to check
+     * @return matching RoomInstance or null if none
+     */
+    public RoomInstance getRoomContaining(Location loc) {
+        for (RoomInstance r : rooms) {
+            if (r.contains(loc)) return r;
+        }
+        return null;
+    }
+
     /** Remove all placed blocks for this dungeon. */
     public void delete() {
         for (RoomInstance r : rooms) {
@@ -78,6 +90,22 @@ public class Dungeon {
                 int wy = r.center.getBlockY() + (b.y - r.template.getConnectorMinY());
                 int wz = r.center.getBlockZ() + vec[1];
                 world.getBlockAt(wx, wy, wz).setType(Material.AIR, false);
+            }
+            for (RoomTemplate.Marker m : r.template.getPortals()) {
+                int[] vec = RoomTemplate.rotate(m.x - (int)Math.round(r.template.getCenterX()),
+                        m.z - (int)Math.round(r.template.getCenterZ()), r.rotation);
+                int wx = r.center.getBlockX() + vec[0];
+                int wy = r.center.getBlockY() + (m.y - r.template.getConnectorMinY());
+                int wz = r.center.getBlockZ() + vec[1];
+                world.getBlockAt(wx, wy, wz).setType(Material.AIR, false);
+            }
+            for (RoomTemplate.Marker m : r.template.getExitMarkers()) {
+                int[] vec = RoomTemplate.rotate(m.x - (int)Math.round(r.template.getCenterX()),
+                        m.z - (int)Math.round(r.template.getCenterZ()), r.rotation);
+                Location loc = r.center.clone().add(vec[0], m.y - r.template.getConnectorMinY(), vec[1]);
+                for (var ent : world.getNearbyEntities(loc, 1.5, 2.5, 1.5)) {
+                    if (ent.getScoreboardTags().contains("dungeon_exit")) ent.remove();
+                }
             }
         }
         rooms.clear();

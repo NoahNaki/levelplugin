@@ -47,7 +47,7 @@ public class DungeonEditor implements Listener {
 
         ItemStack hall = new ItemStack(Material.YELLOW_WOOL);
         ItemMeta hMeta = hall.getItemMeta();
-        if (hMeta != null) hMeta.setDisplayName(ChatColor.YELLOW + "Hallway");
+        if (hMeta != null) hMeta.setDisplayName(ChatColor.YELLOW + "Basic Room");
         hall.setItemMeta(hMeta);
         inv.setItem(1, hall);
         return inv;
@@ -93,7 +93,7 @@ public class DungeonEditor implements Listener {
                     s.layout.set(x, y, RoomType.HALLWAY);
                     ItemStack it = new ItemStack(Material.YELLOW_WOOL);
                     ItemMeta im = it.getItemMeta();
-                    if (im != null) im.setDisplayName(ChatColor.YELLOW + "Hallway");
+                    if (im != null) im.setDisplayName(ChatColor.YELLOW + "Basic Room");
                     it.setItemMeta(im);
                     s.layoutInv.setItem(slot, it);
                 }
@@ -123,8 +123,15 @@ public class DungeonEditor implements Listener {
             sessions.remove(e.getPlayer().getUniqueId());
             return;
         }
-        manager.saveLayout(msg, s.layout);
-        e.getPlayer().sendMessage(ChatColor.GREEN + "Dungeon layout saved as '" + msg + "'");
+        String display = msg;
+        String key = DungeonManager.normalizeKey(display);
+        if (manager.layoutExists(display)) {
+            e.getPlayer().sendMessage(ChatColor.RED + "A dungeon with that name already exists.");
+            sessions.remove(e.getPlayer().getUniqueId());
+            return;
+        }
+        manager.saveLayout(key, display, s.layout);
+        e.getPlayer().sendMessage(ChatColor.GREEN + "Dungeon layout saved as '" + key + "'");
         sessions.remove(e.getPlayer().getUniqueId());
     }
 

@@ -8,6 +8,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import me.nakilex.levelplugin.dungeon.DungeonLayout;
+import java.util.Arrays;
 
 public class DungeonCommand implements CommandExecutor {
     private final DungeonManager manager;
@@ -36,13 +37,14 @@ public class DungeonCommand implements CommandExecutor {
                     player.sendMessage(ChatColor.RED + "Usage: /dungeon edit <name>");
                     return true;
                 }
-                DungeonLayout layout = manager.getLayout(args[1]);
+                String name = String.join(" ", java.util.Arrays.copyOfRange(args, 1, args.length));
+                DungeonLayout layout = manager.getLayout(name);
                 if (layout == null) {
                     player.sendMessage(ChatColor.RED + "Layout not found.");
                     return true;
                 }
                 manager.getBuilder().edit(player, layout);
-                player.sendMessage(ChatColor.YELLOW + "Editing dungeon '" + args[1] + "'.");
+                player.sendMessage(ChatColor.YELLOW + "Editing dungeon '" + name + "'.");
                 return true;
             }
             case "undo" -> {
@@ -54,7 +56,8 @@ public class DungeonCommand implements CommandExecutor {
                     player.sendMessage(ChatColor.RED + "Usage: /dungeon play <name>");
                     return true;
                 }
-                boolean ok = manager.playDungeon(player, args[1]);
+                String name = String.join(" ", java.util.Arrays.copyOfRange(args, 1, args.length));
+                boolean ok = manager.playDungeon(player, name);
                 if (ok) player.sendMessage(ChatColor.YELLOW + "Dungeon spawned.");
                 else player.sendMessage(ChatColor.RED + "Layout not found.");
                 return true;
@@ -68,7 +71,8 @@ public class DungeonCommand implements CommandExecutor {
                     player.sendMessage(ChatColor.RED + "Usage: /dungeon delete <name>");
                     return true;
                 }
-                boolean ok = manager.deleteDungeon(args[1]);
+                String name = String.join(" ", java.util.Arrays.copyOfRange(args, 1, args.length));
+                boolean ok = manager.deleteDungeon(name);
                 if (ok) player.sendMessage(ChatColor.GREEN + "Dungeon removed.");
                 else player.sendMessage(ChatColor.RED + "Dungeon not found.");
                 return true;

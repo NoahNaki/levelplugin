@@ -9,6 +9,9 @@ import org.bukkit.Material;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.Skull;
+import org.bukkit.entity.TextDisplay;
+import com.destroystokyo.paper.profile.PlayerProfile;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerPortalEvent;
 
@@ -22,7 +25,25 @@ public class DungeonManager {
     private final Main plugin;
     private final Map<String, Dungeon> dungeons = new HashMap<>();
     private final Map<String, DungeonLayout> layouts = new HashMap<>();
+    private final Map<String, String> layoutDisplay = new HashMap<>();
+    private java.io.File layoutFile;
+    private org.bukkit.configuration.file.FileConfiguration layoutConfig;
     private final DungeonBuilder builder;
+
+    /**
+     * Normalize a dungeon name for storage/lookup.
+     * <p>
+     * Spaces become underscores and the result is lower case so
+     * names typed as "Frost Palace" map to a key of
+     * {@code frost_palace}.
+     */
+    public static String normalizeKey(String name) {
+        if (name == null) return "";
+        String cleaned = org.bukkit.ChatColor.stripColor(name);
+        cleaned = cleaned.replaceAll("\\s+", "_");
+        cleaned = cleaned.toLowerCase();
+        return cleaned;
+    }
 
     private RoomTemplate deadEnd;
     private RoomTemplate straight;
@@ -32,6 +53,11 @@ public class DungeonManager {
     private RoomTemplate tJunctionLeft;
     private RoomTemplate tJunctionRight;
     private RoomTemplate crossroad;
+    private RoomTemplate hallway;
+    private RoomTemplate treasureLeft;
+    private RoomTemplate treasureTRight;
+    private RoomTemplate decorStone;
+    private RoomTemplate decorChest;
     private RoomTemplate entrance;
     private RoomTemplate boss;
     private RoomTemplate combatLeft;
@@ -47,6 +73,7 @@ public class DungeonManager {
     public DungeonManager(Main plugin) {
         this.plugin = plugin;
         loadTemplates();
+        loadLayouts();
         this.builder = new DungeonBuilder(this);
         Bukkit.getPluginManager().registerEvents(builder, plugin);
         Bukkit.getPluginManager().registerEvents(new InstanceListener(), plugin);
@@ -61,6 +88,11 @@ public class DungeonManager {
     public RoomTemplate getTJunctionLeft() { return tJunctionLeft; }
     public RoomTemplate getTJunctionRight() { return tJunctionRight; }
     public RoomTemplate getCrossroad() { return crossroad; }
+    public RoomTemplate getHallway() { return hallway; }
+    public RoomTemplate getTreasureLeft() { return treasureLeft; }
+    public RoomTemplate getTreasureTRight() { return treasureTRight; }
+    public RoomTemplate getDecorStone() { return decorStone; }
+    public RoomTemplate getDecorChest() { return decorChest; }
     public RoomTemplate getBoss() { return boss; }
     public RoomTemplate getCombatLeft() { return combatLeft; }
     public RoomTemplate getCombatRight() { return combatRight; }
@@ -81,6 +113,11 @@ public class DungeonManager {
             case TJUNCTION_LEFT -> tJunctionLeft;
             case TJUNCTION_RIGHT -> tJunctionRight;
             case CROSSROAD -> crossroad;
+            case HALLWAY -> hallway;
+            case TREASURE_LEFT -> treasureLeft;
+            case TREASURE_T_RIGHT -> treasureTRight;
+            case DECOR_STONE -> decorStone;
+            case DECOR_CHEST -> decorChest;
             case BOSS -> boss;
             case COMBAT_LEFT -> combatLeft;
             case COMBAT_RIGHT -> combatRight;
@@ -101,6 +138,11 @@ public class DungeonManager {
         if (t == tJunctionLeft) return TemplateType.TJUNCTION_LEFT;
         if (t == tJunctionRight) return TemplateType.TJUNCTION_RIGHT;
         if (t == crossroad) return TemplateType.CROSSROAD;
+        if (t == hallway) return TemplateType.HALLWAY;
+        if (t == treasureLeft) return TemplateType.TREASURE_LEFT;
+        if (t == treasureTRight) return TemplateType.TREASURE_T_RIGHT;
+        if (t == decorStone) return TemplateType.DECOR_STONE;
+        if (t == decorChest) return TemplateType.DECOR_CHEST;
         if (t == boss) return TemplateType.BOSS;
         if (t == combatLeft) return TemplateType.COMBAT_LEFT;
         if (t == combatRight) return TemplateType.COMBAT_RIGHT;
@@ -115,23 +157,31 @@ public class DungeonManager {
             plugin.getLogger().warning("Flatland world not found for dungeon templates.");
             return;
         }
-        deadEnd = RoomTemplate.capture(world, -29, -60, -5198, 11, -28, -5238);
-        straight = RoomTemplate.capture(world, 11, -28, -5114, -29, -60, -5154);
-        cornerLeft = RoomTemplate.capture(world, 11, -28, -5156, -29, -60, -5196);
-        cornerRight = RoomTemplate.capture(world, 11, -28, -5156, -29, -60, -5196);
-        tJunction = RoomTemplate.capture(world, -29, -60, -5072, 11, -28, -5112);
+        deadEnd = RoomTemplate.capture(world, -29, -60, -5198, 11, -28, -5238, false);
+        straight = RoomTemplate.capture(world, 11, -28, -5114, -29, -60, -5154, false);
+        cornerLeft = RoomTemplate.capture(world, 11, -28, -5156, -29, -60, -5196, false);
+        cornerRight = RoomTemplate.capture(world, 11, -28, -5156, -29, -60, -5196, false);
+        tJunction = RoomTemplate.capture(world, -29, -60, -5072, 11, -28, -5112, false);
         // create distinct instances so we can differentiate left/right variants
-        tJunctionLeft = RoomTemplate.capture(world, -29, -60, -5072, 11, -28, -5112);
-        tJunctionRight = RoomTemplate.capture(world, -29, -60, -5072, 11, -28, -5112);
-        crossroad = RoomTemplate.capture(world, 11, -28, -5030, -29, -60, -5070);
-        entrance = deadEnd; // use the single-exit room as the entrance
+        tJunctionLeft = RoomTemplate.capture(world, -29, -60, -5072, 11, -28, -5112, false);
+        tJunctionRight = RoomTemplate.capture(world, -29, -60, -5072, 11, -28, -5112, false);
+        crossroad = RoomTemplate.capture(world, 11, -28, -5030, -29, -60, -5070, false);
+        // entrance template with exit portals and marker hologram
+        // updated region as provided by the builder
+        entrance = RoomTemplate.capture(world, -212, 77, -5334, -125, -36, -5227, true);
         // new boss room region provided by the map builder
-        boss = RoomTemplate.capture(world, 43, -14, -5006, -23, -54, -4922);
-        RoomTemplate combat = RoomTemplate.capture(world, 65, -42, -5059, 105, -13, -5100);
+        boss = RoomTemplate.capture(world, 43, -14, -5006, -23, -54, -4922, false);
+        RoomTemplate combat = RoomTemplate.capture(world, 65, -42, -5059, 105, -13, -5100, false);
         combatRight = combat;
         combatLeft = flipEntrances(combat);
-        exit = RoomTemplate.capture(world, 91, -45, -5222, 56, -24, -5199);
-        library = RoomTemplate.capture(world, 74, -11, -5172, 112, -39, -5122);
+        exit = RoomTemplate.capture(world, 91, -45, -5222, 56, -24, -5199, false);
+        library = RoomTemplate.capture(world, 74, -11, -5172, 112, -39, -5122, false);
+        hallway = RoomTemplate.capture(world, 63, -44, -5021, 89, -21, -5003, false);
+        // Provided by the map builder: 107,-57,-4991 to 69,-28,-4952
+        treasureLeft = RoomTemplate.capture(world, 107, -57, -4991, 69, -28, -4952, false);
+        treasureTRight = RoomTemplate.capture(world, 85, -51, -5292, 45, -22, -5253, false);
+        decorStone = RoomTemplate.capture(world, 89, -29, -4921, 71, -55, -4906, false);
+        decorChest = RoomTemplate.capture(world, 119, -52, -4900, 104, -29, -4918, false);
 
         // Determine spacing using crossroad connectors
         List<RoomTemplate.Connector> con = crossroad.getConnectors();
@@ -149,7 +199,8 @@ public class DungeonManager {
     }
 
     public boolean createDungeon(Player player, String name, int rooms) {
-        if (dungeons.containsKey(name.toLowerCase())) return false;
+        String key = normalizeKey(name);
+        if (dungeons.containsKey(key)) return false;
         if (crossroad == null) return false;
         Location origin = player.getLocation();
         Dungeon dungeon = new Dungeon(player.getWorld(), name);
@@ -185,10 +236,10 @@ public class DungeonManager {
             RoomTemplate templ = chooseTemplate(RoomType.HALLWAY, dirs);
             int rotation = findRotation(templ, dirs);
             Location center = origin.clone().add(p.x * step, 0, p.z * step);
-            pasteRoom(dungeon, templ, rotation, center, null);
+            pasteRoom(dungeon, templ, rotation, center, null, false);
         }
 
-        dungeons.put(name.toLowerCase(), dungeon);
+        dungeons.put(key, dungeon);
         return true;
     }
 
@@ -223,10 +274,14 @@ public class DungeonManager {
     public record PasteResult(boolean success, double overlap, Map<Location, BlockData> replaced, Dungeon.RoomInstance instance) {}
 
     public PasteResult pasteRoom(Dungeon dungeon, RoomTemplate template, int rotation, Location center) {
-        return pasteRoom(dungeon, template, rotation, center, null);
+        return pasteRoom(dungeon, template, rotation, center, null, false);
     }
 
     public PasteResult pasteRoom(Dungeon dungeon, RoomTemplate template, int rotation, Location center, String mob) {
+        return pasteRoom(dungeon, template, rotation, center, mob, false);
+    }
+
+    public PasteResult pasteRoom(Dungeon dungeon, RoomTemplate template, int rotation, Location center, String mob, boolean preview) {
         World world = center.getWorld();
         if (world == null) return new PasteResult(false, 1.0, Map.<Location, BlockData>of(), null);
 
@@ -277,6 +332,37 @@ public class DungeonManager {
             replaced.put(l, world.getBlockAt(wx, wy, wz).getBlockData());
             BlockData data = RoomTemplate.rotateBlockData(b.data, rotation);
             world.getBlockAt(wx, wy, wz).setBlockData(data, false);
+            if (b.profile != null) {
+                var state = world.getBlockAt(wx, wy, wz).getState();
+                if (state instanceof Skull skull) {
+                    skull.setPlayerProfile(b.profile);
+                    skull.update(false, false);
+                }
+            }
+        }
+        // place nether portals and exit holograms
+        for (RoomTemplate.Marker m : template.getPortals()) {
+            int[] vec = RoomTemplate.rotate(m.x - (int) Math.round(template.getCenterX()),
+                    m.z - (int) Math.round(template.getCenterZ()), rotation);
+            int wx = center.getBlockX() + vec[0];
+            int wy = baseY + (m.y - connectorY);
+            int wz = center.getBlockZ() + vec[1];
+            Location loc = new Location(world, wx, wy, wz);
+            replaced.put(loc, world.getBlockAt(wx, wy, wz).getBlockData());
+            world.getBlockAt(wx, wy, wz).setType(Material.NETHER_PORTAL, false);
+        }
+        if (template == entrance) {
+            for (RoomTemplate.Marker m : template.getExitMarkers()) {
+                int[] vec = RoomTemplate.rotate(m.x - (int) Math.round(template.getCenterX()),
+                        m.z - (int) Math.round(template.getCenterZ()), rotation);
+                Location loc = center.clone().add(vec[0] + 0.5, m.y - connectorY + 1.2, vec[1] + 0.5);
+                TextDisplay td = (TextDisplay) world.spawn(loc, TextDisplay.class);
+                td.setBillboard(org.bukkit.entity.Display.Billboard.CENTER);
+                td.setText(ChatColor.RED.toString() + ChatColor.BOLD + "EXIT");
+                td.setShadowRadius(0);
+                td.setShadowStrength(0);
+                td.addScoreboardTag("dungeon_exit");
+            }
         }
         Dungeon.RoomInstance inst = new Dungeon.RoomInstance(template, rotation, center.clone(),
                 minX, minY, minZ, maxX, maxY, maxZ, mob);
@@ -285,33 +371,156 @@ public class DungeonManager {
     }
 
     public boolean deleteDungeon(String name) {
-        Dungeon d = dungeons.remove(name.toLowerCase());
-        if (d == null) return false;
-        d.delete();
-        return true;
+        String key = normalizeKey(name);
+        boolean removed = false;
+        Dungeon d = dungeons.remove(key);
+        if (d != null) {
+            d.delete();
+            removed = true;
+        }
+        if (layouts.remove(key) != null) {
+            layoutDisplay.remove(key);
+            saveLayouts();
+            removed = true;
+        }
+        return removed;
     }
 
-    public void saveLayout(String name, DungeonLayout layout) {
-        layouts.put(name.toLowerCase(), layout);
+    public boolean layoutExists(String name) {
+        String key = normalizeKey(name);
+        if (layouts.containsKey(key)) return true;
+        for (String disp : layoutDisplay.values()) {
+            if (disp.equalsIgnoreCase(name)) return true;
+        }
+        return false;
+    }
+
+    public void saveLayout(String key, String displayName, DungeonLayout layout) {
+        String lower = normalizeKey(key);
+        layouts.put(lower, layout);
+        layoutDisplay.put(lower, displayName);
+        saveLayouts();
     }
 
     public DungeonLayout getLayout(String name) {
-        return layouts.get(name.toLowerCase());
+        String key = normalizeKey(name);
+        DungeonLayout layout = layouts.get(key);
+        if (layout == null) {
+            layout = layouts.get(name.toLowerCase());
+        }
+        if (layout == null) {
+            for (var entry : layoutDisplay.entrySet()) {
+                if (entry.getValue().equalsIgnoreCase(name)) {
+                    layout = layouts.get(entry.getKey());
+                    break;
+                }
+            }
+        }
+        return layout;
+    }
+
+    public Set<Map.Entry<String, String>> getLayoutEntries() {
+        return layoutDisplay.entrySet();
+    }
+
+    public String getDisplayName(String key) {
+        return layoutDisplay.getOrDefault(normalizeKey(key), key);
+    }
+
+    private void loadLayouts() {
+        layoutFile = new java.io.File(plugin.getDataFolder(), "dungeons.yml");
+        if (!layoutFile.exists()) {
+            try { layoutFile.createNewFile(); } catch (Exception ignored) {}
+        }
+        layoutConfig = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(layoutFile);
+        org.bukkit.configuration.ConfigurationSection root = layoutConfig.getConfigurationSection("layouts");
+        if (root == null) return;
+        for (String rawKey : root.getKeys(false)) {
+            org.bukkit.configuration.ConfigurationSection sec = root.getConfigurationSection(rawKey);
+            if (sec == null) continue;
+            String display = sec.getString("display", rawKey);
+            int stepVal = sec.getInt("step", 0);
+            DungeonLayout layout = new DungeonLayout();
+            layout.setStep(stepVal);
+            org.bukkit.configuration.ConfigurationSection cells = sec.getConfigurationSection("cells");
+            if (cells != null) {
+                for (String coord : cells.getKeys(false)) {
+                    org.bukkit.configuration.ConfigurationSection cell = cells.getConfigurationSection(coord);
+                    if (cell == null) continue;
+                    String[] parts = coord.split(",");
+                    if (parts.length != 2) continue;
+                    int x = Integer.parseInt(parts[0]);
+                    int y = Integer.parseInt(parts[1]);
+                    RoomType type = RoomType.valueOf(cell.getString("type", "NONE"));
+                    TemplateType t = TemplateType.valueOf(cell.getString("template", "NONE"));
+                    int rot = cell.getInt("rotation", 0);
+                    String mob = cell.getString("mob", null);
+                    int offX = cell.getInt("offsetX", 0);
+                    int offZ = cell.getInt("offsetZ", 0);
+                    layout.set(x, y, type);
+                    layout.setTemplate(x, y, t);
+                    layout.setRotation(x, y, rot);
+                    layout.setMob(x, y, mob);
+                    layout.setOffset(x, y, offX, offZ);
+                }
+            }
+            String key = normalizeKey(rawKey);
+            layouts.put(key, layout);
+            layoutDisplay.put(key, display);
+        }
+    }
+
+    public void saveLayouts() {
+        if (layoutFile == null) {
+            layoutFile = new java.io.File(plugin.getDataFolder(), "dungeons.yml");
+        }
+        if (layoutConfig == null) {
+            layoutConfig = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(layoutFile);
+        }
+        layoutConfig.set("layouts", null);
+        org.bukkit.configuration.ConfigurationSection root = layoutConfig.createSection("layouts");
+        for (String key : layouts.keySet()) {
+            DungeonLayout layout = layouts.get(key);
+            org.bukkit.configuration.ConfigurationSection sec = root.createSection(key);
+            sec.set("display", layoutDisplay.getOrDefault(key, key));
+            sec.set("step", layout.getStep());
+            org.bukkit.configuration.ConfigurationSection cells = sec.createSection("cells");
+            for (int x = 0; x < DungeonLayout.WIDTH; x++) {
+                for (int y = 0; y < DungeonLayout.HEIGHT; y++) {
+                    RoomType type = layout.get(x, y);
+                    if (type == RoomType.NONE) continue;
+                    TemplateType t = layout.getTemplate(x, y);
+                    int rot = layout.getRotation(x, y);
+                    String mob = layout.getMob(x, y);
+                    int offX = layout.getOffsetX(x, y);
+                    int offZ = layout.getOffsetZ(x, y);
+                    org.bukkit.configuration.ConfigurationSection cell = cells.createSection(x + "," + y);
+                    cell.set("type", type.name());
+                    cell.set("template", t.name());
+                    cell.set("rotation", rot);
+                    if (mob != null) cell.set("mob", mob);
+                    cell.set("offsetX", offX);
+                    cell.set("offsetZ", offZ);
+                }
+            }
+        }
+        try { layoutConfig.save(layoutFile); } catch (Exception e) { e.printStackTrace(); }
     }
 
     public void startInstance(Player player, String name) {
-        DungeonLayout layout = layouts.get(name.toLowerCase());
+        String keyName = normalizeKey(name);
+        DungeonLayout layout = getLayout(name);
         if (layout == null) {
             player.sendMessage(ChatColor.RED + "Dungeon not found.");
             return;
         }
-        String worldName = "dgn_" + name.toLowerCase() + "_" + System.currentTimeMillis();
+        String worldName = "dgn_" + keyName + "_" + System.currentTimeMillis();
         org.bukkit.WorldCreator wc = new org.bukkit.WorldCreator(worldName);
         wc.generator(new VoidWorldGenerator());
         World world = Bukkit.createWorld(wc);
         if (world == null) return;
         Location origin = new Location(world, 0, 64, 0);
-        Dungeon dungeon = new Dungeon(world, name);
+        Dungeon dungeon = new Dungeon(world, keyName);
 
         for (int x = 0; x < DungeonLayout.WIDTH; x++) {
             for (int y = 0; y < DungeonLayout.HEIGHT; y++) {
@@ -323,11 +532,11 @@ public class DungeonManager {
                 int diffZ = layout.getOffsetZ(x, y);
                 Location center = origin.clone().add(diffX, 0, diffZ);
                 String mob = layout.getMob(x, y);
-                pasteRoom(dungeon, templ, rotation, center, mob);
+                pasteRoom(dungeon, templ, rotation, center, mob, false);
             }
         }
 
-        Instance inst = new Instance(dungeon, name);
+        Instance inst = new Instance(dungeon, keyName);
         inst.returnLocations.put(player.getUniqueId(), player.getLocation());
         instances.put(world, inst);
         world.setDifficulty(org.bukkit.Difficulty.NORMAL);
@@ -360,10 +569,11 @@ public class DungeonManager {
     }
 
     public boolean playDungeon(Player player, String name) {
-        DungeonLayout layout = layouts.get(name.toLowerCase());
+        String key = normalizeKey(name);
+        DungeonLayout layout = getLayout(name);
         if (layout == null) return false;
         Location origin = player.getLocation();
-        Dungeon dungeon = new Dungeon(player.getWorld(), name);
+        Dungeon dungeon = new Dungeon(player.getWorld(), key);
 
         for (int x = 0; x < DungeonLayout.WIDTH; x++) {
             for (int y = 0; y < DungeonLayout.HEIGHT; y++) {
@@ -376,11 +586,11 @@ public class DungeonManager {
                 int diffZ = layout.getOffsetZ(x, y);
                 Location center = origin.clone().add(diffX, 0, diffZ);
                 String mob = layout.getMob(x, y);
-                pasteRoom(dungeon, templ, rotation, center, mob);
+                pasteRoom(dungeon, templ, rotation, center, mob, false);
             }
         }
 
-        dungeons.put(name.toLowerCase(), dungeon);
+        dungeons.put(key, dungeon);
         return true;
     }
 
@@ -401,7 +611,7 @@ public class DungeonManager {
     }
 
     public Set<String> getLayoutNames() {
-        return layouts.keySet();
+        return new java.util.HashSet<>(layoutDisplay.values());
     }
 
     private static RoomTemplate flipEntrances(RoomTemplate src) {
@@ -409,7 +619,8 @@ public class DungeonManager {
         for (RoomTemplate.Connector c : src.getConnectors()) {
             list.add(new RoomTemplate.Connector(c.x, c.z, c.bottomY, c.facing, !c.entrance));
         }
-        return new RoomTemplate(src.getBlocks(), list, src.getWidth(), src.getHeight(), src.getDepth(), src.getMinY());
+        return new RoomTemplate(src.getBlocks(), list, src.getPortals(), src.getExitMarkers(),
+                src.getWidth(), src.getHeight(), src.getDepth(), src.getMinY());
     }
 
     private static class Instance {
@@ -419,21 +630,27 @@ public class DungeonManager {
         Instance(Dungeon d, String layout) { this.dungeon = d; this.layout = layout; }
     }
 
-    private class InstanceListener implements org.bukkit.event.Listener {
+        private class InstanceListener implements org.bukkit.event.Listener {
 
-        @org.bukkit.event.EventHandler(priority = EventPriority.HIGHEST)
-        public void onPortal(PlayerPortalEvent e) {
-            Instance inst = instances.get(e.getFrom().getWorld());
-            if (inst == null) return;
-            e.setCancelled(true);
-            java.util.UUID id = e.getPlayer().getUniqueId();
-            Location back = inst.returnLocations.remove(id);
-            if (back != null) {
-                e.getPlayer().sendMessage(ChatColor.GREEN + "Dungeon '" + inst.layout + "' completed!");
-                e.getPlayer().teleport(back);
+            @org.bukkit.event.EventHandler(priority = EventPriority.HIGHEST)
+            public void onPortal(PlayerPortalEvent e) {
+                Instance inst = instances.get(e.getFrom().getWorld());
+                if (inst == null) return;
+                e.setCancelled(true);
+                java.util.UUID id = e.getPlayer().getUniqueId();
+                Location back = inst.returnLocations.remove(id);
+                if (back != null) {
+                    Dungeon.RoomInstance room = inst.dungeon.getRoomContaining(e.getFrom());
+                    boolean completed = room != null && room.template == exit;
+                    if (completed) {
+                        sendCompleteMessage(e.getPlayer(), getDisplayName(inst.layout));
+                    } else {
+                        sendExitMessage(e.getPlayer(), getDisplayName(inst.layout));
+                    }
+                    e.getPlayer().teleport(back);
+                }
+                checkInstance(e.getFrom().getWorld());
             }
-            checkInstance(e.getFrom().getWorld());
-        }
 
         @org.bukkit.event.EventHandler
         public void onQuit(org.bukkit.event.player.PlayerQuitEvent e) {
@@ -441,6 +658,20 @@ public class DungeonManager {
             if (inst == null) return;
             inst.returnLocations.remove(e.getPlayer().getUniqueId());
             checkInstance(e.getPlayer().getWorld());
+        }
+
+        private void sendCompleteMessage(Player player, String layout) {
+            me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§a§l-", 45);
+            me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§a§lDUNGEON COMPLETE!");
+            me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§7You finished the §a" + layout + "§7 dungeon.");
+            me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§a§l-", 45);
+        }
+
+        private void sendExitMessage(Player player, String layout) {
+            me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§c§l-", 45);
+            me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§c§lDUNGEON EXITED");
+            me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§7You left the §5" + layout + "§7 dungeon.");
+            me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§c§l-", 45);
         }
     }
 
