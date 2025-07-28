@@ -29,6 +29,8 @@ public class DungeonManager {
     private final Map<String, String> layoutDisplay = new HashMap<>();
     private java.io.File layoutFile;
     private org.bukkit.configuration.file.FileConfiguration layoutConfig;
+    /** Guard asynchronous layout saves. */
+    private final Object saveLock = new Object();
     private final DungeonBuilder builder;
 
     /**
@@ -499,6 +501,25 @@ public class DungeonManager {
     }
 
     public void saveLayouts() {
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            long start = System.currentTimeMillis();
+            synchronized (saveLock) {
+                saveLayoutsInternal();
+            }
+            plugin.getLogger().info("[Dungeon] Layouts saved in " + (System.currentTimeMillis() - start) + "ms");
+        });
+    }
+
+    /** Synchronously save layouts, used on shutdown. */
+    public void saveLayoutsSync() {
+        long start = System.currentTimeMillis();
+        synchronized (saveLock) {
+            saveLayoutsInternal();
+        }
+        plugin.getLogger().info("[Dungeon] Layouts saved in " + (System.currentTimeMillis() - start) + "ms");
+    }
+
+    private void saveLayoutsInternal() {
         if (layoutFile == null) {
             layoutFile = new java.io.File(plugin.getDataFolder(), "dungeons.yml");
         }
