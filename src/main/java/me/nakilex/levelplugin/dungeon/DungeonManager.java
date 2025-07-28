@@ -146,7 +146,7 @@ public class DungeonManager {
         tJunctionLeft = RoomTemplate.capture(world, -29, -60, -5072, 11, -28, -5112);
         tJunctionRight = RoomTemplate.capture(world, -29, -60, -5072, 11, -28, -5112);
         crossroad = RoomTemplate.capture(world, 11, -28, -5030, -29, -60, -5070);
-        entrance = deadEnd; // use the single-exit room as the entrance
+        entrance = RoomTemplate.capture(world, -212, -71, -5328, -126, -27, -5229);
         // new boss room region provided by the map builder
         boss = RoomTemplate.capture(world, 43, -14, -5006, -23, -54, -4922);
         RoomTemplate combat = RoomTemplate.capture(world, 65, -42, -5059, 105, -13, -5100);
@@ -313,6 +313,28 @@ public class DungeonManager {
                 }
             }
         }
+        // place nether portals and exit holograms
+        for (RoomTemplate.Marker m : template.getPortals()) {
+            int[] vec = RoomTemplate.rotate(m.x - (int) Math.round(template.getCenterX()),
+                    m.z - (int) Math.round(template.getCenterZ()), rotation);
+            int wx = center.getBlockX() + vec[0];
+            int wy = baseY + (m.y - connectorY);
+            int wz = center.getBlockZ() + vec[1];
+            Location loc = new Location(world, wx, wy, wz);
+            replaced.put(loc, world.getBlockAt(wx, wy, wz).getBlockData());
+            world.getBlockAt(wx, wy, wz).setType(Material.NETHER_PORTAL, false);
+        }
+        for (RoomTemplate.Marker m : template.getExitMarkers()) {
+            int[] vec = RoomTemplate.rotate(m.x - (int) Math.round(template.getCenterX()),
+                    m.z - (int) Math.round(template.getCenterZ()), rotation);
+            Location loc = center.clone().add(vec[0] + 0.5, m.y - connectorY + 1.2, vec[1] + 0.5);
+            TextDisplay td = (TextDisplay) world.spawn(loc, TextDisplay.class);
+            td.setBillboard(org.bukkit.entity.Display.Billboard.CENTER);
+            td.setText(ChatColor.RED.toString() + ChatColor.BOLD + "EXIT");
+            td.setShadowRadius(0);
+            td.setShadowStrength(0);
+            td.addScoreboardTag("dungeon_exit");
+        }
         Dungeon.RoomInstance inst = new Dungeon.RoomInstance(template, rotation, center.clone(),
                 minX, minY, minZ, maxX, maxY, maxZ, mob);
         dungeon.addRoom(inst);
@@ -444,7 +466,8 @@ public class DungeonManager {
         for (RoomTemplate.Connector c : src.getConnectors()) {
             list.add(new RoomTemplate.Connector(c.x, c.z, c.bottomY, c.facing, !c.entrance));
         }
-        return new RoomTemplate(src.getBlocks(), list, src.getWidth(), src.getHeight(), src.getDepth(), src.getMinY());
+        return new RoomTemplate(src.getBlocks(), list, src.getPortals(), src.getExitMarkers(),
+                src.getWidth(), src.getHeight(), src.getDepth(), src.getMinY());
     }
 
     private static class Instance {

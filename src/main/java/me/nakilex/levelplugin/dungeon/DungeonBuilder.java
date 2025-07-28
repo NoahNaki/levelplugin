@@ -659,6 +659,17 @@ public class DungeonBuilder implements Listener {
                     }
                 }
             }
+            // remove exit holograms placed by this room
+            for (RoomTemplate.Marker m : h.instance.template.getExitMarkers()) {
+                int[] vec = RoomTemplate.rotate(m.x - (int) Math.round(h.instance.template.getCenterX()),
+                        m.z - (int) Math.round(h.instance.template.getCenterZ()), h.instance.rotation);
+                Location loc = h.instance.center.clone().add(vec[0], m.y - h.instance.template.getConnectorMinY(), vec[1]);
+                for (var ent : loc.getWorld().getNearbyEntities(loc, 1.5, 2.5, 1.5)) {
+                    if (ent.getScoreboardTags().contains("dungeon_exit")) {
+                        ent.remove();
+                    }
+                }
+            }
             if (h.used != null) {
                 ConnectorInfo restored = DungeonBuilder.this.spawnConnector(this, h.used.location, h.used.facing);
                 connectors.put(restored.interaction.getEntityId(), restored);
