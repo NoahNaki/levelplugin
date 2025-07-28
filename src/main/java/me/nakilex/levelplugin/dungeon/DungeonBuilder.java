@@ -232,6 +232,18 @@ public class DungeonBuilder implements Listener {
                 } else if (name.equalsIgnoreCase("Hallway")) {
                     placeVariant(s, manager.getHallway());
                     player.closeInventory();
+                } else if (name.equalsIgnoreCase("Treasure Room Left")) {
+                    placeVariant(s, manager.getTreasureLeft());
+                    player.closeInventory();
+                } else if (name.equalsIgnoreCase("Treasure Room T-Section Right")) {
+                    placeVariant(s, manager.getTreasureTRight());
+                    player.closeInventory();
+                } else if (name.equalsIgnoreCase("Decor Stone Room")) {
+                    placeVariant(s, manager.getDecorStone());
+                    player.closeInventory();
+                } else if (name.equalsIgnoreCase("Decor Chest Room")) {
+                    placeVariant(s, manager.getDecorChest());
+                    player.closeInventory();
                 } else if (item.getType() == Material.RED_WOOL) {
                     player.openInventory(createCombatVariantSelect());
                 } else if (item.getType() == Material.BLACK_WOOL) {
@@ -472,6 +484,10 @@ public class DungeonBuilder implements Listener {
 
         ItemStack basic = item(Material.YELLOW_WOOL, ChatColor.YELLOW + "Basic Room");
         ItemStack hall = item(Material.BROWN_WOOL, ChatColor.YELLOW + "Hallway");
+        ItemStack treasureLeft = item(Material.GOLD_BLOCK, ChatColor.GOLD + "Treasure Room Left");
+        ItemStack treasureTRight = item(Material.GOLD_BLOCK, ChatColor.GOLD + "Treasure Room T-Section Right");
+        ItemStack decorStone = item(Material.STONE, ChatColor.GRAY + "Decor Stone Room");
+        ItemStack decorChest = item(Material.CHEST, ChatColor.YELLOW + "Decor Chest Room");
         ItemStack boss = item(Material.BLACK_WOOL, ChatColor.DARK_GRAY + "Boss Room");
         ItemStack combat = item(Material.RED_WOOL, ChatColor.RED + "Combat Room");
         ItemStack exitRoom = item(Material.OBSIDIAN, ChatColor.DARK_PURPLE + "Exit Room");
@@ -485,10 +501,14 @@ public class DungeonBuilder implements Listener {
 
         inv.setItem(10, basic);
         inv.setItem(11, hall);
-        inv.setItem(13, boss);
-        inv.setItem(14, combat);
-        inv.setItem(16, exitRoom);
-        inv.setItem(18, library);
+        inv.setItem(12, treasureLeft);
+        inv.setItem(13, treasureTRight);
+        inv.setItem(14, decorStone);
+        inv.setItem(15, decorChest);
+        inv.setItem(16, boss);
+        inv.setItem(17, combat);
+        inv.setItem(18, exitRoom);
+        inv.setItem(26, library);
         return inv;
     }
 
