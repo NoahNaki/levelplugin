@@ -414,6 +414,10 @@ public class DungeonBuilder implements Listener {
                 if (match != null) break;
             }
         }
+        if (match == null && !templ.getConnectors().isEmpty()) {
+            match = templ.getConnectors().get(0);
+            rotation = (info.facing.opposite().ordinal() - match.facing.ordinal()) & 3;
+        }
         if (match == null) return;
         int[] vec = RoomTemplate.rotate(match.x - (int) Math.round(templ.getCenterX()),
                 match.z - (int) Math.round(templ.getCenterZ()), rotation);
