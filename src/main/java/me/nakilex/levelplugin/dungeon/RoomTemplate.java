@@ -110,7 +110,8 @@ public class RoomTemplate {
      */
     public static RoomTemplate capture(World world,
                                        int x1, int y1, int z1,
-                                       int x2, int y2, int z2) {
+                                       int x2, int y2, int z2,
+                                       boolean recordExit) {
         int minX = Math.min(x1, x2);
         int maxX = Math.max(x1, x2);
         int minY = Math.min(y1, y2);
@@ -142,7 +143,7 @@ public class RoomTemplate {
                         Material mat = data.getMaterial();
                         if (mat == Material.MAGENTA_WOOL) {
                             portalMarks.add(new Marker(x - minX, y - minY, z - minZ));
-                        } else if (mat == Material.RED_WOOL) {
+                        } else if (mat == Material.RED_WOOL && recordExit) {
                             exitMarks.add(new Marker(x - minX, y - minY, z - minZ));
                         } else {
                             blocks.add(new BlockDef(x - minX, y - minY, z - minZ, data, profile));

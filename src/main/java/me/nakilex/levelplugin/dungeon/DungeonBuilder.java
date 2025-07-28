@@ -341,9 +341,11 @@ public class DungeonBuilder implements Listener {
                 s.awaitingName = false;
                 return;
             }
-            manager.saveLayout(msg, layout);
+            String display = msg;
+            String key = display.replaceAll("\\s+", "_");
+            manager.saveLayout(key, display, layout);
             s.cancel();
-            event.getPlayer().sendMessage(ChatColor.GREEN + "Dungeon saved as '" + msg + "'");
+            event.getPlayer().sendMessage(ChatColor.GREEN + "Dungeon saved as '" + key + "'");
             event.getPlayer().getInventory().clear();
             sessions.remove(event.getPlayer().getUniqueId());
         });

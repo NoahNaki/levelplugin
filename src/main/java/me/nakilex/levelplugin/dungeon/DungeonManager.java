@@ -25,6 +25,7 @@ public class DungeonManager {
     private final Main plugin;
     private final Map<String, Dungeon> dungeons = new HashMap<>();
     private final Map<String, DungeonLayout> layouts = new HashMap<>();
+    private final Map<String, String> layoutDisplay = new HashMap<>();
     private final DungeonBuilder builder;
 
     private RoomTemplate deadEnd;
@@ -138,30 +139,30 @@ public class DungeonManager {
             plugin.getLogger().warning("Flatland world not found for dungeon templates.");
             return;
         }
-        deadEnd = RoomTemplate.capture(world, -29, -60, -5198, 11, -28, -5238);
-        straight = RoomTemplate.capture(world, 11, -28, -5114, -29, -60, -5154);
-        cornerLeft = RoomTemplate.capture(world, 11, -28, -5156, -29, -60, -5196);
-        cornerRight = RoomTemplate.capture(world, 11, -28, -5156, -29, -60, -5196);
-        tJunction = RoomTemplate.capture(world, -29, -60, -5072, 11, -28, -5112);
+        deadEnd = RoomTemplate.capture(world, -29, -60, -5198, 11, -28, -5238, false);
+        straight = RoomTemplate.capture(world, 11, -28, -5114, -29, -60, -5154, false);
+        cornerLeft = RoomTemplate.capture(world, 11, -28, -5156, -29, -60, -5196, false);
+        cornerRight = RoomTemplate.capture(world, 11, -28, -5156, -29, -60, -5196, false);
+        tJunction = RoomTemplate.capture(world, -29, -60, -5072, 11, -28, -5112, false);
         // create distinct instances so we can differentiate left/right variants
-        tJunctionLeft = RoomTemplate.capture(world, -29, -60, -5072, 11, -28, -5112);
-        tJunctionRight = RoomTemplate.capture(world, -29, -60, -5072, 11, -28, -5112);
-        crossroad = RoomTemplate.capture(world, 11, -28, -5030, -29, -60, -5070);
+        tJunctionLeft = RoomTemplate.capture(world, -29, -60, -5072, 11, -28, -5112, false);
+        tJunctionRight = RoomTemplate.capture(world, -29, -60, -5072, 11, -28, -5112, false);
+        crossroad = RoomTemplate.capture(world, 11, -28, -5030, -29, -60, -5070, false);
         // revert to the original entrance template region
-        entrance = RoomTemplate.capture(world, -212, 77, -5334, -125, -36, -5227);
+        entrance = RoomTemplate.capture(world, -212, 77, -5334, -125, -36, -5227, true);
         // new boss room region provided by the map builder
-        boss = RoomTemplate.capture(world, 43, -14, -5006, -23, -54, -4922);
-        RoomTemplate combat = RoomTemplate.capture(world, 65, -42, -5059, 105, -13, -5100);
+        boss = RoomTemplate.capture(world, 43, -14, -5006, -23, -54, -4922, false);
+        RoomTemplate combat = RoomTemplate.capture(world, 65, -42, -5059, 105, -13, -5100, false);
         combatRight = combat;
         combatLeft = flipEntrances(combat);
-        exit = RoomTemplate.capture(world, 91, -45, -5222, 56, -24, -5199);
-        library = RoomTemplate.capture(world, 74, -11, -5172, 112, -39, -5122);
-        hallway = RoomTemplate.capture(world, 63, -44, -5021, 89, -21, -5003);
+        exit = RoomTemplate.capture(world, 91, -45, -5222, 56, -24, -5199, false);
+        library = RoomTemplate.capture(world, 74, -11, -5172, 112, -39, -5122, false);
+        hallway = RoomTemplate.capture(world, 63, -44, -5021, 89, -21, -5003, false);
         // Provided by the map builder: 107,-57,-4991 to 69,-28,-4952
-        treasureLeft = RoomTemplate.capture(world, 107, -57, -4991, 69, -28, -4952);
-        treasureTRight = RoomTemplate.capture(world, 85, -51, -5292, 45, -22, -5253);
-        decorStone = RoomTemplate.capture(world, 89, -29, -4921, 71, -55, -4906);
-        decorChest = RoomTemplate.capture(world, 119, -52, -4900, 104, -29, -4918);
+        treasureLeft = RoomTemplate.capture(world, 107, -57, -4991, 69, -28, -4952, false);
+        treasureTRight = RoomTemplate.capture(world, 85, -51, -5292, 45, -22, -5253, false);
+        decorStone = RoomTemplate.capture(world, 89, -29, -4921, 71, -55, -4906, false);
+        decorChest = RoomTemplate.capture(world, 119, -52, -4900, 104, -29, -4918, false);
 
         // Determine spacing using crossroad connectors
         List<RoomTemplate.Connector> con = crossroad.getConnectors();
@@ -371,12 +372,22 @@ public class DungeonManager {
         return true;
     }
 
-    public void saveLayout(String name, DungeonLayout layout) {
-        layouts.put(name.toLowerCase(), layout);
+    public void saveLayout(String key, String displayName, DungeonLayout layout) {
+        String lower = key.toLowerCase();
+        layouts.put(lower, layout);
+        layoutDisplay.put(lower, displayName);
     }
 
     public DungeonLayout getLayout(String name) {
         return layouts.get(name.toLowerCase());
+    }
+
+    public Set<Map.Entry<String, String>> getLayoutEntries() {
+        return layoutDisplay.entrySet();
+    }
+
+    public String getDisplayName(String key) {
+        return layoutDisplay.getOrDefault(key.toLowerCase(), key);
     }
 
     public void startInstance(Player player, String name) {
@@ -481,7 +492,7 @@ public class DungeonManager {
     }
 
     public Set<String> getLayoutNames() {
-        return layouts.keySet();
+        return new java.util.HashSet<>(layoutDisplay.values());
     }
 
     private static RoomTemplate flipEntrances(RoomTemplate src) {
@@ -531,10 +542,10 @@ public class DungeonManager {
         }
 
         private void sendCompleteMessage(Player player, String layout) {
-            me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§5§l-", 45);
-            me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§d§lDUNGEON COMPLETE!");
-            me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§7You finished the §5" + layout + "§7 dungeon.");
-            me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§5§l-", 45);
+            me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§a§l-", 45);
+            me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§a§lDUNGEON COMPLETE!");
+            me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§7You finished the §a" + layout + "§7 dungeon.");
+            me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§a§l-", 45);
         }
 
         private void sendExitMessage(Player player, String layout) {

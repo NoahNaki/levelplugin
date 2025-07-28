@@ -33,13 +33,16 @@ public class DungeonListGUI implements Listener {
             if (i < 9 || i >= 45 || i % 9 == 0 || i % 9 == 8) inv.setItem(i, filler);
         }
         int slot = 10;
-        for (String name : manager.getLayoutNames()) {
+        for (var entry : manager.getLayoutEntries()) {
             if (slot >= 44) break;
+            String key = entry.getKey();
+            String display = entry.getValue();
             ItemStack item = new ItemStack(Material.PAPER);
             ItemMeta meta = item.getItemMeta();
             if (meta != null) {
-                meta.setDisplayName(ChatColor.AQUA + name);
+                meta.setDisplayName(ChatColor.AQUA + display);
                 meta.setLore(List.of(ChatColor.GRAY + "Left-click to play"));
+                meta.setLocalizedName(key);
                 item.setItemMeta(meta);
             }
             inv.setItem(slot, item);
@@ -57,8 +60,9 @@ public class DungeonListGUI implements Listener {
         ItemStack item = event.getCurrentItem();
         if (item == null || !item.hasItemMeta()) return;
         if (!event.getClick().isLeftClick()) return;
-        String name = ChatColor.stripColor(item.getItemMeta().getDisplayName());
-        manager.startInstance(player, name);
+        ItemMeta meta = item.getItemMeta();
+        String key = meta != null && meta.getLocalizedName() != null ? meta.getLocalizedName() : ChatColor.stripColor(meta.getDisplayName());
+        manager.startInstance(player, key);
         player.closeInventory();
     }
 }
