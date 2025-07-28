@@ -522,6 +522,14 @@ public class DungeonManager {
         Location origin = new Location(world, 0, 64, 0);
         Dungeon dungeon = new Dungeon(world, keyName);
 
+        int total = 0;
+        for (int x = 0; x < DungeonLayout.WIDTH; x++) {
+            for (int y = 0; y < DungeonLayout.HEIGHT; y++) {
+                if (layout.get(x, y) != RoomType.NONE) total++;
+            }
+        }
+        int done = 0;
+        int stage = -1;
         for (int x = 0; x < DungeonLayout.WIDTH; x++) {
             for (int y = 0; y < DungeonLayout.HEIGHT; y++) {
                 RoomType type = layout.get(x, y);
@@ -533,8 +541,15 @@ public class DungeonManager {
                 Location center = origin.clone().add(diffX, 0, diffZ);
                 String mob = layout.getMob(x, y);
                 pasteRoom(dungeon, templ, rotation, center, mob, false);
+                done++;
+                int newStage = (int)Math.floor((double)done / total * 6);
+                if (newStage != stage) {
+                    stage = newStage;
+                    me.nakilex.levelplugin.utils.LoadingScreen.show(player, (double)done / total);
+                }
             }
         }
+        me.nakilex.levelplugin.utils.LoadingScreen.show(player, 1.0);
 
         Instance inst = new Instance(dungeon, keyName);
         inst.returnLocations.put(player.getUniqueId(), player.getLocation());
@@ -574,7 +589,14 @@ public class DungeonManager {
         if (layout == null) return false;
         Location origin = player.getLocation();
         Dungeon dungeon = new Dungeon(player.getWorld(), key);
-
+        int total = 0;
+        for (int x = 0; x < DungeonLayout.WIDTH; x++) {
+            for (int y = 0; y < DungeonLayout.HEIGHT; y++) {
+                if (layout.get(x, y) != RoomType.NONE) total++;
+            }
+        }
+        int done = 0;
+        int stage = -1;
         for (int x = 0; x < DungeonLayout.WIDTH; x++) {
             for (int y = 0; y < DungeonLayout.HEIGHT; y++) {
                 RoomType type = layout.get(x, y);
@@ -587,8 +609,15 @@ public class DungeonManager {
                 Location center = origin.clone().add(diffX, 0, diffZ);
                 String mob = layout.getMob(x, y);
                 pasteRoom(dungeon, templ, rotation, center, mob, false);
+                done++;
+                int newStage = (int)Math.floor((double)done / total * 6);
+                if (newStage != stage) {
+                    stage = newStage;
+                    me.nakilex.levelplugin.utils.LoadingScreen.show(player, (double)done / total);
+                }
             }
         }
+        me.nakilex.levelplugin.utils.LoadingScreen.show(player, 1.0);
 
         dungeons.put(key, dungeon);
         return true;
