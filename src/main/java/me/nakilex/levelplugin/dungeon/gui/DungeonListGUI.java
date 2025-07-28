@@ -62,7 +62,7 @@ public class DungeonListGUI implements Listener {
         if (!event.getClick().isLeftClick()) return;
         ItemMeta meta = item.getItemMeta();
         String key = meta != null && meta.getLocalizedName() != null ? meta.getLocalizedName() : ChatColor.stripColor(meta.getDisplayName());
-        manager.startInstance(player, key);
         player.closeInventory();
+        manager.startInstance(player, key);
     }
 }

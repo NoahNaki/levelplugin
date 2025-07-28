@@ -369,7 +369,7 @@ public class PluginBootstrap {
         if (lootChestManager != null) lootChestManager.removeAllChests();
         if (dungeonManager != null) {
             dungeonManager.cleanupInstances();
-            dungeonManager.saveLayouts();
+            dungeonManager.saveLayoutsSync();
             dungeonManager.getBuilder().cancelAll();
         }
         if (me.nakilex.levelplugin.player.mining.listeners.OreMiningListener.getInstance() != null) me.nakilex.levelplugin.player.mining.listeners.OreMiningListener.getInstance().removeAllHolograms();

@@ -363,7 +363,7 @@ public class DungeonBuilder implements Listener {
                 s.awaitingName = false;
                 return;
             }
-            manager.saveLayout(key, display, layout);
+            manager.saveLayout(event.getPlayer(), key, display, layout);
             s.cancel();
             event.getPlayer().sendMessage(ChatColor.GREEN + "Dungeon saved as '" + key + "'");
             event.getPlayer().getInventory().clear();

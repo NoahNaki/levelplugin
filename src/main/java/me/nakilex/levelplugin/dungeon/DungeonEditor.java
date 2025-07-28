@@ -130,7 +130,7 @@ public class DungeonEditor implements Listener {
             sessions.remove(e.getPlayer().getUniqueId());
             return;
         }
-        manager.saveLayout(key, display, s.layout);
+        manager.saveLayout(e.getPlayer(), key, display, s.layout);
         e.getPlayer().sendMessage(ChatColor.GREEN + "Dungeon layout saved as '" + key + "'");
         sessions.remove(e.getPlayer().getUniqueId());
     }

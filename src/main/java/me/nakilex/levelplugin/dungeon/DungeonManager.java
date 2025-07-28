@@ -8,6 +8,7 @@ import org.bukkit.World;
 import org.bukkit.Material;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
+import org.bukkit.WorldType;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.Skull;
 import org.bukkit.entity.TextDisplay;
@@ -28,6 +29,8 @@ public class DungeonManager {
     private final Map<String, String> layoutDisplay = new HashMap<>();
     private java.io.File layoutFile;
     private org.bukkit.configuration.file.FileConfiguration layoutConfig;
+    /** Guard asynchronous layout saves. */
+    private final Object saveLock = new Object();
     private final DungeonBuilder builder;
 
     /**
@@ -205,6 +208,8 @@ public class DungeonManager {
         Location origin = player.getLocation();
         Dungeon dungeon = new Dungeon(player.getWorld(), name);
 
+        long debugStart = System.currentTimeMillis();
+
         Random rand = new Random();
         Map<Point, Set<Direction>> graph = new HashMap<>();
         Set<Point> placed = new HashSet<>();
@@ -230,6 +235,10 @@ public class DungeonManager {
             placed.add(next);
         }
 
+        player.sendMessage(ChatColor.GRAY + "[Debug] Graph in "
+                + (System.currentTimeMillis() - debugStart) + "ms");
+        long buildStart = System.currentTimeMillis();
+
         for (var entry : graph.entrySet()) {
             Point p = entry.getKey();
             Set<Direction> dirs = entry.getValue();
@@ -240,6 +249,8 @@ public class DungeonManager {
         }
 
         dungeons.put(key, dungeon);
+        player.sendMessage(ChatColor.GRAY + "[Debug] Built in "
+                + (System.currentTimeMillis() - buildStart) + "ms");
         return true;
     }
 
@@ -287,38 +298,57 @@ public class DungeonManager {
 
         int baseY = center.getBlockY();
         int connectorY = template.getConnectorMinY();
-        int total = 0;
         int collisions = 0;
+        int total = 0;
+        double overlap = 0.0;
 
         int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
         int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
 
-        for (RoomTemplate.BlockDef b : template.getBlocks()) {
-            Material mat = b.data.getMaterial();
-            if (mat == Material.REDSTONE_BLOCK || mat == Material.PINK_WOOL || mat == Material.LIME_WOOL) continue;
-            int[] vec = RoomTemplate.rotate(b.x - (int) Math.round(template.getCenterX()),
-                    b.z - (int) Math.round(template.getCenterZ()), rotation);
-            int wx = center.getBlockX() + vec[0];
-            int wy = baseY + (b.y - connectorY);
-            int wz = center.getBlockZ() + vec[1];
-            if (world.getBlockAt(wx, wy, wz).getType() != Material.AIR) {
-                // ignore connector layers
-                if (b.y - connectorY > 2) collisions++;
+        if (preview) {
+            for (RoomTemplate.BlockDef b : template.getBlocks()) {
+                Material mat = b.data.getMaterial();
+                if (mat == Material.REDSTONE_BLOCK || mat == Material.PINK_WOOL || mat == Material.LIME_WOOL) continue;
+                int[] vec = RoomTemplate.rotate(b.x - (int) Math.round(template.getCenterX()),
+                        b.z - (int) Math.round(template.getCenterZ()), rotation);
+                int wx = center.getBlockX() + vec[0];
+                int wy = baseY + (b.y - connectorY);
+                int wz = center.getBlockZ() + vec[1];
+                if (world.getBlockAt(wx, wy, wz).getType() != Material.AIR) {
+                    if (b.y - connectorY > 2) collisions++;
+                }
+                if (wx < minX) minX = wx;
+                if (wy < minY) minY = wy;
+                if (wz < minZ) minZ = wz;
+                if (wx > maxX) maxX = wx;
+                if (wy > maxY) maxY = wy;
+                if (wz > maxZ) maxZ = wz;
+                total++;
             }
-            if (wx < minX) minX = wx;
-            if (wy < minY) minY = wy;
-            if (wz < minZ) minZ = wz;
-            if (wx > maxX) maxX = wx;
-            if (wy > maxY) maxY = wy;
-            if (wz > maxZ) maxZ = wz;
-            total++;
-        }
-        double overlap = total == 0 ? 0.0 : (double) collisions / total;
-        if (overlap > 0.10) {
-            return new PasteResult(false, overlap, Map.<Location, BlockData>of(), null);
+            overlap = total == 0 ? 0.0 : (double) collisions / total;
+            if (overlap > 0.10) {
+                return new PasteResult(false, overlap, Map.of(), null);
+            }
+        } else {
+            // bounds only
+            for (RoomTemplate.BlockDef b : template.getBlocks()) {
+                Material mat = b.data.getMaterial();
+                if (mat == Material.REDSTONE_BLOCK || mat == Material.PINK_WOOL || mat == Material.LIME_WOOL) continue;
+                int[] vec = RoomTemplate.rotate(b.x - (int) Math.round(template.getCenterX()),
+                        b.z - (int) Math.round(template.getCenterZ()), rotation);
+                int wx = center.getBlockX() + vec[0];
+                int wy = baseY + (b.y - connectorY);
+                int wz = center.getBlockZ() + vec[1];
+                if (wx < minX) minX = wx;
+                if (wy < minY) minY = wy;
+                if (wz < minZ) minZ = wz;
+                if (wx > maxX) maxX = wx;
+                if (wy > maxY) maxY = wy;
+                if (wz > maxZ) maxZ = wz;
+            }
         }
 
-        Map<Location, BlockData> replaced = new HashMap<>();
+        Map<Location, BlockData> replaced = preview ? new HashMap<>() : Map.of();
 
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
             Material mat = b.data.getMaterial();
@@ -329,7 +359,7 @@ public class DungeonManager {
             int wy = baseY + (b.y - connectorY);
             int wz = center.getBlockZ() + vec[1];
             Location l = new Location(world, wx, wy, wz);
-            replaced.put(l, world.getBlockAt(wx, wy, wz).getBlockData());
+            if (preview) replaced.put(l, world.getBlockAt(wx, wy, wz).getBlockData());
             BlockData data = RoomTemplate.rotateBlockData(b.data, rotation);
             world.getBlockAt(wx, wy, wz).setBlockData(data, false);
             if (b.profile != null) {
@@ -348,7 +378,7 @@ public class DungeonManager {
             int wy = baseY + (m.y - connectorY);
             int wz = center.getBlockZ() + vec[1];
             Location loc = new Location(world, wx, wy, wz);
-            replaced.put(loc, world.getBlockAt(wx, wy, wz).getBlockData());
+            if (preview) replaced.put(loc, world.getBlockAt(wx, wy, wz).getBlockData());
             world.getBlockAt(wx, wy, wz).setType(Material.NETHER_PORTAL, false);
         }
         if (template == entrance) {
@@ -396,10 +426,30 @@ public class DungeonManager {
     }
 
     public void saveLayout(String key, String displayName, DungeonLayout layout) {
+        saveLayout(null, key, displayName, layout);
+    }
+
+    /** Save a layout and report timing to the player if provided. */
+    public void saveLayout(Player player, String key, String displayName, DungeonLayout layout) {
         String lower = normalizeKey(key);
         layouts.put(lower, layout);
         layoutDisplay.put(lower, displayName);
-        saveLayouts();
+
+        if (player == null) {
+            saveLayouts();
+            return;
+        }
+
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            long start = System.currentTimeMillis();
+            synchronized (saveLock) {
+                saveLayoutsInternal();
+            }
+            long total = System.currentTimeMillis() - start;
+            plugin.getLogger().info("[Dungeon] Layouts saved in " + total + "ms");
+            Bukkit.getScheduler().runTask(plugin, () ->
+                    player.sendMessage(ChatColor.GRAY + "[Debug] Layout saved in " + total + "ms"));
+        });
     }
 
     public DungeonLayout getLayout(String name) {
@@ -471,12 +521,37 @@ public class DungeonManager {
     }
 
     public void saveLayouts() {
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            long start = System.currentTimeMillis();
+            synchronized (saveLock) {
+                saveLayoutsInternal();
+            }
+            long total = System.currentTimeMillis() - start;
+            plugin.getLogger().info("[Dungeon] Layouts saved in " + total + "ms");
+        });
+    }
+
+    /** Synchronously save layouts, used on shutdown. */
+    public void saveLayoutsSync() {
+        long start = System.currentTimeMillis();
+        synchronized (saveLock) {
+            saveLayoutsInternal();
+        }
+        plugin.getLogger().info("[Dungeon] Layouts saved in " + (System.currentTimeMillis() - start) + "ms");
+    }
+
+    private void saveLayoutsInternal() {
+        long start = System.currentTimeMillis();
+
         if (layoutFile == null) {
             layoutFile = new java.io.File(plugin.getDataFolder(), "dungeons.yml");
         }
         if (layoutConfig == null) {
             layoutConfig = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(layoutFile);
         }
+
+        long init = System.currentTimeMillis();
+
         layoutConfig.set("layouts", null);
         org.bukkit.configuration.ConfigurationSection root = layoutConfig.createSection("layouts");
         for (String key : layouts.keySet()) {
@@ -504,7 +579,18 @@ public class DungeonManager {
                 }
             }
         }
-        try { layoutConfig.save(layoutFile); } catch (Exception e) { e.printStackTrace(); }
+
+        long built = System.currentTimeMillis();
+
+        try {
+            layoutConfig.save(layoutFile);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        long saved = System.currentTimeMillis();
+        plugin.getLogger().info("[Dungeon] Save debug -> init:" + (init - start)
+                + "ms, build:" + (built - init) + "ms, disk:" + (saved - built) + "ms");
     }
 
     public void startInstance(Player player, String name) {
@@ -514,14 +600,25 @@ public class DungeonManager {
             player.sendMessage(ChatColor.RED + "Dungeon not found.");
             return;
         }
+        long debugStart = System.currentTimeMillis();
         String worldName = "dgn_" + keyName + "_" + System.currentTimeMillis();
         org.bukkit.WorldCreator wc = new org.bukkit.WorldCreator(worldName);
         wc.generator(new VoidWorldGenerator());
+        wc.type(WorldType.FLAT);
+        wc.generateStructures(false);
         World world = Bukkit.createWorld(wc);
+        if (world != null) {
+            world.setKeepSpawnInMemory(false);
+            world.setAutoSave(false);
+        }
         if (world == null) return;
+        player.sendMessage(ChatColor.GRAY + "[Debug] World created in "
+                + (System.currentTimeMillis() - debugStart) + "ms");
         Location origin = new Location(world, 0, 64, 0);
         Dungeon dungeon = new Dungeon(world, keyName);
 
+        long taskStart = System.currentTimeMillis();
+        java.util.List<BuildTask> tasks = new java.util.ArrayList<>();
         for (int x = 0; x < DungeonLayout.WIDTH; x++) {
             for (int y = 0; y < DungeonLayout.HEIGHT; y++) {
                 RoomType type = layout.get(x, y);
@@ -532,9 +629,13 @@ public class DungeonManager {
                 int diffZ = layout.getOffsetZ(x, y);
                 Location center = origin.clone().add(diffX, 0, diffZ);
                 String mob = layout.getMob(x, y);
-                pasteRoom(dungeon, templ, rotation, center, mob, false);
+                tasks.add(new BuildTask(templ, rotation, center, mob));
             }
         }
+        player.sendMessage(ChatColor.GRAY + "[Debug] Prepared tasks in "
+                + (System.currentTimeMillis() - taskStart) + "ms");
+
+        long pasteStart = System.currentTimeMillis();
 
         Instance inst = new Instance(dungeon, keyName);
         inst.returnLocations.put(player.getUniqueId(), player.getLocation());
@@ -542,6 +643,22 @@ public class DungeonManager {
         world.setDifficulty(org.bukkit.Difficulty.NORMAL);
         world.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, true);
         player.teleport(origin);
+
+        new org.bukkit.scheduler.BukkitRunnable() {
+            int idx = 0;
+
+            @Override
+            public void run() {
+                if (idx >= tasks.size()) {
+                    cancel();
+                    player.sendMessage(ChatColor.GRAY + "[Debug] Pasted rooms in "
+                            + (System.currentTimeMillis() - pasteStart) + "ms");
+                    return;
+                }
+                BuildTask t = tasks.get(idx++);
+                pasteRoom(dungeon, t.template(), t.rotation(), t.center(), t.mob(), false);
+            }
+        }.runTaskTimer(plugin, 1L, 1L);
     }
 
     public void cleanupInstances() {
@@ -572,9 +689,9 @@ public class DungeonManager {
         String key = normalizeKey(name);
         DungeonLayout layout = getLayout(name);
         if (layout == null) return false;
+        long debugStart = System.currentTimeMillis();
         Location origin = player.getLocation();
         Dungeon dungeon = new Dungeon(player.getWorld(), key);
-
         for (int x = 0; x < DungeonLayout.WIDTH; x++) {
             for (int y = 0; y < DungeonLayout.HEIGHT; y++) {
                 RoomType type = layout.get(x, y);
@@ -589,8 +706,9 @@ public class DungeonManager {
                 pasteRoom(dungeon, templ, rotation, center, mob, false);
             }
         }
-
         dungeons.put(key, dungeon);
+        player.sendMessage(ChatColor.GRAY + "[Debug] Spawned in "
+                + (System.currentTimeMillis() - debugStart) + "ms");
         return true;
     }
 
@@ -698,4 +816,6 @@ public class DungeonManager {
             };
         }
     }
+
+    private record BuildTask(RoomTemplate template, int rotation, Location center, String mob) {}
 }
