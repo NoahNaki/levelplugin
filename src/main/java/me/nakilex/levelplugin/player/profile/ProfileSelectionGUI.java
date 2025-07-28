@@ -114,9 +114,6 @@ public class ProfileSelectionGUI implements Listener {
             player.getInventory().setArmorContents(null);
         }
 
-        // Allow flight temporarily so the anti-cheat doesn't kick the player
-        // while they are frozen in midair waiting for the GUI to open.
-        player.setAllowFlight(true);
         me.nakilex.levelplugin.items.listeners.StaticItemListener.giveStaticItems(player);
         open(player);
     }
@@ -125,9 +122,6 @@ public class ProfileSelectionGUI implements Listener {
         SELECTING.remove(player.getUniqueId());
         showOthers(player);
         Main.getInstance().getPlayerVisibilityManager().apply(player);
-        // Restore flight state to prevent unintended flying after the menu
-        // closes.
-        player.setAllowFlight(false);
     }
 
     /** Called when a player quits to clear any temporary state. */
@@ -498,14 +492,6 @@ public class ProfileSelectionGUI implements Listener {
             } else if (SELECTING.contains(id) && ProfileManager.getInstance().getActiveSlot(id) != null) {
                 stopSelection((Player) e.getPlayer());
             }
-        }
-    }
-
-    @EventHandler
-    public void onMove(org.bukkit.event.player.PlayerMoveEvent e) {
-        UUID id = e.getPlayer().getUniqueId();
-        if (SELECTING.contains(id) && !NAMING.contains(id) && e.getFrom().distanceSquared(e.getTo()) > 0) {
-            e.setTo(e.getFrom());
         }
     }
 
