@@ -148,7 +148,15 @@ public class PlayerConfig {
     public org.bukkit.Location getEnvironmentOrigin(UUID uuid) {
         String base = "players." + uuid + ".environment.origin.";
         if (!config.contains(base + "world")) return null;
-        org.bukkit.World world = Bukkit.getWorld(config.getString(base + "world"));
+        String worldName = config.getString(base + "world");
+        org.bukkit.World world = Bukkit.getWorld(worldName);
+        if (world == null && "world2".equalsIgnoreCase(worldName)) {
+            world = Bukkit.getWorld("world");
+            if (world != null) {
+                // update stored world name so we don't have to check again
+                config.set(base + "world", "world");
+            }
+        }
         if (world == null) return null;
         int x = config.getInt(base + "x", 0);
         int y = config.getInt(base + "y", 0);
@@ -278,7 +286,14 @@ public class PlayerConfig {
     public org.bukkit.Location getProfileLocation(UUID uuid, int slot) {
         String base = "players." + uuid + ".profiles." + slot + ".";
         if (!config.contains(base + "world")) return null;
-        org.bukkit.World w = org.bukkit.Bukkit.getWorld(config.getString(base + "world"));
+        String worldName = config.getString(base + "world");
+        org.bukkit.World w = org.bukkit.Bukkit.getWorld(worldName);
+        if (w == null && "world2".equalsIgnoreCase(worldName)) {
+            w = org.bukkit.Bukkit.getWorld("world");
+            if (w != null) {
+                config.set(base + "world", "world");
+            }
+        }
         if (w == null) return null;
         double x = config.getDouble(base + "x");
         double y = config.getDouble(base + "y");

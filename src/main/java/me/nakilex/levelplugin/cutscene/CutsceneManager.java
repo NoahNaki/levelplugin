@@ -82,6 +82,9 @@ public class CutsceneManager {
                         float yaw = Float.parseFloat(parts[3]);
                         float pitch = Float.parseFloat(parts[4]);
                         var worldObj = world != null ? Bukkit.getWorld(world) : plugin.getServer().getWorlds().get(0);
+                        if (worldObj == null && "world2".equalsIgnoreCase(world)) {
+                            worldObj = Bukkit.getWorld("world");
+                        }
                         loc = new Location(worldObj, x, y, z, yaw, pitch);
                     }
                 }
@@ -94,6 +97,9 @@ public class CutsceneManager {
                         double ly = Double.parseDouble(pa[1]);
                         double lz = Double.parseDouble(pa[2]);
                         var worldObj = world != null ? Bukkit.getWorld(world) : plugin.getServer().getWorlds().get(0);
+                        if (worldObj == null && "world2".equalsIgnoreCase(world)) {
+                            worldObj = Bukkit.getWorld("world");
+                        }
                         lookAt = new Location(worldObj, lx, ly, lz);
                     }
                 }

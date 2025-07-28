@@ -43,7 +43,11 @@ public class FastTravelManager {
                 String desc = config.getString(path + ".desc", "");
                 double radius = config.getDouble(path + ".radius", 10);
                 boolean town = config.getBoolean(path + ".town", false);
-                Location loc = new Location(plugin.getServer().getWorld(world), x, y, z);
+                org.bukkit.World w = plugin.getServer().getWorld(world);
+                if (w == null && "world2".equalsIgnoreCase(world)) {
+                    w = plugin.getServer().getWorld("world");
+                }
+                Location loc = new Location(w, x, y, z);
                 FastTravelPoint pt = new FastTravelPoint(key, ChatColor.valueOf(colorName), desc, loc, radius, town);
                 points.put(key.toLowerCase(), pt);
             }
