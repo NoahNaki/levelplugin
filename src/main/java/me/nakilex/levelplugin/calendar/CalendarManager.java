@@ -40,7 +40,7 @@ public class CalendarManager implements Listener {
 
     public CalendarManager(Main plugin) {
         this.plugin = plugin;
-        this.world = Bukkit.getWorld("world2");
+        this.world = Bukkit.getWorld("world");
         if (this.world == null && !Bukkit.getWorlds().isEmpty()) {
             this.world = Bukkit.getWorlds().get(0);
         }

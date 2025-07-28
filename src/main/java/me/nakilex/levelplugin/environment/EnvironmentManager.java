@@ -693,7 +693,7 @@ public class EnvironmentManager {
     }
 
     // All towns reside in the "flatland" world for now
-    private static final String TOWN_WORLD = "world2";
+    private static final String TOWN_WORLD = "world";
     private static final int TOWN_X = 192;
     // Raise the starting Y coordinate by 5 blocks
     private static final int TOWN_Y = 65;

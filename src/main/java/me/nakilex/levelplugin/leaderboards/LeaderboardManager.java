@@ -52,6 +52,9 @@ public class LeaderboardManager {
             String base = id + ".";
             String worldName = sec.getString(id + ".world");
             World world = Bukkit.getWorld(worldName);
+            if (world == null && "world2".equalsIgnoreCase(worldName)) {
+                world = Bukkit.getWorld("world");
+            }
             if (world == null) continue;
             double x = sec.getDouble(id + ".x");
             double y = sec.getDouble(id + ".y");
