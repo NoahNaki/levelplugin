@@ -12,6 +12,7 @@ public enum TemplateType {
     TJUNCTION_LEFT,
     TJUNCTION_RIGHT,
     CROSSROAD,
+    HALLWAY,
     BOSS,
     COMBAT_LEFT,
     COMBAT_RIGHT,

@@ -230,6 +230,9 @@ public class DungeonBuilder implements Listener {
                 Material type = item.getType();
                 if (type == Material.YELLOW_WOOL) {
                     player.openInventory(createVariantSelect());
+                } else if (type == Material.ORANGE_WOOL) {
+                    placeVariant(s, manager.getHallway());
+                    player.closeInventory();
                 } else if (type == Material.RED_WOOL) {
                     player.openInventory(createCombatVariantSelect());
                 } else if (type == Material.BLACK_WOOL) {
@@ -243,7 +246,7 @@ public class DungeonBuilder implements Listener {
                     player.closeInventory();
                 }
             }
-            case "Hallway Variants" -> {
+            case "Basic Room Variants" -> {
                 if (name.equalsIgnoreCase("Back")) {
                     player.openInventory(createRoomSelect());
                     return;
@@ -468,7 +471,8 @@ public class DungeonBuilder implements Listener {
         ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
         for (int i = 0; i < 27; i++) inv.setItem(i, filler);
 
-        ItemStack hall = item(Material.YELLOW_WOOL, ChatColor.YELLOW + "Hallway");
+        ItemStack basic = item(Material.YELLOW_WOOL, ChatColor.YELLOW + "Basic Room");
+        ItemStack hall = item(Material.ORANGE_WOOL, ChatColor.GOLD + "Hallway");
         ItemStack boss = item(Material.BLACK_WOOL, ChatColor.DARK_GRAY + "Boss Room");
         ItemStack combat = item(Material.RED_WOOL, ChatColor.RED + "Combat Room");
         ItemStack exitRoom = item(Material.OBSIDIAN, ChatColor.DARK_PURPLE + "Exit Room");
@@ -480,8 +484,9 @@ public class DungeonBuilder implements Listener {
             combat.setItemMeta(cMeta);
         }
 
-        inv.setItem(10, hall);
-        inv.setItem(12, boss);
+        inv.setItem(10, basic);
+        inv.setItem(11, hall);
+        inv.setItem(13, boss);
         inv.setItem(14, combat);
         inv.setItem(16, exitRoom);
         inv.setItem(18, library);
@@ -489,18 +494,18 @@ public class DungeonBuilder implements Listener {
     }
 
     private Inventory createVariantSelect() {
-        Inventory inv = Bukkit.createInventory(null, 27, ChatColor.DARK_GREEN + "Hallway Variants");
+        Inventory inv = Bukkit.createInventory(null, 27, ChatColor.DARK_GREEN + "Basic Room Variants");
 
         ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
         for (int i = 0; i < 27; i++) inv.setItem(i, filler);
 
-        inv.setItem(10, item(Material.RED_WOOL, ChatColor.RED + "Dead End"));
-        inv.setItem(12, item(Material.ORANGE_WOOL, ChatColor.GOLD + "Straight"));
-        inv.setItem(14, item(Material.GREEN_WOOL, ChatColor.GREEN + "Corner Left"));
-        inv.setItem(16, item(Material.LIME_WOOL, ChatColor.GREEN + "Corner Right"));
-        inv.setItem(20, item(Material.BLUE_WOOL, ChatColor.BLUE + "T-Junction Left"));
-        inv.setItem(22, item(Material.CYAN_WOOL, ChatColor.BLUE + "T-Junction Right"));
-        inv.setItem(24, item(Material.PURPLE_WOOL, ChatColor.LIGHT_PURPLE + "Crossroad"));
+        inv.setItem(10, item(Material.RED_WOOL, ChatColor.RED + "Basic Room Dead End"));
+        inv.setItem(12, item(Material.ORANGE_WOOL, ChatColor.GOLD + "Basic Room Straight"));
+        inv.setItem(14, item(Material.GREEN_WOOL, ChatColor.GREEN + "Basic Room Corner Left"));
+        inv.setItem(16, item(Material.LIME_WOOL, ChatColor.GREEN + "Basic Room Corner Right"));
+        inv.setItem(20, item(Material.BLUE_WOOL, ChatColor.BLUE + "Basic Room T-Section Left"));
+        inv.setItem(22, item(Material.CYAN_WOOL, ChatColor.BLUE + "Basic Room T-Section Right"));
+        inv.setItem(24, item(Material.PURPLE_WOOL, ChatColor.LIGHT_PURPLE + "Basic Room Crossroad"));
 
         inv.setItem(18, GuiUtil.getNexoItem("arrow_left", ChatColor.YELLOW + "Back"));
         return inv;
