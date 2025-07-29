@@ -2,7 +2,6 @@ package me.nakilex.levelplugin.npc.wandering;
 
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -36,10 +35,8 @@ public class WanderingMerchantListener implements Listener {
     public void onDamage(EntityDamageByEntityEvent e) {
         if (!manager.isActive()) return;
         if (!e.getEntity().getUniqueId().equals(manager.getMerchant().getEntity().getUniqueId())) return;
-        if (e.getDamager() instanceof Player p) {
-            p.sendMessage(ChatColor.RED + "The merchant flees!");
-            manager.despawn();
-        }
+        Player damager = (e.getDamager() instanceof Player p) ? p : null;
+        manager.handleDamage(damager);
     }
 
     @EventHandler

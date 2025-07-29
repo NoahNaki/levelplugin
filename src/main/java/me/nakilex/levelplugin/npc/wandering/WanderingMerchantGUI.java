@@ -14,11 +14,14 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
+import me.nakilex.levelplugin.utils.GuiUtil;
 
 import java.util.*;
 
 /** Simple GUI displaying random offers from the wandering merchant. */
 public class WanderingMerchantGUI implements Listener {
+    private static final ItemStack FILLER = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
+
     private final Plugin plugin;
     private final EconomyManager economy;
     private final Inventory inv;
@@ -29,6 +32,7 @@ public class WanderingMerchantGUI implements Listener {
         this.plugin = plugin;
         this.economy = Main.getInstance().getEconomyManager();
         this.inv = Bukkit.createInventory(null, 27, ChatColor.DARK_GREEN + "Wandering Merchant");
+        GuiUtil.fillBorder(inv, FILLER);
         for (int i = 0; i < list.size(); i++) {
             WanderingMerchantOffer of = list.get(i);
             offers.put(10 + i, of);

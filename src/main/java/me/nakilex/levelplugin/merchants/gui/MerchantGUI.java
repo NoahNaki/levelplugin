@@ -52,7 +52,8 @@ public class MerchantGUI implements Listener {
         int size = merchantConfig.getInt(basePath + ".size", 27);
         this.inventory = Bukkit.createInventory(null, size, title);
 
-        fillBorder();
+        ItemStack placeholder = GuiUtil.createFiller(Material.BLACK_STAINED_GLASS_PANE);
+        GuiUtil.fillBorder(inventory, placeholder);
 
         // Load merchant-items definitions
         List<?> list = merchantConfig.getList(basePath + ".items");
@@ -151,27 +152,6 @@ public class MerchantGUI implements Listener {
 
 
 
-    /**
-     * Fills the border (outer rows/columns) of the inventory with a placeholder.
-     */
-    private void fillBorder() {
-        int size = inventory.getSize();
-        int columns = 9;
-        int rows = size / columns;
-        ItemStack placeholder = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
-        ItemMeta meta = placeholder.getItemMeta();
-        meta.setDisplayName(" ");
-        placeholder.setItemMeta(meta);
-
-        for (int row = 0; row < rows; row++) {
-            for (int col = 0; col < columns; col++) {
-                int slot = row * columns + col;
-                if (row == 0 || row == rows - 1 || col == 0 || col == columns - 1) {
-                    inventory.setItem(slot, placeholder);
-                }
-            }
-        }
-    }
 
     private void loadMerchantItem(Map<String, Object> map) {
         try {

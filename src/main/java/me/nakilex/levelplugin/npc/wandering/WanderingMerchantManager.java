@@ -29,6 +29,10 @@ public class WanderingMerchantManager {
     private Llama llama;
     private WanderingMerchantGUI gui;
     private long lastSpawn = 0L;
+    private long lastDamage = 0L;
+    private Player lastAttacker;
+    private org.bukkit.scheduler.BukkitTask fleeTask;
+    private boolean fleeing = false;
 
     public WanderingMerchantManager(Main plugin) {
         this.plugin = plugin;
@@ -83,6 +87,44 @@ public class WanderingMerchantManager {
 
     public void openShop(Player player) {
         if (gui != null) gui.open(player);
+    }
+
+    public void handleDamage(Player attacker) {
+        if (!isActive()) return;
+        lastDamage = System.currentTimeMillis();
+        lastAttacker = attacker;
+        if (gui != null) gui.closeAll();
+        if (!fleeing) {
+            fleeing = true;
+            llama.addPassenger(merchant.getEntity());
+            llama.getAttribute(org.bukkit.attribute.Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(0.6);
+            startFleeTask();
+            if (attacker != null)
+                attacker.sendMessage(ChatColor.RED + "The wandering merchant flees!");
+        }
+    }
+
+    private void startFleeTask() {
+        fleeTask = new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (!isActive()) { cancel(); return; }
+                if (lastAttacker != null && lastAttacker.isOnline()) {
+                    org.bukkit.util.Vector dir = merchant.getEntity().getLocation().toVector()
+                            .subtract(lastAttacker.getLocation().toVector())
+                            .normalize();
+                    llama.setVelocity(dir.multiply(0.6));
+                }
+                if (System.currentTimeMillis() - lastDamage > 5000) {
+                    if (lastAttacker != null && lastAttacker.isOnline()) {
+                        lastAttacker.sendMessage(ChatColor.GRAY + "The wandering merchant disappears.");
+                    }
+                    despawn();
+                    cancel();
+                    fleeing = false;
+                }
+            }
+        }.runTaskTimer(plugin, 1L, 1L);
     }
 
     public void despawn() {
