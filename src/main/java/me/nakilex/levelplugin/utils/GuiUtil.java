@@ -32,4 +32,22 @@ public final class GuiUtil {
         }
         return item;
     }
+
+    /**
+     * Fill the outer border of an inventory with the given filler item.
+     * This is reused by multiple GUI classes.
+     */
+    public static void fillBorder(org.bukkit.inventory.Inventory inv, ItemStack filler) {
+        int size = inv.getSize();
+        int cols = 9;
+        int rows = size / cols;
+        for (int row = 0; row < rows; row++) {
+            for (int col = 0; col < cols; col++) {
+                int slot = row * cols + col;
+                if (row == 0 || row == rows - 1 || col == 0 || col == cols - 1) {
+                    inv.setItem(slot, filler);
+                }
+            }
+        }
+    }
 }

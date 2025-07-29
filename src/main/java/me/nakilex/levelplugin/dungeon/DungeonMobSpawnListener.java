@@ -1,6 +1,12 @@
 package me.nakilex.levelplugin.dungeon;
 
 import io.lumine.mythic.bukkit.MythicBukkit;
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.mob.utils.MythicMobModifier;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
+import java.io.File;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
@@ -13,9 +19,15 @@ import java.util.Set;
 public class DungeonMobSpawnListener implements Listener {
     private final DungeonManager manager;
     private final Set<Dungeon.RoomInstance> triggered = new HashSet<>();
+    private final FileConfiguration config;
 
-    public DungeonMobSpawnListener(DungeonManager manager) {
+    public DungeonMobSpawnListener(DungeonManager manager, Main plugin) {
         this.manager = manager;
+        File file = new File(plugin.getDataFolder(), "dungeon_mobs.yml");
+        if (!file.exists()) {
+            plugin.saveResource("dungeon_mobs.yml", false);
+        }
+        this.config = YamlConfiguration.loadConfiguration(file);
     }
 
     @EventHandler
@@ -30,15 +42,35 @@ public class DungeonMobSpawnListener implements Listener {
             for (Dungeon.RoomInstance room : dungeon.getRooms()) {
                 if (room.mob == null || triggered.contains(room)) continue;
                 if (room.contains(to)) {
-                    for (int i = 0; i < 5; i++) {
-                        double x = room.minX + 1 + Math.random() * (room.maxX - room.minX - 1);
-                        double z = room.minZ + 1 + Math.random() * (room.maxZ - room.minZ - 1);
-                        Location spawn = new Location(room.center.getWorld(), x + 0.5, room.center.getY(), z + 0.5);
-                        MythicBukkit.inst().getMobManager().spawnMob(room.mob, spawn, 1.0);
-                    }
+                    spawnConfiguredMobs(room);
                     triggered.add(room);
                 }
             }
+        }
+    }
+
+    private void spawnConfiguredMobs(Dungeon.RoomInstance room) {
+        String key = room.mob;
+        int count = 5;
+        Double hp = null;
+        Double dmg = null;
+        Double move = null;
+        Double atk = null;
+        if (config.isConfigurationSection("rooms." + key)) {
+            ConfigurationSection sec = config.getConfigurationSection("rooms." + key);
+            count = sec.getInt("count", 5);
+            hp = sec.getDouble("hp", Double.NaN);
+            if (Double.isNaN(hp)) hp = null;
+            dmg = sec.contains("damage") ? sec.getDouble("damage") : null;
+            move = sec.contains("move-speed") ? sec.getDouble("move-speed") : null;
+            atk = sec.contains("attack-speed") ? sec.getDouble("attack-speed") : null;
+            key = sec.getString("mob", key);
+        }
+        for (int i = 0; i < count; i++) {
+            double x = room.minX + 1 + Math.random() * (room.maxX - room.minX - 1);
+            double z = room.minZ + 1 + Math.random() * (room.maxZ - room.minZ - 1);
+            Location spawn = new Location(room.center.getWorld(), x + 0.5, room.center.getY(), z + 0.5);
+            MythicMobModifier.spawnModifiedMob(key, spawn, hp, dmg, move, atk);
         }
     }
 }

@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.lootchests.data;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.inventory.ItemStack;
 
@@ -12,25 +13,33 @@ import java.util.Optional;
 
 public class ChestData {
 
-    private static final String WORLD_NAME = "MmoRPG";
+    private static final String DEFAULT_WORLD = "MmoRPG";
 
     private final int chestId;
+    private final String worldName;
     private final double x;
     private final double y;
     private final double z;
     private final int tier;
+    private final BlockFace facing;
     private String customName; // Optional
     private String contentType; // Optional, like "Weapon", "Armor", etc.
     private final List<ArmorStand> holograms = new ArrayList<>();
     private ItemStack bufferedLootItem;
 
 
-    public ChestData(int chestId, double x, double y, double z, int tier) {
+    public ChestData(int chestId, double x, double y, double z, int tier, BlockFace facing) {
+        this(chestId, DEFAULT_WORLD, x, y, z, tier, facing);
+    }
+
+    public ChestData(int chestId, String worldName, double x, double y, double z, int tier, BlockFace facing) {
         this.chestId = chestId;
+        this.worldName = worldName;
         this.x = x;
         this.y = y;
         this.z = z;
         this.tier = tier;
+        this.facing = facing == null ? BlockFace.NORTH : facing;
         this.bufferedLootItem = null;
     }
 
@@ -38,8 +47,16 @@ public class ChestData {
         return chestId;
     }
 
+    public String getWorldName() {
+        return worldName;
+    }
+
     public int getTier() {
         return tier;
+    }
+
+    public BlockFace getFacing() {
+        return facing;
     }
 
     // These are the getters you need:
@@ -69,7 +86,7 @@ public class ChestData {
 
 
     public Location toLocation() {
-        World world = Bukkit.getWorld(WORLD_NAME);
+        World world = Bukkit.getWorld(worldName);
         if (world == null) return null;
         return new Location(world, x, y, z);
     }

@@ -88,8 +88,10 @@ public class LootChestManager {
                 double y = Double.parseDouble(split[1].trim());
                 double z = Double.parseDouble(split[2].trim());
                 int tier = root.getInt(key + ".tier", 1);
+                BlockFace face = BlockFace.valueOf(root.getString(key + ".facing", "NORTH"));
+                String world = root.getString(key + ".world", "MmoRPG");
 
-                ChestData data = new ChestData(chestId, x, y, z, tier);
+                ChestData data = new ChestData(chestId, world, x, y, z, tier, face);
                 chestDataList.add(data);
             } catch (Exception e) {
                 plugin.getLogger().warning("Error loading chest ID: " + key);
@@ -113,9 +115,11 @@ public class LootChestManager {
             return;
         }
 
+        // Remove any existing block at this location
+        loc.getBlock().setType(Material.AIR, false);
+
         // 1) Place our tier specific crate furniture instead of a vanilla CHEST block.
-        //    We must supply a yaw (float) and a BlockFace (choose whichever facing you want).
-        //    Here we use yaw = 0f, facing = NORTH (you can rotate if desired).
+        //    Use the recorded facing to orient the crate correctly.
         String crateId = getCrateIdForTier(data.getTier());
         FurnitureMechanic mech = NexoFurniture.furnitureMechanic(crateId);
         if (mech == null) {
@@ -126,7 +130,7 @@ public class LootChestManager {
             return;
         }
         // The place(...) call returns the spawned Entity; we ignore it here.
-        NexoFurniture.place(crateId, loc, 0f, BlockFace.NORTH);
+        NexoFurniture.place(crateId, loc, 0f, data.getFacing());
 
         // 2) Remember this location so getChestIdAtLocation(loc) will still work:
         spawnedChests.put(data.getChestId(), loc);
@@ -139,6 +143,22 @@ public class LootChestManager {
 
         // 4) Start the particle task (handles hologram spawning based on player proximity)
         startParticleTask(data.getChestId(), loc, data.getTier(), data);
+    }
+
+    /**
+     * Convenience for dynamic chests. Generates a new ID, adds the data list
+     * and spawns the crate at the provided location.
+     */
+    public int createAndSpawnChest(Location loc, int tier) {
+        return createAndSpawnChest(loc, tier, BlockFace.NORTH);
+    }
+
+    public int createAndSpawnChest(Location loc, int tier, BlockFace facing) {
+        int id = chestDataList.stream().mapToInt(ChestData::getChestId).max().orElse(0) + 1;
+        ChestData data = new ChestData(id, loc.getWorld().getName(), loc.getX(), loc.getY(), loc.getZ(), tier, facing);
+        chestDataList.add(data);
+        spawnChest(data);
+        return id;
     }
 
 

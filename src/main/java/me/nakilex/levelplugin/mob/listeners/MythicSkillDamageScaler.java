@@ -14,6 +14,9 @@ import org.bukkit.event.Listener;
  */
 public class MythicSkillDamageScaler implements Listener {
 
+    private final boolean debug = me.nakilex.levelplugin.Main.getInstance()
+            .getCustomConfig().getBoolean("debug.mythic-skill-damage", false);
+
     private Player resolvePlayer(Object casterObj) {
         if (casterObj == null) return null;
         try {
@@ -61,9 +64,11 @@ public class MythicSkillDamageScaler implements Listener {
         var stats = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
         double strength = stats.baseStrength + stats.bonusStrength;
         double scaled = event.getDamage() + strength * 0.5;
-        me.nakilex.levelplugin.Main.getPlugin().getLogger().info(
-                "[MythicDamageScaler] base=" + event.getDamage() + " scaled=" + scaled +
-                " caster=" + player.getName());
+        if (debug) {
+            me.nakilex.levelplugin.Main.getPlugin().getLogger().info(
+                    "[MythicDamageScaler] base=" + event.getDamage() + " scaled=" + scaled +
+                    " caster=" + player.getName());
+        }
         event.setDamage(scaled);
     }
 }

@@ -223,5 +223,8 @@ commands:
   codex:
     description: Open the discovery codex
     usage: /codex
+  wm:
+    description: Spawn or despawn the wandering merchant
+    usage: /wm <spawn|despawn>
 
 

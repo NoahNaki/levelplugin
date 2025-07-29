@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.player.attributes.gui;
 
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStats;
@@ -170,6 +171,11 @@ public class StatsInventory {
             lore.add(ChatColor.RED + "\u2764 " + ChatColor.GRAY + "Vitality: " + ChatColor.WHITE + (ps.baseHealthStat + ps.bonusHealthStat) + ChatColor.GREEN + " (+" + ps.bonusHealthStat + ")");
             lore.add(ChatColor.GRAY + "\u2692 " + ChatColor.GRAY + "Defense: " + ChatColor.WHITE + (ps.baseDefenceStat + ps.bonusDefenceStat) + ChatColor.GREEN + " (+" + ps.bonusDefenceStat + ")");
             lore.add("");
+
+            int gearScore = ItemUtil.calculateTotalGearScore(player);
+            lore.add("<glyph:sword_icon> " + ChatColor.GRAY + "Gear Score: "
+                    + ChatColor.LIGHT_PURPLE + ChatColor.BOLD + gearScore);
+            lore.add(""); // divider after Gear Score
 
             double p = nextLevelXP > 0 ? (currentXP * 100.0 / nextLevelXP) : 0.0;
             p = Math.round(p * 10.0) / 10.0;

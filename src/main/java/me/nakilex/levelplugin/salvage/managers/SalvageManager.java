@@ -30,14 +30,18 @@ public class SalvageManager {
     }
 
     /** As before: total coins based on stats */
+    /** Sum of all base stats for reuse in multiple calculations. */
+    public int getTotalStats(CustomItem cItem) {
+        return cItem.getHp()
+            + cItem.getDef()
+            + cItem.getStr()
+            + cItem.getAgi()
+            + cItem.getIntel()
+            + cItem.getDex();
+    }
+
     public int getSellPrice(CustomItem cItem) {
-        int totalStats =
-            cItem.getHp()
-                + cItem.getDef()
-                + cItem.getStr()
-                + cItem.getAgi()
-                + cItem.getIntel()
-                + cItem.getDex();
+        int totalStats = getTotalStats(cItem);
         return totalStats * COINS_PER_STAT_POINT;
     }
 
@@ -47,13 +51,7 @@ public class SalvageManager {
      */
     public int getGemReward(CustomItem cItem) {
         // sum stats just like coins
-        int totalStats =
-            cItem.getHp()
-                + cItem.getDef()
-                + cItem.getStr()
-                + cItem.getAgi()
-                + cItem.getIntel()
-                + cItem.getDex();
+        int totalStats = getTotalStats(cItem);
 
         int multiplier = GEM_MULTIPLIERS.getOrDefault(cItem.getRarity(), 0);
         int rawGems    = totalStats * multiplier;

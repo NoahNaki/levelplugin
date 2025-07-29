@@ -42,7 +42,8 @@ public class PotionMerchantGUI implements Listener {
         this.inventory = Bukkit.createInventory(null, size, title);
 
         Bukkit.getLogger().info("[PotionMerchantGUI] Initializing Potion Merchant GUI...");
-        fillBorder();
+        ItemStack placeholder = GuiUtil.createFiller(Material.BLACK_STAINED_GLASS_PANE);
+        GuiUtil.fillBorder(inventory, placeholder);
 
         List<?> list = merchantConfig.getList(basePath + ".items");
         if (list != null) {
@@ -68,24 +69,6 @@ public class PotionMerchantGUI implements Listener {
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
-    private void fillBorder() {
-        int size = inventory.getSize();
-        int columns = 9;
-        int rows = size / columns;
-        ItemStack placeholder = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
-        ItemMeta meta = placeholder.getItemMeta();
-        meta.setDisplayName(" ");
-        placeholder.setItemMeta(meta);
-
-        for (int row = 0; row < rows; row++) {
-            for (int col = 0; col < columns; col++) {
-                int slot = row * columns + col;
-                if (row == 0 || row == rows - 1 || col == 0 || col == columns - 1) {
-                    inventory.setItem(slot, placeholder);
-                }
-            }
-        }
-    }
 
     private void loadPotionItem(Map<String, Object> map) {
         try {

@@ -16,10 +16,14 @@ import me.nakilex.levelplugin.quests.managers.BeaconManager;
 import me.nakilex.levelplugin.world.LeafParticleTask;
 import me.nakilex.levelplugin.leaderboards.LeaderboardUpdateTask;
 import me.nakilex.levelplugin.leaderboards.LeaderboardManager;
+import org.bukkit.entity.Player;
 
 public class TaskRegistry {
 
-    public static void startTasks(Main plugin, HorseConfigManager horseConfigManager, HorseManager horseManager) {
+    public static void startTasks(Main plugin,
+                                  HorseConfigManager horseConfigManager,
+                                  HorseManager horseManager,
+                                  me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager merchantManager) {
         // Register all tasks
         new ActionBarTask(plugin).runTaskTimer(plugin, 1L, 1L);
         new HealthRegenTask().runTaskTimer(plugin, 20L, 20L);
@@ -43,5 +47,15 @@ public class TaskRegistry {
         BeaconManager beaconMgr = plugin.getBeaconManager();
         new QuestBeaconTask(plugin.getQuestManager(), beaconMgr).runTaskTimer(plugin, 10L, 20L);
         new QuestPlayTimeTask(plugin.getQuestManager()).runTaskTimer(plugin, 1200L, 1200L);
+
+        new org.bukkit.scheduler.BukkitRunnable() {
+            @Override
+            public void run() {
+                if (merchantManager.isActive()) return;
+                if (System.currentTimeMillis() - merchantManager.getLastSpawn() < 20 * 60 * 1000L) return;
+                Player target = plugin.getServer().getOnlinePlayers().stream().findAny().orElse(null);
+                if (target != null) merchantManager.spawnNear(target);
+            }
+        }.runTaskTimer(plugin, 1200L, 1200L);
     }
 }

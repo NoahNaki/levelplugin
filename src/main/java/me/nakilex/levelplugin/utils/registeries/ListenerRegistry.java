@@ -59,6 +59,8 @@ import me.nakilex.levelplugin.environment.BuildingUpgradeGUI;
 import me.nakilex.levelplugin.environment.listeners.BuildingHologramListener;
 import me.nakilex.levelplugin.environment.listeners.StageBlockInteractListener;
 import me.nakilex.levelplugin.codex.CodexListener;
+import me.nakilex.levelplugin.npc.wandering.WanderingMerchantListener;
+import me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.PluginManager;
 
@@ -91,13 +93,17 @@ public class ListenerRegistry {
                                         UpgradeGUI upgradeGUI,
                                         BuildingUpgradeGUI buildingUpgradeGUI,
                                         BuildingHologramListener hologramListener,
-                                        StageBlockInteractListener stageBlockInteractListener) {
+                                        StageBlockInteractListener stageBlockInteractListener,
+                                        me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager wmManager) {
 
 
         PluginManager pm = plugin.getServer().getPluginManager();
 
         pm.registerEvents(new MobDamageListener(), plugin);
-        pm.registerEvents(new MythicMobDeathListener(
+        MythicMobDamageTracker dmgTracker = new MythicMobDamageTracker();
+        pm.registerEvents(dmgTracker, plugin);
+        pm.registerEvents(new MythicMobRewardListener(
+                dmgTracker,
                 mobRewardsConfig,
                 plugin.getLevelManager(),
                 economyManager,
@@ -125,7 +131,8 @@ public class ListenerRegistry {
         pm.registerEvents(new ItemChatListener(), plugin);
         pm.registerEvents(new PartyInviteListener(partyManager), plugin);
         pm.registerEvents(new LootChestListener(lootChestManager), plugin);
-        pm.registerEvents(new LootChestCloseListener(lootChestManager, economyManager), plugin);
+        pm.registerEvents(new LootChestCloseListener(lootChestManager, economyManager,
+                plugin.getDungeonManager()), plugin);
         pm.registerEvents(new PotionUseListener(potionManager, plugin), plugin);
         pm.registerEvents(new MythicMobNameManager(plugin), plugin);
         pm.registerEvents(new MythicMobDamageListener(), plugin);
@@ -178,11 +185,12 @@ public class ListenerRegistry {
                 plugin.getMobRewardsConfig(),
                 plugin.getBossConfig(),
                 plugin.getCodexManager()), plugin);
-        pm.registerEvents(new DungeonMobSpawnListener(plugin.getDungeonManager()), plugin);
+        pm.registerEvents(new DungeonMobSpawnListener(plugin.getDungeonManager(), plugin), plugin);
         pm.registerEvents(hologramListener, plugin);
         pm.registerEvents(stageBlockInteractListener, plugin);
         pm.registerEvents(new me.nakilex.levelplugin.environment.listeners.TownItemDropListener(plugin.getEnvironmentManager()), plugin);
         pm.registerEvents(new me.nakilex.levelplugin.environment.listeners.EnvironmentDistanceListener(plugin.getEnvironmentManager()), plugin);
+        pm.registerEvents(new WanderingMerchantListener(wmManager), plugin);
         if (plugin.getCustomConfig().getBoolean("features.profiles", true)) {
             pm.registerEvents(new me.nakilex.levelplugin.player.profile.ProfileSelectionGUI(), plugin);
         }
