@@ -111,8 +111,9 @@ public class WanderingMerchantManager {
                 if (!isActive()) { cancel(); return; }
                 if (lastAttacker != null && lastAttacker.isOnline()) {
                     org.bukkit.util.Vector dir = merchant.getEntity().getLocation().toVector()
-                            .subtract(lastAttacker.getLocation().toVector())
-                            .normalize();
+                            .subtract(lastAttacker.getLocation().toVector());
+                    dir.setY(0); // prevent upward velocity causing flight
+                    if (dir.lengthSquared() > 0) dir.normalize();
                     llama.setVelocity(dir.multiply(0.6));
                 }
                 if (System.currentTimeMillis() - lastDamage > 5000) {
