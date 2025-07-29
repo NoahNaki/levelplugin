@@ -10,6 +10,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.WorldType;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.Skull;
 import org.bukkit.entity.TextDisplay;
 import com.destroystokyo.paper.profile.PlayerProfile;
@@ -835,7 +836,12 @@ public class DungeonManager {
     private void spawnLootChests(Dungeon dungeon, int tier, Instance inst) {
         for (Dungeon.RoomInstance r : dungeon.getRooms()) {
             for (Location l : r.chests) {
-                int id = lootChestManager.createAndSpawnChest(l, tier);
+                BlockData data = l.getBlock().getBlockData();
+                BlockFace face = BlockFace.NORTH;
+                if (data instanceof org.bukkit.block.data.Directional dir) {
+                    face = dir.getFacing();
+                }
+                int id = lootChestManager.createAndSpawnChest(l, tier, face);
                 if (inst != null) inst.chestIds.add(id);
             }
         }
