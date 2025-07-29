@@ -1,7 +1,7 @@
 package me.nakilex.levelplugin.mob.commands;
 
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.mob.listeners.MythicMobDeathListener;
+import me.nakilex.levelplugin.mob.utils.DropDisplayToggles;
 import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -31,12 +31,12 @@ public class ToggleCommand implements CommandExecutor {
         String feature = args[0].toLowerCase();
         switch (feature) {
             case "dropdetails":
-                boolean nowHolo = MythicMobDeathListener.toggleDropDetails(player);
+                boolean nowHolo = DropDisplayToggles.toggleDropDetails(player);
                 ToggleFeedbackUtil.sendToggle(player, "Drop details (holograms)", nowHolo);
                 break;
 
             case "dropdetailschat":
-                boolean nowChat = MythicMobDeathListener.toggleChat(player);
+                boolean nowChat = DropDisplayToggles.toggleChat(player);
                 ToggleFeedbackUtil.sendToggle(player, "Drop details chat", nowChat);
                 break;
 

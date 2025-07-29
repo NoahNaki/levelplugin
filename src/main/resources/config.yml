@@ -6,6 +6,7 @@ features:
   quests: true
 debug:
   chunk-loading: false
+  mythic-skill-damage: false
 
 # Tips configuration
 tips:

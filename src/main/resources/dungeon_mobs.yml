@@ -1,0 +1,8 @@
+rooms:
+  sample_room:
+    mob: SampleMob
+    count: 5
+    hp: 40.0
+    damage: 6.0
+    move-speed: 0.25
+    attack-speed: 4.0

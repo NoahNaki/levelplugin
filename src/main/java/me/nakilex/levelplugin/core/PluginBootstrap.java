@@ -32,6 +32,7 @@ import me.nakilex.levelplugin.friend.FriendGlowManager;
 import me.nakilex.levelplugin.friend.PlayerVisibilityManager;
 import me.nakilex.levelplugin.codex.CodexManager;
 import me.nakilex.levelplugin.codex.CodexGUI;
+import me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager;
 import me.nakilex.levelplugin.friend.IgnoreManager;
 import me.nakilex.levelplugin.friend.FriendRequestListener;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
@@ -159,6 +160,7 @@ public class PluginBootstrap {
     private MeteorListener meteorListener;
     private me.nakilex.levelplugin.codex.CodexManager codexManager;
     private me.nakilex.levelplugin.codex.CodexGUI codexGUI;
+    private me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager wanderingMerchantManager;
 
     public PluginBootstrap(Main plugin) {
         this.plugin = plugin;
@@ -270,6 +272,7 @@ public class PluginBootstrap {
         modelSetManager = new me.nakilex.levelplugin.mob.config.ModelSetManager(plugin);
         cutsceneManager = new me.nakilex.levelplugin.cutscene.CutsceneManager(plugin);
         cutsceneManager.loadCutscenes();
+        wanderingMerchantManager = new me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager(plugin);
     }
 
     private void setupCustomConfig() {
@@ -314,7 +317,8 @@ public class PluginBootstrap {
             fastTravelManager,
             motdManager,
             upgradeGUI,
-            codexGUI
+            codexGUI,
+            wanderingMerchantManager
         );
         ListenerRegistry.registerListeners(
             plugin,
@@ -344,10 +348,11 @@ public class PluginBootstrap {
             upgradeGUI,
             buildingUpgradeGUI,
             new me.nakilex.levelplugin.environment.listeners.BuildingHologramListener(buildingUpgradeGUI),
-            new me.nakilex.levelplugin.environment.listeners.StageBlockInteractListener()
+            new me.nakilex.levelplugin.environment.listeners.StageBlockInteractListener(),
+            wanderingMerchantManager
         );
         plugin.getServer().getPluginManager().registerEvents(beaconManager, plugin);
-        TaskRegistry.startTasks(plugin, horseConfigManager, horseManager);
+        TaskRegistry.startTasks(plugin, horseConfigManager, horseManager, wanderingMerchantManager);
     }
 
     private boolean validateDependencies() {
@@ -494,6 +499,9 @@ public class PluginBootstrap {
         }
         if (!customConfig.contains("debug.chunk-loading")) {
             customConfig.set("debug.chunk-loading", false);
+        }
+        if (!customConfig.contains("debug.mythic-skill-damage")) {
+            customConfig.set("debug.mythic-skill-damage", false);
         }
         if (!customConfig.contains("tips.delay")) {
             customConfig.set("tips.delay", 120);
