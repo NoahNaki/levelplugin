@@ -2,7 +2,6 @@ package me.nakilex.levelplugin.mob.utils;
 
 import io.lumine.mythic.bukkit.MythicBukkit;
 import io.lumine.mythic.core.mobs.ActiveMob;
-import io.lumine.mythic.core.mobs.MythicMob;
 import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.LivingEntity;
@@ -35,8 +34,7 @@ public final class MythicMobModifier {
             Double moveSpeed,
             Double attackSpeed
     ) {
-        MythicMob template = MythicBukkit.inst().getMobManager().getMythicMob(mobName).orElse(null);
-        if (template == null) {
+        if (MythicBukkit.inst().getMobManager().getMythicMob(mobName).isEmpty()) {
             return null;
         }
         ActiveMob active = MythicBukkit.inst().getMobManager().spawnMob(mobName, loc, 1.0);
