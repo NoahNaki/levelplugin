@@ -175,6 +175,7 @@ public class StatsInventory {
             int gearScore = ItemUtil.calculateTotalGearScore(player);
             lore.add("<glyph:sword_icon> " + ChatColor.GRAY + "Gear Score: "
                     + ChatColor.LIGHT_PURPLE + ChatColor.BOLD + gearScore);
+            lore.add(""); // divider after Gear Score
 
             double p = nextLevelXP > 0 ? (currentXP * 100.0 / nextLevelXP) : 0.0;
             p = Math.round(p * 10.0) / 10.0;

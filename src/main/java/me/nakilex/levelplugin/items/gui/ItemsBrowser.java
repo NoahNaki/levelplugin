@@ -203,6 +203,7 @@ public class ItemsBrowser implements CommandExecutor, Listener {
                         : (minGs + "-" + maxGs);
                 lore.add("<glyph:sword_icon> " + ChatColor.GRAY + "Gear Score: "
                         + ChatColor.LIGHT_PURPLE + ChatColor.BOLD + gsDisplay);
+                lore.add(""); // divider after Gear Score
 
                 // — Stat RANGES (numbers in white)
                 StatRange s;

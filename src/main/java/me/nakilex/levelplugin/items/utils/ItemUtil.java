@@ -287,6 +287,7 @@ public class ItemUtil {
             int gearScore = SalvageManager.getInstance().getTotalStats(cItem);
             lore.add("<glyph:sword_icon> " + ChatColor.GRAY + "Gear Score: "
                     + ChatColor.LIGHT_PURPLE + ChatColor.BOLD + gearScore);
+            lore.add(""); // divider after Gear Score
         }
 
         // --- Stats Information ---
@@ -468,6 +469,7 @@ public class ItemUtil {
         int gearScore = SalvageManager.getInstance().getTotalStats(cItem);
         lore.add("<glyph:sword_icon> " + ChatColor.GRAY + "Gear Score: "
                 + ChatColor.LIGHT_PURPLE + ChatColor.BOLD + gearScore);
+        lore.add(""); // divider after Gear Score
 
         // --- Stats Information ---
         String prefix = parsePrefix(cItem.getBaseName());
