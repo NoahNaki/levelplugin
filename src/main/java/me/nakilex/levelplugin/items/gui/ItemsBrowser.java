@@ -190,7 +190,19 @@ public class ItemsBrowser implements CommandExecutor, Listener {
                         + ChatColor.GRAY + "Level Requirement: "
                         + ChatColor.WHITE + tpl.getLevelRequirement());
 
-                lore.add(""); // spacer
+                lore.add(""); // divider before Gear Score
+
+                int minGs = tpl.getHpRange().getMin() + tpl.getDefRange().getMin()
+                        + tpl.getStrRange().getMin() + tpl.getAgiRange().getMin()
+                        + tpl.getIntelRange().getMin() + tpl.getDexRange().getMin();
+                int maxGs = tpl.getHpRange().getMax() + tpl.getDefRange().getMax()
+                        + tpl.getStrRange().getMax() + tpl.getAgiRange().getMax()
+                        + tpl.getIntelRange().getMax() + tpl.getDexRange().getMax();
+                String gsDisplay = (minGs == maxGs)
+                        ? String.valueOf(minGs)
+                        : (minGs + "-" + maxGs);
+                lore.add("<glyph:sword_icon> " + ChatColor.GRAY + "Gear Score: "
+                        + ChatColor.LIGHT_PURPLE + ChatColor.BOLD + gsDisplay);
 
                 // — Stat RANGES (numbers in white)
                 StatRange s;

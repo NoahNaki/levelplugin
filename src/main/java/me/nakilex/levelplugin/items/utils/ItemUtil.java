@@ -282,7 +282,11 @@ public class ItemUtil {
                 levelRequirementLine = ChatColor.GREEN + "✔ " + ChatColor.GRAY + "Level Requirement: " + ChatColor.WHITE + cItem.getLevelRequirement();
             }
             lore.add(levelRequirementLine);
-            lore.add(""); // Another blank line for spacing
+            lore.add(""); // Divider before Gear Score
+
+            int gearScore = SalvageManager.getInstance().getTotalStats(cItem);
+            lore.add("<glyph:sword_icon> " + ChatColor.GRAY + "Gear Score: "
+                    + ChatColor.LIGHT_PURPLE + ChatColor.BOLD + gearScore);
         }
 
         // --- Stats Information ---
@@ -318,9 +322,6 @@ public class ItemUtil {
             if (prefixStat == StatsManager.StatType.DEX) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
             lore.add(line);
         }
-
-        int gearScore = SalvageManager.getInstance().getTotalStats(cItem);
-        lore.add(ChatColor.GRAY + "Gear Score: " + ChatColor.LIGHT_PURPLE + ChatColor.BOLD.toString() + gearScore);
 
         lore.add("");
         if (cItem.isBroken()) {
@@ -462,7 +463,11 @@ public class ItemUtil {
         }
         lore.add(levelRequirementLine);
 
-        lore.add(""); // Blank line for spacing
+        lore.add(""); // Blank line before Gear Score
+
+        int gearScore = SalvageManager.getInstance().getTotalStats(cItem);
+        lore.add("<glyph:sword_icon> " + ChatColor.GRAY + "Gear Score: "
+                + ChatColor.LIGHT_PURPLE + ChatColor.BOLD + gearScore);
 
         // --- Stats Information ---
         String prefix = parsePrefix(cItem.getBaseName());
@@ -498,8 +503,6 @@ public class ItemUtil {
             lore.add(line);
         }
 
-        int gearScore = SalvageManager.getInstance().getTotalStats(cItem);
-        lore.add(ChatColor.GRAY + "Gear Score: " + ChatColor.LIGHT_PURPLE + ChatColor.BOLD.toString() + gearScore);
 
         lore.add(""); // Blank line before rarity
 
@@ -637,5 +640,31 @@ public class ItemUtil {
         if (target == null || source == null) return;
         target.setType(source.getType());
         target.setItemMeta(source.getItemMeta());
+    }
+
+    /**
+     * Calculate the player's total gear score by summing the stats of all
+     * equipped custom items (armor and weapons).
+     */
+    public static int calculateTotalGearScore(Player player) {
+        int total = 0;
+        ItemStack[] equip = player.getInventory().getArmorContents();
+        for (ItemStack stack : equip) {
+            if (stack != null && stack.hasItemMeta()) {
+                CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(stack);
+                if (ci != null) total += SalvageManager.getInstance().getTotalStats(ci);
+            }
+        }
+        ItemStack main = player.getInventory().getItemInMainHand();
+        if (main != null && main.hasItemMeta()) {
+            CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(main);
+            if (ci != null) total += SalvageManager.getInstance().getTotalStats(ci);
+        }
+        ItemStack off = player.getInventory().getItemInOffHand();
+        if (off != null && off.hasItemMeta()) {
+            CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(off);
+            if (ci != null) total += SalvageManager.getInstance().getTotalStats(ci);
+        }
+        return total;
     }
 }
