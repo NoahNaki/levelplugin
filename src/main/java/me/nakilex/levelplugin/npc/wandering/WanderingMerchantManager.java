@@ -8,10 +8,12 @@ import me.nakilex.levelplugin.salvage.managers.SalvageManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.EntityType;
-import org.bukkit.entity.TraderLlama;
-import org.bukkit.entity.WanderingTrader;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.TraderLlama;
+import net.citizensnpcs.api.CitizensAPI;
+import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.*;
@@ -22,18 +24,22 @@ import java.util.*;
  */
 public class WanderingMerchantManager {
     private final Main plugin;
-    private WanderingTrader merchant;
+    private NPC merchant;
     private TraderLlama llama1;
     private TraderLlama llama2;
     private WanderingMerchantGUI gui;
     private long lastSpawn = 0L;
+    private long lastDamage = 0L;
+    private java.util.UUID lastAttacker;
+    private org.bukkit.scheduler.BukkitTask fleeTask;
+    private org.bukkit.scheduler.BukkitTask followTask;
 
     public WanderingMerchantManager(Main plugin) {
         this.plugin = plugin;
     }
 
     public boolean isActive() {
-        return merchant != null && !merchant.isDead();
+        return merchant != null && merchant.isSpawned();
     }
 
     public void spawnNear(Player player) {
@@ -46,13 +52,27 @@ public class WanderingMerchantManager {
     }
 
     private void spawn(Location loc, Player player) {
-        merchant = (WanderingTrader) loc.getWorld().spawnEntity(loc, EntityType.WANDERING_TRADER);
-        merchant.setCustomName(ChatColor.GOLD + "Wandering Merchant");
-        merchant.setCustomNameVisible(true);
+        merchant = CitizensAPI.getNPCRegistry().createNPC(EntityType.WANDERING_TRADER, ChatColor.GOLD + "Wandering Merchant");
+        merchant.spawn(loc);
+        merchant.getEntity().setCustomName(ChatColor.GOLD + "Wandering Merchant");
+        merchant.getEntity().setCustomNameVisible(true);
         llama1 = (TraderLlama) loc.getWorld().spawnEntity(loc, EntityType.TRADER_LLAMA);
         llama2 = (TraderLlama) loc.getWorld().spawnEntity(loc, EntityType.TRADER_LLAMA);
-        llama1.setLeashHolder(merchant);
-        llama2.setLeashHolder(merchant);
+        llama1.setLeashHolder(merchant.getEntity());
+        llama2.setLeashHolder(merchant.getEntity());
+        followTask = new org.bukkit.scheduler.BukkitRunnable() {
+            @Override
+            public void run() {
+                if (!isActive()) { cancel(); return; }
+                org.bukkit.Location mLoc = merchant.getEntity().getLocation();
+                if (llama1 != null && llama1.getLocation().distanceSquared(mLoc) > 25) {
+                    llama1.teleport(mLoc);
+                }
+                if (llama2 != null && llama2.getLocation().distanceSquared(mLoc) > 25) {
+                    llama2.teleport(mLoc);
+                }
+            }
+        }.runTaskTimer(plugin, 20L, 20L);
         createShop(player);
         lastSpawn = System.currentTimeMillis();
     }
@@ -77,16 +97,73 @@ public class WanderingMerchantManager {
         if (gui != null) gui.closeAll();
     }
 
+    public void damage(Player attacker) {
+        closeShop();
+        startFlee(attacker);
+    }
+
+    public void recordHit() {
+        lastDamage = System.currentTimeMillis();
+    }
+
+    public void startFlee(Player attacker) {
+        if (merchant == null || llama1 == null) return;
+        lastAttacker = attacker.getUniqueId();
+        lastDamage = System.currentTimeMillis();
+
+        // mount merchant on llama
+        if (!llama1.getPassengers().contains(merchant.getEntity())) {
+            llama1.addPassenger(merchant.getEntity());
+        }
+
+        // make llama fast
+        if (llama1.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED) != null) {
+            llama1.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(0.45);
+        }
+
+        if (fleeTask != null) fleeTask.cancel();
+        fleeTask = new org.bukkit.scheduler.BukkitRunnable() {
+            @Override
+            public void run() {
+                if (!isActive()) { cancel(); return; }
+                if (System.currentTimeMillis() - lastDamage > 5_000L) {
+                    Player p = lastAttacker != null ? Bukkit.getPlayer(lastAttacker) : null;
+                    if (p != null) p.sendMessage(ChatColor.GRAY + "The wandering merchant has disappeared!");
+                    despawn();
+                    cancel();
+                    return;
+                }
+
+                Player damager = Bukkit.getPlayer(lastAttacker);
+                if (damager == null || !damager.isOnline()) return;
+
+                org.bukkit.util.Vector dir = llama1.getLocation().toVector().subtract(damager.getLocation().toVector()).normalize();
+                org.bukkit.util.Vector velocity = dir.multiply(0.45);
+                double currentY = llama1.getVelocity().getY();
+                velocity.setY(Math.min(currentY, 0.6));
+                llama1.setVelocity(velocity);
+
+                // teleport llama if too far from merchant (shouldn't happen when mounted)
+            }
+        }.runTaskTimer(plugin, 1L, 1L);
+    }
+
 
     public void despawn() {
-        if (merchant != null) { merchant.remove(); merchant = null; }
+        if (merchant != null) {
+            if (merchant.isSpawned()) merchant.despawn();
+            merchant.destroy();
+            merchant = null;
+        }
         if (llama1 != null) { llama1.remove(); llama1 = null; }
         if (llama2 != null) { llama2.remove(); llama2 = null; }
         if (gui != null) { gui.closeAll(); gui = null; }
+        if (followTask != null) { followTask.cancel(); followTask = null; }
+        if (fleeTask != null) { fleeTask.cancel(); fleeTask = null; }
     }
 
     public long getLastSpawn() { return lastSpawn; }
 
-    public WanderingTrader getMerchant() { return merchant; }
+    public NPC getMerchant() { return merchant; }
     public WanderingMerchantGUI getGui() { return gui; }
 }
