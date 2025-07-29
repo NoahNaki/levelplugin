@@ -1,7 +1,5 @@
 package me.nakilex.levelplugin.npc.wandering;
 
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -17,15 +15,9 @@ public class WanderingMerchantListener implements Listener {
         this.manager = manager;
     }
 
-    private boolean isMerchantNPC(NPC npc) {
-        return npc != null && manager.isActive() && npc.equals(manager.getMerchant());
-    }
-
     @EventHandler
     public void onRightClick(PlayerInteractEntityEvent e) {
-        if (!CitizensAPI.getNPCRegistry().isNPC(e.getRightClicked())) return;
-        NPC npc = CitizensAPI.getNPCRegistry().getNPC(e.getRightClicked());
-        if (manager.isActive() && npc.equals(manager.getMerchant())) {
+        if (manager.isActive() && e.getRightClicked().getUniqueId().equals(manager.getMerchant().getUniqueId())) {
             e.setCancelled(true);
             manager.openShop(e.getPlayer());
         }
@@ -34,14 +26,13 @@ public class WanderingMerchantListener implements Listener {
     @EventHandler
     public void onDamage(EntityDamageByEntityEvent e) {
         if (!manager.isActive()) return;
-        if (!e.getEntity().getUniqueId().equals(manager.getMerchant().getEntity().getUniqueId())) return;
-        Player damager = (e.getDamager() instanceof Player p) ? p : null;
-        manager.handleDamage(damager);
+        if (!e.getEntity().getUniqueId().equals(manager.getMerchant().getUniqueId())) return;
+        manager.closeShop();
     }
 
     @EventHandler
     public void onDeath(EntityDeathEvent e) {
-        if (manager.isActive() && e.getEntity().getUniqueId().equals(manager.getMerchant().getEntity().getUniqueId())) {
+        if (manager.isActive() && e.getEntity().getUniqueId().equals(manager.getMerchant().getUniqueId())) {
             for (WanderingMerchantOffer of : manager.getGui().getOffers()) {
                 if (of.getStock() > 0) {
                     e.getDrops().add(of.getItem());
