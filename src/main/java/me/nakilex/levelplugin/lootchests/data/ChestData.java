@@ -12,9 +12,10 @@ import java.util.Optional;
 
 public class ChestData {
 
-    private static final String WORLD_NAME = "MmoRPG";
+    private static final String DEFAULT_WORLD = "MmoRPG";
 
     private final int chestId;
+    private final String worldName;
     private final double x;
     private final double y;
     private final double z;
@@ -26,7 +27,12 @@ public class ChestData {
 
 
     public ChestData(int chestId, double x, double y, double z, int tier) {
+        this(chestId, DEFAULT_WORLD, x, y, z, tier);
+    }
+
+    public ChestData(int chestId, String worldName, double x, double y, double z, int tier) {
         this.chestId = chestId;
+        this.worldName = worldName;
         this.x = x;
         this.y = y;
         this.z = z;
@@ -36,6 +42,10 @@ public class ChestData {
 
     public int getChestId() {
         return chestId;
+    }
+
+    public String getWorldName() {
+        return worldName;
     }
 
     public int getTier() {
@@ -69,7 +79,7 @@ public class ChestData {
 
 
     public Location toLocation() {
-        World world = Bukkit.getWorld(WORLD_NAME);
+        World world = Bukkit.getWorld(worldName);
         if (world == null) return null;
         return new Location(world, x, y, z);
     }

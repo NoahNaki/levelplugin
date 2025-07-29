@@ -41,7 +41,9 @@ public class DungeonListGUI implements Listener {
             ItemMeta meta = item.getItemMeta();
             if (meta != null) {
                 meta.setDisplayName(ChatColor.AQUA + display);
-                meta.setLore(List.of(ChatColor.GRAY + "Left-click to play"));
+                int threat = manager.getThreatLevel(key);
+                meta.setLore(List.of(ChatColor.GRAY + "Left-click to play",
+                        ChatColor.DARK_RED + "Threat Level: " + threat));
                 meta.setLocalizedName(key);
                 item.setItemMeta(meta);
             }

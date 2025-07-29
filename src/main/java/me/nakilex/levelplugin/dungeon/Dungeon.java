@@ -17,10 +17,12 @@ public class Dungeon {
         public final Location center;
         public final int minX, minY, minZ, maxX, maxY, maxZ;
         public final String mob;
+        public final java.util.List<Location> chests;
         public RoomInstance(RoomTemplate template, int rotation, Location center,
                             int minX, int minY, int minZ,
                             int maxX, int maxY, int maxZ,
-                            String mob) {
+                            String mob,
+                            java.util.List<Location> chests) {
             this.template = template;
             this.rotation = rotation;
             this.center = center;
@@ -31,6 +33,7 @@ public class Dungeon {
             this.maxY = maxY;
             this.maxZ = maxZ;
             this.mob = mob;
+            this.chests = chests == null ? java.util.List.of() : chests;
         }
 
         public boolean contains(Location loc) {

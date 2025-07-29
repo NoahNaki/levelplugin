@@ -27,11 +27,13 @@ public class DungeonManager {
     private final Map<String, Dungeon> dungeons = new HashMap<>();
     private final Map<String, DungeonLayout> layouts = new HashMap<>();
     private final Map<String, String> layoutDisplay = new HashMap<>();
+    private final Map<String, Integer> layoutThreat = new HashMap<>();
     private java.io.File layoutFile;
     private org.bukkit.configuration.file.FileConfiguration layoutConfig;
     /** Guard asynchronous layout saves. */
     private final Object saveLock = new Object();
     private final DungeonBuilder builder;
+    private final me.nakilex.levelplugin.lootchests.managers.LootChestManager lootChestManager;
 
     /**
      * Normalize a dungeon name for storage/lookup.
@@ -73,8 +75,9 @@ public class DungeonManager {
 
     private final Map<World, Instance> instances = new HashMap<>();
 
-    public DungeonManager(Main plugin) {
+    public DungeonManager(Main plugin, me.nakilex.levelplugin.lootchests.managers.LootChestManager lootChestManager) {
         this.plugin = plugin;
+        this.lootChestManager = lootChestManager;
         loadTemplates();
         loadLayouts();
         this.builder = new DungeonBuilder(this);
@@ -349,6 +352,7 @@ public class DungeonManager {
         }
 
         Map<Location, BlockData> replaced = preview ? new HashMap<>() : Map.of();
+        java.util.List<Location> chestLocs = new java.util.ArrayList<>();
 
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
             Material mat = b.data.getMaterial();
@@ -362,6 +366,10 @@ public class DungeonManager {
             if (preview) replaced.put(l, world.getBlockAt(wx, wy, wz).getBlockData());
             BlockData data = RoomTemplate.rotateBlockData(b.data, rotation);
             world.getBlockAt(wx, wy, wz).setBlockData(data, false);
+            Material placed = data.getMaterial();
+            if (placed == Material.CHEST || placed == Material.TRAPPED_CHEST) {
+                chestLocs.add(l);
+            }
             if (b.profile != null) {
                 var state = world.getBlockAt(wx, wy, wz).getState();
                 if (state instanceof Skull skull) {
@@ -395,7 +403,7 @@ public class DungeonManager {
             }
         }
         Dungeon.RoomInstance inst = new Dungeon.RoomInstance(template, rotation, center.clone(),
-                minX, minY, minZ, maxX, maxY, maxZ, mob);
+                minX, minY, minZ, maxX, maxY, maxZ, mob, chestLocs);
         dungeon.addRoom(inst);
         return new PasteResult(true, overlap, replaced, inst);
     }
@@ -477,6 +485,10 @@ public class DungeonManager {
         return layoutDisplay.getOrDefault(normalizeKey(key), key);
     }
 
+    public int getThreatLevel(String key) {
+        return layoutThreat.getOrDefault(normalizeKey(key), 1);
+    }
+
     private void loadLayouts() {
         layoutFile = new java.io.File(plugin.getDataFolder(), "dungeons.yml");
         if (!layoutFile.exists()) {
@@ -511,12 +523,15 @@ public class DungeonManager {
                     layout.setTemplate(x, y, t);
                     layout.setRotation(x, y, rot);
                     layout.setMob(x, y, mob);
+                    int threat = cell.getInt("threat", 0);
+                    layout.setThreat(x, y, threat);
                     layout.setOffset(x, y, offX, offZ);
                 }
             }
             String key = normalizeKey(rawKey);
             layouts.put(key, layout);
             layoutDisplay.put(key, display);
+            layoutThreat.put(key, layout.getMaxThreat());
         }
     }
 
@@ -574,10 +589,12 @@ public class DungeonManager {
                     cell.set("template", t.name());
                     cell.set("rotation", rot);
                     if (mob != null) cell.set("mob", mob);
+                    cell.set("threat", layout.getThreat(x, y));
                     cell.set("offsetX", offX);
                     cell.set("offsetZ", offZ);
                 }
             }
+            layoutThreat.put(key, layout.getMaxThreat());
         }
 
         long built = System.currentTimeMillis();
@@ -653,6 +670,8 @@ public class DungeonManager {
                     cancel();
                     player.sendMessage(ChatColor.GRAY + "[Debug] Pasted rooms in "
                             + (System.currentTimeMillis() - pasteStart) + "ms");
+                    int tier = getThreatLevel(keyName);
+                    spawnLootChests(dungeon, tier, inst);
                     return;
                 }
                 BuildTask t = tasks.get(idx++);
@@ -706,6 +725,7 @@ public class DungeonManager {
                 pasteRoom(dungeon, templ, rotation, center, mob, false);
             }
         }
+        spawnLootChests(dungeon, getThreatLevel(key), null);
         dungeons.put(key, dungeon);
         player.sendMessage(ChatColor.GRAY + "[Debug] Spawned in "
                 + (System.currentTimeMillis() - debugStart) + "ms");
@@ -745,6 +765,7 @@ public class DungeonManager {
         final Dungeon dungeon;
         final String layout;
         final Map<java.util.UUID, Location> returnLocations = new HashMap<>();
+        final java.util.List<Integer> chestIds = new java.util.ArrayList<>();
         Instance(Dungeon d, String layout) { this.dungeon = d; this.layout = layout; }
     }
 
@@ -801,9 +822,23 @@ public class DungeonManager {
     }
 
     private void removeWorld(World world) {
-        instances.remove(world);
+        Instance inst = instances.remove(world);
+        if (inst != null) {
+            for (int id : inst.chestIds) {
+                lootChestManager.removeChest(id);
+            }
+        }
         Bukkit.unloadWorld(world, false);
         deleteDir(world.getWorldFolder());
+    }
+
+    private void spawnLootChests(Dungeon dungeon, int tier, Instance inst) {
+        for (Dungeon.RoomInstance r : dungeon.getRooms()) {
+            for (Location l : r.chests) {
+                int id = lootChestManager.createAndSpawnChest(l, tier);
+                if (inst != null) inst.chestIds.add(id);
+            }
+        }
     }
 
     private record Point(int x, int z) {

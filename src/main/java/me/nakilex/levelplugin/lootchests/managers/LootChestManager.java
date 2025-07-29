@@ -141,6 +141,18 @@ public class LootChestManager {
         startParticleTask(data.getChestId(), loc, data.getTier(), data);
     }
 
+    /**
+     * Convenience for dynamic chests. Generates a new ID, adds the data list
+     * and spawns the crate at the provided location.
+     */
+    public int createAndSpawnChest(Location loc, int tier) {
+        int id = chestDataList.stream().mapToInt(ChestData::getChestId).max().orElse(0) + 1;
+        ChestData data = new ChestData(id, loc.getWorld().getName(), loc.getX(), loc.getY(), loc.getZ(), tier);
+        chestDataList.add(data);
+        spawnChest(data);
+        return id;
+    }
+
 
     public Location getLocationForChestId(int chestId) {
         return spawnedChests.get(chestId);

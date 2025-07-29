@@ -10,6 +10,7 @@ public class DungeonLayout {
     private final TemplateType[][] templates = new TemplateType[WIDTH][HEIGHT];
     private final int[][] rotation = new int[WIDTH][HEIGHT];
     private final String[][] mobs = new String[WIDTH][HEIGHT];
+    private final int[][] threat = new int[WIDTH][HEIGHT];
     private final int[][] offsetX = new int[WIDTH][HEIGHT];
     private final int[][] offsetZ = new int[WIDTH][HEIGHT];
     private int step = 0;
@@ -21,6 +22,7 @@ public class DungeonLayout {
                 templates[x][y] = TemplateType.NONE;
                 rotation[x][y] = 0;
                 mobs[x][y] = null;
+                threat[x][y] = 0;
                 offsetX[x][y] = 0;
                 offsetZ[x][y] = 0;
             }
@@ -67,6 +69,16 @@ public class DungeonLayout {
         mobs[x][y] = mob;
     }
 
+    public int getThreat(int x, int y) {
+        if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return 0;
+        return threat[x][y];
+    }
+
+    public void setThreat(int x, int y, int level) {
+        if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return;
+        threat[x][y] = level;
+    }
+
     public int getOffsetX(int x, int y) {
         if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return 0;
         return offsetX[x][y];
@@ -89,6 +101,17 @@ public class DungeonLayout {
 
     public void setStep(int step) {
         this.step = step;
+    }
+
+    /** Return the highest threat level among all cells. */
+    public int getMaxThreat() {
+        int max = 0;
+        for (int x = 0; x < WIDTH; x++) {
+            for (int y = 0; y < HEIGHT; y++) {
+                if (threat[x][y] > max) max = threat[x][y];
+            }
+        }
+        return max;
     }
 
     public boolean hasEntrance() {

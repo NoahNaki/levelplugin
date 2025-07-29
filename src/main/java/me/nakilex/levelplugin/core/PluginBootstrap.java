@@ -260,7 +260,7 @@ public class PluginBootstrap {
         motdManager = new me.nakilex.levelplugin.motd.MotdManager(plugin);
         fakeBlockManager = new me.nakilex.levelplugin.fakeblock.FakeBlockManager();
         questGateManager = new me.nakilex.levelplugin.fakeblock.QuestGateManager(plugin, fakeBlockManager);
-        dungeonManager = new me.nakilex.levelplugin.dungeon.DungeonManager(plugin);
+        dungeonManager = new me.nakilex.levelplugin.dungeon.DungeonManager(plugin, lootChestManager);
         dungeonManager.cleanupOldInstanceWorlds();
         dungeonListGUI = new me.nakilex.levelplugin.dungeon.gui.DungeonListGUI(dungeonManager);
         townStageManager = new me.nakilex.levelplugin.environment.stage.TownStageManager(plugin);

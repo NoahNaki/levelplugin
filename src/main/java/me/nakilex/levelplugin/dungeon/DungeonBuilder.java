@@ -754,6 +754,9 @@ public class DungeonBuilder implements Listener {
                 layout.setRotation(lx, lz, r.rotation);
                 if (type == RoomType.COMBAT) {
                     layout.setMob(lx, lz, r.mob);
+                    int power = me.nakilex.levelplugin.mob.utils.CombatPowerUtil.estimateCombatPower(r.mob);
+                    int threat = me.nakilex.levelplugin.mob.utils.ThreatUtil.levelForPower(power);
+                    layout.setThreat(lx, lz, threat);
                 }
                 layout.setOffset(lx, lz, diffX, diffZ);
             }

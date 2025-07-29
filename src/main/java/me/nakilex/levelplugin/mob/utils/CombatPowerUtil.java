@@ -35,6 +35,24 @@ public final class CombatPowerUtil {
         return (int) Math.round(power);
     }
 
+    /**
+     * Spawn the given MythicMob template briefly to estimate its combat power.
+     * The spawned entity is removed immediately after evaluation.
+     *
+     * @param mobName MythicMob internal name
+     * @return estimated combat power or 0 if the mob could not be spawned
+     */
+    public static int estimateCombatPower(String mobName) {
+        var opt = io.lumine.mythic.bukkit.MythicBukkit.inst()
+                .getMobManager().getMythicMob(mobName);
+        if (opt.isEmpty()) return 0;
+        org.bukkit.Location loc = org.bukkit.Bukkit.getWorlds().get(0).getSpawnLocation();
+        ActiveMob mob = opt.get().spawn(loc, 1.0);
+        int power = getCombatPower(mob);
+        mob.getEntity().getBukkitEntity().remove();
+        return power;
+    }
+
     private static Attribute resolve(String generic, String fallback) {
         try {
             return Attribute.valueOf(generic);
