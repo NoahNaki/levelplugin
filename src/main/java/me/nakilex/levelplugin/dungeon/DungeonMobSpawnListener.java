@@ -4,6 +4,7 @@ import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.mob.utils.MythicMobModifier;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import java.io.File;
 import org.bukkit.event.EventHandler;
@@ -56,7 +57,7 @@ public class DungeonMobSpawnListener implements Listener {
         Double move = null;
         Double atk = null;
         if (config.isConfigurationSection("rooms." + key)) {
-            FileConfiguration sec = config.getConfigurationSection("rooms." + key);
+            ConfigurationSection sec = config.getConfigurationSection("rooms." + key);
             count = sec.getInt("count", 5);
             hp = sec.getDouble("hp", Double.NaN);
             if (Double.isNaN(hp)) hp = null;

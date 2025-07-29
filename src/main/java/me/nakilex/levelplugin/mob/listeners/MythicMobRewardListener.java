@@ -14,7 +14,7 @@ import me.nakilex.levelplugin.mob.utils.RewardHologramUtil;
 import me.nakilex.levelplugin.party.Party;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
-import me.nakilex.levelplugin.utils.ItemUtil;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 import org.bukkit.Location;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
