@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.items.utils;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.tools.ToolTier;
+import me.nakilex.levelplugin.salvage.managers.SalvageManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.player.mining.managers.MiningManager;
@@ -318,6 +319,9 @@ public class ItemUtil {
             lore.add(line);
         }
 
+        int gearScore = SalvageManager.getInstance().getTotalStats(cItem);
+        lore.add(ChatColor.GRAY + "Gear Score: " + ChatColor.LIGHT_PURPLE + ChatColor.BOLD.toString() + gearScore);
+
         lore.add("");
         if (cItem.isBroken()) {
             lore.add(ChatColor.GRAY + "Durability: " + ChatColor.RED + ChatColor.BOLD + "BROKEN");
@@ -493,6 +497,9 @@ public class ItemUtil {
             if (prefixStat == StatsManager.StatType.DEX) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
             lore.add(line);
         }
+
+        int gearScore = SalvageManager.getInstance().getTotalStats(cItem);
+        lore.add(ChatColor.GRAY + "Gear Score: " + ChatColor.LIGHT_PURPLE + ChatColor.BOLD.toString() + gearScore);
 
         lore.add(""); // Blank line before rarity
 
