@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.mob.utils;
 
 import io.lumine.mythic.core.mobs.ActiveMob;
+import io.lumine.mythic.bukkit.BukkitAdapter;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.LivingEntity;
 
@@ -47,7 +48,7 @@ public final class CombatPowerUtil {
                 .getMobManager().getMythicMob(mobName);
         if (opt.isEmpty()) return 0;
         org.bukkit.Location loc = org.bukkit.Bukkit.getWorlds().get(0).getSpawnLocation();
-        ActiveMob mob = opt.get().spawn(loc, 1.0);
+        ActiveMob mob = opt.get().spawn(BukkitAdapter.adapt(loc), 1.0);
         int power = getCombatPower(mob);
         mob.getEntity().getBukkitEntity().remove();
         return power;
