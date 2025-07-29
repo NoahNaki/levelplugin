@@ -26,32 +26,58 @@ public final class MythicMobModifier {
      * @param attackSpeed attack speed override
      * @return spawned {@link ActiveMob} or {@code null} if the mob template wasn't found
      */
-    public static ActiveMob spawnModifiedMob(
-            String mobName,
-            Location loc,
-            Double hp,
-            Double damage,
-            Double moveSpeed,
-            Double attackSpeed
-    ) {
-        if (MythicBukkit.inst().getMobManager().getMythicMob(mobName).isEmpty()) {
+public static ActiveMob spawnModifiedMob(
+        String mobName,
+        Location loc,
+        Double hp,
+        Double damage,
+        Double moveSpeed,
+        Double attackSpeed
+) {
+    if (MythicBukkit.inst().getMobManager().getMythicMob(mobName).isEmpty()) {
+        return null;
+    }
+    ActiveMob active = MythicBukkit.inst().getMobManager().spawnMob(mobName, loc, 1.0);
+    LivingEntity entity = (LivingEntity) active.getEntity().getBukkitEntity();
+
+    if (hp != null) {
+        Attribute attr = resolve("GENERIC_MAX_HEALTH", "MAX_HEALTH");
+        if (attr != null && entity.getAttribute(attr) != null) {
+            entity.getAttribute(attr).setBaseValue(hp);
+        }
+        entity.setHealth(hp);
+    }
+    if (damage != null) {
+        Attribute attr = resolve("GENERIC_ATTACK_DAMAGE", "ATTACK_DAMAGE");
+        if (attr != null && entity.getAttribute(attr) != null) {
+            entity.getAttribute(attr).setBaseValue(damage);
+        }
+    }
+    if (moveSpeed != null) {
+        Attribute attr = resolve("GENERIC_MOVEMENT_SPEED", "MOVEMENT_SPEED");
+        if (attr != null && entity.getAttribute(attr) != null) {
+            entity.getAttribute(attr).setBaseValue(moveSpeed);
+        }
+    }
+    if (attackSpeed != null) {
+        Attribute attr = resolve("GENERIC_ATTACK_SPEED", "ATTACK_SPEED");
+        if (attr != null && entity.getAttribute(attr) != null) {
+            entity.getAttribute(attr).setBaseValue(attackSpeed);
+        }
+    }
+
+    return active;
+}
+
+private static Attribute resolve(String generic, String fallback) {
+    try {
+        return Attribute.valueOf(generic);
+    } catch (IllegalArgumentException ex) {
+        try {
+            return Attribute.valueOf(fallback);
+        } catch (IllegalArgumentException ignore) {
             return null;
         }
-        ActiveMob active = MythicBukkit.inst().getMobManager().spawnMob(mobName, loc, 1.0);
-        LivingEntity entity = (LivingEntity) active.getEntity().getBukkitEntity();
-        if (hp != null) {
-            entity.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(hp);
-            entity.setHealth(hp);
-        }
-        if (damage != null && entity.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE) != null) {
-            entity.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE).setBaseValue(damage);
-        }
-        if (moveSpeed != null && entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED) != null) {
-            entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(moveSpeed);
-        }
-        if (attackSpeed != null && entity.getAttribute(Attribute.GENERIC_ATTACK_SPEED) != null) {
-            entity.getAttribute(Attribute.GENERIC_ATTACK_SPEED).setBaseValue(attackSpeed);
-        }
-        return active;
     }
+}
 }
