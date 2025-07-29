@@ -11,6 +11,7 @@ import me.nakilex.levelplugin.mob.config.ModelSetManager;
 import me.nakilex.levelplugin.mob.utils.DropDisplayToggles;
 import me.nakilex.levelplugin.mob.utils.ItemDropper;
 import me.nakilex.levelplugin.mob.utils.RewardHologramUtil;
+import me.nakilex.levelplugin.mob.utils.CombatPowerUtil;
 import me.nakilex.levelplugin.party.Party;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
@@ -22,6 +23,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.ChatColor;
 
 import java.util.Collections;
 import java.util.Set;
@@ -107,6 +109,8 @@ public class MythicMobRewardListener implements Listener {
                 String expLabel = net.md_5.bungee.api.ChatColor.of("#47b587") + "EXP";
                 player.sendMessage("§7You earned §f+" + awardedExp + " <glyph:experience_orb_icon> " + expLabel
                         + " §7and §f+" + coins + " <glyph:coins_icon> §6coins");
+                int power = CombatPowerUtil.getCombatPower(mythicMob);
+                player.sendMessage(ChatColor.DARK_AQUA + "Combat Power: " + ChatColor.AQUA + power);
             }
         }
     }
