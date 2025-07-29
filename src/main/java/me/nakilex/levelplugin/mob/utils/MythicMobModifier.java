@@ -40,7 +40,7 @@ public final class MythicMobModifier {
             return null;
         }
         ActiveMob active = MythicBukkit.inst().getMobManager().spawnMob(mobName, loc, 1.0);
-        LivingEntity entity = active.getEntity().getBukkitEntity();
+        LivingEntity entity = (LivingEntity) active.getEntity().getBukkitEntity();
         if (hp != null) {
             entity.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(hp);
             entity.setHealth(hp);
