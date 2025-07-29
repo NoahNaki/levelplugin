@@ -7,6 +7,8 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.TraderLlama;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 
 /** Handles interactions with the wandering merchant NPC. */
@@ -52,6 +54,11 @@ public class WanderingMerchantListener implements Listener {
                 }
             }
             manager.despawn();
+        }
+        // handle llama deaths so fleeing can still work
+        Entity entity = e.getEntity();
+        if (entity instanceof TraderLlama llama) {
+            manager.handleLlamaDeath(llama);
         }
     }
 }

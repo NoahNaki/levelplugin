@@ -33,6 +33,21 @@ public class WanderingMerchantManager {
     private java.util.UUID lastAttacker;
     private org.bukkit.scheduler.BukkitTask fleeTask;
     private org.bukkit.scheduler.BukkitTask followTask;
+    private TraderLlama ensureLlama() {
+        if (llama1 != null && llama1.isValid()) return llama1;
+        // attempt to reuse second llama if alive
+        if (llama2 != null && llama2.isValid()) {
+            llama1 = llama2;
+            llama2 = null;
+        } else if (merchant != null && merchant.isSpawned()) {
+            llama1 = (TraderLlama) merchant.getEntity().getWorld()
+                    .spawnEntity(merchant.getEntity().getLocation(), EntityType.TRADER_LLAMA);
+            llama1.setLeashHolder(merchant.getEntity());
+        } else {
+            llama1 = null;
+        }
+        return llama1;
+    }
 
     public WanderingMerchantManager(Main plugin) {
         this.plugin = plugin;
@@ -54,6 +69,7 @@ public class WanderingMerchantManager {
     private void spawn(Location loc, Player player) {
         merchant = CitizensAPI.getNPCRegistry().createNPC(EntityType.WANDERING_TRADER, ChatColor.GOLD + "Wandering Merchant");
         merchant.spawn(loc);
+        merchant.setProtected(false);
         merchant.getEntity().setCustomName(ChatColor.GOLD + "Wandering Merchant");
         merchant.getEntity().setCustomNameVisible(true);
         llama1 = (TraderLlama) loc.getWorld().spawnEntity(loc, EntityType.TRADER_LLAMA);
@@ -65,10 +81,10 @@ public class WanderingMerchantManager {
             public void run() {
                 if (!isActive()) { cancel(); return; }
                 org.bukkit.Location mLoc = merchant.getEntity().getLocation();
-                if (llama1 != null && llama1.getLocation().distanceSquared(mLoc) > 25) {
+                if (llama1 != null && llama1.isValid() && llama1.getLocation().distanceSquared(mLoc) > 25) {
                     llama1.teleport(mLoc);
                 }
-                if (llama2 != null && llama2.getLocation().distanceSquared(mLoc) > 25) {
+                if (llama2 != null && llama2.isValid() && llama2.getLocation().distanceSquared(mLoc) > 25) {
                     llama2.teleport(mLoc);
                 }
             }
@@ -106,8 +122,21 @@ public class WanderingMerchantManager {
         lastDamage = System.currentTimeMillis();
     }
 
+    /** Called when one of the companion llamas dies */
+    public void handleLlamaDeath(TraderLlama llama) {
+        if (llama == null) return;
+        if (llama.equals(llama1)) {
+            llama1 = null;
+        }
+        if (llama.equals(llama2)) {
+            llama2 = null;
+        }
+    }
+
     public void startFlee(Player attacker) {
-        if (merchant == null || llama1 == null) return;
+        if (merchant == null) return;
+        ensureLlama();
+        if (llama1 == null) return;
         lastAttacker = attacker.getUniqueId();
         lastDamage = System.currentTimeMillis();
 
