@@ -4,6 +4,7 @@ import com.nexomc.nexo.api.NexoFurniture;
 import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
+import me.nakilex.levelplugin.dungeon.DungeonManager;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -17,15 +18,18 @@ public class LootChestCloseListener implements Listener {
 
     private final LootChestManager lootChestManager;
     private final EconomyManager economyManager;
+    private final DungeonManager dungeonManager;
     private final Random random = new Random();
 
     // e.g. 40% chance to find coins
     private static final double COIN_CHANCE = 0.4;
 
     public LootChestCloseListener(LootChestManager lootChestManager,
-                                  EconomyManager economyManager) {
+                                  EconomyManager economyManager,
+                                  DungeonManager dungeonManager) {
         this.lootChestManager = lootChestManager;
         this.economyManager = economyManager;
+        this.dungeonManager = dungeonManager;
     }
 
     @EventHandler
@@ -72,6 +76,9 @@ public class LootChestCloseListener implements Listener {
                 " was closed. Removing crate & starting cooldown."
         );
         lootChestManager.removeChest(chestId);
-        lootChestManager.getCooldownManager().startChestCooldown(chestId);
+
+        if (!dungeonManager.isInstanceWorld(loc.getWorld())) {
+            lootChestManager.getCooldownManager().startChestCooldown(chestId);
+        }
     }
 }

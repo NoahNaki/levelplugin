@@ -10,6 +10,7 @@ import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.TraderLlama;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.attribute.Attribute;
 
 /** Handles interactions with the wandering merchant NPC. */
 public class WanderingMerchantListener implements Listener {
@@ -37,6 +38,14 @@ public class WanderingMerchantListener implements Listener {
         NPC npc = CitizensAPI.getNPCRegistry().getNPC(e.getEntity());
         if (npc.getId() != manager.getMerchant().getId()) return;
         manager.recordHit();
+
+        if (e.getEntity() instanceof org.bukkit.entity.LivingEntity le) {
+            var attr = le.getAttribute(org.bukkit.attribute.Attribute.GENERIC_MAX_HEALTH);
+            if (attr != null) {
+                e.setDamage(attr.getValue() * 0.10);
+            }
+        }
+
         if (e.getDamager() instanceof Player p) {
             manager.damage(p);
         }

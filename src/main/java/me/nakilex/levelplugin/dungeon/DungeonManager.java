@@ -76,6 +76,11 @@ public class DungeonManager {
 
     private final Map<World, Instance> instances = new HashMap<>();
 
+    /** Return true if the given world is an active dungeon instance. */
+    public boolean isInstanceWorld(World world) {
+        return instances.containsKey(world);
+    }
+
     public DungeonManager(Main plugin, me.nakilex.levelplugin.lootchests.managers.LootChestManager lootChestManager) {
         this.plugin = plugin;
         this.lootChestManager = lootChestManager;
@@ -660,6 +665,15 @@ public class DungeonManager {
         instances.put(world, inst);
         world.setDifficulty(org.bukkit.Difficulty.NORMAL);
         world.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, true);
+
+        final boolean prevAllowFlight = player.getAllowFlight();
+        final boolean prevFlying = player.isFlying();
+        final boolean prevInvul = player.isInvulnerable();
+
+        player.setAllowFlight(true);
+        player.setFlying(true);
+        player.setInvulnerable(true);
+
         player.teleport(origin);
 
         new org.bukkit.scheduler.BukkitRunnable() {
@@ -673,6 +687,13 @@ public class DungeonManager {
                             + (System.currentTimeMillis() - pasteStart) + "ms");
                     int tier = getThreatLevel(keyName);
                     spawnLootChests(dungeon, tier, inst);
+
+                    // restore player state once world is ready
+                    if (player.isOnline()) {
+                        player.setInvulnerable(prevInvul);
+                        player.setAllowFlight(prevAllowFlight);
+                        player.setFlying(prevAllowFlight && prevFlying);
+                    }
                     return;
                 }
                 BuildTask t = tasks.get(idx++);
