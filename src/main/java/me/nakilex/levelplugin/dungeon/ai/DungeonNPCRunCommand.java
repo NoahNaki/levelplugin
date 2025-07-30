@@ -44,7 +44,7 @@ public class DungeonNPCRunCommand implements CommandExecutor {
         npc.setProtected(false);
         addSentinelTrait(npc);
         DungeonMobSpawnListener listener = new DungeonMobSpawnListener(dungeonManager, plugin);
-        DungeonNPCRunner runner = new DungeonNPCRunner(npc, dungeon, dungeonManager, listener, hire ? player : null, debug);
+        DungeonNPCController runner = new DungeonNPCController(npc, dungeon, dungeonManager, listener, hire ? player : null, debug);
         runner.start(plugin);
         if (runner.getRouteLength() <= 1) {
             player.sendMessage(ChatColor.RED + "NPC could not find a path.");

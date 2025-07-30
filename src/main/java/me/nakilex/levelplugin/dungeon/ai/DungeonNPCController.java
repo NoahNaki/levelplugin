@@ -26,7 +26,7 @@ import java.util.ArrayList;
  * Simple controller that moves an NPC along the path returned by
  * {@link DungeonPathfinder} and triggers dungeon mob spawns while moving.
  */
-public class DungeonNPCRunner extends BukkitRunnable {
+public class DungeonNPCController extends BukkitRunnable {
     private final NPC npc;
     private final List<Location> route;
     private final Dungeon dungeon;
@@ -40,8 +40,8 @@ public class DungeonNPCRunner extends BukkitRunnable {
     private boolean finished = false;
     private final EconomyManager economy;
 
-    private static final java.util.Map<Integer, DungeonNPCRunner> RUNNERS = new java.util.HashMap<>();
-    private static final java.util.Map<java.util.UUID, DungeonNPCRunner> BY_OWNER = new java.util.HashMap<>();
+    private static final java.util.Map<Integer, DungeonNPCController> RUNNERS = new java.util.HashMap<>();
+    private static final java.util.Map<java.util.UUID, DungeonNPCController> BY_OWNER = new java.util.HashMap<>();
 
     private final boolean debugRun;
 
@@ -60,8 +60,10 @@ public class DungeonNPCRunner extends BukkitRunnable {
     private Location chestTarget;
     private int index = 0;
     private Location last;
+    private int idleTicks = 0;
+    private int attackCooldown = 0;
 
-    public DungeonNPCRunner(NPC npc, Dungeon dungeon, DungeonManager manager,
+    public DungeonNPCController(NPC npc, Dungeon dungeon, DungeonManager manager,
                             DungeonMobSpawnListener listener, Player owner,
                             boolean debugRun) {
         this.npc = npc;
@@ -122,6 +124,7 @@ public class DungeonNPCRunner extends BukkitRunnable {
         Location current = npc.getEntity().getLocation();
         if (last != null) spawnListener.handleMove(npc.getEntity(), last, current);
         last = current;
+        if (attackCooldown > 0) attackCooldown--;
         // ---- Hostile mobs ----
         if (hostileTarget != null) {
             if (!hostileTarget.isValid() || hostileTarget.isDead() ||
@@ -129,8 +132,17 @@ public class DungeonNPCRunner extends BukkitRunnable {
                 debug("Lost hostile target");
                 hostileTarget = null;
             } else {
-                npc.getNavigator().setTarget(hostileTarget, true);
-                debug("Chasing hostile " + hostileTarget.getType());
+                double d = hostileTarget.getLocation().distanceSquared(current);
+                if (d <= 4) {
+                    if (attackCooldown == 0) {
+                        hostileTarget.damage(6.0, npc.getEntity());
+                        debug("Attacked hostile " + hostileTarget.getType());
+                        attackCooldown = 20;
+                    }
+                } else {
+                    npc.getNavigator().setTarget(hostileTarget, true);
+                    debug("Chasing hostile " + hostileTarget.getType());
+                }
                 return;
             }
         }
@@ -145,16 +157,19 @@ public class DungeonNPCRunner extends BukkitRunnable {
 
         // ---- Nearby chests ----
         if (chestTarget != null) {
-            if (current.distanceSquared(chestTarget) < 4) {
+            Integer id = lootChestManager.getChestIdAtLocation(chestTarget);
+            if (id == null) {
+                chestLocations.remove(chestTarget);
+                chestTarget = null;
+            } else if (current.distanceSquared(chestTarget) < 4) {
                 debug("Looting chest at " + chestTarget.getBlockX() + "," + chestTarget.getBlockY() + "," + chestTarget.getBlockZ());
                 lootChest(chestTarget);
                 chestLocations.remove(chestTarget);
                 chestTarget = null;
             } else {
-                if (!npc.getNavigator().isNavigating()) {
-                    npc.getNavigator().setTarget(chestTarget);
-                }
+                npc.getNavigator().setTarget(chestTarget);
                 debug("Moving to chest at " + chestTarget.getBlockX() + "," + chestTarget.getBlockY() + "," + chestTarget.getBlockZ());
+                checkStuck(chestTarget);
                 return;
             }
         }
@@ -172,6 +187,15 @@ public class DungeonNPCRunner extends BukkitRunnable {
         if (!npc.getNavigator().isNavigating()) {
             npc.getNavigator().setTarget(target);
             debug("Navigating to path index " + index);
+            idleTicks = 0;
+        } else {
+            idleTicks++;
+            if (idleTicks > 40) {
+                debug("Teleporting to waypoint due to being stuck");
+                npc.teleport(target);
+                npc.getNavigator().setTarget(target);
+                idleTicks = 0;
+            }
         }
         if (current.distanceSquared(target) < 1.5) {
             index++;
@@ -233,6 +257,20 @@ public class DungeonNPCRunner extends BukkitRunnable {
         return new java.util.Random().nextInt(max - min + 1) + min;
     }
 
+    private void checkStuck(Location target) {
+        if (npc.getNavigator().isNavigating()) {
+            idleTicks++;
+            if (idleTicks > 40) {
+                debug("Teleporting to target due to navigation stall");
+                npc.teleport(target);
+                npc.getNavigator().setTarget(target);
+                idleTicks = 0;
+            }
+        } else {
+            idleTicks = 0;
+        }
+    }
+
     private void finish() {
         finished = true;
         this.cancel();
@@ -245,8 +283,8 @@ public class DungeonNPCRunner extends BukkitRunnable {
         }
     }
 
-    public static DungeonNPCRunner getRunner(NPC npc) { return RUNNERS.get(npc.getId()); }
-    public static DungeonNPCRunner getRunner(java.util.UUID owner) { return BY_OWNER.get(owner); }
+    public static DungeonNPCController getRunner(NPC npc) { return RUNNERS.get(npc.getId()); }
+    public static DungeonNPCController getRunner(java.util.UUID owner) { return BY_OWNER.get(owner); }
 
     public void openLootGUI(Player player) {
         org.bukkit.inventory.Inventory inv = org.bukkit.Bukkit.createInventory(null, 27, org.bukkit.ChatColor.DARK_GREEN + "NPC Loot");
