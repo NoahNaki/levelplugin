@@ -20,6 +20,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.HeadUtil;
 
 import java.util.*;
 import java.awt.Point;
@@ -32,6 +33,14 @@ import java.awt.Point;
 public class DungeonBuilder implements Listener {
     private final DungeonManager manager;
     private final Map<UUID, Session> sessions = new HashMap<>();
+
+    private static final String HEAD_CHEST_DECOR = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvN2UyZWI0NzUxZTNjNTBkNTBmZjE2MzUyNTc2NjYzZDhmZWRmZTNlMDRiMmYwYjhhMmFhODAzYjQxOTM2M2NhMSJ9fX0=";
+    private static final String HEAD_STONE_DECOR = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMmQ0NDU0NDQ5NmVlMGFkMjc0MzE4ODQxZGZlMWViNjk0ZDA1NDA4MGQxMTJlMTMyYmVjOWU1ODM5YjJlNzYwMiJ9fX0=";
+    private static final String HEAD_LIBRARY = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNDdhMzc0ZTIxYjgxYzBiMjFhYmViOGU5N2UxM2UwNzdkM2VkMWVkNDRmMmU5NTZjNjhmNjNhM2UxOWU4OTlmNiJ9fX0=";
+    private static final String HEAD_EXIT = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZTkzYjhkYzkzZjAxODY2MGFhOTI1NmI5MWJiNzcwY2JjYmNjNjJhZTYxZTdhNjcxYzc1ZGM1NDQ1NjljMWE3OCJ9fX0=";
+    private static final String HEAD_TREASURE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZWM2ZTYwNGJkNTNkOTc4ODc1OTVhMDYyYjdjNTEyY2E0ZGJiZmU0OGJiNGFkY2VmNzEyNWQxZGIxMDNhYjdmZiJ9fX0=";
+    private static final String HEAD_BOSS = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNzI2NzQzYjk5ODljNTlkNjI5NmVmZGE3NDhlNGVjNjc4YmNlNWQwN2FlODhmZmFjNzM3MmM0NTVjNmMyMDJhMiJ9fX0=";
+    private static final String HEAD_COMBAT = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYzdkMjlkYmYzZDk4MjEzZWMyZmIwY2EyNWRhNzQ3NzllNTdiZDBjMTIzNDI2OGY4MjhhM2VjOTg2OWUxNWE5YyJ9fX0=";
 
     public DungeonBuilder(DungeonManager manager) {
         this.manager = manager;
@@ -538,14 +547,14 @@ public class DungeonBuilder implements Listener {
 
         ItemStack basic = item(Material.YELLOW_WOOL, ChatColor.YELLOW + "Basic Room");
         ItemStack hall = item(Material.BROWN_WOOL, ChatColor.YELLOW + "Hallway");
-        ItemStack treasureLeft = item(Material.GOLD_BLOCK, ChatColor.GOLD + "Treasure Room Left");
-        ItemStack treasureTRight = item(Material.GOLD_BLOCK, ChatColor.GOLD + "Treasure Room T-Section Right");
-        ItemStack decorStone = item(Material.STONE, ChatColor.GRAY + "Decor Stone Room");
-        ItemStack decorChest = item(Material.CHEST, ChatColor.YELLOW + "Decor Chest Room");
-        ItemStack boss = item(Material.BLACK_WOOL, ChatColor.DARK_GRAY + "Boss Room");
-        ItemStack combat = item(Material.RED_WOOL, ChatColor.RED + "Combat Room");
-        ItemStack exitRoom = item(Material.OBSIDIAN, ChatColor.DARK_PURPLE + "Exit Room");
-        ItemStack library = item(Material.BOOKSHELF, ChatColor.GOLD + "Library");
+        ItemStack treasureLeft = head(HEAD_TREASURE, ChatColor.GOLD + "Treasure Room Left");
+        ItemStack treasureTRight = head(HEAD_TREASURE, ChatColor.GOLD + "Treasure Room T-Section Right");
+        ItemStack decorStone = head(HEAD_STONE_DECOR, ChatColor.GRAY + "Decor Stone Room");
+        ItemStack decorChest = head(HEAD_CHEST_DECOR, ChatColor.YELLOW + "Decor Chest Room");
+        ItemStack boss = head(HEAD_BOSS, ChatColor.DARK_GRAY + "Boss Room");
+        ItemStack combat = head(HEAD_COMBAT, ChatColor.RED + "Combat Room");
+        ItemStack exitRoom = head(HEAD_EXIT, ChatColor.DARK_PURPLE + "Exit Room");
+        ItemStack library = head(HEAD_LIBRARY, ChatColor.GOLD + "Library");
         ItemMeta cMeta = combat.getItemMeta();
         if (cMeta != null) {
             cMeta.setLore(Arrays.asList(ChatColor.WHITE + "Left-click to place",
@@ -639,6 +648,10 @@ public class DungeonBuilder implements Listener {
         if (im != null) im.setDisplayName(name);
         is.setItemMeta(im);
         return is;
+    }
+
+    private ItemStack head(String base64, String name) {
+        return HeadUtil.createCustomHead(base64, name, null);
     }
 
     private Direction rotate(Direction dir, int rot) {
