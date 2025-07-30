@@ -161,6 +161,9 @@ public class PluginBootstrap {
     private MeteorListener meteorListener;
     private me.nakilex.levelplugin.codex.CodexManager codexManager;
     private me.nakilex.levelplugin.codex.CodexMainGUI codexGUI;
+    private me.nakilex.levelplugin.codex.CodexGUI mobGUI;
+    private me.nakilex.levelplugin.codex.LocationCodexGUI locGUI;
+    private me.nakilex.levelplugin.codex.NPCCodexGUI npcGUI;
     private me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager wanderingMerchantManager;
 
     public PluginBootstrap(Main plugin) {
@@ -189,9 +192,9 @@ public class PluginBootstrap {
         }
         mobRewardsConfig = new MobRewardsConfig(plugin);
         codexManager = new me.nakilex.levelplugin.codex.CodexManager(playerConfig, mobRewardsConfig, bossConfig);
-        me.nakilex.levelplugin.codex.CodexGUI mobGUI = new me.nakilex.levelplugin.codex.CodexGUI(codexManager, null);
-        me.nakilex.levelplugin.codex.LocationCodexGUI locGUI = new me.nakilex.levelplugin.codex.LocationCodexGUI(codexManager, null);
-        me.nakilex.levelplugin.codex.NPCCodexGUI npcGUI = new me.nakilex.levelplugin.codex.NPCCodexGUI(codexManager, null);
+        mobGUI = new me.nakilex.levelplugin.codex.CodexGUI(codexManager, null);
+        locGUI = new me.nakilex.levelplugin.codex.LocationCodexGUI(codexManager, null);
+        npcGUI = new me.nakilex.levelplugin.codex.NPCCodexGUI(codexManager, null);
         codexGUI = new me.nakilex.levelplugin.codex.CodexMainGUI(locGUI, npcGUI, mobGUI);
         mobGUI.setMainGUI(codexGUI);
         locGUI.setMainGUI(codexGUI);
