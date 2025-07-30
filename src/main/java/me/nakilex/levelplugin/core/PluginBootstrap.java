@@ -188,7 +188,22 @@ public class PluginBootstrap {
         }
         mobRewardsConfig = new MobRewardsConfig(plugin);
         codexManager = new me.nakilex.levelplugin.codex.CodexManager(playerConfig, mobRewardsConfig, bossConfig);
-        codexGUI = new me.nakilex.levelplugin.codex.CodexGUI(codexManager);
+        me.nakilex.levelplugin.codex.CodexGUI mobGUI = new me.nakilex.levelplugin.codex.CodexGUI(codexManager, null);
+        me.nakilex.levelplugin.codex.LocationCodexGUI locGUI = new me.nakilex.levelplugin.codex.LocationCodexGUI(codexManager, null);
+        me.nakilex.levelplugin.codex.NPCCodexGUI npcGUI = new me.nakilex.levelplugin.codex.NPCCodexGUI(codexManager, null);
+        codexGUI = new me.nakilex.levelplugin.codex.CodexMainGUI(locGUI, npcGUI, mobGUI);
+        mobGUI.setMainGUI(codexGUI);
+        locGUI.setMainGUI(codexGUI);
+        npcGUI.setMainGUI(codexGUI);
+        java.util.Set<String> npcNames = new java.util.HashSet<>();
+        for (Integer id : questManager.getNpcQuestMap().keySet()) {
+            net.citizensnpcs.api.npc.NPC n = net.citizensnpcs.api.CitizensAPI.getNPCRegistry().getById(id);
+            if (n != null) npcNames.add(org.bukkit.ChatColor.stripColor(n.getName()));
+        }
+        codexManager.registerNpcKeys(npcNames);
+        java.util.Set<String> locNames = new java.util.HashSet<>();
+        for (var pt : fastTravelManager.getPoints()) locNames.add(pt.getName());
+        codexManager.registerLocationKeys(locNames);
         registerCommandsAndListeners();
         new ItemsBrowser(plugin);
         new me.nakilex.levelplugin.items.tools.gui.ToolBrowser(plugin);
@@ -351,6 +366,9 @@ public class PluginBootstrap {
             new me.nakilex.levelplugin.environment.listeners.StageBlockInteractListener(),
             wanderingMerchantManager
         );
+        plugin.getServer().getPluginManager().registerEvents(mobGUI, plugin);
+        plugin.getServer().getPluginManager().registerEvents(locGUI, plugin);
+        plugin.getServer().getPluginManager().registerEvents(npcGUI, plugin);
         plugin.getServer().getPluginManager().registerEvents(beaconManager, plugin);
         TaskRegistry.startTasks(plugin, horseConfigManager, horseManager, wanderingMerchantManager);
     }

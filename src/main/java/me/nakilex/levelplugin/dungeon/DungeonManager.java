@@ -112,6 +112,9 @@ public class DungeonManager {
     public RoomTemplate getExit() { return exit; }
     public int getStep() { return step; }
     public Main getPlugin() { return plugin; }
+    public me.nakilex.levelplugin.lootchests.managers.LootChestManager getLootChestManager() {
+        return lootChestManager;
+    }
 
     /** Return the template instance for the given identifier. */
     public RoomTemplate getTemplate(TemplateType type) {
@@ -726,17 +729,27 @@ public class DungeonManager {
     }
 
     public boolean playDungeon(Player player, String name) {
+        long debugStart = System.currentTimeMillis();
+        Dungeon dungeon = spawnDungeon(player.getLocation(), name);
+        if (dungeon == null) return false;
+        player.sendMessage(ChatColor.GRAY + "[Debug] Spawned in "
+                + (System.currentTimeMillis() - debugStart) + "ms");
+        return true;
+    }
+
+    /**
+     * Spawn a dungeon layout at the given origin location.
+     * @return created Dungeon or null if layout was not found
+     */
+    public Dungeon spawnDungeon(Location origin, String name) {
         String key = normalizeKey(name);
         DungeonLayout layout = getLayout(name);
-        if (layout == null) return false;
-        long debugStart = System.currentTimeMillis();
-        Location origin = player.getLocation();
-        Dungeon dungeon = new Dungeon(player.getWorld(), key);
+        if (layout == null) return null;
+        Dungeon dungeon = new Dungeon(origin.getWorld(), key);
         for (int x = 0; x < DungeonLayout.WIDTH; x++) {
             for (int y = 0; y < DungeonLayout.HEIGHT; y++) {
                 RoomType type = layout.get(x, y);
                 if (type == RoomType.NONE) continue;
-
                 RoomTemplate templ = getTemplate(layout.getTemplate(x, y));
                 int rotation = layout.getRotation(x, y);
                 int diffX = layout.getOffsetX(x, y);
@@ -748,9 +761,7 @@ public class DungeonManager {
         }
         spawnLootChests(dungeon, getThreatLevel(key), null);
         dungeons.put(key, dungeon);
-        player.sendMessage(ChatColor.GRAY + "[Debug] Spawned in "
-                + (System.currentTimeMillis() - debugStart) + "ms");
-        return true;
+        return dungeon;
     }
 
     public DungeonBuilder getBuilder() { return builder; }

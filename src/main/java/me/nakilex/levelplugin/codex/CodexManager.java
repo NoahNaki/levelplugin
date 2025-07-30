@@ -13,6 +13,8 @@ public class CodexManager {
     private final PlayerConfig playerConfig;
     private final Set<String> mobKeys;
     private final Set<String> bossKeys;
+    private final Set<String> npcKeys = new java.util.HashSet<>();
+    private final Set<String> locationKeys = new java.util.HashSet<>();
 
     public CodexManager(PlayerConfig playerConfig,
                         MobRewardsConfig mobCfg,
@@ -26,22 +28,61 @@ public class CodexManager {
                 : Collections.emptySet();
     }
 
-    public void recordKill(Player player, String key) {
+    /* ----- Registration of known NPCs and Locations ----- */
+
+    public void registerNpcKeys(java.util.Collection<String> keys) {
+        npcKeys.addAll(keys);
+    }
+
+    public void registerLocationKeys(java.util.Collection<String> keys) {
+        locationKeys.addAll(keys);
+    }
+
+    /* ----- Generic record helpers ----- */
+
+    private void record(Player player, String category, String key) {
         UUID id = player.getUniqueId();
-        String path = "players." + id + ".codex.mobs." + key.toLowerCase() + ".kills";
-        int kills = playerConfig.getConfig().getInt(path, 0);
-        if (kills == 0) {
+        String path = "players." + id + ".codex." + category + "." + key.toLowerCase();
+        boolean first = !playerConfig.getConfig().getBoolean(path, false);
+        playerConfig.getConfig().set(path, true);
+        if (first) {
             player.sendTitle(ChatColor.GOLD + "CODEX UPDATED",
                              ChatColor.YELLOW + key + " discovered",
                              10, 40, 10);
         }
-        playerConfig.getConfig().set(path, kills + 1);
+    }
+
+    public void recordKill(Player player, String key) {
+        String killsPath = "players." + player.getUniqueId() + ".codex.mobs." + key.toLowerCase() + ".kills";
+        int kills = playerConfig.getConfig().getInt(killsPath, 0) + 1;
+        playerConfig.getConfig().set(killsPath, kills);
+        record(player, "mobs", key);
+        playerConfig.saveConfigFile();
+    }
+
+    public void recordNpc(Player player, String name) {
+        record(player, "npcs", name);
+        playerConfig.saveConfigFile();
+    }
+
+    public void recordLocation(Player player, String name) {
+        record(player, "locations", name);
         playerConfig.saveConfigFile();
     }
 
     public boolean hasDiscovered(UUID id, String key) {
         String path = "players." + id + ".codex.mobs." + key.toLowerCase() + ".kills";
         return playerConfig.getConfig().contains(path);
+    }
+
+    public boolean hasDiscoveredNpc(UUID id, String name) {
+        String path = "players." + id + ".codex.npcs." + name.toLowerCase();
+        return playerConfig.getConfig().getBoolean(path, false);
+    }
+
+    public boolean hasDiscoveredLocation(UUID id, String name) {
+        String path = "players." + id + ".codex.locations." + name.toLowerCase();
+        return playerConfig.getConfig().getBoolean(path, false);
     }
 
     public int getKillCount(UUID id, String key) {
@@ -55,9 +96,24 @@ public class CodexManager {
         return playerConfig.getConfig().getConfigurationSection(base).getKeys(false).size();
     }
 
+    public int getDiscoveredNpcCount(UUID id) {
+        String base = "players." + id + ".codex.npcs";
+        if (!playerConfig.getConfig().isConfigurationSection(base)) return 0;
+        return playerConfig.getConfig().getConfigurationSection(base).getKeys(false).size();
+    }
+
+    public int getDiscoveredLocationCount(UUID id) {
+        String base = "players." + id + ".codex.locations";
+        if (!playerConfig.getConfig().isConfigurationSection(base)) return 0;
+        return playerConfig.getConfig().getConfigurationSection(base).getKeys(false).size();
+    }
+
     public int getTotalMobCount() {
         return mobKeys.size() + bossKeys.size();
     }
+
+    public int getTotalNpcCount() { return npcKeys.size(); }
+    public int getTotalLocationCount() { return locationKeys.size(); }
 
     public List<String> getAllMobKeys() {
         List<String> all = new ArrayList<>();
@@ -65,6 +121,9 @@ public class CodexManager {
         all.addAll(bossKeys);
         return all;
     }
+
+    public java.util.List<String> getAllNpcKeys() { return new java.util.ArrayList<>(npcKeys); }
+    public java.util.List<String> getAllLocationKeys() { return new java.util.ArrayList<>(locationKeys); }
 
     /* ----- Essence Management ----- */
 

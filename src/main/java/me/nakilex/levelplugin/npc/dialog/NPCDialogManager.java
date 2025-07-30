@@ -122,7 +122,8 @@ public class NPCDialogManager implements Listener {
         }
         player.setInvulnerable(true);
         player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20 * 60, 4, false, false, false));
-        DialogSession session = new DialogSession(quest, lines, npc, null);
+        DialogSession session = new DialogSession(quest, lines, npc, () ->
+                Main.getInstance().getCodexManager().recordNpc(player, ChatColor.stripColor(npc.getName())));
         sessions.put(player.getUniqueId(), session);
         sendLine(player, session);
     }
@@ -135,7 +136,11 @@ public class NPCDialogManager implements Listener {
         }
         player.setInvulnerable(true);
         player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20 * 60, 4, false, false, false));
-        DialogSession session = new DialogSession(null, lines, npc, finish);
+        Runnable wrap = () -> {
+            if (finish != null) finish.run();
+            Main.getInstance().getCodexManager().recordNpc(player, ChatColor.stripColor(npc.getName()));
+        };
+        DialogSession session = new DialogSession(null, lines, npc, wrap);
         sessions.put(player.getUniqueId(), session);
         sendLine(player, session);
     }

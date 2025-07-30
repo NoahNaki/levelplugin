@@ -108,6 +108,6 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.calendar.CalendarManager getCalendarManager() { return bootstrap.getCalendarManager(); }
     public me.nakilex.levelplugin.cutscene.CutsceneManager getCutsceneManager() { return bootstrap.getCutsceneManager(); }
     public CodexManager getCodexManager() { return bootstrap.getCodexManager(); }
-    public CodexGUI getCodexGUI() { return bootstrap.getCodexGUI(); }
+    public me.nakilex.levelplugin.codex.CodexMainGUI getCodexGUI() { return bootstrap.getCodexGUI(); }
     public me.nakilex.levelplugin.dungeon.gui.DungeonListGUI getDungeonListGUI() { return bootstrap.getDungeonListGUI(); }
 }

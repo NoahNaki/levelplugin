@@ -32,13 +32,18 @@ public class DungeonMobSpawnListener implements Listener {
 
     @EventHandler
     public void onMove(PlayerMoveEvent event) {
-        Player player = event.getPlayer();
-        Location to = event.getTo();
-        Location from = event.getFrom();
-        if (to == null || (to.getBlockX() == from.getBlockX() && to.getBlockZ() == from.getBlockZ())) return;
+        handleMove(event.getPlayer(), event.getFrom(), event.getTo());
+    }
+
+    /**
+     * Check if an entity moved into a room and spawn its mobs if needed.
+     */
+    public void handleMove(org.bukkit.entity.Entity entity, Location from, Location to) {
+        if (to == null || from == null) return;
+        if (to.getBlockX() == from.getBlockX() && to.getBlockZ() == from.getBlockZ()) return;
 
         for (Dungeon dungeon : manager.getActiveDungeons()) {
-            if (!dungeon.getRooms().isEmpty() && !player.getWorld().equals(dungeon.getRooms().get(0).center.getWorld())) continue;
+            if (!dungeon.getRooms().isEmpty() && !entity.getWorld().equals(dungeon.getRooms().get(0).center.getWorld())) continue;
             for (Dungeon.RoomInstance room : dungeon.getRooms()) {
                 if (room.mob == null || triggered.contains(room)) continue;
                 if (room.contains(to)) {
