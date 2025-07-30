@@ -98,13 +98,14 @@ public class DungeonNPCCommand implements CommandExecutor {
 
         Dungeon.RoomInstance start = dungeon.getRoomContaining(loc);
         int step = plugin.getDungeonManager().getStep();
-        List<Dungeon.RoomInstance> rooms = DungeonPathfinder.findPath(
+        List<Dungeon.RoomInstance> tmp = DungeonPathfinder.findPath(
                 dungeon, step, start,
                 r -> r.template == plugin.getDungeonManager().getExit());
-        if (rooms.isEmpty()) {
-            rooms = new ArrayList<>(dungeon.getRooms());
-            rooms.sort(Comparator.comparingDouble(r -> r.center.distanceSquared(loc)));
+        if (tmp.isEmpty()) {
+            tmp = new ArrayList<>(dungeon.getRooms());
+            tmp.sort(Comparator.comparingDouble(r -> r.center.distanceSquared(loc)));
         }
+        final List<Dungeon.RoomInstance> rooms = tmp;
 
         task = new BukkitRunnable() {
             int idx = 0;
