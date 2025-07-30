@@ -51,7 +51,6 @@ import me.nakilex.levelplugin.friend.FriendGlowCommand;
 import me.nakilex.levelplugin.codex.CodexGUI;
 import me.nakilex.levelplugin.codex.CodexCommand;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantCommand;
-import me.nakilex.levelplugin.dungeon.ai.DungeonNPCRunCommand;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.horse.managers.HorseManager;
@@ -164,7 +163,6 @@ public class CommandRegistry {
         plugin.getCommand("codex").setExecutor(new CodexCommand(codexGUI));
         plugin.getCommand("wm").setExecutor(new WanderingMerchantCommand(wmManager));
 
-        plugin.getCommand("dungeonnpc").setExecutor(new DungeonNPCRunCommand(plugin));
 
         plugin.getCommand("cutscene").setExecutor(new me.nakilex.levelplugin.cutscene.commands.CutsceneCommand(plugin.getCutsceneManager()));
         plugin.getCommand("dungeon").setExecutor(new me.nakilex.levelplugin.dungeon.DungeonCommand(plugin));

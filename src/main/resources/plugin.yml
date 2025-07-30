@@ -5,7 +5,6 @@ author: Nakilex
 api-version: 1.19
 description: A simple MMORPG leveling system plugin for Minecraft
 depend: [ProtocolLib, Citizens, Vault, MythicMobs, PlaceholderAPI, Nexo]
-softdepend: [Sentinel]
 
 commands:
   addpoints:
@@ -227,8 +226,5 @@ commands:
   wm:
     description: Spawn or despawn the wandering merchant
     usage: /wm <spawn|despawn>
-  dungeonnpc:
-    description: Spawn an NPC to clear a dungeon
-    usage: /dungeonnpc [hire|debug]
 
 

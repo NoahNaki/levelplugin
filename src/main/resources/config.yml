@@ -7,7 +7,6 @@ features:
 debug:
   chunk-loading: false
   mythic-skill-damage: false
-  dungeon-npc: false
 
 # Tips configuration
 tips:
