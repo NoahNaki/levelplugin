@@ -94,6 +94,8 @@ public class DungeonNPCCommand implements CommandExecutor {
         npc = CitizensAPI.getNPCRegistry().createNPC(EntityType.PLAYER, ChatColor.GRAY + "Helper");
         npc.spawn(loc);
         npc.setProtected(false);
+        // slightly faster movement so progress through rooms is noticeable
+        npc.getNavigator().getLocalParameters().speedModifier(1.2);
         configureSentinel(npc);
 
         Dungeon.RoomInstance start = dungeon.getRoomContaining(loc);
@@ -125,7 +127,9 @@ public class DungeonNPCCommand implements CommandExecutor {
                 if (npc.getEntity().getLocation().distanceSquared(target) < 4) {
                     idx++;
                 } else {
-                    npc.getNavigator().setTarget(target);
+                    if (!npc.getNavigator().isNavigating()) {
+                        npc.getNavigator().setTarget(target, true);
+                    }
                 }
             }
         };

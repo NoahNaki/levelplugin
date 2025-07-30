@@ -58,7 +58,12 @@ public class WanderingMerchantManager {
     }
 
     public void spawnNear(Player player) {
+        // only spawn in the main world and never inside dungeons
         if (isActive()) return;
+        if (!"world".equals(player.getWorld().getName())) return;
+        var dm = plugin.getDungeonManager();
+        if (dm != null && dm.isInstanceWorld(player.getWorld())) return;
+
         Location base = player.getLocation().clone();
         base.add(player.getLocation().getDirection().multiply(-8));
         base.getWorld().getChunkAtAsync(base).thenRun(() -> {
