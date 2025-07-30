@@ -56,7 +56,8 @@ public class RoomTemplate {
 
     private final List<BlockDef> blocks;
     private final List<Connector> connectors;
-    private final List<Marker> portals;
+    /** Locations marked with magenta wool blocks for boss spawns. */
+    private final List<Marker> spawns;
     private final List<Marker> exits;
     private final int width, height, depth;
     private final int minY;
@@ -64,11 +65,11 @@ public class RoomTemplate {
     private final double centerX, centerZ;
 
     public RoomTemplate(List<BlockDef> blocks, List<Connector> connectors,
-                        List<Marker> portals, List<Marker> exits,
+                        List<Marker> spawns, List<Marker> exits,
                         int width, int height, int depth, int minY) {
         this.blocks = blocks;
         this.connectors = connectors;
-        this.portals = portals;
+        this.spawns = spawns;
         this.exits = exits;
         this.width = width;
         this.height = height;
@@ -90,7 +91,8 @@ public class RoomTemplate {
     public int getConnectorMinY() { return connectorMinY; }
     public double getCenterX() { return centerX; }
     public double getCenterZ() { return centerZ; }
-    public List<Marker> getPortals() { return portals; }
+    /** Return spawn markers defined in the template. */
+    public List<Marker> getSpawnMarkers() { return spawns; }
     public List<Marker> getExitMarkers() { return exits; }
 
     /**
@@ -126,7 +128,7 @@ public class RoomTemplate {
         List<BlockDef> blocks = new ArrayList<>();
         Set<Location> markerBlocks = new HashSet<>();
         Set<Location> limeBlocks = new HashSet<>();
-        List<Marker> portalMarks = new ArrayList<>();
+        List<Marker> spawnMarks = new ArrayList<>();
         List<Marker> exitMarks = new ArrayList<>();
 
         for (int x = minX; x <= maxX; x++) {
@@ -142,7 +144,7 @@ public class RoomTemplate {
                         }
                         Material mat = data.getMaterial();
                         if (mat == Material.MAGENTA_WOOL) {
-                            portalMarks.add(new Marker(x - minX, y - minY, z - minZ));
+                            spawnMarks.add(new Marker(x - minX, y - minY, z - minZ));
                         } else if (mat == Material.RED_WOOL && recordExit) {
                             exitMarks.add(new Marker(x - minX, y - minY, z - minZ));
                         } else {
@@ -204,7 +206,7 @@ public class RoomTemplate {
             connectors.add(new Connector(cx, cz, minGroupY - minY, dir, entrance));
         }
 
-        return new RoomTemplate(blocks, connectors, portalMarks, exitMarks, width, height, depth, minY);
+        return new RoomTemplate(blocks, connectors, spawnMarks, exitMarks, width, height, depth, minY);
     }
 
     /**

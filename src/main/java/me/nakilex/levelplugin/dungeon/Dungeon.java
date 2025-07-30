@@ -18,11 +18,13 @@ public class Dungeon {
         public final int minX, minY, minZ, maxX, maxY, maxZ;
         public final String mob;
         public final java.util.List<Location> chests;
+        public final java.util.List<Location> spawns;
         public RoomInstance(RoomTemplate template, int rotation, Location center,
                             int minX, int minY, int minZ,
                             int maxX, int maxY, int maxZ,
                             String mob,
-                            java.util.List<Location> chests) {
+                            java.util.List<Location> chests,
+                            java.util.List<Location> spawns) {
             this.template = template;
             this.rotation = rotation;
             this.center = center;
@@ -34,6 +36,7 @@ public class Dungeon {
             this.maxZ = maxZ;
             this.mob = mob;
             this.chests = chests == null ? java.util.List.of() : chests;
+            this.spawns = spawns == null ? java.util.List.of() : spawns;
         }
 
         public boolean contains(Location loc) {
@@ -91,14 +94,6 @@ public class Dungeon {
                         b.z - (int)Math.round(r.template.getCenterZ()), r.rotation);
                 int wx = r.center.getBlockX() + vec[0];
                 int wy = r.center.getBlockY() + (b.y - r.template.getConnectorMinY());
-                int wz = r.center.getBlockZ() + vec[1];
-                world.getBlockAt(wx, wy, wz).setType(Material.AIR, false);
-            }
-            for (RoomTemplate.Marker m : r.template.getPortals()) {
-                int[] vec = RoomTemplate.rotate(m.x - (int)Math.round(r.template.getCenterX()),
-                        m.z - (int)Math.round(r.template.getCenterZ()), r.rotation);
-                int wx = r.center.getBlockX() + vec[0];
-                int wy = r.center.getBlockY() + (m.y - r.template.getConnectorMinY());
                 int wz = r.center.getBlockZ() + vec[1];
                 world.getBlockAt(wx, wy, wz).setType(Material.AIR, false);
             }

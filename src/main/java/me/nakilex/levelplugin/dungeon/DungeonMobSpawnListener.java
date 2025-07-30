@@ -66,11 +66,21 @@ public class DungeonMobSpawnListener implements Listener {
             atk = sec.contains("attack-speed") ? sec.getDouble("attack-speed") : null;
             key = sec.getString("mob", key);
         }
-        for (int i = 0; i < count; i++) {
-            double x = room.minX + 1 + Math.random() * (room.maxX - room.minX - 1);
-            double z = room.minZ + 1 + Math.random() * (room.maxZ - room.minZ - 1);
-            Location spawn = new Location(room.center.getWorld(), x + 0.5, room.center.getY(), z + 0.5);
+        if (room.template == manager.getBoss()) {
+            Location spawn;
+            if (room.spawns.isEmpty()) {
+                spawn = room.center.clone().add(0.5, 0, 0.5);
+            } else {
+                spawn = room.spawns.get(0).clone().add(0.5, 0, 0.5);
+            }
             MythicMobModifier.spawnModifiedMob(key, spawn, hp, dmg, move, atk);
+        } else {
+            for (int i = 0; i < count; i++) {
+                double x = room.minX + 1 + Math.random() * (room.maxX - room.minX - 1);
+                double z = room.minZ + 1 + Math.random() * (room.maxZ - room.minZ - 1);
+                Location spawn = new Location(room.center.getWorld(), x + 0.5, room.center.getY(), z + 0.5);
+                MythicMobModifier.spawnModifiedMob(key, spawn, hp, dmg, move, atk);
+            }
         }
     }
 }

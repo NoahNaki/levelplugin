@@ -35,6 +35,7 @@ public class CodexListener implements Listener {
         String mobType = mob.getMobType().replaceAll("§.", "");
         if (mobCfg.getConfig().contains("mobs." + mobType)) {
             manager.recordKill(killer, mobType);
+            manager.maybeGrantEssence(killer, mobType);
             return;
         }
 
@@ -43,6 +44,7 @@ public class CodexListener implements Listener {
             for (String key : bossCfg.getConfigurationSection("mobs").getKeys(false)) {
                 if (key.equalsIgnoreCase(name)) {
                     manager.recordKill(killer, key);
+                    manager.maybeGrantEssence(killer, key);
                     break;
                 }
             }

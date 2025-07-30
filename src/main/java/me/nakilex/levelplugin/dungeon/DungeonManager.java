@@ -359,6 +359,7 @@ public class DungeonManager {
 
         Map<Location, BlockData> replaced = preview ? new HashMap<>() : Map.of();
         java.util.List<Location> chestLocs = new java.util.ArrayList<>();
+        java.util.List<Location> spawnLocs = new java.util.ArrayList<>();
 
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
             Material mat = b.data.getMaterial();
@@ -384,16 +385,14 @@ public class DungeonManager {
                 }
             }
         }
-        // place nether portals and exit holograms
-        for (RoomTemplate.Marker m : template.getPortals()) {
+        // record spawn markers for boss rooms
+        for (RoomTemplate.Marker m : template.getSpawnMarkers()) {
             int[] vec = RoomTemplate.rotate(m.x - (int) Math.round(template.getCenterX()),
                     m.z - (int) Math.round(template.getCenterZ()), rotation);
             int wx = center.getBlockX() + vec[0];
             int wy = baseY + (m.y - connectorY);
             int wz = center.getBlockZ() + vec[1];
-            Location loc = new Location(world, wx, wy, wz);
-            if (preview) replaced.put(loc, world.getBlockAt(wx, wy, wz).getBlockData());
-            world.getBlockAt(wx, wy, wz).setType(Material.NETHER_PORTAL, false);
+            spawnLocs.add(new Location(world, wx, wy, wz));
         }
         if (template == entrance) {
             for (RoomTemplate.Marker m : template.getExitMarkers()) {
@@ -409,7 +408,7 @@ public class DungeonManager {
             }
         }
         Dungeon.RoomInstance inst = new Dungeon.RoomInstance(template, rotation, center.clone(),
-                minX, minY, minZ, maxX, maxY, maxZ, mob, chestLocs);
+                minX, minY, minZ, maxX, maxY, maxZ, mob, chestLocs, spawnLocs);
         dungeon.addRoom(inst);
         return new PasteResult(true, overlap, replaced, inst);
     }
@@ -770,6 +769,13 @@ public class DungeonManager {
         return sec.getKeys(false);
     }
 
+    /** Return the set of field boss keys defined in field_bosses.yml */
+    public Set<String> getAvailableBosses() {
+        var sec = plugin.getBossConfig().getConfigurationSection("mobs");
+        if (sec == null) return Set.of();
+        return sec.getKeys(false);
+    }
+
     public Set<String> getLayoutNames() {
         return new java.util.HashSet<>(layoutDisplay.values());
     }
@@ -779,7 +785,7 @@ public class DungeonManager {
         for (RoomTemplate.Connector c : src.getConnectors()) {
             list.add(new RoomTemplate.Connector(c.x, c.z, c.bottomY, c.facing, !c.entrance));
         }
-        return new RoomTemplate(src.getBlocks(), list, src.getPortals(), src.getExitMarkers(),
+        return new RoomTemplate(src.getBlocks(), list, src.getSpawnMarkers(), src.getExitMarkers(),
                 src.getWidth(), src.getHeight(), src.getDepth(), src.getMinY());
     }
 

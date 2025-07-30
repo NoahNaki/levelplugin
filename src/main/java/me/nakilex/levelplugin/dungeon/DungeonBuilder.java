@@ -278,8 +278,7 @@ public class DungeonBuilder implements Listener {
                 } else if (item.getType() == Material.RED_WOOL) {
                     player.openInventory(createCombatVariantSelect());
                 } else if (item.getType() == Material.BLACK_WOOL) {
-                    placeVariant(s, manager.getBoss());
-                    player.closeInventory();
+                    player.openInventory(createBossSelect());
                 } else if (item.getType() == Material.OBSIDIAN) {
                     placeVariant(s, manager.getExit());
                     player.closeInventory();
@@ -334,6 +333,15 @@ public class DungeonBuilder implements Listener {
                     player.closeInventory();
                     s.selectedTemplate = null;
                 }
+            }
+            case "Select Boss" -> {
+                if (name.equalsIgnoreCase("Back")) {
+                    player.openInventory(createRoomSelect());
+                    return;
+                }
+                s.selectedMob = name;
+                placeVariant(s, manager.getBoss());
+                player.closeInventory();
             }
         }
     }
@@ -472,7 +480,7 @@ public class DungeonBuilder implements Listener {
         int[] vec = RoomTemplate.rotate(match.x - (int) Math.round(templ.getCenterX()),
                 match.z - (int) Math.round(templ.getCenterZ()), rotation);
         Location center = base.clone().subtract(vec[0], match.bottomY - templ.getConnectorMinY(), vec[1]);
-        String mob = (templ == manager.getCombatLeft() || templ == manager.getCombatRight()) ? s.selectedMob : null;
+        String mob = (templ == manager.getCombatLeft() || templ == manager.getCombatRight() || templ == manager.getBoss()) ? s.selectedMob : null;
         DungeonManager.PasteResult result = manager.pasteRoom(s.dungeon, templ, rotation, center, mob, true);
         s.player.sendMessage(ChatColor.GRAY + String.format("Overlap: %.1f%%", result.overlap() * 100));
         if (!result.success()) {
@@ -526,7 +534,7 @@ public class DungeonBuilder implements Listener {
         Inventory inv = Bukkit.createInventory(null, 27, ChatColor.DARK_GREEN + "Select Room");
 
         ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
-        for (int i = 0; i < 27; i++) inv.setItem(i, filler);
+        GuiUtil.fillBorder(inv, filler);
 
         ItemStack basic = item(Material.YELLOW_WOOL, ChatColor.YELLOW + "Basic Room");
         ItemStack hall = item(Material.BROWN_WOOL, ChatColor.YELLOW + "Hallway");
@@ -562,7 +570,7 @@ public class DungeonBuilder implements Listener {
         Inventory inv = Bukkit.createInventory(null, 27, ChatColor.DARK_GREEN + "Basic Room Variants");
 
         ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
-        for (int i = 0; i < 27; i++) inv.setItem(i, filler);
+        GuiUtil.fillBorder(inv, filler);
 
         inv.setItem(10, item(Material.RED_WOOL, ChatColor.RED + "Basic Room Dead End"));
         inv.setItem(12, item(Material.ORANGE_WOOL, ChatColor.GOLD + "Basic Room Straight"));
@@ -580,7 +588,7 @@ public class DungeonBuilder implements Listener {
         Inventory inv = Bukkit.createInventory(null, 27, ChatColor.DARK_GREEN + "Combat Variants");
 
         ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
-        for (int i = 0; i < 27; i++) inv.setItem(i, filler);
+        GuiUtil.fillBorder(inv, filler);
 
         inv.setItem(11, item(Material.GRAY_WOOL, ChatColor.GRAY + "Combat Left"));
         inv.setItem(15, item(Material.LIGHT_GRAY_WOOL, ChatColor.GRAY + "Combat Right"));
@@ -594,7 +602,25 @@ public class DungeonBuilder implements Listener {
         int size = ((mobs.size() - 1) / 9 + 1) * 9;
         Inventory inv = Bukkit.createInventory(null, size, ChatColor.DARK_GREEN + "Select Mob");
         ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
-        for (int i = 0; i < size; i++) inv.setItem(i, filler);
+        GuiUtil.fillBorder(inv, filler);
+        int idx = 0;
+        for (String m : mobs) {
+            ItemStack is = new ItemStack(Material.PAPER);
+            ItemMeta im = is.getItemMeta();
+            if (im != null) im.setDisplayName(ChatColor.WHITE + m);
+            is.setItemMeta(im);
+            inv.setItem(idx++, is);
+        }
+        inv.setItem(size - 1, GuiUtil.getNexoItem("arrow_left", ChatColor.YELLOW + "Back"));
+        return inv;
+    }
+
+    private Inventory createBossSelect() {
+        Set<String> mobs = manager.getAvailableBosses();
+        int size = ((mobs.size() - 1) / 9 + 1) * 9;
+        Inventory inv = Bukkit.createInventory(null, size, ChatColor.DARK_GREEN + "Select Boss");
+        ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
+        GuiUtil.fillBorder(inv, filler);
         int idx = 0;
         for (String m : mobs) {
             ItemStack is = new ItemStack(Material.PAPER);
@@ -752,7 +778,7 @@ public class DungeonBuilder implements Listener {
                 layout.set(lx, lz, type);
                 layout.setTemplate(lx, lz, manager.identifyTemplate(t));
                 layout.setRotation(lx, lz, r.rotation);
-                if (type == RoomType.COMBAT) {
+                if (type == RoomType.COMBAT || type == RoomType.BOSS) {
                     layout.setMob(lx, lz, r.mob);
                     int power = me.nakilex.levelplugin.mob.utils.CombatPowerUtil.estimateCombatPower(r.mob);
                     int threat = me.nakilex.levelplugin.mob.utils.ThreatUtil.levelForPower(power);

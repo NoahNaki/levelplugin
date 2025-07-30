@@ -7,6 +7,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.ChatColor;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class CodexManager {
     private final PlayerConfig playerConfig;
@@ -63,5 +64,32 @@ public class CodexManager {
         all.addAll(mobKeys);
         all.addAll(bossKeys);
         return all;
+    }
+
+    /* ----- Essence Management ----- */
+
+    public void addEssence(UUID id, String key, MobEssence essence) {
+        String path = "players." + id + ".essences." + key.toLowerCase();
+        List<Map<String,Object>> list = playerConfig.getConfig().getMapList(path);
+        if (list == null) list = new ArrayList<>();
+        list.add(essence.toMap());
+        playerConfig.getConfig().set(path, list);
+        playerConfig.saveConfigFile();
+    }
+
+    public List<MobEssence> getEssences(UUID id, String key) {
+        String path = "players." + id + ".essences." + key.toLowerCase();
+        List<Map<?,?>> list = playerConfig.getConfig().getMapList(path);
+        if (list == null) return List.of();
+        return list.stream().map(MobEssence::fromMap).collect(Collectors.toList());
+    }
+
+    /** 10% chance to generate and store a new essence on kill. */
+    public void maybeGrantEssence(Player player, String key) {
+        if (Math.random() < 0.10) {
+            MobEssence essence = MobEssence.randomEssence();
+            addEssence(player.getUniqueId(), key, essence);
+            player.sendMessage(ChatColor.LIGHT_PURPLE + "New essence discovered for " + key + "!");
+        }
     }
 }
