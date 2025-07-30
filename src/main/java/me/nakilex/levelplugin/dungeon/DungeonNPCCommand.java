@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.dungeon;
 import me.nakilex.levelplugin.Main;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
@@ -28,6 +29,20 @@ public class DungeonNPCCommand implements CommandExecutor {
 
     public DungeonNPCCommand(Main plugin) {
         this.plugin = plugin;
+    }
+
+    /**
+     * Configure Sentinel trait for the helper NPC if the plugin is available.
+     */
+    private void configureSentinel(NPC npc) {
+        if (Bukkit.getPluginManager().getPlugin("Sentinel") == null) return;
+        try {
+            Class<?> traitClass = Class.forName("org.mcmonkey.sentinel.SentinelTrait");
+            Object trait = npc.getClass().getMethod("getOrAddTrait", Class.class).invoke(npc, traitClass);
+            traitClass.getMethod("addTarget", String.class).invoke(trait, "monsters");
+        } catch (Throwable t) {
+            plugin.getLogger().warning("Failed to configure Sentinel trait: " + t.getMessage());
+        }
     }
 
     private void stop() {
@@ -78,6 +93,7 @@ public class DungeonNPCCommand implements CommandExecutor {
         npc = CitizensAPI.getNPCRegistry().createNPC(EntityType.PLAYER, ChatColor.GRAY + "Helper");
         npc.spawn(loc);
         npc.setProtected(false);
+        configureSentinel(npc);
 
         List<Dungeon.RoomInstance> rooms = new ArrayList<>(dungeon.getRooms());
         rooms.sort(Comparator.comparingDouble(r -> r.center.distanceSquared(loc)));
@@ -94,10 +110,10 @@ public class DungeonNPCCommand implements CommandExecutor {
                     cancel();
                     return;
                 }
+                clearHostiles(npc.getEntity().getLocation());
                 Dungeon.RoomInstance r = rooms.get(idx);
                 Location target = r.center.clone();
                 if (npc.getEntity().getLocation().distanceSquared(target) < 4) {
-                    clearHostiles(npc.getEntity().getLocation());
                     idx++;
                 } else {
                     npc.getNavigator().setTarget(target);
