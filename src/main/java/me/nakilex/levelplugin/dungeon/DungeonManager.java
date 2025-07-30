@@ -81,6 +81,24 @@ public class DungeonManager {
         return instances.containsKey(world);
     }
 
+    /** Get the active dungeon for the given world or null if none. */
+    public Dungeon getDungeon(World world) {
+        Instance inst = instances.get(world);
+        if (inst != null) return inst.dungeon;
+        for (Dungeon d : dungeons.values()) {
+            if (!d.getRooms().isEmpty() && d.getRooms().get(0).center.getWorld().equals(world)) {
+                return d;
+            }
+        }
+        return null;
+    }
+
+    /** Get the layout key for an instance world or null. */
+    public String getLayoutKey(World world) {
+        Instance inst = instances.get(world);
+        return inst != null ? inst.layout : null;
+    }
+
     public DungeonManager(Main plugin, me.nakilex.levelplugin.lootchests.managers.LootChestManager lootChestManager) {
         this.plugin = plugin;
         this.lootChestManager = lootChestManager;

@@ -220,6 +220,9 @@ commands:
   dungeon:
     description: Manage custom dungeons
     usage: /dungeon <create|play|delete|undo|list>
+  dungeonnpc:
+    description: Spawn an automated dungeon helper NPC
+    usage: /dungeonnpc [stop]
   codex:
     description: Open the discovery codex
     usage: /codex
