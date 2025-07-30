@@ -95,7 +95,7 @@ public class DungeonNPCCommand implements CommandExecutor {
         npc.spawn(loc);
         npc.setProtected(false);
         // slightly faster movement so progress through rooms is noticeable
-        npc.getNavigator().getLocalParameters().speedModifier(1.2);
+        npc.getNavigator().getLocalParameters().speedModifier(1.2f);
         configureSentinel(npc);
 
         Dungeon.RoomInstance start = dungeon.getRoomContaining(loc);
