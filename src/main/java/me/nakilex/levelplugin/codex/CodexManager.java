@@ -129,7 +129,9 @@ public class CodexManager {
 
     public void addEssence(UUID id, String key, MobEssence essence) {
         String path = "players." + id + ".essences." + key.toLowerCase();
-        List<Map<String,Object>> list = playerConfig.getConfig().getMapList(path);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> list = (List<Map<String, Object>>)(List<?>)
+                playerConfig.getConfig().getMapList(path);
         if (list == null) list = new ArrayList<>();
         list.add(essence.toMap());
         playerConfig.getConfig().set(path, list);
