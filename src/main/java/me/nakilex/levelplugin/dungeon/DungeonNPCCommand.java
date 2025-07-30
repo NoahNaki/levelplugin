@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.dungeon;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.dungeon.DungeonPathfinder;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
@@ -95,8 +96,15 @@ public class DungeonNPCCommand implements CommandExecutor {
         npc.setProtected(false);
         configureSentinel(npc);
 
-        List<Dungeon.RoomInstance> rooms = new ArrayList<>(dungeon.getRooms());
-        rooms.sort(Comparator.comparingDouble(r -> r.center.distanceSquared(loc)));
+        Dungeon.RoomInstance start = dungeon.getRoomContaining(loc);
+        int step = plugin.getDungeonManager().getStep();
+        List<Dungeon.RoomInstance> rooms = DungeonPathfinder.findPath(
+                dungeon, step, start,
+                r -> r.template == plugin.getDungeonManager().getExit());
+        if (rooms.isEmpty()) {
+            rooms = new ArrayList<>(dungeon.getRooms());
+            rooms.sort(Comparator.comparingDouble(r -> r.center.distanceSquared(loc)));
+        }
 
         task = new BukkitRunnable() {
             int idx = 0;
