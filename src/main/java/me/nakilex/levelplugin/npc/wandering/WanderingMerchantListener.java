@@ -40,7 +40,7 @@ public class WanderingMerchantListener implements Listener {
         manager.recordHit();
 
         if (e.getEntity() instanceof org.bukkit.entity.LivingEntity le) {
-            var attr = le.getAttribute(org.bukkit.attribute.Attribute.GENERIC_MAX_HEALTH);
+            var attr = le.getAttribute(Attribute.MAX_HEALTH);
             if (attr != null) {
                 e.setDamage(attr.getValue() * 0.10);
             }

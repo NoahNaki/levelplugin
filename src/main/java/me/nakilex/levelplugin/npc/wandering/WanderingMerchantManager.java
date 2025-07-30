@@ -146,8 +146,8 @@ public class WanderingMerchantManager {
         }
 
         // make llama fast
-        if (llama1.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED) != null) {
-            llama1.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(0.45);
+        if (llama1.getAttribute(Attribute.MOVEMENT_SPEED) != null) {
+            llama1.getAttribute(Attribute.MOVEMENT_SPEED).setBaseValue(0.45);
         }
 
         if (fleeTask != null) fleeTask.cancel();
