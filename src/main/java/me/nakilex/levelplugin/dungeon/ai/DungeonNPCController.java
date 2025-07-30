@@ -192,7 +192,7 @@ public class DungeonNPCController extends BukkitRunnable {
             idleTicks++;
             if (idleTicks > 40) {
                 debug("Teleporting to waypoint due to being stuck");
-                npc.teleport(target);
+                npc.teleport(target, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN);
                 npc.getNavigator().setTarget(target);
                 idleTicks = 0;
             }
@@ -262,7 +262,7 @@ public class DungeonNPCController extends BukkitRunnable {
             idleTicks++;
             if (idleTicks > 40) {
                 debug("Teleporting to target due to navigation stall");
-                npc.teleport(target);
+                npc.teleport(target, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN);
                 npc.getNavigator().setTarget(target);
                 idleTicks = 0;
             }
