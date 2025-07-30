@@ -72,7 +72,8 @@ public class DungeonNPCRunner extends BukkitRunnable {
         this.owner = owner;
         this.debugRun = debugRun;
         this.economy = Main.getInstance().getEconomyManager();
-        this.route = DungeonPathfinder.computePath(dungeon, manager);
+        this.route = DungeonPathfinder.computePath(dungeon, manager,
+                msg -> debug(msg));
         if (shouldDebug()) {
             StringBuilder sb = new StringBuilder();
             for (Location l : route) {
@@ -98,6 +99,8 @@ public class DungeonNPCRunner extends BukkitRunnable {
         npc.getNavigator().getDefaultParameters().speedModifier(1.5f);
         npc.getNavigator().getLocalParameters().speedModifier(1.5f);
         npc.getNavigator().setTarget(route.get(0));
+        debug("Initial target set to " + route.get(0).getBlockX() + "," +
+                route.get(0).getBlockY() + "," + route.get(0).getBlockZ());
         RUNNERS.put(npc.getId(), this);
         if (owner != null) BY_OWNER.put(owner.getUniqueId(), this);
         debug("Starting run for NPC " + npc.getId() + (owner != null ? " owner=" + owner.getName() : ""));
@@ -106,6 +109,11 @@ public class DungeonNPCRunner extends BukkitRunnable {
 
     @Override
     public void run() {
+        if (shouldDebug()) {
+            Location cur = npc.getEntity().getLocation();
+            debug("Tick: index=" + index + " pos=" + cur.getBlockX() + "," + cur.getBlockY() + "," + cur.getBlockZ() +
+                    " navigating=" + npc.getNavigator().isNavigating());
+        }
         if (index >= route.size()) {
             debug("NPC " + npc.getId() + " reached end of path");
             finish();
@@ -229,7 +237,8 @@ public class DungeonNPCRunner extends BukkitRunnable {
         finished = true;
         this.cancel();
         npc.getNavigator().cancelNavigation();
-        debug("Finished run for NPC " + npc.getId());
+        debug("Finished run for NPC " + npc.getId() + " coins=" + lootedCoins +
+                " items=" + lootedItems.size());
         if (owner == null) {
             RUNNERS.remove(npc.getId());
             npc.despawn();

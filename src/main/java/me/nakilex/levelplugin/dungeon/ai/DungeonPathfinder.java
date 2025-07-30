@@ -16,14 +16,19 @@ import java.util.*;
 public class DungeonPathfinder {
     private DungeonPathfinder() {}
 
-    public static List<Location> computePath(Dungeon dungeon, DungeonManager manager) {
+    public static List<Location> computePath(Dungeon dungeon, DungeonManager manager,
+                                             java.util.function.Consumer<String> debug) {
+        if (debug == null) debug = s -> {};
         Dungeon.RoomInstance start = null;
         Dungeon.RoomInstance end = null;
         for (Dungeon.RoomInstance r : dungeon.getRooms()) {
             if (r.template == manager.getEntrance()) start = r;
             if (r.template == manager.getExit()) end = r;
         }
-        if (start == null || end == null) return List.of();
+        if (start == null || end == null) {
+            debug.accept("Missing entrance or exit when computing path");
+            return List.of();
+        }
 
         Map<Dungeon.RoomInstance, List<Dungeon.RoomInstance>> graph = buildGraph(dungeon);
 
@@ -41,7 +46,10 @@ public class DungeonPathfinder {
                 }
             }
         }
-        if (!prev.containsKey(end)) return List.of();
+        if (!prev.containsKey(end)) {
+            debug.accept("No connector path found between entrance and exit");
+            return List.of();
+        }
 
         List<Location> route = new ArrayList<>();
         // start at the entrance center
@@ -56,6 +64,7 @@ public class DungeonPathfinder {
         route.addAll(connectors);
         // finally move to the exit center
         route.add(end.center.clone().add(0.5, 0, 0.5));
+        debug.accept("Computed route with " + route.size() + " waypoints");
         return route;
     }
 
