@@ -274,9 +274,9 @@ public class DungeonBuilder implements Listener {
                 } else if (name.equalsIgnoreCase("Decor Chest Room")) {
                     placeVariant(s, manager.getDecorChest());
                     player.closeInventory();
-                } else if (item.getType() == Material.RED_WOOL) {
+                } else if (name.equalsIgnoreCase("Combat Room")) {
                     player.openInventory(createCombatVariantSelect());
-                } else if (item.getType() == Material.BLACK_WOOL) {
+                } else if (name.equalsIgnoreCase("Boss Room")) {
                     player.openInventory(createBossSelect());
                 } else if (item.getType() == Material.OBSIDIAN) {
                     placeVariant(s, manager.getExit());

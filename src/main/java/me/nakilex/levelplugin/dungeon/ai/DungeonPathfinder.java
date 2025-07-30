@@ -44,10 +44,18 @@ public class DungeonPathfinder {
         if (!prev.containsKey(end)) return List.of();
 
         List<Location> route = new ArrayList<>();
-        for (Dungeon.RoomInstance r = end; r != null; r = prev.get(r)) {
-            route.add(r.center.clone().add(0.5, 0, 0.5));
+        // start at the entrance center
+        route.add(start.center.clone().add(0.5, 0, 0.5));
+        // build connector path from start->end
+        java.util.LinkedList<Location> connectors = new java.util.LinkedList<>();
+        for (Dungeon.RoomInstance cur = end; prev.get(cur) != null; cur = prev.get(cur)) {
+            Dungeon.RoomInstance from = prev.get(cur);
+            Location conn = connectionPointBetween(from, cur);
+            connectors.addFirst(conn);
         }
-        Collections.reverse(route);
+        route.addAll(connectors);
+        // finally move to the exit center
+        route.add(end.center.clone().add(0.5, 0, 0.5));
         return route;
     }
 
@@ -82,6 +90,22 @@ public class DungeonPathfinder {
             }
         }
         return false;
+    }
+
+    private static Location connectionPointBetween(Dungeon.RoomInstance a, Dungeon.RoomInstance b) {
+        for (RoomTemplate.Connector ca : a.template.getConnectors()) {
+            Direction da = rotate(ca.facing, a.rotation);
+            Location wa = connectorWorld(a, ca);
+            for (RoomTemplate.Connector cb : b.template.getConnectors()) {
+                Direction db = rotate(cb.facing, b.rotation);
+                if (da.opposite() != db) continue;
+                Location wb = connectorWorld(b, cb);
+                if (wa.getWorld().equals(wb.getWorld()) && wa.getBlockX() == wb.getBlockX() && wa.getBlockZ() == wb.getBlockZ()) {
+                    return wa.clone().add(0.5, 0, 0.5);
+                }
+            }
+        }
+        return a.center.clone();
     }
 
     private static Location connectorWorld(Dungeon.RoomInstance r, RoomTemplate.Connector c) {
