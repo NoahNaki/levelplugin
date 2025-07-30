@@ -101,6 +101,7 @@ public class LootChestManager {
 
     // 2) Spawn all on startup
     private void spawnAllChestsOnStartup() {
+        killAllHologramArmorStands();
         for (ChestData data : chestDataList) {
             spawnChest(data);
         }
@@ -115,6 +116,8 @@ public class LootChestManager {
             return;
         }
 
+        // Remove any lingering furniture from previous sessions
+        cleanupFurniture(loc);
         // Remove any existing block at this location
         loc.getBlock().setType(Material.AIR, false);
 
@@ -398,8 +401,7 @@ public class LootChestManager {
         }
 
         // 2) Attempt to remove the Nexo furniture at that location
-        //    The remove(...) call will find the barrier entity/display entity combo and delete them.
-        boolean removed = NexoFurniture.remove(loc);
+        boolean removed = cleanupFurniture(loc);
         if (!removed) {
             plugin.getLogger().warning("[LootChestManager] Could not remove Nexo furniture at " + loc +
                 " (ID " + chestId + "). Maybe it's already gone?");
@@ -674,5 +676,15 @@ public class LootChestManager {
         String nexo = modelSet != null ? Main.getInstance().getModelSetManager().getModelId(modelSet, newInstance.getMaterial()) : null;
         return ItemUtil.createItemStackFromCustomItem(newInstance, 1, null, nexo);
 
+    }
+
+    /**
+     * Remove any furniture at the given location using the Nexo API.
+     *
+     * @param loc block location where the furniture resides
+     * @return true if something was removed
+     */
+    private boolean cleanupFurniture(Location loc) {
+        return NexoFurniture.remove(loc);
     }
 }
