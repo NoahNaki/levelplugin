@@ -46,7 +46,11 @@ public class DungeonNPCRunCommand implements CommandExecutor {
         DungeonMobSpawnListener listener = new DungeonMobSpawnListener(dungeonManager, plugin);
         DungeonNPCRunner runner = new DungeonNPCRunner(npc, dungeon, dungeonManager, listener, hire ? player : null, debug);
         runner.start(plugin);
-        player.sendMessage(ChatColor.YELLOW + "NPC started running the dungeon.");
+        if (runner.getRouteLength() <= 1) {
+            player.sendMessage(ChatColor.RED + "NPC could not find a path.");
+        } else {
+            player.sendMessage(ChatColor.YELLOW + "NPC started running the dungeon.");
+        }
         return true;
     }
 

@@ -50,8 +50,10 @@ public class DungeonNPCRunner extends BukkitRunnable {
     }
 
     private void debug(String msg) {
-        if (shouldDebug()) {
-            Main.getInstance().getLogger().info("[NPCDebug] " + msg);
+        if (!shouldDebug()) return;
+        Main.getInstance().getLogger().info("[NPCDebug] " + msg);
+        if (owner != null) {
+            owner.sendMessage(org.bukkit.ChatColor.GRAY + "[NPCDebug] " + msg);
         }
     }
     private LivingEntity hostileTarget;
@@ -71,6 +73,13 @@ public class DungeonNPCRunner extends BukkitRunnable {
         this.debugRun = debugRun;
         this.economy = Main.getInstance().getEconomyManager();
         this.route = DungeonPathfinder.computePath(dungeon, manager);
+        if (shouldDebug()) {
+            StringBuilder sb = new StringBuilder();
+            for (Location l : route) {
+                sb.append("(").append(l.getBlockX()).append(",").append(l.getBlockY()).append(",").append(l.getBlockZ()).append(") ");
+            }
+            debug("Path: " + sb);
+        }
         for (Dungeon.RoomInstance r : dungeon.getRooms()) {
             chestLocations.addAll(r.chests);
         }
@@ -79,8 +88,11 @@ public class DungeonNPCRunner extends BukkitRunnable {
     }
 
     public void start(Main plugin) {
-        if (route.isEmpty()) {
+        if (route.size() <= 1) {
             debug("No path found for NPC " + npc.getId());
+            if (owner != null) {
+                owner.sendMessage(org.bukkit.ChatColor.RED + "NPC could not find a path and will not move.");
+            }
             return;
         }
         npc.getNavigator().getDefaultParameters().speedModifier(1.5f);
@@ -276,5 +288,10 @@ public class DungeonNPCRunner extends BukkitRunnable {
         PotionInstance pi = Main.getInstance().getPotionManager().getInstanceFromItem(stack);
         if (pi != null) return SalvageManager.getInstance().getPotionSellPrice(pi);
         return 0;
+    }
+
+    /** For debugging purposes. */
+    public int getRouteLength() {
+        return route.size();
     }
 }
