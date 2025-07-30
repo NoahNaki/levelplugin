@@ -42,39 +42,60 @@ public class DungeonNPCRunner extends BukkitRunnable {
 
     private static final java.util.Map<Integer, DungeonNPCRunner> RUNNERS = new java.util.HashMap<>();
     private static final java.util.Map<java.util.UUID, DungeonNPCRunner> BY_OWNER = new java.util.HashMap<>();
+
+    private final boolean debugRun;
+
+    private boolean shouldDebug() {
+        return debugRun || Main.getInstance().getCustomConfig().getBoolean("debug.dungeon-npc", false);
+    }
+
+    private void debug(String msg) {
+        if (shouldDebug()) {
+            Main.getInstance().getLogger().info("[NPCDebug] " + msg);
+        }
+    }
     private LivingEntity hostileTarget;
     private Location chestTarget;
     private int index = 0;
     private Location last;
 
     public DungeonNPCRunner(NPC npc, Dungeon dungeon, DungeonManager manager,
-                            DungeonMobSpawnListener listener, Player owner) {
+                            DungeonMobSpawnListener listener, Player owner,
+                            boolean debugRun) {
         this.npc = npc;
         this.dungeon = dungeon;
         this.manager = manager;
         this.lootChestManager = manager.getLootChestManager();
         this.spawnListener = listener;
         this.owner = owner;
+        this.debugRun = debugRun;
         this.economy = Main.getInstance().getEconomyManager();
         this.route = DungeonPathfinder.computePath(dungeon, manager);
         for (Dungeon.RoomInstance r : dungeon.getRooms()) {
             chestLocations.addAll(r.chests);
         }
+        debug("Created runner for NPC " + npc.getId() + ", route=" + route.size() +
+                ", chests=" + chestLocations.size());
     }
 
     public void start(Main plugin) {
-        if (route.isEmpty()) return;
+        if (route.isEmpty()) {
+            debug("No path found for NPC " + npc.getId());
+            return;
+        }
         npc.getNavigator().getDefaultParameters().speedModifier(1.5f);
         npc.getNavigator().getLocalParameters().speedModifier(1.5f);
         npc.getNavigator().setTarget(route.get(0));
         RUNNERS.put(npc.getId(), this);
         if (owner != null) BY_OWNER.put(owner.getUniqueId(), this);
+        debug("Starting run for NPC " + npc.getId() + (owner != null ? " owner=" + owner.getName() : ""));
         this.runTaskTimer(plugin, 20L, 10L);
     }
 
     @Override
     public void run() {
         if (index >= route.size()) {
+            debug("NPC " + npc.getId() + " reached end of path");
             finish();
             return;
         }
@@ -85,15 +106,18 @@ public class DungeonNPCRunner extends BukkitRunnable {
         if (hostileTarget != null) {
             if (!hostileTarget.isValid() || hostileTarget.isDead() ||
                     hostileTarget.getLocation().distanceSquared(current) > 400) {
+                debug("Lost hostile target");
                 hostileTarget = null;
             } else {
                 npc.getNavigator().setTarget(hostileTarget, true);
+                debug("Chasing hostile " + hostileTarget.getType());
                 return;
             }
         }
         if (hostileTarget == null) {
             hostileTarget = findNearestHostile(current);
             if (hostileTarget != null) {
+                debug("Found hostile " + hostileTarget.getType());
                 npc.getNavigator().setTarget(hostileTarget, true);
                 return;
             }
@@ -102,6 +126,7 @@ public class DungeonNPCRunner extends BukkitRunnable {
         // ---- Nearby chests ----
         if (chestTarget != null) {
             if (current.distanceSquared(chestTarget) < 4) {
+                debug("Looting chest at " + chestTarget.getBlockX() + "," + chestTarget.getBlockY() + "," + chestTarget.getBlockZ());
                 lootChest(chestTarget);
                 chestLocations.remove(chestTarget);
                 chestTarget = null;
@@ -109,12 +134,14 @@ public class DungeonNPCRunner extends BukkitRunnable {
                 if (!npc.getNavigator().isNavigating()) {
                     npc.getNavigator().setTarget(chestTarget);
                 }
+                debug("Moving to chest at " + chestTarget.getBlockX() + "," + chestTarget.getBlockY() + "," + chestTarget.getBlockZ());
                 return;
             }
         }
         if (chestTarget == null) {
             chestTarget = findNearbyChest(current);
             if (chestTarget != null) {
+                debug("Found chest at " + chestTarget.getBlockX() + "," + chestTarget.getBlockY() + "," + chestTarget.getBlockZ());
                 npc.getNavigator().setTarget(chestTarget);
                 return;
             }
@@ -124,9 +151,11 @@ public class DungeonNPCRunner extends BukkitRunnable {
         Location target = route.get(index);
         if (!npc.getNavigator().isNavigating()) {
             npc.getNavigator().setTarget(target);
+            debug("Navigating to path index " + index);
         }
         if (current.distanceSquared(target) < 1.5) {
             index++;
+            debug("Reached waypoint " + (index - 1));
             if (index < route.size()) {
                 npc.getNavigator().setTarget(route.get(index));
             }
@@ -188,6 +217,7 @@ public class DungeonNPCRunner extends BukkitRunnable {
         finished = true;
         this.cancel();
         npc.getNavigator().cancelNavigation();
+        debug("Finished run for NPC " + npc.getId());
         if (owner == null) {
             RUNNERS.remove(npc.getId());
             npc.despawn();

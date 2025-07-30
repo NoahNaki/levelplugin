@@ -525,6 +525,9 @@ public class PluginBootstrap {
         if (!customConfig.contains("debug.mythic-skill-damage")) {
             customConfig.set("debug.mythic-skill-damage", false);
         }
+        if (!customConfig.contains("debug.dungeon-npc")) {
+            customConfig.set("debug.dungeon-npc", false);
+        }
         if (!customConfig.contains("tips.delay")) {
             customConfig.set("tips.delay", 120);
         }

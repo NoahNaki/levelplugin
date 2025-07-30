@@ -28,7 +28,12 @@ public class DungeonNPCRunCommand implements CommandExecutor {
             sender.sendMessage("Players only.");
             return true;
         }
-        boolean hire = args.length > 0 && args[0].equalsIgnoreCase("hire");
+        boolean hire = false;
+        boolean debug = false;
+        for (String arg : args) {
+            if (arg.equalsIgnoreCase("hire")) hire = true;
+            if (arg.equalsIgnoreCase("debug")) debug = true;
+        }
         Dungeon dungeon = dungeonManager.getDungeonAt(player.getLocation());
         if (dungeon == null) {
             player.sendMessage(ChatColor.RED + "You are not inside a dungeon.");
@@ -39,7 +44,7 @@ public class DungeonNPCRunCommand implements CommandExecutor {
         npc.setProtected(false);
         addSentinelTrait(npc);
         DungeonMobSpawnListener listener = new DungeonMobSpawnListener(dungeonManager, plugin);
-        DungeonNPCRunner runner = new DungeonNPCRunner(npc, dungeon, dungeonManager, listener, hire ? player : null);
+        DungeonNPCRunner runner = new DungeonNPCRunner(npc, dungeon, dungeonManager, listener, hire ? player : null, debug);
         runner.start(plugin);
         player.sendMessage(ChatColor.YELLOW + "NPC started running the dungeon.");
         return true;
