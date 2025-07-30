@@ -774,6 +774,21 @@ public class DungeonManager {
         return list;
     }
 
+    /**
+     * Find the active dungeon that contains the given location.
+     *
+     * @param loc world location to search
+     * @return matching Dungeon or {@code null} if none
+     */
+    public Dungeon getDungeonAt(Location loc) {
+        for (Dungeon d : getActiveDungeons()) {
+            if (d.getRoomContaining(loc) != null) {
+                return d;
+            }
+        }
+        return null;
+    }
+
     public Set<String> getAvailableMobs() {
         var sec = plugin.getMobRewardsConfig().getConfig().getConfigurationSection("mobs");
         if (sec == null) return Set.of();

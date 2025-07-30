@@ -28,16 +28,10 @@ public class DungeonNPCRunCommand implements CommandExecutor {
             sender.sendMessage("Players only.");
             return true;
         }
-        if (args.length < 1) return false;
-        boolean hire = false;
-        if (args[args.length - 1].equalsIgnoreCase("hire")) {
-            hire = true;
-            args = java.util.Arrays.copyOf(args, args.length - 1);
-        }
-        String name = String.join(" ", args);
-        Dungeon dungeon = dungeonManager.spawnDungeon(player.getLocation(), name);
+        boolean hire = args.length > 0 && args[0].equalsIgnoreCase("hire");
+        Dungeon dungeon = dungeonManager.getDungeonAt(player.getLocation());
         if (dungeon == null) {
-            player.sendMessage(ChatColor.RED + "Layout not found.");
+            player.sendMessage(ChatColor.RED + "You are not inside a dungeon.");
             return true;
         }
         NPC npc = CitizensAPI.getNPCRegistry().createNPC(EntityType.PLAYER, hire ? ChatColor.GREEN + "Mercenary" : ChatColor.AQUA + "Dungeon NPC");
