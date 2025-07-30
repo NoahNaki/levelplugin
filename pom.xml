@@ -119,5 +119,11 @@
             <version>2.9.0</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>org.mcmonkey.sentinel</groupId>
+            <artifactId>Sentinel</artifactId>
+            <version>2.9.2-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 </project>

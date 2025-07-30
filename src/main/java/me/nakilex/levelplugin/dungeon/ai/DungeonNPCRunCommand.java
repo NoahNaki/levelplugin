@@ -42,10 +42,28 @@ public class DungeonNPCRunCommand implements CommandExecutor {
         }
         NPC npc = CitizensAPI.getNPCRegistry().createNPC(EntityType.PLAYER, hire ? ChatColor.GREEN + "Mercenary" : ChatColor.AQUA + "Dungeon NPC");
         npc.spawn(player.getLocation());
+        npc.setProtected(false);
+        addSentinelTrait(npc);
         DungeonMobSpawnListener listener = new DungeonMobSpawnListener(dungeonManager, plugin);
         DungeonNPCRunner runner = new DungeonNPCRunner(npc, dungeon, dungeonManager, listener, hire ? player : null);
         runner.start(plugin);
         player.sendMessage(ChatColor.YELLOW + "NPC started running the dungeon.");
         return true;
+    }
+
+    private void addSentinelTrait(NPC npc) {
+        try {
+            Class<?> trait = Class.forName("org.mcmonkey.sentinel.SentinelTrait");
+            java.lang.reflect.Method getOrAdd = NPC.class.getMethod("getOrAddTrait", Class.class);
+            Object sentinel = getOrAdd.invoke(npc, trait);
+            java.lang.reflect.Field speed = trait.getField("speed");
+            speed.setDouble(sentinel, 1.5);
+            java.lang.reflect.Field fight = trait.getField("fightback");
+            fight.setBoolean(sentinel, true);
+        } catch (ClassNotFoundException ignored) {
+            // Sentinel not installed
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
     }
 }

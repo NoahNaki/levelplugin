@@ -64,6 +64,8 @@ public class DungeonNPCRunner extends BukkitRunnable {
 
     public void start(Main plugin) {
         if (route.isEmpty()) return;
+        npc.getNavigator().getDefaultParameters().speedModifier(1.5);
+        npc.getNavigator().getLocalParameters().speedModifier(1.5);
         npc.getNavigator().setTarget(route.get(0));
         RUNNERS.put(npc.getId(), this);
         if (owner != null) BY_OWNER.put(owner.getUniqueId(), this);
