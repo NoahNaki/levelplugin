@@ -16,7 +16,7 @@ import me.nakilex.levelplugin.trade.data.ConfigValues;
 import me.nakilex.levelplugin.trade.utils.MessageStrings;
 import me.nakilex.levelplugin.utils.DealMaker;
 import me.nakilex.levelplugin.codex.CodexManager;
-import me.nakilex.levelplugin.codex.CodexGUI;
+import me.nakilex.levelplugin.codex.CodexMainGUI;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;

@@ -31,6 +31,7 @@ import me.nakilex.levelplugin.friend.FriendManager;
 import me.nakilex.levelplugin.friend.FriendGlowManager;
 import me.nakilex.levelplugin.friend.PlayerVisibilityManager;
 import me.nakilex.levelplugin.codex.CodexManager;
+import me.nakilex.levelplugin.codex.CodexMainGUI;
 import me.nakilex.levelplugin.codex.CodexGUI;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager;
 import me.nakilex.levelplugin.friend.IgnoreManager;
@@ -159,7 +160,7 @@ public class PluginBootstrap {
     private SettingsGUI settingsGUI;
     private MeteorListener meteorListener;
     private me.nakilex.levelplugin.codex.CodexManager codexManager;
-    private me.nakilex.levelplugin.codex.CodexGUI codexGUI;
+    private me.nakilex.levelplugin.codex.CodexMainGUI codexGUI;
     private me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager wanderingMerchantManager;
 
     public PluginBootstrap(Main plugin) {
@@ -489,7 +490,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.cutscene.CutsceneManager getCutsceneManager() { return cutsceneManager; }
     public me.nakilex.levelplugin.calendar.CalendarManager getCalendarManager() { return calendarManager; }
     public me.nakilex.levelplugin.codex.CodexManager getCodexManager() { return codexManager; }
-    public me.nakilex.levelplugin.codex.CodexGUI getCodexGUI() { return codexGUI; }
+    public me.nakilex.levelplugin.codex.CodexMainGUI getCodexGUI() { return codexGUI; }
     public me.nakilex.levelplugin.dungeon.gui.DungeonListGUI getDungeonListGUI() { return dungeonListGUI; }
 
     private void createCustomConfig() {
