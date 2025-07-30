@@ -59,6 +59,7 @@ public class WanderingMerchantManager {
 
     public void spawnNear(Player player) {
         if (isActive()) return;
+        if (!"world".equals(player.getWorld().getName())) return;
         Location base = player.getLocation().clone();
         base.add(player.getLocation().getDirection().multiply(-8));
         base.getWorld().getChunkAtAsync(base).thenRun(() -> {

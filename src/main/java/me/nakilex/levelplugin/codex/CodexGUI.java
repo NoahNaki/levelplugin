@@ -25,11 +25,15 @@ public class CodexGUI implements Listener {
     private static final String ESSENCE_TITLE = ChatColor.DARK_GREEN + "Essences - ";
 
     private final CodexManager manager;
+    private CodexMainGUI mainGUI;
     private final ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
 
-    public CodexGUI(CodexManager manager) {
+    public CodexGUI(CodexManager manager, CodexMainGUI mainGUI) {
         this.manager = manager;
+        this.mainGUI = mainGUI;
     }
+
+    public void setMainGUI(CodexMainGUI mainGUI) { this.mainGUI = mainGUI; }
 
     public void open(Player player) {
         Inventory inv = Bukkit.createInventory(null, SIZE, TITLE);
@@ -43,6 +47,8 @@ public class CodexGUI implements Listener {
             inv.setItem(slot++, createMobIcon(player.getUniqueId(), key));
         }
 
+        inv.setItem(49, GuiUtil.getNexoItem("arrow_left", ChatColor.YELLOW + "Back"));
+
         player.openInventory(inv);
     }
 
@@ -53,7 +59,10 @@ public class CodexGUI implements Listener {
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.GRAY + "Mobs: " + ChatColor.WHITE
                     + manager.getDiscoveredMobCount(id) + "/" + manager.getTotalMobCount());
-            lore.add(ChatColor.GRAY + "Locations: " + ChatColor.WHITE + "0/0");
+            lore.add(ChatColor.GRAY + "NPCs: " + ChatColor.WHITE
+                    + manager.getDiscoveredNpcCount(id) + "/" + manager.getTotalNpcCount());
+            lore.add(ChatColor.GRAY + "Locations: " + ChatColor.WHITE
+                    + manager.getDiscoveredLocationCount(id) + "/" + manager.getTotalLocationCount());
             meta.setLore(lore);
             book.setItemMeta(meta);
         }
@@ -115,7 +124,9 @@ public class CodexGUI implements Listener {
             ItemStack item = e.getCurrentItem();
             if (item == null || !item.hasItemMeta()) return;
             String name = ChatColor.stripColor(item.getItemMeta().getDisplayName());
-            if (!name.equals("???")) {
+            if (name.equalsIgnoreCase("Back")) {
+                mainGUI.open((Player) e.getWhoClicked());
+            } else if (!name.equals("???")) {
                 openEssenceGUI((Player) e.getWhoClicked(), name);
             }
         } else if (title.startsWith(ESSENCE_TITLE)) {

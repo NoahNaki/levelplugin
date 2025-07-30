@@ -53,7 +53,9 @@ public class TaskRegistry {
             public void run() {
                 if (merchantManager.isActive()) return;
                 if (System.currentTimeMillis() - merchantManager.getLastSpawn() < 20 * 60 * 1000L) return;
-                Player target = plugin.getServer().getOnlinePlayers().stream().findAny().orElse(null);
+                Player target = plugin.getServer().getOnlinePlayers().stream()
+                        .filter(p -> "world".equals(p.getWorld().getName()))
+                        .findAny().orElse(null);
                 if (target != null) merchantManager.spawnNear(target);
             }
         }.runTaskTimer(plugin, 1200L, 1200L);

@@ -100,7 +100,7 @@ public class CommandRegistry {
                                         FastTravelManager fastTravelManager,
                                         me.nakilex.levelplugin.motd.MotdManager motdManager,
                                         UpgradeGUI upgradeGUI,
-                                        CodexGUI codexGUI,
+                                        me.nakilex.levelplugin.codex.CodexMainGUI codexGUI,
                                         WanderingMerchantManager wmManager) {
 
 
@@ -162,6 +162,7 @@ public class CommandRegistry {
 
         plugin.getCommand("codex").setExecutor(new CodexCommand(codexGUI));
         plugin.getCommand("wm").setExecutor(new WanderingMerchantCommand(wmManager));
+
 
         plugin.getCommand("cutscene").setExecutor(new me.nakilex.levelplugin.cutscene.commands.CutsceneCommand(plugin.getCutsceneManager()));
         plugin.getCommand("dungeon").setExecutor(new me.nakilex.levelplugin.dungeon.DungeonCommand(plugin));

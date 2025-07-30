@@ -149,26 +149,16 @@ public class DungeonBuilder implements Listener {
 
     private void setupInventory(Player player) {
         player.getInventory().clear();
-        ItemStack wool = new ItemStack(Material.LIME_WOOL);
-        ItemMeta meta = wool.getItemMeta();
-        if (meta != null) meta.setDisplayName(ChatColor.GREEN + "Place Entrance");
-        wool.setItemMeta(meta);
+        ItemStack wool = GuiUtil.getNexoItem("plus", ChatColor.GREEN + "Place Entrance");
         player.getInventory().setItem(0, wool);
-        ItemStack undo = new ItemStack(Material.ARROW);
-        ItemMeta um = undo.getItemMeta();
-        if (um != null) um.setDisplayName(ChatColor.YELLOW + "Undo");
-        undo.setItemMeta(um);
+
+        ItemStack undo = GuiUtil.getNexoItem("arrow_left", ChatColor.YELLOW + "Undo");
         player.getInventory().setItem(6, undo);
 
-        ItemStack save = new ItemStack(Material.EMERALD);
-        ItemMeta sm = save.getItemMeta();
-        if (sm != null) sm.setDisplayName(ChatColor.AQUA + "Save");
-        save.setItemMeta(sm);
+        ItemStack save = GuiUtil.getNexoItem("check", ChatColor.AQUA + "Save");
         player.getInventory().setItem(7, save);
-        ItemStack cancel = new ItemStack(Material.BARRIER);
-        ItemMeta cm = cancel.getItemMeta();
-        if (cm != null) cm.setDisplayName(ChatColor.RED + "Cancel");
-        cancel.setItemMeta(cm);
+
+        ItemStack cancel = GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel");
         player.getInventory().setItem(8, cancel);
     }
 
@@ -185,20 +175,20 @@ public class DungeonBuilder implements Listener {
         Action action = event.getAction();
         if (action != Action.RIGHT_CLICK_BLOCK && action != Action.RIGHT_CLICK_AIR) return;
         ItemStack hand = event.getItem();
-        if (hand == null) return;
-        Material type = hand.getType();
-        if (type == Material.ARROW) {
+        if (hand == null || !hand.hasItemMeta()) return;
+        String name = ChatColor.stripColor(hand.getItemMeta().getDisplayName());
+        if (name.equals("Undo")) {
             event.setCancelled(true);
             s.undo();
             return;
         }
-        if (type == Material.EMERALD) {
+        if (name.equals("Save")) {
             event.setCancelled(true);
             s.awaitingName = true;
             player.sendMessage(ChatColor.YELLOW + "Type dungeon name in chat or 'cancel'.");
             return;
         }
-        if (type == Material.BARRIER) {
+        if (name.equals("Cancel")) {
             event.setCancelled(true);
             s.cancel();
             sessions.remove(player.getUniqueId());
@@ -206,7 +196,7 @@ public class DungeonBuilder implements Listener {
             player.sendMessage(ChatColor.RED + "Dungeon build cancelled.");
             return;
         }
-        if (type != Material.LIME_WOOL) return;
+        if (!name.equals("Place Entrance")) return;
         event.setCancelled(true);
         if (!s.placingEntrance) return;
         Location loc;
@@ -284,14 +274,14 @@ public class DungeonBuilder implements Listener {
                 } else if (name.equalsIgnoreCase("Decor Chest Room")) {
                     placeVariant(s, manager.getDecorChest());
                     player.closeInventory();
-                } else if (item.getType() == Material.RED_WOOL) {
+                } else if (name.equalsIgnoreCase("Combat Room")) {
                     player.openInventory(createCombatVariantSelect());
-                } else if (item.getType() == Material.BLACK_WOOL) {
+                } else if (name.equalsIgnoreCase("Boss Room")) {
                     player.openInventory(createBossSelect());
-                } else if (item.getType() == Material.OBSIDIAN) {
+                } else if (name.equalsIgnoreCase("Exit Room")) {
                     placeVariant(s, manager.getExit());
                     player.closeInventory();
-                } else if (item.getType() == Material.BOOKSHELF) {
+                } else if (name.equalsIgnoreCase("Library")) {
                     placeVariant(s, manager.getLibrary());
                     player.closeInventory();
                 }

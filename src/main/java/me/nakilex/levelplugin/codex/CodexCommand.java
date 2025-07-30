@@ -7,9 +7,9 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 public class CodexCommand implements CommandExecutor {
-    private final CodexGUI gui;
+    private final CodexMainGUI gui;
 
-    public CodexCommand(CodexGUI gui) {
+    public CodexCommand(CodexMainGUI gui) {
         this.gui = gui;
     }
 

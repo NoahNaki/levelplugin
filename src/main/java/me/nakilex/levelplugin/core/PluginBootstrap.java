@@ -31,6 +31,7 @@ import me.nakilex.levelplugin.friend.FriendManager;
 import me.nakilex.levelplugin.friend.FriendGlowManager;
 import me.nakilex.levelplugin.friend.PlayerVisibilityManager;
 import me.nakilex.levelplugin.codex.CodexManager;
+import me.nakilex.levelplugin.codex.CodexMainGUI;
 import me.nakilex.levelplugin.codex.CodexGUI;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager;
 import me.nakilex.levelplugin.friend.IgnoreManager;
@@ -159,7 +160,10 @@ public class PluginBootstrap {
     private SettingsGUI settingsGUI;
     private MeteorListener meteorListener;
     private me.nakilex.levelplugin.codex.CodexManager codexManager;
-    private me.nakilex.levelplugin.codex.CodexGUI codexGUI;
+    private me.nakilex.levelplugin.codex.CodexMainGUI codexGUI;
+    private me.nakilex.levelplugin.codex.CodexGUI mobGUI;
+    private me.nakilex.levelplugin.codex.LocationCodexGUI locGUI;
+    private me.nakilex.levelplugin.codex.NPCCodexGUI npcGUI;
     private me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager wanderingMerchantManager;
 
     public PluginBootstrap(Main plugin) {
@@ -188,7 +192,22 @@ public class PluginBootstrap {
         }
         mobRewardsConfig = new MobRewardsConfig(plugin);
         codexManager = new me.nakilex.levelplugin.codex.CodexManager(playerConfig, mobRewardsConfig, bossConfig);
-        codexGUI = new me.nakilex.levelplugin.codex.CodexGUI(codexManager);
+        mobGUI = new me.nakilex.levelplugin.codex.CodexGUI(codexManager, null);
+        locGUI = new me.nakilex.levelplugin.codex.LocationCodexGUI(codexManager, null);
+        npcGUI = new me.nakilex.levelplugin.codex.NPCCodexGUI(codexManager, null);
+        codexGUI = new me.nakilex.levelplugin.codex.CodexMainGUI(locGUI, npcGUI, mobGUI);
+        mobGUI.setMainGUI(codexGUI);
+        locGUI.setMainGUI(codexGUI);
+        npcGUI.setMainGUI(codexGUI);
+        java.util.Set<String> npcNames = new java.util.HashSet<>();
+        for (Integer id : questManager.getNpcQuestMap().keySet()) {
+            net.citizensnpcs.api.npc.NPC n = net.citizensnpcs.api.CitizensAPI.getNPCRegistry().getById(id);
+            if (n != null) npcNames.add(org.bukkit.ChatColor.stripColor(n.getName()));
+        }
+        codexManager.registerNpcKeys(npcNames);
+        java.util.Set<String> locNames = new java.util.HashSet<>();
+        for (var pt : fastTravelManager.getPoints()) locNames.add(pt.getName());
+        codexManager.registerLocationKeys(locNames);
         registerCommandsAndListeners();
         new ItemsBrowser(plugin);
         new me.nakilex.levelplugin.items.tools.gui.ToolBrowser(plugin);
@@ -351,6 +370,9 @@ public class PluginBootstrap {
             new me.nakilex.levelplugin.environment.listeners.StageBlockInteractListener(),
             wanderingMerchantManager
         );
+        plugin.getServer().getPluginManager().registerEvents(mobGUI, plugin);
+        plugin.getServer().getPluginManager().registerEvents(locGUI, plugin);
+        plugin.getServer().getPluginManager().registerEvents(npcGUI, plugin);
         plugin.getServer().getPluginManager().registerEvents(beaconManager, plugin);
         TaskRegistry.startTasks(plugin, horseConfigManager, horseManager, wanderingMerchantManager);
     }
@@ -471,7 +493,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.cutscene.CutsceneManager getCutsceneManager() { return cutsceneManager; }
     public me.nakilex.levelplugin.calendar.CalendarManager getCalendarManager() { return calendarManager; }
     public me.nakilex.levelplugin.codex.CodexManager getCodexManager() { return codexManager; }
-    public me.nakilex.levelplugin.codex.CodexGUI getCodexGUI() { return codexGUI; }
+    public me.nakilex.levelplugin.codex.CodexMainGUI getCodexGUI() { return codexGUI; }
     public me.nakilex.levelplugin.dungeon.gui.DungeonListGUI getDungeonListGUI() { return dungeonListGUI; }
 
     private void createCustomConfig() {

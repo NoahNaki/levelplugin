@@ -538,6 +538,19 @@ public class LootChestManager {
         return openChestByPlayer.remove(playerUUID);
     }
 
+    /** Return true if any player is currently viewing the chest GUI. */
+    public boolean isChestViewed(int chestId) {
+        return openChestByPlayer.containsValue(chestId);
+    }
+
+    /** Lookup ChestData by its ID. */
+    public ChestData getChestDataById(int chestId) {
+        for (ChestData cd : chestDataList) {
+            if (cd.getChestId() == chestId) return cd;
+        }
+        return null;
+    }
+
 
 
     public boolean clearChest(int chestId) {
