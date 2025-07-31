@@ -144,6 +144,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.fakeblock.QuestGateManager questGateManager;
     private me.nakilex.levelplugin.fakeblock.ModelGateManager modelGateManager;
     private me.nakilex.levelplugin.dungeon.DungeonManager dungeonManager;
+    private me.nakilex.levelplugin.world.WorldManager worldManager;
     private me.nakilex.levelplugin.environment.EnvironmentManager environmentManager;
     private me.nakilex.levelplugin.environment.UpgradeGUI upgradeGUI;
     private me.nakilex.levelplugin.environment.BuildingUpgradeGUI buildingUpgradeGUI;
@@ -273,6 +274,7 @@ public class PluginBootstrap {
         cutsceneManager = new me.nakilex.levelplugin.cutscene.CutsceneManager(plugin);
         cutsceneManager.loadCutscenes();
         wanderingMerchantManager = new me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager(plugin);
+        worldManager = new me.nakilex.levelplugin.world.WorldManager(plugin);
     }
 
     private void setupCustomConfig() {
@@ -455,6 +457,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.fakeblock.QuestGateManager getQuestGateManager() { return questGateManager; }
     public me.nakilex.levelplugin.fakeblock.ModelGateManager getModelGateManager() { return modelGateManager; }
     public me.nakilex.levelplugin.dungeon.DungeonManager getDungeonManager() { return dungeonManager; }
+    public me.nakilex.levelplugin.world.WorldManager getWorldManager() { return worldManager; }
     public me.nakilex.levelplugin.environment.EnvironmentManager getEnvironmentManager() { return environmentManager; }
     public me.nakilex.levelplugin.environment.UpgradeGUI getUpgradeGUI() { return upgradeGUI; }
     public me.nakilex.levelplugin.environment.BuildingUpgradeGUI getBuildingUpgradeGUI() { return buildingUpgradeGUI; }
