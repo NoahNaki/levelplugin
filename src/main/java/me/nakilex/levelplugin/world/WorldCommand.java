@@ -132,6 +132,7 @@ public class WorldCommand implements CommandExecutor {
                     sender.sendMessage(sb.toString().trim());
                 }
                 return true;
+            }
             default -> {
                 return false;
             }
