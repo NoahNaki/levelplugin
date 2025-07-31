@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.dungeon.TemplateType;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import me.nakilex.levelplugin.utils.FileUtil;
 import org.bukkit.World;
 import org.bukkit.Material;
 import org.bukkit.ChatColor;
@@ -714,16 +715,9 @@ public class DungeonManager {
         if (dirs != null) {
             for (java.io.File d : dirs) {
                 if (Bukkit.getWorld(d.getName()) != null) continue;
-                deleteDir(d);
+                FileUtil.deleteDirectory(d);
             }
         }
-    }
-
-    private void deleteDir(java.io.File dir) {
-        if (dir.isDirectory()) {
-            for (java.io.File f : dir.listFiles()) deleteDir(f);
-        }
-        dir.delete();
     }
 
     public boolean playDungeon(Player player, String name) {
@@ -851,7 +845,7 @@ public class DungeonManager {
             }
         }
         Bukkit.unloadWorld(world, false);
-        deleteDir(world.getWorldFolder());
+        FileUtil.deleteDirectory(world.getWorldFolder());
     }
 
     private void spawnLootChests(Dungeon dungeon, int tier, Instance inst) {

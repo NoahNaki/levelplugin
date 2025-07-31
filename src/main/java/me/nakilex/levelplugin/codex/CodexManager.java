@@ -30,12 +30,21 @@ public class CodexManager {
         String path = "players." + id + ".codex.mobs." + key.toLowerCase() + ".kills";
         int kills = playerConfig.getConfig().getInt(path, 0);
         if (kills == 0) {
-            player.sendTitle(ChatColor.GOLD + "CODEX UPDATED",
-                             ChatColor.YELLOW + key + " discovered",
-                             10, 40, 10);
+            notifyDiscovery(player, "Monster", key);
         }
         playerConfig.getConfig().set(path, kills + 1);
         playerConfig.saveConfigFile();
+    }
+
+    private void notifyDiscovery(Player player, String category, String name) {
+        String title = ChatColor.WHITE + "" + ChatColor.BOLD + "CODEX UPDATED";
+        String subtitle = ChatColor.GRAY + category + ": " + ChatColor.YELLOW + name;
+        player.sendTitle(title, subtitle, 10, 40, 10);
+        me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player,
+                ChatColor.WHITE + "" + ChatColor.BOLD + "CODEX UPDATED" +
+                ChatColor.GRAY + category + ": " + ChatColor.YELLOW + ChatColor.BOLD + name +
+                ChatColor.GRAY + " Check it now by using " + ChatColor.WHITE + "/codex" +
+                ChatColor.GRAY + " Rewards: " + ChatColor.GREEN + "50XP");
     }
 
     public boolean hasDiscovered(UUID id, String key) {
