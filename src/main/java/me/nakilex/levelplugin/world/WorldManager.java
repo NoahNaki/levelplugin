@@ -11,6 +11,7 @@ import org.bukkit.World.Environment;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
+import me.nakilex.levelplugin.utils.FileUtil;
 
 import java.io.File;
 import java.io.IOException;
@@ -84,6 +85,25 @@ public class WorldManager {
     public void setSpawn(World world, Location loc) {
         spawns.put(world.getName().toLowerCase(), loc);
         save();
+    }
+
+    /**
+     * Delete the given world folder and remove its spawn entry.
+     * The world will be unloaded if currently loaded.
+     */
+    public boolean deleteWorld(String name) {
+        World world = Bukkit.getWorld(name);
+        if (world != null) {
+            Bukkit.unloadWorld(world, false);
+        }
+        File folder = new File(plugin.getServer().getWorldContainer(), name);
+        if (!folder.exists()) {
+            return false;
+        }
+        FileUtil.deleteDirectory(folder);
+        spawns.remove(name.toLowerCase());
+        save();
+        return true;
     }
 
     public Location getSpawn(World world) {

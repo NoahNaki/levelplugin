@@ -4,6 +4,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
+import net.md_5.bungee.api.chat.*;
 import org.bukkit.WorldType;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -59,6 +60,16 @@ public class WorldCommand implements CommandExecutor {
                 else sender.sendMessage(ChatColor.RED + "Failed to import world.");
                 return true;
             }
+            case "delete" -> {
+                if (args.length < 2) {
+                    sender.sendMessage(ChatColor.RED + "Usage: /world delete <name>");
+                    return true;
+                }
+                boolean ok = manager.deleteWorld(args[1]);
+                if (ok) sender.sendMessage(ChatColor.YELLOW + "World deleted: " + args[1]);
+                else sender.sendMessage(ChatColor.RED + "Failed to delete world.");
+                return true;
+            }
             case "tp" -> {
                 if (!(sender instanceof Player player)) {
                     sender.sendMessage("Players only");
@@ -100,13 +111,27 @@ public class WorldCommand implements CommandExecutor {
                 return true;
             }
             case "list" -> {
-                StringBuilder sb = new StringBuilder(ChatColor.GREEN + "Worlds: ");
-                for (World w : manager.listWorlds()) {
-                    sb.append(w.getName()).append(" ");
+                if (sender instanceof Player p) {
+                    TextComponent base = new TextComponent(ChatColor.GREEN + "Worlds: ");
+                    boolean first = true;
+                    for (World w : manager.listWorlds()) {
+                        if (!first) base.addExtra(ChatColor.GRAY + ", ");
+                        TextComponent name = new TextComponent(ChatColor.AQUA + w.getName());
+                        name.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/world tp " + w.getName()));
+                        name.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                                new ComponentBuilder("Teleport to " + w.getName()).create()));
+                        base.addExtra(name);
+                        first = false;
+                    }
+                    p.spigot().sendMessage(base);
+                } else {
+                    StringBuilder sb = new StringBuilder("Worlds: ");
+                    for (World w : manager.listWorlds()) {
+                        sb.append(w.getName()).append(' ');
+                    }
+                    sender.sendMessage(sb.toString().trim());
                 }
-                sender.sendMessage(sb.toString());
                 return true;
-            }
             default -> {
                 return false;
             }
