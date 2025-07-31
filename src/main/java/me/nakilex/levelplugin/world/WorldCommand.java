@@ -70,6 +70,16 @@ public class WorldCommand implements CommandExecutor {
                 else sender.sendMessage(ChatColor.RED + "Failed to delete world.");
                 return true;
             }
+            case "unload" -> {
+                if (args.length < 2) {
+                    sender.sendMessage(ChatColor.RED + "Usage: /world unload <name>");
+                    return true;
+                }
+                boolean ok = manager.unloadWorld(args[1]);
+                if (ok) sender.sendMessage(ChatColor.YELLOW + "World unloaded: " + args[1]);
+                else sender.sendMessage(ChatColor.RED + "Failed to unload world.");
+                return true;
+            }
             case "tp" -> {
                 if (!(sender instanceof Player player)) {
                     sender.sendMessage("Players only");

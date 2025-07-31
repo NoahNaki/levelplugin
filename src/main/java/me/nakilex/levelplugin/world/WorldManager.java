@@ -18,6 +18,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
 
 /**
  * Basic world management handling creation, loading and spawn points.
@@ -25,6 +27,7 @@ import java.util.Map;
 public class WorldManager {
     private final Main plugin;
     private final Map<String, Location> spawns = new HashMap<>();
+    private final Set<String> persistentWorlds = new HashSet<>();
     private File file;
     private FileConfiguration config;
 
@@ -52,6 +55,13 @@ public class WorldManager {
                 spawns.put(w.toLowerCase(), new Location(world, x, y, z, yaw, pitch));
             }
         }
+        List<String> worlds = config.getStringList("worlds");
+        for (String w : worlds) {
+            persistentWorlds.add(w.toLowerCase());
+            if (Bukkit.getWorld(w) == null) {
+                importWorld(w);
+            }
+        }
     }
 
     private void save() {
@@ -64,6 +74,7 @@ public class WorldManager {
             config.set(path + ".yaw", loc.getYaw());
             config.set(path + ".pitch", loc.getPitch());
         }
+        config.set("worlds", new java.util.ArrayList<>(persistentWorlds));
         try { config.save(file); } catch (IOException e) { e.printStackTrace(); }
     }
 
@@ -73,13 +84,23 @@ public class WorldManager {
         if (env == Environment.NORMAL && type == WorldType.FLAT) {
             wc.generator(new VoidWorldGenerator());
         }
-        return Bukkit.createWorld(wc);
+        World world = Bukkit.createWorld(wc);
+        if (world != null) {
+            persistentWorlds.add(name.toLowerCase());
+            save();
+        }
+        return world;
     }
 
     public World importWorld(String name) {
         WorldCreator wc = new WorldCreator(name);
         wc.generateStructures(false);
-        return Bukkit.createWorld(wc);
+        World world = Bukkit.createWorld(wc);
+        if (world != null) {
+            persistentWorlds.add(name.toLowerCase());
+            save();
+        }
+        return world;
     }
 
     public void setSpawn(World world, Location loc) {
@@ -102,6 +123,7 @@ public class WorldManager {
         }
         FileUtil.deleteDirectory(folder);
         spawns.remove(name.toLowerCase());
+        persistentWorlds.remove(name.toLowerCase());
         save();
         return true;
     }
@@ -120,5 +142,13 @@ public class WorldManager {
 
     public List<World> listWorlds() {
         return Bukkit.getWorlds();
+    }
+
+    /**
+     * Unload a world from memory without deleting files.
+     */
+    public boolean unloadWorld(String name) {
+        World world = Bukkit.getWorld(name);
+        return world != null && Bukkit.unloadWorld(world, true);
     }
 }
