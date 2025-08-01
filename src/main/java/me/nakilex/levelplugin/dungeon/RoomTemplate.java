@@ -58,18 +58,20 @@ public class RoomTemplate {
     private final List<Connector> connectors;
     private final List<Marker> portals;
     private final List<Marker> exits;
+    private final Marker bossSpawn;
     private final int width, height, depth;
     private final int minY;
     private final int connectorMinY;
     private final double centerX, centerZ;
 
     public RoomTemplate(List<BlockDef> blocks, List<Connector> connectors,
-                        List<Marker> portals, List<Marker> exits,
+                        List<Marker> portals, List<Marker> exits, Marker bossSpawn,
                         int width, int height, int depth, int minY) {
         this.blocks = blocks;
         this.connectors = connectors;
         this.portals = portals;
         this.exits = exits;
+        this.bossSpawn = bossSpawn;
         this.width = width;
         this.height = height;
         this.depth = depth;
@@ -92,6 +94,7 @@ public class RoomTemplate {
     public double getCenterZ() { return centerZ; }
     public List<Marker> getPortals() { return portals; }
     public List<Marker> getExitMarkers() { return exits; }
+    public Marker getBossSpawn() { return bossSpawn; }
 
     /**
      * Rotate a 2D X/Z vector around the template center.
@@ -128,6 +131,7 @@ public class RoomTemplate {
         Set<Location> limeBlocks = new HashSet<>();
         List<Marker> portalMarks = new ArrayList<>();
         List<Marker> exitMarks = new ArrayList<>();
+        Marker bossMark = null;
 
         for (int x = minX; x <= maxX; x++) {
             for (int y = minY; y <= maxY; y++) {
@@ -145,6 +149,8 @@ public class RoomTemplate {
                             portalMarks.add(new Marker(x - minX, y - minY, z - minZ));
                         } else if (mat == Material.RED_WOOL && recordExit) {
                             exitMarks.add(new Marker(x - minX, y - minY, z - minZ));
+                        } else if (mat == Material.BLACK_WOOL) {
+                            bossMark = new Marker(x - minX, y - minY, z - minZ);
                         } else {
                             blocks.add(new BlockDef(x - minX, y - minY, z - minZ, data, profile));
                             if (mat == Material.REDSTONE_BLOCK || mat == Material.PINK_WOOL) {
@@ -204,7 +210,7 @@ public class RoomTemplate {
             connectors.add(new Connector(cx, cz, minGroupY - minY, dir, entrance));
         }
 
-        return new RoomTemplate(blocks, connectors, portalMarks, exitMarks, width, height, depth, minY);
+        return new RoomTemplate(blocks, connectors, portalMarks, exitMarks, bossMark, width, height, depth, minY);
     }
 
     /**

@@ -360,6 +360,7 @@ public class DungeonManager {
 
         Map<Location, BlockData> replaced = preview ? new HashMap<>() : Map.of();
         java.util.List<Location> chestLocs = new java.util.ArrayList<>();
+        Location bossLoc = null;
 
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
             Material mat = b.data.getMaterial();
@@ -384,6 +385,14 @@ public class DungeonManager {
                     skull.update(false, false);
                 }
             }
+        }
+        if (template.getBossSpawn() != null) {
+            int[] vec = RoomTemplate.rotate(template.getBossSpawn().x - (int) Math.round(template.getCenterX()),
+                    template.getBossSpawn().z - (int) Math.round(template.getCenterZ()), rotation);
+            int wx = center.getBlockX() + vec[0];
+            int wy = baseY + (template.getBossSpawn().y - connectorY);
+            int wz = center.getBlockZ() + vec[1];
+            bossLoc = new Location(world, wx + 0.5, wy, wz + 0.5);
         }
         // place nether portals and exit holograms
         for (RoomTemplate.Marker m : template.getPortals()) {
@@ -410,7 +419,7 @@ public class DungeonManager {
             }
         }
         Dungeon.RoomInstance inst = new Dungeon.RoomInstance(template, rotation, center.clone(),
-                minX, minY, minZ, maxX, maxY, maxZ, mob, chestLocs);
+                minX, minY, minZ, maxX, maxY, maxZ, mob, chestLocs, bossLoc);
         dungeon.addRoom(inst);
         return new PasteResult(true, overlap, replaced, inst);
     }
@@ -781,6 +790,12 @@ public class DungeonManager {
         return sec.getKeys(false);
     }
 
+    public Set<String> getAvailableBosses() {
+        var sec = plugin.getBossConfig().getConfigurationSection("mobs");
+        if (sec == null) return Set.of();
+        return sec.getKeys(false);
+    }
+
     public Set<String> getLayoutNames() {
         return new java.util.HashSet<>(layoutDisplay.values());
     }
@@ -790,7 +805,7 @@ public class DungeonManager {
         for (RoomTemplate.Connector c : src.getConnectors()) {
             list.add(new RoomTemplate.Connector(c.x, c.z, c.bottomY, c.facing, !c.entrance));
         }
-        return new RoomTemplate(src.getBlocks(), list, src.getPortals(), src.getExitMarkers(),
+        return new RoomTemplate(src.getBlocks(), list, src.getPortals(), src.getExitMarkers(), src.getBossSpawn(),
                 src.getWidth(), src.getHeight(), src.getDepth(), src.getMinY());
     }
 
@@ -809,19 +824,33 @@ public class DungeonManager {
                 Instance inst = instances.get(e.getFrom().getWorld());
                 if (inst == null) return;
                 e.setCancelled(true);
-                java.util.UUID id = e.getPlayer().getUniqueId();
+                handleExit(e.getPlayer(), inst, e.getFrom().getWorld());
+            }
+
+            @org.bukkit.event.EventHandler
+            public void onMove(org.bukkit.event.player.PlayerMoveEvent e) {
+                if (e.getTo() == null) return;
+                if (e.getTo().getBlock().getType() != Material.NETHER_PORTAL) return;
+                if (e.getFrom().getBlock().getType() == Material.NETHER_PORTAL) return;
+                Instance inst = instances.get(e.getTo().getWorld());
+                if (inst == null) return;
+                handleExit(e.getPlayer(), inst, e.getTo().getWorld());
+            }
+
+            private void handleExit(Player player, Instance inst, World world) {
+                java.util.UUID id = player.getUniqueId();
                 Location back = inst.returnLocations.remove(id);
                 if (back != null) {
-                    Dungeon.RoomInstance room = inst.dungeon.getRoomContaining(e.getFrom());
+                    Dungeon.RoomInstance room = inst.dungeon.getRoomContaining(player.getLocation());
                     boolean completed = room != null && room.template == exit;
                     if (completed) {
-                        sendCompleteMessage(e.getPlayer(), getDisplayName(inst.layout));
+                        sendCompleteMessage(player, getDisplayName(inst.layout));
                     } else {
-                        sendExitMessage(e.getPlayer(), getDisplayName(inst.layout));
+                        sendExitMessage(player, getDisplayName(inst.layout));
                     }
-                    e.getPlayer().teleport(back);
+                    player.teleport(back);
                 }
-                checkInstance(e.getFrom().getWorld());
+                checkInstance(world);
             }
 
         @org.bukkit.event.EventHandler

@@ -282,8 +282,8 @@ public class DungeonBuilder implements Listener {
                 } else if (name.equalsIgnoreCase("Combat Room")) {
                     player.openInventory(createCombatVariantSelect());
                 } else if (name.equalsIgnoreCase("Boss Room")) {
-                    placeVariant(s, manager.getBoss());
-                    player.closeInventory();
+                    s.selectedTemplate = manager.getBoss();
+                    player.openInventory(createBossSelect());
                 } else if (name.equalsIgnoreCase("Exit Room")) {
                     placeVariant(s, manager.getExit());
                     player.closeInventory();
@@ -330,6 +330,18 @@ public class DungeonBuilder implements Listener {
             case "Select Mob" -> {
                 if (name.equalsIgnoreCase("Back")) {
                     player.openInventory(createCombatVariantSelect());
+                    return;
+                }
+                s.selectedMob = name;
+                if (s.selectedTemplate != null) {
+                    placeVariant(s, s.selectedTemplate);
+                    player.closeInventory();
+                    s.selectedTemplate = null;
+                }
+            }
+            case "Select Boss" -> {
+                if (name.equalsIgnoreCase("Back")) {
+                    player.openInventory(createRoomSelect());
                     return;
                 }
                 s.selectedMob = name;
@@ -476,7 +488,7 @@ public class DungeonBuilder implements Listener {
         int[] vec = RoomTemplate.rotate(match.x - (int) Math.round(templ.getCenterX()),
                 match.z - (int) Math.round(templ.getCenterZ()), rotation);
         Location center = base.clone().subtract(vec[0], match.bottomY - templ.getConnectorMinY(), vec[1]);
-        String mob = (templ == manager.getCombatLeft() || templ == manager.getCombatRight()) ? s.selectedMob : null;
+        String mob = (templ == manager.getCombatLeft() || templ == manager.getCombatRight() || templ == manager.getBoss()) ? s.selectedMob : null;
         DungeonManager.PasteResult result = manager.pasteRoom(s.dungeon, templ, rotation, center, mob, true);
         s.player.sendMessage(ChatColor.GRAY + String.format("Overlap: %.1f%%", result.overlap() * 100));
         if (!result.success()) {
@@ -593,10 +605,9 @@ public class DungeonBuilder implements Listener {
         return inv;
     }
 
-    private Inventory createMobSelect() {
-        Set<String> mobs = manager.getAvailableMobs();
+    private Inventory createMobSelect(Set<String> mobs, String title) {
         int size = ((mobs.size() - 1) / 9 + 1) * 9;
-        Inventory inv = Bukkit.createInventory(null, size, ChatColor.DARK_GREEN + "Select Mob");
+        Inventory inv = Bukkit.createInventory(null, size, ChatColor.DARK_GREEN + title);
         ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
         for (int i = 0; i < size; i++) inv.setItem(i, filler);
         int idx = 0;
@@ -609,6 +620,14 @@ public class DungeonBuilder implements Listener {
         }
         inv.setItem(size - 1, GuiUtil.getNexoItem("arrow_left", ChatColor.YELLOW + "Back"));
         return inv;
+    }
+
+    private Inventory createBossSelect() {
+        return createMobSelect(manager.getAvailableBosses(), "Select Boss");
+    }
+
+    private Inventory createMobSelect() {
+        return createMobSelect(manager.getAvailableMobs(), "Select Mob");
     }
 
     private ItemStack item(Material mat, String name) {
@@ -756,7 +775,7 @@ public class DungeonBuilder implements Listener {
                 layout.set(lx, lz, type);
                 layout.setTemplate(lx, lz, manager.identifyTemplate(t));
                 layout.setRotation(lx, lz, r.rotation);
-                if (type == RoomType.COMBAT) {
+                if (type == RoomType.COMBAT || type == RoomType.BOSS) {
                     layout.setMob(lx, lz, r.mob);
                     int power = me.nakilex.levelplugin.mob.utils.CombatPowerUtil.estimateCombatPower(r.mob);
                     int threat = me.nakilex.levelplugin.mob.utils.ThreatUtil.levelForPower(power);
