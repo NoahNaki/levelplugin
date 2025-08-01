@@ -58,7 +58,7 @@ import me.nakilex.levelplugin.environment.UpgradeGUI;
 import me.nakilex.levelplugin.environment.BuildingUpgradeGUI;
 import me.nakilex.levelplugin.environment.listeners.BuildingHologramListener;
 import me.nakilex.levelplugin.environment.listeners.StageBlockInteractListener;
-import me.nakilex.levelplugin.codex.CodexListener;
+import me.nakilex.levelplugin.codex.*;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantListener;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -94,6 +94,9 @@ public class ListenerRegistry {
                                         BuildingUpgradeGUI buildingUpgradeGUI,
                                         BuildingHologramListener hologramListener,
                                         StageBlockInteractListener stageBlockInteractListener,
+                                        CodexMainGUI codexGUI,
+                                        NpcCodexGUI npcCodexGUI,
+                                        LocationCodexGUI locationCodexGUI,
                                         me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager wmManager) {
 
 
@@ -180,7 +183,9 @@ public class ListenerRegistry {
         pm.registerEvents(motdManager, plugin);
         pm.registerEvents(upgradeGUI, plugin);
         pm.registerEvents(buildingUpgradeGUI, plugin);
-        pm.registerEvents(plugin.getCodexGUI(), plugin);
+        pm.registerEvents(codexGUI, plugin);
+        pm.registerEvents(npcCodexGUI, plugin);
+        pm.registerEvents(locationCodexGUI, plugin);
         pm.registerEvents(new me.nakilex.levelplugin.codex.CodexListener(
                 plugin.getMobRewardsConfig(),
                 plugin.getBossConfig(),

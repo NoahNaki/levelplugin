@@ -127,6 +127,7 @@ public class FastTravelManager {
     public void unlock(Player player, String name) {
         unlocked.computeIfAbsent(player.getUniqueId(), k -> new HashSet<>()).add(name.toLowerCase());
         save();
+        me.nakilex.levelplugin.Main.getInstance().getCodexManager().recordLocation(player, name);
         Main.getInstance().getQuestManager().handleDiscover(player, name.toLowerCase());
         Main.getInstance().getQuestManager().handleWaystoneUnlock(player, name.toLowerCase());
     }

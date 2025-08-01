@@ -20,6 +20,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.HeadUtil;
 
 import java.util.*;
 import java.awt.Point;
@@ -32,6 +33,15 @@ import java.awt.Point;
 public class DungeonBuilder implements Listener {
     private final DungeonManager manager;
     private final Map<UUID, Session> sessions = new HashMap<>();
+
+    // custom head textures for room icons
+    private static final String CHEST_DECOR_HEAD = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvN2UyZWI0NzUxZTNjNTBkNTBmZjE2MzUyNTc2NjYzZDhmZWRmZTNlMDRiMmYwYjhhMmFhODAzYjQxOTM2M2NhMSJ9fX0=";
+    private static final String STONE_DECOR_HEAD = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMmQ0NDU0NDQ5NmVlMGFkMjc0MzE4ODQxZGZlMWViNjk0ZDA1NDA4MGQxMTJlMTMyYmVjOWU1ODM5YjJlNzYwMiJ9fX0=";
+    private static final String LIBRARY_HEAD = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNDdhMzc0ZTIxYjgxYzBiMjFhYmViOGU5N2UxM2UwNzdkM2VkMWVkNDRmMmU5NTZjNjhmNjNhM2UxOWU4OTlmNiJ9fX0=";
+    private static final String EXIT_HEAD = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZTkzYjhkYzkzZjAxODY2MGFhOTI1NmI5MWJiNzcwY2JjYmNjNjJhZTYxZTdhNjcxYzc1ZGM1NDQ1NjljMWE3OCJ9fX0=";
+    private static final String TREASURE_HEAD = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZWM2ZTYwNGJkNTNkOTc4ODc1OTVhMDYyYjdjNTEyY2E0ZGJiZmU0OGJiNGFkY2VmNzEyNWQxZGIxMDNhYjdmZiJ9fX0=";
+    private static final String BOSS_HEAD = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNzI2NzQzYjk5ODljNTlkNjI5NmVmZGE3NDhlNGVjNjc4YmNlNWQwN2FlODhmZmFjNzM3MmM0NTVjNmMyMDJhMiJ9fX0=";
+    private static final String COMBAT_HEAD = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYzdkMjlkYmYzZDk4MjEzZWMyZmIwY2EyNWRhNzQ3NzllNTdiZDBjMTIzNDI2OGY4MjhhM2VjOTg2OWUxNWE5YyJ9fX0=";
 
     public DungeonBuilder(DungeonManager manager) {
         this.manager = manager;
@@ -140,26 +150,14 @@ public class DungeonBuilder implements Listener {
 
     private void setupInventory(Player player) {
         player.getInventory().clear();
-        ItemStack wool = new ItemStack(Material.LIME_WOOL);
-        ItemMeta meta = wool.getItemMeta();
-        if (meta != null) meta.setDisplayName(ChatColor.GREEN + "Place Entrance");
-        wool.setItemMeta(meta);
+        ItemStack wool = GuiUtil.getNexoItem("plus", ChatColor.GREEN + "Place Entrance");
         player.getInventory().setItem(0, wool);
-        ItemStack undo = new ItemStack(Material.ARROW);
-        ItemMeta um = undo.getItemMeta();
-        if (um != null) um.setDisplayName(ChatColor.YELLOW + "Undo");
-        undo.setItemMeta(um);
+        ItemStack undo = GuiUtil.getNexoItem("arrow_left", ChatColor.YELLOW + "Undo");
         player.getInventory().setItem(6, undo);
 
-        ItemStack save = new ItemStack(Material.EMERALD);
-        ItemMeta sm = save.getItemMeta();
-        if (sm != null) sm.setDisplayName(ChatColor.AQUA + "Save");
-        save.setItemMeta(sm);
+        ItemStack save = GuiUtil.getNexoItem("check", ChatColor.AQUA + "Save");
         player.getInventory().setItem(7, save);
-        ItemStack cancel = new ItemStack(Material.BARRIER);
-        ItemMeta cm = cancel.getItemMeta();
-        if (cm != null) cm.setDisplayName(ChatColor.RED + "Cancel");
-        cancel.setItemMeta(cm);
+        ItemStack cancel = GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel");
         player.getInventory().setItem(8, cancel);
     }
 
@@ -534,14 +532,14 @@ public class DungeonBuilder implements Listener {
 
         ItemStack basic = item(Material.YELLOW_WOOL, ChatColor.YELLOW + "Basic Room");
         ItemStack hall = item(Material.BROWN_WOOL, ChatColor.YELLOW + "Hallway");
-        ItemStack treasureLeft = item(Material.GOLD_BLOCK, ChatColor.GOLD + "Treasure Room Left");
-        ItemStack treasureTRight = item(Material.GOLD_BLOCK, ChatColor.GOLD + "Treasure Room T-Section Right");
-        ItemStack decorStone = item(Material.STONE, ChatColor.GRAY + "Decor Stone Room");
-        ItemStack decorChest = item(Material.CHEST, ChatColor.YELLOW + "Decor Chest Room");
-        ItemStack boss = item(Material.BLACK_WOOL, ChatColor.DARK_GRAY + "Boss Room");
-        ItemStack combat = item(Material.RED_WOOL, ChatColor.RED + "Combat Room");
-        ItemStack exitRoom = item(Material.OBSIDIAN, ChatColor.DARK_PURPLE + "Exit Room");
-        ItemStack library = item(Material.BOOKSHELF, ChatColor.GOLD + "Library");
+        ItemStack treasureLeft = HeadUtil.createCustomHead(TREASURE_HEAD, ChatColor.GOLD + "Treasure Room Left", null);
+        ItemStack treasureTRight = HeadUtil.createCustomHead(TREASURE_HEAD, ChatColor.GOLD + "Treasure Room T-Section Right", null);
+        ItemStack decorStone = HeadUtil.createCustomHead(STONE_DECOR_HEAD, ChatColor.GRAY + "Decor Stone Room", null);
+        ItemStack decorChest = HeadUtil.createCustomHead(CHEST_DECOR_HEAD, ChatColor.YELLOW + "Decor Chest Room", null);
+        ItemStack boss = HeadUtil.createCustomHead(BOSS_HEAD, ChatColor.DARK_GRAY + "Boss Room", null);
+        ItemStack combat = HeadUtil.createCustomHead(COMBAT_HEAD, ChatColor.RED + "Combat Room", null);
+        ItemStack exitRoom = HeadUtil.createCustomHead(EXIT_HEAD, ChatColor.DARK_PURPLE + "Exit Room", null);
+        ItemStack library = HeadUtil.createCustomHead(LIBRARY_HEAD, ChatColor.GOLD + "Library", null);
         ItemMeta cMeta = combat.getItemMeta();
         if (cMeta != null) {
             cMeta.setLore(Arrays.asList(ChatColor.WHITE + "Left-click to place",

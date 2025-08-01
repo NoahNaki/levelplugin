@@ -12,6 +12,7 @@ public class CodexManager {
     private final PlayerConfig playerConfig;
     private final Set<String> mobKeys;
     private final Set<String> bossKeys;
+    // No predefined sets for NPCs or locations; they are tracked dynamically
 
     public CodexManager(PlayerConfig playerConfig,
                         MobRewardsConfig mobCfg,
@@ -72,5 +73,39 @@ public class CodexManager {
         all.addAll(mobKeys);
         all.addAll(bossKeys);
         return all;
+    }
+
+    /* ----- NPC Tracking ----- */
+    public void recordNpc(Player player, String name) {
+        UUID id = player.getUniqueId();
+        String path = "players." + id + ".codex.npcs." + name.toLowerCase();
+        if (!playerConfig.getConfig().contains(path)) {
+            playerConfig.getConfig().set(path, true);
+            playerConfig.saveConfigFile();
+            notifyDiscovery(player, "NPC", name);
+        }
+    }
+
+    public List<String> getDiscoveredNpcs(UUID id) {
+        String base = "players." + id + ".codex.npcs";
+        if (!playerConfig.getConfig().isConfigurationSection(base)) return java.util.Collections.emptyList();
+        return new ArrayList<>(playerConfig.getConfig().getConfigurationSection(base).getKeys(false));
+    }
+
+    /* ----- Location Tracking ----- */
+    public void recordLocation(Player player, String name) {
+        UUID id = player.getUniqueId();
+        String path = "players." + id + ".codex.locations." + name.toLowerCase();
+        if (!playerConfig.getConfig().contains(path)) {
+            playerConfig.getConfig().set(path, true);
+            playerConfig.saveConfigFile();
+            notifyDiscovery(player, "Location", name);
+        }
+    }
+
+    public List<String> getDiscoveredLocations(UUID id) {
+        String base = "players." + id + ".codex.locations";
+        if (!playerConfig.getConfig().isConfigurationSection(base)) return java.util.Collections.emptyList();
+        return new ArrayList<>(playerConfig.getConfig().getConfigurationSection(base).getKeys(false));
     }
 }

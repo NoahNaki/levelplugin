@@ -6,10 +6,12 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-public class CodexCommand implements CommandExecutor {
-    private final CodexGUI gui;
+import me.nakilex.levelplugin.codex.CodexMainGUI;
 
-    public CodexCommand(CodexGUI gui) {
+public class CodexCommand implements CommandExecutor {
+    private final CodexMainGUI gui;
+
+    public CodexCommand(CodexMainGUI gui) {
         this.gui = gui;
     }
 

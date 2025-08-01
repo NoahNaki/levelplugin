@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public class CodexGUI implements Listener {
+public class MobCodexGUI implements Listener {
     private static final String TITLE = ChatColor.BLACK + "Codex";
     private static final int SIZE = 54;
 
