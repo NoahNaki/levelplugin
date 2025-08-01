@@ -96,6 +96,7 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.fakeblock.QuestGateManager getQuestGateManager() { return bootstrap.getQuestGateManager(); }
     public me.nakilex.levelplugin.fakeblock.FakeBlockManager getFakeBlockManager() { return bootstrap.getFakeBlockManager(); }
     public me.nakilex.levelplugin.fakeblock.ModelGateManager getModelGateManager() { return bootstrap.getModelGateManager(); }
+    public me.nakilex.levelplugin.dungeon.rating.DungeonRatingManager getDungeonRatingManager() { return bootstrap.getDungeonRatingManager(); }
     public me.nakilex.levelplugin.dungeon.DungeonManager getDungeonManager() { return bootstrap.getDungeonManager(); }
     public me.nakilex.levelplugin.world.WorldManager getWorldManager() { return bootstrap.getWorldManager(); }
     public me.nakilex.levelplugin.quests.managers.BeaconManager getBeaconManager() { return bootstrap.getBeaconManager(); }

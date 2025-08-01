@@ -14,6 +14,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import me.nakilex.levelplugin.utils.GuiUtil;
 
 import java.util.List;
+import java.text.DecimalFormat;
 
 /** GUI listing playable dungeons. */
 public class DungeonListGUI implements Listener {
@@ -33,6 +34,7 @@ public class DungeonListGUI implements Listener {
             if (i < 9 || i >= 45 || i % 9 == 0 || i % 9 == 8) inv.setItem(i, filler);
         }
         int slot = 10;
+        DecimalFormat df = new DecimalFormat("#.#");
         for (var entry : manager.getLayoutEntries()) {
             if (slot >= 44) break;
             String key = entry.getKey();
@@ -42,8 +44,12 @@ public class DungeonListGUI implements Listener {
             if (meta != null) {
                 meta.setDisplayName(ChatColor.AQUA + display);
                 int threat = manager.getThreatLevel(key);
+                double rating = me.nakilex.levelplugin.Main.getInstance().getDungeonRatingManager().getAverage(key);
+                String stars = "<glyph:star>".repeat((int) Math.floor(rating));
+                String ratingLine = rating > 0 ? ChatColor.GOLD + "Rating: " + df.format(rating) + " " + stars : ChatColor.GOLD + "Rating: N/A";
                 meta.setLore(List.of(ChatColor.GRAY + "Left-click to play",
-                        ChatColor.DARK_RED + "Threat Level: " + threat));
+                        ChatColor.DARK_RED + "Threat Level: " + threat,
+                        ratingLine));
                 meta.setLocalizedName(key);
                 item.setItemMeta(meta);
             }

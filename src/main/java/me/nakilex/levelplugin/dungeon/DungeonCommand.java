@@ -77,6 +77,23 @@ public class DungeonCommand implements CommandExecutor {
                 else player.sendMessage(ChatColor.RED + "Dungeon not found.");
                 return true;
             }
+            case "rate" -> {
+                if (args.length < 3) {
+                    player.sendMessage(ChatColor.RED + "Usage: /dungeon rate <name> <1-5>");
+                    return true;
+                }
+                String ratingStr = args[args.length - 1];
+                String name = String.join(" ", java.util.Arrays.copyOfRange(args, 1, args.length - 1));
+                if (!ratingStr.matches("[1-5](\\.[0-9])?")) {
+                    player.sendMessage(ChatColor.RED + "Rating must be between 1 and 5 (one decimal)." );
+                    return true;
+                }
+                double rating = Double.parseDouble(ratingStr);
+                String key = DungeonManager.normalizeKey(name);
+                Main.getInstance().getDungeonRatingManager().addRating(key, rating);
+                player.sendMessage(ChatColor.GREEN + "Thanks for rating " + name + "!" );
+                return true;
+            }
             default -> {
                 return false;
             }

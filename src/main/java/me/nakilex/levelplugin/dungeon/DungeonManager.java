@@ -662,20 +662,34 @@ public class DungeonManager {
         long pasteStart = System.currentTimeMillis();
 
         Instance inst = new Instance(dungeon, keyName);
-        inst.returnLocations.put(player.getUniqueId(), player.getLocation());
+        java.util.List<Player> participants = new java.util.ArrayList<>();
+        me.nakilex.levelplugin.party.PartyManager pm = plugin.getPartyManager();
+        me.nakilex.levelplugin.party.Party party = pm.getParty(player.getUniqueId());
+        if (party != null && party.isLeader(player.getUniqueId())) {
+            for (java.util.UUID id : party.getMembers()) {
+                Player mem = Bukkit.getPlayer(id);
+                if (mem != null && mem.isOnline()) {
+                    participants.add(mem);
+                    inst.returnLocations.put(id, mem.getLocation());
+                }
+            }
+        } else {
+            participants.add(player);
+            inst.returnLocations.put(player.getUniqueId(), player.getLocation());
+        }
         instances.put(world, inst);
         world.setDifficulty(org.bukkit.Difficulty.NORMAL);
         world.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, true);
 
-        final boolean prevAllowFlight = player.getAllowFlight();
-        final boolean prevFlying = player.isFlying();
-        final boolean prevInvul = player.isInvulnerable();
-
-        player.setAllowFlight(true);
-        player.setFlying(true);
-        player.setInvulnerable(true);
-
-        player.teleport(origin);
+        class State { boolean allowFlight; boolean flying; boolean invul; State(Player p){allowFlight=p.getAllowFlight();flying=p.isFlying();invul=p.isInvulnerable();}}
+        java.util.Map<Player, State> prev = new java.util.HashMap<>();
+        for (Player p : participants) {
+            prev.put(p, new State(p));
+            p.setAllowFlight(true);
+            p.setFlying(true);
+            p.setInvulnerable(true);
+            p.teleport(origin);
+        }
 
         new org.bukkit.scheduler.BukkitRunnable() {
             int idx = 0;
@@ -689,11 +703,14 @@ public class DungeonManager {
                     int tier = getThreatLevel(keyName);
                     spawnLootChests(dungeon, tier, inst);
 
-                    // restore player state once world is ready
-                    if (player.isOnline()) {
-                        player.setInvulnerable(prevInvul);
-                        player.setAllowFlight(prevAllowFlight);
-                        player.setFlying(prevAllowFlight && prevFlying);
+                    // restore player states once world is ready
+                    for (Player p : participants) {
+                        State st = prev.get(p);
+                        if (st != null && p.isOnline()) {
+                            p.setInvulnerable(st.invul);
+                            p.setAllowFlight(st.allowFlight);
+                            p.setFlying(st.allowFlight && st.flying);
+                        }
                     }
                     return;
                 }
@@ -819,6 +836,10 @@ public class DungeonManager {
             me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§a§l-", 45);
             me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§a§lDUNGEON COMPLETE!");
             me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§7You finished the §a" + layout + "§7 dungeon.");
+            net.md_5.bungee.api.chat.TextComponent comp = new net.md_5.bungee.api.chat.TextComponent("§e§lCLICK-HERE §ato rate the dungeon!");
+            comp.setClickEvent(new net.md_5.bungee.api.chat.ClickEvent(net.md_5.bungee.api.chat.ClickEvent.Action.SUGGEST_COMMAND,
+                    "/dungeon rate " + layout + " "));
+            player.spigot().sendMessage(comp);
             me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§a§l-", 45);
         }
 
