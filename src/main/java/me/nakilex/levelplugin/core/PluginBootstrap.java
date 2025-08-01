@@ -161,6 +161,7 @@ public class PluginBootstrap {
     private MeteorListener meteorListener;
     private CodexManager codexManager;
     private CodexMainGUI codexGUI;
+    private MobCodexGUI mobCodexGUI;
     private NpcCodexGUI npcCodexGUI;
     private LocationCodexGUI locationCodexGUI;
     private me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager wanderingMerchantManager;
@@ -191,11 +192,11 @@ public class PluginBootstrap {
         }
         mobRewardsConfig = new MobRewardsConfig(plugin);
         codexManager = new CodexManager(playerConfig, mobRewardsConfig, bossConfig);
-        MobCodexGUI mobGui = new MobCodexGUI(codexManager, null);
+        mobCodexGUI = new MobCodexGUI(codexManager, null);
         npcCodexGUI = new NpcCodexGUI(codexManager, null);
         locationCodexGUI = new LocationCodexGUI(codexManager, null);
-        codexGUI = new CodexMainGUI(mobGui, npcCodexGUI, locationCodexGUI);
-        mobGui.setMainGui(codexGUI);
+        codexGUI = new CodexMainGUI(mobCodexGUI, npcCodexGUI, locationCodexGUI);
+        mobCodexGUI.setMainGui(codexGUI);
         npcCodexGUI.setMainGui(codexGUI);
         locationCodexGUI.setMainGui(codexGUI);
         registerCommandsAndListeners();
@@ -363,7 +364,7 @@ public class PluginBootstrap {
             new me.nakilex.levelplugin.environment.listeners.BuildingHologramListener(buildingUpgradeGUI),
             new me.nakilex.levelplugin.environment.listeners.StageBlockInteractListener(),
             codexGUI,
-            mobGui,
+            mobCodexGUI,
             npcCodexGUI,
             locationCodexGUI,
             wanderingMerchantManager
