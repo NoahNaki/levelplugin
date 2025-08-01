@@ -95,6 +95,7 @@ public class ListenerRegistry {
                                         BuildingHologramListener hologramListener,
                                         StageBlockInteractListener stageBlockInteractListener,
                                         CodexMainGUI codexGUI,
+                                        MobCodexGUI mobCodexGUI,
                                         NpcCodexGUI npcCodexGUI,
                                         LocationCodexGUI locationCodexGUI,
                                         me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager wmManager) {
@@ -184,6 +185,7 @@ public class ListenerRegistry {
         pm.registerEvents(upgradeGUI, plugin);
         pm.registerEvents(buildingUpgradeGUI, plugin);
         pm.registerEvents(codexGUI, plugin);
+        pm.registerEvents(mobCodexGUI, plugin);
         pm.registerEvents(npcCodexGUI, plugin);
         pm.registerEvents(locationCodexGUI, plugin);
         pm.registerEvents(new me.nakilex.levelplugin.codex.CodexListener(

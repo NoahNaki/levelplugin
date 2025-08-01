@@ -363,6 +363,7 @@ public class PluginBootstrap {
             new me.nakilex.levelplugin.environment.listeners.BuildingHologramListener(buildingUpgradeGUI),
             new me.nakilex.levelplugin.environment.listeners.StageBlockInteractListener(),
             codexGUI,
+            mobGui,
             npcCodexGUI,
             locationCodexGUI,
             wanderingMerchantManager
