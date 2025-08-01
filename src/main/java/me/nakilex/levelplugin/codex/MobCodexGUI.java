@@ -14,33 +14,61 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class MobCodexGUI implements Listener {
-    private static final String TITLE = ChatColor.BLACK + "Codex";
+    // Use a unique title so our click listener doesn't interfere with the
+    // main codex menu which also uses "Codex" as its title.
+    private static final String TITLE = ChatColor.BLACK + "Codex - Mobs";
     private static final int SIZE = 54;
 
-    private final CodexManager manager;
-    private final ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
+    private static final int[] MOB_SLOTS = {
+            10,11,12,13,14,15,16,
+            19,20,21,22,23,24,25,
+            28,29,30,31,32,33,34,
+            37,38,39,40,41,42,43
+    };
+    private static final int ITEMS_PER_PAGE = MOB_SLOTS.length;
+    private static final int PREV_SLOT = 45;
+    private static final int NEXT_SLOT = 53;
+    private static final int BACK_SLOT = 49;
 
-    public MobCodexGUI(CodexManager manager) {
+    private final CodexManager manager;
+    private CodexMainGUI mainGui;
+    private final ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
+    private final Map<UUID, Integer> pageMap = new HashMap<>();
+
+    public MobCodexGUI(CodexManager manager, CodexMainGUI mainGui) {
         this.manager = manager;
+        this.mainGui = mainGui;
     }
 
+    public void setMainGui(CodexMainGUI gui) { this.mainGui = gui; }
+
     public void open(Player player) {
+        int page = pageMap.getOrDefault(player.getUniqueId(), 0);
+        open(player, page);
+    }
+
+    private void open(Player player, int page) {
+        pageMap.put(player.getUniqueId(), page);
         Inventory inv = Bukkit.createInventory(null, SIZE, TITLE);
-        for (int i = 0; i < SIZE; i++) {
-            if (i < 9 || i >= 45 || i % 9 == 0 || i % 9 == 8) inv.setItem(i, filler);
-        }
+        GuiUtil.fillBorder(inv, filler);
         inv.setItem(4, createInfoBook(player.getUniqueId()));
 
         List<String> mobs = manager.getAllMobKeys();
-        int slot = 9;
-        for (String key : mobs) {
-            if (slot >= 45) break;
-            inv.setItem(slot++, createMobIcon(player.getUniqueId(), key));
+        int start = page * ITEMS_PER_PAGE;
+        for (int i = start, slot = 0; i < mobs.size() && slot < ITEMS_PER_PAGE; i++) {
+            String key = mobs.get(i);
+            inv.setItem(MOB_SLOTS[slot++], createMobIcon(player.getUniqueId(), key));
         }
+
+        if (page > 0) inv.setItem(PREV_SLOT, GuiUtil.getNexoItem("arrow_left", ChatColor.GREEN + "Previous"));
+        if (mobs.size() > (page + 1) * ITEMS_PER_PAGE) inv.setItem(NEXT_SLOT, GuiUtil.getNexoItem("arrow_right", ChatColor.GREEN + "Next"));
+        inv.setItem(BACK_SLOT, GuiUtil.getNexoItem("arrow_left", ChatColor.YELLOW + "Back"));
 
         player.openInventory(inv);
     }
@@ -103,8 +131,23 @@ public class MobCodexGUI implements Listener {
 
     @EventHandler
     public void onClick(InventoryClickEvent e) {
-        if (e.getView().getTitle().equals(TITLE)) {
-            e.setCancelled(true);
+        if (!e.getView().getTitle().equals(TITLE)) return;
+        e.setCancelled(true);
+        if (!(e.getWhoClicked() instanceof Player p)) return;
+
+        int slot = e.getRawSlot();
+        if (slot == PREV_SLOT) {
+            int page = pageMap.getOrDefault(p.getUniqueId(), 0);
+            open(p, Math.max(0, page - 1));
+            return;
+        }
+        if (slot == NEXT_SLOT) {
+            int page = pageMap.getOrDefault(p.getUniqueId(), 0);
+            open(p, page + 1);
+            return;
+        }
+        if (slot == BACK_SLOT && mainGui != null) {
+            mainGui.open(p);
         }
     }
 }

@@ -37,15 +37,22 @@ public class CodexManager {
         playerConfig.saveConfigFile();
     }
 
+    /**
+     * Notify a player that they have discovered a new codex entry using the
+     * same styled message format as level ups and quest completion.
+     */
     private void notifyDiscovery(Player player, String category, String name) {
         String title = ChatColor.WHITE + "" + ChatColor.BOLD + "CODEX UPDATED";
         String subtitle = ChatColor.GRAY + category + ": " + ChatColor.YELLOW + name;
         player.sendTitle(title, subtitle, 10, 40, 10);
+
+        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§6§l-", 45);
+        me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§6§lCODEX UPDATED!");
         me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player,
-                ChatColor.WHITE + "" + ChatColor.BOLD + "CODEX UPDATED" +
-                ChatColor.GRAY + category + ": " + ChatColor.YELLOW + ChatColor.BOLD + name +
-                ChatColor.GRAY + " Check it now by using " + ChatColor.WHITE + "/codex" +
-                ChatColor.GRAY + " Rewards: " + ChatColor.GREEN + "50XP");
+                "§e" + category + ": §f" + name);
+        me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player,
+                "§7Use §f/codex §7to view your discoveries.");
+        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§6§l-", 45);
     }
 
     public boolean hasDiscovered(UUID id, String key) {
