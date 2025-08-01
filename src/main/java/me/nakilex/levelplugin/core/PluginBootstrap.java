@@ -330,8 +330,6 @@ public class PluginBootstrap {
             motdManager,
             upgradeGUI,
             codexGUI,
-            npcCodexGUI,
-            locationCodexGUI,
             wanderingMerchantManager
         );
         ListenerRegistry.registerListeners(
@@ -360,12 +358,12 @@ public class PluginBootstrap {
             dungeonListGUI,
             motdManager,
             upgradeGUI,
-            codexGUI,
-            npcCodexGUI,
-            locationCodexGUI,
             buildingUpgradeGUI,
             new me.nakilex.levelplugin.environment.listeners.BuildingHologramListener(buildingUpgradeGUI),
             new me.nakilex.levelplugin.environment.listeners.StageBlockInteractListener(),
+            codexGUI,
+            npcCodexGUI,
+            locationCodexGUI,
             wanderingMerchantManager
         );
         plugin.getServer().getPluginManager().registerEvents(beaconManager, plugin);
