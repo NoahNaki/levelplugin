@@ -5,6 +5,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import org.bukkit.entity.Player;
 
 public class AddXPCommand implements CommandExecutor {
@@ -44,7 +45,7 @@ public class AddXPCommand implements CommandExecutor {
 
         // Grant XP to player and their active Ego weapon
         levelManager.addXP(target, amount);
-        String expLabel = net.md_5.bungee.api.ChatColor.of("#47b587") + "EXP";
+        String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
         sender.sendMessage("§aGave " + amount + " <glyph:experience_orb_icon> " + expLabel + " §ato " + target.getName());
         target.sendMessage("§aYou have received " + amount + " <glyph:experience_orb_icon> " + expLabel + "!");
 

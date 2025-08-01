@@ -95,4 +95,9 @@ public class ChatFormatter {
         player.sendMessage("        " + message);
     }
 
+    /** Return the standard colored label used for experience amounts. */
+    public static String experienceLabel() {
+        return net.md_5.bungee.api.ChatColor.of("#47b587") + "EXP";
+    }
+
 }

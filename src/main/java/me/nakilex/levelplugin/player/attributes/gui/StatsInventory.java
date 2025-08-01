@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.player.attributes.gui;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStats;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
@@ -183,7 +184,7 @@ public class StatsInventory {
             int barLen = 15;
             int filled = (int) Math.round(p / 100.0 * barLen);
             String bar = ChatColor.GREEN + "" + "-".repeat(Math.max(filled,0)) + ChatColor.WHITE + "" + "-".repeat(Math.max(barLen - filled,0));
-            String expLabel = net.md_5.bungee.api.ChatColor.of("#47b587") + "EXP";
+            String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
             lore.add(bar + " " + ChatColor.YELLOW + currentXP + ChatColor.GOLD + "/" + ChatColor.YELLOW + nextLevelXP + " <glyph:experience_orb_icon> " + expLabel);
         } else {
             int mLevel = miningManager.getLevel(player);

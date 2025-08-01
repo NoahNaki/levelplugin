@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.dungeon.rating;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import org.bukkit.ChatColor;
 import org.bukkit.conversations.ConversationContext;
 import org.bukkit.conversations.Prompt;
@@ -33,7 +34,13 @@ public class DungeonRatingPrompt extends StringPrompt {
         double rating = Double.parseDouble(input);
         Main.getInstance().getDungeonRatingManager().addRating(dungeonKey, rating);
         Main.getInstance().getLevelManager().addXP(player, 100);
-        player.sendMessage(ChatColor.GREEN + "Thank you for your rating!");
+
+        ChatFormatter.constructDivider(player, "§a§l-", 45);
+        ChatFormatter.sendCenteredMessage(player, "§aThank you for your rating!");
+        String expLabel = ChatFormatter.experienceLabel();
+        ChatFormatter.sendCenteredMessage(player,
+                "§7You earned §f+100 <glyph:experience_orb_icon> " + expLabel);
+        ChatFormatter.constructDivider(player, "§a§l-", 45);
         me.nakilex.levelplugin.dungeon.DungeonManager dm = Main.getInstance().getDungeonManager();
         dm.clearPendingRating(player.getUniqueId());
         return Prompt.END_OF_CONVERSATION;

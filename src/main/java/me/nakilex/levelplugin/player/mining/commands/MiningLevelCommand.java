@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.player.mining.managers.MiningManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import org.bukkit.entity.Player;
 
 public class MiningLevelCommand implements CommandExecutor {
@@ -26,7 +27,7 @@ public class MiningLevelCommand implements CommandExecutor {
         int needed = level >= miningManager.getMaxLevel() ? 0 : miningManager.getXpRequired(level);
 
         player.sendMessage("§6Mining Level: §e" + level);
-        String expLabel = net.md_5.bungee.api.ChatColor.of("#47b587") + "EXP";
+        String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
         if (level < miningManager.getMaxLevel()) {
             player.sendMessage("§7<glyph:experience_orb_icon> " + expLabel + "§7: §e" + xp + "§7/§e" + needed);
         } else {

@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.quests.data.QuestReward;
 import me.nakilex.levelplugin.quests.data.QuestObjective;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import com.nexomc.nexo.api.NexoItems;
 import com.nexomc.nexo.items.ItemBuilder;
@@ -167,7 +168,7 @@ public class QuestGUI {
                 if (quest.getReward() != null) {
                     QuestReward r = quest.getReward();
                     if (r.getXp() > 0) {
-                        String expLabel = net.md_5.bungee.api.ChatColor.of("#47b587") + "EXP";
+                        String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
                         lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + r.getXp() + " <glyph:experience_orb_icon> " + expLabel);
                     }
                     if (r.getCoins() > 0) lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + r.getCoins() + " <glyph:coins_icon>");
