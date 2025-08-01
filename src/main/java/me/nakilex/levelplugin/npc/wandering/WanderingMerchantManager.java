@@ -61,12 +61,14 @@ public class WanderingMerchantManager {
         if (isActive()) return;
         Location base = player.getLocation().clone();
         base.add(player.getLocation().getDirection().multiply(-8));
+        base = me.nakilex.levelplugin.lootchests.utils.LocationUtils.aboveSurface(base);
         base.getWorld().getChunkAtAsync(base).thenRun(() -> {
             Bukkit.getScheduler().runTask(plugin, () -> spawn(base, player));
         });
     }
 
     private void spawn(Location loc, Player player) {
+        loc = me.nakilex.levelplugin.lootchests.utils.LocationUtils.aboveSurface(loc);
         merchant = CitizensAPI.getNPCRegistry().createNPC(EntityType.WANDERING_TRADER, ChatColor.GOLD + "Wandering Merchant");
         merchant.spawn(loc);
         merchant.setProtected(false);

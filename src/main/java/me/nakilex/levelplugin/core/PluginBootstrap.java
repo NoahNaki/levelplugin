@@ -191,10 +191,11 @@ public class PluginBootstrap {
         }
         mobRewardsConfig = new MobRewardsConfig(plugin);
         codexManager = new CodexManager(playerConfig, mobRewardsConfig, bossConfig);
-        MobCodexGUI mobGui = new MobCodexGUI(codexManager);
+        MobCodexGUI mobGui = new MobCodexGUI(codexManager, null);
         npcCodexGUI = new NpcCodexGUI(codexManager, null);
         locationCodexGUI = new LocationCodexGUI(codexManager, null);
         codexGUI = new CodexMainGUI(mobGui, npcCodexGUI, locationCodexGUI);
+        mobGui.setMainGui(codexGUI);
         npcCodexGUI.setMainGui(codexGUI);
         locationCodexGUI.setMainGui(codexGUI);
         registerCommandsAndListeners();
@@ -403,6 +404,7 @@ public class PluginBootstrap {
         if (duelStatsManager != null) duelStatsManager.save();
         if (townStageManager != null) townStageManager.despawnAll();
         if (buildingStageManager != null) buildingStageManager.despawnAll();
+        if (wanderingMerchantManager != null) wanderingMerchantManager.despawn();
         if (dealMaker != null) dealMaker.closeAllTrades();
         plugin.getLogger().info("LevelPlugin has been disabled!");
     }
@@ -490,6 +492,7 @@ public class PluginBootstrap {
     public CodexManager getCodexManager() { return codexManager; }
     public CodexMainGUI getCodexGUI() { return codexGUI; }
     public me.nakilex.levelplugin.dungeon.gui.DungeonListGUI getDungeonListGUI() { return dungeonListGUI; }
+    public me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager getWanderingMerchantManager() { return wanderingMerchantManager; }
 
     private void createCustomConfig() {
         customConfigFile = new File(plugin.getDataFolder(), "config.yml");

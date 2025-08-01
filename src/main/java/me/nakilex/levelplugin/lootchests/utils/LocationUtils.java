@@ -90,4 +90,29 @@ public class LocationUtils {
             return null;
         }
     }
+
+    /**
+     * Adjust a location so it sits just above the highest solid block
+     * at the given X/Z coordinates. Useful for spawning entities so they
+     * don't appear underground.
+     *
+     * @param location base location
+     * @return new location one block above the surface
+     */
+    public static Location aboveSurface(Location location) {
+        if (location == null || location.getWorld() == null) {
+            return location;
+        }
+        int highest = location.getWorld().getHighestBlockYAt(location);
+        if (location.getY() <= highest) {
+            return new Location(
+                    location.getWorld(),
+                    location.getX(),
+                    highest + 1,
+                    location.getZ(),
+                    location.getYaw(),
+                    location.getPitch());
+        }
+        return location;
+    }
 }
