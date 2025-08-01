@@ -262,6 +262,9 @@ public class PluginBootstrap {
         motdManager = new me.nakilex.levelplugin.motd.MotdManager(plugin);
         fakeBlockManager = new me.nakilex.levelplugin.fakeblock.FakeBlockManager();
         questGateManager = new me.nakilex.levelplugin.fakeblock.QuestGateManager(plugin, fakeBlockManager);
+        // WorldManager must be initialised before DungeonManager so the flatland
+        // world is loaded when dungeon templates are captured.
+        worldManager = new me.nakilex.levelplugin.world.WorldManager(plugin);
         dungeonRatingManager = new me.nakilex.levelplugin.dungeon.rating.DungeonRatingManager(plugin);
         dungeonManager = new me.nakilex.levelplugin.dungeon.DungeonManager(plugin, lootChestManager);
         dungeonManager.cleanupOldInstanceWorlds();
@@ -276,7 +279,6 @@ public class PluginBootstrap {
         cutsceneManager = new me.nakilex.levelplugin.cutscene.CutsceneManager(plugin);
         cutsceneManager.loadCutscenes();
         wanderingMerchantManager = new me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager(plugin);
-        worldManager = new me.nakilex.levelplugin.world.WorldManager(plugin);
     }
 
     private void setupCustomConfig() {
