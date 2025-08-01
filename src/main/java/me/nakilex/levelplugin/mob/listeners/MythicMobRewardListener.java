@@ -23,6 +23,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.inventory.ItemStack;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import org.bukkit.ChatColor;
 
 import java.util.Collections;
@@ -106,7 +107,7 @@ public class MythicMobRewardListener implements Listener {
                 RewardHologramUtil.showRewardHologram(deathLoc, awardedExp, coins);
             }
             if (DropDisplayToggles.isChatEnabled(player)) {
-                String expLabel = net.md_5.bungee.api.ChatColor.of("#47b587") + "EXP";
+                String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
                 player.sendMessage("§7You earned §f+" + awardedExp + " <glyph:experience_orb_icon> " + expLabel
                         + " §7and §f+" + coins + " <glyph:coins_icon> §6coins");
                 int power = CombatPowerUtil.getCombatPower(mythicMob);

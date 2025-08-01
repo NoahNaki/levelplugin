@@ -48,7 +48,7 @@ import me.nakilex.levelplugin.party.PartyCommands;
 import me.nakilex.levelplugin.party.PartyGlowCommand;
 import me.nakilex.levelplugin.friend.FriendCommand;
 import me.nakilex.levelplugin.friend.FriendGlowCommand;
-import me.nakilex.levelplugin.codex.CodexGUI;
+import me.nakilex.levelplugin.codex.CodexMainGUI;
 import me.nakilex.levelplugin.codex.CodexCommand;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantCommand;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager;
@@ -100,7 +100,7 @@ public class CommandRegistry {
                                         FastTravelManager fastTravelManager,
                                         me.nakilex.levelplugin.motd.MotdManager motdManager,
                                         UpgradeGUI upgradeGUI,
-                                        CodexGUI codexGUI,
+                                        CodexMainGUI codexGUI,
                                         WanderingMerchantManager wmManager) {
 
 

@@ -76,6 +76,8 @@ public class DungeonManager {
     private int step;
 
     private final Map<World, Instance> instances = new HashMap<>();
+    /** Players who recently completed a dungeon and can rate it. */
+    private final java.util.Map<java.util.UUID, String> pendingRatings = new java.util.HashMap<>();
 
     /** Return true if the given world is an active dungeon instance. */
     public boolean isInstanceWorld(World world) {
@@ -360,6 +362,7 @@ public class DungeonManager {
 
         Map<Location, BlockData> replaced = preview ? new HashMap<>() : Map.of();
         java.util.List<Location> chestLocs = new java.util.ArrayList<>();
+        Location bossLoc = null;
 
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
             Material mat = b.data.getMaterial();
@@ -384,6 +387,14 @@ public class DungeonManager {
                     skull.update(false, false);
                 }
             }
+        }
+        if (template.getBossSpawn() != null) {
+            int[] vec = RoomTemplate.rotate(template.getBossSpawn().x - (int) Math.round(template.getCenterX()),
+                    template.getBossSpawn().z - (int) Math.round(template.getCenterZ()), rotation);
+            int wx = center.getBlockX() + vec[0];
+            int wy = baseY + (template.getBossSpawn().y - connectorY);
+            int wz = center.getBlockZ() + vec[1];
+            bossLoc = new Location(world, wx + 0.5, wy, wz + 0.5);
         }
         // place nether portals and exit holograms
         for (RoomTemplate.Marker m : template.getPortals()) {
@@ -410,7 +421,7 @@ public class DungeonManager {
             }
         }
         Dungeon.RoomInstance inst = new Dungeon.RoomInstance(template, rotation, center.clone(),
-                minX, minY, minZ, maxX, maxY, maxZ, mob, chestLocs);
+                minX, minY, minZ, maxX, maxY, maxZ, mob, chestLocs, bossLoc);
         dungeon.addRoom(inst);
         return new PasteResult(true, overlap, replaced, inst);
     }
@@ -662,20 +673,34 @@ public class DungeonManager {
         long pasteStart = System.currentTimeMillis();
 
         Instance inst = new Instance(dungeon, keyName);
-        inst.returnLocations.put(player.getUniqueId(), player.getLocation());
+        java.util.List<Player> participants = new java.util.ArrayList<>();
+        me.nakilex.levelplugin.party.PartyManager pm = plugin.getPartyManager();
+        me.nakilex.levelplugin.party.Party party = pm.getParty(player.getUniqueId());
+        if (party != null && party.isLeader(player.getUniqueId())) {
+            for (java.util.UUID id : party.getMembers()) {
+                Player mem = Bukkit.getPlayer(id);
+                if (mem != null && mem.isOnline()) {
+                    participants.add(mem);
+                    inst.returnLocations.put(id, mem.getLocation());
+                }
+            }
+        } else {
+            participants.add(player);
+            inst.returnLocations.put(player.getUniqueId(), player.getLocation());
+        }
         instances.put(world, inst);
         world.setDifficulty(org.bukkit.Difficulty.NORMAL);
         world.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, true);
 
-        final boolean prevAllowFlight = player.getAllowFlight();
-        final boolean prevFlying = player.isFlying();
-        final boolean prevInvul = player.isInvulnerable();
-
-        player.setAllowFlight(true);
-        player.setFlying(true);
-        player.setInvulnerable(true);
-
-        player.teleport(origin);
+        class State { boolean allowFlight; boolean flying; boolean invul; State(Player p){allowFlight=p.getAllowFlight();flying=p.isFlying();invul=p.isInvulnerable();}}
+        java.util.Map<Player, State> prev = new java.util.HashMap<>();
+        for (Player p : participants) {
+            prev.put(p, new State(p));
+            p.setAllowFlight(true);
+            p.setFlying(true);
+            p.setInvulnerable(true);
+            p.teleport(origin);
+        }
 
         new org.bukkit.scheduler.BukkitRunnable() {
             int idx = 0;
@@ -689,11 +714,14 @@ public class DungeonManager {
                     int tier = getThreatLevel(keyName);
                     spawnLootChests(dungeon, tier, inst);
 
-                    // restore player state once world is ready
-                    if (player.isOnline()) {
-                        player.setInvulnerable(prevInvul);
-                        player.setAllowFlight(prevAllowFlight);
-                        player.setFlying(prevAllowFlight && prevFlying);
+                    // restore player states once world is ready
+                    for (Player p : participants) {
+                        State st = prev.get(p);
+                        if (st != null && p.isOnline()) {
+                            p.setInvulnerable(st.invul);
+                            p.setAllowFlight(st.allowFlight);
+                            p.setFlying(st.allowFlight && st.flying);
+                        }
                     }
                     return;
                 }
@@ -764,8 +792,34 @@ public class DungeonManager {
         return sec.getKeys(false);
     }
 
+    public Set<String> getAvailableBosses() {
+        var sec = plugin.getBossConfig().getConfigurationSection("mobs");
+        if (sec == null) return Set.of();
+        return sec.getKeys(false);
+    }
+
     public Set<String> getLayoutNames() {
         return new java.util.HashSet<>(layoutDisplay.values());
+    }
+
+    /** Store that the given player may rate the specified dungeon. */
+    public void markPendingRating(java.util.UUID id, String layoutKey) {
+        pendingRatings.put(id, layoutKey);
+    }
+
+    /** Check which dungeon the player can rate without consuming the entry. */
+    public String getPendingRating(java.util.UUID id) {
+        return pendingRatings.get(id);
+    }
+
+    /** Remove and return the dungeon key the player is allowed to rate. */
+    public String consumePendingRating(java.util.UUID id) {
+        return pendingRatings.remove(id);
+    }
+
+    /** Clear any pending rating entry without returning it. */
+    public void clearPendingRating(java.util.UUID id) {
+        pendingRatings.remove(id);
     }
 
     private static RoomTemplate flipEntrances(RoomTemplate src) {
@@ -773,7 +827,7 @@ public class DungeonManager {
         for (RoomTemplate.Connector c : src.getConnectors()) {
             list.add(new RoomTemplate.Connector(c.x, c.z, c.bottomY, c.facing, !c.entrance));
         }
-        return new RoomTemplate(src.getBlocks(), list, src.getPortals(), src.getExitMarkers(),
+        return new RoomTemplate(src.getBlocks(), list, src.getPortals(), src.getExitMarkers(), src.getBossSpawn(),
                 src.getWidth(), src.getHeight(), src.getDepth(), src.getMinY());
     }
 
@@ -792,19 +846,33 @@ public class DungeonManager {
                 Instance inst = instances.get(e.getFrom().getWorld());
                 if (inst == null) return;
                 e.setCancelled(true);
-                java.util.UUID id = e.getPlayer().getUniqueId();
+                handleExit(e.getPlayer(), inst, e.getFrom().getWorld());
+            }
+
+            @org.bukkit.event.EventHandler
+            public void onMove(org.bukkit.event.player.PlayerMoveEvent e) {
+                if (e.getTo() == null) return;
+                if (e.getTo().getBlock().getType() != Material.NETHER_PORTAL) return;
+                if (e.getFrom().getBlock().getType() == Material.NETHER_PORTAL) return;
+                Instance inst = instances.get(e.getTo().getWorld());
+                if (inst == null) return;
+                handleExit(e.getPlayer(), inst, e.getTo().getWorld());
+            }
+
+            private void handleExit(Player player, Instance inst, World world) {
+                java.util.UUID id = player.getUniqueId();
                 Location back = inst.returnLocations.remove(id);
                 if (back != null) {
-                    Dungeon.RoomInstance room = inst.dungeon.getRoomContaining(e.getFrom());
+                    Dungeon.RoomInstance room = inst.dungeon.getRoomContaining(player.getLocation());
                     boolean completed = room != null && room.template == exit;
                     if (completed) {
-                        sendCompleteMessage(e.getPlayer(), getDisplayName(inst.layout));
+                        sendCompleteMessage(player, getDisplayName(inst.layout));
                     } else {
-                        sendExitMessage(e.getPlayer(), getDisplayName(inst.layout));
+                        sendExitMessage(player, getDisplayName(inst.layout));
                     }
-                    e.getPlayer().teleport(back);
+                    player.teleport(back);
                 }
-                checkInstance(e.getFrom().getWorld());
+                checkInstance(world);
             }
 
         @org.bukkit.event.EventHandler
@@ -819,7 +887,14 @@ public class DungeonManager {
             me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§a§l-", 45);
             me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§a§lDUNGEON COMPLETE!");
             me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§7You finished the §a" + layout + "§7 dungeon.");
+            me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "");
+            String msg = me.nakilex.levelplugin.utils.ChatFormatter.getCenteredText("§e§lCLICK-HERE §7to rate the dungeon!");
+            net.md_5.bungee.api.chat.TextComponent comp = new net.md_5.bungee.api.chat.TextComponent(msg);
+            comp.setClickEvent(new net.md_5.bungee.api.chat.ClickEvent(net.md_5.bungee.api.chat.ClickEvent.Action.RUN_COMMAND,
+                    "/dungeon rate " + layout));
+            player.spigot().sendMessage(comp);
             me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§a§l-", 45);
+            markPendingRating(player.getUniqueId(), normalizeKey(layout));
         }
 
         private void sendExitMessage(Player player, String layout) {

@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.mob.utils;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.ArmorStand;
@@ -24,7 +25,7 @@ public final class RewardHologramUtil {
         loc = loc.clone().add(0, 1.2, 0);
         String xpLine = ChatColor.GRAY + "[" + ChatColor.WHITE + "+" + xp + " "
                 + ChatColor.GREEN + "<glyph:experience_orb_icon> "
-                + net.md_5.bungee.api.ChatColor.of("#47b587") + "EXP" + ChatColor.GRAY + "]";
+                + me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel() + ChatColor.GRAY + "]";
         ArmorStand xpStand = loc.getWorld().spawn(loc, ArmorStand.class, as -> {
             as.setVisible(false);
             as.setGravity(false);

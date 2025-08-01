@@ -10,7 +10,43 @@ public class ChatFormatter {
     public static void sendCenteredMessage(Player player, String message) {
         if (message == null || message.equals("")) return;
 
-        centerMessage(player, message);
+        player.sendMessage(getCenteredText(message));
+    }
+
+    /**
+     * Return the provided message padded so that it appears centered
+     * in chat. This does not send anything to the player.
+     */
+    public static String getCenteredText(String message) {
+        if (message == null || message.isEmpty()) return "";
+
+        int messagePxSize = 0;
+        boolean previousCode = false;
+        boolean isBold = false;
+
+        for (char c : message.toCharArray()) {
+            if (c == '§') {
+                previousCode = true;
+                continue;
+            } else if (previousCode) {
+                previousCode = false;
+                isBold = c == 'l' || c == 'L';
+            } else {
+                DefaultFontInfo dFI = DefaultFontInfo.getDefaultFontInfo(c);
+                messagePxSize += isBold ? DefaultFontInfo.getBoldLength() : dFI.getLength();
+                messagePxSize++;
+            }
+        }
+
+        int toCompensate = CENTER_PX - (messagePxSize / 2);
+        int spaceLength = DefaultFontInfo.SPACE.getLength() + 1;
+        int compensated = 0;
+        StringBuilder sb = new StringBuilder();
+        while (compensated < toCompensate) {
+            sb.append(' ');
+            compensated += spaceLength;
+        }
+        return sb + message;
     }
 
     private static void centerMessage(Player player, String message) {
@@ -57,6 +93,26 @@ public class ChatFormatter {
     public static void sendIndentedMessage(Player player, String message) {
         if (message == null) return;
         player.sendMessage("        " + message);
+    }
+
+    /** Return the standard colored label used for experience amounts. */
+    public static String experienceLabel() {
+        return net.md_5.bungee.api.ChatColor.of("#47b587") + "EXP";
+    }
+
+    /**
+     * Send multiple centered lines wrapped in a colored divider.
+     *
+     * @param player the target player
+     * @param dividerColor the color code for the divider (e.g. "§a")
+     * @param lines the messages to center between the dividers
+     */
+    public static void sendBoxedCenteredMessages(Player player, String dividerColor, String... lines) {
+        constructDivider(player, dividerColor + "§l-", 45);
+        for (String line : lines) {
+            sendCenteredMessage(player, line);
+        }
+        constructDivider(player, dividerColor + "§l-", 45);
     }
 
 }

@@ -17,14 +17,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public class CodexGUI implements Listener {
+public class MobCodexGUI implements Listener {
     private static final String TITLE = ChatColor.BLACK + "Codex";
     private static final int SIZE = 54;
 
     private final CodexManager manager;
     private final ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
 
-    public CodexGUI(CodexManager manager) {
+    public MobCodexGUI(CodexManager manager) {
         this.manager = manager;
     }
 

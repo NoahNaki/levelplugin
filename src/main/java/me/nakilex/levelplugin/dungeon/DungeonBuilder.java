@@ -20,6 +20,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.HeadUtil;
 
 import java.util.*;
 import java.awt.Point;
@@ -32,6 +33,15 @@ import java.awt.Point;
 public class DungeonBuilder implements Listener {
     private final DungeonManager manager;
     private final Map<UUID, Session> sessions = new HashMap<>();
+
+    // custom head textures for room icons
+    private static final String CHEST_DECOR_HEAD = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvN2UyZWI0NzUxZTNjNTBkNTBmZjE2MzUyNTc2NjYzZDhmZWRmZTNlMDRiMmYwYjhhMmFhODAzYjQxOTM2M2NhMSJ9fX0=";
+    private static final String STONE_DECOR_HEAD = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMmQ0NDU0NDQ5NmVlMGFkMjc0MzE4ODQxZGZlMWViNjk0ZDA1NDA4MGQxMTJlMTMyYmVjOWU1ODM5YjJlNzYwMiJ9fX0=";
+    private static final String LIBRARY_HEAD = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNDdhMzc0ZTIxYjgxYzBiMjFhYmViOGU5N2UxM2UwNzdkM2VkMWVkNDRmMmU5NTZjNjhmNjNhM2UxOWU4OTlmNiJ9fX0=";
+    private static final String EXIT_HEAD = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZTkzYjhkYzkzZjAxODY2MGFhOTI1NmI5MWJiNzcwY2JjYmNjNjJhZTYxZTdhNjcxYzc1ZGM1NDQ1NjljMWE3OCJ9fX0=";
+    private static final String TREASURE_HEAD = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZWM2ZTYwNGJkNTNkOTc4ODc1OTVhMDYyYjdjNTEyY2E0ZGJiZmU0OGJiNGFkY2VmNzEyNWQxZGIxMDNhYjdmZiJ9fX0=";
+    private static final String BOSS_HEAD = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNzI2NzQzYjk5ODljNTlkNjI5NmVmZGE3NDhlNGVjNjc4YmNlNWQwN2FlODhmZmFjNzM3MmM0NTVjNmMyMDJhMiJ9fX0=";
+    private static final String COMBAT_HEAD = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYzdkMjlkYmYzZDk4MjEzZWMyZmIwY2EyNWRhNzQ3NzllNTdiZDBjMTIzNDI2OGY4MjhhM2VjOTg2OWUxNWE5YyJ9fX0=";
 
     public DungeonBuilder(DungeonManager manager) {
         this.manager = manager;
@@ -140,26 +150,14 @@ public class DungeonBuilder implements Listener {
 
     private void setupInventory(Player player) {
         player.getInventory().clear();
-        ItemStack wool = new ItemStack(Material.LIME_WOOL);
-        ItemMeta meta = wool.getItemMeta();
-        if (meta != null) meta.setDisplayName(ChatColor.GREEN + "Place Entrance");
-        wool.setItemMeta(meta);
+        ItemStack wool = GuiUtil.getNexoItem("plus", ChatColor.GREEN + "Place Entrance");
         player.getInventory().setItem(0, wool);
-        ItemStack undo = new ItemStack(Material.ARROW);
-        ItemMeta um = undo.getItemMeta();
-        if (um != null) um.setDisplayName(ChatColor.YELLOW + "Undo");
-        undo.setItemMeta(um);
+        ItemStack undo = GuiUtil.getNexoItem("arrow_left", ChatColor.YELLOW + "Undo");
         player.getInventory().setItem(6, undo);
 
-        ItemStack save = new ItemStack(Material.EMERALD);
-        ItemMeta sm = save.getItemMeta();
-        if (sm != null) sm.setDisplayName(ChatColor.AQUA + "Save");
-        save.setItemMeta(sm);
+        ItemStack save = GuiUtil.getNexoItem("check", ChatColor.AQUA + "Save");
         player.getInventory().setItem(7, save);
-        ItemStack cancel = new ItemStack(Material.BARRIER);
-        ItemMeta cm = cancel.getItemMeta();
-        if (cm != null) cm.setDisplayName(ChatColor.RED + "Cancel");
-        cancel.setItemMeta(cm);
+        ItemStack cancel = GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel");
         player.getInventory().setItem(8, cancel);
     }
 
@@ -177,19 +175,21 @@ public class DungeonBuilder implements Listener {
         if (action != Action.RIGHT_CLICK_BLOCK && action != Action.RIGHT_CLICK_AIR) return;
         ItemStack hand = event.getItem();
         if (hand == null) return;
-        Material type = hand.getType();
-        if (type == Material.ARROW) {
+        ItemMeta meta = hand.getItemMeta();
+        String name = meta != null ? ChatColor.stripColor(meta.getDisplayName()) : "";
+
+        if (name.equalsIgnoreCase("Undo")) {
             event.setCancelled(true);
             s.undo();
             return;
         }
-        if (type == Material.EMERALD) {
+        if (name.equalsIgnoreCase("Save")) {
             event.setCancelled(true);
             s.awaitingName = true;
             player.sendMessage(ChatColor.YELLOW + "Type dungeon name in chat or 'cancel'.");
             return;
         }
-        if (type == Material.BARRIER) {
+        if (name.equalsIgnoreCase("Cancel")) {
             event.setCancelled(true);
             s.cancel();
             sessions.remove(player.getUniqueId());
@@ -197,7 +197,7 @@ public class DungeonBuilder implements Listener {
             player.sendMessage(ChatColor.RED + "Dungeon build cancelled.");
             return;
         }
-        if (type != Material.LIME_WOOL) return;
+        if (!name.equalsIgnoreCase("Place Entrance")) return;
         event.setCancelled(true);
         if (!s.placingEntrance) return;
         Location loc;
@@ -208,6 +208,10 @@ public class DungeonBuilder implements Listener {
         }
         Direction facing = Direction.fromYaw(player.getLocation().getYaw());
         RoomTemplate entrance = manager.getEntrance();
+        if (entrance == null) {
+            player.sendMessage(ChatColor.RED + "Entrance template not loaded.");
+            return;
+        }
         if (entrance.getConnectors().isEmpty()) {
             player.sendMessage(ChatColor.RED + "Entrance template missing connectors.");
             return;
@@ -275,15 +279,15 @@ public class DungeonBuilder implements Listener {
                 } else if (name.equalsIgnoreCase("Decor Chest Room")) {
                     placeVariant(s, manager.getDecorChest());
                     player.closeInventory();
-                } else if (item.getType() == Material.RED_WOOL) {
+                } else if (name.equalsIgnoreCase("Combat Room")) {
                     player.openInventory(createCombatVariantSelect());
-                } else if (item.getType() == Material.BLACK_WOOL) {
-                    placeVariant(s, manager.getBoss());
-                    player.closeInventory();
-                } else if (item.getType() == Material.OBSIDIAN) {
+                } else if (name.equalsIgnoreCase("Boss Room")) {
+                    s.selectedTemplate = manager.getBoss();
+                    player.openInventory(createBossSelect());
+                } else if (name.equalsIgnoreCase("Exit Room")) {
                     placeVariant(s, manager.getExit());
                     player.closeInventory();
-                } else if (item.getType() == Material.BOOKSHELF) {
+                } else if (name.equalsIgnoreCase("Library")) {
                     placeVariant(s, manager.getLibrary());
                     player.closeInventory();
                 }
@@ -326,6 +330,18 @@ public class DungeonBuilder implements Listener {
             case "Select Mob" -> {
                 if (name.equalsIgnoreCase("Back")) {
                     player.openInventory(createCombatVariantSelect());
+                    return;
+                }
+                s.selectedMob = name;
+                if (s.selectedTemplate != null) {
+                    placeVariant(s, s.selectedTemplate);
+                    player.closeInventory();
+                    s.selectedTemplate = null;
+                }
+            }
+            case "Select Boss" -> {
+                if (name.equalsIgnoreCase("Back")) {
+                    player.openInventory(createRoomSelect());
                     return;
                 }
                 s.selectedMob = name;
@@ -472,7 +488,7 @@ public class DungeonBuilder implements Listener {
         int[] vec = RoomTemplate.rotate(match.x - (int) Math.round(templ.getCenterX()),
                 match.z - (int) Math.round(templ.getCenterZ()), rotation);
         Location center = base.clone().subtract(vec[0], match.bottomY - templ.getConnectorMinY(), vec[1]);
-        String mob = (templ == manager.getCombatLeft() || templ == manager.getCombatRight()) ? s.selectedMob : null;
+        String mob = (templ == manager.getCombatLeft() || templ == manager.getCombatRight() || templ == manager.getBoss()) ? s.selectedMob : null;
         DungeonManager.PasteResult result = manager.pasteRoom(s.dungeon, templ, rotation, center, mob, true);
         s.player.sendMessage(ChatColor.GRAY + String.format("Overlap: %.1f%%", result.overlap() * 100));
         if (!result.success()) {
@@ -530,14 +546,14 @@ public class DungeonBuilder implements Listener {
 
         ItemStack basic = item(Material.YELLOW_WOOL, ChatColor.YELLOW + "Basic Room");
         ItemStack hall = item(Material.BROWN_WOOL, ChatColor.YELLOW + "Hallway");
-        ItemStack treasureLeft = item(Material.GOLD_BLOCK, ChatColor.GOLD + "Treasure Room Left");
-        ItemStack treasureTRight = item(Material.GOLD_BLOCK, ChatColor.GOLD + "Treasure Room T-Section Right");
-        ItemStack decorStone = item(Material.STONE, ChatColor.GRAY + "Decor Stone Room");
-        ItemStack decorChest = item(Material.CHEST, ChatColor.YELLOW + "Decor Chest Room");
-        ItemStack boss = item(Material.BLACK_WOOL, ChatColor.DARK_GRAY + "Boss Room");
-        ItemStack combat = item(Material.RED_WOOL, ChatColor.RED + "Combat Room");
-        ItemStack exitRoom = item(Material.OBSIDIAN, ChatColor.DARK_PURPLE + "Exit Room");
-        ItemStack library = item(Material.BOOKSHELF, ChatColor.GOLD + "Library");
+        ItemStack treasureLeft = HeadUtil.createCustomHead(TREASURE_HEAD, ChatColor.GOLD + "Treasure Room Left", null);
+        ItemStack treasureTRight = HeadUtil.createCustomHead(TREASURE_HEAD, ChatColor.GOLD + "Treasure Room T-Section Right", null);
+        ItemStack decorStone = HeadUtil.createCustomHead(STONE_DECOR_HEAD, ChatColor.GRAY + "Decor Stone Room", null);
+        ItemStack decorChest = HeadUtil.createCustomHead(CHEST_DECOR_HEAD, ChatColor.YELLOW + "Decor Chest Room", null);
+        ItemStack boss = HeadUtil.createCustomHead(BOSS_HEAD, ChatColor.DARK_GRAY + "Boss Room", null);
+        ItemStack combat = HeadUtil.createCustomHead(COMBAT_HEAD, ChatColor.RED + "Combat Room", null);
+        ItemStack exitRoom = HeadUtil.createCustomHead(EXIT_HEAD, ChatColor.DARK_PURPLE + "Exit Room", null);
+        ItemStack library = HeadUtil.createCustomHead(LIBRARY_HEAD, ChatColor.GOLD + "Library", null);
         ItemMeta cMeta = combat.getItemMeta();
         if (cMeta != null) {
             cMeta.setLore(Arrays.asList(ChatColor.WHITE + "Left-click to place",
@@ -589,10 +605,9 @@ public class DungeonBuilder implements Listener {
         return inv;
     }
 
-    private Inventory createMobSelect() {
-        Set<String> mobs = manager.getAvailableMobs();
+    private Inventory createMobSelect(Set<String> mobs, String title) {
         int size = ((mobs.size() - 1) / 9 + 1) * 9;
-        Inventory inv = Bukkit.createInventory(null, size, ChatColor.DARK_GREEN + "Select Mob");
+        Inventory inv = Bukkit.createInventory(null, size, ChatColor.DARK_GREEN + title);
         ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
         for (int i = 0; i < size; i++) inv.setItem(i, filler);
         int idx = 0;
@@ -605,6 +620,14 @@ public class DungeonBuilder implements Listener {
         }
         inv.setItem(size - 1, GuiUtil.getNexoItem("arrow_left", ChatColor.YELLOW + "Back"));
         return inv;
+    }
+
+    private Inventory createBossSelect() {
+        return createMobSelect(manager.getAvailableBosses(), "Select Boss");
+    }
+
+    private Inventory createMobSelect() {
+        return createMobSelect(manager.getAvailableMobs(), "Select Mob");
     }
 
     private ItemStack item(Material mat, String name) {
@@ -752,7 +775,7 @@ public class DungeonBuilder implements Listener {
                 layout.set(lx, lz, type);
                 layout.setTemplate(lx, lz, manager.identifyTemplate(t));
                 layout.setRotation(lx, lz, r.rotation);
-                if (type == RoomType.COMBAT) {
+                if (type == RoomType.COMBAT || type == RoomType.BOSS) {
                     layout.setMob(lx, lz, r.mob);
                     int power = me.nakilex.levelplugin.mob.utils.CombatPowerUtil.estimateCombatPower(r.mob);
                     int threat = me.nakilex.levelplugin.mob.utils.ThreatUtil.levelForPower(power);

@@ -16,7 +16,7 @@ import me.nakilex.levelplugin.trade.data.ConfigValues;
 import me.nakilex.levelplugin.trade.utils.MessageStrings;
 import me.nakilex.levelplugin.utils.DealMaker;
 import me.nakilex.levelplugin.codex.CodexManager;
-import me.nakilex.levelplugin.codex.CodexGUI;
+import me.nakilex.levelplugin.codex.CodexMainGUI;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -96,6 +96,7 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.fakeblock.QuestGateManager getQuestGateManager() { return bootstrap.getQuestGateManager(); }
     public me.nakilex.levelplugin.fakeblock.FakeBlockManager getFakeBlockManager() { return bootstrap.getFakeBlockManager(); }
     public me.nakilex.levelplugin.fakeblock.ModelGateManager getModelGateManager() { return bootstrap.getModelGateManager(); }
+    public me.nakilex.levelplugin.dungeon.rating.DungeonRatingManager getDungeonRatingManager() { return bootstrap.getDungeonRatingManager(); }
     public me.nakilex.levelplugin.dungeon.DungeonManager getDungeonManager() { return bootstrap.getDungeonManager(); }
     public me.nakilex.levelplugin.world.WorldManager getWorldManager() { return bootstrap.getWorldManager(); }
     public me.nakilex.levelplugin.quests.managers.BeaconManager getBeaconManager() { return bootstrap.getBeaconManager(); }
@@ -109,6 +110,6 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.calendar.CalendarManager getCalendarManager() { return bootstrap.getCalendarManager(); }
     public me.nakilex.levelplugin.cutscene.CutsceneManager getCutsceneManager() { return bootstrap.getCutsceneManager(); }
     public CodexManager getCodexManager() { return bootstrap.getCodexManager(); }
-    public CodexGUI getCodexGUI() { return bootstrap.getCodexGUI(); }
+    public CodexMainGUI getCodexGUI() { return bootstrap.getCodexGUI(); }
     public me.nakilex.levelplugin.dungeon.gui.DungeonListGUI getDungeonListGUI() { return bootstrap.getDungeonListGUI(); }
 }

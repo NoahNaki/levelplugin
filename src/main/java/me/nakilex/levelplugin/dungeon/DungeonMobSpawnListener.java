@@ -40,8 +40,15 @@ public class DungeonMobSpawnListener implements Listener {
         for (Dungeon dungeon : manager.getActiveDungeons()) {
             if (!dungeon.getRooms().isEmpty() && !player.getWorld().equals(dungeon.getRooms().get(0).center.getWorld())) continue;
             for (Dungeon.RoomInstance room : dungeon.getRooms()) {
-                if (room.mob == null || triggered.contains(room)) continue;
-                if (room.contains(to)) {
+                if (triggered.contains(room)) continue;
+                if (room.bossSpawn != null && room.mob != null) {
+                    if (room.bossSpawn.getWorld().equals(to.getWorld()) && room.bossSpawn.distanceSquared(to) <= 40*40) {
+                        spawnBoss(room);
+                        triggered.add(room);
+                        continue;
+                    }
+                }
+                if (room.mob != null && room.contains(to)) {
                     spawnConfiguredMobs(room);
                     triggered.add(room);
                 }
@@ -72,5 +79,9 @@ public class DungeonMobSpawnListener implements Listener {
             Location spawn = new Location(room.center.getWorld(), x + 0.5, room.center.getY(), z + 0.5);
             MythicMobModifier.spawnModifiedMob(key, spawn, hp, dmg, move, atk);
         }
+    }
+
+    private void spawnBoss(Dungeon.RoomInstance room) {
+        MythicMobModifier.spawnModifiedMob(room.mob, room.bossSpawn, null, null, null, null);
     }
 }

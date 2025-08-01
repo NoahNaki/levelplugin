@@ -18,11 +18,13 @@ public class Dungeon {
         public final int minX, minY, minZ, maxX, maxY, maxZ;
         public final String mob;
         public final java.util.List<Location> chests;
+        public final Location bossSpawn;
         public RoomInstance(RoomTemplate template, int rotation, Location center,
                             int minX, int minY, int minZ,
                             int maxX, int maxY, int maxZ,
                             String mob,
-                            java.util.List<Location> chests) {
+                            java.util.List<Location> chests,
+                            Location bossSpawn) {
             this.template = template;
             this.rotation = rotation;
             this.center = center;
@@ -34,6 +36,7 @@ public class Dungeon {
             this.maxZ = maxZ;
             this.mob = mob;
             this.chests = chests == null ? java.util.List.of() : chests;
+            this.bossSpawn = bossSpawn;
         }
 
         public boolean contains(Location loc) {

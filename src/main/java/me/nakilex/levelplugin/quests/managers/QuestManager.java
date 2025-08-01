@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.quests.data.*;
 import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.data.QuestResetScript;
@@ -769,7 +770,7 @@ public class QuestManager {
         QuestReward reward = quest.getReward();
         if (reward != null) {
             if (reward.getXp() > 0) {
-                String expLabel = net.md_5.bungee.api.ChatColor.of("#47b587") + "EXP";
+                String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
                 me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + reward.getXp() + " <glyph:experience_orb_icon> " + expLabel);
             }
             if (reward.getCoins() > 0) {

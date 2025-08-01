@@ -229,6 +229,10 @@ public class NPCDialogManager implements Listener {
             if (session.quest != null) {
                 questManager.startQuest(player, session.quest.getId());
             }
+            if (session.npc != null) {
+                Main.getInstance().getCodexManager().recordNpc(player,
+                        org.bukkit.ChatColor.stripColor(session.npc.getName()));
+            }
             if (session.finish != null) {
                 session.finish.run();
             }

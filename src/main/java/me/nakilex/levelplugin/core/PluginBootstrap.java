@@ -30,8 +30,7 @@ import me.nakilex.levelplugin.party.PartyGlowManager;
 import me.nakilex.levelplugin.friend.FriendManager;
 import me.nakilex.levelplugin.friend.FriendGlowManager;
 import me.nakilex.levelplugin.friend.PlayerVisibilityManager;
-import me.nakilex.levelplugin.codex.CodexManager;
-import me.nakilex.levelplugin.codex.CodexGUI;
+import me.nakilex.levelplugin.codex.*;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager;
 import me.nakilex.levelplugin.friend.IgnoreManager;
 import me.nakilex.levelplugin.friend.FriendRequestListener;
@@ -143,6 +142,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.fakeblock.FakeBlockManager fakeBlockManager;
     private me.nakilex.levelplugin.fakeblock.QuestGateManager questGateManager;
     private me.nakilex.levelplugin.fakeblock.ModelGateManager modelGateManager;
+    private me.nakilex.levelplugin.dungeon.rating.DungeonRatingManager dungeonRatingManager;
     private me.nakilex.levelplugin.dungeon.DungeonManager dungeonManager;
     private me.nakilex.levelplugin.world.WorldManager worldManager;
     private me.nakilex.levelplugin.environment.EnvironmentManager environmentManager;
@@ -159,8 +159,10 @@ public class PluginBootstrap {
     private SettingsManager settingsManager;
     private SettingsGUI settingsGUI;
     private MeteorListener meteorListener;
-    private me.nakilex.levelplugin.codex.CodexManager codexManager;
-    private me.nakilex.levelplugin.codex.CodexGUI codexGUI;
+    private CodexManager codexManager;
+    private CodexMainGUI codexGUI;
+    private NpcCodexGUI npcCodexGUI;
+    private LocationCodexGUI locationCodexGUI;
     private me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager wanderingMerchantManager;
 
     public PluginBootstrap(Main plugin) {
@@ -188,8 +190,13 @@ public class PluginBootstrap {
             return;
         }
         mobRewardsConfig = new MobRewardsConfig(plugin);
-        codexManager = new me.nakilex.levelplugin.codex.CodexManager(playerConfig, mobRewardsConfig, bossConfig);
-        codexGUI = new me.nakilex.levelplugin.codex.CodexGUI(codexManager);
+        codexManager = new CodexManager(playerConfig, mobRewardsConfig, bossConfig);
+        MobCodexGUI mobGui = new MobCodexGUI(codexManager);
+        npcCodexGUI = new NpcCodexGUI(codexManager, null);
+        locationCodexGUI = new LocationCodexGUI(codexManager, null);
+        codexGUI = new CodexMainGUI(mobGui, npcCodexGUI, locationCodexGUI);
+        npcCodexGUI.setMainGui(codexGUI);
+        locationCodexGUI.setMainGui(codexGUI);
         registerCommandsAndListeners();
         new ItemsBrowser(plugin);
         new me.nakilex.levelplugin.items.tools.gui.ToolBrowser(plugin);
@@ -261,6 +268,10 @@ public class PluginBootstrap {
         motdManager = new me.nakilex.levelplugin.motd.MotdManager(plugin);
         fakeBlockManager = new me.nakilex.levelplugin.fakeblock.FakeBlockManager();
         questGateManager = new me.nakilex.levelplugin.fakeblock.QuestGateManager(plugin, fakeBlockManager);
+        // WorldManager must be initialised before DungeonManager so the flatland
+        // world is loaded when dungeon templates are captured.
+        worldManager = new me.nakilex.levelplugin.world.WorldManager(plugin);
+        dungeonRatingManager = new me.nakilex.levelplugin.dungeon.rating.DungeonRatingManager(plugin);
         dungeonManager = new me.nakilex.levelplugin.dungeon.DungeonManager(plugin, lootChestManager);
         dungeonManager.cleanupOldInstanceWorlds();
         dungeonListGUI = new me.nakilex.levelplugin.dungeon.gui.DungeonListGUI(dungeonManager);
@@ -274,7 +285,6 @@ public class PluginBootstrap {
         cutsceneManager = new me.nakilex.levelplugin.cutscene.CutsceneManager(plugin);
         cutsceneManager.loadCutscenes();
         wanderingMerchantManager = new me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager(plugin);
-        worldManager = new me.nakilex.levelplugin.world.WorldManager(plugin);
     }
 
     private void setupCustomConfig() {
@@ -351,6 +361,9 @@ public class PluginBootstrap {
             buildingUpgradeGUI,
             new me.nakilex.levelplugin.environment.listeners.BuildingHologramListener(buildingUpgradeGUI),
             new me.nakilex.levelplugin.environment.listeners.StageBlockInteractListener(),
+            codexGUI,
+            npcCodexGUI,
+            locationCodexGUI,
             wanderingMerchantManager
         );
         plugin.getServer().getPluginManager().registerEvents(beaconManager, plugin);
@@ -456,6 +469,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.fakeblock.FakeBlockManager getFakeBlockManager() { return fakeBlockManager; }
     public me.nakilex.levelplugin.fakeblock.QuestGateManager getQuestGateManager() { return questGateManager; }
     public me.nakilex.levelplugin.fakeblock.ModelGateManager getModelGateManager() { return modelGateManager; }
+    public me.nakilex.levelplugin.dungeon.rating.DungeonRatingManager getDungeonRatingManager() { return dungeonRatingManager; }
     public me.nakilex.levelplugin.dungeon.DungeonManager getDungeonManager() { return dungeonManager; }
     public me.nakilex.levelplugin.world.WorldManager getWorldManager() { return worldManager; }
     public me.nakilex.levelplugin.environment.EnvironmentManager getEnvironmentManager() { return environmentManager; }
@@ -473,8 +487,8 @@ public class PluginBootstrap {
     public MeteorListener getMeteorListener() { return meteorListener; }
     public me.nakilex.levelplugin.cutscene.CutsceneManager getCutsceneManager() { return cutsceneManager; }
     public me.nakilex.levelplugin.calendar.CalendarManager getCalendarManager() { return calendarManager; }
-    public me.nakilex.levelplugin.codex.CodexManager getCodexManager() { return codexManager; }
-    public me.nakilex.levelplugin.codex.CodexGUI getCodexGUI() { return codexGUI; }
+    public CodexManager getCodexManager() { return codexManager; }
+    public CodexMainGUI getCodexGUI() { return codexGUI; }
     public me.nakilex.levelplugin.dungeon.gui.DungeonListGUI getDungeonListGUI() { return dungeonListGUI; }
 
     private void createCustomConfig() {
