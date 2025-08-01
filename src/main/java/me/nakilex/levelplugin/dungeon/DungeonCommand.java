@@ -8,6 +8,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import me.nakilex.levelplugin.dungeon.DungeonLayout;
+import org.bukkit.conversations.ConversationFactory;
 import java.util.Arrays;
 
 public class DungeonCommand implements CommandExecutor {
@@ -78,20 +79,23 @@ public class DungeonCommand implements CommandExecutor {
                 return true;
             }
             case "rate" -> {
-                if (args.length < 3) {
-                    player.sendMessage(ChatColor.RED + "Usage: /dungeon rate <name> <1-5>");
+                if (args.length < 2) {
+                    player.sendMessage(ChatColor.RED + "Usage: /dungeon rate <name>");
                     return true;
                 }
-                String ratingStr = args[args.length - 1];
-                String name = String.join(" ", java.util.Arrays.copyOfRange(args, 1, args.length - 1));
-                if (!ratingStr.matches("[1-5](\\.[0-9])?")) {
-                    player.sendMessage(ChatColor.RED + "Rating must be between 1 and 5 (one decimal)." );
-                    return true;
-                }
-                double rating = Double.parseDouble(ratingStr);
+                String name = String.join(" ", java.util.Arrays.copyOfRange(args, 1, args.length));
                 String key = DungeonManager.normalizeKey(name);
-                Main.getInstance().getDungeonRatingManager().addRating(key, rating);
-                player.sendMessage(ChatColor.GREEN + "Thanks for rating " + name + "!" );
+                String pending = manager.getPendingRating(player.getUniqueId());
+                if (pending == null || !pending.equalsIgnoreCase(key)) {
+                    player.sendMessage(ChatColor.RED + "You cannot rate this dungeon right now.");
+                    return true;
+                }
+
+                org.bukkit.conversations.ConversationFactory factory = new org.bukkit.conversations.ConversationFactory(Main.getInstance())
+                        .withFirstPrompt(new me.nakilex.levelplugin.dungeon.rating.DungeonRatingPrompt(key, player))
+                        .withLocalEcho(false)
+                        .addConversationAbandonedListener(event -> { });
+                factory.buildConversation(player).begin();
                 return true;
             }
             default -> {

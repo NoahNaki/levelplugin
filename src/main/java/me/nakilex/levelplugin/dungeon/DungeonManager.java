@@ -76,6 +76,8 @@ public class DungeonManager {
     private int step;
 
     private final Map<World, Instance> instances = new HashMap<>();
+    /** Players who recently completed a dungeon and can rate it. */
+    private final java.util.Map<java.util.UUID, String> pendingRatings = new java.util.HashMap<>();
 
     /** Return true if the given world is an active dungeon instance. */
     public boolean isInstanceWorld(World world) {
@@ -800,6 +802,26 @@ public class DungeonManager {
         return new java.util.HashSet<>(layoutDisplay.values());
     }
 
+    /** Store that the given player may rate the specified dungeon. */
+    public void markPendingRating(java.util.UUID id, String layoutKey) {
+        pendingRatings.put(id, layoutKey);
+    }
+
+    /** Check which dungeon the player can rate without consuming the entry. */
+    public String getPendingRating(java.util.UUID id) {
+        return pendingRatings.get(id);
+    }
+
+    /** Remove and return the dungeon key the player is allowed to rate. */
+    public String consumePendingRating(java.util.UUID id) {
+        return pendingRatings.remove(id);
+    }
+
+    /** Clear any pending rating entry without returning it. */
+    public void clearPendingRating(java.util.UUID id) {
+        pendingRatings.remove(id);
+    }
+
     private static RoomTemplate flipEntrances(RoomTemplate src) {
         List<RoomTemplate.Connector> list = new ArrayList<>();
         for (RoomTemplate.Connector c : src.getConnectors()) {
@@ -865,11 +887,14 @@ public class DungeonManager {
             me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§a§l-", 45);
             me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§a§lDUNGEON COMPLETE!");
             me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§7You finished the §a" + layout + "§7 dungeon.");
-            net.md_5.bungee.api.chat.TextComponent comp = new net.md_5.bungee.api.chat.TextComponent("§e§lCLICK-HERE §ato rate the dungeon!");
-            comp.setClickEvent(new net.md_5.bungee.api.chat.ClickEvent(net.md_5.bungee.api.chat.ClickEvent.Action.SUGGEST_COMMAND,
-                    "/dungeon rate " + layout + " "));
+            me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "");
+            String msg = me.nakilex.levelplugin.utils.ChatFormatter.getCenteredText("§e§lCLICK-HERE §7to rate the dungeon!");
+            net.md_5.bungee.api.chat.TextComponent comp = new net.md_5.bungee.api.chat.TextComponent(msg);
+            comp.setClickEvent(new net.md_5.bungee.api.chat.ClickEvent(net.md_5.bungee.api.chat.ClickEvent.Action.RUN_COMMAND,
+                    "/dungeon rate " + layout));
             player.spigot().sendMessage(comp);
             me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§a§l-", 45);
+            markPendingRating(player.getUniqueId(), normalizeKey(layout));
         }
 
         private void sendExitMessage(Player player, String layout) {

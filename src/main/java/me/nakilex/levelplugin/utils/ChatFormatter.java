@@ -10,7 +10,43 @@ public class ChatFormatter {
     public static void sendCenteredMessage(Player player, String message) {
         if (message == null || message.equals("")) return;
 
-        centerMessage(player, message);
+        player.sendMessage(getCenteredText(message));
+    }
+
+    /**
+     * Return the provided message padded so that it appears centered
+     * in chat. This does not send anything to the player.
+     */
+    public static String getCenteredText(String message) {
+        if (message == null || message.isEmpty()) return "";
+
+        int messagePxSize = 0;
+        boolean previousCode = false;
+        boolean isBold = false;
+
+        for (char c : message.toCharArray()) {
+            if (c == '§') {
+                previousCode = true;
+                continue;
+            } else if (previousCode) {
+                previousCode = false;
+                isBold = c == 'l' || c == 'L';
+            } else {
+                DefaultFontInfo dFI = DefaultFontInfo.getDefaultFontInfo(c);
+                messagePxSize += isBold ? DefaultFontInfo.getBoldLength() : dFI.getLength();
+                messagePxSize++;
+            }
+        }
+
+        int toCompensate = CENTER_PX - (messagePxSize / 2);
+        int spaceLength = DefaultFontInfo.SPACE.getLength() + 1;
+        int compensated = 0;
+        StringBuilder sb = new StringBuilder();
+        while (compensated < toCompensate) {
+            sb.append(' ');
+            compensated += spaceLength;
+        }
+        return sb + message;
     }
 
     private static void centerMessage(Player player, String message) {
