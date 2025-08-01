@@ -1,6 +1,8 @@
 package me.nakilex.levelplugin.mob.managers;
 
 import io.lumine.mythic.bukkit.events.MythicMobSpawnEvent;
+import io.lumine.mythic.bukkit.MythicBukkit;
+import io.lumine.mythic.bukkit.BukkitAPIHelper;
 import io.lumine.mythic.core.mobs.ActiveMob;
 import me.nakilex.levelplugin.Main;
 import org.bukkit.Bukkit;
@@ -21,6 +23,7 @@ import java.util.stream.Collectors;
 public class MythicMobNameManager implements Listener {
 
     private final Main plugin;
+    private final BukkitAPIHelper mythicHelper = MythicBukkit.inst().getAPIHelper();
     private final Set<ActiveMob> trackedMobs = new HashSet<>();
     /** Holds all boss‑keys exactly as in your YAML (e.g. "KING SLIME", "TERRACOTTA GENERAL", etc.) */
     private final Set<String> fieldBossKeys;
@@ -122,7 +125,7 @@ public class MythicMobNameManager implements Listener {
 
     @EventHandler
     public void onMythicMobDeath(EntityDeathEvent event) {
-        ActiveMob mob = plugin.getMythicHelper().getMythicMobInstance(event.getEntity());
+        ActiveMob mob = mythicHelper.getMythicMobInstance(event.getEntity());
         if (mob != null) {
             trackedMobs.remove(mob);
         }
