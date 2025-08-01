@@ -178,18 +178,18 @@ public class DungeonBuilder implements Listener {
         ItemMeta meta = hand.getItemMeta();
         String name = meta != null ? ChatColor.stripColor(meta.getDisplayName()) : "";
 
-        if (name.equalsIgnoreCase("Undo") || hand.getType() == Material.ARROW) {
+        if (name.equalsIgnoreCase("Undo")) {
             event.setCancelled(true);
             s.undo();
             return;
         }
-        if (name.equalsIgnoreCase("Save") || hand.getType() == Material.EMERALD) {
+        if (name.equalsIgnoreCase("Save")) {
             event.setCancelled(true);
             s.awaitingName = true;
             player.sendMessage(ChatColor.YELLOW + "Type dungeon name in chat or 'cancel'.");
             return;
         }
-        if (name.equalsIgnoreCase("Cancel") || hand.getType() == Material.BARRIER) {
+        if (name.equalsIgnoreCase("Cancel")) {
             event.setCancelled(true);
             s.cancel();
             sessions.remove(player.getUniqueId());
@@ -197,7 +197,7 @@ public class DungeonBuilder implements Listener {
             player.sendMessage(ChatColor.RED + "Dungeon build cancelled.");
             return;
         }
-        if (!(name.equalsIgnoreCase("Place Entrance") || hand.getType() == Material.LIME_WOOL)) return;
+        if (!name.equalsIgnoreCase("Place Entrance")) return;
         event.setCancelled(true);
         if (!s.placingEntrance) return;
         Location loc;
@@ -279,15 +279,15 @@ public class DungeonBuilder implements Listener {
                 } else if (name.equalsIgnoreCase("Decor Chest Room")) {
                     placeVariant(s, manager.getDecorChest());
                     player.closeInventory();
-                } else if (item.getType() == Material.RED_WOOL) {
+                } else if (name.equalsIgnoreCase("Combat Room")) {
                     player.openInventory(createCombatVariantSelect());
-                } else if (item.getType() == Material.BLACK_WOOL) {
+                } else if (name.equalsIgnoreCase("Boss Room")) {
                     placeVariant(s, manager.getBoss());
                     player.closeInventory();
-                } else if (item.getType() == Material.OBSIDIAN) {
+                } else if (name.equalsIgnoreCase("Exit Room")) {
                     placeVariant(s, manager.getExit());
                     player.closeInventory();
-                } else if (item.getType() == Material.BOOKSHELF) {
+                } else if (name.equalsIgnoreCase("Library")) {
                     placeVariant(s, manager.getLibrary());
                     player.closeInventory();
                 }
