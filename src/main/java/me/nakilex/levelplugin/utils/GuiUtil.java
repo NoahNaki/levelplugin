@@ -50,4 +50,31 @@ public final class GuiUtil {
             }
         }
     }
+
+    /**
+     * Generate a star rating string using the provided characters.
+     *
+     * @param value number of filled stars
+     * @param max   maximum number of stars to display
+     * @param filled character(s) to use for a filled star
+     * @param empty  character(s) to use for an empty star
+     * @return star string of length {@code max}
+     */
+    public static String generateStars(int value, int max, String filled, String empty) {
+        StringBuilder sb = new StringBuilder(max * Math.max(filled.length(), empty.length()));
+        for (int i = 0; i < value && i < max; i++) sb.append(filled);
+        for (int i = value; i < max; i++) sb.append(empty);
+        return sb.toString();
+    }
+
+    /** Convenience wrapper using "✦" and "✧" characters. */
+    public static String generateStars(int value, int max) {
+        return generateStars(value, max, "✦", "✧");
+    }
+
+    /** Generate star glyphs repeated the given number of times. */
+    public static String glyphStars(int count) {
+        if (count <= 0) return "";
+        return "<glyph:star>".repeat(count);
+    }
 }

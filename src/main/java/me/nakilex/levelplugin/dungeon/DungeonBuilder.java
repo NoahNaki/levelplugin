@@ -208,6 +208,10 @@ public class DungeonBuilder implements Listener {
         }
         Direction facing = Direction.fromYaw(player.getLocation().getYaw());
         RoomTemplate entrance = manager.getEntrance();
+        if (entrance == null) {
+            player.sendMessage(ChatColor.RED + "Entrance template not loaded.");
+            return;
+        }
         if (entrance.getConnectors().isEmpty()) {
             player.sendMessage(ChatColor.RED + "Entrance template missing connectors.");
             return;

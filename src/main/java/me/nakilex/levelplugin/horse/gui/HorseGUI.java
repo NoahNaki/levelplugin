@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.horse.gui;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.horse.data.HorseData;
 import me.nakilex.levelplugin.horse.managers.HorseManager;
+import me.nakilex.levelplugin.utils.GuiUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -76,8 +77,8 @@ public class HorseGUI implements Listener {
     private ItemStack createHorseInfoItem(HorseData horseData) {
         if (horseData != null) {
             // Generate star ratings for speed and jump height
-            String speedStars = generateStars(horseData. getSpeed(), 10); // Total 10 stars
-            String jumpStars = generateStars(horseData.getJumpHeight(), 10); // Total 10 stars
+        String speedStars = GuiUtil.generateStars(horseData.getSpeed(), 10);
+        String jumpStars  = GuiUtil.generateStars(horseData.getJumpHeight(), 10);
 
             // Format horse type (capitalize first letter)
             String formattedType = horseData.getType().substring(0, 1).toUpperCase() + horseData.getType().substring(1).toLowerCase();
@@ -102,22 +103,7 @@ public class HorseGUI implements Listener {
         }
     }
 
-    // Generates a star rating string based on the value (out of 10)
-    private String generateStars(int value, int max) {
-        StringBuilder stars = new StringBuilder();
 
-        // Add filled stars
-        for (int i = 0; i < value; i++) {
-            stars.append("✦"); // Filled star
-        }
-
-        // Add empty stars
-        for (int i = value; i < max; i++) {
-            stars.append("✧"); // Empty star
-        }
-
-        return stars.toString();
-    }
 
 
 
