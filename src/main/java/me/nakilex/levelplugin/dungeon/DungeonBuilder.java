@@ -175,19 +175,21 @@ public class DungeonBuilder implements Listener {
         if (action != Action.RIGHT_CLICK_BLOCK && action != Action.RIGHT_CLICK_AIR) return;
         ItemStack hand = event.getItem();
         if (hand == null) return;
-        Material type = hand.getType();
-        if (type == Material.ARROW) {
+        ItemMeta meta = hand.getItemMeta();
+        String name = meta != null ? ChatColor.stripColor(meta.getDisplayName()) : "";
+
+        if (name.equalsIgnoreCase("Undo") || hand.getType() == Material.ARROW) {
             event.setCancelled(true);
             s.undo();
             return;
         }
-        if (type == Material.EMERALD) {
+        if (name.equalsIgnoreCase("Save") || hand.getType() == Material.EMERALD) {
             event.setCancelled(true);
             s.awaitingName = true;
             player.sendMessage(ChatColor.YELLOW + "Type dungeon name in chat or 'cancel'.");
             return;
         }
-        if (type == Material.BARRIER) {
+        if (name.equalsIgnoreCase("Cancel") || hand.getType() == Material.BARRIER) {
             event.setCancelled(true);
             s.cancel();
             sessions.remove(player.getUniqueId());
@@ -195,7 +197,7 @@ public class DungeonBuilder implements Listener {
             player.sendMessage(ChatColor.RED + "Dungeon build cancelled.");
             return;
         }
-        if (type != Material.LIME_WOOL) return;
+        if (!(name.equalsIgnoreCase("Place Entrance") || hand.getType() == Material.LIME_WOOL)) return;
         event.setCancelled(true);
         if (!s.placingEntrance) return;
         Location loc;
