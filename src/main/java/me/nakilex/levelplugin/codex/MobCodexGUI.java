@@ -24,7 +24,7 @@ public class MobCodexGUI implements Listener {
     private final CodexManager manager;
     private final ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
 
-    public CodexGUI(CodexManager manager) {
+    public MobCodexGUI(CodexManager manager) {
         this.manager = manager;
     }
 
