@@ -2,6 +2,8 @@ package me.nakilex.levelplugin.codex;
 
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
+import net.citizensnpcs.api.CitizensAPI;
+import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.ChatColor;
@@ -97,6 +99,22 @@ public class CodexManager {
         String base = "players." + id + ".codex.npcs";
         if (!playerConfig.getConfig().isConfigurationSection(base)) return java.util.Collections.emptyList();
         return new ArrayList<>(playerConfig.getConfig().getConfigurationSection(base).getKeys(false));
+    }
+
+    public int getDiscoveredNpcCount(UUID id) {
+        return getDiscoveredNpcs(id).size();
+    }
+
+    public int getTotalNpcCount() {
+        return CitizensAPI.getNPCRegistry().size();
+    }
+
+    public List<NPC> getAllNpcs() {
+        List<NPC> list = new ArrayList<>();
+        for (NPC npc : CitizensAPI.getNPCRegistry()) {
+            list.add(npc);
+        }
+        return list;
     }
 
     /* ----- Location Tracking ----- */

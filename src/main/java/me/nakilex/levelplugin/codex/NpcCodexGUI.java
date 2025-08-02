@@ -1,6 +1,10 @@
 package me.nakilex.levelplugin.codex;
 
+import me.nakilex.levelplugin.environment.EnvironmentManager;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.HeadUtil;
+import net.citizensnpcs.api.npc.NPC;
+import net.citizensnpcs.trait.SkinTrait;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -12,17 +16,26 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
-/** GUI listing discovered NPCs. */
+/** GUI listing NPC discoveries with player head icons. */
 public class NpcCodexGUI implements Listener {
     private static final String TITLE = ChatColor.BLACK + "Codex - NPCs";
+    private static final int SIZE = 54;
+    private static final int ITEMS_PER_PAGE = CodexGuiUtil.CONTENT_SLOTS.length;
+    private static final int PREV_SLOT = 45;
+    private static final int NEXT_SLOT = 53;
+    private static final int BACK_SLOT = 49;
 
     private final CodexManager manager;
-    private final ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
     private CodexMainGUI mainGui;
+    private final ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
+    private final Map<UUID, Integer> pageMap = new HashMap<>();
 
     public NpcCodexGUI(CodexManager manager, CodexMainGUI mainGui) {
         this.manager = manager;
@@ -32,29 +45,81 @@ public class NpcCodexGUI implements Listener {
     public void setMainGui(CodexMainGUI gui) { this.mainGui = gui; }
 
     public void open(Player player) {
-        List<String> list = new ArrayList<>(manager.getDiscoveredNpcs(player.getUniqueId()));
-        int size = ((list.size() - 1) / 9 + 1) * 9;
-        Inventory inv = Bukkit.createInventory(null, Math.max(size, 27), TITLE);
-        for (int i = 0; i < inv.getSize(); i++) inv.setItem(i, filler);
-        int slot = 0;
-        for (String name : list) {
+        int page = pageMap.getOrDefault(player.getUniqueId(), 0);
+        open(player, page);
+    }
+
+    private void open(Player player, int page) {
+        pageMap.put(player.getUniqueId(), page);
+        Inventory inv = Bukkit.createInventory(null, SIZE, TITLE);
+        GuiUtil.fillBorder(inv, filler);
+
+        Map<String, String> lines = new LinkedHashMap<>();
+        lines.put("NPCs", manager.getDiscoveredNpcCount(player.getUniqueId()) + "/" + manager.getTotalNpcCount());
+        inv.setItem(4, CodexGuiUtil.createInfoBook("Discoveries", lines));
+
+        List<NPC> npcs = manager.getAllNpcs();
+        Set<String> discovered = new java.util.HashSet<>(manager.getDiscoveredNpcs(player.getUniqueId()));
+        int start = page * ITEMS_PER_PAGE;
+        for (int i = start, slot = 0; i < npcs.size() && slot < ITEMS_PER_PAGE; i++) {
+            inv.setItem(CodexGuiUtil.CONTENT_SLOTS[slot++],
+                    createNpcIcon(discovered, npcs.get(i)));
+        }
+
+        if (page > 0) inv.setItem(PREV_SLOT, GuiUtil.getNexoItem("arrow_left", ChatColor.GREEN + "Previous"));
+        if (npcs.size() > (page + 1) * ITEMS_PER_PAGE) inv.setItem(NEXT_SLOT, GuiUtil.getNexoItem("arrow_right", ChatColor.GREEN + "Next"));
+        inv.setItem(BACK_SLOT, GuiUtil.getNexoItem("arrow_left", ChatColor.YELLOW + "Back"));
+
+        player.openInventory(inv);
+    }
+
+    private ItemStack createNpcIcon(Set<String> discovered, NPC npc) {
+        String rawName = ChatColor.stripColor(npc.getName());
+        String key = rawName.toLowerCase();
+        boolean has = discovered.contains(key);
+        if (has) {
+            SkinTrait skin = npc.getOrAddTrait(SkinTrait.class);
+            String texture = skin.getTexture();
+            String display = ChatColor.GREEN + EnvironmentManager.beautifyWords(rawName);
+            if (texture != null && !texture.isEmpty()) {
+                return HeadUtil.createCustomHead(texture, display, null);
+            }
             ItemStack head = new ItemStack(Material.PLAYER_HEAD);
             ItemMeta meta = head.getItemMeta();
             if (meta != null) {
-                meta.setDisplayName(ChatColor.YELLOW + name);
+                meta.setDisplayName(display);
                 head.setItemMeta(meta);
             }
-            inv.setItem(slot++, head);
+            return head;
+        } else {
+            ItemStack item = new ItemStack(Material.GRAY_DYE);
+            ItemMeta meta = item.getItemMeta();
+            if (meta != null) {
+                meta.setDisplayName(ChatColor.DARK_GRAY + "???");
+                item.setItemMeta(meta);
+            }
+            return item;
         }
-        inv.setItem(inv.getSize() - 1, GuiUtil.getNexoItem("arrow_left", ChatColor.YELLOW + "Back"));
-        player.openInventory(inv);
     }
 
     @EventHandler
     public void onClick(InventoryClickEvent e) {
         if (!e.getView().getTitle().equals(TITLE)) return;
         e.setCancelled(true);
-        if (e.getRawSlot() == e.getInventory().getSize() - 1 && e.getWhoClicked() instanceof Player p) {
+        if (!(e.getWhoClicked() instanceof Player p)) return;
+
+        int slot = e.getRawSlot();
+        if (slot == PREV_SLOT) {
+            int page = pageMap.getOrDefault(p.getUniqueId(), 0);
+            open(p, Math.max(0, page - 1));
+            return;
+        }
+        if (slot == NEXT_SLOT) {
+            int page = pageMap.getOrDefault(p.getUniqueId(), 0);
+            open(p, page + 1);
+            return;
+        }
+        if (slot == BACK_SLOT && mainGui != null) {
             mainGui.open(p);
         }
     }
