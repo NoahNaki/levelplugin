@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.Arrays;
+import java.util.Collection;
 
 /**
  * Basic world management handling creation, loading and spawn points.
@@ -150,5 +152,24 @@ public class WorldManager {
     public boolean unloadWorld(String name) {
         World world = Bukkit.getWorld(name);
         return world != null && Bukkit.unloadWorld(world, true);
+    }
+
+    public void ensureWorldsLoaded(Collection<String> names) {
+        boolean changed = false;
+        for (String name : names) {
+            String lower = name.toLowerCase();
+            if (Bukkit.getWorld(name) == null) {
+                importWorld(name);
+            } else if (persistentWorlds.add(lower)) {
+                changed = true;
+            }
+        }
+        if (changed) {
+            save();
+        }
+    }
+
+    public void ensureWorldsLoaded(String... names) {
+        ensureWorldsLoaded(Arrays.asList(names));
     }
 }
