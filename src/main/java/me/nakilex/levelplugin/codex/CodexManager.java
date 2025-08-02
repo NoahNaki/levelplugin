@@ -106,14 +106,16 @@ public class CodexManager {
     }
 
     public int getTotalNpcCount() {
-        return CitizensAPI.getNPCRegistry().size();
+        int count = 0;
+        for (NPC ignored : CitizensAPI.getNPCRegistry()) {
+            count++;
+        }
+        return count;
     }
 
     public List<NPC> getAllNpcs() {
         List<NPC> list = new ArrayList<>();
-        for (NPC npc : CitizensAPI.getNPCRegistry()) {
-            list.add(npc);
-        }
+        CitizensAPI.getNPCRegistry().forEach(list::add);
         return list;
     }
 
