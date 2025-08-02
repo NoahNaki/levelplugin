@@ -115,4 +115,13 @@ public class CodexManager {
         if (!playerConfig.getConfig().isConfigurationSection(base)) return java.util.Collections.emptyList();
         return new ArrayList<>(playerConfig.getConfig().getConfigurationSection(base).getKeys(false));
     }
+
+    /**
+     * Remove all codex discovery data for a player.
+     */
+    public void clearPlayerData(UUID id) {
+        String path = "players." + id + ".codex";
+        playerConfig.getConfig().set(path, null);
+        playerConfig.saveConfigFile();
+    }
 }

@@ -88,6 +88,9 @@ public class ProfileManager {
         if (plugin.getStorageManager() != null) {
             plugin.getStorageManager().deleteStorage(uuid);
         }
+        if (plugin.getCodexManager() != null) {
+            plugin.getCodexManager().clearPlayerData(uuid);
+        }
         player.getInventory().clear();
         player.getInventory().setArmorContents(null);
         player.getInventory().setItemInOffHand(null);
