@@ -306,7 +306,7 @@ public class ProfileSelectionGUI implements Listener {
         if (e.getRawSlot() == CONFIRM_YES_SLOT) {
             if (slotIndex >= 0) {
                 ProfileManager pm = ProfileManager.getInstance();
-                pm.deleteProfile(player.getUniqueId(), slotIndex);
+                pm.deleteProfile(player, slotIndex);
                 player.sendMessage(ChatColor.RED + "Profile deleted.");
 
                 Integer active = pm.getActiveSlot(player.getUniqueId());

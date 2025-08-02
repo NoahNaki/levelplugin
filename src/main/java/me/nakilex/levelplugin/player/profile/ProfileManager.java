@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.player.profile;
 
 import java.util.*;
+import org.bukkit.entity.Player;
 
 public class ProfileManager {
     private static final ProfileManager instance = new ProfileManager();
@@ -66,9 +67,41 @@ public class ProfileManager {
     }
 
     /**
+     * Reset all persistent data for the given player.
+     */
+    public void wipePlayer(Player player) {
+        java.util.UUID uuid = player.getUniqueId();
+        me.nakilex.levelplugin.player.attributes.managers.StatsManager stats =
+                me.nakilex.levelplugin.player.attributes.managers.StatsManager.getInstance();
+        stats.resetPlayer(uuid);
+        me.nakilex.levelplugin.player.level.managers.LevelManager.getInstance().setLevel(uuid, 1);
+        me.nakilex.levelplugin.Main plugin = me.nakilex.levelplugin.Main.getInstance();
+        if (plugin.getEconomyManager() != null) {
+            plugin.getEconomyManager().setBalance(uuid, 0);
+        }
+        if (plugin.getGemsManager() != null) {
+            plugin.getGemsManager().setTotalUnits(player, 0);
+        }
+        if (plugin.getQuestManager() != null) {
+            plugin.getQuestManager().clearPlayerData(uuid);
+        }
+        if (plugin.getStorageManager() != null) {
+            plugin.getStorageManager().deleteStorage(uuid);
+        }
+        player.getInventory().clear();
+        player.getInventory().setArmorContents(null);
+        player.getInventory().setItemInOffHand(null);
+        stats.recalcDerivedStats(player);
+        me.nakilex.levelplugin.player.config.PlayerConfig cfg = plugin.getPlayerConfig();
+        cfg.clearEnvironmentData(uuid);
+        cfg.savePlayer(uuid);
+    }
+
+    /**
      * Remove the profile from the given slot and clear any stored location.
      */
-    public void deleteProfile(UUID uuid, int slot) {
+    public void deleteProfile(Player player, int slot) {
+        UUID uuid = player.getUniqueId();
         List<PlayerProfile> list = getProfiles(uuid);
         if (slot < 0 || slot >= list.size()) {
             return;
@@ -76,9 +109,8 @@ public class ProfileManager {
         list.set(slot, null);
         me.nakilex.levelplugin.player.config.PlayerConfig cfg =
                 me.nakilex.levelplugin.Main.getInstance().getPlayerConfig();
-        cfg.setProfileLocation(uuid, slot, null);
-        cfg.setProfileName(uuid, slot, null);
-        cfg.setProfilePlayTime(uuid, slot, 0);
+        cfg.clearProfileData(uuid, slot);
+        wipePlayer(player);
         cfg.saveConfigFile();
     }
 

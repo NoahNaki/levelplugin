@@ -283,6 +283,12 @@ public class PlayerConfig {
         config.set(path, name);
     }
 
+    /** Remove all data for the profile slot. */
+    public void clearProfileData(UUID uuid, int slot) {
+        String path = "players." + uuid + ".profiles." + slot;
+        config.set(path, null);
+    }
+
     public org.bukkit.Location getProfileLocation(UUID uuid, int slot) {
         String base = "players." + uuid + ".profiles." + slot + ".";
         if (!config.contains(base + "world")) return null;

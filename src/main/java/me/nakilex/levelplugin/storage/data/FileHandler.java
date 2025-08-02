@@ -101,6 +101,16 @@ public class FileHandler {
     }
 
     /**
+     * Delete the storage file for the given player if it exists.
+     */
+    public void deleteStorage(UUID playerId) {
+        File file = getStorageFile(playerId);
+        if (file.exists()) {
+            file.delete();
+        }
+    }
+
+    /**
      * Locates or creates the file storing player data in a folder named 'storage'.
      */
     private File getStorageFile(UUID playerId) {
