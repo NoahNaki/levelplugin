@@ -73,6 +73,11 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
     @Override
     public void onStart(Player player, Main plugin) {
         World world = Bukkit.getWorld("redrocks");
+        if (world == null) {
+            // Lazily load the quest world if it isn't already present
+            plugin.getWorldManager().ensureWorldsLoaded("redrocks");
+            world = Bukkit.getWorld("redrocks");
+        }
         if (world != null) {
             player.teleport(new Location(world, 19, 142, -47));
         }
