@@ -147,13 +147,21 @@ public class ProfileManager {
         return activeSlot.get(uuid);
     }
 
-    public void saveActiveLocation(org.bukkit.entity.Player player) {
-        Integer slot = activeSlot.get(player.getUniqueId());
-        if (slot == null) return;
+    public void saveProfile(org.bukkit.entity.Player player, int slot) {
         me.nakilex.levelplugin.player.config.PlayerConfig cfg =
                 me.nakilex.levelplugin.Main.getInstance().getPlayerConfig();
-        cfg.setProfileLocation(player.getUniqueId(), slot, player.getLocation());
+        java.util.UUID id = player.getUniqueId();
+        cfg.setProfileInventory(id, slot, player.getInventory().getContents());
+        cfg.setProfileArmor(id, slot, player.getInventory().getArmorContents());
+        cfg.setProfileLocation(id, slot, player.getLocation());
         cfg.saveConfigFile();
+    }
+
+    public void saveActiveProfile(org.bukkit.entity.Player player) {
+        Integer slot = activeSlot.get(player.getUniqueId());
+        if (slot != null) {
+            saveProfile(player, slot);
+        }
     }
 
     public void addPlayMinutes(java.util.UUID uuid, int minutes) {

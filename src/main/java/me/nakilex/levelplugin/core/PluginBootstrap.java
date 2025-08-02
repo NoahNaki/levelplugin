@@ -387,7 +387,20 @@ public class PluginBootstrap {
         if (economyManager != null) economyManager.saveBalances();
         if (dealMaker != null) dealMaker.closeAllTrades();
         if (itemConfig != null) itemConfig.saveItems();
-        if (playerConfig != null) playerConfig.saveAllPlayers();
+        if (playerConfig != null) {
+            boolean profilesEnabled = plugin.getCustomConfig()
+                    .getBoolean("features.profiles", true);
+            me.nakilex.levelplugin.player.profile.ProfileManager pm =
+                    me.nakilex.levelplugin.player.profile.ProfileManager.getInstance();
+            for (org.bukkit.entity.Player p : org.bukkit.Bukkit.getOnlinePlayers()) {
+                if (profilesEnabled) {
+                    pm.saveActiveProfile(p);
+                } else {
+                    pm.saveProfile(p, 0);
+                }
+            }
+            playerConfig.saveAllPlayers();
+        }
         if (storageManager != null) storageManager.saveAllStorages();
         if (auctionHouseManager != null) auctionHouseManager.saveAuctionsSync();
         if (lootChestManager != null) lootChestManager.removeAllChests();
