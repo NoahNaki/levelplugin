@@ -91,6 +91,12 @@ public class ProfileManager {
         if (plugin.getCodexManager() != null) {
             plugin.getCodexManager().clearPlayerData(uuid);
         }
+        if (plugin.getMiningManager() != null) {
+            plugin.getMiningManager().clearPlayerData(uuid);
+        }
+        if (plugin.getHorseManager() != null) {
+            plugin.getHorseManager().clearPlayerData(uuid);
+        }
         player.getInventory().clear();
         player.getInventory().setArmorContents(null);
         player.getInventory().setItemInOffHand(null);

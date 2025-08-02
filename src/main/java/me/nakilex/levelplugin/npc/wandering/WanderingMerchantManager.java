@@ -17,6 +17,7 @@ import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Spawns a wandering merchant NPC with a llama companion.
@@ -97,14 +98,21 @@ public class WanderingMerchantManager {
 
     private void createShop(Player basis) {
         List<WanderingMerchantOffer> offers = new ArrayList<>();
-        int level = Main.getInstance().getLevelManager().getLevel(basis);
-        for (int i = 0; i < 6; i++) {
-            CustomItem item = ItemManager.getInstance().generateItem("mob", level);
+        int playerLevel = Main.getInstance().getLevelManager().getLevel(basis);
+        for (int i = 0; i < 7; i++) {
+            int offerLevel = pickOfferLevel(playerLevel);
+            CustomItem item = ItemManager.getInstance().generateItem("mob", offerLevel);
             ItemStack stack = ItemUtil.createItemStackFromCustomItem(item, 1, null);
             int cost = SalvageManager.getInstance().getTotalStats(item) * 2 + 5;
             offers.add(new WanderingMerchantOffer(stack, cost, 1));
         }
         gui = new WanderingMerchantGUI(plugin, offers);
+    }
+
+    /** Choose a random item level near the player's level. */
+    private int pickOfferLevel(int baseLevel) {
+        int delta = ThreadLocalRandom.current().nextInt(-2, 3); // [-2, +2]
+        return Math.max(1, baseLevel + delta);
     }
 
     public void openShop(Player player) {

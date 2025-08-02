@@ -128,6 +128,17 @@ public class MiningManager {
         miningXp.put(uuid, 0);
     }
 
+    /** Remove all mining progress for a player. */
+    public void clearPlayerData(UUID uuid) {
+        miningLevels.remove(uuid);
+        miningXp.remove(uuid);
+        if (plugin.getPlayerConfig() != null) {
+            String path = "players." + uuid + ".mining";
+            plugin.getPlayerConfig().getConfig().set(path, null);
+            plugin.getPlayerConfig().saveConfigFile();
+        }
+    }
+
     public int getMaxLevel() {
         return MAX_LEVEL;
     }
