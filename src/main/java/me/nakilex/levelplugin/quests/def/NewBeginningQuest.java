@@ -30,11 +30,11 @@ import java.util.List;
 public class NewBeginningQuest extends Quest implements QuestScript, QuestCompletionScript, QuestResetScript {
     private static List<QuestObjective> createObjectives() {
         return List.of(
-                new QuestObjective(QuestObjectiveType.TALK, "npc536_done", 1),
+                new QuestObjective(QuestObjectiveType.TALK, "npc546_done", 1),
                 new QuestObjective(QuestObjectiveType.BUY, "starter_armor", 1),
-                new QuestObjective(QuestObjectiveType.TALK, "npc536_again", 1),
+                new QuestObjective(QuestObjectiveType.TALK, "npc546_again", 1),
                 new QuestObjective(QuestObjectiveType.SELECT_CLASS, "ANY", 1),
-                new QuestObjective(QuestObjectiveType.TALK, "npc536_final", 1)
+                new QuestObjective(QuestObjectiveType.TALK, "npc546_final", 1)
         );
     }
 
@@ -55,7 +55,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 QuestRewardCompat.create(150, 30, 0, List.of(),
                         List.of(PlayerClass.ARCHER, PlayerClass.WARRIOR,
                                 PlayerClass.MAGE, PlayerClass.ROGUE)),
-                536,
+                546,
                 List.of(
                         "Hey you there! I could've sworn no one was standing there a second ago, how did you suddenly appear?",
                         "You certainly don't look from around here, especially with those clothes, perhaps a noble from another country.",
@@ -87,7 +87,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
         qm.removeFlag(player.getUniqueId(), "newbeginning", "readyToShop");
         qm.removeFlag(player.getUniqueId(), "newbeginning", "merchantDone");
 
-        NPC startNpc = CitizensAPI.getNPCRegistry().getById(536);
+        NPC startNpc = CitizensAPI.getNPCRegistry().getById(546);
         boolean played = false;
         if (startNpc != null && startNpc.isSpawned() && player.isOnline() &&
                 startNpc.getEntity().getWorld().equals(player.getWorld()) &&
@@ -101,7 +101,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 boolean triggered = false;
                 @Override
                 public void run() {
-                    NPC npc = CitizensAPI.getNPCRegistry().getById(536);
+                    NPC npc = CitizensAPI.getNPCRegistry().getById(546);
                     if (npc == null || !npc.isSpawned()) return;
                     if (!player.isOnline()) { cancel(); return; }
                     if (!npc.getEntity().getWorld().equals(player.getWorld())) return;
@@ -124,7 +124,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 if (event.getHand() == EquipmentSlot.OFF_HAND) return;
                 if (!CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked())) return;
                 NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
-                if (npc.getId() != 536) return;
+                if (npc.getId() != 546) return;
 
                 PlayerQuestProgress prog = plugin.getQuestManager().getProgress(pid, "newbeginning");
                 if (prog == null) return;
@@ -248,7 +248,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
 
         plugin.getDialogManager().startDialog(player, lines, npc, () -> {
             if (player.isOnline()) {
-                Main.getInstance().getQuestManager().handleTalk(player, "npc536_done");
+                Main.getInstance().getQuestManager().handleTalk(player, "npc546_done");
                 registerFinalDialog(player, plugin);
             }
         });
@@ -266,7 +266,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 if (event.getHand() == EquipmentSlot.OFF_HAND) return;
                 if (!CitizensAPI.getNPCRegistry().isNPC(event.getRightClicked())) return;
                 NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
-                if (npc.getId() != 536) return;
+                if (npc.getId() != 546) return;
 
                 PlayerQuestProgress prog = plugin.getQuestManager().getProgress(pid, "newbeginning");
                 if (prog == null) return;
@@ -307,7 +307,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                             java.util.List.of("Piwan|Alright great now that you look like you belong here, now you just have to tell me what class you'll be going so that we can find you an appropriate weapon."),
                             npc,
                             () -> {
-                                plugin.getQuestManager().handleTalk(pl, "npc536_again");
+                                plugin.getQuestManager().handleTalk(pl, "npc546_again");
                                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
                                         if (pl.isOnline()) {
                                             pl.performCommand("class");
@@ -336,7 +336,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
 
                 plugin.getDialogManager().startDialog(pl, lines, npc, () -> {
                     giveClassWeapon(pl);
-                    plugin.getQuestManager().handleTalk(pl, "npc536_final");
+                    plugin.getQuestManager().handleTalk(pl, "npc546_final");
                 });
             }
         };
