@@ -3,25 +3,6 @@ merchants:
     title: "Adventurer's Starter Shop"
     size: 54
     items:
-      # Weapons
-      - slot: 10
-        item_id: 1    # Common Wooden Warrior Spear
-        amount: 1
-        cost: 10      # max stats = 5 → price > 5
-        gems: 5
-      - slot: 12
-        item_id: 2    # Common Wooden Rogue Sword
-        amount: 1
-        cost: 10      # max stats = 5 → price > 5
-      - slot: 14
-        item_id: 3    # Common Wooden Mage Staff
-        amount: 1
-        cost: 10      # max stats = 5 → price > 5
-      - slot: 16
-        item_id: 4    # Common Wooden Archer Bow
-        amount: 1
-        cost: 10      # max stats = 5 → price > 5
-
       # Armor
       - slot: 19
         item_id: 16   # Common Leather Helmet

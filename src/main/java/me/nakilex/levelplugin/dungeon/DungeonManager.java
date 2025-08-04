@@ -183,7 +183,7 @@ public class DungeonManager {
         crossroad = RoomTemplate.capture(world, 11, -28, -5030, -29, -60, -5070, false);
         // entrance template with exit portals and marker hologram
         // updated region as provided by the builder
-        entrance = RoomTemplate.capture(world, -212, 77, -5334, -125, -36, -5227, true);
+        entrance = RoomTemplate.capture(world, -212, 74, -5334, -125, -36, -5227, true);
         // new boss room region provided by the map builder
         boss = RoomTemplate.capture(world, 43, -14, -5006, -23, -54, -4922, false);
         RoomTemplate combat = RoomTemplate.capture(world, 65, -42, -5059, 105, -13, -5100, false);
