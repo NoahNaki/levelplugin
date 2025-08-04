@@ -270,9 +270,10 @@ public class PluginBootstrap {
         motdManager = new me.nakilex.levelplugin.motd.MotdManager(plugin);
         fakeBlockManager = new me.nakilex.levelplugin.fakeblock.FakeBlockManager();
         questGateManager = new me.nakilex.levelplugin.fakeblock.QuestGateManager(plugin, fakeBlockManager);
-        // WorldManager must be initialised before DungeonManager so the flatland
-        // world is loaded when dungeon templates are captured.
+        // WorldManager must be initialised before DungeonManager so required worlds
+        // are loaded when dungeon templates are captured.
         worldManager = new me.nakilex.levelplugin.world.WorldManager(plugin);
+        worldManager.ensureWorldsLoaded("flatland", "redrocks");
         dungeonRatingManager = new me.nakilex.levelplugin.dungeon.rating.DungeonRatingManager(plugin);
         dungeonManager = new me.nakilex.levelplugin.dungeon.DungeonManager(plugin, lootChestManager);
         dungeonManager.cleanupOldInstanceWorlds();
@@ -386,7 +387,20 @@ public class PluginBootstrap {
         if (economyManager != null) economyManager.saveBalances();
         if (dealMaker != null) dealMaker.closeAllTrades();
         if (itemConfig != null) itemConfig.saveItems();
-        if (playerConfig != null) playerConfig.saveAllPlayers();
+        if (playerConfig != null) {
+            boolean profilesEnabled = plugin.getCustomConfig()
+                    .getBoolean("features.profiles", true);
+            me.nakilex.levelplugin.player.profile.ProfileManager pm =
+                    me.nakilex.levelplugin.player.profile.ProfileManager.getInstance();
+            for (org.bukkit.entity.Player p : org.bukkit.Bukkit.getOnlinePlayers()) {
+                if (profilesEnabled) {
+                    pm.saveActiveProfile(p);
+                } else {
+                    pm.saveProfile(p, 0);
+                }
+            }
+            playerConfig.saveAllPlayers();
+        }
         if (storageManager != null) storageManager.saveAllStorages();
         if (auctionHouseManager != null) auctionHouseManager.saveAuctionsSync();
         if (lootChestManager != null) lootChestManager.removeAllChests();

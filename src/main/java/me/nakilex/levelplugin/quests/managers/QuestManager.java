@@ -328,6 +328,11 @@ public class QuestManager {
      *                   as a main quest
      */
     public void resetQuest(UUID player, String questId, boolean ignoreMain) {
+        resetQuestInternal(player, questId, ignoreMain);
+        saveProgress();
+    }
+
+    private void resetQuestInternal(UUID player, String questId, boolean ignoreMain) {
         Quest quest = quests.get(questId);
         if (quest != null && quest.isMainQuest() && !ignoreMain) {
             return;
@@ -351,6 +356,25 @@ public class QuestManager {
         if (questId.equals(tracked)) {
             trackedQuests.remove(player);
         }
+    }
+
+    /**
+     * Remove all quest progress for a player.
+     */
+    public void clearPlayerData(UUID player) {
+        Map<String, PlayerQuestProgress> active = activeQuests.get(player);
+        if (active != null) {
+            for (String qid : new java.util.ArrayList<>(active.keySet())) {
+                resetQuestInternal(player, qid, true);
+            }
+        }
+        Set<String> completed = completedQuests.get(player);
+        if (completed != null) {
+            for (String qid : new java.util.ArrayList<>(completed)) {
+                resetQuestInternal(player, qid, true);
+            }
+        }
+        trackedQuests.remove(player);
         saveProgress();
     }
 

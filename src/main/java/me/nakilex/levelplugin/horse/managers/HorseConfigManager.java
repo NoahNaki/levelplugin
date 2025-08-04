@@ -57,4 +57,14 @@ public class HorseConfigManager {
     public Set<String> getHorseUUIDStrings() {
         return config.getKeys(false);
     }
+
+    // Delete stored horse data for a player
+    public void deleteHorseData(UUID uuid) {
+        config.set(uuid.toString(), null);
+        try {
+            config.save(file);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }

@@ -283,18 +283,37 @@ public class PlayerConfig {
         config.set(path, name);
     }
 
+    /** Remove all data for the profile slot. */
+    public void clearProfileData(UUID uuid, int slot) {
+        String path = "players." + uuid + ".profiles." + slot;
+        config.set(path, null);
+    }
+
     public org.bukkit.Location getProfileLocation(UUID uuid, int slot) {
         String base = "players." + uuid + ".profiles." + slot + ".";
         if (!config.contains(base + "world")) return null;
         String worldName = config.getString(base + "world");
+        if (worldName == null) return null;
+
         org.bukkit.World w = org.bukkit.Bukkit.getWorld(worldName);
-        if (w == null && "world2".equalsIgnoreCase(worldName)) {
-            w = org.bukkit.Bukkit.getWorld("world");
-            if (w != null) {
-                config.set(base + "world", "world");
+        if (w == null) {
+            // Attempt to lazily load the world so stored locations remain valid
+            me.nakilex.levelplugin.Main.getInstance()
+                    .getWorldManager().ensureWorldsLoaded(worldName);
+            w = org.bukkit.Bukkit.getWorld(worldName);
+            if (w == null && "world2".equalsIgnoreCase(worldName)) {
+                // Legacy world name fallback
+                w = org.bukkit.Bukkit.getWorld("world");
+                if (w != null) {
+                    config.set(base + "world", "world");
+                }
             }
+        } else if ("world2".equalsIgnoreCase(worldName)) {
+            // Normalize legacy name when world already loaded
+            config.set(base + "world", "world");
         }
         if (w == null) return null;
+
         double x = config.getDouble(base + "x");
         double y = config.getDouble(base + "y");
         double z = config.getDouble(base + "z");

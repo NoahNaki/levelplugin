@@ -105,11 +105,7 @@ public class ProfileSelectionGUI implements Listener {
         ProfileManager pm = ProfileManager.getInstance();
         Integer slot = pm.getActiveSlot(player.getUniqueId());
         if (slot != null) {
-            me.nakilex.levelplugin.player.config.PlayerConfig cfg = Main.getInstance().getPlayerConfig();
-            cfg.setProfileInventory(player.getUniqueId(), slot, player.getInventory().getContents());
-            cfg.setProfileArmor(player.getUniqueId(), slot, player.getInventory().getArmorContents());
-            pm.saveActiveLocation(player);
-            cfg.saveConfigFile();
+            pm.saveActiveProfile(player);
             player.getInventory().clear();
             player.getInventory().setArmorContents(null);
         }
@@ -145,14 +141,7 @@ public class ProfileSelectionGUI implements Listener {
         if (!SELECTING.contains(player.getUniqueId())) {
             Integer slot = pm.getActiveSlot(player.getUniqueId());
             if (slot != null) {
-                me.nakilex.levelplugin.player.config.PlayerConfig cfg =
-                        Main.getInstance().getPlayerConfig();
-                cfg.setProfileInventory(player.getUniqueId(), slot,
-                        player.getInventory().getContents());
-                cfg.setProfileArmor(player.getUniqueId(), slot,
-                        player.getInventory().getArmorContents());
-                pm.saveActiveLocation(player);
-                cfg.saveConfigFile();
+                pm.saveActiveProfile(player);
             }
         }
 
@@ -306,7 +295,7 @@ public class ProfileSelectionGUI implements Listener {
         if (e.getRawSlot() == CONFIRM_YES_SLOT) {
             if (slotIndex >= 0) {
                 ProfileManager pm = ProfileManager.getInstance();
-                pm.deleteProfile(player.getUniqueId(), slotIndex);
+                pm.deleteProfile(player, slotIndex);
                 player.sendMessage(ChatColor.RED + "Profile deleted.");
 
                 Integer active = pm.getActiveSlot(player.getUniqueId());

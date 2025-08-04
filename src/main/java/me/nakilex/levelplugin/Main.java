@@ -17,7 +17,9 @@ import me.nakilex.levelplugin.trade.utils.MessageStrings;
 import me.nakilex.levelplugin.utils.DealMaker;
 import me.nakilex.levelplugin.codex.CodexManager;
 import me.nakilex.levelplugin.codex.CodexMainGUI;
+import me.nakilex.levelplugin.horse.managers.HorseManager;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
+import me.nakilex.levelplugin.storage.StorageManager;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -58,6 +60,8 @@ public class Main extends JavaPlugin {
     public EconomyManager getEconomyManager() { return bootstrap.getEconomyManager(); }
     public ConfigValues getConfigValues() { return bootstrap.getConfigValues(); }
     public me.nakilex.levelplugin.storage.events.StorageEvents getStorageEvents() { return bootstrap.getStorageEvents(); }
+    public StorageManager getStorageManager() { return bootstrap.getStorageManager(); }
+    public HorseManager getHorseManager() { return bootstrap.getHorseManager(); }
     public DealMaker getDealMaker() { return bootstrap.getDealMaker(); }
     public ItemConfig getItemConfig() { return bootstrap.getItemConfig(); }
     public MessageStrings getMessageStrings() { return bootstrap.getMessageStrings(); }

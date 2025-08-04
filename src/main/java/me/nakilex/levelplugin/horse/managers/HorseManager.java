@@ -131,6 +131,13 @@ public class HorseManager implements Listener {
         }
     }
 
+    /** Remove all horse data for a player. */
+    public void clearPlayerData(UUID uuid) {
+        horses.remove(uuid);
+        lastSpawnTimestamps.remove(uuid);
+        configManager.deleteHorseData(uuid);
+    }
+
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         // Prevent removing saddle from horse inventory

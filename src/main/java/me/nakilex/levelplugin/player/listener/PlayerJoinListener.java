@@ -83,7 +83,7 @@ public class PlayerJoinListener implements Listener {
 
             me.nakilex.levelplugin.quests.data.Quest nb1 = qm.getQuest("newbeginning");
 
-            // Repeatedly hide NPC 537 until quest1 is completed, only after the
+            // Repeatedly hide NPC 547 until quest1 is completed, only after the
             // player has entered the "flatland" world where that NPC resides.
             new org.bukkit.scheduler.BukkitRunnable() {
                 @Override
@@ -91,7 +91,7 @@ public class PlayerJoinListener implements Listener {
                     if (!player.isOnline()) { cancel(); return; }
 
                     net.citizensnpcs.api.npc.NPC moved =
-                            net.citizensnpcs.api.CitizensAPI.getNPCRegistry().getById(537);
+                            net.citizensnpcs.api.CitizensAPI.getNPCRegistry().getById(547);
                     me.nakilex.levelplugin.quests.gui.QuestState state =
                             qm.getQuestState(player, nb1);
 

@@ -101,6 +101,14 @@ public class StorageManager {
         }
     }
 
+    /**
+     * Remove a player's storage data from memory and disk.
+     */
+    public void deleteStorage(UUID playerId) {
+        storages.remove(playerId);
+        new me.nakilex.levelplugin.storage.data.FileHandler().deleteStorage(playerId);
+    }
+
 
     /**
      * Save all storages to disk—call on server shutdown, or periodically.

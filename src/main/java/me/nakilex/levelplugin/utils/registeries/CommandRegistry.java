@@ -20,7 +20,6 @@ import me.nakilex.levelplugin.mob.commands.ToggleCommand;
 import me.nakilex.levelplugin.mob.managers.DmgNumberToggleManager;
 import me.nakilex.levelplugin.player.attributes.commands.AddPointsCommand;
 import me.nakilex.levelplugin.player.attributes.commands.StatsCommand;
-import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.commands.ClassCommand;
 import me.nakilex.levelplugin.player.level.commands.AddXPCommand;
 import me.nakilex.levelplugin.player.mining.commands.AddMiningXPCommand;
@@ -149,7 +148,7 @@ public class CommandRegistry {
         plugin.getCommand("location").setExecutor(new LocationCommand(fastTravelManager));
         plugin.getCommand("fasttravel").setExecutor(new FastTravelCommand(plugin.getFastTravelGUI()));
         plugin.getCommand("profile").setExecutor(new me.nakilex.levelplugin.player.commands.ProfileCommand());
-        plugin.getCommand("wipeprofile").setExecutor(new WipeProfileCommand(levelManager, StatsManager.getInstance(), economyManager, gemsManager));
+        plugin.getCommand("wipeprofile").setExecutor(new WipeProfileCommand());
         plugin.getCommand("nexoscan").setExecutor(new NexoScanCommand());
         plugin.getCommand("motd").setExecutor(new me.nakilex.levelplugin.motd.MotdCommand(motdManager));
         plugin.getCommand("fakegate").setExecutor(new me.nakilex.levelplugin.fakeblock.FakeGateCommand(plugin));

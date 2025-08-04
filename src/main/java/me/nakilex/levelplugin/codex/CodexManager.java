@@ -2,6 +2,8 @@ package me.nakilex.levelplugin.codex;
 
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
+import net.citizensnpcs.api.CitizensAPI;
+import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.ChatColor;
@@ -99,6 +101,24 @@ public class CodexManager {
         return new ArrayList<>(playerConfig.getConfig().getConfigurationSection(base).getKeys(false));
     }
 
+    public int getDiscoveredNpcCount(UUID id) {
+        return getDiscoveredNpcs(id).size();
+    }
+
+    public int getTotalNpcCount() {
+        int count = 0;
+        for (NPC ignored : CitizensAPI.getNPCRegistry()) {
+            count++;
+        }
+        return count;
+    }
+
+    public List<NPC> getAllNpcs() {
+        List<NPC> list = new ArrayList<>();
+        CitizensAPI.getNPCRegistry().forEach(list::add);
+        return list;
+    }
+
     /* ----- Location Tracking ----- */
     public void recordLocation(Player player, String name) {
         UUID id = player.getUniqueId();
@@ -114,5 +134,14 @@ public class CodexManager {
         String base = "players." + id + ".codex.locations";
         if (!playerConfig.getConfig().isConfigurationSection(base)) return java.util.Collections.emptyList();
         return new ArrayList<>(playerConfig.getConfig().getConfigurationSection(base).getKeys(false));
+    }
+
+    /**
+     * Remove all codex discovery data for a player.
+     */
+    public void clearPlayerData(UUID id) {
+        String path = "players." + id + ".codex";
+        playerConfig.getConfig().set(path, null);
+        playerConfig.saveConfigFile();
     }
 }

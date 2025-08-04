@@ -50,7 +50,7 @@ public class NPCClickListener implements Listener {
                 }
             }
 
-            if (npc.getId() == 536 &&
+            if (npc.getId() == 546 &&
                     questManager.hasCompleted(player.getUniqueId(), "newbeginning")) {
                 if (!dialogManager.hasSession(player)) {
                     dialogManager.startDialog(player,
