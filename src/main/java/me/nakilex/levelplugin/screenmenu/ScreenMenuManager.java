@@ -145,10 +145,13 @@ public class ScreenMenuManager implements Listener {
         Vector forward = eye.getDirection().normalize();
         Vector right = forward.clone().crossProduct(new Vector(0, 1, 0)).normalize();
         Vector up = new Vector(0, 1, 0);
-        Location base = eye.clone().add(forward.clone().multiply(section.distance));
+        Location base = eye.clone()
+                .add(forward.clone().multiply(section.distance))
+                .add(up.clone().multiply(10));
 
         List<Entity> displays = new ArrayList<>();
         List<MenuLayout> layouts = new ArrayList<>(section.layouts.values());
+        double maxX = 1, maxY = 1;
         for (MenuLayout layout : layouts) {
             Location loc = base.clone()
                     .add(right.clone().multiply(layout.x()))
@@ -163,10 +166,13 @@ public class ScreenMenuManager implements Listener {
                 disp = spawnTextDisplay(loc, text);
             }
             displays.add(disp);
+            maxX = Math.max(maxX, Math.abs(layout.x()));
+            maxY = Math.max(maxY, Math.abs(layout.y()));
         }
 
         ItemDisplay cursor = spawnItemDisplay(base.clone(), new ItemStack(Material.ARROW));
-        ActiveMenu active = new ActiveMenu(player, section.distance, layouts, displays, cursor);
+        ActiveMenu active = new ActiveMenu(player, layouts, displays, cursor,
+                base, right, up, maxX, maxY, eye.getYaw(), eye.getPitch());
         active.start();
         activeMenus.put(player.getUniqueId(), active);
         return true;
@@ -219,27 +225,47 @@ public class ScreenMenuManager implements Listener {
     /* === internal ======================================================= */
     private class ActiveMenu {
         private final Player player;
-        private final double distance;
         private final List<MenuLayout> layouts;
         private final List<Entity> displays;
         private final ItemDisplay cursor;
+        private final Location base;
+        private final Vector right;
+        private final Vector up;
+        private final double maxX;
+        private final double maxY;
+        private final float baseYaw;
+        private final float basePitch;
         private int selected = -1;
         private int taskId;
 
-        ActiveMenu(Player player, double distance, List<MenuLayout> layouts, List<Entity> displays, ItemDisplay cursor) {
+        ActiveMenu(Player player, List<MenuLayout> layouts, List<Entity> displays, ItemDisplay cursor,
+                   Location base, Vector right, Vector up, double maxX, double maxY,
+                   float baseYaw, float basePitch) {
             this.player = player;
-            this.distance = distance;
             this.layouts = layouts;
             this.displays = displays;
             this.cursor = cursor;
+            this.base = base;
+            this.right = right;
+            this.up = up;
+            this.maxX = maxX;
+            this.maxY = maxY;
+            this.baseYaw = baseYaw;
+            this.basePitch = basePitch;
         }
 
         void start() {
             taskId = new BukkitRunnable() {
                 @Override public void run() {
                     Location eye = player.getEyeLocation();
-                    Vector forward = eye.getDirection().normalize();
-                    Location cursorLoc = eye.add(forward.multiply(distance));
+                    double yawDiff = wrapAngle(eye.getYaw() - baseYaw);
+                    double pitchDiff = Math.max(-90, Math.min(90, eye.getPitch() - basePitch));
+                    yawDiff = Math.max(-90, Math.min(90, yawDiff));
+                    double screenX = (yawDiff / 90D) * maxX;
+                    double screenY = (pitchDiff / 90D) * maxY;
+                    Location cursorLoc = base.clone()
+                            .add(right.clone().multiply(screenX))
+                            .add(up.clone().multiply(-screenY));
                     cursor.teleport(cursorLoc);
 
                     int newSel = -1;
@@ -284,6 +310,13 @@ public class ScreenMenuManager implements Listener {
             } else {
                 e.setGlowing(highlight);
             }
+        }
+
+        private double wrapAngle(double angle) {
+            angle %= 360.0;
+            if (angle <= -180.0) angle += 360.0;
+            if (angle > 180.0) angle -= 360.0;
+            return angle;
         }
     }
 
