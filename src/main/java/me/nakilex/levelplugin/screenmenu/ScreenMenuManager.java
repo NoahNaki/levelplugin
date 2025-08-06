@@ -1,12 +1,15 @@
 package me.nakilex.levelplugin.screenmenu;
 
 import me.nakilex.levelplugin.Main;
+import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Display.Billboard;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.event.EventHandler;
@@ -51,17 +54,27 @@ public class ScreenMenuManager implements Listener {
         for (String menuId : root.getKeys(false)) {
             ConfigurationSection menuSec = root.getConfigurationSection(menuId);
             if (menuSec == null) continue;
+
+            double distance = menuSec.getDouble("distance", 1.0);
+            Float yaw = menuSec.isSet("yaw") ? (float) menuSec.getDouble("yaw") : null;
+            Float pitch = menuSec.isSet("pitch") ? (float) menuSec.getDouble("pitch") : null;
+
             List<MenuEntry> entries = new ArrayList<>();
             for (String key : menuSec.getKeys(false)) {
+                if ("distance".equalsIgnoreCase(key) || "yaw".equalsIgnoreCase(key)
+                        || "pitch".equalsIgnoreCase(key)) {
+                    continue;
+                }
                 ConfigurationSection entrySec = menuSec.getConfigurationSection(key);
                 if (entrySec == null) continue;
                 String text = entrySec.getString("text", "");
                 double x = entrySec.getDouble("x", 0);
                 double y = entrySec.getDouble("y", 0);
                 String command = entrySec.getString("command", "");
-                entries.add(new MenuEntry(text, x, y, command));
+                String item = entrySec.getString("item");
+                entries.add(new MenuEntry(text, x, y, command, item));
             }
-            menus.put(menuId.toLowerCase(Locale.ROOT), new ScreenMenu(entries));
+            menus.put(menuId.toLowerCase(Locale.ROOT), new ScreenMenu(entries, distance, yaw, pitch));
         }
     }
 
@@ -73,21 +86,33 @@ public class ScreenMenuManager implements Listener {
         hideMenu(player);
 
         Location eye = player.getEyeLocation();
+        if (menu.yaw() != null || menu.pitch() != null) {
+            Location look = eye.clone();
+            if (menu.yaw() != null) look.setYaw(menu.yaw());
+            if (menu.pitch() != null) look.setPitch(menu.pitch());
+            player.teleport(look);
+            eye = player.getEyeLocation();
+        }
+
         Vector forward = eye.getDirection().normalize();
         Vector right = forward.clone().crossProduct(new Vector(0, 1, 0)).normalize();
         Vector up = new Vector(0, 1, 0);
-        Location base = eye.add(forward.multiply(1));
+        Location base = eye.add(forward.multiply(menu.distance()));
 
-        List<TextDisplay> displays = new ArrayList<>();
+        List<Entity> displays = new ArrayList<>();
         for (MenuEntry entry : menu.entries()) {
             Location loc = base.clone()
                     .add(right.clone().multiply(entry.x()))
                     .add(up.clone().multiply(entry.y()));
-            TextDisplay display = player.getWorld().spawn(loc, TextDisplay.class, td -> {
-                td.setText(entry.text());
-                td.setBillboard(Billboard.CENTER);
-                td.setBackgroundColor(0x00000000);
-            });
+            Entity display;
+            if (entry.item() != null && !entry.item().isEmpty()) {
+                Material mat = Material.matchMaterial(entry.item());
+                if (mat == null) continue;
+                display = spawnItemDisplay(loc, new org.bukkit.inventory.ItemStack(mat));
+            } else {
+                String text = PlaceholderAPI.setPlaceholders(player, entry.text());
+                display = spawnTextDisplay(loc, text);
+            }
             displays.add(display);
         }
 
@@ -128,17 +153,17 @@ public class ScreenMenuManager implements Listener {
     }
 
     /* === Data records ==================================================== */
-    public record MenuEntry(String text, double x, double y, String command) {}
-    public record ScreenMenu(List<MenuEntry> entries) {}
+    public record MenuEntry(String text, double x, double y, String command, String item) {}
+    public record ScreenMenu(List<MenuEntry> entries, double distance, Float yaw, Float pitch) {}
 
     private class ActiveMenu {
         private final Player player;
         private final ScreenMenu menu;
-        private final List<TextDisplay> displays;
+        private final List<Entity> displays;
         private int selected = -1;
         private int taskId;
 
-        ActiveMenu(Player player, ScreenMenu menu, List<TextDisplay> displays) {
+        ActiveMenu(Player player, ScreenMenu menu, List<Entity> displays) {
             this.player = player;
             this.menu = menu;
             this.displays = displays;
@@ -148,14 +173,11 @@ public class ScreenMenuManager implements Listener {
             taskId = new BukkitRunnable() {
                 @Override public void run() {
                     Entity target = player.getTargetEntity(4);
-                    int newSel = -1;
-                    if (target != null) {
-                        newSel = displays.indexOf(target);
-                    }
+                    int newSel = target != null ? displays.indexOf(target) : -1;
                     if (newSel != selected) {
-                        updateHighlight(selected, 0x00000000);
+                        updateHighlight(selected, false);
                         selected = newSel;
-                        updateHighlight(selected, 0x40FFFFFF);
+                        updateHighlight(selected, true);
                     }
                 }
             }.runTaskTimer(plugin, 0L, 1L).getTaskId();
@@ -163,8 +185,8 @@ public class ScreenMenuManager implements Listener {
 
         void stop() {
             Bukkit.getScheduler().cancelTask(taskId);
-            for (TextDisplay td : displays) {
-                if (td != null && !td.isDead()) td.remove();
+            for (Entity e : displays) {
+                if (e != null && !e.isDead()) e.remove();
             }
         }
 
@@ -181,10 +203,34 @@ public class ScreenMenuManager implements Listener {
             }
         }
 
-        private void updateHighlight(int index, int color) {
+        private void updateHighlight(int index, boolean highlight) {
             if (index < 0 || index >= displays.size()) return;
-            displays.get(index).setBackgroundColor(color);
+            Entity e = displays.get(index);
+            if (e instanceof TextDisplay td) {
+                td.setBackgroundColor(highlight ? 0x40FFFFFF : 0x00000000);
+            } else {
+                e.setGlowing(highlight);
+            }
         }
+    }
+
+    private TextDisplay spawnTextDisplay(Location loc, String text) {
+        return loc.getWorld().spawn(loc, TextDisplay.class, td -> {
+            td.setText(text);
+            td.setBillboard(Billboard.CENTER);
+            td.setBackgroundColor(0x00000000);
+        });
+    }
+
+    private ItemDisplay spawnItemDisplay(Location loc, org.bukkit.inventory.ItemStack item) {
+        return loc.getWorld().spawn(loc, ItemDisplay.class, id -> id.setItemStack(item));
+    }
+
+    /** Spawn a temporary item display in front of the player for demonstration. */
+    public void showItem(Player player, org.bukkit.inventory.ItemStack item) {
+        Location loc = player.getEyeLocation().add(player.getEyeLocation().getDirection().normalize());
+        Entity e = spawnItemDisplay(loc, item);
+        Bukkit.getScheduler().runTaskLater(plugin, e::remove, 100L);
     }
 }
 

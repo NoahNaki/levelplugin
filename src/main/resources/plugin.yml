@@ -231,4 +231,4 @@ commands:
     usage: /world <create|import|delete|unload|tp|spawn|setspawn|list>
   cursormenu:
     description: Open a custom screen menu
-    usage: /cursormenu <run|stop|reload> [menu]
+    usage: /cursormenu <run|stop|reload|items> [menu]

@@ -4,12 +4,15 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.Material;
+import org.bukkit.inventory.ItemStack;
 
 /**
  * Command to control screen menus. Usage:
  * /cursormenu run <menu>
  * /cursormenu stop
  * /cursormenu reload
+ * /cursormenu items <material>
  */
 public class ScreenMenuCommand implements CommandExecutor {
 
@@ -27,7 +30,7 @@ public class ScreenMenuCommand implements CommandExecutor {
         }
 
         if (args.length == 0) {
-            player.sendMessage("Usage: /" + label + " <run|stop|reload> [menu]");
+            player.sendMessage("Usage: /" + label + " <run|stop|reload|items> [menu]");
             return true;
         }
 
@@ -45,7 +48,19 @@ public class ScreenMenuCommand implements CommandExecutor {
                 manager.reload();
                 player.sendMessage("Screen menus reloaded.");
             }
-            default -> player.sendMessage("Usage: /" + label + " <run|stop|reload> [menu]");
+            case "items" -> {
+                if (args.length < 2) {
+                    player.sendMessage("Specify a material.");
+                    return true;
+                }
+                Material mat = Material.matchMaterial(args[1]);
+                if (mat == null) {
+                    player.sendMessage("Unknown material: " + args[1]);
+                } else {
+                    manager.showItem(player, new ItemStack(mat));
+                }
+            }
+            default -> player.sendMessage("Usage: /" + label + " <run|stop|reload|items> [menu]");
         }
         return true;
     }

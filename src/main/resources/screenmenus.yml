@@ -21,3 +21,28 @@ menus:
       x: 0
       y: -0.3
       command: "say exiting"
+  item_demo:
+    distance: 1.5
+    sword:
+      item: DIAMOND_SWORD
+      x: -0.3
+      y: 0.2
+      command: "say sword"
+    pickaxe:
+      item: IRON_PICKAXE
+      x: 0.3
+      y: 0.2
+      command: "say pickaxe"
+  placeholder_demo:
+    greeting:
+      text: "Welcome %player_name%"
+      x: 0
+      y: 0
+  camera_demo:
+    yaw: 180
+    pitch: 10
+    back:
+      text: "Back"
+      x: 0
+      y: -0.2
+      command: "say back"
