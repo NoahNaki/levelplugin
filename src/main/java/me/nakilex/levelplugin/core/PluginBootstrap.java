@@ -165,6 +165,7 @@ public class PluginBootstrap {
     private NpcCodexGUI npcCodexGUI;
     private LocationCodexGUI locationCodexGUI;
     private me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager wanderingMerchantManager;
+    private me.nakilex.levelplugin.screenmenu.ScreenMenuManager screenMenuManager;
 
     public PluginBootstrap(Main plugin) {
         this.plugin = plugin;
@@ -288,6 +289,7 @@ public class PluginBootstrap {
         cutsceneManager = new me.nakilex.levelplugin.cutscene.CutsceneManager(plugin);
         cutsceneManager.loadCutscenes();
         wanderingMerchantManager = new me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager(plugin);
+        screenMenuManager = new me.nakilex.levelplugin.screenmenu.ScreenMenuManager(plugin);
     }
 
     private void setupCustomConfig() {
@@ -333,7 +335,8 @@ public class PluginBootstrap {
             motdManager,
             upgradeGUI,
             codexGUI,
-            wanderingMerchantManager
+            wanderingMerchantManager,
+            screenMenuManager
         );
         ListenerRegistry.registerListeners(
             plugin,
@@ -368,7 +371,8 @@ public class PluginBootstrap {
             mobCodexGUI,
             npcCodexGUI,
             locationCodexGUI,
-            wanderingMerchantManager
+            wanderingMerchantManager,
+            screenMenuManager
         );
         plugin.getServer().getPluginManager().registerEvents(beaconManager, plugin);
         TaskRegistry.startTasks(plugin, horseConfigManager, horseManager, wanderingMerchantManager);
@@ -421,6 +425,7 @@ public class PluginBootstrap {
         if (townStageManager != null) townStageManager.despawnAll();
         if (buildingStageManager != null) buildingStageManager.despawnAll();
         if (wanderingMerchantManager != null) wanderingMerchantManager.despawn();
+        if (screenMenuManager != null) screenMenuManager.hideAll();
         if (dealMaker != null) dealMaker.closeAllTrades();
         plugin.getLogger().info("LevelPlugin has been disabled!");
     }
@@ -509,6 +514,7 @@ public class PluginBootstrap {
     public CodexMainGUI getCodexGUI() { return codexGUI; }
     public me.nakilex.levelplugin.dungeon.gui.DungeonListGUI getDungeonListGUI() { return dungeonListGUI; }
     public me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager getWanderingMerchantManager() { return wanderingMerchantManager; }
+    public me.nakilex.levelplugin.screenmenu.ScreenMenuManager getScreenMenuManager() { return screenMenuManager; }
 
     private void createCustomConfig() {
         customConfigFile = new File(plugin.getDataFolder(), "config.yml");

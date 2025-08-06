@@ -61,6 +61,7 @@ import me.nakilex.levelplugin.environment.listeners.StageBlockInteractListener;
 import me.nakilex.levelplugin.codex.*;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantListener;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager;
+import me.nakilex.levelplugin.screenmenu.ScreenMenuManager;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.PluginManager;
 
@@ -98,7 +99,8 @@ public class ListenerRegistry {
                                         MobCodexGUI mobCodexGUI,
                                         NpcCodexGUI npcCodexGUI,
                                         LocationCodexGUI locationCodexGUI,
-                                        me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager wmManager) {
+                                        me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager wmManager,
+                                        ScreenMenuManager screenMenuManager) {
 
 
         PluginManager pm = plugin.getServer().getPluginManager();
@@ -198,6 +200,7 @@ public class ListenerRegistry {
         pm.registerEvents(new me.nakilex.levelplugin.environment.listeners.TownItemDropListener(plugin.getEnvironmentManager()), plugin);
         pm.registerEvents(new me.nakilex.levelplugin.environment.listeners.EnvironmentDistanceListener(plugin.getEnvironmentManager()), plugin);
         pm.registerEvents(new WanderingMerchantListener(wmManager), plugin);
+        pm.registerEvents(screenMenuManager, plugin);
         if (plugin.getCustomConfig().getBoolean("features.profiles", true)) {
             pm.registerEvents(new me.nakilex.levelplugin.player.profile.ProfileSelectionGUI(), plugin);
         }

@@ -1,0 +1,12 @@
+menus:
+  example:
+    start:
+      text: "Start"
+      x: 0
+      y: 0
+      command: "say starting"
+    exit:
+      text: "Exit"
+      x: 0
+      y: -0.3
+      command: "say exiting"

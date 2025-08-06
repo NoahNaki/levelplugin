@@ -51,6 +51,8 @@ import me.nakilex.levelplugin.codex.CodexMainGUI;
 import me.nakilex.levelplugin.codex.CodexCommand;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantCommand;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager;
+import me.nakilex.levelplugin.screenmenu.ScreenMenuCommand;
+import me.nakilex.levelplugin.screenmenu.ScreenMenuManager;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.horse.managers.HorseManager;
 import me.nakilex.levelplugin.party.PartyManager;
@@ -100,7 +102,8 @@ public class CommandRegistry {
                                         me.nakilex.levelplugin.motd.MotdManager motdManager,
                                         UpgradeGUI upgradeGUI,
                                         CodexMainGUI codexGUI,
-                                        WanderingMerchantManager wmManager) {
+                                        WanderingMerchantManager wmManager,
+                                        ScreenMenuManager screenMenuManager) {
 
 
         plugin.getCommand("addpoints").setExecutor(new AddPointsCommand());
@@ -165,5 +168,6 @@ public class CommandRegistry {
         plugin.getCommand("cutscene").setExecutor(new me.nakilex.levelplugin.cutscene.commands.CutsceneCommand(plugin.getCutsceneManager()));
         plugin.getCommand("dungeon").setExecutor(new me.nakilex.levelplugin.dungeon.DungeonCommand(plugin));
         plugin.getCommand("world").setExecutor(new me.nakilex.levelplugin.world.WorldCommand(plugin.getWorldManager()));
+        plugin.getCommand("cursormenu").setExecutor(new ScreenMenuCommand(screenMenuManager));
     }
 }
