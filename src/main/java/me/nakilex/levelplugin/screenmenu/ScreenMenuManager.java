@@ -91,6 +91,19 @@ public class ScreenMenuManager implements Listener {
         }
     }
 
+    /**
+     * Hides all active screen menus for every player. Used during plugin
+     * shutdown to ensure no lingering text displays remain in the world.
+     */
+    public void hideAll() {
+        for (List<TextDisplay> list : active.values()) {
+            for (TextDisplay td : list) {
+                td.remove();
+            }
+        }
+        active.clear();
+    }
+
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
         closeMenu(e.getPlayer());
