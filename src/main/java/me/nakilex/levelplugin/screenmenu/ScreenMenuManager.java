@@ -207,7 +207,9 @@ public class ScreenMenuManager implements Listener {
             if (index < 0 || index >= displays.size()) return;
             Entity e = displays.get(index);
             if (e instanceof TextDisplay td) {
-                td.setBackgroundColor(highlight ? 0x40FFFFFF : 0x00000000);
+                td.setBackgroundColor(highlight
+                        ? org.bukkit.Color.fromARGB(64, 255, 255, 255)
+                        : org.bukkit.Color.fromARGB(0, 0, 0, 0));
             } else {
                 e.setGlowing(highlight);
             }
@@ -218,7 +220,7 @@ public class ScreenMenuManager implements Listener {
         return loc.getWorld().spawn(loc, TextDisplay.class, td -> {
             td.setText(text);
             td.setBillboard(Billboard.CENTER);
-            td.setBackgroundColor(0x00000000);
+            td.setBackgroundColor(org.bukkit.Color.fromARGB(0, 0, 0, 0));
         });
     }
 
