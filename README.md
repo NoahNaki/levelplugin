@@ -27,23 +27,31 @@ Copy the built jar to your server's `plugins` folder and start the server. The p
   ```
   Rooms are referenced by the mob key used in dungeon layouts.
 
-- `screenmenus.yml` – define on-screen text or item menus. Example:
+- `screenmenus.yml` – define menu *sections* and the layouts within each section:
   ```yml
-  menus:
-    example:
-      start:
-        text: "Start"
+  sections:
+    join:
+      distance: 2
+      camera:
+        world: world
         x: 0
-        y: 0
-        command: "say starting"
-    item_demo:
-      sword:
-        item: DIAMOND_SWORD
-        x: -0.3
-        y: 0.2
-        command: "say sword"
+        y: 65
+        z: 0
+      layouts:
+        play:
+          text: "Play"
+          x: 0
+          y: 0
+          command: ["profile"]
+          stop: true
+        leave:
+          text: "Leave"
+          x: 0
+          y: -0.3
+          command: ["leave"]
+          stop: true
   ```
-  Use `/cursormenu run <menu>` to show a menu or `/cursormenu items <material>` to spawn a sample item display.
+  Use `/cursormenu run <section>` to show a menu or `/cursormenu items <material>` to spawn a sample item display.
 
 ## Features
 

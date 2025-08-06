@@ -3,8 +3,8 @@ package me.nakilex.levelplugin.screenmenu;
 import me.nakilex.levelplugin.Main;
 import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Display.Billboard;
@@ -23,15 +23,14 @@ import java.io.File;
 import java.util.*;
 
 /**
- * Loads simple screen menus from a YAML file and shows them to players using
- * text display entities. The implementation is intentionally lightweight – it
- * does not mirror every feature of the original CustomScreenMenu plugin but
- * provides a foundation for configurable on‑screen menus within LevelPlugin.
+ * A lightweight recreation of the CustomScreenMenu system. Menus are grouped
+ * into "sections" that define camera placement while each section holds
+ * multiple {@link MenuLayout} entries the player can click.
  */
 public class ScreenMenuManager implements Listener {
 
     private final Main plugin;
-    private final Map<String, ScreenMenu> menus = new HashMap<>();
+    private final SectionManager sectionManager = new SectionManager();
     private final Map<UUID, ActiveMenu> activeMenus = new HashMap<>();
     private final File configFile;
     private YamlConfiguration config;
@@ -45,78 +44,98 @@ public class ScreenMenuManager implements Listener {
         reload();
     }
 
-    /** Reloads menu definitions from disk. */
+    /** Reloads section definitions from disk. */
     public final void reload() {
         config = YamlConfiguration.loadConfiguration(configFile);
-        menus.clear();
-        ConfigurationSection root = config.getConfigurationSection("menus");
+        sectionManager.clear();
+        ConfigurationSection root = config.getConfigurationSection("sections");
         if (root == null) return;
-        for (String menuId : root.getKeys(false)) {
-            ConfigurationSection menuSec = root.getConfigurationSection(menuId);
-            if (menuSec == null) continue;
+        for (String secId : root.getKeys(false)) {
+            ConfigurationSection sSec = root.getConfigurationSection(secId);
+            if (sSec == null) continue;
 
-            double distance = menuSec.getDouble("distance", 1.0);
-            Float yaw = menuSec.isSet("yaw") ? (float) menuSec.getDouble("yaw") : null;
-            Float pitch = menuSec.isSet("pitch") ? (float) menuSec.getDouble("pitch") : null;
+            double distance = sSec.getDouble("distance", 2.0);
+            String world = sSec.getString("camera.world", "world");
+            double camX = sSec.getDouble("camera.x", 0);
+            double camY = sSec.getDouble("camera.y", 0);
+            double camZ = sSec.getDouble("camera.z", 0);
+            float yaw = (float) sSec.getDouble("camera.yaw", 0);
+            float pitch = (float) sSec.getDouble("camera.pitch", 0);
+            String perm = sSec.getString("permission", "");
+            Section section = new Section(distance, world, camX, camY, camZ, yaw, pitch, perm);
 
-            List<MenuEntry> entries = new ArrayList<>();
-            for (String key : menuSec.getKeys(false)) {
-                if ("distance".equalsIgnoreCase(key) || "yaw".equalsIgnoreCase(key)
-                        || "pitch".equalsIgnoreCase(key)) {
-                    continue;
+            ConfigurationSection layouts = sSec.getConfigurationSection("layouts");
+            if (layouts != null) {
+                for (String lKey : layouts.getKeys(false)) {
+                    ConfigurationSection lSec = layouts.getConfigurationSection(lKey);
+                    if (lSec == null) continue;
+                    String name = lSec.getString("text", lKey);
+                    List<String> commands = lSec.getStringList("command");
+                    if (commands.isEmpty()) {
+                        String single = lSec.getString("command");
+                        if (single != null) commands = Collections.singletonList(single);
+                    }
+                    boolean stop = lSec.getBoolean("stop", false);
+                    double x = lSec.getDouble("x", 0);
+                    double y = lSec.getDouble("y", 0);
+                    double z = lSec.getDouble("z", 0);
+                    boolean tp = lSec.getBoolean("teleport", false);
+                    boolean tpBack = lSec.getBoolean("teleport-back", false);
+                    Location tpLoc = null;
+                    if (tp) {
+                        String w = lSec.getString("teleport-to.world", world);
+                        double tx = lSec.getDouble("teleport-to.x", camX);
+                        double ty = lSec.getDouble("teleport-to.y", camY);
+                        double tz = lSec.getDouble("teleport-to.z", camZ);
+                        if (Bukkit.getWorld(w) != null) {
+                            tpLoc = new Location(Bukkit.getWorld(w), tx, ty, tz);
+                        }
+                    }
+                    List<String> stopCmds = lSec.getStringList("stop-commands");
+                    String lPerm = lSec.getString("permission", "");
+                    section.add(lKey, new MenuLayout(secId + ":" + lKey, name, commands, stop,
+                            x, y, z, tp, tpBack, tpLoc, stopCmds, lPerm));
                 }
-                ConfigurationSection entrySec = menuSec.getConfigurationSection(key);
-                if (entrySec == null) continue;
-                String text = entrySec.getString("text", "");
-                double x = entrySec.getDouble("x", 0);
-                double y = entrySec.getDouble("y", 0);
-                String command = entrySec.getString("command", "");
-                String item = entrySec.getString("item");
-                entries.add(new MenuEntry(text, x, y, command, item));
             }
-            menus.put(menuId.toLowerCase(Locale.ROOT), new ScreenMenu(entries, distance, yaw, pitch));
+            sectionManager.add(secId.toLowerCase(Locale.ROOT), section);
         }
     }
 
-    /** Shows the specified menu to the player. */
+    /** Displays the given section to the player. */
     public boolean showMenu(Player player, String id) {
-        ScreenMenu menu = menus.get(id.toLowerCase(Locale.ROOT));
-        if (menu == null) return false;
+        Section section = sectionManager.get(id.toLowerCase(Locale.ROOT));
+        if (section == null) return false;
+        if (!section.permission.isEmpty() && !player.hasPermission(section.permission) && !player.isOp()) {
+            player.sendMessage(ChatColor.RED + "You lack permission for this menu.");
+            return false;
+        }
 
         hideMenu(player);
 
-        Location eye = player.getEyeLocation();
-        if (menu.yaw() != null || menu.pitch() != null) {
-            Location look = eye.clone();
-            if (menu.yaw() != null) look.setYaw(menu.yaw());
-            if (menu.pitch() != null) look.setPitch(menu.pitch());
-            player.teleport(look);
-            eye = player.getEyeLocation();
+        Location cam = new Location(Bukkit.getWorld(section.world), section.cameraX,
+                section.cameraY, section.cameraZ, section.yaw, section.pitch);
+        if (cam.getWorld() != null) {
+            player.teleport(cam);
         }
+        Location eye = player.getEyeLocation();
 
         Vector forward = eye.getDirection().normalize();
         Vector right = forward.clone().crossProduct(new Vector(0, 1, 0)).normalize();
         Vector up = new Vector(0, 1, 0);
-        Location base = eye.add(forward.multiply(menu.distance()));
+        Location base = eye.add(forward.multiply(section.distance));
 
         List<Entity> displays = new ArrayList<>();
-        for (MenuEntry entry : menu.entries()) {
+        List<MenuLayout> layouts = new ArrayList<>(section.layouts.values());
+        for (MenuLayout layout : layouts) {
             Location loc = base.clone()
-                    .add(right.clone().multiply(entry.x()))
-                    .add(up.clone().multiply(entry.y()));
-            Entity display;
-            if (entry.item() != null && !entry.item().isEmpty()) {
-                Material mat = Material.matchMaterial(entry.item());
-                if (mat == null) continue;
-                display = spawnItemDisplay(loc, new org.bukkit.inventory.ItemStack(mat));
-            } else {
-                String text = PlaceholderAPI.setPlaceholders(player, entry.text());
-                display = spawnTextDisplay(loc, text);
-            }
-            displays.add(display);
+                    .add(right.clone().multiply(layout.x()))
+                    .add(up.clone().multiply(layout.y()))
+                    .add(forward.clone().multiply(layout.z()));
+            String text = PlaceholderAPI.setPlaceholders(player, layout.name());
+            displays.add(spawnTextDisplay(loc, text));
         }
 
-        ActiveMenu active = new ActiveMenu(player, menu, displays);
+        ActiveMenu active = new ActiveMenu(player, layouts, displays);
         active.start();
         activeMenus.put(player.getUniqueId(), active);
         return true;
@@ -125,9 +144,7 @@ public class ScreenMenuManager implements Listener {
     /** Removes any active menu for the player. */
     public void hideMenu(Player player) {
         ActiveMenu active = activeMenus.remove(player.getUniqueId());
-        if (active != null) {
-            active.stop();
-        }
+        if (active != null) active.stop();
     }
 
     /** Clears menus for all players, used on plugin shutdown. */
@@ -152,20 +169,17 @@ public class ScreenMenuManager implements Listener {
         hideMenu(e.getPlayer());
     }
 
-    /* === Data records ==================================================== */
-    public record MenuEntry(String text, double x, double y, String command, String item) {}
-    public record ScreenMenu(List<MenuEntry> entries, double distance, Float yaw, Float pitch) {}
-
+    /* === internal ======================================================= */
     private class ActiveMenu {
         private final Player player;
-        private final ScreenMenu menu;
+        private final List<MenuLayout> layouts;
         private final List<Entity> displays;
         private int selected = -1;
         private int taskId;
 
-        ActiveMenu(Player player, ScreenMenu menu, List<Entity> displays) {
+        ActiveMenu(Player player, List<MenuLayout> layouts, List<Entity> displays) {
             this.player = player;
-            this.menu = menu;
+            this.layouts = layouts;
             this.displays = displays;
         }
 
@@ -191,16 +205,8 @@ public class ScreenMenuManager implements Listener {
         }
 
         void handleClick() {
-            if (selected < 0 || selected >= menu.entries().size()) return;
-            String cmd = menu.entries().get(selected).command();
-            ScreenMenuManager.this.hideMenu(player);
-            if (cmd != null && !cmd.isEmpty()) {
-                if ("leave".equalsIgnoreCase(cmd)) {
-                    player.kickPlayer("See you next time!");
-                } else {
-                    player.performCommand(cmd);
-                }
-            }
+            if (selected < 0 || selected >= layouts.size()) return;
+            layouts.get(selected).execute(player, ScreenMenuManager.this);
         }
 
         private void updateHighlight(int index, boolean highlight) {
@@ -235,4 +241,3 @@ public class ScreenMenuManager implements Listener {
         Bukkit.getScheduler().runTaskLater(plugin, e::remove, 100L);
     }
 }
-

@@ -1,48 +1,23 @@
-menus:
+sections:
   join:
-    play:
-      text: "Play"
-      x: 0
-      y: 0
-      command: "profile"
-    leave:
-      text: "Leave"
-      x: 0
-      y: -0.3
-      command: "leave"
-  example:
-    start:
-      text: "Start"
-      x: 0
-      y: 0
-      command: "say starting"
-    exit:
-      text: "Exit"
-      x: 0
-      y: -0.3
-      command: "say exiting"
-  item_demo:
-    distance: 1.5
-    sword:
-      item: DIAMOND_SWORD
-      x: -0.3
-      y: 0.2
-      command: "say sword"
-    pickaxe:
-      item: IRON_PICKAXE
-      x: 0.3
-      y: 0.2
-      command: "say pickaxe"
-  placeholder_demo:
-    greeting:
-      text: "Welcome %player_name%"
-      x: 0
-      y: 0
-  camera_demo:
-    yaw: 180
-    pitch: 10
-    back:
-      text: "Back"
-      x: 0
-      y: -0.2
-      command: "say back"
+    distance: 2.0
+    camera:
+      world: world
+      x: 0.0
+      y: 65.0
+      z: 0.0
+      yaw: 0.0
+      pitch: 0.0
+    layouts:
+      play:
+        text: "Play"
+        x: 0.0
+        y: 0.0
+        command: ["profile"]
+        stop: true
+      leave:
+        text: "Leave"
+        x: 0.0
+        y: -0.3
+        command: ["leave"]
+        stop: true

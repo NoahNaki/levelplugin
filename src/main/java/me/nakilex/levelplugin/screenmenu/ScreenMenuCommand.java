@@ -9,7 +9,7 @@ import org.bukkit.inventory.ItemStack;
 
 /**
  * Command to control screen menus. Usage:
- * /cursormenu run <menu>
+ * /cursormenu run <section>
  * /cursormenu stop
  * /cursormenu reload
  * /cursormenu items <material>
@@ -30,18 +30,18 @@ public class ScreenMenuCommand implements CommandExecutor {
         }
 
         if (args.length == 0) {
-            player.sendMessage("Usage: /" + label + " <run|stop|reload|items> [menu]");
+            player.sendMessage("Usage: /" + label + " <run|stop|reload|items> [section]");
             return true;
         }
 
         switch (args[0].toLowerCase()) {
             case "run" -> {
                 if (args.length < 2) {
-                    player.sendMessage("Specify a menu id.");
+                    player.sendMessage("Specify a section id.");
                     return true;
                 }
                 boolean shown = manager.showMenu(player, args[1]);
-                if (!shown) player.sendMessage("Unknown menu: " + args[1]);
+                if (!shown) player.sendMessage("Unknown section: " + args[1]);
             }
             case "stop" -> manager.hideMenu(player);
             case "reload" -> {
@@ -60,7 +60,7 @@ public class ScreenMenuCommand implements CommandExecutor {
                     manager.showItem(player, new ItemStack(mat));
                 }
             }
-            default -> player.sendMessage("Usage: /" + label + " <run|stop|reload|items> [menu]");
+            default -> player.sendMessage("Usage: /" + label + " <run|stop|reload|items> [section]");
         }
         return true;
     }
