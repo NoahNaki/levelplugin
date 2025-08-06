@@ -4,7 +4,6 @@ features:
   trade: true
   auction-house: true
   quests: true
-  screenmenus: true
 debug:
   chunk-loading: false
   mythic-skill-damage: false

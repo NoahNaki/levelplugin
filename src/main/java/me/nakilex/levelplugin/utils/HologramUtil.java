@@ -10,6 +10,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.entity.Display;
 import org.bukkit.scheduler.BukkitRunnable;
+import java.util.function.Consumer;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -61,6 +62,21 @@ public class HologramUtil {
         }
 
         spawnOneOff(viewer, at, text);
+    }
+
+    /**
+     * Spawn a persistent text display at the given location. The display is
+     * configured via the provided consumer and is not automatically removed.
+     */
+    public static TextDisplay spawnTextDisplay(Location loc, Consumer<TextDisplay> configurator) {
+        return loc.getWorld().spawn(loc, TextDisplay.class, td -> {
+            td.setBillboard(Display.Billboard.CENTER);
+            td.setShadowRadius(0);
+            td.setShadowStrength(0);
+            if (configurator != null) {
+                configurator.accept(td);
+            }
+        });
     }
 
     /**

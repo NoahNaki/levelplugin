@@ -1,25 +1,12 @@
-sections:
+menus:
   join:
     distance: 2.0
-    camera:
-      world: world
-      x: 0.0
-      y: 65.0
-      z: 0.0
-      yaw: 0.0
-      pitch: 0.0
-    layouts:
-      play:
-        text: "Play"
+    entries:
+      - text: "Play"
         x: 0.0
         y: 0.0
-        command: ["profile"]
-        stop: true
-        item:
-          material: DIAMOND_SWORD
-      leave:
-        text: "Leave"
+        command: "profile"
+      - text: "Leave"
         x: 0.0
         y: -0.3
-        command: ["leave"]
-        stop: true
+        command: "leave"

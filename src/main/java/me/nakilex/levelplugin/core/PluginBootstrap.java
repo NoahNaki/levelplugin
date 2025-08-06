@@ -529,7 +529,6 @@ public class PluginBootstrap {
         setDefault("features.trade", true);
         setDefault("features.auction-house", true);
         setDefault("features.quests", true);
-        setDefault("features.screenmenus", true);
         setDefault("debug.chunk-loading", false);
         setDefault("debug.mythic-skill-damage", false);
         setDefault("tips.delay", 120);

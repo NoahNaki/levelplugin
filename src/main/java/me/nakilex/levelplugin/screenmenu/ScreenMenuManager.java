@@ -1,44 +1,31 @@
 package me.nakilex.levelplugin.screenmenu;
 
 import me.nakilex.levelplugin.Main;
-import me.clip.placeholderapi.PlaceholderAPI;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
+import me.nakilex.levelplugin.utils.HologramUtil;
 import org.bukkit.Location;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.Material;
-import org.bukkit.entity.Display.Billboard;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
-import org.bukkit.event.player.PlayerChangedWorldEvent;
-import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import java.io.File;
 import java.util.*;
 
 /**
- * A lightweight recreation of the CustomScreenMenu system. Menus are grouped
- * into "sections" that define camera placement while each section holds
- * multiple {@link MenuLayout} entries the player can click.
+ * Loads simple screen menus from {@code screenmenus.yml} and can display them
+ * in front of players.
  */
 public class ScreenMenuManager implements Listener {
 
     private final Main plugin;
-    private final SectionManager sectionManager = new SectionManager();
-    private final Map<UUID, ActiveMenu> activeMenus = new HashMap<>();
     private final File configFile;
-    private YamlConfiguration config;
+    private Map<String, ScreenMenu> menus = new HashMap<>();
+    private final Map<UUID, List<TextDisplay>> active = new HashMap<>();
 
     public ScreenMenuManager(Main plugin) {
         this.plugin = plugin;
@@ -49,293 +36,63 @@ public class ScreenMenuManager implements Listener {
         reload();
     }
 
-    /** Reloads section definitions from disk. */
-    public final void reload() {
-        config = YamlConfiguration.loadConfiguration(configFile);
-        sectionManager.clear();
-        ConfigurationSection root = config.getConfigurationSection("sections");
-        if (root == null) return;
-        for (String secId : root.getKeys(false)) {
-            ConfigurationSection sSec = root.getConfigurationSection(secId);
-            if (sSec == null) continue;
-
-            double distance = sSec.getDouble("distance", 2.0);
-            String world = sSec.getString("camera.world", "world");
-            double camX = sSec.getDouble("camera.x", 0);
-            double camY = sSec.getDouble("camera.y", 0);
-            double camZ = sSec.getDouble("camera.z", 0);
-            float yaw = (float) sSec.getDouble("camera.yaw", 0);
-            float pitch = (float) sSec.getDouble("camera.pitch", 0);
-            String perm = sSec.getString("permission", "");
-            Section section = new Section(distance, world, camX, camY, camZ, yaw, pitch, perm);
-
-            ConfigurationSection layouts = sSec.getConfigurationSection("layouts");
-            if (layouts != null) {
-                for (String lKey : layouts.getKeys(false)) {
-                    ConfigurationSection lSec = layouts.getConfigurationSection(lKey);
-                    if (lSec == null) continue;
-                    String name = lSec.getString("text", lKey);
-                    List<String> commands = lSec.getStringList("command");
-                    if (commands.isEmpty()) {
-                        String single = lSec.getString("command");
-                        if (single != null) commands = Collections.singletonList(single);
-                    }
-                    boolean stop = lSec.getBoolean("stop", false);
-                    double x = lSec.getDouble("x", 0);
-                    double y = lSec.getDouble("y", 0);
-                    double z = lSec.getDouble("z", 0);
-                    boolean tp = lSec.getBoolean("teleport", false);
-                    boolean tpBack = lSec.getBoolean("teleport-back", false);
-                    Location tpLoc = null;
-                    if (tp) {
-                        String w = lSec.getString("teleport-to.world", world);
-                        double tx = lSec.getDouble("teleport-to.x", camX);
-                        double ty = lSec.getDouble("teleport-to.y", camY);
-                        double tz = lSec.getDouble("teleport-to.z", camZ);
-                        if (Bukkit.getWorld(w) != null) {
-                            tpLoc = new Location(Bukkit.getWorld(w), tx, ty, tz);
-                        }
-                    }
-                    List<String> stopCmds = lSec.getStringList("stop-commands");
-                    String lPerm = lSec.getString("permission", "");
-
-                    ItemStack item = null;
-                    String matName = lSec.getString("item.material");
-                    if (matName != null) {
-                        Material mat = Material.matchMaterial(matName.toUpperCase(Locale.ROOT));
-                        if (mat != null) {
-                            item = new ItemStack(mat);
-                            int cmd = lSec.getInt("item.custom-model-data", 0);
-                            if (cmd > 0) {
-                                ItemMeta meta = item.getItemMeta();
-                                if (meta != null) {
-                                    meta.setCustomModelData(cmd);
-                                    item.setItemMeta(meta);
-                                }
-                            }
-                        }
-                    }
-
-                    section.add(lKey, new MenuLayout(secId + ":" + lKey, name, commands, stop,
-                            x, y, z, tp, tpBack, tpLoc, stopCmds, lPerm, item));
+    public void reload() {
+        FileConfiguration cfg = YamlConfiguration.loadConfiguration(configFile);
+        Map<String, ScreenMenu> loaded = new HashMap<>();
+        ConfigurationSection menusSec = cfg.getConfigurationSection("menus");
+        if (menusSec != null) {
+            for (String key : menusSec.getKeys(false)) {
+                ConfigurationSection ms = menusSec.getConfigurationSection(key);
+                double distance = ms.getDouble("distance", 2.0);
+                List<ScreenMenuEntry> entries = new ArrayList<>();
+                for (Map<?, ?> map : ms.getMapList("entries")) {
+                    String text = Objects.toString(map.get("text"), "");
+                    double x = ((Number) map.getOrDefault("x", 0.0)).doubleValue();
+                    double y = ((Number) map.getOrDefault("y", 0.0)).doubleValue();
+                    String command = Objects.toString(map.get("command"), "");
+                    entries.add(new ScreenMenuEntry(text, x, y, command));
                 }
+                loaded.put(key, new ScreenMenu(distance, entries));
             }
-            sectionManager.add(secId.toLowerCase(Locale.ROOT), section);
         }
+        menus = loaded;
     }
 
-    /** Displays the given section to the player. */
-    public boolean showMenu(Player player, String id) {
-        Section section = sectionManager.get(id.toLowerCase(Locale.ROOT));
-        if (section == null) return false;
-        if (!section.permission.isEmpty() && !player.hasPermission(section.permission) && !player.isOp()) {
-            player.sendMessage(ChatColor.RED + "You lack permission for this menu.");
-            return false;
-        }
+    public void showMenu(Player player, String name) {
+        ScreenMenu menu = menus.get(name);
+        if (menu == null) return;
+        closeMenu(player);
 
-        hideMenu(player);
-
-        Location cam = new Location(Bukkit.getWorld(section.world), section.cameraX,
-                section.cameraY, section.cameraZ, section.yaw, section.pitch);
-        if (cam.getWorld() != null) {
-            player.teleport(cam);
-        }
         Location eye = player.getEyeLocation();
+        Vector dir = eye.getDirection().normalize();
+        Vector right = dir.clone().crossProduct(new Vector(0, 1, 0)).normalize();
+        Vector up = right.clone().crossProduct(dir).normalize();
+        Location base = eye.add(dir.multiply(menu.getDistance()));
 
-        Vector forward = eye.getDirection().normalize();
-        Vector right = forward.clone().crossProduct(new Vector(0, 1, 0)).normalize();
-        Vector up = new Vector(0, 1, 0);
-        Location base = eye.clone()
-                .add(forward.clone().multiply(section.distance))
-                .add(up.clone().multiply(10));
-
-        List<Entity> displays = new ArrayList<>();
-        List<MenuLayout> layouts = new ArrayList<>(section.layouts.values());
-        double maxX = 1, maxY = 1;
-        for (MenuLayout layout : layouts) {
+        List<TextDisplay> displays = new ArrayList<>();
+        for (ScreenMenuEntry entry : menu.getEntries()) {
             Location loc = base.clone()
-                    .add(right.clone().multiply(layout.x()))
-                    .add(up.clone().multiply(layout.y()))
-                    .add(forward.clone().multiply(layout.z()));
+                    .add(right.clone().multiply(entry.x()))
+                    .add(up.clone().multiply(entry.y()));
+            TextDisplay td = HologramUtil.spawnTextDisplay(loc, disp -> {
+                disp.setText(entry.text());
+            });
+            displays.add(td);
+        }
+        active.put(player.getUniqueId(), displays);
+    }
 
-            Entity disp;
-            if (layout.item() != null) {
-                disp = spawnItemDisplay(loc, layout.item().clone());
-            } else {
-                String text = PlaceholderAPI.setPlaceholders(player, layout.name());
-                disp = spawnTextDisplay(loc, text);
+    public void closeMenu(Player player) {
+        List<TextDisplay> list = active.remove(player.getUniqueId());
+        if (list != null) {
+            for (TextDisplay td : list) {
+                td.remove();
             }
-            displays.add(disp);
-            maxX = Math.max(maxX, Math.abs(layout.x()));
-            maxY = Math.max(maxY, Math.abs(layout.y()));
-        }
-
-        ItemDisplay cursor = spawnItemDisplay(base.clone(), new ItemStack(Material.ARROW));
-        ActiveMenu active = new ActiveMenu(player, layouts, displays, cursor,
-                base, right, up, maxX, maxY, eye.getYaw(), eye.getPitch());
-        active.start();
-        activeMenus.put(player.getUniqueId(), active);
-        return true;
-    }
-
-    /** Removes any active menu for the player. */
-    public void hideMenu(Player player) {
-        ActiveMenu active = activeMenus.remove(player.getUniqueId());
-        if (active != null) active.stop();
-    }
-
-    /** Clears menus for all players, used on plugin shutdown. */
-    public void hideAll() {
-        for (UUID id : new ArrayList<>(activeMenus.keySet())) {
-            Player p = plugin.getServer().getPlayer(id);
-            if (p != null) hideMenu(p);
-        }
-    }
-
-    @EventHandler
-    public void onInteract(PlayerInteractEvent e) {
-        ActiveMenu active = activeMenus.get(e.getPlayer().getUniqueId());
-        if (active != null) {
-            e.setCancelled(true);
-            active.handleClick();
         }
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
-        hideMenu(e.getPlayer());
-    }
-
-    @EventHandler
-    public void onWorldChange(PlayerChangedWorldEvent e) {
-        if (activeMenus.containsKey(e.getPlayer().getUniqueId())) {
-            hideMenu(e.getPlayer());
-        }
-    }
-
-    @EventHandler
-    public void onCommand(PlayerCommandPreprocessEvent e) {
-        ActiveMenu active = activeMenus.get(e.getPlayer().getUniqueId());
-        if (active != null && !e.getMessage().toLowerCase(Locale.ROOT).startsWith("/cursormenu")) {
-            e.setCancelled(true);
-            e.getPlayer().sendMessage(ChatColor.RED + "Commands are disabled while using this menu.");
-        }
-    }
-
-    /* === internal ======================================================= */
-    private class ActiveMenu {
-        private final Player player;
-        private final List<MenuLayout> layouts;
-        private final List<Entity> displays;
-        private final ItemDisplay cursor;
-        private final Location base;
-        private final Vector right;
-        private final Vector up;
-        private final double maxX;
-        private final double maxY;
-        private final float baseYaw;
-        private final float basePitch;
-        private int selected = -1;
-        private int taskId;
-
-        ActiveMenu(Player player, List<MenuLayout> layouts, List<Entity> displays, ItemDisplay cursor,
-                   Location base, Vector right, Vector up, double maxX, double maxY,
-                   float baseYaw, float basePitch) {
-            this.player = player;
-            this.layouts = layouts;
-            this.displays = displays;
-            this.cursor = cursor;
-            this.base = base;
-            this.right = right;
-            this.up = up;
-            this.maxX = maxX;
-            this.maxY = maxY;
-            this.baseYaw = baseYaw;
-            this.basePitch = basePitch;
-        }
-
-        void start() {
-            taskId = new BukkitRunnable() {
-                @Override public void run() {
-                    Location eye = player.getEyeLocation();
-                    double yawDiff = wrapAngle(eye.getYaw() - baseYaw);
-                    double pitchDiff = Math.max(-90, Math.min(90, eye.getPitch() - basePitch));
-                    yawDiff = Math.max(-90, Math.min(90, yawDiff));
-                    double screenX = (yawDiff / 90D) * maxX;
-                    double screenY = (pitchDiff / 90D) * maxY;
-                    Location cursorLoc = base.clone()
-                            .add(right.clone().multiply(screenX))
-                            .add(up.clone().multiply(-screenY));
-                    cursor.teleport(cursorLoc);
-
-                    int newSel = -1;
-                    double best = Double.MAX_VALUE;
-                    for (int i = 0; i < displays.size(); i++) {
-                        Entity disp = displays.get(i);
-                        double dist = disp.getLocation().distanceSquared(cursorLoc);
-                        if (dist < 0.25 && dist < best) {
-                            best = dist;
-                            newSel = i;
-                        }
-                    }
-                    if (newSel != selected) {
-                        updateHighlight(selected, false);
-                        selected = newSel;
-                        updateHighlight(selected, true);
-                    }
-                }
-            }.runTaskTimer(plugin, 0L, 1L).getTaskId();
-        }
-
-        void stop() {
-            Bukkit.getScheduler().cancelTask(taskId);
-            for (Entity e : displays) {
-                if (e != null && !e.isDead()) e.remove();
-            }
-            if (cursor != null && !cursor.isDead()) cursor.remove();
-        }
-
-        void handleClick() {
-            if (selected < 0 || selected >= layouts.size()) return;
-            layouts.get(selected).execute(player, ScreenMenuManager.this);
-        }
-
-        private void updateHighlight(int index, boolean highlight) {
-            if (index < 0 || index >= displays.size()) return;
-            Entity e = displays.get(index);
-            if (e instanceof TextDisplay td) {
-                td.setBackgroundColor(highlight
-                        ? org.bukkit.Color.fromARGB(64, 255, 255, 255)
-                        : org.bukkit.Color.fromARGB(0, 0, 0, 0));
-            } else {
-                e.setGlowing(highlight);
-            }
-        }
-
-        private double wrapAngle(double angle) {
-            angle %= 360.0;
-            if (angle <= -180.0) angle += 360.0;
-            if (angle > 180.0) angle -= 360.0;
-            return angle;
-        }
-    }
-
-    private TextDisplay spawnTextDisplay(Location loc, String text) {
-        return loc.getWorld().spawn(loc, TextDisplay.class, td -> {
-            td.setText(text);
-            td.setBillboard(Billboard.CENTER);
-            td.setBackgroundColor(org.bukkit.Color.fromARGB(0, 0, 0, 0));
-        });
-    }
-
-    private ItemDisplay spawnItemDisplay(Location loc, org.bukkit.inventory.ItemStack item) {
-        return loc.getWorld().spawn(loc, ItemDisplay.class, id -> id.setItemStack(item));
-    }
-
-    /** Spawn a temporary item display in front of the player for demonstration. */
-    public void showItem(Player player, org.bukkit.inventory.ItemStack item) {
-        Location loc = player.getEyeLocation().add(player.getEyeLocation().getDirection().normalize());
-        Entity e = spawnItemDisplay(loc, item);
-        Bukkit.getScheduler().runTaskLater(plugin, e::remove, 100L);
+        closeMenu(e.getPlayer());
     }
 }

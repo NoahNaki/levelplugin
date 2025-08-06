@@ -27,40 +27,29 @@ Copy the built jar to your server's `plugins` folder and start the server. The p
   ```
   Rooms are referenced by the mob key used in dungeon layouts.
 
-- `screenmenus.yml` – define menu *sections* and the layouts within each section:
+- `screenmenus.yml` – define simple on-screen menus:
   ```yml
-  sections:
+  menus:
     join:
       distance: 2
-      camera:
-        world: world
-        x: 0
-        y: 65
-        z: 0
-      layouts:
-        play:
-          text: "Play"
+      entries:
+        - text: "Play"
           x: 0
           y: 0
-          command: ["profile"]
-          stop: true
-          item:
-            material: DIAMOND_SWORD
-        leave:
-          text: "Leave"
+          command: "profile"
+        - text: "Leave"
           x: 0
           y: -0.3
-          command: ["leave"]
-          stop: true
+          command: "leave"
   ```
-Use `/cursormenu run <section>` to show a menu or `/cursormenu items <material>` to spawn a sample item display.
+Use `/cursormenu run <menu>` to show a menu or `/cursormenu stop` to remove it.
 
 ## Features
 
 - Procedural dungeons with custom MythicMob spawns
 - Scaled skill damage based on player stats
 - Extensive item, quest and economy systems
-- Lightweight screen menu system with configurable text and item displays
+- Early screen menu system for configurable floating text menus
 - Active menus block unrelated commands and close automatically on world change
 
 Contributions are welcome. See `LICENSE` for terms.
