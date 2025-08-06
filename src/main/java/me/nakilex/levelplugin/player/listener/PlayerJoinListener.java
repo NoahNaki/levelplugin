@@ -159,7 +159,13 @@ public class PlayerJoinListener implements Listener {
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
                 if (!player.isOnline()) return;
                 ProfileManager.getInstance().clearActiveSlot(pid);
-                ProfileSelectionGUI.startSelection(player);
+                boolean screenMenus = Main.getInstance().getCustomConfig()
+                        .getBoolean("features.screenmenus", true);
+                if (screenMenus) {
+                    Main.getInstance().getScreenMenuManager().showMenu(player, "join");
+                } else {
+                    ProfileSelectionGUI.startSelection(player);
+                }
             }, 30L);  // ~1.5 seconds
         }
     }

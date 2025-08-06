@@ -171,8 +171,13 @@ public class ScreenMenuManager implements Listener {
         void handleClick() {
             if (selected < 0 || selected >= menu.entries().size()) return;
             String cmd = menu.entries().get(selected).command();
+            ScreenMenuManager.this.hideMenu(player);
             if (cmd != null && !cmd.isEmpty()) {
-                player.performCommand(cmd);
+                if ("leave".equalsIgnoreCase(cmd)) {
+                    player.kickPlayer("See you next time!");
+                } else {
+                    player.performCommand(cmd);
+                }
             }
         }
 

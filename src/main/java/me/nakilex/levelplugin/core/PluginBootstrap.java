@@ -524,30 +524,15 @@ public class PluginBootstrap {
         customConfig = YamlConfiguration.loadConfiguration(customConfigFile);
 
         // Initialize debug feature toggles with defaults
-        if (!customConfig.contains("features.profiles")) {
-            customConfig.set("features.profiles", true);
-        }
-        if (!customConfig.contains("features.environment")) {
-            customConfig.set("features.environment", true);
-        }
-        if (!customConfig.contains("features.trade")) {
-            customConfig.set("features.trade", true);
-        }
-        if (!customConfig.contains("features.auction-house")) {
-            customConfig.set("features.auction-house", true);
-        }
-        if (!customConfig.contains("features.quests")) {
-            customConfig.set("features.quests", true);
-        }
-        if (!customConfig.contains("debug.chunk-loading")) {
-            customConfig.set("debug.chunk-loading", false);
-        }
-        if (!customConfig.contains("debug.mythic-skill-damage")) {
-            customConfig.set("debug.mythic-skill-damage", false);
-        }
-        if (!customConfig.contains("tips.delay")) {
-            customConfig.set("tips.delay", 120);
-        }
+        setDefault("features.profiles", true);
+        setDefault("features.environment", true);
+        setDefault("features.trade", true);
+        setDefault("features.auction-house", true);
+        setDefault("features.quests", true);
+        setDefault("features.screenmenus", true);
+        setDefault("debug.chunk-loading", false);
+        setDefault("debug.mythic-skill-damage", false);
+        setDefault("tips.delay", 120);
         if (!customConfig.contains("tips.messages")) {
             customConfig.set("tips.messages", Arrays.asList(
                     "You can type [item] to link what you're holding in chat!",
@@ -581,6 +566,12 @@ public class PluginBootstrap {
             customConfig.save(customConfigFile);
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    private void setDefault(String path, Object value) {
+        if (!customConfig.contains(path)) {
+            customConfig.set(path, value);
         }
     }
 }

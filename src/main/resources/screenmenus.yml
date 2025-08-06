@@ -1,4 +1,15 @@
 menus:
+  join:
+    play:
+      text: "Play"
+      x: 0
+      y: 0
+      command: "profile"
+    leave:
+      text: "Leave"
+      x: 0
+      y: -0.3
+      command: "leave"
   example:
     start:
       text: "Start"
