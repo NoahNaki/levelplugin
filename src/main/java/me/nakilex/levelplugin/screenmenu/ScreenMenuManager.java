@@ -145,7 +145,7 @@ public class ScreenMenuManager implements Listener {
         Vector forward = eye.getDirection().normalize();
         Vector right = forward.clone().crossProduct(new Vector(0, 1, 0)).normalize();
         Vector up = new Vector(0, 1, 0);
-        Location base = eye.add(forward.multiply(section.distance));
+        Location base = eye.clone().add(forward.clone().multiply(section.distance));
 
         List<Entity> displays = new ArrayList<>();
         List<MenuLayout> layouts = new ArrayList<>(section.layouts.values());
@@ -165,7 +165,8 @@ public class ScreenMenuManager implements Listener {
             displays.add(disp);
         }
 
-        ActiveMenu active = new ActiveMenu(player, layouts, displays);
+        ItemDisplay cursor = spawnItemDisplay(base.clone(), new ItemStack(Material.ARROW));
+        ActiveMenu active = new ActiveMenu(player, section.distance, layouts, displays, cursor);
         active.start();
         activeMenus.put(player.getUniqueId(), active);
         return true;
@@ -218,22 +219,39 @@ public class ScreenMenuManager implements Listener {
     /* === internal ======================================================= */
     private class ActiveMenu {
         private final Player player;
+        private final double distance;
         private final List<MenuLayout> layouts;
         private final List<Entity> displays;
+        private final ItemDisplay cursor;
         private int selected = -1;
         private int taskId;
 
-        ActiveMenu(Player player, List<MenuLayout> layouts, List<Entity> displays) {
+        ActiveMenu(Player player, double distance, List<MenuLayout> layouts, List<Entity> displays, ItemDisplay cursor) {
             this.player = player;
+            this.distance = distance;
             this.layouts = layouts;
             this.displays = displays;
+            this.cursor = cursor;
         }
 
         void start() {
             taskId = new BukkitRunnable() {
                 @Override public void run() {
-                    Entity target = player.getTargetEntity(4);
-                    int newSel = target != null ? displays.indexOf(target) : -1;
+                    Location eye = player.getEyeLocation();
+                    Vector forward = eye.getDirection().normalize();
+                    Location cursorLoc = eye.add(forward.multiply(distance));
+                    cursor.teleport(cursorLoc);
+
+                    int newSel = -1;
+                    double best = Double.MAX_VALUE;
+                    for (int i = 0; i < displays.size(); i++) {
+                        Entity disp = displays.get(i);
+                        double dist = disp.getLocation().distanceSquared(cursorLoc);
+                        if (dist < 0.25 && dist < best) {
+                            best = dist;
+                            newSel = i;
+                        }
+                    }
                     if (newSel != selected) {
                         updateHighlight(selected, false);
                         selected = newSel;
@@ -248,6 +266,7 @@ public class ScreenMenuManager implements Listener {
             for (Entity e : displays) {
                 if (e != null && !e.isDead()) e.remove();
             }
+            if (cursor != null && !cursor.isDead()) cursor.remove();
         }
 
         void handleClick() {
