@@ -5,6 +5,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import java.util.List;
 
 /**
@@ -26,6 +27,7 @@ public class MenuLayout {
     private final Location teleportLoc;
     private final List<String> stopCommands;
     private final String permission;
+    private final ItemStack item;
 
     public MenuLayout(String key,
                       String name,
@@ -38,7 +40,8 @@ public class MenuLayout {
                       boolean teleportBack,
                       Location teleportLoc,
                       List<String> stopCommands,
-                      String permission) {
+                      String permission,
+                      ItemStack item) {
         this.key = key;
         this.name = name;
         this.commands = commands;
@@ -51,6 +54,7 @@ public class MenuLayout {
         this.teleportLoc = teleportLoc;
         this.stopCommands = stopCommands;
         this.permission = permission;
+        this.item = item;
     }
 
     public String key() { return key; }
@@ -58,6 +62,7 @@ public class MenuLayout {
     public double x() { return x; }
     public double y() { return y; }
     public double z() { return z; }
+    public ItemStack item() { return item; }
 
     /** Executes the configured commands and optional teleport logic. */
     public void execute(Player player, ScreenMenuManager manager) {

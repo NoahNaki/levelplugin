@@ -44,6 +44,8 @@ Copy the built jar to your server's `plugins` folder and start the server. The p
           y: 0
           command: ["profile"]
           stop: true
+          item:
+            material: DIAMOND_SWORD
         leave:
           text: "Leave"
           x: 0
@@ -51,7 +53,7 @@ Copy the built jar to your server's `plugins` folder and start the server. The p
           command: ["leave"]
           stop: true
   ```
-  Use `/cursormenu run <section>` to show a menu or `/cursormenu items <material>` to spawn a sample item display.
+Use `/cursormenu run <section>` to show a menu or `/cursormenu items <material>` to spawn a sample item display.
 
 ## Features
 
@@ -59,5 +61,6 @@ Copy the built jar to your server's `plugins` folder and start the server. The p
 - Scaled skill damage based on player stats
 - Extensive item, quest and economy systems
 - Lightweight screen menu system with configurable text and item displays
+- Active menus block unrelated commands and close automatically on world change
 
 Contributions are welcome. See `LICENSE` for terms.

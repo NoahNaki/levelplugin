@@ -7,17 +7,22 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.Material;
 import org.bukkit.entity.Display.Billboard;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 import java.io.File;
 import java.util.*;
@@ -93,8 +98,26 @@ public class ScreenMenuManager implements Listener {
                     }
                     List<String> stopCmds = lSec.getStringList("stop-commands");
                     String lPerm = lSec.getString("permission", "");
+
+                    ItemStack item = null;
+                    String matName = lSec.getString("item.material");
+                    if (matName != null) {
+                        Material mat = Material.matchMaterial(matName.toUpperCase(Locale.ROOT));
+                        if (mat != null) {
+                            item = new ItemStack(mat);
+                            int cmd = lSec.getInt("item.custom-model-data", 0);
+                            if (cmd > 0) {
+                                ItemMeta meta = item.getItemMeta();
+                                if (meta != null) {
+                                    meta.setCustomModelData(cmd);
+                                    item.setItemMeta(meta);
+                                }
+                            }
+                        }
+                    }
+
                     section.add(lKey, new MenuLayout(secId + ":" + lKey, name, commands, stop,
-                            x, y, z, tp, tpBack, tpLoc, stopCmds, lPerm));
+                            x, y, z, tp, tpBack, tpLoc, stopCmds, lPerm, item));
                 }
             }
             sectionManager.add(secId.toLowerCase(Locale.ROOT), section);
@@ -131,8 +154,15 @@ public class ScreenMenuManager implements Listener {
                     .add(right.clone().multiply(layout.x()))
                     .add(up.clone().multiply(layout.y()))
                     .add(forward.clone().multiply(layout.z()));
-            String text = PlaceholderAPI.setPlaceholders(player, layout.name());
-            displays.add(spawnTextDisplay(loc, text));
+
+            Entity disp;
+            if (layout.item() != null) {
+                disp = spawnItemDisplay(loc, layout.item().clone());
+            } else {
+                String text = PlaceholderAPI.setPlaceholders(player, layout.name());
+                disp = spawnTextDisplay(loc, text);
+            }
+            displays.add(disp);
         }
 
         ActiveMenu active = new ActiveMenu(player, layouts, displays);
@@ -167,6 +197,22 @@ public class ScreenMenuManager implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
         hideMenu(e.getPlayer());
+    }
+
+    @EventHandler
+    public void onWorldChange(PlayerChangedWorldEvent e) {
+        if (activeMenus.containsKey(e.getPlayer().getUniqueId())) {
+            hideMenu(e.getPlayer());
+        }
+    }
+
+    @EventHandler
+    public void onCommand(PlayerCommandPreprocessEvent e) {
+        ActiveMenu active = activeMenus.get(e.getPlayer().getUniqueId());
+        if (active != null && !e.getMessage().toLowerCase(Locale.ROOT).startsWith("/cursormenu")) {
+            e.setCancelled(true);
+            e.getPlayer().sendMessage(ChatColor.RED + "Commands are disabled while using this menu.");
+        }
     }
 
     /* === internal ======================================================= */
