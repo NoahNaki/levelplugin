@@ -45,10 +45,14 @@ public class ScreenMenuManager implements Listener {
                 ConfigurationSection ms = menusSec.getConfigurationSection(key);
                 double distance = ms.getDouble("distance", 2.0);
                 List<ScreenMenuEntry> entries = new ArrayList<>();
-                for (Map<?, ?> map : ms.getMapList("entries")) {
+                for (Map<?, ?> raw : ms.getMapList("entries")) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> map = (Map<String, Object>) raw;
                     String text = Objects.toString(map.get("text"), "");
-                    double x = ((Number) map.getOrDefault("x", 0.0)).doubleValue();
-                    double y = ((Number) map.getOrDefault("y", 0.0)).doubleValue();
+                    Object xVal = map.get("x");
+                    double x = xVal instanceof Number ? ((Number) xVal).doubleValue() : 0.0;
+                    Object yVal = map.get("y");
+                    double y = yVal instanceof Number ? ((Number) yVal).doubleValue() : 0.0;
                     String command = Objects.toString(map.get("command"), "");
                     entries.add(new ScreenMenuEntry(text, x, y, command));
                 }
