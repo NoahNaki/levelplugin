@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.cursormenu.util;
 
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.md_5.bungee.api.ChatColor;
 
 /**
@@ -17,8 +18,8 @@ public final class ColorParser {
         if (input == null) return "";
         // First try MiniMessage, falling back to legacy codes
         try {
-            return ChatColor.translateAlternateColorCodes('&',
-                    MINI_MESSAGE.deserialize(input).toLegacy());
+            return LegacyComponentSerializer.legacySection()
+                    .serialize(MINI_MESSAGE.deserialize(input));
         } catch (Exception e) {
             return ChatColor.translateAlternateColorCodes('&', input);
         }
