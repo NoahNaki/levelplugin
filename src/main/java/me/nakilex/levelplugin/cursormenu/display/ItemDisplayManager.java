@@ -45,8 +45,8 @@ public class ItemDisplayManager implements DisplayManager<String>, Listener {
         if (section == null) return;
 
         String matName = section.getString("material", "STONE");
-        Material material = Material.matchMaterial(matName);
-        if (material == null) material = Material.STONE;
+        Material mat = Material.matchMaterial(matName);
+        final Material material = mat != null ? mat : Material.STONE;
 
         double forward = section.getDouble("forward", 2.0);
         double x = section.getDouble("offset.x", 0.0);
