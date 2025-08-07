@@ -47,6 +47,10 @@ public class TextDisplayManager implements DisplayManager<String>, Listener {
 
         Location loc = DisplayUtils.getRelativeLocation(player, forward, x, y, z);
 
+        plugin.getLogger().info(String.format(
+                "[CursorMenu] Text '%s' offsets f=%.2f x=%.2f y=%.2f z=%.2f -> loc=(%.2f, %.2f, %.2f)",
+                id, forward, x, y, z, loc.getX(), loc.getY(), loc.getZ()));
+
         TextDisplay display = player.getWorld().spawn(loc, TextDisplay.class, d -> d.text(component));
         active.computeIfAbsent(player.getUniqueId(), k -> ConcurrentHashMap.newKeySet()).add(display);
     }
