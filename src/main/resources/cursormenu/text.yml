@@ -1,5 +1,5 @@
 # Text display definitions
 lobby:
   lines:
-    - "<green>Lobby Menu"
-    - "<gray>Right click the compass"
+    - "<white>Start"
+    - "<white>Options"

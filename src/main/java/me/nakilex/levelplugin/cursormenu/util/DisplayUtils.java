@@ -29,8 +29,11 @@ public final class DisplayUtils {
                                                double y,
                                                double z) {
         Location base = player.getEyeLocation().clone();
+        // Minecraft's facing vector points toward where the player looks. To
+        // ensure a positive forward value places displays in front of the
+        // player, we offset in the opposite direction of the view vector.
         Vector dir = player.getEyeLocation().getDirection()
-                .normalize().multiply(forward);
+                .normalize().multiply(-forward);
         base.add(dir);
         base.add(x, y, z);
         return base;
