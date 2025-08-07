@@ -8,7 +8,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -47,8 +46,7 @@ public class DealMaker {
             pairs.put(owner.getUniqueId(), target);
 
             final Component CHAT_BUTTON_COMPONENT = Component.empty()
-                .append(LegacyComponentSerializer.legacySection()
-                    .deserialize(Main.PREFIX + String.format(messageStrings.getTranslation(Translations.YOU_GOT_A_NEW_TRADE_OFFER) + " ", owner.getName())))
+                .append(ComponentUtil.LEGACY.deserialize(Main.PREFIX + String.format(messageStrings.getTranslation(Translations.YOU_GOT_A_NEW_TRADE_OFFER) + " ", owner.getName())))
                 .append(
                     Component.text("[").color(NamedTextColor.DARK_GRAY).decorate(TextDecoration.BOLD)
                 ).append(

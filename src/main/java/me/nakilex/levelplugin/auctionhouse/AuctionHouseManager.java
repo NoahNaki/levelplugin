@@ -3,7 +3,7 @@ package me.nakilex.levelplugin.auctionhouse;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextReplacementConfig;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import me.nakilex.levelplugin.utils.ComponentUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -45,8 +45,6 @@ public class AuctionHouseManager {
     /** Lock to guard file saves when running asynchronously. */
     private final Object saveLock = new Object();
 
-    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
-
     public AuctionHouseManager(Plugin plugin, EconomyManager economyManager) {
         this.plugin = plugin;
         this.economyManager = economyManager;
@@ -74,7 +72,7 @@ public class AuctionHouseManager {
         Component itemComponent = item.displayName().hoverEvent(item.asHoverEvent());
         String placeholder = "<item>";
         String replaced = template.replace("<item>", placeholder);
-        Component msg = LEGACY.deserialize(replaced).replaceText(TextReplacementConfig.builder()
+        Component msg = ComponentUtil.LEGACY.deserialize(replaced).replaceText(TextReplacementConfig.builder()
                 .match(placeholder)
                 .replacement(itemComponent)
                 .build());

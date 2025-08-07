@@ -2,7 +2,6 @@ package me.nakilex.levelplugin.utils;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextReplacementConfig;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -13,8 +12,6 @@ import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.inventory.ItemStack;
 
 public class ItemChatListener implements Listener {
-
-    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onChat(AsyncPlayerChatEvent event) {
@@ -34,7 +31,7 @@ public class ItemChatListener implements Listener {
 
         String placeholder = "<itemlink>";
         String replaced = msg.replaceAll("(?i)\\[item\\]", placeholder);
-        Component message = LEGACY.deserialize(replaced);
+        Component message = ComponentUtil.LEGACY.deserialize(replaced);
         Component combined = message.replaceText(
                 TextReplacementConfig.builder()
                         .match(placeholder)
