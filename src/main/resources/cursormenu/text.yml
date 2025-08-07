@@ -1,0 +1,4 @@
+# Example text display configuration
+welcome:
+  lines:
+    - "Hello"
