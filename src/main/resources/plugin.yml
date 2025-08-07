@@ -5,6 +5,7 @@ author: Nakilex
 api-version: 1.19
 description: A simple MMORPG leveling system plugin for Minecraft
 depend: [ProtocolLib, Citizens, Vault, MythicMobs, PlaceholderAPI, Nexo]
+softdepend: [Denizen]
 
 commands:
   addpoints:

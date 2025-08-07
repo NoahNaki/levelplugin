@@ -1,6 +1,6 @@
 # LevelPlugin
 
-A large Minecraft RPG plugin built with Maven. It requires a Spigot 1.19 server and depends on several plugins including MythicMobs, Citizens, Vault, ProtocolLib and PlaceholderAPI.
+A large Minecraft RPG plugin built with Maven. It requires a Spigot 1.19 server and depends on several plugins including MythicMobs, Citizens, Vault, ProtocolLib, PlaceholderAPI and Denizen.
 
 ## Building
 
@@ -30,6 +30,7 @@ Copy the built jar to your server's `plugins` folder and start the server. The p
 ## Features
 
 - Procedural dungeons with custom MythicMob spawns
+- NPCs can clear dungeons autonomously using Denizen scripts
 - Scaled skill damage based on player stats
 - Extensive item, quest and economy systems
 
