@@ -165,6 +165,7 @@ public class PluginBootstrap {
     private NpcCodexGUI npcCodexGUI;
     private LocationCodexGUI locationCodexGUI;
     private me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager wanderingMerchantManager;
+    private me.nakilex.levelplugin.npc.dungeon.DungeonNpcManager dungeonNpcManager;
 
     public PluginBootstrap(Main plugin) {
         this.plugin = plugin;
@@ -288,6 +289,7 @@ public class PluginBootstrap {
         cutsceneManager = new me.nakilex.levelplugin.cutscene.CutsceneManager(plugin);
         cutsceneManager.loadCutscenes();
         wanderingMerchantManager = new me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager(plugin);
+        dungeonNpcManager = new me.nakilex.levelplugin.npc.dungeon.DungeonNpcManager(plugin);
     }
 
     private void setupCustomConfig() {
@@ -333,7 +335,8 @@ public class PluginBootstrap {
             motdManager,
             upgradeGUI,
             codexGUI,
-            wanderingMerchantManager
+            wanderingMerchantManager,
+            dungeonNpcManager
         );
         ListenerRegistry.registerListeners(
             plugin,
@@ -509,6 +512,7 @@ public class PluginBootstrap {
     public CodexMainGUI getCodexGUI() { return codexGUI; }
     public me.nakilex.levelplugin.dungeon.gui.DungeonListGUI getDungeonListGUI() { return dungeonListGUI; }
     public me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager getWanderingMerchantManager() { return wanderingMerchantManager; }
+    public me.nakilex.levelplugin.npc.dungeon.DungeonNpcManager getDungeonNpcManager() { return dungeonNpcManager; }
 
     private void createCustomConfig() {
         customConfigFile = new File(plugin.getDataFolder(), "config.yml");

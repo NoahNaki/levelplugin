@@ -227,6 +227,9 @@ commands:
   wm:
     description: Spawn or despawn the wandering merchant
     usage: /wm <spawn|despawn>
+  dungeonnpc:
+    description: Spawn or despawn a dungeon-clearing NPC
+    usage: /dungeonnpc <spawn|despawn>
   world:
     description: Manage worlds
     usage: /world <create|import|delete|unload|tp|spawn|setspawn|list>

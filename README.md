@@ -30,7 +30,7 @@ Copy the built jar to your server's `plugins` folder and start the server. The p
 ## Features
 
 - Procedural dungeons with custom MythicMob spawns
-- NPCs can clear dungeons autonomously using Denizen scripts
+- NPCs can clear dungeons autonomously using Denizen scripts (spawn with `/dungeonnpc spawn`)
 - Scaled skill damage based on player stats
 - Extensive item, quest and economy systems
 

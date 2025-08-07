@@ -84,6 +84,17 @@ public class DungeonManager {
         return instances.containsKey(world);
     }
 
+    /**
+     * Get the dungeon associated with the given world.
+     *
+     * @param world world to query
+     * @return active Dungeon or null if the world is not a dungeon instance
+     */
+    public Dungeon getDungeon(World world) {
+        Instance inst = instances.get(world);
+        return inst == null ? null : inst.dungeon;
+    }
+
     public DungeonManager(Main plugin, me.nakilex.levelplugin.lootchests.managers.LootChestManager lootChestManager) {
         this.plugin = plugin;
         this.lootChestManager = lootChestManager;
