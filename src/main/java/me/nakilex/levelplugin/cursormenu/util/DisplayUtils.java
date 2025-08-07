@@ -12,9 +12,9 @@ public final class DisplayUtils {
 
     /**
      * Computes a location in front of the player's eyes with the provided
-     * offsets. The forward distance is applied opposite to the player's
-     * viewing direction so a positive value will always place the location
-     * in front of the player.
+     * offsets. The forward distance is applied along the player's viewing
+     * direction, ensuring a positive value always places the location ahead of
+     * the player.
      *
      * @param player  player whose view is used
      * @param forward distance in blocks in front of the player
@@ -30,7 +30,7 @@ public final class DisplayUtils {
                                                double z) {
         Location base = player.getEyeLocation().clone();
         Vector dir = player.getEyeLocation().getDirection()
-                .normalize().multiply(-forward);
+                .normalize().multiply(forward);
         base.add(dir);
         base.add(x, y, z);
         return base;

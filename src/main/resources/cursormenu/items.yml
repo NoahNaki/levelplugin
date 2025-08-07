@@ -2,4 +2,4 @@
 lobby:
   material: COMPASS
   commands:
-    - "tell %player% You clicked the lobby menu!"
+    - "minecraft:tellraw %player% {\"text\":\"You clicked the lobby menu!\"}"
