@@ -29,11 +29,12 @@ public final class DisplayUtils {
                                                double z) {
         Location base = player.getEyeLocation().clone();
         // Bukkit's direction vector already points where the player is looking.
-        // Adding the scaled vector moves the location in front of the player's
-        // eyes.
+        // Subtracting the scaled vector places the location in front of the
+        // player's eyes. Positive forward values therefore move the point ahead
+        // of the player.
         Vector dir = player.getEyeLocation().getDirection()
                 .normalize().multiply(forward);
-        base.add(dir);
+        base.subtract(dir);
         base.add(x, y, z);
         return base;
     }
