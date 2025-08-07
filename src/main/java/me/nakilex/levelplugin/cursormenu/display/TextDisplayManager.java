@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.cursormenu.display;
 
 import me.nakilex.levelplugin.cursormenu.util.ColorParser;
 import me.nakilex.levelplugin.cursormenu.util.ConfigUtils;
+import me.nakilex.levelplugin.cursormenu.util.DisplayUtils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Location;
@@ -44,9 +45,7 @@ public class TextDisplayManager implements DisplayManager<String>, Listener {
         double y = section.getDouble("offset.y", 0.0);
         double z = section.getDouble("offset.z", 0.0);
 
-        Location loc = player.getEyeLocation().clone();
-        loc.add(player.getLocation().getDirection().normalize().multiply(forward));
-        loc.add(x, y, z);
+        Location loc = DisplayUtils.getRelativeLocation(player, forward, x, y, z);
 
         TextDisplay display = player.getWorld().spawn(loc, TextDisplay.class, d -> d.text(component));
         active.computeIfAbsent(player.getUniqueId(), k -> ConcurrentHashMap.newKeySet()).add(display);

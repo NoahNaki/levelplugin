@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.cursormenu.display;
 
 import me.nakilex.levelplugin.cursormenu.util.ConfigUtils;
+import me.nakilex.levelplugin.cursormenu.util.DisplayUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -53,9 +54,7 @@ public class ItemDisplayManager implements DisplayManager<String>, Listener {
         double y = section.getDouble("offset.y", 0.0);
         double z = section.getDouble("offset.z", 0.0);
 
-        Location loc = player.getEyeLocation().clone();
-        loc.add(player.getLocation().getDirection().normalize().multiply(forward));
-        loc.add(x, y, z);
+        Location loc = DisplayUtils.getRelativeLocation(player, forward, x, y, z);
 
         ItemDisplay display = player.getWorld().spawn(loc, ItemDisplay.class, d -> {
             d.setItemStack(new ItemStack(material));
