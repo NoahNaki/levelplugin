@@ -1,3 +1,5 @@
-# Example item display configuration
-example:
-  material: STONE
+# Item display definitions
+lobby:
+  material: COMPASS
+  commands:
+    - "tell %player% You clicked the lobby menu!"

@@ -1,4 +1,5 @@
-# Example text display configuration
-welcome:
+# Text display definitions
+lobby:
   lines:
-    - "Hello"
+    - "<green>Lobby Menu"
+    - "<gray>Right click the compass"

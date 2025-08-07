@@ -1,4 +1,5 @@
 # Basic configuration for the cursor menu system
 sound:
   enabled: true
-sections: {}
+sections:
+  lobby: {}

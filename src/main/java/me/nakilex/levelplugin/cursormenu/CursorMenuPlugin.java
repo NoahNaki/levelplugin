@@ -63,7 +63,8 @@ public class CursorMenuPlugin extends JavaPlugin {
 
     public void setupCursor(Player player, String menuKey) {
         currentMenu.put(player.getUniqueId(), menuKey);
-        // Additional cursor setup would be implemented by extensions
+        itemDisplayManager.show(player, menuKey);
+        textDisplayManager.show(player, menuKey);
     }
 
     public void stopCursor(Player player) {
