@@ -12,7 +12,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
-import org.bukkit.event.entity.EntityDismountEvent;
+import org.bukkit.event.vehicle.VehicleExitEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 
@@ -111,9 +111,9 @@ public class HorseManager implements Listener {
         Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
             Bukkit.getPluginManager().registerEvents(new Listener() {
                 @EventHandler
-                public void onDismount(EntityDismountEvent event) {
-                    if (event.getEntity() instanceof Player
-                        && event.getDismounted().equals(horse)) {
+                public void onVehicleExit(VehicleExitEvent event) {
+                    if (event.getExited() instanceof Player
+                        && event.getVehicle().equals(horse)) {
                         horse.remove();
                         HandlerList.unregisterAll(this);
                     }

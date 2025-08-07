@@ -14,7 +14,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Skull;
 import org.bukkit.entity.TextDisplay;
-import com.destroystokyo.paper.profile.PlayerProfile;
+import org.bukkit.profile.PlayerProfile;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerPortalEvent;
 

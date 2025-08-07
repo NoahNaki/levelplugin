@@ -5,7 +5,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.Skull;
-import com.destroystokyo.paper.profile.PlayerProfile;
+import org.bukkit.profile.PlayerProfile;
 
 import java.util.*;
 
