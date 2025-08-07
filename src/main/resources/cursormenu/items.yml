@@ -1,5 +1,10 @@
 # Item display definitions
 lobby:
   material: COMPASS
+  forward: 2.0
+  offset:
+    x: 0.0
+    y: -0.5
+    z: 0.0
   commands:
     - "minecraft:tellraw %player% {\"text\":\"You clicked the lobby menu!\"}"
