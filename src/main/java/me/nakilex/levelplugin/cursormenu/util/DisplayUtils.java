@@ -13,9 +13,7 @@ public final class DisplayUtils {
     /**
      * Computes a location in front of the player's eyes with the provided
      * offsets. The forward distance is applied along the player's viewing
-     * direction. The forward distance is applied opposite the player's view
-     * vector so positive values consistently place the location in front of the
-     * player.
+     * direction so positive values always place the result ahead of the player.
      *
      * @param player  player whose view is used
      * @param forward distance in blocks in front of the player
@@ -30,12 +28,12 @@ public final class DisplayUtils {
                                                double y,
                                                double z) {
         Location base = player.getEyeLocation().clone();
-        // Bukkit's direction vector points toward where the player is looking.
-        // Subtracting this vector (scaled by the forward distance) moves the
-        // location in front of the player's eyes.
+        // Bukkit's direction vector already points where the player is looking.
+        // Adding the scaled vector moves the location in front of the player's
+        // eyes.
         Vector dir = player.getEyeLocation().getDirection()
                 .normalize().multiply(forward);
-        base.subtract(dir);
+        base.add(dir);
         base.add(x, y, z);
         return base;
     }
