@@ -2,7 +2,7 @@ name: LevelPlugin
 main: me.nakilex.levelplugin.Main
 version: 1.0
 author: Nakilex
-api-version: 1.19
+api-version: 1.21
 description: A simple MMORPG leveling system plugin for Minecraft
 depend: [ProtocolLib, Citizens, Vault, MythicMobs, PlaceholderAPI, Nexo]
 
