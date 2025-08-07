@@ -1,9 +1,6 @@
 package me.nakilex.levelplugin.auctionhouse;
 
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.TextReplacementConfig;
-import me.nakilex.levelplugin.utils.ComponentUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -69,14 +66,11 @@ public class AuctionHouseManager {
     }
 
     private void sendItemMessage(Player player, ItemStack item, String template) {
-        Component itemComponent = item.displayName().hoverEvent(item.asHoverEvent());
-        String placeholder = "<item>";
-        String replaced = template.replace("<item>", placeholder);
-        Component msg = ComponentUtil.LEGACY.deserialize(replaced).replaceText(TextReplacementConfig.builder()
-                .match(placeholder)
-                .replacement(itemComponent)
-                .build());
-        player.sendMessage(msg);
+        String itemName = item.hasItemMeta() && item.getItemMeta().hasDisplayName()
+                ? item.getItemMeta().getDisplayName()
+                : item.getType().name();
+        String message = template.replace("<item>", ChatColor.YELLOW + itemName + ChatColor.GOLD);
+        player.sendMessage(message);
     }
 
     public synchronized List<AuctionItem> getAuctions() {
