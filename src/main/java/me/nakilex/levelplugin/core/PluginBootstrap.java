@@ -165,6 +165,7 @@ public class PluginBootstrap {
     private NpcCodexGUI npcCodexGUI;
     private LocationCodexGUI locationCodexGUI;
     private me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager wanderingMerchantManager;
+    private me.nakilex.levelplugin.screen.CursorMenuSystem cursorMenuSystem;
 
     public PluginBootstrap(Main plugin) {
         this.plugin = plugin;
@@ -288,6 +289,7 @@ public class PluginBootstrap {
         cutsceneManager = new me.nakilex.levelplugin.cutscene.CutsceneManager(plugin);
         cutsceneManager.loadCutscenes();
         wanderingMerchantManager = new me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager(plugin);
+        cursorMenuSystem = new me.nakilex.levelplugin.screen.CursorMenuSystem(plugin);
     }
 
     private void setupCustomConfig() {
@@ -335,6 +337,10 @@ public class PluginBootstrap {
             codexGUI,
             wanderingMerchantManager
         );
+        me.nakilex.levelplugin.screen.command.CursorMenuCommand cmCmd =
+            new me.nakilex.levelplugin.screen.command.CursorMenuCommand(cursorMenuSystem);
+        plugin.getCommand("cursormenu").setExecutor(cmCmd);
+        plugin.getCommand("cursormenu").setTabCompleter(cmCmd);
         ListenerRegistry.registerListeners(
             plugin,
             blacksmithGUI,
@@ -368,8 +374,11 @@ public class PluginBootstrap {
             mobCodexGUI,
             npcCodexGUI,
             locationCodexGUI,
-            wanderingMerchantManager
+            wanderingMerchantManager,
+            new me.nakilex.levelplugin.screen.listener.MenuListener(cursorMenuSystem),
+            new me.nakilex.levelplugin.screen.listener.WorldChangeListener(cursorMenuSystem)
         );
+        new me.nakilex.levelplugin.screen.placeholder.CursorMenuPlaceholder(plugin, cursorMenuSystem).register();
         plugin.getServer().getPluginManager().registerEvents(beaconManager, plugin);
         TaskRegistry.startTasks(plugin, horseConfigManager, horseManager, wanderingMerchantManager);
     }

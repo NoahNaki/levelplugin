@@ -1,0 +1,18 @@
+# Example configuration for the cursor menu system.
+# Sections define camera locations and available layouts.
+sections:
+  example:
+    world: world
+    x: 0
+    y: 64
+    z: 0
+    yaw: 0
+    pitch: 0
+    layouts:
+      - id: first
+        x: 0
+        y: 0
+        z: 3
+        tilt: 0
+        commands:
+          - say Hello from cursor menu

@@ -1,0 +1,4 @@
+# Example item display definitions
+example:
+  material: DIAMOND_SWORD
+  custom-model-data: 0

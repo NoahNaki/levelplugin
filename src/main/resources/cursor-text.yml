@@ -1,0 +1,4 @@
+# Example text display definitions
+welcome:
+  - '<gold>Welcome to the server!'
+  - '<gray>Use /cursormenu stop to exit.'
