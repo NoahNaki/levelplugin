@@ -72,13 +72,16 @@ public class CursorMenuSystem {
                     (float) cfg.getDouble(path + "pitch"),
                     cfg.getString(path + "permission"));
             if (cfg.isList(path + "layouts")) {
-                var list = cfg.getMapList(path + "layouts");
-                for (var map : list) {
-                    double lx = ((Number) map.getOrDefault("x", 0)).doubleValue();
-                    double ly = ((Number) map.getOrDefault("y", 0)).doubleValue();
-                    double lz = ((Number) map.getOrDefault("z", 0)).doubleValue();
-                    float tilt = ((Number) map.getOrDefault("tilt", 0)).floatValue();
-                    java.util.List<String> cmds = (java.util.List<String>) map.getOrDefault("commands", java.util.List.of());
+                java.util.List<java.util.Map<?, ?>> list = cfg.getMapList(path + "layouts");
+                for (java.util.Map<?, ?> map : list) {
+                    double lx = map.containsKey("x") ? ((Number) map.get("x")).doubleValue() : 0d;
+                    double ly = map.containsKey("y") ? ((Number) map.get("y")).doubleValue() : 0d;
+                    double lz = map.containsKey("z") ? ((Number) map.get("z")).doubleValue() : 0d;
+                    float tilt = map.containsKey("tilt") ? ((Number) map.get("tilt")).floatValue() : 0f;
+                    @SuppressWarnings("unchecked")
+                    java.util.List<String> cmds = map.containsKey("commands")
+                            ? (java.util.List<String>) map.get("commands")
+                            : java.util.List.of();
                     sec.addLayout(new MenuLayout(lx, ly, lz, tilt, cmds, false, null, null));
                 }
             }
