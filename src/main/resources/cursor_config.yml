@@ -1,2 +1,17 @@
 # Global settings for the cursor driven screen system.
 # Sections and menu layouts can be defined here in the future.
+
+# Example configuration used by the plugin bootstrap to demonstrate the
+# cursor menu system without any external setup.
+sections:
+  example:
+    camera:
+      world: world
+      x: 0
+      y: 80
+      z: 0
+    layouts:
+      - pos: [0, 0, 0]
+        commands:
+          - say Example menu option clicked by <player>
+        stop: true

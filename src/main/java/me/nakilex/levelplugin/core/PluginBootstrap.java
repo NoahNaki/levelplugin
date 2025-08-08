@@ -257,6 +257,17 @@ public class PluginBootstrap {
         dialogManager = new me.nakilex.levelplugin.npc.dialog.NPCDialogManager(plugin);
         scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(plugin, economyManager, gemsManager, partyManager, questManager);
         cursorMenuManager = new me.nakilex.levelplugin.screen.CursorMenuManager();
+        // Register a simple example cursor menu so the system can be
+        // demonstrated without any external configuration. The example
+        // teleports players to the world's spawn location and exposes a
+        // single layout that will announce when selected.
+        var exampleWorld = org.bukkit.Bukkit.getWorlds().get(0);
+        var camera = new org.bukkit.Location(exampleWorld, 0, 80, 0);
+        var example = new me.nakilex.levelplugin.screen.Section(camera, null);
+        example.addLayout(new me.nakilex.levelplugin.screen.MenuLayout(new org.bukkit.util.Vector(0, 0, 0))
+                .addCommand("say Example menu option clicked by <player>")
+                .setStopCursor(true));
+        cursorMenuManager.getSectionManager().addSection("example", example);
         calendarManager = new me.nakilex.levelplugin.calendar.CalendarManager(plugin);
         duelStatsManager = new me.nakilex.levelplugin.leaderboards.DuelStatsManager(plugin);
         leaderboardManager = new me.nakilex.levelplugin.leaderboards.LeaderboardManager(plugin, economyManager, playerConfig, duelStatsManager, settingsManager);

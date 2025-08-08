@@ -32,8 +32,10 @@ public class CursorMenuManager {
             return;
         }
         currentMenu.put(player.getUniqueId(), key);
-        // Teleport the player to the configured camera if present.
-        player.teleport(section.getCameraLocation());
+        // Teleport the player to the configured camera if present and show a simple title.
+        var camera = section.getCameraLocation();
+        player.teleport(camera);
+        textManager.show(player, camera.clone().add(0, 2, 0), net.kyori.adventure.text.Component.text("Menu: " + key));
     }
 
     /**

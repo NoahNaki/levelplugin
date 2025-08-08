@@ -22,11 +22,28 @@ public class CursorMenuCommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage(ChatColor.YELLOW + "/cursormenu <stop|list>");
+            sender.sendMessage(ChatColor.YELLOW + "/cursormenu <open|stop|list> [menu]");
             return true;
         }
 
         switch (args[0].toLowerCase()) {
+            case "open":
+                if (!(sender instanceof Player player)) {
+                    sender.sendMessage(ChatColor.RED + "Only players can open cursor menus.");
+                    return true;
+                }
+                if (args.length < 2) {
+                    sender.sendMessage(ChatColor.YELLOW + "/cursormenu open <menu>");
+                    return true;
+                }
+                String key = args[1];
+                if (menuManager.getSectionManager().get(key) == null) {
+                    sender.sendMessage(ChatColor.RED + "Unknown cursor menu: " + key);
+                    return true;
+                }
+                menuManager.openMenu(player, key);
+                sender.sendMessage(ChatColor.GREEN + "Opened cursor menu \"" + key + "\".");
+                return true;
             case "stop":
                 if (!(sender instanceof Player player)) {
                     sender.sendMessage(ChatColor.RED + "Only players can stop cursor menus.");
@@ -43,7 +60,7 @@ public class CursorMenuCommand implements CommandExecutor {
                 sender.sendMessage(ChatColor.GOLD + "Cursor menus: " + String.join(", ", menuManager.getSectionManager().keySet()));
                 return true;
             default:
-                sender.sendMessage(ChatColor.YELLOW + "/cursormenu <stop|list>");
+                sender.sendMessage(ChatColor.YELLOW + "/cursormenu <open|stop|list> [menu]");
                 return true;
         }
     }
