@@ -1,0 +1,6 @@
+# Placeholder configuration for animated text used by the cursor menu system.
+# Example:
+# welcome:
+#   lines:
+#     - "<yellow>Welcome" 
+#     - "<gray>Select an option"

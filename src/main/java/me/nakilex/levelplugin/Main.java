@@ -93,6 +93,7 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.friend.FriendRequestListener getFriendRequestListener() { return bootstrap.getFriendRequestListener(); }
     public me.nakilex.levelplugin.mob.config.ModelSetManager getModelSetManager() { return bootstrap.getModelSetManager(); }
     public me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager getScoreboardManager() { return bootstrap.getScoreboardManager(); }
+    public me.nakilex.levelplugin.screen.CursorMenuManager getCursorMenuManager() { return bootstrap.getCursorMenuManager(); }
     public DmgNumberToggleManager getDmgNumberToggleManager() { return bootstrap.getDmgNumberToggleManager(); }
     public me.nakilex.levelplugin.fasttravel.FastTravelManager getFastTravelManager() { return bootstrap.getFastTravelManager(); }
     public me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI getFastTravelGUI() { return bootstrap.getFastTravelGUI(); }

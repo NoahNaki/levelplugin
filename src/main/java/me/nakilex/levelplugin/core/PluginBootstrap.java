@@ -132,6 +132,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.quests.managers.QuestManager questManager;
     private me.nakilex.levelplugin.npc.dialog.NPCDialogManager dialogManager;
     private me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager scoreboardManager;
+    private me.nakilex.levelplugin.screen.CursorMenuManager cursorMenuManager;
     private me.nakilex.levelplugin.quests.managers.BeaconManager beaconManager;
     private me.nakilex.levelplugin.fasttravel.FastTravelManager fastTravelManager;
     private me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI fastTravelGUI;
@@ -255,6 +256,7 @@ public class PluginBootstrap {
         questManager = new QuestManager(plugin, partyManager);
         dialogManager = new me.nakilex.levelplugin.npc.dialog.NPCDialogManager(plugin);
         scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(plugin, economyManager, gemsManager, partyManager, questManager);
+        cursorMenuManager = new me.nakilex.levelplugin.screen.CursorMenuManager();
         calendarManager = new me.nakilex.levelplugin.calendar.CalendarManager(plugin);
         duelStatsManager = new me.nakilex.levelplugin.leaderboards.DuelStatsManager(plugin);
         leaderboardManager = new me.nakilex.levelplugin.leaderboards.LeaderboardManager(plugin, economyManager, playerConfig, duelStatsManager, settingsManager);
@@ -480,6 +482,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.quests.managers.QuestManager getQuestManager() { return questManager; }
     public me.nakilex.levelplugin.npc.dialog.NPCDialogManager getDialogManager() { return dialogManager; }
     public me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager getScoreboardManager() { return scoreboardManager; }
+    public me.nakilex.levelplugin.screen.CursorMenuManager getCursorMenuManager() { return cursorMenuManager; }
     public me.nakilex.levelplugin.quests.managers.BeaconManager getBeaconManager() { return beaconManager; }
     public me.nakilex.levelplugin.fasttravel.FastTravelManager getFastTravelManager() { return fastTravelManager; }
     public me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI getFastTravelGUI() { return fastTravelGUI; }
