@@ -8,13 +8,16 @@ import me.nakilex.levelplugin.cursormenu.menu.SectionManager;
 import me.nakilex.levelplugin.cursormenu.placeholder.CursorMenuPlaceholder;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.io.File;
 import java.io.InputStream;
@@ -32,6 +35,7 @@ public class CursorMenuManager implements Listener {
     private final SectionManager sectionManager = new SectionManager();
     private final Map<UUID, String> currentMenu = new ConcurrentHashMap<>();
     private final Map<UUID, ArmorStand> cursors = new ConcurrentHashMap<>();
+    private final Map<UUID, BukkitTask> cursorTasks = new ConcurrentHashMap<>();
     private final ItemDisplayManager itemDisplayManager;
     private final TextDisplayManager textDisplayManager;
     private final File configFile;
@@ -66,18 +70,36 @@ public class CursorMenuManager implements Listener {
         if (section == null) return;
         currentMenu.put(player.getUniqueId(), key);
         player.teleport(section.getCamera());
-        // spawn simple marker armour stand as cursor
-        ArmorStand stand = section.getCamera().getWorld().spawn(section.getCamera(), ArmorStand.class, a -> {
-            a.setInvisible(true);
-            a.setMarker(true);
-        });
+
+        // Spawn cursor armour stand slightly in front of camera
+        Location base = inFront(section.getCamera(), 2);
+        ArmorStand stand = spawnCursorArmorStand(base);
         cursors.put(player.getUniqueId(), stand);
+
+        // Show demo item/text displays using the menu key
+        itemDisplayManager.showItem(player, key, base.clone());
+        textDisplayManager.showText(player, key, base.clone().add(0, 1, 0));
+
+        // Update cursor position based on player's view
+        BukkitTask task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            ArmorStand cursor = cursors.get(player.getUniqueId());
+            if (cursor == null) {
+                BukkitTask t = cursorTasks.remove(player.getUniqueId());
+                if (t != null) t.cancel();
+                return;
+            }
+            Location eye = player.getEyeLocation();
+            cursor.teleport(inFront(eye, 2));
+        }, 0L, 1L);
+        cursorTasks.put(player.getUniqueId(), task);
     }
 
     public void stopCursor(Player player, boolean clean) {
         currentMenu.remove(player.getUniqueId());
         ArmorStand stand = cursors.remove(player.getUniqueId());
         if (stand != null) stand.remove();
+        BukkitTask task = cursorTasks.remove(player.getUniqueId());
+        if (task != null) task.cancel();
         if (clean) {
             itemDisplayManager.hideItem(player);
             textDisplayManager.hideText(player);
@@ -150,5 +172,17 @@ public class CursorMenuManager implements Listener {
         } catch (Exception e) {
             plugin.getLogger().warning("Failed to merge config for " + resourcePath);
         }
+    }
+
+    private ArmorStand spawnCursorArmorStand(Location loc) {
+        return loc.getWorld().spawn(loc, ArmorStand.class, a -> {
+            a.setInvisible(true);
+            a.setMarker(true);
+            a.getEquipment().setHelmet(new ItemStack(Material.BARRIER));
+        });
+    }
+
+    private Location inFront(Location origin, double distance) {
+        return origin.clone().add(origin.getDirection().normalize().multiply(distance));
     }
 }
