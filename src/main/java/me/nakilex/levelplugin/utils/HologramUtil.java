@@ -71,11 +71,17 @@ public class HologramUtil {
             "[HologramUtil] spawnOneOff viewer=" + viewer.getName()
         );
         Location spawnLoc = loc.clone().add(0, START_Y_OFFSET, 0);
-        TextDisplay display = (TextDisplay) loc.getWorld().spawnEntity(spawnLoc, EntityType.TEXT_DISPLAY);
-        display.setBillboard(Display.Billboard.CENTER);
-        display.setText(text);
-        display.setShadowRadius(0);
-        display.setShadowStrength(0);
+        // Use generic DisplayUtil to avoid duplicating spawn logic
+        TextDisplay display = me.nakilex.levelplugin.screen.DisplayUtil.spawn(
+            spawnLoc,
+            TextDisplay.class,
+            td -> {
+                td.setBillboard(Display.Billboard.CENTER);
+                td.setText(text);
+                td.setShadowRadius(0);
+                td.setShadowStrength(0);
+            }
+        );
 
         // Hide from everyone except viewer (after one tick to ensure spawn packet)
         Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {

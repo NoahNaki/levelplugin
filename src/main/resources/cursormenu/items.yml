@@ -1,0 +1,5 @@
+# Item display definitions for the cursor menu system.
+# Each entry can define material, model data, offsets, etc.
+example:
+  material: STONE
+  custom-model-data: 0

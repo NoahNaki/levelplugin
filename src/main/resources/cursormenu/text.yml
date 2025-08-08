@@ -1,0 +1,4 @@
+# Text display definitions for the cursor menu system.
+welcome:
+  lines:
+    - "<gold>Welcome to the cursor menu!"

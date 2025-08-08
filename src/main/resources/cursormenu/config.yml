@@ -1,0 +1,4 @@
+# Base configuration for the cursor menu system.
+# This file is a lightweight placeholder allowing future expansion.
+menu:
+  enabled: true
