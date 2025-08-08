@@ -74,6 +74,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import me.nakilex.levelplugin.cursormenu.CursorMenuManager;
+import me.nakilex.levelplugin.cursormenu.SectionManager;
+import me.nakilex.levelplugin.cursormenu.commands.CursorMenuCommand;
+import me.nakilex.levelplugin.cursormenu.display.ItemDisplayManager;
+import me.nakilex.levelplugin.cursormenu.display.TextDisplayManager;
+
 public class PluginBootstrap {
     private final Main plugin;
 
@@ -165,6 +171,7 @@ public class PluginBootstrap {
     private NpcCodexGUI npcCodexGUI;
     private LocationCodexGUI locationCodexGUI;
     private me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager wanderingMerchantManager;
+    private CursorMenuManager cursorMenuManager;
 
     public PluginBootstrap(Main plugin) {
         this.plugin = plugin;
@@ -335,6 +342,9 @@ public class PluginBootstrap {
             codexGUI,
             wanderingMerchantManager
         );
+
+        cursorMenuManager = new CursorMenuManager(new SectionManager(), new ItemDisplayManager(), new TextDisplayManager());
+        plugin.getCommand("cursormenu").setExecutor(new CursorMenuCommand(cursorMenuManager));
         ListenerRegistry.registerListeners(
             plugin,
             blacksmithGUI,
@@ -509,6 +519,7 @@ public class PluginBootstrap {
     public CodexMainGUI getCodexGUI() { return codexGUI; }
     public me.nakilex.levelplugin.dungeon.gui.DungeonListGUI getDungeonListGUI() { return dungeonListGUI; }
     public me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager getWanderingMerchantManager() { return wanderingMerchantManager; }
+    public CursorMenuManager getCursorMenuManager() { return cursorMenuManager; }
 
     private void createCustomConfig() {
         customConfigFile = new File(plugin.getDataFolder(), "config.yml");
