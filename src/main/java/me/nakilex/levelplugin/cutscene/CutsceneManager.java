@@ -14,6 +14,7 @@ import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.chat.hover.content.Text;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import me.nakilex.levelplugin.utils.PlayerState;
 import org.bukkit.GameMode;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -145,7 +146,7 @@ public class CutsceneManager {
             return;
         }
         stopCutscene(player);
-        states.put(player.getUniqueId(), new PlayerState(player.getGameMode(), player.getAllowFlight(), player.isFlying()));
+        states.put(player.getUniqueId(), PlayerState.capture(player));
         player.setGameMode(GameMode.SPECTATOR);
         player.setAllowFlight(true);
         var sbManager = plugin.getScoreboardManager();
@@ -196,7 +197,7 @@ public class CutsceneManager {
             delay += ticks;
         }
         PlayerState st = states.get(player.getUniqueId());
-        if (st != null) st.endLocation = curr.clone();
+        if (st != null) st.setEndLocation(curr.clone());
         BukkitTask endTask = Bukkit.getScheduler().runTaskLater(plugin, () -> {
             active.remove(player.getUniqueId());
             restore(player);
@@ -223,8 +224,8 @@ public class CutsceneManager {
             }
         }
         PlayerState state = states.remove(player.getUniqueId());
-        if (state != null && state.endLocation != null) {
-            player.teleport(state.endLocation);
+        if (state != null && state.getEndLocation() != null) {
+            player.teleport(state.getEndLocation());
         }
         restore(player, state);
     }
@@ -369,9 +370,7 @@ public class CutsceneManager {
 
     private void restore(Player player, PlayerState state) {
         if (state != null) {
-            player.setGameMode(state.mode);
-            player.setAllowFlight(state.allowFlight);
-            player.setFlying(state.flying);
+            state.restore(player);
         }
         var sbManager = plugin.getScoreboardManager();
         if (sbManager != null) sbManager.createBoard(player);
@@ -392,19 +391,6 @@ public class CutsceneManager {
             this.id = id;
             this.contents = player.getInventory().getContents().clone();
             this.armor = player.getInventory().getArmorContents().clone();
-        }
-    }
-
-    private static class PlayerState {
-        final GameMode mode;
-        final boolean allowFlight;
-        final boolean flying;
-        Location endLocation;
-
-        PlayerState(GameMode mode, boolean allowFlight, boolean flying) {
-            this.mode = mode;
-            this.allowFlight = allowFlight;
-            this.flying = flying;
         }
     }
 
