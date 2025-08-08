@@ -49,6 +49,26 @@ public class HologramUtil {
     }
 
     /**
+     * Spawn a basic text display at the given location. Unlike
+     * {@link #spawnDamageHologram(Player, Location, String)} this method
+     * returns the spawned entity so callers may manage its lifetime
+     * themselves. The display uses a centered billboard and no shadow to
+     * mimic vanilla nametag styling.
+     *
+     * @param loc  location to spawn at
+     * @param text text to show; may use legacy colour codes
+     * @return the spawned {@link TextDisplay}
+     */
+    public static TextDisplay spawnTextDisplay(Location loc, String text) {
+        TextDisplay display = (TextDisplay) loc.getWorld().spawnEntity(loc, EntityType.TEXT_DISPLAY);
+        display.setBillboard(Display.Billboard.CENTER);
+        display.setText(text);
+        display.setShadowRadius(0);
+        display.setShadowStrength(0);
+        return display;
+    }
+
+    /**
      * Spawn a short lived ArmorStand showing the given damage text. The
      * previous pooled implementation proved unreliable on some servers, so we
      * now simply spawn a temporary stand every time.

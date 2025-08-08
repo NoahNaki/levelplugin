@@ -229,3 +229,6 @@ commands:
   world:
     description: Manage worlds
     usage: /world <create|import|delete|unload|tp|spawn|setspawn|list>
+  cursormenu:
+    description: Test command for the cursor menu system
+    usage: /cursormenu <run|stop>
