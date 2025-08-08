@@ -35,6 +35,8 @@ import me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager;
 import me.nakilex.levelplugin.friend.IgnoreManager;
 import me.nakilex.levelplugin.friend.FriendRequestListener;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.cursormenu.CursorMenuManager;
+import me.nakilex.levelplugin.cursormenu.command.CursorMenuCommand;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
@@ -165,6 +167,7 @@ public class PluginBootstrap {
     private NpcCodexGUI npcCodexGUI;
     private LocationCodexGUI locationCodexGUI;
     private me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager wanderingMerchantManager;
+    private CursorMenuManager cursorMenuManager;
 
     public PluginBootstrap(Main plugin) {
         this.plugin = plugin;
@@ -288,6 +291,7 @@ public class PluginBootstrap {
         cutsceneManager = new me.nakilex.levelplugin.cutscene.CutsceneManager(plugin);
         cutsceneManager.loadCutscenes();
         wanderingMerchantManager = new me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager(plugin);
+        cursorMenuManager = new CursorMenuManager(plugin);
     }
 
     private void setupCustomConfig() {
@@ -335,6 +339,14 @@ public class PluginBootstrap {
             codexGUI,
             wanderingMerchantManager
         );
+
+        // Register cursor menu command and listeners
+        CursorMenuCommand cursorCmd = new CursorMenuCommand(cursorMenuManager);
+        plugin.getCommand("cursormenu").setExecutor(cursorCmd);
+        plugin.getCommand("cursormenu").setTabCompleter(cursorCmd);
+        Bukkit.getPluginManager().registerEvents(cursorMenuManager, plugin);
+        Bukkit.getPluginManager().registerEvents(cursorMenuManager.getItemDisplayManager(), plugin);
+        Bukkit.getPluginManager().registerEvents(cursorMenuManager.getTextDisplayManager(), plugin);
         ListenerRegistry.registerListeners(
             plugin,
             blacksmithGUI,
@@ -509,6 +521,7 @@ public class PluginBootstrap {
     public CodexMainGUI getCodexGUI() { return codexGUI; }
     public me.nakilex.levelplugin.dungeon.gui.DungeonListGUI getDungeonListGUI() { return dungeonListGUI; }
     public me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager getWanderingMerchantManager() { return wanderingMerchantManager; }
+    public CursorMenuManager getCursorMenuManager() { return cursorMenuManager; }
 
     private void createCustomConfig() {
         customConfigFile = new File(plugin.getDataFolder(), "config.yml");

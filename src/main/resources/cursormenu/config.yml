@@ -1,0 +1,18 @@
+# Example cursor menu configuration
+menus:
+  demo:
+    world: world
+    x: 0
+    y: 64
+    z: 0
+    yaw: 0
+    pitch: 0
+    permission: ""
+    layouts:
+      first:
+        x: 1
+        y: 0
+        z: 0
+        commands:
+          - say Hello {player}
+        stop: true
