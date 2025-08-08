@@ -335,7 +335,8 @@ public class PluginBootstrap {
             motdManager,
             upgradeGUI,
             codexGUI,
-            wanderingMerchantManager
+            wanderingMerchantManager,
+            cursorMenuManager
         );
         ListenerRegistry.registerListeners(
             plugin,

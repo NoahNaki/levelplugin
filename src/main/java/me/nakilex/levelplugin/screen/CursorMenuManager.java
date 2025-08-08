@@ -38,11 +38,21 @@ public class CursorMenuManager {
 
     /**
      * Stop any active menu for the player and remove displays.
+     *
+     * @return {@code true} if a menu was active and got closed
      */
-    public void closeMenu(Player player) {
-        currentMenu.remove(player.getUniqueId());
+    public boolean closeMenu(Player player) {
+        boolean hadMenu = currentMenu.remove(player.getUniqueId()) != null;
         textManager.clear(player);
         itemManager.clear(player);
+        return hadMenu;
+    }
+
+    /**
+     * @return the key of the currently open menu for {@code player} or {@code null}
+     */
+    public String getCurrentMenu(Player player) {
+        return currentMenu.get(player.getUniqueId());
     }
 
     public TextDisplayManager getTextManager() {
