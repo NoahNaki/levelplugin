@@ -374,10 +374,12 @@ public class PluginBootstrap {
             mobCodexGUI,
             npcCodexGUI,
             locationCodexGUI,
-            wanderingMerchantManager,
-            new me.nakilex.levelplugin.screen.listener.MenuListener(cursorMenuSystem),
-            new me.nakilex.levelplugin.screen.listener.WorldChangeListener(cursorMenuSystem)
+            wanderingMerchantManager
         );
+        plugin.getServer().getPluginManager().registerEvents(
+            new me.nakilex.levelplugin.screen.listener.MenuListener(cursorMenuSystem), plugin);
+        plugin.getServer().getPluginManager().registerEvents(
+            new me.nakilex.levelplugin.screen.listener.WorldChangeListener(cursorMenuSystem), plugin);
         new me.nakilex.levelplugin.screen.placeholder.CursorMenuPlaceholder(plugin, cursorMenuSystem).register();
         plugin.getServer().getPluginManager().registerEvents(beaconManager, plugin);
         TaskRegistry.startTasks(plugin, horseConfigManager, horseManager, wanderingMerchantManager);
