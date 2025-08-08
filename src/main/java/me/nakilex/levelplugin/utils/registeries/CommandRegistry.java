@@ -68,6 +68,7 @@ import me.nakilex.levelplugin.environment.UpgradeGUI;
 import me.nakilex.levelplugin.environment.stage.TownStageCommand;
 import me.nakilex.levelplugin.environment.stage.BuildingStageCommand;
 import me.nakilex.levelplugin.environment.stage.TownPosCommand;
+import me.nakilex.levelplugin.screen.CursorMenuCommand;
 
 public class CommandRegistry {
 
@@ -165,5 +166,8 @@ public class CommandRegistry {
         plugin.getCommand("cutscene").setExecutor(new me.nakilex.levelplugin.cutscene.commands.CutsceneCommand(plugin.getCutsceneManager()));
         plugin.getCommand("dungeon").setExecutor(new me.nakilex.levelplugin.dungeon.DungeonCommand(plugin));
         plugin.getCommand("world").setExecutor(new me.nakilex.levelplugin.world.WorldCommand(plugin.getWorldManager()));
+        CursorMenuCommand cmc = new CursorMenuCommand(plugin);
+        plugin.getCommand("cursormenu").setExecutor(cmc);
+        plugin.getCommand("cursormenu").setTabCompleter(cmc);
     }
 }
