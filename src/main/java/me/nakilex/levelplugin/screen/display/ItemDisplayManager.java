@@ -67,7 +67,7 @@ public class ItemDisplayManager {
                 if (display.isDead()) { cancel(); return; }
                 angle += Math.toRadians(3);
                 Transformation t = display.getTransformation();
-                t.getLeftRotation().setY(angle);
+                t.getLeftRotation().rotationY((float) angle);
                 display.setTransformation(t);
             }
         }.runTaskTimer(plugin, 1L, 1L);
