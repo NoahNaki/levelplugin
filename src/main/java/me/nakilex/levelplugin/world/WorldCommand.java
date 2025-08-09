@@ -2,9 +2,10 @@ package me.nakilex.levelplugin.world;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
+import net.md_5.bungee.api.chat.*;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
-import net.md_5.bungee.api.chat.*;
 import org.bukkit.WorldType;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -118,6 +119,31 @@ public class WorldCommand implements CommandExecutor {
                 }
                 manager.setSpawn(world, player.getLocation());
                 player.sendMessage(ChatColor.YELLOW + "Spawn set for " + world.getName());
+                return true;
+            }
+            case "info" -> {
+                World world;
+                if (args.length >= 2) {
+                    world = Bukkit.getWorld(args[1]);
+                    if (world == null) {
+                        sender.sendMessage(ChatColor.RED + "World not found.");
+                        return true;
+                    }
+                } else if (sender instanceof Player p) {
+                    world = p.getWorld();
+                } else {
+                    sender.sendMessage(ChatColor.RED + "Usage: /world info <name>");
+                    return true;
+                }
+
+                sender.sendMessage(ChatColor.GOLD + "World: " + ChatColor.AQUA + world.getName());
+                sender.sendMessage(ChatColor.GRAY + "Environment: " + world.getEnvironment());
+                sender.sendMessage(ChatColor.GRAY + "Type: " + world.getWorldType());
+                sender.sendMessage(ChatColor.GRAY + "Difficulty: " + world.getDifficulty());
+                sender.sendMessage(ChatColor.GRAY + "Seed: " + world.getSeed());
+                sender.sendMessage(ChatColor.GRAY + "Time: " + world.getTime());
+                sender.sendMessage(ChatColor.GRAY + "Spawn: " + LocationUtils.locationToString(world.getSpawnLocation()));
+                sender.sendMessage(ChatColor.GRAY + "Players: " + world.getPlayers().size());
                 return true;
             }
             case "list" -> {
