@@ -22,6 +22,7 @@ import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.storage.StorageManager;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bstats.bukkit.Metrics;
 
 import java.util.List;
 import java.util.Map;
@@ -39,6 +40,10 @@ public class Main extends JavaPlugin {
         plugin = this;
         bootstrap = new PluginBootstrap(this);
         bootstrap.enable();
+        try {
+            // bStats plugin id placeholder
+            new Metrics(this, 0);
+        } catch (Exception ignored) { }
     }
 
     @Override
@@ -116,4 +121,5 @@ public class Main extends JavaPlugin {
     public CodexManager getCodexManager() { return bootstrap.getCodexManager(); }
     public CodexMainGUI getCodexGUI() { return bootstrap.getCodexGUI(); }
     public me.nakilex.levelplugin.dungeon.gui.DungeonListGUI getDungeonListGUI() { return bootstrap.getDungeonListGUI(); }
+    public me.nakilex.levelplugin.cursormenu.CursorMenuService getCursorMenuService() { return bootstrap.getCursorMenuService(); }
 }

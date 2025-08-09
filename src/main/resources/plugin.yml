@@ -2,9 +2,10 @@ name: LevelPlugin
 main: me.nakilex.levelplugin.Main
 version: 1.0
 author: Nakilex
-api-version: 1.19
+api-version: 1.20
 description: A simple MMORPG leveling system plugin for Minecraft
-depend: [ProtocolLib, Citizens, Vault, MythicMobs, PlaceholderAPI, Nexo]
+depend: [BetterHud, Citizens, Vault, MythicMobs, Nexo]
+softdepend: [PlaceholderAPI, ProtocolLib]
 
 commands:
   addpoints:
@@ -229,3 +230,7 @@ commands:
   world:
     description: Manage worlds
     usage: /world <create|import|delete|unload|tp|spawn|setspawn|list>
+  cursormenu:
+    description: Open cursor-driven menus and item showcases
+    usage: /cursormenu <run|stop|items|itemsstop|reload>
+    permission: cursormenu.run

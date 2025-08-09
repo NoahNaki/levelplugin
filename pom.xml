@@ -119,5 +119,27 @@
             <version>2.9.0</version>
             <scope>provided</scope>
         </dependency>
+
+        <!-- Adventure API for rich text rendering -->
+        <dependency>
+            <groupId>net.kyori</groupId>
+            <artifactId>adventure-api</artifactId>
+            <version>4.17.0</version>
+        </dependency>
+
+        <!-- bStats metrics -->
+        <dependency>
+            <groupId>org.bstats</groupId>
+            <artifactId>bstats-bukkit</artifactId>
+            <version>3.0.2</version>
+        </dependency>
+
+        <!-- BetterHud API (provided at runtime) -->
+        <dependency>
+            <groupId>com.example</groupId>
+            <artifactId>betterhud-api</artifactId>
+            <version>1.0.0</version>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 </project>

@@ -165,6 +165,7 @@ public class PluginBootstrap {
     private NpcCodexGUI npcCodexGUI;
     private LocationCodexGUI locationCodexGUI;
     private me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager wanderingMerchantManager;
+    private me.nakilex.levelplugin.cursormenu.CursorMenuService cursorMenuService;
 
     public PluginBootstrap(Main plugin) {
         this.plugin = plugin;
@@ -199,6 +200,12 @@ public class PluginBootstrap {
         mobCodexGUI.setMainGui(codexGUI);
         npcCodexGUI.setMainGui(codexGUI);
         locationCodexGUI.setMainGui(codexGUI);
+        cursorMenuService = new me.nakilex.levelplugin.cursormenu.CursorMenuService(
+                plugin,
+                new me.nakilex.levelplugin.cursormenu.scheduler.BukkitSchedulerAdapter()
+        );
+        plugin.getServer().getPluginManager().registerEvents(cursorMenuService, plugin);
+        cursorMenuService.reloadMenus();
         registerCommandsAndListeners();
         new ItemsBrowser(plugin);
         new me.nakilex.levelplugin.items.tools.gui.ToolBrowser(plugin);
@@ -377,7 +384,10 @@ public class PluginBootstrap {
     private boolean validateDependencies() {
         if (!plugin.getServer().getPluginManager().isPluginEnabled("Citizens")) {
             plugin.getLogger().severe("Citizens is installed but disabled! Check for errors.");
-            plugin.getServer().getPluginManager().disablePlugin(plugin);
+            return false;
+        }
+        if (plugin.getServer().getPluginManager().getPlugin("BetterHud") == null) {
+            plugin.getLogger().severe("BetterHud is required but not installed!");
             return false;
         }
         return true;
@@ -421,6 +431,7 @@ public class PluginBootstrap {
         if (townStageManager != null) townStageManager.despawnAll();
         if (buildingStageManager != null) buildingStageManager.despawnAll();
         if (wanderingMerchantManager != null) wanderingMerchantManager.despawn();
+        if (cursorMenuService != null) cursorMenuService.shutdown();
         if (dealMaker != null) dealMaker.closeAllTrades();
         plugin.getLogger().info("LevelPlugin has been disabled!");
     }
@@ -509,6 +520,7 @@ public class PluginBootstrap {
     public CodexMainGUI getCodexGUI() { return codexGUI; }
     public me.nakilex.levelplugin.dungeon.gui.DungeonListGUI getDungeonListGUI() { return dungeonListGUI; }
     public me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager getWanderingMerchantManager() { return wanderingMerchantManager; }
+    public me.nakilex.levelplugin.cursormenu.CursorMenuService getCursorMenuService() { return cursorMenuService; }
 
     private void createCustomConfig() {
         customConfigFile = new File(plugin.getDataFolder(), "config.yml");
