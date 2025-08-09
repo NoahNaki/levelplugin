@@ -1,6 +1,8 @@
 package me.nakilex.levelplugin.cursormenu;
 
 import me.nakilex.levelplugin.cursormenu.scheduler.SchedulerAdapter;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -12,6 +14,7 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
+import java.time.Duration;
 import java.util.*;
 
 /**
@@ -73,13 +76,21 @@ public class CursorMenuService implements Listener {
             player.sendMessage("Unknown menu: " + id);
             return;
         }
-        // TODO: Render via BetterHud API
+        // Render a simple title using Adventure as a placeholder for a full BetterHud overlay
+        Title title = Title.title(
+                Component.text(def.title()),
+                Component.text("Use /cursormenu stop to close"),
+                Title.Times.times(Duration.ZERO, Duration.ofMinutes(5), Duration.ZERO)
+        );
+        player.showTitle(title);
         sessions.put(player.getUniqueId(), new MenuSession(player.getUniqueId(), def));
+        player.sendMessage("Opened menu: " + def.id());
     }
 
     public void closeMenu(Player player) {
         sessions.remove(player.getUniqueId());
-        // TODO: Clear BetterHud overlay
+        player.clearTitle();
+        player.sendMessage("Closed menu.");
     }
 
     public void closeAllMenus() {
