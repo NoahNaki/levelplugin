@@ -1,7 +1,5 @@
 package me.nakilex.levelplugin.dungeon;
 
-import io.lumine.mythic.bukkit.MythicBukkit;
-import io.lumine.mythic.bukkit.BukkitAdapter;
 import io.lumine.mythic.bukkit.events.MythicMobDeathEvent;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.mob.utils.MythicMobModifier;
@@ -93,7 +91,7 @@ public class DungeonMobSpawnListener implements Listener {
 
     @EventHandler
     public void onBossDeath(MythicMobDeathEvent event) {
-        Entity entity = BukkitAdapter.adapt(event.getEntity());
+        Entity entity = event.getEntity().getBukkitEntity();
         if (!entity.getScoreboardTags().contains("dungeon_boss")) return;
         Location loc = entity.getLocation();
         for (Dungeon dungeon : manager.getActiveDungeons()) {
