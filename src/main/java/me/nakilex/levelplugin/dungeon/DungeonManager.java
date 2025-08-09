@@ -366,7 +366,8 @@ public class DungeonManager {
 
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
             Material mat = b.data.getMaterial();
-            if (mat == Material.REDSTONE_BLOCK || mat == Material.PINK_WOOL || mat == Material.LIME_WOOL) continue;
+            if (mat == Material.REDSTONE_BLOCK || mat == Material.PINK_WOOL
+                    || mat == Material.LIME_WOOL || mat == Material.BLACK_WOOL) continue;
             int[] vec = RoomTemplate.rotate(b.x - (int) Math.round(template.getCenterX()),
                     b.z - (int) Math.round(template.getCenterZ()), rotation);
             int wx = center.getBlockX() + vec[0];
@@ -394,9 +395,9 @@ public class DungeonManager {
             int wx = center.getBlockX() + vec[0];
             int wy = baseY + (template.getBossSpawn().y - connectorY);
             int wz = center.getBlockZ() + vec[1];
-            // Spawn directly at the center of the black wool marker so bosses
-            // appear exactly where builders placed the placeholder block.
-            bossLoc = new Location(world, wx + 0.5, wy + 0.5, wz + 0.5);
+            // Spawn one block above the black wool marker so bosses stand on
+            // the floor rather than inside the placeholder block.
+            bossLoc = new Location(world, wx + 0.5, wy + 1, wz + 0.5);
         }
         // place nether portals and exit holograms
         for (RoomTemplate.Marker m : template.getPortals()) {
@@ -935,12 +936,12 @@ public class DungeonManager {
                 BlockFace chestFace =
                         data instanceof org.bukkit.block.data.Directional dir ? dir.getFacing() : BlockFace.NORTH;
                 Location spawn = l.clone().add(0.5, 0, 0.5);
-                // Spawn the crate on the next tick to ensure the chunk is fully
-                // loaded before Nexo places its furniture entity.
-                plugin.getServer().getScheduler().runTask(plugin, () -> {
+                // Delay one tick so the chunk is fully initialized before
+                // Nexo tries to place its furniture entity.
+                plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                     int id = lootChestManager.createAndSpawnChest(spawn, tier, chestFace);
                     if (inst != null) inst.chestIds.add(id);
-                });
+                }, 1L);
             }
         }
     }

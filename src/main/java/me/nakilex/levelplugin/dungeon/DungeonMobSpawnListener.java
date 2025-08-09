@@ -39,14 +39,18 @@ public class DungeonMobSpawnListener implements Listener {
         if (to == null || (to.getBlockX() == from.getBlockX() && to.getBlockZ() == from.getBlockZ())) return;
 
         for (Dungeon dungeon : manager.getActiveDungeons()) {
-            if (!dungeon.getRooms().isEmpty() && !player.getWorld().equals(dungeon.getRooms().get(0).center.getWorld())) continue;
+            if (dungeon.getRooms().isEmpty() ||
+                    !player.getWorld().equals(dungeon.getRooms().get(0).center.getWorld())) continue;
             for (Dungeon.RoomInstance room : dungeon.getRooms()) {
                 if (triggered.contains(room)) continue;
                 if (room.bossSpawn != null && room.mob != null) {
-                    if (room.bossSpawn.getWorld().equals(to.getWorld()) &&
-                            room.bossSpawn.distanceSquared(to) <= 25 * 25) {
-                        spawnBoss(room);
-                        triggered.add(room);
+                    if (room.bossSpawn.getWorld().equals(to.getWorld())) {
+                        double dx = room.bossSpawn.getX() - to.getX();
+                        double dz = room.bossSpawn.getZ() - to.getZ();
+                        if (dx * dx + dz * dz <= 25 * 25) {
+                            spawnBoss(room);
+                            triggered.add(room);
+                        }
                     }
                 } else if (room.mob != null && room.contains(to)) {
                     spawnConfiguredMobs(room);
