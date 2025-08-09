@@ -381,13 +381,17 @@ public class PluginBootstrap {
         TaskRegistry.startTasks(plugin, horseConfigManager, horseManager, wanderingMerchantManager);
     }
 
+    private boolean isDependencyEnabled(String name) {
+        return plugin.getServer().getPluginManager().isPluginEnabled(name);
+    }
+
     private boolean validateDependencies() {
-        if (!plugin.getServer().getPluginManager().isPluginEnabled("Citizens")) {
+        if (!isDependencyEnabled("Citizens")) {
             plugin.getLogger().severe("Citizens is installed but disabled! Check for errors.");
             return false;
         }
-        if (plugin.getServer().getPluginManager().getPlugin("BetterHud") == null) {
-            plugin.getLogger().severe("BetterHud is required but not installed!");
+        if (!isDependencyEnabled("BetterHud")) {
+            plugin.getLogger().severe("BetterHud is required but not installed or enabled!");
             return false;
         }
         return true;

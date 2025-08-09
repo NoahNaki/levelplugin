@@ -9,7 +9,7 @@ A large Minecraft RPG plugin built with Maven. It requires a Spigot 1.19 server 
 
 ## Usage
 
-Copy the built jar to your server's `plugins` folder and start the server. The plugin will generate configuration files on first run. Key dependencies listed in `plugin.yml` must also be installed.
+Copy the built jar to your server's `plugins` folder and start the server. The plugin will generate configuration files on first run. Key dependencies listed in `plugin.yml` must also be installed. LevelPlugin will disable itself at startup if required plugins such as BetterHud are missing or not enabled.
 
 ### Configuration Highlights
 
@@ -46,6 +46,7 @@ title: "Example Menu"
 
 Copy this file to your server's `plugins/LevelPlugin/menus` directory if it
 does not exist, then run `/cursormenu run example` in game to open the menu and
-`/cursormenu stop` to close it.
+`/cursormenu stop` to close it. If the command reports the plugin as disabled,
+verify BetterHud is installed and active.
 
 Contributions are welcome. See `LICENSE` for terms.
