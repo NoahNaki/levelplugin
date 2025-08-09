@@ -43,7 +43,9 @@ public class Main extends JavaPlugin {
         try {
             // bStats plugin id placeholder
             new Metrics(this, 0);
-        } catch (Exception ignored) { }
+        } catch (Throwable t) {
+            getLogger().warning("bStats metrics could not be initialized: " + t.getMessage());
+        }
     }
 
     @Override
