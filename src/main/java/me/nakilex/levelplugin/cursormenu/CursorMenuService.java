@@ -6,7 +6,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerDeathEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.Plugin;
@@ -91,21 +91,23 @@ public class CursorMenuService implements Listener {
         showcaseManager.stopAll();
     }
 
+    private void cleanup(Player player) {
+        closeMenu(player);
+        showcaseManager.stopShowcase(player);
+    }
+
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
-        closeMenu(e.getPlayer());
-        showcaseManager.stopShowcase(e.getPlayer());
+        cleanup(e.getPlayer());
     }
 
     @EventHandler
     public void onTeleport(PlayerTeleportEvent e) {
-        closeMenu(e.getPlayer());
-        showcaseManager.stopShowcase(e.getPlayer());
+        cleanup(e.getPlayer());
     }
 
     @EventHandler
     public void onDeath(PlayerDeathEvent e) {
-        closeMenu(e.getEntity());
-        showcaseManager.stopShowcase(e.getEntity());
+        cleanup(e.getEntity());
     }
 }
