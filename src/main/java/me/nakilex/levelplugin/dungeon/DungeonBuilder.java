@@ -367,8 +367,8 @@ public class DungeonBuilder implements Listener {
         }
         Bukkit.getScheduler().runTask(manager.getPlugin(), () -> {
             DungeonLayout layout = s.buildLayout();
-            if (!layout.hasEntrance() || !layout.hasExit()) {
-                event.getPlayer().sendMessage(ChatColor.RED + "Dungeon requires an entrance and exit.");
+            if (!layout.hasEntrance() || !layout.hasExit() || !layout.hasBoss()) {
+                event.getPlayer().sendMessage(ChatColor.RED + "Dungeon requires an entrance, exit and boss room.");
                 s.awaitingName = false;
                 return;
             }

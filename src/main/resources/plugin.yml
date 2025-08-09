@@ -39,6 +39,10 @@ commands:
     description: Gives a custom item to a player
     usage: /additem <item_id> <player> <amount>
     permission: none
+  opsword:
+    description: Gives an admin sword with overwhelming power
+    usage: /opsword
+    permission: none
   setlevel:
     description: Sets a player's level
     usage: /setlevel <player> <level>

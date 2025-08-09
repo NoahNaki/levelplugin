@@ -864,7 +864,7 @@ public class DungeonManager {
                 Location back = inst.returnLocations.remove(id);
                 if (back != null) {
                     Dungeon.RoomInstance room = inst.dungeon.getRoomContaining(player.getLocation());
-                    boolean completed = room != null && room.template == exit;
+                    boolean completed = room != null && room.template == exit && inst.dungeon.isBossDefeated();
                     if (completed) {
                         sendCompleteMessage(player, getDisplayName(inst.layout));
                     } else {
@@ -926,6 +926,9 @@ public class DungeonManager {
     private void spawnLootChests(Dungeon dungeon, int tier, Instance inst) {
         for (Dungeon.RoomInstance r : dungeon.getRooms()) {
             for (Location l : r.chests) {
+                if (!l.getChunk().isLoaded()) {
+                    l.getChunk().load();
+                }
                 BlockData data = l.getBlock().getBlockData();
                 BlockFace face = BlockFace.NORTH;
                 if (data instanceof org.bukkit.block.data.Directional dir) {

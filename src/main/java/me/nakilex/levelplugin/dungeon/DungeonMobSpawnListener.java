@@ -1,6 +1,8 @@
 package me.nakilex.levelplugin.dungeon;
 
 import io.lumine.mythic.bukkit.MythicBukkit;
+import io.lumine.mythic.bukkit.BukkitAdapter;
+import io.lumine.mythic.bukkit.events.MythicMobDeathEvent;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.mob.utils.MythicMobModifier;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -12,6 +14,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Entity;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -42,7 +45,7 @@ public class DungeonMobSpawnListener implements Listener {
             for (Dungeon.RoomInstance room : dungeon.getRooms()) {
                 if (triggered.contains(room)) continue;
                 if (room.bossSpawn != null && room.mob != null) {
-                    if (room.bossSpawn.getWorld().equals(to.getWorld()) && room.bossSpawn.distanceSquared(to) <= 40*40) {
+                    if (room.bossSpawn.getWorld().equals(to.getWorld()) && room.bossSpawn.distanceSquared(to) <= 25*25) {
                         spawnBoss(room);
                         triggered.add(room);
                         continue;
@@ -82,6 +85,22 @@ public class DungeonMobSpawnListener implements Listener {
     }
 
     private void spawnBoss(Dungeon.RoomInstance room) {
-        MythicMobModifier.spawnModifiedMob(room.mob, room.bossSpawn, null, null, null, null);
+        var mob = MythicMobModifier.spawnModifiedMob(room.mob, room.bossSpawn, null, null, null, null);
+        if (mob != null) {
+            mob.getEntity().getBukkitEntity().addScoreboardTag("dungeon_boss");
+        }
+    }
+
+    @EventHandler
+    public void onBossDeath(MythicMobDeathEvent event) {
+        Entity entity = BukkitAdapter.adapt(event.getEntity());
+        if (!entity.getScoreboardTags().contains("dungeon_boss")) return;
+        Location loc = entity.getLocation();
+        for (Dungeon dungeon : manager.getActiveDungeons()) {
+            if (dungeon.getRoomContaining(loc) != null) {
+                dungeon.setBossDefeated(true);
+                break;
+            }
+        }
     }
 }

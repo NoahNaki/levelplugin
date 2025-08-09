@@ -53,6 +53,7 @@ public class Dungeon {
     private final World world;
     private final String name;
     private final List<RoomInstance> rooms = new ArrayList<>();
+    private boolean bossDefeated = false;
 
     public Dungeon(World world, String name) {
         this.world = world;
@@ -73,6 +74,9 @@ public class Dungeon {
     public List<RoomInstance> getRooms() {
         return rooms;
     }
+
+    public boolean isBossDefeated() { return bossDefeated; }
+    public void setBossDefeated(boolean defeated) { this.bossDefeated = defeated; }
 
     /**
      * Find the room instance containing the given location.
