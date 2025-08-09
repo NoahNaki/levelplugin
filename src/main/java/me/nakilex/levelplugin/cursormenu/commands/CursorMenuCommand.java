@@ -27,6 +27,14 @@ public class CursorMenuCommand implements TabExecutor {
         this.service = service;
     }
 
+    private boolean hasPermission(Player player, String node) {
+        if (player.hasPermission(node)) {
+            return true;
+        }
+        player.sendMessage("No permission.");
+        return false;
+    }
+
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player player)) {
@@ -40,10 +48,7 @@ public class CursorMenuCommand implements TabExecutor {
         String sub = args[0].toLowerCase(Locale.ENGLISH);
         switch (sub) {
             case "run" -> {
-                if (!player.hasPermission("cursormenu.run")) {
-                    player.sendMessage("No permission.");
-                    return true;
-                }
+                if (!hasPermission(player, "cursormenu.run")) return true;
                 if (args.length < 2) {
                     player.sendMessage("Specify a menu name.");
                     return true;
@@ -51,22 +56,16 @@ public class CursorMenuCommand implements TabExecutor {
                 service.openMenu(player, args[1]);
             }
             case "stop" -> {
-                if (!player.hasPermission("cursormenu.stop")) {
-                    player.sendMessage("No permission.");
-                    return true;
-                }
+                if (!hasPermission(player, "cursormenu.stop")) return true;
                 service.closeMenu(player);
             }
             case "items" -> {
-                if (!player.hasPermission("cursormenu.items")) {
-                    player.sendMessage("No permission.");
-                    return true;
-                }
+                if (!hasPermission(player, "cursormenu.items")) return true;
                 ItemStack item;
                 if (args.length > 1) {
                     try {
                         int id = Integer.parseInt(args[1]);
-                        var tpl = plugin.getItemManager().getTemplateById(id);
+                        me.nakilex.levelplugin.items.data.CustomItem tpl = plugin.getItemManager().getTemplateById(id);
                         if (tpl == null) {
                             player.sendMessage("Unknown item id.");
                             return true;
@@ -86,17 +85,11 @@ public class CursorMenuCommand implements TabExecutor {
                 service.getShowcaseManager().startShowcase(player, item);
             }
             case "itemsstop" -> {
-                if (!player.hasPermission("cursormenu.items")) {
-                    player.sendMessage("No permission.");
-                    return true;
-                }
+                if (!hasPermission(player, "cursormenu.items")) return true;
                 service.getShowcaseManager().stopShowcase(player);
             }
             case "reload" -> {
-                if (!player.hasPermission("cursormenu.reload")) {
-                    player.sendMessage("No permission.");
-                    return true;
-                }
+                if (!hasPermission(player, "cursormenu.reload")) return true;
                 service.reloadMenus();
                 player.sendMessage("Cursor menus reloaded.");
             }

@@ -172,6 +172,11 @@ public class PluginBootstrap {
     }
 
     public void enable() {
+        if (!validateDependencies()) {
+            plugin.getLogger().severe("Missing required dependencies. Disabling plugin..");
+            plugin.getServer().getPluginManager().disablePlugin(plugin);
+            return;
+        }
         manaTracker = new ManaCostTracker(1.5, 5_000L);
         loadConfigFiles();
         playerConfig = new PlayerConfig(plugin);
@@ -186,11 +191,6 @@ public class PluginBootstrap {
         buildingUpgradeGUI = new me.nakilex.levelplugin.environment.BuildingUpgradeGUI(environmentManager);
         CitizensAPI.getTraitFactory().registerTrait(net.citizensnpcs.api.trait.TraitInfo.create(MetadataTrait.class).withName("MetadataTrait"));
         setupCustomConfig();
-        if (!validateDependencies()) {
-            plugin.getLogger().severe("Missing required dependencies. Disabling plugin..");
-            plugin.getServer().getPluginManager().disablePlugin(plugin);
-            return;
-        }
         mobRewardsConfig = new MobRewardsConfig(plugin);
         codexManager = new CodexManager(playerConfig, mobRewardsConfig, bossConfig);
         mobCodexGUI = new MobCodexGUI(codexManager, null);
