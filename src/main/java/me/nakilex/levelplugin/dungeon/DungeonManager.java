@@ -394,7 +394,9 @@ public class DungeonManager {
             int wx = center.getBlockX() + vec[0];
             int wy = baseY + (template.getBossSpawn().y - connectorY);
             int wz = center.getBlockZ() + vec[1];
-            bossLoc = new Location(world, wx + 0.5, wy + 1, wz + 0.5);
+            // Spawn directly at the center of the black wool marker so bosses
+            // appear exactly where builders placed the placeholder block.
+            bossLoc = new Location(world, wx + 0.5, wy + 0.5, wz + 0.5);
         }
         // place nether portals and exit holograms
         for (RoomTemplate.Marker m : template.getPortals()) {
@@ -935,8 +937,12 @@ public class DungeonManager {
                     face = dir.getFacing();
                 }
                 Location spawn = l.clone().add(0.5, 0, 0.5);
-                int id = lootChestManager.createAndSpawnChest(spawn, tier, face);
-                if (inst != null) inst.chestIds.add(id);
+                // Spawn the crate on the next tick to ensure the chunk is fully
+                // loaded before Nexo places its furniture entity.
+                plugin.getServer().getScheduler().runTask(plugin, () -> {
+                    int id = lootChestManager.createAndSpawnChest(spawn, tier, face);
+                    if (inst != null) inst.chestIds.add(id);
+                });
             }
         }
     }
