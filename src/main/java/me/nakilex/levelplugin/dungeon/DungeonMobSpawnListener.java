@@ -91,8 +91,8 @@ public class DungeonMobSpawnListener implements Listener {
 
     @EventHandler
     public void onBossDeath(MythicMobDeathEvent event) {
-        Entity entity = event.getEntity().getBukkitEntity();
-        if (!entity.getScoreboardTags().contains("dungeon_boss")) return;
+        Entity entity = MythicMobModifier.toBukkitEntity(event.getEntity());
+        if (entity == null || !entity.getScoreboardTags().contains("dungeon_boss")) return;
         Location loc = entity.getLocation();
         for (Dungeon dungeon : manager.getActiveDungeons()) {
             if (dungeon.getRoomContaining(loc) != null) {
