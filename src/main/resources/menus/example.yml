@@ -1,0 +1,9 @@
+# Example cursor menu definition
+id: example
+title: "Example Menu"
+# Elements are not yet rendered but show the intended structure
+# elements:
+#   - type: label
+#     text: "Hello"
+#     x: 10
+#     y: 10
