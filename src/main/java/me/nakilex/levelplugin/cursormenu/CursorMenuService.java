@@ -78,13 +78,13 @@ public class CursorMenuService implements Listener {
         }
         // Render a simple title using Adventure as a placeholder for a full BetterHud overlay
         Title title = Title.title(
-                Component.text(def.title()),
+                Component.text(def.getTitle()),
                 Component.text("Use /cursormenu stop to close"),
                 Title.Times.times(Duration.ZERO, Duration.ofMinutes(5), Duration.ZERO)
         );
         player.showTitle(title);
         sessions.put(player.getUniqueId(), new MenuSession(player.getUniqueId(), def));
-        player.sendMessage("Opened menu: " + def.id());
+        player.sendMessage("Opened menu: " + def.getId());
     }
 
     public void closeMenu(Player player) {
