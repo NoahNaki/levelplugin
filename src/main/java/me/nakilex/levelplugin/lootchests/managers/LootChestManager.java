@@ -467,7 +467,11 @@ public class LootChestManager {
     // Check if a given location belongs to a spawned chest
     public Integer getChestIdAtLocation(Location location) {
         for (java.util.Map.Entry<Integer, Location> entry : spawnedChests.entrySet()) {
-            if (entry.getValue().equals(location)) {
+            Location stored = entry.getValue();
+            if (stored.getWorld().equals(location.getWorld())
+                    && stored.getBlockX() == location.getBlockX()
+                    && stored.getBlockY() == location.getBlockY()
+                    && stored.getBlockZ() == location.getBlockZ()) {
                 return entry.getKey();
             }
         }

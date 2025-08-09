@@ -43,13 +43,12 @@ public class DungeonMobSpawnListener implements Listener {
             for (Dungeon.RoomInstance room : dungeon.getRooms()) {
                 if (triggered.contains(room)) continue;
                 if (room.bossSpawn != null && room.mob != null) {
-                    if (room.bossSpawn.getWorld().equals(to.getWorld()) && room.bossSpawn.distanceSquared(to) <= 25*25) {
+                    if (room.bossSpawn.getWorld().equals(to.getWorld()) &&
+                            room.bossSpawn.distanceSquared(to) <= 25 * 25) {
                         spawnBoss(room);
                         triggered.add(room);
-                        continue;
                     }
-                }
-                if (room.mob != null && room.contains(to)) {
+                } else if (room.mob != null && room.contains(to)) {
                     spawnConfiguredMobs(room);
                     triggered.add(room);
                 }
@@ -83,6 +82,7 @@ public class DungeonMobSpawnListener implements Listener {
     }
 
     private void spawnBoss(Dungeon.RoomInstance room) {
+        room.bossSpawn.getChunk().load();
         var mob = MythicMobModifier.spawnModifiedMob(room.mob, room.bossSpawn, null, null, null, null);
         if (mob != null) {
             mob.getEntity().getBukkitEntity().addScoreboardTag("dungeon_boss");
