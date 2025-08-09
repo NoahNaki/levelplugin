@@ -11,6 +11,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Entity;
 
@@ -43,7 +44,9 @@ public class DungeonMobSpawnListener implements Listener {
                     !player.getWorld().equals(dungeon.getRooms().get(0).center.getWorld())) continue;
             for (Dungeon.RoomInstance room : dungeon.getRooms()) {
                 if (triggered.contains(room)) continue;
-                if (room.bossSpawn != null && room.mob != null && room.contains(to)) {
+                if (room.bossSpawn != null && room.mob != null &&
+                        room.bossSpawn.getWorld().equals(player.getWorld()) &&
+                        room.bossSpawn.distanceSquared(to) <= 25 * 25) {
                     spawnBoss(room);
                     triggered.add(room);
                 } else if (room.mob != null && room.contains(to)) {
@@ -81,6 +84,8 @@ public class DungeonMobSpawnListener implements Listener {
 
     private void spawnBoss(Dungeon.RoomInstance room) {
         room.bossSpawn.getChunk().load();
+        // clear the black wool marker beneath the spawn point
+        room.bossSpawn.clone().add(0, -1, 0).getBlock().setType(Material.AIR, false);
         var mob = MythicMobModifier.spawnModifiedMob(room.mob, room.bossSpawn, null, null, null, null);
         if (mob != null) {
             mob.getEntity().getBukkitEntity().addScoreboardTag("dungeon_boss");
