@@ -9,10 +9,9 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
-import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.*;
 
 /**
@@ -20,13 +19,13 @@ import java.util.*;
  * BetterHud API for rendering.
  */
 public class CursorMenuService implements Listener {
-    private final Plugin plugin;
+    private final JavaPlugin plugin;
     private final SchedulerAdapter scheduler;
     private final Map<String, MenuDefinition> menus = new HashMap<>();
     private final Map<UUID, MenuSession> sessions = new HashMap<>();
     private final ItemShowcaseManager showcaseManager;
 
-    public CursorMenuService(Plugin plugin, SchedulerAdapter scheduler) {
+    public CursorMenuService(JavaPlugin plugin, SchedulerAdapter scheduler) {
         this.plugin = plugin;
         this.scheduler = scheduler;
         this.showcaseManager = new ItemShowcaseManager(plugin, scheduler);
@@ -37,7 +36,15 @@ public class CursorMenuService implements Listener {
         showcaseManager.stopAll();
         menus.clear();
         File dir = new File(plugin.getDataFolder(), "menus");
-        if (!dir.exists()) dir.mkdirs();
+        if (!dir.exists()) {
+            dir.mkdirs();
+            plugin.saveResource("menus/example.yml", false);
+        } else {
+            File example = new File(dir, "example.yml");
+            if (!example.exists()) {
+                plugin.saveResource("menus/example.yml", false);
+            }
+        }
         File[] files = dir.listFiles((d, name) -> name.endsWith(".yml"));
         if (files == null) return;
         for (File f : files) {

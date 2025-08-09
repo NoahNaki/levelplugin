@@ -36,17 +36,16 @@ Copy the built jar to your server's `plugins` folder and start the server. The p
 ## Cursor Menu Example
 
 The cursor menu framework loads menu definitions from
-`plugins/LevelPlugin/menus/`. A minimal example is provided at
-`src/main/resources/menus/example.yml`:
+`plugins/LevelPlugin/menus/`. On first run an example file is generated at
+`plugins/LevelPlugin/menus/example.yml`:
 
 ```yml
 id: example
 title: "Example Menu"
 ```
 
-Copy this file to your server's `plugins/LevelPlugin/menus` directory if it
-does not exist, then run `/cursormenu run example` in game to open the menu and
-`/cursormenu stop` to close it. If the command reports the plugin as disabled,
-verify BetterHud is installed and active.
+Run `/cursormenu run example` in game to open the sample menu and `/cursormenu stop`
+to close it. If the command reports the plugin as disabled, verify BetterHud is
+installed and active.
 
 Contributions are welcome. See `LICENSE` for terms.
