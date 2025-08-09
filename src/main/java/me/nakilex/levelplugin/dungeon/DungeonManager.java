@@ -839,6 +839,7 @@ public class DungeonManager {
         final String layout;
         final Map<java.util.UUID, Location> returnLocations = new HashMap<>();
         final java.util.List<Integer> chestIds = new java.util.ArrayList<>();
+        org.bukkit.scheduler.BukkitTask removalTask;
         Instance(Dungeon d, String layout) { this.dungeon = d; this.layout = layout; }
     }
 
@@ -880,10 +881,24 @@ public class DungeonManager {
 
         @org.bukkit.event.EventHandler
         public void onQuit(org.bukkit.event.player.PlayerQuitEvent e) {
-            Instance inst = instances.get(e.getPlayer().getWorld());
+            World w = e.getPlayer().getWorld();
+            Instance inst = instances.get(w);
             if (inst == null) return;
-            inst.returnLocations.remove(e.getPlayer().getUniqueId());
-            checkInstance(e.getPlayer().getWorld());
+            if (w.getPlayers().size() <= 1) {
+                scheduleRemoval(w, inst);
+            }
+        }
+
+        @org.bukkit.event.EventHandler
+        public void onJoin(org.bukkit.event.player.PlayerJoinEvent e) {
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                World w = e.getPlayer().getWorld();
+                Instance inst = instances.get(w);
+                if (inst != null && inst.removalTask != null) {
+                    inst.removalTask.cancel();
+                    inst.removalTask = null;
+                }
+            }, 1L);
         }
 
         private void sendCompleteMessage(Player player, String layout) {
@@ -918,12 +933,39 @@ public class DungeonManager {
     private void removeWorld(World world) {
         Instance inst = instances.remove(world);
         if (inst != null) {
+            if (inst.removalTask != null) inst.removalTask.cancel();
+            me.nakilex.levelplugin.player.profile.ProfileManager pm =
+                    me.nakilex.levelplugin.player.profile.ProfileManager.getInstance();
+            me.nakilex.levelplugin.player.config.PlayerConfig cfg =
+                    Main.getInstance().getPlayerConfig();
+            for (var e : inst.returnLocations.entrySet()) {
+                java.util.UUID id = e.getKey();
+                Location back = e.getValue();
+                org.bukkit.entity.Player online = Bukkit.getPlayer(id);
+                if (online != null && online.isOnline()) {
+                    online.teleport(back);
+                }
+                Integer slot = pm.getActiveSlot(id);
+                if (slot != null) {
+                    cfg.setProfileLocation(id, slot, back);
+                    cfg.savePlayer(id);
+                }
+            }
             for (int id : inst.chestIds) {
                 lootChestManager.removeChest(id);
             }
         }
         Bukkit.unloadWorld(world, false);
         FileUtil.deleteDirectory(world.getWorldFolder());
+    }
+
+    private void scheduleRemoval(World world, Instance inst) {
+        if (inst.removalTask != null) inst.removalTask.cancel();
+        inst.removalTask = plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (world.getPlayers().isEmpty()) {
+                removeWorld(world);
+            }
+        }, 5 * 60 * 20L);
     }
 
     private void spawnLootChests(Dungeon dungeon, int tier, Instance inst) {
@@ -936,7 +978,7 @@ public class DungeonManager {
                 BlockFace chestFace =
                         data instanceof org.bukkit.block.data.Directional dir ? dir.getFacing() : BlockFace.NORTH;
                 l.getBlock().setType(Material.AIR, false);
-                Location spawn = l.clone().add(0.5, 0, 0.5);
+                Location spawn = l.clone();
                 // Delay a few ticks so the chunk is fully initialized before
                 // Nexo tries to place its furniture entity.
                 plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
