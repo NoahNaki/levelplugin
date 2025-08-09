@@ -394,7 +394,7 @@ public class DungeonManager {
             int wx = center.getBlockX() + vec[0];
             int wy = baseY + (template.getBossSpawn().y - connectorY);
             int wz = center.getBlockZ() + vec[1];
-            bossLoc = new Location(world, wx + 0.5, wy, wz + 0.5);
+            bossLoc = new Location(world, wx + 0.5, wy + 1, wz + 0.5);
         }
         // place nether portals and exit holograms
         for (RoomTemplate.Marker m : template.getPortals()) {
@@ -934,7 +934,8 @@ public class DungeonManager {
                 if (data instanceof org.bukkit.block.data.Directional dir) {
                     face = dir.getFacing();
                 }
-                int id = lootChestManager.createAndSpawnChest(l, tier, face);
+                Location spawn = l.clone().add(0.5, 0, 0.5);
+                int id = lootChestManager.createAndSpawnChest(spawn, tier, face);
                 if (inst != null) inst.chestIds.add(id);
             }
         }
