@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.lootchests.config.ConfigManager;
 import me.nakilex.levelplugin.lootchests.data.ChestData;
 import me.nakilex.levelplugin.lootchests.utils.ParticleUtils;
+import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
 import me.nakilex.levelplugin.potions.data.PotionInstance;
 import me.nakilex.levelplugin.potions.data.PotionTemplate;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
@@ -129,11 +130,13 @@ public class LootChestManager {
             debugRegisteredFurnitureIds();
             return;
         }
+        // Center the furniture within the block to avoid spawning offset issues.
+        Location centered = LocationUtils.centerOnBlock(loc);
         // The place(...) call returns the spawned Entity; we ignore it here.
-        NexoFurniture.place(crateId, loc, 0f, data.getFacing());
+        NexoFurniture.place(crateId, centered, 0f, data.getFacing());
 
         // 2) Remember this location so getChestIdAtLocation(loc) will still work:
-        spawnedChests.put(data.getChestId(), loc);
+        spawnedChests.put(data.getChestId(), loc.getBlock().getLocation());
 
         // 3) Pre-buffer one random loot ItemStack (we’ll place it into the GUI when a player opens it)
         //    NOTE: ChestData must have a method setBufferedLootItem(ItemStack).
