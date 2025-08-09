@@ -935,13 +935,14 @@ public class DungeonManager {
                 BlockData data = l.getBlock().getBlockData();
                 BlockFace chestFace =
                         data instanceof org.bukkit.block.data.Directional dir ? dir.getFacing() : BlockFace.NORTH;
+                l.getBlock().setType(Material.AIR, false);
                 Location spawn = l.clone().add(0.5, 0, 0.5);
-                // Delay one tick so the chunk is fully initialized before
+                // Delay a few ticks so the chunk is fully initialized before
                 // Nexo tries to place its furniture entity.
                 plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                     int id = lootChestManager.createAndSpawnChest(spawn, tier, chestFace);
                     if (inst != null) inst.chestIds.add(id);
-                }, 1L);
+                }, 5L);
             }
         }
     }
