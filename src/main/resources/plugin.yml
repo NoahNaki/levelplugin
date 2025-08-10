@@ -218,7 +218,7 @@ commands:
   cutscene:
     description: Play or manage cutscenes
     usage: /cutscene <play id [player]|list|reload|record id|addframe [duration]|stop|cancel|skip [player]>
-    dungeon:
+  dungeon:
     description: Manage custom dungeons
     usage: /dungeon <create|play|delete|undo|list>
   codex:
