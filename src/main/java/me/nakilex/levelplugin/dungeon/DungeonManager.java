@@ -741,6 +741,8 @@ public class DungeonManager {
                     player.sendMessage(ChatColor.GRAY + "[Debug] Pasted rooms in "
                             + (System.currentTimeMillis() - pasteStart) + "ms");
 
+                    spawnLootChests(dungeon);
+
                     // restore player states once world is ready
                     for (Player p : participants) {
                         State st = prev.get(p);
@@ -797,6 +799,7 @@ public class DungeonManager {
             }
         }
         dungeons.put(key, dungeon);
+        spawnLootChests(dungeon);
         player.sendMessage(ChatColor.GRAY + "[Debug] Spawned in "
                 + (System.currentTimeMillis() - debugStart) + "ms");
         return true;
@@ -992,7 +995,7 @@ public class DungeonManager {
     }
 
     /**
-     * Spawn loot chests for a dungeon after the boss has been defeated.
+     * Spawn loot chests for a dungeon when it is created.
      * Chest IDs are tracked for instance worlds so they can be cleaned up
      * when the dungeon is removed.
      */

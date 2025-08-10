@@ -98,7 +98,6 @@ public class DungeonMobSpawnListener implements Listener {
         for (Dungeon dungeon : manager.getActiveDungeons()) {
             if (dungeon.getRoomContaining(loc) != null && !dungeon.isBossDefeated()) {
                 dungeon.setBossDefeated(true);
-                manager.spawnLootChests(dungeon);
                 break;
             }
         }
