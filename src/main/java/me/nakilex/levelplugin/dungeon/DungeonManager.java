@@ -418,6 +418,8 @@ public class DungeonManager {
             int wx = center.getBlockX() + vec[0];
             int wy = baseY + (template.getBossSpawn().y - connectorY);
             int wz = center.getBlockZ() + vec[1];
+            Location l = new Location(world, wx, wy, wz);
+            if (preview) replaced.put(l, world.getBlockAt(wx, wy, wz).getBlockData());
             world.getBlockAt(wx, wy, wz).setType(Material.BLACK_WOOL, false);
             // Spawn one block above the black wool marker so bosses stand on
             // the floor rather than inside the placeholder block.

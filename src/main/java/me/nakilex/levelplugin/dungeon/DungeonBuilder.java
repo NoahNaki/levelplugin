@@ -97,7 +97,8 @@ public class DungeonBuilder implements Listener {
             int rotation = layout.getRotation(entranceX, entranceZ);
             Location center = origin.clone();
             String mob = layout.getMob(entranceX, entranceZ);
-            manager.pasteRoom(s.dungeon, templ, rotation, center, mob, true);
+            DungeonManager.PasteResult result = manager.pasteRoom(s.dungeon, templ, rotation, center, mob, true);
+            List<ConnectorInfo> added = new ArrayList<>();
             for (RoomTemplate.Connector c : templ.getConnectors()) {
                 Direction dir = rotate(c.facing, rotation);
                 if (dirs.contains(dir)) continue;
@@ -106,7 +107,9 @@ public class DungeonBuilder implements Listener {
                 Location loc = center.clone().add(vec[0], c.bottomY - templ.getConnectorMinY(), vec[1]);
                 ConnectorInfo info = spawnConnector(s, loc, dir);
                 s.connectors.put(info.interaction.getEntityId(), info);
+                added.add(info);
             }
+            s.history.push(new History(null, added, result.instance(), result.replaced()));
         }
 
         for (int x = 0; x < DungeonLayout.WIDTH; x++) {
@@ -127,9 +130,10 @@ public class DungeonBuilder implements Listener {
                 int diffZ = layout.getOffsetZ(x, z);
                 Location center = origin.clone().add(diffX, 0, diffZ);
                 String mob = layout.getMob(x, z);
-                manager.pasteRoom(s.dungeon, templ, rotation, center, mob, true);
+                DungeonManager.PasteResult result = manager.pasteRoom(s.dungeon, templ, rotation, center, mob, true);
 
                 // spawn connectors only for open sides
+                List<ConnectorInfo> added = new ArrayList<>();
                 for (RoomTemplate.Connector c : templ.getConnectors()) {
                     Direction dir = rotate(c.facing, rotation);
                     if (dirs.contains(dir)) continue; // neighbour already present
@@ -138,7 +142,9 @@ public class DungeonBuilder implements Listener {
                     Location loc = center.clone().add(vec[0], c.bottomY - templ.getConnectorMinY(), vec[1]);
                     ConnectorInfo info = spawnConnector(s, loc, dir);
                     s.connectors.put(info.interaction.getEntityId(), info);
+                    added.add(info);
                 }
+                s.history.push(new History(null, added, result.instance(), result.replaced()));
             }
         }
 
@@ -687,7 +693,7 @@ public class DungeonBuilder implements Listener {
             this.dungeon = new Dungeon(player.getWorld(), player.getName() + "_builder");
         }
         void undo() {
-            History h = history.poll();
+            History h = history.pollFirst();
             if (h == null) return;
             World world = h.instance.center.getWorld();
             for (Map.Entry<Location, BlockData> e : h.replaced.entrySet()) {
