@@ -159,6 +159,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI auctionHouseGUI;
     private SettingsManager settingsManager;
     private SettingsGUI settingsGUI;
+    private me.nakilex.levelplugin.debug.gui.DebugGUI debugGUI;
     private MeteorListener meteorListener;
     private CodexManager codexManager;
     private CodexMainGUI codexGUI;
@@ -304,6 +305,7 @@ public class PluginBootstrap {
         horseManager = new HorseManager(horseConfigManager);
         HorseGUI horseGUI = new HorseGUI(horseManager, economyManager);
         settingsGUI = new SettingsGUI(settingsManager);
+        debugGUI = new me.nakilex.levelplugin.debug.gui.DebugGUI(mobDebugToggleManager, scoreboardManager);
         this.storageManager = new StorageManager();
         CommandRegistry.registerCommands(
             plugin,
@@ -324,6 +326,7 @@ public class PluginBootstrap {
             dmgNumberToggleManager,
             mobDebugToggleManager,
             settingsGUI,
+            debugGUI,
             gemsManager,
             gemGui,
             auctionHouseManager,
@@ -351,6 +354,7 @@ public class PluginBootstrap {
             mobDebugToggleManager,
             pickupCustomItemListener,
             settingsGUI,
+            debugGUI,
             projectileFriendlyFireListener,
             bossConfig,
             meteorListener,
@@ -508,6 +512,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI getAuctionHouseGUI() { return auctionHouseGUI; }
     public SettingsManager getSettingsManager() { return settingsManager; }
     public SettingsGUI getSettingsGUI() { return settingsGUI; }
+    public me.nakilex.levelplugin.debug.gui.DebugGUI getDebugGUI() { return debugGUI; }
     public MeteorListener getMeteorListener() { return meteorListener; }
     public me.nakilex.levelplugin.cutscene.CutsceneManager getCutsceneManager() { return cutsceneManager; }
     public me.nakilex.levelplugin.calendar.CalendarManager getCalendarManager() { return calendarManager; }

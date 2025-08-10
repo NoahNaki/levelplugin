@@ -44,64 +44,64 @@ public class SettingsGUI implements Listener {
 
         // Damage Chat toggle
         if (filter == Filter.ALL || filter == Filter.COMBAT) {
-            gui.setItem(10, createSettingItem(
+            gui.setItem(10, GuiUtil.createToggleItem(
                     playerSettings.isDmgChatEnabled(),
                     "§bDamage Chat",
-                    "/dmgchat"
+                    "§eClick to toggle and run /dmgchat"
             ));
         }
 
         // Damage Numbers toggle
         if (filter == Filter.ALL || filter == Filter.COMBAT) {
-            gui.setItem(11, createSettingItem(
+            gui.setItem(11, GuiUtil.createToggleItem(
                     playerSettings.isDmgNumberEnabled(),
                     "§bDamage Numbers",
-                    "/dmgnumber"
+                    "§eClick to toggle and run /dmgnumber"
             ));
         }
 
         // Drop Details (hologram) toggle
         if (filter == Filter.ALL || filter == Filter.VISUAL) {
-            gui.setItem(12, createSettingItem(
+            gui.setItem(12, GuiUtil.createToggleItem(
                     playerSettings.isDropDetailsEnabled(),
                     "§bDrop Details",
-                    "/toggle dropdetails"
+                    "§eClick to toggle and run /toggle dropdetails"
             ));
         }
 
         // Drop Details Chat toggle
         if (filter == Filter.ALL || filter == Filter.VISUAL) {
-            gui.setItem(13, createSettingItem(
+            gui.setItem(13, GuiUtil.createToggleItem(
                     playerSettings.isDropDetailsChatEnabled(),
                     "§bDrop Details Chat",
-                    "/toggle dropdetailschat"
+                    "§eClick to toggle and run /toggle dropdetailschat"
             ));
         }
 
         // Party Glow toggle
         if (filter == Filter.ALL || filter == Filter.SOCIAL) {
-            gui.setItem(14, createSettingItem(
+            gui.setItem(14, GuiUtil.createToggleItem(
                     playerSettings.isPartyGlowEnabled(),
                     "§bParty Glow",
-                    "/partyglow"
+                    "§eClick to toggle and run /partyglow"
             ));
         }
 
         // Friend Glow toggle
         if (filter == Filter.ALL || filter == Filter.SOCIAL) {
-            gui.setItem(15, createSettingItem(
+            gui.setItem(15, GuiUtil.createToggleItem(
                     playerSettings.isFriendGlowEnabled(),
                     "§bFriend Glow",
-                    "/friendglow"
+                    "§eClick to toggle and run /friendglow"
             ));
         }
 
         // Balance visibility toggle
         if (filter == Filter.ALL || filter == Filter.SOCIAL) {
-            gui.setItem(16, createSettingItem(
+            gui.setItem(16, GuiUtil.createToggleItem(
                     playerSettings.isBalancePublic(),
                     "§ePublic Balance",
-                    "/toggle balancepublic"
+                    "§eClick to toggle and run /toggle balancepublic"
             ));
         }
 
@@ -111,10 +111,10 @@ public class SettingsGUI implements Listener {
 
         // Auto-skip Cutscenes toggle
         if (filter == Filter.ALL || filter == Filter.VISUAL) {
-            gui.setItem(18, createSettingItem(
+            gui.setItem(18, GuiUtil.createToggleItem(
                     playerSettings.isAutoSkipCutscenes(),
                     "§bAuto Skip Cutscenes",
-                    ""
+                    "§eClick to toggle"
             ));
         }
 
@@ -129,26 +129,6 @@ public class SettingsGUI implements Listener {
         }
 
         player.openInventory(gui);
-    }
-
-    private ItemStack createSettingItem(boolean isEnabled, String name, String command) {
-        ItemStack base = GuiUtil.getNexoItem(isEnabled ? "check" : "cross", name);
-        ItemMeta meta = base.getItemMeta();
-        if (meta != null) {
-            List<String> lore = new ArrayList<>();
-            lore.add(" ");
-            lore.add("§7Status: " + (isEnabled ? "§aEnabled" : "§cDisabled"));
-            lore.add(" ");
-            if (command != null && !command.isBlank()) {
-                lore.add("§eClick to toggle and run " + command);
-            } else {
-                lore.add("§eClick to toggle");
-            }
-            meta.setLore(lore);
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-            base.setItemMeta(meta);
-        }
-        return base;
     }
 
     private ItemStack createItem(Material mat, String name, String... loreLines) {
@@ -182,7 +162,10 @@ public class SettingsGUI implements Listener {
 
 
     private void updateSettingItem(Inventory inventory, int slot, boolean enabled, String name, String command) {
-        inventory.setItem(slot, createSettingItem(enabled, name, command));
+        String lore = (command != null && !command.isBlank())
+                ? "§eClick to toggle and run " + command
+                : "§eClick to toggle";
+        inventory.setItem(slot, GuiUtil.createToggleItem(enabled, name, lore));
     }
 
     private void updateVisibilityItem(Inventory inv, PlayerVisibility vis) {

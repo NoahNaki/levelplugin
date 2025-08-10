@@ -90,6 +90,7 @@ public class CommandRegistry {
                                         PlayerToggleManager dmgToggleManager,
                                         PlayerToggleManager mobDebugToggleManager,
                                         SettingsGUI settingsGUI,
+                                        me.nakilex.levelplugin.debug.gui.DebugGUI debugGUI,
                                         GemsManager gemsManager,
                                         GemExchangeGUI gemGui,
                                         AuctionHouseManager auctionMgr,
@@ -155,7 +156,8 @@ public class CommandRegistry {
         plugin.getCommand("wipeprofile").setExecutor(new WipeProfileCommand());
 
         DebugCommand debugCmd = new DebugCommand(mobDebugToggleManager,
-                plugin.getScoreboardManager());
+                plugin.getScoreboardManager(),
+                debugGUI);
         plugin.getCommand("debug").setExecutor(debugCmd);
         plugin.getCommand("debug").setTabCompleter(debugCmd);
         plugin.getCommand("motd").setExecutor(new me.nakilex.levelplugin.motd.MotdCommand(motdManager));

@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.debug.commands;
 import java.util.Collections;
 import java.util.List;
 
+import me.nakilex.levelplugin.debug.gui.DebugGUI;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
 import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
@@ -22,17 +23,24 @@ import org.bukkit.entity.Player;
 public class DebugCommand implements TabExecutor {
     private final PlayerToggleManager mobDebugManager;
     private final PlayerScoreboardManager scoreboardManager;
+    private final DebugGUI debugGUI;
 
     public DebugCommand(PlayerToggleManager mobDebugManager,
-                        PlayerScoreboardManager scoreboardManager) {
+                        PlayerScoreboardManager scoreboardManager,
+                        DebugGUI debugGUI) {
         this.mobDebugManager = mobDebugManager;
         this.scoreboardManager = scoreboardManager;
+        this.debugGUI = debugGUI;
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage("Usage: /debug <mobinfo|tps>");
+            if (sender instanceof Player p) {
+                debugGUI.open(p);
+            } else {
+                sender.sendMessage("Usage: /debug <mobinfo|tps>");
+            }
             return true;
         }
 

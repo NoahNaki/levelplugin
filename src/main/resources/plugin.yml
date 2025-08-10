@@ -189,8 +189,8 @@ commands:
     description: Opens the enchanting GUI
     usage: /enchant
   debug:
-    description: Toggle debug features
-    usage: /debug <mobinfo|tps>
+    description: Developer debug tools
+    usage: /debug [mobinfo|tps]
   motd:
     description: Reload or preview the server MOTD
     usage: /motd <reload|preview>

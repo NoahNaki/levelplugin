@@ -78,6 +78,7 @@ public class ListenerRegistry {
                                          PlayerToggleManager mobDebugToggleManager,
                                          PickupCustomItemListener pickupCustomItemListener,
                                          SettingsGUI settingsGUI,
+                                         me.nakilex.levelplugin.debug.gui.DebugGUI debugGUI,
                                          ProjectileFriendlyFireListener projectileFriendlyFireListener,
                                          FileConfiguration bossConfig,
                                          MeteorListener meteorListener,
@@ -155,6 +156,7 @@ public class ListenerRegistry {
         pm.registerEvents(new DamageIndicatorListener(dmgToggleManager), plugin);
         pm.registerEvents(new DamageChatListener(), plugin);
         pm.registerEvents(settingsGUI, plugin);
+        pm.registerEvents(debugGUI, plugin);
         pm.registerEvents(new GuildGUIListener(), plugin);
         pm.registerEvents(new MeteorListener(), plugin);
         pm.registerEvents(new ShockwaveListener(), plugin);
