@@ -1,6 +1,6 @@
 package me.nakilex.levelplugin.mob.commands;
 
-import me.nakilex.levelplugin.mob.managers.DmgNumberToggleManager;
+import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -8,9 +8,9 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 public class DmgNumberCommand implements CommandExecutor {
-    private final DmgNumberToggleManager toggleManager;
+    private final PlayerToggleManager toggleManager;
 
-    public DmgNumberCommand(DmgNumberToggleManager toggleManager) {
+    public DmgNumberCommand(PlayerToggleManager toggleManager) {
         this.toggleManager = toggleManager;
     }
 

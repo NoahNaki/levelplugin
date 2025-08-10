@@ -21,6 +21,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.HeadUtil;
+import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 
 import java.util.*;
 import java.awt.Point;
@@ -97,7 +98,8 @@ public class DungeonBuilder implements Listener {
             int rotation = layout.getRotation(entranceX, entranceZ);
             Location center = origin.clone();
             String mob = layout.getMob(entranceX, entranceZ);
-            manager.pasteRoom(s.dungeon, templ, rotation, center, mob, true);
+            DungeonManager.PasteResult result = manager.pasteRoom(s.dungeon, templ, rotation, center, mob, true);
+            List<ConnectorInfo> added = new ArrayList<>();
             for (RoomTemplate.Connector c : templ.getConnectors()) {
                 Direction dir = rotate(c.facing, rotation);
                 if (dirs.contains(dir)) continue;
@@ -106,7 +108,9 @@ public class DungeonBuilder implements Listener {
                 Location loc = center.clone().add(vec[0], c.bottomY - templ.getConnectorMinY(), vec[1]);
                 ConnectorInfo info = spawnConnector(s, loc, dir);
                 s.connectors.put(info.interaction.getEntityId(), info);
+                added.add(info);
             }
+            s.history.addLast(new History(null, added, result.instance(), result.replaced()));
         }
 
         for (int x = 0; x < DungeonLayout.WIDTH; x++) {
@@ -127,9 +131,10 @@ public class DungeonBuilder implements Listener {
                 int diffZ = layout.getOffsetZ(x, z);
                 Location center = origin.clone().add(diffX, 0, diffZ);
                 String mob = layout.getMob(x, z);
-                manager.pasteRoom(s.dungeon, templ, rotation, center, mob, true);
+                DungeonManager.PasteResult result = manager.pasteRoom(s.dungeon, templ, rotation, center, mob, true);
 
                 // spawn connectors only for open sides
+                List<ConnectorInfo> added = new ArrayList<>();
                 for (RoomTemplate.Connector c : templ.getConnectors()) {
                     Direction dir = rotate(c.facing, rotation);
                     if (dirs.contains(dir)) continue; // neighbour already present
@@ -138,7 +143,9 @@ public class DungeonBuilder implements Listener {
                     Location loc = center.clone().add(vec[0], c.bottomY - templ.getConnectorMinY(), vec[1]);
                     ConnectorInfo info = spawnConnector(s, loc, dir);
                     s.connectors.put(info.interaction.getEntityId(), info);
+                    added.add(info);
                 }
+                s.history.addLast(new History(null, added, result.instance(), result.replaced()));
             }
         }
 
@@ -227,7 +234,7 @@ public class DungeonBuilder implements Listener {
             player.sendMessage(ChatColor.RED + "Cannot place entrance here.");
             return;
         }
-        s.history.push(new History(null, spawnConnectors(s, loc, entrance, rot, null),
+        s.history.addLast(new History(null, spawnConnectors(s, loc, entrance, rot, null),
                 result.instance(), result.replaced()));
         s.placingEntrance = false;
         player.sendMessage(ChatColor.GREEN + "Entrance placed. Use holograms to add rooms.");
@@ -258,7 +265,9 @@ public class DungeonBuilder implements Listener {
         event.setCancelled(true);
         ItemStack item = event.getCurrentItem();
         if (item == null || !item.hasItemMeta()) return;
-        String name = ChatColor.stripColor(item.getItemMeta().getDisplayName());
+        ItemMeta meta = item.getItemMeta();
+        String name = ChatColor.stripColor(meta.getDisplayName());
+        String id = meta.getLocalizedName();
 
         switch (rawTitle) {
             case "Select Room" -> {
@@ -332,7 +341,7 @@ public class DungeonBuilder implements Listener {
                     player.openInventory(createCombatVariantSelect());
                     return;
                 }
-                s.selectedMob = name;
+                s.selectedMob = (id != null && !id.isEmpty()) ? id : name;
                 if (s.selectedTemplate != null) {
                     placeVariant(s, s.selectedTemplate);
                     player.closeInventory();
@@ -344,7 +353,7 @@ public class DungeonBuilder implements Listener {
                     player.openInventory(createRoomSelect());
                     return;
                 }
-                s.selectedMob = name;
+                s.selectedMob = (id != null && !id.isEmpty()) ? id : name;
                 if (s.selectedTemplate != null) {
                     placeVariant(s, s.selectedTemplate);
                     player.closeInventory();
@@ -497,7 +506,7 @@ public class DungeonBuilder implements Listener {
         }
         removeConnector(s, info);
         List<ConnectorInfo> added = spawnConnectors(s, center, templ, rotation, info);
-        s.history.push(new History(info, added, result.instance(), result.replaced()));
+        s.history.addLast(new History(info, added, result.instance(), result.replaced()));
     }
 
     private List<ConnectorInfo> spawnConnectors(Session s, Location center, RoomTemplate templ, int rotation, ConnectorInfo used) {
@@ -614,7 +623,10 @@ public class DungeonBuilder implements Listener {
         for (String m : mobs) {
             ItemStack is = new ItemStack(Material.PAPER);
             ItemMeta im = is.getItemMeta();
-            if (im != null) im.setDisplayName(ChatColor.WHITE + m);
+            if (im != null) {
+                im.setDisplayName(ChatColor.WHITE + MobNameUtil.getDisplayName(m));
+                im.setLocalizedName(m);
+            }
             is.setItemMeta(im);
             inv.setItem(idx++, is);
         }
@@ -687,7 +699,7 @@ public class DungeonBuilder implements Listener {
             this.dungeon = new Dungeon(player.getWorld(), player.getName() + "_builder");
         }
         void undo() {
-            History h = history.poll();
+            History h = history.pollLast();
             if (h == null) return;
             World world = h.instance.center.getWorld();
             for (Map.Entry<Location, BlockData> e : h.replaced.entrySet()) {

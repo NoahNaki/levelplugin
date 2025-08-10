@@ -12,6 +12,8 @@ import me.nakilex.levelplugin.mob.utils.DropDisplayToggles;
 import me.nakilex.levelplugin.mob.utils.ItemDropper;
 import me.nakilex.levelplugin.mob.utils.RewardHologramUtil;
 import me.nakilex.levelplugin.mob.utils.CombatPowerUtil;
+import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
+import io.lumine.mythic.api.skills.placeholders.PlaceholderString;
 import me.nakilex.levelplugin.party.Party;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
@@ -42,13 +44,15 @@ public class MythicMobRewardListener implements Listener {
     private final ModelSetManager modelSetManager;
     private final MythicMobDamageTracker tracker;
     private final ItemDropper itemDropper;
+    private final PlayerToggleManager debugToggle;
 
     public MythicMobRewardListener(MythicMobDamageTracker tracker,
                                    MobRewardsConfig mobRewardsConfig,
                                    LevelManager levelManager,
                                    EconomyManager economyManager,
                                    LootChestManager lootChestManager,
-                                   ModelSetManager modelSetManager) {
+                                   ModelSetManager modelSetManager,
+                                   PlayerToggleManager debugToggle) {
         this.tracker = tracker;
         this.mobRewardsConfig = mobRewardsConfig;
         this.levelManager = levelManager;
@@ -56,15 +60,37 @@ public class MythicMobRewardListener implements Listener {
         this.lootChestManager = lootChestManager;
         this.modelSetManager = modelSetManager;
         this.itemDropper = new ItemDropper(levelManager, mobRewardsConfig, modelSetManager);
+        this.debugToggle = debugToggle;
     }
 
     @EventHandler
     public void onEntityDeath(EntityDeathEvent event) {
         ActiveMob mythicMob = mythicHelper.getMythicMobInstance(event.getEntity());
         if (mythicMob == null) return;
+
         String mobType = mythicMob.getMobType().replaceAll("§.", "");
-        if (!mobRewardsConfig.getConfig().contains("mobs." + mobType)) return;
+        Set<Player> participants = tracker.getParticipantsAndClear(event.getEntity().getUniqueId());
+        if (participants.isEmpty() && event.getEntity().getKiller() instanceof Player killer) {
+            participants = Set.of(killer);
+        }
+        if (participants.isEmpty()) {
+            participants = Collections.emptySet();
+        }
+
         ConfigurationSection node = mobRewardsConfig.getConfig().getConfigurationSection("mobs." + mobType);
+        if (node == null) {
+            for (Player player : participants) {
+                if (debugToggle.isEnabled(player)) {
+                    PlaceholderString name = mythicMob.getType().getDisplayName();
+                    String display = name != null ? name.get() : mobType;
+                    player.sendMessage(ChatColor.YELLOW + "[MobDebug] ID: " + mobType
+                            + ChatColor.GRAY + " Display: " + ChatColor.WHITE + display);
+                    player.sendMessage(ChatColor.RED + "[MobDebug] No rewards configured");
+                }
+            }
+            return;
+        }
+
         int exp = node.getInt("exp", 0);
         String coinsSpec = node.getString("coins", "0-0");
         int tier = node.getInt("tier", 0);
@@ -73,9 +99,6 @@ public class MythicMobRewardListener implements Listener {
         String[] sp = coinsSpec.split("-");
         int minCoins = Integer.parseInt(sp[0]);
         int maxCoins = Integer.parseInt(sp[1]);
-
-        Set<Player> participants = tracker.getParticipantsAndClear(event.getEntity().getUniqueId());
-        if (participants.isEmpty()) participants = Collections.emptySet();
 
         for (Player player : participants) {
             PartyManager pm = Main.getInstance().getPartyManager();
@@ -112,6 +135,14 @@ public class MythicMobRewardListener implements Listener {
                         + " §7and §f+" + coins + " <glyph:coins_icon> §6coins");
                 int power = CombatPowerUtil.getCombatPower(mythicMob);
                 player.sendMessage(ChatColor.DARK_AQUA + "Combat Power: " + ChatColor.AQUA + power);
+            }
+            if (debugToggle.isEnabled(player)) {
+                PlaceholderString name = mythicMob.getType().getDisplayName();
+                String display = name != null ? name.get() : mobType;
+                player.sendMessage(ChatColor.YELLOW + "[MobDebug] ID: " + mobType
+                        + ChatColor.GRAY + " Display: " + ChatColor.WHITE + display);
+                player.sendMessage(ChatColor.YELLOW + "[MobDebug] Exp: " + awardedExp
+                        + ChatColor.GRAY + ", Coins: " + coins);
             }
         }
     }

@@ -18,7 +18,7 @@ import me.nakilex.levelplugin.lootchests.listeners.LootChestShutdownListener;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.mob.listeners.*;
-import me.nakilex.levelplugin.mob.managers.DmgNumberToggleManager;
+import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.mob.managers.MythicMobNameManager;
 import me.nakilex.levelplugin.npc.listeners.NPCClickListener;
 import me.nakilex.levelplugin.npc.listeners.NPCCommandListener;
@@ -74,9 +74,11 @@ public class ListenerRegistry {
                                          PartyManager partyManager,
                                          EconomyManager economyManager,
                                          MobRewardsConfig mobRewardsConfig,
-                                         DmgNumberToggleManager dmgToggleManager,
+                                         PlayerToggleManager dmgToggleManager,
+                                         PlayerToggleManager mobDebugToggleManager,
                                          PickupCustomItemListener pickupCustomItemListener,
                                          SettingsGUI settingsGUI,
+                                         me.nakilex.levelplugin.debug.gui.DebugGUI debugGUI,
                                          ProjectileFriendlyFireListener projectileFriendlyFireListener,
                                          FileConfiguration bossConfig,
                                          MeteorListener meteorListener,
@@ -112,7 +114,8 @@ public class ListenerRegistry {
                 plugin.getLevelManager(),
                 economyManager,
                 lootChestManager,
-                plugin.getModelSetManager()
+                plugin.getModelSetManager(),
+                mobDebugToggleManager
         ), plugin);
         pm.registerEvents(new me.nakilex.levelplugin.player.mining.listeners.OreMiningListener(plugin, plugin.getMiningRewardsConfig(), plugin.getMiningManager()), plugin);
         pm.registerEvents(new PlayerJoinListener(plugin.getLevelManager(), plugin.getMiningManager(), plugin.getPlayerConfig(), plugin.getEnvironmentManager()), plugin);
@@ -153,6 +156,7 @@ public class ListenerRegistry {
         pm.registerEvents(new DamageIndicatorListener(dmgToggleManager), plugin);
         pm.registerEvents(new DamageChatListener(), plugin);
         pm.registerEvents(settingsGUI, plugin);
+        pm.registerEvents(debugGUI, plugin);
         pm.registerEvents(new GuildGUIListener(), plugin);
         pm.registerEvents(new MeteorListener(), plugin);
         pm.registerEvents(new ShockwaveListener(), plugin);

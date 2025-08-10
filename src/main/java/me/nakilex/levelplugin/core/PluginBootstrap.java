@@ -24,7 +24,7 @@ import me.nakilex.levelplugin.lootchests.listeners.ChestHologramListener;
 import me.nakilex.levelplugin.lootchests.managers.CooldownManager;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
-import me.nakilex.levelplugin.mob.managers.DmgNumberToggleManager;
+import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.party.PartyGlowManager;
 import me.nakilex.levelplugin.friend.FriendManager;
@@ -118,7 +118,8 @@ public class PluginBootstrap {
     private StorageManager storageManager;
     private ItemConfig itemConfig;
     private PlayerConfig playerConfig;
-    private DmgNumberToggleManager dmgNumberToggleManager;
+    private PlayerToggleManager dmgNumberToggleManager;
+    private PlayerToggleManager mobDebugToggleManager;
     private ManaCostTracker manaTracker;
     private ProjectileFriendlyFireListener projectileFriendlyFireListener;
     private FileConfiguration bossConfig;
@@ -158,6 +159,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI auctionHouseGUI;
     private SettingsManager settingsManager;
     private SettingsGUI settingsGUI;
+    private me.nakilex.levelplugin.debug.gui.DebugGUI debugGUI;
     private MeteorListener meteorListener;
     private CodexManager codexManager;
     private CodexMainGUI codexGUI;
@@ -227,7 +229,8 @@ public class PluginBootstrap {
         configManager = new ConfigManager(plugin);
         cooldownManager = new CooldownManager(plugin, configManager, null);
         lootChestManager = new LootChestManager(plugin, configManager, cooldownManager, potionManager);
-        dmgNumberToggleManager = new DmgNumberToggleManager();
+        dmgNumberToggleManager = new PlayerToggleManager();
+        mobDebugToggleManager = new PlayerToggleManager();
         upgradeKey = new NamespacedKey(plugin, "upgrade_level");
         levelManager = new LevelManager(plugin);
         miningManager = new me.nakilex.levelplugin.player.mining.managers.MiningManager(plugin);
@@ -302,6 +305,7 @@ public class PluginBootstrap {
         horseManager = new HorseManager(horseConfigManager);
         HorseGUI horseGUI = new HorseGUI(horseManager, economyManager);
         settingsGUI = new SettingsGUI(settingsManager);
+        debugGUI = new me.nakilex.levelplugin.debug.gui.DebugGUI(mobDebugToggleManager, scoreboardManager);
         this.storageManager = new StorageManager();
         CommandRegistry.registerCommands(
             plugin,
@@ -320,7 +324,9 @@ public class PluginBootstrap {
             horseManager,
             storageManager,
             dmgNumberToggleManager,
+            mobDebugToggleManager,
             settingsGUI,
+            debugGUI,
             gemsManager,
             gemGui,
             auctionHouseManager,
@@ -345,8 +351,10 @@ public class PluginBootstrap {
             economyManager,
             mobRewardsConfig,
             dmgNumberToggleManager,
+            mobDebugToggleManager,
             pickupCustomItemListener,
             settingsGUI,
+            debugGUI,
             projectileFriendlyFireListener,
             bossConfig,
             meteorListener,
@@ -467,7 +475,8 @@ public class PluginBootstrap {
     public StorageManager getStorageManager() { return storageManager; }
     public ItemConfig getItemConfig() { return itemConfig; }
     public PlayerConfig getPlayerConfig() { return playerConfig; }
-    public DmgNumberToggleManager getDmgNumberToggleManager() { return dmgNumberToggleManager; }
+    public PlayerToggleManager getDmgNumberToggleManager() { return dmgNumberToggleManager; }
+    public PlayerToggleManager getMobDebugToggleManager() { return mobDebugToggleManager; }
     public ManaCostTracker getManaTracker() { return manaTracker; }
     public ProjectileFriendlyFireListener getProjectileFriendlyFireListener() { return projectileFriendlyFireListener; }
     public FileConfiguration getBossConfig() { return bossConfig; }
@@ -503,6 +512,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI getAuctionHouseGUI() { return auctionHouseGUI; }
     public SettingsManager getSettingsManager() { return settingsManager; }
     public SettingsGUI getSettingsGUI() { return settingsGUI; }
+    public me.nakilex.levelplugin.debug.gui.DebugGUI getDebugGUI() { return debugGUI; }
     public MeteorListener getMeteorListener() { return meteorListener; }
     public me.nakilex.levelplugin.cutscene.CutsceneManager getCutsceneManager() { return cutsceneManager; }
     public me.nakilex.levelplugin.calendar.CalendarManager getCalendarManager() { return calendarManager; }

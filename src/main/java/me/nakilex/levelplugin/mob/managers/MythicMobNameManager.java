@@ -12,6 +12,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
+import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 
 import java.io.File;
 import java.util.HashSet;
@@ -154,10 +155,10 @@ public class MythicMobNameManager implements Listener {
         double maxHP     = mob.getEntity().getMaxHealth();
 
         String rawType    = mob.getMobType();        // e.g. "KING_SLIME"
-        String prettyType = formatMobName(rawType);  // → "King Slime"
+        String prettyType = MobNameUtil.toPrettyName(rawType);  // → "King Slime"
 
-        // ─── normalize for lookup: uppercase with spaces
-        String lookupKey = prettyType.toUpperCase(); // → "KING SLIME"
+        // ─── normalize for lookup using the raw mob ID
+        String lookupKey = rawType.toUpperCase();
 
         // ─── if it's in your field_boss list, color yellow, otherwise white
         ChatColor nameColor = fieldBossKeys.contains(lookupKey)
@@ -170,20 +171,6 @@ public class MythicMobNameManager implements Listener {
 
         mob.getEntity().getBukkitEntity().setCustomName(displayName);
         mob.getEntity().getBukkitEntity().setCustomNameVisible(true);
-    }
-
-    /**
-     * Converts "RANCID_PIG_ZOMBIE" → "Rancid Pig Zombie"
-     */
-    private String formatMobName(String rawName) {
-        String[] parts = rawName.split("_");
-        for (int i = 0; i < parts.length; i++) {
-            String part = parts[i].toLowerCase();
-            if (!part.isEmpty()) {
-                parts[i] = part.substring(0, 1).toUpperCase() + part.substring(1);
-            }
-        }
-        return String.join(" ", parts);
     }
 
     private boolean shouldIgnoreMob(String mobType) {

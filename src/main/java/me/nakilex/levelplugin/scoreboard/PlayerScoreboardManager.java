@@ -105,6 +105,11 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         return enabled;
     }
 
+    /** Check if TPS display is enabled for the player. */
+    public boolean isTpsEnabled(Player player) {
+        return showTps.contains(player.getUniqueId());
+    }
+
     public void updateAll() {
         for (Player p : Bukkit.getOnlinePlayers()) {
             updateBoard(p);

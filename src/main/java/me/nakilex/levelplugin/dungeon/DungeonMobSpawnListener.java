@@ -44,9 +44,7 @@ public class DungeonMobSpawnListener implements Listener {
                     !player.getWorld().equals(dungeon.getRooms().get(0).center.getWorld())) continue;
             for (Dungeon.RoomInstance room : dungeon.getRooms()) {
                 if (triggered.contains(room)) continue;
-                if (room.bossSpawn != null && room.mob != null &&
-                        room.bossSpawn.getWorld().equals(player.getWorld()) &&
-                        room.bossSpawn.distanceSquared(to) <= 25 * 25) {
+                if (room.bossSpawn != null && room.mob != null && room.contains(to)) {
                     spawnBoss(room);
                     triggered.add(room);
                 } else if (room.mob != null && room.contains(to)) {
@@ -86,9 +84,14 @@ public class DungeonMobSpawnListener implements Listener {
         room.bossSpawn.getChunk().load();
         // clear the black wool marker beneath the spawn point
         room.bossSpawn.clone().add(0, -1, 0).getBlock().setType(Material.AIR, false);
-        var mob = MythicMobModifier.spawnModifiedMob(room.mob, room.bossSpawn, null, null, null, null);
+
+        String mobId = room.mob;
+        Main.getInstance().getLogger().info("[DungeonBoss] Attempting to spawn '" + mobId + "'");
+        var mob = MythicMobModifier.spawnModifiedMob(mobId, room.bossSpawn, null, null, null, null);
         if (mob != null) {
             mob.getEntity().getBukkitEntity().addScoreboardTag("dungeon_boss");
+        } else {
+            Main.getInstance().getLogger().warning("[DungeonBoss] MythicMob '" + mobId + "' could not be spawned");
         }
     }
 
@@ -98,7 +101,7 @@ public class DungeonMobSpawnListener implements Listener {
         if (entity == null || !entity.getScoreboardTags().contains("dungeon_boss")) return;
         Location loc = entity.getLocation();
         for (Dungeon dungeon : manager.getActiveDungeons()) {
-            if (dungeon.getRoomContaining(loc) != null) {
+            if (dungeon.getRoomContaining(loc) != null && !dungeon.isBossDefeated()) {
                 dungeon.setBossDefeated(true);
                 break;
             }
