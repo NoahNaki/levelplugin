@@ -66,9 +66,29 @@ public class MythicMobRewardListener implements Listener {
     public void onEntityDeath(EntityDeathEvent event) {
         ActiveMob mythicMob = mythicHelper.getMythicMobInstance(event.getEntity());
         if (mythicMob == null) return;
+
         String mobType = mythicMob.getMobType().replaceAll("§.", "");
-        if (!mobRewardsConfig.getConfig().contains("mobs." + mobType)) return;
+        Set<Player> participants = tracker.getParticipantsAndClear(event.getEntity().getUniqueId());
+        if (participants.isEmpty() && event.getEntity().getKiller() instanceof Player killer) {
+            participants = Set.of(killer);
+        }
+        if (participants.isEmpty()) {
+            participants = Collections.emptySet();
+        }
+
         ConfigurationSection node = mobRewardsConfig.getConfig().getConfigurationSection("mobs." + mobType);
+        if (node == null) {
+            for (Player player : participants) {
+                if (debugToggle.isEnabled(player)) {
+                    String display = mythicMob.getType().getDisplayName().orElse(mobType);
+                    player.sendMessage(ChatColor.YELLOW + "[MobDebug] ID: " + mobType
+                            + ChatColor.GRAY + " Display: " + ChatColor.WHITE + display);
+                    player.sendMessage(ChatColor.RED + "[MobDebug] No rewards configured");
+                }
+            }
+            return;
+        }
+
         int exp = node.getInt("exp", 0);
         String coinsSpec = node.getString("coins", "0-0");
         int tier = node.getInt("tier", 0);
@@ -77,9 +97,6 @@ public class MythicMobRewardListener implements Listener {
         String[] sp = coinsSpec.split("-");
         int minCoins = Integer.parseInt(sp[0]);
         int maxCoins = Integer.parseInt(sp[1]);
-
-        Set<Player> participants = tracker.getParticipantsAndClear(event.getEntity().getUniqueId());
-        if (participants.isEmpty()) participants = Collections.emptySet();
 
         for (Player player : participants) {
             PartyManager pm = Main.getInstance().getPartyManager();
@@ -118,7 +135,7 @@ public class MythicMobRewardListener implements Listener {
                 player.sendMessage(ChatColor.DARK_AQUA + "Combat Power: " + ChatColor.AQUA + power);
             }
             if (debugToggle.isEnabled(player)) {
-                String display = mythicMob.getType().getDisplayName().get();
+                String display = mythicMob.getType().getDisplayName().orElse(mobType);
                 player.sendMessage(ChatColor.YELLOW + "[MobDebug] ID: " + mobType
                         + ChatColor.GRAY + " Display: " + ChatColor.WHITE + display);
                 player.sendMessage(ChatColor.YELLOW + "[MobDebug] Exp: " + awardedExp
