@@ -1,6 +1,6 @@
 package me.nakilex.levelplugin.dungeon;
 
-import io.lumine.mythic.bukkit.MythicBukkit;
+import io.lumine.mythic.bukkit.events.MythicMobDeathEvent;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.mob.utils.MythicMobModifier;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -11,7 +11,9 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Entity;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -38,17 +40,16 @@ public class DungeonMobSpawnListener implements Listener {
         if (to == null || (to.getBlockX() == from.getBlockX() && to.getBlockZ() == from.getBlockZ())) return;
 
         for (Dungeon dungeon : manager.getActiveDungeons()) {
-            if (!dungeon.getRooms().isEmpty() && !player.getWorld().equals(dungeon.getRooms().get(0).center.getWorld())) continue;
+            if (dungeon.getRooms().isEmpty() ||
+                    !player.getWorld().equals(dungeon.getRooms().get(0).center.getWorld())) continue;
             for (Dungeon.RoomInstance room : dungeon.getRooms()) {
                 if (triggered.contains(room)) continue;
-                if (room.bossSpawn != null && room.mob != null) {
-                    if (room.bossSpawn.getWorld().equals(to.getWorld()) && room.bossSpawn.distanceSquared(to) <= 40*40) {
-                        spawnBoss(room);
-                        triggered.add(room);
-                        continue;
-                    }
-                }
-                if (room.mob != null && room.contains(to)) {
+                if (room.bossSpawn != null && room.mob != null &&
+                        room.bossSpawn.getWorld().equals(player.getWorld()) &&
+                        room.bossSpawn.distanceSquared(to) <= 25 * 25) {
+                    spawnBoss(room);
+                    triggered.add(room);
+                } else if (room.mob != null && room.contains(to)) {
                     spawnConfiguredMobs(room);
                     triggered.add(room);
                 }
@@ -82,6 +83,25 @@ public class DungeonMobSpawnListener implements Listener {
     }
 
     private void spawnBoss(Dungeon.RoomInstance room) {
-        MythicMobModifier.spawnModifiedMob(room.mob, room.bossSpawn, null, null, null, null);
+        room.bossSpawn.getChunk().load();
+        // clear the black wool marker beneath the spawn point
+        room.bossSpawn.clone().add(0, -1, 0).getBlock().setType(Material.AIR, false);
+        var mob = MythicMobModifier.spawnModifiedMob(room.mob, room.bossSpawn, null, null, null, null);
+        if (mob != null) {
+            mob.getEntity().getBukkitEntity().addScoreboardTag("dungeon_boss");
+        }
+    }
+
+    @EventHandler
+    public void onBossDeath(MythicMobDeathEvent event) {
+        Entity entity = MythicMobModifier.toBukkitEntity(event.getEntity());
+        if (entity == null || !entity.getScoreboardTags().contains("dungeon_boss")) return;
+        Location loc = entity.getLocation();
+        for (Dungeon dungeon : manager.getActiveDungeons()) {
+            if (dungeon.getRoomContaining(loc) != null) {
+                dungeon.setBossDefeated(true);
+                break;
+            }
+        }
     }
 }

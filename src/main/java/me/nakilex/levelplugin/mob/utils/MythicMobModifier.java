@@ -4,6 +4,7 @@ import io.lumine.mythic.bukkit.MythicBukkit;
 import io.lumine.mythic.core.mobs.ActiveMob;
 import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 
 /**
@@ -80,4 +81,36 @@ private static Attribute resolve(String generic, String fallback) {
         }
     }
 }
+
+    /**
+     * Attempt to extract a Bukkit {@link Entity} from various MythicMobs
+     * wrapper objects. Supports both direct {@code Entity} instances and
+     * MythicMobs' adapter classes through reflection.
+     *
+     * @param obj possible MythicMobs entity wrapper
+     * @return underlying Bukkit entity or {@code null} if it cannot be resolved
+     */
+    public static Entity toBukkitEntity(Object obj) {
+        if (obj instanceof Entity e) return e;
+        if (obj == null) return null;
+
+        // Try obj.getBukkitEntity()
+        try {
+            Object bukkit = obj.getClass().getMethod("getBukkitEntity").invoke(obj);
+            if (bukkit instanceof Entity e) return e;
+        } catch (Exception ignored) {
+        }
+
+        // Try obj.getEntity().getBukkitEntity()
+        try {
+            Object inner = obj.getClass().getMethod("getEntity").invoke(obj);
+            if (inner != null) {
+                Object bukkit = inner.getClass().getMethod("getBukkitEntity").invoke(inner);
+                if (bukkit instanceof Entity e) return e;
+            }
+        } catch (Exception ignored) {
+        }
+
+        return null;
+    }
 }

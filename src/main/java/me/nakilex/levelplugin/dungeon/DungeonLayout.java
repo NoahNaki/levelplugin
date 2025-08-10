@@ -131,4 +131,13 @@ public class DungeonLayout {
         }
         return false;
     }
+
+    public boolean hasBoss() {
+        for (int x = 0; x < WIDTH; x++) {
+            for (int y = 0; y < HEIGHT; y++) {
+                if (grid[x][y] == RoomType.BOSS) return true;
+            }
+        }
+        return false;
+    }
 }

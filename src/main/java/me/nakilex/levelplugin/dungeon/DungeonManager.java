@@ -366,7 +366,8 @@ public class DungeonManager {
 
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
             Material mat = b.data.getMaterial();
-            if (mat == Material.REDSTONE_BLOCK || mat == Material.PINK_WOOL || mat == Material.LIME_WOOL) continue;
+            if (mat == Material.REDSTONE_BLOCK || mat == Material.PINK_WOOL
+                    || mat == Material.LIME_WOOL) continue;
             int[] vec = RoomTemplate.rotate(b.x - (int) Math.round(template.getCenterX()),
                     b.z - (int) Math.round(template.getCenterZ()), rotation);
             int wx = center.getBlockX() + vec[0];
@@ -394,7 +395,10 @@ public class DungeonManager {
             int wx = center.getBlockX() + vec[0];
             int wy = baseY + (template.getBossSpawn().y - connectorY);
             int wz = center.getBlockZ() + vec[1];
-            bossLoc = new Location(world, wx + 0.5, wy, wz + 0.5);
+            world.getBlockAt(wx, wy, wz).setType(Material.BLACK_WOOL, false);
+            // Spawn one block above the black wool marker so bosses stand on
+            // the floor rather than inside the placeholder block.
+            bossLoc = new Location(world, wx + 0.5, wy + 1, wz + 0.5);
         }
         // place nether portals and exit holograms
         for (RoomTemplate.Marker m : template.getPortals()) {
@@ -836,6 +840,7 @@ public class DungeonManager {
         final String layout;
         final Map<java.util.UUID, Location> returnLocations = new HashMap<>();
         final java.util.List<Integer> chestIds = new java.util.ArrayList<>();
+        org.bukkit.scheduler.BukkitTask removalTask;
         Instance(Dungeon d, String layout) { this.dungeon = d; this.layout = layout; }
     }
 
@@ -864,7 +869,7 @@ public class DungeonManager {
                 Location back = inst.returnLocations.remove(id);
                 if (back != null) {
                     Dungeon.RoomInstance room = inst.dungeon.getRoomContaining(player.getLocation());
-                    boolean completed = room != null && room.template == exit;
+                    boolean completed = room != null && room.template == exit && inst.dungeon.isBossDefeated();
                     if (completed) {
                         sendCompleteMessage(player, getDisplayName(inst.layout));
                     } else {
@@ -877,10 +882,24 @@ public class DungeonManager {
 
         @org.bukkit.event.EventHandler
         public void onQuit(org.bukkit.event.player.PlayerQuitEvent e) {
-            Instance inst = instances.get(e.getPlayer().getWorld());
+            World w = e.getPlayer().getWorld();
+            Instance inst = instances.get(w);
             if (inst == null) return;
-            inst.returnLocations.remove(e.getPlayer().getUniqueId());
-            checkInstance(e.getPlayer().getWorld());
+            if (w.getPlayers().size() <= 1) {
+                scheduleRemoval(w, inst);
+            }
+        }
+
+        @org.bukkit.event.EventHandler
+        public void onJoin(org.bukkit.event.player.PlayerJoinEvent e) {
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                World w = e.getPlayer().getWorld();
+                Instance inst = instances.get(w);
+                if (inst != null && inst.removalTask != null) {
+                    inst.removalTask.cancel();
+                    inst.removalTask = null;
+                }
+            }, 1L);
         }
 
         private void sendCompleteMessage(Player player, String layout) {
@@ -915,6 +934,24 @@ public class DungeonManager {
     private void removeWorld(World world) {
         Instance inst = instances.remove(world);
         if (inst != null) {
+            if (inst.removalTask != null) inst.removalTask.cancel();
+            me.nakilex.levelplugin.player.profile.ProfileManager pm =
+                    me.nakilex.levelplugin.player.profile.ProfileManager.getInstance();
+            me.nakilex.levelplugin.player.config.PlayerConfig cfg =
+                    Main.getInstance().getPlayerConfig();
+            for (var e : inst.returnLocations.entrySet()) {
+                java.util.UUID id = e.getKey();
+                Location back = e.getValue();
+                org.bukkit.entity.Player online = Bukkit.getPlayer(id);
+                if (online != null && online.isOnline()) {
+                    online.teleport(back);
+                }
+                Integer slot = pm.getActiveSlot(id);
+                if (slot != null) {
+                    cfg.setProfileLocation(id, slot, back);
+                    cfg.savePlayer(id);
+                }
+            }
             for (int id : inst.chestIds) {
                 lootChestManager.removeChest(id);
             }
@@ -923,15 +960,27 @@ public class DungeonManager {
         FileUtil.deleteDirectory(world.getWorldFolder());
     }
 
+    private void scheduleRemoval(World world, Instance inst) {
+        if (inst.removalTask != null) inst.removalTask.cancel();
+        inst.removalTask = plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (world.getPlayers().isEmpty()) {
+                removeWorld(world);
+            }
+        }, 5 * 60 * 20L);
+    }
+
     private void spawnLootChests(Dungeon dungeon, int tier, Instance inst) {
         for (Dungeon.RoomInstance r : dungeon.getRooms()) {
             for (Location l : r.chests) {
-                BlockData data = l.getBlock().getBlockData();
-                BlockFace face = BlockFace.NORTH;
-                if (data instanceof org.bukkit.block.data.Directional dir) {
-                    face = dir.getFacing();
+                if (!l.getChunk().isLoaded()) {
+                    l.getChunk().load();
                 }
-                int id = lootChestManager.createAndSpawnChest(l, tier, face);
+                BlockData data = l.getBlock().getBlockData();
+                BlockFace chestFace =
+                        data instanceof org.bukkit.block.data.Directional dir ? dir.getFacing() : BlockFace.NORTH;
+                l.getBlock().setType(Material.AIR, false);
+                Location spawn = l.clone();
+                int id = lootChestManager.createAndSpawnChest(spawn, tier, chestFace);
                 if (inst != null) inst.chestIds.add(id);
             }
         }

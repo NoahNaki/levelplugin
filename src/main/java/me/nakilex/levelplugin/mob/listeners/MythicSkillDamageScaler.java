@@ -18,17 +18,8 @@ public class MythicSkillDamageScaler implements Listener {
             .getCustomConfig().getBoolean("debug.mythic-skill-damage", false);
 
     private Player resolvePlayer(Object casterObj) {
-        if (casterObj == null) return null;
-        try {
-            // try: caster.getEntity().getBukkitEntity()
-            Object ent = casterObj.getClass().getMethod("getEntity").invoke(casterObj);
-            if (ent != null) {
-                Object bukkit = ent.getClass().getMethod("getBukkitEntity").invoke(ent);
-                if (bukkit instanceof Player p) return p;
-            }
-        } catch (Exception ignore) {
-        }
-        return null;
+        var entity = me.nakilex.levelplugin.mob.utils.MythicMobModifier.toBukkitEntity(casterObj);
+        return entity instanceof Player p ? p : null;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)

@@ -406,6 +406,7 @@ public class PluginBootstrap {
         if (lootChestManager != null) lootChestManager.removeAllChests();
         if (dungeonManager != null) {
             dungeonManager.cleanupInstances();
+            dungeonManager.cleanupOldInstanceWorlds();
             dungeonManager.saveLayoutsSync();
             dungeonManager.getBuilder().cancelAll();
         }

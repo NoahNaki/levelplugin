@@ -13,6 +13,7 @@ import me.nakilex.levelplugin.friend.UnignoreCommand;
 import me.nakilex.levelplugin.horse.commands.HorseCommand;
 import me.nakilex.levelplugin.horse.gui.HorseGUI;
 import me.nakilex.levelplugin.items.commands.AddItemCommand;
+import me.nakilex.levelplugin.items.commands.OpSwordCommand;
 import me.nakilex.levelplugin.merchants.commands.MerchantCommand;
 import me.nakilex.levelplugin.mob.commands.DmgChatCommand;
 import me.nakilex.levelplugin.mob.commands.DmgNumberCommand;
@@ -110,6 +111,7 @@ public class CommandRegistry {
         plugin.getCommand("setmininglevel").setExecutor(new me.nakilex.levelplugin.player.mining.commands.SetMiningLevelCommand(miningManager));
         plugin.getCommand("stats").setExecutor(new StatsCommand());
         plugin.getCommand("additem").setExecutor(new AddItemCommand());
+        plugin.getCommand("opsword").setExecutor(new OpSwordCommand());
         plugin.getCommand("genitem").setExecutor(new me.nakilex.levelplugin.items.commands.GenerateItemCommand());
         plugin.getCommand("setlevel").setExecutor(new SetLevelCommand(plugin));
         plugin.getCommand("class").setExecutor(new ClassCommand());

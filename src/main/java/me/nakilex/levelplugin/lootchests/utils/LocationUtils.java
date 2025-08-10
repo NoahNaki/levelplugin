@@ -92,6 +92,21 @@ public class LocationUtils {
     }
 
     /**
+     * Returns a new Location centered within the block that contains the
+     * provided location. Useful when spawning entities that should sit in
+     * the middle of a block rather than at its corner.
+     *
+     * @param location any world position
+     * @return centered location (block coordinates + 0.5 on X/Z) or null if the input is null
+     */
+    public static Location centerOnBlock(Location location) {
+        if (location == null) {
+            return null;
+        }
+        return location.getBlock().getLocation().add(0.5, 0, 0.5);
+    }
+
+    /**
      * Adjust a location so it sits just above the highest solid block
      * at the given X/Z coordinates. Useful for spawning entities so they
      * don't appear underground.
