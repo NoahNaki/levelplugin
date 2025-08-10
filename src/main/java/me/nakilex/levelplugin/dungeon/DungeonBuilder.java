@@ -15,7 +15,6 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -351,7 +350,7 @@ public class DungeonBuilder implements Listener {
                     player.openInventory(createRoomSelect());
                     return;
                 }
-                s.selectedMob = MobNameUtil.toInternalName(name);
+                s.selectedMob = name;
                 if (s.selectedTemplate != null) {
                     placeVariant(s, s.selectedTemplate);
                     player.closeInventory();

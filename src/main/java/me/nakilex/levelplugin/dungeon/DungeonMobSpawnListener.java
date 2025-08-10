@@ -3,7 +3,6 @@ package me.nakilex.levelplugin.dungeon;
 import io.lumine.mythic.bukkit.events.MythicMobDeathEvent;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.mob.utils.MythicMobModifier;
-import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -86,7 +85,7 @@ public class DungeonMobSpawnListener implements Listener {
         // clear the black wool marker beneath the spawn point
         room.bossSpawn.clone().add(0, -1, 0).getBlock().setType(Material.AIR, false);
 
-        String mobId = MobNameUtil.toInternalName(room.mob);
+        String mobId = room.mob;
         Main.getInstance().getLogger().info("[DungeonBoss] Attempting to spawn '" + mobId + "'");
         var mob = MythicMobModifier.spawnModifiedMob(mobId, room.bossSpawn, null, null, null, null);
         if (mob != null) {

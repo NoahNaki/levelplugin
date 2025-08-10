@@ -157,8 +157,8 @@ public class MythicMobNameManager implements Listener {
         String rawType    = mob.getMobType();        // e.g. "KING_SLIME"
         String prettyType = MobNameUtil.toPrettyName(rawType);  // → "King Slime"
 
-        // ─── normalize for lookup: uppercase with spaces
-        String lookupKey = prettyType.toUpperCase(); // → "KING SLIME"
+        // ─── normalize for lookup using the raw mob ID
+        String lookupKey = rawType.toUpperCase();
 
         // ─── if it's in your field_boss list, color yellow, otherwise white
         ChatColor nameColor = fieldBossKeys.contains(lookupKey)

@@ -22,14 +22,4 @@ public final class MobNameUtil {
         return String.join(" ", parts);
     }
 
-    /**
-     * Convert a display name like "Dark Knight" into a MythicMob ID "DARK_KNIGHT".
-     *
-     * @param display display name from config or inventory
-     * @return normalized MythicMob internal name
-     */
-    public static String toInternalName(String display) {
-        if (display == null) return null;
-        return display.trim().replace(' ', '_').toUpperCase();
-    }
 }
