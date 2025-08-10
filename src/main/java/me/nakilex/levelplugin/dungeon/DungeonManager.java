@@ -740,8 +740,6 @@ public class DungeonManager {
                     cancel();
                     player.sendMessage(ChatColor.GRAY + "[Debug] Pasted rooms in "
                             + (System.currentTimeMillis() - pasteStart) + "ms");
-                    int tier = getThreatLevel(keyName);
-                    spawnLootChests(dungeon, tier, inst);
 
                     // restore player states once world is ready
                     for (Player p : participants) {
@@ -798,7 +796,6 @@ public class DungeonManager {
                 pasteRoom(dungeon, templ, rotation, center, mob, false);
             }
         }
-        spawnLootChests(dungeon, getThreatLevel(key), null);
         dungeons.put(key, dungeon);
         player.sendMessage(ChatColor.GRAY + "[Debug] Spawned in "
                 + (System.currentTimeMillis() - debugStart) + "ms");
@@ -992,6 +989,18 @@ public class DungeonManager {
                 removeWorld(world);
             }
         }, 5 * 60 * 20L);
+    }
+
+    /**
+     * Spawn loot chests for a dungeon after the boss has been defeated.
+     * Chest IDs are tracked for instance worlds so they can be cleaned up
+     * when the dungeon is removed.
+     */
+    public void spawnLootChests(Dungeon dungeon) {
+        int tier = getThreatLevel(dungeon.getName());
+        World world = dungeon.getRooms().isEmpty() ? null : dungeon.getRooms().get(0).center.getWorld();
+        Instance inst = world == null ? null : instances.get(world);
+        spawnLootChests(dungeon, tier, inst);
     }
 
     private void spawnLootChests(Dungeon dungeon, int tier, Instance inst) {

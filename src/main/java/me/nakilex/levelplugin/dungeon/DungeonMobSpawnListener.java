@@ -96,8 +96,9 @@ public class DungeonMobSpawnListener implements Listener {
         if (entity == null || !entity.getScoreboardTags().contains("dungeon_boss")) return;
         Location loc = entity.getLocation();
         for (Dungeon dungeon : manager.getActiveDungeons()) {
-            if (dungeon.getRoomContaining(loc) != null) {
+            if (dungeon.getRoomContaining(loc) != null && !dungeon.isBossDefeated()) {
                 dungeon.setBossDefeated(true);
+                manager.spawnLootChests(dungeon);
                 break;
             }
         }
