@@ -190,7 +190,7 @@ commands:
     usage: /enchant
   debug:
     description: Toggle debug features
-    usage: /debug <mobinfo|tps|nexoscan>
+    usage: /debug <mobinfo|tps>
   motd:
     description: Reload or preview the server MOTD
     usage: /motd <reload|preview>

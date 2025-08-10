@@ -64,7 +64,6 @@ import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.fasttravel.commands.LocationCommand;
 import me.nakilex.levelplugin.fasttravel.commands.FastTravelCommand;
 import me.nakilex.levelplugin.fasttravel.FastTravelManager;
-import me.nakilex.levelplugin.debug.commands.NexoScanCommand;
 import me.nakilex.levelplugin.environment.TownCommand;
 import me.nakilex.levelplugin.environment.UpgradeGUI;
 import me.nakilex.levelplugin.environment.stage.TownStageCommand;
@@ -156,7 +155,7 @@ public class CommandRegistry {
         plugin.getCommand("wipeprofile").setExecutor(new WipeProfileCommand());
 
         DebugCommand debugCmd = new DebugCommand(mobDebugToggleManager,
-                plugin.getScoreboardManager(), new NexoScanCommand());
+                plugin.getScoreboardManager());
         plugin.getCommand("debug").setExecutor(debugCmd);
         plugin.getCommand("debug").setTabCompleter(debugCmd);
         plugin.getCommand("motd").setExecutor(new me.nakilex.levelplugin.motd.MotdCommand(motdManager));
