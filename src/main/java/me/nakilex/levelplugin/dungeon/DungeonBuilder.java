@@ -109,7 +109,7 @@ public class DungeonBuilder implements Listener {
                 s.connectors.put(info.interaction.getEntityId(), info);
                 added.add(info);
             }
-            s.history.push(new History(null, added, result.instance(), result.replaced()));
+            s.history.addLast(new History(null, added, result.instance(), result.replaced()));
         }
 
         for (int x = 0; x < DungeonLayout.WIDTH; x++) {
@@ -144,7 +144,7 @@ public class DungeonBuilder implements Listener {
                     s.connectors.put(info.interaction.getEntityId(), info);
                     added.add(info);
                 }
-                s.history.push(new History(null, added, result.instance(), result.replaced()));
+                s.history.addLast(new History(null, added, result.instance(), result.replaced()));
             }
         }
 
@@ -233,7 +233,7 @@ public class DungeonBuilder implements Listener {
             player.sendMessage(ChatColor.RED + "Cannot place entrance here.");
             return;
         }
-        s.history.push(new History(null, spawnConnectors(s, loc, entrance, rot, null),
+        s.history.addLast(new History(null, spawnConnectors(s, loc, entrance, rot, null),
                 result.instance(), result.replaced()));
         s.placingEntrance = false;
         player.sendMessage(ChatColor.GREEN + "Entrance placed. Use holograms to add rooms.");
@@ -503,7 +503,7 @@ public class DungeonBuilder implements Listener {
         }
         removeConnector(s, info);
         List<ConnectorInfo> added = spawnConnectors(s, center, templ, rotation, info);
-        s.history.push(new History(info, added, result.instance(), result.replaced()));
+        s.history.addLast(new History(info, added, result.instance(), result.replaced()));
     }
 
     private List<ConnectorInfo> spawnConnectors(Session s, Location center, RoomTemplate templ, int rotation, ConnectorInfo used) {
@@ -693,7 +693,7 @@ public class DungeonBuilder implements Listener {
             this.dungeon = new Dungeon(player.getWorld(), player.getName() + "_builder");
         }
         void undo() {
-            History h = history.pollFirst();
+            History h = history.pollLast();
             if (h == null) return;
             World world = h.instance.center.getWorld();
             for (Map.Entry<Location, BlockData> e : h.replaced.entrySet()) {

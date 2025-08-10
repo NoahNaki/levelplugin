@@ -44,9 +44,7 @@ public class DungeonMobSpawnListener implements Listener {
                     !player.getWorld().equals(dungeon.getRooms().get(0).center.getWorld())) continue;
             for (Dungeon.RoomInstance room : dungeon.getRooms()) {
                 if (triggered.contains(room)) continue;
-                if (room.bossSpawn != null && room.mob != null &&
-                        room.bossSpawn.getWorld().equals(player.getWorld()) &&
-                        room.bossSpawn.distanceSquared(to) <= 25 * 25) {
+                if (room.bossSpawn != null && room.mob != null && room.contains(to)) {
                     spawnBoss(room);
                     triggered.add(room);
                 } else if (room.mob != null && room.contains(to)) {
