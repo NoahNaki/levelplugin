@@ -84,9 +84,13 @@ public class DungeonMobSpawnListener implements Listener {
         room.bossSpawn.getChunk().load();
         // clear the black wool marker beneath the spawn point
         room.bossSpawn.clone().add(0, -1, 0).getBlock().setType(Material.AIR, false);
+
+        Main.getInstance().getLogger().info("[DungeonBoss] Attempting to spawn '" + room.mob + "'");
         var mob = MythicMobModifier.spawnModifiedMob(room.mob, room.bossSpawn, null, null, null, null);
         if (mob != null) {
             mob.getEntity().getBukkitEntity().addScoreboardTag("dungeon_boss");
+        } else {
+            Main.getInstance().getLogger().warning("[DungeonBoss] MythicMob '" + room.mob + "' could not be spawned");
         }
     }
 
