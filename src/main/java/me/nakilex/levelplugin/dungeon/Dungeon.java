@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.dungeon;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.Material;
+import org.bukkit.block.BlockFace;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,13 +18,13 @@ public class Dungeon {
         public final Location center;
         public final int minX, minY, minZ, maxX, maxY, maxZ;
         public final String mob;
-        public final java.util.List<Location> chests;
+        public final java.util.List<Chest> chests;
         public final Location bossSpawn;
         public RoomInstance(RoomTemplate template, int rotation, Location center,
                             int minX, int minY, int minZ,
                             int maxX, int maxY, int maxZ,
                             String mob,
-                            java.util.List<Location> chests,
+                            java.util.List<Chest> chests,
                             Location bossSpawn) {
             this.template = template;
             this.rotation = rotation;
@@ -49,6 +50,9 @@ public class Dungeon {
                 && z >= minZ && z <= maxZ;
         }
     }
+
+    /** Location and facing for a loot chest spawn point. */
+    public static record Chest(Location loc, BlockFace facing) {}
 
     private final World world;
     private final String name;

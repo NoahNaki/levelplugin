@@ -54,23 +54,37 @@ public class RoomTemplate {
         }
     }
 
+    /** Marker used for loot chest placeholders. */
+    public static class ChestMarker {
+        public final int x, y, z;
+        public final BlockData data;
+        public ChestMarker(int x, int y, int z, BlockData data) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.data = data;
+        }
+    }
+
     private final List<BlockDef> blocks;
     private final List<Connector> connectors;
     private final List<Marker> portals;
     private final List<Marker> exits;
     private final Marker bossSpawn;
+    private final List<ChestMarker> chests;
     private final int width, height, depth;
     private final int minY;
     private final int connectorMinY;
     private final double centerX, centerZ;
 
     public RoomTemplate(List<BlockDef> blocks, List<Connector> connectors,
-                        List<Marker> portals, List<Marker> exits, Marker bossSpawn,
-                        int width, int height, int depth, int minY) {
+                        List<Marker> portals, List<Marker> exits, List<ChestMarker> chests,
+                        Marker bossSpawn, int width, int height, int depth, int minY) {
         this.blocks = blocks;
         this.connectors = connectors;
         this.portals = portals;
         this.exits = exits;
+        this.chests = chests;
         this.bossSpawn = bossSpawn;
         this.width = width;
         this.height = height;
@@ -95,6 +109,7 @@ public class RoomTemplate {
     public List<Marker> getPortals() { return portals; }
     public List<Marker> getExitMarkers() { return exits; }
     public Marker getBossSpawn() { return bossSpawn; }
+    public List<ChestMarker> getChests() { return chests; }
 
     /**
      * Rotate a 2D X/Z vector around the template center.
@@ -132,6 +147,7 @@ public class RoomTemplate {
         List<Marker> portalMarks = new ArrayList<>();
         List<Marker> exitMarks = new ArrayList<>();
         Marker bossMark = null;
+        List<ChestMarker> chestMarks = new ArrayList<>();
 
         for (int x = minX; x <= maxX; x++) {
             for (int y = minY; y <= maxY; y++) {
@@ -151,6 +167,8 @@ public class RoomTemplate {
                             exitMarks.add(new Marker(x - minX, y - minY, z - minZ));
                         } else if (mat == Material.BLACK_WOOL) {
                             bossMark = new Marker(x - minX, y - minY, z - minZ);
+                        } else if (mat == Material.CHEST || mat == Material.TRAPPED_CHEST) {
+                            chestMarks.add(new ChestMarker(x - minX, y - minY, z - minZ, data));
                         } else {
                             blocks.add(new BlockDef(x - minX, y - minY, z - minZ, data, profile));
                             if (mat == Material.REDSTONE_BLOCK || mat == Material.PINK_WOOL) {
@@ -210,7 +228,7 @@ public class RoomTemplate {
             connectors.add(new Connector(cx, cz, minGroupY - minY, dir, entrance));
         }
 
-        return new RoomTemplate(blocks, connectors, portalMarks, exitMarks, bossMark, width, height, depth, minY);
+        return new RoomTemplate(blocks, connectors, portalMarks, exitMarks, chestMarks, bossMark, width, height, depth, minY);
     }
 
     /**
