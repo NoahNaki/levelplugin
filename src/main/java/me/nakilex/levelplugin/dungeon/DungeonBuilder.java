@@ -21,6 +21,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.HeadUtil;
+import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 
 import java.util.*;
 import java.awt.Point;
@@ -264,7 +265,9 @@ public class DungeonBuilder implements Listener {
         event.setCancelled(true);
         ItemStack item = event.getCurrentItem();
         if (item == null || !item.hasItemMeta()) return;
-        String name = ChatColor.stripColor(item.getItemMeta().getDisplayName());
+        ItemMeta meta = item.getItemMeta();
+        String name = ChatColor.stripColor(meta.getDisplayName());
+        String id = meta.getLocalizedName();
 
         switch (rawTitle) {
             case "Select Room" -> {
@@ -338,7 +341,7 @@ public class DungeonBuilder implements Listener {
                     player.openInventory(createCombatVariantSelect());
                     return;
                 }
-                s.selectedMob = name;
+                s.selectedMob = (id != null && !id.isEmpty()) ? id : name;
                 if (s.selectedTemplate != null) {
                     placeVariant(s, s.selectedTemplate);
                     player.closeInventory();
@@ -350,7 +353,7 @@ public class DungeonBuilder implements Listener {
                     player.openInventory(createRoomSelect());
                     return;
                 }
-                s.selectedMob = name;
+                s.selectedMob = (id != null && !id.isEmpty()) ? id : name;
                 if (s.selectedTemplate != null) {
                     placeVariant(s, s.selectedTemplate);
                     player.closeInventory();
@@ -620,7 +623,10 @@ public class DungeonBuilder implements Listener {
         for (String m : mobs) {
             ItemStack is = new ItemStack(Material.PAPER);
             ItemMeta im = is.getItemMeta();
-            if (im != null) im.setDisplayName(ChatColor.WHITE + m);
+            if (im != null) {
+                im.setDisplayName(ChatColor.WHITE + MobNameUtil.getDisplayName(m));
+                im.setLocalizedName(m);
+            }
             is.setItemMeta(im);
             inv.setItem(idx++, is);
         }
