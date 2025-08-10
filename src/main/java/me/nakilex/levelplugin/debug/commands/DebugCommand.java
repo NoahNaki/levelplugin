@@ -1,6 +1,5 @@
 package me.nakilex.levelplugin.debug.commands;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -67,9 +66,7 @@ public class DebugCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> subs = new ArrayList<>();
-            subs.add("mobinfo");
-            subs.add("tps");
+            List<String> subs = List.of("mobinfo", "tps");
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
                     .toList();
