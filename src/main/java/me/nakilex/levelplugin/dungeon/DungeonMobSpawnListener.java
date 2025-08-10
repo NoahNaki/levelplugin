@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.dungeon;
 import io.lumine.mythic.bukkit.events.MythicMobDeathEvent;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.mob.utils.MythicMobModifier;
+import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -85,12 +86,13 @@ public class DungeonMobSpawnListener implements Listener {
         // clear the black wool marker beneath the spawn point
         room.bossSpawn.clone().add(0, -1, 0).getBlock().setType(Material.AIR, false);
 
-        Main.getInstance().getLogger().info("[DungeonBoss] Attempting to spawn '" + room.mob + "'");
-        var mob = MythicMobModifier.spawnModifiedMob(room.mob, room.bossSpawn, null, null, null, null);
+        String mobId = MobNameUtil.toInternalName(room.mob);
+        Main.getInstance().getLogger().info("[DungeonBoss] Attempting to spawn '" + mobId + "'");
+        var mob = MythicMobModifier.spawnModifiedMob(mobId, room.bossSpawn, null, null, null, null);
         if (mob != null) {
             mob.getEntity().getBukkitEntity().addScoreboardTag("dungeon_boss");
         } else {
-            Main.getInstance().getLogger().warning("[DungeonBoss] MythicMob '" + room.mob + "' could not be spawned");
+            Main.getInstance().getLogger().warning("[DungeonBoss] MythicMob '" + mobId + "' could not be spawned");
         }
     }
 
