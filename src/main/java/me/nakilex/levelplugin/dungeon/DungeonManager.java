@@ -360,8 +360,22 @@ public class DungeonManager {
             }
         }
 
+        for (RoomTemplate.ChestMarker c : template.getChests()) {
+            int[] vec = RoomTemplate.rotate(c.x - (int) Math.round(template.getCenterX()),
+                    c.z - (int) Math.round(template.getCenterZ()), rotation);
+            int wx = center.getBlockX() + vec[0];
+            int wy = baseY + (c.y - connectorY);
+            int wz = center.getBlockZ() + vec[1];
+            if (wx < minX) minX = wx;
+            if (wy < minY) minY = wy;
+            if (wz < minZ) minZ = wz;
+            if (wx > maxX) maxX = wx;
+            if (wy > maxY) maxY = wy;
+            if (wz > maxZ) maxZ = wz;
+        }
+
         Map<Location, BlockData> replaced = preview ? new HashMap<>() : Map.of();
-        java.util.List<Location> chestLocs = new java.util.ArrayList<>();
+        java.util.List<Dungeon.Chest> chestLocs = new java.util.ArrayList<>();
         Location bossLoc = null;
 
         for (RoomTemplate.BlockDef b : template.getBlocks()) {
@@ -377,10 +391,6 @@ public class DungeonManager {
             if (preview) replaced.put(l, world.getBlockAt(wx, wy, wz).getBlockData());
             BlockData data = RoomTemplate.rotateBlockData(b.data, rotation);
             world.getBlockAt(wx, wy, wz).setBlockData(data, false);
-            Material placed = data.getMaterial();
-            if (placed == Material.CHEST || placed == Material.TRAPPED_CHEST) {
-                chestLocs.add(l);
-            }
             if (b.profile != null) {
                 var state = world.getBlockAt(wx, wy, wz).getState();
                 if (state instanceof Skull skull) {
@@ -388,6 +398,19 @@ public class DungeonManager {
                     skull.update(false, false);
                 }
             }
+        }
+
+        for (RoomTemplate.ChestMarker c : template.getChests()) {
+            int[] vec = RoomTemplate.rotate(c.x - (int) Math.round(template.getCenterX()),
+                    c.z - (int) Math.round(template.getCenterZ()), rotation);
+            int wx = center.getBlockX() + vec[0];
+            int wy = baseY + (c.y - connectorY);
+            int wz = center.getBlockZ() + vec[1];
+            Location l = new Location(world, wx, wy, wz);
+            BlockData rotated = RoomTemplate.rotateBlockData(c.data, rotation);
+            BlockFace face = rotated instanceof org.bukkit.block.data.Directional dir ? dir.getFacing() : BlockFace.NORTH;
+            chestLocs.add(new Dungeon.Chest(l, face));
+            world.getBlockAt(wx, wy, wz).setType(Material.AIR, false);
         }
         if (template.getBossSpawn() != null) {
             int[] vec = RoomTemplate.rotate(template.getBossSpawn().x - (int) Math.round(template.getCenterX()),
@@ -831,8 +854,8 @@ public class DungeonManager {
         for (RoomTemplate.Connector c : src.getConnectors()) {
             list.add(new RoomTemplate.Connector(c.x, c.z, c.bottomY, c.facing, !c.entrance));
         }
-        return new RoomTemplate(src.getBlocks(), list, src.getPortals(), src.getExitMarkers(), src.getBossSpawn(),
-                src.getWidth(), src.getHeight(), src.getDepth(), src.getMinY());
+        return new RoomTemplate(src.getBlocks(), list, src.getPortals(), src.getExitMarkers(), src.getChests(),
+                src.getBossSpawn(), src.getWidth(), src.getHeight(), src.getDepth(), src.getMinY());
     }
 
     private static class Instance {
@@ -971,16 +994,13 @@ public class DungeonManager {
 
     private void spawnLootChests(Dungeon dungeon, int tier, Instance inst) {
         for (Dungeon.RoomInstance r : dungeon.getRooms()) {
-            for (Location l : r.chests) {
+            for (Dungeon.Chest c : r.chests) {
+                Location l = c.loc();
                 if (!l.getChunk().isLoaded()) {
                     l.getChunk().load();
                 }
-                BlockData data = l.getBlock().getBlockData();
-                BlockFace chestFace =
-                        data instanceof org.bukkit.block.data.Directional dir ? dir.getFacing() : BlockFace.NORTH;
                 l.getBlock().setType(Material.AIR, false);
-                Location spawn = l.clone();
-                int id = lootChestManager.createAndSpawnChest(spawn, tier, chestFace);
+                int id = lootChestManager.createAndSpawnChest(l.clone(), tier, c.facing());
                 if (inst != null) inst.chestIds.add(id);
             }
         }
