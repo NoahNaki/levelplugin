@@ -418,6 +418,8 @@ public class DungeonManager {
             int wx = center.getBlockX() + vec[0];
             int wy = baseY + (template.getBossSpawn().y - connectorY);
             int wz = center.getBlockZ() + vec[1];
+            Location l = new Location(world, wx, wy, wz);
+            if (preview) replaced.put(l, world.getBlockAt(wx, wy, wz).getBlockData());
             world.getBlockAt(wx, wy, wz).setType(Material.BLACK_WOOL, false);
             // Spawn one block above the black wool marker so bosses stand on
             // the floor rather than inside the placeholder block.
@@ -738,8 +740,8 @@ public class DungeonManager {
                     cancel();
                     player.sendMessage(ChatColor.GRAY + "[Debug] Pasted rooms in "
                             + (System.currentTimeMillis() - pasteStart) + "ms");
-                    int tier = getThreatLevel(keyName);
-                    spawnLootChests(dungeon, tier, inst);
+
+                    spawnLootChests(dungeon);
 
                     // restore player states once world is ready
                     for (Player p : participants) {
@@ -796,8 +798,8 @@ public class DungeonManager {
                 pasteRoom(dungeon, templ, rotation, center, mob, false);
             }
         }
-        spawnLootChests(dungeon, getThreatLevel(key), null);
         dungeons.put(key, dungeon);
+        spawnLootChests(dungeon);
         player.sendMessage(ChatColor.GRAY + "[Debug] Spawned in "
                 + (System.currentTimeMillis() - debugStart) + "ms");
         return true;
@@ -990,6 +992,18 @@ public class DungeonManager {
                 removeWorld(world);
             }
         }, 5 * 60 * 20L);
+    }
+
+    /**
+     * Spawn loot chests for a dungeon when it is created.
+     * Chest IDs are tracked for instance worlds so they can be cleaned up
+     * when the dungeon is removed.
+     */
+    public void spawnLootChests(Dungeon dungeon) {
+        int tier = getThreatLevel(dungeon.getName());
+        World world = dungeon.getRooms().isEmpty() ? null : dungeon.getRooms().get(0).center.getWorld();
+        Instance inst = world == null ? null : instances.get(world);
+        spawnLootChests(dungeon, tier, inst);
     }
 
     private void spawnLootChests(Dungeon dungeon, int tier, Instance inst) {

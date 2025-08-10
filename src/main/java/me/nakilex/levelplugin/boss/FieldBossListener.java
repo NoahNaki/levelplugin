@@ -9,11 +9,11 @@ import me.nakilex.levelplugin.economy.managers.GemsManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
-import org.bukkit.boss.BossBar;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -50,15 +50,11 @@ public class FieldBossListener implements Listener {
 
         if (cfg.isConfigurationSection("mobs")) {
             for (String key : cfg.getConfigurationSection("mobs").getKeys(false)) {
-                bossKeyMap.put(key.toLowerCase(Locale.ROOT), key);
+                bossKeyMap.put(key.toUpperCase(Locale.ROOT), key);
             }
         }
 
         Bukkit.getPluginManager().registerEvents(this, plugin);
-    }
-
-    private String stripTags(String s) {
-        return s.replaceAll("<[^>]+>", "").trim();
     }
 
     @EventHandler
@@ -71,10 +67,8 @@ public class FieldBossListener implements Listener {
             .getMythicMobInstance((LivingEntity) ent);
         if (mob == null) return;
 
-        String raw = mob.getType().getDisplayName().get();
-        String name = stripTags(raw).toLowerCase(Locale.ROOT);
-
-        String cfgKey = bossKeyMap.get(name);
+        String mobId = mob.getMobType().toUpperCase(Locale.ROOT);
+        String cfgKey = bossKeyMap.get(mobId);
         if (cfgKey == null) return;
 
         UUID bossId = ent.getUniqueId();
@@ -99,13 +93,11 @@ public class FieldBossListener implements Listener {
     @EventHandler
     public void onBossDeath(MythicMobDeathEvent ev) {
         // 1) Identify boss and fetch record
-        String raw             = ev.getMob().getType().getDisplayName().get();
-        String bossDisplayName = stripTags(raw);
-        String name            = bossDisplayName.toLowerCase(Locale.ROOT);
-        String cfgKey          = bossKeyMap.get(name);
+        String mobId = ev.getMob().getMobType().toUpperCase(Locale.ROOT);
+        String cfgKey = bossKeyMap.get(mobId);
         if (cfgKey == null) return;
 
-        // Uppercase boss name for the slain message
+        String bossDisplayName = ChatColor.stripColor(MobNameUtil.getDisplayName(mobId));
         final String bossNameUpper = bossDisplayName.toUpperCase(Locale.ROOT);
 
         UUID bossId = BukkitAdapter.adapt(ev.getEntity()).getUniqueId();

@@ -5,7 +5,7 @@ import me.nakilex.levelplugin.core.PluginBootstrap;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.items.config.ItemConfig;
 import me.nakilex.levelplugin.items.managers.ItemManager;
-import me.nakilex.levelplugin.mob.managers.DmgNumberToggleManager;
+import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.party.PartyGlowManager;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
@@ -93,7 +93,9 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.friend.FriendRequestListener getFriendRequestListener() { return bootstrap.getFriendRequestListener(); }
     public me.nakilex.levelplugin.mob.config.ModelSetManager getModelSetManager() { return bootstrap.getModelSetManager(); }
     public me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager getScoreboardManager() { return bootstrap.getScoreboardManager(); }
-    public DmgNumberToggleManager getDmgNumberToggleManager() { return bootstrap.getDmgNumberToggleManager(); }
+    public PlayerToggleManager getDmgNumberToggleManager() { return bootstrap.getDmgNumberToggleManager(); }
+
+    public PlayerToggleManager getMobDebugToggleManager() { return bootstrap.getMobDebugToggleManager(); }
     public me.nakilex.levelplugin.fasttravel.FastTravelManager getFastTravelManager() { return bootstrap.getFastTravelManager(); }
     public me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI getFastTravelGUI() { return bootstrap.getFastTravelGUI(); }
     public me.nakilex.levelplugin.motd.MotdManager getMotdManager() { return bootstrap.getMotdManager(); }

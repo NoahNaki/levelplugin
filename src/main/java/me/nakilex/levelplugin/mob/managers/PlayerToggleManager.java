@@ -7,15 +7,17 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Tracks which players have damage‑numbers turned ON.
+ * Generic per‑player toggle manager. Each instance represents a single
+ * feature toggle, mapping player UUIDs to whether that feature is enabled.
  */
-public class DmgNumberToggleManager {
+public class PlayerToggleManager {
 
     // Thread‑safe map of player UUID → enabled flag
     private final Map<UUID, Boolean> toggles = new ConcurrentHashMap<>();
 
     /**
-     * Is damage‑number enabled for this player?
+     * Check whether this feature is enabled for the player.
+     *
      * @param player the player to check
      * @return true if they’ve toggled it ON (default false)
      */
@@ -25,7 +27,8 @@ public class DmgNumberToggleManager {
 
     /**
      * Sets the enabled state.
-     * @param player the player
+     *
+     * @param player  the player
      * @param enabled true to turn ON, false to turn OFF
      */
     public void setEnabled(Player player, boolean enabled) {
@@ -34,6 +37,7 @@ public class DmgNumberToggleManager {
 
     /**
      * Flip the current state.
+     *
      * @param player the player
      * @return the new state (true = now enabled)
      */

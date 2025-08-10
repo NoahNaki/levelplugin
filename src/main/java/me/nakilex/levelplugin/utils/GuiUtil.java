@@ -3,8 +3,12 @@ package me.nakilex.levelplugin.utils;
 import com.nexomc.nexo.api.NexoItems;
 import com.nexomc.nexo.items.ItemBuilder;
 import org.bukkit.Material;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /** Utility helpers for basic GUI elements. */
 public final class GuiUtil {
@@ -31,6 +35,35 @@ public final class GuiUtil {
             item.setItemMeta(meta);
         }
         return item;
+    }
+
+    /**
+     * Create a standardized toggle item using check/cross Nexo icons and lore
+     * indicating the current enabled status.
+     *
+     * @param enabled whether the feature is enabled
+     * @param name    display name of the item
+     * @param extraLore optional additional lore lines (e.g. instructions)
+     * @return configured ItemStack representing the toggle state
+     */
+    public static ItemStack createToggleItem(boolean enabled, String name, String... extraLore) {
+        ItemStack base = getNexoItem(enabled ? "check" : "cross", name);
+        ItemMeta meta = base.getItemMeta();
+        if (meta != null) {
+            List<String> lore = new ArrayList<>();
+            lore.add(" ");
+            lore.add("§7Status: " + (enabled ? "§aEnabled" : "§cDisabled"));
+            if (extraLore != null && extraLore.length > 0) {
+                lore.add(" ");
+                for (String line : extraLore) {
+                    lore.add(line);
+                }
+            }
+            meta.setLore(lore);
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            base.setItemMeta(meta);
+        }
+        return base;
     }
 
     /**

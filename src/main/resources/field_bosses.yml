@@ -6,19 +6,19 @@ mobs:
     gems: 20
     tier: 4
 
-  KING SLIME:
+  KING_SLIME:
     exp: 4000
     coins: "2000-6000"
     gems: 60
     tier: 3
 
-  TERRACOTTA GENERAL:
+  TERRACOTTA_GENERAL:
     exp: 25000
     coins: "10000-25000"
     gems: 150
     tier: 4
 
-  ELF KING:
+  ELF_KING:
     exp: 45000
     coins: "35000-60000"
     gems: 450
@@ -28,6 +28,12 @@ mobs:
     exp: 60000
     coins: "60000-100000"
     gems: 900
+    tier: 6
+
+  DARK_KNIGHT:
+    exp: 55000
+    coins: "50000-90000"
+    gems: 700
     tier: 6
 
   AUXI:

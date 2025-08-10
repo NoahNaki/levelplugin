@@ -16,6 +16,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 
 import java.util.logging.Logger;
 
@@ -134,20 +135,6 @@ public class SpellUtils {
             // fallback if not a MythicMob
         }
         // fallback to vanilla name
-        return formatMobName(e.getType().name());
-    }
-
-    /**
-     * Converts names like "RANCID_PIG_ZOMBIE" into "Rancid Pig Zombie".
-     */
-    private static String formatMobName(String rawName) {
-        String[] parts = rawName.split("_");
-        for (int i = 0; i < parts.length; i++) {
-            String part = parts[i].toLowerCase();
-            if (!part.isEmpty()) {
-                parts[i] = Character.toUpperCase(part.charAt(0)) + part.substring(1);
-            }
-        }
-        return String.join(" ", parts);
+        return MobNameUtil.toPrettyName(e.getType().name());
     }
 }

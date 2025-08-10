@@ -18,7 +18,8 @@ import me.nakilex.levelplugin.merchants.commands.MerchantCommand;
 import me.nakilex.levelplugin.mob.commands.DmgChatCommand;
 import me.nakilex.levelplugin.mob.commands.DmgNumberCommand;
 import me.nakilex.levelplugin.mob.commands.ToggleCommand;
-import me.nakilex.levelplugin.mob.managers.DmgNumberToggleManager;
+import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
+import me.nakilex.levelplugin.debug.commands.DebugCommand;
 import me.nakilex.levelplugin.player.attributes.commands.AddPointsCommand;
 import me.nakilex.levelplugin.player.attributes.commands.StatsCommand;
 import me.nakilex.levelplugin.player.classes.commands.ClassCommand;
@@ -63,7 +64,6 @@ import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.fasttravel.commands.LocationCommand;
 import me.nakilex.levelplugin.fasttravel.commands.FastTravelCommand;
 import me.nakilex.levelplugin.fasttravel.FastTravelManager;
-import me.nakilex.levelplugin.debug.commands.NexoScanCommand;
 import me.nakilex.levelplugin.environment.TownCommand;
 import me.nakilex.levelplugin.environment.UpgradeGUI;
 import me.nakilex.levelplugin.environment.stage.TownStageCommand;
@@ -87,8 +87,10 @@ public class CommandRegistry {
                                         ConfigManager configManager,
                                         HorseManager horseManager,
                                         StorageManager storageManager,
-                                        DmgNumberToggleManager dmgToggleManager,
+                                        PlayerToggleManager dmgToggleManager,
+                                        PlayerToggleManager mobDebugToggleManager,
                                         SettingsGUI settingsGUI,
+                                        me.nakilex.levelplugin.debug.gui.DebugGUI debugGUI,
                                         GemsManager gemsManager,
                                         GemExchangeGUI gemGui,
                                         AuctionHouseManager auctionMgr,
@@ -143,15 +145,21 @@ public class CommandRegistry {
         plugin.getCommand("gems").setExecutor(new GemsBalanceCommand(gemsManager));
         plugin.getCommand("gemexchange").setExecutor(new GemExchangeCommand(gemGui));
         plugin.getCommand("tipsreload").setExecutor(new TipsReloadCommand(tipsCfg, broadcastMgr));
-        plugin.getCommand("toggle").setExecutor(new ToggleCommand(plugin));
-        plugin.getCommand("showtps").setExecutor(new me.nakilex.levelplugin.scoreboard.ShowTpsCommand(plugin.getScoreboardManager()));
+        ToggleCommand toggleCmd = new ToggleCommand(plugin);
+        plugin.getCommand("toggle").setExecutor(toggleCmd);
+        plugin.getCommand("toggle").setTabCompleter(toggleCmd);
         plugin.getCommand("auctionhouse").setExecutor(new AuctionCommand(auctionMgr, auctionGui));
         plugin.getCommand("quest").setExecutor(new QuestCommand(questManager));
         plugin.getCommand("location").setExecutor(new LocationCommand(fastTravelManager));
         plugin.getCommand("fasttravel").setExecutor(new FastTravelCommand(plugin.getFastTravelGUI()));
         plugin.getCommand("profile").setExecutor(new me.nakilex.levelplugin.player.commands.ProfileCommand());
         plugin.getCommand("wipeprofile").setExecutor(new WipeProfileCommand());
-        plugin.getCommand("nexoscan").setExecutor(new NexoScanCommand());
+
+        DebugCommand debugCmd = new DebugCommand(mobDebugToggleManager,
+                plugin.getScoreboardManager(),
+                debugGUI);
+        plugin.getCommand("debug").setExecutor(debugCmd);
+        plugin.getCommand("debug").setTabCompleter(debugCmd);
         plugin.getCommand("motd").setExecutor(new me.nakilex.levelplugin.motd.MotdCommand(motdManager));
         plugin.getCommand("fakegate").setExecutor(new me.nakilex.levelplugin.fakeblock.FakeGateCommand(plugin));
         plugin.getCommand("modelgate").setExecutor(new me.nakilex.levelplugin.fakeblock.ModelGateCommand(plugin));
