@@ -12,6 +12,7 @@ import me.nakilex.levelplugin.mob.utils.DropDisplayToggles;
 import me.nakilex.levelplugin.mob.utils.ItemDropper;
 import me.nakilex.levelplugin.mob.utils.RewardHologramUtil;
 import me.nakilex.levelplugin.mob.utils.CombatPowerUtil;
+import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.party.Party;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
@@ -42,13 +43,15 @@ public class MythicMobRewardListener implements Listener {
     private final ModelSetManager modelSetManager;
     private final MythicMobDamageTracker tracker;
     private final ItemDropper itemDropper;
+    private final PlayerToggleManager debugToggle;
 
     public MythicMobRewardListener(MythicMobDamageTracker tracker,
                                    MobRewardsConfig mobRewardsConfig,
                                    LevelManager levelManager,
                                    EconomyManager economyManager,
                                    LootChestManager lootChestManager,
-                                   ModelSetManager modelSetManager) {
+                                   ModelSetManager modelSetManager,
+                                   PlayerToggleManager debugToggle) {
         this.tracker = tracker;
         this.mobRewardsConfig = mobRewardsConfig;
         this.levelManager = levelManager;
@@ -56,6 +59,7 @@ public class MythicMobRewardListener implements Listener {
         this.lootChestManager = lootChestManager;
         this.modelSetManager = modelSetManager;
         this.itemDropper = new ItemDropper(levelManager, mobRewardsConfig, modelSetManager);
+        this.debugToggle = debugToggle;
     }
 
     @EventHandler
@@ -112,6 +116,13 @@ public class MythicMobRewardListener implements Listener {
                         + " §7and §f+" + coins + " <glyph:coins_icon> §6coins");
                 int power = CombatPowerUtil.getCombatPower(mythicMob);
                 player.sendMessage(ChatColor.DARK_AQUA + "Combat Power: " + ChatColor.AQUA + power);
+            }
+            if (debugToggle.isEnabled(player)) {
+                String display = mythicMob.getType().getDisplayName().get();
+                player.sendMessage(ChatColor.YELLOW + "[MobDebug] ID: " + mobType
+                        + ChatColor.GRAY + " Display: " + ChatColor.WHITE + display);
+                player.sendMessage(ChatColor.YELLOW + "[MobDebug] Exp: " + awardedExp
+                        + ChatColor.GRAY + ", Coins: " + coins);
             }
         }
     }

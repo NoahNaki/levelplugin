@@ -1,6 +1,6 @@
 package me.nakilex.levelplugin.mob.listeners;
 
-import me.nakilex.levelplugin.mob.managers.DmgNumberToggleManager;
+import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.utils.HologramUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -14,9 +14,9 @@ import org.bukkit.potion.PotionEffectType;
 
 public class DamageIndicatorListener implements Listener {
 
-    private final DmgNumberToggleManager toggleManager;
+    private final PlayerToggleManager toggleManager;
 
-    public DamageIndicatorListener(DmgNumberToggleManager toggleManager) {
+    public DamageIndicatorListener(PlayerToggleManager toggleManager) {
         this.toggleManager = toggleManager;
     }
 

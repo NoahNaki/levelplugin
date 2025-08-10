@@ -18,7 +18,7 @@ import me.nakilex.levelplugin.lootchests.listeners.LootChestShutdownListener;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.mob.listeners.*;
-import me.nakilex.levelplugin.mob.managers.DmgNumberToggleManager;
+import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.mob.managers.MythicMobNameManager;
 import me.nakilex.levelplugin.npc.listeners.NPCClickListener;
 import me.nakilex.levelplugin.npc.listeners.NPCCommandListener;
@@ -74,7 +74,8 @@ public class ListenerRegistry {
                                          PartyManager partyManager,
                                          EconomyManager economyManager,
                                          MobRewardsConfig mobRewardsConfig,
-                                         DmgNumberToggleManager dmgToggleManager,
+                                         PlayerToggleManager dmgToggleManager,
+                                         PlayerToggleManager mobDebugToggleManager,
                                          PickupCustomItemListener pickupCustomItemListener,
                                          SettingsGUI settingsGUI,
                                          ProjectileFriendlyFireListener projectileFriendlyFireListener,
@@ -112,7 +113,8 @@ public class ListenerRegistry {
                 plugin.getLevelManager(),
                 economyManager,
                 lootChestManager,
-                plugin.getModelSetManager()
+                plugin.getModelSetManager(),
+                mobDebugToggleManager
         ), plugin);
         pm.registerEvents(new me.nakilex.levelplugin.player.mining.listeners.OreMiningListener(plugin, plugin.getMiningRewardsConfig(), plugin.getMiningManager()), plugin);
         pm.registerEvents(new PlayerJoinListener(plugin.getLevelManager(), plugin.getMiningManager(), plugin.getPlayerConfig(), plugin.getEnvironmentManager()), plugin);

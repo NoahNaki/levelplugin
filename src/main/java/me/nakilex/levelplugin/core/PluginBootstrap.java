@@ -24,7 +24,7 @@ import me.nakilex.levelplugin.lootchests.listeners.ChestHologramListener;
 import me.nakilex.levelplugin.lootchests.managers.CooldownManager;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
-import me.nakilex.levelplugin.mob.managers.DmgNumberToggleManager;
+import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.party.PartyGlowManager;
 import me.nakilex.levelplugin.friend.FriendManager;
@@ -118,7 +118,8 @@ public class PluginBootstrap {
     private StorageManager storageManager;
     private ItemConfig itemConfig;
     private PlayerConfig playerConfig;
-    private DmgNumberToggleManager dmgNumberToggleManager;
+    private PlayerToggleManager dmgNumberToggleManager;
+    private PlayerToggleManager mobDebugToggleManager;
     private ManaCostTracker manaTracker;
     private ProjectileFriendlyFireListener projectileFriendlyFireListener;
     private FileConfiguration bossConfig;
@@ -227,7 +228,8 @@ public class PluginBootstrap {
         configManager = new ConfigManager(plugin);
         cooldownManager = new CooldownManager(plugin, configManager, null);
         lootChestManager = new LootChestManager(plugin, configManager, cooldownManager, potionManager);
-        dmgNumberToggleManager = new DmgNumberToggleManager();
+        dmgNumberToggleManager = new PlayerToggleManager();
+        mobDebugToggleManager = new PlayerToggleManager();
         upgradeKey = new NamespacedKey(plugin, "upgrade_level");
         levelManager = new LevelManager(plugin);
         miningManager = new me.nakilex.levelplugin.player.mining.managers.MiningManager(plugin);
@@ -320,6 +322,7 @@ public class PluginBootstrap {
             horseManager,
             storageManager,
             dmgNumberToggleManager,
+            mobDebugToggleManager,
             settingsGUI,
             gemsManager,
             gemGui,
@@ -345,6 +348,7 @@ public class PluginBootstrap {
             economyManager,
             mobRewardsConfig,
             dmgNumberToggleManager,
+            mobDebugToggleManager,
             pickupCustomItemListener,
             settingsGUI,
             projectileFriendlyFireListener,
@@ -467,7 +471,8 @@ public class PluginBootstrap {
     public StorageManager getStorageManager() { return storageManager; }
     public ItemConfig getItemConfig() { return itemConfig; }
     public PlayerConfig getPlayerConfig() { return playerConfig; }
-    public DmgNumberToggleManager getDmgNumberToggleManager() { return dmgNumberToggleManager; }
+    public PlayerToggleManager getDmgNumberToggleManager() { return dmgNumberToggleManager; }
+    public PlayerToggleManager getMobDebugToggleManager() { return mobDebugToggleManager; }
     public ManaCostTracker getManaTracker() { return manaTracker; }
     public ProjectileFriendlyFireListener getProjectileFriendlyFireListener() { return projectileFriendlyFireListener; }
     public FileConfiguration getBossConfig() { return bossConfig; }
