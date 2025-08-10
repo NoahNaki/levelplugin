@@ -13,6 +13,7 @@ import me.nakilex.levelplugin.mob.utils.ItemDropper;
 import me.nakilex.levelplugin.mob.utils.RewardHologramUtil;
 import me.nakilex.levelplugin.mob.utils.CombatPowerUtil;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
+import io.lumine.mythic.api.skills.placeholders.PlaceholderString;
 import me.nakilex.levelplugin.party.Party;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
@@ -80,7 +81,8 @@ public class MythicMobRewardListener implements Listener {
         if (node == null) {
             for (Player player : participants) {
                 if (debugToggle.isEnabled(player)) {
-                    String display = mythicMob.getType().getDisplayName().orElse(mobType);
+                    PlaceholderString name = mythicMob.getType().getDisplayName();
+                    String display = name != null ? name.get() : mobType;
                     player.sendMessage(ChatColor.YELLOW + "[MobDebug] ID: " + mobType
                             + ChatColor.GRAY + " Display: " + ChatColor.WHITE + display);
                     player.sendMessage(ChatColor.RED + "[MobDebug] No rewards configured");
@@ -135,7 +137,8 @@ public class MythicMobRewardListener implements Listener {
                 player.sendMessage(ChatColor.DARK_AQUA + "Combat Power: " + ChatColor.AQUA + power);
             }
             if (debugToggle.isEnabled(player)) {
-                String display = mythicMob.getType().getDisplayName().orElse(mobType);
+                PlaceholderString name = mythicMob.getType().getDisplayName();
+                String display = name != null ? name.get() : mobType;
                 player.sendMessage(ChatColor.YELLOW + "[MobDebug] ID: " + mobType
                         + ChatColor.GRAY + " Display: " + ChatColor.WHITE + display);
                 player.sendMessage(ChatColor.YELLOW + "[MobDebug] Exp: " + awardedExp
