@@ -188,12 +188,9 @@ commands:
   enchant:
     description: Opens the enchanting GUI
     usage: /enchant
-  nexoscan:
-    description: List all Nexo furniture in the mmorpg world
-    usage: /nexoscan
   debug:
     description: Toggle debug features
-    usage: /debug <mobinfo>
+    usage: /debug <mobinfo|tps|nexoscan>
   motd:
     description: Reload or preview the server MOTD
     usage: /motd <reload|preview>
@@ -221,10 +218,7 @@ commands:
   cutscene:
     description: Play or manage cutscenes
     usage: /cutscene <play id [player]|list|reload|record id|addframe [duration]|stop|cancel|skip [player]>
-  showtps:
-    description: Toggle TPS display on the scoreboard
-    usage: /showtps
-  dungeon:
+    dungeon:
     description: Manage custom dungeons
     usage: /dungeon <create|play|delete|undo|list>
   codex:

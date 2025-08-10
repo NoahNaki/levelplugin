@@ -145,16 +145,20 @@ public class CommandRegistry {
         plugin.getCommand("gems").setExecutor(new GemsBalanceCommand(gemsManager));
         plugin.getCommand("gemexchange").setExecutor(new GemExchangeCommand(gemGui));
         plugin.getCommand("tipsreload").setExecutor(new TipsReloadCommand(tipsCfg, broadcastMgr));
-        plugin.getCommand("toggle").setExecutor(new ToggleCommand(plugin));
-        plugin.getCommand("showtps").setExecutor(new me.nakilex.levelplugin.scoreboard.ShowTpsCommand(plugin.getScoreboardManager()));
+        ToggleCommand toggleCmd = new ToggleCommand(plugin);
+        plugin.getCommand("toggle").setExecutor(toggleCmd);
+        plugin.getCommand("toggle").setTabCompleter(toggleCmd);
         plugin.getCommand("auctionhouse").setExecutor(new AuctionCommand(auctionMgr, auctionGui));
         plugin.getCommand("quest").setExecutor(new QuestCommand(questManager));
         plugin.getCommand("location").setExecutor(new LocationCommand(fastTravelManager));
         plugin.getCommand("fasttravel").setExecutor(new FastTravelCommand(plugin.getFastTravelGUI()));
         plugin.getCommand("profile").setExecutor(new me.nakilex.levelplugin.player.commands.ProfileCommand());
         plugin.getCommand("wipeprofile").setExecutor(new WipeProfileCommand());
-        plugin.getCommand("nexoscan").setExecutor(new NexoScanCommand());
-        plugin.getCommand("debug").setExecutor(new DebugCommand(mobDebugToggleManager));
+
+        DebugCommand debugCmd = new DebugCommand(mobDebugToggleManager,
+                plugin.getScoreboardManager(), new NexoScanCommand());
+        plugin.getCommand("debug").setExecutor(debugCmd);
+        plugin.getCommand("debug").setTabCompleter(debugCmd);
         plugin.getCommand("motd").setExecutor(new me.nakilex.levelplugin.motd.MotdCommand(motdManager));
         plugin.getCommand("fakegate").setExecutor(new me.nakilex.levelplugin.fakeblock.FakeGateCommand(plugin));
         plugin.getCommand("modelgate").setExecutor(new me.nakilex.levelplugin.fakeblock.ModelGateCommand(plugin));
