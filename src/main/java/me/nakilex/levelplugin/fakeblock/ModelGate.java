@@ -122,7 +122,14 @@ public class ModelGate {
             return;
         }
 
+        plugin.getLogger().info("[ModelGate] Preparing block type " + centered.getBlock().getType() + " for gate '" + id + "'");
+        // NexoFurniture refuses to place models on non-air blocks and only one
+        // furniture can occupy a block at a time. Clear the block between
+        // placements so both open and closed models can coexist for per-player
+        // visibility toggling.
+        centered.getBlock().setType(org.bukkit.Material.AIR, false);
         openEntity = NexoFurniture.place(openModel, centered, 0f, BlockFace.NORTH);
+        centered.getBlock().setType(org.bukkit.Material.AIR, false);
         closedEntity = NexoFurniture.place(closedModel, centered, 0f, BlockFace.NORTH);
 
         plugin.getLogger().info("[ModelGate] Spawned gate '" + id + "' at " + centered);
