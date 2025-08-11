@@ -1,5 +1,7 @@
 package me.nakilex.levelplugin.npc.wandering;
 
+import me.nakilex.levelplugin.Main;
+import org.bukkit.Bukkit;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -47,14 +49,23 @@ public class WanderingMerchantListener implements Listener {
 
     @EventHandler
     public void onDeath(EntityDeathEvent e) {
-        if (!manager.isActive()) return;
-        if (e.getEntity().equals(manager.getMerchant())) {
-            for (WanderingMerchantOffer of : manager.getGui().getOffers()) {
-                if (of.getStock() > 0) {
-                    e.getDrops().add(of.getItem());
+        var merchant = manager.getMerchant();
+        if (merchant == null) return;
+        if (e.getEntity().getUniqueId().equals(merchant.getUniqueId())) {
+            WanderingMerchantGUI gui = manager.getGui();
+            if (gui != null) {
+                for (WanderingMerchantOffer offer : gui.getOffers()) {
+                    for (int i = 0; i < offer.getStock(); i++) {
+                        e.getEntity().getWorld().dropItemNaturally(
+                                e.getEntity().getLocation(),
+                                offer.getItem().clone()
+                        );
+                    }
                 }
             }
-            manager.despawn();
+            e.setDroppedExp(manager.getShopGearScore() * 4);
+            // despawn on next tick so drops are not cleared
+            Bukkit.getScheduler().runTask(Main.getInstance(), manager::despawn);
         }
         // handle llama deaths so fleeing can still work
         Entity entity = e.getEntity();
