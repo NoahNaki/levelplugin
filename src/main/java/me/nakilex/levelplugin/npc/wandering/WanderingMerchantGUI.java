@@ -2,6 +2,8 @@ package me.nakilex.levelplugin.npc.wandering;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.utils.GuiUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -14,7 +16,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
-import me.nakilex.levelplugin.utils.GuiUtil;
 
 import java.util.*;
 
@@ -36,15 +37,16 @@ public class WanderingMerchantGUI implements Listener {
         for (int i = 0; i < list.size(); i++) {
             WanderingMerchantOffer of = list.get(i);
             offers.put(10 + i, of);
-            inv.setItem(10 + i, decorate(of));
+            inv.setItem(10 + i, decorate(of, null));
         }
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
     public Collection<WanderingMerchantOffer> getOffers() { return offers.values(); }
 
-    private ItemStack decorate(WanderingMerchantOffer offer) {
+    private ItemStack decorate(WanderingMerchantOffer offer, Player viewer) {
         ItemStack stack = offer.getItem().clone();
+        ItemUtil.updateTooltip(stack, viewer);
         ItemMeta meta = stack.getItemMeta();
         if (meta != null) {
             List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
@@ -63,6 +65,9 @@ public class WanderingMerchantGUI implements Listener {
 
     public void open(Player player) {
         viewers.add(player.getUniqueId());
+        for (Map.Entry<Integer, WanderingMerchantOffer> entry : offers.entrySet()) {
+            inv.setItem(entry.getKey(), decorate(entry.getValue(), player));
+        }
         player.openInventory(inv);
     }
 
@@ -95,7 +100,7 @@ public class WanderingMerchantGUI implements Listener {
         economy.deductCoins(player, offer.getCost());
         player.getInventory().addItem(offer.getItem());
         offer.decrement();
-        inv.setItem(slot, decorate(offer));
+        inv.setItem(slot, decorate(offer, player));
     }
 
     @EventHandler
