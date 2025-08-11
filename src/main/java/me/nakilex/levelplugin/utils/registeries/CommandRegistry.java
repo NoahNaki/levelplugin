@@ -150,7 +150,9 @@ public class CommandRegistry {
         plugin.getCommand("toggle").setTabCompleter(toggleCmd);
         plugin.getCommand("auctionhouse").setExecutor(new AuctionCommand(auctionMgr, auctionGui));
         plugin.getCommand("quest").setExecutor(new QuestCommand(questManager));
-        plugin.getCommand("location").setExecutor(new LocationCommand(fastTravelManager));
+        LocationCommand locationCmd = new LocationCommand(fastTravelManager);
+        plugin.getCommand("location").setExecutor(locationCmd);
+        plugin.getCommand("location").setTabCompleter(locationCmd);
         plugin.getCommand("fasttravel").setExecutor(new FastTravelCommand(plugin.getFastTravelGUI()));
         plugin.getCommand("profile").setExecutor(new me.nakilex.levelplugin.player.commands.ProfileCommand());
         plugin.getCommand("wipeprofile").setExecutor(new WipeProfileCommand());
