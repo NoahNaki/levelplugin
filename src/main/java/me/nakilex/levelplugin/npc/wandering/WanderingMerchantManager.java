@@ -35,15 +35,20 @@ public class WanderingMerchantManager {
     private org.bukkit.scheduler.BukkitTask fleeTask;
     private org.bukkit.scheduler.BukkitTask followTask;
     private TraderLlama ensureLlama() {
-        if (llama1 != null && llama1.isValid()) return llama1;
+        if (llama1 != null && llama1.isValid()) {
+            llama1.setGravity(true);
+            return llama1;
+        }
         // attempt to reuse second llama if alive
         if (llama2 != null && llama2.isValid()) {
+            llama2.setGravity(true);
             llama1 = llama2;
             llama2 = null;
         } else if (merchant != null && merchant.isValid()) {
             llama1 = (TraderLlama) merchant.getWorld()
                     .spawnEntity(merchant.getLocation(), EntityType.TRADER_LLAMA);
             llama1.setLeashHolder(merchant);
+            llama1.setGravity(true);
         } else {
             llama1 = null;
         }
@@ -75,10 +80,13 @@ public class WanderingMerchantManager {
         merchant.setCustomNameVisible(true);
         merchant.setAI(false);
         merchant.setRemoveWhenFarAway(false);
+        merchant.setGravity(true);
         llama1 = (TraderLlama) loc.getWorld().spawnEntity(loc, EntityType.TRADER_LLAMA);
         llama2 = (TraderLlama) loc.getWorld().spawnEntity(loc, EntityType.TRADER_LLAMA);
         llama1.setLeashHolder(merchant);
         llama2.setLeashHolder(merchant);
+        llama1.setGravity(true);
+        llama2.setGravity(true);
         followTask = new org.bukkit.scheduler.BukkitRunnable() {
             @Override
             public void run() {
@@ -116,10 +124,17 @@ public class WanderingMerchantManager {
         }
     }
 
-    /** Choose a random item level across all possible levels. */
+    /** Choose a random item level with a bell-curve distribution. */
     private int pickOfferLevel() {
         int maxLevel = Main.getInstance().getLevelManager().getMaxLevel();
-        return ThreadLocalRandom.current().nextInt(1, maxLevel + 1);
+        double mean = maxLevel / 2.0;
+        double stdDev = maxLevel / 6.0; // 99.7% within bounds
+        ThreadLocalRandom rand = ThreadLocalRandom.current();
+        int level;
+        do {
+            level = (int) Math.round(rand.nextGaussian() * stdDev + mean);
+        } while (level < 1 || level > maxLevel);
+        return level;
     }
 
     public void openShop(Player player) {
@@ -154,6 +169,8 @@ public class WanderingMerchantManager {
         if (merchant == null) return;
         ensureLlama();
         if (llama1 == null) return;
+        merchant.setGravity(true);
+        llama1.setGravity(true);
         lastAttacker = attacker.getUniqueId();
         lastDamage = System.currentTimeMillis();
 
