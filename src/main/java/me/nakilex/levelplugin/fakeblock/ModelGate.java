@@ -1,7 +1,9 @@
 package me.nakilex.levelplugin.fakeblock;
 
 import com.nexomc.nexo.api.NexoFurniture;
+import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
 import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
+import me.nakilex.levelplugin.utils.NexoUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
@@ -106,12 +108,32 @@ public class ModelGate {
 
         // ensure any lingering furniture from previous sessions is removed
         NexoFurniture.remove(centered);
+
+        FurnitureMechanic openMech = NexoFurniture.furnitureMechanic(openModel);
+        FurnitureMechanic closedMech = NexoFurniture.furnitureMechanic(closedModel);
+        if (openMech == null || closedMech == null) {
+            if (openMech == null) {
+                plugin.getLogger().warning("[ModelGate] Open model '" + openModel + "' is not registered");
+            }
+            if (closedMech == null) {
+                plugin.getLogger().warning("[ModelGate] Closed model '" + closedModel + "' is not registered");
+            }
+            NexoUtil.logAvailableFurnitureIds(plugin.getLogger());
+            return;
+        }
+
         openEntity = NexoFurniture.place(openModel, centered, 0f, BlockFace.NORTH);
         closedEntity = NexoFurniture.place(closedModel, centered, 0f, BlockFace.NORTH);
 
         plugin.getLogger().info("[ModelGate] Spawned gate '" + id + "' at " + centered);
+        if (openEntity == null) {
+            plugin.getLogger().warning("[ModelGate] Failed to spawn open model '" + openModel + "' for gate '" + id + "'");
+        }
+        if (closedEntity == null) {
+            plugin.getLogger().warning("[ModelGate] Failed to spawn closed model '" + closedModel + "' for gate '" + id + "'");
+        }
         if (openEntity == null || closedEntity == null) {
-            plugin.getLogger().warning("[ModelGate] Failed to spawn one or more entities for gate '" + id + "'");
+            NexoUtil.logAvailableFurnitureIds(plugin.getLogger());
         }
     }
 
