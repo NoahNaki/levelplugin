@@ -130,4 +130,54 @@ public class LocationUtils {
         }
         return location;
     }
+
+    /**
+     * Counts consecutive air blocks directly above the given location.
+     * Starts from the block one unit higher and stops at the first
+     * non-air block or the world height limit.
+     *
+     * @param location base location
+     * @return number of continuous air blocks above
+     */
+    public static int countAirAbove(Location location) {
+        if (location == null || location.getWorld() == null) {
+            return 0;
+        }
+        World world = location.getWorld();
+        int x = location.getBlockX();
+        int z = location.getBlockZ();
+        int maxY = world.getMaxHeight();
+        int count = 0;
+        for (int y = location.getBlockY() + 1; y < maxY; y++) {
+            if (world.getBlockAt(x, y, z).getType().isAir()) {
+                count++;
+            } else {
+                break;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Returns a location positioned just above the first solid block found
+     * when searching downward from the provided coordinates. The resulting
+     * location is centered on the block for consistency with entity spawning.
+     *
+     * @param location starting point for the downward search
+     * @return location one block above the discovered surface
+     */
+    public static Location surfaceBelow(Location location) {
+        if (location == null || location.getWorld() == null) {
+            return location;
+        }
+        World world = location.getWorld();
+        int x = location.getBlockX();
+        int z = location.getBlockZ();
+        int y = location.getBlockY();
+        int minY = world.getMinHeight();
+        while (y > minY && world.getBlockAt(x, y - 1, z).getType().isAir()) {
+            y--;
+        }
+        return new Location(world, x + 0.5, y, z + 0.5, location.getYaw(), location.getPitch());
+    }
 }

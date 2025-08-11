@@ -13,7 +13,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TraderLlama;
-import org.bukkit.entity.Villager;
+import org.bukkit.entity.WanderingTrader;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.*;
@@ -25,7 +25,7 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public class WanderingMerchantManager {
     private final Main plugin;
-    private Villager merchant;
+    private WanderingTrader merchant;
     private TraderLlama llama1;
     private TraderLlama llama2;
     private WanderingMerchantGUI gui;
@@ -35,15 +35,26 @@ public class WanderingMerchantManager {
     private org.bukkit.scheduler.BukkitTask fleeTask;
     private org.bukkit.scheduler.BukkitTask followTask;
     private TraderLlama ensureLlama() {
-        if (llama1 != null && llama1.isValid()) return llama1;
+        if (llama1 != null && llama1.isValid()) {
+            llama1.setGravity(true);
+            llama1.setRemoveWhenFarAway(false);
+            llama1.setAI(true);
+            return llama1;
+        }
         // attempt to reuse second llama if alive
         if (llama2 != null && llama2.isValid()) {
+            llama2.setGravity(true);
+            llama2.setRemoveWhenFarAway(false);
+            llama2.setAI(true);
             llama1 = llama2;
             llama2 = null;
         } else if (merchant != null && merchant.isValid()) {
             llama1 = (TraderLlama) merchant.getWorld()
                     .spawnEntity(merchant.getLocation(), EntityType.TRADER_LLAMA);
             llama1.setLeashHolder(merchant);
+            llama1.setGravity(true);
+            llama1.setRemoveWhenFarAway(false);
+            llama1.setAI(true);
         } else {
             llama1 = null;
         }
@@ -62,23 +73,34 @@ public class WanderingMerchantManager {
         if (isActive()) return;
         Location base = player.getLocation().clone();
         base.add(player.getLocation().getDirection().multiply(-8));
-        final Location spawnLoc = me.nakilex.levelplugin.lootchests.utils.LocationUtils.aboveSurface(base);
-        spawnLoc.getWorld().getChunkAtAsync(spawnLoc).thenRun(() ->
-                Bukkit.getScheduler().runTask(plugin, () -> spawn(spawnLoc, player))
+        final Location centered = me.nakilex.levelplugin.lootchests.utils.LocationUtils.centerOnBlock(base);
+        centered.getWorld().getChunkAtAsync(centered).thenRun(() ->
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    org.bukkit.Location ground = me.nakilex.levelplugin.lootchests.utils.LocationUtils.surfaceBelow(centered);
+                    if (me.nakilex.levelplugin.lootchests.utils.LocationUtils.countAirAbove(ground) > 5) {
+                        spawn(ground, player);
+                    }
+                })
         );
     }
 
     private void spawn(Location loc, Player player) {
-        loc = me.nakilex.levelplugin.lootchests.utils.LocationUtils.aboveSurface(loc);
-        merchant = (Villager) loc.getWorld().spawnEntity(loc, EntityType.VILLAGER);
+        merchant = (WanderingTrader) loc.getWorld().spawnEntity(loc, EntityType.WANDERING_TRADER);
         merchant.setCustomName(ChatColor.GOLD + "Wandering Merchant");
         merchant.setCustomNameVisible(true);
         merchant.setAI(false);
         merchant.setRemoveWhenFarAway(false);
+        merchant.setGravity(true);
         llama1 = (TraderLlama) loc.getWorld().spawnEntity(loc, EntityType.TRADER_LLAMA);
         llama2 = (TraderLlama) loc.getWorld().spawnEntity(loc, EntityType.TRADER_LLAMA);
         llama1.setLeashHolder(merchant);
         llama2.setLeashHolder(merchant);
+        llama1.setGravity(true);
+        llama2.setGravity(true);
+        llama1.setAI(false);
+        llama2.setAI(false);
+        llama1.setRemoveWhenFarAway(false);
+        llama2.setRemoveWhenFarAway(false);
         followTask = new org.bukkit.scheduler.BukkitRunnable() {
             @Override
             public void run() {
@@ -98,21 +120,35 @@ public class WanderingMerchantManager {
 
     private void createShop(Player basis) {
         List<WanderingMerchantOffer> offers = new ArrayList<>();
-        int playerLevel = Main.getInstance().getLevelManager().getLevel(basis);
+        List<CustomItem> items = new ArrayList<>();
         for (int i = 0; i < 7; i++) {
-            int offerLevel = pickOfferLevel(playerLevel);
+            int offerLevel = pickOfferLevel();
             CustomItem item = ItemManager.getInstance().generateItem("mob", offerLevel);
+            items.add(item);
             ItemStack stack = ItemUtil.createItemStackFromCustomItem(item, 1, null);
-            int cost = SalvageManager.getInstance().getTotalStats(item) * 2 + 5;
+            int gearScore = SalvageManager.getInstance().getTotalStats(item);
+            int cost = gearScore * 2 + 5;
             offers.add(new WanderingMerchantOffer(stack, cost, 1));
         }
         gui = new WanderingMerchantGUI(plugin, offers);
+        int totalGearScore = ItemUtil.calculateTotalGearScore(items);
+        if (merchant != null && merchant.getAttribute(Attribute.GENERIC_MAX_HEALTH) != null) {
+            merchant.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(totalGearScore);
+            merchant.setHealth(totalGearScore);
+        }
     }
 
-    /** Choose a random item level near the player's level. */
-    private int pickOfferLevel(int baseLevel) {
-        int delta = ThreadLocalRandom.current().nextInt(-2, 3); // [-2, +2]
-        return Math.max(1, baseLevel + delta);
+    /** Choose a random item level with a bell-curve distribution. */
+    private int pickOfferLevel() {
+        int maxLevel = Main.getInstance().getLevelManager().getMaxLevel();
+        double mean = maxLevel / 2.0;
+        double stdDev = maxLevel / 6.0; // 99.7% within bounds
+        ThreadLocalRandom rand = ThreadLocalRandom.current();
+        int level;
+        do {
+            level = (int) Math.round(rand.nextGaussian() * stdDev + mean);
+        } while (level < 1 || level > maxLevel);
+        return level;
     }
 
     public void openShop(Player player) {
@@ -147,8 +183,23 @@ public class WanderingMerchantManager {
         if (merchant == null) return;
         ensureLlama();
         if (llama1 == null) return;
+        merchant.setAI(true);
+        merchant.setGravity(true);
+        llama1.setAI(true);
+        llama1.setGravity(true);
+        llama1.setRemoveWhenFarAway(false);
+        if (llama2 != null) {
+            llama2.setAI(true);
+            llama2.setRemoveWhenFarAway(false);
+        }
         lastAttacker = attacker.getUniqueId();
         lastDamage = System.currentTimeMillis();
+
+        // release leads so fleeing isn't constrained
+        llama1.setLeashHolder(null);
+        if (llama2 != null) {
+            llama2.setLeashHolder(llama1);
+        }
 
         // mount merchant on llama
         if (!llama1.getPassengers().contains(merchant)) {
