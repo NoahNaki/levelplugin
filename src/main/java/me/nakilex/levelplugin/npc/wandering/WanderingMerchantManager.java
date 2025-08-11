@@ -37,11 +37,15 @@ public class WanderingMerchantManager {
     private TraderLlama ensureLlama() {
         if (llama1 != null && llama1.isValid()) {
             llama1.setGravity(true);
+            llama1.setRemoveWhenFarAway(false);
+            llama1.setAI(true);
             return llama1;
         }
         // attempt to reuse second llama if alive
         if (llama2 != null && llama2.isValid()) {
             llama2.setGravity(true);
+            llama2.setRemoveWhenFarAway(false);
+            llama2.setAI(true);
             llama1 = llama2;
             llama2 = null;
         } else if (merchant != null && merchant.isValid()) {
@@ -49,6 +53,8 @@ public class WanderingMerchantManager {
                     .spawnEntity(merchant.getLocation(), EntityType.TRADER_LLAMA);
             llama1.setLeashHolder(merchant);
             llama1.setGravity(true);
+            llama1.setRemoveWhenFarAway(false);
+            llama1.setAI(true);
         } else {
             llama1 = null;
         }
@@ -91,6 +97,10 @@ public class WanderingMerchantManager {
         llama2.setLeashHolder(merchant);
         llama1.setGravity(true);
         llama2.setGravity(true);
+        llama1.setAI(false);
+        llama2.setAI(false);
+        llama1.setRemoveWhenFarAway(false);
+        llama2.setRemoveWhenFarAway(false);
         followTask = new org.bukkit.scheduler.BukkitRunnable() {
             @Override
             public void run() {
@@ -173,10 +183,23 @@ public class WanderingMerchantManager {
         if (merchant == null) return;
         ensureLlama();
         if (llama1 == null) return;
+        merchant.setAI(true);
         merchant.setGravity(true);
+        llama1.setAI(true);
         llama1.setGravity(true);
+        llama1.setRemoveWhenFarAway(false);
+        if (llama2 != null) {
+            llama2.setAI(true);
+            llama2.setRemoveWhenFarAway(false);
+        }
         lastAttacker = attacker.getUniqueId();
         lastDamage = System.currentTimeMillis();
+
+        // release leads so fleeing isn't constrained
+        llama1.setLeashHolder(null);
+        if (llama2 != null) {
+            llama2.setLeashHolder(llama1);
+        }
 
         // mount merchant on llama
         if (!llama1.getPassengers().contains(merchant)) {
