@@ -125,10 +125,26 @@ public class FastTravelManager {
     }
 
     public void unlock(Player player, String name) {
+        unlock(player, name, true);
+    }
+
+    /**
+     * Unlock a fast travel location for a player.
+     *
+     * @param player   player to unlock for
+     * @param name     fast travel point name
+     * @param discover whether to record this as a location discovery (adds to
+     *                 the codex and discovery quests). Waystone interactions
+     *                 should pass {@code false} so they don't count as
+     *                 discoveries.
+     */
+    public void unlock(Player player, String name, boolean discover) {
         unlocked.computeIfAbsent(player.getUniqueId(), k -> new HashSet<>()).add(name.toLowerCase());
         save();
-        me.nakilex.levelplugin.Main.getInstance().getCodexManager().recordLocation(player, name);
-        Main.getInstance().getQuestManager().handleDiscover(player, name.toLowerCase());
+        if (discover) {
+            me.nakilex.levelplugin.Main.getInstance().getCodexManager().recordLocation(player, name);
+            Main.getInstance().getQuestManager().handleDiscover(player, name.toLowerCase());
+        }
         Main.getInstance().getQuestManager().handleWaystoneUnlock(player, name.toLowerCase());
     }
 

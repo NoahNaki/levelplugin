@@ -41,7 +41,8 @@ public class WaystoneListener implements Listener {
             if (gate.isClosed(player.getUniqueId())) {
                 gate.setClosed(player.getUniqueId(), false);
                 gate.apply(player, gateManager.getPlugin());
-                manager.unlock(player, gate.getId());
+                // unlocking via waystone should not count as a discovery
+                manager.unlock(player, gate.getId(), false);
                 sendUnlockMessage(player, gate.getLocation(), gate.getId());
             }
             gui.open(player, gate);

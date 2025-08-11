@@ -64,7 +64,18 @@ public class ModelGateManager implements Listener {
     private void loadFromConfig() {
         file = new File(plugin.getDataFolder(), "modelgates.yml");
         if (!file.exists()) {
-            plugin.saveResource("modelgates.yml", false);
+            try {
+                // Try to copy a default file from the jar if it exists
+                plugin.saveResource("modelgates.yml", false);
+            } catch (IllegalArgumentException ignored) {
+                // If the resource isn't packaged, create an empty file so the plugin can still run
+                try {
+                    file.getParentFile().mkdirs();
+                    file.createNewFile();
+                } catch (java.io.IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
         config = YamlConfiguration.loadConfiguration(file);
         if (!config.isConfigurationSection("gates")) return;
@@ -79,7 +90,7 @@ public class ModelGateManager implements Listener {
             String closed = config.getString(base + "closed_model", "");
             boolean state = config.getBoolean(base + "closed", true);
             ModelGate gate = new ModelGate(key, new Location(world, x, y, z), open, closed, state);
-            gate.spawnEntities();
+            gate.spawnEntities(plugin);
             registerEntities(gate);
             gates.put(key.toLowerCase(), gate);
         }
@@ -104,7 +115,7 @@ public class ModelGateManager implements Listener {
 
     public void createGate(ModelGate gate) {
         gates.put(gate.getId(), gate);
-        gate.spawnEntities();
+        gate.spawnEntities(plugin);
         registerEntities(gate);
         saveConfig();
         updateAll();
