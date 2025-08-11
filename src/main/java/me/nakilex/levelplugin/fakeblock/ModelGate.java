@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.fakeblock;
 
 import com.nexomc.nexo.api.NexoFurniture;
+import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
@@ -95,18 +96,29 @@ public class ModelGate {
     }
 
     /** Spawn the underlying entities for the open and closed models. */
-    public void spawnEntities() {
+    public void spawnEntities(Plugin plugin) {
         removeAll();
+        Location centered = LocationUtils.centerOnBlock(location);
+        if (centered == null) {
+            plugin.getLogger().warning("[ModelGate] Unable to spawn gate '" + id + "'; location is null");
+            return;
+        }
+
         // ensure any lingering furniture from previous sessions is removed
-        NexoFurniture.remove(location);
-        openEntity = NexoFurniture.place(openModel, location, 0f, BlockFace.NORTH);
-        closedEntity = NexoFurniture.place(closedModel, location, 0f, BlockFace.NORTH);
+        NexoFurniture.remove(centered);
+        openEntity = NexoFurniture.place(openModel, centered, 0f, BlockFace.NORTH);
+        closedEntity = NexoFurniture.place(closedModel, centered, 0f, BlockFace.NORTH);
+
+        plugin.getLogger().info("[ModelGate] Spawned gate '" + id + "' at " + centered);
+        if (openEntity == null || closedEntity == null) {
+            plugin.getLogger().warning("[ModelGate] Failed to spawn one or more entities for gate '" + id + "'");
+        }
     }
 
     /** Update which entity the player can see based on their state. */
     public void apply(Player player, Plugin plugin) {
         if (openEntity == null || closedEntity == null) {
-            spawnEntities();
+            spawnEntities(plugin);
         }
         boolean closed = isClosed(player.getUniqueId());
         if (openEntity != null) {

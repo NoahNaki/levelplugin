@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.fakeblock;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -44,7 +45,7 @@ public class ModelGateCommand implements CommandExecutor {
                 String id = args[1].toLowerCase();
                 String open = args[2];
                 String closed = args[3];
-                Location loc = target.getLocation();
+                Location loc = LocationUtils.centerOnBlock(target.getLocation());
                 ModelGate gate = new ModelGate(id, loc, open, closed, true);
                 manager.createGate(gate);
                 player.sendMessage(ChatColor.YELLOW + "Model gate " + id + " created.");
