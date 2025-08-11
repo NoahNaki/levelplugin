@@ -64,7 +64,18 @@ public class ModelGateManager implements Listener {
     private void loadFromConfig() {
         file = new File(plugin.getDataFolder(), "modelgates.yml");
         if (!file.exists()) {
-            plugin.saveResource("modelgates.yml", false);
+            try {
+                // Try to copy a default file from the jar if it exists
+                plugin.saveResource("modelgates.yml", false);
+            } catch (IllegalArgumentException ignored) {
+                // If the resource isn't packaged, create an empty file so the plugin can still run
+                try {
+                    file.getParentFile().mkdirs();
+                    file.createNewFile();
+                } catch (java.io.IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
         config = YamlConfiguration.loadConfiguration(file);
         if (!config.isConfigurationSection("gates")) return;
