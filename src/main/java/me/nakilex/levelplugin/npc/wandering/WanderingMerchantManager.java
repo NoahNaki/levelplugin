@@ -35,15 +35,20 @@ public class WanderingMerchantManager {
     private org.bukkit.scheduler.BukkitTask fleeTask;
     private org.bukkit.scheduler.BukkitTask followTask;
     private TraderLlama ensureLlama() {
-        if (llama1 != null && llama1.isValid()) return llama1;
+        if (llama1 != null && llama1.isValid()) {
+            llama1.setGravity(true);
+            return llama1;
+        }
         // attempt to reuse second llama if alive
         if (llama2 != null && llama2.isValid()) {
             llama1 = llama2;
             llama2 = null;
+            llama1.setGravity(true);
         } else if (merchant != null && merchant.isValid()) {
             llama1 = (TraderLlama) merchant.getWorld()
                     .spawnEntity(merchant.getLocation(), EntityType.TRADER_LLAMA);
             llama1.setLeashHolder(merchant);
+            llama1.setGravity(true);
         } else {
             llama1 = null;
         }
@@ -75,10 +80,13 @@ public class WanderingMerchantManager {
         merchant.setCustomNameVisible(true);
         merchant.setAI(false);
         merchant.setRemoveWhenFarAway(false);
+        merchant.setGravity(true);
         llama1 = (TraderLlama) loc.getWorld().spawnEntity(loc, EntityType.TRADER_LLAMA);
         llama2 = (TraderLlama) loc.getWorld().spawnEntity(loc, EntityType.TRADER_LLAMA);
         llama1.setLeashHolder(merchant);
         llama2.setLeashHolder(merchant);
+        llama1.setGravity(true);
+        llama2.setGravity(true);
         followTask = new org.bukkit.scheduler.BukkitRunnable() {
             @Override
             public void run() {
@@ -145,8 +153,10 @@ public class WanderingMerchantManager {
 
     public void startFlee(Player attacker) {
         if (merchant == null) return;
+        merchant.setGravity(true);
         ensureLlama();
         if (llama1 == null) return;
+        llama1.setGravity(true);
         lastAttacker = attacker.getUniqueId();
         lastDamage = System.currentTimeMillis();
 
