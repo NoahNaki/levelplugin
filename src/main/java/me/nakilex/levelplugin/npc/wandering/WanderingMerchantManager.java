@@ -29,6 +29,7 @@ public class WanderingMerchantManager {
     private TraderLlama llama1;
     private TraderLlama llama2;
     private WanderingMerchantGUI gui;
+    private int shopGearScore;
     private long lastSpawn = 0L;
     private long lastDamage = 0L;
     private java.util.UUID lastAttacker;
@@ -132,6 +133,7 @@ public class WanderingMerchantManager {
         }
         gui = new WanderingMerchantGUI(plugin, offers);
         int totalGearScore = ItemUtil.calculateTotalGearScore(items);
+        shopGearScore = totalGearScore;
         double maxHealth = totalGearScore * 2.0;
         if (merchant != null && merchant.getAttribute(Attribute.GENERIC_MAX_HEALTH) != null) {
             merchant.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(maxHealth);
@@ -256,4 +258,5 @@ public class WanderingMerchantManager {
 
     public LivingEntity getMerchant() { return merchant; }
     public WanderingMerchantGUI getGui() { return gui; }
+    public int getShopGearScore() { return shopGearScore; }
 }
