@@ -1,5 +1,7 @@
 package me.nakilex.levelplugin.npc.wandering;
 
+import me.nakilex.levelplugin.Main;
+import org.bukkit.Bukkit;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -53,11 +55,15 @@ public class WanderingMerchantListener implements Listener {
             if (gui != null) {
                 for (WanderingMerchantOffer offer : gui.getOffers()) {
                     for (int i = 0; i < offer.getStock(); i++) {
-                        e.getDrops().add(offer.getItem().clone());
+                        e.getEntity().getWorld().dropItemNaturally(
+                                e.getEntity().getLocation(),
+                                offer.getItem().clone()
+                        );
                     }
                 }
             }
-            manager.despawn();
+            // despawn on next tick so drops are not cleared
+            Bukkit.getScheduler().runTask(Main.getInstance(), manager::despawn);
         }
         // handle llama deaths so fleeing can still work
         Entity entity = e.getEntity();
