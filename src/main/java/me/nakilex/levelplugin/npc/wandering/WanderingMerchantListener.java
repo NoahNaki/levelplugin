@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.npc.wandering;
 
 import me.nakilex.levelplugin.Main;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -51,17 +52,32 @@ public class WanderingMerchantListener implements Listener {
     public void onDeath(EntityDeathEvent e) {
         if (!manager.isActive()) return;
         if (e.getEntity().equals(manager.getMerchant())) {
+            Player killer = e.getEntity().getKiller();
+            String killerName = killer != null ? killer.getName() : "unknown";
+            Bukkit.broadcastMessage(ChatColor.YELLOW + "[WM DEBUG] Merchant died (killer: " + killerName + ")");
+
             WanderingMerchantGUI gui = manager.getGui();
-            if (gui != null) {
+            if (gui == null) {
+                Bukkit.broadcastMessage(ChatColor.YELLOW + "[WM DEBUG] GUI was null, no items dropped");
+            } else {
+                Bukkit.broadcastMessage(ChatColor.YELLOW + "[WM DEBUG] Offers: " + gui.getOffers().size());
                 for (WanderingMerchantOffer offer : gui.getOffers()) {
-                    for (int i = 0; i < offer.getStock(); i++) {
-                        e.getEntity().getWorld().dropItemNaturally(
-                                e.getEntity().getLocation(),
-                                offer.getItem().clone()
-                        );
+                    if (offer.getStock() > 0) {
+                        Bukkit.broadcastMessage(ChatColor.YELLOW + "[WM DEBUG] Dropping "
+                                + offer.getStock() + "x " + offer.getItem().getType());
+                        for (int i = 0; i < offer.getStock(); i++) {
+                            e.getEntity().getWorld().dropItemNaturally(
+                                    e.getEntity().getLocation(),
+                                    offer.getItem().clone()
+                            );
+                        }
+                    } else {
+                        Bukkit.broadcastMessage(ChatColor.YELLOW + "[WM DEBUG] Offer "
+                                + offer.getItem().getType() + " had no stock");
                     }
                 }
             }
+            Bukkit.broadcastMessage(ChatColor.YELLOW + "[WM DEBUG] Scheduling merchant despawn");
             // despawn on next tick so drops are not cleared
             Bukkit.getScheduler().runTask(Main.getInstance(), manager::despawn);
         }
