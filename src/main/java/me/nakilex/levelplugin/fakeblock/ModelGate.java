@@ -1,6 +1,9 @@
 package me.nakilex.levelplugin.fakeblock;
 
 import com.nexomc.nexo.api.NexoFurniture;
+import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
+import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
+import me.nakilex.levelplugin.utils.NexoUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
@@ -95,18 +98,56 @@ public class ModelGate {
     }
 
     /** Spawn the underlying entities for the open and closed models. */
-    public void spawnEntities() {
+    public void spawnEntities(Plugin plugin) {
         removeAll();
+        Location centered = LocationUtils.centerOnBlock(location);
+        if (centered == null) {
+            plugin.getLogger().warning("[ModelGate] Unable to spawn gate '" + id + "'; location is null");
+            return;
+        }
+
         // ensure any lingering furniture from previous sessions is removed
-        NexoFurniture.remove(location);
-        openEntity = NexoFurniture.place(openModel, location, 0f, BlockFace.NORTH);
-        closedEntity = NexoFurniture.place(closedModel, location, 0f, BlockFace.NORTH);
+        NexoFurniture.remove(centered);
+
+        FurnitureMechanic openMech = NexoFurniture.furnitureMechanic(openModel);
+        FurnitureMechanic closedMech = NexoFurniture.furnitureMechanic(closedModel);
+        if (openMech == null || closedMech == null) {
+            if (openMech == null) {
+                plugin.getLogger().warning("[ModelGate] Open model '" + openModel + "' is not registered");
+            }
+            if (closedMech == null) {
+                plugin.getLogger().warning("[ModelGate] Closed model '" + closedModel + "' is not registered");
+            }
+            NexoUtil.logAvailableFurnitureIds(plugin.getLogger());
+            return;
+        }
+
+        plugin.getLogger().info("[ModelGate] Preparing block type " + centered.getBlock().getType() + " for gate '" + id + "'");
+        // NexoFurniture refuses to place models on non-air blocks and only one
+        // furniture can occupy a block at a time. Clear the block between
+        // placements so both open and closed models can coexist for per-player
+        // visibility toggling.
+        centered.getBlock().setType(org.bukkit.Material.AIR, false);
+        openEntity = NexoFurniture.place(openModel, centered, 0f, BlockFace.NORTH);
+        centered.getBlock().setType(org.bukkit.Material.AIR, false);
+        closedEntity = NexoFurniture.place(closedModel, centered, 0f, BlockFace.NORTH);
+
+        plugin.getLogger().info("[ModelGate] Spawned gate '" + id + "' at " + centered);
+        if (openEntity == null) {
+            plugin.getLogger().warning("[ModelGate] Failed to spawn open model '" + openModel + "' for gate '" + id + "'");
+        }
+        if (closedEntity == null) {
+            plugin.getLogger().warning("[ModelGate] Failed to spawn closed model '" + closedModel + "' for gate '" + id + "'");
+        }
+        if (openEntity == null || closedEntity == null) {
+            NexoUtil.logAvailableFurnitureIds(plugin.getLogger());
+        }
     }
 
     /** Update which entity the player can see based on their state. */
     public void apply(Player player, Plugin plugin) {
         if (openEntity == null || closedEntity == null) {
-            spawnEntities();
+            spawnEntities(plugin);
         }
         boolean closed = isClosed(player.getUniqueId());
         if (openEntity != null) {
