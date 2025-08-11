@@ -50,8 +50,9 @@ public class WanderingMerchantListener implements Listener {
 
     @EventHandler
     public void onDeath(EntityDeathEvent e) {
-        if (!manager.isActive()) return;
-        if (e.getEntity().equals(manager.getMerchant())) {
+        var merchant = manager.getMerchant();
+        if (merchant == null) return;
+        if (e.getEntity().getUniqueId().equals(merchant.getUniqueId())) {
             Player killer = e.getEntity().getKiller();
             String killerName = killer != null ? killer.getName() : "unknown";
             Bukkit.broadcastMessage(ChatColor.YELLOW + "[WM DEBUG] Merchant died (killer: " + killerName + ")");
