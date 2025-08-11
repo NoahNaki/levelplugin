@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.fasttravel;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.fasttravel.data.FastTravelPoint;
+import me.nakilex.levelplugin.environment.EnvironmentManager;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -132,7 +133,7 @@ public class FastTravelManager {
         unlocked.computeIfAbsent(player.getUniqueId(), k -> new HashSet<>()).add(name.toLowerCase());
         save();
         if (recordCodex) {
-            me.nakilex.levelplugin.Main.getInstance().getCodexManager().recordLocation(player, name);
+            me.nakilex.levelplugin.Main.getInstance().getCodexManager().recordLocation(player, EnvironmentManager.beautifyWords(name));
         }
         Main.getInstance().getQuestManager().handleDiscover(player, name.toLowerCase());
         Main.getInstance().getQuestManager().handleWaystoneUnlock(player, name.toLowerCase());

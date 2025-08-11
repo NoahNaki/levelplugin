@@ -70,9 +70,9 @@ public class EnvironmentManager {
         }
     }
 
-    /** Convert a lowercase, space-separated name into capitalized words. */
+    /** Convert a lowercase, underscore- or space-separated name into capitalized words. */
     public static String beautifyWords(String name) {
-        String[] parts = name.toLowerCase().split(" ");
+        String[] parts = name.toLowerCase().replace('_', ' ').split(" ");
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < parts.length; i++) {
             if (parts[i].isEmpty()) continue;
