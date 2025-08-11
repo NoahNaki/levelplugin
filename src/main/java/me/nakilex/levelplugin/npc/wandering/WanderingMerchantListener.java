@@ -49,9 +49,12 @@ public class WanderingMerchantListener implements Listener {
     public void onDeath(EntityDeathEvent e) {
         if (!manager.isActive()) return;
         if (e.getEntity().equals(manager.getMerchant())) {
-            for (WanderingMerchantOffer of : manager.getGui().getOffers()) {
-                if (of.getStock() > 0) {
-                    e.getDrops().add(of.getItem());
+            WanderingMerchantGUI gui = manager.getGui();
+            if (gui != null) {
+                for (WanderingMerchantOffer offer : gui.getOffers()) {
+                    for (int i = 0; i < offer.getStock(); i++) {
+                        e.getDrops().add(offer.getItem().clone());
+                    }
                 }
             }
             manager.despawn();

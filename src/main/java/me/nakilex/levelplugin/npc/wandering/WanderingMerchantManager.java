@@ -132,9 +132,10 @@ public class WanderingMerchantManager {
         }
         gui = new WanderingMerchantGUI(plugin, offers);
         int totalGearScore = ItemUtil.calculateTotalGearScore(items);
+        double maxHealth = totalGearScore * 2.0;
         if (merchant != null && merchant.getAttribute(Attribute.GENERIC_MAX_HEALTH) != null) {
-            merchant.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(totalGearScore);
-            merchant.setHealth(totalGearScore);
+            merchant.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(maxHealth);
+            merchant.setHealth(maxHealth);
         }
     }
 
