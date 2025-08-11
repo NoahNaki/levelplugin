@@ -24,6 +24,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -648,25 +649,38 @@ public class ItemUtil {
      * Calculate the player's total gear score by summing the stats of all
      * equipped custom items (armor and weapons).
      */
-    public static int calculateTotalGearScore(Player player) {
+    /** Sum gear scores for any collection of custom items. */
+    public static int calculateTotalGearScore(Collection<CustomItem> items) {
         int total = 0;
+        if (items == null) return 0;
+        for (CustomItem ci : items) {
+            if (ci != null) {
+                total += SalvageManager.getInstance().getTotalStats(ci);
+            }
+        }
+        return total;
+    }
+
+    /** Sum gear score for all equipment a player currently has equipped. */
+    public static int calculateTotalGearScore(Player player) {
+        List<CustomItem> items = new ArrayList<>();
         ItemStack[] equip = player.getInventory().getArmorContents();
         for (ItemStack stack : equip) {
             if (stack != null && stack.hasItemMeta()) {
                 CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(stack);
-                if (ci != null) total += SalvageManager.getInstance().getTotalStats(ci);
+                if (ci != null) items.add(ci);
             }
         }
         ItemStack main = player.getInventory().getItemInMainHand();
         if (main != null && main.hasItemMeta()) {
             CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(main);
-            if (ci != null) total += SalvageManager.getInstance().getTotalStats(ci);
+            if (ci != null) items.add(ci);
         }
         ItemStack off = player.getInventory().getItemInOffHand();
         if (off != null && off.hasItemMeta()) {
             CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(off);
-            if (ci != null) total += SalvageManager.getInstance().getTotalStats(ci);
+            if (ci != null) items.add(ci);
         }
-        return total;
+        return calculateTotalGearScore(items);
     }
 }
