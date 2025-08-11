@@ -114,14 +114,16 @@ public class ItemUtil {
      */
     private static final java.util.Map<String, Model> CLASS_DEFAULT_WEAPONS = java.util.Map.of(
             "MAGE",    new Model(Material.STICK,       1011),
-            "ROGUE",   new Model(Material.DIAMOND,     1012),
+            // Use a proper sword material so rogue weapons remain equipable
+            "ROGUE",   new Model(Material.DIAMOND_SWORD, 1012),
             "ARCHER",  new Model(Material.BOW,         1002),
             "WARRIOR", new Model(Material.DIAMOND_AXE, 1005)
     );
 
     /** Default armor models for the early levels. */
     private static final java.util.Map<ArmorType, Model> DEFAULT_ARMOR_MODELS = java.util.Map.of(
-            ArmorType.HELMET,     new Model(Material.KELP,             1000),
+            // Use actual armor items so pieces can be equipped
+            ArmorType.HELMET,     new Model(Material.LEATHER_HELMET,      1000),
             ArmorType.CHESTPLATE, new Model(Material.LEATHER_CHESTPLATE, 1002),
             ArmorType.LEGGINGS,   new Model(Material.LEATHER_LEGGINGS,   1002),
             ArmorType.BOOTS,      new Model(Material.LEATHER_BOOTS,      1002)
@@ -165,9 +167,8 @@ public class ItemUtil {
                 me.nakilex.levelplugin.items.data.WeaponType.matchType(new ItemStack(templateMat));
         me.nakilex.levelplugin.items.data.ArmorType aType =
                 me.nakilex.levelplugin.items.data.ArmorType.matchType(new ItemStack(templateMat));
-        // Use a neutral DIAMOND item for all weapons and armor so vanilla
-        // attribute tooltips never show up regardless of type.
-        boolean needsNeutral = aType != null || wType != null;
+        // Only weapon items need a neutral material to hide vanilla attributes.
+        boolean needsNeutral = wType != null;
 
         boolean hasNexoModel = nexoId != null && !nexoId.isEmpty();
         boolean willApplyDefaultModel = !hasNexoModel
@@ -211,12 +212,9 @@ public class ItemUtil {
             stack = new ItemStack(mat, amount);
         }
         if (needsNeutral && !hasNexoModel && defaultModel == null) {
-            // Armor in the conqueror range has no dedicated model, keep the
-            // original material instead of forcing DIAMOND so vanilla visuals
-            // remain intact.
-            if (!(MODEL_SET_21_30.equals(setName) && aType != null)) {
-                stack.setType(Material.DIAMOND);
-            }
+            // Swap to a neutral diamond item for weapons without models so
+            // vanilla attribute lines never appear.
+            stack.setType(Material.DIAMOND);
         }
 
         ItemMeta meta = stack.getItemMeta();
@@ -409,22 +407,16 @@ public class ItemUtil {
         ArmorType aType = ArmorType.matchType(new ItemStack(origMat));
         boolean hasNexoModel = pdcStack.has(NEXO_MODEL_KEY, PersistentDataType.STRING);
         boolean hasModel = meta.hasCustomModelData();
-        String setName = getModelSetForLevel(cItem.getLevelRequirement());
         // Only switch to a DIAMOND type when absolutely necessary to hide vanilla
-        // attributes. Conqueror range armor keeps its original material since
-        // there is no matching model for it.
-        if (!hasNexoModel && !hasModel && (aType != null || wType != null)) {
-            if (!(MODEL_SET_21_30.equals(setName) && aType != null)) {
-                stack.setType(Material.DIAMOND);
-            } else {
-                stack.setType(origMat);
-            }
+        // attributes on weapons without models.
+        if (!hasNexoModel && !hasModel && wType != null) {
+            stack.setType(Material.DIAMOND);
         } else {
             stack.setType(origMat);
         }
-        if (me.nakilex.levelplugin.items.data.ArmorType.matchType(new ItemStack(origMat)) != null) {
+        if (aType != null) {
             typeGlyph = "<glyph:armor>";
-        } else if (me.nakilex.levelplugin.items.data.WeaponType.matchType(new ItemStack(origMat)) != null) {
+        } else if (wType != null) {
             typeGlyph = "<glyph:weapon>";
         }
         lore.add(rarityGlyph + typeGlyph);

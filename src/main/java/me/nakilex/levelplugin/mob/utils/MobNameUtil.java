@@ -1,8 +1,8 @@
 package me.nakilex.levelplugin.mob.utils;
 
+import io.lumine.mythic.api.mobs.MythicMob;
 import io.lumine.mythic.api.skills.placeholders.PlaceholderString;
 import io.lumine.mythic.bukkit.MythicBukkit;
-import io.lumine.mythic.core.mobs.MythicMob;
 
 import java.util.Optional;
 
