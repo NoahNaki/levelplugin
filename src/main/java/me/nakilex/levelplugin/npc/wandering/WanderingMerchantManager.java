@@ -13,7 +13,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TraderLlama;
-import org.bukkit.entity.Villager;
+import org.bukkit.entity.WanderingTrader;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.*;
@@ -25,7 +25,7 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public class WanderingMerchantManager {
     private final Main plugin;
-    private Villager merchant;
+    private WanderingTrader merchant;
     private TraderLlama llama1;
     private TraderLlama llama2;
     private WanderingMerchantGUI gui;
@@ -75,7 +75,7 @@ public class WanderingMerchantManager {
 
     private void spawn(Location loc, Player player) {
         loc = me.nakilex.levelplugin.lootchests.utils.LocationUtils.aboveSurface(loc);
-        merchant = (Villager) loc.getWorld().spawnEntity(loc, EntityType.VILLAGER);
+        merchant = (WanderingTrader) loc.getWorld().spawnEntity(loc, EntityType.WANDERING_TRADER);
         merchant.setCustomName(ChatColor.GOLD + "Wandering Merchant");
         merchant.setCustomNameVisible(true);
         merchant.setAI(false);
