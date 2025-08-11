@@ -67,14 +67,18 @@ public class WanderingMerchantManager {
         if (isActive()) return;
         Location base = player.getLocation().clone();
         base.add(player.getLocation().getDirection().multiply(-8));
-        final Location spawnLoc = me.nakilex.levelplugin.lootchests.utils.LocationUtils.aboveSurface(base);
-        spawnLoc.getWorld().getChunkAtAsync(spawnLoc).thenRun(() ->
-                Bukkit.getScheduler().runTask(plugin, () -> spawn(spawnLoc, player))
+        final Location centered = me.nakilex.levelplugin.lootchests.utils.LocationUtils.centerOnBlock(base);
+        centered.getWorld().getChunkAtAsync(centered).thenRun(() ->
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    org.bukkit.Location ground = me.nakilex.levelplugin.lootchests.utils.LocationUtils.surfaceBelow(centered);
+                    if (me.nakilex.levelplugin.lootchests.utils.LocationUtils.countAirAbove(ground) > 5) {
+                        spawn(ground, player);
+                    }
+                })
         );
     }
 
     private void spawn(Location loc, Player player) {
-        loc = me.nakilex.levelplugin.lootchests.utils.LocationUtils.aboveSurface(loc);
         merchant = (WanderingTrader) loc.getWorld().spawnEntity(loc, EntityType.WANDERING_TRADER);
         merchant.setCustomName(ChatColor.GOLD + "Wandering Merchant");
         merchant.setCustomNameVisible(true);
