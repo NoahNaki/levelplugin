@@ -224,11 +224,7 @@ public class PluginBootstrap {
     }
 
     private void initializeManagers() {
-        // World-dependent managers like gates or fast travel require target
-        // worlds to be loaded. Ensure the necessary worlds are available
-        // before other managers are initialized.
         worldManager = new me.nakilex.levelplugin.world.WorldManager(plugin);
-        worldManager.ensureWorldsLoaded("flatland", "redrocks");
 
         itemManager = new ItemManager(plugin);
         toolManager = new me.nakilex.levelplugin.items.tools.ToolManager();
