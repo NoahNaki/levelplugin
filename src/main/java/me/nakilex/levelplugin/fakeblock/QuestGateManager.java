@@ -1,6 +1,8 @@
 package me.nakilex.levelplugin.fakeblock;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.fakeblock.GateAnimation;
+import me.nakilex.levelplugin.utils.SchematicUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -10,11 +12,10 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.Location;
-import me.nakilex.levelplugin.fakeblock.GateAnimation;
 
 import java.io.File;
 import java.util.*;
@@ -29,6 +30,8 @@ public class QuestGateManager implements Listener {
     private final Main plugin;
     private final FakeBlockManager blockManager;
     private final Map<String, QuestGate> gates = new HashMap<>();
+    /** Folder storing schematics for custom gate states. */
+    private final File schemFolder;
     /** Enables verbose logging for gate state changes. */
     private boolean debug = false;
     private File file;
@@ -37,9 +40,13 @@ public class QuestGateManager implements Listener {
     public QuestGateManager(Main plugin, FakeBlockManager blockManager) {
         this.plugin = plugin;
         this.blockManager = blockManager;
+        this.schemFolder = new File(plugin.getDataFolder(), "gate_schematics");
+        if (!schemFolder.exists()) schemFolder.mkdirs();
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
         loadFromConfig();
     }
+
+    public File getSchematicFolder() { return schemFolder; }
 
     public void addGate(QuestGate gate) {
         gates.put(gate.getId().toLowerCase(), gate);
@@ -101,13 +108,29 @@ public class QuestGateManager implements Listener {
             Location p1 = readLocation(world, config, base + "pos1");
             Location p2 = readLocation(world, config, base + "pos2");
             if (p1 == null || p2 == null) continue;
-            boolean useSel = config.getBoolean(base + "useSelection", false);
-            boolean useOpenSel = config.getBoolean(base + "useOpenSelection", false);
+            String closedSchem = config.getString(base + "closedSchematic");
+            String openSchem = config.getString(base + "openSchematic");
             boolean closed = config.getBoolean(base + "closed", true);
             GateAnimation anim = GateAnimation.fromString(config.getString(base + "animation"));
             long ticks = config.getLong(base + "duration", 40L);
-            Map<Location, BlockData> closedMap = useSel ? readBlockMap(world, config, base + "blocks", p1, p2) : null;
-            Map<Location, BlockData> openMap = useOpenSel ? readBlockMap(world, config, base + "openBlocks", p1, p2) : null;
+            Map<Location, BlockData> closedMap = null;
+            Map<Location, BlockData> openMap = null;
+            if (closedSchem != null) {
+                File schem = new File(schemFolder, closedSchem);
+                var rel = SchematicUtil.loadSchematic(schem, plugin.getLogger());
+                closedMap = SchematicUtil.toLocationMap(rel, world,
+                        Math.min(p1.getBlockX(), p2.getBlockX()),
+                        Math.min(p1.getBlockY(), p2.getBlockY()),
+                        Math.min(p1.getBlockZ(), p2.getBlockZ()));
+            }
+            if (openSchem != null) {
+                File schem = new File(schemFolder, openSchem);
+                var rel = SchematicUtil.loadSchematic(schem, plugin.getLogger());
+                openMap = SchematicUtil.toLocationMap(rel, world,
+                        Math.min(p1.getBlockX(), p2.getBlockX()),
+                        Math.min(p1.getBlockY(), p2.getBlockY()),
+                        Math.min(p1.getBlockZ(), p2.getBlockZ()));
+            }
             Material mat = Material.matchMaterial(config.getString(base + "block", "BARRIER"));
             if (mat == null) mat = Material.BARRIER;
             BlockData data = mat.createBlockData();
@@ -144,52 +167,22 @@ public class QuestGateManager implements Listener {
             config.set(base + "pos2.y", p2.getBlockY());
             config.set(base + "pos2.z", p2.getBlockZ());
             if (gate.hasCustomBlocks()) {
-                config.set(base + "useSelection", true);
-                writeBlockMap(config.createSection(base + "blocks"), gate.getClosedDataMap(), gate.getMinX(), gate.getMinY(), gate.getMinZ());
+                config.set(base + "closedSchematic", gate.getId() + "_closed.schem");
                 config.set(base + "block", null);
             } else {
-                config.set(base + "useSelection", false);
+                config.set(base + "closedSchematic", null);
                 config.set(base + "block", gate.getClosedData().getMaterial().name());
             }
             if (gate.hasOpenCustomBlocks()) {
-                config.set(base + "useOpenSelection", true);
-                writeBlockMap(config.createSection(base + "openBlocks"), gate.getOpenDataMap(), gate.getMinX(), gate.getMinY(), gate.getMinZ());
+                config.set(base + "openSchematic", gate.getId() + "_open.schem");
             } else {
-                config.set(base + "useOpenSelection", false);
+                config.set(base + "openSchematic", null);
             }
             config.set(base + "closed", gate.isDefaultClosed());
             config.set(base + "animation", gate.getAnimation().name());
             config.set(base + "duration", gate.getAnimationTicks());
         }
         try { config.save(file); } catch (Exception e) { e.printStackTrace(); }
-    }
-
-    private Map<Location, BlockData> readBlockMap(World world, FileConfiguration cfg, String path, Location p1, Location p2) {
-        Map<Location, BlockData> map = new HashMap<>();
-        if (!cfg.isConfigurationSection(path)) return map;
-        int minX = Math.min(p1.getBlockX(), p2.getBlockX());
-        int minY = Math.min(p1.getBlockY(), p2.getBlockY());
-        int minZ = Math.min(p1.getBlockZ(), p2.getBlockZ());
-        for (String key : cfg.getConfigurationSection(path).getKeys(false)) {
-            String[] parts = key.split(",");
-            if (parts.length != 3) continue;
-            int x = Integer.parseInt(parts[0]) + minX;
-            int y = Integer.parseInt(parts[1]) + minY;
-            int z = Integer.parseInt(parts[2]) + minZ;
-            String dataStr = cfg.getString(path + "." + key);
-            if (dataStr == null) continue;
-            BlockData data = Bukkit.createBlockData(dataStr);
-            map.put(new Location(world, x, y, z), data);
-        }
-        return map;
-    }
-
-    private void writeBlockMap(org.bukkit.configuration.ConfigurationSection section, Map<Location, BlockData> map, int minX, int minY, int minZ) {
-        for (var entry : map.entrySet()) {
-            Location loc = entry.getKey();
-            String key = (loc.getBlockX() - minX) + "," + (loc.getBlockY() - minY) + "," + (loc.getBlockZ() - minZ);
-            section.set(key, entry.getValue().getAsString());
-        }
     }
 
     private Location readLocation(World world, FileConfiguration cfg, String path) {

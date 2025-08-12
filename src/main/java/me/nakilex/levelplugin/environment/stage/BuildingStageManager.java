@@ -13,18 +13,9 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
-import com.sk89q.worldedit.WorldEdit;
-import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.math.BlockVector3;
-import com.sk89q.worldedit.regions.CuboidRegion;
-import com.sk89q.worldedit.extent.clipboard.Clipboard;
-import com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard;
-import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormats;
-import com.sk89q.worldedit.extent.clipboard.io.ClipboardWriter;
-import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormat;
-import com.sk89q.worldedit.function.operation.ForwardExtentCopy;
-import com.sk89q.worldedit.EditSession;
-import com.sk89q.worldedit.function.operation.Operations;
+
+import me.nakilex.levelplugin.utils.SchematicUtil;
 
 import java.io.File;
 import java.util.*;
@@ -79,7 +70,7 @@ public class BuildingStageManager {
         // Save a schematic of the selected area using FAWE
         String fileName = building.toLowerCase() + "_" + stage + ".schem";
         File schematic = new File(schemFolder, fileName);
-        saveSchematic(pos1, pos2, schematic);
+        SchematicUtil.saveSchematic(pos1, pos2, schematic, plugin.getLogger());
 
         int minX = Math.min(pos1.getBlockX(), pos2.getBlockX());
         int minY = Math.min(pos1.getBlockY(), pos2.getBlockY());
@@ -252,73 +243,6 @@ public class BuildingStageManager {
         return blocks;
     }
 
-    private void saveSchematic(Location p1, Location p2, File file) {
-        try {
-            int minX = Math.min(p1.getBlockX(), p2.getBlockX());
-            int minY = Math.min(p1.getBlockY(), p2.getBlockY());
-            int minZ = Math.min(p1.getBlockZ(), p2.getBlockZ());
-            int maxX = Math.max(p1.getBlockX(), p2.getBlockX());
-            int maxY = Math.max(p1.getBlockY(), p2.getBlockY());
-            int maxZ = Math.max(p1.getBlockZ(), p2.getBlockZ());
-
-            CuboidRegion region = new CuboidRegion(
-                    BukkitAdapter.adapt(p1.getWorld()),
-                    BlockVector3.at(minX, minY, minZ),
-                    BlockVector3.at(maxX, maxY, maxZ)
-            );
-            Clipboard clipboard = new BlockArrayClipboard(region);
-            try (EditSession session = WorldEdit.getInstance().newEditSession(BukkitAdapter.adapt(p1.getWorld()))) {
-                ForwardExtentCopy copy = new ForwardExtentCopy(session, region, clipboard, region.getMinimumPoint());
-                Operations.complete(copy);
-            }
-            var format = ClipboardFormats.findByFile(file);
-            if (format == null) {
-                format = ClipboardFormats.findByExtension("schem");
-            }
-            if (format == null) {
-                plugin.getLogger().warning("Unknown schematic format for " + file.getName());
-                return;
-            }
-            try (ClipboardWriter writer = format.getWriter(new java.io.FileOutputStream(file))) {
-                writer.write(clipboard);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private List<BlockDef> loadSchematic(File file, World world) {
-        List<BlockDef> blocks = new ArrayList<>();
-        try {
-            if (!file.exists()) {
-                plugin.getLogger().warning("Schematic not found: " + file.getName());
-                return blocks;
-            }
-            var format = ClipboardFormats.findByFile(file);
-            if (format == null) {
-                format = ClipboardFormats.findByExtension("schem");
-            }
-            if (format == null) return blocks;
-            try (var reader = format.getReader(new java.io.FileInputStream(file))) {
-                Clipboard clipboard = reader.read();
-                BlockVector3 min = clipboard.getRegion().getMinimumPoint();
-                for (BlockVector3 vec : clipboard.getRegion()) {
-                    var state = clipboard.getBlock(vec);
-                    BlockData data = BukkitAdapter.adapt(state.toImmutableState());
-                    if (data.getMaterial() == Material.AIR) continue;
-                    blocks.add(new BlockDef(
-                            vec.getBlockX() - min.getBlockX(),
-                            vec.getBlockY() - min.getBlockY(),
-                            vec.getBlockZ() - min.getBlockZ(),
-                            data));
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return blocks;
-    }
-
     private void loadConfig() {
         file = new File(plugin.getDataFolder(), "buildingstages.yml");
         if (!file.exists()) {
@@ -419,7 +343,12 @@ public class BuildingStageManager {
         }
         String fileName = config.getString(base + "schematic", building.toLowerCase() + "_" + stage + ".schem");
         File schematic = new File(schemFolder, fileName);
-        List<BlockDef> blockList = loadSchematic(schematic, world);
+        Map<BlockVector3, BlockData> relMap = SchematicUtil.loadSchematic(schematic, plugin.getLogger());
+        List<BlockDef> blockList = new ArrayList<>();
+        for (var entry : relMap.entrySet()) {
+            BlockVector3 vec = entry.getKey();
+            blockList.add(new BlockDef(vec.getBlockX(), vec.getBlockY(), vec.getBlockZ(), entry.getValue()));
+        }
         int hx = config.getInt(base + "holo.x", 0);
         int hy = config.getInt(base + "holo.y", 0);
         int hz = config.getInt(base + "holo.z", 0);

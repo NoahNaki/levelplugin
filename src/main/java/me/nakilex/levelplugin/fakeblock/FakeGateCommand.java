@@ -2,22 +2,26 @@ package me.nakilex.levelplugin.fakeblock;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.environment.stage.StageSelectionStore;
+import me.nakilex.levelplugin.utils.SchematicUtil;
 import org.bukkit.*;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.*;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import java.io.File;
 import java.util.*;
 
 /**
  * Simple in-game editor for fake gates using a wand similar to WorldEdit.
  */
 public class FakeGateCommand implements TabExecutor {
+    private final Main plugin;
     private final QuestGateManager manager;
     private final ItemStack wand;
 
     public FakeGateCommand(Main plugin) {
+        this.plugin = plugin;
         this.manager = plugin.getQuestGateManager();
         // Use the shared stage wand for selections
         this.wand = StageSelectionStore.WAND;
@@ -93,6 +97,8 @@ public class FakeGateCommand implements TabExecutor {
                     }
                     selMap = captureSelection(StageSelectionStore.getPos1(player.getUniqueId()),
                             StageSelectionStore.getPos2(player.getUniqueId()));
+                    File schem = new File(manager.getSchematicFolder(), id + "_" + (updateClosed ? "closed" : "open") + ".schem");
+                    SchematicUtil.saveSchematic(pos1, pos2, schem, plugin.getLogger());
                 } else {
                     mat = Material.matchMaterial(blockArg);
                     if (mat == null) {
@@ -231,7 +237,10 @@ public class FakeGateCommand implements TabExecutor {
             for (int y = minY; y <= maxY; y++) {
                 for (int z = minZ; z <= maxZ; z++) {
                     Location l = new Location(world, x, y, z);
-                    map.put(l, l.getBlock().getBlockData());
+                    BlockData data = l.getBlock().getBlockData();
+                    if (!data.getMaterial().isAir()) {
+                        map.put(l, data);
+                    }
                 }
             }
         }
