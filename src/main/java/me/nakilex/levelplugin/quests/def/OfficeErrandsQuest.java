@@ -85,6 +85,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
         QuestGateManager gates = plugin.getQuestGateManager();
         String gateId = "office_elevator";
         String worldGateId = "world_elevator";
+        String roomGateId = "world_elevator_room";
 
         // Apply blindness while the world loads
         player.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.BLINDNESS, 40, 0, false, false, false));
@@ -179,7 +180,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                     Location loc = player.getLocation();
                     if (loc.getBlockX() >= 27 && loc.getBlockX() <= 31
                             && loc.getBlockZ() >= -95 && loc.getBlockZ() <= -90) {
-                        startElevatorTeleport(player, loc, plugin, gates, gateId, worldGateId);
+                        startElevatorTeleport(player, loc, plugin, gates, gateId, worldGateId, roomGateId);
                     }
                 });
             }
@@ -205,7 +206,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                 org.bukkit.Location to = e.getTo();
                 if (to.getBlockX() >= minX && to.getBlockX() <= maxX && to.getBlockZ() >= minZ && to.getBlockZ() <= maxZ) {
                     HandlerList.unregisterAll(this);
-                    startElevatorTeleport(player, to, plugin, gates, gateId, worldGateId);
+                    startElevatorTeleport(player, to, plugin, gates, gateId, worldGateId, roomGateId);
                 }
             }
         };
@@ -215,7 +216,8 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
     /** Begin the elevator teleport sequence when the player steps inside. */
     private void startElevatorTeleport(Player player, Location triggerLoc,
                                        Main plugin, QuestGateManager gates,
-                                       String gateId, String worldGateId) {
+                                       String gateId, String worldGateId,
+                                       String roomGateId) {
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             gates.closeGate(player, gateId);
 
@@ -272,8 +274,10 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                                     fbm.showFakeBlocks(player, worldElevatorBlocks);
                                 }
 
-                                Bukkit.getScheduler().runTaskLater(plugin,
-                                        () -> gates.updatePlayer(player), 10L);
+                                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                                    gates.updatePlayer(player);
+                                    gates.closeGate(player, roomGateId);
+                                }, 10L);
                                 Bukkit.getScheduler().runTaskLater(plugin,
                                         () -> gates.openGate(player, worldGateId), 40L);
 
@@ -287,6 +291,8 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                                                 || l.getBlockY() < 66 || l.getBlockY() > 76
                                                 || l.getBlockZ() < -99 || l.getBlockZ() > -92) {
                                             HandlerList.unregisterAll(this);
+                                            gates.openGate(player, roomGateId);
+                        
                                             if (worldElevatorGone != null) {
                                                 if (!worldElevatorCleared) {
                                                     applyArea(worldElevatorGone);
