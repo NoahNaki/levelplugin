@@ -17,25 +17,14 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.Sound;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
-import org.bukkit.block.data.BlockData;
-import java.util.Map;
-import java.util.HashMap;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 
 import java.util.List;
 
 public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompletionScript, QuestResetScript {
-
-    /** Cached block data for the destination elevator structure. */
-    private Map<Location, BlockData> worldElevatorBlocks;
-    /** Map of the destination elevator area once the elevator disappears. */
-    private Map<Location, BlockData> worldElevatorGone;
-    /** Whether the real elevator blocks have been cleared from the world. */
-    private boolean worldElevatorCleared;
 
     /** Per-player listeners for cleanup when the quest resets. */
     private final java.util.Map<java.util.UUID, java.util.List<Listener>> listeners = new java.util.HashMap<>();
@@ -97,38 +86,6 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
 
         // Ensure the destination elevator starts closed for this player
         gates.closeGate(player, worldGateId);
-
-        World world2 = Bukkit.getWorld("world");
-        if (world2 != null && worldElevatorBlocks == null) {
-            worldElevatorBlocks = captureArea(world2,
-                    101, 66, -92,
-                    107, 76, -99);
-            // Exclude the gate door blocks so the QuestGate controls them
-            removeArea(worldElevatorBlocks,
-                    101, 67, -92,
-                    107, 73, -92);
-            worldElevatorGone = new HashMap<>();
-            BlockData air = org.bukkit.Material.AIR.createBlockData();
-            BlockData path = org.bukkit.Material.DIRT_PATH.createBlockData();
-            // Create the final elevator-gone state: air above, dirt path floor
-            for (int x = 101; x <= 107; x++) {
-                for (int z = -99; z <= -92; z++) {
-                    worldElevatorGone.put(new Location(world2, x, 66, z), path);
-                    for (int y = 67; y <= 76; y++) {
-                        worldElevatorGone.put(new Location(world2, x, y, z), air);
-                    }
-                }
-            }
-            worldElevatorCleared = false;
-
-            // Show the intact elevator for all other online players
-            FakeBlockManager fbm = plugin.getFakeBlockManager();
-            for (Player p : Bukkit.getOnlinePlayers()) {
-                if (!p.equals(player)) {
-                    fbm.showFakeBlocks(p, worldElevatorBlocks);
-                }
-            }
-        }
 
         // After blindness wears off, send initial dialog line
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
@@ -270,10 +227,6 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                                 EnvironmentManager env = Main.getInstance().getEnvironmentManager();
                                 env.startTown(player, "town");
 
-                                if (worldElevatorBlocks != null) {
-                                    fbm.showFakeBlocks(player, worldElevatorBlocks);
-                                }
-
                                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
                                     gates.updatePlayer(player);
                                     gates.closeGate(player, roomGateId);
@@ -292,32 +245,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                                                 || l.getBlockZ() < -99 || l.getBlockZ() > -92) {
                                             HandlerList.unregisterAll(this);
                                             gates.openGate(player, roomGateId);
-                        
-                                            if (worldElevatorGone != null) {
-                                                if (!worldElevatorCleared) {
-                                                    applyArea(worldElevatorGone);
-                                                    worldElevatorCleared = true;
-                                                    for (Player other : Bukkit.getOnlinePlayers()) {
-                                                        if (!other.equals(player) && worldElevatorBlocks != null) {
-                                                            fbm.showFakeBlocks(other, worldElevatorBlocks);
-                                                        }
-                                                    }
-                                                }
-                                                if (worldElevatorBlocks != null) {
-                                                    fbm.hideFakeBlocks(player, worldElevatorBlocks.keySet());
-                                                }
-                                                fbm.showFakeBlocks(player, worldElevatorGone);
-                                                for (var ent : destWorld.getEntities()) {
-                                                    Location el = ent.getLocation();
-                                                    if (el.getBlockX() >= 101 && el.getBlockX() <= 107
-                                                            && el.getBlockY() >= 66 && el.getBlockY() <= 76
-                                                            && el.getBlockZ() >= -99 && el.getBlockZ() <= -92
-                                                            && ent instanceof org.bukkit.entity.Hanging) {
-                                                        player.hideEntity(plugin, ent);
-                                                    }
-                                                }
-                                                plugin.getQuestManager().cleanupQuest(player, "officeerrands");
-                                            }
+                                            plugin.getQuestManager().cleanupQuest(player, "officeerrands");
                                         }
                                     }
                                 };
@@ -328,64 +256,6 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                 }
             }.runTaskTimer(plugin, 0L, 10L);
         }, 40L);
-    }
-
-    /** Capture block data from the destination elevator region for reuse. */
-    private Map<Location, BlockData> captureArea(World world,
-                                                 int x1, int y1, int z1,
-                                                 int x2, int y2, int z2) {
-        int minX = Math.min(x1, x2);
-        int maxX = Math.max(x1, x2);
-        int minY = Math.min(y1, y2);
-        int maxY = Math.max(y1, y2);
-        int minZ = Math.min(z1, z2);
-        int maxZ = Math.max(z1, z2);
-        Map<Location, BlockData> map = new HashMap<>();
-        for (int x = minX; x <= maxX; x++) {
-            for (int y = minY; y <= maxY; y++) {
-                for (int z = minZ; z <= maxZ; z++) {
-                    Location l = new Location(world, x, y, z);
-                    map.put(l, l.getBlock().getBlockData());
-                }
-            }
-        }
-        return map;
-    }
-
-    /** Remove a subregion from the captured block map. */
-    private void removeArea(Map<Location, BlockData> map,
-                            int x1, int y1, int z1,
-                            int x2, int y2, int z2) {
-        int minX = Math.min(x1, x2);
-        int maxX = Math.max(x1, x2);
-        int minY = Math.min(y1, y2);
-        int maxY = Math.max(y1, y2);
-        int minZ = Math.min(z1, z2);
-        int maxZ = Math.max(z1, z2);
-        map.keySet().removeIf(loc ->
-                loc.getBlockX() >= minX && loc.getBlockX() <= maxX &&
-                        loc.getBlockY() >= minY && loc.getBlockY() <= maxY &&
-                        loc.getBlockZ() >= minZ && loc.getBlockZ() <= maxZ);
-    }
-
-    /** Apply block data directly to the world. */
-    private void applyArea(Map<Location, BlockData> blocks) {
-        if (blocks == null) return;
-        for (var entry : blocks.entrySet()) {
-            entry.getKey().getBlock().setBlockData(entry.getValue(), false);
-        }
-    }
-
-    public Map<Location, BlockData> getWorldElevatorBlocks() {
-        return worldElevatorBlocks;
-    }
-
-    public Map<Location, BlockData> getWorldElevatorGone() {
-        return worldElevatorGone;
-    }
-
-    public boolean isWorldElevatorCleared() {
-        return worldElevatorCleared;
     }
 
     @Override

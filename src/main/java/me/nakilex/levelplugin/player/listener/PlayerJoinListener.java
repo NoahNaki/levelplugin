@@ -18,7 +18,6 @@ import me.nakilex.levelplugin.player.profile.ProfileSelectionGUI;
 import me.nakilex.levelplugin.player.profile.ProfileManager;
 import me.nakilex.levelplugin.items.listeners.StaticItemListener;
 
-import java.util.List;
 import java.util.UUID;
 
 public class PlayerJoinListener implements Listener {
@@ -69,17 +68,7 @@ public class PlayerJoinListener implements Listener {
                 player.teleport(lobby);
             }
 
-            // Show the world elevator for players that haven't finished Office Errands
             me.nakilex.levelplugin.quests.managers.QuestManager qm = Main.getInstance().getQuestManager();
-            me.nakilex.levelplugin.quests.def.OfficeErrandsQuest office =
-                    (me.nakilex.levelplugin.quests.def.OfficeErrandsQuest) qm.getQuest("officeerrands");
-            if (office != null && office.getWorldElevatorBlocks() != null
-                    && office.isWorldElevatorCleared()
-                    && !qm.hasCompleted(pid, "officeerrands")) {
-                Main.getInstance().getFakeBlockManager()
-                        .showFakeBlocks(player, office.getWorldElevatorBlocks());
-            }
-
 
             me.nakilex.levelplugin.quests.data.Quest nb1 = qm.getQuest("newbeginning");
 
