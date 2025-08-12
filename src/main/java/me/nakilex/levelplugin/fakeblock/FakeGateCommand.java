@@ -7,6 +7,9 @@ import org.bukkit.command.*;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Simple in-game editor for fake gates using a wand similar to WorldEdit.
  */
@@ -58,8 +61,29 @@ public class FakeGateCommand implements CommandExecutor {
                 var pos2 = StageSelectionStore.getPos2(player.getUniqueId());
                 Bukkit.getLogger().info("[FakeGateDebug] create pos1=" + format(pos1) + " pos2=" + format(pos2));
                 String id = args[1].toLowerCase();
-                Material mat = Material.matchMaterial(args[2]);
-                if (mat == null) mat = Material.BARRIER;
+                Map<Location, BlockData> map = null;
+                Material mat = null;
+                if ("#selection".equalsIgnoreCase(args[2])) {
+                    map = new HashMap<>();
+                    World world = pos1.getWorld();
+                    int minX = Math.min(pos1.getBlockX(), pos2.getBlockX());
+                    int maxX = Math.max(pos1.getBlockX(), pos2.getBlockX());
+                    int minY = Math.min(pos1.getBlockY(), pos2.getBlockY());
+                    int maxY = Math.max(pos1.getBlockY(), pos2.getBlockY());
+                    int minZ = Math.min(pos1.getBlockZ(), pos2.getBlockZ());
+                    int maxZ = Math.max(pos1.getBlockZ(), pos2.getBlockZ());
+                    for (int x = minX; x <= maxX; x++) {
+                        for (int y = minY; y <= maxY; y++) {
+                            for (int z = minZ; z <= maxZ; z++) {
+                                Location l = new Location(world, x, y, z);
+                                map.put(l, l.getBlock().getBlockData());
+                            }
+                        }
+                    }
+                } else {
+                    mat = Material.matchMaterial(args[2]);
+                    if (mat == null) mat = Material.BARRIER;
+                }
                 boolean closed = true;
                 int idx = 3;
                 if (args.length > idx) {
@@ -74,7 +98,9 @@ public class FakeGateCommand implements CommandExecutor {
                 if (args.length > idx + 1) {
                     try { ticks = Math.round(Double.parseDouble(args[idx + 1]) * 20.0); } catch (NumberFormatException ignored) {}
                 }
-                QuestGate gate = new QuestGate(id, pos1, pos2, mat.createBlockData(), closed, anim, ticks);
+                QuestGate gate = map != null ?
+                        new QuestGate(id, pos1, pos2, map, closed, anim, ticks) :
+                        new QuestGate(id, pos1, pos2, mat.createBlockData(), closed, anim, ticks);
                 manager.createGate(gate);
                 player.sendMessage(ChatColor.YELLOW + "Gate " + id + " created and " + (closed ? "closed" : "open") + ".");
                 return true;

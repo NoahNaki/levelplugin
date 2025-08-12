@@ -30,6 +30,7 @@ public class QuestGate {
     private final List<Location> blocks = new ArrayList<>();
     private final Map<Location, BlockData> blockDataMap = new HashMap<>();
     private final java.util.Set<Location> blockSet = new java.util.HashSet<>();
+    private final boolean customBlocks;
 
     private final GateAnimation animation;
     private int minX, maxX, minY, maxY, minZ, maxZ;
@@ -44,22 +45,34 @@ public class QuestGate {
     private final Map<UUID, Boolean> playerStates = new HashMap<>();
 
     public QuestGate(String id, Location pos1, Location pos2, BlockData closedData, boolean closed, GateAnimation anim) {
+        this(id, pos1, pos2, closedData, closed, anim, 40L);
+    }
+
+    public QuestGate(String id, Location pos1, Location pos2, BlockData closedData, boolean closed, GateAnimation anim, long ticks) {
         this.id = id;
         this.pos1 = pos1;
         this.pos2 = pos2;
         this.closedData = closedData;
         this.defaultClosed = closed;
         this.animation = anim == null ? GateAnimation.INSTANT : anim;
-        this.animationTicks = 40L;
-        precomputeBlocks();
+        this.animationTicks = ticks > 0 ? ticks : 40L;
+        this.customBlocks = false;
+        precomputeBlocks(null);
     }
 
-    public QuestGate(String id, Location pos1, Location pos2, BlockData closedData, boolean closed, GateAnimation anim, long ticks) {
-        this(id, pos1, pos2, closedData, closed, anim);
-        if (ticks > 0) this.animationTicks = ticks;
+    public QuestGate(String id, Location pos1, Location pos2, Map<Location, BlockData> closedMap, boolean closed, GateAnimation anim, long ticks) {
+        this.id = id;
+        this.pos1 = pos1;
+        this.pos2 = pos2;
+        this.closedData = org.bukkit.Material.AIR.createBlockData();
+        this.defaultClosed = closed;
+        this.animation = anim == null ? GateAnimation.INSTANT : anim;
+        this.animationTicks = ticks > 0 ? ticks : 40L;
+        this.customBlocks = true;
+        precomputeBlocks(closedMap);
     }
 
-    private void precomputeBlocks() {
+    private void precomputeBlocks(Map<Location, BlockData> customMap) {
         World world = pos1.getWorld();
         minX = Math.min(pos1.getBlockX(), pos2.getBlockX());
         maxX = Math.max(pos1.getBlockX(), pos2.getBlockX());
@@ -77,9 +90,13 @@ public class QuestGate {
             }
         }
 
-        // compute connection-aware block data for connectable materials
-        for (Location loc : blocks) {
-            blockDataMap.put(loc, buildConnectedData(loc));
+        if (customMap != null && !customMap.isEmpty()) {
+            blockDataMap.putAll(customMap);
+        } else {
+            // compute connection-aware block data for connectable materials
+            for (Location loc : blocks) {
+                blockDataMap.put(loc, buildConnectedData(loc));
+            }
         }
     }
 
@@ -109,6 +126,7 @@ public class QuestGate {
     public BlockData getClosedData() { return closedData; }
     public BlockData getClosedData(Location loc) { return blockDataMap.getOrDefault(loc, closedData); }
     public Map<Location, BlockData> getClosedDataMap() { return blockDataMap; }
+    public boolean hasCustomBlocks() { return customBlocks; }
 
     public GateAnimation getAnimation() { return animation; }
     public long getAnimationTicks() { return animationTicks; }

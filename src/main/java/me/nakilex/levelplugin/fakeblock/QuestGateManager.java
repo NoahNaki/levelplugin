@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.fakeblock;
 
 import me.nakilex.levelplugin.Main;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
@@ -93,13 +94,19 @@ public class QuestGateManager implements Listener {
             Location p1 = readLocation(world, config, base + "pos1");
             Location p2 = readLocation(world, config, base + "pos2");
             if (p1 == null || p2 == null) continue;
-            Material mat = Material.matchMaterial(config.getString(base + "block", "BARRIER"));
-            if (mat == null) mat = Material.BARRIER;
-            BlockData data = mat.createBlockData();
+            boolean useSel = config.getBoolean(base + "useSelection", false);
             boolean closed = config.getBoolean(base + "closed", true);
             GateAnimation anim = GateAnimation.fromString(config.getString(base + "animation"));
             long ticks = config.getLong(base + "duration", 40L);
-            addGate(new QuestGate(key.toLowerCase(), p1, p2, data, closed, anim, ticks));
+            if (useSel) {
+                Map<Location, BlockData> map = readBlockMap(world, config, base + "blocks", p1, p2);
+                addGate(new QuestGate(key.toLowerCase(), p1, p2, map, closed, anim, ticks));
+            } else {
+                Material mat = Material.matchMaterial(config.getString(base + "block", "BARRIER"));
+                if (mat == null) mat = Material.BARRIER;
+                BlockData data = mat.createBlockData();
+                addGate(new QuestGate(key.toLowerCase(), p1, p2, data, closed, anim, ticks));
+            }
         }
     }
 
@@ -116,12 +123,47 @@ public class QuestGateManager implements Listener {
             config.set(base + "pos2.x", p2.getBlockX());
             config.set(base + "pos2.y", p2.getBlockY());
             config.set(base + "pos2.z", p2.getBlockZ());
-            config.set(base + "block", gate.getClosedData().getMaterial().name());
+            if (gate.hasCustomBlocks()) {
+                config.set(base + "useSelection", true);
+                writeBlockMap(config.createSection(base + "blocks"), gate.getClosedDataMap(), gate.getMinX(), gate.getMinY(), gate.getMinZ());
+                config.set(base + "block", null);
+            } else {
+                config.set(base + "useSelection", false);
+                config.set(base + "block", gate.getClosedData().getMaterial().name());
+            }
             config.set(base + "closed", gate.isDefaultClosed());
             config.set(base + "animation", gate.getAnimation().name());
             config.set(base + "duration", gate.getAnimationTicks());
         }
         try { config.save(file); } catch (Exception e) { e.printStackTrace(); }
+    }
+
+    private Map<Location, BlockData> readBlockMap(World world, FileConfiguration cfg, String path, Location p1, Location p2) {
+        Map<Location, BlockData> map = new HashMap<>();
+        if (!cfg.isConfigurationSection(path)) return map;
+        int minX = Math.min(p1.getBlockX(), p2.getBlockX());
+        int minY = Math.min(p1.getBlockY(), p2.getBlockY());
+        int minZ = Math.min(p1.getBlockZ(), p2.getBlockZ());
+        for (String key : cfg.getConfigurationSection(path).getKeys(false)) {
+            String[] parts = key.split(",");
+            if (parts.length != 3) continue;
+            int x = Integer.parseInt(parts[0]) + minX;
+            int y = Integer.parseInt(parts[1]) + minY;
+            int z = Integer.parseInt(parts[2]) + minZ;
+            String dataStr = cfg.getString(path + "." + key);
+            if (dataStr == null) continue;
+            BlockData data = Bukkit.createBlockData(dataStr);
+            map.put(new Location(world, x, y, z), data);
+        }
+        return map;
+    }
+
+    private void writeBlockMap(org.bukkit.configuration.ConfigurationSection section, Map<Location, BlockData> map, int minX, int minY, int minZ) {
+        for (var entry : map.entrySet()) {
+            Location loc = entry.getKey();
+            String key = (loc.getBlockX() - minX) + "," + (loc.getBlockY() - minY) + "," + (loc.getBlockZ() - minZ);
+            section.set(key, entry.getValue().getAsString());
+        }
     }
 
     private Location readLocation(World world, FileConfiguration cfg, String path) {
