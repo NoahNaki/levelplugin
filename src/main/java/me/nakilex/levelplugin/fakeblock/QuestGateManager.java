@@ -63,6 +63,7 @@ public class QuestGateManager implements Listener {
     /** Create and register a new gate and persist it to disk. */
     public void createGate(QuestGate gate) {
         addGate(gate);
+        clearGateBlocks(gate);
         saveConfig();
         updateAll();
     }
@@ -98,16 +99,31 @@ public class QuestGateManager implements Listener {
             boolean closed = config.getBoolean(base + "closed", true);
             GateAnimation anim = GateAnimation.fromString(config.getString(base + "animation"));
             long ticks = config.getLong(base + "duration", 40L);
+            QuestGate gate;
             if (useSel) {
                 Map<Location, BlockData> map = readBlockMap(world, config, base + "blocks", p1, p2);
-                addGate(new QuestGate(key.toLowerCase(), p1, p2, map, closed, anim, ticks));
+                gate = new QuestGate(key.toLowerCase(), p1, p2, map, closed, anim, ticks);
             } else {
                 Material mat = Material.matchMaterial(config.getString(base + "block", "BARRIER"));
                 if (mat == null) mat = Material.BARRIER;
                 BlockData data = mat.createBlockData();
-                addGate(new QuestGate(key.toLowerCase(), p1, p2, data, closed, anim, ticks));
+                gate = new QuestGate(key.toLowerCase(), p1, p2, data, closed, anim, ticks);
             }
+            addGate(gate);
+            clearGateBlocks(gate);
         }
+    }
+
+    /** Replace every block inside the gate region with the given material. */
+    private void fillRegion(QuestGate gate, Material material) {
+        for (Location loc : gate.getBlocks()) {
+            loc.getBlock().setType(material, false);
+        }
+    }
+
+    /** Ensure the real world stays passable by removing solid gate blocks. */
+    private void clearGateBlocks(QuestGate gate) {
+        fillRegion(gate, Material.AIR);
     }
 
     private void saveConfig() {
