@@ -17,7 +17,6 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.Sound;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
 import org.bukkit.block.data.BlockData;
@@ -32,10 +31,6 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
 
     /** Cached block data for the destination elevator structure. */
     private Map<Location, BlockData> worldElevatorBlocks;
-    /** Map of the destination elevator area once the elevator disappears. */
-    private Map<Location, BlockData> worldElevatorGone;
-    /** Whether the real elevator blocks have been cleared from the world. */
-    private boolean worldElevatorCleared;
 
     /** Per-player listeners for cleanup when the quest resets. */
     private final java.util.Map<java.util.UUID, java.util.List<Listener>> listeners = new java.util.HashMap<>();
@@ -107,27 +102,6 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
             removeArea(worldElevatorBlocks,
                     101, 67, -92,
                     107, 73, -92);
-            worldElevatorGone = new HashMap<>();
-            BlockData air = org.bukkit.Material.AIR.createBlockData();
-            BlockData path = org.bukkit.Material.DIRT_PATH.createBlockData();
-            // Create the final elevator-gone state: air above, dirt path floor
-            for (int x = 101; x <= 107; x++) {
-                for (int z = -99; z <= -92; z++) {
-                    worldElevatorGone.put(new Location(world2, x, 66, z), path);
-                    for (int y = 67; y <= 76; y++) {
-                        worldElevatorGone.put(new Location(world2, x, y, z), air);
-                    }
-                }
-            }
-            worldElevatorCleared = false;
-
-            // Show the intact elevator for all other online players
-            FakeBlockManager fbm = plugin.getFakeBlockManager();
-            for (Player p : Bukkit.getOnlinePlayers()) {
-                if (!p.equals(player)) {
-                    fbm.showFakeBlocks(p, worldElevatorBlocks);
-                }
-            }
         }
 
         // After blindness wears off, send initial dialog line
@@ -293,31 +267,10 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                                             HandlerList.unregisterAll(this);
                                             gates.openGate(player, roomGateId);
                         
-                                            if (worldElevatorGone != null) {
-                                                if (!worldElevatorCleared) {
-                                                    applyArea(worldElevatorGone);
-                                                    worldElevatorCleared = true;
-                                                    for (Player other : Bukkit.getOnlinePlayers()) {
-                                                        if (!other.equals(player) && worldElevatorBlocks != null) {
-                                                            fbm.showFakeBlocks(other, worldElevatorBlocks);
-                                                        }
-                                                    }
-                                                }
-                                                if (worldElevatorBlocks != null) {
-                                                    fbm.hideFakeBlocks(player, worldElevatorBlocks.keySet());
-                                                }
-                                                fbm.showFakeBlocks(player, worldElevatorGone);
-                                                for (var ent : destWorld.getEntities()) {
-                                                    Location el = ent.getLocation();
-                                                    if (el.getBlockX() >= 101 && el.getBlockX() <= 107
-                                                            && el.getBlockY() >= 66 && el.getBlockY() <= 76
-                                                            && el.getBlockZ() >= -99 && el.getBlockZ() <= -92
-                                                            && ent instanceof org.bukkit.entity.Hanging) {
-                                                        player.hideEntity(plugin, ent);
-                                                    }
-                                                }
-                                                plugin.getQuestManager().cleanupQuest(player, "officeerrands");
+                                            if (worldElevatorBlocks != null) {
+                                                fbm.hideFakeBlocks(player, worldElevatorBlocks.keySet());
                                             }
+                                            plugin.getQuestManager().cleanupQuest(player, "officeerrands");
                                         }
                                     }
                                 };
@@ -368,24 +321,8 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                         loc.getBlockZ() >= minZ && loc.getBlockZ() <= maxZ);
     }
 
-    /** Apply block data directly to the world. */
-    private void applyArea(Map<Location, BlockData> blocks) {
-        if (blocks == null) return;
-        for (var entry : blocks.entrySet()) {
-            entry.getKey().getBlock().setBlockData(entry.getValue(), false);
-        }
-    }
-
     public Map<Location, BlockData> getWorldElevatorBlocks() {
         return worldElevatorBlocks;
-    }
-
-    public Map<Location, BlockData> getWorldElevatorGone() {
-        return worldElevatorGone;
-    }
-
-    public boolean isWorldElevatorCleared() {
-        return worldElevatorCleared;
     }
 
     @Override
