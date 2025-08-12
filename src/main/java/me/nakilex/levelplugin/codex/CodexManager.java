@@ -1,12 +1,13 @@
 package me.nakilex.levelplugin.codex;
 
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
+import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
+import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
-import org.bukkit.ChatColor;
 
 import java.util.*;
 
@@ -33,7 +34,8 @@ public class CodexManager {
         String path = "players." + id + ".codex.mobs." + key.toLowerCase() + ".kills";
         int kills = playerConfig.getConfig().getInt(path, 0);
         if (kills == 0) {
-            notifyDiscovery(player, "Monster", key);
+            String display = MobNameUtil.getPlainDisplayName(key);
+            notifyDiscovery(player, "Monster", display);
         }
         playerConfig.getConfig().set(path, kills + 1);
         playerConfig.saveConfigFile();

@@ -63,7 +63,7 @@ public class WanderingMerchantListener implements Listener {
                     }
                 }
             }
-            e.setDroppedExp(manager.getShopGearScore() * 4);
+            e.setDroppedExp(0);
             // despawn on next tick so drops are not cleared
             Bukkit.getScheduler().runTask(Main.getInstance(), manager::despawn);
         }
@@ -71,6 +71,7 @@ public class WanderingMerchantListener implements Listener {
         Entity entity = e.getEntity();
         if (entity instanceof TraderLlama llama) {
             manager.handleLlamaDeath(llama);
+            e.setDroppedExp(0);
         }
     }
 }

@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.codex;
 
+import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -77,7 +78,8 @@ public class MobCodexGUI implements Listener {
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             if (discovered) {
-                meta.setDisplayName(ChatColor.GREEN + key);
+                String name = MobNameUtil.getPlainDisplayName(key);
+                meta.setDisplayName(ChatColor.GREEN + name);
                 int discoveredCount = manager.getDiscoveredMobCount(id);
                 int total = manager.getTotalMobCount();
                 double percent = total == 0 ? 0 : (double) discoveredCount / total;

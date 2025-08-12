@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.mob.utils;
 import io.lumine.mythic.api.mobs.MythicMob;
 import io.lumine.mythic.api.skills.placeholders.PlaceholderString;
 import io.lumine.mythic.bukkit.MythicBukkit;
+import org.bukkit.ChatColor;
 
 import java.util.Optional;
 
@@ -50,6 +51,17 @@ public final class MobNameUtil {
             }
         }
         return toPrettyName(mobId);
+    }
+
+    /**
+     * Look up the configured display name and strip any color codes.
+     * Falls back to a prettified ID if necessary.
+     *
+     * @param mobId MythicMob internal ID
+     * @return plain display name without color codes
+     */
+    public static String getPlainDisplayName(String mobId) {
+        return ChatColor.stripColor(getDisplayName(mobId));
     }
 }
 
