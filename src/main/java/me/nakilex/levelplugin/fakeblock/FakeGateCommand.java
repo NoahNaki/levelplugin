@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.fakeblock;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.environment.stage.StageSelectionStore;
 import org.bukkit.*;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.command.*;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
