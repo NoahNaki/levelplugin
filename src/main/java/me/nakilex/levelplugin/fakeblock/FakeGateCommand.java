@@ -85,6 +85,11 @@ public class FakeGateCommand implements TabExecutor {
                     idx++;
                 }
 
+                if (manager.isDebug()) {
+                    Bukkit.getLogger().info("[FakeGateDebug] captured closed=" + (closedMap != null ? closedMap.size() : 0)
+                            + " open=" + (openMap != null ? openMap.size() : 0));
+                }
+
                 Boolean closed = null;
                 if (args.length > idx) {
                     String state = args[idx].toLowerCase();
@@ -130,6 +135,12 @@ public class FakeGateCommand implements TabExecutor {
                 if (closed == null) closed = true;
                 if (anim == null) anim = GateAnimation.INSTANT;
                 if (ticks == null) ticks = 40L;
+
+                if (manager.isDebug()) {
+                    Bukkit.getLogger().info("[FakeGateDebug] final id=" + id + " closed=" + closed
+                            + " closedMap=" + (closedMap != null ? closedMap.size() : 0)
+                            + " openMap=" + (openMap != null ? openMap.size() : 0));
+                }
 
                 BlockData closedData = mat.createBlockData();
                 QuestGate gate = QuestGate.create(id, pos1, pos2, closedData, closedMap, openMap, closed, anim, ticks);

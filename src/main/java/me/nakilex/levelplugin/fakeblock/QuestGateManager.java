@@ -63,6 +63,7 @@ public class QuestGateManager implements Listener {
     /** Create and register a new gate and persist it to disk. */
     public void createGate(QuestGate gate) {
         addGate(gate);
+        logDebug("createGate " + gate.getId() + " blocks=" + gate.getBlocks().size());
         clearGateBlocks(gate);
         saveConfig();
         updateAll();
@@ -77,6 +78,12 @@ public class QuestGateManager implements Listener {
 
     public boolean isDebug() {
         return debug;
+    }
+
+    private void logDebug(String msg) {
+        if (debug) {
+            plugin.getLogger().info("[GateDebug] " + msg);
+        }
     }
 
     private void loadFromConfig() {
@@ -121,6 +128,7 @@ public class QuestGateManager implements Listener {
     /** Ensure the real world stays passable by removing solid gate blocks. */
     private void clearGateBlocks(QuestGate gate) {
         fillRegion(gate, Material.AIR);
+        logDebug("cleared region for " + gate.getId());
     }
 
     private void saveConfig() {
@@ -200,9 +208,7 @@ public class QuestGateManager implements Listener {
         boolean closed = gate.isClosed(player.getUniqueId());
         gate.setClosed(player.getUniqueId(), !closed);
         animateGate(player, gate, !closed);
-        if (debug) {
-            plugin.getLogger().info("[GateDebug] " + player.getName() + " toggled " + id + " to " + (!closed ? "open" : "closed"));
-        }
+        logDebug(player.getName() + " toggled " + id + " to " + (!closed ? "open" : "closed"));
         return true;
     }
 
@@ -221,9 +227,7 @@ public class QuestGateManager implements Listener {
         if (gate == null) return false;
         gate.setClosed(player.getUniqueId(), closed);
         animateGate(player, gate, closed);
-        if (debug) {
-            plugin.getLogger().info("[GateDebug] " + player.getName() + " set " + id + " to " + (closed ? "closed" : "open"));
-        }
+        logDebug(player.getName() + " set " + id + " to " + (closed ? "closed" : "open"));
         return true;
     }
 
@@ -339,9 +343,7 @@ public class QuestGateManager implements Listener {
         QuestGate gate = gates.get("office_elevator");
         if (gate != null) {
             gate.setClosed(player.getUniqueId(), true);
-            if (debug) {
-                plugin.getLogger().info("[GateDebug] " + player.getName() + " join -> set office_elevator closed");
-            }
+            logDebug(player.getName() + " join -> set office_elevator closed");
         }
         // Delay updating until the player's chunks have loaded to ensure
         // the fake blocks are visible on join.
