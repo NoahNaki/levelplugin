@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.npc.wandering;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
+import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.salvage.managers.SalvageManager;
 import org.bukkit.Bukkit;
@@ -24,6 +25,12 @@ import java.util.concurrent.ThreadLocalRandom;
  * Generates a random shop inventory when spawned.
  */
 public class WanderingMerchantManager {
+    private static final java.util.Map<ItemRarity, Double> PRICE_MULTIPLIERS = java.util.Map.of(
+            ItemRarity.COMMON, 1.0,
+            ItemRarity.UNCOMMON, 1.3,
+            ItemRarity.RARE, 1.5,
+            ItemRarity.EPIC, 2.0
+    );
     private final Main plugin;
     private WanderingTrader merchant;
     private TraderLlama llama1;
@@ -124,11 +131,12 @@ public class WanderingMerchantManager {
         List<CustomItem> items = new ArrayList<>();
         for (int i = 0; i < 7; i++) {
             int offerLevel = pickOfferLevel();
-            CustomItem item = ItemManager.getInstance().generateItem("mob", offerLevel);
+            CustomItem item = rollSubLegendaryItem(offerLevel);
             items.add(item);
             ItemStack stack = ItemUtil.createItemStackFromCustomItem(item, 1, null);
             int gearScore = SalvageManager.getInstance().getTotalStats(item);
-            int cost = gearScore * 2 + 5;
+            double mult = PRICE_MULTIPLIERS.getOrDefault(item.getRarity(), 1.0);
+            int cost = (int) Math.round((gearScore * 2 + 5) * mult);
             offers.add(new WanderingMerchantOffer(stack, cost, 1));
         }
         gui = new WanderingMerchantGUI(plugin, offers);
@@ -139,6 +147,15 @@ public class WanderingMerchantManager {
             merchant.getAttribute(Attribute.MAX_HEALTH).setBaseValue(maxHealth);
             merchant.setHealth(maxHealth);
         }
+    }
+
+    /** Roll a random item for the given level and ensure its rarity is below LEGENDARY. */
+    private CustomItem rollSubLegendaryItem(int level) {
+        CustomItem item;
+        do {
+            item = ItemManager.getInstance().generateItem("mob", level);
+        } while (item.getRarity().ordinal() >= ItemRarity.LEGENDARY.ordinal());
+        return item;
     }
 
     /** Choose a random item level with a bell-curve distribution. */
