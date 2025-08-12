@@ -36,13 +36,11 @@ public final class StageSelectionStore {
     }
 
     public static Location getPos1(UUID uuid) {
-        Selection s = selections.get(uuid);
-        return s == null ? null : s.pos1;
+        return getSelection(uuid).pos1;
     }
 
     public static Location getPos2(UUID uuid) {
-        Selection s = selections.get(uuid);
-        return s == null ? null : s.pos2;
+        return getSelection(uuid).pos2;
     }
 
     public static void setPos1(UUID uuid, Location loc) {

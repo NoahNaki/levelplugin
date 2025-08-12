@@ -75,14 +75,23 @@ public class FakeGateCommand implements CommandExecutor, Listener {
                 String id = args[1].toLowerCase();
                 Material mat = Material.matchMaterial(args[2]);
                 if (mat == null) mat = Material.BARRIER;
-                GateAnimation anim = args.length > 3 ? GateAnimation.fromString(args[3]) : GateAnimation.INSTANT;
-                long ticks = 40L;
-                if (args.length > 4) {
-                    try { ticks = Math.round(Double.parseDouble(args[4]) * 20.0); } catch (NumberFormatException ignored) {}
+                boolean closed = true;
+                int idx = 3;
+                if (args.length > idx) {
+                    String state = args[idx].toLowerCase();
+                    if (state.equals("open") || state.equals("closed")) {
+                        closed = state.equals("closed");
+                        idx++;
+                    }
                 }
-                QuestGate gate = new QuestGate(id, sel.pos1, sel.pos2, mat.createBlockData(), true, anim, ticks);
+                GateAnimation anim = args.length > idx ? GateAnimation.fromString(args[idx]) : GateAnimation.INSTANT;
+                long ticks = 40L;
+                if (args.length > idx + 1) {
+                    try { ticks = Math.round(Double.parseDouble(args[idx + 1]) * 20.0); } catch (NumberFormatException ignored) {}
+                }
+                QuestGate gate = new QuestGate(id, sel.pos1, sel.pos2, mat.createBlockData(), closed, anim, ticks);
                 manager.createGate(gate);
-                player.sendMessage(ChatColor.YELLOW + "Gate " + id + " created and closed.");
+                player.sendMessage(ChatColor.YELLOW + "Gate " + id + " created and " + (closed ? "closed" : "open") + ".");
                 return true;
             case "toggle":
                 if (args.length < 2) return false;
