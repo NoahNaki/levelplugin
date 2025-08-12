@@ -44,28 +44,28 @@ public class GemExchangeGUI implements Listener {
 
     private void initItems() {
         gui.setItem(10, createGuiItem(FRAGMENT,
-            ChatColor.AQUA + "64 Fragments → 1 Shard",
+            ChatColor.LIGHT_PURPLE + "64 Fragments → 1 Shard",
             Arrays.asList(
                 "",
                 ChatColor.GRAY + "Combine 64 fragments into 1 shard"
             )
         ));
         gui.setItem(12, createGuiItem(SHARD,
-            ChatColor.AQUA + "1 Shard → 64 Fragments",
+            ChatColor.LIGHT_PURPLE + "1 Shard → 64 Fragments",
             Arrays.asList(
                 "",
                 ChatColor.GRAY + "Break 1 shard into 64 fragments"
             )
         ));
         gui.setItem(14, createGuiItem(SHARD,
-            ChatColor.AQUA + "64 Shards → 1 Cluster",
+            ChatColor.LIGHT_PURPLE + "64 Shards → 1 Cluster",
             Arrays.asList(
                 "",
                 ChatColor.GRAY + "Combine 64 shards into 1 cluster"
             )
         ));
         gui.setItem(16, createGuiItem(CLUSTER,
-            ChatColor.AQUA + "1 Cluster → 64 Shards",
+            ChatColor.LIGHT_PURPLE + "1 Cluster → 64 Shards",
             Arrays.asList(
                 "",
                 ChatColor.GRAY + "Break 1 cluster into 64 shards"

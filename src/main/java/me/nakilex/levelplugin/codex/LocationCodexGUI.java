@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.codex;
 
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.codex.CodexGuiUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -13,7 +14,9 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /** GUI listing discovered locations. */
 public class LocationCodexGUI implements Listener {
@@ -35,8 +38,16 @@ public class LocationCodexGUI implements Listener {
         int size = ((list.size() - 1) / 9 + 1) * 9;
         Inventory inv = Bukkit.createInventory(null, Math.max(size, 27), TITLE);
         for (int i = 0; i < inv.getSize(); i++) inv.setItem(i, filler);
+
+        Map<String, String> lines = new LinkedHashMap<>();
+        lines.put("Locations", String.valueOf(list.size()));
+        inv.setItem(4, CodexGuiUtil.createInfoBook("Discoveries", lines,
+                ChatColor.GRAY + "Category: Locations",
+                ChatColor.WHITE + "Each location that you've discovered will be listed here."));
+
         int slot = 0;
         for (String name : list) {
+            if (slot == 4) slot++; // skip info book slot
             ItemStack item = new ItemStack(Material.MAP);
             ItemMeta meta = item.getItemMeta();
             if (meta != null) {
