@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.environment.stage;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -51,15 +52,27 @@ public final class StageSelectionStore {
      */
     public static boolean hasSelection(UUID uuid) {
         Selection sel = selections.get(uuid);
-        return sel != null && sel.pos1 != null && sel.pos2 != null;
+        boolean has = sel != null && sel.pos1 != null && sel.pos2 != null;
+        if (!has) {
+            Bukkit.getLogger().info("[SelectionDebug] " + uuid + " pos1=" + fmt(sel != null ? sel.pos1 : null) +
+                    " pos2=" + fmt(sel != null ? sel.pos2 : null));
+        }
+        return has;
     }
 
     public static void setPos1(UUID uuid, Location loc) {
         getSelection(uuid).pos1 = loc;
+        Bukkit.getLogger().info("[SelectionDebug] pos1 set for " + uuid + " -> " + fmt(loc));
     }
 
     public static void setPos2(UUID uuid, Location loc) {
         getSelection(uuid).pos2 = loc;
+        Bukkit.getLogger().info("[SelectionDebug] pos2 set for " + uuid + " -> " + fmt(loc));
+    }
+
+    private static String fmt(Location loc) {
+        if (loc == null) return "null";
+        return loc.getWorld().getName() + ":" + loc.getBlockX()+","+loc.getBlockY()+","+loc.getBlockZ();
     }
 
     public static class Selection {

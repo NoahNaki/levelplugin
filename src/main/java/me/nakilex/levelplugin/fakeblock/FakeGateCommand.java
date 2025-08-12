@@ -69,6 +69,8 @@ public class FakeGateCommand implements CommandExecutor, Listener {
             case "create":
                 if (args.length < 3) return false;
                 Selection sel = selections.get(player.getUniqueId());
+                Bukkit.getLogger().info("[FakeGateDebug] create sel=" + (sel == null ? "null" :
+                        "pos1=" + format(sel.pos1) + " pos2=" + format(sel.pos2)));
                 if (sel == null || sel.pos1 == null || sel.pos2 == null) {
                     player.sendMessage(ChatColor.RED + "Select two positions first.");
                     return true;
@@ -165,9 +167,11 @@ public class FakeGateCommand implements CommandExecutor, Listener {
         if (event.getAction().name().contains("LEFT")) {
             sel.pos1 = event.getClickedBlock().getLocation();
             player.sendMessage(ChatColor.AQUA + "Pos1 set " + format(sel.pos1));
+            Bukkit.getLogger().info("[FakeGateDebug] pos1 set for " + player.getUniqueId() + " -> " + format(sel.pos1));
         } else if (event.getAction().name().contains("RIGHT")) {
             sel.pos2 = event.getClickedBlock().getLocation();
             player.sendMessage(ChatColor.AQUA + "Pos2 set " + format(sel.pos2));
+            Bukkit.getLogger().info("[FakeGateDebug] pos2 set for " + player.getUniqueId() + " -> " + format(sel.pos2));
         }
     }
 
