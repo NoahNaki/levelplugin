@@ -17,6 +17,12 @@ public class CodexManager {
     private final Set<String> bossKeys;
     // No predefined sets for NPCs or locations; they are tracked dynamically
 
+    /** Kill milestones used for per-mob codex levels. */
+    private static final int[] KILL_MILESTONES = {
+            10, 25, 50, 100, 250, 500, 1000, 1500, 2500, 5000,
+            10000, 15000, 25000, 50000
+    };
+
     public CodexManager(PlayerConfig playerConfig,
                         MobRewardsConfig mobCfg,
                         FileConfiguration bossCfg) {
@@ -67,6 +73,39 @@ public class CodexManager {
     public int getKillCount(UUID id, String key) {
         String path = "players." + id + ".codex.mobs." + key.toLowerCase() + ".kills";
         return playerConfig.getConfig().getInt(path, 0);
+    }
+
+    /**
+     * Current codex level for a mob based on total kills.
+     */
+    public int getMobLevel(UUID id, String key) {
+        int kills = getKillCount(id, key);
+        int level = 0;
+        while (level < KILL_MILESTONES.length && kills >= KILL_MILESTONES[level]) {
+            level++;
+        }
+        return level;
+    }
+
+    /** Kills required to reach a given codex level (1-indexed). */
+    public int getKillsForLevel(int level) {
+        if (level <= 0) return 0;
+        if (level > KILL_MILESTONES.length) return KILL_MILESTONES[KILL_MILESTONES.length - 1];
+        return KILL_MILESTONES[level - 1];
+    }
+
+    /** Fractional progress toward the next codex level for a mob. */
+    public double getMobProgress(UUID id, String key) {
+        int kills = getKillCount(id, key);
+        int level = getMobLevel(id, key);
+        if (level >= KILL_MILESTONES.length) return 1.0;
+        int prev = getKillsForLevel(level);
+        int next = getKillsForLevel(level + 1);
+        return (double) (kills - prev) / (next - prev);
+    }
+
+    public int getMaxMobLevel() {
+        return KILL_MILESTONES.length;
     }
 
     public int getDiscoveredMobCount(UUID id) {

@@ -79,14 +79,18 @@ public class MobCodexGUI implements Listener {
             if (discovered) {
                 String name = MobNameUtil.getPlainDisplayName(key);
                 meta.setDisplayName(ChatColor.GREEN + name);
-                int discoveredCount = manager.getDiscoveredMobCount(id);
-                int total = manager.getTotalMobCount();
-                double progress = total == 0 ? 0 : (double) discoveredCount / total;
+                int level = manager.getMobLevel(id, key);
+                double progress = manager.getMobProgress(id, key);
                 List<String> lore = new ArrayList<>();
+                lore.add(ChatColor.GRAY + "Level: " + ChatColor.YELLOW + level);
                 String bar = GuiUtil.createProgressBar(progress, 15);
-                lore.add(bar + " " + ChatColor.YELLOW + discoveredCount + ChatColor.GOLD + "/" + ChatColor.YELLOW + total
-                        + ChatColor.GRAY + " (" + ChatColor.YELLOW + Math.round(progress * 100) + "%" + ChatColor.GRAY + ")");
-                lore.add(ChatColor.GRAY + "Kills: " + ChatColor.WHITE + manager.getKillCount(id, key));
+                int kills = manager.getKillCount(id, key);
+                if (level >= manager.getMaxMobLevel()) {
+                    lore.add(bar + " " + ChatColor.YELLOW + kills + ChatColor.GOLD + "+");
+                } else {
+                    int next = manager.getKillsForLevel(level + 1);
+                    lore.add(bar + " " + ChatColor.YELLOW + kills + ChatColor.GOLD + "/" + ChatColor.YELLOW + next);
+                }
                 meta.setLore(lore);
             } else {
                 meta.setDisplayName(ChatColor.DARK_GRAY + "???");
