@@ -8,6 +8,8 @@ import com.sk89q.worldedit.extent.clipboard.Clipboard;
 import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormat;
 import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormats;
 import com.sk89q.worldedit.extent.clipboard.io.ClipboardWriter;
+import com.sk89q.worldedit.function.operation.ForwardExtentCopy;
+import com.sk89q.worldedit.function.operation.Operations;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.regions.CuboidRegion;
 import com.sk89q.worldedit.world.block.BlockState;
@@ -46,9 +48,9 @@ public final class SchematicUtil {
             );
             Clipboard clipboard = new BlockArrayClipboard(region);
             try (EditSession session = WorldEdit.getInstance().newEditSession(BukkitAdapter.adapt(p1.getWorld()))) {
-                com.sk89q.worldedit.extent.clipboard.ForwardExtentCopy copy = new com.sk89q.worldedit.extent.clipboard.ForwardExtentCopy(session, region, clipboard, region.getMinimumPoint());
+                ForwardExtentCopy copy = new ForwardExtentCopy(session, region, clipboard, region.getMinimumPoint());
                 copy.setCopyingEntities(false);
-                com.sk89q.worldedit.function.operation.Operations.complete(copy);
+                Operations.complete(copy);
             }
             ClipboardFormat format = ClipboardFormats.findByFile(file);
             if (format == null) format = ClipboardFormats.findByExtension("schem");
