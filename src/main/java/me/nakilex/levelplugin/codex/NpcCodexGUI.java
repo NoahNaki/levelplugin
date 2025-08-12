@@ -60,9 +60,7 @@ public class NpcCodexGUI implements Listener {
         UUID id = player.getUniqueId();
         Map<String, String> lines = new LinkedHashMap<>();
         lines.put("NPCs", manager.getDiscoveredNpcCount(id) + "/" + manager.getTotalNpcCount());
-        inv.setItem(4, CodexGuiUtil.createInfoBook("Discoveries", lines,
-                ChatColor.GRAY + "Category: NPCs",
-                ChatColor.WHITE + "Each NPC that you've discovered will be listed here."));
+        inv.setItem(4, CodexGuiUtil.createInfoBook("Discoveries", lines));
 
         List<NPC> npcs = manager.getAllNpcs();
         Set<String> discovered = new HashSet<>(manager.getDiscoveredNpcs(id));

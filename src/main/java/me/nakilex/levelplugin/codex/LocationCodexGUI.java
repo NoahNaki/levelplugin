@@ -41,9 +41,7 @@ public class LocationCodexGUI implements Listener {
 
         Map<String, String> lines = new LinkedHashMap<>();
         lines.put("Locations", String.valueOf(list.size()));
-        inv.setItem(4, CodexGuiUtil.createInfoBook("Discoveries", lines,
-                ChatColor.GRAY + "Category: Locations",
-                ChatColor.WHITE + "Each location that you've discovered will be listed here."));
+        inv.setItem(4, CodexGuiUtil.createInfoBook("Discoveries", lines));
 
         int slot = 0;
         for (String name : list) {

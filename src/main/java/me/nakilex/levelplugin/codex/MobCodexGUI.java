@@ -56,9 +56,7 @@ public class MobCodexGUI implements Listener {
         Map<String, String> lines = new LinkedHashMap<>();
         lines.put("Mobs", manager.getDiscoveredMobCount(player.getUniqueId()) + "/" + manager.getTotalMobCount());
         lines.put("Locations", "0/0");
-        inv.setItem(4, CodexGuiUtil.createInfoBook("Discoveries", lines,
-                ChatColor.GRAY + "Category: Mobs",
-                ChatColor.WHITE + "Each mob that you've discovered will be listed here."));
+        inv.setItem(4, CodexGuiUtil.createInfoBook("Discoveries", lines));
 
         List<String> mobs = manager.getAllMobKeys();
         int start = page * ITEMS_PER_PAGE;
