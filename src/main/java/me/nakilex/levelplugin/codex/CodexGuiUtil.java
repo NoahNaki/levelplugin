@@ -28,6 +28,17 @@ public final class CodexGuiUtil {
      * @param lines mapping of category name to value string (e.g., "Mobs" -> "1/5")
      */
     public static ItemStack createInfoBook(String title, Map<String, String> lines) {
+        return createInfoBook(title, lines, (String[]) null);
+    }
+
+    /**
+     * Create the info book summarising codex discoveries with extra lore lines.
+     *
+     * @param title book display name
+     * @param lines mapping of category name to value string
+     * @param extraLore optional additional lore lines appended after a blank line
+     */
+    public static ItemStack createInfoBook(String title, Map<String, String> lines, String... extraLore) {
         ItemStack book = new ItemStack(Material.BOOK);
         ItemMeta meta = book.getItemMeta();
         if (meta != null) {
@@ -35,6 +46,10 @@ public final class CodexGuiUtil {
             List<String> lore = new ArrayList<>();
             for (Map.Entry<String, String> entry : lines.entrySet()) {
                 lore.add(ChatColor.GRAY + entry.getKey() + ": " + ChatColor.WHITE + entry.getValue());
+            }
+            if (extraLore != null && extraLore.length > 0) {
+                lore.add(" ");
+                for (String line : extraLore) lore.add(line);
             }
             meta.setLore(lore);
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);

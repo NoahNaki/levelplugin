@@ -41,7 +41,7 @@ public class GemsManager {
             else if (mat == SHARD) baseName = "Gem Shard";
             else /* mat==CLUSTER */  baseName = "Gem Cluster";
 
-            meta.setDisplayName(ChatColor.AQUA + baseName);
+            meta.setDisplayName(ChatColor.LIGHT_PURPLE + baseName);
 
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.GRAY + "Currency");
@@ -56,7 +56,7 @@ public class GemsManager {
                 + ChatColor.BOLD
                 + ChatColor.STRIKETHROUGH;
             String reset   = ChatColor.RESET.toString();
-            String midFmt  = ChatColor.AQUA.toString()
+            String midFmt  = ChatColor.LIGHT_PURPLE.toString()
                 + ChatColor.BOLD;
 
             String line = dashFmt + "---"           // strike the three hyphens
