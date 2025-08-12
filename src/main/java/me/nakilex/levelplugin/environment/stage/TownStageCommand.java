@@ -1,35 +1,25 @@
 package me.nakilex.levelplugin.environment.stage;
 
-import me.nakilex.levelplugin.Main;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import me.nakilex.levelplugin.environment.stage.StageSelectionStore;
-
-import java.util.UUID;
 
 /**
  * Provides an editor for defining town stage areas using a wand.
  */
-public class TownStageCommand implements CommandExecutor, Listener {
+public class TownStageCommand implements CommandExecutor {
     private final TownStageManager manager;
     private final ItemStack wand;
 
-    public TownStageCommand(Main plugin, TownStageManager manager) {
+    public TownStageCommand(TownStageManager manager) {
         this.manager = manager;
-        wand = StageSelectionStore.WAND;
-        plugin.getCommand("townstage").setExecutor(this);
-        plugin.getServer().getPluginManager().registerEvents(this, plugin);
+        this.wand = StageSelectionStore.WAND;
     }
 
     @Override
@@ -84,25 +74,6 @@ public class TownStageCommand implements CommandExecutor, Listener {
                 return true;
             default:
                 return false;
-        }
-    }
-
-    @EventHandler
-    public void onInteract(PlayerInteractEvent event) {
-        ItemStack inHand = event.getItem();
-        if (inHand == null || !inHand.isSimilar(wand)) return;
-        // Ignore off-hand interactions to prevent duplicate messages
-        if (event.getHand() == org.bukkit.inventory.EquipmentSlot.OFF_HAND) return;
-        if (event.getClickedBlock() == null) return;
-        event.setCancelled(true);
-        Player player = event.getPlayer();
-        Location loc = event.getClickedBlock().getLocation();
-        if (event.getAction().name().contains("LEFT")) {
-            StageSelectionStore.setPos1(player.getUniqueId(), loc);
-            player.sendMessage(ChatColor.AQUA + "Pos1 set " + format(loc));
-        } else if (event.getAction().name().contains("RIGHT")) {
-            StageSelectionStore.setPos2(player.getUniqueId(), loc);
-            player.sendMessage(ChatColor.AQUA + "Pos2 set " + format(loc));
         }
     }
 

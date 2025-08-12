@@ -1,41 +1,23 @@
 package me.nakilex.levelplugin.fakeblock;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.environment.stage.StageSelectionStore;
 import org.bukkit.*;
 import org.bukkit.command.*;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-import me.nakilex.levelplugin.fakeblock.GateAnimation;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 
 /**
  * Simple in-game editor for fake gates using a wand similar to WorldEdit.
  */
-public class FakeGateCommand implements CommandExecutor, Listener {
+public class FakeGateCommand implements CommandExecutor {
     private final QuestGateManager manager;
-    private final Map<UUID, Selection> selections = new HashMap<>();
     private final ItemStack wand;
 
     public FakeGateCommand(Main plugin) {
         this.manager = plugin.getQuestGateManager();
-        // Configure wand item
-        wand = new ItemStack(Material.MACE);
-        ItemMeta meta = wand.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(ChatColor.GOLD + "Fake Gate Mace");
-            wand.setItemMeta(meta);
-        }
-
-        plugin.getCommand("fakegate").setExecutor(this);
-        plugin.getServer().getPluginManager().registerEvents(this, plugin);
+        // Use the shared stage wand for selections
+        this.wand = StageSelectionStore.WAND;
     }
 
     @Override
@@ -68,13 +50,13 @@ public class FakeGateCommand implements CommandExecutor, Listener {
                 return true;
             case "create":
                 if (args.length < 3) return false;
-                Selection sel = selections.get(player.getUniqueId());
-                Bukkit.getLogger().info("[FakeGateDebug] create sel=" + (sel == null ? "null" :
-                        "pos1=" + format(sel.pos1) + " pos2=" + format(sel.pos2)));
-                if (sel == null || sel.pos1 == null || sel.pos2 == null) {
+                if (!StageSelectionStore.hasSelection(player.getUniqueId())) {
                     player.sendMessage(ChatColor.RED + "Select two positions first.");
                     return true;
                 }
+                var pos1 = StageSelectionStore.getPos1(player.getUniqueId());
+                var pos2 = StageSelectionStore.getPos2(player.getUniqueId());
+                Bukkit.getLogger().info("[FakeGateDebug] create pos1=" + format(pos1) + " pos2=" + format(pos2));
                 String id = args[1].toLowerCase();
                 Material mat = Material.matchMaterial(args[2]);
                 if (mat == null) mat = Material.BARRIER;
@@ -92,7 +74,7 @@ public class FakeGateCommand implements CommandExecutor, Listener {
                 if (args.length > idx + 1) {
                     try { ticks = Math.round(Double.parseDouble(args[idx + 1]) * 20.0); } catch (NumberFormatException ignored) {}
                 }
-                QuestGate gate = new QuestGate(id, sel.pos1, sel.pos2, mat.createBlockData(), closed, anim, ticks);
+                QuestGate gate = new QuestGate(id, pos1, pos2, mat.createBlockData(), closed, anim, ticks);
                 manager.createGate(gate);
                 player.sendMessage(ChatColor.YELLOW + "Gate " + id + " created and " + (closed ? "closed" : "open") + ".");
                 return true;
@@ -155,32 +137,7 @@ public class FakeGateCommand implements CommandExecutor, Listener {
         }
     }
 
-    @EventHandler
-    public void onInteract(PlayerInteractEvent event) {
-        if (event.getHand() != EquipmentSlot.HAND) return;
-        ItemStack inHand = event.getItem();
-        if (inHand == null || !inHand.isSimilar(wand)) return;
-        if (event.getClickedBlock() == null) return;
-        event.setCancelled(true);
-        Player player = event.getPlayer();
-        Selection sel = selections.computeIfAbsent(player.getUniqueId(), k -> new Selection());
-        if (event.getAction().name().contains("LEFT")) {
-            sel.pos1 = event.getClickedBlock().getLocation();
-            player.sendMessage(ChatColor.AQUA + "Pos1 set " + format(sel.pos1));
-            Bukkit.getLogger().info("[FakeGateDebug] pos1 set for " + player.getUniqueId() + " -> " + format(sel.pos1));
-        } else if (event.getAction().name().contains("RIGHT")) {
-            sel.pos2 = event.getClickedBlock().getLocation();
-            player.sendMessage(ChatColor.AQUA + "Pos2 set " + format(sel.pos2));
-            Bukkit.getLogger().info("[FakeGateDebug] pos2 set for " + player.getUniqueId() + " -> " + format(sel.pos2));
-        }
-    }
-
     private static String format(Location loc) {
         return loc.getBlockX()+","+loc.getBlockY()+","+loc.getBlockZ();
-    }
-
-    private static class Selection {
-        Location pos1;
-        Location pos2;
     }
 }
