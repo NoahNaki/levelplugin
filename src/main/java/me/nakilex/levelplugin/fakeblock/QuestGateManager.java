@@ -64,7 +64,6 @@ public class QuestGateManager implements Listener {
     public void createGate(QuestGate gate) {
         addGate(gate);
         logDebug("createGate " + gate.getId() + " blocks=" + gate.getBlocks().size());
-        clearGateBlocks(gate);
         saveConfig();
         updateAll();
     }
