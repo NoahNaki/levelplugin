@@ -55,7 +55,6 @@ public class MobCodexGUI implements Listener {
         GuiUtil.fillBorder(inv, filler);
         Map<String, String> lines = new LinkedHashMap<>();
         lines.put("Mobs", manager.getDiscoveredMobCount(player.getUniqueId()) + "/" + manager.getTotalMobCount());
-        lines.put("Locations", "0/0");
         inv.setItem(4, CodexGuiUtil.createInfoBook("Discoveries", lines));
 
         List<String> mobs = manager.getAllMobKeys();
