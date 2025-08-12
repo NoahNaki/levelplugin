@@ -1,18 +1,4 @@
 gates:
-  example_gate:
-    world: world
-    pos1:
-      x: 0
-      y: 64
-      z: 0
-    pos2:
-      x: 0
-      y: 65
-      z: 2
-    block: IRON_BARS
-    closed: true
-    animation: INSTANT
-    duration: 40
   office_elevator:
     world: redrocks
     pos1:
@@ -40,4 +26,33 @@ gates:
     block: ANDESITE_WALL
     closed: true
     animation: ELEVATOR
+    duration: 40
+  example_gate:
+    world: world
+    pos1:
+      x: 0
+      y: 64
+      z: 0
+    pos2:
+      x: 0
+      y: 65
+      z: 2
+    block: IRON_BARS
+    closed: true
+    animation: INSTANT
+    duration: 40
+  world_elevator_room:
+    world: world
+    pos1:
+      x: 101
+      y: 66
+      z: -92
+    pos2:
+      x: 107
+      y: 74
+      z: -99
+    closedSchematic: world_elevator_room_closed.schem
+    openSchematic: world_elevator_room_open.schem
+    closed: true
+    animation: INSTANT
     duration: 40
