@@ -61,50 +61,46 @@ public class FakeGateCommand implements TabExecutor {
                 var pos2 = StageSelectionStore.getPos2(player.getUniqueId());
                 Bukkit.getLogger().info("[FakeGateDebug] create pos1=" + format(pos1) + " pos2=" + format(pos2));
                 String id = args[1].toLowerCase();
-                Map<Location, BlockData> map = null;
+                Map<Location, BlockData> closedMap = null;
                 Material mat = null;
                 if ("#selection".equalsIgnoreCase(args[2])) {
-                    map = new HashMap<>();
-                    World world = pos1.getWorld();
-                    int minX = Math.min(pos1.getBlockX(), pos2.getBlockX());
-                    int maxX = Math.max(pos1.getBlockX(), pos2.getBlockX());
-                    int minY = Math.min(pos1.getBlockY(), pos2.getBlockY());
-                    int maxY = Math.max(pos1.getBlockY(), pos2.getBlockY());
-                    int minZ = Math.min(pos1.getBlockZ(), pos2.getBlockZ());
-                    int maxZ = Math.max(pos1.getBlockZ(), pos2.getBlockZ());
-                    for (int x = minX; x <= maxX; x++) {
-                        for (int y = minY; y <= maxY; y++) {
-                            for (int z = minZ; z <= maxZ; z++) {
-                                Location l = new Location(world, x, y, z);
-                                map.put(l, l.getBlock().getBlockData());
-                            }
-                        }
-                    }
+                    closedMap = captureSelection(pos1, pos2);
                 } else {
                     mat = Material.matchMaterial(args[2]);
                     if (mat == null) mat = Material.BARRIER;
                 }
-                boolean closed = true;
+
+                Map<Location, BlockData> openMap = null;
                 int idx = 3;
+                if (args.length > idx && isBlockArg(args[idx])) {
+                    String token = args[idx];
+                    if ("#selection".equalsIgnoreCase(token)) {
+                        openMap = captureSelection(pos1, pos2);
+                    } else {
+                        Material openMat = Material.matchMaterial(token);
+                        if (openMat != null) {
+                            openMap = buildUniformMap(pos1, pos2, openMat.createBlockData());
+                        }
+                    }
+                    idx++;
+                }
+
+                boolean closed = true;
                 if (args.length > idx) {
                     String state = args[idx].toLowerCase();
                     if (state.equals("open") || state.equals("closed")) {
                         closed = state.equals("closed");
-                        if (map != null && !closed) {
-                            player.sendMessage(ChatColor.RED + "#selection can only be used for the closed state.");
-                            return true;
-                        }
                         idx++;
                     }
                 }
+
                 GateAnimation anim = args.length > idx ? GateAnimation.fromString(args[idx]) : GateAnimation.INSTANT;
                 long ticks = 40L;
                 if (args.length > idx + 1) {
                     try { ticks = Math.round(Double.parseDouble(args[idx + 1]) * 20.0); } catch (NumberFormatException ignored) {}
                 }
-                QuestGate gate = map != null ?
-                        new QuestGate(id, pos1, pos2, map, closed, anim, ticks) :
-                        new QuestGate(id, pos1, pos2, mat.createBlockData(), closed, anim, ticks);
+                BlockData closedData = (mat == null ? Material.BARRIER : mat).createBlockData();
+                QuestGate gate = new QuestGate(id, pos1, pos2, closedData, closedMap, openMap, closed, anim, ticks);
                 manager.createGate(gate);
                 player.sendMessage(ChatColor.YELLOW + "Gate " + id + " created and " + (closed ? "closed" : "open") + ".");
                 return true;
@@ -171,6 +167,61 @@ public class FakeGateCommand implements TabExecutor {
         return loc.getBlockX()+","+loc.getBlockY()+","+loc.getBlockZ();
     }
 
+    private static Map<Location, BlockData> captureSelection(Location pos1, Location pos2) {
+        Map<Location, BlockData> map = new HashMap<>();
+        World world = pos1.getWorld();
+        int minX = Math.min(pos1.getBlockX(), pos2.getBlockX());
+        int maxX = Math.max(pos1.getBlockX(), pos2.getBlockX());
+        int minY = Math.min(pos1.getBlockY(), pos2.getBlockY());
+        int maxY = Math.max(pos1.getBlockY(), pos2.getBlockY());
+        int minZ = Math.min(pos1.getBlockZ(), pos2.getBlockZ());
+        int maxZ = Math.max(pos1.getBlockZ(), pos2.getBlockZ());
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    Location l = new Location(world, x, y, z);
+                    map.put(l, l.getBlock().getBlockData());
+                }
+            }
+        }
+        return map;
+    }
+
+    private static Map<Location, BlockData> buildUniformMap(Location pos1, Location pos2, BlockData data) {
+        Map<Location, BlockData> map = new HashMap<>();
+        World world = pos1.getWorld();
+        int minX = Math.min(pos1.getBlockX(), pos2.getBlockX());
+        int maxX = Math.max(pos1.getBlockX(), pos2.getBlockX());
+        int minY = Math.min(pos1.getBlockY(), pos2.getBlockY());
+        int maxY = Math.max(pos1.getBlockY(), pos2.getBlockY());
+        int minZ = Math.min(pos1.getBlockZ(), pos2.getBlockZ());
+        int maxZ = Math.max(pos1.getBlockZ(), pos2.getBlockZ());
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    map.put(new Location(world, x, y, z), data.clone());
+                }
+            }
+        }
+        return map;
+    }
+
+    private static boolean isBlockArg(String token) {
+        return "#selection".equalsIgnoreCase(token) || Material.matchMaterial(token) != null;
+    }
+
+    private static List<String> blockSuggestions(String prefix) {
+        List<String> opts = new ArrayList<>();
+        String lower = prefix.toLowerCase();
+        if ("#selection".startsWith(lower)) opts.add("#selection");
+        for (Material m : Material.values()) {
+            if (!m.isBlock()) continue;
+            String name = m.name().toLowerCase();
+            if (name.startsWith(lower)) opts.add(name);
+        }
+        return opts;
+    }
+
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 0) return Collections.emptyList();
@@ -183,20 +234,28 @@ public class FakeGateCommand implements TabExecutor {
         switch (sub) {
             case "create":
                 if (args.length == 3) {
-                    List<String> opts = new ArrayList<>();
-                    if ("#selection".startsWith(args[2].toLowerCase())) opts.add("#selection");
-                    for (Material m : Material.values()) {
-                        if (!m.isBlock()) continue;
-                        String name = m.name().toLowerCase();
-                        if (name.startsWith(args[2].toLowerCase())) opts.add(name);
-                    }
-                    return opts;
+                    return blockSuggestions(args[2]);
                 } else if (args.length == 4) {
-                    return Arrays.asList("open", "closed").stream()
-                            .filter(s -> s.startsWith(args[3].toLowerCase())).toList();
-                } else if (args.length == 5) {
-                    return Arrays.stream(GateAnimation.values()).map(a -> a.name().toLowerCase())
-                            .filter(s -> s.startsWith(args[4].toLowerCase())).toList();
+                    List<String> opts = new ArrayList<>();
+                    opts.addAll(blockSuggestions(args[3]));
+                    opts.addAll(Arrays.asList("open", "closed"));
+                    return opts.stream().filter(s -> s.startsWith(args[3].toLowerCase())).toList();
+                } else {
+                    boolean openProvided = args.length > 3 && isBlockArg(args[3]);
+                    if (openProvided) {
+                        if (args.length == 5) {
+                            return Arrays.asList("open", "closed").stream()
+                                    .filter(s -> s.startsWith(args[4].toLowerCase())).toList();
+                        } else if (args.length == 6) {
+                            return Arrays.stream(GateAnimation.values()).map(a -> a.name().toLowerCase())
+                                    .filter(s -> s.startsWith(args[5].toLowerCase())).toList();
+                        }
+                    } else {
+                        if (args.length == 5) {
+                            return Arrays.stream(GateAnimation.values()).map(a -> a.name().toLowerCase())
+                                    .filter(s -> s.startsWith(args[4].toLowerCase())).toList();
+                        }
+                    }
                 }
                 break;
             case "toggle":

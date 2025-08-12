@@ -96,19 +96,18 @@ public class QuestGateManager implements Listener {
             Location p2 = readLocation(world, config, base + "pos2");
             if (p1 == null || p2 == null) continue;
             boolean useSel = config.getBoolean(base + "useSelection", false);
+            boolean useOpenSel = config.getBoolean(base + "useOpenSelection", false);
             boolean closed = config.getBoolean(base + "closed", true);
             GateAnimation anim = GateAnimation.fromString(config.getString(base + "animation"));
             long ticks = config.getLong(base + "duration", 40L);
-            QuestGate gate;
-            if (useSel) {
-                Map<Location, BlockData> map = readBlockMap(world, config, base + "blocks", p1, p2);
-                gate = new QuestGate(key.toLowerCase(), p1, p2, map, closed, anim, ticks);
-            } else {
-                Material mat = Material.matchMaterial(config.getString(base + "block", "BARRIER"));
-                if (mat == null) mat = Material.BARRIER;
-                BlockData data = mat.createBlockData();
-                gate = new QuestGate(key.toLowerCase(), p1, p2, data, closed, anim, ticks);
-            }
+            Map<Location, BlockData> closedMap = useSel ? readBlockMap(world, config, base + "blocks", p1, p2) : null;
+            Map<Location, BlockData> openMap = useOpenSel ? readBlockMap(world, config, base + "openBlocks", p1, p2) : null;
+            Material mat = Material.matchMaterial(config.getString(base + "block", "BARRIER"));
+            if (mat == null) mat = Material.BARRIER;
+            BlockData data = mat.createBlockData();
+            QuestGate gate = (closedMap != null || openMap != null)
+                    ? new QuestGate(key.toLowerCase(), p1, p2, data, closedMap, openMap, closed, anim, ticks)
+                    : new QuestGate(key.toLowerCase(), p1, p2, data, closed, anim, ticks);
             addGate(gate);
             clearGateBlocks(gate);
         }
@@ -146,6 +145,12 @@ public class QuestGateManager implements Listener {
             } else {
                 config.set(base + "useSelection", false);
                 config.set(base + "block", gate.getClosedData().getMaterial().name());
+            }
+            if (gate.hasOpenCustomBlocks()) {
+                config.set(base + "useOpenSelection", true);
+                writeBlockMap(config.createSection(base + "openBlocks"), gate.getOpenDataMap(), gate.getMinX(), gate.getMinY(), gate.getMinZ());
+            } else {
+                config.set(base + "useOpenSelection", false);
             }
             config.set(base + "closed", gate.isDefaultClosed());
             config.set(base + "animation", gate.getAnimation().name());
@@ -282,7 +287,11 @@ public class QuestGateManager implements Listener {
                 if (closed) {
                     for (var loc : locs) blockManager.showFakeBlock(player, loc, gate.getClosedData(loc));
                 } else {
-                    for (var loc : locs) blockManager.hideFakeBlock(player, loc);
+                    if (gate.hasOpenCustomBlocks()) {
+                        for (var loc : locs) blockManager.showFakeBlock(player, loc, gate.getOpenData(loc));
+                    } else {
+                        for (var loc : locs) blockManager.hideFakeBlock(player, loc);
+                    }
                 }
             }
         };
@@ -313,8 +322,14 @@ public class QuestGateManager implements Listener {
                     blockManager.showFakeBlock(player, loc, gate.getClosedData(loc));
                 }
             } else {
-                for (var loc : gate.getBlocks()) {
-                    blockManager.hideFakeBlock(player, loc);
+                if (gate.hasOpenCustomBlocks()) {
+                    for (var loc : gate.getBlocks()) {
+                        blockManager.showFakeBlock(player, loc, gate.getOpenData(loc));
+                    }
+                } else {
+                    for (var loc : gate.getBlocks()) {
+                        blockManager.hideFakeBlock(player, loc);
+                    }
                 }
             }
         }
