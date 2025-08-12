@@ -52,7 +52,8 @@ public final class StageSelectionStore {
      */
     public static boolean hasSelection(UUID uuid) {
         Selection sel = selections.get(uuid);
-        boolean has = sel != null && sel.pos1 != null && sel.pos2 != null;
+        boolean has = sel != null && sel.pos1 != null && sel.pos2 != null
+                && sel.pos1.getWorld().equals(sel.pos2.getWorld());
         if (!has) {
             Bukkit.getLogger().info("[SelectionDebug] " + uuid + " pos1=" + fmt(sel != null ? sel.pos1 : null) +
                     " pos2=" + fmt(sel != null ? sel.pos2 : null));

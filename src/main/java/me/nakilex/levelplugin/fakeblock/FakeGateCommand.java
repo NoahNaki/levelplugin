@@ -8,13 +8,12 @@ import org.bukkit.command.*;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Simple in-game editor for fake gates using a wand similar to WorldEdit.
  */
-public class FakeGateCommand implements CommandExecutor {
+public class FakeGateCommand implements TabExecutor {
     private final QuestGateManager manager;
     private final ItemStack wand;
 
@@ -91,6 +90,10 @@ public class FakeGateCommand implements CommandExecutor {
                     String state = args[idx].toLowerCase();
                     if (state.equals("open") || state.equals("closed")) {
                         closed = state.equals("closed");
+                        if (map != null && !closed) {
+                            player.sendMessage(ChatColor.RED + "#selection can only be used for the closed state.");
+                            return true;
+                        }
                         idx++;
                     }
                 }
@@ -166,5 +169,52 @@ public class FakeGateCommand implements CommandExecutor {
 
     private static String format(Location loc) {
         return loc.getBlockX()+","+loc.getBlockY()+","+loc.getBlockZ();
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (args.length == 0) return Collections.emptyList();
+        if (args.length == 1) {
+            return Arrays.asList("wand", "list", "create", "toggle", "open", "close", "remove", "debug")
+                    .stream().filter(s -> s.startsWith(args[0].toLowerCase())).toList();
+        }
+
+        String sub = args[0].toLowerCase();
+        switch (sub) {
+            case "create":
+                if (args.length == 3) {
+                    List<String> opts = new ArrayList<>();
+                    if ("#selection".startsWith(args[2].toLowerCase())) opts.add("#selection");
+                    for (Material m : Material.values()) {
+                        if (!m.isBlock()) continue;
+                        String name = m.name().toLowerCase();
+                        if (name.startsWith(args[2].toLowerCase())) opts.add(name);
+                    }
+                    return opts;
+                } else if (args.length == 4) {
+                    return Arrays.asList("open", "closed").stream()
+                            .filter(s -> s.startsWith(args[3].toLowerCase())).toList();
+                } else if (args.length == 5) {
+                    return Arrays.stream(GateAnimation.values()).map(a -> a.name().toLowerCase())
+                            .filter(s -> s.startsWith(args[4].toLowerCase())).toList();
+                }
+                break;
+            case "toggle":
+            case "open":
+            case "close":
+            case "remove":
+                if (args.length == 2) {
+                    return manager.getGateIds().stream()
+                            .filter(id -> id.startsWith(args[1].toLowerCase())).toList();
+                }
+                if ((sub.equals("open") || sub.equals("close")) && args.length == 3) {
+                    return Bukkit.getOnlinePlayers().stream().map(Player::getName)
+                            .filter(n -> n.toLowerCase().startsWith(args[2].toLowerCase())).toList();
+                }
+                break;
+            default:
+                break;
+        }
+        return Collections.emptyList();
     }
 }

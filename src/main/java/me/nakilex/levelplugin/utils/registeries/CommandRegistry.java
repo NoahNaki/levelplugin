@@ -164,7 +164,10 @@ public class CommandRegistry {
         plugin.getCommand("debug").setExecutor(debugCmd);
         plugin.getCommand("debug").setTabCompleter(debugCmd);
         plugin.getCommand("motd").setExecutor(new me.nakilex.levelplugin.motd.MotdCommand(motdManager));
-        plugin.getCommand("fakegate").setExecutor(new me.nakilex.levelplugin.fakeblock.FakeGateCommand(plugin));
+        me.nakilex.levelplugin.fakeblock.FakeGateCommand fakeGateCmd =
+                new me.nakilex.levelplugin.fakeblock.FakeGateCommand(plugin);
+        plugin.getCommand("fakegate").setExecutor(fakeGateCmd);
+        plugin.getCommand("fakegate").setTabCompleter(fakeGateCmd);
         plugin.getCommand("modelgate").setExecutor(new me.nakilex.levelplugin.fakeblock.ModelGateCommand(plugin));
         plugin.getCommand("town").setExecutor(new TownCommand(upgradeGUI, plugin.getEnvironmentManager()));
         plugin.getCommand("townstage").setExecutor(new TownStageCommand(plugin.getTownStageManager()));
