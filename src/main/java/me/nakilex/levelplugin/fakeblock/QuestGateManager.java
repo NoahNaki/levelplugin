@@ -1,6 +1,9 @@
 package me.nakilex.levelplugin.fakeblock;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.fakeblock.GateAnimation;
+import me.nakilex.levelplugin.utils.SchematicUtil;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
@@ -9,11 +12,10 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.Location;
-import me.nakilex.levelplugin.fakeblock.GateAnimation;
 
 import java.io.File;
 import java.util.*;
@@ -28,6 +30,8 @@ public class QuestGateManager implements Listener {
     private final Main plugin;
     private final FakeBlockManager blockManager;
     private final Map<String, QuestGate> gates = new HashMap<>();
+    /** Folder storing schematics for custom gate states. */
+    private final File schemFolder;
     /** Enables verbose logging for gate state changes. */
     private boolean debug = false;
     private File file;
@@ -36,9 +40,13 @@ public class QuestGateManager implements Listener {
     public QuestGateManager(Main plugin, FakeBlockManager blockManager) {
         this.plugin = plugin;
         this.blockManager = blockManager;
+        this.schemFolder = new File(plugin.getDataFolder(), "gate_schematics");
+        if (!schemFolder.exists()) schemFolder.mkdirs();
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
         loadFromConfig();
     }
+
+    public File getSchematicFolder() { return schemFolder; }
 
     public void addGate(QuestGate gate) {
         gates.put(gate.getId().toLowerCase(), gate);
@@ -62,6 +70,7 @@ public class QuestGateManager implements Listener {
     /** Create and register a new gate and persist it to disk. */
     public void createGate(QuestGate gate) {
         addGate(gate);
+        logDebug("createGate " + gate.getId() + " blocks=" + gate.getBlocks().size());
         saveConfig();
         updateAll();
     }
@@ -75,6 +84,12 @@ public class QuestGateManager implements Listener {
 
     public boolean isDebug() {
         return debug;
+    }
+
+    private void logDebug(String msg) {
+        if (debug) {
+            plugin.getLogger().info("[GateDebug] " + msg);
+        }
     }
 
     private void loadFromConfig() {
@@ -93,14 +108,49 @@ public class QuestGateManager implements Listener {
             Location p1 = readLocation(world, config, base + "pos1");
             Location p2 = readLocation(world, config, base + "pos2");
             if (p1 == null || p2 == null) continue;
-            Material mat = Material.matchMaterial(config.getString(base + "block", "BARRIER"));
-            if (mat == null) mat = Material.BARRIER;
-            BlockData data = mat.createBlockData();
+            String closedSchem = config.getString(base + "closedSchematic");
+            String openSchem = config.getString(base + "openSchematic");
             boolean closed = config.getBoolean(base + "closed", true);
             GateAnimation anim = GateAnimation.fromString(config.getString(base + "animation"));
             long ticks = config.getLong(base + "duration", 40L);
-            addGate(new QuestGate(key.toLowerCase(), p1, p2, data, closed, anim, ticks));
+            Map<Location, BlockData> closedMap = null;
+            Map<Location, BlockData> openMap = null;
+            if (closedSchem != null) {
+                File schem = new File(schemFolder, closedSchem);
+                var rel = SchematicUtil.loadSchematic(schem, plugin.getLogger());
+                closedMap = SchematicUtil.toLocationMap(rel, world,
+                        Math.min(p1.getBlockX(), p2.getBlockX()),
+                        Math.min(p1.getBlockY(), p2.getBlockY()),
+                        Math.min(p1.getBlockZ(), p2.getBlockZ()));
+            }
+            if (openSchem != null) {
+                File schem = new File(schemFolder, openSchem);
+                var rel = SchematicUtil.loadSchematic(schem, plugin.getLogger());
+                openMap = SchematicUtil.toLocationMap(rel, world,
+                        Math.min(p1.getBlockX(), p2.getBlockX()),
+                        Math.min(p1.getBlockY(), p2.getBlockY()),
+                        Math.min(p1.getBlockZ(), p2.getBlockZ()));
+            }
+            Material mat = Material.matchMaterial(config.getString(base + "block", "BARRIER"));
+            if (mat == null) mat = Material.BARRIER;
+            BlockData data = mat.createBlockData();
+            QuestGate gate = QuestGate.create(key.toLowerCase(), p1, p2, data, closedMap, openMap, closed, anim, ticks);
+            addGate(gate);
+            clearGateBlocks(gate);
         }
+    }
+
+    /** Replace every block inside the gate region with the given material. */
+    private void fillRegion(QuestGate gate, Material material) {
+        for (Location loc : gate.getBlocks()) {
+            loc.getBlock().setType(material, false);
+        }
+    }
+
+    /** Ensure the real world stays passable by removing solid gate blocks. */
+    private void clearGateBlocks(QuestGate gate) {
+        fillRegion(gate, Material.AIR);
+        logDebug("cleared region for " + gate.getId());
     }
 
     private void saveConfig() {
@@ -116,7 +166,18 @@ public class QuestGateManager implements Listener {
             config.set(base + "pos2.x", p2.getBlockX());
             config.set(base + "pos2.y", p2.getBlockY());
             config.set(base + "pos2.z", p2.getBlockZ());
-            config.set(base + "block", gate.getClosedData().getMaterial().name());
+            if (gate.hasCustomBlocks()) {
+                config.set(base + "closedSchematic", gate.getId() + "_closed.schem");
+                config.set(base + "block", null);
+            } else {
+                config.set(base + "closedSchematic", null);
+                config.set(base + "block", gate.getClosedData().getMaterial().name());
+            }
+            if (gate.hasOpenCustomBlocks()) {
+                config.set(base + "openSchematic", gate.getId() + "_open.schem");
+            } else {
+                config.set(base + "openSchematic", null);
+            }
             config.set(base + "closed", gate.isDefaultClosed());
             config.set(base + "animation", gate.getAnimation().name());
             config.set(base + "duration", gate.getAnimationTicks());
@@ -139,9 +200,7 @@ public class QuestGateManager implements Listener {
         boolean closed = gate.isClosed(player.getUniqueId());
         gate.setClosed(player.getUniqueId(), !closed);
         animateGate(player, gate, !closed);
-        if (debug) {
-            plugin.getLogger().info("[GateDebug] " + player.getName() + " toggled " + id + " to " + (!closed ? "open" : "closed"));
-        }
+        logDebug(player.getName() + " toggled " + id + " to " + (!closed ? "open" : "closed"));
         return true;
     }
 
@@ -160,9 +219,7 @@ public class QuestGateManager implements Listener {
         if (gate == null) return false;
         gate.setClosed(player.getUniqueId(), closed);
         animateGate(player, gate, closed);
-        if (debug) {
-            plugin.getLogger().info("[GateDebug] " + player.getName() + " set " + id + " to " + (closed ? "closed" : "open"));
-        }
+        logDebug(player.getName() + " set " + id + " to " + (closed ? "closed" : "open"));
         return true;
     }
 
@@ -224,7 +281,11 @@ public class QuestGateManager implements Listener {
                 if (closed) {
                     for (var loc : locs) blockManager.showFakeBlock(player, loc, gate.getClosedData(loc));
                 } else {
-                    for (var loc : locs) blockManager.hideFakeBlock(player, loc);
+                    if (gate.hasOpenCustomBlocks()) {
+                        for (var loc : locs) blockManager.showFakeBlock(player, loc, gate.getOpenData(loc));
+                    } else {
+                        for (var loc : locs) blockManager.hideFakeBlock(player, loc);
+                    }
                 }
             }
         };
@@ -255,8 +316,14 @@ public class QuestGateManager implements Listener {
                     blockManager.showFakeBlock(player, loc, gate.getClosedData(loc));
                 }
             } else {
-                for (var loc : gate.getBlocks()) {
-                    blockManager.hideFakeBlock(player, loc);
+                if (gate.hasOpenCustomBlocks()) {
+                    for (var loc : gate.getBlocks()) {
+                        blockManager.showFakeBlock(player, loc, gate.getOpenData(loc));
+                    }
+                } else {
+                    for (var loc : gate.getBlocks()) {
+                        blockManager.hideFakeBlock(player, loc);
+                    }
                 }
             }
         }
@@ -268,9 +335,7 @@ public class QuestGateManager implements Listener {
         QuestGate gate = gates.get("office_elevator");
         if (gate != null) {
             gate.setClosed(player.getUniqueId(), true);
-            if (debug) {
-                plugin.getLogger().info("[GateDebug] " + player.getName() + " join -> set office_elevator closed");
-            }
+            logDebug(player.getName() + " join -> set office_elevator closed");
         }
         // Delay updating until the player's chunks have loaded to ensure
         // the fake blocks are visible on join.

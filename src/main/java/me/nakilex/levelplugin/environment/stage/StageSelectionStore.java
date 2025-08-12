@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.environment.stage;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -36,21 +37,43 @@ public final class StageSelectionStore {
     }
 
     public static Location getPos1(UUID uuid) {
-        Selection s = selections.get(uuid);
-        return s == null ? null : s.pos1;
+        return getSelection(uuid).pos1;
     }
 
     public static Location getPos2(UUID uuid) {
-        Selection s = selections.get(uuid);
-        return s == null ? null : s.pos2;
+        return getSelection(uuid).pos2;
+    }
+
+    /**
+     * Checks whether both positions have been selected for the given player.
+     *
+     * @param uuid the player's unique ID
+     * @return true if both pos1 and pos2 are set
+     */
+    public static boolean hasSelection(UUID uuid) {
+        Selection sel = selections.get(uuid);
+        boolean has = sel != null && sel.pos1 != null && sel.pos2 != null
+                && sel.pos1.getWorld().equals(sel.pos2.getWorld());
+        if (!has) {
+            Bukkit.getLogger().info("[SelectionDebug] " + uuid + " pos1=" + fmt(sel != null ? sel.pos1 : null) +
+                    " pos2=" + fmt(sel != null ? sel.pos2 : null));
+        }
+        return has;
     }
 
     public static void setPos1(UUID uuid, Location loc) {
         getSelection(uuid).pos1 = loc;
+        Bukkit.getLogger().info("[SelectionDebug] pos1 set for " + uuid + " -> " + fmt(loc));
     }
 
     public static void setPos2(UUID uuid, Location loc) {
         getSelection(uuid).pos2 = loc;
+        Bukkit.getLogger().info("[SelectionDebug] pos2 set for " + uuid + " -> " + fmt(loc));
+    }
+
+    private static String fmt(Location loc) {
+        if (loc == null) return "null";
+        return loc.getWorld().getName() + ":" + loc.getBlockX()+","+loc.getBlockY()+","+loc.getBlockZ();
     }
 
     public static class Selection {

@@ -3,25 +3,18 @@ package me.nakilex.levelplugin.environment.stage;
 import me.nakilex.levelplugin.Main;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import me.nakilex.levelplugin.environment.stage.StageSelectionStore;
-
-import java.util.UUID;
 
 /**
  * Provides an editor for defining building stage areas using a wand.
  */
-public class BuildingStageCommand implements CommandExecutor, Listener {
+public class BuildingStageCommand implements CommandExecutor {
     private final BuildingStageManager manager;
     private final Main plugin;
     private final ItemStack wand;
@@ -29,9 +22,7 @@ public class BuildingStageCommand implements CommandExecutor, Listener {
     public BuildingStageCommand(Main plugin, BuildingStageManager manager) {
         this.plugin = plugin;
         this.manager = manager;
-        wand = StageSelectionStore.WAND;
-        plugin.getCommand("buildingstage").setExecutor(this);
-        plugin.getServer().getPluginManager().registerEvents(this, plugin);
+        this.wand = StageSelectionStore.WAND;
     }
 
     @Override
@@ -57,12 +48,12 @@ public class BuildingStageCommand implements CommandExecutor, Listener {
                 return true;
             case "create":
                 if (args.length < 4) return false;
-                Location pos1 = StageSelectionStore.getPos1(p.getUniqueId());
-                Location pos2 = StageSelectionStore.getPos2(p.getUniqueId());
-                if (pos1 == null || pos2 == null) {
+                if (!StageSelectionStore.hasSelection(p.getUniqueId())) {
                     p.sendMessage(ChatColor.RED + "Select two positions first.");
                     return true;
                 }
+                Location pos1 = StageSelectionStore.getPos1(p.getUniqueId());
+                Location pos2 = StageSelectionStore.getPos2(p.getUniqueId());
                 // Arguments: <building> <stage> [priority]
                 String bName = args[1].toLowerCase();
                 int stage = parseInt(args[2], 1);
@@ -116,25 +107,6 @@ public class BuildingStageCommand implements CommandExecutor, Listener {
                 return true;
             default:
                 return false;
-        }
-    }
-
-    @EventHandler
-    public void onInteract(PlayerInteractEvent event) {
-        ItemStack inHand = event.getItem();
-        if (inHand == null || !inHand.isSimilar(wand)) return;
-        // Ignore off-hand interactions to prevent duplicate messages
-        if (event.getHand() == org.bukkit.inventory.EquipmentSlot.OFF_HAND) return;
-        if (event.getClickedBlock() == null) return;
-        event.setCancelled(true);
-        Player player = event.getPlayer();
-        Location loc = event.getClickedBlock().getLocation();
-        if (event.getAction().name().contains("LEFT")) {
-            StageSelectionStore.setPos1(player.getUniqueId(), loc);
-            player.sendMessage(ChatColor.AQUA + "Pos1 set " + format(loc));
-        } else if (event.getAction().name().contains("RIGHT")) {
-            StageSelectionStore.setPos2(player.getUniqueId(), loc);
-            player.sendMessage(ChatColor.AQUA + "Pos2 set " + format(loc));
         }
     }
 

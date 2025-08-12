@@ -224,6 +224,12 @@ public class PluginBootstrap {
     }
 
     private void initializeManagers() {
+        // World-dependent managers like gates or fast travel require target
+        // worlds to be loaded. Ensure the necessary worlds are available
+        // before other managers are initialized.
+        worldManager = new me.nakilex.levelplugin.world.WorldManager(plugin);
+        worldManager.ensureWorldsLoaded("flatland", "redrocks");
+
         itemManager = new ItemManager(plugin);
         toolManager = new me.nakilex.levelplugin.items.tools.ToolManager();
         configManager = new ConfigManager(plugin);
@@ -273,10 +279,6 @@ public class PluginBootstrap {
         motdManager = new me.nakilex.levelplugin.motd.MotdManager(plugin);
         fakeBlockManager = new me.nakilex.levelplugin.fakeblock.FakeBlockManager();
         questGateManager = new me.nakilex.levelplugin.fakeblock.QuestGateManager(plugin, fakeBlockManager);
-        // WorldManager must be initialised before DungeonManager so required worlds
-        // are loaded when dungeon templates are captured.
-        worldManager = new me.nakilex.levelplugin.world.WorldManager(plugin);
-        worldManager.ensureWorldsLoaded("flatland", "redrocks");
         dungeonRatingManager = new me.nakilex.levelplugin.dungeon.rating.DungeonRatingManager(plugin);
         dungeonManager = new me.nakilex.levelplugin.dungeon.DungeonManager(plugin, lootChestManager);
         dungeonManager.cleanupOldInstanceWorlds();

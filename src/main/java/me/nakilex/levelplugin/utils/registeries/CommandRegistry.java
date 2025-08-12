@@ -69,6 +69,7 @@ import me.nakilex.levelplugin.environment.UpgradeGUI;
 import me.nakilex.levelplugin.environment.stage.TownStageCommand;
 import me.nakilex.levelplugin.environment.stage.BuildingStageCommand;
 import me.nakilex.levelplugin.environment.stage.TownPosCommand;
+import me.nakilex.levelplugin.environment.stage.StageSelectionListener;
 
 public class CommandRegistry {
 
@@ -163,13 +164,17 @@ public class CommandRegistry {
         plugin.getCommand("debug").setExecutor(debugCmd);
         plugin.getCommand("debug").setTabCompleter(debugCmd);
         plugin.getCommand("motd").setExecutor(new me.nakilex.levelplugin.motd.MotdCommand(motdManager));
-        plugin.getCommand("fakegate").setExecutor(new me.nakilex.levelplugin.fakeblock.FakeGateCommand(plugin));
+        me.nakilex.levelplugin.fakeblock.FakeGateCommand fakeGateCmd =
+                new me.nakilex.levelplugin.fakeblock.FakeGateCommand(plugin);
+        plugin.getCommand("fakegate").setExecutor(fakeGateCmd);
+        plugin.getCommand("fakegate").setTabCompleter(fakeGateCmd);
         plugin.getCommand("modelgate").setExecutor(new me.nakilex.levelplugin.fakeblock.ModelGateCommand(plugin));
         plugin.getCommand("town").setExecutor(new TownCommand(upgradeGUI, plugin.getEnvironmentManager()));
-        plugin.getCommand("townstage").setExecutor(new TownStageCommand(plugin, plugin.getTownStageManager()));
+        plugin.getCommand("townstage").setExecutor(new TownStageCommand(plugin.getTownStageManager()));
         plugin.getCommand("buildingstage").setExecutor(new BuildingStageCommand(plugin, plugin.getBuildingStageManager()));
         plugin.getCommand("townpos1").setExecutor(new TownPosCommand(true));
         plugin.getCommand("townpos2").setExecutor(new TownPosCommand(false));
+        plugin.getServer().getPluginManager().registerEvents(new StageSelectionListener(), plugin);
 
         plugin.getCommand("codex").setExecutor(new CodexCommand(codexGUI));
         plugin.getCommand("wm").setExecutor(new WanderingMerchantCommand(wmManager));
