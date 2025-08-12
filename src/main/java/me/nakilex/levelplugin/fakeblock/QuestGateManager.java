@@ -105,9 +105,7 @@ public class QuestGateManager implements Listener {
             Material mat = Material.matchMaterial(config.getString(base + "block", "BARRIER"));
             if (mat == null) mat = Material.BARRIER;
             BlockData data = mat.createBlockData();
-            QuestGate gate = (closedMap != null || openMap != null)
-                    ? new QuestGate(key.toLowerCase(), p1, p2, data, closedMap, openMap, closed, anim, ticks)
-                    : new QuestGate(key.toLowerCase(), p1, p2, data, closed, anim, ticks);
+            QuestGate gate = QuestGate.create(key.toLowerCase(), p1, p2, data, closedMap, openMap, closed, anim, ticks);
             addGate(gate);
             clearGateBlocks(gate);
         }

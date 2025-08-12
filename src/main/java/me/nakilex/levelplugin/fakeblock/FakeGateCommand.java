@@ -100,20 +100,7 @@ public class FakeGateCommand implements TabExecutor {
                     try { ticks = Math.round(Double.parseDouble(args[idx + 1]) * 20.0); } catch (NumberFormatException ignored) {}
                 }
                 BlockData closedData = (mat == null ? Material.BARRIER : mat).createBlockData();
-                QuestGate gate;
-                if (closedMap != null && !closedMap.isEmpty()) {
-                    if (openMap != null && !openMap.isEmpty()) {
-                        gate = new QuestGate(id, pos1, pos2, closedMap, openMap, closed, anim, ticks);
-                    } else {
-                        gate = new QuestGate(id, pos1, pos2, closedMap, closed, anim, ticks);
-                    }
-                } else {
-                    if (openMap != null && !openMap.isEmpty()) {
-                        gate = new QuestGate(id, pos1, pos2, closedData, openMap, closed, anim, ticks);
-                    } else {
-                        gate = new QuestGate(id, pos1, pos2, closedData, closed, anim, ticks);
-                    }
-                }
+                QuestGate gate = QuestGate.create(id, pos1, pos2, closedData, closedMap, openMap, closed, anim, ticks);
                 manager.createGate(gate);
                 player.sendMessage(ChatColor.YELLOW + "Gate " + id + " created and " + (closed ? "closed" : "open") + ".");
                 return true;

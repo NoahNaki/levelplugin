@@ -66,6 +66,22 @@ public class QuestGate {
         this(id, pos1, pos2, closedData, null, openMap, closed, anim, ticks);
     }
 
+    public static QuestGate create(String id, Location pos1, Location pos2, BlockData closedData,
+                                   Map<Location, BlockData> closedMap, Map<Location, BlockData> openMap,
+                                   boolean closed, GateAnimation anim, long ticks) {
+        boolean hasClosed = closedMap != null && !closedMap.isEmpty();
+        boolean hasOpen = openMap != null && !openMap.isEmpty();
+        if (hasClosed && hasOpen) {
+            return new QuestGate(id, pos1, pos2, closedMap, openMap, closed, anim, ticks);
+        } else if (hasClosed) {
+            return new QuestGate(id, pos1, pos2, closedMap, closed, anim, ticks);
+        } else if (hasOpen) {
+            return new QuestGate(id, pos1, pos2, closedData, openMap, closed, anim, ticks);
+        } else {
+            return new QuestGate(id, pos1, pos2, closedData, closed, anim, ticks);
+        }
+    }
+
     private QuestGate(String id, Location pos1, Location pos2, BlockData closedData, Map<Location, BlockData> closedMap, Map<Location, BlockData> openMap, boolean closed, GateAnimation anim, long ticks) {
         this.id = id;
         this.pos1 = pos1;
