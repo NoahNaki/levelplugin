@@ -7,6 +7,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import me.nakilex.levelplugin.fakeblock.GateAnimation;
@@ -97,8 +98,8 @@ public class FakeGateCommand implements CommandExecutor, Listener {
                 if (args.length < 2) return false;
                 if (manager.toggleGate(player, args[1])) {
                     QuestGate g = manager.getGate(args[1]);
-                    boolean closed = g != null && g.isClosed(player.getUniqueId());
-                    player.sendMessage(ChatColor.YELLOW + "Gate " + args[1] + " is now " + (closed ? "closed" : "open") + ".");
+                    boolean isClosed = g != null && g.isClosed(player.getUniqueId());
+                    player.sendMessage(ChatColor.YELLOW + "Gate " + args[1] + " is now " + (isClosed ? "closed" : "open") + ".");
                 } else {
                     player.sendMessage(ChatColor.RED + "Gate not found.");
                 }
@@ -154,6 +155,7 @@ public class FakeGateCommand implements CommandExecutor, Listener {
 
     @EventHandler
     public void onInteract(PlayerInteractEvent event) {
+        if (event.getHand() != EquipmentSlot.HAND) return;
         ItemStack inHand = event.getItem();
         if (inHand == null || !inHand.isSimilar(wand)) return;
         if (event.getClickedBlock() == null) return;
