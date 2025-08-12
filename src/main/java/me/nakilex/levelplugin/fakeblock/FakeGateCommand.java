@@ -85,7 +85,7 @@ public class FakeGateCommand implements TabExecutor {
                     idx++;
                 }
 
-                boolean closed = true;
+                Boolean closed = null;
                 if (args.length > idx) {
                     String state = args[idx].toLowerCase();
                     if (state.equals("open") || state.equals("closed")) {
@@ -94,12 +94,44 @@ public class FakeGateCommand implements TabExecutor {
                     }
                 }
 
-                GateAnimation anim = args.length > idx ? GateAnimation.fromString(args[idx]) : GateAnimation.INSTANT;
-                long ticks = 40L;
-                if (args.length > idx + 1) {
-                    try { ticks = Math.round(Double.parseDouble(args[idx + 1]) * 20.0); } catch (NumberFormatException ignored) {}
+                GateAnimation anim = null;
+                if (args.length > idx) {
+                    anim = GateAnimation.fromString(args[idx]);
+                    idx++;
                 }
-                BlockData closedData = (mat == null ? Material.BARRIER : mat).createBlockData();
+                Long ticks = null;
+                if (args.length > idx) {
+                    try { ticks = Math.round(Double.parseDouble(args[idx]) * 20.0); } catch (NumberFormatException ignored) {}
+                }
+
+                QuestGate existing = manager.getGate(id);
+                if (existing != null) {
+                    if (closedMap == null) {
+                        closedMap = existing.hasCustomBlocks() ? new HashMap<>(existing.getClosedDataMap()) : null;
+                    }
+                    if (openMap == null) {
+                        openMap = existing.hasOpenCustomBlocks() ? new HashMap<>(existing.getOpenDataMap()) : null;
+                    }
+                    if (mat == null && !existing.hasCustomBlocks()) {
+                        mat = existing.getClosedData().getMaterial();
+                    }
+                    if (closed == null) {
+                        closed = existing.isDefaultClosed();
+                    }
+                    if (anim == null) {
+                        anim = existing.getAnimation();
+                    }
+                    if (ticks == null) {
+                        ticks = existing.getAnimationTicks();
+                    }
+                }
+
+                if (mat == null) mat = Material.BARRIER;
+                if (closed == null) closed = true;
+                if (anim == null) anim = GateAnimation.INSTANT;
+                if (ticks == null) ticks = 40L;
+
+                BlockData closedData = mat.createBlockData();
                 QuestGate gate = QuestGate.create(id, pos1, pos2, closedData, closedMap, openMap, closed, anim, ticks);
                 manager.createGate(gate);
                 player.sendMessage(ChatColor.YELLOW + "Gate " + id + " created and " + (closed ? "closed" : "open") + ".");
