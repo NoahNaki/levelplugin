@@ -178,12 +178,10 @@ public class StatsInventory {
                     + ChatColor.LIGHT_PURPLE + ChatColor.BOLD + gearScore);
             lore.add(""); // divider after Gear Score
 
-            double p = nextLevelXP > 0 ? (currentXP * 100.0 / nextLevelXP) : 0.0;
-            p = Math.round(p * 10.0) / 10.0;
-            lore.add(ChatColor.GRAY + "Progress to Level " + ChatColor.YELLOW + (StatsManager.getInstance().getLevel(player) + 1) + ChatColor.GRAY + ": " + ChatColor.YELLOW + p + "%");
-            int barLen = 15;
-            int filled = (int) Math.round(p / 100.0 * barLen);
-            String bar = ChatColor.GREEN + "" + "-".repeat(Math.max(filled,0)) + ChatColor.WHITE + "" + "-".repeat(Math.max(barLen - filled,0));
+            double progress = nextLevelXP > 0 ? (double) currentXP / nextLevelXP : 0.0;
+            double percent = Math.round(progress * 1000.0) / 10.0;
+            lore.add(ChatColor.GRAY + "Progress to Level " + ChatColor.YELLOW + (StatsManager.getInstance().getLevel(player) + 1) + ChatColor.GRAY + ": " + ChatColor.YELLOW + percent + "%");
+            String bar = GuiUtil.createProgressBar(progress, 15);
             String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
             lore.add(bar + " " + ChatColor.YELLOW + currentXP + ChatColor.GOLD + "/" + ChatColor.YELLOW + nextLevelXP + " <glyph:experience_orb_icon> " + expLabel);
         } else {

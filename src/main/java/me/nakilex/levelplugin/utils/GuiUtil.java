@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.utils;
 import com.nexomc.nexo.api.NexoItems;
 import com.nexomc.nexo.items.ItemBuilder;
 import org.bukkit.Material;
+import org.bukkit.ChatColor;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -109,5 +110,30 @@ public final class GuiUtil {
     public static String glyphStars(int count) {
         if (count <= 0) return "";
         return "<glyph:star>".repeat(count);
+    }
+
+    /**
+     * Create a textual progress bar using repeated characters.
+     *
+     * @param progress value between 0.0 and 1.0
+     * @param length   number of characters in the bar
+     * @param filled   color for the filled portion
+     * @param empty    color for the empty portion
+     * @param symbol   character to repeat for the bar segments
+     * @return colored progress bar string
+     */
+    public static String createProgressBar(double progress, int length, ChatColor filled,
+                                           ChatColor empty, String symbol) {
+        progress = Math.max(0.0, Math.min(1.0, progress));
+        int filledLen = (int) Math.round(progress * length);
+        StringBuilder sb = new StringBuilder(length * symbol.length());
+        sb.append(filled).append(symbol.repeat(Math.max(0, filledLen)));
+        sb.append(empty).append(symbol.repeat(Math.max(0, length - filledLen)));
+        return sb.toString();
+    }
+
+    /** Convenience wrapper using green/white colors and '-' characters. */
+    public static String createProgressBar(double progress, int length) {
+        return createProgressBar(progress, length, ChatColor.GREEN, ChatColor.WHITE, "-");
     }
 }

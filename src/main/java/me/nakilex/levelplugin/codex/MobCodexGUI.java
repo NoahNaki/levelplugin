@@ -56,7 +56,9 @@ public class MobCodexGUI implements Listener {
         Map<String, String> lines = new LinkedHashMap<>();
         lines.put("Mobs", manager.getDiscoveredMobCount(player.getUniqueId()) + "/" + manager.getTotalMobCount());
         lines.put("Locations", "0/0");
-        inv.setItem(4, CodexGuiUtil.createInfoBook("Discoveries", lines));
+        inv.setItem(4, CodexGuiUtil.createInfoBook("Discoveries", lines,
+                ChatColor.GRAY + "Category: Mobs",
+                ChatColor.WHITE + "Each mob that you've discovered will be listed here."));
 
         List<String> mobs = manager.getAllMobKeys();
         int start = page * ITEMS_PER_PAGE;
@@ -82,14 +84,11 @@ public class MobCodexGUI implements Listener {
                 meta.setDisplayName(ChatColor.GREEN + name);
                 int discoveredCount = manager.getDiscoveredMobCount(id);
                 int total = manager.getTotalMobCount();
-                double percent = total == 0 ? 0 : (double) discoveredCount / total;
+                double progress = total == 0 ? 0 : (double) discoveredCount / total;
                 List<String> lore = new ArrayList<>();
-                lore.add(ChatColor.GRAY + "Category: Mobs");
-                lore.add(ChatColor.WHITE + "Each mob that you've discovered will be listed here.");
-                lore.add(ChatColor.GRAY + "Unlocked " + ChatColor.YELLOW + discoveredCount
-                        + ChatColor.GRAY + "/" + ChatColor.YELLOW + total + " "
-                        + progressBar(percent) + ChatColor.GRAY + " (" + ChatColor.YELLOW
-                        + Math.round(percent * 100) + "%" + ChatColor.GRAY + ")");
+                String bar = GuiUtil.createProgressBar(progress, 15);
+                lore.add(bar + " " + ChatColor.YELLOW + discoveredCount + ChatColor.GOLD + "/" + ChatColor.YELLOW + total
+                        + ChatColor.GRAY + " (" + ChatColor.YELLOW + Math.round(progress * 100) + "%" + ChatColor.GRAY + ")");
                 lore.add(ChatColor.GRAY + "Kills: " + ChatColor.WHITE + manager.getKillCount(id, key));
                 meta.setLore(lore);
             } else {
@@ -99,18 +98,6 @@ public class MobCodexGUI implements Listener {
             item.setItemMeta(meta);
         }
         return item;
-    }
-
-    private String progressBar(double progress) {
-        int totalBars = 10;
-        int filled = (int) Math.round(progress * totalBars);
-        StringBuilder bar = new StringBuilder("[");
-        for (int i = 0; i < totalBars; i++) {
-            if (i < filled) bar.append(ChatColor.GREEN).append('l');
-            else bar.append(ChatColor.RED).append('l');
-        }
-        bar.append(ChatColor.GRAY).append(']');
-        return bar.toString();
     }
 
     @EventHandler
