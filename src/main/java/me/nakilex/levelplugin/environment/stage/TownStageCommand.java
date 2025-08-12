@@ -55,13 +55,12 @@ public class TownStageCommand implements CommandExecutor, Listener {
                 return true;
             case "create":
                 if (args.length < 3) return false;
-                StageSelectionStore.Selection sel = StageSelectionStore.getSelection(p.getUniqueId());
-                Location pos1 = sel.pos1;
-                Location pos2 = sel.pos2;
-                if (pos1 == null || pos2 == null) {
+                if (!StageSelectionStore.hasSelection(p.getUniqueId())) {
                     p.sendMessage(ChatColor.RED + "Select two positions first.");
                     return true;
                 }
+                Location pos1 = StageSelectionStore.getPos1(p.getUniqueId());
+                Location pos2 = StageSelectionStore.getPos2(p.getUniqueId());
                 String name = args[1].toLowerCase();
                 int level = parseInt(args[2], 1);
                 int priority = 0;

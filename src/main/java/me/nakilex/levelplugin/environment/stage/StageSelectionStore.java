@@ -43,6 +43,17 @@ public final class StageSelectionStore {
         return getSelection(uuid).pos2;
     }
 
+    /**
+     * Checks whether both positions have been selected for the given player.
+     *
+     * @param uuid the player's unique ID
+     * @return true if both pos1 and pos2 are set
+     */
+    public static boolean hasSelection(UUID uuid) {
+        Selection sel = selections.get(uuid);
+        return sel != null && sel.pos1 != null && sel.pos2 != null;
+    }
+
     public static void setPos1(UUID uuid, Location loc) {
         getSelection(uuid).pos1 = loc;
     }

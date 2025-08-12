@@ -57,12 +57,12 @@ public class BuildingStageCommand implements CommandExecutor, Listener {
                 return true;
             case "create":
                 if (args.length < 4) return false;
-                Location pos1 = StageSelectionStore.getPos1(p.getUniqueId());
-                Location pos2 = StageSelectionStore.getPos2(p.getUniqueId());
-                if (pos1 == null || pos2 == null) {
+                if (!StageSelectionStore.hasSelection(p.getUniqueId())) {
                     p.sendMessage(ChatColor.RED + "Select two positions first.");
                     return true;
                 }
+                Location pos1 = StageSelectionStore.getPos1(p.getUniqueId());
+                Location pos2 = StageSelectionStore.getPos2(p.getUniqueId());
                 // Arguments: <building> <stage> [priority]
                 String bName = args[1].toLowerCase();
                 int stage = parseInt(args[2], 1);
