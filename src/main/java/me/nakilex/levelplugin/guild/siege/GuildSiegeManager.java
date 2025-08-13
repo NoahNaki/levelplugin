@@ -141,13 +141,15 @@ public class GuildSiegeManager {
         }
     }
 
-    public void leave(UUID id) {
-        queue.remove(id);
-        active.remove(id);
-        if (queue.isEmpty() && countdownTask != null) {
+    /** Remove a player from the queue/active sets.
+     *  @return true if the player was queued or active. */
+    public boolean leave(UUID id) {
+        boolean removed = queue.remove(id) | active.remove(id);
+        if (removed && queue.isEmpty() && countdownTask != null) {
             countdownTask.cancel();
             countdownTask = null;
         }
+        return removed;
     }
 
     private void begin() {
@@ -179,7 +181,7 @@ public class GuildSiegeManager {
 
         for (Player p : Bukkit.getOnlinePlayers()) {
             ChatFormatter.sendCenteredMessage(p, " ");
-            ChatFormatter.sendCenteredMessage(p, "<glyph:flagleft_icon> " + ChatColor.GOLD + "" + ChatColor.BOLD + "The siege has begun!" + ChatColor.GRAY + " <glyph:flagright_icon>");
+            ChatFormatter.sendCenteredMessage(p, "<glyph:flagleft_icon> " + ChatColor.GRAY + "The siege has begun!" + ChatColor.RESET + " <glyph:flagright_icon>");
             ChatFormatter.sendCenteredMessage(p, " ");
         }
 
@@ -406,13 +408,25 @@ public class GuildSiegeManager {
         }
     }
 
-    /** Clear ownership if the owning guild disbands. */
-    public void handleGuildDisband(String name) {
+    /**
+     * Clear ownership if the owning guild disbands and remove any queued
+     * or active members belonging to that guild.
+     */
+    public void handleGuildDisband(String name, java.util.Collection<UUID> members) {
         if (ownerGuild != null && ownerGuild.equalsIgnoreCase(name)) {
             ownerGuild = null;
             save();
             applyTownVisibility();
             updateOwnerHologram();
+        }
+        for (UUID id : members) {
+            if (leave(id)) {
+                Player p = Bukkit.getPlayer(id);
+                if (p != null) {
+                    ChatFormatter.sendCenteredMessage(p,
+                            ChatColor.RED + "Your guild disbanded so your siege sign-up was cancelled.");
+                }
+            }
         }
     }
 
