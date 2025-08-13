@@ -5,11 +5,17 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
-public class GuildCommand implements CommandExecutor {
+import me.nakilex.levelplugin.utils.CommandUtil;
+
+public class GuildCommand implements TabExecutor {
 
     private final GuildManager manager;
     private final GuildGUI gui;
@@ -332,5 +338,38 @@ public class GuildCommand implements CommandExecutor {
                 break;
         }
         return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (args.length == 1) {
+            return CommandUtil.filterStartingWith(List.of(
+                    "help", "apply", "create", "invite", "accept", "kick", "promote",
+                    "leave", "alliance", "allyaccept", "allydeny", "allyrevoke",
+                    "hostile", "neutral", "neutralaccept", "neutraldeny", "menu", "list"), args[0]);
+        }
+        String sub = args[0].toLowerCase();
+        if (args.length == 2) {
+            switch (sub) {
+                case "invite":
+                case "kick":
+                case "promote":
+                    return CommandUtil.onlinePlayerNames(args[1]);
+                case "apply":
+                case "alliance":
+                case "allyaccept":
+                case "allydeny":
+                case "allyrevoke":
+                case "hostile":
+                case "neutral":
+                case "neutralaccept":
+                case "neutraldeny":
+                    return CommandUtil.filterStartingWith(
+                            manager.getGuilds().stream().map(Guild::getName).toList(), args[1]);
+                default:
+                    break;
+            }
+        }
+        return Collections.emptyList();
     }
 }

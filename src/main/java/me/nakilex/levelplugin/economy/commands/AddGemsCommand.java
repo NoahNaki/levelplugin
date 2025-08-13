@@ -6,9 +6,16 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 
-public class AddGemsCommand implements CommandExecutor {
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import me.nakilex.levelplugin.utils.CommandUtil;
+
+public class AddGemsCommand implements TabExecutor {
     private final GemsManager gemsManager;
 
     public AddGemsCommand(GemsManager gemsManager) {
@@ -59,7 +66,24 @@ public class AddGemsCommand implements CommandExecutor {
         int newTotal = current + amt;
         if (newTotal < 0) newTotal = 0;
         gemsManager.setTotalUnits(player, newTotal);
-        player.sendMessage((amt >= 0 ? "You received " : "You lost ")
-                + Math.abs(amt) + " " + ChatColor.LIGHT_PURPLE + "<glyph:purple_orb_icon>");
+        if (amt >= 0) {
+            me.nakilex.levelplugin.utils.CurrencyMessageUtil.sendReceive(player,
+                    me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency.GEMS, amt);
+        } else {
+            me.nakilex.levelplugin.utils.CurrencyMessageUtil.sendLoss(player,
+                    me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency.GEMS, Math.abs(amt));
+        }
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (args.length == 1) {
+            List<String> names = new ArrayList<>(CommandUtil.onlinePlayerNames(args[0]));
+            if ("@everyone".startsWith(args[0].toLowerCase())) {
+                names.add("@everyone");
+            }
+            return names;
+        }
+        return Collections.emptyList();
     }
 }

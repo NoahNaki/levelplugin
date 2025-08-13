@@ -8,17 +8,22 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
+
+import me.nakilex.levelplugin.utils.CommandUtil;
 
 /**
  * Command to manage a player's friends.
  */
-public class FriendCommand implements CommandExecutor {
+public class FriendCommand implements TabExecutor {
     private final FriendManager manager;
 
     public FriendCommand(FriendManager manager) {
@@ -191,5 +196,19 @@ public class FriendCommand implements CommandExecutor {
             default -> player.sendMessage(ChatColor.RED + "Unknown subcommand.");
         }
         return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (args.length == 1) {
+            return CommandUtil.filterStartingWith(List.of("add", "remove", "list", "accept", "deny"), args[0]);
+        }
+        if (args.length == 2) {
+            String sub = args[0].toLowerCase();
+            if (sub.equals("add") || sub.equals("remove")) {
+                return CommandUtil.onlinePlayerNames(args[1]);
+            }
+        }
+        return Collections.emptyList();
     }
 }

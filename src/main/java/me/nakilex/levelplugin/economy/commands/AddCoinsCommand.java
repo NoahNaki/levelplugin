@@ -6,12 +6,18 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
+import me.nakilex.levelplugin.utils.CommandUtil;
 
-public class AddCoinsCommand implements CommandExecutor {
+
+public class AddCoinsCommand implements TabExecutor {
 
     private EconomyManager economy;
 
@@ -65,13 +71,24 @@ public class AddCoinsCommand implements CommandExecutor {
         economy.setBalance(playerId, newBal);
         if (online != null) {
             if (amount >= 0) {
-                String coinText = Math.abs(amount) + " <glyph:coins_icon> "
-                        + org.bukkit.ChatColor.GOLD + "coins";
-                online.sendMessage(org.bukkit.ChatColor.GREEN + "You received "
-                        + coinText + org.bukkit.ChatColor.GREEN + ".");
+                me.nakilex.levelplugin.utils.CurrencyMessageUtil.sendReceive(online,
+                        me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency.COINS, amount);
             } else {
-                online.sendMessage("You lost " + Math.abs(amount) + " coins.");
+                me.nakilex.levelplugin.utils.CurrencyMessageUtil.sendLoss(online,
+                        me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency.COINS, Math.abs(amount));
             }
         }
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (args.length == 1) {
+            List<String> names = new ArrayList<>(CommandUtil.onlinePlayerNames(args[0]));
+            if ("@everyone".startsWith(args[0].toLowerCase())) {
+                names.add("@everyone");
+            }
+            return names;
+        }
+        return Collections.emptyList();
     }
 }

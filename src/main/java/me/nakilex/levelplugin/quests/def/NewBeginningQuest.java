@@ -212,9 +212,8 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                                             if (choice == 0) {
                                                 plugin.getEconomyManager().addCoins(pl, 200);
                                                 qm.setFlag(pid, "newbeginning", "soldClothes");
-                                                pl.sendMessage(ChatColor.GOLD + "You received " +
-                                                        ChatColor.YELLOW + "200 <glyph:coins_icon> " +
-                                                        ChatColor.GOLD + "coins.");
+                                                me.nakilex.levelplugin.utils.CurrencyMessageUtil.sendReceive(pl,
+                                                        me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency.COINS, 200);
                                             } else {
                                                 plugin.getDialogManager().startDialog(pl,
                                                         java.util.List.of("Starter Merchant|Fair enough, have a nice day."),
@@ -290,8 +289,8 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                                 () -> {
                                     plugin.getEconomyManager().addCoins(pl, 100);
                                     qm.setFlag(pid, "newbeginning", "givenCoins");
-                                    pl.sendMessage(ChatColor.GOLD + "You received "
-                                            + ChatColor.YELLOW + "100 <glyph:coins_icon> " + ChatColor.GOLD + "coins.");
+                                    me.nakilex.levelplugin.utils.CurrencyMessageUtil.sendReceive(pl,
+                                            me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency.COINS, 100);
                                 });
                     } else {
                         plugin.getDialogManager().startDialog(pl,

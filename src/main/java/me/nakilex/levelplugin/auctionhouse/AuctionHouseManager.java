@@ -167,8 +167,10 @@ public class AuctionHouseManager {
         saveAuctions();
         Player seller = Bukkit.getPlayer(ai.getSeller());
         if (seller != null) {
-            sendItemMessage(seller, ai.getItem(), ChatColor.GOLD + "Your <item> sold for "
-                    + ChatColor.YELLOW + payout + " <glyph:coins_icon>" + ChatColor.GOLD + ".");
+            sendItemMessage(seller, ai.getItem(), ChatColor.GOLD + "You received "
+                    + me.nakilex.levelplugin.utils.CurrencyMessageUtil.formatAmount(
+                            me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency.COINS, payout)
+                    + ChatColor.GOLD + " from selling <item>.");
         }
         sendItemMessage(buyer, ai.getItem(), ChatColor.GREEN + "You bought <item> for "
                 + ChatColor.YELLOW + price + " <glyph:coins_icon>" + ChatColor.GREEN + ".");
@@ -199,7 +201,10 @@ public class AuctionHouseManager {
             economyManager.addCoins(ai.getHighestBidder(), ai.getCurrentBid());
             Player bidder = Bukkit.getPlayer(ai.getHighestBidder());
             if (bidder != null) {
-                bidder.sendMessage(ChatColor.YELLOW + "Your bid was refunded.");
+                bidder.sendMessage(ChatColor.GOLD + "You received "
+                        + me.nakilex.levelplugin.utils.CurrencyMessageUtil.formatAmount(
+                                me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency.COINS, ai.getCurrentBid())
+                        + ChatColor.GOLD + " back.");
             }
         }
         seller.getInventory().addItem(ai.getItem());
@@ -228,8 +233,10 @@ public class AuctionHouseManager {
                     }
                     Player seller = Bukkit.getPlayer(ai.getSeller());
                     if (seller != null) {
-                        sendItemMessage(seller, ai.getItem(), ChatColor.GOLD + "Your <item> sold for "
-                                + ChatColor.YELLOW + payout + " <glyph:coins_icon>" + ChatColor.GOLD + ".");
+                        sendItemMessage(seller, ai.getItem(), ChatColor.GOLD + "You received "
+                                + me.nakilex.levelplugin.utils.CurrencyMessageUtil.formatAmount(
+                                        me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency.COINS, payout)
+                                + ChatColor.GOLD + " from selling <item>.");
                         String id = null;
                         CustomItem c = ItemManager.getInstance().getCustomItemFromItemStack(ai.getItem());
                         if (c != null) {

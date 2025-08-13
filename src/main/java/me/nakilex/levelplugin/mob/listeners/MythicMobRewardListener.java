@@ -131,8 +131,12 @@ public class MythicMobRewardListener implements Listener {
             }
             if (DropDisplayToggles.isChatEnabled(player)) {
                 String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
-                player.sendMessage("§7You earned §f+" + awardedExp + " <glyph:experience_orb_icon> " + expLabel
-                        + " §7and §f+" + coins + " <glyph:coins_icon> §6coins");
+                player.sendMessage(ChatColor.GOLD + "You received "
+                        + ChatColor.WHITE + "+" + awardedExp + " <glyph:experience_orb_icon> " + expLabel
+                        + ChatColor.GOLD + " and "
+                        + me.nakilex.levelplugin.utils.CurrencyMessageUtil.formatAmount(
+                                me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency.COINS, coins)
+                        + ChatColor.GOLD + "!");
                 int power = CombatPowerUtil.getCombatPower(mythicMob);
                 player.sendMessage(ChatColor.DARK_AQUA + "Combat Power: " + ChatColor.AQUA + power);
             }

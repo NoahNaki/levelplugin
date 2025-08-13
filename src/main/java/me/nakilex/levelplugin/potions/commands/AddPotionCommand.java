@@ -12,6 +12,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
+
+import me.nakilex.levelplugin.utils.CommandUtil;
 
 public class AddPotionCommand implements TabExecutor {
 
@@ -58,6 +61,16 @@ public class AddPotionCommand implements TabExecutor {
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (args.length == 1) {
+            return CommandUtil.onlinePlayerNames(args[0]);
+        }
+        if (args.length == 2) {
+            return CommandUtil.filterStartingWith(
+                    potionManager.getAllTemplates().stream()
+                            .map(PotionTemplate::getId)
+                            .collect(Collectors.toList()),
+                    args[1]);
+        }
         return Collections.emptyList();
     }
 }

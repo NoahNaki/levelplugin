@@ -17,7 +17,9 @@ import com.sk89q.worldedit.math.BlockVector3;
 import me.nakilex.levelplugin.utils.SchematicUtil;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -44,6 +46,13 @@ public class TownStageManager {
     /** Returns all defined town names. */
     public Set<String> getStageNames() {
         return new java.util.HashSet<>(stages.keySet());
+    }
+
+    public Set<Integer> getLevels(String town) {
+        var levels = stages.get(town.toLowerCase());
+        if (levels == null) return Collections.emptySet();
+        return new HashSet<>(levels.keySet());
+        
     }
 
     public TownStage getStage(String town, int level, int stage) {
