@@ -71,12 +71,11 @@ public class AddCoinsCommand implements TabExecutor {
         economy.setBalance(playerId, newBal);
         if (online != null) {
             if (amount >= 0) {
-                String coinText = Math.abs(amount) + " <glyph:coins_icon> "
-                        + org.bukkit.ChatColor.GOLD + "coins";
-                online.sendMessage(org.bukkit.ChatColor.GREEN + "You received "
-                        + coinText + org.bukkit.ChatColor.GREEN + ".");
+                me.nakilex.levelplugin.utils.CurrencyMessageUtil.sendReceive(online,
+                        me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency.COINS, amount);
             } else {
-                online.sendMessage("You lost " + Math.abs(amount) + " coins.");
+                me.nakilex.levelplugin.utils.CurrencyMessageUtil.sendLoss(online,
+                        me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency.COINS, Math.abs(amount));
             }
         }
     }

@@ -66,8 +66,13 @@ public class AddGemsCommand implements TabExecutor {
         int newTotal = current + amt;
         if (newTotal < 0) newTotal = 0;
         gemsManager.setTotalUnits(player, newTotal);
-        player.sendMessage((amt >= 0 ? "You received " : "You lost ")
-                + Math.abs(amt) + " " + ChatColor.LIGHT_PURPLE + "<glyph:purple_orb_icon>");
+        if (amt >= 0) {
+            me.nakilex.levelplugin.utils.CurrencyMessageUtil.sendReceive(player,
+                    me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency.GEMS, amt);
+        } else {
+            me.nakilex.levelplugin.utils.CurrencyMessageUtil.sendLoss(player,
+                    me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency.GEMS, Math.abs(amt));
+        }
     }
 
     @Override

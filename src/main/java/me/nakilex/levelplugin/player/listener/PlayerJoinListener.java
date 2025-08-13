@@ -57,8 +57,10 @@ public class PlayerJoinListener implements Listener {
             EconomyManager eco = Main.getInstance().getEconomyManager();
             if (eco.getBalance(player) == 0) {
                 eco.addCoins(player, 20);
-                player.sendMessage(org.bukkit.ChatColor.YELLOW + "You received 20 <glyph:coins_icon> "
-                        + org.bukkit.ChatColor.GOLD + "coins" + org.bukkit.ChatColor.YELLOW + " to get started!");
+                String amt = me.nakilex.levelplugin.utils.CurrencyMessageUtil.formatAmount(
+                        me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency.COINS, 20);
+                player.sendMessage(org.bukkit.ChatColor.GOLD + "You received " + amt
+                        + org.bukkit.ChatColor.GOLD + " to get started!");
             }
 
             // Teleport to profile lobby in world
