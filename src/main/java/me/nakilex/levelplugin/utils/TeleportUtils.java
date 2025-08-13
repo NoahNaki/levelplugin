@@ -16,7 +16,7 @@ public final class TeleportUtils {
      * origin and destination along with the enderman teleport sound.
      */
     public static void teleportWithEffect(Player player, Location dest) {
-        teleportWithEffect(player, dest, 5L);
+        teleportWithEffect(player, dest, 15L);
     }
 
     /**
@@ -24,18 +24,20 @@ public final class TeleportUtils {
      */
     public static void teleportWithEffect(Player player, Location dest, long delayTicks) {
         Location origin = player.getLocation();
-        origin.getWorld().spawnParticle(Particle.DRAGON_BREATH, origin, 80, 0.5, 1, 0.5, 0);
-        origin.getWorld().spawnParticle(Particle.PORTAL, origin, 40, 0.5, 1, 0.5, 0.2);
+        origin.getWorld().spawnParticle(Particle.DRAGON_BREATH, origin, 100, 0.6, 1.2, 0.6, 0);
+        origin.getWorld().spawnParticle(Particle.PORTAL, origin, 60, 0.6, 1.2, 0.6, 0.2);
+        origin.getWorld().spawnParticle(Particle.END_ROD, origin, 80, 0.6, 1.2, 0.6, 0.1);
         origin.getWorld().playSound(origin, Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 1f);
 
         Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
             player.teleport(dest);
-            dest.getWorld().spawnParticle(Particle.DRAGON_BREATH, dest, 100, 0.5, 1, 0.5, 0);
-            dest.getWorld().spawnParticle(Particle.END_ROD, dest, 60, 0.5, 1, 0.5, 0.1);
+            dest.getWorld().spawnParticle(Particle.DRAGON_BREATH, dest, 140, 0.6, 1.2, 0.6, 0);
+            dest.getWorld().spawnParticle(Particle.END_ROD, dest, 80, 0.6, 1.2, 0.6, 0.1);
+            dest.getWorld().spawnParticle(Particle.PORTAL, dest, 80, 0.6, 1.2, 0.6, 0.2);
             dest.getWorld().playSound(dest, Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 1f);
 
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () ->
-                    dest.getWorld().spawnParticle(Particle.SPELL_WITCH, dest, 40, 0.5, 1, 0.5, 0.1),
+                    dest.getWorld().spawnParticle(Particle.SPELL_WITCH, dest, 60, 0.6, 1.2, 0.6, 0.1),
                 10L);
         }, delayTicks);
     }

@@ -207,7 +207,13 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
             }
             idx++; line--;
 
-            // spacer below siege line
+            current[idx] = ChatColor.WHITE + "Duration: " + ChatColor.GRAY + siege.getFormattedRemaining();
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
+
+            // spacer below siege lines
             current[idx] = " ";
             if (!current[idx].equals(prev[idx])) {
                 setLine(board, obj, idx, line, current[idx]);

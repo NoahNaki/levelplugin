@@ -54,7 +54,9 @@ public class GuildSiegeManager {
     private String capturingGuild = null;
     private int progress = 0;
     private int lastAnnounce = 0;
-    private static final int CAPTURE_RATE = 10;
+    private static final int CAPTURE_RATE = 1;
+    private static final int SIEGE_DURATION = 600; // seconds
+    private int captureElapsed = 0;
     private MultiLineHologram progressHologram;
     private MultiLineHologram ownerHologram;
 
@@ -188,14 +190,33 @@ public class GuildSiegeManager {
             p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
         }
 
+        captureElapsed = 0;
         if (captureTask != null) captureTask.cancel();
         captureTask = new BukkitRunnable() {
-            int elapsed = 0;
             @Override
             public void run() {
+                int remaining = SIEGE_DURATION - captureElapsed;
+                switch (remaining) {
+                    case 600: broadcast(ChatColor.GRAY + "Siege ends in " + ChatColor.YELLOW + "10m"); break;
+                    case 300: broadcast(ChatColor.GRAY + "Siege ends in " + ChatColor.YELLOW + "5m"); break;
+                    case 60: broadcast(ChatColor.GRAY + "Siege ends in " + ChatColor.YELLOW + "1m"); break;
+                    case 30: broadcast(ChatColor.GRAY + "Siege ends in " + ChatColor.YELLOW + "30s"); break;
+                    case 10: broadcast(ChatColor.GRAY + "Siege ends in " + ChatColor.YELLOW + "10s"); break;
+                    case 5: case 4: case 3: case 2: case 1:
+                        for (UUID id : active) {
+                            Player p = Bukkit.getPlayer(id);
+                            if (p != null) {
+                                ChatFormatter.sendCenteredMessage(p, ChatColor.GRAY + "Siege ends in "
+                                        + ChatColor.YELLOW + remaining + "s");
+                                p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, 1f, 1f);
+                            }
+                        }
+                        break;
+                }
+
                 tickCapture();
-                elapsed++;
-                if (elapsed >= 120) {
+                captureElapsed++;
+                if (captureElapsed >= SIEGE_DURATION) {
                     end(ownerGuild);
                 }
             }
@@ -292,6 +313,7 @@ public class GuildSiegeManager {
     private void end(String winner) {
         if (captureTask != null) captureTask.cancel();
         captureTask = null;
+        captureElapsed = 0;
         for (UUID id : active) {
             Player p = Bukkit.getPlayer(id);
             if (p != null) {
@@ -352,6 +374,17 @@ public class GuildSiegeManager {
     public int getProgress() { return progress; }
     public String getOwnerGuild() { return ownerGuild; }
     public boolean isSiegeRunning() { return captureTask != null; }
+
+    public int getRemainingSeconds() {
+        return captureTask != null ? Math.max(0, SIEGE_DURATION - captureElapsed) : 0;
+    }
+
+    public String getFormattedRemaining() {
+        int sec = getRemainingSeconds();
+        int m = sec / 60;
+        int s = sec % 60;
+        return String.format("%d:%02d", m, s);
+    }
 
     private void spawnParticles() {
         for (int i = 0; i < 40; i++) {
