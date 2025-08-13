@@ -18,7 +18,6 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import me.nakilex.levelplugin.utils.ChatFormatter;
-import me.nakilex.levelplugin.environment.EnvironmentManager;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 
@@ -226,8 +225,6 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                                 dest.setPitch(cur.getPitch());
                                 player.teleport(dest);
                                 plugin.getQuestManager().startQuest(player, "newbeginning");
-                                EnvironmentManager env = Main.getInstance().getEnvironmentManager();
-                                env.startTown(player, "town");
 
                                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
                                     gates.updatePlayer(player);
