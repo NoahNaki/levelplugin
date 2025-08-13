@@ -6,6 +6,8 @@ import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 /** Utility methods for teleporting players with a visual effect. */
 public final class TeleportUtils {
@@ -31,6 +33,7 @@ public final class TeleportUtils {
 
         Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
             player.teleport(dest);
+            player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 40, 0, false, false));
             dest.getWorld().spawnParticle(Particle.DRAGON_BREATH, dest, 140, 0.6, 1.2, 0.6, 0);
             dest.getWorld().spawnParticle(Particle.END_ROD, dest, 80, 0.6, 1.2, 0.6, 0.1);
             dest.getWorld().spawnParticle(Particle.PORTAL, dest, 80, 0.6, 1.2, 0.6, 0.2);

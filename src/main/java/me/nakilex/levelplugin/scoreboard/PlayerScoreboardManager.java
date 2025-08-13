@@ -201,8 +201,8 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
             int prog = siege.getProgress();
             String name = cap == null ? ChatColor.WHITE + "None" : ChatColor.WHITE + cap;
             String capText = name + " " + ChatColor.DARK_GRAY + "[" + ChatColor.GRAY + prog + "%" + ChatColor.DARK_GRAY + "]";
-            // Indent the siege line so it aligns with the duration line below which includes the flag glyph
-            current[idx] = ChatColor.RED + "  Siege: " + capText;
+            // Further indent the siege line so it aligns with the flag on the duration line
+            current[idx] = ChatColor.RED + "     Siege: " + capText;
             if (!current[idx].equals(prev[idx])) {
                 setLine(board, obj, idx, line, current[idx]);
             }
