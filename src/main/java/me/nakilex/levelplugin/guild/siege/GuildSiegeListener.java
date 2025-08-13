@@ -1,5 +1,7 @@
 package me.nakilex.levelplugin.guild.siege;
 
+import me.nakilex.levelplugin.Main;
+import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -19,6 +21,7 @@ public class GuildSiegeListener implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        manager.refreshTownVisibility(event.getPlayer());
+        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () ->
+                manager.refreshTownVisibility(event.getPlayer()), 40L);
     }
 }

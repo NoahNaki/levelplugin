@@ -4,18 +4,21 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.guild.Guild;
 import me.nakilex.levelplugin.guild.GuildManager;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
+import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.utils.MultiLineHologram;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Particle;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
-import me.nakilex.levelplugin.utils.ChatFormatter;
-import me.nakilex.levelplugin.utils.MultiLineHologram;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -39,8 +42,10 @@ public class GuildSiegeManager {
     private final Location center = new Location(Bukkit.getWorld("world"), 192, 73, -71);
     private final Location teleportLocation = new Location(Bukkit.getWorld("world"), 193, 67, -174);
     private static final double RADIUS = 8.0;
-    private final Location hologramLocation = new Location(Bukkit.getWorld("world"), 192, 78, -71);
+    private final Location progressHologramLocation = new Location(Bukkit.getWorld("world"), 192, 78, -71);
+    private final Location ownerHologramLocation = new Location(Bukkit.getWorld("world"), 200, 76, -78);
 
+    private File dataFile;
     private String ownerGuild = null;
     private String capturingGuild = null;
     private int progress = 0;
@@ -54,8 +59,31 @@ public class GuildSiegeManager {
 
     public void init(Main plugin) {
         this.plugin = plugin;
+        dataFile = new File(plugin.getDataFolder(), "siege.yml");
+        if (!dataFile.exists()) {
+            try {
+                dataFile.createNewFile();
+            } catch (IOException e) {
+                plugin.getLogger().severe("Failed to create siege.yml: " + e.getMessage());
+            }
+        }
+        YamlConfiguration cfg = YamlConfiguration.loadConfiguration(dataFile);
+        ownerGuild = cfg.getString("ownerGuild", null);
+
         startAnnouncements();
         updateOwnerHologram();
+        applyTownVisibility();
+    }
+
+    public void save() {
+        if (dataFile == null) return;
+        YamlConfiguration cfg = new YamlConfiguration();
+        cfg.set("ownerGuild", ownerGuild);
+        try {
+            cfg.save(dataFile);
+        } catch (IOException e) {
+            plugin.getLogger().severe("Failed to save siege.yml: " + e.getMessage());
+        }
     }
 
     private void startAnnouncements() {
@@ -122,7 +150,7 @@ public class GuildSiegeManager {
             ownerHologram = null;
         }
 
-        progressHologram = new MultiLineHologram(hologramLocation);
+        progressHologram = new MultiLineHologram(progressHologramLocation);
         updateHologram();
 
         for (UUID id : active) {
@@ -252,6 +280,7 @@ public class GuildSiegeManager {
             String msg = PREFIX + ChatColor.RED + "No guild captured the town.";
             Bukkit.broadcastMessage(ChatFormatter.getCenteredText(msg));
         }
+        save();
         applyTownVisibility();
         updateOwnerHologram();
     }
@@ -325,7 +354,7 @@ public class GuildSiegeManager {
     private void updateOwnerHologram() {
         if (progressHologram != null) return; // during active siege we show progress instead
         if (ownerHologram == null) {
-            ownerHologram = new MultiLineHologram(hologramLocation);
+            ownerHologram = new MultiLineHologram(ownerHologramLocation);
         }
         String line = ownerGuild != null ? ChatColor.GOLD + ownerGuild : ChatColor.GRAY + "No Owner";
         ownerHologram.setLines(java.util.Collections.singletonList(line));

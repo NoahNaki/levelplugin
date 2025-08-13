@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.guild;
 
 import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
+import me.nakilex.levelplugin.Main;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -27,7 +28,8 @@ public class GuildManager {
     private void refreshHolograms(UUID id) {
         Player p = Bukkit.getPlayer(id);
         if (p != null) {
-            GuildSiegeManager.getInstance().refreshTownVisibility(p);
+            Bukkit.getScheduler().runTask(Main.getInstance(), () ->
+                    GuildSiegeManager.getInstance().refreshTownVisibility(p));
         }
     }
 

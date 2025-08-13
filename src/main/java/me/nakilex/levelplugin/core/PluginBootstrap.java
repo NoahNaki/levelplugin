@@ -439,6 +439,7 @@ public class PluginBootstrap {
             environmentManager.removeAllHolograms();
             environmentManager.saveAll();
         }
+        if (guildSiegeManager != null) guildSiegeManager.save();
         if (leaderboardManager != null) leaderboardManager.removeAll();
         if (duelStatsManager != null) duelStatsManager.save();
         if (townStageManager != null) townStageManager.despawnAll();
