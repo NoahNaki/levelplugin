@@ -32,8 +32,9 @@ public class GuildSiegeManager {
     private final Set<UUID> queue = new HashSet<>();
     private final Set<UUID> active = new HashSet<>();
 
-    private final Location center = new Location(Bukkit.getWorld("world"), 0, 64, 0);
-    private static final double RADIUS = 5.0;
+    private final Location center = new Location(Bukkit.getWorld("world"), 192, 73, -71);
+    private final Location teleportLocation = new Location(Bukkit.getWorld("world"), 193, 66, -174);
+    private static final double RADIUS = 8.0;
 
     private String ownerGuild = null;
     private String capturingGuild = null;
@@ -101,7 +102,7 @@ public class GuildSiegeManager {
 
         for (UUID id : active) {
             Player p = Bukkit.getPlayer(id);
-            if (p != null) p.teleport(center);
+            if (p != null) p.teleport(teleportLocation);
         }
 
         if (captureTask != null) captureTask.cancel();
