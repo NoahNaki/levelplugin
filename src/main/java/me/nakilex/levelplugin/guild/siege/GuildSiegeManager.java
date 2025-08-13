@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.guild.siege;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.guild.Guild;
 import me.nakilex.levelplugin.guild.GuildManager;
+import me.nakilex.levelplugin.environment.EnvironmentManager;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
@@ -36,7 +37,7 @@ public class GuildSiegeManager {
     private final Set<UUID> active = new HashSet<>();
 
     private final Location center = new Location(Bukkit.getWorld("world"), 192, 73, -71);
-    private final Location teleportLocation = new Location(Bukkit.getWorld("world"), 193, 66, -174);
+    private final Location teleportLocation = new Location(Bukkit.getWorld("world"), 193, 67, -174);
     private static final double RADIUS = 8.0;
     private final Location hologramLocation = new Location(Bukkit.getWorld("world"), 192, 78, -71);
 
@@ -244,6 +245,7 @@ public class GuildSiegeManager {
             String msg = PREFIX + ChatColor.RED + "No guild captured the town.";
             Bukkit.broadcastMessage(ChatFormatter.getCenteredText(msg));
         }
+        applyTownVisibility();
     }
 
     private void broadcast(String msg) {
@@ -276,6 +278,22 @@ public class GuildSiegeManager {
         Guild gB = GuildManager.getInstance().getGuild(b);
         if (gA == null || gB == null) return false;
         return !Objects.equals(gA.getName(), gB.getName());
+    }
+
+    /**
+     * Hide town structures and holograms from players not in the owning guild.
+     */
+    private void applyTownVisibility() {
+        String owner = ownerGuild;
+        EnvironmentManager env = Main.getInstance().getEnvironmentManager();
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            Guild g = GuildManager.getInstance().getGuild(p.getUniqueId());
+            boolean allowed = owner == null || (g != null && owner.equalsIgnoreCase(g.getName()));
+            if (!allowed && env.isTownLoaded(p)) {
+                env.unloadPlayerTown(p);
+                env.markTownLoaded(p, false);
+            }
+        }
     }
 
     private void updateHologram() {
