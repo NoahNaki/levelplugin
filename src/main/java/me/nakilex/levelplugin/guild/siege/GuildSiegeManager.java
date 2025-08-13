@@ -255,7 +255,9 @@ public class GuildSiegeManager {
         if (progress > 100) progress = 100;
         if (progress >= lastAnnounce + 5) {
             lastAnnounce = progress - (progress % 5);
-            broadcast(ChatColor.YELLOW + capturingGuild + ChatColor.WHITE + " is capturing [" + progress + "%]");
+            String msg = "<glyph:flagleft_icon> " + ChatColor.GRAY + "Guild " + ChatColor.GOLD + capturingGuild
+                    + ChatColor.GRAY + " is capturing [" + ChatColor.YELLOW + progress + "%" + ChatColor.GRAY + "] <glyph:flagright_icon>";
+            broadcast(msg);
             updateHologram();
         }
         if (progress >= 100) {
@@ -299,9 +301,11 @@ public class GuildSiegeManager {
         } else {
             msg = "<glyph:flagleft_icon> " + ChatColor.RED + "No guild captured the town." + ChatColor.GRAY + " <glyph:flagright_icon>";
         }
-        Bukkit.broadcastMessage(ChatFormatter.getCenteredText(" "));
-        Bukkit.broadcastMessage(ChatFormatter.getCenteredText(msg));
-        Bukkit.broadcastMessage(ChatFormatter.getCenteredText(" "));
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            ChatFormatter.sendCenteredMessage(p, " ");
+            ChatFormatter.sendCenteredMessage(p, msg);
+            ChatFormatter.sendCenteredMessage(p, " ");
+        }
         save();
         applyTownVisibility();
         updateOwnerHologram();
