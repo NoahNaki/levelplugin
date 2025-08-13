@@ -1,19 +1,17 @@
 package me.nakilex.levelplugin.utils;
 
 import org.bukkit.Location;
-import org.bukkit.entity.Display;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.TextDisplay;
+import org.bukkit.entity.ArmorStand;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Simple multi-line hologram using TextDisplay entities.
+ * Simple multi-line hologram using invisible ArmorStand entities.
  */
 public class MultiLineHologram {
     private final Location location;
-    private final List<TextDisplay> lines = new ArrayList<>();
+    private final List<ArmorStand> lines = new ArrayList<>();
 
     public MultiLineHologram(Location location) {
         this.location = location;
@@ -25,9 +23,9 @@ public class MultiLineHologram {
 
     /** Remove existing hologram entities. */
     public void despawn() {
-        for (TextDisplay td : lines) {
-            if (td != null && !td.isDead()) {
-                td.remove();
+        for (ArmorStand as : lines) {
+            if (as != null && !as.isDead()) {
+                as.remove();
             }
         }
         lines.clear();
@@ -40,13 +38,15 @@ public class MultiLineHologram {
         double offset = 0.0;
         for (String text : textLines) {
             Location lineLoc = base.clone().add(0, offset, 0);
-            TextDisplay disp = (TextDisplay) base.getWorld().spawnEntity(lineLoc, EntityType.TEXT_DISPLAY);
-            disp.setBillboard(Display.Billboard.CENTER);
-            disp.setShadowRadius(0f);
-            disp.setShadowStrength(0f);
-            disp.setText(text);
-            lines.add(disp);
-            offset -= 0.25; // stack downward
+            ArmorStand stand = lineLoc.getWorld().spawn(lineLoc, ArmorStand.class, as -> {
+                as.setVisible(false);
+                as.setGravity(false);
+                as.setMarker(true);
+                as.setCustomNameVisible(true);
+                as.setCustomName(text);
+            });
+            lines.add(stand);
+            offset -= 0.3; // stack downward
         }
     }
 
@@ -57,7 +57,7 @@ public class MultiLineHologram {
             return;
         }
         for (int i = 0; i < lines.size(); i++) {
-            lines.get(i).setText(textLines.get(i));
+            lines.get(i).setCustomName(textLines.get(i));
         }
     }
 }
