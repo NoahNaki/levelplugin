@@ -97,7 +97,7 @@ public class GuildSiegeManager {
             public void run() {
                 announce();
             }
-        }.runTaskTimer(plugin, 0L, 20L * 60); // every minute
+        }.runTaskTimer(plugin, 0L, 20L * 60 * 60 * 24 * 7); // every week
     }
 
     private void announce() {
@@ -106,6 +106,11 @@ public class GuildSiegeManager {
             countdownTask.cancel();
             countdownTask = null;
         }
+        broadcastSignupMessage();
+    }
+
+    /** Broadcast the siege signup message without resetting any state. */
+    public void broadcastSignupMessage() {
         String raw = "<glyph:flagleft_icon> " + ChatColor.GOLD + "" + ChatColor.BOLD + "CLICK-HERE "
                 + ChatColor.GRAY + "to sign up for the guild siege! " + ChatColor.RESET + "<glyph:flagright_icon>";
         TextComponent msg = new TextComponent(ChatFormatter.getCenteredText(raw));
@@ -187,7 +192,7 @@ public class GuildSiegeManager {
 
     private void startCountdown() {
         countdownTask = new BukkitRunnable() {
-            int seconds = 10;
+            int seconds = 60;
             @Override
             public void run() {
                 if (queue.isEmpty()) {
@@ -201,10 +206,12 @@ public class GuildSiegeManager {
                     countdownTask = null;
                     return;
                 }
-                String msg = ChatColor.GRAY + "Siege starts in " + ChatColor.YELLOW + seconds + "s";
-                for (UUID id : queue) {
-                    Player p = Bukkit.getPlayer(id);
-                    if (p != null) ChatFormatter.sendCenteredMessage(p, msg);
+                if (seconds == 60 || seconds == 30 || seconds == 15 || seconds <= 5) {
+                    String msg = ChatColor.GRAY + "Siege starts in " + ChatColor.YELLOW + seconds + "s";
+                    for (UUID id : queue) {
+                        Player p = Bukkit.getPlayer(id);
+                        if (p != null) ChatFormatter.sendCenteredMessage(p, msg);
+                    }
                 }
                 seconds--;
             }

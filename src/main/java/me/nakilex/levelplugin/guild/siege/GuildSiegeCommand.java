@@ -20,6 +20,10 @@ public class GuildSiegeCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (args.length > 0 && args[0].equalsIgnoreCase("announce")) {
+            manager.broadcastSignupMessage();
+            return true;
+        }
         if (!(sender instanceof Player)) {
             sender.sendMessage("Only players may use this command.");
             return true;
@@ -34,7 +38,7 @@ public class GuildSiegeCommand implements CommandExecutor, TabCompleter {
             ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "You have left the siege queue.");
             return true;
         }
-        ChatFormatter.sendCenteredMessage(player, ChatColor.RED + "Usage: /siege <join|leave>");
+        ChatFormatter.sendCenteredMessage(player, ChatColor.RED + "Usage: /siege <join|leave|announce>");
         return true;
     }
 
@@ -44,6 +48,7 @@ public class GuildSiegeCommand implements CommandExecutor, TabCompleter {
             List<String> list = new ArrayList<>();
             list.add("join");
             list.add("leave");
+            list.add("announce");
             return list;
         }
         return new ArrayList<>();
