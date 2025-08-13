@@ -48,6 +48,9 @@ public class GuildManager {
     public boolean disbandGuild(String name) {
         Guild g = guilds.remove(name);
         if (g == null) return false;
+        me.nakilex.levelplugin.environment.EnvironmentManager env = me.nakilex.levelplugin.Main.getInstance().getEnvironmentManager();
+        env.clearGuildTown(g);
+        me.nakilex.levelplugin.guild.siege.GuildSiegeManager.getInstance().handleGuildDisband(name);
         for (UUID m : g.getMembers()) {
             playerGuild.remove(m);
             fireEvent(m, g, GuildMembershipEvent.Action.LEAVE);
@@ -100,6 +103,7 @@ public class GuildManager {
         if (g == null || !g.getLeader().equals(leader)) return false;
         if (!g.getMembers().contains(target)) return false;
         g.promote(target);
+        me.nakilex.levelplugin.Main.getInstance().getEnvironmentManager().syncGuildTown(g);
         return true;
     }
 

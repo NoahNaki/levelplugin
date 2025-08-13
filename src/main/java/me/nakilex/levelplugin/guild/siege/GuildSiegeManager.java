@@ -284,6 +284,10 @@ public class GuildSiegeManager {
             ownerGuild = winner;
             String msg = PREFIX + ChatColor.GOLD + "Guild " + winner + " has taken control of the town!";
             Bukkit.broadcastMessage(ChatFormatter.getCenteredText(msg));
+            me.nakilex.levelplugin.guild.Guild g = GuildManager.getInstance().getGuild(winner);
+            if (g != null) {
+                Main.getInstance().getEnvironmentManager().syncGuildTown(g);
+            }
         } else {
             String msg = PREFIX + ChatColor.RED + "No guild captured the town.";
             Bukkit.broadcastMessage(ChatFormatter.getCenteredText(msg));
@@ -345,14 +349,28 @@ public class GuildSiegeManager {
         boolean allowed = ownerGuild == null || (g != null && ownerGuild.equalsIgnoreCase(g.getName()));
         plugin.getLogger().info("[SiegeDebug] owner=" + ownerGuild + " playerGuild=" + gName + " allowed=" + allowed);
         if (allowed) {
+            if (g != null && !g.getLeader().equals(p.getUniqueId())) {
+                env.shareTownWithMember(g.getLeader(), p.getUniqueId());
+            }
             if (!env.isTownLoaded(p)) {
                 env.markTownLoaded(p, true);
             }
             env.initializePlayer(p);
             plugin.getLogger().info("[SiegeDebug] Initialized holograms for " + p.getName());
         } else {
+            env.removeGuildMember(p.getUniqueId());
             env.unloadPlayerTown(p);
             env.markTownLoaded(p, false);
+        }
+    }
+
+    /** Clear ownership if the owning guild disbands. */
+    public void handleGuildDisband(String name) {
+        if (ownerGuild != null && ownerGuild.equalsIgnoreCase(name)) {
+            ownerGuild = null;
+            save();
+            applyTownVisibility();
+            updateOwnerHologram();
         }
     }
 

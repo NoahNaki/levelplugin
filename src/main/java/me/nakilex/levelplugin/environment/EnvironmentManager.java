@@ -311,6 +311,86 @@ public class EnvironmentManager {
         }
     }
 
+    /**
+     * Share the town data of the owner with the given member so they see the
+     * same structures and holograms.
+     */
+    public void shareTownWithMember(UUID owner, UUID member) {
+        shareData(member, owner);
+        coopOwners.put(member, owner);
+        playerConfig.setCoopOwner(member, owner);
+        playerConfig.saveConfigFile();
+    }
+
+    /** Remove any shared town data for the given player. */
+    public void removeGuildMember(UUID member) {
+        UUID owner = coopOwners.remove(member);
+        if (owner != null) {
+            towns.remove(member);
+            origins.remove(member);
+            states.remove(member);
+            buildingStates.remove(member);
+            playerConfig.clearEnvironmentData(member);
+            playerConfig.clearCoop(member);
+            playerConfig.saveConfigFile();
+        }
+    }
+
+    /** Ensure the guild leader owns the town and members share its data. */
+    public void syncGuildTown(me.nakilex.levelplugin.guild.Guild guild) {
+        if (guild == null) return;
+        UUID leader = guild.getLeader();
+        String townName = towns.get(leader);
+        if (townName == null) {
+            if (!townOwners.isEmpty()) {
+                townName = townOwners.keySet().iterator().next();
+            } else {
+                java.util.Set<String> names = stageManager.getStageNames();
+                if (!names.isEmpty()) townName = names.iterator().next();
+            }
+        }
+        if (townName == null) return;
+
+        UUID currentOwner = townOwners.get(townName.toLowerCase());
+        if (currentOwner == null || !currentOwner.equals(leader)) {
+            townOwners.put(townName.toLowerCase(), leader);
+            playerConfig.setTownOwner(townName.toLowerCase(), leader);
+            playerConfig.saveConfigFile();
+        }
+        Player leaderPl = org.bukkit.Bukkit.getPlayer(leader);
+        if (leaderPl != null && origins.get(leader) == null) {
+            startTown(leaderPl, townName);
+        }
+        for (UUID member : guild.getMembers()) {
+            if (!member.equals(leader)) {
+                shareTownWithMember(leader, member);
+                Player mp = org.bukkit.Bukkit.getPlayer(member);
+                if (mp != null) initializePlayer(mp);
+            } else if (leaderPl != null) {
+                initializePlayer(leaderPl);
+            }
+        }
+    }
+
+    /** Clear town ownership and shared data for all members of the guild. */
+    public void clearGuildTown(me.nakilex.levelplugin.guild.Guild guild) {
+        if (guild == null) return;
+        for (UUID member : guild.getMembers()) {
+            Player p = org.bukkit.Bukkit.getPlayer(member);
+            if (p != null) {
+                unloadPlayerTown(p);
+                markTownLoaded(p, false);
+            }
+            removeGuildMember(member);
+        }
+        if (!townOwners.isEmpty()) {
+            String key = townOwners.keySet().iterator().next();
+            townOwners.remove(key);
+            playerConfig.clearTownOwner(key);
+            playerConfig.saveConfigFile();
+        }
+    }
+
     private void loadPlayerData(UUID uuid) {
         states.computeIfAbsent(uuid, id -> {
             int lvl = playerConfig.getEnvironmentLevel(id);
