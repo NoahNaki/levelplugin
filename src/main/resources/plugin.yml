@@ -93,6 +93,9 @@ commands:
   guild:
     description: Manage your guild
     usage: /guild <subcommand> | /guild menu
+  siege:
+    description: Join or leave the guild siege event
+    usage: /siege <join|leave>
   partyglow:
     description: Toggle party member glow
     usage: /partyglow
