@@ -911,9 +911,6 @@ public class EnvironmentManager {
         }
         final Location finalOrigin = origin;
         spawnStructure(player, finalOrigin, state.level, state.stage, after);
-        player.sendMessage(ChatColor.YELLOW + "Settlement created at " +
-                finalOrigin.getBlockX() + "," + finalOrigin.getBlockY() + "," +
-                finalOrigin.getBlockZ());
     }
 
     /** Remove the player's settlement so they can start over. */

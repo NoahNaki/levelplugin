@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 public class ChatFormatter {
 
     private static final int CENTER_PX = 154; // This is approximately the center of the Minecraft chat window
+    public static final int GLYPH_PX = 8;     // approximate width of custom glyphs
 
     public static void sendCenteredMessage(Player player, String message) {
         if (message == null || message.equals("")) return;
@@ -20,23 +21,7 @@ public class ChatFormatter {
     public static String getCenteredText(String message) {
         if (message == null || message.isEmpty()) return "";
 
-        int messagePxSize = 0;
-        boolean previousCode = false;
-        boolean isBold = false;
-
-        for (char c : message.toCharArray()) {
-            if (c == '§') {
-                previousCode = true;
-                continue;
-            } else if (previousCode) {
-                previousCode = false;
-                isBold = c == 'l' || c == 'L';
-            } else {
-                DefaultFontInfo dFI = DefaultFontInfo.getDefaultFontInfo(c);
-                messagePxSize += isBold ? DefaultFontInfo.getBoldLength() : dFI.getLength();
-                messagePxSize++;
-            }
-        }
+        int messagePxSize = pixelLength(message);
 
         int toCompensate = CENTER_PX - (messagePxSize / 2);
         int spaceLength = DefaultFontInfo.SPACE.getLength() + 1;
@@ -49,34 +34,33 @@ public class ChatFormatter {
         return sb + message;
     }
 
-    private static void centerMessage(Player player, String message) {
-        int messagePxSize = 0;
+    /** Calculate pixel width of a message accounting for color codes and glyph placeholders. */
+    public static int pixelLength(String text) {
+        int px = 0;
         boolean previousCode = false;
-        boolean isBold = false;
-
-        for (char c : message.toCharArray()) {
+        boolean bold = false;
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
             if (c == '§') {
                 previousCode = true;
                 continue;
-            } else if (previousCode) {
-                previousCode = false;
-                isBold = c == 'l' || c == 'L';
-            } else {
-                DefaultFontInfo dFI = DefaultFontInfo.getDefaultFontInfo(c);
-                messagePxSize += isBold ? DefaultFontInfo.getBoldLength() : dFI.getLength();
-                messagePxSize++;
             }
+            if (previousCode) {
+                previousCode = false;
+                bold = c == 'l' || c == 'L';
+                continue;
+            }
+            if (text.startsWith("<glyph:", i)) {
+                int end = text.indexOf('>', i);
+                if (end == -1) end = text.length() - 1;
+                i = end;
+                px += GLYPH_PX + 1;
+                continue;
+            }
+            DefaultFontInfo dFI = DefaultFontInfo.getDefaultFontInfo(c);
+            px += (bold ? DefaultFontInfo.getBoldLength() : dFI.getLength()) + 1;
         }
-
-        int toCompensate = CENTER_PX - (messagePxSize / 2);
-        int spaceLength = DefaultFontInfo.SPACE.getLength() + 1;
-        int compensated = 0;
-        StringBuilder sb = new StringBuilder();
-        while (compensated < toCompensate) {
-            sb.append(" ");
-            compensated += spaceLength;
-        }
-        player.sendMessage(sb.toString() + message);
+        return px;
     }
 
     public static void constructDivider(Player player, String dividerChar, int length) {

@@ -94,6 +94,7 @@ public class GuildManager {
         fireEvent(target, g, GuildMembershipEvent.Action.LEAVE);
         if (g.getMembers().isEmpty()) {
             guilds.remove(g.getName());
+            me.nakilex.levelplugin.guild.siege.GuildSiegeManager.getInstance().handleGuildDisband(g.getName());
         }
         return true;
     }
