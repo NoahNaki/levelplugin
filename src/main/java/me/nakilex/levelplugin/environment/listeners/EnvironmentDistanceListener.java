@@ -81,15 +81,12 @@ public class EnvironmentDistanceListener implements Listener {
             return;
         }
 
-        // Only show town to members of owning guild
+        // Only show town holograms to members of owning guild
         String owner = GuildSiegeManager.getInstance().getOwnerGuild();
         if (owner != null) {
             Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
             if (g == null || !owner.equalsIgnoreCase(g.getName())) {
-                if (manager.isTownLoaded(player)) {
-                    manager.unloadPlayerTown(player);
-                    manager.markTownLoaded(player, false);
-                }
+                manager.removeAllBuildingHolograms(player.getUniqueId());
                 return;
             }
         }

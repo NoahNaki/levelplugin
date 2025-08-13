@@ -289,9 +289,8 @@ public class GuildSiegeManager {
         for (Player p : Bukkit.getOnlinePlayers()) {
             Guild g = GuildManager.getInstance().getGuild(p.getUniqueId());
             boolean allowed = owner == null || (g != null && owner.equalsIgnoreCase(g.getName()));
-            if (!allowed && env.isTownLoaded(p)) {
-                env.unloadPlayerTown(p);
-                env.markTownLoaded(p, false);
+            if (!allowed) {
+                env.removeAllBuildingHolograms(p.getUniqueId());
             }
         }
     }

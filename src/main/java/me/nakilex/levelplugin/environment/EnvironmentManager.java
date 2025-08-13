@@ -4,6 +4,9 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.environment.stage.BuildingStageManager;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.environment.stage.TownStageManager;
+import me.nakilex.levelplugin.guild.Guild;
+import me.nakilex.levelplugin.guild.GuildManager;
+import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -289,6 +292,13 @@ public class EnvironmentManager {
         return coopOwners.getOrDefault(uuid, uuid);
     }
 
+    private boolean canShowTownHolograms(Player player) {
+        String owner = GuildSiegeManager.getInstance().getOwnerGuild();
+        if (owner == null) return true;
+        Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
+        return g != null && owner.equalsIgnoreCase(g.getName());
+    }
+
     private void shareData(UUID member, UUID owner) {
         states.put(member, states.get(owner));
         origins.put(member, origins.get(owner));
@@ -527,7 +537,7 @@ public class EnvironmentManager {
         buildingHolograms.clear();
     }
 
-    private void removeAllBuildingHolograms(UUID uuid) {
+    public void removeAllBuildingHolograms(UUID uuid) {
         var map = buildingHolograms.remove(uuid);
         if (map != null) {
             for (var list : map.values()) {
@@ -1170,7 +1180,7 @@ public class EnvironmentManager {
                         stageData.hy - stageData.oy + 2,
                         stageData.hz - stageData.oz + 0.5);
                     java.util.List<String> textLines = formatBuildingHologram(player, building, stage);
-                    if (textLines != null && !textLines.isEmpty()) {
+                    if (canShowTownHolograms(player) && textLines != null && !textLines.isEmpty()) {
                         java.util.List<org.bukkit.entity.Entity> displays = spawnHologramLines(player, holo, textLines, building);
                         buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
                             .put(building.toLowerCase(), displays);
@@ -1231,7 +1241,7 @@ public class EnvironmentManager {
             stageData.hy - stageData.oy + 2,
             stageData.hz - stageData.oz + 0.5);
         java.util.List<String> textLines = formatBuildingHologram(player, building, stage);
-        if (textLines != null && !textLines.isEmpty()) {
+        if (canShowTownHolograms(player) && textLines != null && !textLines.isEmpty()) {
             java.util.List<org.bukkit.entity.Entity> displays = spawnHologramLines(player, holo, textLines, building);
             buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
                 .put(building.toLowerCase(), displays);
@@ -1361,7 +1371,7 @@ public class EnvironmentManager {
                         newData.hy - newData.oy + 2,
                         newData.hz - newData.oz + 0.5);
                     java.util.List<String> textLines = formatBuildingHologram(player, building, newStage);
-                    if (textLines != null && !textLines.isEmpty()) {
+                    if (canShowTownHolograms(player) && textLines != null && !textLines.isEmpty()) {
                         java.util.List<org.bukkit.entity.Entity> displays = spawnHologramLines(player, holo, textLines, building);
                         buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
                             .put(building.toLowerCase(), displays);
