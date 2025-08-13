@@ -5,15 +5,20 @@ import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.Collections;
+import java.util.List;
+
 import me.nakilex.levelplugin.environment.stage.StageSelectionStore;
+import me.nakilex.levelplugin.utils.CommandUtil;
 
 /**
  * Provides an editor for defining town stage areas using a wand.
  */
-public class TownStageCommand implements CommandExecutor {
+public class TownStageCommand implements TabExecutor {
     private final TownStageManager manager;
     private final ItemStack wand;
 
@@ -87,5 +92,23 @@ public class TownStageCommand implements CommandExecutor {
 
     private static String format(Location loc) {
         return loc.getBlockX()+","+loc.getBlockY()+","+loc.getBlockZ();
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (args.length == 1) {
+            return CommandUtil.filterStartingWith(List.of("wand", "list", "create", "remove"), args[0]);
+        }
+        String sub = args[0].toLowerCase();
+        if (args.length == 2) {
+            if (sub.equals("create") || sub.equals("remove")) {
+                return CommandUtil.filterStartingWith(manager.getStageNames(), args[1]);
+            }
+        }
+        if (args.length == 3 && sub.equals("remove")) {
+            return CommandUtil.filterStartingWith(
+                    manager.getLevels(args[1]).stream().map(String::valueOf).toList(), args[2]);
+        }
+        return Collections.emptyList();
     }
 }

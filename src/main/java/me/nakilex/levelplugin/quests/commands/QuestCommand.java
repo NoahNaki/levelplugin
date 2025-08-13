@@ -6,9 +6,16 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 
-public class QuestCommand implements CommandExecutor {
+import java.util.Collections;
+import java.util.List;
+
+import me.nakilex.levelplugin.quests.data.Quest;
+import me.nakilex.levelplugin.utils.CommandUtil;
+
+public class QuestCommand implements TabExecutor {
     private final QuestManager questManager;
 
     public QuestCommand(QuestManager questManager) {
@@ -73,5 +80,38 @@ public class QuestCommand implements CommandExecutor {
 
         sender.sendMessage("Usage: /quest [start|reset|complete|status|debug]");
         return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (args.length == 1) {
+            return CommandUtil.filterStartingWith(List.of("start", "reset", "complete", "status", "debug"), args[0]);
+        }
+        String sub = args[0].toLowerCase();
+        if (args.length == 2) {
+            switch (sub) {
+                case "start":
+                    return CommandUtil.filterStartingWith(questManager.getQuests().stream()
+                            .map(Quest::getId).toList(), args[1]);
+                case "reset":
+                case "complete":
+                case "status":
+                    return CommandUtil.onlinePlayerNames(args[1]);
+                default:
+                    break;
+            }
+        }
+        if (args.length == 3) {
+            switch (sub) {
+                case "reset":
+                case "complete":
+                case "status":
+                    return CommandUtil.filterStartingWith(questManager.getQuests().stream()
+                            .map(Quest::getId).toList(), args[2]);
+                default:
+                    break;
+            }
+        }
+        return Collections.emptyList();
     }
 }
