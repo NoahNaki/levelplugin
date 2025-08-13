@@ -28,8 +28,8 @@ public class GuildManager {
     private void refreshHolograms(UUID id) {
         Player p = Bukkit.getPlayer(id);
         if (p != null) {
-            Bukkit.getScheduler().runTask(Main.getInstance(), () ->
-                    GuildSiegeManager.getInstance().refreshTownVisibility(p));
+            Bukkit.getScheduler().runTaskLater(Main.getInstance(), () ->
+                    GuildSiegeManager.getInstance().refreshTownVisibility(p), 40L);
         }
     }
 

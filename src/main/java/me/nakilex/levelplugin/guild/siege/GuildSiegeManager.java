@@ -50,6 +50,7 @@ public class GuildSiegeManager {
     private String capturingGuild = null;
     private int progress = 0;
     private int lastAnnounce = 0;
+    private static final int CAPTURE_RATE = 10;
     private MultiLineHologram progressHologram;
     private MultiLineHologram ownerHologram;
 
@@ -238,7 +239,7 @@ public class GuildSiegeManager {
             lastAnnounce = 0;
             updateHologram();
         }
-        progress += diff;
+        progress += diff * CAPTURE_RATE;
         if (progress > 100) progress = 100;
         if (progress >= lastAnnounce + 5) {
             lastAnnounce = progress - (progress % 5);
