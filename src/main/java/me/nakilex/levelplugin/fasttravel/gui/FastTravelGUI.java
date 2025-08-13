@@ -9,6 +9,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import me.nakilex.levelplugin.utils.TeleportUtils;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.ClickType;
@@ -202,7 +203,7 @@ public class FastTravelGUI implements Listener {
                         offset.normalize().multiply(2);
                         dest.add(offset);
                     }
-                    player.teleport(dest);
+                    TeleportUtils.teleportWithEffect(player, dest);
                     player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS,40,0,false,false));
                     player.getWorld().spawnParticle(org.bukkit.Particle.FLASH,player.getLocation(),20,0.5,0.5,0.5,0);
                     Main.getInstance().getQuestManager().handleWaystoneUse(player, target.getId());

@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.guild.GuildManager;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.MultiLineHologram;
+import me.nakilex.levelplugin.utils.FireworkUtil;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -312,6 +313,7 @@ public class GuildSiegeManager {
             if (g != null) {
                 Main.getInstance().getEnvironmentManager().syncGuildTown(g);
             }
+            launchVictoryFireworks();
         } else {
             msg = "<glyph:flagleft_icon> " + ChatColor.RED + "No guild captured the town." + ChatColor.GRAY + " <glyph:flagright_icon>";
         }
@@ -344,6 +346,18 @@ public class GuildSiegeManager {
             double x = center.getX() + RADIUS * Math.cos(angle);
             double z = center.getZ() + RADIUS * Math.sin(angle);
             center.getWorld().spawnParticle(Particle.VILLAGER_HAPPY, x, center.getY(), z, 1, 0,0,0,0);
+        }
+    }
+
+    private void launchVictoryFireworks() {
+        Random rand = new Random();
+        for (int i = 0; i < 7; i++) {
+            double dist = 70 * Math.sqrt(rand.nextDouble());
+            double angle = rand.nextDouble() * 2 * Math.PI;
+            double x = center.getX() + dist * Math.cos(angle);
+            double z = center.getZ() + dist * Math.sin(angle);
+            double y = Math.max(70, center.getY()) + rand.nextDouble() * 10;
+            FireworkUtil.launchFirework(new Location(center.getWorld(), x, y, z));
         }
     }
 
