@@ -200,7 +200,7 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
             String cap = siege.getCapturingGuild();
             int prog = siege.getProgress();
             String capText = cap == null ? ChatColor.GRAY + "None" : ChatColor.YELLOW + cap + ChatColor.WHITE + " " + prog + "%";
-            current[idx] = ChatColor.RED + "Siege: " + capText;
+            current[idx] = ChatColor.RED + "<glyph:flagleft_icon> Siege: " + capText;
             if (!current[idx].equals(prev[idx])) {
                 setLine(board, obj, idx, line, current[idx]);
             }

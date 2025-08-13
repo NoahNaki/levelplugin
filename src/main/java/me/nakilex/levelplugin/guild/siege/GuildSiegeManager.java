@@ -106,8 +106,8 @@ public class GuildSiegeManager {
             countdownTask.cancel();
             countdownTask = null;
         }
-        String raw = ChatColor.GOLD + "" + ChatColor.BOLD + "<glyph:flagleft_icon> CLICK-HERE "
-                + ChatColor.WHITE + "to sign up for the guild siege!" + " <glyph:flagright_icon>";
+        String raw = "<glyph:flagleft_icon> " + ChatColor.GOLD + "" + ChatColor.BOLD + "CLICK-HERE "
+                + ChatColor.GRAY + "to sign up for the guild siege! " + ChatColor.RESET + "<glyph:flagright_icon>";
         TextComponent msg = new TextComponent(ChatFormatter.getCenteredText(raw));
         msg.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/siege join"));
         QuestManager qm = Main.getInstance().getQuestManager();
@@ -269,11 +269,13 @@ public class GuildSiegeManager {
         for (UUID id : active) {
             Player p = Bukkit.getPlayer(id);
             if (p != null) {
+                ChatFormatter.sendCenteredMessage(p, " ");
                 if (winner != null) {
                     ChatFormatter.sendCenteredMessage(p, ChatColor.GOLD + "Siege has ended!");
                 } else {
                     ChatFormatter.sendCenteredMessage(p, ChatColor.RED + "Siege ended with no capture.");
                 }
+                ChatFormatter.sendCenteredMessage(p, " ");
             }
         }
         active.clear();
