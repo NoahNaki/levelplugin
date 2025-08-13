@@ -13,6 +13,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.utils.MultiLineHologram;
 
 import java.util.*;
 
@@ -36,11 +37,13 @@ public class GuildSiegeManager {
     private final Location center = new Location(Bukkit.getWorld("world"), 192, 73, -71);
     private final Location teleportLocation = new Location(Bukkit.getWorld("world"), 193, 66, -174);
     private static final double RADIUS = 8.0;
+    private final Location hologramLocation = new Location(Bukkit.getWorld("world"), 192, 78, -71);
 
     private String ownerGuild = null;
     private String capturingGuild = null;
     private int progress = 0;
     private int lastAnnounce = 0;
+    private MultiLineHologram progressHologram;
 
     private static final String PREFIX = ChatColor.YELLOW + "[Siege] " + ChatColor.WHITE;
 
@@ -103,6 +106,9 @@ public class GuildSiegeManager {
         lastAnnounce = 0;
         capturingGuild = null;
 
+        progressHologram = new MultiLineHologram(hologramLocation);
+        updateHologram();
+
         for (UUID id : active) {
             Player p = Bukkit.getPlayer(id);
             if (p != null) p.teleport(teleportLocation);
@@ -137,6 +143,7 @@ public class GuildSiegeManager {
             capturingGuild = null;
             progress = 0;
             lastAnnounce = 0;
+            updateHologram();
             return;
         }
         // Determine top guild and difference
@@ -159,12 +166,14 @@ public class GuildSiegeManager {
             capturingGuild = top;
             progress = 0;
             lastAnnounce = 0;
+            updateHologram();
         }
         progress += diff;
         if (progress > 100) progress = 100;
         if (progress >= lastAnnounce + 5) {
             lastAnnounce = progress - (progress % 5);
             broadcast(ChatColor.YELLOW + capturingGuild + ChatColor.WHITE + " is capturing [" + progress + "%]");
+            updateHologram();
         }
         if (progress >= 100) {
             end(capturingGuild);
@@ -189,6 +198,10 @@ public class GuildSiegeManager {
         progress = 0;
         lastAnnounce = 0;
         capturingGuild = null;
+        if (progressHologram != null) {
+            progressHologram.despawn();
+            progressHologram = null;
+        }
         if (winner != null) {
             ownerGuild = winner;
             Bukkit.broadcastMessage(PREFIX + ChatColor.GOLD + "Guild " + winner + " has taken control of the town!");
@@ -227,5 +240,20 @@ public class GuildSiegeManager {
         Guild gB = GuildManager.getInstance().getGuild(b);
         if (gA == null || gB == null) return false;
         return !Objects.equals(gA.getName(), gB.getName());
+    }
+
+    private void updateHologram() {
+        if (progressHologram == null) return;
+        String guildLine = capturingGuild != null ? ChatColor.GOLD + capturingGuild : ChatColor.GRAY + "No Capture";
+        int filled = progress / 5;
+        int total = 20;
+        StringBuilder bar = new StringBuilder();
+        bar.append(ChatColor.GRAY).append("[");
+        bar.append(ChatColor.GREEN).append("I".repeat(filled));
+        if (filled < total) {
+            bar.append(ChatColor.DARK_GRAY).append("I".repeat(total - filled));
+        }
+        bar.append(ChatColor.GRAY).append("] ").append(ChatColor.WHITE).append(progress).append("%");
+        progressHologram.setLines(java.util.Arrays.asList(guildLine, bar.toString()));
     }
 }
