@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.guild.siege;
 
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -30,10 +31,10 @@ public class GuildSiegeCommand implements CommandExecutor, TabCompleter {
         }
         if (args[0].equalsIgnoreCase("leave")) {
             manager.leave(player.getUniqueId());
-            player.sendMessage(ChatColor.YELLOW + "You have left the siege queue.");
+            ChatFormatter.sendCenteredMessage(player, GuildSiegeManager.PREFIX + "You have left the siege queue.");
             return true;
         }
-        player.sendMessage(ChatColor.RED + "Usage: /siege <join|leave>");
+        ChatFormatter.sendCenteredMessage(player, GuildSiegeManager.PREFIX + ChatColor.RED + "Usage: /siege <join|leave>");
         return true;
     }
 
