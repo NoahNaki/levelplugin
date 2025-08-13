@@ -5,6 +5,9 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.ChatColor;
+import me.nakilex.levelplugin.guild.Guild;
+import me.nakilex.levelplugin.guild.GuildManager;
+import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
 
 public class TownCommand implements CommandExecutor {
     private final UpgradeGUI gui;
@@ -20,6 +23,15 @@ public class TownCommand implements CommandExecutor {
         if (!(sender instanceof Player p)) {
             sender.sendMessage("Only players can use this command.");
             return true;
+        }
+
+        String owner = GuildSiegeManager.getInstance().getOwnerGuild();
+        if (owner != null) {
+            Guild g = GuildManager.getInstance().getGuild(p.getUniqueId());
+            if (g == null || !owner.equalsIgnoreCase(g.getName())) {
+                p.sendMessage(ChatColor.RED + "Your guild does not control this town.");
+                return true;
+            }
         }
         if (args.length > 0) {
             if (args[0].equalsIgnoreCase("start")) {

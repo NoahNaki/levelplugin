@@ -2,6 +2,9 @@ package me.nakilex.levelplugin.environment.listeners;
 
 import me.nakilex.levelplugin.environment.EnvironmentManager;
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.guild.Guild;
+import me.nakilex.levelplugin.guild.GuildManager;
+import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -76,6 +79,19 @@ public class EnvironmentDistanceListener implements Listener {
         }
         if (!origin.getWorld().equals(to.getWorld())) {
             return;
+        }
+
+        // Only show town to members of owning guild
+        String owner = GuildSiegeManager.getInstance().getOwnerGuild();
+        if (owner != null) {
+            Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
+            if (g == null || !owner.equalsIgnoreCase(g.getName())) {
+                if (manager.isTownLoaded(player)) {
+                    manager.unloadPlayerTown(player);
+                    manager.markTownLoaded(player, false);
+                }
+                return;
+            }
         }
 
         double dist = to.distance(origin);

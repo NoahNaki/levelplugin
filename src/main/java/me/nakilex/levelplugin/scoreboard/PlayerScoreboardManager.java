@@ -194,6 +194,19 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         }
         idx++; line--;
 
+        // Siege status
+        me.nakilex.levelplugin.guild.siege.GuildSiegeManager siege = plugin.getGuildSiegeManager();
+        if (siege != null && siege.isActive(player.getUniqueId())) {
+            String cap = siege.getCapturingGuild();
+            int prog = siege.getProgress();
+            String capText = cap == null ? ChatColor.GRAY + "None" : ChatColor.YELLOW + cap + ChatColor.WHITE + " " + prog + "%";
+            current[idx] = ChatColor.RED + "Siege: " + capText;
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
+        }
+
         PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId());
         Quest quest = progress != null ? progress.getQuest() : null;
         String trackedId = questManager.getTrackedQuest(player.getUniqueId());

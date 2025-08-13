@@ -12,6 +12,7 @@ import org.bukkit.Particle;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 
 import java.util.*;
 
@@ -41,6 +42,8 @@ public class GuildSiegeManager {
     private int progress = 0;
     private int lastAnnounce = 0;
 
+    private static final String PREFIX = ChatColor.YELLOW + "[Siege] " + ChatColor.WHITE;
+
     private GuildSiegeManager() {}
 
     public void init(Main plugin) {
@@ -60,7 +63,7 @@ public class GuildSiegeManager {
 
     private void announce() {
         queue.clear();
-        TextComponent msg = new TextComponent(ChatColor.GOLD + "[Siege] Click here to join the guild siege!");
+        TextComponent msg = new TextComponent(PREFIX + "Click here to join the guild siege!");
         msg.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/siege join"));
         for (Player p : Bukkit.getOnlinePlayers()) {
             p.spigot().sendMessage(msg);
@@ -79,11 +82,11 @@ public class GuildSiegeManager {
         if (plugin == null) return;
         Guild g = GuildManager.getInstance().getGuild(p.getUniqueId());
         if (g == null) {
-            p.sendMessage(ChatColor.RED + "You must be in a guild to join the siege.");
+            p.sendMessage(PREFIX + ChatColor.RED + "You must be in a guild to join the siege.");
             return;
         }
         if (queue.add(p.getUniqueId())) {
-            p.sendMessage(ChatColor.GREEN + "You have signed up for the siege!");
+            p.sendMessage(PREFIX + ChatColor.GREEN + "You have signed up for the siege!");
         }
     }
 
@@ -161,7 +164,7 @@ public class GuildSiegeManager {
         if (progress > 100) progress = 100;
         if (progress >= lastAnnounce + 5) {
             lastAnnounce = progress - (progress % 5);
-            broadcast(ChatColor.YELLOW + capturingGuild + ChatColor.WHITE + " has begun capturing [" + progress + "%]");
+            broadcast(ChatColor.YELLOW + capturingGuild + ChatColor.WHITE + " is capturing [" + progress + "%]");
         }
         if (progress >= 100) {
             end(capturingGuild);
@@ -173,7 +176,13 @@ public class GuildSiegeManager {
         captureTask = null;
         for (UUID id : active) {
             Player p = Bukkit.getPlayer(id);
-            if (p != null) p.sendMessage(ChatColor.GOLD + "Siege has ended!");
+            if (p != null) {
+                if (winner != null) {
+                    ChatFormatter.sendCenteredMessage(p, PREFIX + ChatColor.GOLD + "Siege has ended!");
+                } else {
+                    ChatFormatter.sendCenteredMessage(p, PREFIX + ChatColor.RED + "Siege ended with no capture.");
+                }
+            }
         }
         active.clear();
         queue.clear();
@@ -182,16 +191,23 @@ public class GuildSiegeManager {
         capturingGuild = null;
         if (winner != null) {
             ownerGuild = winner;
-            Bukkit.broadcastMessage(ChatColor.GOLD + "Guild " + winner + " has taken control of the town!");
+            Bukkit.broadcastMessage(PREFIX + ChatColor.GOLD + "Guild " + winner + " has taken control of the town!");
+        } else {
+            Bukkit.broadcastMessage(PREFIX + ChatColor.RED + "No guild captured the town.");
         }
     }
 
     private void broadcast(String msg) {
         for (UUID id : active) {
             Player p = Bukkit.getPlayer(id);
-            if (p != null) p.sendMessage(msg);
+            if (p != null) ChatFormatter.sendCenteredMessage(p, PREFIX + msg);
         }
     }
+
+    public boolean isActive(UUID id) { return active.contains(id); }
+    public String getCapturingGuild() { return capturingGuild; }
+    public int getProgress() { return progress; }
+    public String getOwnerGuild() { return ownerGuild; }
 
     private void spawnParticles() {
         for (int i = 0; i < 40; i++) {
