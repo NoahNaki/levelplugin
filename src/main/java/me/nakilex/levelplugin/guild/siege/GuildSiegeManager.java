@@ -338,6 +338,7 @@ public class GuildSiegeManager {
     public void refreshTownVisibility(Player p) {
         plugin.getLogger().info("[SiegeDebug] Refresh visibility for " + p.getName());
         EnvironmentManager env = Main.getInstance().getEnvironmentManager();
+        env.hideAllBuildingHolograms(p);
         env.removeAllBuildingHolograms(p.getUniqueId());
         Guild g = GuildManager.getInstance().getGuild(p.getUniqueId());
         String gName = g != null ? g.getName() : "none";

@@ -552,6 +552,21 @@ public class EnvironmentManager {
         }
     }
 
+    /** Hide every existing building hologram from the given viewer. */
+    public void hideAllBuildingHolograms(Player viewer) {
+        for (var map : buildingHolograms.values()) {
+            if (map == null) continue;
+            for (var list : map.values()) {
+                if (list == null) continue;
+                for (var disp : list) {
+                    if (disp != null && !disp.isDead()) {
+                        viewer.hideEntity(Main.getInstance(), disp);
+                    }
+                }
+            }
+        }
+    }
+
     private void removeMemberData(UUID member, String town, EnvironmentState st, Map<String, BuildingState> bMap) {
         cancelTasks(member);
         removeAllBuildingHolograms(member);
