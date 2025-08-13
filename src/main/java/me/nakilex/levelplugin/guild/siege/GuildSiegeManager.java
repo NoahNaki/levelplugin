@@ -393,7 +393,7 @@ public class GuildSiegeManager {
         if (progressHologram == null) return;
         String guildLine = capturingGuild != null
                 ? ChatColor.GOLD + "<glyph:flagleft_icon> " + capturingGuild + " <glyph:flagright_icon>"
-                : ChatColor.GRAY + "<glyph:flagleft_icon><glyph:flagright_icon> None";
+                : ChatColor.GRAY + "<glyph:flagleft_icon> None <glyph:flagright_icon>";
         int filled = progress / 5;
         int total = 20;
         StringBuilder bar = new StringBuilder();
@@ -413,12 +413,9 @@ public class GuildSiegeManager {
         }
         String title = ChatColor.DARK_GRAY + "[" + ChatColor.YELLOW + "Rowan Castle" + ChatColor.DARK_GRAY + "]";
         String spacer = " ";
-        String guildLine;
-        if (ownerGuild != null) {
-            guildLine = ChatColor.GOLD + "<glyph:flagleft_icon> " + ownerGuild + " <glyph:flagright_icon>";
-        } else {
-            guildLine = ChatColor.GRAY + "<glyph:flagleft_icon><glyph:flagright_icon> None";
-        }
+        String guildLine = ownerGuild != null
+                ? ChatColor.GOLD + "<glyph:flagleft_icon> " + ownerGuild + " <glyph:flagright_icon>"
+                : ChatColor.GRAY + "<glyph:flagleft_icon> None <glyph:flagright_icon>";
         ownerHologram.setLines(java.util.Arrays.asList(title, spacer, guildLine, spacer));
     }
 
