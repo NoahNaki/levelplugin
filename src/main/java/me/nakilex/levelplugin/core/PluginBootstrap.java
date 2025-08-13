@@ -94,6 +94,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.guild.GuildGUI guildGUI;
     private me.nakilex.levelplugin.guild.GuildMemberGUI guildMemberGUI;
     private me.nakilex.levelplugin.guild.GuildApplicantsGUI guildApplicantsGUI;
+    private me.nakilex.levelplugin.guild.siege.GuildSiegeManager guildSiegeManager;
     private PartyGlowManager partyGlowManager;
     private me.nakilex.levelplugin.friend.FriendManager friendManager;
     private me.nakilex.levelplugin.friend.FriendGlowManager friendGlowManager;
@@ -249,10 +250,13 @@ public class PluginBootstrap {
         partyManager = new PartyManager();
         friendManager = new FriendManager();
         guildManager = me.nakilex.levelplugin.guild.GuildManager.getInstance();
+        guildManager.init(plugin);
         guildGUI = new me.nakilex.levelplugin.guild.GuildGUI(guildManager);
         guildApplicantsGUI = new me.nakilex.levelplugin.guild.GuildApplicantsGUI(guildManager);
         guildMemberGUI = new me.nakilex.levelplugin.guild.GuildMemberGUI(guildManager, guildGUI, guildApplicantsGUI);
         guildApplicantsGUI.setMemberGUI(guildMemberGUI);
+        guildSiegeManager = me.nakilex.levelplugin.guild.siege.GuildSiegeManager.getInstance();
+        guildSiegeManager.init(plugin);
         gemsManager = new GemsManager();
         gemGui = new GemExchangeGUI(plugin, gemsManager);
         auctionHouseManager = new me.nakilex.levelplugin.auctionhouse.AuctionHouseManager(plugin, economyManager);
@@ -343,6 +347,10 @@ public class PluginBootstrap {
             codexGUI,
             wanderingMerchantManager
         );
+        me.nakilex.levelplugin.guild.siege.GuildSiegeCommand siegeCmd =
+                new me.nakilex.levelplugin.guild.siege.GuildSiegeCommand(guildSiegeManager);
+        plugin.getCommand("siege").setExecutor(siegeCmd);
+        plugin.getCommand("siege").setTabCompleter(siegeCmd);
         ListenerRegistry.registerListeners(
             plugin,
             blacksmithGUI,
@@ -380,6 +388,12 @@ public class PluginBootstrap {
             locationCodexGUI,
             wanderingMerchantManager
         );
+        plugin.getServer().getPluginManager().registerEvents(
+                new me.nakilex.levelplugin.guild.siege.GuildSiegeListener(guildSiegeManager),
+                plugin);
+        plugin.getServer().getPluginManager().registerEvents(
+                new me.nakilex.levelplugin.guild.GuildMembershipListener(),
+                plugin);
         plugin.getServer().getPluginManager().registerEvents(beaconManager, plugin);
         TaskRegistry.startTasks(plugin, horseConfigManager, horseManager, wanderingMerchantManager);
     }
@@ -397,6 +411,7 @@ public class PluginBootstrap {
         if (economyManager != null) economyManager.saveBalances();
         if (dealMaker != null) dealMaker.closeAllTrades();
         if (itemConfig != null) itemConfig.saveItems();
+        if (guildManager != null) guildManager.save();
         if (playerConfig != null) {
             boolean profilesEnabled = plugin.getCustomConfig()
                     .getBoolean("features.profiles", true);
@@ -427,6 +442,7 @@ public class PluginBootstrap {
             environmentManager.removeAllHolograms();
             environmentManager.saveAll();
         }
+        if (guildSiegeManager != null) guildSiegeManager.save();
         if (leaderboardManager != null) leaderboardManager.removeAll();
         if (duelStatsManager != null) duelStatsManager.save();
         if (townStageManager != null) townStageManager.despawnAll();
@@ -454,6 +470,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.guild.GuildGUI getGuildGUI() { return guildGUI; }
     public me.nakilex.levelplugin.guild.GuildMemberGUI getGuildMemberGUI() { return guildMemberGUI; }
     public me.nakilex.levelplugin.guild.GuildApplicantsGUI getGuildApplicantsGUI() { return guildApplicantsGUI; }
+    public me.nakilex.levelplugin.guild.siege.GuildSiegeManager getGuildSiegeManager() { return guildSiegeManager; }
     public PartyGlowManager getPartyGlowManager() { return partyGlowManager; }
     public me.nakilex.levelplugin.friend.FriendManager getFriendManager() { return friendManager; }
     public me.nakilex.levelplugin.friend.FriendGlowManager getFriendGlowManager() { return friendGlowManager; }

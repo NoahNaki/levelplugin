@@ -1,5 +1,14 @@
 package me.nakilex.levelplugin.guild;
 
+import me.nakilex.levelplugin.guild.events.GuildMembershipEvent;
+import org.bukkit.Bukkit;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
+
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 public class GuildManager {
@@ -12,19 +21,39 @@ public class GuildManager {
     private final Map<String, Set<String>> pendingAlliance = new HashMap<>(); // target -> requesting guilds
     private final Map<String, Set<String>> pendingNeutral = new HashMap<>();  // target -> requesting guilds
 
+    private JavaPlugin plugin;
+    private File guildFile;
+
+    private void fireEvent(UUID id, Guild g, GuildMembershipEvent.Action action) {
+        Player p = Bukkit.getPlayer(id);
+        if (p != null) {
+            if (plugin != null) {
+                plugin.getLogger().info("[GuildDebug] Firing " + action + " for " + p.getName());
+            }
+            Bukkit.getPluginManager().callEvent(new GuildMembershipEvent(p, g, action));
+        } else if (plugin != null) {
+            plugin.getLogger().info("[GuildDebug] Tried to fire " + action + " for offline player " + id);
+        }
+    }
+
     public Guild createGuild(String name, UUID leader) {
         if (guilds.containsKey(name) || playerGuild.containsKey(leader)) return null;
         Guild g = new Guild(name, leader);
         guilds.put(name, g);
         playerGuild.put(leader, name);
+        fireEvent(leader, g, GuildMembershipEvent.Action.JOIN);
         return g;
     }
 
     public boolean disbandGuild(String name) {
         Guild g = guilds.remove(name);
         if (g == null) return false;
+        me.nakilex.levelplugin.environment.EnvironmentManager env = me.nakilex.levelplugin.Main.getInstance().getEnvironmentManager();
+        env.clearGuildTown(g);
+        me.nakilex.levelplugin.guild.siege.GuildSiegeManager.getInstance().handleGuildDisband(name);
         for (UUID m : g.getMembers()) {
             playerGuild.remove(m);
+            fireEvent(m, g, GuildMembershipEvent.Action.LEAVE);
         }
         return true;
     }
@@ -52,6 +81,7 @@ public class GuildManager {
         if (g == null) return false;
         g.addMember(player);
         playerGuild.put(player, name);
+        fireEvent(player, g, GuildMembershipEvent.Action.JOIN);
         return true;
     }
 
@@ -61,6 +91,7 @@ public class GuildManager {
         if (leader.equals(target)) return false; // cannot kick yourself
         if (!g.removeMember(target)) return false;
         playerGuild.remove(target);
+        fireEvent(target, g, GuildMembershipEvent.Action.LEAVE);
         if (g.getMembers().isEmpty()) {
             guilds.remove(g.getName());
         }
@@ -72,6 +103,7 @@ public class GuildManager {
         if (g == null || !g.getLeader().equals(leader)) return false;
         if (!g.getMembers().contains(target)) return false;
         g.promote(target);
+        me.nakilex.levelplugin.Main.getInstance().getEnvironmentManager().syncGuildTown(g);
         return true;
     }
 
@@ -91,6 +123,7 @@ public class GuildManager {
         if (!g.removeApplicant(applicant)) return false;
         g.addMember(applicant);
         playerGuild.put(applicant, guildName);
+        fireEvent(applicant, g, GuildMembershipEvent.Action.JOIN);
         return true;
     }
 
@@ -221,5 +254,91 @@ public class GuildManager {
         Guild g2 = getGuild(p2);
         if (g1 == null || g2 == null) return false;
         return g1.getHostiles().contains(g2.getName()) || g2.getHostiles().contains(g1.getName());
+    }
+
+    // ----- Persistence -----
+
+    /** Load guild data from disk. */
+    public void init(JavaPlugin plugin) {
+        this.plugin = plugin;
+        guildFile = new File(plugin.getDataFolder(), "guilds.yml");
+        if (!guildFile.exists()) {
+            try {
+                guildFile.createNewFile();
+            } catch (IOException e) {
+                plugin.getLogger().severe("Failed to create guilds.yml: " + e.getMessage());
+            }
+        }
+        loadGuilds();
+    }
+
+    private void loadGuilds() {
+        guilds.clear();
+        playerGuild.clear();
+        YamlConfiguration cfg = YamlConfiguration.loadConfiguration(guildFile);
+        if (!cfg.contains("guilds")) return;
+
+        for (String name : cfg.getConfigurationSection("guilds").getKeys(false)) {
+            String base = "guilds." + name + ".";
+            try {
+                UUID leader = UUID.fromString(cfg.getString(base + "leader"));
+                Guild g = new Guild(name, leader);
+
+                for (String id : cfg.getStringList(base + "members")) {
+                    UUID uuid = UUID.fromString(id);
+                    if (!uuid.equals(leader)) {
+                        g.addMember(uuid);
+                    }
+                    playerGuild.put(uuid, name);
+                }
+                playerGuild.put(leader, name);
+
+                g.getAllies().addAll(cfg.getStringList(base + "allies"));
+                g.getHostiles().addAll(cfg.getStringList(base + "hostiles"));
+                g.setMotd(cfg.getString(base + "motd", ""));
+
+                ConfigurationSection apps = cfg.getConfigurationSection(base + "applicants");
+                if (apps != null) {
+                    for (String key : apps.getKeys(false)) {
+                        UUID uuid = UUID.fromString(key);
+                        long ts = apps.getLong(key);
+                        g.getApplicants().put(uuid, ts);
+                    }
+                }
+
+                guilds.put(name, g);
+            } catch (IllegalArgumentException ignored) {
+                // Skip invalid UUIDs
+            }
+        }
+    }
+
+    /** Save guild data to disk. */
+    public void save() {
+        if (guildFile == null) return;
+        YamlConfiguration cfg = new YamlConfiguration();
+        for (Guild g : guilds.values()) {
+            String base = "guilds." + g.getName() + ".";
+            cfg.set(base + "leader", g.getLeader().toString());
+            List<String> members = new ArrayList<>();
+            for (UUID id : g.getMembers()) {
+                members.add(id.toString());
+            }
+            cfg.set(base + "members", members);
+            cfg.set(base + "allies", new ArrayList<>(g.getAllies()));
+            cfg.set(base + "hostiles", new ArrayList<>(g.getHostiles()));
+            cfg.set(base + "motd", g.getMotd());
+            if (!g.getApplicants().isEmpty()) {
+                ConfigurationSection sec = cfg.createSection(base + "applicants");
+                for (Map.Entry<UUID, Long> e : g.getApplicants().entrySet()) {
+                    sec.set(e.getKey().toString(), e.getValue());
+                }
+            }
+        }
+        try {
+            cfg.save(guildFile);
+        } catch (IOException e) {
+            plugin.getLogger().severe("Failed to save guilds.yml: " + e.getMessage());
+        }
     }
 }

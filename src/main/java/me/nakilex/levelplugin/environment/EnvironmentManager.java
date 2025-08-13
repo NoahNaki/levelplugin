@@ -4,6 +4,9 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.environment.stage.BuildingStageManager;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.environment.stage.TownStageManager;
+import me.nakilex.levelplugin.guild.Guild;
+import me.nakilex.levelplugin.guild.GuildManager;
+import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -289,6 +292,15 @@ public class EnvironmentManager {
         return coopOwners.getOrDefault(uuid, uuid);
     }
 
+    private boolean canShowTownHolograms(Player player) {
+        GuildSiegeManager siege = GuildSiegeManager.getInstance();
+        if (siege.isSiegeRunning()) return false;
+        String owner = siege.getOwnerGuild();
+        if (owner == null) return true;
+        Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
+        return g != null && owner.equalsIgnoreCase(g.getName());
+    }
+
     private void shareData(UUID member, UUID owner) {
         states.put(member, states.get(owner));
         origins.put(member, origins.get(owner));
@@ -296,6 +308,86 @@ public class EnvironmentManager {
         Map<String, BuildingState> map = buildingStates.get(owner);
         if (map != null) {
             buildingStates.put(member, map);
+        }
+    }
+
+    /**
+     * Share the town data of the owner with the given member so they see the
+     * same structures and holograms.
+     */
+    public void shareTownWithMember(UUID owner, UUID member) {
+        shareData(member, owner);
+        coopOwners.put(member, owner);
+        playerConfig.setCoopOwner(member, owner);
+        playerConfig.saveConfigFile();
+    }
+
+    /** Remove any shared town data for the given player. */
+    public void removeGuildMember(UUID member) {
+        UUID owner = coopOwners.remove(member);
+        if (owner != null) {
+            towns.remove(member);
+            origins.remove(member);
+            states.remove(member);
+            buildingStates.remove(member);
+            playerConfig.clearEnvironmentData(member);
+            playerConfig.clearCoop(member);
+            playerConfig.saveConfigFile();
+        }
+    }
+
+    /** Ensure the guild leader owns the town and members share its data. */
+    public void syncGuildTown(me.nakilex.levelplugin.guild.Guild guild) {
+        if (guild == null) return;
+        UUID leader = guild.getLeader();
+        String townName = towns.get(leader);
+        if (townName == null) {
+            if (!townOwners.isEmpty()) {
+                townName = townOwners.keySet().iterator().next();
+            } else {
+                java.util.Set<String> names = stageManager.getStageNames();
+                if (!names.isEmpty()) townName = names.iterator().next();
+            }
+        }
+        if (townName == null) return;
+
+        UUID currentOwner = townOwners.get(townName.toLowerCase());
+        if (currentOwner == null || !currentOwner.equals(leader)) {
+            townOwners.put(townName.toLowerCase(), leader);
+            playerConfig.setTownOwner(townName.toLowerCase(), leader);
+            playerConfig.saveConfigFile();
+        }
+        Player leaderPl = org.bukkit.Bukkit.getPlayer(leader);
+        if (leaderPl != null && origins.get(leader) == null) {
+            startTown(leaderPl, townName);
+        }
+        for (UUID member : guild.getMembers()) {
+            if (!member.equals(leader)) {
+                shareTownWithMember(leader, member);
+                Player mp = org.bukkit.Bukkit.getPlayer(member);
+                if (mp != null) initializePlayer(mp);
+            } else if (leaderPl != null) {
+                initializePlayer(leaderPl);
+            }
+        }
+    }
+
+    /** Clear town ownership and shared data for all members of the guild. */
+    public void clearGuildTown(me.nakilex.levelplugin.guild.Guild guild) {
+        if (guild == null) return;
+        for (UUID member : guild.getMembers()) {
+            Player p = org.bukkit.Bukkit.getPlayer(member);
+            if (p != null) {
+                unloadPlayerTown(p);
+                markTownLoaded(p, false);
+            }
+            removeGuildMember(member);
+        }
+        if (!townOwners.isEmpty()) {
+            String key = townOwners.keySet().iterator().next();
+            townOwners.remove(key);
+            playerConfig.clearTownOwner(key);
+            playerConfig.saveConfigFile();
         }
     }
 
@@ -527,13 +619,28 @@ public class EnvironmentManager {
         buildingHolograms.clear();
     }
 
-    private void removeAllBuildingHolograms(UUID uuid) {
+    public void removeAllBuildingHolograms(UUID uuid) {
         var map = buildingHolograms.remove(uuid);
         if (map != null) {
             for (var list : map.values()) {
                 if (list != null) {
                     for (var disp : list) {
                         if (disp != null && !disp.isDead()) disp.remove();
+                    }
+                }
+            }
+        }
+    }
+
+    /** Hide every existing building hologram from the given viewer. */
+    public void hideAllBuildingHolograms(Player viewer) {
+        for (var map : buildingHolograms.values()) {
+            if (map == null) continue;
+            for (var list : map.values()) {
+                if (list == null) continue;
+                for (var disp : list) {
+                    if (disp != null && !disp.isDead()) {
+                        viewer.hideEntity(Main.getInstance(), disp);
                     }
                 }
             }
@@ -1170,7 +1277,7 @@ public class EnvironmentManager {
                         stageData.hy - stageData.oy + 2,
                         stageData.hz - stageData.oz + 0.5);
                     java.util.List<String> textLines = formatBuildingHologram(player, building, stage);
-                    if (textLines != null && !textLines.isEmpty()) {
+                    if (canShowTownHolograms(player) && textLines != null && !textLines.isEmpty()) {
                         java.util.List<org.bukkit.entity.Entity> displays = spawnHologramLines(player, holo, textLines, building);
                         buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
                             .put(building.toLowerCase(), displays);
@@ -1231,7 +1338,7 @@ public class EnvironmentManager {
             stageData.hy - stageData.oy + 2,
             stageData.hz - stageData.oz + 0.5);
         java.util.List<String> textLines = formatBuildingHologram(player, building, stage);
-        if (textLines != null && !textLines.isEmpty()) {
+        if (canShowTownHolograms(player) && textLines != null && !textLines.isEmpty()) {
             java.util.List<org.bukkit.entity.Entity> displays = spawnHologramLines(player, holo, textLines, building);
             buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
                 .put(building.toLowerCase(), displays);
@@ -1361,7 +1468,7 @@ public class EnvironmentManager {
                         newData.hy - newData.oy + 2,
                         newData.hz - newData.oz + 0.5);
                     java.util.List<String> textLines = formatBuildingHologram(player, building, newStage);
-                    if (textLines != null && !textLines.isEmpty()) {
+                    if (canShowTownHolograms(player) && textLines != null && !textLines.isEmpty()) {
                         java.util.List<org.bukkit.entity.Entity> displays = spawnHologramLines(player, holo, textLines, building);
                         buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
                             .put(building.toLowerCase(), displays);

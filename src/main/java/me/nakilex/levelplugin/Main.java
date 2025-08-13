@@ -118,4 +118,5 @@ public class Main extends JavaPlugin {
     public CodexManager getCodexManager() { return bootstrap.getCodexManager(); }
     public CodexMainGUI getCodexGUI() { return bootstrap.getCodexGUI(); }
     public me.nakilex.levelplugin.dungeon.gui.DungeonListGUI getDungeonListGUI() { return bootstrap.getDungeonListGUI(); }
+    public me.nakilex.levelplugin.guild.siege.GuildSiegeManager getGuildSiegeManager() { return bootstrap.getGuildSiegeManager(); }
 }
