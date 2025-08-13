@@ -110,7 +110,8 @@ public class GuildSiegeManager {
         QuestManager qm = Main.getInstance().getQuestManager();
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (!p.getWorld().getName().equals("world")) continue;
-            if (!qm.hasCompleted(p.getUniqueId(), "newbeginning")) continue;
+            // Temporarily disabled quest completion check for testing
+            // if (!qm.hasCompleted(p.getUniqueId(), "newbeginning")) continue;
             p.spigot().sendMessage(msg);
         }
     }
@@ -342,11 +343,15 @@ public class GuildSiegeManager {
         String gName = g != null ? g.getName() : "none";
         boolean allowed = ownerGuild == null || (g != null && ownerGuild.equalsIgnoreCase(g.getName()));
         plugin.getLogger().info("[SiegeDebug] owner=" + ownerGuild + " playerGuild=" + gName + " allowed=" + allowed);
-        boolean loaded = env.isTownLoaded(p);
-        plugin.getLogger().info("[SiegeDebug] townLoaded=" + loaded);
-        if (allowed && loaded) {
+        if (allowed) {
+            if (!env.isTownLoaded(p)) {
+                env.markTownLoaded(p, true);
+            }
             env.initializePlayer(p);
             plugin.getLogger().info("[SiegeDebug] Initialized holograms for " + p.getName());
+        } else {
+            env.unloadPlayerTown(p);
+            env.markTownLoaded(p, false);
         }
     }
 
