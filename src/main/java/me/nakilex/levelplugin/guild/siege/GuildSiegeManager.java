@@ -46,6 +46,7 @@ public class GuildSiegeManager {
     private int progress = 0;
     private int lastAnnounce = 0;
     private MultiLineHologram progressHologram;
+    private MultiLineHologram ownerHologram;
 
     private static final String PREFIX = ChatColor.YELLOW + "[Siege] " + ChatColor.WHITE;
 
@@ -54,6 +55,7 @@ public class GuildSiegeManager {
     public void init(Main plugin) {
         this.plugin = plugin;
         startAnnouncements();
+        updateOwnerHologram();
     }
 
     private void startAnnouncements() {
@@ -114,6 +116,11 @@ public class GuildSiegeManager {
         progress = 0;
         lastAnnounce = 0;
         capturingGuild = null;
+
+        if (ownerHologram != null) {
+            ownerHologram.despawn();
+            ownerHologram = null;
+        }
 
         progressHologram = new MultiLineHologram(hologramLocation);
         updateHologram();
@@ -246,6 +253,7 @@ public class GuildSiegeManager {
             Bukkit.broadcastMessage(ChatFormatter.getCenteredText(msg));
         }
         applyTownVisibility();
+        updateOwnerHologram();
     }
 
     private void broadcast(String msg) {
@@ -308,5 +316,14 @@ public class GuildSiegeManager {
         }
         bar.append(ChatColor.GRAY).append("] ").append(ChatColor.WHITE).append(progress).append("%");
         progressHologram.setLines(java.util.Arrays.asList(guildLine, bar.toString()));
+    }
+
+    private void updateOwnerHologram() {
+        if (progressHologram != null) return; // during active siege we show progress instead
+        if (ownerHologram == null) {
+            ownerHologram = new MultiLineHologram(hologramLocation);
+        }
+        String line = ownerGuild != null ? ChatColor.GOLD + ownerGuild : ChatColor.GRAY + "No Owner";
+        ownerHologram.setLines(java.util.Collections.singletonList(line));
     }
 }
