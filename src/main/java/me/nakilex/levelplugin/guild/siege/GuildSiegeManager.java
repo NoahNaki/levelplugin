@@ -255,8 +255,8 @@ public class GuildSiegeManager {
         if (progress > 100) progress = 100;
         if (progress >= lastAnnounce + 5) {
             lastAnnounce = progress - (progress % 5);
-            String msg = "<glyph:flagleft_icon> " + ChatColor.GRAY + "Guild " + ChatColor.GOLD + capturingGuild
-                    + ChatColor.GRAY + " is capturing [" + ChatColor.YELLOW + progress + "%" + ChatColor.GRAY + "] <glyph:flagright_icon>";
+            String msg = ChatColor.GOLD + capturingGuild
+                    + ChatColor.GRAY + " is capturing [" + ChatColor.YELLOW + progress + "%" + ChatColor.GRAY + "]";
             broadcast(msg);
             updateHologram();
         }
@@ -293,7 +293,8 @@ public class GuildSiegeManager {
         String msg;
         if (winner != null) {
             ownerGuild = winner;
-            msg = "<glyph:flagleft_icon> " + ChatColor.GRAY + "Guild " + ChatColor.GOLD + winner + ChatColor.GRAY + " has taken control of the town! <glyph:flagright_icon>";
+            msg = "<glyph:flagleft_icon> " + ChatColor.GOLD + winner
+                    + ChatColor.GRAY + " has taken control of the town! <glyph:flagright_icon>";
             me.nakilex.levelplugin.guild.Guild g = GuildManager.getInstance().getGuild(winner);
             if (g != null) {
                 Main.getInstance().getEnvironmentManager().syncGuildTown(g);
