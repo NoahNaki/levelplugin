@@ -173,7 +173,13 @@ public class GuildSiegeManager {
 
         for (UUID id : active) {
             Player p = Bukkit.getPlayer(id);
-            if (p != null) p.teleport(teleportLocation);
+            if (p != null) me.nakilex.levelplugin.utils.TeleportUtils.teleportWithEffect(p, teleportLocation);
+        }
+
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            ChatFormatter.sendCenteredMessage(p, " ");
+            ChatFormatter.sendCenteredMessage(p, "<glyph:flagleft_icon> " + ChatColor.GOLD + "" + ChatColor.BOLD + "The siege has begun!" + ChatColor.GRAY + " <glyph:flagright_icon>");
+            ChatFormatter.sendCenteredMessage(p, " ");
         }
 
         if (captureTask != null) captureTask.cancel();

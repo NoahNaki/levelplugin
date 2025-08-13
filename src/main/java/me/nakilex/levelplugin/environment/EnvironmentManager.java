@@ -820,35 +820,6 @@ public class EnvironmentManager {
         return townOrigin.clone().add(pl.x, pl.y, pl.z);
     }
 
-    private void teleportWithEffect(Player player, Location dest, Runnable after) {
-        var startLoc = player.getLocation().clone();
-        new org.bukkit.scheduler.BukkitRunnable() {
-            int t = 60;
-            @Override public void run() {
-                if(!player.isOnline()) { cancel(); return; }
-                if(player.getLocation().distanceSquared(startLoc) > 0.1) {
-                    player.sendMessage(ChatColor.RED + "Teleport cancelled.");
-                    cancel();
-                    return;
-                }
-                double radius = 3.0*(t/60.0);
-                for(int i=0;i<20;i++) {
-                    double angle = 2*Math.PI*i/20.0;
-                    double x = radius*Math.cos(angle);
-                    double z = radius*Math.sin(angle);
-                    player.getWorld().spawnParticle(org.bukkit.Particle.DRAGON_BREATH,startLoc.clone().add(x,1,z),0,0,0,0,0);
-                }
-                if(--t <= 0) {
-                    player.teleport(dest);
-                    player.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.BLINDNESS,40,0,false,false));
-                    player.getWorld().spawnParticle(org.bukkit.Particle.FLASH, player.getLocation(), 20, 0.5,0.5,0.5,0);
-                    if(after != null) after.run();
-                    cancel();
-                }
-            }
-        }.runTaskTimer(Main.getInstance(),0L,1L);
-    }
-
     /**
      * Ensure all chunks that contain the player's town and unlocked buildings
      * are loaded. Each chunk will be requested multiple times until it is
