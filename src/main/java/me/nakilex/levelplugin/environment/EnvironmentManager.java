@@ -379,18 +379,7 @@ public class EnvironmentManager {
     public void clearGuildTown(me.nakilex.levelplugin.guild.Guild guild) {
         if (guild == null) return;
         for (UUID member : guild.getMembers()) {
-            Player p = org.bukkit.Bukkit.getPlayer(member);
-            if (p != null) {
-                unloadPlayerTown(p);
-                markTownLoaded(p, false);
-            }
-            removeGuildMember(member);
-        }
-        if (!townOwners.isEmpty()) {
-            String key = townOwners.keySet().iterator().next();
-            townOwners.remove(key);
-            playerConfig.clearTownOwner(key);
-            playerConfig.saveConfigFile();
+            resetTown(member);
         }
     }
 
@@ -890,7 +879,15 @@ public class EnvironmentManager {
 
     /** Remove the player's settlement so they can start over. */
     public void resetTown(Player player) {
-        UUID uuid = player.getUniqueId();
+        resetTownData(player.getUniqueId(), player, true);
+    }
+
+    /** Reset settlement data for the given UUID, if online messages are not sent. */
+    public void resetTown(UUID uuid) {
+        resetTownData(uuid, org.bukkit.Bukkit.getPlayer(uuid), false);
+    }
+
+    private void resetTownData(UUID uuid, Player player, boolean notify) {
         UUID base = getBase(uuid);
         if (!base.equals(uuid)) {
             // member leaving
@@ -899,7 +896,9 @@ public class EnvironmentManager {
             Map<String, BuildingState> bMap = buildingStates.get(base);
             removeMemberData(uuid, town, st, bMap);
             coopPartners.remove(base);
-            player.sendMessage(ChatColor.RED + "You have left the town.");
+            if (notify && player != null) {
+                player.sendMessage(ChatColor.RED + "You have left the town.");
+            }
             invalidateTownChunks(base);
             return;
         }
@@ -935,7 +934,9 @@ public class EnvironmentManager {
         playerConfig.clearEnvironmentData(uuid);
         playerConfig.clearCoop(uuid);
         playerConfig.saveConfigFile();
-        player.sendMessage(ChatColor.RED + "Your settlement has been reset.");
+        if (notify && player != null) {
+            player.sendMessage(ChatColor.RED + "Your settlement has been reset.");
+        }
         invalidateTownChunks(uuid);
     }
 
