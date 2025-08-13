@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.environment.stage.TownStageManager;
 import me.nakilex.levelplugin.guild.Guild;
 import me.nakilex.levelplugin.guild.GuildManager;
 import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
+import me.nakilex.levelplugin.utils.MultiLineHologram;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -118,6 +119,7 @@ public class EnvironmentManager {
         this.playerConfig = config;
         this.stageManager = stageManager;
         this.buildingStageManager = buildingStageManager;
+        MultiLineHologram.removeAll("building_hologram:");
         for (String town : config.getGlobalTownNames()) {
             java.util.UUID owner = config.getTownOwner(town);
             if (owner != null) {
@@ -277,6 +279,7 @@ public class EnvironmentManager {
             td.setBillboard(Display.Billboard.CENTER);
             td.setShadowRadius(0f);
             td.setShadowStrength(0f);
+            td.setBackgroundColor(org.bukkit.Color.fromARGB(0, 0, 0, 0));
             td.setText(text);
             td.addScoreboardTag("building_hologram:" + tag.toLowerCase());
             entities.add(td);
@@ -617,6 +620,7 @@ public class EnvironmentManager {
             }
         }
         buildingHolograms.clear();
+        MultiLineHologram.removeAll("building_hologram:");
     }
 
     public void removeAllBuildingHolograms(UUID uuid) {

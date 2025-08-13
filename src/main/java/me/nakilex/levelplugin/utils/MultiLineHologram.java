@@ -6,6 +6,8 @@ import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.TextDisplay;
+import org.bukkit.entity.Interaction;
+import org.bukkit.Bukkit;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -82,6 +84,23 @@ public class MultiLineHologram {
         for (Entity e : base.getWorld().getNearbyEntities(base, radius, radius, radius)) {
             if ((e instanceof TextDisplay || e instanceof ArmorStand) && (tag == null || e.getScoreboardTags().contains(tag))) {
                 e.remove();
+            }
+        }
+    }
+    /**
+     * Remove all entities with scoreboard tags starting with the given prefix across all worlds.
+     */
+    public static void removeAll(String tagPrefix) {
+        for (org.bukkit.World world : Bukkit.getWorlds()) {
+            for (Entity e : world.getEntities()) {
+                if (e instanceof Display || e instanceof ArmorStand || e instanceof Interaction) {
+                    for (String t : e.getScoreboardTags()) {
+                        if (t.startsWith(tagPrefix)) {
+                            e.remove();
+                            break;
+                        }
+                    }
+                }
             }
         }
     }
