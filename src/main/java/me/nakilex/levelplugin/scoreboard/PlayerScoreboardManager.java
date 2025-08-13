@@ -202,7 +202,7 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
             String name = cap == null ? ChatColor.WHITE + "None" : ChatColor.WHITE + cap;
             String capText = name + " " + ChatColor.DARK_GRAY + "[" + ChatColor.GRAY + prog + "%" + ChatColor.DARK_GRAY + "]";
             // Further indent the siege line so it aligns with the flag on the duration line
-            current[idx] = ChatColor.RED + "     Siege: " + capText;
+            current[idx] = ChatColor.RED + "      Siege: " + capText;
             if (!current[idx].equals(prev[idx])) {
                 setLine(board, obj, idx, line, current[idx]);
             }

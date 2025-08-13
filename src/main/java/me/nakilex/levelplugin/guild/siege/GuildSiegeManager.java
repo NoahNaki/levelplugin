@@ -301,7 +301,7 @@ public class GuildSiegeManager {
         if (progress >= lastAnnounce + 5) {
             lastAnnounce = progress - (progress % 5);
             String msg = ChatColor.GOLD + capturingGuild
-                    + ChatColor.GRAY + " is capturing [" + ChatColor.YELLOW + progress + "%" + ChatColor.GRAY + "]";
+                    + ChatColor.GRAY + " | capturing [" + ChatColor.YELLOW + progress + "%" + ChatColor.GRAY + "]";
             broadcast(msg);
             updateHologram();
         }
