@@ -136,7 +136,7 @@ public class QuestGateManager implements Listener {
             BlockData data = mat.createBlockData();
             QuestGate gate = QuestGate.create(key.toLowerCase(), p1, p2, data, closedMap, openMap, closed, anim, ticks);
             addGate(gate);
-            clearGateBlocks(gate);
+            applyDefaultState(gate);
         }
     }
 
@@ -144,6 +144,18 @@ public class QuestGateManager implements Listener {
     private void fillRegion(QuestGate gate, Material material) {
         for (Location loc : gate.getBlocks()) {
             loc.getBlock().setType(material, false);
+        }
+    }
+
+    /** Apply the gate's default state to the actual world blocks. */
+    private void applyDefaultState(QuestGate gate) {
+        if (gate.isDefaultClosed()) {
+            clearGateBlocks(gate);
+        } else if (gate.hasOpenCustomBlocks()) {
+            // Place the open-state blocks so the region isn't empty on restart
+            for (var entry : gate.getOpenDataMap().entrySet()) {
+                entry.getKey().getBlock().setBlockData(entry.getValue(), false);
+            }
         }
     }
 
