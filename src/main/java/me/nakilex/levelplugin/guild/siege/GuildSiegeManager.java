@@ -14,6 +14,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -22,6 +23,7 @@ import org.bukkit.scheduler.BukkitTask;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Manages the periodic guild siege event.
@@ -183,6 +185,7 @@ public class GuildSiegeManager {
             ChatFormatter.sendCenteredMessage(p, " ");
             ChatFormatter.sendCenteredMessage(p, "<glyph:flagleft_icon> " + ChatColor.GRAY + "The siege has begun!" + ChatColor.RESET + " <glyph:flagright_icon>");
             ChatFormatter.sendCenteredMessage(p, " ");
+            p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
         }
 
         if (captureTask != null) captureTask.cancel();
@@ -219,7 +222,12 @@ public class GuildSiegeManager {
                     String msg = ChatColor.GRAY + "Siege starts in " + ChatColor.YELLOW + seconds + "s";
                     for (UUID id : queue) {
                         Player p = Bukkit.getPlayer(id);
-                        if (p != null) ChatFormatter.sendCenteredMessage(p, msg);
+                        if (p != null) {
+                            ChatFormatter.sendCenteredMessage(p, msg);
+                            if (seconds <= 5) {
+                                p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, 1f, 1f);
+                            }
+                        }
                     }
                 }
                 seconds--;
@@ -323,6 +331,9 @@ public class GuildSiegeManager {
             ChatFormatter.sendCenteredMessage(p, " ");
             ChatFormatter.sendCenteredMessage(p, msg);
             ChatFormatter.sendCenteredMessage(p, " ");
+            if (winner != null) {
+                p.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
+            }
         }
         save();
         applyTownVisibility();
@@ -352,8 +363,8 @@ public class GuildSiegeManager {
     }
 
     private void launchVictoryFireworks() {
-        Random rand = new Random();
-        for (int i = 0; i < 7; i++) {
+        ThreadLocalRandom rand = ThreadLocalRandom.current();
+        for (int i = 0; i < 9; i++) {
             double dist = 70 * Math.sqrt(rand.nextDouble());
             double angle = rand.nextDouble() * 2 * Math.PI;
             double x = center.getX() + dist * Math.cos(angle);

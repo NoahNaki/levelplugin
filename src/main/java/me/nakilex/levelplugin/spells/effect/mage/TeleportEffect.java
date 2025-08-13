@@ -100,7 +100,7 @@ public class TeleportEffect implements SpellEffect {
             }
 
             // The blink itself
-            TeleportUtils.teleportWithEffect(player, safe);
+            TeleportUtils.teleportWithEffect(player, safe, 0L);
 
             // Explosion on arrival (no knockback)
             if (explosionOnArrive) {

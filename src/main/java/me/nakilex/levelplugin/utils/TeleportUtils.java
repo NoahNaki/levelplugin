@@ -1,5 +1,7 @@
 package me.nakilex.levelplugin.utils;
 
+import me.nakilex.levelplugin.Main;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -10,14 +12,31 @@ public final class TeleportUtils {
     private TeleportUtils() {}
 
     /**
-     * Teleport the player instantly while spawning particles at the origin and
-     * destination along with the enderman teleport sound.
+     * Teleport the player after a brief delay while spawning particles at the
+     * origin and destination along with the enderman teleport sound.
      */
     public static void teleportWithEffect(Player player, Location dest) {
+        teleportWithEffect(player, dest, 5L);
+    }
+
+    /**
+     * Teleport the player with particles/sound after the given delay.
+     */
+    public static void teleportWithEffect(Player player, Location dest, long delayTicks) {
         Location origin = player.getLocation();
-        origin.getWorld().spawnParticle(Particle.DRAGON_BREATH, origin, 100, 0.5, 1, 0.5, 0);
-        player.teleport(dest);
-        dest.getWorld().spawnParticle(Particle.DRAGON_BREATH, dest, 100, 0.5, 1, 0.5, 0);
-        dest.getWorld().playSound(dest, Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 1f);
+        origin.getWorld().spawnParticle(Particle.DRAGON_BREATH, origin, 80, 0.5, 1, 0.5, 0);
+        origin.getWorld().spawnParticle(Particle.PORTAL, origin, 40, 0.5, 1, 0.5, 0.2);
+        origin.getWorld().playSound(origin, Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 1f);
+
+        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+            player.teleport(dest);
+            dest.getWorld().spawnParticle(Particle.DRAGON_BREATH, dest, 100, 0.5, 1, 0.5, 0);
+            dest.getWorld().spawnParticle(Particle.END_ROD, dest, 60, 0.5, 1, 0.5, 0.1);
+            dest.getWorld().playSound(dest, Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 1f);
+
+            Bukkit.getScheduler().runTaskLater(Main.getInstance(), () ->
+                    dest.getWorld().spawnParticle(Particle.SPELL_WITCH, dest, 40, 0.5, 1, 0.5, 0.1),
+                10L);
+        }, delayTicks);
     }
 }
