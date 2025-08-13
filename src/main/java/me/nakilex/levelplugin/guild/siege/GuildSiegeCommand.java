@@ -31,10 +31,10 @@ public class GuildSiegeCommand implements CommandExecutor, TabCompleter {
         }
         if (args[0].equalsIgnoreCase("leave")) {
             manager.leave(player.getUniqueId());
-            ChatFormatter.sendCenteredMessage(player, GuildSiegeManager.PREFIX + "You have left the siege queue.");
+            ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "You have left the siege queue.");
             return true;
         }
-        ChatFormatter.sendCenteredMessage(player, GuildSiegeManager.PREFIX + ChatColor.RED + "Usage: /siege <join|leave>");
+        ChatFormatter.sendCenteredMessage(player, ChatColor.RED + "Usage: /siege <join|leave>");
         return true;
     }
 

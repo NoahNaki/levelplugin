@@ -55,8 +55,6 @@ public class GuildSiegeManager {
     private MultiLineHologram progressHologram;
     private MultiLineHologram ownerHologram;
 
-    static final String PREFIX = ChatColor.YELLOW + "[" + ChatColor.GOLD + "" + ChatColor.BOLD + "Siege" + ChatColor.YELLOW + "] " + ChatColor.GRAY;
-
     private GuildSiegeManager() {}
 
     public void init(Main plugin) {
@@ -104,7 +102,7 @@ public class GuildSiegeManager {
             countdownTask.cancel();
             countdownTask = null;
         }
-        String raw = PREFIX + "<glyph:flagleft_icon> Click here to join the guild siege! <glyph:flagright_icon>";
+        String raw = ChatColor.GOLD + "" + ChatColor.BOLD + "CLICK-HERE " + ChatColor.WHITE + "to sign up for the guild siege!";
         TextComponent msg = new TextComponent(ChatFormatter.getCenteredText(raw));
         msg.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/siege join"));
         QuestManager qm = Main.getInstance().getQuestManager();
@@ -112,7 +110,9 @@ public class GuildSiegeManager {
             if (!p.getWorld().getName().equals("world")) continue;
             // Temporarily disabled quest completion check for testing
             // if (!qm.hasCompleted(p.getUniqueId(), "newbeginning")) continue;
+            ChatFormatter.sendCenteredMessage(p, " ");
             p.spigot().sendMessage(msg);
+            ChatFormatter.sendCenteredMessage(p, " ");
         }
     }
 
@@ -121,11 +121,11 @@ public class GuildSiegeManager {
         if (plugin == null) return;
         Guild g = GuildManager.getInstance().getGuild(p.getUniqueId());
         if (g == null) {
-            ChatFormatter.sendCenteredMessage(p, PREFIX + ChatColor.RED + "You must be in a guild to join the siege.");
+            ChatFormatter.sendCenteredMessage(p, ChatColor.RED + "You must be in a guild to join the siege.");
             return;
         }
         if (queue.add(p.getUniqueId())) {
-            ChatFormatter.sendCenteredMessage(p, PREFIX + ChatColor.GREEN + "You have signed up for the siege!");
+            ChatFormatter.sendCenteredMessage(p, ChatColor.GREEN + "You have signed up for the siege!");
             if (queue.size() == 1) startCountdown();
         }
     }
@@ -196,7 +196,7 @@ public class GuildSiegeManager {
                     countdownTask = null;
                     return;
                 }
-                String msg = PREFIX + "Siege starts in " + ChatColor.YELLOW + seconds + "s";
+                String msg = ChatColor.GRAY + "Siege starts in " + ChatColor.YELLOW + seconds + "s";
                 for (UUID id : queue) {
                     Player p = Bukkit.getPlayer(id);
                     if (p != null) ChatFormatter.sendCenteredMessage(p, msg);
@@ -265,9 +265,9 @@ public class GuildSiegeManager {
             Player p = Bukkit.getPlayer(id);
             if (p != null) {
                 if (winner != null) {
-                    ChatFormatter.sendCenteredMessage(p, PREFIX + ChatColor.GOLD + "Siege has ended!");
+                    ChatFormatter.sendCenteredMessage(p, ChatColor.GOLD + "Siege has ended!");
                 } else {
-                    ChatFormatter.sendCenteredMessage(p, PREFIX + ChatColor.RED + "Siege ended with no capture.");
+                    ChatFormatter.sendCenteredMessage(p, ChatColor.RED + "Siege ended with no capture.");
                 }
             }
         }
@@ -282,14 +282,14 @@ public class GuildSiegeManager {
         }
         if (winner != null) {
             ownerGuild = winner;
-            String msg = PREFIX + "<glyph:flagleft_icon> " + ChatColor.GRAY + "Guild " + ChatColor.GOLD + winner + ChatColor.GRAY + " has taken control of the town! <glyph:flagright_icon>";
+            String msg = "<glyph:flagleft_icon> " + ChatColor.GRAY + "Guild " + ChatColor.GOLD + winner + ChatColor.GRAY + " has taken control of the town! <glyph:flagright_icon>";
             Bukkit.broadcastMessage(ChatFormatter.getCenteredText(msg));
             me.nakilex.levelplugin.guild.Guild g = GuildManager.getInstance().getGuild(winner);
             if (g != null) {
                 Main.getInstance().getEnvironmentManager().syncGuildTown(g);
             }
         } else {
-            String msg = PREFIX + "<glyph:flagleft_icon> " + ChatColor.RED + "No guild captured the town." + ChatColor.GRAY + " <glyph:flagright_icon>";
+            String msg = "<glyph:flagleft_icon> " + ChatColor.RED + "No guild captured the town." + ChatColor.GRAY + " <glyph:flagright_icon>";
             Bukkit.broadcastMessage(ChatFormatter.getCenteredText(msg));
         }
         save();
@@ -300,7 +300,7 @@ public class GuildSiegeManager {
     private void broadcast(String msg) {
         for (UUID id : active) {
             Player p = Bukkit.getPlayer(id);
-            if (p != null) ChatFormatter.sendCenteredMessage(p, PREFIX + msg);
+            if (p != null) ChatFormatter.sendCenteredMessage(p, msg);
         }
     }
 
@@ -396,12 +396,14 @@ public class GuildSiegeManager {
         if (ownerHologram == null) {
             ownerHologram = new MultiLineHologram(ownerHologramLocation);
         }
-        String line;
+        String title = ChatColor.DARK_GRAY + "[" + ChatColor.YELLOW + "Rowan Castle" + ChatColor.DARK_GRAY + "]";
+        String spacer = " ";
+        String guildLine;
         if (ownerGuild != null) {
-            line = ChatColor.GOLD + "<glyph:flagleft_icon> " + ownerGuild + " <glyph:flagright_icon>";
+            guildLine = ChatColor.GOLD + "<glyph:flagleft_icon> " + ownerGuild + " <glyph:flagright_icon>";
         } else {
-            line = ChatColor.GRAY + "<glyph:flagleft_icon><glyph:flagright_icon> No Owner";
+            guildLine = ChatColor.GRAY + "<glyph:flagleft_icon><glyph:flagright_icon> No Owner";
         }
-        ownerHologram.setLines(java.util.Collections.singletonList(line));
+        ownerHologram.setLines(java.util.Arrays.asList(title, spacer, guildLine, spacer));
     }
 }
