@@ -205,6 +205,13 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
                 setLine(board, obj, idx, line, current[idx]);
             }
             idx++; line--;
+
+            // spacer below siege line
+            current[idx] = " ";
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
         }
 
         PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId());

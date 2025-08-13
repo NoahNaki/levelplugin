@@ -29,6 +29,7 @@ public class GuildSiegeManager {
 
     private Main plugin;
     private BukkitTask announceTask;
+    private BukkitTask countdownTask;
     private BukkitTask captureTask;
 
     private final Set<UUID> queue = new HashSet<>();
@@ -66,18 +67,16 @@ public class GuildSiegeManager {
 
     private void announce() {
         queue.clear();
-        TextComponent msg = new TextComponent(PREFIX + "Click here to join the guild siege!");
+        if (countdownTask != null) {
+            countdownTask.cancel();
+            countdownTask = null;
+        }
+        String raw = PREFIX + "Click here to join the guild siege!";
+        TextComponent msg = new TextComponent(ChatFormatter.getCenteredText(raw));
         msg.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/siege join"));
         for (Player p : Bukkit.getOnlinePlayers()) {
             p.spigot().sendMessage(msg);
         }
-        // Start after 10s if someone joins
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (!queue.isEmpty()) begin();
-            }
-        }.runTaskLater(plugin, 20L * 10);
     }
 
     /** Sign up a player for the next siege. */
@@ -85,20 +84,29 @@ public class GuildSiegeManager {
         if (plugin == null) return;
         Guild g = GuildManager.getInstance().getGuild(p.getUniqueId());
         if (g == null) {
-            p.sendMessage(PREFIX + ChatColor.RED + "You must be in a guild to join the siege.");
+            ChatFormatter.sendCenteredMessage(p, PREFIX + ChatColor.RED + "You must be in a guild to join the siege.");
             return;
         }
         if (queue.add(p.getUniqueId())) {
-            p.sendMessage(PREFIX + ChatColor.GREEN + "You have signed up for the siege!");
+            ChatFormatter.sendCenteredMessage(p, PREFIX + ChatColor.GREEN + "You have signed up for the siege!");
+            if (queue.size() == 1) startCountdown();
         }
     }
 
     public void leave(UUID id) {
         queue.remove(id);
         active.remove(id);
+        if (queue.isEmpty() && countdownTask != null) {
+            countdownTask.cancel();
+            countdownTask = null;
+        }
     }
 
     private void begin() {
+        if (countdownTask != null) {
+            countdownTask.cancel();
+            countdownTask = null;
+        }
         active.clear();
         active.addAll(queue);
         queue.clear();
@@ -126,6 +134,32 @@ public class GuildSiegeManager {
                 }
             }
         }.runTaskTimer(plugin, 20L, 20L);
+    }
+
+    private void startCountdown() {
+        countdownTask = new BukkitRunnable() {
+            int seconds = 10;
+            @Override
+            public void run() {
+                if (queue.isEmpty()) {
+                    cancel();
+                    countdownTask = null;
+                    return;
+                }
+                if (seconds <= 0) {
+                    begin();
+                    cancel();
+                    countdownTask = null;
+                    return;
+                }
+                String msg = PREFIX + ChatColor.YELLOW + "Siege starts in " + seconds + "s";
+                for (UUID id : queue) {
+                    Player p = Bukkit.getPlayer(id);
+                    if (p != null) ChatFormatter.sendCenteredMessage(p, msg);
+                }
+                seconds--;
+            }
+        }.runTaskTimer(plugin, 0L, 20L);
     }
 
     private void tickCapture() {
@@ -204,9 +238,11 @@ public class GuildSiegeManager {
         }
         if (winner != null) {
             ownerGuild = winner;
-            Bukkit.broadcastMessage(PREFIX + ChatColor.GOLD + "Guild " + winner + " has taken control of the town!");
+            String msg = PREFIX + ChatColor.GOLD + "Guild " + winner + " has taken control of the town!";
+            Bukkit.broadcastMessage(ChatFormatter.getCenteredText(msg));
         } else {
-            Bukkit.broadcastMessage(PREFIX + ChatColor.RED + "No guild captured the town.");
+            String msg = PREFIX + ChatColor.RED + "No guild captured the town.";
+            Bukkit.broadcastMessage(ChatFormatter.getCenteredText(msg));
         }
     }
 
