@@ -84,8 +84,10 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                 () -> gates.closeGate(player, gateId),
                 40L);
 
-        // Ensure the destination elevator starts closed for this player
+        // Close the destination elevator and its interior gate since they
+        // default to open for all players
         gates.closeGate(player, worldGateId);
+        gates.closeGate(player, roomGateId);
 
         // After blindness wears off, send initial dialog line
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {

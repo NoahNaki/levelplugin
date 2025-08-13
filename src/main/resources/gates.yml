@@ -24,7 +24,7 @@ gates:
       y: 73
       z: -92
     block: ANDESITE_WALL
-    closed: true
+    closed: false
     animation: ELEVATOR
     duration: 40
   example_gate:
@@ -53,6 +53,6 @@ gates:
       z: -99
     closedSchematic: world_elevator_room_closed.schem
     openSchematic: world_elevator_room_open.schem
-    closed: true
+    closed: false
     animation: INSTANT
     duration: 40
