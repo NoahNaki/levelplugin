@@ -285,18 +285,21 @@ public class GuildSiegeManager {
             progressHologram.despawn();
             progressHologram = null;
         }
+
+        String msg;
         if (winner != null) {
             ownerGuild = winner;
-            String msg = "<glyph:flagleft_icon> " + ChatColor.GRAY + "Guild " + ChatColor.GOLD + winner + ChatColor.GRAY + " has taken control of the town! <glyph:flagright_icon>";
-            Bukkit.broadcastMessage(ChatFormatter.getCenteredText(msg));
+            msg = "<glyph:flagleft_icon> " + ChatColor.GRAY + "Guild " + ChatColor.GOLD + winner + ChatColor.GRAY + " has taken control of the town! <glyph:flagright_icon>";
             me.nakilex.levelplugin.guild.Guild g = GuildManager.getInstance().getGuild(winner);
             if (g != null) {
                 Main.getInstance().getEnvironmentManager().syncGuildTown(g);
             }
         } else {
-            String msg = "<glyph:flagleft_icon> " + ChatColor.RED + "No guild captured the town." + ChatColor.GRAY + " <glyph:flagright_icon>";
-            Bukkit.broadcastMessage(ChatFormatter.getCenteredText(msg));
+            msg = "<glyph:flagleft_icon> " + ChatColor.RED + "No guild captured the town." + ChatColor.GRAY + " <glyph:flagright_icon>";
         }
+        Bukkit.broadcastMessage(ChatFormatter.getCenteredText(" "));
+        Bukkit.broadcastMessage(ChatFormatter.getCenteredText(msg));
+        Bukkit.broadcastMessage(ChatFormatter.getCenteredText(" "));
         save();
         applyTownVisibility();
         updateOwnerHologram();
