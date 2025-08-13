@@ -292,14 +292,18 @@ public class GuildSiegeManager {
      * Hide town structures and holograms from players not in the owning guild.
      */
     private void applyTownVisibility() {
-        String owner = ownerGuild;
-        EnvironmentManager env = Main.getInstance().getEnvironmentManager();
         for (Player p : Bukkit.getOnlinePlayers()) {
-            Guild g = GuildManager.getInstance().getGuild(p.getUniqueId());
-            boolean allowed = owner == null || (g != null && owner.equalsIgnoreCase(g.getName()));
-            if (!allowed) {
-                env.removeAllBuildingHolograms(p.getUniqueId());
-            }
+            refreshTownVisibility(p);
+        }
+    }
+
+    public void refreshTownVisibility(Player p) {
+        EnvironmentManager env = Main.getInstance().getEnvironmentManager();
+        env.removeAllBuildingHolograms(p.getUniqueId());
+        Guild g = GuildManager.getInstance().getGuild(p.getUniqueId());
+        boolean allowed = ownerGuild == null || (g != null && ownerGuild.equalsIgnoreCase(g.getName()));
+        if (allowed && env.isTownLoaded(p)) {
+            env.initializePlayer(p);
         }
     }
 

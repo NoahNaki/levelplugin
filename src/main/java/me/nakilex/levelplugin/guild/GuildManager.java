@@ -1,7 +1,10 @@
 package me.nakilex.levelplugin.guild;
 
+import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
@@ -21,6 +24,13 @@ public class GuildManager {
     private JavaPlugin plugin;
     private File guildFile;
 
+    private void refreshHolograms(UUID id) {
+        Player p = Bukkit.getPlayer(id);
+        if (p != null) {
+            GuildSiegeManager.getInstance().refreshTownVisibility(p);
+        }
+    }
+
     public Guild createGuild(String name, UUID leader) {
         if (guilds.containsKey(name) || playerGuild.containsKey(leader)) return null;
         Guild g = new Guild(name, leader);
@@ -34,6 +44,7 @@ public class GuildManager {
         if (g == null) return false;
         for (UUID m : g.getMembers()) {
             playerGuild.remove(m);
+            refreshHolograms(m);
         }
         return true;
     }
@@ -61,6 +72,7 @@ public class GuildManager {
         if (g == null) return false;
         g.addMember(player);
         playerGuild.put(player, name);
+        refreshHolograms(player);
         return true;
     }
 
@@ -70,6 +82,7 @@ public class GuildManager {
         if (leader.equals(target)) return false; // cannot kick yourself
         if (!g.removeMember(target)) return false;
         playerGuild.remove(target);
+        refreshHolograms(target);
         if (g.getMembers().isEmpty()) {
             guilds.remove(g.getName());
         }
@@ -100,6 +113,7 @@ public class GuildManager {
         if (!g.removeApplicant(applicant)) return false;
         g.addMember(applicant);
         playerGuild.put(applicant, guildName);
+        refreshHolograms(applicant);
         return true;
     }
 
