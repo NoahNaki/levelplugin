@@ -27,7 +27,12 @@ public class GuildManager {
     private void fireEvent(UUID id, Guild g, GuildMembershipEvent.Action action) {
         Player p = Bukkit.getPlayer(id);
         if (p != null) {
+            if (plugin != null) {
+                plugin.getLogger().info("[GuildDebug] Firing " + action + " for " + p.getName());
+            }
             Bukkit.getPluginManager().callEvent(new GuildMembershipEvent(p, g, action));
+        } else if (plugin != null) {
+            plugin.getLogger().info("[GuildDebug] Tried to fire " + action + " for offline player " + id);
         }
     }
 

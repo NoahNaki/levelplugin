@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.guild.GuildManager;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.MultiLineHologram;
+import me.nakilex.levelplugin.quests.managers.QuestManager;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
@@ -106,7 +107,10 @@ public class GuildSiegeManager {
         String raw = PREFIX + "Click here to join the guild siege!";
         TextComponent msg = new TextComponent(ChatFormatter.getCenteredText(raw));
         msg.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/siege join"));
+        QuestManager qm = Main.getInstance().getQuestManager();
         for (Player p : Bukkit.getOnlinePlayers()) {
+            if (!p.getWorld().getName().equals("world")) continue;
+            if (!qm.hasCompleted(p.getUniqueId(), "newbeginning")) continue;
             p.spigot().sendMessage(msg);
         }
     }
@@ -331,12 +335,18 @@ public class GuildSiegeManager {
     }
 
     public void refreshTownVisibility(Player p) {
+        plugin.getLogger().info("[SiegeDebug] Refresh visibility for " + p.getName());
         EnvironmentManager env = Main.getInstance().getEnvironmentManager();
         env.removeAllBuildingHolograms(p.getUniqueId());
         Guild g = GuildManager.getInstance().getGuild(p.getUniqueId());
+        String gName = g != null ? g.getName() : "none";
         boolean allowed = ownerGuild == null || (g != null && ownerGuild.equalsIgnoreCase(g.getName()));
-        if (allowed && env.isTownLoaded(p)) {
+        plugin.getLogger().info("[SiegeDebug] owner=" + ownerGuild + " playerGuild=" + gName + " allowed=" + allowed);
+        boolean loaded = env.isTownLoaded(p);
+        plugin.getLogger().info("[SiegeDebug] townLoaded=" + loaded);
+        if (allowed && loaded) {
             env.initializePlayer(p);
+            plugin.getLogger().info("[SiegeDebug] Initialized holograms for " + p.getName());
         }
     }
 

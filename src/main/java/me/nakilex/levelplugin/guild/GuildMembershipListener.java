@@ -13,8 +13,10 @@ import org.bukkit.event.Listener;
 public class GuildMembershipListener implements Listener {
     @EventHandler
     public void onGuildChange(GuildMembershipEvent event) {
-        Bukkit.getScheduler().runTaskLater(Main.getInstance(),
-                () -> GuildSiegeManager.getInstance().refreshTownVisibility(event.getPlayer()),
-                40L);
+        Main.getInstance().getLogger().info("[GuildDebug] Event " + event.getAction() + " for " + event.getPlayer().getName());
+        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+            Main.getInstance().getLogger().info("[GuildDebug] Refreshing visibility for " + event.getPlayer().getName());
+            GuildSiegeManager.getInstance().refreshTownVisibility(event.getPlayer());
+        }, 40L);
     }
 }
