@@ -70,6 +70,10 @@ public class GuildSiegeManager {
         YamlConfiguration cfg = YamlConfiguration.loadConfiguration(dataFile);
         ownerGuild = cfg.getString("ownerGuild", null);
 
+        // clean up any stray holograms from previous runs
+        MultiLineHologram.removeAll(progressHologramLocation, 5, "siege_progress");
+        MultiLineHologram.removeAll(ownerHologramLocation, 5, "siege_owner");
+
         startAnnouncements();
         updateOwnerHologram();
         applyTownVisibility();
@@ -102,7 +106,8 @@ public class GuildSiegeManager {
             countdownTask.cancel();
             countdownTask = null;
         }
-        String raw = ChatColor.GOLD + "" + ChatColor.BOLD + "CLICK-HERE " + ChatColor.WHITE + "to sign up for the guild siege!";
+        String raw = ChatColor.GOLD + "" + ChatColor.BOLD + "<glyph:flagleft_icon> CLICK-HERE "
+                + ChatColor.WHITE + "to sign up for the guild siege!" + " <glyph:flagright_icon>";
         TextComponent msg = new TextComponent(ChatFormatter.getCenteredText(raw));
         msg.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/siege join"));
         QuestManager qm = Main.getInstance().getQuestManager();
@@ -158,7 +163,7 @@ public class GuildSiegeManager {
 
         Main.getInstance().getEnvironmentManager().removeAllHolograms();
 
-        progressHologram = new MultiLineHologram(progressHologramLocation);
+        progressHologram = new MultiLineHologram(progressHologramLocation, "siege_progress");
         updateHologram();
 
         for (UUID id : active) {
@@ -394,7 +399,7 @@ public class GuildSiegeManager {
     private void updateOwnerHologram() {
         if (progressHologram != null) return; // during active siege we show progress instead
         if (ownerHologram == null) {
-            ownerHologram = new MultiLineHologram(ownerHologramLocation);
+            ownerHologram = new MultiLineHologram(ownerHologramLocation, "siege_owner");
         }
         String title = ChatColor.DARK_GRAY + "[" + ChatColor.YELLOW + "Rowan Castle" + ChatColor.DARK_GRAY + "]";
         String spacer = " ";
@@ -405,5 +410,22 @@ public class GuildSiegeManager {
             guildLine = ChatColor.GRAY + "<glyph:flagleft_icon><glyph:flagright_icon> No Owner";
         }
         ownerHologram.setLines(java.util.Arrays.asList(title, spacer, guildLine, spacer));
+    }
+
+    /** Remove holograms and cancel tasks on shutdown. */
+    public void cleanup() {
+        if (announceTask != null) announceTask.cancel();
+        if (countdownTask != null) countdownTask.cancel();
+        if (captureTask != null) captureTask.cancel();
+        if (progressHologram != null) {
+            progressHologram.despawn();
+            progressHologram = null;
+        }
+        if (ownerHologram != null) {
+            ownerHologram.despawn();
+            ownerHologram = null;
+        }
+        MultiLineHologram.removeAll(progressHologramLocation, 5, "siege_progress");
+        MultiLineHologram.removeAll(ownerHologramLocation, 5, "siege_owner");
     }
 }

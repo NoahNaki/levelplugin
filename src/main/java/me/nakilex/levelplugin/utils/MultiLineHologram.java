@@ -12,9 +12,15 @@ import java.util.List;
 public class MultiLineHologram {
     private final Location location;
     private final List<ArmorStand> lines = new ArrayList<>();
+    private final String tag;
 
     public MultiLineHologram(Location location) {
+        this(location, null);
+    }
+
+    public MultiLineHologram(Location location, String tag) {
         this.location = location;
+        this.tag = tag;
     }
 
     public Location getLocation() {
@@ -44,6 +50,9 @@ public class MultiLineHologram {
                 as.setMarker(true);
                 as.setCustomNameVisible(true);
                 as.setCustomName(text);
+                if (tag != null && !tag.isEmpty()) {
+                    as.addScoreboardTag(tag);
+                }
             });
             lines.add(stand);
             offset -= 0.3; // stack downward
@@ -58,6 +67,19 @@ public class MultiLineHologram {
         }
         for (int i = 0; i < lines.size(); i++) {
             lines.get(i).setCustomName(textLines.get(i));
+        }
+    }
+
+    /**
+     * Remove any armor stands with the given tag within a radius of the
+     * location.
+     */
+    public static void removeAll(Location base, double radius, String tag) {
+        if (base == null || base.getWorld() == null) return;
+        for (ArmorStand as : base.getWorld().getNearbyEntitiesByType(ArmorStand.class, base, radius)) {
+            if (tag == null || as.getScoreboardTags().contains(tag)) {
+                as.remove();
+            }
         }
     }
 }
