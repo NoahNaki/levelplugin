@@ -293,7 +293,9 @@ public class EnvironmentManager {
     }
 
     private boolean canShowTownHolograms(Player player) {
-        String owner = GuildSiegeManager.getInstance().getOwnerGuild();
+        GuildSiegeManager siege = GuildSiegeManager.getInstance();
+        if (siege.isSiegeRunning()) return false;
+        String owner = siege.getOwnerGuild();
         if (owner == null) return true;
         Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
         return g != null && owner.equalsIgnoreCase(g.getName());

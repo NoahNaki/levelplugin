@@ -151,6 +151,8 @@ public class GuildSiegeManager {
             ownerHologram = null;
         }
 
+        Main.getInstance().getEnvironmentManager().removeAllHolograms();
+
         progressHologram = new MultiLineHologram(progressHologramLocation);
         updateHologram();
 
@@ -297,6 +299,7 @@ public class GuildSiegeManager {
     public String getCapturingGuild() { return capturingGuild; }
     public int getProgress() { return progress; }
     public String getOwnerGuild() { return ownerGuild; }
+    public boolean isSiegeRunning() { return captureTask != null; }
 
     private void spawnParticles() {
         for (int i = 0; i < 40; i++) {

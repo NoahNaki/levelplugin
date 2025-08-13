@@ -1,7 +1,6 @@
 package me.nakilex.levelplugin.guild;
 
-import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
-import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.guild.events.GuildMembershipEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -25,11 +24,10 @@ public class GuildManager {
     private JavaPlugin plugin;
     private File guildFile;
 
-    private void refreshHolograms(UUID id) {
+    private void fireEvent(UUID id, Guild g, GuildMembershipEvent.Action action) {
         Player p = Bukkit.getPlayer(id);
         if (p != null) {
-            Bukkit.getScheduler().runTaskLater(Main.getInstance(), () ->
-                    GuildSiegeManager.getInstance().refreshTownVisibility(p), 40L);
+            Bukkit.getPluginManager().callEvent(new GuildMembershipEvent(p, g, action));
         }
     }
 
@@ -38,6 +36,7 @@ public class GuildManager {
         Guild g = new Guild(name, leader);
         guilds.put(name, g);
         playerGuild.put(leader, name);
+        fireEvent(leader, g, GuildMembershipEvent.Action.JOIN);
         return g;
     }
 
@@ -46,7 +45,7 @@ public class GuildManager {
         if (g == null) return false;
         for (UUID m : g.getMembers()) {
             playerGuild.remove(m);
-            refreshHolograms(m);
+            fireEvent(m, g, GuildMembershipEvent.Action.LEAVE);
         }
         return true;
     }
@@ -74,7 +73,7 @@ public class GuildManager {
         if (g == null) return false;
         g.addMember(player);
         playerGuild.put(player, name);
-        refreshHolograms(player);
+        fireEvent(player, g, GuildMembershipEvent.Action.JOIN);
         return true;
     }
 
@@ -84,7 +83,7 @@ public class GuildManager {
         if (leader.equals(target)) return false; // cannot kick yourself
         if (!g.removeMember(target)) return false;
         playerGuild.remove(target);
-        refreshHolograms(target);
+        fireEvent(target, g, GuildMembershipEvent.Action.LEAVE);
         if (g.getMembers().isEmpty()) {
             guilds.remove(g.getName());
         }
@@ -115,7 +114,7 @@ public class GuildManager {
         if (!g.removeApplicant(applicant)) return false;
         g.addMember(applicant);
         playerGuild.put(applicant, guildName);
-        refreshHolograms(applicant);
+        fireEvent(applicant, g, GuildMembershipEvent.Action.JOIN);
         return true;
     }
 

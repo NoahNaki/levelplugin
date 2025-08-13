@@ -391,6 +391,9 @@ public class PluginBootstrap {
         plugin.getServer().getPluginManager().registerEvents(
                 new me.nakilex.levelplugin.guild.siege.GuildSiegeListener(guildSiegeManager),
                 plugin);
+        plugin.getServer().getPluginManager().registerEvents(
+                new me.nakilex.levelplugin.guild.GuildMembershipListener(),
+                plugin);
         plugin.getServer().getPluginManager().registerEvents(beaconManager, plugin);
         TaskRegistry.startTasks(plugin, horseConfigManager, horseManager, wanderingMerchantManager);
     }
