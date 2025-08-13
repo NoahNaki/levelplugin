@@ -1,5 +1,11 @@
 package me.nakilex.levelplugin.guild;
 
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.plugin.java.JavaPlugin;
+
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 public class GuildManager {
@@ -11,6 +17,9 @@ public class GuildManager {
     private final Map<UUID, String> pendingInvites = new HashMap<>();
     private final Map<String, Set<String>> pendingAlliance = new HashMap<>(); // target -> requesting guilds
     private final Map<String, Set<String>> pendingNeutral = new HashMap<>();  // target -> requesting guilds
+
+    private JavaPlugin plugin;
+    private File guildFile;
 
     public Guild createGuild(String name, UUID leader) {
         if (guilds.containsKey(name) || playerGuild.containsKey(leader)) return null;
@@ -221,5 +230,91 @@ public class GuildManager {
         Guild g2 = getGuild(p2);
         if (g1 == null || g2 == null) return false;
         return g1.getHostiles().contains(g2.getName()) || g2.getHostiles().contains(g1.getName());
+    }
+
+    // ----- Persistence -----
+
+    /** Load guild data from disk. */
+    public void init(JavaPlugin plugin) {
+        this.plugin = plugin;
+        guildFile = new File(plugin.getDataFolder(), "guilds.yml");
+        if (!guildFile.exists()) {
+            try {
+                guildFile.createNewFile();
+            } catch (IOException e) {
+                plugin.getLogger().severe("Failed to create guilds.yml: " + e.getMessage());
+            }
+        }
+        loadGuilds();
+    }
+
+    private void loadGuilds() {
+        guilds.clear();
+        playerGuild.clear();
+        YamlConfiguration cfg = YamlConfiguration.loadConfiguration(guildFile);
+        if (!cfg.contains("guilds")) return;
+
+        for (String name : cfg.getConfigurationSection("guilds").getKeys(false)) {
+            String base = "guilds." + name + ".";
+            try {
+                UUID leader = UUID.fromString(cfg.getString(base + "leader"));
+                Guild g = new Guild(name, leader);
+
+                for (String id : cfg.getStringList(base + "members")) {
+                    UUID uuid = UUID.fromString(id);
+                    if (!uuid.equals(leader)) {
+                        g.addMember(uuid);
+                    }
+                    playerGuild.put(uuid, name);
+                }
+                playerGuild.put(leader, name);
+
+                g.getAllies().addAll(cfg.getStringList(base + "allies"));
+                g.getHostiles().addAll(cfg.getStringList(base + "hostiles"));
+                g.setMotd(cfg.getString(base + "motd", ""));
+
+                ConfigurationSection apps = cfg.getConfigurationSection(base + "applicants");
+                if (apps != null) {
+                    for (String key : apps.getKeys(false)) {
+                        UUID uuid = UUID.fromString(key);
+                        long ts = apps.getLong(key);
+                        g.getApplicants().put(uuid, ts);
+                    }
+                }
+
+                guilds.put(name, g);
+            } catch (IllegalArgumentException ignored) {
+                // Skip invalid UUIDs
+            }
+        }
+    }
+
+    /** Save guild data to disk. */
+    public void save() {
+        if (guildFile == null) return;
+        YamlConfiguration cfg = new YamlConfiguration();
+        for (Guild g : guilds.values()) {
+            String base = "guilds." + g.getName() + ".";
+            cfg.set(base + "leader", g.getLeader().toString());
+            List<String> members = new ArrayList<>();
+            for (UUID id : g.getMembers()) {
+                members.add(id.toString());
+            }
+            cfg.set(base + "members", members);
+            cfg.set(base + "allies", new ArrayList<>(g.getAllies()));
+            cfg.set(base + "hostiles", new ArrayList<>(g.getHostiles()));
+            cfg.set(base + "motd", g.getMotd());
+            if (!g.getApplicants().isEmpty()) {
+                ConfigurationSection sec = cfg.createSection(base + "applicants");
+                for (Map.Entry<UUID, Long> e : g.getApplicants().entrySet()) {
+                    sec.set(e.getKey().toString(), e.getValue());
+                }
+            }
+        }
+        try {
+            cfg.save(guildFile);
+        } catch (IOException e) {
+            plugin.getLogger().severe("Failed to save guilds.yml: " + e.getMessage());
+        }
     }
 }

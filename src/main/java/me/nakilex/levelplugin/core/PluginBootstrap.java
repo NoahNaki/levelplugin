@@ -250,6 +250,7 @@ public class PluginBootstrap {
         partyManager = new PartyManager();
         friendManager = new FriendManager();
         guildManager = me.nakilex.levelplugin.guild.GuildManager.getInstance();
+        guildManager.init(plugin);
         guildGUI = new me.nakilex.levelplugin.guild.GuildGUI(guildManager);
         guildApplicantsGUI = new me.nakilex.levelplugin.guild.GuildApplicantsGUI(guildManager);
         guildMemberGUI = new me.nakilex.levelplugin.guild.GuildMemberGUI(guildManager, guildGUI, guildApplicantsGUI);
@@ -407,6 +408,7 @@ public class PluginBootstrap {
         if (economyManager != null) economyManager.saveBalances();
         if (dealMaker != null) dealMaker.closeAllTrades();
         if (itemConfig != null) itemConfig.saveItems();
+        if (guildManager != null) guildManager.save();
         if (playerConfig != null) {
             boolean profilesEnabled = plugin.getCustomConfig()
                     .getBoolean("features.profiles", true);
