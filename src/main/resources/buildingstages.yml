@@ -42,6 +42,11 @@ stages:
         x: 104
         y: 8
         z: 122
+      upgrade_cost:
+        coins: 2000
+        materials:
+          coal: 200
+          raw_iron: 200
   fountain:
     '1':
       world: flatland
@@ -85,6 +90,11 @@ stages:
         x: 129
         y: 6
         z: 99
+      upgrade_cost:
+        coins: 500
+        materials:
+          coal: 50
+          raw_iron: 50
   library:
     '1':
       world: flatland
@@ -128,6 +138,11 @@ stages:
         x: 130
         y: 6
         z: 115
+      upgrade_cost:
+        coins: 2000
+        materials:
+          coal: 300
+          raw_iron: 300
   housing:
     '1':
       world: flatland
@@ -171,6 +186,11 @@ stages:
         x: 89
         y: 2
         z: 47
+      upgrade_cost:
+        coins: 1000
+        materials:
+          coal: 200
+          raw_iron: 200
   more_housing:
     '1':
       world: flatland
@@ -214,6 +234,11 @@ stages:
         x: 101
         y: 2
         z: 47
+      upgrade_cost:
+        coins: 1000
+        materials:
+          coal: 200
+          raw_iron: 200
   city_center:
     '1':
       world: flatland
@@ -257,6 +282,11 @@ stages:
         x: 90
         y: 6
         z: 71
+      upgrade_cost:
+        coins: 1000
+        materials:
+          coal: 200
+          raw_iron: 200
   enchanter:
     '1':
       world: flatland
@@ -300,6 +330,11 @@ stages:
         x: 101
         y: 7
         z: 70
+      upgrade_cost:
+        coins: 500
+        materials:
+          coal: 50
+          raw_iron: 50
   foundation:
     '1':
       world: flatland
@@ -344,10 +379,10 @@ stages:
         y: 8
         z: 101
       upgrade_cost:
-        coins: 100
+        coins: 5000
         materials:
-          coal: 10
-          raw_iron: 10
+          coal: 200
+          raw_iron: 200
     '3':
       world: flatland
       pos1:
@@ -369,6 +404,11 @@ stages:
         x: 87
         y: 8
         z: 101
+      upgrade_cost:
+        coins: 10000
+        materials:
+          coal: 300
+          raw_iron: 300
     '4':
       world: flatland
       pos1:
@@ -390,6 +430,11 @@ stages:
         x: 87
         y: 8
         z: 101
+      upgrade_cost:
+        coins: 20000
+        materials:
+          coal: 500
+          raw_iron: 500
 links:
   town:
     blacksmith:
