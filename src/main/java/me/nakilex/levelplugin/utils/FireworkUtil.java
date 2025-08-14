@@ -37,4 +37,24 @@ public final class FireworkUtil {
         firework.setFireworkMeta(meta);
         firework.setSilent(true);
     }
+
+    /**
+     * Launch multiple decorative fireworks around a center point with random
+     * offsets. Radius controls how far from the center fireworks may spawn,
+     * minY ensures they appear above a minimum height, and maxYOffset adds a
+     * random vertical variation.
+     */
+    public static void launchRandomFireworkBurst(Location center, double radius,
+                                                 int count, double minY,
+                                                 double maxYOffset) {
+        ThreadLocalRandom rand = ThreadLocalRandom.current();
+        for (int i = 0; i < count; i++) {
+            double dist = radius * Math.sqrt(rand.nextDouble());
+            double angle = rand.nextDouble() * 2 * Math.PI;
+            double x = center.getX() + dist * Math.cos(angle);
+            double z = center.getZ() + dist * Math.sin(angle);
+            double y = Math.max(minY, center.getY()) + rand.nextDouble() * maxYOffset;
+            launchFirework(new Location(center.getWorld(), x, y, z));
+        }
+    }
 }

@@ -39,9 +39,11 @@ public class WanderingMerchantManager {
     private int shopGearScore;
     private long lastSpawn = 0L;
     private long lastDamage = 0L;
+    private long lastInteraction = 0L;
     private java.util.UUID lastAttacker;
     private org.bukkit.scheduler.BukkitTask fleeTask;
     private org.bukkit.scheduler.BukkitTask followTask;
+    private org.bukkit.scheduler.BukkitTask idleTask;
     private TraderLlama ensureLlama() {
         if (llama1 != null && llama1.isValid()) {
             llama1.setGravity(true);
@@ -97,7 +99,7 @@ public class WanderingMerchantManager {
         merchant = (WanderingTrader) loc.getWorld().spawnEntity(loc, EntityType.WANDERING_TRADER);
         merchant.setCustomName(ChatColor.GOLD + "Wandering Merchant");
         merchant.setCustomNameVisible(true);
-        merchant.setAI(false);
+        merchant.setAI(true);
         merchant.setRemoveWhenFarAway(false);
         merchant.setGravity(true);
         llama1 = (TraderLlama) loc.getWorld().spawnEntity(loc, EntityType.TRADER_LLAMA);
@@ -106,8 +108,8 @@ public class WanderingMerchantManager {
         llama2.setLeashHolder(merchant);
         llama1.setGravity(true);
         llama2.setGravity(true);
-        llama1.setAI(false);
-        llama2.setAI(false);
+        llama1.setAI(true);
+        llama2.setAI(true);
         llama1.setRemoveWhenFarAway(false);
         llama2.setRemoveWhenFarAway(false);
         followTask = new org.bukkit.scheduler.BukkitRunnable() {
@@ -125,6 +127,18 @@ public class WanderingMerchantManager {
         }.runTaskTimer(plugin, 20L, 20L);
         createShop(player);
         lastSpawn = System.currentTimeMillis();
+        lastInteraction = System.currentTimeMillis();
+        if (idleTask != null) idleTask.cancel();
+        idleTask = new org.bukkit.scheduler.BukkitRunnable() {
+            @Override
+            public void run() {
+                if (!isActive()) { cancel(); return; }
+                if (System.currentTimeMillis() - lastInteraction > 60_000L) {
+                    despawn();
+                    cancel();
+                }
+            }
+        }.runTaskTimer(plugin, 20L, 20L);
     }
 
     private void createShop(Player basis) {
@@ -173,6 +187,7 @@ public class WanderingMerchantManager {
     }
 
     public void openShop(Player player) {
+        recordInteraction();
         if (gui != null) gui.open(player);
     }
 
@@ -187,6 +202,11 @@ public class WanderingMerchantManager {
 
     public void recordHit() {
         lastDamage = System.currentTimeMillis();
+        recordInteraction();
+    }
+
+    public void recordInteraction() {
+        lastInteraction = System.currentTimeMillis();
     }
 
     /** Called when one of the companion llamas dies */
@@ -270,6 +290,7 @@ public class WanderingMerchantManager {
         if (gui != null) { gui.closeAll(); gui = null; }
         if (followTask != null) { followTask.cancel(); followTask = null; }
         if (fleeTask != null) { fleeTask.cancel(); fleeTask = null; }
+        if (idleTask != null) { idleTask.cancel(); idleTask = null; }
     }
 
     public long getLastSpawn() { return lastSpawn; }

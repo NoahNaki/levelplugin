@@ -8,6 +8,8 @@ import me.nakilex.levelplugin.guild.Guild;
 import me.nakilex.levelplugin.guild.GuildManager;
 import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
 import me.nakilex.levelplugin.utils.MultiLineHologram;
+import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.utils.FireworkUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -711,6 +713,9 @@ public class EnvironmentManager {
             }
             Main.getInstance().getQuestManager().handleTownUpgrade(player);
             saveState(base);
+            if (town != null && origin != null && isTownFullyUpgraded(base, town)) {
+                celebrateTownMaxLevel(base, origin);
+            }
         } else {
             player.sendMessage(ChatColor.GREEN + "Invested " + amount + " oak log.");
         }
@@ -746,6 +751,9 @@ public class EnvironmentManager {
             }
             Main.getInstance().getQuestManager().handleTownUpgrade(player);
             saveState(base);
+            if (town != null && origin != null && isTownFullyUpgraded(base, town)) {
+                celebrateTownMaxLevel(base, origin);
+            }
         } else {
             player.sendMessage(ChatColor.GREEN + "Invested " + amount + " oak log.");
         }
@@ -790,6 +798,35 @@ public class EnvironmentManager {
 
     private void advance(BuildingState state) {
         state.stage++;
+    }
+
+    /** Check if every building in the town has reached its final stage. */
+    private boolean isTownFullyUpgraded(UUID base, String town) {
+        Map<String, BuildingState> map = buildingStates.get(base);
+        if (map == null) return false;
+        for (String b : buildingStageManager.getBuildings(town)) {
+            BuildingState bs = map.get(b.toLowerCase());
+            int stage = bs != null ? bs.stage : 1;
+            if (buildingStageManager.getStage(b, stage + 1) != null) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Celebrate a fully upgraded town with fireworks and a broadcast. */
+    private void celebrateTownMaxLevel(UUID base, Location origin) {
+        Guild guild = GuildManager.getInstance().getGuild(base);
+        String guildName = guild != null ? guild.getName() : "Unknown Guild";
+        String msg = ChatColor.GOLD + guildName + ChatColor.GRAY
+                + " has upgraded all buildings to "
+                + ChatColor.GOLD + ChatColor.BOLD + "MAX-LEVEL";
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            ChatFormatter.constructDivider(p, "§6§l-", 45);
+            ChatFormatter.sendCenteredMessage(p, msg);
+            ChatFormatter.constructDivider(p, "§6§l-", 45);
+        }
+        FireworkUtil.launchRandomFireworkBurst(origin, 30, 9, origin.getY(), 10);
     }
 
     // All towns reside in the "flatland" world for now

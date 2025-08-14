@@ -24,7 +24,6 @@ import org.bukkit.scheduler.BukkitTask;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Manages the periodic guild siege event.
@@ -397,15 +396,7 @@ public class GuildSiegeManager {
     }
 
     private void launchVictoryFireworks() {
-        ThreadLocalRandom rand = ThreadLocalRandom.current();
-        for (int i = 0; i < 9; i++) {
-            double dist = 70 * Math.sqrt(rand.nextDouble());
-            double angle = rand.nextDouble() * 2 * Math.PI;
-            double x = center.getX() + dist * Math.cos(angle);
-            double z = center.getZ() + dist * Math.sin(angle);
-            double y = Math.max(70, center.getY()) + rand.nextDouble() * 10;
-            FireworkUtil.launchFirework(new Location(center.getWorld(), x, y, z));
-        }
+        FireworkUtil.launchRandomFireworkBurst(center, 70, 9, 70, 10);
     }
 
     /**
