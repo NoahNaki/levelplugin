@@ -26,6 +26,16 @@ public class TownCommand implements CommandExecutor {
             return true;
         }
 
+        if (args.length > 0 && args[0].equalsIgnoreCase("clear")) {
+            if (!p.isOp() && !p.hasPermission("town.clear")) {
+                p.sendMessage(ChatColor.RED + "You do not have permission to do that.");
+                return true;
+            }
+            manager.clearCurrentTown();
+            p.sendMessage(ChatColor.YELLOW + "Town area cleared.");
+            return true;
+        }
+
         String owner = GuildSiegeManager.getInstance().getOwnerGuild();
         if (owner != null) {
             Guild g = GuildManager.getInstance().getGuild(p.getUniqueId());

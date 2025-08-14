@@ -387,13 +387,34 @@ public class EnvironmentManager {
 
     /** Clear town ownership and shared data for all members of the guild. */
     public void clearGuildTown(me.nakilex.levelplugin.guild.Guild guild) {
+        clearGuildTown(guild, true);
+    }
+
+    /**
+     * Clear all data for the guild's town and optionally restore it to a neutral state.
+     *
+     * @param guild            guild whose town should be cleared
+     * @param initializeNeutral if true, reinitialize the town as neutral stage one
+     */
+    public void clearGuildTown(me.nakilex.levelplugin.guild.Guild guild, boolean initializeNeutral) {
         if (guild == null) return;
         String town = towns.get(guild.getLeader());
         for (UUID member : guild.getMembers()) {
             resetTown(member);
         }
-        if (town != null) {
+        if (initializeNeutral && town != null) {
             initializeNeutralTown(town);
+        }
+    }
+
+    /** Remove all blocks for the currently active town without restoring it. */
+    public void clearCurrentTown() {
+        String ownerName = GuildSiegeManager.getInstance().getOwnerGuild();
+        if (ownerName != null) {
+            me.nakilex.levelplugin.guild.Guild g = GuildManager.getInstance().getGuild(ownerName);
+            clearGuildTown(g, false);
+        } else {
+            resetTown(UNCAPTURED_TOWN_ID);
         }
     }
 
