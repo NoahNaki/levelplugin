@@ -180,7 +180,10 @@ public class CommandRegistry {
                 new me.nakilex.levelplugin.fakeblock.FakeGateCommand(plugin);
         plugin.getCommand("fakegate").setExecutor(fakeGateCmd);
         plugin.getCommand("fakegate").setTabCompleter(fakeGateCmd);
-        plugin.getCommand("modelgate").setExecutor(new me.nakilex.levelplugin.fakeblock.ModelGateCommand(plugin));
+        me.nakilex.levelplugin.fakeblock.ModelGateCommand modelGateCmd =
+                new me.nakilex.levelplugin.fakeblock.ModelGateCommand(plugin);
+        plugin.getCommand("modelgate").setExecutor(modelGateCmd);
+        plugin.getCommand("modelgate").setTabCompleter(modelGateCmd);
         plugin.getCommand("town").setExecutor(new TownCommand(upgradeGUI, plugin.getEnvironmentManager()));
         TownStageCommand townStageCmd = new TownStageCommand(plugin.getTownStageManager());
         plugin.getCommand("townstage").setExecutor(townStageCmd);

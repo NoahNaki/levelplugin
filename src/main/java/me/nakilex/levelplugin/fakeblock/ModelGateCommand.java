@@ -4,23 +4,25 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
+
+import java.util.Collections;
+import java.util.List;
+import me.nakilex.levelplugin.utils.CommandUtil;
 
 /**
  * Simple command to create and toggle model gates using Nexo furniture.
  */
-public class ModelGateCommand implements CommandExecutor {
+public class ModelGateCommand implements TabExecutor {
 
     private final ModelGateManager manager;
 
     public ModelGateCommand(Main plugin) {
         this.manager = plugin.getModelGateManager();
-        plugin.getCommand("modelgate").setExecutor(this);
     }
 
     @Override
@@ -83,5 +85,16 @@ public class ModelGateCommand implements CommandExecutor {
             default:
                 return false;
         }
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (args.length == 1) {
+            return CommandUtil.filterStartingWith(List.of("create", "toggle", "remove", "list"), args[0]);
+        }
+        if (args.length == 2 && ("toggle".equalsIgnoreCase(args[0]) || "remove".equalsIgnoreCase(args[0]))) {
+            return CommandUtil.filterStartingWith(manager.getGateIds(), args[1]);
+        }
+        return Collections.emptyList();
     }
 }
