@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.environment.EnvironmentManager;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.MultiLineHologram;
 import me.nakilex.levelplugin.utils.FireworkUtil;
+import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -479,16 +480,12 @@ public class GuildSiegeManager {
         String guildLine = capturingGuild != null
                 ? ChatColor.GOLD + "<glyph:flagleft_icon> " + capturingGuild + " <glyph:flagright_icon>"
                 : ChatColor.GRAY + "<glyph:flagleft_icon> None <glyph:flagright_icon>";
-        int total = 6;
-        int filled = progress * total / 100;
-        StringBuilder bar = new StringBuilder();
-        bar.append(ChatColor.GRAY).append("[");
-        bar.append(ChatColor.GREEN).append("|".repeat(filled));
-        if (filled < total) {
-            bar.append(ChatColor.DARK_GRAY).append("|".repeat(total - filled));
-        }
-        bar.append(ChatColor.GRAY).append("] ").append(ChatColor.WHITE).append(progress).append("%");
-        progressHologram.setLines(java.util.Arrays.asList(guildLine, bar.toString()));
+        int total = 10; // one bar per 10%
+        String bar = ChatColor.GRAY + "[" +
+                GuiUtil.createProgressBar(progress / 100.0, total, ChatColor.GREEN,
+                        ChatColor.DARK_GRAY, "|") +
+                ChatColor.GRAY + "] " + ChatColor.WHITE + progress + "%";
+        progressHologram.setLines(java.util.Arrays.asList(guildLine, bar));
     }
 
     private void updateOwnerHologram() {
