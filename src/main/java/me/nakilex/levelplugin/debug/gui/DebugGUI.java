@@ -1,11 +1,14 @@
 package me.nakilex.levelplugin.debug.gui;
 
+import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -19,6 +22,7 @@ import org.bukkit.inventory.Inventory;
 public class DebugGUI implements Listener {
     private static final int GUI_SIZE = 27;
     private static final int MOBINFO_SLOT = 11;
+    private static final int SIEGE_SLOT = 13;
     private static final int TPS_SLOT = 15;
 
     private final PlayerToggleManager mobDebugManager;
@@ -38,6 +42,10 @@ public class DebugGUI implements Listener {
                 mobDebugManager.isEnabled(player),
                 "§bMob Info Debug",
                 "§7Show MythicMob rewards on kill"));
+        inv.setItem(SIEGE_SLOT, GuiUtil.createToggleItem(
+                GuildSiegeManager.getInstance().isDebug(),
+                "§bSiege Debug",
+                "§750% progress per sec, 5s countdown"));
         inv.setItem(TPS_SLOT, GuiUtil.createToggleItem(
                 scoreboardManager.isTpsEnabled(player),
                 "§bShow TPS",
@@ -59,6 +67,16 @@ public class DebugGUI implements Listener {
                     "§bMob Info Debug",
                     "§7Show MythicMob rewards on kill"));
             ToggleFeedbackUtil.sendToggle(player, "Mob info debug", enabled);
+        } else if (slot == SIEGE_SLOT) {
+            if (!player.isOp() && !player.hasPermission("siege.debug")) {
+                ChatFormatter.sendCenteredMessage(player, ChatColor.RED + "You do not have permission to do that.");
+                return;
+            }
+            boolean enabled = GuildSiegeManager.getInstance().toggleDebug();
+            inv.setItem(SIEGE_SLOT, GuiUtil.createToggleItem(enabled,
+                    "§bSiege Debug",
+                    "§750% progress per sec, 5s countdown"));
+            ToggleFeedbackUtil.sendToggle(player, "Siege debug", enabled);
         } else if (slot == TPS_SLOT) {
             boolean enabled = scoreboardManager.toggleTps(player);
             inv.setItem(TPS_SLOT, GuiUtil.createToggleItem(enabled,
