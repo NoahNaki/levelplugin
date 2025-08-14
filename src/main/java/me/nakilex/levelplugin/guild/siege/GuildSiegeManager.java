@@ -166,6 +166,7 @@ public class GuildSiegeManager {
         queue.clear();
         progress = 0;
         capturingGuild = null;
+        Main.getInstance().getModelGateManager().setGateHidden("rowan", true);
 
         if (ownerHologram != null) {
             ownerHologram.despawn();
@@ -310,6 +311,7 @@ public class GuildSiegeManager {
         if (captureTask != null) captureTask.cancel();
         captureTask = null;
         captureElapsed = 0;
+        Main.getInstance().getModelGateManager().setGateHidden("rowan", false);
         for (UUID id : active) {
             Player p = Bukkit.getPlayer(id);
             if (p != null) {
