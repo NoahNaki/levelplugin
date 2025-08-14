@@ -309,7 +309,7 @@ public class EnvironmentManager {
         GuildSiegeManager siege = GuildSiegeManager.getInstance();
         if (siege.isSiegeRunning()) return false;
         String owner = siege.getOwnerGuild();
-        if (owner == null) return true;
+        if (owner == null) return false;
         Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
         return g != null && owner.equalsIgnoreCase(g.getName());
     }

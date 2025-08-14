@@ -334,13 +334,22 @@ public class GuildSiegeManager {
 
         String msg;
         if (winner != null) {
+            EnvironmentManager env = Main.getInstance().getEnvironmentManager();
+            String previous = ownerGuild;
+            if (previous != null && !previous.equalsIgnoreCase(winner)) {
+                Guild prevGuild = GuildManager.getInstance().getGuild(previous);
+                env.clearGuildTown(prevGuild);
+            }
             ownerGuild = winner;
+            Guild g = GuildManager.getInstance().getGuild(winner);
+            if (g != null) {
+                for (UUID id : g.getMembers()) {
+                    env.resetTown(id);
+                }
+                env.syncGuildTown(g);
+            }
             msg = "<glyph:flagleft_icon> " + ChatColor.GOLD + winner
                     + ChatColor.GRAY + " has taken control of the town! <glyph:flagright_icon>";
-            me.nakilex.levelplugin.guild.Guild g = GuildManager.getInstance().getGuild(winner);
-            if (g != null) {
-                Main.getInstance().getEnvironmentManager().syncGuildTown(g);
-            }
             launchVictoryFireworks();
         } else {
             msg = "<glyph:flagleft_icon> " + ChatColor.RED + "No guild captured the town." + ChatColor.GRAY + " <glyph:flagright_icon>";
@@ -474,9 +483,12 @@ public class GuildSiegeManager {
 
     private void updateBossBar() {
         if (progressBar == null) return;
-        String title = capturingGuild != null
+        String guild = capturingGuild != null
                 ? ChatColor.WHITE + capturingGuild
                 : ChatColor.GRAY + "None";
+        String title = ChatColor.GOLD + "" + ChatColor.BOLD + "SIEGE "
+                + ChatColor.DARK_GRAY + "- " + guild
+                + ChatColor.DARK_GRAY + " [" + ChatColor.GRAY + progress + "%" + ChatColor.DARK_GRAY + "]";
         progressBar.setTitle(title);
         progressBar.setProgress(progress / 100.0);
     }
