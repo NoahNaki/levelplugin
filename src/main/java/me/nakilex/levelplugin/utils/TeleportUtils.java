@@ -40,7 +40,7 @@ public final class TeleportUtils {
             dest.getWorld().playSound(dest, Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 1f);
 
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () ->
-                    dest.getWorld().spawnParticle(Particle.SPELL_WITCH, dest, 60, 0.6, 1.2, 0.6, 0.1),
+                    dest.getWorld().spawnParticle(Particle.WITCH, dest, 60, 0.6, 1.2, 0.6, 0.1),
                 10L);
         }, delayTicks);
     }
