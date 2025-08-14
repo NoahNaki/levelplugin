@@ -315,7 +315,7 @@ public class GuildSiegeManager {
             double angle = (2 * Math.PI * i) / 40;
             double x = center.getX() + RADIUS * Math.cos(angle);
             double z = center.getZ() + RADIUS * Math.sin(angle);
-            center.getWorld().spawnParticle(Particle.VILLAGER_HAPPY, x, center.getY(), z, 1, 0,0,0,0);
+            center.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, x, center.getY(), z, 1, 0,0,0,0);
         }
     }
 
