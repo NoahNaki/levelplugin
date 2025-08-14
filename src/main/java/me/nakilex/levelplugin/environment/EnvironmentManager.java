@@ -308,10 +308,13 @@ public class EnvironmentManager {
     private boolean canShowTownHolograms(Player player) {
         GuildSiegeManager siege = GuildSiegeManager.getInstance();
         if (siege.isSiegeRunning()) return false;
-        String owner = siege.getOwnerGuild();
-        if (owner == null) return false;
-        Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
-        return g != null && owner.equalsIgnoreCase(g.getName());
+
+        UUID base = getBase(player.getUniqueId());
+        String town = towns.get(base);
+        if (town == null) return false;
+
+        UUID owner = townOwners.get(town.toLowerCase());
+        return owner != null && owner.equals(base);
     }
 
     private void shareData(UUID member, UUID owner) {
