@@ -54,11 +54,20 @@ public class GuildSiegeManager {
     private String ownerGuild = null;
     private String capturingGuild = null;
     private int progress = 0;
-    private static final int CAPTURE_RATE = 1;
+
+    private static final int DEFAULT_CAPTURE_RATE = 1;
+    private static final int DEBUG_CAPTURE_RATE = 50;
+    private int captureRate = DEFAULT_CAPTURE_RATE;
+
+    private static final int DEFAULT_COUNTDOWN = 60;
+    private static final int DEBUG_COUNTDOWN = 5;
+    private int countdownSeconds = DEFAULT_COUNTDOWN;
+
     private static final int SIEGE_DURATION = 600; // seconds
     private int captureElapsed = 0;
     private BossBar progressBar;
     private MultiLineHologram ownerHologram;
+    private boolean debug = false;
 
     private GuildSiegeManager() {}
 
@@ -230,7 +239,7 @@ public class GuildSiegeManager {
 
     private void startCountdown() {
         countdownTask = new BukkitRunnable() {
-            int seconds = 60;
+            int seconds = countdownSeconds;
             @Override
             public void run() {
                 if (queue.isEmpty()) {
@@ -244,7 +253,8 @@ public class GuildSiegeManager {
                     countdownTask = null;
                     return;
                 }
-                if (seconds == 60 || seconds == 30 || seconds == 15 || seconds <= 5) {
+                if (seconds == DEFAULT_COUNTDOWN || seconds == DEFAULT_COUNTDOWN / 2
+                        || seconds == DEFAULT_COUNTDOWN / 4 || seconds <= 5) {
                     String msg = ChatColor.GRAY + "Siege starts in " + ChatColor.YELLOW + seconds + "s";
                     for (UUID id : queue) {
                         Player p = Bukkit.getPlayer(id);
@@ -299,7 +309,7 @@ public class GuildSiegeManager {
             progress = 0;
             updateBossBar();
         }
-        progress += diff * CAPTURE_RATE;
+        progress += diff * captureRate;
         if (progress > 100) progress = 100;
         updateBossBar();
         if (progress >= 100) {
@@ -480,6 +490,23 @@ public class GuildSiegeManager {
             }
         }
     }
+
+    /** Toggle fast capture/debug mode. */
+    public boolean toggleDebug() {
+        debug = !debug;
+        captureRate = debug ? DEBUG_CAPTURE_RATE : DEFAULT_CAPTURE_RATE;
+        countdownSeconds = debug ? DEBUG_COUNTDOWN : DEFAULT_COUNTDOWN;
+        if (plugin != null) {
+            plugin.getLogger().info("[SiegeDebug] mode " + (debug ? "enabled" : "disabled"));
+        }
+        if (countdownTask != null) {
+            countdownTask.cancel();
+            startCountdown();
+        }
+        return debug;
+    }
+
+    public boolean isDebug() { return debug; }
 
     private void updateBossBar() {
         if (progressBar == null) return;

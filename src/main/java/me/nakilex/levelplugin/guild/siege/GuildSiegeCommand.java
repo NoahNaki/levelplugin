@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.guild.siege;
 
 import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -29,6 +30,15 @@ public class GuildSiegeCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         Player player = (Player) sender;
+        if (args.length > 0 && args[0].equalsIgnoreCase("debug")) {
+            if (!player.isOp() && !player.hasPermission("siege.debug")) {
+                ChatFormatter.sendCenteredMessage(player, ChatColor.RED + "You do not have permission to do that.");
+                return true;
+            }
+            boolean enabled = manager.toggleDebug();
+            ToggleFeedbackUtil.sendToggle(player, "Siege debug", enabled);
+            return true;
+        }
         if (args.length == 0 || args[0].equalsIgnoreCase("join")) {
             manager.signUp(player);
             return true;
@@ -38,7 +48,7 @@ public class GuildSiegeCommand implements CommandExecutor, TabCompleter {
             ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "You have left the siege queue.");
             return true;
         }
-        ChatFormatter.sendCenteredMessage(player, ChatColor.RED + "Usage: /siege <join|leave|announce>");
+        ChatFormatter.sendCenteredMessage(player, ChatColor.RED + "Usage: /siege <join|leave|announce|debug>");
         return true;
     }
 
@@ -49,6 +59,7 @@ public class GuildSiegeCommand implements CommandExecutor, TabCompleter {
             list.add("join");
             list.add("leave");
             list.add("announce");
+            list.add("debug");
             return list;
         }
         return new ArrayList<>();
