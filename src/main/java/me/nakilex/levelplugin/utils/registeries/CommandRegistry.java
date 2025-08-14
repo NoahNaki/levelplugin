@@ -166,7 +166,9 @@ public class CommandRegistry {
         LocationCommand locationCmd = new LocationCommand(fastTravelManager);
         plugin.getCommand("location").setExecutor(locationCmd);
         plugin.getCommand("location").setTabCompleter(locationCmd);
-        plugin.getCommand("fasttravel").setExecutor(new FastTravelCommand(plugin.getFastTravelGUI()));
+        FastTravelCommand fastTravelCmd = new FastTravelCommand(plugin.getFastTravelGUI());
+        plugin.getCommand("fasttravel").setExecutor(fastTravelCmd);
+        plugin.getCommand("travel").setExecutor(fastTravelCmd);
         plugin.getCommand("profile").setExecutor(new me.nakilex.levelplugin.player.commands.ProfileCommand());
         plugin.getCommand("wipeprofile").setExecutor(new WipeProfileCommand());
 
@@ -180,7 +182,10 @@ public class CommandRegistry {
                 new me.nakilex.levelplugin.fakeblock.FakeGateCommand(plugin);
         plugin.getCommand("fakegate").setExecutor(fakeGateCmd);
         plugin.getCommand("fakegate").setTabCompleter(fakeGateCmd);
-        plugin.getCommand("modelgate").setExecutor(new me.nakilex.levelplugin.fakeblock.ModelGateCommand(plugin));
+        me.nakilex.levelplugin.fakeblock.ModelGateCommand modelGateCmd =
+                new me.nakilex.levelplugin.fakeblock.ModelGateCommand(plugin);
+        plugin.getCommand("modelgate").setExecutor(modelGateCmd);
+        plugin.getCommand("modelgate").setTabCompleter(modelGateCmd);
         plugin.getCommand("town").setExecutor(new TownCommand(upgradeGUI, plugin.getEnvironmentManager()));
         TownStageCommand townStageCmd = new TownStageCommand(plugin.getTownStageManager());
         plugin.getCommand("townstage").setExecutor(townStageCmd);

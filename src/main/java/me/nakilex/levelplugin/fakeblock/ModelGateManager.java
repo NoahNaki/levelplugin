@@ -26,6 +26,8 @@ public class ModelGateManager implements Listener {
     private final Map<java.util.UUID, ModelGate> entityMap = new HashMap<>();
     /** Map of block locations to their gate for quick lookup from interact events. */
     private final Map<org.bukkit.Location, ModelGate> locationMap = new HashMap<>();
+    /** Gate ids that are currently hidden from the world. */
+    private final java.util.Set<String> hidden = new java.util.HashSet<>();
     private final FastTravelManager fastTravelManager;
     private File file;
     private FileConfiguration config;
@@ -149,6 +151,22 @@ public class ModelGateManager implements Listener {
         locationMap.clear();
     }
 
+    /** Temporarily hide or show a gate without removing it from configuration. */
+    public void setGateHidden(String id, boolean hide) {
+        ModelGate gate = gates.get(id.toLowerCase());
+        if (gate == null) return;
+        if (hide) {
+            hidden.add(gate.getId());
+            unregisterEntities(gate);
+            gate.removeAll();
+        } else {
+            hidden.remove(gate.getId());
+            gate.spawnEntities(plugin);
+            registerEntities(gate);
+            updateAll();
+        }
+    }
+
     /** Returns the ids of all defined gates. */
     public java.util.Set<String> getGateIds() {
         return new java.util.HashSet<>(gates.keySet());
@@ -177,6 +195,7 @@ public class ModelGateManager implements Listener {
 
     public void updatePlayer(Player player) {
         for (ModelGate gate : gates.values()) {
+            if (hidden.contains(gate.getId())) continue;
             boolean unlocked = fastTravelManager.isUnlocked(player, gate.getId());
             gate.setClosed(player.getUniqueId(), !unlocked);
             gate.apply(player, plugin);

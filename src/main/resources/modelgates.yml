@@ -1,35 +1,99 @@
 gates:
-  example_model_gate:
-    world: flatland
-    x: -82
-    y: -60
-    z: -32
+  quanxi:
+    world: world
+    x: 886.5
+    y: 133.0
+    z: 191.5
     open_model: base_beacon_blue_inventory
     closed_model: base_beacon_inert
-    closed: false
-  example2_model_gate:
-    world: flatland
-    x: -86
-    y: -60
-    z: -32
-    open_model: base_beacon_red_inventory
-    closed_model: base_beacon_inert
-    closed: false
-  example3_model_gate:
-    world: flatland
-    x: -82
-    y: -60
-    z: -38
+    closed: true
+  rococo_village:
+    world: world
+    x: -1096.5
+    y: 66.0
+    z: 491.5
     open_model: base_beacon_blue_inventory
     closed_model: base_beacon_inert
-    closed: false
-  example4_model_gate:
-    world: flatland
-    x: -86
-    y: -60
-    z: -38
-    open_model: base_beacon_red_inventory
+    closed: true
+  kazan_village:
+    world: world
+    x: 466.5
+    y: 67.0
+    z: -680.5
+    open_model: base_beacon_blue_inventory
     closed_model: base_beacon_inert
-    closed: false
+    closed: true
+  zahmir:
+    world: world
+    x: -1184.5
+    y: 66.0
+    z: -744.5
+    open_model: base_beacon_blue_inventory
+    closed_model: base_beacon_inert
+    closed: true
+  frostford:
+    world: world
+    x: 954.0
+    y: 72.0
+    z: 488.0
+    open_model: base_beacon_blue_inventory
+    closed_model: base_beacon_inert
+    closed: true
+  tolga_village:
+    world: world
+    x: 488.0
+    y: 71.0
+    z: -3.0
+    open_model: base_beacon_blue_inventory
+    closed_model: base_beacon_inert
+    closed: true
+  rinford:
+    world: world
+    x: -173.0
+    y: 79.0
+    z: 781.0
+    open_model: base_beacon_blue_inventory
+    closed_model: base_beacon_inert
+    closed: true
+  orsted:
+    world: world
+    x: 879.5
+    y: 86.0
+    z: -769.5
+    open_model: base_beacon_blue_inventory
+    closed_model: base_beacon_inert
+    closed: true
+  sotiro_village:
+    world: world
+    x: 476.5
+    y: 70.0
+    z: 463.5
+    open_model: base_beacon_blue_inventory
+    closed_model: base_beacon_inert
+    closed: true
+  corwyn:
+    world: world
+    x: -858.5
+    y: 80.0
+    z: -360.5
+    open_model: base_beacon_blue_inventory
+    closed_model: base_beacon_inert
+    closed: true
+  rowan:
+    world: world
+    x: 192.5
+    y: 73.0
+    z: -70.5
+    open_model: base_beacon_blue_inventory
+    closed_model: base_beacon_inert
+    closed: true
+  eldwick:
+    world: world
+    x: 1052.5
+    y: 69.0
+    z: -356.5
+    open_model: base_beacon_blue_inventory
+    closed_model: base_beacon_inert
+    closed: true
 
 

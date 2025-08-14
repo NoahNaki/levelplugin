@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.fasttravel.FastTravelManager;
 import me.nakilex.levelplugin.fakeblock.ModelGate;
 import me.nakilex.levelplugin.fakeblock.ModelGateManager;
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -168,6 +169,12 @@ public class FastTravelGUI implements Listener {
         if(actual>=list.size()) return;
         ModelGate target=list.get(actual);
         if(!manager.isUnlocked(player,target.getId())) return;
+        if (GuildSiegeManager.getInstance().isSiegeRunning() &&
+                "rowan".equalsIgnoreCase(target.getId())) {
+            player.sendMessage(ChatColor.RED +
+                    "You cannot fast travel to this location because there is an ongoing siege!");
+            return;
+        }
         int cost=(int)player.getLocation().distance(target.getLocation());
         if(economy.getBalance(player)<cost){
             player.sendMessage(ChatColor.RED+"You need "+cost+" coins to travel.");
