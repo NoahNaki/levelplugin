@@ -26,6 +26,7 @@ public final class TeleportUtils {
      */
     public static void teleportWithEffect(Player player, Location dest, long delayTicks) {
         Location origin = player.getLocation();
+        player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 40, 0, false, false));
         origin.getWorld().spawnParticle(Particle.DRAGON_BREATH, origin, 100, 0.6, 1.2, 0.6, 0);
         origin.getWorld().spawnParticle(Particle.PORTAL, origin, 60, 0.6, 1.2, 0.6, 0.2);
         origin.getWorld().spawnParticle(Particle.END_ROD, origin, 80, 0.6, 1.2, 0.6, 0.1);
