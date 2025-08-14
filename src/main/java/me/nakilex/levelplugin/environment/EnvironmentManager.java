@@ -394,23 +394,37 @@ public class EnvironmentManager {
                 removeGuildMember(member);
             }
         }
+
         EnvironmentState st = states.get(leader);
-        if (st != null) {
-            st.level = 1;
-            st.stage = 1;
-            playerConfig.setEnvironmentState(leader, 1, 1);
-        }
         Map<String, BuildingState> bMap = buildingStates.get(leader);
-        if (bMap != null) {
-            for (Map.Entry<String, BuildingState> e : bMap.entrySet()) {
-                e.getValue().stage = 1;
-                playerConfig.setBuildingStage(leader, e.getKey(), 1);
+        Location origin = origins.get(leader);
+        String townName = towns.get(leader);
+
+        if (origin != null && townName != null && st != null) {
+            // clear existing upgraded structures
+            clearStructure(origin, townName, st.level, st.stage);
+            if (bMap != null) {
+                for (var e : bMap.entrySet()) {
+                    clearBuildingStructure(origin, townName, e.getKey(), e.getValue().stage);
+                }
+            }
+
+            // reapply base level 1 structures for neutral state
+            applyStructureStage(townName, origin, 1, 1);
+            if (bMap != null) {
+                for (var e : bMap.entrySet()) {
+                    Location bo = getBuildingOrigin(townName, e.getKey(), origin);
+                    applyBuildingStage(e.getKey(), bo, 1);
+                }
             }
         }
-        String townName = towns.get(leader);
+
         if (townName != null) {
             townOwners.remove(townName.toLowerCase());
             playerConfig.clearTownOwner(townName.toLowerCase());
+        }
+        if (st != null) {
+            removeMemberData(leader, townName, st, bMap);
         }
         playerConfig.saveConfigFile();
     }
@@ -1103,6 +1117,34 @@ public class EnvironmentManager {
             Location loc = base.clone().add(b.x - data.ox, b.y - data.oy, b.z - data.oz);
             loc.getBlock().setType(org.bukkit.Material.AIR, false);
         }
+    }
+
+    /** Apply all blocks for a town stage instantly. */
+    private void applyStructureStage(String town, Location origin, int level, int stage) {
+        if (origin == null || town == null) return;
+        var data = stageManager.getStage(town, level, stage);
+        if (data == null) return;
+        Location baseOrigin = origin.clone().add(0, data.oy, 0);
+        Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
+        for (var b : data.blocks) {
+            Location loc = baseOrigin.clone().add(b.x - data.ox, b.y - data.oy, b.z - data.oz);
+            batch.put(loc, b.data);
+        }
+        applyBlocks(batch);
+    }
+
+    /** Apply all blocks for a building stage instantly. */
+    private void applyBuildingStage(String building, Location origin, int stage) {
+        if (origin == null) return;
+        var data = buildingStageManager.getStage(building, stage);
+        if (data == null) return;
+        Location baseOrigin = origin.clone().add(0, data.oy, 0);
+        Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
+        for (var b : data.blocks) {
+            Location loc = baseOrigin.clone().add(b.x - data.ox, b.y - data.oy, b.z - data.oz);
+            batch.put(loc, b.data);
+        }
+        applyBlocks(batch);
     }
 
     /**

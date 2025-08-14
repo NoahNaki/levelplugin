@@ -333,6 +333,12 @@ public class GuildSiegeManager {
 
         String msg;
         if (winner != null) {
+            if (ownerGuild != null && !ownerGuild.equalsIgnoreCase(winner)) {
+                me.nakilex.levelplugin.guild.Guild prev = GuildManager.getInstance().getGuild(ownerGuild);
+                if (prev != null) {
+                    Main.getInstance().getEnvironmentManager().neutralizeGuildTown(prev);
+                }
+            }
             ownerGuild = winner;
             msg = "<glyph:flagleft_icon> " + ChatColor.GOLD + winner
                     + ChatColor.GRAY + " has taken control of the town! <glyph:flagright_icon>";
