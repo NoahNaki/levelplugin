@@ -6,12 +6,10 @@ import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.utils.FireworkUtil;
 import org.bukkit.*;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.persistence.PersistentDataType;
 
 import java.util.Set;
@@ -59,7 +57,7 @@ public class XPBarHandler {
         // SOUND & PARTICLES
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
         player.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, player.getLocation(), 30);
-        launchFirework(player.getLocation());
+        FireworkUtil.launchFirework(player.getLocation());
 
         // UPDATE CUSTOM ITEM TOOLTIPS
         player.getInventory().forEach(stack -> {
@@ -134,24 +132,4 @@ public class XPBarHandler {
     }
 
 
-    /**
-     * Launches a decorative firework at the given location.
-     */
-    public static void launchFirework(Location location) {
-        Firework firework = (Firework) location.getWorld().spawnEntity(location, EntityType.FIREWORK_ROCKET);
-        FireworkMeta meta = firework.getFireworkMeta();
-
-        FireworkEffect effect = FireworkEffect.builder()
-            .withColor(Color.GREEN)
-            .withFade(Color.BLUE)
-            .with(FireworkEffect.Type.BALL)
-            .withFlicker()
-            .withTrail()
-            .build();
-
-        meta.addEffect(effect);
-        meta.setPower(1);
-        firework.setFireworkMeta(meta);
-        firework.setSilent(true);
-    }
 }

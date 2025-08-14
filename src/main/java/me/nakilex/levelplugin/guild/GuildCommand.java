@@ -85,6 +85,14 @@ public class GuildCommand implements TabExecutor {
                     return true;
                 }
                 String name = args[1];
+                if (manager.getGuild(id) != null) {
+                    player.sendMessage(ChatColor.RED + "You are already in a guild.");
+                    return true;
+                }
+                if (manager.getGuild(name) != null) {
+                    player.sendMessage(ChatColor.RED + "A guild with that name already exists.");
+                    return true;
+                }
                 if (manager.createGuild(name, id) != null) {
                     player.sendMessage(ChatColor.GREEN + "Guild " + name + " created!");
                 } else {

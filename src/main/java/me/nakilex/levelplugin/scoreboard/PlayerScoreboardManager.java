@@ -199,14 +199,23 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         if (siege != null && siege.isActive(player.getUniqueId())) {
             String cap = siege.getCapturingGuild();
             int prog = siege.getProgress();
-            String capText = cap == null ? ChatColor.GRAY + "None" : ChatColor.YELLOW + cap + ChatColor.WHITE + " " + prog + "%";
-            current[idx] = ChatColor.RED + "Siege: " + capText;
+            String name = cap == null ? ChatColor.WHITE + "None" : ChatColor.WHITE + cap;
+            String capText = name + " " + ChatColor.DARK_GRAY + "[" + ChatColor.GRAY + prog + "%" + ChatColor.DARK_GRAY + "]";
+            // Further indent the siege line so it aligns with the flag on the duration line
+            current[idx] = ChatColor.RED + "      Siege: " + capText;
             if (!current[idx].equals(prev[idx])) {
                 setLine(board, obj, idx, line, current[idx]);
             }
             idx++; line--;
 
-            // spacer below siege line
+            // Move the flag glyph to the duration line
+            current[idx] = ChatColor.RED + "<glyph:flagleft_icon> " + ChatColor.WHITE + "Duration: " + ChatColor.GRAY + siege.getFormattedRemaining();
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
+
+            // spacer below siege lines
             current[idx] = " ";
             if (!current[idx].equals(prev[idx])) {
                 setLine(board, obj, idx, line, current[idx]);

@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.player.attributes.managers;
 
 import me.nakilex.levelplugin.player.attributes.managers.ManaIndicatorManager;
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.DefaultFontInfo;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -47,10 +48,6 @@ public class ActionBarTask extends BukkitRunnable {
         }
     }
 
-    // Width in pixels of the custom combo glyphs. If this value is too small
-    // the action bar segments will shift when the glyphs render at a larger
-    // size. 8px keeps the layout stable with the current resource pack.
-    private static final int GLYPH_PX = 8;
     private static final String NBSP = "\u00A0";
 
     // Slightly shift HP and mana towards the center
@@ -59,34 +56,6 @@ public class ActionBarTask extends BukkitRunnable {
     private static final int CENTER_PX = 50;
     private static final int RIGHT_PX = 40;
 
-    private int pixelLength(String text) {
-        int px = 0;
-        boolean code = false;
-        boolean bold = false;
-        for (int i = 0; i < text.length(); i++) {
-            char c = text.charAt(i);
-            if (c == '§') {
-                code = true;
-                continue;
-            }
-            if (code) {
-                code = false;
-                bold = c == 'l' || c == 'L';
-                continue;
-            }
-            if (text.startsWith("<glyph:", i)) {
-                int end = text.indexOf('>', i);
-                if (end == -1) end = text.length() - 1;
-                i = end;
-                px += GLYPH_PX + 1;
-                continue;
-            }
-            DefaultFontInfo fi = DefaultFontInfo.getDefaultFontInfo(c);
-            px += (bold ? DefaultFontInfo.getBoldLength() : fi.getLength()) + 1;
-        }
-        return px;
-    }
-
     private String repeatSpacePixels(int px) {
         int spacePx = DefaultFontInfo.SPACE.getLength() + 1;
         int count = (int) Math.ceil(Math.max(0, px) / (double) spacePx);
@@ -94,17 +63,17 @@ public class ActionBarTask extends BukkitRunnable {
     }
 
     private String padRightPx(String text, int px) {
-        int diff = px - pixelLength(text);
+        int diff = px - ChatFormatter.pixelLength(text);
         return text + repeatSpacePixels(diff);
     }
 
     private String padLeftPx(String text, int px) {
-        int diff = px - pixelLength(text);
+        int diff = px - ChatFormatter.pixelLength(text);
         return repeatSpacePixels(diff) + text;
     }
 
     private String centerTextPx(String text, int px) {
-        int diff = px - pixelLength(text);
+        int diff = px - ChatFormatter.pixelLength(text);
         int left = diff / 2;
         int right = diff - left;
         return repeatSpacePixels(left) + text + repeatSpacePixels(right);
@@ -116,7 +85,7 @@ public class ActionBarTask extends BukkitRunnable {
      * cutting them in half.
      */
     private String trimToPx(String text, int px) {
-        while (!text.isEmpty() && pixelLength(text) > px) {
+        while (!text.isEmpty() && ChatFormatter.pixelLength(text) > px) {
             int end = text.length() - 1;
             text = text.substring(0, end);
 
