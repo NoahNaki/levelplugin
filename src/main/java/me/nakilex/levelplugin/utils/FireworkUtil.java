@@ -37,4 +37,22 @@ public final class FireworkUtil {
         firework.setFireworkMeta(meta);
         firework.setSilent(true);
     }
+
+    /**
+     * Spawn a small burst of fireworks around the given location.
+     * Existing launchFirework() is reused for each rocket to keep
+     * the creation logic in a single place.
+     *
+     * @param center central location of the burst
+     * @param amount number of rockets to spawn
+     */
+    public static void burst(Location center, int amount) {
+        ThreadLocalRandom rand = ThreadLocalRandom.current();
+        for (int i = 0; i < amount; i++) {
+            double dx = rand.nextGaussian() * 0.5;
+            double dz = rand.nextGaussian() * 0.5;
+            Location offset = center.clone().add(dx, 0, dz);
+            launchFirework(offset);
+        }
+    }
 }

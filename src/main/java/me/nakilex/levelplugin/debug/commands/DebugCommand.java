@@ -18,6 +18,7 @@ import org.bukkit.entity.Player;
  * <ul>
  *   <li><code>mobinfo</code> – toggles MythicMob kill debug output</li>
  *   <li><code>tps</code> – toggles TPS display on the sidebar scoreboard</li>
+ *   <li><code>siege</code> – toggles fast guild siege capture mode</li>
  * </ul>
  */
 public class DebugCommand implements TabExecutor {
@@ -39,7 +40,7 @@ public class DebugCommand implements TabExecutor {
             if (sender instanceof Player p) {
                 debugGUI.open(p);
             } else {
-                sender.sendMessage("Usage: /debug <mobinfo|tps>");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege>");
             }
             return true;
         }
@@ -64,9 +65,14 @@ public class DebugCommand implements TabExecutor {
                 ToggleFeedbackUtil.sendToggle(p2, "TPS display", tpsEnabled);
                 return true;
 
+            case "siege":
+                boolean fast = me.nakilex.levelplugin.guild.siege.GuildSiegeManager.getInstance().toggleFastCapture();
+                sender.sendMessage("Fast siege mode " + (fast ? "enabled" : "disabled"));
+                return true;
+
             default:
                 sender.sendMessage("Unknown debug subcommand: " + sub);
-                sender.sendMessage("Usage: /debug <mobinfo|tps>");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege>");
                 return true;
         }
     }
@@ -74,7 +80,7 @@ public class DebugCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> subs = List.of("mobinfo", "tps");
+            List<String> subs = List.of("mobinfo", "tps", "siege");
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
                     .toList();

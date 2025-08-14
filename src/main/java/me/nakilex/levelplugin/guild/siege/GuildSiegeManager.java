@@ -24,7 +24,6 @@ import org.bukkit.scheduler.BukkitTask;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Manages the periodic guild siege event.
@@ -60,6 +59,7 @@ public class GuildSiegeManager {
     private int captureElapsed = 0;
     private MultiLineHologram progressHologram;
     private MultiLineHologram ownerHologram;
+    private boolean fastCapture = false;
 
     private GuildSiegeManager() {}
 
@@ -226,7 +226,7 @@ public class GuildSiegeManager {
 
     private void startCountdown() {
         countdownTask = new BukkitRunnable() {
-            int seconds = 60;
+            int seconds = fastCapture ? 5 : 60;
             @Override
             public void run() {
                 if (queue.isEmpty()) {
@@ -297,7 +297,8 @@ public class GuildSiegeManager {
             lastAnnounce = 0;
             updateHologram();
         }
-        progress += diff * CAPTURE_RATE;
+        int rate = fastCapture ? 50 : CAPTURE_RATE;
+        progress += diff * rate;
         if (progress > 100) progress = 100;
         if (progress >= lastAnnounce + 5) {
             lastAnnounce = progress - (progress % 5);
@@ -376,6 +377,16 @@ public class GuildSiegeManager {
     public String getOwnerGuild() { return ownerGuild; }
     public boolean isSiegeRunning() { return captureTask != null; }
 
+    /** Toggle the fast-capture debug mode. */
+    public boolean toggleFastCapture() {
+        fastCapture = !fastCapture;
+        return fastCapture;
+    }
+
+    public boolean isFastCapture() {
+        return fastCapture;
+    }
+
     public int getRemainingSeconds() {
         return captureTask != null ? Math.max(0, SIEGE_DURATION - captureElapsed) : 0;
     }
@@ -397,15 +408,9 @@ public class GuildSiegeManager {
     }
 
     private void launchVictoryFireworks() {
-        ThreadLocalRandom rand = ThreadLocalRandom.current();
-        for (int i = 0; i < 9; i++) {
-            double dist = 70 * Math.sqrt(rand.nextDouble());
-            double angle = rand.nextDouble() * 2 * Math.PI;
-            double x = center.getX() + dist * Math.cos(angle);
-            double z = center.getZ() + dist * Math.sin(angle);
-            double y = Math.max(70, center.getY()) + rand.nextDouble() * 10;
-            FireworkUtil.launchFirework(new Location(center.getWorld(), x, y, z));
-        }
+        Location base = center.clone();
+        base.setY(Math.max(70, center.getY()));
+        FireworkUtil.burst(base, 9);
     }
 
     /**
