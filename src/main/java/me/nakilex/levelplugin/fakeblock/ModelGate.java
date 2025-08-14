@@ -99,15 +99,13 @@ public class ModelGate {
 
     /** Spawn the underlying entities for the open and closed models. */
     public void spawnEntities(Plugin plugin) {
+        // remove any existing furniture first (including lingering from previous sessions)
         removeAll();
         Location centered = LocationUtils.centerOnBlock(location);
         if (centered == null) {
             plugin.getLogger().warning("[ModelGate] Unable to spawn gate '" + id + "'; location is null");
             return;
         }
-
-        // ensure any lingering furniture from previous sessions is removed
-        NexoFurniture.remove(centered);
 
         FurnitureMechanic openMech = NexoFurniture.furnitureMechanic(openModel);
         FurnitureMechanic closedMech = NexoFurniture.furnitureMechanic(closedModel);
@@ -166,6 +164,11 @@ public class ModelGate {
     }
 
     public void removeAll() {
+        Location centered = LocationUtils.centerOnBlock(location);
+        if (centered != null) {
+            // remove any furniture at this block, including strays from prior sessions
+            NexoFurniture.remove(centered);
+        }
         if (openEntity != null) {
             NexoFurniture.remove(openEntity);
             openEntity = null;
