@@ -420,12 +420,22 @@ public class GuildSiegeManager {
         EnvironmentManager env = Main.getInstance().getEnvironmentManager();
         env.hideAllBuildingHolograms(p);
         env.removeAllBuildingHolograms(p.getUniqueId());
+        if (ownerGuild == null) {
+            env.shareTownWithMember(EnvironmentManager.UNCAPTURED_TOWN_ID, p.getUniqueId());
+            if (!env.isTownLoaded(p)) {
+                env.markTownLoaded(p, true);
+            }
+            env.initializePlayer(p);
+            plugin.getLogger().info("[SiegeDebug] Initialized neutral town for " + p.getName());
+            return;
+        }
+
         Guild g = GuildManager.getInstance().getGuild(p.getUniqueId());
         String gName = g != null ? g.getName() : "none";
-        boolean allowed = ownerGuild == null || (g != null && ownerGuild.equalsIgnoreCase(g.getName()));
+        boolean allowed = g != null && ownerGuild.equalsIgnoreCase(g.getName());
         plugin.getLogger().info("[SiegeDebug] owner=" + ownerGuild + " playerGuild=" + gName + " allowed=" + allowed);
         if (allowed) {
-            if (g != null && !g.getLeader().equals(p.getUniqueId())) {
+            if (!g.getLeader().equals(p.getUniqueId())) {
                 env.shareTownWithMember(g.getLeader(), p.getUniqueId());
             }
             if (!env.isTownLoaded(p)) {

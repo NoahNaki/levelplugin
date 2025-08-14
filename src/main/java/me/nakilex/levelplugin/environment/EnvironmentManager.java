@@ -33,6 +33,8 @@ import java.util.UUID;
  */
 public class EnvironmentManager {
     private static final String TOWN_TASK_KEY = "__town__";
+    /** UUID used to represent an uncaptured town state. */
+    public static final java.util.UUID UNCAPTURED_TOWN_ID = new java.util.UUID(0L, 0L);
     private final PlayerConfig playerConfig;
     private final TownStageManager stageManager;
     private final me.nakilex.levelplugin.environment.stage.BuildingStageManager buildingStageManager;
@@ -126,6 +128,12 @@ public class EnvironmentManager {
             java.util.UUID owner = config.getTownOwner(town);
             if (owner != null) {
                 townOwners.put(town.toLowerCase(), owner);
+            }
+        }
+        // Ensure all configured towns exist in an uncaptured state when no owner is stored
+        for (String town : stageManager.getStageNames()) {
+            if (!townOwners.containsKey(town.toLowerCase())) {
+                initializeNeutralTown(town.toLowerCase());
             }
         }
     }
@@ -380,8 +388,48 @@ public class EnvironmentManager {
     /** Clear town ownership and shared data for all members of the guild. */
     public void clearGuildTown(me.nakilex.levelplugin.guild.Guild guild) {
         if (guild == null) return;
+        String town = towns.get(guild.getLeader());
         for (UUID member : guild.getMembers()) {
             resetTown(member);
+        }
+        if (town != null) {
+            initializeNeutralTown(town);
+        }
+    }
+
+    /** Restore the town to a neutral, uncaptured state with stage 1 structures. */
+    private void initializeNeutralTown(String town) {
+        UUID id = UNCAPTURED_TOWN_ID;
+        Location origin = getTownStartLocation();
+        towns.put(id, town.toLowerCase());
+        origins.put(id, origin);
+        states.put(id, new EnvironmentState(1, 1));
+
+        Map<String, BuildingState> map = new HashMap<>();
+        for (String b : buildingStageManager.getBuildings(town)) {
+            map.put(b.toLowerCase(), new BuildingState(1));
+            var st = buildingStageManager.getStage(b, 1);
+            if (st != null) {
+                Location base = getBuildingOrigin(town, b, origin).add(0, st.oy, 0);
+                Map<Location, org.bukkit.block.data.BlockData> batch = new HashMap<>();
+                for (var block : st.blocks) {
+                    Location loc = base.clone().add(block.x - st.ox, block.y - st.oy, block.z - st.oz);
+                    batch.put(loc, block.data);
+                }
+                applyBlocks(batch);
+            }
+        }
+        buildingStates.put(id, map);
+
+        var ts = stageManager.getStage(town, 1, 1);
+        if (ts != null) {
+            Location base = origin.clone().add(0, ts.oy, 0);
+            Map<Location, org.bukkit.block.data.BlockData> batch = new HashMap<>();
+            for (var blk : ts.blocks) {
+                Location loc = base.clone().add(blk.x - ts.ox, blk.y - ts.oy, blk.z - ts.oz);
+                batch.put(loc, blk.data);
+            }
+            applyBlocks(batch);
         }
     }
 
