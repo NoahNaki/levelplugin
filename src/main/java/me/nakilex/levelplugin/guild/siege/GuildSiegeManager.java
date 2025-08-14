@@ -301,7 +301,7 @@ public class GuildSiegeManager {
         if (progress >= lastAnnounce + 5) {
             lastAnnounce = progress - (progress % 5);
             String msg = ChatColor.GOLD + capturingGuild
-                    + ChatColor.GRAY + " | capturing [" + ChatColor.YELLOW + progress + "%" + ChatColor.GRAY + "]";
+                    + ChatColor.GRAY + " is capturing [" + ChatColor.YELLOW + progress + "%" + ChatColor.GRAY + "]";
             broadcast(msg);
             updateHologram();
         }
@@ -479,13 +479,13 @@ public class GuildSiegeManager {
         String guildLine = capturingGuild != null
                 ? ChatColor.GOLD + "<glyph:flagleft_icon> " + capturingGuild + " <glyph:flagright_icon>"
                 : ChatColor.GRAY + "<glyph:flagleft_icon> None <glyph:flagright_icon>";
-        int filled = progress / 5;
-        int total = 20;
+        int total = 6;
+        int filled = progress * total / 100;
         StringBuilder bar = new StringBuilder();
         bar.append(ChatColor.GRAY).append("[");
-        bar.append(ChatColor.GREEN).append("I".repeat(filled));
+        bar.append(ChatColor.GREEN).append("|".repeat(filled));
         if (filled < total) {
-            bar.append(ChatColor.DARK_GRAY).append("I".repeat(total - filled));
+            bar.append(ChatColor.DARK_GRAY).append("|".repeat(total - filled));
         }
         bar.append(ChatColor.GRAY).append("] ").append(ChatColor.WHITE).append(progress).append("%");
         progressHologram.setLines(java.util.Arrays.asList(guildLine, bar.toString()));
