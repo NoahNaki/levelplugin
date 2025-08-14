@@ -193,7 +193,7 @@ commands:
     usage: /enchant
   debug:
     description: Developer debug tools
-    usage: /debug [mobinfo|tps]
+    usage: /debug [mobinfo|tps|siege]
   motd:
     description: Reload or preview the server MOTD
     usage: /motd <reload|preview>

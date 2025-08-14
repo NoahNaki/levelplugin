@@ -299,7 +299,7 @@ public class EnvironmentManager {
         GuildSiegeManager siege = GuildSiegeManager.getInstance();
         if (siege.isSiegeRunning()) return false;
         String owner = siege.getOwnerGuild();
-        if (owner == null) return true;
+        if (owner == null) return false;
         Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
         return g != null && owner.equalsIgnoreCase(g.getName());
     }
@@ -381,6 +381,52 @@ public class EnvironmentManager {
         for (UUID member : guild.getMembers()) {
             resetTown(member);
         }
+    }
+
+    /**
+     * Remove guild ownership but keep the town at stage 1 for future capture.
+     */
+    public void neutralizeGuildTown(me.nakilex.levelplugin.guild.Guild guild) {
+        if (guild == null) return;
+        UUID leader = guild.getLeader();
+        for (UUID member : guild.getMembers()) {
+            if (!member.equals(leader)) {
+                removeGuildMember(member);
+            }
+        }
+
+        EnvironmentState st = states.get(leader);
+        Map<String, BuildingState> bMap = buildingStates.get(leader);
+        Location origin = origins.get(leader);
+        String townName = towns.get(leader);
+
+        if (origin != null && townName != null && st != null) {
+            // clear existing upgraded structures
+            clearStructure(origin, townName, st.level, st.stage);
+            if (bMap != null) {
+                for (var e : bMap.entrySet()) {
+                    clearBuildingStructure(origin, townName, e.getKey(), e.getValue().stage);
+                }
+            }
+
+            // reapply base level 1 structures for neutral state
+            applyStructureStage(townName, origin, 1, 1);
+            if (bMap != null) {
+                for (var e : bMap.entrySet()) {
+                    Location bo = getBuildingOrigin(townName, e.getKey(), origin);
+                    applyBuildingStage(e.getKey(), bo, 1);
+                }
+            }
+        }
+
+        if (townName != null) {
+            townOwners.remove(townName.toLowerCase());
+            playerConfig.clearTownOwner(townName.toLowerCase());
+        }
+        if (st != null) {
+            removeMemberData(leader, townName, st, bMap);
+        }
+        playerConfig.saveConfigFile();
     }
 
     private void loadPlayerData(UUID uuid) {
@@ -1071,6 +1117,34 @@ public class EnvironmentManager {
             Location loc = base.clone().add(b.x - data.ox, b.y - data.oy, b.z - data.oz);
             loc.getBlock().setType(org.bukkit.Material.AIR, false);
         }
+    }
+
+    /** Apply all blocks for a town stage instantly. */
+    private void applyStructureStage(String town, Location origin, int level, int stage) {
+        if (origin == null || town == null) return;
+        var data = stageManager.getStage(town, level, stage);
+        if (data == null) return;
+        Location baseOrigin = origin.clone().add(0, data.oy, 0);
+        Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
+        for (var b : data.blocks) {
+            Location loc = baseOrigin.clone().add(b.x - data.ox, b.y - data.oy, b.z - data.oz);
+            batch.put(loc, b.data);
+        }
+        applyBlocks(batch);
+    }
+
+    /** Apply all blocks for a building stage instantly. */
+    private void applyBuildingStage(String building, Location origin, int stage) {
+        if (origin == null) return;
+        var data = buildingStageManager.getStage(building, stage);
+        if (data == null) return;
+        Location baseOrigin = origin.clone().add(0, data.oy, 0);
+        Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
+        for (var b : data.blocks) {
+            Location loc = baseOrigin.clone().add(b.x - data.ox, b.y - data.oy, b.z - data.oz);
+            batch.put(loc, b.data);
+        }
+        applyBlocks(batch);
     }
 
     /**
