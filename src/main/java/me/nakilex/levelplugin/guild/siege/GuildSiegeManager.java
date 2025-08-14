@@ -480,7 +480,7 @@ public class GuildSiegeManager {
         String guildLine = capturingGuild != null
                 ? ChatColor.GOLD + "<glyph:flagleft_icon> " + capturingGuild + " <glyph:flagright_icon>"
                 : ChatColor.GRAY + "<glyph:flagleft_icon> None <glyph:flagright_icon>";
-        int total = 10; // one bar per 10%
+        int total = 20; // one bar per 5%
         String bar = ChatColor.GRAY + "[" +
                 GuiUtil.createProgressBar(progress / 100.0, total, ChatColor.GREEN,
                         ChatColor.DARK_GRAY, "|") +
