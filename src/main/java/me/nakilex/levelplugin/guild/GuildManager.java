@@ -49,7 +49,7 @@ public class GuildManager {
         Guild g = guilds.remove(name);
         if (g == null) return false;
         me.nakilex.levelplugin.environment.EnvironmentManager env = me.nakilex.levelplugin.Main.getInstance().getEnvironmentManager();
-        env.clearGuildTown(g);
+        env.neutralizeGuildTown(g);
         me.nakilex.levelplugin.guild.siege.GuildSiegeManager.getInstance().handleGuildDisband(name, g.getMembers());
         for (UUID m : g.getMembers()) {
             playerGuild.remove(m);
@@ -93,6 +93,8 @@ public class GuildManager {
         playerGuild.remove(target);
         fireEvent(target, g, GuildMembershipEvent.Action.LEAVE);
         if (g.getMembers().isEmpty()) {
+            me.nakilex.levelplugin.environment.EnvironmentManager env = me.nakilex.levelplugin.Main.getInstance().getEnvironmentManager();
+            env.neutralizeGuildTown(g);
             guilds.remove(g.getName());
             me.nakilex.levelplugin.guild.siege.GuildSiegeManager.getInstance().handleGuildDisband(g.getName(), java.util.Collections.emptySet());
         }

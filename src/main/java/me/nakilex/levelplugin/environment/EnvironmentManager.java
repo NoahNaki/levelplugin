@@ -299,7 +299,7 @@ public class EnvironmentManager {
         GuildSiegeManager siege = GuildSiegeManager.getInstance();
         if (siege.isSiegeRunning()) return false;
         String owner = siege.getOwnerGuild();
-        if (owner == null) return true;
+        if (owner == null) return false;
         Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
         return g != null && owner.equalsIgnoreCase(g.getName());
     }
@@ -381,6 +381,38 @@ public class EnvironmentManager {
         for (UUID member : guild.getMembers()) {
             resetTown(member);
         }
+    }
+
+    /**
+     * Remove guild ownership but keep the town at stage 1 for future capture.
+     */
+    public void neutralizeGuildTown(me.nakilex.levelplugin.guild.Guild guild) {
+        if (guild == null) return;
+        UUID leader = guild.getLeader();
+        for (UUID member : guild.getMembers()) {
+            if (!member.equals(leader)) {
+                removeGuildMember(member);
+            }
+        }
+        EnvironmentState st = states.get(leader);
+        if (st != null) {
+            st.level = 1;
+            st.stage = 1;
+            playerConfig.setEnvironmentState(leader, 1, 1);
+        }
+        Map<String, BuildingState> bMap = buildingStates.get(leader);
+        if (bMap != null) {
+            for (Map.Entry<String, BuildingState> e : bMap.entrySet()) {
+                e.getValue().stage = 1;
+                playerConfig.setBuildingStage(leader, e.getKey(), 1);
+            }
+        }
+        String townName = towns.get(leader);
+        if (townName != null) {
+            townOwners.remove(townName.toLowerCase());
+            playerConfig.clearTownOwner(townName.toLowerCase());
+        }
+        playerConfig.saveConfigFile();
     }
 
     private void loadPlayerData(UUID uuid) {
