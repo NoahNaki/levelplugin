@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.environment.stage.TownStageManager;
 import me.nakilex.levelplugin.guild.Guild;
 import me.nakilex.levelplugin.guild.GuildManager;
 import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
+import me.nakilex.levelplugin.utils.MultiLineHologram;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -118,6 +119,7 @@ public class EnvironmentManager {
         this.playerConfig = config;
         this.stageManager = stageManager;
         this.buildingStageManager = buildingStageManager;
+        MultiLineHologram.removeAll("building_hologram:");
         for (String town : config.getGlobalTownNames()) {
             java.util.UUID owner = config.getTownOwner(town);
             if (owner != null) {
@@ -277,6 +279,7 @@ public class EnvironmentManager {
             td.setBillboard(Display.Billboard.CENTER);
             td.setShadowRadius(0f);
             td.setShadowStrength(0f);
+            td.setBackgroundColor(org.bukkit.Color.fromARGB(0, 0, 0, 0));
             td.setText(text);
             td.addScoreboardTag("building_hologram:" + tag.toLowerCase());
             entities.add(td);
@@ -376,18 +379,7 @@ public class EnvironmentManager {
     public void clearGuildTown(me.nakilex.levelplugin.guild.Guild guild) {
         if (guild == null) return;
         for (UUID member : guild.getMembers()) {
-            Player p = org.bukkit.Bukkit.getPlayer(member);
-            if (p != null) {
-                unloadPlayerTown(p);
-                markTownLoaded(p, false);
-            }
-            removeGuildMember(member);
-        }
-        if (!townOwners.isEmpty()) {
-            String key = townOwners.keySet().iterator().next();
-            townOwners.remove(key);
-            playerConfig.clearTownOwner(key);
-            playerConfig.saveConfigFile();
+            resetTown(member);
         }
     }
 
@@ -617,6 +609,7 @@ public class EnvironmentManager {
             }
         }
         buildingHolograms.clear();
+        MultiLineHologram.removeAll("building_hologram:");
     }
 
     public void removeAllBuildingHolograms(UUID uuid) {
@@ -816,35 +809,6 @@ public class EnvironmentManager {
         return townOrigin.clone().add(pl.x, pl.y, pl.z);
     }
 
-    private void teleportWithEffect(Player player, Location dest, Runnable after) {
-        var startLoc = player.getLocation().clone();
-        new org.bukkit.scheduler.BukkitRunnable() {
-            int t = 60;
-            @Override public void run() {
-                if(!player.isOnline()) { cancel(); return; }
-                if(player.getLocation().distanceSquared(startLoc) > 0.1) {
-                    player.sendMessage(ChatColor.RED + "Teleport cancelled.");
-                    cancel();
-                    return;
-                }
-                double radius = 3.0*(t/60.0);
-                for(int i=0;i<20;i++) {
-                    double angle = 2*Math.PI*i/20.0;
-                    double x = radius*Math.cos(angle);
-                    double z = radius*Math.sin(angle);
-                    player.getWorld().spawnParticle(org.bukkit.Particle.DRAGON_BREATH,startLoc.clone().add(x,1,z),0,0,0,0,0);
-                }
-                if(--t <= 0) {
-                    player.teleport(dest);
-                    player.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.BLINDNESS,40,0,false,false));
-                    player.getWorld().spawnParticle(org.bukkit.Particle.FLASH, player.getLocation(), 20, 0.5,0.5,0.5,0);
-                    if(after != null) after.run();
-                    cancel();
-                }
-            }
-        }.runTaskTimer(Main.getInstance(),0L,1L);
-    }
-
     /**
      * Ensure all chunks that contain the player's town and unlocked buildings
      * are loaded. Each chunk will be requested multiple times until it is
@@ -911,14 +875,19 @@ public class EnvironmentManager {
         }
         final Location finalOrigin = origin;
         spawnStructure(player, finalOrigin, state.level, state.stage, after);
-        player.sendMessage(ChatColor.YELLOW + "Settlement created at " +
-                finalOrigin.getBlockX() + "," + finalOrigin.getBlockY() + "," +
-                finalOrigin.getBlockZ());
     }
 
     /** Remove the player's settlement so they can start over. */
     public void resetTown(Player player) {
-        UUID uuid = player.getUniqueId();
+        resetTownData(player.getUniqueId(), player, true);
+    }
+
+    /** Reset settlement data for the given UUID, if online messages are not sent. */
+    public void resetTown(UUID uuid) {
+        resetTownData(uuid, org.bukkit.Bukkit.getPlayer(uuid), false);
+    }
+
+    private void resetTownData(UUID uuid, Player player, boolean notify) {
         UUID base = getBase(uuid);
         if (!base.equals(uuid)) {
             // member leaving
@@ -927,7 +896,9 @@ public class EnvironmentManager {
             Map<String, BuildingState> bMap = buildingStates.get(base);
             removeMemberData(uuid, town, st, bMap);
             coopPartners.remove(base);
-            player.sendMessage(ChatColor.RED + "You have left the town.");
+            if (notify && player != null) {
+                player.sendMessage(ChatColor.RED + "You have left the town.");
+            }
             invalidateTownChunks(base);
             return;
         }
@@ -963,7 +934,9 @@ public class EnvironmentManager {
         playerConfig.clearEnvironmentData(uuid);
         playerConfig.clearCoop(uuid);
         playerConfig.saveConfigFile();
-        player.sendMessage(ChatColor.RED + "Your settlement has been reset.");
+        if (notify && player != null) {
+            player.sendMessage(ChatColor.RED + "Your settlement has been reset.");
+        }
         invalidateTownChunks(uuid);
     }
 

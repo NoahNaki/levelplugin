@@ -8,6 +8,7 @@ import org.bukkit.ChatColor;
 import me.nakilex.levelplugin.guild.Guild;
 import me.nakilex.levelplugin.guild.GuildManager;
 import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 
 public class TownCommand implements CommandExecutor {
     private final UpgradeGUI gui;
@@ -29,7 +30,7 @@ public class TownCommand implements CommandExecutor {
         if (owner != null) {
             Guild g = GuildManager.getInstance().getGuild(p.getUniqueId());
             if (g == null || !owner.equalsIgnoreCase(g.getName())) {
-                p.sendMessage(ChatColor.RED + "Your guild does not control this town.");
+                ChatFormatter.sendCenteredMessage(p, ChatColor.RED + "Your guild does not control this town.");
                 return true;
             }
         }
