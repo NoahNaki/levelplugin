@@ -166,7 +166,9 @@ public class CommandRegistry {
         LocationCommand locationCmd = new LocationCommand(fastTravelManager);
         plugin.getCommand("location").setExecutor(locationCmd);
         plugin.getCommand("location").setTabCompleter(locationCmd);
-        plugin.getCommand("fasttravel").setExecutor(new FastTravelCommand(plugin.getFastTravelGUI()));
+        FastTravelCommand fastTravelCmd = new FastTravelCommand(plugin.getFastTravelGUI());
+        plugin.getCommand("fasttravel").setExecutor(fastTravelCmd);
+        plugin.getCommand("travel").setExecutor(fastTravelCmd);
         plugin.getCommand("profile").setExecutor(new me.nakilex.levelplugin.player.commands.ProfileCommand());
         plugin.getCommand("wipeprofile").setExecutor(new WipeProfileCommand());
 
