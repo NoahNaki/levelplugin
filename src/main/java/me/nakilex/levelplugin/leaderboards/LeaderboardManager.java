@@ -4,6 +4,10 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
+import me.nakilex.levelplugin.environment.EnvironmentManager;
+import me.nakilex.levelplugin.guild.Guild;
+import me.nakilex.levelplugin.guild.GuildManager;
+import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -30,6 +34,8 @@ public class LeaderboardManager {
     private final File file;
     private FileConfiguration config;
     private final Map<String, Leaderboard> boards = new HashMap<>();
+    /** Whether leaderboards are currently visible. */
+    private boolean visible = false;
 
     public LeaderboardManager(Main plugin, EconomyManager eco, PlayerConfig pCfg, DuelStatsManager duelStats, SettingsManager settingsManager) {
         this.plugin = plugin;
@@ -50,16 +56,16 @@ public class LeaderboardManager {
         if (sec == null) return;
         for (String id : sec.getKeys(false)) {
             String base = id + ".";
-            String worldName = sec.getString(id + ".world");
+            String worldName = sec.getString(base + "world");
             World world = Bukkit.getWorld(worldName);
             if (world == null && "world2".equalsIgnoreCase(worldName)) {
                 world = Bukkit.getWorld("world");
             }
             if (world == null) continue;
-            double x = sec.getDouble(id + ".x");
-            double y = sec.getDouble(id + ".y");
-            double z = sec.getDouble(id + ".z");
-            String typeStr = sec.getString(id + ".type", "LEVEL").toUpperCase();
+            double x = sec.getDouble(base + "x");
+            double y = sec.getDouble(base + "y");
+            double z = sec.getDouble(base + "z");
+            String typeStr = sec.getString(base + "type", "LEVEL").toUpperCase();
             LeaderboardType type;
             try {
                 type = LeaderboardType.valueOf(typeStr);
@@ -79,14 +85,20 @@ public class LeaderboardManager {
     }
 
     public void updateAll() {
+        if (!checkVisibility()) return;
         plugin.getLogger().info("Updating " + boards.size() + " leaderboards");
         for (LeaderboardType type : LeaderboardType.values()) {
-            updateType(type);
+            updateTypeInternal(type);
         }
     }
 
     /** Update only leaderboards of a specific type. */
     public void updateType(LeaderboardType type) {
+        if (!checkVisibility()) return;
+        updateTypeInternal(type);
+    }
+
+    private void updateTypeInternal(LeaderboardType type) {
         for (Leaderboard lb : boards.values()) {
             if (lb.getType() != type) continue;
             List<String> lines = buildLines(type);
@@ -105,6 +117,27 @@ public class LeaderboardManager {
         for (Leaderboard lb : boards.values()) {
             lb.despawn();
         }
+        visible = false;
+    }
+
+    /** Determine if leaderboards should currently be displayed based on town progress. */
+    private boolean checkVisibility() {
+        boolean shouldDisplay = shouldDisplayLeaderboards();
+        if (!shouldDisplay && visible) {
+            removeAll();
+        }
+        visible = shouldDisplay;
+        return shouldDisplay;
+    }
+
+    private boolean shouldDisplayLeaderboards() {
+        GuildSiegeManager siege = GuildSiegeManager.getInstance();
+        String owner = siege.getOwnerGuild();
+        if (owner == null) return false;
+        Guild guild = GuildManager.getInstance().getGuild(owner);
+        if (guild == null) return false;
+        EnvironmentManager env = Main.getInstance().getEnvironmentManager();
+        return env != null && env.getBuildingStage(guild.getLeader(), "foundation") >= 2;
     }
 
     private List<String> buildLines(LeaderboardType type) {

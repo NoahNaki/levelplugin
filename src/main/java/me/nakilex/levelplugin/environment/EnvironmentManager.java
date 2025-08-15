@@ -145,15 +145,24 @@ public class EnvironmentManager {
         return origins.get(getBase(uuid));
     }
 
+    /**
+     * Get the current stage of a player's building using their UUID. This
+     * checks any loaded state first and falls back to persisted config data.
+     */
+    public int getBuildingStage(UUID uuid, String building) {
+        UUID base = getBase(uuid);
+        Map<String, BuildingState> map = buildingStates.get(base);
+        if (map != null) {
+            BuildingState bs = map.get(building.toLowerCase());
+            if (bs != null) return bs.stage;
+        }
+        return playerConfig.getBuildingStage(base, building.toLowerCase());
+    }
+
     /** Get the current stage of a player's building. */
     public int getPlayerBuildingStage(Player player, String building) {
         loadPlayerState(player);
-        java.util.UUID base = getBase(player.getUniqueId());
-        java.util.Map<String, BuildingState> map = buildingStates.get(base);
-        if (map == null) return 1;
-        BuildingState bs = map.get(building.toLowerCase());
-        if (bs == null) return 1;
-        return bs.stage;
+        return getBuildingStage(player.getUniqueId(), building);
     }
 
     /** Whether the player's town is currently loaded for them. */
