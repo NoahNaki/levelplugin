@@ -31,7 +31,10 @@ public class QuestNPCEffectTask extends BukkitRunnable {
             "blacksmith", "<glyph:anvil>",
             "enchanter", "<glyph:enchanter>",
             "storage manager", "<glyph:banker>",
-            "storage merchant", "<glyph:banker>");
+            "storage merchant", "<glyph:banker>",
+            "auction house", "<glyph:auctionhouse>",
+            "stable keeper", "<glyph:horse>",
+            "salvager", "<glyph:scrapper>");
 
     /** Vertical offset for NPC glyph displays. */
     private static final double GLYPH_Y_OFFSET = 2.8;
@@ -60,7 +63,7 @@ public class QuestNPCEffectTask extends BukkitRunnable {
             if (npc != null) relevant.add(npc);
         }
         for (NPC npc : CitizensAPI.getNPCRegistry()) {
-            if (NAME_GLYPHS.containsKey(npc.getName().toLowerCase())) {
+            if (getServiceGlyph(npc.getName().toLowerCase()) != null) {
                 relevant.add(npc);
             }
         }
@@ -132,11 +135,11 @@ public class QuestNPCEffectTask extends BukkitRunnable {
                 }
             }
         }
-        return NAME_GLYPHS.get(npc.getName().toLowerCase());
+        return getServiceGlyph(npc.getName().toLowerCase());
     }
 
     private void updateDisplay(Player player, NPC npc, int npcId, String glyph, TextDisplay disp, Map<Integer, TextDisplay> map) {
-        if (!NAME_GLYPHS.containsKey(npc.getName().toLowerCase())) {
+        if (getServiceGlyph(npc.getName().toLowerCase()) == null) {
             player.spawnParticle(Particle.HAPPY_VILLAGER, npc.getEntity().getLocation().add(0, 2, 0), 1, 0, 0, 0, 0);
         }
 
@@ -163,5 +166,11 @@ public class QuestNPCEffectTask extends BukkitRunnable {
                 disp.setText(glyph);
             }
         }
+    }
+
+    private static String getServiceGlyph(String lowerName) {
+        String glyph = NAME_GLYPHS.get(lowerName);
+        if (glyph != null) return glyph;
+        return lowerName.contains("merchant") ? "<glyph:market>" : null;
     }
 }
