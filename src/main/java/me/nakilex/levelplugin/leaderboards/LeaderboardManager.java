@@ -146,7 +146,12 @@ public class LeaderboardManager {
             return false;
         }
         UUID leader = g.getLeader();
-        int stage = plugin.getEnvironmentManager().getBuildingStage(leader, "foundation");
+        EnvironmentManager env = plugin.getEnvironmentManager();
+        if (env == null) {
+            plugin.getLogger().warning("Environment manager missing; hiding leaderboards");
+            return false;
+        }
+        int stage = env.getBuildingStage(leader, "foundation");
         return stage >= 2;
     }
 
