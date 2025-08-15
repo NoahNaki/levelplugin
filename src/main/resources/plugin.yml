@@ -51,9 +51,6 @@ commands:
     description: Choose your class once or have an admin override it
     usage: /class <Mage|Archer|Rogue|Warrior|Cleric>|admin <player> <class>|unlockall <player>
     aliases: [c]
-  awakenwarrior:
-    description: Choose your warrior awakening
-    usage: /awakenwarrior
   subclass:
     description: Change to an unlocked subclass
     usage: /subclass
@@ -69,7 +66,6 @@ commands:
     description: Adjust a player's coins (can be negative)
     usage: /addcoins <player|@everyone> <amount>
     permission: none
-
   blacksmith:
     description: Opens the Blacksmith GUI.
     usage: /blacksmith

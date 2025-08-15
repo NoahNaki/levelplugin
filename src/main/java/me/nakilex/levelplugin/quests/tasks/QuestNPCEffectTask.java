@@ -170,7 +170,7 @@ public class QuestNPCEffectTask extends BukkitRunnable {
     private static String getServiceGlyph(String lowerName) {
         String glyph = NAME_GLYPHS.get(lowerName);
         if (glyph != null) return glyph;
-        return lowerName.contains("merchant") ? "<glyph:market>" : null;
+        return lowerName.contains("merchant") ? " \n<glyph:market>" : null;
     }
 
     public void clearGlyphs() {
