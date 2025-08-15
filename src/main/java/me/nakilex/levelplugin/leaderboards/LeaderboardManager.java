@@ -131,13 +131,10 @@ public class LeaderboardManager {
     }
 
     private boolean shouldDisplayLeaderboards() {
-        GuildSiegeManager siege = GuildSiegeManager.getInstance();
-        String owner = siege.getOwnerGuild();
-        if (owner == null) return false;
-        Guild guild = GuildManager.getInstance().getGuild(owner);
-        if (guild == null) return false;
-        EnvironmentManager env = Main.getInstance().getEnvironmentManager();
-        return env != null && env.getBuildingStage(guild.getLeader(), "foundation") >= 2;
+        // Temporarily bypass foundation stage check so leaderboards are always visible.
+        // This is useful during development when the controlling guild's progress
+        // might not be initialized yet.
+        return true;
     }
 
     private List<String> buildLines(LeaderboardType type) {

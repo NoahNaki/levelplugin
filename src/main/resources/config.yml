@@ -25,19 +25,19 @@ tips:
 leaderboards:
   level:
     world: world
-    x: 144
-    y: 78
-    z: -30
+    x: 0
+    y: 80
+    z: 0
     type: LEVEL
   balance:
     world: world
-    x: 143
-    y: 78
-    z: -34
+    x: 2
+    y: 80
+    z: 0
     type: BALANCE
   duels:
     world: world
-    x: 144
-    y: 78
-    z: -38
+    x: 4
+    y: 80
+    z: 0
     type: DUELS
