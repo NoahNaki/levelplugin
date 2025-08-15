@@ -7,6 +7,7 @@ features:
 debug:
   chunk-loading: false
   mythic-skill-damage: false
+  leaderboards: true
 
 # Tips configuration
 tips:
@@ -25,19 +26,19 @@ tips:
 leaderboards:
   level:
     world: world
-    x: 0
-    y: 80
-    z: 0
+    x: 144
+    y: 78
+    z: -30
     type: LEVEL
   balance:
     world: world
-    x: 2
-    y: 80
-    z: 0
+    x: 143
+    y: 78
+    z: -34
     type: BALANCE
   duels:
     world: world
-    x: 4
-    y: 80
-    z: 0
+    x: 144
+    y: 78
+    z: -38
     type: DUELS

@@ -37,6 +37,16 @@ public class LeaderboardManager {
     /** Whether leaderboards are currently visible. */
     private boolean visible = false;
 
+    private static boolean isDebug() {
+        return Main.getInstance().getCustomConfig().getBoolean("debug.leaderboards", false);
+    }
+
+    private static void debug(String msg) {
+        if (isDebug()) {
+            Main.getInstance().getLogger().info("[LeaderboardDebug] " + msg);
+        }
+    }
+
     public LeaderboardManager(Main plugin, EconomyManager eco, PlayerConfig pCfg, DuelStatsManager duelStats, SettingsManager settingsManager) {
         this.plugin = plugin;
         this.economy = eco;
@@ -85,7 +95,11 @@ public class LeaderboardManager {
     }
 
     public void updateAll() {
-        if (!checkVisibility()) return;
+        debug("updateAll invoked");
+        if (!checkVisibility()) {
+            debug("Leaderboards not visible; skipping updateAll");
+            return;
+        }
         plugin.getLogger().info("Updating " + boards.size() + " leaderboards");
         for (LeaderboardType type : LeaderboardType.values()) {
             updateTypeInternal(type);
@@ -94,7 +108,11 @@ public class LeaderboardManager {
 
     /** Update only leaderboards of a specific type. */
     public void updateType(LeaderboardType type) {
-        if (!checkVisibility()) return;
+        debug("updateType invoked for " + type);
+        if (!checkVisibility()) {
+            debug("Leaderboards not visible; skipping updateType");
+            return;
+        }
         updateTypeInternal(type);
     }
 
@@ -114,6 +132,7 @@ public class LeaderboardManager {
 
     /** Remove all hologram entities. */
     public void removeAll() {
+        debug("Removing all leaderboards");
         for (Leaderboard lb : boards.values()) {
             lb.despawn();
         }
@@ -123,7 +142,9 @@ public class LeaderboardManager {
     /** Determine if leaderboards should currently be displayed based on town progress. */
     private boolean checkVisibility() {
         boolean shouldDisplay = shouldDisplayLeaderboards();
+        debug("checkVisibility: shouldDisplay=" + shouldDisplay + " visible=" + visible);
         if (!shouldDisplay && visible) {
+            debug("Visibility disabled; removing leaderboards");
             removeAll();
         }
         visible = shouldDisplay;
@@ -131,10 +152,21 @@ public class LeaderboardManager {
     }
 
     private boolean shouldDisplayLeaderboards() {
-        // Temporarily bypass foundation stage check so leaderboards are always visible.
-        // This is useful during development when the controlling guild's progress
-        // might not be initialized yet.
-        return true;
+        GuildSiegeManager siege = GuildSiegeManager.getInstance();
+        String ownerName = siege.getOwnerGuild();
+        debug("Controlling guild: " + ownerName);
+        if (ownerName == null) {
+            return false;
+        }
+        Guild g = GuildManager.getInstance().getGuild(ownerName);
+        if (g == null) {
+            debug("Guild object not found for " + ownerName);
+            return false;
+        }
+        UUID leader = g.getLeader();
+        int stage = plugin.getEnvironmentManager().getBuildingStage(leader, "foundation");
+        debug("Leader " + leader + " foundation stage=" + stage);
+        return stage >= 2;
     }
 
     private List<String> buildLines(LeaderboardType type) {
