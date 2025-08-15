@@ -36,15 +36,19 @@ public class LocationMusicManager {
             debug(player, "auto-skip enabled; not playing");
             return;
         }
+        String current = playing.get(player.getUniqueId());
+        if (current != null && !current.equals(sound)) {
+            player.stopSound(current, SoundCategory.MUSIC);
+            debug(player, "stopped previous sound '" + current + "'");
+        }
         player.playSound(player.getLocation(), sound, SoundCategory.MUSIC, 1f, 1f);
         playing.put(player.getUniqueId(), sound);
         debug(player, "playing sound '" + sound + "'");
     }
 
-    /** Stop any song playing for the player when they exit a location. */
+    /** Handle a player exiting a location without stopping the music. */
     public void handleExit(Player player) {
-        debug(player, "exit location");
-        skipSong(player);
+        debug(player, "exit location (song continues)");
     }
 
     /** Stop the current song for the player. */
