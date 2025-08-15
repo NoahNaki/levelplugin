@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.mob.commands;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.mob.utils.DropDisplayToggles;
+import me.nakilex.levelplugin.settings.data.PlayerSettings;
 import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -28,7 +29,7 @@ public class ToggleCommand implements TabExecutor {
         Player player = (Player) sender;
 
         if (args.length != 1) {
-            player.sendMessage("Usage: /toggle <dropdetails|dropdetailschat>");
+            player.sendMessage("Usage: /toggle <dropdetails|dropdetailschat|songskip>");
             return true;
         }
 
@@ -44,9 +45,18 @@ public class ToggleCommand implements TabExecutor {
                 ToggleFeedbackUtil.sendToggle(player, "Drop details chat", nowChat);
                 break;
 
+            case "songskip":
+                PlayerSettings ps = plugin.getSettingsManager().getSettings(player);
+                ps.toggleAutoSkipSongs();
+                if (ps.isAutoSkipSongs()) {
+                    plugin.getLocationMusicManager().skipSong(player);
+                }
+                ToggleFeedbackUtil.sendToggle(player, "Auto skip songs", ps.isAutoSkipSongs());
+                break;
+
             default:
                 player.sendMessage("Unknown feature: " + feature);
-                player.sendMessage("Usage: /toggle <dropdetails|dropdetailschat>");
+                player.sendMessage("Usage: /toggle <dropdetails|dropdetailschat|songskip>");
         }
 
         return true;
@@ -55,7 +65,7 @@ public class ToggleCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return Arrays.asList("dropdetails", "dropdetailschat").stream()
+            return Arrays.asList("dropdetails", "dropdetailschat", "songskip").stream()
                     .filter(opt -> opt.startsWith(args[0].toLowerCase()))
                     .toList();
         }

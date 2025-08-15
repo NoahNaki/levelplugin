@@ -178,6 +178,9 @@ commands:
   travel:
     description: Open the fast travel menu
     usage: /travel
+  skipsong:
+    description: Stop the current location song
+    usage: /skipsong
   wipeprofile:
     description: Wipe a player's profile
     usage: /wipeprofile <player>

@@ -98,6 +98,7 @@ public class Main extends JavaPlugin {
     public PlayerToggleManager getMobDebugToggleManager() { return bootstrap.getMobDebugToggleManager(); }
     public me.nakilex.levelplugin.fasttravel.FastTravelManager getFastTravelManager() { return bootstrap.getFastTravelManager(); }
     public me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI getFastTravelGUI() { return bootstrap.getFastTravelGUI(); }
+    public me.nakilex.levelplugin.music.LocationMusicManager getLocationMusicManager() { return bootstrap.getLocationMusicManager(); }
     public me.nakilex.levelplugin.motd.MotdManager getMotdManager() { return bootstrap.getMotdManager(); }
     public me.nakilex.levelplugin.fakeblock.QuestGateManager getQuestGateManager() { return bootstrap.getQuestGateManager(); }
     public me.nakilex.levelplugin.fakeblock.FakeBlockManager getFakeBlockManager() { return bootstrap.getFakeBlockManager(); }

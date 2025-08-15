@@ -104,6 +104,18 @@ public class FastTravelManager {
 
     public FastTravelPoint getPoint(String name) { return points.get(name.toLowerCase()); }
 
+    /** Return the fast travel point located at the given world location, or null if none. */
+    public FastTravelPoint getPointAt(Location loc) {
+        if (loc == null) return null;
+        for (FastTravelPoint pt : points.values()) {
+            Location pLoc = pt.getLocation();
+            if (pLoc.getWorld().equals(loc.getWorld()) && loc.distance(pLoc) <= pt.getRadius()) {
+                return pt;
+            }
+        }
+        return null;
+    }
+
     public void recordUse(Player player, String name) {
         lastUsed.put(player.getUniqueId(), name.toLowerCase());
     }
