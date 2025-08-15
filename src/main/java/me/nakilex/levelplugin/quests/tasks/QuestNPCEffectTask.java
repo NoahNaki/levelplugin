@@ -172,4 +172,15 @@ public class QuestNPCEffectTask extends BukkitRunnable {
         if (glyph != null) return glyph;
         return lowerName.contains("merchant") ? "<glyph:market>" : null;
     }
+
+    public void clearGlyphs() {
+        for (Map<Integer, TextDisplay> map : glyphs.values()) {
+            for (TextDisplay td : map.values()) {
+                if (td != null && !td.isDead()) {
+                    td.remove();
+                }
+            }
+        }
+        glyphs.clear();
+    }
 }
