@@ -187,7 +187,13 @@ public class PluginBootstrap {
         environmentManager = new me.nakilex.levelplugin.environment.EnvironmentManager(playerConfig, townStageManager, buildingStageManager);
         upgradeGUI = new me.nakilex.levelplugin.environment.UpgradeGUI(environmentManager);
         buildingUpgradeGUI = new me.nakilex.levelplugin.environment.BuildingUpgradeGUI(environmentManager);
-        leaderboardManager = new me.nakilex.levelplugin.leaderboards.LeaderboardManager(plugin, economyManager, playerConfig, duelStatsManager, settingsManager);
+        leaderboardManager = new me.nakilex.levelplugin.leaderboards.LeaderboardManager(
+                plugin,
+                economyManager,
+                playerConfig,
+                duelStatsManager,
+                settingsManager,
+                environmentManager);
         CitizensAPI.getTraitFactory().registerTrait(net.citizensnpcs.api.trait.TraitInfo.create(MetadataTrait.class).withName("MetadataTrait"));
         if (!validateDependencies()) {
             plugin.getLogger().severe("Missing required dependencies. Disabling plugin..");

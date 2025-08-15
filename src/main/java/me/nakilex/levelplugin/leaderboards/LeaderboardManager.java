@@ -4,10 +4,10 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
-import me.nakilex.levelplugin.environment.EnvironmentManager;
 import me.nakilex.levelplugin.guild.Guild;
 import me.nakilex.levelplugin.guild.GuildManager;
 import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
+import me.nakilex.levelplugin.environment.EnvironmentManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -30,6 +30,8 @@ public class LeaderboardManager {
     private final PlayerConfig playerConfig;
     private final DuelStatsManager duelStats;
     private final SettingsManager settingsManager;
+    /** Environment manager used to check foundation progress before spawning boards. */
+    private final EnvironmentManager environmentManager;
 
     private final File file;
     private FileConfiguration config;
@@ -38,12 +40,18 @@ public class LeaderboardManager {
     private boolean visible = false;
 
 
-    public LeaderboardManager(Main plugin, EconomyManager eco, PlayerConfig pCfg, DuelStatsManager duelStats, SettingsManager settingsManager) {
+    public LeaderboardManager(Main plugin,
+                              EconomyManager eco,
+                              PlayerConfig pCfg,
+                              DuelStatsManager duelStats,
+                              SettingsManager settingsManager,
+                              EnvironmentManager environmentManager) {
         this.plugin = plugin;
         this.economy = eco;
         this.playerConfig = pCfg;
         this.duelStats = duelStats;
         this.settingsManager = settingsManager;
+        this.environmentManager = environmentManager;
         this.file = new File(plugin.getDataFolder(), "config.yml");
         load();
         plugin.getLogger().info("Loaded " + boards.size() + " leaderboard(s)");
@@ -146,12 +154,11 @@ public class LeaderboardManager {
             return false;
         }
         UUID leader = g.getLeader();
-        EnvironmentManager env = plugin.getEnvironmentManager();
-        if (env == null) {
+        if (environmentManager == null) {
             plugin.getLogger().warning("Environment manager missing; hiding leaderboards");
             return false;
         }
-        int stage = env.getBuildingStage(leader, "foundation");
+        int stage = environmentManager.getBuildingStage(leader, "foundation");
         return stage >= 2;
     }
 
