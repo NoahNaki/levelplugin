@@ -671,6 +671,45 @@ public class EnvironmentManager {
         }
     }
 
+    /** Refresh hologram text for all buildings visible to the player. */
+    public void refreshAllBuildingHolograms(Player player) {
+        var map = buildingHolograms.get(player.getUniqueId());
+        if (map == null || map.isEmpty()) return;
+        for (String building : new java.util.ArrayList<>(map.keySet())) {
+            refreshBuildingHologram(player, building);
+        }
+    }
+
+    /** Rebuild a single building hologram based on the player's current inventory. */
+    private void refreshBuildingHologram(Player player, String building) {
+        UUID uuid = player.getUniqueId();
+        removeBuildingHologram(uuid, building);
+        if (!canShowTownHolograms(player)) return;
+        UUID base = getBase(uuid);
+        loadPlayerState(player);
+        Location townOrigin = origins.get(base);
+        String town = towns.get(base);
+        if (townOrigin == null || town == null) return;
+        Map<String, BuildingState> map = buildingStates.get(base);
+        int stage = 1;
+        if (map != null) {
+            BuildingState st = map.get(building.toLowerCase());
+            if (st != null) stage = st.stage;
+        }
+        var data = buildingStageManager.getStage(building, stage);
+        if (data == null) return;
+        Location baseOrigin = getBuildingOrigin(town, building, townOrigin).add(0, data.oy, 0);
+        Location holo = baseOrigin.clone().add(
+                data.hx - data.ox + 0.5,
+                data.hy - data.oy + 2,
+                data.hz - data.oz + 0.5);
+        java.util.List<String> textLines = formatBuildingHologram(player, building, stage);
+        if (textLines == null || textLines.isEmpty()) return;
+        java.util.List<org.bukkit.entity.Entity> displays = spawnHologramLines(player, holo, textLines, building);
+        buildingHolograms.computeIfAbsent(uuid, k -> new java.util.HashMap<>())
+                .put(building.toLowerCase(), displays);
+    }
+
     /** Hide every existing building hologram from the given viewer. */
     public void hideAllBuildingHolograms(Player viewer) {
         for (var map : buildingHolograms.values()) {

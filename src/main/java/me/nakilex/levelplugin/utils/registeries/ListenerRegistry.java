@@ -199,7 +199,7 @@ public class ListenerRegistry {
         pm.registerEvents(new DungeonMobSpawnListener(plugin.getDungeonManager(), plugin), plugin);
         pm.registerEvents(hologramListener, plugin);
         pm.registerEvents(stageBlockInteractListener, plugin);
-        pm.registerEvents(new me.nakilex.levelplugin.environment.listeners.TownItemDropListener(plugin.getEnvironmentManager()), plugin);
+        pm.registerEvents(new me.nakilex.levelplugin.environment.listeners.EnvironmentInventoryListener(plugin.getEnvironmentManager()), plugin);
         pm.registerEvents(new me.nakilex.levelplugin.environment.listeners.EnvironmentDistanceListener(plugin.getEnvironmentManager()), plugin);
         pm.registerEvents(new WanderingMerchantListener(wmManager), plugin);
         if (plugin.getCustomConfig().getBoolean("features.profiles", true)) {
