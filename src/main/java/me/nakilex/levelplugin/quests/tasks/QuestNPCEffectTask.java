@@ -31,7 +31,6 @@ public class QuestNPCEffectTask extends BukkitRunnable {
             "blacksmith", "<glyph:anvil>",
             "enchanter", "<glyph:enchanter>",
             "storage manager", "<glyph:banker>",
-            "storage merchant", "<glyph:banker>",
             "auction house", "<glyph:auctionhouse>",
             "stable keeper", "<glyph:horse>",
             "salvager", "<glyph:scrapper>");
