@@ -27,15 +27,21 @@ public class FastTravelManager {
     }
 
     private void load() {
-        file = new File(plugin.getDataFolder(), "fasttravel.yml");
+        file = new File(plugin.getDataFolder(), "regions.yml");
         if (!file.exists()) {
-            try { file.createNewFile(); } catch (IOException e) { e.printStackTrace(); }
+            File legacy = new File(plugin.getDataFolder(), "fasttravel.yml");
+            if (legacy.exists()) {
+                legacy.renameTo(file);
+            } else {
+                try { file.createNewFile(); } catch (IOException e) { e.printStackTrace(); }
+            }
         }
         config = YamlConfiguration.loadConfiguration(file);
 
-        if (config.isConfigurationSection("locations")) {
-            for (String key : config.getConfigurationSection("locations").getKeys(false)) {
-                String path = "locations." + key;
+        String sectionName = config.isConfigurationSection("regions") ? "regions" : "locations";
+        if (config.isConfigurationSection(sectionName)) {
+            for (String key : config.getConfigurationSection(sectionName).getKeys(false)) {
+                String path = sectionName + "." + key;
                 String world = config.getString(path + ".world");
                 double x = config.getDouble(path + ".x");
                 double y = config.getDouble(path + ".y");
@@ -63,9 +69,11 @@ public class FastTravelManager {
     }
 
     private void save() {
+        config.set("regions", null);
+        config.set("locations", null);
         for (Map.Entry<String, FastTravelPoint> e : points.entrySet()) {
             FastTravelPoint pt = e.getValue();
-            String path = "locations." + e.getKey();
+            String path = "regions." + e.getKey();
             Location loc = pt.getLocation();
             config.set(path + ".world", loc.getWorld().getName());
             config.set(path + ".x", loc.getX());
