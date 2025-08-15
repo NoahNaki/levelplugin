@@ -61,10 +61,18 @@ public class FastTravelManager {
         }
 
         if (config.isConfigurationSection("players")) {
+            me.nakilex.levelplugin.player.config.PlayerConfig pCfg = plugin.getPlayerConfig();
             for (String id : config.getConfigurationSection("players").getKeys(false)) {
                 List<String> list = config.getStringList("players." + id);
-                unlocked.put(UUID.fromString(id), new HashSet<>(list));
+                UUID uuid = UUID.fromString(id);
+                unlocked.put(uuid, new HashSet<>(list));
+                if (pCfg != null) {
+                    pCfg.getConfig().set("players." + id + ".fasttravel", list);
+                }
             }
+            if (pCfg != null) pCfg.saveConfigFile();
+            config.set("players", null);
+            try { config.save(file); } catch (IOException e) { e.printStackTrace(); }
         }
     }
 
@@ -84,9 +92,7 @@ public class FastTravelManager {
             config.set(path + ".radius", pt.getRadius());
             config.set(path + ".town", pt.isTown());
         }
-        for (Map.Entry<UUID, Set<String>> e : unlocked.entrySet()) {
-            config.set("players." + e.getKey(), new ArrayList<>(e.getValue()));
-        }
+        config.set("players", null);
         try { config.save(file); } catch (IOException e) { e.printStackTrace(); }
     }
 
@@ -150,21 +156,36 @@ public class FastTravelManager {
     }
 
     public void unlock(Player player, String name, boolean recordCodex) {
-        unlocked.computeIfAbsent(player.getUniqueId(), k -> new HashSet<>()).add(name.toLowerCase());
-        save();
+        UUID id = player.getUniqueId();
+        unlocked.computeIfAbsent(id, k -> new HashSet<>()).add(name.toLowerCase());
+        if (plugin.getPlayerConfig() != null) {
+            plugin.getPlayerConfig().savePlayerData(id);
+        }
         if (recordCodex) {
-            me.nakilex.levelplugin.Main.getInstance().getCodexManager().recordLocation(player, EnvironmentManager.beautifyWords(name));
+            Main.getInstance().getCodexManager().recordLocation(player, EnvironmentManager.beautifyWords(name));
         }
         Main.getInstance().getQuestManager().handleDiscover(player, name.toLowerCase());
         Main.getInstance().getQuestManager().handleWaystoneUnlock(player, name.toLowerCase());
     }
 
     public boolean isUnlocked(Player player, String name) {
-        return unlocked.getOrDefault(player.getUniqueId(), Collections.emptySet()).contains(name.toLowerCase());
+        return getUnlocked(player.getUniqueId()).contains(name.toLowerCase());
     }
 
     public Set<String> getUnlocked(Player player) {
-        return unlocked.getOrDefault(player.getUniqueId(), Collections.emptySet());
+        return getUnlocked(player.getUniqueId());
+    }
+
+    public Set<String> getUnlocked(UUID uuid) {
+        return unlocked.getOrDefault(uuid, Collections.emptySet());
+    }
+
+    public void setUnlocked(UUID uuid, Collection<String> names) {
+        unlocked.put(uuid, new HashSet<>(names));
+    }
+
+    public void clearUnlocked(UUID uuid) {
+        unlocked.remove(uuid);
     }
 
     public Main getPlugin() { return plugin; }
