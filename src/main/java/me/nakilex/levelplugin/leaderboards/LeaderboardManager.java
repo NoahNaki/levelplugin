@@ -37,13 +37,14 @@ public class LeaderboardManager {
     /** Whether leaderboards are currently visible. */
     private boolean visible = false;
 
-    private static boolean isDebug() {
-        return Main.getInstance().getCustomConfig().getBoolean("debug.leaderboards", false);
+    private boolean isDebug() {
+        FileConfiguration cfg = plugin.getCustomConfig();
+        return cfg != null && cfg.getBoolean("debug.leaderboards", false);
     }
 
-    private static void debug(String msg) {
+    private void debug(String msg) {
         if (isDebug()) {
-            Main.getInstance().getLogger().info("[LeaderboardDebug] " + msg);
+            plugin.getLogger().info("[LeaderboardDebug] " + msg);
         }
     }
 
