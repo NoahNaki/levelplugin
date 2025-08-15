@@ -27,16 +27,23 @@ public class LocationMusicManager {
 
     /** Handle a player entering a named location. */
     public void handleEnter(Player player, String location) {
-        String sound = locationSongs.get(location.toLowerCase());
+        String key = location.toLowerCase();
+        String sound = locationSongs.get(key);
+        debug(player, "enter '" + location + "' key='" + key + "' sound='" + sound + "'");
         if (sound == null) return;
         PlayerSettings settings = Main.getInstance().getSettingsManager().getSettings(player);
-        if (settings.isAutoSkipSongs()) return;
+        if (settings.isAutoSkipSongs()) {
+            debug(player, "auto-skip enabled; not playing");
+            return;
+        }
         player.playSound(player.getLocation(), sound, SoundCategory.MUSIC, 1f, 1f);
         playing.put(player.getUniqueId(), sound);
+        debug(player, "playing sound '" + sound + "'");
     }
 
     /** Stop any song playing for the player when they exit a location. */
     public void handleExit(Player player) {
+        debug(player, "exit location");
         skipSong(player);
     }
 
@@ -45,6 +52,13 @@ public class LocationMusicManager {
         String sound = playing.remove(player.getUniqueId());
         if (sound != null) {
             player.stopSound(sound, SoundCategory.MUSIC);
+            debug(player, "stopped sound '" + sound + "'");
+        } else {
+            debug(player, "no sound to stop");
         }
+    }
+
+    private void debug(Player player, String msg) {
+        Main.getInstance().getLogger().info("[LocationMusic] " + player.getName() + ": " + msg);
     }
 }

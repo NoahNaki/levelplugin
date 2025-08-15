@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.fasttravel.listeners;
 
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.fasttravel.FastTravelManager;
 import me.nakilex.levelplugin.fasttravel.data.FastTravelPoint;
 import me.nakilex.levelplugin.music.LocationMusicManager;
@@ -36,6 +37,7 @@ public class ExplorationListener implements Listener {
         if (pt != null) {
             String name = pt.getName();
             if (!name.equalsIgnoreCase(prev)) {
+                Main.getInstance().getLogger().info("Exploration debug: " + player.getName() + " entered " + name + " (prev=" + prev + ")");
                 current.put(player.getUniqueId(), name);
                 if (!manager.isUnlocked(player, name)) {
                     manager.unlock(player, name);
