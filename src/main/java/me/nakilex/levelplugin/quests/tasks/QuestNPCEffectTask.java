@@ -18,12 +18,19 @@ import org.bukkit.Location;
 import org.bukkit.Color;
 import org.bukkit.scheduler.BukkitRunnable;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 public class QuestNPCEffectTask extends BukkitRunnable {
     private final QuestManager questManager;
     private final Map<UUID, Map<Integer, TextDisplay>> glyphs = new HashMap<>();
+
+    private static final Map<String, String> NAME_GLYPHS = Map.of(
+            "blacksmith", "<glyph:anvil>",
+            "enchanter", "<glyph:enchanter>",
+            "storage manager", "<glyph:banker>");
 
     public QuestNPCEffectTask(QuestManager questManager) {
         this.questManager = questManager;
@@ -43,12 +50,23 @@ public class QuestNPCEffectTask extends BukkitRunnable {
             return false;
         });
 
+        Set<NPC> relevant = new HashSet<>();
+        for (int npcId : questManager.getNpcQuestMap().keySet()) {
+            NPC npc = CitizensAPI.getNPCRegistry().getById(npcId);
+            if (npc != null) relevant.add(npc);
+        }
+        for (NPC npc : CitizensAPI.getNPCRegistry()) {
+            if (NAME_GLYPHS.containsKey(npc.getName().toLowerCase())) {
+                relevant.add(npc);
+            }
+        }
+
         for (Player player : Bukkit.getOnlinePlayers()) {
             Map<Integer, TextDisplay> map = glyphs.computeIfAbsent(player.getUniqueId(), k -> new HashMap<>());
+            Set<Integer> processed = new HashSet<>();
 
-            for (var entry : questManager.getNpcQuestMap().entrySet()) {
-                int npcId = entry.getKey();
-                NPC npc = CitizensAPI.getNPCRegistry().getById(npcId);
+            for (NPC npc : relevant) {
+                int npcId = npc.getId();
                 TextDisplay disp = map.get(npcId);
 
                 if (npc == null || !npc.isSpawned() || !npc.getEntity().getWorld().equals(player.getWorld())
@@ -60,75 +78,84 @@ public class QuestNPCEffectTask extends BukkitRunnable {
                     continue;
                 }
 
-                var quest = questManager.getQuest(entry.getValue());
-                QuestState state = questManager.getQuestState(player, quest);
-
-                // Determine which glyph, if any, should be displayed
-                String glyph = null;
-                if (state == QuestState.AVAILABLE) {
-                    glyph = "<glyph:info>"; // quest available
-                } else if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS || state == QuestState.TURN_IN_READY) {
-                    PlayerQuestProgress prog = questManager.getProgress(player.getUniqueId(), quest.getId());
-                    int idx = 0;
-                    if (prog != null) {
-                        for (int i = 0; i < quest.getObjectives().size(); i++) {
-                            if (prog.getProgress(i) < quest.getObjectives().get(i).getAmount()) {
-                                idx = i;
-                                break;
-                            }
-                        }
-                    }
-                    QuestObjective obj = quest.getObjectives().get(idx);
-                    if (obj.getType() == QuestObjectiveType.TALK &&
-                            obj.getTarget().toLowerCase().startsWith("npc" + npcId)) {
-                        boolean last = idx == quest.getObjectives().size() - 1;
-                        glyph = last ? "<glyph:check>" : "<glyph:alert>";
-                    } else if (state == QuestState.TURN_IN_READY) {
-                        glyph = "<glyph:check>"; // fallback for completed quests
-                    }
-                }
+                String glyph = getGlyph(player, npc);
 
                 if (glyph != null) {
-                    player.spawnParticle(Particle.HAPPY_VILLAGER, npc.getEntity().getLocation().add(0, 2, 0), 1, 0, 0, 0, 0);
-
-                    Location loc = npc.getEntity().getLocation().add(0, 2.4, 0);
-                    if (disp == null || disp.isDead()) {
-                        disp = (TextDisplay) npc.getEntity().getWorld().spawnEntity(loc, EntityType.TEXT_DISPLAY);
-                        disp.setBillboard(Display.Billboard.CENTER);
-                        disp.setShadowRadius(0f);
-                        disp.setShadowStrength(0f);
-                        disp.setBackgroundColor(org.bukkit.Color.fromARGB(0, 0, 0, 0));
-                        disp.setText(glyph);
-                        map.put(npcId, disp);
-                        for (Player p : Bukkit.getOnlinePlayers()) {
-                            if (!p.equals(player)) {
-                                p.hideEntity(Main.getInstance(), disp);
-                            }
-                        }
-                    } else {
-                        disp.teleport(loc);
-                        if (!player.canSee(disp)) {
-                            player.showEntity(Main.getInstance(), disp);
-                        }
-                        if (!glyph.equals(disp.getText())) {
-                            disp.setText(glyph);
-                        }
-                    }
+                    updateDisplay(player, npc, npcId, glyph, disp, map);
+                    processed.add(npcId);
                 } else if (disp != null) {
                     disp.remove();
                     map.remove(npcId);
                 }
             }
 
-            // Remove glyphs for NPCs no longer tracked
             map.entrySet().removeIf(e -> {
-                if (!questManager.getNpcQuestMap().containsKey(e.getKey())) {
+                if (!processed.contains(e.getKey())) {
                     TextDisplay td = e.getValue();
                     if (td != null && !td.isDead()) td.remove();
                     return true;
                 }
                 return false;
             });
+        }
+    }
+
+    private String getGlyph(Player player, NPC npc) {
+        String questId = questManager.getNpcQuestMap().get(npc.getId());
+        if (questId != null) {
+            var quest = questManager.getQuest(questId);
+            QuestState state = questManager.getQuestState(player, quest);
+            if (state == QuestState.AVAILABLE) {
+                return "<glyph:info>";
+            } else if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS || state == QuestState.TURN_IN_READY) {
+                PlayerQuestProgress prog = questManager.getProgress(player.getUniqueId(), quest.getId());
+                int idx = 0;
+                if (prog != null) {
+                    for (int i = 0; i < quest.getObjectives().size(); i++) {
+                        if (prog.getProgress(i) < quest.getObjectives().get(i).getAmount()) {
+                            idx = i;
+                            break;
+                        }
+                    }
+                }
+                QuestObjective obj = quest.getObjectives().get(idx);
+                if (obj.getType() == QuestObjectiveType.TALK &&
+                        obj.getTarget().toLowerCase().startsWith("npc" + npc.getId())) {
+                    boolean last = idx == quest.getObjectives().size() - 1;
+                    return last ? "<glyph:check>" : "<glyph:alert>";
+                } else if (state == QuestState.TURN_IN_READY) {
+                    return "<glyph:check>";
+                }
+            }
+        }
+        return NAME_GLYPHS.get(npc.getName().toLowerCase());
+    }
+
+    private void updateDisplay(Player player, NPC npc, int npcId, String glyph, TextDisplay disp, Map<Integer, TextDisplay> map) {
+        player.spawnParticle(Particle.HAPPY_VILLAGER, npc.getEntity().getLocation().add(0, 2, 0), 1, 0, 0, 0, 0);
+
+        Location loc = npc.getEntity().getLocation().add(0, 2.4, 0);
+        if (disp == null || disp.isDead()) {
+            disp = (TextDisplay) npc.getEntity().getWorld().spawnEntity(loc, EntityType.TEXT_DISPLAY);
+            disp.setBillboard(Display.Billboard.CENTER);
+            disp.setShadowRadius(0f);
+            disp.setShadowStrength(0f);
+            disp.setBackgroundColor(org.bukkit.Color.fromARGB(0, 0, 0, 0));
+            disp.setText(glyph);
+            map.put(npcId, disp);
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                if (!p.equals(player)) {
+                    p.hideEntity(Main.getInstance(), disp);
+                }
+            }
+        } else {
+            disp.teleport(loc);
+            if (!player.canSee(disp)) {
+                player.showEntity(Main.getInstance(), disp);
+            }
+            if (!glyph.equals(disp.getText())) {
+                disp.setText(glyph);
+            }
         }
     }
 }

@@ -1,14 +1,23 @@
 package me.nakilex.levelplugin.environment.listeners;
 
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 
-/** Prevents lost items when dropping them onto fake blocks in towns. */
-public class TownItemDropListener implements Listener {
+/**
+ * Handles inventory interactions inside towns, preventing item loss and
+ * refreshing building holograms when a player's materials change.
+ */
+public class EnvironmentInventoryListener implements Listener {
     private final EnvironmentManager manager;
 
     // Region coordinates match EnvironmentDistanceListener
@@ -26,7 +35,7 @@ public class TownItemDropListener implements Listener {
     private static final int REGION_MIN_Z = Math.min(REGION_Z1, REGION_Z2);
     private static final int REGION_MAX_Z = Math.max(REGION_Z1, REGION_Z2);
 
-    public TownItemDropListener(EnvironmentManager manager) {
+    public EnvironmentInventoryListener(EnvironmentManager manager) {
         this.manager = manager;
     }
 
@@ -40,12 +49,39 @@ public class TownItemDropListener implements Listener {
                 && z >= REGION_MIN_Z && z <= REGION_MAX_Z;
     }
 
+    private void scheduleRefresh(Player player) {
+        Bukkit.getScheduler().runTask(Main.getInstance(),
+                () -> manager.refreshAllBuildingHolograms(player));
+    }
+
     @EventHandler
     public void onDrop(PlayerDropItemEvent event) {
         var player = event.getPlayer();
         if (manager.isTownLoaded(player) && inTownRegion(player.getLocation())) {
             event.setCancelled(true);
             player.sendMessage(ChatColor.RED + "You cannot drop inside this town.");
+        }
+        scheduleRefresh(player);
+    }
+
+    @EventHandler(priority = org.bukkit.event.EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPickup(EntityPickupItemEvent event) {
+        if (event.getEntity() instanceof Player player) {
+            scheduleRefresh(player);
+        }
+    }
+
+    @EventHandler(priority = org.bukkit.event.EventPriority.MONITOR, ignoreCancelled = true)
+    public void onInventoryClick(InventoryClickEvent event) {
+        if (event.getWhoClicked() instanceof Player player) {
+            scheduleRefresh(player);
+        }
+    }
+
+    @EventHandler(priority = org.bukkit.event.EventPriority.MONITOR, ignoreCancelled = true)
+    public void onInventoryDrag(InventoryDragEvent event) {
+        if (event.getWhoClicked() instanceof Player player) {
+            scheduleRefresh(player);
         }
     }
 }
