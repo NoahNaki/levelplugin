@@ -43,11 +43,12 @@ public class ExplorationListener implements Listener {
                     manager.unlock(player, name);
                     player.sendTitle(pt.getColor() + pt.getName(), ChatColor.GRAY + pt.getDescription(), 10, 60, 10);
                 }
-                musicManager.handleEnter(player, name);
             }
         } else if (prev != null) {
             current.remove(player.getUniqueId());
-            musicManager.handleExit(player);
         }
+
+        // Update location music each move for fading and stopping
+        musicManager.update(player, pt, to);
     }
 }
