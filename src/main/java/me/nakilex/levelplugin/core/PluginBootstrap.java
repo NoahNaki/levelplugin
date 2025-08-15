@@ -176,6 +176,7 @@ public class PluginBootstrap {
     public void enable() {
         manaTracker = new ManaCostTracker(1.5, 5_000L);
         loadConfigFiles();
+        setupCustomConfig();
         playerConfig = new PlayerConfig(plugin);
         initializeManagers();
         playerConfig.loadAllPlayers();
@@ -186,8 +187,14 @@ public class PluginBootstrap {
         environmentManager = new me.nakilex.levelplugin.environment.EnvironmentManager(playerConfig, townStageManager, buildingStageManager);
         upgradeGUI = new me.nakilex.levelplugin.environment.UpgradeGUI(environmentManager);
         buildingUpgradeGUI = new me.nakilex.levelplugin.environment.BuildingUpgradeGUI(environmentManager);
+        leaderboardManager = new me.nakilex.levelplugin.leaderboards.LeaderboardManager(
+                plugin,
+                economyManager,
+                playerConfig,
+                duelStatsManager,
+                settingsManager,
+                environmentManager);
         CitizensAPI.getTraitFactory().registerTrait(net.citizensnpcs.api.trait.TraitInfo.create(MetadataTrait.class).withName("MetadataTrait"));
-        setupCustomConfig();
         if (!validateDependencies()) {
             plugin.getLogger().severe("Missing required dependencies. Disabling plugin..");
             plugin.getServer().getPluginManager().disablePlugin(plugin);
@@ -270,7 +277,6 @@ public class PluginBootstrap {
         scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(plugin, economyManager, gemsManager, partyManager, questManager);
         calendarManager = new me.nakilex.levelplugin.calendar.CalendarManager(plugin);
         duelStatsManager = new me.nakilex.levelplugin.leaderboards.DuelStatsManager(plugin);
-        leaderboardManager = new me.nakilex.levelplugin.leaderboards.LeaderboardManager(plugin, economyManager, playerConfig, duelStatsManager, settingsManager);
         partyGlowManager = new PartyGlowManager(plugin, partyManager, scoreboardManager::getBoard);
         friendGlowManager = new FriendGlowManager(plugin, friendManager, scoreboardManager::getBoard);
         visibilityManager = new PlayerVisibilityManager(plugin, friendManager, settingsManager);
@@ -414,8 +420,8 @@ public class PluginBootstrap {
         if (itemConfig != null) itemConfig.saveItems();
         if (guildManager != null) guildManager.save();
         if (playerConfig != null) {
-            boolean profilesEnabled = plugin.getCustomConfig()
-                    .getBoolean("features.profiles", true);
+            FileConfiguration cfg = plugin.getCustomConfig();
+            boolean profilesEnabled = cfg == null || cfg.getBoolean("features.profiles", true);
             me.nakilex.levelplugin.player.profile.ProfileManager pm =
                     me.nakilex.levelplugin.player.profile.ProfileManager.getInstance();
             for (org.bukkit.entity.Player p : org.bukkit.Bukkit.getOnlinePlayers()) {

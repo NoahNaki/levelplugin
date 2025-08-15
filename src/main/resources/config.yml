@@ -24,20 +24,20 @@ tips:
 # Leaderboard locations
 leaderboards:
   level:
-    world: flatland
-    x: 100
-    y: -50
-    z: 100
+    world: world
+    x: 144
+    y: 78
+    z: -30
     type: LEVEL
-  duels:
-    world: flatland
-    x: 105
-    y: -50
-    z: 100
-    type: DUELS
   balance:
-    world: flatland
-    x: 110
-    y: -50
-    z: 100
+    world: world
+    x: 143
+    y: 78
+    z: -34
     type: BALANCE
+  duels:
+    world: world
+    x: 144
+    y: 78
+    z: -38
+    type: DUELS
