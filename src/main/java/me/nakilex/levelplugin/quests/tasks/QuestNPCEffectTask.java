@@ -32,6 +32,9 @@ public class QuestNPCEffectTask extends BukkitRunnable {
             "enchanter", "<glyph:enchanter>",
             "storage manager", "<glyph:banker>");
 
+    /** Vertical offset for NPC glyph displays. */
+    private static final double GLYPH_Y_OFFSET = 2.8;
+
     public QuestNPCEffectTask(QuestManager questManager) {
         this.questManager = questManager;
     }
@@ -134,7 +137,7 @@ public class QuestNPCEffectTask extends BukkitRunnable {
     private void updateDisplay(Player player, NPC npc, int npcId, String glyph, TextDisplay disp, Map<Integer, TextDisplay> map) {
         player.spawnParticle(Particle.HAPPY_VILLAGER, npc.getEntity().getLocation().add(0, 2, 0), 1, 0, 0, 0, 0);
 
-        Location loc = npc.getEntity().getLocation().add(0, 2.4, 0);
+        Location loc = npc.getEntity().getLocation().add(0, GLYPH_Y_OFFSET, 0);
         if (disp == null || disp.isDead()) {
             disp = (TextDisplay) npc.getEntity().getWorld().spawnEntity(loc, EntityType.TEXT_DISPLAY);
             disp.setBillboard(Display.Billboard.CENTER);
