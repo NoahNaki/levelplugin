@@ -31,7 +31,8 @@ stages:
         x: 4597
         y: 116
         z: -1145
-      npcs: []
+      npcs:
+        - 637;111;8;126;-7.654175;88.799995
       schematic: blacksmith_2.schem
       holo:
         x: 105
@@ -45,8 +46,8 @@ stages:
       upgrade_cost:
         coins: 2000
         materials:
-          coal: 200
           raw_iron: 200
+          coal: 200
   fountain:
     '1':
       world: flatland
@@ -93,8 +94,8 @@ stages:
       upgrade_cost:
         coins: 500
         materials:
-          coal: 50
           raw_iron: 50
+          coal: 50
   library:
     '1':
       world: flatland
@@ -127,7 +128,8 @@ stages:
         x: 4597
         y: 116
         z: -1145
-      npcs: []
+      npcs:
+        - 638;150;8;99;-7.654175;88.799995
       schematic: library_2.schem
       holo:
         x: 131
@@ -141,8 +143,8 @@ stages:
       upgrade_cost:
         coins: 2000
         materials:
-          coal: 300
           raw_iron: 300
+          coal: 300
   housing:
     '1':
       world: flatland
@@ -175,7 +177,8 @@ stages:
         x: 4597
         y: 116
         z: -1145
-      npcs: []
+      npcs:
+        - 639;83;3;48;-7.654175;88.799995
       schematic: housing_2.schem
       holo:
         x: 90
@@ -189,104 +192,8 @@ stages:
       upgrade_cost:
         coins: 1000
         materials:
-          coal: 200
           raw_iron: 200
-  more_housing:
-    '1':
-      world: flatland
-      pos1:
-        x: 4814
-        y: -61
-        z: -1356
-      pos2:
-        x: 4597
-        y: 116
-        z: -1145
-      npcs: []
-      schematic: more_housing_1.schem
-      holo:
-        x: 102
-        y: 3
-        z: 48
-      priority: 0
-      origin:
-        x: 101
-        y: 2
-        z: 47
-    '2':
-      world: flatland
-      pos1:
-        x: 4814
-        y: -61
-        z: -1356
-      pos2:
-        x: 4597
-        y: 116
-        z: -1145
-      npcs: []
-      schematic: more_housing_2.schem
-      holo:
-        x: 102
-        y: 3
-        z: 48
-      priority: 10
-      origin:
-        x: 101
-        y: 2
-        z: 47
-      upgrade_cost:
-        coins: 1000
-        materials:
           coal: 200
-          raw_iron: 200
-  city_center:
-    '1':
-      world: flatland
-      pos1:
-        x: 4814
-        y: -61
-        z: -1356
-      pos2:
-        x: 4597
-        y: 116
-        z: -1145
-      npcs: []
-      schematic: city_center_1.schem
-      holo:
-        x: 91
-        y: 8
-        z: 72
-      priority: 10
-      origin:
-        x: 90
-        y: 6
-        z: 71
-    '2':
-      world: flatland
-      pos1:
-        x: 4814
-        y: -61
-        z: -1356
-      pos2:
-        x: 4597
-        y: 116
-        z: -1145
-      npcs: []
-      schematic: city_center_2.schem
-      holo:
-        x: 91
-        y: 8
-        z: 72
-      priority: 10
-      origin:
-        x: 90
-        y: 6
-        z: 71
-      upgrade_cost:
-        coins: 1000
-        materials:
-          coal: 200
-          raw_iron: 200
   enchanter:
     '1':
       world: flatland
@@ -333,8 +240,106 @@ stages:
       upgrade_cost:
         coins: 500
         materials:
-          coal: 50
           raw_iron: 50
+          coal: 50
+  city_center:
+    '1':
+      world: flatland
+      pos1:
+        x: 4814
+        y: -61
+        z: -1356
+      pos2:
+        x: 4597
+        y: 116
+        z: -1145
+      npcs: []
+      schematic: city_center_1.schem
+      holo:
+        x: 91
+        y: 8
+        z: 72
+      priority: 10
+      origin:
+        x: 90
+        y: 6
+        z: 71
+    '2':
+      world: flatland
+      pos1:
+        x: 4814
+        y: -61
+        z: -1356
+      pos2:
+        x: 4597
+        y: 116
+        z: -1145
+      npcs:
+        - 658;58;9;85;-7.654175;88.799995
+      schematic: city_center_2.schem
+      holo:
+        x: 91
+        y: 8
+        z: 72
+      priority: 10
+      origin:
+        x: 90
+        y: 6
+        z: 71
+      upgrade_cost:
+        coins: 1000
+        materials:
+          raw_iron: 200
+          coal: 200
+  more_housing:
+    '1':
+      world: flatland
+      pos1:
+        x: 4814
+        y: -61
+        z: -1356
+      pos2:
+        x: 4597
+        y: 116
+        z: -1145
+      npcs: []
+      schematic: more_housing_1.schem
+      holo:
+        x: 102
+        y: 3
+        z: 48
+      priority: 0
+      origin:
+        x: 101
+        y: 2
+        z: 47
+    '2':
+      world: flatland
+      pos1:
+        x: 4814
+        y: -61
+        z: -1356
+      pos2:
+        x: 4597
+        y: 116
+        z: -1145
+      npcs:
+        - 671;158;3;41;-7.654175;88.799995
+      schematic: more_housing_2.schem
+      holo:
+        x: 102
+        y: 3
+        z: 48
+      priority: 10
+      origin:
+        x: 101
+        y: 2
+        z: 47
+      upgrade_cost:
+        coins: 1000
+        materials:
+          raw_iron: 200
+          coal: 200
   foundation:
     '1':
       world: flatland
@@ -381,8 +386,8 @@ stages:
       upgrade_cost:
         coins: 5000
         materials:
-          coal: 200
           raw_iron: 200
+          coal: 200
     '3':
       world: flatland
       pos1:
@@ -407,8 +412,8 @@ stages:
       upgrade_cost:
         coins: 10000
         materials:
-          coal: 300
           raw_iron: 300
+          coal: 300
     '4':
       world: flatland
       pos1:
@@ -433,8 +438,8 @@ stages:
       upgrade_cost:
         coins: 20000
         materials:
-          coal: 500
           raw_iron: 500
+          coal: 500
 links:
   town:
     blacksmith:

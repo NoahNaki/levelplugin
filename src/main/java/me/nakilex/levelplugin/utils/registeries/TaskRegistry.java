@@ -20,6 +20,8 @@ import org.bukkit.entity.Player;
 
 public class TaskRegistry {
 
+    private static QuestNPCEffectTask questNpcTask;
+
     public static void startTasks(Main plugin,
                                   HorseConfigManager horseConfigManager,
                                   HorseManager horseManager,
@@ -43,7 +45,8 @@ public class TaskRegistry {
 
         new LeafParticleTask(plugin).runTaskTimer(plugin, 20L, 20L);
 
-        new QuestNPCEffectTask(plugin.getQuestManager()).runTaskTimer(plugin, 20L, 20L);
+        questNpcTask = new QuestNPCEffectTask(plugin.getQuestManager());
+        questNpcTask.runTaskTimer(plugin, 20L, 20L);
         BeaconManager beaconMgr = plugin.getBeaconManager();
         new QuestBeaconTask(plugin.getQuestManager(), beaconMgr).runTaskTimer(plugin, 10L, 20L);
         new QuestPlayTimeTask(plugin.getQuestManager()).runTaskTimer(plugin, 1200L, 1200L);
@@ -57,5 +60,13 @@ public class TaskRegistry {
                 if (target != null) merchantManager.spawnNear(target);
             }
         }.runTaskTimer(plugin, 1200L, 1200L);
+    }
+
+    public static void stopTasks() {
+        if (questNpcTask != null) {
+            questNpcTask.cancel();
+            questNpcTask.clearGlyphs();
+            questNpcTask = null;
+        }
     }
 }

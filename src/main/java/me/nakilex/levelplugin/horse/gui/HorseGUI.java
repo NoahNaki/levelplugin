@@ -77,8 +77,8 @@ public class HorseGUI implements Listener {
     private ItemStack createHorseInfoItem(HorseData horseData) {
         if (horseData != null) {
             // Generate star ratings for speed and jump height
-        String speedStars = GuiUtil.generateStars(horseData.getSpeed(), 10);
-        String jumpStars  = GuiUtil.generateStars(horseData.getJumpHeight(), 10);
+        String speedStars = GuiUtil.glyphStars(Math.min(horseData.getSpeed(), 5));
+        String jumpStars  = GuiUtil.glyphStars(Math.min(horseData.getJumpHeight(), 5));
 
             // Format horse type (capitalize first letter)
             String formattedType = horseData.getType().substring(0, 1).toUpperCase() + horseData.getType().substring(1).toLowerCase();

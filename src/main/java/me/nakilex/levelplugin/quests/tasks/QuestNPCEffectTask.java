@@ -30,7 +30,13 @@ public class QuestNPCEffectTask extends BukkitRunnable {
     private static final Map<String, String> NAME_GLYPHS = Map.of(
             "blacksmith", "<glyph:anvil>",
             "enchanter", "<glyph:enchanter>",
-            "storage manager", "<glyph:banker>");
+            "storage manager", "<glyph:banker>",
+            "auction house", "<glyph:auctionhouse>",
+            "stable keeper", "<glyph:horse>",
+            "salvager", "<glyph:scrapper>");
+
+    /** Vertical offset for NPC glyph displays. */
+    private static final double GLYPH_Y_OFFSET = 2.8;
 
     public QuestNPCEffectTask(QuestManager questManager) {
         this.questManager = questManager;
@@ -56,7 +62,7 @@ public class QuestNPCEffectTask extends BukkitRunnable {
             if (npc != null) relevant.add(npc);
         }
         for (NPC npc : CitizensAPI.getNPCRegistry()) {
-            if (NAME_GLYPHS.containsKey(npc.getName().toLowerCase())) {
+            if (getServiceGlyph(npc.getName().toLowerCase()) != null) {
                 relevant.add(npc);
             }
         }
@@ -128,13 +134,15 @@ public class QuestNPCEffectTask extends BukkitRunnable {
                 }
             }
         }
-        return NAME_GLYPHS.get(npc.getName().toLowerCase());
+        return getServiceGlyph(npc.getName().toLowerCase());
     }
 
     private void updateDisplay(Player player, NPC npc, int npcId, String glyph, TextDisplay disp, Map<Integer, TextDisplay> map) {
-        player.spawnParticle(Particle.HAPPY_VILLAGER, npc.getEntity().getLocation().add(0, 2, 0), 1, 0, 0, 0, 0);
+        if (getServiceGlyph(npc.getName().toLowerCase()) == null) {
+            player.spawnParticle(Particle.HAPPY_VILLAGER, npc.getEntity().getLocation().add(0, 2, 0), 1, 0, 0, 0, 0);
+        }
 
-        Location loc = npc.getEntity().getLocation().add(0, 2.4, 0);
+        Location loc = npc.getEntity().getLocation().add(0, GLYPH_Y_OFFSET, 0);
         if (disp == null || disp.isDead()) {
             disp = (TextDisplay) npc.getEntity().getWorld().spawnEntity(loc, EntityType.TEXT_DISPLAY);
             disp.setBillboard(Display.Billboard.CENTER);
@@ -157,5 +165,22 @@ public class QuestNPCEffectTask extends BukkitRunnable {
                 disp.setText(glyph);
             }
         }
+    }
+
+    private static String getServiceGlyph(String lowerName) {
+        String glyph = NAME_GLYPHS.get(lowerName);
+        if (glyph != null) return glyph;
+        return lowerName.contains("merchant") ? " \n<glyph:market>" : null;
+    }
+
+    public void clearGlyphs() {
+        for (Map<Integer, TextDisplay> map : glyphs.values()) {
+            for (TextDisplay td : map.values()) {
+                if (td != null && !td.isDead()) {
+                    td.remove();
+                }
+            }
+        }
+        glyphs.clear();
     }
 }
