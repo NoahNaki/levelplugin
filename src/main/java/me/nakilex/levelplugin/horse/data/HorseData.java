@@ -64,44 +64,47 @@ public class HorseData {
         this.ownerUUID = ownerUUID;
     }
 
+    /** Pick a value based on weighted probabilities. */
+    private static <T> T pickWeighted(Random random, Map<T, Double> weights) {
+        double r = random.nextDouble();
+        double cumulative = 0;
+        for (var entry : weights.entrySet()) {
+            cumulative += entry.getValue();
+            if (r <= cumulative) return entry.getKey();
+        }
+        // Fallback to first entry if weights don't sum to 1.0
+        return weights.keySet().iterator().next();
+    }
+
     // Method to generate a random horse
     public static HorseData randomHorse(UUID ownerUUID) {
         Random random = new Random();
 
-        // Define your weights (must sum to 1.0)
-        Map<String, Double> weights = new LinkedHashMap<>();
-        // Common colors
-        weights.put("WHITE", 0.20);
-        weights.put("CREAMY", 0.15);
-        weights.put("CHESTNUT", 0.15);
-        weights.put("BROWN", 0.15);
-        // Rarer colors
-        weights.put("GRAY", 0.10);
-        weights.put("BLACK", 0.10);
-        weights.put("DARK_BROWN", 0.05);
-        // Very rare variants
-        weights.put("ZOMBIE", 0.05);
-        weights.put("SKELETON", 0.05);
+        // Weighted horse color selection
+        Map<String, Double> colorWeights = new LinkedHashMap<>();
+        colorWeights.put("WHITE", 0.20);
+        colorWeights.put("CREAMY", 0.15);
+        colorWeights.put("CHESTNUT", 0.15);
+        colorWeights.put("BROWN", 0.15);
+        colorWeights.put("GRAY", 0.10);
+        colorWeights.put("BLACK", 0.10);
+        colorWeights.put("DARK_BROWN", 0.05);
+        colorWeights.put("ZOMBIE", 0.05);
+        colorWeights.put("SKELETON", 0.05);
 
-        // Pick one entry by weight
-        double r = random.nextDouble();
-        double cum = 0;
-        String pickedType = null;
-        for (var entry : weights.entrySet()) {
-            cum += entry.getValue();
-            if (r <= cum) {
-                pickedType = entry.getKey();
-                break;
-            }
-        }
-        // Fallback (shouldn’t happen if weights sum to 1): pick WHITE
-        if (pickedType == null) pickedType = "WHITE";
-
+        String pickedType = pickWeighted(random, colorWeights);
         boolean isVariant = pickedType.equals("ZOMBIE") || pickedType.equals("SKELETON");
 
-        // Speed & jump still 1–10
-        int baseSpeed = random.nextInt(10) + 1;
-        int baseJump  = random.nextInt(10) + 1;
+        // Weighted stat distribution: make high rolls rare
+        Map<Integer, Double> statWeights = new LinkedHashMap<>();
+        statWeights.put(1, 0.40);
+        statWeights.put(2, 0.30);
+        statWeights.put(3, 0.20);
+        statWeights.put(4, 0.08);
+        statWeights.put(5, 0.02);
+
+        int baseSpeed = pickWeighted(random, statWeights);
+        int baseJump  = pickWeighted(random, statWeights);
 
         return new HorseData(pickedType, isVariant, baseSpeed, baseJump, ownerUUID);
     }

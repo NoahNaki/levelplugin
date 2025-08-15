@@ -102,8 +102,11 @@ public class HorseManager implements Listener {
         horse.setCustomName(player.getName() + "'s Horse");
         horse.setCustomNameVisible(true);
         horse.setInvulnerable(true);
-        horse.setJumpStrength(horseData.getJumpHeight() / 10.0);
-        horse.getAttribute(Attribute.MOVEMENT_SPEED).setBaseValue(horseData.getSpeed() * 0.8 / 10.0);
+        int jumpStars = Math.min(horseData.getJumpHeight(), 5);
+        int speedStars = Math.min(horseData.getSpeed(), 5);
+        horse.setJumpStrength(0.3 + jumpStars * 0.1);
+        var speedAttr = horse.getAttribute(Attribute.MOVEMENT_SPEED);
+        if (speedAttr != null) speedAttr.setBaseValue(0.1 + speedStars * 0.03);
         horse.getInventory().setSaddle(new ItemStack(Material.SADDLE));
         horse.addPassenger(player);
 
