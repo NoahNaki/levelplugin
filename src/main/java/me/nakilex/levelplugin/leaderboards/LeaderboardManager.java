@@ -37,16 +37,6 @@ public class LeaderboardManager {
     /** Whether leaderboards are currently visible. */
     private boolean visible = false;
 
-    private boolean isDebug() {
-        FileConfiguration cfg = plugin.getCustomConfig();
-        return cfg != null && cfg.getBoolean("debug.leaderboards", false);
-    }
-
-    private void debug(String msg) {
-        if (isDebug()) {
-            plugin.getLogger().info("[LeaderboardDebug] " + msg);
-        }
-    }
 
     public LeaderboardManager(Main plugin, EconomyManager eco, PlayerConfig pCfg, DuelStatsManager duelStats, SettingsManager settingsManager) {
         this.plugin = plugin;
@@ -96,9 +86,7 @@ public class LeaderboardManager {
     }
 
     public void updateAll() {
-        debug("updateAll invoked");
         if (!checkVisibility()) {
-            debug("Leaderboards not visible; skipping updateAll");
             return;
         }
         plugin.getLogger().info("Updating " + boards.size() + " leaderboards");
@@ -109,9 +97,7 @@ public class LeaderboardManager {
 
     /** Update only leaderboards of a specific type. */
     public void updateType(LeaderboardType type) {
-        debug("updateType invoked for " + type);
         if (!checkVisibility()) {
-            debug("Leaderboards not visible; skipping updateType");
             return;
         }
         updateTypeInternal(type);
@@ -133,7 +119,6 @@ public class LeaderboardManager {
 
     /** Remove all hologram entities. */
     public void removeAll() {
-        debug("Removing all leaderboards");
         for (Leaderboard lb : boards.values()) {
             lb.despawn();
         }
@@ -143,9 +128,7 @@ public class LeaderboardManager {
     /** Determine if leaderboards should currently be displayed based on town progress. */
     private boolean checkVisibility() {
         boolean shouldDisplay = shouldDisplayLeaderboards();
-        debug("checkVisibility: shouldDisplay=" + shouldDisplay + " visible=" + visible);
         if (!shouldDisplay && visible) {
-            debug("Visibility disabled; removing leaderboards");
             removeAll();
         }
         visible = shouldDisplay;
@@ -155,18 +138,15 @@ public class LeaderboardManager {
     private boolean shouldDisplayLeaderboards() {
         GuildSiegeManager siege = GuildSiegeManager.getInstance();
         String ownerName = siege.getOwnerGuild();
-        debug("Controlling guild: " + ownerName);
         if (ownerName == null) {
             return false;
         }
         Guild g = GuildManager.getInstance().getGuild(ownerName);
         if (g == null) {
-            debug("Guild object not found for " + ownerName);
             return false;
         }
         UUID leader = g.getLeader();
         int stage = plugin.getEnvironmentManager().getBuildingStage(leader, "foundation");
-        debug("Leader " + leader + " foundation stage=" + stage);
         return stage >= 2;
     }
 

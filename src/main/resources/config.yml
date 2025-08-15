@@ -7,7 +7,6 @@ features:
 debug:
   chunk-loading: false
   mythic-skill-damage: false
-  leaderboards: true
 
 # Tips configuration
 tips:
