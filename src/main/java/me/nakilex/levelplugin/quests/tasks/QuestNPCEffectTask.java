@@ -30,7 +30,8 @@ public class QuestNPCEffectTask extends BukkitRunnable {
     private static final Map<String, String> NAME_GLYPHS = Map.of(
             "blacksmith", "<glyph:anvil>",
             "enchanter", "<glyph:enchanter>",
-            "storage manager", "<glyph:banker>");
+            "storage manager", "<glyph:banker>",
+            "storage merchant", "<glyph:banker>");
 
     /** Vertical offset for NPC glyph displays. */
     private static final double GLYPH_Y_OFFSET = 2.8;
@@ -135,7 +136,9 @@ public class QuestNPCEffectTask extends BukkitRunnable {
     }
 
     private void updateDisplay(Player player, NPC npc, int npcId, String glyph, TextDisplay disp, Map<Integer, TextDisplay> map) {
-        player.spawnParticle(Particle.HAPPY_VILLAGER, npc.getEntity().getLocation().add(0, 2, 0), 1, 0, 0, 0, 0);
+        if (!NAME_GLYPHS.containsKey(npc.getName().toLowerCase())) {
+            player.spawnParticle(Particle.HAPPY_VILLAGER, npc.getEntity().getLocation().add(0, 2, 0), 1, 0, 0, 0, 0);
+        }
 
         Location loc = npc.getEntity().getLocation().add(0, GLYPH_Y_OFFSET, 0);
         if (disp == null || disp.isDead()) {
