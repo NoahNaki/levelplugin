@@ -93,7 +93,7 @@ public class NPCClickListener implements Listener {
                             dialogManager.startDialog(player,
                                     me.nakilex.levelplugin.quests.def.SerasQuest.getDialogForObjective(1),
                                     npc,
-                                    () -> questManager.handleTalk(player, "npc" + npc.getId()));
+                                    () -> questManager.handleTalk(player, "npc" + npc.getId() + "_first"));
                             return;
                         }
                         if (killSlimesDone && talkAfterSlimes && !killKingDone) {
@@ -104,7 +104,7 @@ public class NPCClickListener implements Listener {
                             dialogManager.startDialog(player,
                                     me.nakilex.levelplugin.quests.def.SerasQuest.getDialogForObjective(3),
                                     npc,
-                                    () -> questManager.handleTalk(player, "npc" + npc.getId()));
+                                    () -> questManager.handleTalk(player, "npc" + npc.getId() + "_second"));
                             return;
                         }
                         if (!killSlimesDone) {

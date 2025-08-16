@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.quests.data.*;
 import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.data.QuestResetScript;
@@ -907,20 +908,7 @@ public class QuestManager {
     }
 
     private String beautifyName(String raw) {
-        String name = raw;
-        try {
-            org.bukkit.entity.EntityType type = org.bukkit.entity.EntityType.valueOf(raw.toUpperCase());
-            String key = type.getKey().getKey();
-            name = key.replace('_', ' ');
-        } catch (IllegalArgumentException ignored) {}
-        String[] parts = name.toLowerCase().split(" ");
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < parts.length; i++) {
-            if (parts[i].isEmpty()) continue;
-            sb.append(Character.toUpperCase(parts[i].charAt(0))).append(parts[i].substring(1));
-            if (i < parts.length - 1) sb.append(' ');
-        }
-        return sb.toString();
+        return MobNameUtil.getPlainDisplayName(raw);
     }
 
     private String resolveNpcName(String raw) {
