@@ -48,7 +48,7 @@ public class ExplorationListener implements Listener {
             current.remove(player.getUniqueId());
         }
 
-        // Update location music each move for fading and stopping
-        musicManager.update(player, pt, to);
+        // Update location music each move to trigger songs when entering locations
+        musicManager.update(player, pt);
     }
 }
