@@ -33,7 +33,7 @@ public class CodexListener implements Listener {
         if (mob == null) return;
 
         String mobType = mob.getMobType().replaceAll("§.", "");
-        if (mobCfg.getConfig().contains("mobs." + mobType)) {
+        if (mobCfg.getMobSection(mobType) != null) {
             manager.recordKill(killer, mobType);
             return;
         }

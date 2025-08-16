@@ -68,7 +68,7 @@ public class MythicMobRewardListener implements Listener {
         ActiveMob mythicMob = mythicHelper.getMythicMobInstance(event.getEntity());
         if (mythicMob == null) return;
 
-        String mobType = mythicMob.getMobType().replaceAll("§.", "");
+        String rawMobType = mythicMob.getMobType().replaceAll("§.", "");
         Set<Player> participants = tracker.getParticipantsAndClear(event.getEntity().getUniqueId());
         if (participants.isEmpty() && event.getEntity().getKiller() instanceof Player killer) {
             participants = Set.of(killer);
@@ -77,19 +77,21 @@ public class MythicMobRewardListener implements Listener {
             participants = Collections.emptySet();
         }
 
-        ConfigurationSection node = mobRewardsConfig.getConfig().getConfigurationSection("mobs." + mobType);
+        ConfigurationSection node = mobRewardsConfig.getMobSection(rawMobType);
         if (node == null) {
             for (Player player : participants) {
                 if (debugToggle.isEnabled(player)) {
                     PlaceholderString name = mythicMob.getType().getDisplayName();
-                    String display = name != null ? name.get() : mobType;
-                    player.sendMessage(ChatColor.YELLOW + "[MobDebug] ID: " + mobType
+                    String display = name != null ? name.get() : rawMobType;
+                    player.sendMessage(ChatColor.YELLOW + "[MobDebug] ID: " + rawMobType
                             + ChatColor.GRAY + " Display: " + ChatColor.WHITE + display);
                     player.sendMessage(ChatColor.RED + "[MobDebug] No rewards configured");
                 }
             }
             return;
         }
+
+        String mobType = node.getName();
 
         int exp = node.getInt("exp", 0);
         String coinsSpec = node.getString("coins", "0-0");
@@ -112,7 +114,7 @@ public class MythicMobRewardListener implements Listener {
             levelManager.addXP(player, awardedExp);
             int coins = ThreadLocalRandom.current().nextInt(minCoins, maxCoins + 1);
             economyManager.addCoins(player, coins);
-            itemDropper.dropCustomItems(player, mobType, modelSet);
+            itemDropper.dropCustomItems(player, node, modelSet);
             if (tier > 0) {
                 double roll = ThreadLocalRandom.current().nextDouble() * 100.0;
                 if (roll <= tierChance) {

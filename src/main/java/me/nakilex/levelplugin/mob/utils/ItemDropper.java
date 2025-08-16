@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.mob.config.ModelSetManager;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -35,15 +36,15 @@ public class ItemDropper {
     /**
      * Drop configured custom items for the given MythicMob type.
      */
-    public void dropCustomItems(Player player, String mobType, String modelSet) {
-        String path = "mobs." + mobType + ".items";
-        if (!rewardsConfig.getConfig().contains(path)) {
+    public void dropCustomItems(Player player, ConfigurationSection node, String modelSet) {
+        if (node == null) {
             return;
         }
-        List<Map<?, ?>> itemList = rewardsConfig.getConfig().getMapList(path);
+        List<Map<?, ?>> itemList = node.getMapList("items");
         if (itemList == null || itemList.isEmpty()) {
             return;
         }
+        String mobType = node.getName();
         for (Map<?, ?> entry : itemList) {
             if (!entry.containsKey("itemid")) continue;
             int itemId = (int) entry.get("itemid");

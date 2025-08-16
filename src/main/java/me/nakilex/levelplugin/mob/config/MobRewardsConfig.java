@@ -1,11 +1,11 @@
 package me.nakilex.levelplugin.mob.config;
 
 import me.nakilex.levelplugin.Main;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.logging.Level;
 
 public class MobRewardsConfig {
@@ -32,5 +32,24 @@ public class MobRewardsConfig {
 
     public void reloadConfig() {
         config = YamlConfiguration.loadConfiguration(configFile);
+    }
+
+    /**
+     * Retrieve the rewards section for a MythicMob ID, ignoring case.
+     *
+     * @param mobType the MythicMob identifier
+     * @return configuration section for that mob or {@code null} if not found
+     */
+    public ConfigurationSection getMobSection(String mobType) {
+        ConfigurationSection mobs = config.getConfigurationSection("mobs");
+        if (mobs == null) {
+            return null;
+        }
+        for (String key : mobs.getKeys(false)) {
+            if (key.equalsIgnoreCase(mobType)) {
+                return mobs.getConfigurationSection(key);
+            }
+        }
+        return null;
     }
 }

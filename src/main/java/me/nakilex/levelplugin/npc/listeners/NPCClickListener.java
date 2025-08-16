@@ -10,6 +10,7 @@ import me.nakilex.levelplugin.quests.def.SerasQuest;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -54,8 +55,17 @@ public class NPCClickListener implements Listener {
             if (npc.getId() == 546 &&
                     questManager.hasCompleted(player.getUniqueId(), "newbeginning")) {
                 if (!dialogManager.hasSession(player)) {
+                    NPC seras = CitizensAPI.getNPCRegistry().getById(538);
+                    String coords = "unknown";
+                    if (seras != null) {
+                        Location l = seras.isSpawned() ? seras.getEntity().getLocation() : seras.getStoredLocation();
+                        if (l != null) {
+                            coords = l.getBlockX() + ", " + l.getBlockY() + ", " + l.getBlockZ();
+                        }
+                    }
+                    String line = "Piwan|You should talk to Seras at §8[§e" + coords + "§8], I'm sure she has plenty of tasks for you, though be wary she's a fiery one.";
                     dialogManager.startDialog(player,
-                            java.util.List.of("Piwan|You should talk to Seras at <location>, I'm sure she has plenty of tasks for you, though be wary she's a fiery one."),
+                            java.util.List.of(line),
                             npc,
                             null);
                 }
