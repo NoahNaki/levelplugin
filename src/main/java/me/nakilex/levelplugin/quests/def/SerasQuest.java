@@ -1,9 +1,8 @@
 package me.nakilex.levelplugin.quests.def;
 
 import me.nakilex.levelplugin.quests.data.*;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.World;
+import net.citizensnpcs.api.CitizensAPI;
+import net.citizensnpcs.api.npc.NPC;
 import java.util.List;
 
 public class SerasQuest extends Quest implements QuestScript, QuestCompletionScript {
@@ -43,6 +42,16 @@ public class SerasQuest extends Quest implements QuestScript, QuestCompletionScr
 
     @Override
     public void onComplete(org.bukkit.entity.Player player, me.nakilex.levelplugin.Main plugin) {
-        plugin.getQuestManager().startQuest(player, "hawieshop");
+        NPC npc = CitizensAPI.getNPCRegistry().getById(538);
+        if (npc != null) {
+            plugin.getDialogManager().startDialog(player,
+                    List.of(
+                            "Seras|Alright, you have some skill considering you completed that way faster than I was expecting.",
+                            "Seras|Perhaps I underestimated you, nonetheless, I'll have more tasks for you to complete later but for now I'm busy investigating something I cannot disclose.",
+                            "Seras|Good luck adventurer, I'm sure I'll be seeing you again."
+                    ),
+                    npc,
+                    null);
+        }
     }
 }

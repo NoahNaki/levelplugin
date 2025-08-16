@@ -6,6 +6,8 @@ import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
+import me.nakilex.levelplugin.quests.data.QuestObjective;
+import me.nakilex.levelplugin.quests.data.QuestObjectiveType;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
@@ -70,7 +72,20 @@ public class NPCClickListener implements Listener {
 
             Quest quest = questManager.getQuestByNpcId(npc.getId());
             if (quest != null) {
-                questManager.handleTalk(player, "npc" + npc.getId());
+                boolean allowTalkProgress = true;
+                if ("serashelp".equals(quest.getId())) {
+                    PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), quest.getId());
+                    if (progress != null) {
+                        QuestObjective killObj = quest.getObjectives().get(0);
+                        if (killObj.getType() == QuestObjectiveType.KILL &&
+                                progress.getProgress(0) < killObj.getAmount()) {
+                            allowTalkProgress = false;
+                        }
+                    }
+                }
+                if (allowTalkProgress) {
+                    questManager.handleTalk(player, "npc" + npc.getId());
+                }
                 QuestState state = questManager.getQuestState(player, quest);
                 switch (state) {
                     case AVAILABLE -> dialogManager.startDialog(player, quest, npc);
