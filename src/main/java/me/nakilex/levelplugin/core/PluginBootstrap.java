@@ -222,6 +222,8 @@ public class PluginBootstrap {
     }
 
     private void loadConfigFiles() {
+        plugin.saveDefaultConfig();
+        plugin.reloadConfig();
         plugin.saveResource("potions.yml", false);
         File configFile = new File(plugin.getDataFolder(), "potions.yml");
         FileConfiguration config = YamlConfiguration.loadConfiguration(configFile);

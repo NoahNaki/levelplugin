@@ -73,7 +73,7 @@ public class LocationMusicManager {
         debug(player, "enter '" + point.getName() + "' key='" + key + "' sound='" + sound + "'");
         player.stopSound(SoundCategory.MUSIC); // stop vanilla and previous music
         playing.put(id, sound);
-        player.playSound(point.getLocation(), sound, SoundCategory.MUSIC, 1f, 1f);
+        player.playSound(player.getLocation(), sound, SoundCategory.MUSIC, 1f, 1f);
         Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
             if (sound.equals(playing.get(id))) {
                 playing.remove(id);
