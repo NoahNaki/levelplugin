@@ -85,8 +85,6 @@ public class BuildingUpgradeGUI implements Listener {
     public void onClick(InventoryClickEvent e) {
         String title = e.getView().getTitle();
         if (!title.startsWith(TITLE_PREFIX)) {
-            me.nakilex.levelplugin.Main.getInstance().getLogger().info(
-                    "[BuildingUpgradeGUI] ignore title=" + title);
             return;
         }
         e.setCancelled(true);
