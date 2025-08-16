@@ -56,6 +56,12 @@ public class QuestBeaconTask extends BukkitRunnable {
                 Location pLoc = player.getLocation();
                 double dist = pLoc.distance(loc);
 
+                // hide beam when player is close enough
+                if (dist < 10) {
+                    beaconManager.removeBeam(player);
+                    continue;
+                }
+
                 // --- dynamic “lead” distance --------------------------------
                 Location target = loc;
                 if (dist > 64) {                       // far away – point ahead of the player
@@ -66,6 +72,8 @@ public class QuestBeaconTask extends BukkitRunnable {
                 }
 
                 beaconManager.showBeam(player, target); // rectangular, lime, full height
+            } else {
+                beaconManager.removeBeam(player);
             }
         }
     }

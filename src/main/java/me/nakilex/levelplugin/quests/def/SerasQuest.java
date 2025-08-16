@@ -1,12 +1,17 @@
 package me.nakilex.levelplugin.quests.def;
 
 import me.nakilex.levelplugin.quests.data.*;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.World;
 import java.util.List;
 
 public class SerasQuest extends Quest implements QuestScript {
     private static List<QuestObjective> createObjectives() {
+        World world = Bukkit.getWorld("mmorpg");
         return List.of(
-                new QuestObjective(QuestObjectiveType.KILL, "SLIME", 10),
+                new QuestObjective(QuestObjectiveType.KILL, "SLIME_COMMON", 10,
+                        BeaconTargets.staticLoc(new Location(world, 820, 65, -120))),
                 new QuestObjective(QuestObjectiveType.TALK, "npc538", 1)
         );
     }

@@ -28,6 +28,8 @@ public class MythicMobNameManager implements Listener {
     private final Set<ActiveMob> trackedMobs = new HashSet<>();
     /** Holds all boss‑keys exactly as in your YAML (e.g. "KING SLIME", "TERRACOTTA GENERAL", etc.) */
     private final Set<String> fieldBossKeys;
+    /** MythicMob IDs that should display HP bars (from mob_rewards.yml). */
+    private final Set<String> rewardMobKeys;
 
     private static final String[] DEFAULT_PREFIXES = {
         "VFX_",
@@ -94,6 +96,17 @@ public class MythicMobNameManager implements Listener {
             this.fieldBossKeys = new HashSet<>();
         }
 
+        FileConfiguration rewardsCfg = plugin.getMobRewardsConfig().getConfig();
+        if (rewardsCfg.isConfigurationSection("mobs")) {
+            this.rewardMobKeys = rewardsCfg.getConfigurationSection("mobs")
+                    .getKeys(false)
+                    .stream()
+                    .map(String::toUpperCase)
+                    .collect(Collectors.toSet());
+        } else {
+            this.rewardMobKeys = new HashSet<>();
+        }
+
         plugin.saveResource("mob_name_ignores.yml", false);
         File ignoreFile = new File(plugin.getDataFolder(), "mob_name_ignores.yml");
         FileConfiguration ignoreCfg = YamlConfiguration.loadConfiguration(ignoreFile);
@@ -117,7 +130,8 @@ public class MythicMobNameManager implements Listener {
     @EventHandler
     public void onMythicMobSpawn(MythicMobSpawnEvent event) {
         ActiveMob mob = event.getMob();
-        if (shouldIgnoreMob(mob.getMobType())) {
+        String type = mob.getMobType();
+        if (shouldIgnoreMob(type) || !rewardMobKeys.contains(type.toUpperCase())) {
             return;
         }
         trackedMobs.add(mob);
@@ -147,7 +161,8 @@ public class MythicMobNameManager implements Listener {
     }
 
     private void setDisplayName(ActiveMob mob) {
-        if (shouldIgnoreMob(mob.getMobType())) {
+        if (shouldIgnoreMob(mob.getMobType()) ||
+                !rewardMobKeys.contains(mob.getMobType().toUpperCase())) {
             return;
         }
         int    level     = (int) mob.getLevel();

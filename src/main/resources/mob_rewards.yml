@@ -6,6 +6,13 @@ mobs:
     tier_chance: 100.0
     model_set: molten
 
+  slime_common:
+    exp: 50
+    coins: "0-0"
+    tier: 1
+    tier_chance: 100.0
+    model_set: default
+
 
 
 
