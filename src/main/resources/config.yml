@@ -41,3 +41,10 @@ leaderboards:
     y: 78
     z: -38
     type: DUELS
+
+# Location-based music tracks
+music:
+  locations:
+    rowan:
+      sound: "nexo:music.greennature"
+      duration: 4000

@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.fasttravel.data.FastTravelPoint;
 import org.bukkit.Bukkit;
 import org.bukkit.SoundCategory;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
@@ -16,13 +17,14 @@ import java.util.UUID;
  * Handles playing and stopping location-based music for players.
  */
 public class LocationMusicManager {
-    private final Map<String, String> locationSongs = new HashMap<>();
+    /** Song metadata keyed by location name */
+    private final Map<String, SongInfo> locationSongs = new HashMap<>();
     private final Map<UUID, String> playing = new HashMap<>();
     private final Set<UUID> siegePlayers = new HashSet<>();
     private static final long SIEGE_INTRO_DELAY = 200L;
 
     public LocationMusicManager() {
-        registerLocationSong("rowan", "nexo:music.greennature");
+        loadFromConfig();
 
         // Periodically stop any vanilla music for players without a custom track.
         Bukkit.getScheduler().runTaskTimer(Main.getInstance(), () -> {
@@ -35,8 +37,13 @@ public class LocationMusicManager {
     }
 
     /** Register a song to play when entering the given location name. */
-    public void registerLocationSong(String location, String sound) {
-        locationSongs.put(location.toLowerCase(), sound);
+    public void registerLocationSong(String location, SongInfo info) {
+        locationSongs.put(location.toLowerCase(), info);
+    }
+
+    /** Convenience overload for direct values. */
+    public void registerLocationSong(String location, String sound, long duration) {
+        registerLocationSong(location, new SongInfo(sound, duration));
     }
 
     /**
@@ -56,8 +63,9 @@ public class LocationMusicManager {
         }
 
         String key = point.getName().toLowerCase();
-        String sound = locationSongs.get(key);
-        if (sound == null) return;
+        SongInfo info = locationSongs.get(key);
+        if (info == null) return;
+        String sound = info.sound();
         String current = playing.get(id);
         if (current != null && current.equals(sound)) {
             return; // already playing this song
@@ -66,6 +74,11 @@ public class LocationMusicManager {
         player.stopSound(SoundCategory.MUSIC); // stop vanilla and previous music
         playing.put(id, sound);
         player.playSound(point.getLocation(), sound, SoundCategory.MUSIC, 1f, 1f);
+        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+            if (sound.equals(playing.get(id))) {
+                playing.remove(id);
+            }
+        }, info.duration());
         debug(player, "playing sound '" + sound + "'");
     }
 
@@ -106,4 +119,20 @@ public class LocationMusicManager {
     private void debug(Player player, String msg) {
         Main.getInstance().getLogger().info("[LocationMusic] " + player.getName() + ": " + msg);
     }
+
+    /** Load song definitions from plugin configuration. */
+    private void loadFromConfig() {
+        ConfigurationSection section = Main.getInstance().getConfig().getConfigurationSection("music.locations");
+        if (section == null) return;
+        for (String key : section.getKeys(false)) {
+            String sound = section.getString(key + ".sound");
+            long duration = section.getLong(key + ".duration");
+            if (sound != null && duration > 0) {
+                registerLocationSong(key, sound, duration);
+            }
+        }
+    }
+
+    /** Simple record describing a song and its duration. */
+    public record SongInfo(String sound, long duration) { }
 }
