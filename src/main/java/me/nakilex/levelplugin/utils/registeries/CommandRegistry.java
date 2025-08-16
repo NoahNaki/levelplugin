@@ -169,7 +169,6 @@ public class CommandRegistry {
         FastTravelCommand fastTravelCmd = new FastTravelCommand(plugin.getFastTravelGUI());
         plugin.getCommand("fasttravel").setExecutor(fastTravelCmd);
         plugin.getCommand("travel").setExecutor(fastTravelCmd);
-        plugin.getCommand("skipsong").setExecutor(new me.nakilex.levelplugin.music.commands.SkipSongCommand(plugin.getLocationMusicManager()));
         plugin.getCommand("profile").setExecutor(new me.nakilex.levelplugin.player.commands.ProfileCommand());
         plugin.getCommand("wipeprofile").setExecutor(new WipeProfileCommand());
 

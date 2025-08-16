@@ -2,7 +2,6 @@ package me.nakilex.levelplugin.music;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.fasttravel.data.FastTravelPoint;
-import me.nakilex.levelplugin.settings.data.PlayerSettings;
 import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
 
@@ -38,11 +37,6 @@ public class LocationMusicManager {
         String sound = locationSongs.get(key);
         debug(player, "enter '" + point.getName() + "' key='" + key + "' sound='" + sound + "'");
         if (sound == null) return;
-        PlayerSettings settings = Main.getInstance().getSettingsManager().getSettings(player);
-        if (settings.isAutoSkipSongs()) {
-            debug(player, "auto-skip enabled; not playing");
-            return;
-        }
         String current = playing.get(id);
         if (current != null && current.equals(sound)) {
             return; // already playing this song
@@ -54,17 +48,6 @@ public class LocationMusicManager {
         player.playSound(point.getLocation(), sound, SoundCategory.MUSIC, 1f, 1f);
         playing.put(id, sound);
         debug(player, "playing sound '" + sound + "'");
-    }
-
-    /** Stop the current song for the player. */
-    public void skipSong(Player player) {
-        String current = playing.remove(player.getUniqueId());
-        if (current != null) {
-            player.stopSound(current, SoundCategory.MUSIC);
-            debug(player, "stopped sound '" + current + "'");
-        } else {
-            debug(player, "no sound to stop");
-        }
     }
 
     private void debug(Player player, String msg) {

@@ -118,15 +118,6 @@ public class SettingsGUI implements Listener {
             ));
         }
 
-        // Auto-skip Songs toggle
-        if (filter == Filter.ALL || filter == Filter.VISUAL) {
-            gui.setItem(19, GuiUtil.createToggleItem(
-                    playerSettings.isAutoSkipSongs(),
-                    "§bAuto Skip Songs",
-                    "§eClick to toggle and run /toggle songskip"
-            ));
-        }
-
         gui.setItem(FILTER_SLOT, createFilterItem(filter));
 
         // Filler border
@@ -279,10 +270,6 @@ public class SettingsGUI implements Listener {
             settings.toggleAutoSkipCutscenes();
             updateSettingItem(event.getInventory(), 18,
                 settings.isAutoSkipCutscenes(), "§bAuto Skip Cutscenes", "");
-        } else if (slot == 19) {
-            Bukkit.dispatchCommand(player, "toggle songskip");
-            updateSettingItem(event.getInventory(), 19,
-                settings.isAutoSkipSongs(), "§bAuto Skip Songs", "/toggle songskip");
         }
     }
 }
