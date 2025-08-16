@@ -75,7 +75,9 @@ public class NPCClickListener implements Listener {
                 boolean allowTalkProgress = true;
                 if ("serashelp".equals(quest.getId())) {
                     PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), quest.getId());
-                    if (progress != null) {
+                    if (progress == null) {
+                        allowTalkProgress = false;
+                    } else {
                         QuestObjective killObj = quest.getObjectives().get(0);
                         if (killObj.getType() == QuestObjectiveType.KILL &&
                                 progress.getProgress(0) < killObj.getAmount()) {
