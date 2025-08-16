@@ -14,13 +14,13 @@ public class TutorialQuest extends Quest {
         World world = Bukkit.getWorld("mmorpg");
         return Arrays.asList(
                 new QuestObjective(QuestObjectiveType.SELECT_CLASS, "ANY", 1,
-                        new Location(world, 0, 65, 0)),
+                        BeaconTargets.staticLoc(new Location(world, 0, 65, 0))),
                 new QuestObjective(QuestObjectiveType.BUY, "class_weapon", 1,
-                        new Location(world, 753, 98, -176)),
+                        BeaconTargets.staticLoc(new Location(world, 753, 98, -176))),
                 new QuestObjective(QuestObjectiveType.KILL, "ZOMBIE", 1,
-                        new Location(world, 763, 100, 0)),
+                        BeaconTargets.staticLoc(new Location(world, 763, 100, 0))),
                 new QuestObjective(QuestObjectiveType.TALK, "npc273", 1,
-                        new Location(world, 0, 65, 0))
+                        BeaconTargets.npc(273))
         );
     }
 

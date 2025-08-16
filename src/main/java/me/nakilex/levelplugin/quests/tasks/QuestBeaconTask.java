@@ -46,7 +46,10 @@ public class QuestBeaconTask extends BukkitRunnable {
                         }
                     }
                 }
-                loc = quest.getObjectives().get(idx).getBeaconLocation();
+                BeaconTarget target = quest.getObjectives().get(idx).getBeaconTarget();
+                if (target != null) {
+                    loc = target.resolve(player);
+                }
             }
 
             if (loc != null && loc.getWorld().equals(player.getWorld())) {

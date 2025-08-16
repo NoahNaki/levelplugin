@@ -29,10 +29,8 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
     private final java.util.Map<java.util.UUID, java.util.List<Listener>> listeners = new java.util.HashMap<>();
 
     private static List<QuestObjective> createObjectives() {
-        World world = Bukkit.getWorld("redrocks");
-        Location beacon = world != null ? new Location(world, 29.5, 142, -92.5) : null;
         return java.util.List.of(
-                new QuestObjective(QuestObjectiveType.TALK, "npc516", 1, beacon)
+                new QuestObjective(QuestObjectiveType.TALK, "npc516", 1, BeaconTargets.npc(516))
         );
     }
 
