@@ -112,6 +112,10 @@ public class Spell {
     public void castEffect(Player player) {
         UUID pid = player.getUniqueId();
 
+        if (Main.getInstance().getDialogManager().hasSession(player)) {
+            return;
+        }
+
         // Debug initial cast attempt
         Main.getPlugin().getLogger().info("[SpellCast] " + player.getName() +
                 " attempts " + id + " via " + combo);
