@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.music;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.fasttravel.data.FastTravelPoint;
+import org.bukkit.Bukkit;
 import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
 
@@ -18,6 +19,15 @@ public class LocationMusicManager {
 
     public LocationMusicManager() {
         registerLocationSong("rowan", "nexo:music.greennature");
+
+        // Periodically stop any vanilla music for players without a custom track.
+        Bukkit.getScheduler().runTaskTimer(Main.getInstance(), () -> {
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                if (!playing.containsKey(p.getUniqueId())) {
+                    p.stopSound(SoundCategory.MUSIC);
+                }
+            }
+        }, 0L, 200L);
     }
 
     /** Register a song to play when entering the given location name. */
@@ -32,6 +42,13 @@ public class LocationMusicManager {
     public void update(Player player, FastTravelPoint point) {
         if (point == null) return; // no new location, keep current song
 
+        var settingsMgr = Main.getInstance().getSettingsManager();
+        if (settingsMgr != null && settingsMgr.getSettings(player).isAutoSkipSongs()) {
+            debug(player, "auto-skip on; ignoring location '" + point.getName() + "'");
+            skip(player);
+            return;
+        }
+
         UUID id = player.getUniqueId();
         String key = point.getName().toLowerCase();
         String sound = locationSongs.get(key);
@@ -41,13 +58,19 @@ public class LocationMusicManager {
         if (current != null && current.equals(sound)) {
             return; // already playing this song
         }
-        if (current != null) {
-            player.stopSound(current, SoundCategory.MUSIC);
-            debug(player, "stopped previous sound '" + current + "'");
-        }
-        player.playSound(point.getLocation(), sound, SoundCategory.MUSIC, 1f, 1f);
+        player.stopSound(SoundCategory.MUSIC); // stop vanilla and previous music
         playing.put(id, sound);
+        player.playSound(point.getLocation(), sound, SoundCategory.MUSIC, 1f, 1f);
         debug(player, "playing sound '" + sound + "'");
+    }
+
+    /** Stop any currently playing location song for the player. */
+    public void skip(Player player) {
+        String current = playing.remove(player.getUniqueId());
+        player.stopSound(SoundCategory.MUSIC);
+        if (current != null) {
+            debug(player, "stopped sound '" + current + "'");
+        }
     }
 
     private void debug(Player player, String msg) {
