@@ -646,10 +646,18 @@ public class EnvironmentManager {
 
     /** Remove a hologram for all town members. */
     private void removeTownHologram(UUID member, String building) {
+        // Always remove the hologram for the member triggering the update
+        removeBuildingHologram(member, building);
+
+        // Also remove for the town owner and any coop partner so all viewers stay in sync
         UUID base = getBase(member);
-        removeBuildingHologram(base, building);
+        if (!base.equals(member)) {
+            removeBuildingHologram(base, building);
+        }
         UUID partner = coopPartners.get(base);
-        if (partner != null) removeBuildingHologram(partner, building);
+        if (partner != null) {
+            removeBuildingHologram(partner, building);
+        }
     }
 
     /** Remove every hologram currently spawned. */
@@ -1321,7 +1329,7 @@ public class EnvironmentManager {
         UUID uuid = player.getUniqueId();
         String key = building.toLowerCase();
         cancelBuildTask(uuid, key);
-        removeTownHologram(uuid, building);
+        removeBuildingHologram(uuid, building);
 
         String town = towns.get(player.getUniqueId());
         if (town == null) return;
@@ -1409,7 +1417,7 @@ public class EnvironmentManager {
         UUID uuid = player.getUniqueId();
         String key = building.toLowerCase();
         cancelBuildTask(uuid, key);
-        removeTownHologram(uuid, building);
+        removeBuildingHologram(uuid, building);
 
 
         String town = towns.get(uuid);

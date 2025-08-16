@@ -182,7 +182,7 @@ public class ListenerRegistry {
         pm.registerEvents(plugin.getFriendRequestListener(), plugin);
         pm.registerEvents(plugin.getPlayerVisibilityManager(), plugin);
         pm.registerEvents(new WaystoneListener(fastTravelGUI, fastTravelManager, plugin.getModelGateManager()), plugin);
-        pm.registerEvents(new ExplorationListener(fastTravelManager), plugin);
+        pm.registerEvents(new ExplorationListener(fastTravelManager, plugin.getLocationMusicManager()), plugin);
         pm.registerEvents(new FastTravelRespawnListener(fastTravelManager), plugin);
         pm.registerEvents(dungeonListGUI, plugin);
         pm.registerEvents(motdManager, plugin);

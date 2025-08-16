@@ -103,6 +103,8 @@ public class ProfileManager {
         stats.recalcDerivedStats(player);
         me.nakilex.levelplugin.player.config.PlayerConfig cfg = plugin.getPlayerConfig();
         cfg.clearEnvironmentData(uuid);
+        cfg.clearFastTravelData(uuid);
+        plugin.getFastTravelManager().clearUnlocked(uuid);
         cfg.savePlayer(uuid);
     }
 

@@ -53,6 +53,7 @@ import me.nakilex.levelplugin.codex.CodexMainGUI;
 import me.nakilex.levelplugin.codex.CodexCommand;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantCommand;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager;
+import me.nakilex.levelplugin.music.commands.SkipSongCommand;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.horse.managers.HorseManager;
 import me.nakilex.levelplugin.party.PartyManager;
@@ -159,6 +160,7 @@ public class CommandRegistry {
         ToggleCommand toggleCmd = new ToggleCommand(plugin);
         plugin.getCommand("toggle").setExecutor(toggleCmd);
         plugin.getCommand("toggle").setTabCompleter(toggleCmd);
+        plugin.getCommand("skipsong").setExecutor(new SkipSongCommand(plugin));
         plugin.getCommand("auctionhouse").setExecutor(new AuctionCommand(auctionMgr, auctionGui));
         QuestCommand questCmd = new QuestCommand(questManager);
         plugin.getCommand("quest").setExecutor(questCmd);

@@ -184,6 +184,7 @@ public class GuildSiegeManager {
             if (p != null) {
                 bossBar.addPlayer(p);
                 me.nakilex.levelplugin.utils.TeleportUtils.teleportWithEffect(p, teleportLocation);
+                Main.getInstance().getLocationMusicManager().startSiege(p);
             }
         }
 
@@ -322,6 +323,7 @@ public class GuildSiegeManager {
                     ChatFormatter.sendCenteredMessage(p, ChatColor.RED + "Siege ended with no capture.");
                 }
                 ChatFormatter.sendCenteredMessage(p, " ");
+                Main.getInstance().getLocationMusicManager().stopSiege(p);
             }
         }
         active.clear();

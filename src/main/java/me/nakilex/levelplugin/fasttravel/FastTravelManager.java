@@ -27,15 +27,21 @@ public class FastTravelManager {
     }
 
     private void load() {
-        file = new File(plugin.getDataFolder(), "fasttravel.yml");
+        file = new File(plugin.getDataFolder(), "regions.yml");
         if (!file.exists()) {
-            try { file.createNewFile(); } catch (IOException e) { e.printStackTrace(); }
+            File legacy = new File(plugin.getDataFolder(), "fasttravel.yml");
+            if (legacy.exists()) {
+                legacy.renameTo(file);
+            } else {
+                try { file.createNewFile(); } catch (IOException e) { e.printStackTrace(); }
+            }
         }
         config = YamlConfiguration.loadConfiguration(file);
 
-        if (config.isConfigurationSection("locations")) {
-            for (String key : config.getConfigurationSection("locations").getKeys(false)) {
-                String path = "locations." + key;
+        String sectionName = config.isConfigurationSection("regions") ? "regions" : "locations";
+        if (config.isConfigurationSection(sectionName)) {
+            for (String key : config.getConfigurationSection(sectionName).getKeys(false)) {
+                String path = sectionName + "." + key;
                 String world = config.getString(path + ".world");
                 double x = config.getDouble(path + ".x");
                 double y = config.getDouble(path + ".y");
@@ -55,17 +61,27 @@ public class FastTravelManager {
         }
 
         if (config.isConfigurationSection("players")) {
+            me.nakilex.levelplugin.player.config.PlayerConfig pCfg = plugin.getPlayerConfig();
             for (String id : config.getConfigurationSection("players").getKeys(false)) {
                 List<String> list = config.getStringList("players." + id);
-                unlocked.put(UUID.fromString(id), new HashSet<>(list));
+                UUID uuid = UUID.fromString(id);
+                unlocked.put(uuid, new HashSet<>(list));
+                if (pCfg != null) {
+                    pCfg.getConfig().set("players." + id + ".fasttravel", list);
+                }
             }
+            if (pCfg != null) pCfg.saveConfigFile();
+            config.set("players", null);
+            try { config.save(file); } catch (IOException e) { e.printStackTrace(); }
         }
     }
 
     private void save() {
+        config.set("regions", null);
+        config.set("locations", null);
         for (Map.Entry<String, FastTravelPoint> e : points.entrySet()) {
             FastTravelPoint pt = e.getValue();
-            String path = "locations." + e.getKey();
+            String path = "regions." + e.getKey();
             Location loc = pt.getLocation();
             config.set(path + ".world", loc.getWorld().getName());
             config.set(path + ".x", loc.getX());
@@ -76,9 +92,7 @@ public class FastTravelManager {
             config.set(path + ".radius", pt.getRadius());
             config.set(path + ".town", pt.isTown());
         }
-        for (Map.Entry<UUID, Set<String>> e : unlocked.entrySet()) {
-            config.set("players." + e.getKey(), new ArrayList<>(e.getValue()));
-        }
+        config.set("players", null);
         try { config.save(file); } catch (IOException e) { e.printStackTrace(); }
     }
 
@@ -103,6 +117,18 @@ public class FastTravelManager {
     public Collection<FastTravelPoint> getPoints() { return points.values(); }
 
     public FastTravelPoint getPoint(String name) { return points.get(name.toLowerCase()); }
+
+    /** Return the fast travel point located at the given world location, or null if none. */
+    public FastTravelPoint getPointAt(Location loc) {
+        if (loc == null) return null;
+        for (FastTravelPoint pt : points.values()) {
+            Location pLoc = pt.getLocation();
+            if (pLoc.getWorld().equals(loc.getWorld()) && loc.distance(pLoc) <= pt.getRadius()) {
+                return pt;
+            }
+        }
+        return null;
+    }
 
     public void recordUse(Player player, String name) {
         lastUsed.put(player.getUniqueId(), name.toLowerCase());
@@ -130,21 +156,36 @@ public class FastTravelManager {
     }
 
     public void unlock(Player player, String name, boolean recordCodex) {
-        unlocked.computeIfAbsent(player.getUniqueId(), k -> new HashSet<>()).add(name.toLowerCase());
-        save();
+        UUID id = player.getUniqueId();
+        unlocked.computeIfAbsent(id, k -> new HashSet<>()).add(name.toLowerCase());
+        if (plugin.getPlayerConfig() != null) {
+            plugin.getPlayerConfig().savePlayerData(id);
+        }
         if (recordCodex) {
-            me.nakilex.levelplugin.Main.getInstance().getCodexManager().recordLocation(player, EnvironmentManager.beautifyWords(name));
+            Main.getInstance().getCodexManager().recordLocation(player, EnvironmentManager.beautifyWords(name));
         }
         Main.getInstance().getQuestManager().handleDiscover(player, name.toLowerCase());
         Main.getInstance().getQuestManager().handleWaystoneUnlock(player, name.toLowerCase());
     }
 
     public boolean isUnlocked(Player player, String name) {
-        return unlocked.getOrDefault(player.getUniqueId(), Collections.emptySet()).contains(name.toLowerCase());
+        return getUnlocked(player.getUniqueId()).contains(name.toLowerCase());
     }
 
     public Set<String> getUnlocked(Player player) {
-        return unlocked.getOrDefault(player.getUniqueId(), Collections.emptySet());
+        return getUnlocked(player.getUniqueId());
+    }
+
+    public Set<String> getUnlocked(UUID uuid) {
+        return unlocked.getOrDefault(uuid, Collections.emptySet());
+    }
+
+    public void setUnlocked(UUID uuid, Collection<String> names) {
+        unlocked.put(uuid, new HashSet<>(names));
+    }
+
+    public void clearUnlocked(UUID uuid) {
+        unlocked.remove(uuid);
     }
 
     public Main getPlugin() { return plugin; }

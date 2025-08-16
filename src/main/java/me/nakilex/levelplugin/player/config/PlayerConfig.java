@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.UUID;
 
 /**
@@ -65,6 +66,11 @@ public class PlayerConfig {
         for (PlayerClass pc : stats.unlockedClasses) unlocked.add(pc.name());
         config.set(path + ".unlocked_classes", unlocked);
 
+        me.nakilex.levelplugin.fasttravel.FastTravelManager ftm = plugin.getFastTravelManager();
+        if (ftm != null) {
+            config.set(path + ".fasttravel", new ArrayList<>(ftm.getUnlocked(uuid)));
+        }
+
         saveConfig();
     }
 
@@ -106,6 +112,9 @@ public class PlayerConfig {
                 stats.unlockedClasses.add(PlayerClass.valueOf(s));
             } catch (IllegalArgumentException ignored) {}
         }
+
+        List<String> ft = config.getStringList(root + ".fasttravel");
+        plugin.getFastTravelManager().setUnlocked(uuid, new HashSet<>(ft));
     }
 
     /** Saves data for all players. */
@@ -240,6 +249,10 @@ public class PlayerConfig {
         config.set(base + "origin.x", null);
         config.set(base + "origin.y", null);
         config.set(base + "buildings", null);
+    }
+
+    public void clearFastTravelData(UUID uuid) {
+        config.set("players." + uuid + ".fasttravel", null);
     }
 
     // ----- Global Town Ownership -----

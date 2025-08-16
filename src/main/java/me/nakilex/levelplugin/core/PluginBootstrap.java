@@ -137,6 +137,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.quests.managers.BeaconManager beaconManager;
     private me.nakilex.levelplugin.fasttravel.FastTravelManager fastTravelManager;
     private me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI fastTravelGUI;
+    private me.nakilex.levelplugin.music.LocationMusicManager locationMusicManager;
     private me.nakilex.levelplugin.dungeon.gui.DungeonListGUI dungeonListGUI;
     private me.nakilex.levelplugin.motd.MotdManager motdManager;
     private me.nakilex.levelplugin.calendar.CalendarManager calendarManager;
@@ -286,6 +287,7 @@ public class PluginBootstrap {
         fastTravelManager = new me.nakilex.levelplugin.fasttravel.FastTravelManager(plugin);
         modelGateManager = new me.nakilex.levelplugin.fakeblock.ModelGateManager(plugin);
         fastTravelGUI = new me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI(fastTravelManager, economyManager, modelGateManager);
+        locationMusicManager = new me.nakilex.levelplugin.music.LocationMusicManager();
         motdManager = new me.nakilex.levelplugin.motd.MotdManager(plugin);
         fakeBlockManager = new me.nakilex.levelplugin.fakeblock.FakeBlockManager();
         questGateManager = new me.nakilex.levelplugin.fakeblock.QuestGateManager(plugin, fakeBlockManager);
@@ -522,6 +524,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.quests.managers.BeaconManager getBeaconManager() { return beaconManager; }
     public me.nakilex.levelplugin.fasttravel.FastTravelManager getFastTravelManager() { return fastTravelManager; }
     public me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI getFastTravelGUI() { return fastTravelGUI; }
+    public me.nakilex.levelplugin.music.LocationMusicManager getLocationMusicManager() { return locationMusicManager; }
     public me.nakilex.levelplugin.motd.MotdManager getMotdManager() { return motdManager; }
     public me.nakilex.levelplugin.fakeblock.FakeBlockManager getFakeBlockManager() { return fakeBlockManager; }
     public me.nakilex.levelplugin.fakeblock.QuestGateManager getQuestGateManager() { return questGateManager; }

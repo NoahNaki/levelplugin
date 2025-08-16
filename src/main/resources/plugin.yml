@@ -159,6 +159,9 @@ commands:
   toggle:
     description: Toggle plugin features on/off.
     usage: /toggle <feature>
+  skipsong:
+    description: Stop the currently playing location song
+    usage: /skipsong
   rerollbrowser:
     description: Browse reroll placeholder items.
     usage: /rerollbrowser

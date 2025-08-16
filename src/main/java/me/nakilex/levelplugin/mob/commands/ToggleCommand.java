@@ -3,6 +3,8 @@ package me.nakilex.levelplugin.mob.commands;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.mob.utils.DropDisplayToggles;
 import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
+import me.nakilex.levelplugin.settings.managers.SettingsManager;
+import me.nakilex.levelplugin.settings.data.PlayerSettings;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
@@ -28,7 +30,7 @@ public class ToggleCommand implements TabExecutor {
         Player player = (Player) sender;
 
         if (args.length != 1) {
-            player.sendMessage("Usage: /toggle <dropdetails|dropdetailschat>");
+            player.sendMessage("Usage: /toggle <dropdetails|dropdetailschat|songskip>");
             return true;
         }
 
@@ -44,9 +46,21 @@ public class ToggleCommand implements TabExecutor {
                 ToggleFeedbackUtil.sendToggle(player, "Drop details chat", nowChat);
                 break;
 
+            case "songskip":
+                SettingsManager sm = plugin.getSettingsManager();
+                if (sm != null) {
+                    PlayerSettings ps = sm.getSettings(player);
+                    ps.toggleAutoSkipSongs();
+                    ToggleFeedbackUtil.sendToggle(player, "Auto Skip Songs", ps.isAutoSkipSongs());
+                    if (ps.isAutoSkipSongs()) {
+                        plugin.getLocationMusicManager().skip(player);
+                    }
+                }
+                break;
+
             default:
                 player.sendMessage("Unknown feature: " + feature);
-                player.sendMessage("Usage: /toggle <dropdetails|dropdetailschat>");
+                player.sendMessage("Usage: /toggle <dropdetails|dropdetailschat|songskip>");
         }
 
         return true;
@@ -55,7 +69,7 @@ public class ToggleCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return Arrays.asList("dropdetails", "dropdetailschat").stream()
+            return Arrays.asList("dropdetails", "dropdetailschat", "songskip").stream()
                     .filter(opt -> opt.startsWith(args[0].toLowerCase()))
                     .toList();
         }

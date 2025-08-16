@@ -291,6 +291,26 @@ public class WanderingMerchantManager {
         if (followTask != null) { followTask.cancel(); followTask = null; }
         if (fleeTask != null) { fleeTask.cancel(); fleeTask = null; }
         if (inactivityTask != null) { inactivityTask.cancel(); inactivityTask = null; }
+
+        // Clean up any stray wandering merchants or llamas that may have persisted
+        // in the world (e.g. after a crash) so they do not remain across restarts.
+        for (org.bukkit.World world : org.bukkit.Bukkit.getWorlds()) {
+            for (WanderingTrader trader : world.getEntitiesByClass(WanderingTrader.class)) {
+                String name = trader.getCustomName();
+                if (name != null && name.equals(ChatColor.GOLD + "Wandering Merchant")) {
+                    trader.remove();
+                }
+            }
+            for (TraderLlama llama : world.getEntitiesByClass(TraderLlama.class)) {
+                if (llama.getLeashHolder() instanceof WanderingTrader) {
+                    WanderingTrader holder = (WanderingTrader) llama.getLeashHolder();
+                    String name = holder.getCustomName();
+                    if (name != null && name.equals(ChatColor.GOLD + "Wandering Merchant")) {
+                        llama.remove();
+                    }
+                }
+            }
+        }
     }
 
     public long getLastSpawn() { return lastSpawn; }
