@@ -1,16 +1,24 @@
 package me.nakilex.levelplugin.quests.def;
 
 import me.nakilex.levelplugin.quests.data.*;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
 import java.util.List;
 
-public class SerasQuest extends Quest implements QuestScript, QuestCompletionScript {
+public class SerasQuest extends Quest implements QuestScript {
     private static List<QuestObjective> createObjectives() {
         return List.of(
                 new QuestObjective(QuestObjectiveType.KILL, "SLIME", 10),
                 new QuestObjective(QuestObjectiveType.TALK, "npc538", 1)
         );
+    }
+
+    private static final List<String> TURN_IN_DIALOG = List.of(
+            "Seras|Alright, you have some skill considering you completed that way faster than I was expecting.",
+            "Seras|Perhaps I underestimated you, nonetheless, I'll have more tasks for you to complete later but for now I'm busy investigating something I cannot disclose.",
+            "Seras|Good luck adventurer, I'm sure I'll be seeing you again."
+    );
+
+    public static List<String> getTurnInDialog() {
+        return TURN_IN_DIALOG;
     }
 
     public SerasQuest() {
@@ -40,18 +48,4 @@ public class SerasQuest extends Quest implements QuestScript, QuestCompletionScr
         // No special start logic
     }
 
-    @Override
-    public void onComplete(org.bukkit.entity.Player player, me.nakilex.levelplugin.Main plugin) {
-        NPC npc = CitizensAPI.getNPCRegistry().getById(538);
-        if (npc != null) {
-            plugin.getDialogManager().startDialog(player,
-                    List.of(
-                            "Seras|Alright, you have some skill considering you completed that way faster than I was expecting.",
-                            "Seras|Perhaps I underestimated you, nonetheless, I'll have more tasks for you to complete later but for now I'm busy investigating something I cannot disclose.",
-                            "Seras|Good luck adventurer, I'm sure I'll be seeing you again."
-                    ),
-                    npc,
-                    null);
-        }
-    }
 }
