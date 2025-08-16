@@ -52,12 +52,12 @@ public class LocationMusicManager {
         UUID id = player.getUniqueId();
         String key = point.getName().toLowerCase();
         String sound = locationSongs.get(key);
-        debug(player, "enter '" + point.getName() + "' key='" + key + "' sound='" + sound + "'");
         if (sound == null) return;
         String current = playing.get(id);
         if (current != null && current.equals(sound)) {
             return; // already playing this song
         }
+        debug(player, "enter '" + point.getName() + "' key='" + key + "' sound='" + sound + "'");
         player.stopSound(SoundCategory.MUSIC); // stop vanilla and previous music
         playing.put(id, sound);
         player.playSound(point.getLocation(), sound, SoundCategory.MUSIC, 1f, 1f);

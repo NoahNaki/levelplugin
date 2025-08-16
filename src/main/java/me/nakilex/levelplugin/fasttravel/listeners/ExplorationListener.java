@@ -43,12 +43,11 @@ public class ExplorationListener implements Listener {
                     manager.unlock(player, name);
                     player.sendTitle(pt.getColor() + pt.getName(), ChatColor.GRAY + pt.getDescription(), 10, 60, 10);
                 }
+                // Trigger music only when entering a new location
+                musicManager.update(player, pt);
             }
         } else if (prev != null) {
             current.remove(player.getUniqueId());
         }
-
-        // Update location music each move to trigger songs when entering locations
-        musicManager.update(player, pt);
     }
 }
