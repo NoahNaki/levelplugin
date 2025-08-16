@@ -255,7 +255,7 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
             }
             QuestObjective currentObj = quest.getObjectives().get(progIndex);
             String desc = questManager.describeObjective(currentObj);
-            current[idx] = ChatColor.GRAY + "- " + desc + ": " + progValue + "/" + currentObj.getAmount();
+            current[idx] = ChatColor.GRAY + "- " + desc + ": " + ChatColor.WHITE + progValue + "/" + currentObj.getAmount();
             if (!current[idx].equals(prev[idx])) {
                 setLine(board, obj, idx, line, current[idx]);
             }

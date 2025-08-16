@@ -237,7 +237,7 @@ public class QuestManager {
         // always track the most recently accepted quest
         trackedQuests.put(player.getUniqueId(), quest.getId());
         saveProgress();
-        player.sendMessage("§aStarted quest: " + quest.getName());
+        sendStartMessage(player, quest);
 
         if (quest instanceof me.nakilex.levelplugin.quests.data.QuestScript script) {
             script.onStart(player, plugin);
@@ -905,6 +905,19 @@ public class QuestManager {
             default:
                 return obj.getTarget();
         }
+    }
+
+    /**
+     * Display a styled quest start message to the player.
+     */
+    private void sendStartMessage(Player player, Quest quest) {
+        if ("officeerrands".equalsIgnoreCase(quest.getId())) {
+            return;
+        }
+        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "", 45);
+        me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§6§lQuest Started!");
+        me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§e" + quest.getName());
+        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "", 45);
     }
 
     private String beautifyName(String raw) {
