@@ -55,7 +55,7 @@ public class NPCClickListener implements Listener {
             if (npc.getId() == 546 &&
                     questManager.hasCompleted(player.getUniqueId(), "newbeginning")) {
                 if (!dialogManager.hasSession(player)) {
-                    NPC seras = CitizensAPI.getNPCRegistry().getById(538);
+                    NPC seras = CitizensAPI.getNPCRegistry().getById(823);
                     String coords = "unknown";
                     if (seras != null) {
                         Location l = seras.isSpawned() ? seras.getEntity().getLocation() : seras.getStoredLocation();

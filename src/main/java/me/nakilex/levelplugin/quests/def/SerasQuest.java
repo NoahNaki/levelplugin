@@ -13,9 +13,9 @@ public class SerasQuest extends Quest implements QuestScript {
         return List.of(
                 new QuestObjective(QuestObjectiveType.KILL, "SLIME_COMMON", 10,
                         BeaconTargets.staticLoc(new Location(world, 820, 65, -120))),
-                new QuestObjective(QuestObjectiveType.TALK, "npc538_first", 1),
+                new QuestObjective(QuestObjectiveType.TALK, "npc823_first", 1),
                 new QuestObjective(QuestObjectiveType.KILL, "SLIME_KING", 1),
-                new QuestObjective(QuestObjectiveType.TALK, "npc538_second", 1)
+                new QuestObjective(QuestObjectiveType.TALK, "npc823_second", 1)
         );
     }
 
@@ -45,7 +45,7 @@ public class SerasQuest extends Quest implements QuestScript {
                 List.of("newbeginning"),
                 null,
                 QuestRewardCompat.create(200, 100, 0, List.of()),
-                538,
+                823,
                 List.of(
                         "What are you looking at huh?",
                         "Piwan sent you did he, ugh, that rascal is always giving me more trouble.",
