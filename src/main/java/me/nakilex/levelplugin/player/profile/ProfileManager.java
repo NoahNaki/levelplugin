@@ -3,6 +3,8 @@ package me.nakilex.levelplugin.player.profile;
 import java.util.*;
 import org.bukkit.entity.Player;
 
+import me.nakilex.levelplugin.utils.PotionEffectUtil;
+
 public class ProfileManager {
     private static final ProfileManager instance = new ProfileManager();
     public static ProfileManager getInstance() { return instance; }
@@ -100,6 +102,7 @@ public class ProfileManager {
         player.getInventory().clear();
         player.getInventory().setArmorContents(null);
         player.getInventory().setItemInOffHand(null);
+        PotionEffectUtil.clearAllEffects(player);
         stats.recalcDerivedStats(player);
         me.nakilex.levelplugin.player.config.PlayerConfig cfg = plugin.getPlayerConfig();
         cfg.clearEnvironmentData(uuid);

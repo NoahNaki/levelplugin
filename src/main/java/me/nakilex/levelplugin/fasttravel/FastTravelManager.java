@@ -33,7 +33,7 @@ public class FastTravelManager {
             if (legacy.exists()) {
                 legacy.renameTo(file);
             } else {
-                try { file.createNewFile(); } catch (IOException e) { e.printStackTrace(); }
+                plugin.saveResource("regions.yml", false);
             }
         }
         config = YamlConfiguration.loadConfiguration(file);

@@ -1,0 +1,11 @@
+regions:
+  rowan:
+    world: world
+    x: 191.5028491990798
+    y: 73.0
+    z: -69.77117611957506
+    color: GOLD
+    desc: "Where every journey begins."
+    radius: 70.0
+    town: true
+
