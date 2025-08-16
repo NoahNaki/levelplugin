@@ -33,7 +33,7 @@ public class FastTravelManager {
             if (legacy.exists()) {
                 legacy.renameTo(file);
             } else {
-                try { file.createNewFile(); } catch (IOException e) { e.printStackTrace(); }
+                plugin.saveResource("regions.yml", false);
             }
         }
         config = YamlConfiguration.loadConfiguration(file);
@@ -55,7 +55,8 @@ public class FastTravelManager {
                     w = plugin.getServer().getWorld("world");
                 }
                 Location loc = new Location(w, x, y, z);
-                FastTravelPoint pt = new FastTravelPoint(key, ChatColor.valueOf(colorName), desc, loc, radius, town);
+                String displayName = EnvironmentManager.beautifyWords(key);
+                FastTravelPoint pt = new FastTravelPoint(displayName, ChatColor.valueOf(colorName), desc, loc, radius, town);
                 points.put(key.toLowerCase(), pt);
             }
         }
@@ -97,7 +98,8 @@ public class FastTravelManager {
     }
 
     public void addLocation(String name, ChatColor color, String desc, Location loc, double radius, boolean town) {
-        points.put(name.toLowerCase(), new FastTravelPoint(name, color, desc, loc, radius, town));
+        String displayName = EnvironmentManager.beautifyWords(name);
+        points.put(name.toLowerCase(), new FastTravelPoint(displayName, color, desc, loc, radius, town));
         save();
     }
 
