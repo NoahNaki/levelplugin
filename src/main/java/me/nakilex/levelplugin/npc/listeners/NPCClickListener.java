@@ -6,8 +6,6 @@ import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
-import me.nakilex.levelplugin.quests.data.QuestObjective;
-import me.nakilex.levelplugin.quests.data.QuestObjectiveType;
 import me.nakilex.levelplugin.quests.def.SerasQuest;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
 import net.citizensnpcs.api.CitizensAPI;
@@ -76,27 +74,39 @@ public class NPCClickListener implements Listener {
                 if ("serashelp".equals(quest.getId())) {
                     PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId(), quest.getId());
                     if (progress != null) {
-                        QuestObjective killObj = quest.getObjectives().get(0);
-                        boolean killDone = killObj.getType() == QuestObjectiveType.KILL &&
-                                progress.getProgress(0) >= killObj.getAmount();
-                        if (killDone) {
-                            if (progress.getProgress(1) < 1) {
-                                dialogManager.startDialog(player,
-                                        me.nakilex.levelplugin.quests.def.SerasQuest.getTurnInDialog(),
-                                        npc,
-                                        () -> questManager.handleTalk(player, "npc" + npc.getId()));
+                        boolean killSlimesDone = progress.getProgress(0) >= quest.getObjectives().get(0).getAmount();
+                        boolean talkAfterSlimes = progress.getProgress(1) >= quest.getObjectives().get(1).getAmount();
+                        boolean killKingDone = progress.getProgress(2) >= quest.getObjectives().get(2).getAmount();
+                        boolean talkAfterKing = progress.getProgress(3) >= quest.getObjectives().get(3).getAmount();
+
+                        if (killSlimesDone && !talkAfterSlimes) {
+                            dialogManager.startDialog(player,
+                                    me.nakilex.levelplugin.quests.def.SerasQuest.getDialogForObjective(1),
+                                    npc,
+                                    () -> questManager.handleTalk(player, "npc" + npc.getId()));
+                            return;
+                        }
+                        if (killSlimesDone && talkAfterSlimes && !killKingDone) {
+                            player.sendMessage("§cComplete the quest first!");
+                            return;
+                        }
+                        if (killKingDone && !talkAfterKing) {
+                            dialogManager.startDialog(player,
+                                    me.nakilex.levelplugin.quests.def.SerasQuest.getDialogForObjective(3),
+                                    npc,
+                                    () -> questManager.handleTalk(player, "npc" + npc.getId()));
+                            return;
+                        }
+                        if (!killSlimesDone) {
+                            QuestState state = questManager.getQuestState(player, quest);
+                            switch (state) {
+                                case AVAILABLE -> dialogManager.startDialog(player, quest, npc);
+                                case LOCKED -> questManager.meetsRequirements(player, quest);
+                                case ACCEPTED, IN_PROGRESS -> player.sendMessage("§cComplete the quest first!");
+                                default -> {}
                             }
                             return;
                         }
-                        // kill not yet done, block talk progress
-                        QuestState state = questManager.getQuestState(player, quest);
-                        switch (state) {
-                            case AVAILABLE -> dialogManager.startDialog(player, quest, npc);
-                            case LOCKED -> questManager.meetsRequirements(player, quest);
-                            case ACCEPTED, IN_PROGRESS -> player.sendMessage("§cComplete the quest first!");
-                            default -> {}
-                        }
-                        return;
                     }
                 }
 

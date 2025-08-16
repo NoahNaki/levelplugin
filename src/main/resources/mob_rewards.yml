@@ -13,6 +13,13 @@ mobs:
     tier_chance: 100.0
     model_set: default
 
+  slime_king:
+    exp: 500
+    coins: "0-0"
+    tier: 3
+    tier_chance: 100.0
+    model_set: default
+
 
 
 
