@@ -44,9 +44,13 @@ public class SalvageListener implements Listener {
         if (stack == null || stack.getType() == Material.AIR) return false;
         CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(stack);
         if (cItem != null) return true;
-        return Main.getInstance()
-            .getPotionManager()
-            .getInstanceFromItem(stack) != null;
+
+        if (Main.getInstance().getPotionManager().getInstanceFromItem(stack) != null)
+            return true;
+
+        // Allow vanilla potions to be placed in the GUI even if they aren't custom
+        Material type = stack.getType();
+        return type == Material.POTION || type == Material.SPLASH_POTION || type == Material.LINGERING_POTION;
     }
 
     @EventHandler
@@ -163,12 +167,20 @@ public class SalvageListener implements Listener {
                 totalCoins += SalvageManager.getInstance().getSellPrice(cItem);
                 totalGems += SalvageManager.getInstance().getGemReward(cItem);
                 inv.setItem(i, null);
-            } else {
-                PotionInstance pInst = Main.getInstance().getPotionManager().getInstanceFromItem(item);
-                if (pInst != null) {
-                    totalCoins += SalvageManager.getInstance().getPotionSellPrice(pInst);
-                    inv.setItem(i, null);
-                }
+                continue;
+            }
+
+            PotionInstance pInst = Main.getInstance().getPotionManager().getInstanceFromItem(item);
+            if (pInst != null) {
+                totalCoins += SalvageManager.getInstance().getPotionSellPrice(pInst);
+                inv.setItem(i, null);
+                continue;
+            }
+
+            // Vanilla potions without custom data are simply removed with no reward
+            Material type = item.getType();
+            if (type == Material.POTION || type == Material.SPLASH_POTION || type == Material.LINGERING_POTION) {
+                inv.setItem(i, null);
             }
         }
 

@@ -27,8 +27,6 @@ public class MythicMobNameManager implements Listener {
     private final Set<ActiveMob> trackedMobs = new HashSet<>();
     /** Holds all boss‑keys exactly as in your YAML (e.g. "KING SLIME", "TERRACOTTA GENERAL", etc.) */
     private final Set<String> fieldBossKeys;
-    /** MythicMob IDs that should display HP bars (from mob_rewards.yml). */
-    private final Set<String> rewardMobKeys;
 
     public MythicMobNameManager(Main plugin) {
         this.plugin = plugin;
@@ -47,17 +45,6 @@ public class MythicMobNameManager implements Listener {
             this.fieldBossKeys = new HashSet<>();
         }
 
-        FileConfiguration rewardsCfg = plugin.getMobRewardsConfig().getConfig();
-        if (rewardsCfg.isConfigurationSection("mobs")) {
-            this.rewardMobKeys = rewardsCfg.getConfigurationSection("mobs")
-                    .getKeys(false)
-                    .stream()
-                    .map(String::toUpperCase)
-                    .collect(Collectors.toSet());
-        } else {
-            this.rewardMobKeys = new HashSet<>();
-        }
-
         // ─── Schedule the name‐updater ────────────────────────────────────────────────
         Bukkit.getScheduler().runTaskTimer(plugin, this::updateMobNames, 5L, 5L);
 
@@ -68,8 +55,8 @@ public class MythicMobNameManager implements Listener {
     @EventHandler
     public void onMythicMobSpawn(MythicMobSpawnEvent event) {
         ActiveMob mob = event.getMob();
-        String type = mob.getMobType();
-        if (!rewardMobKeys.contains(type.toUpperCase())) {
+        // Only track mobs that have rewards configured
+        if (plugin.getMobRewardsConfig().getMobSection(mob.getMobType()) == null) {
             return;
         }
         trackedMobs.add(mob);
@@ -99,7 +86,7 @@ public class MythicMobNameManager implements Listener {
     }
 
     private void setDisplayName(ActiveMob mob) {
-        if (!rewardMobKeys.contains(mob.getMobType().toUpperCase())) {
+        if (plugin.getMobRewardsConfig().getMobSection(mob.getMobType()) == null) {
             return;
         }
         int    level     = (int) mob.getLevel();
