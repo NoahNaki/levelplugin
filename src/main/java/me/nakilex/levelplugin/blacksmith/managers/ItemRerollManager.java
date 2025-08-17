@@ -37,7 +37,14 @@ public class ItemRerollManager {
                 }
             }
             case WIL -> {
-                // Items currently have no inherent Will range; nothing to reroll.
+                if (item.getWilRange().getMax() > 0) {
+                    item.setBaseWil(item.getWilRange().roll());
+                }
+            }
+            case TEC -> {
+                if (item.getTecRange().getMax() > 0) {
+                    item.setBaseTec(item.getTecRange().roll());
+                }
             }
         }
 
@@ -68,7 +75,8 @@ public class ItemRerollManager {
             case AGI -> item.getAgiRange().getMax() > 0;
             case DEX -> item.getDexRange().getMax() > 0;
             case VIT -> item.getHpRange().getMax() > 0 || item.getDefRange().getMax() > 0;
-            case WIL -> false;
+            case WIL -> item.getWilRange().getMax() > 0;
+            case TEC -> item.getTecRange().getMax() > 0;
         };
     }
 
@@ -80,6 +88,7 @@ public class ItemRerollManager {
             case DEX -> item.getDex();
             case VIT -> item.getHp() + item.getDef();
             case WIL -> item.getWil();
+            case TEC -> item.getTec();
         };
     }
 }

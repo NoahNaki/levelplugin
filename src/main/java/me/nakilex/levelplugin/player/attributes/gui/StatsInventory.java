@@ -48,10 +48,10 @@ public class StatsInventory {
         );
         inv.setItem(19, createStatBook(
             "Strength", StatType.STR, ps.baseStrength, ps.bonusStrength, ps.skillPoints,
-            "Increases your melee damage.",
+            "Boosts melee damage and adds a bit of health.",
             new String[]{
-                "Each point increases melee damage by 0.5.",
-                "Current bonus: " + ChatColor.YELLOW + ((ps.baseStrength + ps.bonusStrength) * 0.5) + " damage."
+                "Each point: +0.5 melee dmg & +1 HP.",
+                "HP bonus: " + ChatColor.YELLOW + ((ps.baseStrength + ps.bonusStrength) * 1) + " HP"
             }
         ));
         int totalAgility = ps.baseAgility + ps.bonusAgility;
@@ -70,11 +70,10 @@ public class StatsInventory {
 
         inv.setItem(21, createStatBook(
             "Intelligence", StatType.INT, ps.baseIntelligence, ps.bonusIntelligence, ps.skillPoints,
-            "Increases your max mana and mana regeneration.",
+            "Improves magical prowess and max mana.",
             new String[]{
-                "Each point adds 10 max mana and 0.05 mana/sec.",
-                "Current max mana: " + ChatColor.YELLOW + ps.maxMana,
-                "Mana regen: +" + ((ps.baseIntelligence + ps.bonusIntelligence) * 0.05) + " mana/sec."
+                "Each point: +0.5 magic dmg & +1 Mana.",
+                "Current max mana: " + ChatColor.YELLOW + ps.maxMana
             }
         ));
 
@@ -94,7 +93,7 @@ public class StatsInventory {
             "Vitality", StatType.VIT, ps.baseVitality, ps.bonusVitality, ps.skillPoints,
             "Increases max health and reduces damage taken.",
             new String[]{
-                "Each point grants 3 HP.",
+                "Each point grants 3 HP and defense.",
                 "Current HP bonus: " + ChatColor.YELLOW + ((ps.baseVitality + ps.bonusVitality) * 3) + " HP."
             }
         ));
@@ -103,8 +102,18 @@ public class StatsInventory {
             "Will", StatType.WIL, ps.baseWill, ps.bonusWill, ps.skillPoints,
             "Boosts mana and mana regeneration.",
             new String[]{
-                "Each point adds 3 max mana and 0.25 mana/sec.",
+                "Each point: +3 max mana & +0.25 mana/sec.",
                 "Current max mana: " + ChatColor.YELLOW + ps.maxMana
+            }
+        ));
+
+        double atkSpeed = 0.5 * (1.0 + 0.01 * (ps.baseTechnique + ps.bonusTechnique));
+        inv.setItem(22, createStatBook(
+            "Technique", StatType.TEC, ps.baseTechnique, ps.bonusTechnique, ps.skillPoints,
+            "Amplifies attack speed and all damage.",
+            new String[]{
+                "+1% atk speed & +0.3 dmg per point.",
+                "Current atk speed: " + ChatColor.YELLOW + atkSpeed + " attacks/s"
             }
         ));
         inv.setItem(13, GuiUtil.getNexoItem("refresh", ChatColor.RED + "Refund All Skill Points"));
@@ -167,6 +176,7 @@ public class StatsInventory {
             lore.add(ChatColor.YELLOW + "\u27B9 " + ChatColor.GRAY + "Dexterity: " + ChatColor.WHITE + (ps.baseDexterity + ps.bonusDexterity) + ChatColor.GREEN + " (+" + ps.bonusDexterity + ")");
             lore.add(ChatColor.RED + "\u2764 " + ChatColor.GRAY + "Vitality: " + ChatColor.WHITE + (ps.baseVitality + ps.bonusVitality) + ChatColor.GREEN + " (+" + ps.bonusVitality + ")");
             lore.add(ChatColor.BLUE + "\u272A " + ChatColor.GRAY + "Will: " + ChatColor.WHITE + (ps.baseWill + ps.bonusWill) + ChatColor.GREEN + " (+" + ps.bonusWill + ")");
+            lore.add(ChatColor.DARK_PURPLE + "\u2694 " + ChatColor.GRAY + "Technique: " + ChatColor.WHITE + (ps.baseTechnique + ps.bonusTechnique) + ChatColor.GREEN + " (+" + ps.bonusTechnique + ")");
             lore.add("");
 
             int gearScore = ItemUtil.calculateTotalGearScore(player);

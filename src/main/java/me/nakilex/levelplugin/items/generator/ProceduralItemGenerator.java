@@ -125,6 +125,8 @@ public class ProceduralItemGenerator {
             createRange(agi),
             createRange(intel),
             createRange(dex),
+            createRange(0),
+            createRange(0),
             false,
             null
         );

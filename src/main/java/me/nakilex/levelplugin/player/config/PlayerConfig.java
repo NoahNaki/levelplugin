@@ -61,6 +61,7 @@ public class PlayerConfig {
         config.set(path + ".stats.base_dexterity", stats.baseDexterity);
         config.set(path + ".stats.base_vitality", stats.baseVitality);
         config.set(path + ".stats.base_will", stats.baseWill);
+        config.set(path + ".stats.base_technique", stats.baseTechnique);
         config.set(path + ".class", stats.playerClass.name());
         List<String> unlocked = new ArrayList<>();
         for (PlayerClass pc : stats.unlockedClasses) unlocked.add(pc.name());
@@ -108,6 +109,7 @@ public class PlayerConfig {
         int oldDef = config.getInt(root + ".stats.base_defense", 0);
         stats.baseVitality = config.getInt(root + ".stats.base_vitality", oldHealth + oldDef);
         stats.baseWill     = config.getInt(root + ".stats.base_will", 0);
+        stats.baseTechnique = config.getInt(root + ".stats.base_technique", 0);
         stats.unlockedClasses.clear();
         stats.unlockedClasses.add(playerClass);
         for (String s : unlockedList) {

@@ -74,6 +74,7 @@ public class EquipOnJoinListener implements Listener {
         ps.bonusIntelligence += ci.getIntel();
         ps.bonusDexterity    += ci.getDex();
         ps.bonusWill         += ci.getWil();
+        ps.bonusTechnique    += ci.getTec();
 
         equipped.add(id);
     }
@@ -125,6 +126,7 @@ public class EquipOnJoinListener implements Listener {
         ps.bonusIntelligence += ci.getIntel();
         ps.bonusDexterity    += ci.getDex();
         ps.bonusWill         += ci.getWil();
+        ps.bonusTechnique    += ci.getTec();
 
         equipped.add(id);
     }

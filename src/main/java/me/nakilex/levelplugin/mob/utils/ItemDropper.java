@@ -88,6 +88,8 @@ public class ItemDropper {
                         template.getAgiRange(),
                         template.getIntelRange(),
                         template.getDexRange(),
+                        template.getWilRange(),
+                        template.getTecRange(),
                         template.isEgo(),
                         template.getEgoKey()
                 );

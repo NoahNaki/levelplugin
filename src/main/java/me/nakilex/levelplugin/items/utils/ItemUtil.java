@@ -67,6 +67,7 @@ public class ItemUtil {
                 case "intelligence" -> StatsManager.StatType.INT;
                 case "defense", "hp", "vitality" -> StatsManager.StatType.VIT;
                 case "will" -> StatsManager.StatType.WIL;
+                case "technique" -> StatsManager.StatType.TEC;
                 default -> StatsManager.StatType.VIT;
             };
             PREFIX_MAP.put(prefix, st);

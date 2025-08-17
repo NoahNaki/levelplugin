@@ -61,6 +61,7 @@ public class SetBonusManager {
             case "intelligence": return StatType.INT;
             case "hp", "defense", "vitality": return StatType.VIT;
             case "will": return StatType.WIL;
+            case "technique": return StatType.TEC;
             default: return StatType.VIT;
         }
     }
@@ -155,7 +156,7 @@ public class SetBonusManager {
         if (a == b) return true;
         if (a == null || b == null) return false;
         return a.str == b.str && a.agi == b.agi && a.intel == b.intel &&
-               a.dex == b.dex && a.vit == b.vit && a.wil == b.wil &&
+               a.dex == b.dex && a.vit == b.vit && a.wil == b.wil && a.tec == b.tec &&
                a.percents.equals(b.percents) && a.counts.equals(b.counts);
     }
 
@@ -181,6 +182,7 @@ public class SetBonusManager {
             case DEX: total.dex += bonus; break;
             case VIT: total.vit += bonus; break;
             case WIL: total.wil += bonus; break;
+            case TEC: total.tec += bonus; break;
         }
         total.percents.merge(stat, percent, Integer::sum);
         total.counts.merge(stat, pieces, Math::max);
@@ -194,6 +196,7 @@ public class SetBonusManager {
         ps.bonusDexterity    += b.dex;
         ps.bonusVitality     += b.vit;
         ps.bonusWill         += b.wil;
+        ps.bonusTechnique    += b.tec;
 
         if (!b.percents.isEmpty()) {
             for (Map.Entry<StatType,Integer> e : b.percents.entrySet()) {
@@ -212,6 +215,7 @@ public class SetBonusManager {
         ps.bonusDexterity    -= b.dex;
         ps.bonusVitality     -= b.vit;
         ps.bonusWill         -= b.wil;
+        ps.bonusTechnique    -= b.tec;
         if (showMsg && !b.percents.isEmpty()) {
             for (Map.Entry<StatType,Integer> e : b.percents.entrySet()) {
                 String statName = getDisplayName(e.getKey());
@@ -245,17 +249,18 @@ public class SetBonusManager {
             case DEX:  return "Dexterity";
             case VIT:  return "Vitality";
             case WIL:  return "Will";
+            case TEC:  return "Technique";
             default:   return type.name();
         }
     }
 
     private static class BonusStats {
-        int str, agi, intel, dex, vit, wil;
+        int str, agi, intel, dex, vit, wil, tec;
         final Map<StatType,Integer> percents = new LinkedHashMap<>();
         final Map<StatType,Integer> counts   = new HashMap<>();
 
         boolean isZero() {
-            return str==0 && agi==0 && intel==0 && dex==0 && vit==0 && wil==0;
+            return str==0 && agi==0 && intel==0 && dex==0 && vit==0 && wil==0 && tec==0;
         }
     }
 }

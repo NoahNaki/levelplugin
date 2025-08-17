@@ -44,6 +44,7 @@ public class EnchantManager {
             case "intelligence" -> StatType.INT;
             case "defense", "hp", "vitality" -> StatType.VIT;
             case "will" -> StatType.WIL;
+            case "technique" -> StatType.TEC;
             default -> StatType.VIT;
         };
     }

@@ -570,6 +570,7 @@ public class BlacksmithGUI implements Listener {
             case DEX -> "Dexterity";
             case VIT -> "Vitality";
             case WIL -> "Will";
+            case TEC -> "Technique";
         };
     }
 

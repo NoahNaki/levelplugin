@@ -82,6 +82,7 @@ public class StatsManager {
             case DEX: ps.baseDexterity++; break;
             case VIT: ps.baseVitality++; break;
             case WIL: ps.baseWill++; break;
+            case TEC: ps.baseTechnique++; break;
         }
 
         recalcDerivedStats(player);
@@ -110,6 +111,9 @@ public class StatsManager {
             case WIL:
                 if (ps.baseWill > 0) { ps.baseWill--; refunded = true; }
                 break;
+            case TEC:
+                if (ps.baseTechnique > 0) { ps.baseTechnique--; refunded = true; }
+                break;
         }
 
         if (refunded) {
@@ -122,7 +126,7 @@ public class StatsManager {
         PlayerStats ps = getPlayerStats(player.getUniqueId());
 
         int totalRefundedPoints = ps.baseStrength + ps.baseAgility + ps.baseIntelligence
-            + ps.baseDexterity + ps.baseVitality + ps.baseWill;
+            + ps.baseDexterity + ps.baseVitality + ps.baseWill + ps.baseTechnique;
 
         ps.baseStrength = 0;
         ps.baseAgility = 0;
@@ -130,6 +134,7 @@ public class StatsManager {
         ps.baseDexterity = 0;
         ps.baseVitality = 0;
         ps.baseWill = 0;
+        ps.baseTechnique = 0;
 
         ps.skillPoints += totalRefundedPoints;
         recalcDerivedStats(player);
@@ -172,6 +177,8 @@ public class StatsManager {
         ps.bonusDexterity   = Math.max(0, ps.bonusDexterity);
         ps.baseWill         = Math.max(0, ps.baseWill);
         ps.bonusWill        = Math.max(0, ps.bonusWill);
+        ps.baseTechnique    = Math.max(0, ps.baseTechnique);
+        ps.bonusTechnique   = Math.max(0, ps.bonusTechnique);
         ps.baseIntelligence = Math.max(0, ps.baseIntelligence);
         ps.bonusIntelligence = Math.max(0, ps.bonusIntelligence);
 
@@ -181,7 +188,9 @@ public class StatsManager {
         double healthRatio = oldHealth / oldMaxHealth;
 
         // Calculate the new max health based on the health stats
-        double newMaxHealth = 20.0 + ((ps.baseVitality + ps.bonusVitality) * 3.0);
+        double newMaxHealth = 20.0
+                + ((ps.baseVitality + ps.bonusVitality) * 3.0)
+                + ((ps.baseStrength + ps.bonusStrength) * 1.0);
         newMaxHealth = Math.max(1.0, Math.min(newMaxHealth, 9999999.0));
 
         // Set the new max health
@@ -196,7 +205,8 @@ public class StatsManager {
         player.setHealthScale(20.0);
 
         // Recalculate other derived stats (e.g., mana, walk speed) as needed.
-        ps.maxMana = 50 + ((ps.baseIntelligence + ps.bonusIntelligence) * 10)
+        ps.maxMana = 50
+                + ((ps.baseIntelligence + ps.bonusIntelligence) * 1)
                 + ((ps.baseWill + ps.bonusWill) * 3);
         if (ps.currentMana > ps.maxMana) {
             ps.currentMana = ps.maxMana;
@@ -205,6 +215,8 @@ public class StatsManager {
         float newWalkSpeed = 0.20f + ((ps.baseAgility + ps.bonusAgility) * 0.0006f);
         if (newWalkSpeed > 1.0f) newWalkSpeed = 1.0f;
         player.setWalkSpeed(newWalkSpeed);
+
+        ps.attackSpeed = 0.5 * (1.0 + 0.01 * (ps.baseTechnique + ps.bonusTechnique));
     }
 
     public void regenHealthForAllPlayers() {
@@ -212,7 +224,8 @@ public class StatsManager {
             PlayerStats ps = getPlayerStats(player.getUniqueId());
 
             double baseRegenPerSec = 1.0;
-            double regenFromStats = ps.baseVitality / 5.0;
+            double regenFromStats = (ps.baseVitality + ps.bonusVitality
+                    + ps.baseStrength + ps.bonusStrength) / 5.0;
             double regenFromMaxHealth = player.getMaxHealth() / 100.0;
 
             double totalRegen = baseRegenPerSec + regenFromStats + regenFromMaxHealth;
@@ -229,9 +242,8 @@ public class StatsManager {
             PlayerStats ps = getPlayerStats(player.getUniqueId());
 
             double baseRegenPerSec = 2.5;
-            double intBonus = (ps.baseIntelligence + ps.bonusIntelligence) * 0.3;
             double willBonus = (ps.baseWill + ps.bonusWill) * 0.25;
-            double totalRegen = baseRegenPerSec + intBonus + willBonus;
+            double totalRegen = baseRegenPerSec + willBonus;
 
             ps.currentMana += totalRegen;
             if (ps.currentMana > ps.maxMana) {
@@ -251,6 +263,7 @@ public class StatsManager {
         ps.bonusIntelligence += newItem.getIntel();
         ps.bonusDexterity    += newItem.getDex();
         ps.bonusWill         += newItem.getWil();
+        ps.bonusTechnique    += newItem.getTec();
 
         recalcDerivedStats(player);
     }
@@ -266,6 +279,7 @@ public class StatsManager {
             case DEX: return ps.baseDexterity + ps.bonusDexterity;
             case VIT: return ps.baseVitality + ps.bonusVitality;
             case WIL: return ps.baseWill + ps.bonusWill;
+            case TEC: return ps.baseTechnique + ps.bonusTechnique;
             default: return 0;
         }
     }
@@ -277,9 +291,11 @@ public class StatsManager {
         public int baseDexterity = 0, bonusDexterity = 0;
         public int baseIntelligence = 0, bonusIntelligence = 0;
         public int baseWill = 0, bonusWill = 0;
+        public int baseTechnique = 0, bonusTechnique = 0;
 
         public int maxMana = 50;
         public int currentMana = 50;
+        public double attackSpeed = 0.5; // attacks per second
         public int skillPoints = 0;
 
         public PlayerClass playerClass = PlayerClass.VILLAGER;
@@ -305,7 +321,7 @@ public class StatsManager {
 
     }
 
-    public enum StatType {
-        STR, AGI, INT, DEX, VIT, WIL
+        public enum StatType {
+        STR, AGI, INT, DEX, VIT, WIL, TEC
     }
 }
