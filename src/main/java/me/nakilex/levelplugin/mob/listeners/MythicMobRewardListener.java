@@ -79,7 +79,8 @@ public class MythicMobRewardListener implements Listener {
         }
 
         ConfigurationSection node = mobRewardsConfig.getMobSection(rawMobType);
-        boolean numericHpName = MobNameUtil.hasNumericHealth(mythicMob.getEntity().getCustomName());
+        String customName = mythicMob.getEntity().getBukkitEntity().getCustomName();
+        boolean numericHpName = MobNameUtil.hasNumericHealth(customName);
         if (node == null) {
             for (Player player : participants) {
                 if (debugToggle.isEnabled(player)) {
