@@ -92,5 +92,26 @@ public final class MobNameUtil {
                 && entity.isCustomNameVisible()
                 && hasNumericHealth(entity.getCustomName());
     }
+
+    /**
+     * Build a formatted display name containing level, base mob name, and its
+     * current and maximum health.
+     *
+     * @param level      mob level to show in the prefix
+     * @param nameColor  color of the mob's base name
+     * @param prettyType human-friendly mob name
+     * @param currentHP  mob's current health
+     * @param maxHP      mob's maximum health
+     * @return formatted display name including numeric health
+     */
+    public static String buildHealthName(int level,
+                                         ChatColor nameColor,
+                                         String prettyType,
+                                         double currentHP,
+                                         double maxHP) {
+        return ChatColor.GRAY + "[Lv " + level + "] "
+                + nameColor + prettyType + " "
+                + ChatColor.RED + (int) currentHP + "/" + (int) maxHP + " \u2764";
+    }
 }
 
