@@ -3,7 +3,9 @@ package me.nakilex.levelplugin.debug;
 import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.spells.Spell;
 import me.nakilex.levelplugin.spells.managers.CooldownManager;
+import me.nakilex.levelplugin.spells.managers.SpellManager;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
@@ -44,7 +46,13 @@ public class AutoCastManager {
             double cooldown = 1.0 / ps.attackSpeed;
             CooldownManager cd = CooldownManager.getInstance();
             if (!cd.isOnCooldown(id, COOLDOWN_KEY)) {
-                MythicBukkit.inst().getAPIHelper().castSkill(player, skillId);
+                Spell spell = SpellManager.getInstance()
+                        .getSpellById(ps.playerClass.name().toLowerCase(), skillId);
+                if (spell != null) {
+                    spell.castEffect(player);
+                } else {
+                    MythicBukkit.inst().getAPIHelper().castSkill(player, skillId);
+                }
                 cd.setCooldown(id, COOLDOWN_KEY, cooldown);
             }
         }, 0L, 1L);
