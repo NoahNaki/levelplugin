@@ -28,8 +28,17 @@ public class ItemRerollManager {
             case INT -> item.setBaseIntel(item.getIntelRange().roll());
             case AGI -> item.setBaseAgi(item.getAgiRange().roll());
             case DEX -> item.setBaseDex(item.getDexRange().roll());
-            case HP  -> item.setBaseHp(item.getHpRange().roll());
-            case DEF -> item.setBaseDef(item.getDefRange().roll());
+            case VIT -> {
+                if (item.getHpRange().getMax() > 0) {
+                    item.setBaseHp(item.getHpRange().roll());
+                }
+                if (item.getDefRange().getMax() > 0) {
+                    item.setBaseDef(item.getDefRange().roll());
+                }
+            }
+            case WIL -> {
+                // Items currently have no inherent Will range; nothing to reroll.
+            }
         }
 
         ItemStack updated = ItemUtil.createItemStackFromCustomItem(item, stack.getAmount(), player);
@@ -58,8 +67,8 @@ public class ItemRerollManager {
             case INT -> item.getIntelRange().getMax() > 0;
             case AGI -> item.getAgiRange().getMax() > 0;
             case DEX -> item.getDexRange().getMax() > 0;
-            case HP  -> item.getHpRange().getMax() > 0;
-            case DEF -> item.getDefRange().getMax() > 0;
+            case VIT -> item.getHpRange().getMax() > 0 || item.getDefRange().getMax() > 0;
+            case WIL -> false;
         };
     }
 
@@ -69,8 +78,8 @@ public class ItemRerollManager {
             case INT -> item.getIntel();
             case AGI -> item.getAgi();
             case DEX -> item.getDex();
-            case HP  -> item.getHp();
-            case DEF -> item.getDef();
+            case VIT -> item.getHp() + item.getDef();
+            case WIL -> item.getWil();
         };
     }
 }
