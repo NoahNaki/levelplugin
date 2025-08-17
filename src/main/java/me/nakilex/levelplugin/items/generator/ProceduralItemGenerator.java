@@ -56,7 +56,7 @@ public class ProceduralItemGenerator {
         String base = pickBaseName(clazz, createArmor);
         int baseVal = Math.max(1, level);
 
-        int hp = 0, def = 0, str = 0, agi = 0, intel = 0, dex = 0;
+        int hp = 0, def = 0, str = 0, agi = 0, intel = 0, dex = 0, wil = 0, tec = 0;
 
         if (createArmor) {
             hp  = baseVal * 2;
@@ -65,6 +65,8 @@ public class ProceduralItemGenerator {
             agi   = random.nextInt(baseVal + 1);
             intel = random.nextInt(baseVal + 1);
             dex   = random.nextInt(baseVal + 1);
+            wil   = random.nextInt(baseVal + 1);
+            tec   = random.nextInt(baseVal + 1);
         } else {
             def = random.nextInt(baseVal + 1);
             switch (clazz) {
@@ -73,24 +75,32 @@ public class ProceduralItemGenerator {
                     agi = random.nextInt(baseVal + 1);
                     dex = random.nextInt(baseVal + 1);
                     intel = random.nextInt(baseVal + 1);
+                    wil = random.nextInt(baseVal + 1);
+                    tec = random.nextInt(baseVal + 1);
                     break;
                 case "ROGUE":
                     dex = baseVal * 2;
                     agi = baseVal;
                     str = random.nextInt(baseVal + 1);
                     intel = random.nextInt(baseVal + 1);
+                    wil = random.nextInt(baseVal + 1);
+                    tec = random.nextInt(baseVal + 1);
                     break;
                 case "ARCHER":
                     dex = baseVal * 2;
                     agi = baseVal;
                     str = random.nextInt(baseVal + 1);
                     intel = random.nextInt(baseVal + 1);
+                    wil = random.nextInt(baseVal + 1);
+                    tec = random.nextInt(baseVal + 1);
                     break;
                 case "MAGE":
                     intel = baseVal * 2;
                     agi = random.nextInt(baseVal + 1);
                     dex = random.nextInt(baseVal + 1);
                     str = random.nextInt(baseVal + 1);
+                    wil = random.nextInt(baseVal + 1);
+                    tec = random.nextInt(baseVal + 1);
                     break;
             }
         }
@@ -102,6 +112,8 @@ public class ProceduralItemGenerator {
         agi   = (int) (agi * mult);
         dex   = (int) (dex * mult);
         intel = (int) (intel * mult);
+        wil   = (int) (wil * mult);
+        tec   = (int) (tec * mult);
 
         String dominant = getDominantStat(str, agi, intel, dex, def);
         String name = buildName(mobType, base, rarity, dominant);
@@ -125,8 +137,8 @@ public class ProceduralItemGenerator {
             createRange(agi),
             createRange(intel),
             createRange(dex),
-            createRange(0),
-            createRange(0),
+            createRange(wil),
+            createRange(tec),
             false,
             null
         );

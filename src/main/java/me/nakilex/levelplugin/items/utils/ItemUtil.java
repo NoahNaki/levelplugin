@@ -319,6 +319,16 @@ public class ItemUtil {
             if (prefixStat == StatsManager.StatType.DEX) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
             lore.add(line);
         }
+        if (cItem.getWil() != 0) {
+            String line = ChatColor.BLUE + "✪ " + ChatColor.GRAY + "Will: " + ChatColor.WHITE + "+" + cItem.getWil();
+            if (prefixStat == StatsManager.StatType.WIL) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
+            lore.add(line);
+        }
+        if (cItem.getTec() != 0) {
+            String line = ChatColor.DARK_PURPLE + "⚔ " + ChatColor.GRAY + "Technique: " + ChatColor.WHITE + "+" + cItem.getTec();
+            if (prefixStat == StatsManager.StatType.TEC) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
+            lore.add(line);
+        }
 
         lore.add("");
         if (cItem.isBroken()) {
@@ -488,6 +498,16 @@ public class ItemUtil {
         if (cItem.getDex() != 0) {
             String line = ChatColor.YELLOW + "➹ " + ChatColor.GRAY + "Dexterity: " + ChatColor.WHITE + "+" + cItem.getDex();
             if (prefixStat == StatsManager.StatType.DEX) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
+            lore.add(line);
+        }
+        if (cItem.getWil() != 0) {
+            String line = ChatColor.BLUE + "✪ " + ChatColor.GRAY + "Will: " + ChatColor.WHITE + "+" + cItem.getWil();
+            if (prefixStat == StatsManager.StatType.WIL) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
+            lore.add(line);
+        }
+        if (cItem.getTec() != 0) {
+            String line = ChatColor.DARK_PURPLE + "⚔ " + ChatColor.GRAY + "Technique: " + ChatColor.WHITE + "+" + cItem.getTec();
+            if (prefixStat == StatsManager.StatType.TEC) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
             lore.add(line);
         }
 
