@@ -190,6 +190,7 @@ public class ClassSpellListener implements Listener {
 
     private void cast(Player player, List<String> combos, PlayerClass pc) {
         if (combos == null) return;
+        if (Main.getInstance().getDialogManager().hasSession(player)) return;
         for (String id : combos) {
             Spell spell = SpellManager.getInstance().getSpellById(pc.name().toLowerCase(), id);
             if (spell == null) {

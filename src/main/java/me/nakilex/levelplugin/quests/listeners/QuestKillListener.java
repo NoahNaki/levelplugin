@@ -1,7 +1,8 @@
 package me.nakilex.levelplugin.quests.listeners;
 
+import io.lumine.mythic.bukkit.MythicBukkit;
+import io.lumine.mythic.core.mobs.ActiveMob;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -18,7 +19,8 @@ public class QuestKillListener implements Listener {
     public void onEntityDeath(EntityDeathEvent event) {
         if (!(event.getEntity().getKiller() instanceof Player)) return;
         Player killer = event.getEntity().getKiller();
-        EntityType type = event.getEntityType();
-        questManager.handleKill(killer, type.name());
+        ActiveMob mob = MythicBukkit.inst().getAPIHelper().getMythicMobInstance(event.getEntity());
+        String typeName = mob != null ? mob.getMobType() : event.getEntityType().name();
+        questManager.handleKill(killer, typeName);
     }
 }

@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.quests.data.*;
 import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.data.QuestResetScript;
@@ -236,7 +237,7 @@ public class QuestManager {
         // always track the most recently accepted quest
         trackedQuests.put(player.getUniqueId(), quest.getId());
         saveProgress();
-        player.sendMessage("§aStarted quest: " + quest.getName());
+        sendStartMessage(player, quest);
 
         if (quest instanceof me.nakilex.levelplugin.quests.data.QuestScript script) {
             script.onStart(player, plugin);
@@ -906,21 +907,21 @@ public class QuestManager {
         }
     }
 
-    private String beautifyName(String raw) {
-        String name = raw;
-        try {
-            org.bukkit.entity.EntityType type = org.bukkit.entity.EntityType.valueOf(raw.toUpperCase());
-            String key = type.getKey().getKey();
-            name = key.replace('_', ' ');
-        } catch (IllegalArgumentException ignored) {}
-        String[] parts = name.toLowerCase().split(" ");
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < parts.length; i++) {
-            if (parts[i].isEmpty()) continue;
-            sb.append(Character.toUpperCase(parts[i].charAt(0))).append(parts[i].substring(1));
-            if (i < parts.length - 1) sb.append(' ');
+    /**
+     * Display a styled quest start message to the player.
+     */
+    private void sendStartMessage(Player player, Quest quest) {
+        if ("officeerrands".equalsIgnoreCase(quest.getId())) {
+            return;
         }
-        return sb.toString();
+        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "", 45);
+        me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§6§lQuest Started!");
+        me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§e" + quest.getName());
+        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "", 45);
+    }
+
+    private String beautifyName(String raw) {
+        return MobNameUtil.getPlainDisplayName(raw);
     }
 
     private String resolveNpcName(String raw) {

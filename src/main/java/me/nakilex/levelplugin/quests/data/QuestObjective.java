@@ -10,16 +10,16 @@ public class QuestObjective {
      * is capped at the required amount.
      */
     private final boolean allowOverflow;
-    /** Location used for navigation beacons. May be null. */
-    private final org.bukkit.Location beaconLocation;
+    /** Target used for navigation beacons. May be null. */
+    private final BeaconTarget beaconTarget;
 
     public QuestObjective(QuestObjectiveType type, String target, int amount) {
         this(type, target, amount, false, null);
     }
 
     public QuestObjective(QuestObjectiveType type, String target, int amount,
-                          org.bukkit.Location beaconLocation) {
-        this(type, target, amount, false, beaconLocation);
+                          BeaconTarget beaconTarget) {
+        this(type, target, amount, false, beaconTarget);
     }
 
     public QuestObjective(QuestObjectiveType type, String target, int amount,
@@ -28,12 +28,12 @@ public class QuestObjective {
     }
 
     public QuestObjective(QuestObjectiveType type, String target, int amount,
-                          boolean allowOverflow, org.bukkit.Location beaconLocation) {
+                          boolean allowOverflow, BeaconTarget beaconTarget) {
         this.type = type;
         this.target = target;
         this.amount = amount;
         this.allowOverflow = allowOverflow;
-        this.beaconLocation = beaconLocation;
+        this.beaconTarget = beaconTarget;
     }
 
     public QuestObjectiveType getType() {
@@ -52,7 +52,7 @@ public class QuestObjective {
         return allowOverflow;
     }
 
-    public org.bukkit.Location getBeaconLocation() {
-        return beaconLocation;
+    public BeaconTarget getBeaconTarget() {
+        return beaconTarget;
     }
 }

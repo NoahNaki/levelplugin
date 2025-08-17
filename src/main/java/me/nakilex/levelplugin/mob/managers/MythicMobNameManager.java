@@ -16,7 +16,6 @@ import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 
 import java.io.File;
 import java.util.HashSet;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -28,54 +27,6 @@ public class MythicMobNameManager implements Listener {
     private final Set<ActiveMob> trackedMobs = new HashSet<>();
     /** Holds all boss‑keys exactly as in your YAML (e.g. "KING SLIME", "TERRACOTTA GENERAL", etc.) */
     private final Set<String> fieldBossKeys;
-
-    private static final String[] DEFAULT_PREFIXES = {
-        "VFX_",
-        "QUICK_SHOT",
-        "BACKSTEP",
-        "WINDRAZOR",
-        "DEADLY_JAVELIN",
-        "ARROW_BARRAGE",
-        "DRAGON_PIERCER",
-        "BRUTAL_STRIKE",
-        "CHARGE",
-        "CHAIN_HOOK",
-        "SHIELD_BARRIER",
-        "WHIRLWIND",
-        "JUDGEMENT",
-        "RAMPAGE",
-        "SHOCKWAVE",
-        // Barbarian
-        "RAGEBLADE",
-        "PRIMAL_AXE",
-        "WAR_CRY",
-        "DOUBLE_EDGE",
-        "RELENTLESS_LEAP",
-        "ETERNAL_FURY",
-        // Paladin
-        "HOLY_STRIKE",
-        "BOUND_SEAL",
-        "HAMMER_OF_JUSTICE",
-        "HEAVENLY_SHIELD",
-        "UNBREAKABLE_WILL",
-        "LAST_STAND",
-        // Phoenix Hunter etc
-        "ASHDANCE",
-        "BLAZING_FEATHERS",
-        "PHOENIX_TOTEM",
-        "FLAMEBURST_CONVERGENCE",
-        "PYROCLASMIC_BARRAGE",
-        "PHOENIX_REBIRTH",
-        "FLAMEBORN",
-        "HOLY_SMASH_RUPTURE",
-        "LIGHT_ERUPTION",
-        "PALADIN_SPIN_SLASH",
-        "HUNTER_FOCUS",
-        "HOLY_CHAINS",
-        "LIGHT_BEAM_FX"
-    };
-
-    private final Set<String> ignorePrefixes = new HashSet<>();
 
     public MythicMobNameManager(Main plugin) {
         this.plugin = plugin;
@@ -94,19 +45,6 @@ public class MythicMobNameManager implements Listener {
             this.fieldBossKeys = new HashSet<>();
         }
 
-        plugin.saveResource("mob_name_ignores.yml", false);
-        File ignoreFile = new File(plugin.getDataFolder(), "mob_name_ignores.yml");
-        FileConfiguration ignoreCfg = YamlConfiguration.loadConfiguration(ignoreFile);
-        ignorePrefixes.addAll(Arrays.stream(DEFAULT_PREFIXES)
-                .map(String::toUpperCase)
-                .collect(Collectors.toSet()));
-        if (ignoreCfg.isList("prefixes")) {
-            ignorePrefixes.addAll(ignoreCfg.getStringList("prefixes")
-                    .stream()
-                    .map(String::toUpperCase)
-                    .collect(Collectors.toSet()));
-        }
-
         // ─── Schedule the name‐updater ────────────────────────────────────────────────
         Bukkit.getScheduler().runTaskTimer(plugin, this::updateMobNames, 5L, 5L);
 
@@ -117,7 +55,8 @@ public class MythicMobNameManager implements Listener {
     @EventHandler
     public void onMythicMobSpawn(MythicMobSpawnEvent event) {
         ActiveMob mob = event.getMob();
-        if (shouldIgnoreMob(mob.getMobType())) {
+        // Only track mobs that have rewards configured
+        if (plugin.getMobRewardsConfig().getMobSection(mob.getMobType()) == null) {
             return;
         }
         trackedMobs.add(mob);
@@ -147,7 +86,7 @@ public class MythicMobNameManager implements Listener {
     }
 
     private void setDisplayName(ActiveMob mob) {
-        if (shouldIgnoreMob(mob.getMobType())) {
+        if (plugin.getMobRewardsConfig().getMobSection(mob.getMobType()) == null) {
             return;
         }
         int    level     = (int) mob.getLevel();
@@ -173,13 +112,4 @@ public class MythicMobNameManager implements Listener {
         mob.getEntity().getBukkitEntity().setCustomNameVisible(true);
     }
 
-    private boolean shouldIgnoreMob(String mobType) {
-        String upper = mobType.toUpperCase();
-        for (String prefix : ignorePrefixes) {
-            if (upper.startsWith(prefix)) {
-                return true;
-            }
-        }
-        return false;
-    }
 }

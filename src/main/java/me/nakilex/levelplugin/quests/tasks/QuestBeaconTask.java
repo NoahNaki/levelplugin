@@ -46,12 +46,21 @@ public class QuestBeaconTask extends BukkitRunnable {
                         }
                     }
                 }
-                loc = quest.getObjectives().get(idx).getBeaconLocation();
+                BeaconTarget target = quest.getObjectives().get(idx).getBeaconTarget();
+                if (target != null) {
+                    loc = target.resolve(player);
+                }
             }
 
             if (loc != null && loc.getWorld().equals(player.getWorld())) {
                 Location pLoc = player.getLocation();
                 double dist = pLoc.distance(loc);
+
+                // hide beam when player is close enough
+                if (dist < 10) {
+                    beaconManager.removeBeam(player);
+                    continue;
+                }
 
                 // --- dynamic “lead” distance --------------------------------
                 Location target = loc;
@@ -63,6 +72,8 @@ public class QuestBeaconTask extends BukkitRunnable {
                 }
 
                 beaconManager.showBeam(player, target); // rectangular, lime, full height
+            } else {
+                beaconManager.removeBeam(player);
             }
         }
     }

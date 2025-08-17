@@ -1,11 +1,20 @@
 regions:
+  test area:
+    world: world
+    x: 12.380530423560046
+    y: 114.0
+    z: 123.07810587366093
+    color: GOLD
+    desc: This is a test.
+    radius: 10.0
+    town: true
   rowan:
     world: world
     x: 191.5028491990798
     y: 73.0
     z: -69.77117611957506
     color: GOLD
-    desc: "Where every journey begins."
+    desc: Where every journey begins.
     radius: 70.0
     town: true
 
