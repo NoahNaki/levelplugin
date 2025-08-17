@@ -101,8 +101,7 @@ public class XPBarHandler {
 
                     // ADD STATS
                     StatsManager.PlayerStats ps = statsMgr.getPlayerStats(puuid);
-                    ps.bonusHealthStat   += ci.getHp();
-                    ps.bonusDefenceStat  += ci.getDef();
+                    ps.bonusVitality     += ci.getHp() + ci.getDef();
                     ps.bonusStrength     += ci.getStr();
                     ps.bonusAgility      += ci.getAgi();
                     ps.bonusIntelligence += ci.getIntel();

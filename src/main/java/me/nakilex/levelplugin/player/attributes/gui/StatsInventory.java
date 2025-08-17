@@ -91,24 +91,20 @@ public class StatsInventory {
         ));
 
         inv.setItem(24, createStatBook(
-            "Vitality", StatType.HP, ps.baseHealthStat, ps.bonusHealthStat, ps.skillPoints,
-            "Increases your maximum health",
+            "Vitality", StatType.VIT, ps.baseVitality, ps.bonusVitality, ps.skillPoints,
+            "Increases max health and reduces damage taken.",
             new String[]{
-                "Each point increases max health by 2 HP.",
-                "Current HP bonus: " + ChatColor.YELLOW + ((ps.baseHealthStat + ps.bonusHealthStat) * 2) + " HP."
+                "Each point grants 3 HP.",
+                "Current HP bonus: " + ChatColor.YELLOW + ((ps.baseVitality + ps.bonusVitality) * 3) + " HP."
             }
         ));
-        int totalDef = ps.baseDefenceStat + ps.bonusDefenceStat;
-        double percentReduction = totalDef / (totalDef + 100.0);
-        percentReduction *= 100.0;
-        percentReduction = Math.round(percentReduction * 10.0) / 10.0;
 
         inv.setItem(25, createStatBook(
-            "Defense", StatType.DEF, ps.baseDefenceStat, ps.bonusDefenceStat, ps.skillPoints,
-            "Reduces incoming damage.",
+            "Will", StatType.WIL, ps.baseWill, ps.bonusWill, ps.skillPoints,
+            "Boosts mana and mana regeneration.",
             new String[]{
-                "Damage reduction scales with total Defense.",
-                "Current damage reduction: " + ChatColor.YELLOW + percentReduction + "%"
+                "Each point adds 3 max mana and 0.25 mana/sec.",
+                "Current max mana: " + ChatColor.YELLOW + ps.maxMana
             }
         ));
         inv.setItem(13, GuiUtil.getNexoItem("refresh", ChatColor.RED + "Refund All Skill Points"));
@@ -169,8 +165,8 @@ public class StatsInventory {
             lore.add(ChatColor.GREEN + "\u2248 " + ChatColor.GRAY + "Agility: " + ChatColor.WHITE + (ps.baseAgility + ps.bonusAgility) + ChatColor.GREEN + " (+" + ps.bonusAgility + ")");
             lore.add(ChatColor.AQUA + "\u2666 " + ChatColor.GRAY + "Intelligence: " + ChatColor.WHITE + (ps.baseIntelligence + ps.bonusIntelligence) + ChatColor.GREEN + " (+" + ps.bonusIntelligence + ")");
             lore.add(ChatColor.YELLOW + "\u27B9 " + ChatColor.GRAY + "Dexterity: " + ChatColor.WHITE + (ps.baseDexterity + ps.bonusDexterity) + ChatColor.GREEN + " (+" + ps.bonusDexterity + ")");
-            lore.add(ChatColor.RED + "\u2764 " + ChatColor.GRAY + "Vitality: " + ChatColor.WHITE + (ps.baseHealthStat + ps.bonusHealthStat) + ChatColor.GREEN + " (+" + ps.bonusHealthStat + ")");
-            lore.add(ChatColor.GRAY + "\u2692 " + ChatColor.GRAY + "Defense: " + ChatColor.WHITE + (ps.baseDefenceStat + ps.bonusDefenceStat) + ChatColor.GREEN + " (+" + ps.bonusDefenceStat + ")");
+            lore.add(ChatColor.RED + "\u2764 " + ChatColor.GRAY + "Vitality: " + ChatColor.WHITE + (ps.baseVitality + ps.bonusVitality) + ChatColor.GREEN + " (+" + ps.bonusVitality + ")");
+            lore.add(ChatColor.BLUE + "\u272A " + ChatColor.GRAY + "Will: " + ChatColor.WHITE + (ps.baseWill + ps.bonusWill) + ChatColor.GREEN + " (+" + ps.bonusWill + ")");
             lore.add("");
 
             int gearScore = ItemUtil.calculateTotalGearScore(player);

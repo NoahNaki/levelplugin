@@ -194,22 +194,20 @@ public class WeaponStatsListener implements Listener {
         if (broken) {
             StatsManager.PlayerStats ps = statsManager.getPlayerStats(puuid);
 
-            int hpVal  = inst.getHp();
-            int defVal = inst.getDef();
+            int vitVal = inst.getHp() + inst.getDef();
             int strVal = inst.getStr();
             int agiVal = inst.getAgi();
             int intVal = inst.getIntel();
             int dexVal = inst.getDex();
 
-            boolean hasHpBonus  = ps.bonusHealthStat   >= hpVal;
-            boolean hasDefBonus = ps.bonusDefenceStat  >= defVal;
+            boolean hasVitBonus = ps.bonusVitality     >= vitVal;
             boolean hasStrBonus = ps.bonusStrength     >= strVal;
             boolean hasAgiBonus = ps.bonusAgility      >= agiVal;
             boolean hasIntBonus = ps.bonusIntelligence >= intVal;
             boolean hasDexBonus = ps.bonusDexterity    >= dexVal;
 
             // If the player still has at least all of the item's bonuses, subtract them once.
-            if (hasHpBonus && hasDefBonus && hasStrBonus && hasAgiBonus && hasIntBonus && hasDexBonus) {
+            if (hasVitBonus && hasStrBonus && hasAgiBonus && hasIntBonus && hasDexBonus) {
                 Bukkit.getLogger().info(
                     "[WeaponStats] onPlayerRespawn: Removing stats for broken weapon ID=" + id
                         + " (player=" + player.getName() + ")"
@@ -229,8 +227,8 @@ public class WeaponStatsListener implements Listener {
                 Bukkit.getLogger().info(
                     "[WeaponStats] onPlayerRespawn: Broken weapon ID=" + id
                         + " but stats not present (cannot remove). ps="
-                        + "{hp="  + ps.bonusHealthStat
-                        + ", def="   + ps.bonusDefenceStat
+                        + "{vit=" + ps.bonusVitality
+                        + ", vit="   + ps.bonusVitality
                         + ", str="   + ps.bonusStrength
                         + ", agi="   + ps.bonusAgility
                         + ", intel="+ ps.bonusIntelligence
@@ -250,8 +248,7 @@ public class WeaponStatsListener implements Listener {
 
     public void addWeaponStats(Player player, CustomItem customItem, ItemStack stack) {
         StatsManager.PlayerStats ps = statsManager.getPlayerStats(player.getUniqueId());
-        ps.bonusHealthStat   += customItem.getHp();
-        ps.bonusDefenceStat  += customItem.getDef();
+        ps.bonusVitality     += customItem.getHp() + customItem.getDef();
         ps.bonusStrength     += customItem.getStr();
         ps.bonusAgility      += customItem.getAgi();
         ps.bonusIntelligence += customItem.getIntel();
@@ -263,8 +260,7 @@ public class WeaponStatsListener implements Listener {
             + player.getName() + ", itemID=" + customItem.getId());
 
         StatsManager.PlayerStats ps = statsManager.getPlayerStats(player.getUniqueId());
-        ps.bonusHealthStat   = Math.max(0, ps.bonusHealthStat   - customItem.getHp());
-        ps.bonusDefenceStat  = Math.max(0, ps.bonusDefenceStat  - customItem.getDef());
+        ps.bonusVitality     = Math.max(0, ps.bonusVitality - (customItem.getHp() + customItem.getDef()));
         ps.bonusStrength     = Math.max(0, ps.bonusStrength     - customItem.getStr());
         ps.bonusAgility      = Math.max(0, ps.bonusAgility      - customItem.getAgi());
         ps.bonusIntelligence = Math.max(0, ps.bonusIntelligence - customItem.getIntel());
@@ -276,8 +272,8 @@ public class WeaponStatsListener implements Listener {
         StatsManager.getInstance().recalcDerivedStats(player);
 
         Bukkit.getLogger().info("[WeaponStats] After removeWeaponStats, stats => "
-            + "bonusHealth="       + ps.bonusHealthStat
-            + ", bonusDefence="    + ps.bonusDefenceStat
+            + "bonusVitality="     + ps.bonusVitality
+            + ", bonusVitality="   + ps.bonusVitality
             + ", bonusStrength="   + ps.bonusStrength
             + ", bonusAgility="    + ps.bonusAgility
             + ", bonusIntelligence="+ ps.bonusIntelligence
@@ -294,10 +290,10 @@ public class WeaponStatsListener implements Listener {
                 + prefix
                 + " stats for player UUID="
                 + puuid
-                + " => bonusHealth="
-                + ps.bonusHealthStat
+                + " => bonusVitality="
+                + ps.bonusVitality
                 + ", bonusDefence="
-                + ps.bonusDefenceStat
+                + ps.bonusVitality
                 + ", bonusStrength="
                 + ps.bonusStrength
                 + ", bonusAgility="

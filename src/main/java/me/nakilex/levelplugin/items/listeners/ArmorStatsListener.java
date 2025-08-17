@@ -76,8 +76,7 @@ public class ArmorStatsListener implements Listener {
 
     private void addItemStats(Player player, CustomItem customItem) {
         StatsManager.PlayerStats ps = statsManager.getPlayerStats(player.getUniqueId());
-        ps.bonusHealthStat   += customItem.getHp();
-        ps.bonusDefenceStat  += customItem.getDef();
+        ps.bonusVitality     += customItem.getHp() + customItem.getDef();
         ps.bonusStrength     += customItem.getStr();
         ps.bonusAgility      += customItem.getAgi();
         ps.bonusIntelligence += customItem.getIntel();
@@ -86,8 +85,7 @@ public class ArmorStatsListener implements Listener {
 
     public void removeItemStats(Player player, CustomItem customItem) {
         StatsManager.PlayerStats ps = statsManager.getPlayerStats(player.getUniqueId());
-        ps.bonusHealthStat   = Math.max(0, ps.bonusHealthStat   - customItem.getHp());
-        ps.bonusDefenceStat  = Math.max(0, ps.bonusDefenceStat  - customItem.getDef());
+        ps.bonusVitality     = Math.max(0, ps.bonusVitality - (customItem.getHp() + customItem.getDef()));
         ps.bonusStrength     = Math.max(0, ps.bonusStrength     - customItem.getStr());
         ps.bonusAgility      = Math.max(0, ps.bonusAgility      - customItem.getAgi());
         ps.bonusIntelligence = Math.max(0, ps.bonusIntelligence - customItem.getIntel());

@@ -42,9 +42,9 @@ public class EnchantManager {
             case "agility" -> StatType.AGI;
             case "dexterity" -> StatType.DEX;
             case "intelligence" -> StatType.INT;
-            case "defense" -> StatType.DEF;
-            case "hp" -> StatType.HP;
-            default -> StatType.DEF;
+            case "defense", "hp", "vitality" -> StatType.VIT;
+            case "will" -> StatType.WIL;
+            default -> StatType.VIT;
         };
     }
 

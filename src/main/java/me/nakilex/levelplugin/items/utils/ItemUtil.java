@@ -65,9 +65,9 @@ public class ItemUtil {
                 case "agility" -> StatsManager.StatType.AGI;
                 case "dexterity" -> StatsManager.StatType.DEX;
                 case "intelligence" -> StatsManager.StatType.INT;
-                case "defense" -> StatsManager.StatType.DEF;
-                case "hp" -> StatsManager.StatType.HP;
-                default -> StatsManager.StatType.DEF;
+                case "defense", "hp", "vitality" -> StatsManager.StatType.VIT;
+                case "will" -> StatsManager.StatType.WIL;
+                default -> StatsManager.StatType.VIT;
             };
             PREFIX_MAP.put(prefix, st);
             PREFIX_LIST.add(prefix);
@@ -292,14 +292,10 @@ public class ItemUtil {
         // --- Stats Information ---
         String prefix = parsePrefix(cItem.getBaseName());
         StatsManager.StatType prefixStat = prefix != null ? PREFIX_MAP.get(prefix) : null;
-        if (cItem.getHp() != 0) {
-            String line = ChatColor.RED + "❤ " + ChatColor.GRAY + "Health: " + ChatColor.RED + "+" + cItem.getHp();
-            if (prefixStat == StatsManager.StatType.HP) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
-        if (cItem.getDef() != 0) {
-            String line = ChatColor.GRAY + "⛂ " + ChatColor.GRAY + "Defence: " + ChatColor.WHITE + "+" + cItem.getDef();
-            if (prefixStat == StatsManager.StatType.DEF) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
+        int vit = cItem.getHp() + cItem.getDef();
+        if (vit != 0) {
+            String line = ChatColor.RED + "❤ " + ChatColor.GRAY + "Vitality: " + ChatColor.RED + "+" + vit;
+            if (prefixStat == StatsManager.StatType.VIT) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
             lore.add(line);
         }
         if (cItem.getStr() != 0) {
@@ -467,14 +463,10 @@ public class ItemUtil {
         // --- Stats Information ---
         String prefix = parsePrefix(cItem.getBaseName());
         StatsManager.StatType prefixStat = prefix != null ? PREFIX_MAP.get(prefix) : null;
-        if (cItem.getHp() != 0) {
-            String line = ChatColor.RED + "❤ " + ChatColor.GRAY + "Health: " + ChatColor.RED + "+" + cItem.getHp();
-            if (prefixStat == StatsManager.StatType.HP) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
-        if (cItem.getDef() != 0) {
-            String line = ChatColor.GRAY + "⛂ " + ChatColor.GRAY + "Defence: " + ChatColor.WHITE + "+" + cItem.getDef();
-            if (prefixStat == StatsManager.StatType.DEF) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
+        int vit = cItem.getHp() + cItem.getDef();
+        if (vit != 0) {
+            String line = ChatColor.RED + "❤ " + ChatColor.GRAY + "Vitality: " + ChatColor.RED + "+" + vit;
+            if (prefixStat == StatsManager.StatType.VIT) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
             lore.add(line);
         }
         if (cItem.getStr() != 0) {

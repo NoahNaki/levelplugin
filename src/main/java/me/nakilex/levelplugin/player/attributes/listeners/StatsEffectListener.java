@@ -104,9 +104,9 @@ public class StatsEffectListener implements Listener {
                 return;
             }
 
-            // 6) Defense reduction (unchanged)
-            int totalDefence = vs.baseDefenceStat + vs.bonusDefenceStat;
-            double percentReduction = (double) totalDefence / (totalDefence + 200.0);
+            // 6) Vitality-based damage reduction
+            int totalVitality = vs.baseVitality + vs.bonusVitality;
+            double percentReduction = (double) totalVitality / (totalVitality + 200.0);
             double reducedDamage = event.getDamage() * (1.0 - percentReduction);
 
             event.setDamage(reducedDamage);

@@ -187,8 +187,7 @@ public class PlayerDeathListener implements Listener {
                             StatsManager.PlayerStats psAfter = statsMgr.getPlayerStats(puuid);
                             Bukkit.getLogger().info(
                                 "[PlayerDeathListener] After stripping, stats => "
-                                    + "bonusHealth="       + psAfter.bonusHealthStat
-                                    + ", bonusDefence="    + psAfter.bonusDefenceStat
+                                    + "bonusVitality="   + psAfter.bonusVitality
                                     + ", bonusStrength="   + psAfter.bonusStrength
                                     + ", bonusAgility="    + psAfter.bonusAgility
                                     + ", bonusIntelligence="+ psAfter.bonusIntelligence
