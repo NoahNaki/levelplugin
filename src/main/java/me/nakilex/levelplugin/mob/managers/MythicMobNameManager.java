@@ -76,6 +76,10 @@ public class MythicMobNameManager implements Listener {
         if (plugin.getMobRewardsConfig().getMobSection(mob.getMobType()) == null) {
             return;
         }
+        Entity base = mob.getEntity().getBukkitEntity();
+        plugin.getLogger().info("[NameManager] Tracking MythicMob " + mob.getMobType()
+                + " template=" + mob.getType().getEntityType().name()
+                + " bukkit=" + base.getType() + " (" + base.getClass().getSimpleName() + ")");
         trackedMobs.add(mob);
         setDisplayName(mob);
     }
@@ -140,6 +144,9 @@ public class MythicMobNameManager implements Listener {
         }
         Entity raw = mob.getEntity().getBukkitEntity();
         if (!(raw instanceof LivingEntity entity)) {
+            plugin.getLogger().warning("[NameManager] Cannot set name for " + mob.getMobType()
+                    + " because bukkit entity is " + raw.getType()
+                    + " (" + raw.getClass().getSimpleName() + ")");
             return;
         }
 

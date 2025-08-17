@@ -86,13 +86,7 @@ public class MythicMobRewardListener implements Listener {
         if (node == null) {
             for (Player player : participants) {
                 if (debugToggle.isEnabled(player)) {
-                    PlaceholderString name = mythicMob.getType().getDisplayName();
-                    String display = name != null ? name.get() : rawMobType;
-                    player.sendMessage(ChatColor.YELLOW + "[MobDebug] ID: " + rawMobType
-                            + ChatColor.GRAY + " Display: " + ChatColor.WHITE + display);
-                    int power = CombatPowerUtil.getCombatPower(mythicMob);
-                    player.sendMessage(ChatColor.YELLOW + "[MobDebug] Combat Power: " + ChatColor.AQUA + power);
-                    player.sendMessage(ChatColor.YELLOW + "[MobDebug] Numeric HP: " + ChatColor.WHITE + numericHpName);
+                    sendDebugInfo(player, rawMobType, mythicMob, baseEntity, numericHpName);
                     player.sendMessage(ChatColor.RED + "[MobDebug] No rewards configured");
                 }
             }
@@ -140,7 +134,7 @@ public class MythicMobRewardListener implements Listener {
                 RewardHologramUtil.showRewardHologram(deathLoc, awardedExp, coins);
             }
             if (DropDisplayToggles.isChatEnabled(player)) {
-                String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
+                String expLabel = ChatFormatter.experienceLabel();
                 player.sendMessage(ChatColor.GOLD + "You received "
                         + ChatColor.WHITE + "+" + awardedExp + " <glyph:experience_orb_icon> " + expLabel
                         + ChatColor.GOLD + " and "
@@ -149,16 +143,29 @@ public class MythicMobRewardListener implements Listener {
                         + ChatColor.GOLD + "!");
             }
             if (debugToggle.isEnabled(player)) {
-                PlaceholderString name = mythicMob.getType().getDisplayName();
-                String display = name != null ? name.get() : mobType;
-                player.sendMessage(ChatColor.YELLOW + "[MobDebug] ID: " + mobType
-                        + ChatColor.GRAY + " Display: " + ChatColor.WHITE + display);
+                sendDebugInfo(player, rawMobType, mythicMob, baseEntity, numericHpName);
                 player.sendMessage(ChatColor.YELLOW + "[MobDebug] Exp: " + awardedExp
                         + ChatColor.GRAY + ", Coins: " + coins);
-                int power = CombatPowerUtil.getCombatPower(mythicMob);
-                player.sendMessage(ChatColor.YELLOW + "[MobDebug] Combat Power: " + ChatColor.AQUA + power);
-                player.sendMessage(ChatColor.YELLOW + "[MobDebug] Numeric HP: " + ChatColor.WHITE + numericHpName);
             }
         }
+    }
+
+    private void sendDebugInfo(Player player,
+                               String rawMobType,
+                               ActiveMob mythicMob,
+                               Entity baseEntity,
+                               boolean numericHpName) {
+        PlaceholderString name = mythicMob.getType().getDisplayName();
+        String display = name != null ? name.get() : rawMobType;
+        player.sendMessage(ChatColor.YELLOW + "[MobDebug] ID: " + rawMobType
+                + ChatColor.GRAY + " Display: " + ChatColor.WHITE + display);
+        player.sendMessage(ChatColor.YELLOW + "[MobDebug] Template Entity: "
+                + ChatColor.WHITE + mythicMob.getType().getEntityType().name());
+        player.sendMessage(ChatColor.YELLOW + "[MobDebug] Bukkit Entity: "
+                + ChatColor.WHITE + baseEntity.getType()
+                + ChatColor.GRAY + " (" + baseEntity.getClass().getSimpleName() + ")");
+        int power = CombatPowerUtil.getCombatPower(mythicMob);
+        player.sendMessage(ChatColor.YELLOW + "[MobDebug] Combat Power: " + ChatColor.AQUA + power);
+        player.sendMessage(ChatColor.YELLOW + "[MobDebug] Numeric HP: " + ChatColor.WHITE + numericHpName);
     }
 }
