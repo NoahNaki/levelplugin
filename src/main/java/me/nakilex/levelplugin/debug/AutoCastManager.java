@@ -22,6 +22,7 @@ import java.util.UUID;
 public class AutoCastManager {
     private static final String COOLDOWN_KEY = "debug_autocast";
     private final Map<UUID, BukkitTask> tasks = new HashMap<>();
+    private final Map<UUID, Long> lastCast = new HashMap<>();
 
     /**
      * Toggle autocasting of the provided skill for the player.
@@ -34,6 +35,7 @@ public class AutoCastManager {
         BukkitTask existing = tasks.remove(id);
         if (existing != null) {
             existing.cancel();
+            lastCast.remove(id);
             return false;
         }
 
@@ -46,6 +48,13 @@ public class AutoCastManager {
             double cooldown = 1.0 / ps.attackSpeed;
             CooldownManager cd = CooldownManager.getInstance();
             if (!cd.isOnCooldown(id, COOLDOWN_KEY)) {
+                long now = System.nanoTime();
+                Long prev = lastCast.put(id, now);
+                if (prev != null) {
+                    double interval = (now - prev) / 1_000_000_000.0;
+                    player.sendMessage(String.format("Cast interval: %.3fs", interval));
+                }
+
                 Spell spell = SpellManager.getInstance()
                         .getSpellById(ps.playerClass.name().toLowerCase(), skillId);
                 if (spell != null) {
@@ -57,6 +66,7 @@ public class AutoCastManager {
             }
         }, 0L, 1L);
         tasks.put(id, task);
+        lastCast.remove(id);
         return true;
     }
 
@@ -64,9 +74,11 @@ public class AutoCastManager {
      * Cancel any running autocast task for the player.
      */
     public void cancel(Player player) {
-        BukkitTask task = tasks.remove(player.getUniqueId());
+        UUID id = player.getUniqueId();
+        BukkitTask task = tasks.remove(id);
         if (task != null) {
             task.cancel();
         }
+        lastCast.remove(id);
     }
 }
