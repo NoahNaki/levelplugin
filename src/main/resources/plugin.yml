@@ -73,10 +73,6 @@ commands:
     description: Manage your horse
     usage: /horse [reroll]
     aliases: [h]
-  effect:
-    description: Toggles the sword circle effect.
-    usage: /effect
-    permission: none
   ps:
     description: Manage personal storage.
   trade:

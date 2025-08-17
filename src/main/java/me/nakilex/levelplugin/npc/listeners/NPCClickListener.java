@@ -63,7 +63,7 @@ public class NPCClickListener implements Listener {
                             coords = l.getBlockX() + ", " + l.getBlockY() + ", " + l.getBlockZ();
                         }
                     }
-                    String line = "Piwan|You should talk to Seras at §8[§e" + coords + "§8], I'm sure she has plenty of tasks for you, though be wary she's a fiery one.";
+                    String line = "Piwan|You should talk to Seras at §8[§e" + coords + "§8]§f, I'm sure she has plenty of tasks for you, though be wary she's a fiery one.";
                     dialogManager.startDialog(player,
                             java.util.List.of(line),
                             npc,

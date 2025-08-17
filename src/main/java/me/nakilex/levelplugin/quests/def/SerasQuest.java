@@ -24,7 +24,7 @@ public class SerasQuest extends Quest implements QuestScript {
                     "Seras|Alright, you have some skill considering you completed that way faster than I was expecting.",
                     "Seras|Perhaps I underestimated you, how about something a little more challenging then?",
                     "Seras|I'm sure you've noticed already but there is a massive slime that has gotten out of control, the folks around here call it the Slime King,",
-                    "Seras|if you can defeat that then I'll truly be impressed."),
+                    "Seras|If you can defeat that then I'll truly be impressed."),
             3, List.of(
                     "Seras|Alright, you've certainly proven yourself adventurer,",
                     "Seras|I wonder why I've never heard of someone as strong as you before...",
