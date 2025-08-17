@@ -245,11 +245,12 @@ public class StatsManager {
         PlayerStats ps = getPlayerStats(player.getUniqueId());
 
         // Apply stats
-        ps.bonusVitality += newItem.getHp() + newItem.getDef();
-        ps.bonusStrength += newItem.getStr();
-        ps.bonusAgility += newItem.getAgi();
+        ps.bonusVitality     += newItem.getHp() + newItem.getDef();
+        ps.bonusStrength     += newItem.getStr();
+        ps.bonusAgility      += newItem.getAgi();
         ps.bonusIntelligence += newItem.getIntel();
-        ps.bonusDexterity += newItem.getDex();
+        ps.bonusDexterity    += newItem.getDex();
+        ps.bonusWill         += newItem.getWil();
 
         recalcDerivedStats(player);
     }

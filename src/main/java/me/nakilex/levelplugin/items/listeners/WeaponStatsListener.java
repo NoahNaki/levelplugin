@@ -253,6 +253,7 @@ public class WeaponStatsListener implements Listener {
         ps.bonusAgility      += customItem.getAgi();
         ps.bonusIntelligence += customItem.getIntel();
         ps.bonusDexterity    += customItem.getDex();
+        ps.bonusWill         += customItem.getWil();
     }
 
     public void removeWeaponStats(Player player, CustomItem customItem, ItemStack stack) {
@@ -265,6 +266,7 @@ public class WeaponStatsListener implements Listener {
         ps.bonusAgility      = Math.max(0, ps.bonusAgility      - customItem.getAgi());
         ps.bonusIntelligence = Math.max(0, ps.bonusIntelligence - customItem.getIntel());
         ps.bonusDexterity    = Math.max(0, ps.bonusDexterity    - customItem.getDex());
+        ps.bonusWill         = Math.max(0, ps.bonusWill         - customItem.getWil());
 
         // IMMEDIATELY recalc all derived stats (this will:
         //  • recompute maxHealth → setMaxHealth(...)

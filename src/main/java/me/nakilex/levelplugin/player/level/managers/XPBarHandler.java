@@ -106,6 +106,7 @@ public class XPBarHandler {
                     ps.bonusAgility      += ci.getAgi();
                     ps.bonusIntelligence += ci.getIntel();
                     ps.bonusDexterity    += ci.getDex();
+                    ps.bonusWill         += ci.getWil();
                     equipped.add(id);
 
                     player.sendMessage(ChatColor.GREEN

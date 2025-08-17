@@ -81,6 +81,7 @@ public class ArmorStatsListener implements Listener {
         ps.bonusAgility      += customItem.getAgi();
         ps.bonusIntelligence += customItem.getIntel();
         ps.bonusDexterity    += customItem.getDex();
+        ps.bonusWill         += customItem.getWil();
     }
 
     public void removeItemStats(Player player, CustomItem customItem) {
@@ -90,6 +91,7 @@ public class ArmorStatsListener implements Listener {
         ps.bonusAgility      = Math.max(0, ps.bonusAgility      - customItem.getAgi());
         ps.bonusIntelligence = Math.max(0, ps.bonusIntelligence - customItem.getIntel());
         ps.bonusDexterity    = Math.max(0, ps.bonusDexterity    - customItem.getDex());
+        ps.bonusWill         = Math.max(0, ps.bonusWill         - customItem.getWil());
 
         StatsManager.getInstance().recalcDerivedStats(player);
     }

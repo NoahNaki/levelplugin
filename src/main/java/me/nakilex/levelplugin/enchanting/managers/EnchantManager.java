@@ -82,14 +82,7 @@ public class EnchantManager {
     }
 
     private void applyBonus(CustomItem item, StatType stat, int amount) {
-        switch (stat) {
-            case STR -> item.addBonusStats(0,0,amount,0,0,0);
-            case AGI -> item.addBonusStats(0,0,0,amount,0,0);
-            case INT -> item.addBonusStats(0,0,0,0,amount,0);
-            case DEX -> item.addBonusStats(0,0,0,0,0,amount);
-            case HP  -> item.addBonusStats(amount,0,0,0,0,0);
-            case DEF -> item.addBonusStats(0,amount,0,0,0,0);
-        }
+        item.adjustBonusStat(stat, amount);
     }
 
     private String getCurrentPrefix(String name) {

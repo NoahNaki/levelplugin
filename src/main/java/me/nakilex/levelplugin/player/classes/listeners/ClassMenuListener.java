@@ -170,6 +170,7 @@ public class ClassMenuListener implements Listener {
         ps.bonusAgility      += ci.getAgi();
         ps.bonusIntelligence += ci.getIntel();
         ps.bonusDexterity    += ci.getDex();
+        ps.bonusWill         += ci.getWil();
     }
 
     private void removeWeaponStats(Player player, CustomItem ci, ItemStack stack) {
@@ -179,5 +180,6 @@ public class ClassMenuListener implements Listener {
         ps.bonusAgility      -= ci.getAgi();
         ps.bonusIntelligence -= ci.getIntel();
         ps.bonusDexterity    -= ci.getDex();
+        ps.bonusWill         -= ci.getWil();
     }
 }

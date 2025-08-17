@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.items.listeners.WeaponStatsListener;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -55,6 +56,7 @@ public class CustomItem {
     private int bonusAgi   = 0;
     private int bonusIntel = 0;
     private int bonusDex   = 0;
+    private int bonusWil   = 0;
 
     // How many times this item has been upgraded (max 5)
     private int upgradeLevel = 0;
@@ -161,6 +163,7 @@ public class CustomItem {
     public int getAgi()   { return baseAgi   + bonusAgi; }
     public int getIntel() { return baseIntel + bonusIntel; }
     public int getDex()   { return baseDex   + bonusDex; }
+    public int getWil()   { return bonusWil; }
 
     public int getUpgradeLevel() { return upgradeLevel; }
     public int getEnchantCount() { return enchantCount; }
@@ -200,21 +203,32 @@ public class CustomItem {
     public void incrementEnchantCount() { this.enchantCount++; }
 
     public void addBonusStats(int hp, int def, int str, int agi, int intel, int dex) {
-        this.bonusHp    += hp;
-        this.bonusDef   += def;
-        this.bonusStr   += str;
-        this.bonusAgi   += agi;
-        this.bonusIntel += intel;
-        this.bonusDex   += dex;
+        adjustBonusStat(StatType.VIT, hp);
+        adjustBonusStat(StatType.VIT, def);
+        adjustBonusStat(StatType.STR, str);
+        adjustBonusStat(StatType.AGI, agi);
+        adjustBonusStat(StatType.INT, intel);
+        adjustBonusStat(StatType.DEX, dex);
     }
 
     public void removeBonusStats(int hp, int def, int str, int agi, int intel, int dex) {
-        this.bonusHp    -= hp;
-        this.bonusDef   -= def;
-        this.bonusStr   -= str;
-        this.bonusAgi   -= agi;
-        this.bonusIntel -= intel;
-        this.bonusDex   -= dex;
+        adjustBonusStat(StatType.VIT, -hp);
+        adjustBonusStat(StatType.VIT, -def);
+        adjustBonusStat(StatType.STR, -str);
+        adjustBonusStat(StatType.AGI, -agi);
+        adjustBonusStat(StatType.INT, -intel);
+        adjustBonusStat(StatType.DEX, -dex);
+    }
+
+    public void adjustBonusStat(StatType stat, int amount) {
+        switch (stat) {
+            case STR -> bonusStr += amount;
+            case AGI -> bonusAgi += amount;
+            case INT -> bonusIntel += amount;
+            case DEX -> bonusDex += amount;
+            case VIT -> bonusHp += amount;
+            case WIL -> bonusWil += amount;
+        }
     }
 
     // Setters used for stat rerolls
