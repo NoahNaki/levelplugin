@@ -18,6 +18,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.utils.EntityTextDisplay;
+import org.bukkit.metadata.FixedMetadataValue;
 
 import java.io.File;
 import java.util.HashSet;
@@ -105,6 +106,7 @@ public class MythicMobNameManager implements Listener {
         if (disp != null) {
             disp.remove();
         }
+        entity.removeMetadata("lp_numeric_hp", plugin);
     }
 
     private void updateMobNames() {
@@ -119,6 +121,7 @@ public class MythicMobNameManager implements Listener {
                         if (disp != null) {
                             disp.remove();
                         }
+                        be.removeMetadata("lp_numeric_hp", plugin);
                     }
                 }
                 it.remove();
@@ -166,19 +169,12 @@ public class MythicMobNameManager implements Listener {
             : ChatColor.WHITE;
         String displayName = MobNameUtil.buildHealthName(level, nameColor, prettyType, currentHP, maxHP);
 
-        if (entity.isInvisible()) {
-            entity.setCustomNameVisible(false);
-            EntityTextDisplay disp = healthDisplays.computeIfAbsent(entity.getUniqueId(),
-                    id -> new EntityTextDisplay(entity, 0.5));
-            disp.update(displayName);
-        } else {
-            EntityTextDisplay disp = healthDisplays.remove(entity.getUniqueId());
-            if (disp != null) {
-                disp.remove();
-            }
-            entity.setCustomName(displayName);
-            entity.setCustomNameVisible(true);
-        }
+        entity.setCustomName(displayName);
+        entity.setCustomNameVisible(false);
+        entity.setMetadata("lp_numeric_hp", new FixedMetadataValue(plugin, true));
+        EntityTextDisplay disp = healthDisplays.computeIfAbsent(entity.getUniqueId(),
+                id -> new EntityTextDisplay(entity, 0.5));
+        disp.update(displayName);
     }
 
     private void setDisplayName(LivingEntity mob) {

@@ -88,9 +88,12 @@ public final class MobNameUtil {
      * @return {@code true} if the custom name is visible and contains numeric health
      */
     public static boolean hasNumericHealth(LivingEntity entity) {
-        return entity != null
-                && entity.isCustomNameVisible()
-                && hasNumericHealth(entity.getCustomName());
+        if (entity == null) {
+            return false;
+        }
+        boolean visible = entity.isCustomNameVisible() && hasNumericHealth(entity.getCustomName());
+        boolean viaDisplay = entity.hasMetadata("lp_numeric_hp");
+        return visible || viaDisplay;
     }
 
     /**
