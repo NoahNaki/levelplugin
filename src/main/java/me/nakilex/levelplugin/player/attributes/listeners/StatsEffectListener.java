@@ -38,6 +38,10 @@ public class StatsEffectListener implements Listener {
         // Determine if a player is responsible for the damage
         Player player = null;
         if (damager instanceof Player p) {
+            if (p.getAttackCooldown() < 1.0f) {
+                event.setCancelled(true);
+                return;
+            }
             player = p;
         } else if (damager instanceof org.bukkit.entity.Projectile proj && proj.getShooter() instanceof Player shooter) {
             // Skip scaling for our own custom projectiles which already embed stats
