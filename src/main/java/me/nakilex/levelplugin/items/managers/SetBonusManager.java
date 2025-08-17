@@ -59,9 +59,10 @@ public class SetBonusManager {
             case "agility": return StatType.AGI;
             case "dexterity": return StatType.DEX;
             case "intelligence": return StatType.INT;
-            case "hp": return StatType.HP;
-            case "defense": return StatType.DEF;
-            default: return StatType.DEF;
+            case "hp", "defense", "vitality": return StatType.VIT;
+            case "will": return StatType.WIL;
+            case "technique": return StatType.TEC;
+            default: return StatType.VIT;
         }
     }
 
@@ -112,16 +113,16 @@ public class SetBonusManager {
             String suf = parseSuffix(name);
             if (pre != null) {
                 prefixCount.merge(pre, 1, Integer::sum);
-                prefixType.put(pre, prefixStat.getOrDefault(pre, StatType.DEF));
+                prefixType.put(pre, prefixStat.getOrDefault(pre, StatType.VIT));
             }
             if (suf != null) {
                 suffixCount.merge(suf, 1, Integer::sum);
-                suffixType.put(suf, suffixStat.getOrDefault(suf, StatType.DEF));
+                suffixType.put(suf, suffixStat.getOrDefault(suf, StatType.VIT));
             }
             if (pre != null && suf != null) {
                 String key = pre + "|" + suf;
                 pairCount.merge(key, 1, Integer::sum);
-                pairType.put(key, suffixStat.getOrDefault(suf, StatType.DEF));
+                pairType.put(key, suffixStat.getOrDefault(suf, StatType.VIT));
             }
         }
 
@@ -155,7 +156,7 @@ public class SetBonusManager {
         if (a == b) return true;
         if (a == null || b == null) return false;
         return a.str == b.str && a.agi == b.agi && a.intel == b.intel &&
-               a.dex == b.dex && a.def == b.def && a.hp == b.hp &&
+               a.dex == b.dex && a.vit == b.vit && a.wil == b.wil && a.tec == b.tec &&
                a.percents.equals(b.percents) && a.counts.equals(b.counts);
     }
 
@@ -179,8 +180,9 @@ public class SetBonusManager {
             case AGI: total.agi += bonus; break;
             case INT: total.intel += bonus; break;
             case DEX: total.dex += bonus; break;
-            case DEF: total.def += bonus; break;
-            case HP:  total.hp  += bonus; break;
+            case VIT: total.vit += bonus; break;
+            case WIL: total.wil += bonus; break;
+            case TEC: total.tec += bonus; break;
         }
         total.percents.merge(stat, percent, Integer::sum);
         total.counts.merge(stat, pieces, Math::max);
@@ -192,8 +194,9 @@ public class SetBonusManager {
         ps.bonusAgility      += b.agi;
         ps.bonusIntelligence += b.intel;
         ps.bonusDexterity    += b.dex;
-        ps.bonusDefenceStat  += b.def;
-        ps.bonusHealthStat   += b.hp;
+        ps.bonusVitality     += b.vit;
+        ps.bonusWill         += b.wil;
+        ps.bonusTechnique    += b.tec;
 
         if (!b.percents.isEmpty()) {
             for (Map.Entry<StatType,Integer> e : b.percents.entrySet()) {
@@ -210,8 +213,9 @@ public class SetBonusManager {
         ps.bonusAgility      -= b.agi;
         ps.bonusIntelligence -= b.intel;
         ps.bonusDexterity    -= b.dex;
-        ps.bonusDefenceStat  -= b.def;
-        ps.bonusHealthStat   -= b.hp;
+        ps.bonusVitality     -= b.vit;
+        ps.bonusWill         -= b.wil;
+        ps.bonusTechnique    -= b.tec;
         if (showMsg && !b.percents.isEmpty()) {
             for (Map.Entry<StatType,Integer> e : b.percents.entrySet()) {
                 String statName = getDisplayName(e.getKey());
@@ -243,19 +247,20 @@ public class SetBonusManager {
             case AGI:  return "Agility";
             case INT:  return "Intelligence";
             case DEX:  return "Dexterity";
-            case DEF:  return "Defense";
-            case HP:   return "Health";
+            case VIT:  return "Vitality";
+            case WIL:  return "Will";
+            case TEC:  return "Technique";
             default:   return type.name();
         }
     }
 
     private static class BonusStats {
-        int str, agi, intel, dex, def, hp;
+        int str, agi, intel, dex, vit, wil, tec;
         final Map<StatType,Integer> percents = new LinkedHashMap<>();
         final Map<StatType,Integer> counts   = new HashMap<>();
 
         boolean isZero() {
-            return str==0 && agi==0 && intel==0 && dex==0 && def==0 && hp==0;
+            return str==0 && agi==0 && intel==0 && dex==0 && vit==0 && wil==0 && tec==0;
         }
     }
 }

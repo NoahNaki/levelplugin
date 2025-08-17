@@ -101,12 +101,13 @@ public class XPBarHandler {
 
                     // ADD STATS
                     StatsManager.PlayerStats ps = statsMgr.getPlayerStats(puuid);
-                    ps.bonusHealthStat   += ci.getHp();
-                    ps.bonusDefenceStat  += ci.getDef();
+                    ps.bonusVitality     += ci.getHp() + ci.getDef();
                     ps.bonusStrength     += ci.getStr();
                     ps.bonusAgility      += ci.getAgi();
                     ps.bonusIntelligence += ci.getIntel();
                     ps.bonusDexterity    += ci.getDex();
+                    ps.bonusWill         += ci.getWil();
+                    ps.bonusTechnique    += ci.getTec();
                     equipped.add(id);
 
                     player.sendMessage(ChatColor.GREEN

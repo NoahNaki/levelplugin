@@ -59,8 +59,9 @@ public class PlayerConfig {
         config.set(path + ".stats.base_agility", stats.baseAgility);
         config.set(path + ".stats.base_intelligence", stats.baseIntelligence);
         config.set(path + ".stats.base_dexterity", stats.baseDexterity);
-        config.set(path + ".stats.base_health", stats.baseHealthStat);
-        config.set(path + ".stats.base_defense", stats.baseDefenceStat);
+        config.set(path + ".stats.base_vitality", stats.baseVitality);
+        config.set(path + ".stats.base_will", stats.baseWill);
+        config.set(path + ".stats.base_technique", stats.baseTechnique);
         config.set(path + ".class", stats.playerClass.name());
         List<String> unlocked = new ArrayList<>();
         for (PlayerClass pc : stats.unlockedClasses) unlocked.add(pc.name());
@@ -103,8 +104,12 @@ public class PlayerConfig {
         stats.baseAgility       = config.getInt(root + ".stats.base_agility", 0);
         stats.baseIntelligence  = config.getInt(root + ".stats.base_intelligence", 0);
         stats.baseDexterity     = config.getInt(root + ".stats.base_dexterity", 0);
-        stats.baseHealthStat    = config.getInt(root + ".stats.base_health", 0);
-        stats.baseDefenceStat   = config.getInt(root + ".stats.base_defense", 0);
+        // Support migration from old keys
+        int oldHealth = config.getInt(root + ".stats.base_health", 0);
+        int oldDef = config.getInt(root + ".stats.base_defense", 0);
+        stats.baseVitality = config.getInt(root + ".stats.base_vitality", oldHealth + oldDef);
+        stats.baseWill     = config.getInt(root + ".stats.base_will", 0);
+        stats.baseTechnique = config.getInt(root + ".stats.base_technique", 0);
         stats.unlockedClasses.clear();
         stats.unlockedClasses.add(playerClass);
         for (String s : unlockedList) {

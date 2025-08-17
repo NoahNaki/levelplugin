@@ -32,6 +32,8 @@ public class OpSwordCommand implements CommandExecutor {
                 new StatRange(1000, 1000),
                 new StatRange(1000, 1000),
                 new StatRange(1000, 1000),
+                new StatRange(1000, 1000),
+                new StatRange(1000, 1000),
                 false,
                 null
         );

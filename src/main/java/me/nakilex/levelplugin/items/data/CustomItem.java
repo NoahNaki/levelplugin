@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.items.listeners.WeaponStatsListener;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -39,6 +40,8 @@ public class CustomItem {
     private final StatRange agiRange;
     private final StatRange intelRange;
     private final StatRange dexRange;
+    private final StatRange wilRange;
+    private final StatRange tecRange;
 
     // The mutable base stats (initialized by rolling once from each range)
     private int baseHp;
@@ -47,6 +50,8 @@ public class CustomItem {
     private int baseAgi;
     private int baseIntel;
     private int baseDex;
+    private int baseWil;
+    private int baseTec;
 
     // Any temporary bonuses (e.g. from enchantments, buffs)
     private int bonusHp    = 0;
@@ -55,6 +60,8 @@ public class CustomItem {
     private int bonusAgi   = 0;
     private int bonusIntel = 0;
     private int bonusDex   = 0;
+    private int bonusWil   = 0;
+    private int bonusTec   = 0;
 
     // How many times this item has been upgraded (max 5)
     private int upgradeLevel = 0;
@@ -78,6 +85,8 @@ public class CustomItem {
                       StatRange agiRange,
                       StatRange intelRange,
                       StatRange dexRange,
+                      StatRange wilRange,
+                      StatRange tecRange,
                       int upgradeLevel,
                       boolean ego,
                       String egoKey) {
@@ -97,6 +106,8 @@ public class CustomItem {
         this.agiRange   = agiRange;
         this.intelRange = intelRange;
         this.dexRange   = dexRange;
+        this.wilRange   = wilRange;
+        this.tecRange   = tecRange;
 
         // Roll each stat once and store as the mutable base
         this.baseHp    = hpRange.roll();
@@ -105,6 +116,8 @@ public class CustomItem {
         this.baseAgi   = agiRange.roll();
         this.baseIntel = intelRange.roll();
         this.baseDex   = dexRange.roll();
+        this.baseWil   = wilRange.roll();
+        this.baseTec   = tecRange.roll();
 
         this.upgradeLevel = upgradeLevel;
 
@@ -128,11 +141,13 @@ public class CustomItem {
                       StatRange agiRange,
                       StatRange intelRange,
                       StatRange dexRange,
+                      StatRange wilRange,
+                      StatRange tecRange,
                       boolean ego,
                       String egoKey) {
         this(UUID.randomUUID(),
             id, baseName, rarity, levelRequirement, classRequirement, material,
-            hpRange, defRange, strRange, agiRange, intelRange, dexRange,
+            hpRange, defRange, strRange, agiRange, intelRange, dexRange, wilRange, tecRange,
             0, ego, egoKey);
     }
 
@@ -154,6 +169,8 @@ public class CustomItem {
     public StatRange getAgiRange()   { return agiRange; }
     public StatRange getIntelRange() { return intelRange; }
     public StatRange getDexRange()   { return dexRange; }
+    public StatRange getWilRange()   { return wilRange; }
+    public StatRange getTecRange()   { return tecRange; }
 
     public int getHp()    { return baseHp    + bonusHp; }
     public int getDef()   { return baseDef   + bonusDef; }
@@ -161,6 +178,8 @@ public class CustomItem {
     public int getAgi()   { return baseAgi   + bonusAgi; }
     public int getIntel() { return baseIntel + bonusIntel; }
     public int getDex()   { return baseDex   + bonusDex; }
+    public int getWil()   { return baseWil   + bonusWil; }
+    public int getTec()   { return baseTec   + bonusTec; }
 
     public int getUpgradeLevel() { return upgradeLevel; }
     public int getEnchantCount() { return enchantCount; }
@@ -199,22 +218,38 @@ public class CustomItem {
 
     public void incrementEnchantCount() { this.enchantCount++; }
 
-    public void addBonusStats(int hp, int def, int str, int agi, int intel, int dex) {
-        this.bonusHp    += hp;
-        this.bonusDef   += def;
-        this.bonusStr   += str;
-        this.bonusAgi   += agi;
-        this.bonusIntel += intel;
-        this.bonusDex   += dex;
+    public void addBonusStats(int hp, int def, int str, int agi, int intel, int dex, int wil, int tec) {
+        adjustBonusStat(StatType.VIT, hp);
+        adjustBonusStat(StatType.VIT, def);
+        adjustBonusStat(StatType.STR, str);
+        adjustBonusStat(StatType.AGI, agi);
+        adjustBonusStat(StatType.INT, intel);
+        adjustBonusStat(StatType.DEX, dex);
+        adjustBonusStat(StatType.WIL, wil);
+        adjustBonusStat(StatType.TEC, tec);
     }
 
-    public void removeBonusStats(int hp, int def, int str, int agi, int intel, int dex) {
-        this.bonusHp    -= hp;
-        this.bonusDef   -= def;
-        this.bonusStr   -= str;
-        this.bonusAgi   -= agi;
-        this.bonusIntel -= intel;
-        this.bonusDex   -= dex;
+    public void removeBonusStats(int hp, int def, int str, int agi, int intel, int dex, int wil, int tec) {
+        adjustBonusStat(StatType.VIT, -hp);
+        adjustBonusStat(StatType.VIT, -def);
+        adjustBonusStat(StatType.STR, -str);
+        adjustBonusStat(StatType.AGI, -agi);
+        adjustBonusStat(StatType.INT, -intel);
+        adjustBonusStat(StatType.DEX, -dex);
+        adjustBonusStat(StatType.WIL, -wil);
+        adjustBonusStat(StatType.TEC, -tec);
+    }
+
+    public void adjustBonusStat(StatType stat, int amount) {
+        switch (stat) {
+            case STR -> bonusStr += amount;
+            case AGI -> bonusAgi += amount;
+            case INT -> bonusIntel += amount;
+            case DEX -> bonusDex += amount;
+            case VIT -> bonusHp += amount;
+            case WIL -> bonusWil += amount;
+            case TEC -> bonusTec += amount;
+        }
     }
 
     // Setters used for stat rerolls
@@ -224,6 +259,8 @@ public class CustomItem {
     public void setBaseAgi(int value)   { this.baseAgi = value; }
     public void setBaseIntel(int value) { this.baseIntel = value; }
     public void setBaseDex(int value)   { this.baseDex = value; }
+    public void setBaseWil(int value)   { this.baseWil = value; }
+    public void setBaseTec(int value)   { this.baseTec = value; }
 
     public void setBaseName(String name) { this.baseName = name; }
 
@@ -298,6 +335,8 @@ public class CustomItem {
         baseAgi   = (int)(baseAgi   * multiplier);
         baseIntel = (int)(baseIntel * multiplier);
         baseDex   = (int)(baseDex   * multiplier);
+        baseWil   = (int)(baseWil   * multiplier);
+        baseTec   = (int)(baseTec   * multiplier);
     }
 
     private double getRarityMultiplier() {

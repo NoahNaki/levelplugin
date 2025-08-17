@@ -65,9 +65,10 @@ public class ItemUtil {
                 case "agility" -> StatsManager.StatType.AGI;
                 case "dexterity" -> StatsManager.StatType.DEX;
                 case "intelligence" -> StatsManager.StatType.INT;
-                case "defense" -> StatsManager.StatType.DEF;
-                case "hp" -> StatsManager.StatType.HP;
-                default -> StatsManager.StatType.DEF;
+                case "defense", "hp", "vitality" -> StatsManager.StatType.VIT;
+                case "will" -> StatsManager.StatType.WIL;
+                case "technique" -> StatsManager.StatType.TEC;
+                default -> StatsManager.StatType.VIT;
             };
             PREFIX_MAP.put(prefix, st);
             PREFIX_LIST.add(prefix);
@@ -292,14 +293,10 @@ public class ItemUtil {
         // --- Stats Information ---
         String prefix = parsePrefix(cItem.getBaseName());
         StatsManager.StatType prefixStat = prefix != null ? PREFIX_MAP.get(prefix) : null;
-        if (cItem.getHp() != 0) {
-            String line = ChatColor.RED + "❤ " + ChatColor.GRAY + "Health: " + ChatColor.RED + "+" + cItem.getHp();
-            if (prefixStat == StatsManager.StatType.HP) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
-        if (cItem.getDef() != 0) {
-            String line = ChatColor.GRAY + "⛂ " + ChatColor.GRAY + "Defence: " + ChatColor.WHITE + "+" + cItem.getDef();
-            if (prefixStat == StatsManager.StatType.DEF) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
+        int vit = cItem.getHp() + cItem.getDef();
+        if (vit != 0) {
+            String line = ChatColor.RED + "❤ " + ChatColor.GRAY + "Vitality: " + ChatColor.RED + "+" + vit;
+            if (prefixStat == StatsManager.StatType.VIT) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
             lore.add(line);
         }
         if (cItem.getStr() != 0) {
@@ -320,6 +317,16 @@ public class ItemUtil {
         if (cItem.getDex() != 0) {
             String line = ChatColor.YELLOW + "➹ " + ChatColor.GRAY + "Dexterity: " + ChatColor.WHITE + "+" + cItem.getDex();
             if (prefixStat == StatsManager.StatType.DEX) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
+            lore.add(line);
+        }
+        if (cItem.getWil() != 0) {
+            String line = ChatColor.BLUE + "✪ " + ChatColor.GRAY + "Will: " + ChatColor.WHITE + "+" + cItem.getWil();
+            if (prefixStat == StatsManager.StatType.WIL) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
+            lore.add(line);
+        }
+        if (cItem.getTec() != 0) {
+            String line = ChatColor.DARK_PURPLE + "⚔ " + ChatColor.GRAY + "Technique: " + ChatColor.WHITE + "+" + cItem.getTec();
+            if (prefixStat == StatsManager.StatType.TEC) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
             lore.add(line);
         }
 
@@ -467,14 +474,10 @@ public class ItemUtil {
         // --- Stats Information ---
         String prefix = parsePrefix(cItem.getBaseName());
         StatsManager.StatType prefixStat = prefix != null ? PREFIX_MAP.get(prefix) : null;
-        if (cItem.getHp() != 0) {
-            String line = ChatColor.RED + "❤ " + ChatColor.GRAY + "Health: " + ChatColor.RED + "+" + cItem.getHp();
-            if (prefixStat == StatsManager.StatType.HP) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
-        if (cItem.getDef() != 0) {
-            String line = ChatColor.GRAY + "⛂ " + ChatColor.GRAY + "Defence: " + ChatColor.WHITE + "+" + cItem.getDef();
-            if (prefixStat == StatsManager.StatType.DEF) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
+        int vit = cItem.getHp() + cItem.getDef();
+        if (vit != 0) {
+            String line = ChatColor.RED + "❤ " + ChatColor.GRAY + "Vitality: " + ChatColor.RED + "+" + vit;
+            if (prefixStat == StatsManager.StatType.VIT) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
             lore.add(line);
         }
         if (cItem.getStr() != 0) {
@@ -495,6 +498,16 @@ public class ItemUtil {
         if (cItem.getDex() != 0) {
             String line = ChatColor.YELLOW + "➹ " + ChatColor.GRAY + "Dexterity: " + ChatColor.WHITE + "+" + cItem.getDex();
             if (prefixStat == StatsManager.StatType.DEX) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
+            lore.add(line);
+        }
+        if (cItem.getWil() != 0) {
+            String line = ChatColor.BLUE + "✪ " + ChatColor.GRAY + "Will: " + ChatColor.WHITE + "+" + cItem.getWil();
+            if (prefixStat == StatsManager.StatType.WIL) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
+            lore.add(line);
+        }
+        if (cItem.getTec() != 0) {
+            String line = ChatColor.DARK_PURPLE + "⚔ " + ChatColor.GRAY + "Technique: " + ChatColor.WHITE + "+" + cItem.getTec();
+            if (prefixStat == StatsManager.StatType.TEC) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
             lore.add(line);
         }
 

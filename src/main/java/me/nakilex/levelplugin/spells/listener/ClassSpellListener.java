@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.spells.Spell;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
+import me.nakilex.levelplugin.spells.managers.CooldownManager;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -46,6 +47,7 @@ public class ClassSpellListener implements Listener {
     }
 
     private static final Map<PlayerClass, Triggers> MAP = new EnumMap<>(PlayerClass.class);
+    private static final String ATTACK_COOLDOWN_KEY = "basic_attack";
     static {
         // Archer class
         Triggers t = new Triggers();
@@ -212,6 +214,23 @@ public class ClassSpellListener implements Listener {
         PlayerClass pc = getClass(p);
         Triggers tr = MAP.get(pc);
         if (tr == null) return;
+
+        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(p.getUniqueId());
+        if (p.getAttackCooldown() < 1.0) {
+            event.setCancelled(true);
+            return;
+        }
+
+        double cooldown = 1.0 / ps.attackSpeed;
+        CooldownManager cd = CooldownManager.getInstance();
+        UUID id = p.getUniqueId();
+        if (cd.isOnCooldown(id, ATTACK_COOLDOWN_KEY)) {
+            event.setCancelled(true);
+            return;
+        }
+        cd.setCooldown(id, ATTACK_COOLDOWN_KEY, cooldown);
+        p.resetCooldown();
+
         if (p.isSneaking()) cast(p, tr.leftSneak, pc);
         else cast(p, tr.left, pc);
     }

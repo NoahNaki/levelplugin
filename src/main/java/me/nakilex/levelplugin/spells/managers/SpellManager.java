@@ -68,20 +68,24 @@ public class SpellManager {
     }
 
 
+    /**
+     * Builds a basic attack spell that relies on Technique-based cooldowns rather than
+     * MythicMobs' own cooldown settings.
+     */
+    private static Spell basicAttack(String id, String name, List<Material> weapons, String effectKey) {
+        // Cooldown 0 so ClassSpellListener can throttle via player attack speed
+        return new Spell(id, name, "BASIC_ATTACK", 0.0, 0L, 1, weapons, effectKey, 0.0);
+    }
+
     private void loadSpells() {
 
         // — ARCHER CLASS —
         Map<String, Spell> archerMap = new HashMap<>();
-        archerMap.put("BASIC_ATTACK", new Spell(
+        archerMap.put("BASIC_ATTACK", basicAttack(
             "quick_shot",
             "Quick Shot",
-            "BASIC_ATTACK",
-            0.0,
-            MythicSkillConfig.getCooldownSeconds("Quick_Shot"),
-            1,
             WeaponType.BOW.getMaterials(),
-            "MYTHIC_QUICK_SHOT",
-            0.0
+            "MYTHIC_QUICK_SHOT"
         ));
         archerMap.put("LRL", new Spell(
             "backstep", "Backstep", "LRL",
@@ -126,16 +130,11 @@ public class SpellManager {
 
         // — PHOENIXHUNTER CLASS —
         Map<String, Spell> phoenixMap = new HashMap<>();
-        phoenixMap.put("BASIC_ATTACK", new Spell(
+        phoenixMap.put("BASIC_ATTACK", basicAttack(
             "blazing_feathers",
             "Blazing Feathers",
-            "BASIC_ATTACK",
-            0.0,
-            1,
-            1,
             WeaponType.BOW.getMaterials(),
-            "MYTHIC_BLAZING_FEATHERS",
-            0.0
+            "MYTHIC_BLAZING_FEATHERS"
         ));
         phoenixMap.put("LRL", new Spell(
             "ashdance", "Ashdance", "LRL",
@@ -193,12 +192,10 @@ public class SpellManager {
 
         // — DEADEYE CLASS —
         Map<String, Spell> deadeyeMap = new HashMap<>();
-        deadeyeMap.put("BASIC_ATTACK", new Spell(
-            "pistol_shot", "Pistol Shot", "BASIC_ATTACK",
-            0.0,
-            MythicSkillConfig.getCooldownSeconds("Pistol_Shot"), 1,
+        deadeyeMap.put("BASIC_ATTACK", basicAttack(
+            "pistol_shot", "Pistol Shot",
             WeaponType.BOW.getMaterials(),
-            "MYTHIC_PISTOL_SHOT", 0.0
+            "MYTHIC_PISTOL_SHOT"
         ));
         deadeyeMap.put("LRL", new Spell(
             "shotgun_blast", "Shotgun Blast", "LRL",
@@ -243,13 +240,10 @@ public class SpellManager {
 
         // — WARRIOR CLASS —
         Map<String, Spell> warriorMap = new HashMap<>();
-        warriorMap.put("BASIC_ATTACK", new Spell(
-            "brutal_strike", "Brutal Strike", "BASIC_ATTACK",
-            0.0,
-            1,
-            1,
+        warriorMap.put("BASIC_ATTACK", basicAttack(
+            "brutal_strike", "Brutal Strike",
             WARRIOR_WEAPONS,
-            "MYTHIC_BRUTAL_STRIKE", 0.0
+            "MYTHIC_BRUTAL_STRIKE"
         ));
         warriorMap.put("LRL", new Spell(
             "charge", "Charge", "LRL",
@@ -301,13 +295,10 @@ public class SpellManager {
 
         // — BARBARIAN CLASS —
         Map<String, Spell> barbarianMap = new HashMap<>();
-        barbarianMap.put("BASIC_ATTACK", new Spell(
-            "rageblade", "Rageblade", "BASIC_ATTACK",
-            0.0,
-            MythicSkillConfig.getCooldownSeconds("Rageblade"),
-            1,
+        barbarianMap.put("BASIC_ATTACK", basicAttack(
+            "rageblade", "Rageblade",
             WARRIOR_WEAPONS,
-            "MYTHIC_RAGEBLADE", 0.0
+            "MYTHIC_RAGEBLADE"
         ));
         barbarianMap.put("LRL", new Spell(
             "primal_axe", "Primal Axe", "LRL",
@@ -352,13 +343,10 @@ public class SpellManager {
 
         // — PALADIN CLASS —
         Map<String, Spell> paladinMap = new HashMap<>();
-        paladinMap.put("BASIC_ATTACK", new Spell(
-            "holy_strike", "Holy Strike", "BASIC_ATTACK",
-            0.0,
-            MythicSkillConfig.getCooldownSeconds("Holy_Strike"),
-            1,
+        paladinMap.put("BASIC_ATTACK", basicAttack(
+            "holy_strike", "Holy Strike",
             WARRIOR_WEAPONS,
-            "MYTHIC_HOLY_STRIKE", 0.0
+            "MYTHIC_HOLY_STRIKE"
         ));
         paladinMap.put("LRL", new Spell(
             "bound_seal", "Bound Seal", "LRL",
@@ -403,13 +391,10 @@ public class SpellManager {
 
         // — DEATH KNIGHT CLASS —
         Map<String, Spell> deathMap = new HashMap<>();
-        deathMap.put("BASIC_ATTACK", new Spell(
-            "death_strike", "Death Strike", "BASIC_ATTACK",
-            0.0,
-            MythicSkillConfig.getCooldownSeconds("Death_Strike_ST"),
-            1,
+        deathMap.put("BASIC_ATTACK", basicAttack(
+            "death_strike", "Death Strike",
             WARRIOR_WEAPONS,
-            "MYTHIC_DEATH_STRIKE", 0.0
+            "MYTHIC_DEATH_STRIKE"
         ));
         deathMap.put("LRL", new Spell(
             "phantom_charge", "Phantom Charge", "LRL",
@@ -454,13 +439,10 @@ public class SpellManager {
 
         // — ABYSSION CLASS —
         Map<String, Spell> abyssionMap = new HashMap<>();
-        abyssionMap.put("BASIC_ATTACK", new Spell(
-            "aqua_slash", "Aqua Slash", "BASIC_ATTACK",
-            0.0,
-            MythicSkillConfig.getCooldownSeconds("Aqua_Slash"),
-            1,
+        abyssionMap.put("BASIC_ATTACK", basicAttack(
+            "aqua_slash", "Aqua Slash",
             WARRIOR_WEAPONS,
-            "MYTHIC_AQUA_SLASH", 0.0
+            "MYTHIC_AQUA_SLASH"
         ));
         abyssionMap.put("LRL", new Spell(
             "abyssal_dash", "Abyssal Dash", "LRL",
@@ -498,13 +480,10 @@ public class SpellManager {
 
         // — MAGE CLASS —
         Map<String, Spell> mageMap = new HashMap<>();
-        mageMap.put("BASIC_ATTACK", new Spell(
-            "fireball", "Fireball", "BASIC_ATTACK",
-            0.0,
-            MythicSkillConfig.getCooldownSeconds("Fireball"),
-            1,
+        mageMap.put("BASIC_ATTACK", basicAttack(
+            "fireball", "Fireball",
             WeaponType.WAND.getMaterials(),
-            "MYTHIC_FIREBALL", 0.0
+            "MYTHIC_FIREBALL"
         ));
         mageMap.put("LRL", new Spell(
             "blink", "Blink", "LRL",
@@ -543,13 +522,10 @@ public class SpellManager {
 
         // — DRAGONIAN CLASS —
         Map<String, Spell> dragonianMap = new HashMap<>();
-        dragonianMap.put("BASIC_ATTACK", new Spell(
-            "dragonian_slash", "Dragonian Slash", "BASIC_ATTACK",
-            0.0,
-            MythicSkillConfig.getCooldownSeconds("dragonian_l_t"),
-            1,
+        dragonianMap.put("BASIC_ATTACK", basicAttack(
+            "dragonian_slash", "Dragonian Slash",
             WARRIOR_WEAPONS,
-            "MYTHIC_DRAGONIAN_L_T", 0.0
+            "MYTHIC_DRAGONIAN_L_T"
         ));
         dragonianMap.put("LRL", new Spell(
             "dragonian_lunge", "Dragonian Lunge", "LRL",
@@ -587,13 +563,10 @@ public class SpellManager {
 
         // — DRAGON WARRIOR CLASS —
         Map<String, Spell> dragonwarriorMap = new HashMap<>();
-        dragonwarriorMap.put("BASIC_ATTACK", new Spell(
-            "dragon_slash", "Dragon Slash", "BASIC_ATTACK",
-            0.0,
-            MythicSkillConfig.getCooldownSeconds("Dragon_Slash"),
-            1,
+        dragonwarriorMap.put("BASIC_ATTACK", basicAttack(
+            "dragon_slash", "Dragon Slash",
             WARRIOR_WEAPONS,
-            "MYTHIC_DRAGON_SLASH", 0.0
+            "MYTHIC_DRAGON_SLASH"
         ));
         dragonwarriorMap.put("LRL", new Spell(
             "dragon_dash", "Dragon Dash", "LRL",
@@ -631,13 +604,10 @@ public class SpellManager {
 
         // — WINDRUNE CLASS —
         Map<String, Spell> windruneMap = new HashMap<>();
-        windruneMap.put("BASIC_ATTACK", new Spell(
-            "gale_slash", "Gale Slash", "BASIC_ATTACK",
-            0.0,
-            MythicSkillConfig.getCooldownSeconds("Gale_Slash"),
-            1,
+        windruneMap.put("BASIC_ATTACK", basicAttack(
+            "gale_slash", "Gale Slash",
             WARRIOR_WEAPONS,
-            "MYTHIC_GALE_SLASH", 0.0
+            "MYTHIC_GALE_SLASH"
         ));
         windruneMap.put("LRL", new Spell(
             "vault", "Vault", "LRL",
@@ -682,13 +652,10 @@ public class SpellManager {
 
         // — ARCTIC KNIGHT CLASS —
         Map<String, Spell> arcticMap = new HashMap<>();
-        arcticMap.put("BASIC_ATTACK", new Spell(
-            "frost_strike", "Frost Strike", "BASIC_ATTACK",
-            0.0,
-            MythicSkillConfig.getCooldownSeconds("Frost_Strike"),
-            1,
+        arcticMap.put("BASIC_ATTACK", basicAttack(
+            "frost_strike", "Frost Strike",
             WARRIOR_WEAPONS,
-            "MYTHIC_FROST_STRIKE", 0.0
+            "MYTHIC_FROST_STRIKE"
         ));
         arcticMap.put("LRL", new Spell(
             "glacial_impalement", "Glacial Impalement", "LRL",

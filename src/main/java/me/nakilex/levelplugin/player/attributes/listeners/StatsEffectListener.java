@@ -38,6 +38,10 @@ public class StatsEffectListener implements Listener {
         // Determine if a player is responsible for the damage
         Player player = null;
         if (damager instanceof Player p) {
+            if (p.getAttackCooldown() < 1.0f) {
+                event.setCancelled(true);
+                return;
+            }
             player = p;
         } else if (damager instanceof org.bukkit.entity.Projectile proj && proj.getShooter() instanceof Player shooter) {
             // Skip scaling for our own custom projectiles which already embed stats
@@ -56,7 +60,11 @@ public class StatsEffectListener implements Listener {
             int totalStrength = ps.baseStrength + ps.bonusStrength;
             double finalDamage = event.getDamage() + (totalStrength * 0.5);
 
-            // 2) Dex → crit (diminishing returns)
+            // 2) Technique scaling (overall damage)
+            int totalTec = ps.baseTechnique + ps.bonusTechnique;
+            finalDamage *= (1.0 + totalTec * 0.003);
+
+            // 3) Dex → crit (diminishing returns)
             int totalDexterity = ps.baseDexterity + ps.bonusDexterity;
             double critChance = (double) totalDexterity / (totalDexterity + 100.0);
             critChance = Math.max(0.0, Math.min(1.0, critChance));
@@ -104,9 +112,9 @@ public class StatsEffectListener implements Listener {
                 return;
             }
 
-            // 6) Defense reduction (unchanged)
-            int totalDefence = vs.baseDefenceStat + vs.bonusDefenceStat;
-            double percentReduction = (double) totalDefence / (totalDefence + 200.0);
+            // 6) Vitality-based damage reduction
+            int totalVitality = vs.baseVitality + vs.bonusVitality;
+            double percentReduction = (double) totalVitality / (totalVitality + 200.0);
             double reducedDamage = event.getDamage() * (1.0 - percentReduction);
 
             event.setDamage(reducedDamage);

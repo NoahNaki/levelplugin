@@ -553,11 +553,11 @@ public class BlacksmithGUI implements Listener {
     private StatType materialToStat(Material mat) {
         return switch (mat) {
             case BORDURE_INDENTED_BANNER_PATTERN -> StatType.STR;
-            case FLOWER_BANNER_PATTERN -> StatType.INT;
-            case FLOW_BANNER_PATTERN -> StatType.AGI;
-            case SKULL_BANNER_PATTERN -> StatType.HP;
-            case GUSTER_BANNER_PATTERN -> StatType.DEX;
-            case GLOBE_BANNER_PATTERN -> StatType.DEF;
+            case FLOWER_BANNER_PATTERN        -> StatType.INT;
+            case FLOW_BANNER_PATTERN          -> StatType.AGI;
+            case SKULL_BANNER_PATTERN         -> StatType.VIT;
+            case GUSTER_BANNER_PATTERN        -> StatType.DEX;
+            case GLOBE_BANNER_PATTERN         -> StatType.WIL;
             default -> null;
         };
     }
@@ -568,8 +568,9 @@ public class BlacksmithGUI implements Listener {
             case INT -> "Intelligence";
             case AGI -> "Agility";
             case DEX -> "Dexterity";
-            case HP  -> "Health";
-            case DEF -> "Defence";
+            case VIT -> "Vitality";
+            case WIL -> "Will";
+            case TEC -> "Technique";
         };
     }
 

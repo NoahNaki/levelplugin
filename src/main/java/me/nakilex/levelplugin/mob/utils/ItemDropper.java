@@ -88,6 +88,8 @@ public class ItemDropper {
                         template.getAgiRange(),
                         template.getIntelRange(),
                         template.getDexRange(),
+                        template.getWilRange(),
+                        template.getTecRange(),
                         template.isEgo(),
                         template.getEgoKey()
                 );
@@ -124,7 +126,7 @@ public class ItemDropper {
                 ChatColor.LIGHT_PURPLE + "Scroll of Swiftness",
                 ChatColor.RED + "Scroll of Vitality",
                 ChatColor.YELLOW + "Scroll of Precision",
-                ChatColor.BLUE + "Scroll of Fortitude"
+                ChatColor.BLUE + "Scroll of Willpower"
         };
         int idx = ThreadLocalRandom.current().nextInt(mats.length);
         ItemStack item = new ItemStack(mats[idx]);

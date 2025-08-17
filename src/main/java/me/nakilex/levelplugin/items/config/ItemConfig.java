@@ -49,6 +49,8 @@ public class ItemConfig {
             config.set(path + ".agi",   item.getAgi());
             config.set(path + ".intel", item.getIntel());
             config.set(path + ".dex",   item.getDex());
+            config.set(path + ".wil",   item.getWil());
+            config.set(path + ".tec",   item.getTec());
 
             config.set(path + ".upgradeLevel", item.getUpgradeLevel());
             config.set(path + ".enchantCount", item.getEnchantCount());
@@ -94,6 +96,8 @@ public class ItemConfig {
                 int agiValue   = config.getInt(base + "agi",   0);
                 int intelValue = config.getInt(base + "intel", 0);
                 int dexValue   = config.getInt(base + "dex",   0);
+                int wilValue   = config.getInt(base + "wil",   0);
+                int tecValue   = config.getInt(base + "tec",   0);
 
                 CustomItem template = ItemManager.getInstance().getTemplateById(id);
                 StatRange hpRange;
@@ -102,6 +106,8 @@ public class ItemConfig {
                 StatRange agiRange;
                 StatRange intelRange;
                 StatRange dexRange;
+                StatRange wilRange;
+                StatRange tecRange;
                 if (template != null) {
                     hpRange    = template.getHpRange();
                     defRange   = template.getDefRange();
@@ -109,6 +115,8 @@ public class ItemConfig {
                     agiRange   = template.getAgiRange();
                     intelRange = template.getIntelRange();
                     dexRange   = template.getDexRange();
+                    wilRange   = template.getWilRange();
+                    tecRange   = template.getTecRange();
                 } else {
                     // Fallback if template is missing
                     hpRange    = new StatRange(hpValue,    hpValue);
@@ -117,11 +125,13 @@ public class ItemConfig {
                     agiRange   = new StatRange(agiValue,   agiValue);
                     intelRange = new StatRange(intelValue, intelValue);
                     dexRange   = new StatRange(dexValue,   dexValue);
+                    wilRange   = new StatRange(wilValue,   wilValue);
+                    tecRange   = new StatRange(tecValue,   tecValue);
                 }
 
                 CustomItem instance = new CustomItem(
                     uuid, id, baseName, rarity, lvlReq, clsReq, material,
-                    hpRange, defRange, strRange, agiRange, intelRange, dexRange,
+                    hpRange, defRange, strRange, agiRange, intelRange, dexRange, wilRange, tecRange,
                     upgLvl,
                     ego,
                     egoKey
@@ -135,6 +145,8 @@ public class ItemConfig {
                 instance.setBaseAgi(agiValue);
                 instance.setBaseIntel(intelValue);
                 instance.setBaseDex(dexValue);
+                instance.setBaseWil(wilValue);
+                instance.setBaseTec(tecValue);
 
                 // Restore saved current durability (default to max if not present)
                 int savedDurability = config.getInt(base + "currentDurability", instance.getMaxDurability());

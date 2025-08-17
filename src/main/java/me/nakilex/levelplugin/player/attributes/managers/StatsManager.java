@@ -5,6 +5,8 @@ import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 
@@ -80,8 +82,9 @@ public class StatsManager {
             case AGI: ps.baseAgility++; break;
             case INT: ps.baseIntelligence++; break;
             case DEX: ps.baseDexterity++; break;
-            case HP:  ps.baseHealthStat++; break;
-            case DEF: ps.baseDefenceStat++; break;
+            case VIT: ps.baseVitality++; break;
+            case WIL: ps.baseWill++; break;
+            case TEC: ps.baseTechnique++; break;
         }
 
         recalcDerivedStats(player);
@@ -104,11 +107,14 @@ public class StatsManager {
             case DEX:
                 if (ps.baseDexterity > 0) { ps.baseDexterity--; refunded = true; }
                 break;
-            case HP:
-                if (ps.baseHealthStat > 0) { ps.baseHealthStat--; refunded = true; }
+            case VIT:
+                if (ps.baseVitality > 0) { ps.baseVitality--; refunded = true; }
                 break;
-            case DEF:
-                if (ps.baseDefenceStat > 0) { ps.baseDefenceStat--; refunded = true; }
+            case WIL:
+                if (ps.baseWill > 0) { ps.baseWill--; refunded = true; }
+                break;
+            case TEC:
+                if (ps.baseTechnique > 0) { ps.baseTechnique--; refunded = true; }
                 break;
         }
 
@@ -122,14 +128,15 @@ public class StatsManager {
         PlayerStats ps = getPlayerStats(player.getUniqueId());
 
         int totalRefundedPoints = ps.baseStrength + ps.baseAgility + ps.baseIntelligence
-            + ps.baseDexterity + ps.baseHealthStat + ps.baseDefenceStat;
+            + ps.baseDexterity + ps.baseVitality + ps.baseWill + ps.baseTechnique;
 
         ps.baseStrength = 0;
         ps.baseAgility = 0;
         ps.baseIntelligence = 0;
         ps.baseDexterity = 0;
-        ps.baseHealthStat = 0;
-        ps.baseDefenceStat = 0;
+        ps.baseVitality = 0;
+        ps.baseWill = 0;
+        ps.baseTechnique = 0;
 
         ps.skillPoints += totalRefundedPoints;
         recalcDerivedStats(player);
@@ -162,16 +169,18 @@ public class StatsManager {
         PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
 
         // Ensure stats are not negative
-        ps.baseHealthStat   = Math.max(0, ps.baseHealthStat);
-        ps.bonusHealthStat  = Math.max(0, ps.bonusHealthStat);
+        ps.baseVitality     = Math.max(0, ps.baseVitality);
+        ps.bonusVitality    = Math.max(0, ps.bonusVitality);
         ps.baseStrength     = Math.max(0, ps.baseStrength);
         ps.bonusStrength    = Math.max(0, ps.bonusStrength);
         ps.baseAgility      = Math.max(0, ps.baseAgility);
         ps.bonusAgility     = Math.max(0, ps.bonusAgility);
         ps.baseDexterity    = Math.max(0, ps.baseDexterity);
         ps.bonusDexterity   = Math.max(0, ps.bonusDexterity);
-        ps.baseDefenceStat  = Math.max(0, ps.baseDefenceStat);
-        ps.bonusDefenceStat = Math.max(0, ps.bonusDefenceStat);
+        ps.baseWill         = Math.max(0, ps.baseWill);
+        ps.bonusWill        = Math.max(0, ps.bonusWill);
+        ps.baseTechnique    = Math.max(0, ps.baseTechnique);
+        ps.bonusTechnique   = Math.max(0, ps.bonusTechnique);
         ps.baseIntelligence = Math.max(0, ps.baseIntelligence);
         ps.bonusIntelligence = Math.max(0, ps.bonusIntelligence);
 
@@ -181,7 +190,9 @@ public class StatsManager {
         double healthRatio = oldHealth / oldMaxHealth;
 
         // Calculate the new max health based on the health stats
-        double newMaxHealth = 20.0 + ((ps.baseHealthStat + ps.bonusHealthStat) * 2.0);
+        double newMaxHealth = 20.0
+                + ((ps.baseVitality + ps.bonusVitality) * 3.0)
+                + ((ps.baseStrength + ps.bonusStrength) * 1.0);
         newMaxHealth = Math.max(1.0, Math.min(newMaxHealth, 9999999.0));
 
         // Set the new max health
@@ -196,7 +207,9 @@ public class StatsManager {
         player.setHealthScale(20.0);
 
         // Recalculate other derived stats (e.g., mana, walk speed) as needed.
-        ps.maxMana = 50 + ((ps.baseIntelligence + ps.bonusIntelligence) * 10);
+        ps.maxMana = 50
+                + ((ps.baseIntelligence + ps.bonusIntelligence) * 1)
+                + ((ps.baseWill + ps.bonusWill) * 3);
         if (ps.currentMana > ps.maxMana) {
             ps.currentMana = ps.maxMana;
         }
@@ -204,28 +217,23 @@ public class StatsManager {
         float newWalkSpeed = 0.20f + ((ps.baseAgility + ps.bonusAgility) * 0.0006f);
         if (newWalkSpeed > 1.0f) newWalkSpeed = 1.0f;
         player.setWalkSpeed(newWalkSpeed);
+
+        ps.attackSpeed = 0.5 * (1.0 + 0.01 * (ps.baseTechnique + ps.bonusTechnique));
+        AttributeInstance atkAttr = player.getAttribute(Attribute.ATTACK_SPEED);
+        if (atkAttr != null) atkAttr.setBaseValue(ps.attackSpeed * 8.0);
     }
 
     public void regenHealthForAllPlayers() {
         for (Player player : Bukkit.getOnlinePlayers()) {
             PlayerStats ps = getPlayerStats(player.getUniqueId());
 
-            // Base health regeneration per second
             double baseRegenPerSec = 1.0;
-
-            // 1 HP/s per 5 points invested in health
-            double regenFromStats = ps.baseHealthStat / 5.0;
-
-            // 1 HP/s per 100 max HP
+            double regenFromStats = (ps.baseVitality + ps.bonusVitality
+                    + ps.baseStrength + ps.bonusStrength) / 5.0;
             double regenFromMaxHealth = player.getMaxHealth() / 100.0;
 
-            // Total health regeneration this tick
             double totalRegen = baseRegenPerSec + regenFromStats + regenFromMaxHealth;
-
-            // Apply regeneration
             double newHealth = player.getHealth() + totalRegen;
-
-            // Clamp to max health
             player.setHealth(Math.min(newHealth, player.getMaxHealth()));
         }
     }
@@ -238,8 +246,8 @@ public class StatsManager {
             PlayerStats ps = getPlayerStats(player.getUniqueId());
 
             double baseRegenPerSec = 2.5;
-            double intBonus = (ps.baseIntelligence + ps.bonusIntelligence) * 0.3;
-            double totalRegen = baseRegenPerSec + intBonus;
+            double willBonus = (ps.baseWill + ps.bonusWill) * 0.25;
+            double totalRegen = baseRegenPerSec + willBonus;
 
             ps.currentMana += totalRegen;
             if (ps.currentMana > ps.maxMana) {
@@ -253,12 +261,13 @@ public class StatsManager {
         PlayerStats ps = getPlayerStats(player.getUniqueId());
 
         // Apply stats
-        ps.bonusHealthStat += newItem.getHp();
-        ps.bonusDefenceStat += newItem.getDef();
-        ps.bonusStrength += newItem.getStr();
-        ps.bonusAgility += newItem.getAgi();
+        ps.bonusVitality     += newItem.getHp() + newItem.getDef();
+        ps.bonusStrength     += newItem.getStr();
+        ps.bonusAgility      += newItem.getAgi();
         ps.bonusIntelligence += newItem.getIntel();
-        ps.bonusDexterity += newItem.getDex();
+        ps.bonusDexterity    += newItem.getDex();
+        ps.bonusWill         += newItem.getWil();
+        ps.bonusTechnique    += newItem.getTec();
 
         recalcDerivedStats(player);
     }
@@ -272,22 +281,25 @@ public class StatsManager {
             case AGI: return ps.baseAgility + ps.bonusAgility;
             case INT: return ps.baseIntelligence + ps.bonusIntelligence;
             case DEX: return ps.baseDexterity + ps.bonusDexterity;
-            case HP:  return ps.baseHealthStat + ps.bonusHealthStat;
-            case DEF: return ps.baseDefenceStat + ps.bonusDefenceStat;
+            case VIT: return ps.baseVitality + ps.bonusVitality;
+            case WIL: return ps.baseWill + ps.bonusWill;
+            case TEC: return ps.baseTechnique + ps.bonusTechnique;
             default: return 0;
         }
     }
 
     public static class PlayerStats {
-        public int baseHealthStat = 0, bonusHealthStat = 0;
+        public int baseVitality = 0, bonusVitality = 0;
         public int baseStrength = 0, bonusStrength = 0;
         public int baseAgility = 0, bonusAgility = 0;
         public int baseDexterity = 0, bonusDexterity = 0;
-        public int baseDefenceStat = 0, bonusDefenceStat = 0;
         public int baseIntelligence = 0, bonusIntelligence = 0;
+        public int baseWill = 0, bonusWill = 0;
+        public int baseTechnique = 0, bonusTechnique = 0;
 
         public int maxMana = 50;
         public int currentMana = 50;
+        public double attackSpeed = 0.5; // attacks per second
         public int skillPoints = 0;
 
         public PlayerClass playerClass = PlayerClass.VILLAGER;
@@ -313,7 +325,7 @@ public class StatsManager {
 
     }
 
-    public enum StatType {
-        STR, AGI, INT, DEX, HP, DEF
+        public enum StatType {
+        STR, AGI, INT, DEX, VIT, WIL, TEC
     }
 }

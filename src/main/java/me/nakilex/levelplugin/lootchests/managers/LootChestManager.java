@@ -646,6 +646,8 @@ public class LootChestManager {
             chosen.getAgiRange(),
             chosen.getIntelRange(),
             chosen.getDexRange(),
+            chosen.getWilRange(),
+            chosen.getTecRange(),
             chosen.isEgo(),
             chosen.getEgoKey()
         );

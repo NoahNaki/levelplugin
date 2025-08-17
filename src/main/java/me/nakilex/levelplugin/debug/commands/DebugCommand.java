@@ -4,6 +4,9 @@ import java.util.Collections;
 import java.util.List;
 
 import me.nakilex.levelplugin.debug.gui.DebugGUI;
+import me.nakilex.levelplugin.debug.AutoCastManager;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
 import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
@@ -25,6 +28,7 @@ public class DebugCommand implements TabExecutor {
     private final PlayerToggleManager mobDebugManager;
     private final PlayerScoreboardManager scoreboardManager;
     private final DebugGUI debugGUI;
+    private final AutoCastManager autoCastManager = new AutoCastManager();
 
     public DebugCommand(PlayerToggleManager mobDebugManager,
                         PlayerScoreboardManager scoreboardManager,
@@ -40,7 +44,7 @@ public class DebugCommand implements TabExecutor {
             if (sender instanceof Player p) {
                 debugGUI.open(p);
             } else {
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege>");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|autocast|tec>");
             }
             return true;
         }
@@ -70,9 +74,44 @@ public class DebugCommand implements TabExecutor {
                 sender.sendMessage("Fast siege mode " + (fast ? "enabled" : "disabled"));
                 return true;
 
+            case "autocast":
+                if (!(sender instanceof Player p3)) {
+                    sender.sendMessage("Players only.");
+                    return true;
+                }
+                StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(p3.getUniqueId());
+                if (ps.playerClass != PlayerClass.MAGE) {
+                    p3.sendMessage("Mage class required for autocast debug.");
+                    return true;
+                }
+                boolean auto = autoCastManager.toggle(p3, "fireball");
+                ToggleFeedbackUtil.sendToggle(p3, "Mage autocast", auto);
+                return true;
+
+            case "tec":
+                if (!(sender instanceof Player p4)) {
+                    sender.sendMessage("Players only.");
+                    return true;
+                }
+                StatsManager statsMgr = StatsManager.getInstance();
+                StatsManager.PlayerStats psTec = statsMgr.getPlayerStats(p4.getUniqueId());
+                if (args.length >= 2) {
+                    try {
+                        int val = Integer.parseInt(args[1]);
+                        psTec.baseTechnique = val;
+                        statsMgr.recalcDerivedStats(p4);
+                        p4.sendMessage(String.format("Technique set to %d (%.2f atk/s)", val, psTec.attackSpeed));
+                    } catch (NumberFormatException e) {
+                        p4.sendMessage("Usage: /debug tec <value>");
+                    }
+                } else {
+                    p4.sendMessage(String.format("Technique: %d (%.2f atk/s)", psTec.baseTechnique + psTec.bonusTechnique, psTec.attackSpeed));
+                }
+                return true;
+
             default:
                 sender.sendMessage("Unknown debug subcommand: " + sub);
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege>");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|autocast|tec>");
                 return true;
         }
     }
@@ -80,7 +119,7 @@ public class DebugCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> subs = List.of("mobinfo", "tps", "siege");
+            List<String> subs = List.of("mobinfo", "tps", "siege", "autocast", "tec");
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
                     .toList();

@@ -16,6 +16,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.server.PluginDisableEvent;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.utils.EntityTextDisplay;
 import org.bukkit.metadata.FixedMetadataValue;
@@ -184,6 +185,24 @@ public class MythicMobNameManager implements Listener {
         String displayName = MobNameUtil.buildHealthName(1, ChatColor.WHITE, prettyType, currentHP, maxHP);
         mob.setCustomName(displayName);
         mob.setCustomNameVisible(true);
+    }
+
+    @EventHandler
+    public void onPluginDisable(PluginDisableEvent event) {
+        if (event.getPlugin() != plugin) return;
+        for (EntityTextDisplay disp : healthDisplays.values()) {
+            disp.remove();
+        }
+        healthDisplays.clear();
+        trackedMobs.forEach(m -> {
+            Entity base = m.getEntity().getBukkitEntity();
+            if (base instanceof LivingEntity be) {
+                be.removeMetadata("lp_numeric_hp", plugin);
+            }
+        });
+        trackedZombies.forEach(m -> m.removeMetadata("lp_numeric_hp", plugin));
+        trackedMobs.clear();
+        trackedZombies.clear();
     }
 
 }

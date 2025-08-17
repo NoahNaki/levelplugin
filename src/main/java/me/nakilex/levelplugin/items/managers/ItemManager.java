@@ -102,6 +102,10 @@ public class ItemManager {
                     itemsConfig.getString(path + "intel", "0-0"));
                 StatRange dexRange   = StatRange.fromString(
                     itemsConfig.getString(path + "dex", "0-0"));
+                StatRange wilRange   = StatRange.fromString(
+                    itemsConfig.getString(path + "wil", "0-0"));
+                StatRange tecRange   = StatRange.fromString(
+                    itemsConfig.getString(path + "tec", "0-0"));
                 boolean egoFlag = itemsConfig.getBoolean(path + "ego", false);
                 String egoKey  = itemsConfig.getString(path + "ego_key", null);
 
@@ -119,6 +123,8 @@ public class ItemManager {
                     agiRange,
                     intelRange,
                     dexRange,
+                    wilRange,
+                    tecRange,
                     egoFlag,
                     egoKey
                 );
@@ -191,6 +197,8 @@ public class ItemManager {
             tpl.getAgiRange(),
             tpl.getIntelRange(),
             tpl.getDexRange(),
+            tpl.getWilRange(),
+            tpl.getTecRange(),
             tpl.isEgo(),
             tpl.getEgoKey()
         );

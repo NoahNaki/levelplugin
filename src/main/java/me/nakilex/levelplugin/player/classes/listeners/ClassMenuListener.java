@@ -165,21 +165,23 @@ public class ClassMenuListener implements Listener {
 
     private void addWeaponStats(Player player, CustomItem ci, ItemStack stack) {
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
-        ps.bonusHealthStat   += ci.getHp();
-        ps.bonusDefenceStat  += ci.getDef();
+        ps.bonusVitality     += ci.getHp() + ci.getDef();
         ps.bonusStrength     += ci.getStr();
         ps.bonusAgility      += ci.getAgi();
         ps.bonusIntelligence += ci.getIntel();
         ps.bonusDexterity    += ci.getDex();
+        ps.bonusWill         += ci.getWil();
+        ps.bonusTechnique    += ci.getTec();
     }
 
     private void removeWeaponStats(Player player, CustomItem ci, ItemStack stack) {
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
-        ps.bonusHealthStat   -= ci.getHp();
-        ps.bonusDefenceStat  -= ci.getDef();
+        ps.bonusVitality     -= ci.getHp() + ci.getDef();
         ps.bonusStrength     -= ci.getStr();
         ps.bonusAgility      -= ci.getAgi();
         ps.bonusIntelligence -= ci.getIntel();
         ps.bonusDexterity    -= ci.getDex();
+        ps.bonusWill         -= ci.getWil();
+        ps.bonusTechnique    -= ci.getTec();
     }
 }
