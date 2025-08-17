@@ -16,11 +16,15 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
+import me.nakilex.levelplugin.utils.EntityTextDisplay;
 
 import java.io.File;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
+import java.util.HashMap;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class MythicMobNameManager implements Listener {
@@ -29,6 +33,7 @@ public class MythicMobNameManager implements Listener {
     private final BukkitAPIHelper mythicHelper = MythicBukkit.inst().getAPIHelper();
     private final Set<ActiveMob> trackedMobs = new HashSet<>();
     private final Set<LivingEntity> trackedZombies = new HashSet<>();
+    private final Map<UUID, EntityTextDisplay> healthDisplays = new HashMap<>();
     private static final Set<EntityType> ZOMBIE_TYPES = java.util.EnumSet.of(
             EntityType.ZOMBIE,
             EntityType.HUSK,
@@ -89,16 +94,28 @@ public class MythicMobNameManager implements Listener {
         if (mob != null) {
             trackedMobs.remove(mob);
         }
-        trackedZombies.remove(event.getEntity());
+        LivingEntity entity = event.getEntity();
+        trackedZombies.remove(entity);
+        EntityTextDisplay disp = healthDisplays.remove(entity.getUniqueId());
+        if (disp != null) {
+            disp.remove();
+        }
     }
 
     private void updateMobNames() {
         Iterator<ActiveMob> it = trackedMobs.iterator();
         while (it.hasNext()) {
             ActiveMob mob = it.next();
-            if (mob == null
-                || mob.getEntity() == null
-                || mob.getEntity().isDead()) {
+            if (mob == null || mob.getEntity() == null || mob.getEntity().isDead()) {
+                if (mob != null && mob.getEntity() != null) {
+                    LivingEntity be = mob.getEntity().getBukkitEntity();
+                    if (be != null) {
+                        EntityTextDisplay disp = healthDisplays.remove(be.getUniqueId());
+                        if (disp != null) {
+                            disp.remove();
+                        }
+                    }
+                }
                 it.remove();
             } else {
                 setDisplayName(mob);
@@ -120,9 +137,12 @@ public class MythicMobNameManager implements Listener {
         if (plugin.getMobRewardsConfig().getMobSection(mob.getMobType()) == null) {
             return;
         }
+        LivingEntity entity = mob.getEntity().getBukkitEntity();
+        if (entity == null) return;
+
         int    level     = (int) mob.getLevel();
-        double currentHP = mob.getEntity().getHealth();
-        double maxHP     = mob.getEntity().getMaxHealth();
+        double currentHP = entity.getHealth();
+        double maxHP     = entity.getMaxHealth();
 
         String rawType    = mob.getMobType();        // e.g. "KING_SLIME"
         String prettyType = MobNameUtil.toPrettyName(rawType);  // → "King Slime"
@@ -136,8 +156,19 @@ public class MythicMobNameManager implements Listener {
             : ChatColor.WHITE;
         String displayName = MobNameUtil.buildHealthName(level, nameColor, prettyType, currentHP, maxHP);
 
-        mob.getEntity().getBukkitEntity().setCustomName(displayName);
-        mob.getEntity().getBukkitEntity().setCustomNameVisible(true);
+        if (entity.isInvisible()) {
+            entity.setCustomNameVisible(false);
+            EntityTextDisplay disp = healthDisplays.computeIfAbsent(entity.getUniqueId(),
+                    id -> new EntityTextDisplay(entity, 0.5));
+            disp.update(displayName);
+        } else {
+            EntityTextDisplay disp = healthDisplays.remove(entity.getUniqueId());
+            if (disp != null) {
+                disp.remove();
+            }
+            entity.setCustomName(displayName);
+            entity.setCustomNameVisible(true);
+        }
     }
 
     private void setDisplayName(LivingEntity mob) {
