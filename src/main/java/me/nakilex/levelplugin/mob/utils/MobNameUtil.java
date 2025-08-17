@@ -63,5 +63,20 @@ public final class MobNameUtil {
     public static String getPlainDisplayName(String mobId) {
         return ChatColor.stripColor(getDisplayName(mobId));
     }
+
+    /**
+     * Check whether a custom mob name contains a numeric health component such as
+     * "35/50". Color codes are stripped before checking.
+     *
+     * @param customName the mob's custom name
+     * @return {@code true} if the name includes a number slash number pattern
+     */
+    public static boolean hasNumericHealth(String customName) {
+        if (customName == null) {
+            return false;
+        }
+        String stripped = ChatColor.stripColor(customName);
+        return stripped.matches(".*\\d+\\s*/\\s*\\d+.*");
+    }
 }
 

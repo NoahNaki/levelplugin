@@ -12,6 +12,7 @@ import me.nakilex.levelplugin.mob.utils.DropDisplayToggles;
 import me.nakilex.levelplugin.mob.utils.ItemDropper;
 import me.nakilex.levelplugin.mob.utils.RewardHologramUtil;
 import me.nakilex.levelplugin.mob.utils.CombatPowerUtil;
+import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import io.lumine.mythic.api.skills.placeholders.PlaceholderString;
 import me.nakilex.levelplugin.party.Party;
@@ -78,6 +79,7 @@ public class MythicMobRewardListener implements Listener {
         }
 
         ConfigurationSection node = mobRewardsConfig.getMobSection(rawMobType);
+        boolean numericHpName = MobNameUtil.hasNumericHealth(mythicMob.getEntity().getCustomName());
         if (node == null) {
             for (Player player : participants) {
                 if (debugToggle.isEnabled(player)) {
@@ -87,6 +89,7 @@ public class MythicMobRewardListener implements Listener {
                             + ChatColor.GRAY + " Display: " + ChatColor.WHITE + display);
                     int power = CombatPowerUtil.getCombatPower(mythicMob);
                     player.sendMessage(ChatColor.YELLOW + "[MobDebug] Combat Power: " + ChatColor.AQUA + power);
+                    player.sendMessage(ChatColor.YELLOW + "[MobDebug] Numeric HP: " + ChatColor.WHITE + numericHpName);
                     player.sendMessage(ChatColor.RED + "[MobDebug] No rewards configured");
                 }
             }
@@ -151,6 +154,7 @@ public class MythicMobRewardListener implements Listener {
                         + ChatColor.GRAY + ", Coins: " + coins);
                 int power = CombatPowerUtil.getCombatPower(mythicMob);
                 player.sendMessage(ChatColor.YELLOW + "[MobDebug] Combat Power: " + ChatColor.AQUA + power);
+                player.sendMessage(ChatColor.YELLOW + "[MobDebug] Numeric HP: " + ChatColor.WHITE + numericHpName);
             }
         }
     }
