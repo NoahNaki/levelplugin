@@ -5,6 +5,8 @@ import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 
@@ -217,6 +219,8 @@ public class StatsManager {
         player.setWalkSpeed(newWalkSpeed);
 
         ps.attackSpeed = 0.5 * (1.0 + 0.01 * (ps.baseTechnique + ps.bonusTechnique));
+        AttributeInstance atkAttr = player.getAttribute(Attribute.GENERIC_ATTACK_SPEED);
+        if (atkAttr != null) atkAttr.setBaseValue(ps.attackSpeed);
     }
 
     public void regenHealthForAllPlayers() {

@@ -216,11 +216,14 @@ public class ClassSpellListener implements Listener {
         if (tr == null) return;
 
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(p.getUniqueId());
+        if (p.getAttackCooldown() < 1.0) return;
+
         double cooldown = 1.0 / ps.attackSpeed;
         CooldownManager cd = CooldownManager.getInstance();
         UUID id = p.getUniqueId();
         if (cd.isOnCooldown(id, ATTACK_COOLDOWN_KEY)) return;
         cd.setCooldown(id, ATTACK_COOLDOWN_KEY, cooldown);
+        p.resetCooldown();
 
         if (p.isSneaking()) cast(p, tr.leftSneak, pc);
         else cast(p, tr.left, pc);
