@@ -6,6 +6,8 @@ import org.bukkit.entity.Display;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.TextDisplay;
+import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitTask;
 
 /**
  * Simple helper to render a single TextDisplay above a living entity and keep
@@ -14,42 +16,64 @@ import org.bukkit.entity.TextDisplay;
  */
 public class EntityTextDisplay {
 
+    private final JavaPlugin plugin;
     private final LivingEntity target;
     private final double yOffset;
     private TextDisplay display;
+    private BukkitTask followTask;
 
     /**
-     * @param target   entity to follow
-     * @param yOffset  extra vertical offset above the entity's height
+     * @param plugin  owning plugin for scheduling follow task
+     * @param target  entity to follow
+     * @param yOffset extra vertical offset above the entity's height
      */
-    public EntityTextDisplay(LivingEntity target, double yOffset) {
+    public EntityTextDisplay(JavaPlugin plugin, LivingEntity target, double yOffset) {
+        this.plugin = plugin;
         this.target = target;
         this.yOffset = yOffset;
     }
 
     /**
-     * Update the display's text and position. Spawns the TextDisplay if needed.
+     * Update the display's text. Spawns and starts a follow task if needed.
      */
     public void update(String text) {
-        Location loc = target.getLocation().add(0, target.getHeight() + yOffset, 0);
         if (display == null || display.isDead()) {
+            Location loc = target.getLocation().add(0, target.getHeight() + yOffset, 0);
             display = (TextDisplay) target.getWorld().spawnEntity(loc, EntityType.TEXT_DISPLAY);
             display.setBillboard(Display.Billboard.CENTER);
             display.setShadowRadius(0f);
             display.setShadowStrength(0f);
             display.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
-        } else {
-            display.teleport(loc);
+            display.setTeleportDuration(1); // interpolate for smoothness
+            startFollowTask();
         }
         if (!text.equals(display.getText())) {
             display.setText(text);
         }
     }
 
-    /** Remove the TextDisplay if present. */
+    /** Begin repeating task to keep the display positioned every tick. */
+    private void startFollowTask() {
+        if (followTask != null) return;
+        followTask = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
+            if (display == null || display.isDead() || target.isDead()) {
+                remove();
+                return;
+            }
+            Location loc = target.getLocation().add(0, target.getHeight() + yOffset, 0);
+            display.teleport(loc);
+        }, 1L, 1L);
+    }
+
+    /** Remove the TextDisplay and stop follow task if present. */
     public void remove() {
+        if (followTask != null) {
+            followTask.cancel();
+            followTask = null;
+        }
         if (display != null && !display.isDead()) {
             display.remove();
         }
+        display = null;
     }
 }

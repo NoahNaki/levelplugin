@@ -173,7 +173,7 @@ public class MythicMobNameManager implements Listener {
         entity.setCustomNameVisible(false);
         entity.setMetadata("lp_numeric_hp", new FixedMetadataValue(plugin, true));
         EntityTextDisplay disp = healthDisplays.computeIfAbsent(entity.getUniqueId(),
-                id -> new EntityTextDisplay(entity, 0.5));
+                id -> new EntityTextDisplay(plugin, entity, 0.5));
         disp.update(displayName);
     }
 
