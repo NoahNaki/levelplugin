@@ -216,7 +216,10 @@ public class ClassSpellListener implements Listener {
         if (tr == null) return;
 
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(p.getUniqueId());
-        if (p.getAttackCooldown() < 1.0) return;
+        if (p.getAttackCooldown() < 1.0) {
+            event.setCancelled(true);
+            return;
+        }
 
         double cooldown = 1.0 / ps.attackSpeed;
         CooldownManager cd = CooldownManager.getInstance();
