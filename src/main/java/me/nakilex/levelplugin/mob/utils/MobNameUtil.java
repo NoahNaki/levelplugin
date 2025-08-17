@@ -4,6 +4,7 @@ import io.lumine.mythic.api.mobs.MythicMob;
 import io.lumine.mythic.api.skills.placeholders.PlaceholderString;
 import io.lumine.mythic.bukkit.MythicBukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.entity.LivingEntity;
 
 import java.util.Optional;
 
@@ -62,6 +63,58 @@ public final class MobNameUtil {
      */
     public static String getPlainDisplayName(String mobId) {
         return ChatColor.stripColor(getDisplayName(mobId));
+    }
+
+    /**
+     * Check whether a custom mob name contains a numeric health component such as
+     * "35/50". Color codes are stripped before checking.
+     *
+     * @param customName the mob's custom name
+     * @return {@code true} if the name includes a number slash number pattern
+     */
+    public static boolean hasNumericHealth(String customName) {
+        if (customName == null) {
+            return false;
+        }
+        String stripped = ChatColor.stripColor(customName);
+        return stripped.matches(".*\\d+\\s*/\\s*\\d+.*");
+    }
+
+    /**
+     * Check whether the given entity has a *visible* custom name containing
+     * a numeric health component such as "35/50".
+     *
+     * @param entity the entity to inspect
+     * @return {@code true} if the custom name is visible and contains numeric health
+     */
+    public static boolean hasNumericHealth(LivingEntity entity) {
+        if (entity == null) {
+            return false;
+        }
+        boolean visible = entity.isCustomNameVisible() && hasNumericHealth(entity.getCustomName());
+        boolean viaDisplay = entity.hasMetadata("lp_numeric_hp");
+        return visible || viaDisplay;
+    }
+
+    /**
+     * Build a formatted display name containing level, base mob name, and its
+     * current and maximum health.
+     *
+     * @param level      mob level to show in the prefix
+     * @param nameColor  color of the mob's base name
+     * @param prettyType human-friendly mob name
+     * @param currentHP  mob's current health
+     * @param maxHP      mob's maximum health
+     * @return formatted display name including numeric health
+     */
+    public static String buildHealthName(int level,
+                                         ChatColor nameColor,
+                                         String prettyType,
+                                         double currentHP,
+                                         double maxHP) {
+        return ChatColor.GRAY + "[Lv " + level + "] "
+                + nameColor + prettyType + " "
+                + ChatColor.RED + (int) currentHP + "/" + (int) maxHP + " \u2764";
     }
 }
 

@@ -9,15 +9,24 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
+import me.nakilex.levelplugin.utils.EntityTextDisplay;
+import org.bukkit.metadata.FixedMetadataValue;
 
 import java.io.File;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
+import java.util.HashMap;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class MythicMobNameManager implements Listener {
@@ -25,6 +34,15 @@ public class MythicMobNameManager implements Listener {
     private final Main plugin;
     private final BukkitAPIHelper mythicHelper = MythicBukkit.inst().getAPIHelper();
     private final Set<ActiveMob> trackedMobs = new HashSet<>();
+    private final Set<LivingEntity> trackedZombies = new HashSet<>();
+    private final Map<UUID, EntityTextDisplay> healthDisplays = new HashMap<>();
+    private static final Set<EntityType> ZOMBIE_TYPES = java.util.EnumSet.of(
+            EntityType.ZOMBIE,
+            EntityType.HUSK,
+            EntityType.DROWNED,
+            EntityType.ZOMBIE_VILLAGER,
+            EntityType.ZOMBIFIED_PIGLIN
+    );
     /** Holds all boss‑keys exactly as in your YAML (e.g. "KING SLIME", "TERRACOTTA GENERAL", etc.) */
     private final Set<String> fieldBossKeys;
 
@@ -59,8 +77,21 @@ public class MythicMobNameManager implements Listener {
         if (plugin.getMobRewardsConfig().getMobSection(mob.getMobType()) == null) {
             return;
         }
+        Entity base = mob.getEntity().getBukkitEntity();
+        plugin.getLogger().info("[NameManager] Tracking MythicMob " + mob.getMobType()
+                + " template=" + mob.getType().getEntityType().name()
+                + " bukkit=" + base.getType() + " (" + base.getClass().getSimpleName() + ")");
         trackedMobs.add(mob);
         setDisplayName(mob);
+    }
+
+    @EventHandler
+    public void onCreatureSpawn(CreatureSpawnEvent event) {
+        LivingEntity entity = event.getEntity();
+        if (ZOMBIE_TYPES.contains(entity.getType())) {
+            trackedZombies.add(entity);
+            setDisplayName(entity);
+        }
     }
 
     @EventHandler
@@ -69,16 +100,41 @@ public class MythicMobNameManager implements Listener {
         if (mob != null) {
             trackedMobs.remove(mob);
         }
+        LivingEntity entity = event.getEntity();
+        trackedZombies.remove(entity);
+        EntityTextDisplay disp = healthDisplays.remove(entity.getUniqueId());
+        if (disp != null) {
+            disp.remove();
+        }
+        entity.removeMetadata("lp_numeric_hp", plugin);
     }
 
     private void updateMobNames() {
         Iterator<ActiveMob> it = trackedMobs.iterator();
         while (it.hasNext()) {
             ActiveMob mob = it.next();
-            if (mob == null
-                || mob.getEntity() == null
-                || mob.getEntity().isDead()) {
+            if (mob == null || mob.getEntity() == null || mob.getEntity().isDead()) {
+                if (mob != null && mob.getEntity() != null) {
+                    Entity base = mob.getEntity().getBukkitEntity();
+                    if (base instanceof LivingEntity be) {
+                        EntityTextDisplay disp = healthDisplays.remove(be.getUniqueId());
+                        if (disp != null) {
+                            disp.remove();
+                        }
+                        be.removeMetadata("lp_numeric_hp", plugin);
+                    }
+                }
                 it.remove();
+            } else {
+                setDisplayName(mob);
+            }
+        }
+
+        Iterator<LivingEntity> itZ = trackedZombies.iterator();
+        while (itZ.hasNext()) {
+            LivingEntity mob = itZ.next();
+            if (mob == null || mob.isDead()) {
+                itZ.remove();
             } else {
                 setDisplayName(mob);
             }
@@ -89,9 +145,17 @@ public class MythicMobNameManager implements Listener {
         if (plugin.getMobRewardsConfig().getMobSection(mob.getMobType()) == null) {
             return;
         }
+        Entity raw = mob.getEntity().getBukkitEntity();
+        if (!(raw instanceof LivingEntity entity)) {
+            plugin.getLogger().warning("[NameManager] Cannot set name for " + mob.getMobType()
+                    + " because bukkit entity is " + raw.getType()
+                    + " (" + raw.getClass().getSimpleName() + ")");
+            return;
+        }
+
         int    level     = (int) mob.getLevel();
-        double currentHP = mob.getEntity().getHealth();
-        double maxHP     = mob.getEntity().getMaxHealth();
+        double currentHP = entity.getHealth();
+        double maxHP     = entity.getMaxHealth();
 
         String rawType    = mob.getMobType();        // e.g. "KING_SLIME"
         String prettyType = MobNameUtil.toPrettyName(rawType);  // → "King Slime"
@@ -103,13 +167,23 @@ public class MythicMobNameManager implements Listener {
         ChatColor nameColor = fieldBossKeys.contains(lookupKey)
             ? ChatColor.YELLOW
             : ChatColor.WHITE;
+        String displayName = MobNameUtil.buildHealthName(level, nameColor, prettyType, currentHP, maxHP);
 
-        String displayName = ChatColor.GRAY + "[Lv " + level + "] "
-            + nameColor + prettyType + " "
-            + ChatColor.RED + (int)currentHP + "/" + (int)maxHP + " \u2764";
+        entity.setCustomName(displayName);
+        entity.setCustomNameVisible(false);
+        entity.setMetadata("lp_numeric_hp", new FixedMetadataValue(plugin, true));
+        EntityTextDisplay disp = healthDisplays.computeIfAbsent(entity.getUniqueId(),
+                id -> new EntityTextDisplay(plugin, entity, 0.5));
+        disp.update(displayName);
+    }
 
-        mob.getEntity().getBukkitEntity().setCustomName(displayName);
-        mob.getEntity().getBukkitEntity().setCustomNameVisible(true);
+    private void setDisplayName(LivingEntity mob) {
+        double currentHP = mob.getHealth();
+        double maxHP = mob.getMaxHealth();
+        String prettyType = MobNameUtil.toPrettyName(mob.getType().name());
+        String displayName = MobNameUtil.buildHealthName(1, ChatColor.WHITE, prettyType, currentHP, maxHP);
+        mob.setCustomName(displayName);
+        mob.setCustomNameVisible(true);
     }
 
 }
