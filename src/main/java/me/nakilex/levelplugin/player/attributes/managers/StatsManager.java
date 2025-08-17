@@ -220,7 +220,7 @@ public class StatsManager {
 
         ps.attackSpeed = 0.5 * (1.0 + 0.01 * (ps.baseTechnique + ps.bonusTechnique));
         AttributeInstance atkAttr = player.getAttribute(Attribute.GENERIC_ATTACK_SPEED);
-        if (atkAttr != null) atkAttr.setBaseValue(ps.attackSpeed);
+        if (atkAttr != null) atkAttr.setBaseValue(ps.attackSpeed * 8.0);
     }
 
     public void regenHealthForAllPlayers() {

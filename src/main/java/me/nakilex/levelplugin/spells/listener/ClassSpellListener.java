@@ -224,7 +224,10 @@ public class ClassSpellListener implements Listener {
         double cooldown = 1.0 / ps.attackSpeed;
         CooldownManager cd = CooldownManager.getInstance();
         UUID id = p.getUniqueId();
-        if (cd.isOnCooldown(id, ATTACK_COOLDOWN_KEY)) return;
+        if (cd.isOnCooldown(id, ATTACK_COOLDOWN_KEY)) {
+            event.setCancelled(true);
+            return;
+        }
         cd.setCooldown(id, ATTACK_COOLDOWN_KEY, cooldown);
         p.resetCooldown();
 
