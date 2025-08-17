@@ -4,6 +4,7 @@ import io.lumine.mythic.api.mobs.MythicMob;
 import io.lumine.mythic.api.skills.placeholders.PlaceholderString;
 import io.lumine.mythic.bukkit.MythicBukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.entity.LivingEntity;
 
 import java.util.Optional;
 
@@ -77,6 +78,19 @@ public final class MobNameUtil {
         }
         String stripped = ChatColor.stripColor(customName);
         return stripped.matches(".*\\d+\\s*/\\s*\\d+.*");
+    }
+
+    /**
+     * Check whether the given entity has a *visible* custom name containing
+     * a numeric health component such as "35/50".
+     *
+     * @param entity the entity to inspect
+     * @return {@code true} if the custom name is visible and contains numeric health
+     */
+    public static boolean hasNumericHealth(LivingEntity entity) {
+        return entity != null
+                && entity.isCustomNameVisible()
+                && hasNumericHealth(entity.getCustomName());
     }
 }
 
