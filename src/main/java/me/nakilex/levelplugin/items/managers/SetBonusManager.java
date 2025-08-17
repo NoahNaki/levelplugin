@@ -92,7 +92,7 @@ public class SetBonusManager {
         } else {
             activeBonuses.remove(uuid);
         }
-        StatsManager.getInstance().recalcDerivedStats(player);
+        StatsManager.getInstance().recalcDerivedStatsForAllPlayers();
     }
 
     private BonusStats calculateBonus(Player player, ItemStack[] armor) {

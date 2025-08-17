@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 
@@ -204,6 +205,19 @@ public class StatsManager {
         float newWalkSpeed = 0.20f + ((ps.baseAgility + ps.bonusAgility) * 0.0006f);
         if (newWalkSpeed > 1.0f) newWalkSpeed = 1.0f;
         player.setWalkSpeed(newWalkSpeed);
+
+        double dexTotal = ps.baseDexterity + ps.bonusDexterity;
+        ps.attackSpeed = 1.0 + (dexTotal * 0.02);
+        var attackAttr = player.getAttribute(Attribute.GENERIC_ATTACK_SPEED);
+        if (attackAttr != null) {
+            attackAttr.setBaseValue(20.0 / ps.attackSpeed);
+        }
+    }
+
+    public void recalcDerivedStatsForAllPlayers() {
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            recalcDerivedStats(p);
+        }
     }
 
     public void regenHealthForAllPlayers() {
@@ -285,6 +299,8 @@ public class StatsManager {
         public int baseDexterity = 0, bonusDexterity = 0;
         public int baseDefenceStat = 0, bonusDefenceStat = 0;
         public int baseIntelligence = 0, bonusIntelligence = 0;
+
+        public double attackSpeed = 1.0;
 
         public int maxMana = 50;
         public int currentMana = 50;

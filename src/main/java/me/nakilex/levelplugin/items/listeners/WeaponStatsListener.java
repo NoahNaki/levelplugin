@@ -159,7 +159,7 @@ public class WeaponStatsListener implements Listener {
         //
         // 3) Always recalc derived stats so changes are immediate
         //
-        stats.recalcDerivedStats(player);
+        stats.recalcDerivedStatsForAllPlayers();
     }
 
 
@@ -224,7 +224,7 @@ public class WeaponStatsListener implements Listener {
 
                 // Log “after” and recalc
                 logPlayerStats("After respawn removal", puuid, ps);
-                statsManager.recalcDerivedStats(player);
+                statsManager.recalcDerivedStatsForAllPlayers();
             } else {
                 Bukkit.getLogger().info(
                     "[WeaponStats] onPlayerRespawn: Broken weapon ID=" + id
@@ -273,7 +273,7 @@ public class WeaponStatsListener implements Listener {
         // IMMEDIATELY recalc all derived stats (this will:
         //  • recompute maxHealth → setMaxHealth(...)
         //  • recompute maxMana  → (and clamp currentMana if needed)
-        StatsManager.getInstance().recalcDerivedStats(player);
+        StatsManager.getInstance().recalcDerivedStatsForAllPlayers();
 
         Bukkit.getLogger().info("[WeaponStats] After removeWeaponStats, stats => "
             + "bonusHealth="       + ps.bonusHealthStat

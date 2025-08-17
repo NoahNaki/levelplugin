@@ -46,7 +46,7 @@ public class PlayerJoinListener implements Listener {
         Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
             // 1) Set up gamemode & stats
             player.setGameMode(GameMode.ADVENTURE);
-            StatsManager.getInstance().recalcDerivedStats(player);
+            StatsManager.getInstance().recalcDerivedStatsForAllPlayers();
             levelManager.initializePlayer(player);
             miningManager.initializePlayer(player);
             environmentManager.loadPlayerState(player);

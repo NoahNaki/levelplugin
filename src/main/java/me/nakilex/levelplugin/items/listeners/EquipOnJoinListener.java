@@ -43,7 +43,7 @@ public class EquipOnJoinListener implements Listener {
         // applyWeaponIfNeeded(player, puuid, equipped, player.getInventory().getItemInOffHand());
 
         // 3) Recalculate alle afgeleide stats na het (eventueel) toevoegen
-        statsManager.recalcDerivedStats(player);
+        statsManager.recalcDerivedStatsForAllPlayers();
     }
 
     private void applyArmorIfNeeded(Player player, UUID puuid, Set<Integer> equipped, ItemStack item) {

@@ -62,7 +62,7 @@ public class ArmorStatsListener implements Listener {
         }
 
         // 3) Recalculate derived stats (HP/mana will update whether or not we added stats)
-        stats.recalcDerivedStats(player);
+        stats.recalcDerivedStatsForAllPlayers();
 
         // 4) Update armor set bonuses after the inventory update (next tick)
         org.bukkit.Bukkit.getScheduler().runTaskLater(
@@ -93,6 +93,6 @@ public class ArmorStatsListener implements Listener {
         ps.bonusIntelligence = Math.max(0, ps.bonusIntelligence - customItem.getIntel());
         ps.bonusDexterity    = Math.max(0, ps.bonusDexterity    - customItem.getDex());
 
-        StatsManager.getInstance().recalcDerivedStats(player);
+        StatsManager.getInstance().recalcDerivedStatsForAllPlayers();
     }
 }
