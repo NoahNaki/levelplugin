@@ -85,6 +85,8 @@ public class MythicMobRewardListener implements Listener {
                     String display = name != null ? name.get() : rawMobType;
                     player.sendMessage(ChatColor.YELLOW + "[MobDebug] ID: " + rawMobType
                             + ChatColor.GRAY + " Display: " + ChatColor.WHITE + display);
+                    int power = CombatPowerUtil.getCombatPower(mythicMob);
+                    player.sendMessage(ChatColor.YELLOW + "[MobDebug] Combat Power: " + ChatColor.AQUA + power);
                     player.sendMessage(ChatColor.RED + "[MobDebug] No rewards configured");
                 }
             }
@@ -139,8 +141,6 @@ public class MythicMobRewardListener implements Listener {
                         + me.nakilex.levelplugin.utils.CurrencyMessageUtil.formatAmount(
                                 me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency.COINS, coins)
                         + ChatColor.GOLD + "!");
-                int power = CombatPowerUtil.getCombatPower(mythicMob);
-                player.sendMessage(ChatColor.DARK_AQUA + "Combat Power: " + ChatColor.AQUA + power);
             }
             if (debugToggle.isEnabled(player)) {
                 PlaceholderString name = mythicMob.getType().getDisplayName();
@@ -149,6 +149,8 @@ public class MythicMobRewardListener implements Listener {
                         + ChatColor.GRAY + " Display: " + ChatColor.WHITE + display);
                 player.sendMessage(ChatColor.YELLOW + "[MobDebug] Exp: " + awardedExp
                         + ChatColor.GRAY + ", Coins: " + coins);
+                int power = CombatPowerUtil.getCombatPower(mythicMob);
+                player.sendMessage(ChatColor.YELLOW + "[MobDebug] Combat Power: " + ChatColor.AQUA + power);
             }
         }
     }
