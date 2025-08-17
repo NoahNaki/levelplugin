@@ -9,6 +9,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.EventHandler;
@@ -108,8 +109,8 @@ public class MythicMobNameManager implements Listener {
             ActiveMob mob = it.next();
             if (mob == null || mob.getEntity() == null || mob.getEntity().isDead()) {
                 if (mob != null && mob.getEntity() != null) {
-                    LivingEntity be = mob.getEntity().getBukkitEntity();
-                    if (be != null) {
+                    Entity base = mob.getEntity().getBukkitEntity();
+                    if (base instanceof LivingEntity be) {
                         EntityTextDisplay disp = healthDisplays.remove(be.getUniqueId());
                         if (disp != null) {
                             disp.remove();
@@ -137,8 +138,10 @@ public class MythicMobNameManager implements Listener {
         if (plugin.getMobRewardsConfig().getMobSection(mob.getMobType()) == null) {
             return;
         }
-        LivingEntity entity = mob.getEntity().getBukkitEntity();
-        if (entity == null) return;
+        Entity raw = mob.getEntity().getBukkitEntity();
+        if (!(raw instanceof LivingEntity entity)) {
+            return;
+        }
 
         int    level     = (int) mob.getLevel();
         double currentHP = entity.getHealth();
