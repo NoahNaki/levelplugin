@@ -22,6 +22,7 @@ import me.nakilex.levelplugin.items.utils.ItemUtil;
 import org.bukkit.Location;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -80,8 +81,8 @@ public class MythicMobRewardListener implements Listener {
         }
 
         ConfigurationSection node = mobRewardsConfig.getMobSection(rawMobType);
-        LivingEntity bukkitEntity = mythicMob.getEntity().getBukkitEntity();
-        boolean numericHpName = MobNameUtil.hasNumericHealth(bukkitEntity);
+        Entity baseEntity = mythicMob.getEntity().getBukkitEntity();
+        boolean numericHpName = baseEntity instanceof LivingEntity living && MobNameUtil.hasNumericHealth(living);
         if (node == null) {
             for (Player player : participants) {
                 if (debugToggle.isEnabled(player)) {
