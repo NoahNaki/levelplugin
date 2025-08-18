@@ -406,6 +406,8 @@ public class SpellGUI {
             case DRAGONWARRIOR -> "dragonwarrior";
             case AWAKASSASSIN -> "awakassassin";
             case AWAKWARRIOR -> "awakwarrior";
+            case AWAKARCHER -> "awakarcher";
+            case AWAKMAGE -> "awakmage";
             case WITCH -> "witch";
             default -> null;
         };

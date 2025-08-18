@@ -18,6 +18,7 @@ public enum PlayerClass {
     AWAKASSASSIN(1),
     AWAKWARRIOR(1),
     AWAKARCHER(1),
+    AWAKMAGE(1),
     DEADEYE(1),
 
     // legacy / misc classes kept for compatibility
