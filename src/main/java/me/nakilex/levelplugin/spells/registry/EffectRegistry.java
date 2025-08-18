@@ -45,7 +45,6 @@ public class EffectRegistry {
         // --- Archer Mythic skills ---
         register("MYTHIC_QUICK_SHOT", new MythicSkillEffect("Quick_Shot"));
         register("MYTHIC_BACKSTEP", new MythicSkillEffect("Backstep"));
-        register("MYTHIC_WINDRAZOR", new MythicSkillEffect("Windrazor"));
         register("MYTHIC_ARROW_BARRAGE", new MythicSkillEffect("Arrow_Barrage"));
         register("MYTHIC_DRAGON_PIERCER", new MythicSkillEffect("Dragon_Piercer"));
         register("BOW_DRONE", new me.nakilex.levelplugin.spells.effect.archer.BowDroneEffect());

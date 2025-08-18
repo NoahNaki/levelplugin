@@ -47,14 +47,15 @@ public class ClassSpellListener implements Listener {
     }
 
     private static final Map<PlayerClass, Triggers> MAP = new EnumMap<>(PlayerClass.class);
+    private static final EnumSet<PlayerClass> BOW_CLASSES = EnumSet.of(PlayerClass.ARCHER);
     private static final String ATTACK_COOLDOWN_KEY = "basic_attack";
     static {
         // Archer class
         Triggers t = new Triggers();
         t.leftSneak = List.of("bow_drone");
-        t.left = List.of("quick_shot");
+        t.left = List.of("backstep");
         t.rightSneak = List.of("dragon_piercer");
-        t.right = List.of("backstep");
+        t.right = List.of("quick_shot");
         t.sneakStart = List.of("arrow_barrage");
         MAP.put(PlayerClass.ARCHER, t);
 
@@ -208,6 +209,18 @@ public class ClassSpellListener implements Listener {
         return StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass;
     }
 
+    private boolean tryBasicAttack(Player player) {
+        if (player.getAttackCooldown() < 1.0) return false;
+        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
+        double cooldown = 1.0 / ps.attackSpeed;
+        CooldownManager cd = CooldownManager.getInstance();
+        UUID id = player.getUniqueId();
+        if (cd.isOnCooldown(id, ATTACK_COOLDOWN_KEY)) return false;
+        cd.setCooldown(id, ATTACK_COOLDOWN_KEY, cooldown);
+        player.resetCooldown();
+        return true;
+    }
+
     @EventHandler
     public void onLeftClick(PlayerAnimationEvent event) {
         Player p = event.getPlayer();
@@ -215,21 +228,12 @@ public class ClassSpellListener implements Listener {
         Triggers tr = MAP.get(pc);
         if (tr == null) return;
 
-        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(p.getUniqueId());
-        if (p.getAttackCooldown() < 1.0) {
-            event.setCancelled(true);
-            return;
+        if (!BOW_CLASSES.contains(pc)) {
+            if (!tryBasicAttack(p)) {
+                event.setCancelled(true);
+                return;
+            }
         }
-
-        double cooldown = 1.0 / ps.attackSpeed;
-        CooldownManager cd = CooldownManager.getInstance();
-        UUID id = p.getUniqueId();
-        if (cd.isOnCooldown(id, ATTACK_COOLDOWN_KEY)) {
-            event.setCancelled(true);
-            return;
-        }
-        cd.setCooldown(id, ATTACK_COOLDOWN_KEY, cooldown);
-        p.resetCooldown();
 
         if (p.isSneaking()) cast(p, tr.leftSneak, pc);
         else cast(p, tr.left, pc);
@@ -244,10 +248,18 @@ public class ClassSpellListener implements Listener {
         Triggers tr = MAP.get(pc);
         if (tr == null) return;
         boolean weapon = WeaponType.matchType(event.getItem()) != null;
-        if (weapon) {
-            event.setCancelled(true);
-            if (p.isSneaking()) cast(p, tr.rightSneak, pc); else cast(p, tr.right, pc);
+        if (!weapon) return;
+
+        event.setCancelled(true);
+
+        if (p.isSneaking()) {
+            cast(p, tr.rightSneak, pc);
+            return;
         }
+
+        if (BOW_CLASSES.contains(pc) && !tryBasicAttack(p)) return;
+
+        cast(p, tr.right, pc);
     }
 
     @EventHandler
