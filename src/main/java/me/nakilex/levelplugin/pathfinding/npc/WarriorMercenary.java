@@ -7,15 +7,9 @@ import org.bukkit.Material;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.inventory.ItemStack;
 
-/**
- * Default pathfinding NPC that mimics an assassin mercenary.
- */
-public class AssassinMercenary extends AbstractMercenary {
-    // MythicMobs skill names from the AwakAssassin class configuration
-    private static final String SKILL_DASH = "Ravaging_Dash";
-    private static final String SKILL_LETHAL = "Lethal_Combo";
-    private static final String SKILL_SHADOW = "Shadowquake";
-    private static final String SKILL_BLOOM = "Death_Bloom";
+/** Simple melee warrior using a basic slash. */
+public class WarriorMercenary extends AbstractMercenary {
+    private static final String SKILL_SLASH = "Lethal_Combo";
 
     @Override
     protected ItemStack weapon() {
@@ -29,18 +23,14 @@ public class AssassinMercenary extends AbstractMercenary {
         npc.faceLocation(targetLoc);
         double distSq = npcLoc.distanceSquared(targetLoc);
         if (distSq > 9) {
-            if (!cast(npc, SKILL_DASH, 5, target, cd)) {
-                npc.getNavigator().setTarget(target, true);
-            }
+            npc.getNavigator().setTarget(targetLoc);
         } else {
-            cast(npc, SKILL_LETHAL, 1, target, cd);
-            cast(npc, SKILL_BLOOM, 5, target, cd);
-            cast(npc, SKILL_SHADOW, 8, target, cd);
+            cast(npc, SKILL_SLASH, 1, target, cd);
         }
     }
 
     @Override
     public String name() {
-        return "assassinmercenary";
+        return "warriormercenary";
     }
 }

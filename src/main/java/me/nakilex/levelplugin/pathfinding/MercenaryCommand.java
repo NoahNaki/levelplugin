@@ -1,7 +1,11 @@
 package me.nakilex.levelplugin.pathfinding;
 
 import me.nakilex.levelplugin.pathfinding.MercenaryManager.Mode;
+import me.nakilex.levelplugin.pathfinding.npc.ArcherMercenary;
 import me.nakilex.levelplugin.pathfinding.npc.AssassinMercenary;
+import me.nakilex.levelplugin.pathfinding.npc.MageMercenary;
+import me.nakilex.levelplugin.pathfinding.npc.PathNpc;
+import me.nakilex.levelplugin.pathfinding.npc.WarriorMercenary;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
@@ -27,32 +31,44 @@ public class MercenaryCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage("Usage: /mercenary bind|unbind <id> <player> | hostile | target");
+              sender.sendMessage("Usage: /mercenary bind <id> <class> <player> | unbind <id> <player> | hostile | target");
             return true;
         }
         String sub = args[0].toLowerCase(Locale.ROOT);
         switch (sub) {
-            case "bind" -> {
-                if (args.length < 3) {
-                    sender.sendMessage("Usage: /mercenary bind <id> <player>");
-                    return true;
-                }
-                int id;
-                try {
-                    id = Integer.parseInt(args[1]);
-                } catch (NumberFormatException e) {
-                    sender.sendMessage("Invalid mercenary id");
-                    return true;
-                }
-                Player target = Bukkit.getPlayer(args[2]);
-                if (target == null) {
-                    sender.sendMessage("Player not found");
-                    return true;
-                }
-                boolean bound = manager.bind(id, target, new AssassinMercenary());
-                sender.sendMessage(bound ? "Mercenary bound" : "Failed to bind mercenary");
-                return true;
-            }
+              case "bind" -> {
+                  if (args.length < 4) {
+                      sender.sendMessage("Usage: /mercenary bind <id> <class> <player>");
+                      return true;
+                  }
+                  int id;
+                  try {
+                      id = Integer.parseInt(args[1]);
+                  } catch (NumberFormatException e) {
+                      sender.sendMessage("Invalid mercenary id");
+                      return true;
+                  }
+                  String cls = args[2].toLowerCase(Locale.ROOT);
+                  PathNpc profile = switch (cls) {
+                      case "assassin" -> new AssassinMercenary();
+                      case "mage" -> new MageMercenary();
+                      case "warrior" -> new WarriorMercenary();
+                      case "archer" -> new ArcherMercenary();
+                      default -> null;
+                  };
+                  if (profile == null) {
+                      sender.sendMessage("Unknown class. Use assassin, mage, warrior or archer");
+                      return true;
+                  }
+                  Player target = Bukkit.getPlayer(args[3]);
+                  if (target == null) {
+                      sender.sendMessage("Player not found");
+                      return true;
+                  }
+                  boolean bound = manager.bind(id, target, profile);
+                  sender.sendMessage(bound ? "Mercenary bound" : "Failed to bind mercenary");
+                  return true;
+              }
             case "unbind" -> {
                 if (args.length < 3) {
                     sender.sendMessage("Usage: /mercenary unbind <id> <player>");
@@ -110,22 +126,35 @@ public class MercenaryCommand implements CommandExecutor, TabCompleter {
                     .filter(s -> s.startsWith(args[0].toLowerCase(Locale.ROOT)))
                     .collect(Collectors.toList());
         }
-        if (args.length == 2 && (args[0].equalsIgnoreCase("bind") || args[0].equalsIgnoreCase("unbind"))) {
-            List<String> ids = new ArrayList<>();
-            for (NPC npc : CitizensAPI.getNPCRegistry().sorted()) {
-                String id = Integer.toString(npc.getId());
-                if (id.startsWith(args[1])) {
-                    ids.add(id);
-                }
-            }
-            return ids;
-        }
-        if (args.length == 3 && (args[0].equalsIgnoreCase("bind") || args[0].equalsIgnoreCase("unbind"))) {
-            return Bukkit.getOnlinePlayers().stream()
-                    .map(Player::getName)
-                    .filter(name -> name.toLowerCase(Locale.ROOT).startsWith(args[2].toLowerCase(Locale.ROOT)))
-                    .collect(Collectors.toList());
-        }
-        return new ArrayList<>();
+          if (args.length == 2 && (args[0].equalsIgnoreCase("bind") || args[0].equalsIgnoreCase("unbind"))) {
+              List<String> ids = new ArrayList<>();
+              for (NPC npc : CitizensAPI.getNPCRegistry().sorted()) {
+                  String id = Integer.toString(npc.getId());
+                  if (id.startsWith(args[1])) {
+                      ids.add(id);
+                  }
+              }
+              return ids;
+          }
+          if (args.length == 3) {
+              if (args[0].equalsIgnoreCase("bind")) {
+                  return List.of("assassin", "mage", "warrior", "archer").stream()
+                          .filter(c -> c.startsWith(args[2].toLowerCase(Locale.ROOT)))
+                          .collect(Collectors.toList());
+              }
+              if (args[0].equalsIgnoreCase("unbind")) {
+                  return Bukkit.getOnlinePlayers().stream()
+                          .map(Player::getName)
+                          .filter(name -> name.toLowerCase(Locale.ROOT).startsWith(args[2].toLowerCase(Locale.ROOT)))
+                          .collect(Collectors.toList());
+              }
+          }
+          if (args.length == 4 && args[0].equalsIgnoreCase("bind")) {
+              return Bukkit.getOnlinePlayers().stream()
+                      .map(Player::getName)
+                      .filter(name -> name.toLowerCase(Locale.ROOT).startsWith(args[3].toLowerCase(Locale.ROOT)))
+                      .collect(Collectors.toList());
+          }
+          return new ArrayList<>();
     }
 }

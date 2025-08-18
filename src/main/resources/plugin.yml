@@ -242,4 +242,4 @@ commands:
     usage: /pathfinding <set|create|execute>
   mercenary:
     description: Bind and control mercenary NPCs
-    usage: /mercenary <bind|hostile|target>
+    usage: /mercenary <bind|unbind|hostile|target>

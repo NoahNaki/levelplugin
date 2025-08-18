@@ -170,11 +170,11 @@ public class MercenaryManager implements Listener {
             if (distSq > 400) {
                 npc.teleport(ownerLoc, PlayerTeleportEvent.TeleportCause.PLUGIN);
                 plugin.getLogger().info("[MercenaryDebug] Teleported mercenary for " + owner.getName() + " due to distance");
-            } else if (distSq < 9) {
+            } else if (distSq < FOLLOW_DIST * FOLLOW_DIST) {
                 if (npc.getNavigator().isNavigating()) {
                     npc.getNavigator().cancelNavigation();
                 }
-            } else if (!npc.getNavigator().isNavigating() || distSq > 16) {
+            } else if (!npc.getNavigator().isNavigating() || distSq > (FOLLOW_DIST + 1) * (FOLLOW_DIST + 1)) {
                 moveNearOwner();
             }
         }
@@ -186,9 +186,11 @@ public class MercenaryManager implements Listener {
             bindings.remove(owner.getUniqueId());
         }
 
+        private static final double FOLLOW_DIST = 5.0;
+
         private void moveNearOwner() {
             var ownerLoc = owner.getLocation();
-            var dir = ownerLoc.getDirection().setY(0).normalize().multiply(-3);
+            var dir = ownerLoc.getDirection().setY(0).normalize().multiply(-FOLLOW_DIST);
             var dest = ownerLoc.clone().add(dir);
             npc.getNavigator().setTarget(dest);
             plugin.getLogger().info("[MercenaryDebug] Moving near owner for " + owner.getName());
