@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.spells.listener;
 import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import me.nakilex.levelplugin.spells.Spell;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.spells.managers.CooldownManager;
@@ -51,9 +52,15 @@ public class ClassSpellListener implements Listener {
     }
 
     private static final Map<PlayerClass, Triggers> MAP = new EnumMap<>(PlayerClass.class);
-    private static final EnumSet<PlayerClass> BOW_CLASSES = EnumSet.of(PlayerClass.ARCHER);
+    private static final EnumSet<PlayerClass> BOW_CLASSES = EnumSet.noneOf(PlayerClass.class);
     private static final String ATTACK_COOLDOWN_KEY = "basic_attack";
     static {
+        for (PlayerClass pc : PlayerClass.values()) {
+            if (ClassUtil.isArcherFamily(pc)) {
+                BOW_CLASSES.add(pc);
+            }
+        }
+
         // Archer class
         Triggers t = new Triggers();
         t.leftSneak = List.of("bow_drone");
@@ -65,10 +72,10 @@ public class ClassSpellListener implements Listener {
 
         // Phoenix Hunter class
         t = new Triggers();
-        t.leftSneak = List.of("phoenix_rebirth");
-        t.left = List.of("blazing_feathers");
-        t.rightSneak = List.of("pyroclasmic_barrage");
-        t.right = List.of("ashdance");
+        t.leftSneak = List.of("pyroclasmic_barrage");
+        t.left = List.of("ashdance");
+        t.rightSneak = List.of("phoenix_rebirth");
+        t.right = List.of("blazing_feathers");
         t.sneakStart = List.of("flameburst_convergence");
         MAP.put(PlayerClass.PHOENIXHUNTER, t);
 
@@ -111,10 +118,10 @@ public class ClassSpellListener implements Listener {
 
         // Deadeye class
         t = new Triggers();
-        t.leftSneak = List.of("air_strike");
-        t.left = List.of("pistol_shot");
-        t.rightSneak = List.of("focus_shot");
-        t.right = List.of("shotgun_blast");
+        t.leftSneak = List.of("focus_shot");
+        t.left = List.of("shotgun_blast");
+        t.rightSneak = List.of("air_strike");
+        t.right = List.of("pistol_shot");
         t.sneakStart = List.of("sniper_backup");
         MAP.put(PlayerClass.DEADEYE, t);
 
@@ -168,10 +175,10 @@ public class ClassSpellListener implements Listener {
 
         // Awakened Archer class
         t = new Triggers();
-        t.left = List.of("blasting_combo");
-        t.right = List.of("evasive_shot");
-        t.rightSneak = List.of("rapid_arrows");
-        t.leftSneak = List.of("shot_of_destruction");
+        t.left = List.of("evasive_shot");
+        t.right = List.of("blasting_combo");
+        t.leftSneak = List.of("rapid_arrows");
+        t.rightSneak = List.of("shot_of_destruction");
         t.sneakStart = List.of("volley_of_arrows");
         MAP.put(PlayerClass.AWAKARCHER, t);
 
