@@ -3,7 +3,6 @@ package me.nakilex.levelplugin.pathfinding.npc;
 import me.nakilex.levelplugin.pathfinding.npc.PathNpc.Skill;
 import me.nakilex.levelplugin.spells.managers.CooldownManager;
 import net.citizensnpcs.api.npc.NPC;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 
 /** Ranged archer profile firing a suite of Awakened Archer abilities. */
@@ -24,10 +23,6 @@ public class ArcherMercenary extends AbstractRangedMercenary {
         return "archermercenary";
     }
 
-    @Override
-    public EntityType type() {
-        return EntityType.SKELETON;
-    }
 
     @Override
     public void handleCombat(NPC npc, LivingEntity target, CooldownManager cd) {

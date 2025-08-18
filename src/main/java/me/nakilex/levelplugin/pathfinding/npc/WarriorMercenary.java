@@ -1,7 +1,6 @@
 package me.nakilex.levelplugin.pathfinding.npc;
 
 import me.nakilex.levelplugin.pathfinding.npc.PathNpc.Skill;
-import org.bukkit.entity.EntityType;
 
 /** Melee warrior using a variety of Awakened Warrior skills. */
 public class WarriorMercenary extends AbstractMeleeMercenary {
@@ -17,8 +16,4 @@ public class WarriorMercenary extends AbstractMeleeMercenary {
         return "warriormercenary";
     }
 
-    @Override
-    public EntityType type() {
-        return EntityType.ZOMBIE;
-    }
 }

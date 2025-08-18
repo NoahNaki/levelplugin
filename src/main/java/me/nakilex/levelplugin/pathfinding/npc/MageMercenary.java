@@ -4,7 +4,6 @@ import me.nakilex.levelplugin.pathfinding.npc.PathNpc.Skill;
 import me.nakilex.levelplugin.spells.managers.CooldownManager;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Location;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.util.Vector;
 
@@ -25,10 +24,6 @@ public class MageMercenary extends AbstractRangedMercenary {
         return "magemercenary";
     }
 
-    @Override
-    public EntityType type() {
-        return EntityType.SKELETON;
-    }
 
     @Override
     public void handleCombat(NPC npc, LivingEntity target, CooldownManager cd) {

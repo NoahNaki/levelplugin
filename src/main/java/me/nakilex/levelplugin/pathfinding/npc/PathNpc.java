@@ -41,9 +41,12 @@ public interface PathNpc {
         return "";
     }
 
-    /** Entity type used for the NPC. Allows leveraging native mob AI. */
+    /**
+     * Entity type used for the NPC. Mercenaries default to player entities so
+     * they retain standard Citizens behaviour rather than native mob AI.
+     */
     default EntityType type() {
-        return EntityType.ZOMBIE;
+        return EntityType.PLAYER;
     }
 
     /**
