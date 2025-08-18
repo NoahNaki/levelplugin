@@ -33,4 +33,9 @@ public class WarriorMercenary extends AbstractMercenary {
     public String name() {
         return "warriormercenary";
     }
+
+    @Override
+    public String primarySkill() {
+        return SKILL_SLASH;
+    }
 }

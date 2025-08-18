@@ -27,6 +27,11 @@ public abstract class AbstractRangedMercenary extends AbstractMercenary {
     }
 
     @Override
+    public String primarySkill() {
+        return skill;
+    }
+
+    @Override
     public void handleCombat(NPC npc, LivingEntity target, CooldownManager cd) {
         Location npcLoc = npc.getEntity().getLocation();
         Location targetLoc = target.getLocation();

@@ -56,6 +56,8 @@ public class MercenaryManager implements Listener {
         MercenaryFollower follower = new MercenaryFollower(clone, npcId, player, profile);
         bindings.put(player.getUniqueId(), follower);
         follower.start();
+        plugin.getLogger().info("[MercenaryDebug] Bound " + profile.name()
+                + " using skill '" + profile.primarySkill() + "' for " + player.getName());
         return true;
     }
 

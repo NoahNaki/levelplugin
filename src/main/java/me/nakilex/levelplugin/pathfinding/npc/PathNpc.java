@@ -30,6 +30,14 @@ public interface PathNpc {
     }
 
     /**
+     * Primary Mythic skill this profile tries to cast. Used only for debug
+     * output so server logs can easily confirm which ability is expected.
+     */
+    default String primarySkill() {
+        return "";
+    }
+
+    /**
      * Utility to cast a MythicMobs skill if its cooldown has expired.
      */
     default boolean cast(NPC npc, String skill, double cooldownSeconds,

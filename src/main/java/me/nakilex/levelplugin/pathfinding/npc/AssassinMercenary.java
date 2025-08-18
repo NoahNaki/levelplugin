@@ -43,4 +43,9 @@ public class AssassinMercenary extends AbstractMercenary {
     public String name() {
         return "assassinmercenary";
     }
+
+    @Override
+    public String primarySkill() {
+        return SKILL_LETHAL;
+    }
 }
