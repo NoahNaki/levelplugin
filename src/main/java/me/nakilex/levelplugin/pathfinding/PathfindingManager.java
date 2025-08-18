@@ -3,11 +3,16 @@ package me.nakilex.levelplugin.pathfinding;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.ai.event.NavigationStuckEvent;
 import net.citizensnpcs.api.npc.NPC;
+import net.citizensnpcs.api.trait.trait.Equipment;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Monster;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.Material;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
@@ -101,6 +106,7 @@ public class PathfindingManager {
         private final List<Location> points;
         private BukkitTask task;
         private int index = 1;
+        private LivingEntity combatTarget;
 
         PathRunner(Plugin plugin, List<Location> points) {
             this.plugin = plugin;
@@ -111,12 +117,35 @@ public class PathfindingManager {
 
         void start() {
             npc.spawn(points.get(0));
+
+            // Triple the default walking speed
+            var params = npc.getNavigator().getDefaultParameters();
+            params.baseSpeed(params.baseSpeed() * 3);
+
+            // Equip the NPC with netherite gear
+            equipNetherite();
+
             if (points.size() <= 1) {
                 cleanup();
                 return;
             }
             npc.getNavigator().setTarget(points.get(1));
             task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+                if (combatTarget != null) {
+                    if (combatTarget.isDead() || !combatTarget.isValid()) {
+                        combatTarget = null;
+                        npc.getNavigator().setTarget(points.get(index));
+                    }
+                    return;
+                }
+
+                LivingEntity hostile = findNearestHostile();
+                if (hostile != null) {
+                    combatTarget = hostile;
+                    npc.getNavigator().setTarget(hostile, true);
+                    return;
+                }
+
                 if (!npc.getNavigator().isNavigating()) {
                     if (++index >= points.size()) {
                         cleanup();
@@ -130,7 +159,11 @@ public class PathfindingManager {
         @EventHandler
         public void onStuck(NavigationStuckEvent event) {
             if (event.getNPC().equals(npc)) {
-                npc.getNavigator().setTarget(points.get(index));
+                if (combatTarget != null && combatTarget.isValid()) {
+                    npc.getNavigator().setTarget(combatTarget, true);
+                } else {
+                    npc.getNavigator().setTarget(points.get(index));
+                }
             }
         }
 
@@ -141,6 +174,28 @@ public class PathfindingManager {
             npc.despawn();
             npc.destroy();
             HandlerList.unregisterAll(this);
+        }
+
+        private LivingEntity findNearestHostile() {
+            if (!(npc.getEntity() instanceof LivingEntity le)) {
+                return null;
+            }
+            Location loc = le.getLocation();
+            double radius = 10;
+            return loc.getWorld().getNearbyEntities(loc, radius, radius, radius).stream()
+                    .filter(e -> e instanceof Monster)
+                    .map(e -> (LivingEntity) e)
+                    .min(Comparator.comparingDouble(e -> e.getLocation().distanceSquared(loc)))
+                    .orElse(null);
+        }
+
+        private void equipNetherite() {
+            Equipment equip = npc.getOrAddTrait(Equipment.class);
+            equip.set(Equipment.EquipmentSlot.HAND, new ItemStack(Material.NETHERITE_SWORD));
+            equip.set(Equipment.EquipmentSlot.HELMET, new ItemStack(Material.NETHERITE_HELMET));
+            equip.set(Equipment.EquipmentSlot.CHESTPLATE, new ItemStack(Material.NETHERITE_CHESTPLATE));
+            equip.set(Equipment.EquipmentSlot.LEGGINGS, new ItemStack(Material.NETHERITE_LEGGINGS));
+            equip.set(Equipment.EquipmentSlot.BOOTS, new ItemStack(Material.NETHERITE_BOOTS));
         }
     }
 }
