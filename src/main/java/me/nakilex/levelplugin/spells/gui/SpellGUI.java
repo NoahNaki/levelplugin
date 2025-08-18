@@ -94,6 +94,15 @@ public class SpellGUI {
         SPELL_DESCRIPTIONS.put("dagger_throw", "Hurl daggers at distant foes.");
         SPELL_DESCRIPTIONS.put("blade_dance", "Teleport between enemies with deadly strikes.");
         SPELL_DESCRIPTIONS.put("shadow_walk", "Vanish into the shadows to gain invisibility.");
+        // Awakened Warrior
+        SPELL_DESCRIPTIONS.put("bulwark_instinct", "Tap into instinct to gain resilience.");
+        SPELL_DESCRIPTIONS.put("brutal_combo", "Perform a brutal multi-hit combo.");
+        SPELL_DESCRIPTIONS.put("berserkers_leap", "Leap toward enemies with ferocity.");
+        SPELL_DESCRIPTIONS.put("relentless_whirlwind", "Spin in a relentless whirlwind of blades.");
+        SPELL_DESCRIPTIONS.put("bloodbound_barrier", "Conjure a barrier fueled by blood.");
+        SPELL_DESCRIPTIONS.put("vicious_strike", "Wind up a devastating strike.");
+        SPELL_DESCRIPTIONS.put("strike_of_fury", "Unleash a furious ultimate assault.");
+
         SPELL_DESCRIPTIONS.put("fireball", "Launch a blazing projectile.");
         SPELL_DESCRIPTIONS.put("blink", "Teleport a short distance.");
         SPELL_DESCRIPTIONS.put("frost_nova", "Freeze and damage nearby foes.");
@@ -178,6 +187,14 @@ public class SpellGUI {
         SPELL_USAGE.put("dagger_throw", "Sneak + Right Click");
         SPELL_USAGE.put("blade_dance", "Sneak + Left Click");
         SPELL_USAGE.put("shadow_walk", "Sneak");
+        // Awakened Warrior
+        SPELL_USAGE.put("bulwark_instinct", "Passive");
+        SPELL_USAGE.put("brutal_combo", "Left Click");
+        SPELL_USAGE.put("berserkers_leap", "Right Click");
+        SPELL_USAGE.put("relentless_whirlwind", "Sneak + Right Click");
+        SPELL_USAGE.put("bloodbound_barrier", "Sneak");
+        SPELL_USAGE.put("vicious_strike", "Sneak + Toggle");
+        SPELL_USAGE.put("strike_of_fury", "Sneak + Left Click");
         SPELL_USAGE.put("fireball", "Left Click");
         SPELL_USAGE.put("blink", "Right Click");
         SPELL_USAGE.put("meteor", "Sneak + Right Click");
@@ -264,6 +281,14 @@ public class SpellGUI {
         Map.entry("dagger_throw", "icon_dagger_throw"),
         Map.entry("blade_dance", "icon_blade_dance"),
         Map.entry("shadow_walk", "icon_shadow_walk"),
+        // Awakened Warrior
+        Map.entry("bulwark_instinct", "icon_bulwark_instinct"),
+        Map.entry("brutal_combo", "icon_brutal_combo"),
+        Map.entry("berserkers_leap", "icon_berserkers_leap"),
+        Map.entry("relentless_whirlwind", "icon_relentless_whirlwind"),
+        Map.entry("bloodbound_barrier", "icon_bloodbound_barrier"),
+        Map.entry("vicious_strike", "icon_vicious_strike"),
+        Map.entry("strike_of_fury", "icon_strike_of_fury"),
         Map.entry("fireball", "icon_fireball"),
         Map.entry("blink", "icon_blink"),
         Map.entry("meteor", "icon_meteor"),
@@ -330,6 +355,7 @@ public class SpellGUI {
             case GALEGLAIVE -> "windrune";
             case ARCTICKNIGHT -> "arctic";
             case DRAGONWARRIOR -> "dragonwarrior";
+            case AWAKWARRIOR -> "awakwarrior";
             case WITCH -> "witch";
             default -> null;
         };

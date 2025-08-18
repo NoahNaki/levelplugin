@@ -12,7 +12,8 @@ public final class ClassUtil {
                 || cls == PlayerClass.GALEGLAIVE
                 || cls == PlayerClass.DEATHKNIGHT
                 || cls == PlayerClass.ARCTICKNIGHT
-                || cls == PlayerClass.DRAGONWARRIOR;
+                || cls == PlayerClass.DRAGONWARRIOR
+                || cls == PlayerClass.AWAKWARRIOR;
     }
 
     /** Returns true if the class belongs to the Archer family. */

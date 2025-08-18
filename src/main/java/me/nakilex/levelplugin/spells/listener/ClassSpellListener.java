@@ -140,6 +140,16 @@ public class ClassSpellListener implements Listener {
         t.sneakStart = List.of("shadow_walk");
         MAP.put(PlayerClass.ASSASSIN, t);
 
+        // Awakened Warrior class
+        t = new Triggers();
+        t.left = List.of("brutal_combo");
+        t.right = List.of("berserkers_leap");
+        t.rightSneak = List.of("relentless_whirlwind");
+        t.leftSneak = List.of("strike_of_fury");
+        t.sneakStart = List.of("bloodbound_barrier");
+        t.sneakEnd = List.of("vicious_strike");
+        MAP.put(PlayerClass.AWAKWARRIOR, t);
+
         // Dragonian class
         t = new Triggers();
         t.leftSneak = List.of("taotie_dragon");

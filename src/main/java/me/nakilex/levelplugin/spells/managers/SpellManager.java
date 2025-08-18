@@ -273,6 +273,62 @@ public class SpellManager {
         spellsById.put("assassin", Collections.unmodifiableMap(assassinIdMap));
         plugin.getLogger().info("[SPELLS] Assassin combos: " + assassinMap.keySet());
 
+        // — AWAKWARRIOR CLASS —
+        Map<String, Spell> awakwarriorMap = new HashMap<>();
+        awakwarriorMap.put("BASIC_ATTACK", basicAttack(
+            "brutal_combo", "Brutal Combo",
+            WARRIOR_WEAPONS,
+            "MYTHIC_BRUTAL_COMBO"
+        ));
+        awakwarriorMap.put("LRL", new Spell(
+            "berserkers_leap", "Berserkers Leap", "LRL",
+            8.0,
+            MythicSkillConfig.getCooldownSeconds("Berserkers_Leap"), 3,
+            WARRIOR_WEAPONS,
+            "MYTHIC_BERSERKERS_LEAP", 0.0
+        ));
+        awakwarriorMap.put("LLR", new Spell(
+            "bloodbound_barrier", "Bloodbound Barrier", "LLR",
+            10.0,
+            MythicSkillConfig.getCooldownSeconds("Bloodbound_Barrier"), 5,
+            WARRIOR_WEAPONS,
+            "MYTHIC_BLOODBOUND_BARRIER", 0.0
+        ));
+        awakwarriorMap.put("LLL", new Spell(
+            "relentless_whirlwind", "Relentless Whirlwind", "LLL",
+            12.0,
+            MythicSkillConfig.getCooldownSeconds("Relentless_Whirlwind"), 5,
+            WARRIOR_WEAPONS,
+            "MYTHIC_RELENTLESS_WHIRLWIND", 0.0
+        ));
+        awakwarriorMap.put("RLL", new Spell(
+            "vicious_strike", "Vicious Strike", "RLL",
+            6.0,
+            MythicSkillConfig.getCooldownSeconds("Vicious_Strike"), 3,
+            WARRIOR_WEAPONS,
+            "MYTHIC_VICIOUS_STRIKE", 0.0
+        ));
+        awakwarriorMap.put("RRR", new Spell(
+            "strike_of_fury", "Strike Of Fury", "RRR",
+            20.0,
+            MythicSkillConfig.getCooldownSeconds("Strike_Of_Fury"), 10,
+            WARRIOR_WEAPONS,
+            "MYTHIC_STRIKE_OF_FURY", 0.0
+        ));
+        awakwarriorMap.put("LRR", new Spell(
+            "bulwark_instinct", "Bulwark Instinct", "LRR",
+            0.0,
+            MythicSkillConfig.getCooldownSeconds("Bulwark_Instinct"), 0,
+            WARRIOR_WEAPONS,
+            "MYTHIC_BULWARK_INSTINCT", 0.0,
+            true
+        ));
+        spellsByClass.put("awakwarrior", Collections.unmodifiableMap(awakwarriorMap));
+        Map<String, Spell> awakIdMap = new HashMap<>();
+        for (Spell s : awakwarriorMap.values()) awakIdMap.put(s.getId().toLowerCase(), s);
+        spellsById.put("awakwarrior", Collections.unmodifiableMap(awakIdMap));
+        plugin.getLogger().info("[SPELLS] AwakWarrior combos: " + awakwarriorMap.keySet());
+
         // — WARRIOR CLASS —
         Map<String, Spell> warriorMap = new HashMap<>();
         warriorMap.put("BASIC_ATTACK", basicAttack(
