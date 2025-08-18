@@ -87,36 +87,29 @@ public class SpellManager {
             WeaponType.BOW.getMaterials(),
             "MYTHIC_QUICK_SHOT"
         ));
-        archerMap.put("LRL", new Spell(
-            "backstep", "Backstep", "LRL",
+        archerMap.put("LEFT", new Spell(
+            "backstep", "Backstep", "LEFT",
             5.0,
             MythicSkillConfig.getCooldownSeconds("Backstep"), 3,
             WeaponType.BOW.getMaterials(),
             "MYTHIC_BACKSTEP", 0.0
         ));
-        archerMap.put("LRR", new Spell(
-            "windrazor", "Windrazor", "LRR",
-            8.0,
-            MythicSkillConfig.getCooldownSeconds("Windrazor"), 5,
-            WeaponType.BOW.getMaterials(),
-            "MYTHIC_WINDRAZOR", 0.0
-        ));
-        archerMap.put("LLR", new Spell(
-            "arrow_barrage", "Arrow Barrage", "LLR",
+        archerMap.put("SNEAK", new Spell(
+            "arrow_barrage", "Arrow Barrage", "SNEAK",
             12.0,
             MythicSkillConfig.getCooldownSeconds("Arrow_Barrage"), 10,
             WeaponType.BOW.getMaterials(),
             "MYTHIC_ARROW_BARRAGE", 0.0
         ));
-        archerMap.put("RRR", new Spell(
-            "bow_drone", "Bow Drone", "RRR",
+        archerMap.put("SHIFT_LEFT", new Spell(
+            "bow_drone", "Bow Drone", "SHIFT_LEFT",
             10.0,
             MythicSkillConfig.getCooldownSeconds("Deadly_Javelin"), 10,
             WeaponType.BOW.getMaterials(),
             "BOW_DRONE", 0.0
         ));
-        archerMap.put("LLL", new Spell(
-            "dragon_piercer", "Dragon Piercer", "LLL",
+        archerMap.put("SHIFT_RIGHT", new Spell(
+            "dragon_piercer", "Dragon Piercer", "SHIFT_RIGHT",
             15.0,
             MythicSkillConfig.getCooldownSeconds("Dragon_Piercer"), 10,
             WeaponType.BOW.getMaterials(),

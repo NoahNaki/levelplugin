@@ -45,7 +45,6 @@ public class SpellGUI {
 
         SPELL_DESCRIPTIONS.put("quick_shot",      "Fire a quick empowered arrow.");
         SPELL_DESCRIPTIONS.put("backstep",        "Leap backwards to evade foes.");
-        SPELL_DESCRIPTIONS.put("windrazor",       "Surround yourself with slicing wind.");
         SPELL_DESCRIPTIONS.put("arrow_barrage",   "Rapidly fire a volley of arrows.");
         SPELL_DESCRIPTIONS.put("dragon_piercer",  "Launch a devastating dragon arrow.");
 
@@ -123,9 +122,9 @@ public class SpellGUI {
     static {
         SPELL_USAGE.put("quick_shot", "Right Click");
         SPELL_USAGE.put("backstep", "Left Click");
-        SPELL_USAGE.put("windrazor", "Sneak");
-        SPELL_USAGE.put("arrow_barrage", "Sneak + Right Click");
-        SPELL_USAGE.put("dragon_piercer", "Sneak + Left Click");
+        SPELL_USAGE.put("arrow_barrage", "Sneak");
+        SPELL_USAGE.put("bow_drone", "Sneak + Left Click");
+        SPELL_USAGE.put("dragon_piercer", "Sneak + Right Click");
 
         SPELL_USAGE.put("blazing_feathers", "Left Click");
         SPELL_USAGE.put("ashdance", "Right Click");
@@ -202,9 +201,8 @@ public class SpellGUI {
     private static final Map<String, String> SPELL_ICONS = Map.ofEntries(
         Map.entry("quick_shot", "icon_quick_shot"),
         Map.entry("backstep", "icon_backstep"),
-        Map.entry("windrazor", "icon_windrazor"),
         Map.entry("arrow_barrage", "icon_windrazor"),
-        Map.entry("deadly_javelin", "icon_deadly_javelin"),
+        Map.entry("bow_drone", "icon_deadly_javelin"),
         Map.entry("dragon_piercer", "icon_dragon_piercer"),
         // Phoenix Hunter
         Map.entry("blazing_feathers", "icon_blazing_feathers"),
@@ -405,7 +403,14 @@ public class SpellGUI {
 
         String usage = SPELL_USAGE.get(spell.getId());
         if (usage == null) {
-            usage = spell.getCombo().replace("L", "Left").replace("R", "Right");
+            switch (spell.getCombo()) {
+                case "LEFT" -> usage = "Left Click";
+                case "RIGHT" -> usage = "Right Click";
+                case "SHIFT_LEFT" -> usage = "Sneak + Left Click";
+                case "SHIFT_RIGHT" -> usage = "Sneak + Right Click";
+                case "SNEAK" -> usage = "Sneak";
+                default -> usage = spell.getCombo();
+            }
         }
 
         lore.add(ChatColor.GRAY + "Usage: " + ChatColor.YELLOW + usage);

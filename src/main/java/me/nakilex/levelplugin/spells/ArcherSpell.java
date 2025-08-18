@@ -51,9 +51,9 @@ public class ArcherSpell implements Listener {
         Main.getPlugin().getLogger().info("[CA] left click " + player.getName() + " sneaking=" + player.isSneaking());
 
         if (player.isSneaking()) {
-            castSpell(player, "RRR"); // Bow Drone
+            castSpell(player, "SHIFT_LEFT"); // Bow Drone
         } else {
-            castSpell(player, "LRL"); // Backstep
+            castSpell(player, "LEFT"); // Backstep
         }
     }
 
@@ -68,7 +68,7 @@ public class ArcherSpell implements Listener {
         Main.getPlugin().getLogger().info("[CA] right click " + player.getName() + " sneaking=" + player.isSneaking());
 
         if (player.isSneaking()) {
-            castSpell(player, "LLL"); // Dragon Piercer
+            castSpell(player, "SHIFT_RIGHT"); // Dragon Piercer
         } else {
             castSpell(player, "BASIC_ATTACK"); // Quick_Shot
         }
@@ -80,7 +80,7 @@ public class ArcherSpell implements Listener {
         Player player = event.getPlayer();
         if (!isArcher(player) || !validWeapon(player)) return;
         Main.getPlugin().getLogger().info("[CA] toggle sneak by " + player.getName());
-        castSpell(player, "LLR"); // Arrow Barrage
+        castSpell(player, "SNEAK"); // Arrow Barrage
     }
 
     private void castSpell(Player player, String combo) {
