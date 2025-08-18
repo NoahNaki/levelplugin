@@ -2,40 +2,36 @@ package me.nakilex.levelplugin.pathfinding.npc;
 
 import me.nakilex.levelplugin.spells.managers.CooldownManager;
 import net.citizensnpcs.api.npc.NPC;
-import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.LivingEntity;
-import org.bukkit.inventory.ItemStack;
+import me.nakilex.levelplugin.pathfinding.npc.PathNpc.Skill;
 
 /**
- * Default pathfinding NPC that mimics an assassin mercenary.
+ * Melee assassin profile that cycles through the full Awakened Assassin kit.
  */
-public class AssassinMercenary extends AbstractMercenary {
-    // MythicMobs skill names from the AwakAssassin class configuration
-    private static final String SKILL_DASH = "Ravaging_Dash";
-    private static final String SKILL_LETHAL = "Lethal_Combo";
-    private static final String SKILL_SHADOW = "Shadowquake";
-    private static final String SKILL_BLOOM = "Death_Bloom";
+public class AssassinMercenary extends AbstractMeleeMercenary {
+    private static final Skill SKILL_DASH = new Skill("Ravaging_Dash", 5);
+    private static final Skill SKILL_LETHAL = new Skill("Lethal_Combo", 1);
+    private static final Skill SKILL_BLOOM = new Skill("Death_Bloom", 5);
+    private static final Skill SKILL_SHADOW = new Skill("Shadowquake", 8);
+    private static final Skill SKILL_CRIMSON = new Skill("Crimson_Arc", 3);
+    private static final Skill SKILL_LAST = new Skill("Last_Dance", 12);
+    private static final Skill SKILL_DEADLY = new Skill("Deadly_Calm", 20);
 
-    @Override
-    protected ItemStack weapon() {
-        return new ItemStack(Material.NETHERITE_SWORD);
+    public AssassinMercenary() {
+        super(Material.NETHERITE_SWORD, SKILL_LETHAL, SKILL_BLOOM, SKILL_SHADOW, SKILL_CRIMSON, SKILL_LAST);
     }
 
     @Override
     public void handleCombat(NPC npc, LivingEntity target, CooldownManager cd) {
-        Location npcLoc = npc.getEntity().getLocation();
-        Location targetLoc = target.getEyeLocation();
-        npc.faceLocation(targetLoc);
-        double distSq = npcLoc.distanceSquared(targetLoc);
+        cast(npc, SKILL_DEADLY, target, cd);
+        double distSq = npc.getEntity().getLocation().distanceSquared(target.getEyeLocation());
         if (distSq > 9) {
-            if (!cast(npc, SKILL_DASH, 5, target, cd)) {
+            if (!cast(npc, SKILL_DASH, target, cd)) {
                 npc.getNavigator().setTarget(target, true);
             }
         } else {
-            cast(npc, SKILL_LETHAL, 1, target, cd);
-            cast(npc, SKILL_BLOOM, 5, target, cd);
-            cast(npc, SKILL_SHADOW, 8, target, cd);
+            super.handleCombat(npc, target, cd);
         }
     }
 
@@ -46,7 +42,6 @@ public class AssassinMercenary extends AbstractMercenary {
 
     @Override
     public String primarySkill() {
-        return SKILL_LETHAL;
+        return SKILL_LETHAL.name();
     }
-
 }

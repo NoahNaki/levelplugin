@@ -15,7 +15,7 @@ public class ArcherMercenary extends AbstractRangedMercenary {
     private static final Skill COMBO = new Skill("Blasting_Combo", 1);
 
     public ArcherMercenary() {
-        super(org.bukkit.Material.BOW, SHOT, VOLLEY, SKYFALL, RAPID, EVASIVE, COMBO);
+        super(org.bukkit.Material.BOW, SHOT, VOLLEY, RAPID, COMBO);
     }
 
     @Override
@@ -30,9 +30,6 @@ public class ArcherMercenary extends AbstractRangedMercenary {
         double distSq = npc.getEntity().getLocation().distanceSquared(target.getEyeLocation());
         if (distSq < 49 && cast(npc, EVASIVE, target, cd)) return;
         if (distSq > 81 && cast(npc, SKYFALL, target, cd)) return;
-        if (cast(npc, SHOT, target, cd)) return;
-        if (cast(npc, VOLLEY, target, cd)) return;
-        if (cast(npc, RAPID, target, cd)) return;
-        cast(npc, COMBO, target, cd);
+        castNextSkill(npc, target, cd);
     }
 }

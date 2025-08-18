@@ -186,8 +186,6 @@ public class MercenaryManager implements Listener {
                     return;
                 }
 
-                Location eye = target.getEyeLocation();
-                MobUtil.faceEntity((LivingEntity) npc.getEntity(), eye);
                 profile.handleCombat(npc, target, cd);
                 return;
             }

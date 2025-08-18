@@ -14,9 +14,11 @@ public class MageMercenary extends AbstractRangedMercenary {
     private final Skill fireball = new Skill("Fireball", 1);
     private final Skill missile = new Skill("Arcane_Missile", 2);
     private final Skill blink = new Skill("Blink", 6);
+    private final Skill[] offensive = {meteor, missile, fireball};
+    private int nextSkill = 0;
 
     public MageMercenary() {
-        super(org.bukkit.Material.BLAZE_ROD, new Skill("Fireball", 1));
+        super(org.bukkit.Material.BLAZE_ROD, meteor, missile, fireball);
     }
 
     @Override
@@ -30,32 +32,27 @@ public class MageMercenary extends AbstractRangedMercenary {
         Location npcLoc = npc.getEntity().getLocation();
         Location targetLoc = target.getEyeLocation();
         double distSq = npcLoc.distanceSquared(targetLoc);
-        npc.faceLocation(targetLoc);
 
         // If too close, try Frost Nova then blink away
         if (distSq < 25) {
             if (cast(npc, frost, target, cd)) return;
             Vector awayDir = npcLoc.toVector().subtract(targetLoc.toVector()).normalize();
             Location away = npcLoc.clone().add(awayDir);
-            npc.faceLocation(away);
             if (cast(npc, blink, target, cd)) {
-                npc.faceLocation(targetLoc);
+                npc.getNavigator().setTarget(away);
                 return;
             }
         }
 
-        // Maintain distance 8-10 blocks
-        if (distSq > 100) {
-            npc.getNavigator().setTarget(targetLoc);
-            return;
-        } else if (distSq < 64) {
-            Vector dir = npcLoc.toVector().subtract(targetLoc.toVector()).normalize().multiply(8);
-            npc.getNavigator().setTarget(targetLoc.clone().add(dir));
-        }
+        if (!maintainRange(npc, target)) return;
 
-        // Offensive spells
-        if (cast(npc, meteor, target, cd)) return;
-        if (cast(npc, missile, target, cd)) return;
-        if (cast(npc, fireball, target, cd)) return;
+        // Offensive spells rotate to use full kit
+        for (int i = 0; i < offensive.length; i++) {
+            int idx = (nextSkill + i) % offensive.length;
+            if (cast(npc, offensive[idx], target, cd)) {
+                nextSkill = (idx + 1) % offensive.length;
+                break;
+            }
+        }
     }
 }
