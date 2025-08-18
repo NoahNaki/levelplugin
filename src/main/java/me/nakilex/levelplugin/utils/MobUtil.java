@@ -33,8 +33,9 @@ public final class MobUtil {
      * @param target location to face
      */
     public static void faceEntity(LivingEntity entity, Location target) {
-        float yaw = lookYaw(entity.getLocation(), target);
-        float pitch = lookPitch(entity.getLocation(), target);
+        Location from = entity.getEyeLocation();
+        float yaw = lookYaw(from, target);
+        float pitch = lookPitch(from, target);
         entity.setRotation(yaw, pitch);
     }
 

@@ -52,6 +52,7 @@ public class MercenaryManager implements Listener {
 
         // Clone the template NPC so the original remains untouched
         NPC clone = template.copy();
+        clone.setBukkitEntityType(profile.type());
         var loc = player.getLocation();
         clone.getOrAddTrait(CurrentLocation.class).setLocation(loc);
         clone.spawn(loc);
@@ -69,9 +70,17 @@ public class MercenaryManager implements Listener {
         Map<Integer, MercenaryFollower> map = bindings.get(player.getUniqueId());
         if (map == null) return false;
         MercenaryFollower follower = map.get(npcId);
-        if (follower == null) return false;
-        follower.unbind();
-        return true;
+        if (follower != null) {
+            follower.unbind();
+            return true;
+        }
+        for (Map.Entry<Integer, MercenaryFollower> entry : map.entrySet()) {
+            if (entry.getValue().npc.getId() == npcId) {
+                entry.getValue().unbind();
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Change a bound mercenary's mode. */
@@ -88,6 +97,16 @@ public class MercenaryManager implements Listener {
 
     public boolean hasMercenary(Player player) {
         return bindings.containsKey(player.getUniqueId());
+    }
+
+    /** Unbind all mercenaries for a player. */
+    public boolean unbindAll(Player player) {
+        Map<Integer, MercenaryFollower> map = bindings.get(player.getUniqueId());
+        if (map == null || map.isEmpty()) return false;
+        for (MercenaryFollower f : new ArrayList<>(map.values())) {
+            f.unbind();
+        }
+        return true;
     }
 
     /**

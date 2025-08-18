@@ -70,8 +70,18 @@ public class MercenaryCommand implements CommandExecutor, TabCompleter {
                   return true;
               }
             case "unbind" -> {
+                if (args.length == 2) {
+                    Player target = Bukkit.getPlayer(args[1]);
+                    if (target == null) {
+                        sender.sendMessage("Player not found");
+                        return true;
+                    }
+                    boolean unbound = manager.unbindAll(target);
+                    sender.sendMessage(unbound ? "All mercenaries unbound" : "No mercenaries to unbind");
+                    return true;
+                }
                 if (args.length < 3) {
-                    sender.sendMessage("Usage: /mercenary unbind <id> <player>");
+                    sender.sendMessage("Usage: /mercenary unbind <id> <player> or /mercenary unbind <player>");
                     return true;
                 }
                 int id;
@@ -126,16 +136,28 @@ public class MercenaryCommand implements CommandExecutor, TabCompleter {
                     .filter(s -> s.startsWith(args[0].toLowerCase(Locale.ROOT)))
                     .collect(Collectors.toList());
         }
-          if (args.length == 2 && (args[0].equalsIgnoreCase("bind") || args[0].equalsIgnoreCase("unbind"))) {
-              List<String> ids = new ArrayList<>();
-              for (NPC npc : CitizensAPI.getNPCRegistry().sorted()) {
-                  String id = Integer.toString(npc.getId());
-                  if (id.startsWith(args[1])) {
-                      ids.add(id);
-                  }
-              }
-              return ids;
-          }
+        if (args.length == 2) {
+            if (args[0].equalsIgnoreCase("bind")) {
+                List<String> ids = new ArrayList<>();
+                for (NPC npc : CitizensAPI.getNPCRegistry().sorted()) {
+                    String id = Integer.toString(npc.getId());
+                    if (id.startsWith(args[1])) ids.add(id);
+                }
+                return ids;
+            }
+            if (args[0].equalsIgnoreCase("unbind")) {
+                List<String> out = new ArrayList<>();
+                for (NPC npc : CitizensAPI.getNPCRegistry().sorted()) {
+                    String id = Integer.toString(npc.getId());
+                    if (id.startsWith(args[1])) out.add(id);
+                }
+                for (Player p : Bukkit.getOnlinePlayers()) {
+                    String name = p.getName();
+                    if (name.toLowerCase(Locale.ROOT).startsWith(args[1].toLowerCase(Locale.ROOT))) out.add(name);
+                }
+                return out;
+            }
+        }
           if (args.length == 3) {
               if (args[0].equalsIgnoreCase("bind")) {
                   return List.of("assassin", "mage", "warrior", "archer").stream()

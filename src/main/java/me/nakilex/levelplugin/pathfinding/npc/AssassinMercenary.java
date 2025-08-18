@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.spells.managers.CooldownManager;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.inventory.ItemStack;
 
@@ -47,5 +48,10 @@ public class AssassinMercenary extends AbstractMercenary {
     @Override
     public String primarySkill() {
         return SKILL_LETHAL;
+    }
+
+    @Override
+    public EntityType type() {
+        return EntityType.ZOMBIE;
     }
 }

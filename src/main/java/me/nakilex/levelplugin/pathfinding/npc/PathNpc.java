@@ -5,6 +5,7 @@ import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.spells.managers.CooldownManager;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 
 import java.util.UUID;
@@ -38,6 +39,11 @@ public interface PathNpc {
      */
     default String primarySkill() {
         return "";
+    }
+
+    /** Entity type used for the NPC. Allows leveraging native mob AI. */
+    default EntityType type() {
+        return EntityType.ZOMBIE;
     }
 
     /**
