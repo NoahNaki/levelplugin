@@ -19,7 +19,6 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
-import io.papermc.paper.entity.LookAnchor;
 
 import java.util.*;
 
@@ -135,11 +134,7 @@ public class MercenaryManager implements Listener {
             var params = npc.getNavigator().getDefaultParameters();
             params.baseSpeed(params.baseSpeed() * profile.speedMultiplier());
             profile.equip(npc);
-            LookClose lc = npc.getOrAddTrait(LookClose.class);
-            lc.lookClose(true);
-            lc.setRange(10);
-            lc.setRandomLook(false);
-            lc.setRealisticLooking(true);
+            npc.removeTrait(LookClose.class);
             task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 20L, 10L);
         }
 
@@ -173,7 +168,7 @@ public class MercenaryManager implements Listener {
                 }
 
                 Location eye = target.getEyeLocation();
-                npc.getEntity().lookAt(eye.getX(), eye.getY(), eye.getZ(), LookAnchor.EYES);
+                MobUtil.faceEntity((LivingEntity) npc.getEntity(), eye);
                 profile.handleCombat(npc, target, cd);
                 return;
             }

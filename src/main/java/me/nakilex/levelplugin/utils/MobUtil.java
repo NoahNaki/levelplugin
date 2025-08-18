@@ -25,4 +25,33 @@ public final class MobUtil {
                 .min(Comparator.comparingDouble(e -> e.getLocation().distanceSquared(loc)))
                 .orElse(null);
     }
+
+    /**
+     * Rotates the entity to face the given target location.
+     *
+     * @param entity source entity to rotate
+     * @param target location to face
+     */
+    public static void faceEntity(LivingEntity entity, Location target) {
+        float yaw = lookYaw(entity.getLocation(), target);
+        float pitch = lookPitch(entity.getLocation(), target);
+        entity.setRotation(yaw, pitch);
+    }
+
+    /** Computes yaw from one location to another. */
+    public static float lookYaw(Location from, Location to) {
+        double dx = to.getX() - from.getX();
+        double dz = to.getZ() - from.getZ();
+        double yaw = Math.toDegrees(Math.atan2(-dx, dz));
+        return (float) yaw;
+    }
+
+    /** Computes pitch from one location to another. */
+    public static float lookPitch(Location from, Location to) {
+        double dx = to.getX() - from.getX();
+        double dz = to.getZ() - from.getZ();
+        double dy = to.getY() - from.getY();
+        double dist = Math.sqrt(dx * dx + dz * dz);
+        return (float) Math.toDegrees(-Math.atan2(dy, dist));
+    }
 }
