@@ -121,7 +121,7 @@ public class PathfindingManager {
 
             // Increase walking speed 1.5x beyond the previous triple boost
             var params = npc.getNavigator().getDefaultParameters();
-            params.baseSpeed(params.baseSpeed() * 4.5);
+            params.baseSpeed(params.baseSpeed() * 4.5f);
 
             // Equip the NPC with mythic weapon and netherite armor
             equipGear();
