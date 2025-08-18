@@ -20,6 +20,7 @@ import me.nakilex.levelplugin.codex.CodexMainGUI;
 import me.nakilex.levelplugin.horse.managers.HorseManager;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.storage.StorageManager;
+import me.nakilex.levelplugin.pathfinding.PathfindingManager;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -120,4 +121,5 @@ public class Main extends JavaPlugin {
     public CodexMainGUI getCodexGUI() { return bootstrap.getCodexGUI(); }
     public me.nakilex.levelplugin.dungeon.gui.DungeonListGUI getDungeonListGUI() { return bootstrap.getDungeonListGUI(); }
     public me.nakilex.levelplugin.guild.siege.GuildSiegeManager getGuildSiegeManager() { return bootstrap.getGuildSiegeManager(); }
+    public PathfindingManager getPathfindingManager() { return bootstrap.getPathfindingManager(); }
 }

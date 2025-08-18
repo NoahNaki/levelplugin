@@ -73,6 +73,8 @@ import me.nakilex.levelplugin.environment.stage.TownPosCommand;
 import me.nakilex.levelplugin.environment.stage.StageSelectionListener;
 import me.nakilex.levelplugin.utils.commands.CenterGuiCommand;
 import me.nakilex.levelplugin.utils.commands.CenterTooltipCommand;
+import me.nakilex.levelplugin.pathfinding.PathfindingCommand;
+import me.nakilex.levelplugin.pathfinding.PathfindingManager;
 
 public class CommandRegistry {
 
@@ -107,7 +109,8 @@ public class CommandRegistry {
                                         me.nakilex.levelplugin.motd.MotdManager motdManager,
                                         UpgradeGUI upgradeGUI,
                                         CodexMainGUI codexGUI,
-                                        WanderingMerchantManager wmManager) {
+                                        WanderingMerchantManager wmManager,
+                                        PathfindingManager pathManager) {
 
 
         plugin.getCommand("addpoints").setExecutor(new AddPointsCommand());
@@ -209,5 +212,6 @@ public class CommandRegistry {
         plugin.getCommand("world").setExecutor(new me.nakilex.levelplugin.world.WorldCommand(plugin.getWorldManager()));
         plugin.getCommand("centertooltip").setExecutor(new CenterTooltipCommand());
         plugin.getCommand("centergui").setExecutor(new CenterGuiCommand());
+        plugin.getCommand("pathfinding").setExecutor(new PathfindingCommand(pathManager));
     }
 }
