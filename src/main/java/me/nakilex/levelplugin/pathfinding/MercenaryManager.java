@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.utils.MobUtil;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.trait.CurrentLocation;
+import net.citizensnpcs.trait.LookClose;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Monster;
@@ -26,7 +27,8 @@ import java.util.*;
 public class MercenaryManager implements Listener {
     private final Plugin plugin;
     private final CooldownManager cd = CooldownManager.getInstance();
-    private final Map<UUID, MercenaryFollower> bindings = new HashMap<>();
+    /** Player -> (templateId -> follower) */
+    private final Map<UUID, Map<Integer, MercenaryFollower>> bindings = new HashMap<>();
     private final Map<UUID, LivingEntity> playerTargets = new HashMap<>();
 
     public MercenaryManager(Plugin plugin) {
@@ -54,7 +56,7 @@ public class MercenaryManager implements Listener {
         clone.spawn(loc);
 
         MercenaryFollower follower = new MercenaryFollower(clone, npcId, player, profile);
-        bindings.put(player.getUniqueId(), follower);
+        bindings.computeIfAbsent(player.getUniqueId(), k -> new HashMap<>()).put(npcId, follower);
         follower.start();
         plugin.getLogger().info("[MercenaryDebug] Bound " + profile.name()
                 + " using skill '" + profile.primarySkill() + "' for " + player.getName());
@@ -63,18 +65,22 @@ public class MercenaryManager implements Listener {
 
     /** Unbind a mercenary from a player and remove the spawned copy. */
     public boolean unbind(int npcId, Player player) {
-        MercenaryFollower follower = bindings.get(player.getUniqueId());
-        if (follower == null || follower.templateId != npcId) return false;
+        Map<Integer, MercenaryFollower> map = bindings.get(player.getUniqueId());
+        if (map == null) return false;
+        MercenaryFollower follower = map.get(npcId);
+        if (follower == null) return false;
         follower.unbind();
         return true;
     }
 
     /** Change a bound mercenary's mode. */
     public boolean setMode(Player player, Mode mode) {
-        MercenaryFollower f = bindings.get(player.getUniqueId());
-        if (f == null) return false;
-        f.mode = mode;
-        f.target = null;
+        Map<Integer, MercenaryFollower> map = bindings.get(player.getUniqueId());
+        if (map == null) return false;
+        for (MercenaryFollower f : map.values()) {
+            f.mode = mode;
+            f.target = null;
+        }
         playerTargets.remove(player.getUniqueId());
         return true;
     }
@@ -113,6 +119,11 @@ public class MercenaryManager implements Listener {
             var params = npc.getNavigator().getDefaultParameters();
             params.baseSpeed(params.baseSpeed() * profile.speedMultiplier());
             profile.equip(npc);
+            LookClose lc = npc.getOrAddTrait(LookClose.class);
+            lc.lookClose(true);
+            lc.setRange(10);
+            lc.setRandomLook(false);
+            lc.setRealisticLooking(true);
             task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 20L, 10L);
         }
 
@@ -145,6 +156,7 @@ public class MercenaryManager implements Listener {
                     return;
                 }
 
+                npc.getEntity().lookAt(target.getEyeLocation());
                 profile.handleCombat(npc, target, cd);
                 return;
             }
@@ -185,7 +197,11 @@ public class MercenaryManager implements Listener {
             if (task != null) task.cancel();
             if (npc.isSpawned()) npc.despawn();
             npc.destroy();
-            bindings.remove(owner.getUniqueId());
+            Map<Integer, MercenaryFollower> map = bindings.get(owner.getUniqueId());
+            if (map != null) {
+                map.remove(templateId);
+                if (map.isEmpty()) bindings.remove(owner.getUniqueId());
+            }
         }
 
         private static final double FOLLOW_DIST = 5.0;
