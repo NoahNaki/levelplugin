@@ -1,17 +1,21 @@
 package me.nakilex.levelplugin.pathfinding;
 
 import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.ai.event.NavigationCompleteEvent;
 import net.citizensnpcs.api.ai.event.NavigationStuckEvent;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitTask;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -22,9 +26,36 @@ public class PathfindingManager {
     private final Plugin plugin;
     private final Map<Integer, Location> editingPoints = new HashMap<>();
     private final Map<String, List<Location>> paths = new HashMap<>();
+    private final File file;
+    private final FileConfiguration config;
 
     public PathfindingManager(Plugin plugin) {
         this.plugin = plugin;
+        plugin.saveResource("paths.yml", false);
+        this.file = new File(plugin.getDataFolder(), "paths.yml");
+        this.config = YamlConfiguration.loadConfiguration(file);
+        loadPaths();
+    }
+
+    private void loadPaths() {
+        if (!config.isConfigurationSection("paths")) {
+            return;
+        }
+        for (String name : config.getConfigurationSection("paths").getKeys(false)) {
+            List<Location> list = (List<Location>) config.getList("paths." + name);
+            if (list != null) {
+                paths.put(name.toLowerCase(Locale.ROOT), list);
+            }
+        }
+    }
+
+    private void savePath(String name, List<Location> list) {
+        config.set("paths." + name, list);
+        try {
+            config.save(file);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /** Store or replace a temporary point for the next path creation. */
@@ -41,7 +72,9 @@ public class PathfindingManager {
                 .sorted(Map.Entry.comparingByKey())
                 .map(Map.Entry::getValue)
                 .toList();
-        paths.put(name.toLowerCase(Locale.ROOT), list);
+        String key = name.toLowerCase(Locale.ROOT);
+        paths.put(key, list);
+        savePath(key, list);
         editingPoints.clear();
     }
 
@@ -54,10 +87,19 @@ public class PathfindingManager {
         new PathRunner(plugin, list).start();
     }
 
+    public Set<String> getPathNames() {
+        return paths.keySet();
+    }
+
+    public int nextPointIndex() {
+        return editingPoints.size() + 1;
+    }
+
     private static class PathRunner implements Listener {
         private final Plugin plugin;
         private final NPC npc;
         private final List<Location> points;
+        private BukkitTask task;
         private int index = 1;
 
         PathRunner(Plugin plugin, List<Location> points) {
@@ -69,34 +111,33 @@ public class PathfindingManager {
 
         void start() {
             npc.spawn(points.get(0));
-            if (points.size() > 1) {
-                npc.getNavigator().setTarget(points.get(1));
-            } else {
-                cleanup();
-            }
-        }
-
-        @EventHandler
-        public void onComplete(NavigationCompleteEvent event) {
-            if (!event.getNPC().equals(npc)) {
-                return;
-            }
-            if (++index >= points.size()) {
+            if (points.size() <= 1) {
                 cleanup();
                 return;
             }
-            npc.getNavigator().setTarget(points.get(index));
+            npc.getNavigator().setTarget(points.get(1));
+            task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+                if (!npc.getNavigator().isNavigating()) {
+                    if (++index >= points.size()) {
+                        cleanup();
+                        return;
+                    }
+                    npc.getNavigator().setTarget(points.get(index));
+                }
+            }, 20L, 20L);
         }
 
         @EventHandler
         public void onStuck(NavigationStuckEvent event) {
-            if (!event.getNPC().equals(npc)) {
-                return;
+            if (event.getNPC().equals(npc)) {
+                npc.getNavigator().setTarget(points.get(index));
             }
-            npc.getNavigator().setTarget(points.get(index));
         }
 
         private void cleanup() {
+            if (task != null) {
+                task.cancel();
+            }
             npc.despawn();
             npc.destroy();
             HandlerList.unregisterAll(this);

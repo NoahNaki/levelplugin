@@ -212,6 +212,8 @@ public class CommandRegistry {
         plugin.getCommand("world").setExecutor(new me.nakilex.levelplugin.world.WorldCommand(plugin.getWorldManager()));
         plugin.getCommand("centertooltip").setExecutor(new CenterTooltipCommand());
         plugin.getCommand("centergui").setExecutor(new CenterGuiCommand());
-        plugin.getCommand("pathfinding").setExecutor(new PathfindingCommand(pathManager));
+        PathfindingCommand pfCmd = new PathfindingCommand(pathManager);
+        plugin.getCommand("pathfinding").setExecutor(pfCmd);
+        plugin.getCommand("pathfinding").setTabCompleter(pfCmd);
     }
 }

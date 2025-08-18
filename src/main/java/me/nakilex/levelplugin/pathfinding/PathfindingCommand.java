@@ -4,14 +4,20 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
 
 /**
  * /pathfinding set <index>
  * /pathfinding create <name>
  * /pathfinding execute <name>
  */
-public class PathfindingCommand implements CommandExecutor {
+public class PathfindingCommand implements CommandExecutor, TabCompleter {
     private final PathfindingManager manager;
 
     public PathfindingCommand(PathfindingManager manager) {
@@ -62,6 +68,39 @@ public class PathfindingCommand implements CommandExecutor {
                 player.sendMessage(ChatColor.RED + "Usage: /pathfinding <set|create|execute>");
                 return true;
         }
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (args.length == 1) {
+            List<String> subs = List.of("set", "create", "execute");
+            String start = args[0].toLowerCase(Locale.ROOT);
+            List<String> result = new ArrayList<>();
+            for (String s : subs) {
+                if (s.startsWith(start)) {
+                    result.add(s);
+                }
+            }
+            return result;
+        }
+        if (args.length == 2) {
+            switch (args[0].toLowerCase(Locale.ROOT)) {
+                case "set":
+                    return Collections.singletonList(String.valueOf(manager.nextPointIndex()));
+                case "execute":
+                    List<String> names = new ArrayList<>();
+                    String start = args[1].toLowerCase(Locale.ROOT);
+                    for (String name : manager.getPathNames()) {
+                        if (name.startsWith(start)) {
+                            names.add(name);
+                        }
+                    }
+                    return names;
+                default:
+                    break;
+            }
+        }
+        return Collections.emptyList();
     }
 }
 
