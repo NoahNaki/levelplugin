@@ -89,6 +89,20 @@ public class MercenaryManager implements Listener {
         return bindings.containsKey(player.getUniqueId());
     }
 
+    /**
+     * Unbinds and despawns all active mercenaries, clearing internal state.
+     * Called on plugin shutdown to ensure NPCs do not persist across sessions.
+     */
+    public void unbindAll() {
+        for (Map<Integer, MercenaryFollower> map : bindings.values()) {
+            for (MercenaryFollower f : new ArrayList<>(map.values())) {
+                f.unbind();
+            }
+        }
+        bindings.clear();
+        playerTargets.clear();
+    }
+
     @EventHandler
     public void onPlayerDamage(EntityDamageByEntityEvent event) {
         if (event.getDamager() instanceof Player p && event.getEntity() instanceof LivingEntity le) {

@@ -425,6 +425,7 @@ public class PluginBootstrap {
 
     public void disable() {
         TaskRegistry.stopTasks();
+        if (mercenaryManager != null) mercenaryManager.unbindAll();
         if (economyManager != null) economyManager.saveBalances();
         if (dealMaker != null) dealMaker.closeAllTrades();
         if (itemConfig != null) itemConfig.saveItems();
