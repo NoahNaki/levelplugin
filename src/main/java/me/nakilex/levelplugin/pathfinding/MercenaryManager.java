@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.spells.managers.CooldownManager;
 import me.nakilex.levelplugin.utils.MobUtil;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
+import net.citizensnpcs.trait.CurrentLocation;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Monster;
@@ -43,14 +44,26 @@ public class MercenaryManager implements Listener {
 
     /** Bind an NPC by id to follow and fight for the player using a custom profile. */
     public boolean bind(int npcId, Player player, PathNpc profile) {
-        NPC npc = CitizensAPI.getNPCRegistry().getById(npcId);
-        if (npc == null) return false;
-        if (!npc.isSpawned()) {
-            npc.spawn(player.getLocation());
-        }
-        MercenaryFollower follower = new MercenaryFollower(npc, player, profile);
+        NPC template = CitizensAPI.getNPCRegistry().getById(npcId);
+        if (template == null) return false;
+
+        // Clone the template NPC so the original remains untouched
+        NPC clone = template.copy();
+        var loc = player.getLocation();
+        clone.getOrAddTrait(CurrentLocation.class).setLocation(loc);
+        clone.spawn(loc);
+
+        MercenaryFollower follower = new MercenaryFollower(clone, npcId, player, profile);
         bindings.put(player.getUniqueId(), follower);
         follower.start();
+        return true;
+    }
+
+    /** Unbind a mercenary from a player and remove the spawned copy. */
+    public boolean unbind(int npcId, Player player) {
+        MercenaryFollower follower = bindings.get(player.getUniqueId());
+        if (follower == null || follower.templateId != npcId) return false;
+        follower.unbind();
         return true;
     }
 
@@ -82,12 +95,14 @@ public class MercenaryManager implements Listener {
         final NPC npc;
         final Player owner;
         final PathNpc profile;
+        final int templateId;
         Mode mode = Mode.HOSTILE;
         LivingEntity target;
         BukkitTask task;
 
-        MercenaryFollower(NPC npc, Player owner, PathNpc profile) {
+        MercenaryFollower(NPC npc, int templateId, Player owner, PathNpc profile) {
             this.npc = npc;
+            this.templateId = templateId;
             this.owner = owner;
             this.profile = profile;
         }
@@ -145,6 +160,8 @@ public class MercenaryManager implements Listener {
 
         void unbind() {
             if (task != null) task.cancel();
+            if (npc.isSpawned()) npc.despawn();
+            npc.destroy();
             bindings.remove(owner.getUniqueId());
         }
     }

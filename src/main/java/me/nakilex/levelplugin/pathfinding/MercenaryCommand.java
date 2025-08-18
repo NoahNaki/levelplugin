@@ -27,7 +27,7 @@ public class MercenaryCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage("Usage: /mercenary bind <id> <player>|hostile|target");
+            sender.sendMessage("Usage: /mercenary bind|unbind <id> <player> | hostile | target");
             return true;
         }
         String sub = args[0].toLowerCase(Locale.ROOT);
@@ -51,6 +51,27 @@ public class MercenaryCommand implements CommandExecutor, TabCompleter {
                 }
                 boolean bound = manager.bind(id, target, new AssassinMercenary());
                 sender.sendMessage(bound ? "Mercenary bound" : "Failed to bind mercenary");
+                return true;
+            }
+            case "unbind" -> {
+                if (args.length < 3) {
+                    sender.sendMessage("Usage: /mercenary unbind <id> <player>");
+                    return true;
+                }
+                int id;
+                try {
+                    id = Integer.parseInt(args[1]);
+                } catch (NumberFormatException e) {
+                    sender.sendMessage("Invalid mercenary id");
+                    return true;
+                }
+                Player target = Bukkit.getPlayer(args[2]);
+                if (target == null) {
+                    sender.sendMessage("Player not found");
+                    return true;
+                }
+                boolean unbound = manager.unbind(id, target);
+                sender.sendMessage(unbound ? "Mercenary unbound" : "Failed to unbind mercenary");
                 return true;
             }
             case "hostile" -> {
@@ -85,11 +106,11 @@ public class MercenaryCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return List.of("bind", "hostile", "target").stream()
+            return List.of("bind", "unbind", "hostile", "target").stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase(Locale.ROOT)))
                     .collect(Collectors.toList());
         }
-        if (args.length == 2 && args[0].equalsIgnoreCase("bind")) {
+        if (args.length == 2 && (args[0].equalsIgnoreCase("bind") || args[0].equalsIgnoreCase("unbind"))) {
             List<String> ids = new ArrayList<>();
             for (NPC npc : CitizensAPI.getNPCRegistry().sorted()) {
                 String id = Integer.toString(npc.getId());
@@ -99,7 +120,7 @@ public class MercenaryCommand implements CommandExecutor, TabCompleter {
             }
             return ids;
         }
-        if (args.length == 3 && args[0].equalsIgnoreCase("bind")) {
+        if (args.length == 3 && (args[0].equalsIgnoreCase("bind") || args[0].equalsIgnoreCase("unbind"))) {
             return Bukkit.getOnlinePlayers().stream()
                     .map(Player::getName)
                     .filter(name -> name.toLowerCase(Locale.ROOT).startsWith(args[2].toLowerCase(Locale.ROOT)))
