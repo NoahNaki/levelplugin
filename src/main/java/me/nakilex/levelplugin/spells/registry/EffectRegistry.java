@@ -114,6 +114,15 @@ public class EffectRegistry {
         register("MYTHIC_BLADE_DANCE", new MythicSkillEffect("Blade_Dance"));
         register("MYTHIC_SHADOW_WALK", new MythicSkillEffect("Shadow_Walk"));
 
+        // --- Awakened Assassin Mythic skills ---
+        register("MYTHIC_LETHAL_COMBO", new MythicSkillEffect("Lethal_Combo"));
+        register("MYTHIC_RAVAGING_DASH", new MythicSkillEffect("Ravaging_Dash"));
+        register("MYTHIC_DEATH_BLOOM", new MythicSkillEffect("Death_Bloom"));
+        register("MYTHIC_SHADOWQUAKE", new MythicSkillEffect("Shadowquake"));
+        register("MYTHIC_CRIMSON_ARC", new MythicSkillEffect("Crimson_Arc"));
+        register("MYTHIC_LAST_DANCE", new MythicSkillEffect("Last_Dance"));
+        register("MYTHIC_DEADLY_CALM", new MythicSkillEffect("Deadly_Calm"));
+
         // --- Awakened Warrior Mythic skills ---
         register("MYTHIC_BRUTAL_COMBO", new MythicSkillEffect("Brutal_Combo"));
         register("MYTHIC_BERSERKERS_LEAP", new MythicSkillEffect("Berserkers_Leap"));

@@ -94,6 +94,14 @@ public class SpellGUI {
         SPELL_DESCRIPTIONS.put("dagger_throw", "Hurl daggers at distant foes.");
         SPELL_DESCRIPTIONS.put("blade_dance", "Teleport between enemies with deadly strikes.");
         SPELL_DESCRIPTIONS.put("shadow_walk", "Vanish into the shadows to gain invisibility.");
+        // Awakened Assassin
+        SPELL_DESCRIPTIONS.put("lethal_combo", "Chain blades into a lethal combo.");
+        SPELL_DESCRIPTIONS.put("ravaging_dash", "Dash forward leaving slashes in your wake.");
+        SPELL_DESCRIPTIONS.put("death_bloom", "Vanish then cut nearby enemies repeatedly.");
+        SPELL_DESCRIPTIONS.put("shadowquake", "Disappear and erupt with a shadowquake.");
+        SPELL_DESCRIPTIONS.put("crimson_arc", "Hurl returning crimson shuriken.");
+        SPELL_DESCRIPTIONS.put("last_dance", "Unleash a devastating dance of blades.");
+        SPELL_DESCRIPTIONS.put("deadly_calm", "Remain still to empower your next attack.");
         // Awakened Warrior
         SPELL_DESCRIPTIONS.put("bulwark_instinct", "Tap into instinct to gain resilience.");
         SPELL_DESCRIPTIONS.put("brutal_combo", "Perform a brutal multi-hit combo.");
@@ -187,6 +195,14 @@ public class SpellGUI {
         SPELL_USAGE.put("dagger_throw", "Sneak + Right Click");
         SPELL_USAGE.put("blade_dance", "Sneak + Left Click");
         SPELL_USAGE.put("shadow_walk", "Sneak");
+        // Awakened Assassin
+        SPELL_USAGE.put("lethal_combo", "Left Click");
+        SPELL_USAGE.put("ravaging_dash", "Right Click");
+        SPELL_USAGE.put("crimson_arc", "Sneak + Right Click");
+        SPELL_USAGE.put("last_dance", "Sneak + Left Click");
+        SPELL_USAGE.put("shadowquake", "Sneak");
+        SPELL_USAGE.put("death_bloom", "Sneak + Toggle");
+        SPELL_USAGE.put("deadly_calm", "Passive");
         // Awakened Warrior
         SPELL_USAGE.put("bulwark_instinct", "Passive");
         SPELL_USAGE.put("brutal_combo", "Left Click");
@@ -281,6 +297,14 @@ public class SpellGUI {
         Map.entry("dagger_throw", "icon_dagger_throw"),
         Map.entry("blade_dance", "icon_blade_dance"),
         Map.entry("shadow_walk", "icon_shadow_walk"),
+        // Awakened Assassin
+        Map.entry("lethal_combo", "icon_lethal_combo"),
+        Map.entry("ravaging_dash", "icon_ravaging_dash"),
+        Map.entry("death_bloom", "icon_death_bloom"),
+        Map.entry("shadowquake", "icon_shadowquake"),
+        Map.entry("crimson_arc", "icon_crimson_arc"),
+        Map.entry("last_dance", "icon_last_dance"),
+        Map.entry("deadly_calm", "icon_deadly_calm"),
         // Awakened Warrior
         Map.entry("bulwark_instinct", "icon_bulwark_instinct"),
         Map.entry("brutal_combo", "icon_brutal_combo"),
@@ -355,6 +379,7 @@ public class SpellGUI {
             case GALEGLAIVE -> "windrune";
             case ARCTICKNIGHT -> "arctic";
             case DRAGONWARRIOR -> "dragonwarrior";
+            case AWAKASSASSIN -> "awakassassin";
             case AWAKWARRIOR -> "awakwarrior";
             case WITCH -> "witch";
             default -> null;

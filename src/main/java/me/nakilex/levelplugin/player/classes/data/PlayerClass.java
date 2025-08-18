@@ -15,6 +15,7 @@ public enum PlayerClass {
     DEATHKNIGHT(1),
     ARCTICKNIGHT(1),
     DRAGONWARRIOR(1),
+    AWAKASSASSIN(1),
     AWAKWARRIOR(1),
     DEADEYE(1),
 
