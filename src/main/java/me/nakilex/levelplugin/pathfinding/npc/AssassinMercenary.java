@@ -37,6 +37,7 @@ public class AssassinMercenary implements PathNpc {
     public void handleCombat(NPC npc, LivingEntity target, CooldownManager cd) {
         Location npcLoc = npc.getEntity().getLocation();
         Location targetLoc = target.getLocation();
+        npc.faceLocation(targetLoc);
         double distSq = npcLoc.distanceSquared(targetLoc);
         if (distSq > 9) {
             if (!cast(npc, SKILL_DASH, 5, target, cd)) {

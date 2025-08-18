@@ -140,6 +140,15 @@ public class PathfindingManager {
                 if (combatTarget != null) {
                     if (combatTarget.isDead() || !combatTarget.isValid()) {
                         plugin.getLogger().info("[PathfindingDebug] Killed all targets in vicinity");
+                        // Look for another hostile before resuming the path
+                        if (npc.getEntity() instanceof LivingEntity le) {
+                            combatTarget = me.nakilex.levelplugin.utils.MobUtil.findNearestHostile(le, 10);
+                            if (combatTarget != null) {
+                                plugin.getLogger().info("[PathfindingDebug] Targeting mob " + combatTarget.getName());
+                                profile.handleCombat(npc, combatTarget, cd);
+                                return;
+                            }
+                        }
                         combatTarget = null;
                         npc.getNavigator().setTarget(points.get(index));
                         return;
