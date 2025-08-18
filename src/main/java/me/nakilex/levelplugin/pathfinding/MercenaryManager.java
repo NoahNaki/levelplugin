@@ -132,14 +132,14 @@ public class MercenaryManager implements Listener {
                 if (target == owner || target instanceof Player || CitizensAPI.getNPCRegistry().isNPC(target)) {
                     plugin.getLogger().info("[MercenaryDebug] Ignoring player target for " + owner.getName());
                     target = null;
-                    npc.getNavigator().setTarget(owner, true);
+                    moveNearOwner();
                     return;
                 }
 
                 if (target.isDead() || !target.isValid()) {
                     plugin.getLogger().info("[MercenaryDebug] Killed all targets in vicinity for " + owner.getName());
                     target = null;
-                    npc.getNavigator().setTarget(owner, true);
+                    moveNearOwner();
                     return;
                 }
 
@@ -165,13 +165,17 @@ public class MercenaryManager implements Listener {
                 }
             }
 
-            double distSq = npc.getEntity().getLocation().distanceSquared(owner.getLocation());
+            var ownerLoc = owner.getLocation();
+            double distSq = npc.getEntity().getLocation().distanceSquared(ownerLoc);
             if (distSq > 400) {
-                npc.teleport(owner.getLocation(), PlayerTeleportEvent.TeleportCause.PLUGIN);
+                npc.teleport(ownerLoc, PlayerTeleportEvent.TeleportCause.PLUGIN);
                 plugin.getLogger().info("[MercenaryDebug] Teleported mercenary for " + owner.getName() + " due to distance");
-            } else if (!npc.getNavigator().isNavigating() || distSq > 9) {
-                npc.getNavigator().setTarget(owner, true);
-                plugin.getLogger().info("[MercenaryDebug] Moving to owner for " + owner.getName());
+            } else if (distSq < 9) {
+                if (npc.getNavigator().isNavigating()) {
+                    npc.getNavigator().cancelNavigation();
+                }
+            } else if (!npc.getNavigator().isNavigating() || distSq > 16) {
+                moveNearOwner();
             }
         }
 
@@ -180,6 +184,14 @@ public class MercenaryManager implements Listener {
             if (npc.isSpawned()) npc.despawn();
             npc.destroy();
             bindings.remove(owner.getUniqueId());
+        }
+
+        private void moveNearOwner() {
+            var ownerLoc = owner.getLocation();
+            var dir = ownerLoc.getDirection().setY(0).normalize().multiply(-3);
+            var dest = ownerLoc.clone().add(dir);
+            npc.getNavigator().setTarget(dest);
+            plugin.getLogger().info("[MercenaryDebug] Moving near owner for " + owner.getName());
         }
     }
 }
