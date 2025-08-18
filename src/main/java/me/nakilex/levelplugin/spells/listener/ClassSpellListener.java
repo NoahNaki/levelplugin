@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.spells.listener;
 import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import me.nakilex.levelplugin.spells.Spell;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.spells.managers.CooldownManager;
@@ -32,8 +33,10 @@ public class ClassSpellListener implements Listener {
     private final Map<UUID, BukkitTask> holdCastTasks = new HashMap<>();
     /** Track last unsneak times for Witch double-sneak detection */
     private final Map<UUID, Long> lastUnsneak = new HashMap<>();
-    /** Repeating task casting crouch-start skills while the player sneaks */
-    private final Map<UUID, BukkitTask> startCastTasks = new HashMap<>();
+    /** Players who started sneaking and haven't used a sneak-click combo yet */
+    private final Set<UUID> pendingSneak = new HashSet<>();
+    /** Sneak releases scheduled to fire after a short delay */
+    private final Map<UUID, BukkitTask> pendingUnsneak = new HashMap<>();
 
     private enum Trigger { LEFT, LEFT_SNEAK, RIGHT, RIGHT_SNEAK, SNEAK_START, SNEAK_END }
 
@@ -44,12 +47,20 @@ public class ClassSpellListener implements Listener {
         List<String> rightSneak = Collections.emptyList();
         List<String> sneakStart = Collections.emptyList();
         List<String> sneakEnd = Collections.emptyList();
+        /** Mythic skill names to cast immediately on crouch before unsneak */
+        List<String> sneakPrep = Collections.emptyList();
     }
 
     private static final Map<PlayerClass, Triggers> MAP = new EnumMap<>(PlayerClass.class);
-    private static final EnumSet<PlayerClass> BOW_CLASSES = EnumSet.of(PlayerClass.ARCHER);
+    private static final EnumSet<PlayerClass> BOW_CLASSES = EnumSet.noneOf(PlayerClass.class);
     private static final String ATTACK_COOLDOWN_KEY = "basic_attack";
     static {
+        for (PlayerClass pc : PlayerClass.values()) {
+            if (ClassUtil.isArcherFamily(pc)) {
+                BOW_CLASSES.add(pc);
+            }
+        }
+
         // Archer class
         Triggers t = new Triggers();
         t.leftSneak = List.of("bow_drone");
@@ -61,10 +72,10 @@ public class ClassSpellListener implements Listener {
 
         // Phoenix Hunter class
         t = new Triggers();
-        t.leftSneak = List.of("phoenix_rebirth");
-        t.left = List.of("blazing_feathers");
-        t.rightSneak = List.of("pyroclasmic_barrage");
-        t.right = List.of("ashdance");
+        t.leftSneak = List.of("pyroclasmic_barrage");
+        t.left = List.of("ashdance");
+        t.rightSneak = List.of("phoenix_rebirth");
+        t.right = List.of("blazing_feathers");
         t.sneakStart = List.of("flameburst_convergence");
         MAP.put(PlayerClass.PHOENIXHUNTER, t);
 
@@ -75,6 +86,7 @@ public class ClassSpellListener implements Listener {
         t.rightSneak = List.of("meteor");
         t.right = List.of("blink");
         t.sneakStart = List.of("frost_nova");
+        t.sneakPrep = List.of("Frost_Nova");
         MAP.put(PlayerClass.MAGE, t);
 
         // Warrior class
@@ -106,10 +118,10 @@ public class ClassSpellListener implements Listener {
 
         // Deadeye class
         t = new Triggers();
-        t.leftSneak = List.of("air_strike");
-        t.left = List.of("pistol_shot");
-        t.rightSneak = List.of("focus_shot");
-        t.right = List.of("shotgun_blast");
+        t.leftSneak = List.of("focus_shot");
+        t.left = List.of("shotgun_blast");
+        t.rightSneak = List.of("air_strike");
+        t.right = List.of("pistol_shot");
         t.sneakStart = List.of("sniper_backup");
         MAP.put(PlayerClass.DEADEYE, t);
 
@@ -130,6 +142,45 @@ public class ClassSpellListener implements Listener {
         t.right = List.of("abyssal_dash");
         t.sneakStart = List.of("aqua_aura");
         MAP.put(PlayerClass.ABYSSION, t);
+
+        // Assassin class
+        t = new Triggers();
+        t.leftSneak = List.of("blade_dance");
+        t.left = List.of("blade_slash");
+        t.rightSneak = List.of("dagger_throw");
+        t.right = List.of("assassin_dash");
+        t.sneakStart = List.of("shadow_walk");
+        MAP.put(PlayerClass.ASSASSIN, t);
+
+        // Awakened Assassin class
+        t = new Triggers();
+        t.left = List.of("lethal_combo");
+        t.right = List.of("ravaging_dash");
+        t.rightSneak = List.of("crimson_arc");
+        t.leftSneak = List.of("last_dance");
+        // Death Bloom is the class's sneak ability
+        t.sneakStart = List.of("death_bloom");
+        t.sneakPrep = List.of("Death_Bloom");
+        MAP.put(PlayerClass.AWAKASSASSIN, t);
+
+        // Awakened Warrior class
+        t = new Triggers();
+        t.left = List.of("brutal_combo");
+        t.right = List.of("berserkers_leap");
+        t.rightSneak = List.of("relentless_whirlwind");
+        t.leftSneak = List.of("strike_of_fury");
+        t.sneakStart = List.of("bloodbound_barrier");
+        t.sneakEnd = List.of("vicious_strike");
+        MAP.put(PlayerClass.AWAKWARRIOR, t);
+
+        // Awakened Archer class
+        t = new Triggers();
+        t.left = List.of("evasive_shot");
+        t.right = List.of("blasting_combo");
+        t.leftSneak = List.of("rapid_arrows");
+        t.rightSneak = List.of("shot_of_destruction");
+        t.sneakStart = List.of("volley_of_arrows");
+        MAP.put(PlayerClass.AWAKARCHER, t);
 
         // Dragonian class
         t = new Triggers();
@@ -235,8 +286,12 @@ public class ClassSpellListener implements Listener {
             }
         }
 
-        if (p.isSneaking()) cast(p, tr.leftSneak, pc);
-        else cast(p, tr.left, pc);
+        if (p.isSneaking()) {
+            cast(p, tr.leftSneak, pc);
+            pendingSneak.remove(p.getUniqueId());
+        } else {
+            cast(p, tr.left, pc);
+        }
     }
 
     @EventHandler
@@ -254,6 +309,7 @@ public class ClassSpellListener implements Listener {
 
         if (p.isSneaking()) {
             cast(p, tr.rightSneak, pc);
+            pendingSneak.remove(p.getUniqueId());
             return;
         }
 
@@ -269,7 +325,24 @@ public class ClassSpellListener implements Listener {
         Triggers tr = MAP.get(pc);
         if (tr == null) return;
         if (event.isSneaking()) {
-            cast(p, tr.sneakStart, pc);
+            // cancel any pending unsneak cast if player crouches again quickly
+            BukkitTask pending = pendingUnsneak.remove(p.getUniqueId());
+            if (pending != null) {
+                pending.cancel();
+                // make sure any preparatory aura from the first crouch still fires
+                if (!tr.sneakStart.isEmpty()) {
+                    cast(p, tr.sneakStart, pc);
+                }
+            }
+
+            if (pc != PlayerClass.WITCH) {
+                if (!tr.sneakStart.isEmpty()) {
+                    pendingSneak.add(p.getUniqueId());
+                }
+                for (String skill : tr.sneakPrep) {
+                    MythicBukkit.inst().getAPIHelper().castSkill(p, skill);
+                }
+            }
 
             if (pc == PlayerClass.WITCH) {
                 long now = System.currentTimeMillis();
@@ -302,32 +375,33 @@ public class ClassSpellListener implements Listener {
                 if (old != null) old.cancel();
                 old = holdCastTasks.put(p.getUniqueId(), castTask);
                 if (old != null) old.cancel();
-            } else if (pc == PlayerClass.MAGE || pc == PlayerClass.ABYSSION) {
-                BukkitTask task = Bukkit.getScheduler().runTaskTimer(
-                        Main.getPlugin(),
-                        () -> {
-                            if (p.isOnline() && p.isSneaking()) {
-                                for (String id : tr.sneakStart) {
-                                    MythicBukkit.inst().getAPIHelper().castSkill(p, id);
-                                }
-                            }
-                        },
-                        0L, 1L
-                );
-                BukkitTask old = startCastTasks.put(p.getUniqueId(), task);
-                if (old != null) old.cancel();
             }
         } else {
-            cast(p, tr.sneakEnd, pc);
+            boolean castSneak = pendingSneak.remove(p.getUniqueId());
+            if (castSneak) {
+                BukkitTask old = pendingUnsneak.remove(p.getUniqueId());
+                if (old != null) old.cancel();
+                BukkitTask task = Bukkit.getScheduler().runTaskLater(
+                        Main.getPlugin(),
+                        () -> {
+                            if (p.isOnline() && !p.isSneaking()) {
+                                cast(p, tr.sneakStart, pc);
+                                cast(p, tr.sneakEnd, pc);
+                            }
+                            pendingUnsneak.remove(p.getUniqueId());
+                        },
+                        4L
+                );
+                pendingUnsneak.put(p.getUniqueId(), task);
+            } else if (pc == PlayerClass.WITCH) {
+                cast(p, tr.sneakEnd, pc);
+            }
 
             if (pc == PlayerClass.WITCH) {
                 lastUnsneak.put(p.getUniqueId(), System.currentTimeMillis());
                 BukkitTask task = holdCountTasks.remove(p.getUniqueId());
                 if (task != null) task.cancel();
                 task = holdCastTasks.remove(p.getUniqueId());
-                if (task != null) task.cancel();
-            } else if (pc == PlayerClass.MAGE || pc == PlayerClass.ABYSSION) {
-                BukkitTask task = startCastTasks.remove(p.getUniqueId());
                 if (task != null) task.cancel();
             }
         }

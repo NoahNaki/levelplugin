@@ -88,6 +88,37 @@ public class SpellGUI {
         SPELL_DESCRIPTIONS.put("tidal_wave", "Summon a wave that knocks foes back.");
         SPELL_DESCRIPTIONS.put("aqua_aura", "Emit an aura that empowers allies.");
         SPELL_DESCRIPTIONS.put("abyssal_smash", "Leap high and smash down with tidal force.");
+        // Assassin
+        SPELL_DESCRIPTIONS.put("blade_slash", "Slash enemies with your blade.");
+        SPELL_DESCRIPTIONS.put("assassin_dash", "Dash swiftly forward.");
+        SPELL_DESCRIPTIONS.put("dagger_throw", "Hurl daggers at distant foes.");
+        SPELL_DESCRIPTIONS.put("blade_dance", "Teleport between enemies with deadly strikes.");
+        SPELL_DESCRIPTIONS.put("shadow_walk", "Vanish into the shadows to gain invisibility.");
+        // Awakened Assassin
+        SPELL_DESCRIPTIONS.put("lethal_combo", "Chain blades into a lethal combo.");
+        SPELL_DESCRIPTIONS.put("ravaging_dash", "Dash forward leaving slashes in your wake.");
+        SPELL_DESCRIPTIONS.put("death_bloom", "Vanish then cut nearby enemies repeatedly.");
+        SPELL_DESCRIPTIONS.put("shadowquake", "Disappear and erupt with a shadowquake.");
+        SPELL_DESCRIPTIONS.put("crimson_arc", "Hurl returning crimson shuriken.");
+        SPELL_DESCRIPTIONS.put("last_dance", "Unleash a devastating dance of blades.");
+        SPELL_DESCRIPTIONS.put("deadly_calm", "Remain still to empower your next attack.");
+        // Awakened Warrior
+        SPELL_DESCRIPTIONS.put("bulwark_instinct", "Tap into instinct to gain resilience.");
+        SPELL_DESCRIPTIONS.put("brutal_combo", "Perform a brutal multi-hit combo.");
+        SPELL_DESCRIPTIONS.put("berserkers_leap", "Leap toward enemies with ferocity.");
+        SPELL_DESCRIPTIONS.put("relentless_whirlwind", "Spin in a relentless whirlwind of blades.");
+        SPELL_DESCRIPTIONS.put("bloodbound_barrier", "Conjure a barrier fueled by blood.");
+        SPELL_DESCRIPTIONS.put("vicious_strike", "Wind up a devastating strike.");
+        SPELL_DESCRIPTIONS.put("strike_of_fury", "Unleash a furious ultimate assault.");
+        // Awakened Archer
+        SPELL_DESCRIPTIONS.put("blasting_combo", "Roll and fire a bursting arrow combo.");
+        SPELL_DESCRIPTIONS.put("evasive_shot", "Leap back and shoot in mid-air.");
+        SPELL_DESCRIPTIONS.put("piercing_skyfall", "Rain piercing arrows from above.");
+        SPELL_DESCRIPTIONS.put("rapid_arrows", "Loose a flurry of rapid arrows.");
+        SPELL_DESCRIPTIONS.put("shot_of_destruction", "Charge an arrow that devastates targets.");
+        SPELL_DESCRIPTIONS.put("volley_of_arrows", "Call down a volley of arrows around you.");
+        SPELL_DESCRIPTIONS.put("ambush", "Prepare to bleed targets with your next strike.");
+
         SPELL_DESCRIPTIONS.put("fireball", "Launch a blazing projectile.");
         SPELL_DESCRIPTIONS.put("blink", "Teleport a short distance.");
         SPELL_DESCRIPTIONS.put("frost_nova", "Freeze and damage nearby foes.");
@@ -167,6 +198,36 @@ public class SpellGUI {
         SPELL_USAGE.put("tidal_wave", "Sneak + Right Click");
         SPELL_USAGE.put("aqua_aura", "Sneak");
         SPELL_USAGE.put("abyssal_smash", "Sneak + Left Click");
+        SPELL_USAGE.put("blade_slash", "Left Click");
+        SPELL_USAGE.put("assassin_dash", "Right Click");
+        SPELL_USAGE.put("dagger_throw", "Sneak + Right Click");
+        SPELL_USAGE.put("blade_dance", "Sneak + Left Click");
+        SPELL_USAGE.put("shadow_walk", "Sneak");
+        // Awakened Assassin
+        SPELL_USAGE.put("lethal_combo", "Left Click");
+        SPELL_USAGE.put("ravaging_dash", "Right Click");
+        SPELL_USAGE.put("crimson_arc", "Sneak + Right Click");
+        SPELL_USAGE.put("last_dance", "Sneak + Left Click");
+        // Shadowquake now uses a click combo rather than a sneak trigger
+        SPELL_USAGE.put("shadowquake", "Left + Left + Right");
+        SPELL_USAGE.put("death_bloom", "Sneak + Toggle");
+        SPELL_USAGE.put("deadly_calm", "Passive");
+        // Awakened Warrior
+        SPELL_USAGE.put("bulwark_instinct", "Passive");
+        SPELL_USAGE.put("brutal_combo", "Left Click");
+        SPELL_USAGE.put("berserkers_leap", "Right Click");
+        SPELL_USAGE.put("relentless_whirlwind", "Sneak + Right Click");
+        SPELL_USAGE.put("bloodbound_barrier", "Sneak");
+        SPELL_USAGE.put("vicious_strike", "Sneak + Toggle");
+        SPELL_USAGE.put("strike_of_fury", "Sneak + Left Click");
+        // Awakened Archer
+        SPELL_USAGE.put("blasting_combo", "Left Click");
+        SPELL_USAGE.put("evasive_shot", "Left + Right + Left");
+        SPELL_USAGE.put("piercing_skyfall", "Left + Left + Left");
+        SPELL_USAGE.put("rapid_arrows", "Right + Left + Left");
+        SPELL_USAGE.put("shot_of_destruction", "Right + Right + Right");
+        SPELL_USAGE.put("volley_of_arrows", "Sneak + Toggle");
+        SPELL_USAGE.put("ambush", "Passive");
         SPELL_USAGE.put("fireball", "Left Click");
         SPELL_USAGE.put("blink", "Right Click");
         SPELL_USAGE.put("meteor", "Sneak + Right Click");
@@ -248,6 +309,35 @@ public class SpellGUI {
         Map.entry("tidal_wave", "icon_tidal_wave"),
         Map.entry("aqua_aura", "icon_aqua_aura"),
         Map.entry("abyssal_smash", "icon_abyssal_smash"),
+        Map.entry("blade_slash", "icon_blade_slash"),
+        Map.entry("assassin_dash", "icon_assassin_dash"),
+        Map.entry("dagger_throw", "icon_dagger_throw"),
+        Map.entry("blade_dance", "icon_blade_dance"),
+        Map.entry("shadow_walk", "icon_shadow_walk"),
+        // Awakened Assassin
+        Map.entry("lethal_combo", "icon_lethal_combo"),
+        Map.entry("ravaging_dash", "icon_ravaging_dash"),
+        Map.entry("death_bloom", "icon_death_bloom"),
+        Map.entry("shadowquake", "icon_shadowquake"),
+        Map.entry("crimson_arc", "icon_crimson_arc"),
+        Map.entry("last_dance", "icon_last_dance"),
+        Map.entry("deadly_calm", "icon_deadly_calm"),
+        // Awakened Warrior
+        Map.entry("bulwark_instinct", "icon_bulwark_instinct"),
+        Map.entry("brutal_combo", "icon_brutal_combo"),
+        Map.entry("berserkers_leap", "icon_berserkers_leap"),
+        Map.entry("relentless_whirlwind", "icon_relentless_whirlwind"),
+        Map.entry("bloodbound_barrier", "icon_bloodbound_barrier"),
+        Map.entry("vicious_strike", "icon_vicious_strike"),
+        Map.entry("strike_of_fury", "icon_strike_of_fury"),
+        // Awakened Archer
+        Map.entry("blasting_combo", "icon_blasting_combo"),
+        Map.entry("evasive_shot", "icon_evasive_shot"),
+        Map.entry("piercing_skyfall", "icon_piercing_skyfall"),
+        Map.entry("rapid_arrows", "icon_rapid_arrows"),
+        Map.entry("shot_of_destruction", "icon_shot_of_destruction"),
+        Map.entry("volley_of_arrows", "icon_volley_of_arrows"),
+        Map.entry("ambush", "icon_ambush"),
         Map.entry("fireball", "icon_fireball"),
         Map.entry("blink", "icon_blink"),
         Map.entry("meteor", "icon_meteor"),
@@ -307,12 +397,15 @@ public class SpellGUI {
             case BARBARIAN -> "barbarian";
             case PALADIN -> "paladin";
             case DEATHKNIGHT -> "deathknight";
+            case ASSASSIN -> "assassin";
             case ABYSSION -> "abyssion";
             case MAGE -> "mage";
             case DRAGONIAN -> "dragonian";
             case GALEGLAIVE -> "windrune";
             case ARCTICKNIGHT -> "arctic";
             case DRAGONWARRIOR -> "dragonwarrior";
+            case AWAKASSASSIN -> "awakassassin";
+            case AWAKWARRIOR -> "awakwarrior";
             case WITCH -> "witch";
             default -> null;
         };

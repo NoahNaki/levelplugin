@@ -107,6 +107,40 @@ public class EffectRegistry {
         register("MYTHIC_AQUA_AURA", new MythicSkillEffect("Aqua_Aura"));
         register("MYTHIC_ABYSSAL_SMASH", new MythicSkillEffect("Abyssal_Smash"));
 
+        // --- Assassin Mythic skills ---
+        register("MYTHIC_BLADE_SLASH", new MythicSkillEffect("Blade_Slash"));
+        register("MYTHIC_ASSASSIN_DASH", new MythicSkillEffect("Assassin_Dash"));
+        register("MYTHIC_DAGGER_THROW", new MythicSkillEffect("Dagger_Throw"));
+        register("MYTHIC_BLADE_DANCE", new MythicSkillEffect("Blade_Dance"));
+        register("MYTHIC_SHADOW_WALK", new MythicSkillEffect("Shadow_Walk"));
+
+        // --- Awakened Assassin Mythic skills ---
+        register("MYTHIC_LETHAL_COMBO", new MythicSkillEffect("Lethal_Combo"));
+        register("MYTHIC_RAVAGING_DASH", new MythicSkillEffect("Ravaging_Dash"));
+        register("MYTHIC_DEATH_BLOOM", new MythicSkillEffect("Death_Bloom"));
+        register("MYTHIC_SHADOWQUAKE", new MythicSkillEffect("Shadowquake"));
+        register("MYTHIC_CRIMSON_ARC", new MythicSkillEffect("Crimson_Arc"));
+        register("MYTHIC_LAST_DANCE", new MythicSkillEffect("Last_Dance"));
+        register("MYTHIC_DEADLY_CALM", new MythicSkillEffect("Deadly_Calm"));
+
+        // --- Awakened Warrior Mythic skills ---
+        register("MYTHIC_BRUTAL_COMBO", new MythicSkillEffect("Brutal_Combo"));
+        register("MYTHIC_BERSERKERS_LEAP", new MythicSkillEffect("Berserkers_Leap"));
+        register("MYTHIC_RELENTLESS_WHIRLWIND", new MythicSkillEffect("Relentless_Whirlwind"));
+        register("MYTHIC_BLOODBOUND_BARRIER", new MythicSkillEffect("Bloodbound_Barrier"));
+        register("MYTHIC_VICIOUS_STRIKE", new MythicSkillEffect("Vicious_Strike"));
+        register("MYTHIC_STRIKE_OF_FURY", new MythicSkillEffect("Strike_Of_Fury"));
+        register("MYTHIC_BULWARK_INSTINCT", new MythicSkillEffect("Bulwark_Instinct"));
+
+        // --- Awakened Archer Mythic skills ---
+        register("MYTHIC_BLASTING_COMBO", new MythicSkillEffect("Blasting_Combo"));
+        register("MYTHIC_EVASIVE_SHOT", new MythicSkillEffect("Evasive_Shot"));
+        register("MYTHIC_VOLLEY_OF_ARROWS", new MythicSkillEffect("Volley_Of_Arrows"));
+        register("MYTHIC_PIERCING_SKYFALL", new MythicSkillEffect("Piercing_Skyfall"));
+        register("MYTHIC_RAPID_ARROWS", new MythicSkillEffect("Rapid_Arrows"));
+        register("MYTHIC_SHOT_OF_DESTRUCTION", new MythicSkillEffect("Shot_Of_Destruction"));
+        register("MYTHIC_AMBUSH", new MythicSkillEffect("Ambush"));
+
         // --- Mage Mythic skills ---
         register("MYTHIC_FIREBALL", new MythicSkillEffect("Fireball"));
         register("MYTHIC_BLINK", new me.nakilex.levelplugin.spells.effect.mage.TeleportEffect());

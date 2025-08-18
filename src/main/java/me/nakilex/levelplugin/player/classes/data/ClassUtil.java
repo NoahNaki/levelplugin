@@ -12,20 +12,24 @@ public final class ClassUtil {
                 || cls == PlayerClass.GALEGLAIVE
                 || cls == PlayerClass.DEATHKNIGHT
                 || cls == PlayerClass.ARCTICKNIGHT
-                || cls == PlayerClass.DRAGONWARRIOR;
+                || cls == PlayerClass.DRAGONWARRIOR
+                || cls == PlayerClass.AWAKWARRIOR;
     }
 
     /** Returns true if the class belongs to the Archer family. */
     public static boolean isArcherFamily(PlayerClass cls) {
         return cls == PlayerClass.ARCHER
                 || cls == PlayerClass.DEADEYE
-                || cls == PlayerClass.PHOENIXHUNTER;
+                || cls == PlayerClass.PHOENIXHUNTER
+                || cls == PlayerClass.AWAKARCHER;
     }
 
     /** Returns true if the class belongs to the Rogue family. */
     public static boolean isRogueFamily(PlayerClass cls) {
         return cls == PlayerClass.ROGUE
-                || cls == PlayerClass.ABYSSION;
+                || cls == PlayerClass.ABYSSION
+                || cls == PlayerClass.ASSASSIN
+                || cls == PlayerClass.AWAKASSASSIN;
     }
 
     /** Returns true if the class belongs to the Mage family. */
