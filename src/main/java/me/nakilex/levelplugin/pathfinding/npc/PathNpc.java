@@ -15,6 +15,9 @@ import java.util.UUID;
  * and handle combat ticks with custom spell logic.
  */
 public interface PathNpc {
+    /** Represents a MythicMobs skill and its cooldown. */
+    record Skill(String name, double cooldown) {}
+
     /** Multiplier applied to the NPC's base walking speed. */
     float speedMultiplier();
 
@@ -61,6 +64,11 @@ public interface PathNpc {
         cooldowns.setCooldown(id, skill, cooldownSeconds);
         Bukkit.getLogger().info("[MercenaryDebug] Cast '" + skill + "' successfully");
         return true;
+    }
+
+    /** Convenience overload using a {@link Skill} record. */
+    default boolean cast(NPC npc, Skill skill, LivingEntity target, CooldownManager cooldowns) {
+        return cast(npc, skill.name(), skill.cooldown(), target, cooldowns);
     }
 }
 

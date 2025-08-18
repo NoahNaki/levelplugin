@@ -1,12 +1,15 @@
 package me.nakilex.levelplugin.pathfinding.npc;
 
-/** Ranged archer profile firing Blasting Combo arrows from a distance. */
-public class ArcherMercenary extends AbstractRangedMercenary {
-    private static final String SKILL_SHOT = "Blasting_Combo";
+import me.nakilex.levelplugin.pathfinding.npc.PathNpc.Skill;
 
+/** Ranged archer profile firing a suite of Awakened Archer abilities. */
+public class ArcherMercenary extends AbstractRangedMercenary {
     public ArcherMercenary() {
-        // Uses AwakenedArcher's basic Blasting Combo as its auto-attack
-        super(org.bukkit.Material.BOW, SKILL_SHOT);
+        super(org.bukkit.Material.BOW,
+                new Skill("Shot_Of_Destruction", 10),
+                new Skill("Evasive_Shot", 5),
+                new Skill("Rapid_Arrows", 3),
+                new Skill("Blasting_Combo", 1));
     }
 
     @Override

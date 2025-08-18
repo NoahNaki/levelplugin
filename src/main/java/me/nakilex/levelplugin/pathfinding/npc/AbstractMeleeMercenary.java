@@ -6,18 +6,14 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.util.Vector;
 import me.nakilex.levelplugin.pathfinding.npc.PathNpc.Skill;
 
-/**
- * Base implementation for ranged mercenaries that keep 8-10 blocks away
- * and fire a single MythicMobs skill as their basic attack.
- */
-public abstract class AbstractRangedMercenary extends AbstractMercenary {
+/** Base implementation for melee mercenaries with multiple skills. */
+public abstract class AbstractMeleeMercenary extends AbstractMercenary {
     private final Material weapon;
     private final Skill[] skills;
 
-    protected AbstractRangedMercenary(Material weapon, Skill... skills) {
+    protected AbstractMeleeMercenary(Material weapon, Skill... skills) {
         this.weapon = weapon;
         this.skills = skills;
     }
@@ -38,12 +34,8 @@ public abstract class AbstractRangedMercenary extends AbstractMercenary {
         Location targetLoc = target.getEyeLocation();
         npc.faceLocation(targetLoc);
         double distSq = npcLoc.distanceSquared(targetLoc);
-        if (distSq > 100) { // too far, move closer
+        if (distSq > 9) {
             npc.getNavigator().setTarget(targetLoc);
-        } else if (distSq < 64) { // too close, back off to roughly 8 blocks
-            Vector dir = npcLoc.toVector().subtract(targetLoc.toVector()).normalize().multiply(8);
-            Location away = targetLoc.clone().add(dir);
-            npc.getNavigator().setTarget(away);
         } else {
             for (Skill s : skills) {
                 if (cast(npc, s, target, cd)) {

@@ -1,12 +1,14 @@
 package me.nakilex.levelplugin.pathfinding.npc;
 
-/** Ranged mage profile hurling fireballs from a distance. */
-public class MageMercenary extends AbstractRangedMercenary {
-    private static final String SKILL_FIREBALL = "Fireball";
+import me.nakilex.levelplugin.pathfinding.npc.PathNpc.Skill;
 
+/** Ranged mage profile wielding multiple Awakened Mage spells. */
+public class MageMercenary extends AbstractRangedMercenary {
     public MageMercenary() {
-        // Fires the Awakened Mage's Fireball spell as its basic attack
-        super(org.bukkit.Material.BLAZE_ROD, SKILL_FIREBALL);
+        super(org.bukkit.Material.BLAZE_ROD,
+                new Skill("Meteor", 8),
+                new Skill("Frost_Nova", 5),
+                new Skill("Fireball", 1));
     }
 
     @Override

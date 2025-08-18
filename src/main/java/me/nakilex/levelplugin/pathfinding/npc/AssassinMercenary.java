@@ -25,7 +25,7 @@ public class AssassinMercenary extends AbstractMercenary {
     @Override
     public void handleCombat(NPC npc, LivingEntity target, CooldownManager cd) {
         Location npcLoc = npc.getEntity().getLocation();
-        Location targetLoc = target.getLocation();
+        Location targetLoc = target.getEyeLocation();
         npc.faceLocation(targetLoc);
         double distSq = npcLoc.distanceSquared(targetLoc);
         if (distSq > 9) {
