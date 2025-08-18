@@ -240,3 +240,6 @@ commands:
   pathfinding:
     description: Create and execute NPC paths
     usage: /pathfinding <set|create|execute>
+  mercenary:
+    description: Bind and control mercenary NPCs
+    usage: /mercenary <bind|hostile|target>

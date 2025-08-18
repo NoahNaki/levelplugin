@@ -12,7 +12,6 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Monster;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
@@ -147,11 +146,13 @@ public class PathfindingManager {
                     return;
                 }
 
-                LivingEntity hostile = findNearestHostile();
-                if (hostile != null) {
-                    combatTarget = hostile;
-                    profile.handleCombat(npc, combatTarget, cd);
-                    return;
+                if (npc.getEntity() instanceof LivingEntity le) {
+                    LivingEntity hostile = me.nakilex.levelplugin.utils.MobUtil.findNearestHostile(le, 10);
+                    if (hostile != null) {
+                        combatTarget = hostile;
+                        profile.handleCombat(npc, combatTarget, cd);
+                        return;
+                    }
                 }
 
                 if (!npc.getNavigator().isNavigating()) {
@@ -184,18 +185,7 @@ public class PathfindingManager {
             HandlerList.unregisterAll(this);
         }
 
-        private LivingEntity findNearestHostile() {
-            if (!(npc.getEntity() instanceof LivingEntity le)) {
-                return null;
-            }
-            Location loc = le.getLocation();
-            double radius = 10;
-            return loc.getWorld().getNearbyEntities(loc, radius, radius, radius).stream()
-                    .filter(e -> e instanceof Monster)
-                    .map(e -> (LivingEntity) e)
-                    .min(Comparator.comparingDouble(e -> e.getLocation().distanceSquared(loc)))
-                    .orElse(null);
-        }
+        // hostile search moved to MobUtil for reuse
     }
 }
 

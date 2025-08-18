@@ -75,6 +75,8 @@ import me.nakilex.levelplugin.utils.commands.CenterGuiCommand;
 import me.nakilex.levelplugin.utils.commands.CenterTooltipCommand;
 import me.nakilex.levelplugin.pathfinding.PathfindingCommand;
 import me.nakilex.levelplugin.pathfinding.PathfindingManager;
+import me.nakilex.levelplugin.pathfinding.MercenaryCommand;
+import me.nakilex.levelplugin.pathfinding.MercenaryManager;
 
 public class CommandRegistry {
 
@@ -110,7 +112,8 @@ public class CommandRegistry {
                                         UpgradeGUI upgradeGUI,
                                         CodexMainGUI codexGUI,
                                         WanderingMerchantManager wmManager,
-                                        PathfindingManager pathManager) {
+                                        PathfindingManager pathManager,
+                                        MercenaryManager mercManager) {
 
 
         plugin.getCommand("addpoints").setExecutor(new AddPointsCommand());
@@ -215,5 +218,9 @@ public class CommandRegistry {
         PathfindingCommand pfCmd = new PathfindingCommand(pathManager);
         plugin.getCommand("pathfinding").setExecutor(pfCmd);
         plugin.getCommand("pathfinding").setTabCompleter(pfCmd);
+
+        MercenaryCommand mercCmd = new MercenaryCommand(mercManager);
+        plugin.getCommand("mercenary").setExecutor(mercCmd);
+        plugin.getCommand("mercenary").setTabCompleter(mercCmd);
     }
 }

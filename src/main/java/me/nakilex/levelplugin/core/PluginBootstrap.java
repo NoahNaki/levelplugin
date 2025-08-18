@@ -37,6 +37,7 @@ import me.nakilex.levelplugin.friend.FriendRequestListener;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.pathfinding.PathfindingManager;
+import me.nakilex.levelplugin.pathfinding.MercenaryManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
@@ -171,6 +172,7 @@ public class PluginBootstrap {
     private LocationCodexGUI locationCodexGUI;
     private me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager wanderingMerchantManager;
     private PathfindingManager pathfindingManager;
+    private MercenaryManager mercenaryManager;
 
     public PluginBootstrap(Main plugin) {
         this.plugin = plugin;
@@ -308,6 +310,7 @@ public class PluginBootstrap {
         cutsceneManager.loadCutscenes();
         wanderingMerchantManager = new me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager(plugin);
         pathfindingManager = new PathfindingManager(plugin);
+        mercenaryManager = new MercenaryManager(plugin);
     }
 
     private void setupCustomConfig() {
@@ -357,7 +360,8 @@ public class PluginBootstrap {
             upgradeGUI,
             codexGUI,
             wanderingMerchantManager,
-            pathfindingManager
+            pathfindingManager,
+            mercenaryManager
         );
         me.nakilex.levelplugin.guild.siege.GuildSiegeCommand siegeCmd =
                 new me.nakilex.levelplugin.guild.siege.GuildSiegeCommand(guildSiegeManager);
@@ -557,6 +561,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.dungeon.gui.DungeonListGUI getDungeonListGUI() { return dungeonListGUI; }
     public me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager getWanderingMerchantManager() { return wanderingMerchantManager; }
     public PathfindingManager getPathfindingManager() { return pathfindingManager; }
+    public MercenaryManager getMercenaryManager() { return mercenaryManager; }
 
     private void createCustomConfig() {
         customConfigFile = new File(plugin.getDataFolder(), "config.yml");
