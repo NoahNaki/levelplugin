@@ -4,6 +4,7 @@ import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.ai.event.NavigationStuckEvent;
 import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.api.trait.trait.Equipment;
+import io.lumine.mythic.bukkit.MythicBukkit;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -118,12 +119,12 @@ public class PathfindingManager {
         void start() {
             npc.spawn(points.get(0));
 
-            // Triple the default walking speed
+            // Increase walking speed 1.5x beyond the previous triple boost
             var params = npc.getNavigator().getDefaultParameters();
-            params.baseSpeed(params.baseSpeed() * 3);
+            params.baseSpeed(params.baseSpeed() * 4.5);
 
-            // Equip the NPC with netherite gear
-            equipNetherite();
+            // Equip the NPC with mythic weapon and netherite armor
+            equipGear();
 
             if (points.size() <= 1) {
                 cleanup();
@@ -143,6 +144,7 @@ public class PathfindingManager {
                 if (hostile != null) {
                     combatTarget = hostile;
                     npc.getNavigator().setTarget(hostile, true);
+                    castSkills("awakassassin_shadowstep", "awakassassin_bladeflurry");
                     return;
                 }
 
@@ -189,13 +191,22 @@ public class PathfindingManager {
                     .orElse(null);
         }
 
-        private void equipNetherite() {
+        private void equipGear() {
             Equipment equip = npc.getOrAddTrait(Equipment.class);
-            equip.set(Equipment.EquipmentSlot.HAND, new ItemStack(Material.NETHERITE_SWORD));
+            ItemStack weapon = MythicBukkit.inst().getItemManager()
+                    .getItemStack("awakened_assassin_duskblade")
+                    .orElse(new ItemStack(Material.NETHERITE_SWORD));
+            equip.set(Equipment.EquipmentSlot.HAND, weapon);
             equip.set(Equipment.EquipmentSlot.HELMET, new ItemStack(Material.NETHERITE_HELMET));
             equip.set(Equipment.EquipmentSlot.CHESTPLATE, new ItemStack(Material.NETHERITE_CHESTPLATE));
             equip.set(Equipment.EquipmentSlot.LEGGINGS, new ItemStack(Material.NETHERITE_LEGGINGS));
             equip.set(Equipment.EquipmentSlot.BOOTS, new ItemStack(Material.NETHERITE_BOOTS));
+        }
+
+        private void castSkills(String... skills) {
+            for (String skill : skills) {
+                MythicBukkit.inst().getAPIHelper().castSkill(npc.getEntity(), skill);
+            }
         }
     }
 }
