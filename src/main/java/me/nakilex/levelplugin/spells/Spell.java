@@ -214,6 +214,26 @@ public class Spell {
             return;
         }
 
+        // Trigger a sweeping strike for melee basic attacks
+        if ("BASIC_ATTACK".equals(combo)) {
+            ItemStack weapon = player.getInventory().getItemInMainHand();
+            if (weapon != null) {
+                String name = weapon.getType().name();
+                if (name.endsWith("_SWORD") || name.endsWith("_SHOVEL")) {
+                    double strength = ps.baseStrength + ps.bonusStrength;
+                    double damage = ctx.getFinalDamage() + strength * 0.5;
+                    int totalTec = ps.baseTechnique + ps.bonusTechnique;
+                    damage *= (1.0 + totalTec * 0.003);
+                    int totalDex = ps.baseDexterity + ps.bonusDexterity;
+                    double critChance = (double) totalDex / (totalDex + 100.0);
+                    if (Math.random() < critChance) {
+                        damage *= 2;
+                    }
+                    me.nakilex.levelplugin.mob.utils.SweepAttack.perform(player, damage);
+                }
+            }
+        }
+
         int intCost = (int)Math.ceil(cost);
         ps.setCurrentMana(ps.getCurrentMana() - intCost);
         recordSpellCast(player);

@@ -2,7 +2,7 @@ package me.nakilex.levelplugin.player.attributes.listeners;
 
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStats;
-import me.nakilex.levelplugin.mob.listeners.SweepAttackListener;
+import me.nakilex.levelplugin.mob.utils.SweepAttack;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -39,7 +39,7 @@ public class StatsEffectListener implements Listener {
         // Determine if a player is responsible for the damage
         Player player = null;
         if (damager instanceof Player p) {
-            boolean sweeping = p.hasMetadata(SweepAttackListener.SWEEP_META);
+            boolean sweeping = p.hasMetadata(SweepAttack.SWEEP_META);
             if (!sweeping && p.getAttackCooldown() < 1.0f) {
                 event.setCancelled(true);
                 return;
@@ -55,7 +55,7 @@ public class StatsEffectListener implements Listener {
         }
 
         // ── Outgoing damage (when the damager is a player or their projectile) ──
-        if (player != null && !player.hasMetadata(SweepAttackListener.SWEEP_META)) {
+        if (player != null && !player.hasMetadata(SweepAttack.SWEEP_META)) {
             PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
 
             // 1) Strength bonus
