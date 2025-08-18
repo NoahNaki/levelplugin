@@ -1,7 +1,6 @@
 package me.nakilex.levelplugin.pathfinding.npc;
 
 import me.nakilex.levelplugin.spells.managers.CooldownManager;
-import me.nakilex.levelplugin.utils.MobUtil;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -17,6 +16,7 @@ import me.nakilex.levelplugin.pathfinding.npc.PathNpc.Skill;
 public abstract class AbstractRangedMercenary extends AbstractMercenary {
     private final Material weapon;
     private final Skill[] skills;
+    private int nextSkill = 0;
 
     protected AbstractRangedMercenary(Material weapon, Skill... skills) {
         this.weapon = weapon;
@@ -36,8 +36,14 @@ public abstract class AbstractRangedMercenary extends AbstractMercenary {
     @Override
     public void handleCombat(NPC npc, LivingEntity target, CooldownManager cd) {
         if (!maintainRange(npc, target)) return;
-        for (Skill s : skills) {
-            if (cast(npc, s, target, cd)) {
+        castNextSkill(npc, target, cd);
+    }
+
+    protected void castNextSkill(NPC npc, LivingEntity target, CooldownManager cd) {
+        for (int i = 0; i < skills.length; i++) {
+            int idx = (nextSkill + i) % skills.length;
+            if (cast(npc, skills[idx], target, cd)) {
+                nextSkill = (idx + 1) % skills.length;
                 break;
             }
         }
@@ -51,7 +57,6 @@ public abstract class AbstractRangedMercenary extends AbstractMercenary {
     protected boolean maintainRange(NPC npc, LivingEntity target) {
         Location npcLoc = npc.getEntity().getLocation();
         Location targetLoc = target.getEyeLocation();
-        MobUtil.faceEntity((LivingEntity) npc.getEntity(), targetLoc);
         double distSq = npcLoc.distanceSquared(targetLoc);
         if (distSq > 100) { // >10 blocks, chase target entity
             npc.getNavigator().setTarget(target, true);

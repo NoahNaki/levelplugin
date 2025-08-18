@@ -12,6 +12,7 @@ import me.nakilex.levelplugin.pathfinding.npc.PathNpc.Skill;
 public abstract class AbstractMeleeMercenary extends AbstractMercenary {
     private final Material weapon;
     private final Skill[] skills;
+    private int nextSkill = 0;
 
     protected AbstractMeleeMercenary(Material weapon, Skill... skills) {
         this.weapon = weapon;
@@ -32,15 +33,16 @@ public abstract class AbstractMeleeMercenary extends AbstractMercenary {
     public void handleCombat(NPC npc, LivingEntity target, CooldownManager cd) {
         Location npcLoc = npc.getEntity().getLocation();
         Location targetLoc = target.getEyeLocation();
-        npc.faceLocation(targetLoc);
         double distSq = npcLoc.distanceSquared(targetLoc);
         if (distSq > 9) {
             npc.getNavigator().setTarget(targetLoc);
-        } else {
-            for (Skill s : skills) {
-                if (cast(npc, s, target, cd)) {
-                    break;
-                }
+            return;
+        }
+        for (int i = 0; i < skills.length; i++) {
+            int idx = (nextSkill + i) % skills.length;
+            if (cast(npc, skills[idx], target, cd)) {
+                nextSkill = (idx + 1) % skills.length;
+                break;
             }
         }
     }

@@ -55,4 +55,14 @@ public final class MobUtil {
         double dist = Math.sqrt(dx * dx + dz * dz);
         return (float) Math.toDegrees(-Math.atan2(dy, dist));
     }
+
+    /**
+     * Resets the entity's pitch to face straight ahead while preserving its current yaw.
+     *
+     * @param entity entity whose head should be levelled
+     */
+    public static void levelHead(LivingEntity entity) {
+        Location loc = entity.getLocation();
+        entity.setRotation(loc.getYaw(), 0f);
+    }
 }

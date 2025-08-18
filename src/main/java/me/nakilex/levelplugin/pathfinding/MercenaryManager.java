@@ -162,6 +162,12 @@ public class MercenaryManager implements Listener {
                 unbind();
                 return;
             }
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (npc.isSpawned()) {
+                    LivingEntity le = (LivingEntity) npc.getEntity();
+                    MobUtil.levelHead(le);
+                }
+            });
             if (target != null) {
                 // allow switching to a newly damaged target in TARGET mode
                 if (mode == Mode.TARGET) {
@@ -186,8 +192,6 @@ public class MercenaryManager implements Listener {
                     return;
                 }
 
-                Location eye = target.getEyeLocation();
-                MobUtil.faceEntity((LivingEntity) npc.getEntity(), eye);
                 profile.handleCombat(npc, target, cd);
                 return;
             }
