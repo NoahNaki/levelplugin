@@ -18,6 +18,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
+import io.papermc.paper.entity.LookAnchor;
 
 import java.util.*;
 
@@ -170,7 +171,7 @@ public class MercenaryManager implements Listener {
                     return;
                 }
 
-                npc.getEntity().lookAt(target.getEyeLocation());
+                npc.getEntity().lookAt(target.getEyeLocation(), LookAnchor.EYES);
                 profile.handleCombat(npc, target, cd);
                 return;
             }
