@@ -32,8 +32,8 @@ public class ClassSpellListener implements Listener {
     private final Map<UUID, BukkitTask> holdCastTasks = new HashMap<>();
     /** Track last unsneak times for Witch double-sneak detection */
     private final Map<UUID, Long> lastUnsneak = new HashMap<>();
-    /** Repeating task casting crouch-start skills while the player sneaks */
-    private final Map<UUID, BukkitTask> startCastTasks = new HashMap<>();
+    /** Players who started sneaking and haven't used a sneak-click combo yet */
+    private final Set<UUID> pendingSneak = new HashSet<>();
 
     private enum Trigger { LEFT, LEFT_SNEAK, RIGHT, RIGHT_SNEAK, SNEAK_START, SNEAK_END }
 
@@ -130,6 +130,35 @@ public class ClassSpellListener implements Listener {
         t.right = List.of("abyssal_dash");
         t.sneakStart = List.of("aqua_aura");
         MAP.put(PlayerClass.ABYSSION, t);
+
+        // Assassin class
+        t = new Triggers();
+        t.leftSneak = List.of("blade_dance");
+        t.left = List.of("blade_slash");
+        t.rightSneak = List.of("dagger_throw");
+        t.right = List.of("assassin_dash");
+        t.sneakStart = List.of("shadow_walk");
+        MAP.put(PlayerClass.ASSASSIN, t);
+
+        // Awakened Assassin class
+        t = new Triggers();
+        t.left = List.of("lethal_combo");
+        t.right = List.of("ravaging_dash");
+        t.rightSneak = List.of("crimson_arc");
+        t.leftSneak = List.of("last_dance");
+        // Death Bloom is the class's sneak ability
+        t.sneakStart = List.of("death_bloom");
+        MAP.put(PlayerClass.AWAKASSASSIN, t);
+
+        // Awakened Warrior class
+        t = new Triggers();
+        t.left = List.of("brutal_combo");
+        t.right = List.of("berserkers_leap");
+        t.rightSneak = List.of("relentless_whirlwind");
+        t.leftSneak = List.of("strike_of_fury");
+        t.sneakStart = List.of("bloodbound_barrier");
+        t.sneakEnd = List.of("vicious_strike");
+        MAP.put(PlayerClass.AWAKWARRIOR, t);
 
         // Dragonian class
         t = new Triggers();
@@ -235,8 +264,12 @@ public class ClassSpellListener implements Listener {
             }
         }
 
-        if (p.isSneaking()) cast(p, tr.leftSneak, pc);
-        else cast(p, tr.left, pc);
+        if (p.isSneaking()) {
+            cast(p, tr.leftSneak, pc);
+            pendingSneak.remove(p.getUniqueId());
+        } else {
+            cast(p, tr.left, pc);
+        }
     }
 
     @EventHandler
@@ -254,6 +287,7 @@ public class ClassSpellListener implements Listener {
 
         if (p.isSneaking()) {
             cast(p, tr.rightSneak, pc);
+            pendingSneak.remove(p.getUniqueId());
             return;
         }
 
@@ -269,7 +303,9 @@ public class ClassSpellListener implements Listener {
         Triggers tr = MAP.get(pc);
         if (tr == null) return;
         if (event.isSneaking()) {
-            cast(p, tr.sneakStart, pc);
+            if (pc != PlayerClass.WITCH && !tr.sneakStart.isEmpty()) {
+                pendingSneak.add(p.getUniqueId());
+            }
 
             if (pc == PlayerClass.WITCH) {
                 long now = System.currentTimeMillis();
@@ -302,32 +338,21 @@ public class ClassSpellListener implements Listener {
                 if (old != null) old.cancel();
                 old = holdCastTasks.put(p.getUniqueId(), castTask);
                 if (old != null) old.cancel();
-            } else if (pc == PlayerClass.MAGE || pc == PlayerClass.ABYSSION) {
-                BukkitTask task = Bukkit.getScheduler().runTaskTimer(
-                        Main.getPlugin(),
-                        () -> {
-                            if (p.isOnline() && p.isSneaking()) {
-                                for (String id : tr.sneakStart) {
-                                    MythicBukkit.inst().getAPIHelper().castSkill(p, id);
-                                }
-                            }
-                        },
-                        0L, 1L
-                );
-                BukkitTask old = startCastTasks.put(p.getUniqueId(), task);
-                if (old != null) old.cancel();
             }
         } else {
-            cast(p, tr.sneakEnd, pc);
+            boolean castSneak = pendingSneak.remove(p.getUniqueId());
+            if (castSneak) {
+                cast(p, tr.sneakStart, pc);
+                cast(p, tr.sneakEnd, pc);
+            } else if (pc == PlayerClass.WITCH) {
+                cast(p, tr.sneakEnd, pc);
+            }
 
             if (pc == PlayerClass.WITCH) {
                 lastUnsneak.put(p.getUniqueId(), System.currentTimeMillis());
                 BukkitTask task = holdCountTasks.remove(p.getUniqueId());
                 if (task != null) task.cancel();
                 task = holdCastTasks.remove(p.getUniqueId());
-                if (task != null) task.cancel();
-            } else if (pc == PlayerClass.MAGE || pc == PlayerClass.ABYSSION) {
-                BukkitTask task = startCastTasks.remove(p.getUniqueId());
                 if (task != null) task.cancel();
             }
         }

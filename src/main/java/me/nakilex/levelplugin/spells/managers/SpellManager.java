@@ -231,6 +231,161 @@ public class SpellManager {
         spellsById.put("deadeye", Collections.unmodifiableMap(deadeyeIdMap));
         plugin.getLogger().info("[SPELLS] Deadeye combos: " + deadeyeMap.keySet());
 
+        // — ASSASSIN CLASS —
+        Map<String, Spell> assassinMap = new HashMap<>();
+        assassinMap.put("BASIC_ATTACK", basicAttack(
+            "blade_slash", "Blade Slash",
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_BLADE_SLASH"
+        ));
+        assassinMap.put("LRL", new Spell(
+            "assassin_dash", "Assassin Dash", "LRL",
+            5.0,
+            MythicSkillConfig.getCooldownSeconds("Assassin_Dash"), 3,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_ASSASSIN_DASH", 0.0
+        ));
+        assassinMap.put("LLL", new Spell(
+            "dagger_throw", "Dagger Throw", "LLL",
+            8.0,
+            MythicSkillConfig.getCooldownSeconds("Dagger_Throw"), 5,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_DAGGER_THROW", 0.0
+        ));
+        assassinMap.put("RRR", new Spell(
+            "blade_dance", "Blade Dance", "RRR",
+            20.0,
+            MythicSkillConfig.getCooldownSeconds("Blade_Dance"), 10,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_BLADE_DANCE", 0.0
+        ));
+        assassinMap.put("LRR", new Spell(
+            "shadow_walk", "Shadow Walk", "LRR",
+            10.0,
+            MythicSkillConfig.getCooldownSeconds("Shadow_Walk_Skill"), 5,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_SHADOW_WALK", 0.0,
+            true
+        ));
+        spellsByClass.put("assassin", Collections.unmodifiableMap(assassinMap));
+        Map<String, Spell> assassinIdMap = new HashMap<>();
+        for (Spell s : assassinMap.values()) assassinIdMap.put(s.getId().toLowerCase(), s);
+        spellsById.put("assassin", Collections.unmodifiableMap(assassinIdMap));
+        plugin.getLogger().info("[SPELLS] Assassin combos: " + assassinMap.keySet());
+
+        // — AWAKASSASSIN CLASS —
+        Map<String, Spell> awakassassinMap = new HashMap<>();
+        awakassassinMap.put("BASIC_ATTACK", basicAttack(
+            "lethal_combo", "Lethal Combo",
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_LETHAL_COMBO"
+        ));
+        awakassassinMap.put("LRL", new Spell(
+            "ravaging_dash", "Ravaging Dash", "LRL",
+            6.0,
+            MythicSkillConfig.getCooldownSeconds("Ravaging_Dash_CAST"), 3,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_RAVAGING_DASH", 0.0
+        ));
+        awakassassinMap.put("LLL", new Spell(
+            "crimson_arc", "Crimson Arc", "LLL",
+            8.0,
+            MythicSkillConfig.getCooldownSeconds("Crimson_Arc"), 5,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_CRIMSON_ARC", 0.0
+        ));
+        awakassassinMap.put("RRR", new Spell(
+            "last_dance", "Last Dance", "RRR",
+            20.0,
+            MythicSkillConfig.getCooldownSeconds("Last_Dance"), 10,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_LAST_DANCE", 0.0
+        ));
+        awakassassinMap.put("LLR", new Spell(
+            "shadowquake", "Shadowquake", "LLR",
+            10.0,
+            MythicSkillConfig.getCooldownSeconds("Shadowquake_Skill"), 5,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_SHADOWQUAKE", 0.0
+        ));
+        // Death Bloom is triggered via the player sneaking rather than a click combo
+        awakassassinMap.put("SNEAK", new Spell(
+            "death_bloom", "Death Bloom", "SNEAK",
+            12.0,
+            MythicSkillConfig.getCooldownSeconds("Death_Bloom_CAST"), 8,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_DEATH_BLOOM", 0.0
+        ));
+        awakassassinMap.put("LRR", new Spell(
+            "deadly_calm", "Deadly Calm", "LRR",
+            0.0,
+            MythicSkillConfig.getCooldownSeconds("Deadly_Calm"), 0,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_DEADLY_CALM", 0.0,
+            true
+        ));
+        spellsByClass.put("awakassassin", Collections.unmodifiableMap(awakassassinMap));
+        Map<String, Spell> awakAssIdMap = new HashMap<>();
+        for (Spell s : awakassassinMap.values()) awakAssIdMap.put(s.getId().toLowerCase(), s);
+        spellsById.put("awakassassin", Collections.unmodifiableMap(awakAssIdMap));
+        plugin.getLogger().info("[SPELLS] AwakAssassin combos: " + awakassassinMap.keySet());
+
+        // — AWAKWARRIOR CLASS —
+        Map<String, Spell> awakwarriorMap = new HashMap<>();
+        awakwarriorMap.put("BASIC_ATTACK", basicAttack(
+            "brutal_combo", "Brutal Combo",
+            WARRIOR_WEAPONS,
+            "MYTHIC_BRUTAL_COMBO"
+        ));
+        awakwarriorMap.put("LRL", new Spell(
+            "berserkers_leap", "Berserkers Leap", "LRL",
+            8.0,
+            MythicSkillConfig.getCooldownSeconds("Berserkers_Leap"), 3,
+            WARRIOR_WEAPONS,
+            "MYTHIC_BERSERKERS_LEAP", 0.0
+        ));
+        awakwarriorMap.put("LLR", new Spell(
+            "bloodbound_barrier", "Bloodbound Barrier", "LLR",
+            10.0,
+            MythicSkillConfig.getCooldownSeconds("Bloodbound_Barrier"), 5,
+            WARRIOR_WEAPONS,
+            "MYTHIC_BLOODBOUND_BARRIER", 0.0
+        ));
+        awakwarriorMap.put("LLL", new Spell(
+            "relentless_whirlwind", "Relentless Whirlwind", "LLL",
+            12.0,
+            MythicSkillConfig.getCooldownSeconds("Relentless_Whirlwind"), 5,
+            WARRIOR_WEAPONS,
+            "MYTHIC_RELENTLESS_WHIRLWIND", 0.0
+        ));
+        awakwarriorMap.put("RLL", new Spell(
+            "vicious_strike", "Vicious Strike", "RLL",
+            6.0,
+            MythicSkillConfig.getCooldownSeconds("Vicious_Strike"), 3,
+            WARRIOR_WEAPONS,
+            "MYTHIC_VICIOUS_STRIKE", 0.0
+        ));
+        awakwarriorMap.put("RRR", new Spell(
+            "strike_of_fury", "Strike Of Fury", "RRR",
+            20.0,
+            MythicSkillConfig.getCooldownSeconds("Strike_Of_Fury"), 10,
+            WARRIOR_WEAPONS,
+            "MYTHIC_STRIKE_OF_FURY", 0.0
+        ));
+        awakwarriorMap.put("LRR", new Spell(
+            "bulwark_instinct", "Bulwark Instinct", "LRR",
+            0.0,
+            MythicSkillConfig.getCooldownSeconds("Bulwark_Instinct"), 0,
+            WARRIOR_WEAPONS,
+            "MYTHIC_BULWARK_INSTINCT", 0.0,
+            true
+        ));
+        spellsByClass.put("awakwarrior", Collections.unmodifiableMap(awakwarriorMap));
+        Map<String, Spell> awakIdMap = new HashMap<>();
+        for (Spell s : awakwarriorMap.values()) awakIdMap.put(s.getId().toLowerCase(), s);
+        spellsById.put("awakwarrior", Collections.unmodifiableMap(awakIdMap));
+        plugin.getLogger().info("[SPELLS] AwakWarrior combos: " + awakwarriorMap.keySet());
+
         // — WARRIOR CLASS —
         Map<String, Spell> warriorMap = new HashMap<>();
         warriorMap.put("BASIC_ATTACK", basicAttack(

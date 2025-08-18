@@ -15,13 +15,16 @@ public enum PlayerClass {
     DEATHKNIGHT(1),
     ARCTICKNIGHT(1),
     DRAGONWARRIOR(1),
+    AWAKASSASSIN(1),
+    AWAKWARRIOR(1),
     DEADEYE(1),
 
     // legacy / misc classes kept for compatibility
     ARCHER(1),
     PHOENIXHUNTER(1),
     PALADIN(1),
-    ABYSSION(1);
+    ABYSSION(1),
+    ASSASSIN(1);
 
     private final int requiredLevel;
 

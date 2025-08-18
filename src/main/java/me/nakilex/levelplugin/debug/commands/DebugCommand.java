@@ -1,11 +1,15 @@
 package me.nakilex.levelplugin.debug.commands;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import me.nakilex.levelplugin.debug.gui.DebugGUI;
 import me.nakilex.levelplugin.debug.AutoCastManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
@@ -44,12 +48,49 @@ public class DebugCommand implements TabExecutor {
             if (sender instanceof Player p) {
                 debugGUI.open(p);
             } else {
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|autocast|tec>");
+                String statUsage = Arrays.stream(StatType.values())
+                        .map(StatType::getAbbrev)
+                        .collect(Collectors.joining("|"));
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|autocast|" + statUsage + ">");
             }
             return true;
         }
 
         String sub = args[0].toLowerCase();
+        StatType statType = StatType.fromAbbrev(sub);
+        if (statType != null) {
+            if (!(sender instanceof Player p)) {
+                sender.sendMessage("Players only.");
+                return true;
+            }
+            StatsManager statsMgr = StatsManager.getInstance();
+            StatsManager.PlayerStats ps = statsMgr.getPlayerStats(p.getUniqueId());
+            if (args.length >= 2) {
+                try {
+                    int val = Integer.parseInt(args[1]);
+                    statsMgr.setBaseStat(ps, statType, val);
+                    statsMgr.recalcDerivedStats(p);
+                    if (statType == StatType.TEC) {
+                        p.sendMessage(String.format("%s set to %d (%.2f atk/s)",
+                                statType.getDisplayName(), val, ps.attackSpeed));
+                    } else {
+                        p.sendMessage(String.format("%s set to %d", statType.getDisplayName(), val));
+                    }
+                } catch (NumberFormatException e) {
+                    p.sendMessage("Usage: /debug " + statType.getAbbrev() + " <value>");
+                }
+            } else {
+                int total = statsMgr.getStatValue(p, statType);
+                if (statType == StatType.TEC) {
+                    p.sendMessage(String.format("%s: %d (%.2f atk/s)",
+                            statType.getDisplayName(), total, ps.attackSpeed));
+                } else {
+                    p.sendMessage(String.format("%s: %d", statType.getDisplayName(), total));
+                }
+            }
+            return true;
+        }
+
         switch (sub) {
             case "mobinfo":
                 if (!(sender instanceof Player p)) {
@@ -88,30 +129,12 @@ public class DebugCommand implements TabExecutor {
                 ToggleFeedbackUtil.sendToggle(p3, "Mage autocast", auto);
                 return true;
 
-            case "tec":
-                if (!(sender instanceof Player p4)) {
-                    sender.sendMessage("Players only.");
-                    return true;
-                }
-                StatsManager statsMgr = StatsManager.getInstance();
-                StatsManager.PlayerStats psTec = statsMgr.getPlayerStats(p4.getUniqueId());
-                if (args.length >= 2) {
-                    try {
-                        int val = Integer.parseInt(args[1]);
-                        psTec.baseTechnique = val;
-                        statsMgr.recalcDerivedStats(p4);
-                        p4.sendMessage(String.format("Technique set to %d (%.2f atk/s)", val, psTec.attackSpeed));
-                    } catch (NumberFormatException e) {
-                        p4.sendMessage("Usage: /debug tec <value>");
-                    }
-                } else {
-                    p4.sendMessage(String.format("Technique: %d (%.2f atk/s)", psTec.baseTechnique + psTec.bonusTechnique, psTec.attackSpeed));
-                }
-                return true;
-
             default:
                 sender.sendMessage("Unknown debug subcommand: " + sub);
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|autocast|tec>");
+                String statUsage2 = Arrays.stream(StatType.values())
+                        .map(StatType::getAbbrev)
+                        .collect(Collectors.joining("|"));
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|autocast|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -119,7 +142,8 @@ public class DebugCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> subs = List.of("mobinfo", "tps", "siege", "autocast", "tec");
+            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "autocast"));
+            subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
                     .toList();

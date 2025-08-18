@@ -118,7 +118,9 @@ public class CommandRegistry {
         plugin.getCommand("opsword").setExecutor(new OpSwordCommand());
         plugin.getCommand("genitem").setExecutor(new me.nakilex.levelplugin.items.commands.GenerateItemCommand());
         plugin.getCommand("setlevel").setExecutor(new SetLevelCommand(plugin));
-        plugin.getCommand("class").setExecutor(new ClassCommand());
+        ClassCommand classCmd = new ClassCommand();
+        plugin.getCommand("class").setExecutor(classCmd);
+        plugin.getCommand("class").setTabCompleter(classCmd);
         plugin.getCommand("subclass").setExecutor(new me.nakilex.levelplugin.player.classes.commands.SubclassCommand());
         plugin.getCommand("balance").setExecutor(new BalanceCommand(economyManager));
         AddCoinsCommand addCoinsCmd = new AddCoinsCommand(economyManager);
