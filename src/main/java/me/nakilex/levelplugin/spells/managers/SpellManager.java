@@ -386,6 +386,62 @@ public class SpellManager {
         spellsById.put("awakwarrior", Collections.unmodifiableMap(awakIdMap));
         plugin.getLogger().info("[SPELLS] AwakWarrior combos: " + awakwarriorMap.keySet());
 
+        // — AWAKARCHER CLASS —
+        Map<String, Spell> awakarcherMap = new HashMap<>();
+        awakarcherMap.put("BASIC_ATTACK", basicAttack(
+            "blasting_combo", "Blasting Combo",
+            WeaponType.BOW.getMaterials(),
+            "MYTHIC_BLASTING_COMBO"
+        ));
+        awakarcherMap.put("LRL", new Spell(
+            "evasive_shot", "Evasive Shot", "LRL",
+            8.0,
+            MythicSkillConfig.getCooldownSeconds("Evasive_Shot_CAST"), 3,
+            WeaponType.BOW.getMaterials(),
+            "MYTHIC_EVASIVE_SHOT", 0.0
+        ));
+        awakarcherMap.put("LLL", new Spell(
+            "piercing_skyfall", "Piercing Skyfall", "LLL",
+            10.0,
+            MythicSkillConfig.getCooldownSeconds("Piercing_Skyfall_Skill"), 5,
+            WeaponType.BOW.getMaterials(),
+            "MYTHIC_PIERCING_SKYFALL", 0.0
+        ));
+        awakarcherMap.put("RLL", new Spell(
+            "rapid_arrows", "Rapid Arrows", "RLL",
+            12.0,
+            MythicSkillConfig.getCooldownSeconds("Rapid_Arrows_CAST"), 8,
+            WeaponType.BOW.getMaterials(),
+            "MYTHIC_RAPID_ARROWS", 0.0
+        ));
+        awakarcherMap.put("RRR", new Spell(
+            "shot_of_destruction", "Shot Of Destruction", "RRR",
+            20.0,
+            MythicSkillConfig.getCooldownSeconds("Shot_Of_Destruction_CAST"), 10,
+            WeaponType.BOW.getMaterials(),
+            "MYTHIC_SHOT_OF_DESTRUCTION", 0.0
+        ));
+        awakarcherMap.put("SNEAK", new Spell(
+            "volley_of_arrows", "Volley Of Arrows", "SNEAK",
+            10.0,
+            MythicSkillConfig.getCooldownSeconds("Volley_Of_Arrows_SKILL"), 5,
+            WeaponType.BOW.getMaterials(),
+            "MYTHIC_VOLLEY_OF_ARROWS", 0.0
+        ));
+        awakarcherMap.put("LRR", new Spell(
+            "ambush", "Ambush", "LRR",
+            0.0,
+            MythicSkillConfig.getCooldownSeconds("Ambush"), 0,
+            WeaponType.BOW.getMaterials(),
+            "MYTHIC_AMBUSH", 0.0,
+            true
+        ));
+        spellsByClass.put("awakarcher", Collections.unmodifiableMap(awakarcherMap));
+        Map<String, Spell> awakArIdMap = new HashMap<>();
+        for (Spell s : awakarcherMap.values()) awakArIdMap.put(s.getId().toLowerCase(), s);
+        spellsById.put("awakarcher", Collections.unmodifiableMap(awakArIdMap));
+        plugin.getLogger().info("[SPELLS] AwakArcher combos: " + awakarcherMap.keySet());
+
         // — WARRIOR CLASS —
         Map<String, Spell> warriorMap = new HashMap<>();
         warriorMap.put("BASIC_ATTACK", basicAttack(

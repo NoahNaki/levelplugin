@@ -110,6 +110,14 @@ public class SpellGUI {
         SPELL_DESCRIPTIONS.put("bloodbound_barrier", "Conjure a barrier fueled by blood.");
         SPELL_DESCRIPTIONS.put("vicious_strike", "Wind up a devastating strike.");
         SPELL_DESCRIPTIONS.put("strike_of_fury", "Unleash a furious ultimate assault.");
+        // Awakened Archer
+        SPELL_DESCRIPTIONS.put("blasting_combo", "Roll and fire a bursting arrow combo.");
+        SPELL_DESCRIPTIONS.put("evasive_shot", "Leap back and shoot in mid-air.");
+        SPELL_DESCRIPTIONS.put("piercing_skyfall", "Rain piercing arrows from above.");
+        SPELL_DESCRIPTIONS.put("rapid_arrows", "Loose a flurry of rapid arrows.");
+        SPELL_DESCRIPTIONS.put("shot_of_destruction", "Charge an arrow that devastates targets.");
+        SPELL_DESCRIPTIONS.put("volley_of_arrows", "Call down a volley of arrows around you.");
+        SPELL_DESCRIPTIONS.put("ambush", "Prepare to bleed targets with your next strike.");
 
         SPELL_DESCRIPTIONS.put("fireball", "Launch a blazing projectile.");
         SPELL_DESCRIPTIONS.put("blink", "Teleport a short distance.");
@@ -212,6 +220,14 @@ public class SpellGUI {
         SPELL_USAGE.put("bloodbound_barrier", "Sneak");
         SPELL_USAGE.put("vicious_strike", "Sneak + Toggle");
         SPELL_USAGE.put("strike_of_fury", "Sneak + Left Click");
+        // Awakened Archer
+        SPELL_USAGE.put("blasting_combo", "Left Click");
+        SPELL_USAGE.put("evasive_shot", "Left + Right + Left");
+        SPELL_USAGE.put("piercing_skyfall", "Left + Left + Left");
+        SPELL_USAGE.put("rapid_arrows", "Right + Left + Left");
+        SPELL_USAGE.put("shot_of_destruction", "Right + Right + Right");
+        SPELL_USAGE.put("volley_of_arrows", "Sneak + Toggle");
+        SPELL_USAGE.put("ambush", "Passive");
         SPELL_USAGE.put("fireball", "Left Click");
         SPELL_USAGE.put("blink", "Right Click");
         SPELL_USAGE.put("meteor", "Sneak + Right Click");
@@ -314,6 +330,14 @@ public class SpellGUI {
         Map.entry("bloodbound_barrier", "icon_bloodbound_barrier"),
         Map.entry("vicious_strike", "icon_vicious_strike"),
         Map.entry("strike_of_fury", "icon_strike_of_fury"),
+        // Awakened Archer
+        Map.entry("blasting_combo", "icon_blasting_combo"),
+        Map.entry("evasive_shot", "icon_evasive_shot"),
+        Map.entry("piercing_skyfall", "icon_piercing_skyfall"),
+        Map.entry("rapid_arrows", "icon_rapid_arrows"),
+        Map.entry("shot_of_destruction", "icon_shot_of_destruction"),
+        Map.entry("volley_of_arrows", "icon_volley_of_arrows"),
+        Map.entry("ambush", "icon_ambush"),
         Map.entry("fireball", "icon_fireball"),
         Map.entry("blink", "icon_blink"),
         Map.entry("meteor", "icon_meteor"),

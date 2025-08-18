@@ -20,7 +20,8 @@ public final class ClassUtil {
     public static boolean isArcherFamily(PlayerClass cls) {
         return cls == PlayerClass.ARCHER
                 || cls == PlayerClass.DEADEYE
-                || cls == PlayerClass.PHOENIXHUNTER;
+                || cls == PlayerClass.PHOENIXHUNTER
+                || cls == PlayerClass.AWAKARCHER;
     }
 
     /** Returns true if the class belongs to the Rogue family. */

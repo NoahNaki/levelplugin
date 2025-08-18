@@ -132,6 +132,15 @@ public class EffectRegistry {
         register("MYTHIC_STRIKE_OF_FURY", new MythicSkillEffect("Strike_Of_Fury"));
         register("MYTHIC_BULWARK_INSTINCT", new MythicSkillEffect("Bulwark_Instinct"));
 
+        // --- Awakened Archer Mythic skills ---
+        register("MYTHIC_BLASTING_COMBO", new MythicSkillEffect("Blasting_Combo"));
+        register("MYTHIC_EVASIVE_SHOT", new MythicSkillEffect("Evasive_Shot"));
+        register("MYTHIC_VOLLEY_OF_ARROWS", new MythicSkillEffect("Volley_Of_Arrows"));
+        register("MYTHIC_PIERCING_SKYFALL", new MythicSkillEffect("Piercing_Skyfall"));
+        register("MYTHIC_RAPID_ARROWS", new MythicSkillEffect("Rapid_Arrows"));
+        register("MYTHIC_SHOT_OF_DESTRUCTION", new MythicSkillEffect("Shot_Of_Destruction"));
+        register("MYTHIC_AMBUSH", new MythicSkillEffect("Ambush"));
+
         // --- Mage Mythic skills ---
         register("MYTHIC_FIREBALL", new MythicSkillEffect("Fireball"));
         register("MYTHIC_BLINK", new me.nakilex.levelplugin.spells.effect.mage.TeleportEffect());
