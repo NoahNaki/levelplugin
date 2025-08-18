@@ -327,7 +327,13 @@ public class ClassSpellListener implements Listener {
         if (event.isSneaking()) {
             // cancel any pending unsneak cast if player crouches again quickly
             BukkitTask pending = pendingUnsneak.remove(p.getUniqueId());
-            if (pending != null) pending.cancel();
+            if (pending != null) {
+                pending.cancel();
+                // make sure any preparatory aura from the first crouch still fires
+                if (!tr.sneakStart.isEmpty()) {
+                    cast(p, tr.sneakStart, pc);
+                }
+            }
 
             if (pc != PlayerClass.WITCH) {
                 if (!tr.sneakStart.isEmpty()) {
