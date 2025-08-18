@@ -155,6 +155,7 @@ public class ListenerRegistry {
         pm.registerEvents(new DoubleJumpListener(), plugin);
         pm.registerEvents(new DamageIndicatorListener(dmgToggleManager), plugin);
         pm.registerEvents(new DamageChatListener(), plugin);
+        pm.registerEvents(new SweepAttackListener(), plugin);
         pm.registerEvents(settingsGUI, plugin);
         pm.registerEvents(debugGUI, plugin);
         pm.registerEvents(new GuildGUIListener(), plugin);
