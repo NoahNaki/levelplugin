@@ -44,10 +44,8 @@ public interface PathNpc {
             return false;
         }
         Bukkit.getLogger().info("[MercenaryDebug] Attempting to cast '" + skill + "' at " + target.getName());
-        boolean success = MythicBukkit.inst().getAPIHelper().castSkill(npc.getEntity(), skill, meta -> {
-            meta.setTrigger(BukkitAdapter.adapt(target));
-            meta.setLocation(BukkitAdapter.adapt(target.getLocation()));
-        });
+        boolean success = MythicBukkit.inst().getAPIHelper().castSkill(npc.getEntity(), skill, meta ->
+                meta.setTrigger(BukkitAdapter.adapt(target)));
         if (!success) {
             Bukkit.getLogger().warning("[MercenaryDebug] castSkill returned false for '" + skill + "'");
             return false;

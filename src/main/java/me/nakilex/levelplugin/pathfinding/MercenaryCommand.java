@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.pathfinding;
 import me.nakilex.levelplugin.pathfinding.MercenaryManager.Mode;
 import me.nakilex.levelplugin.pathfinding.npc.AssassinMercenary;
 import net.citizensnpcs.api.CitizensAPI;
+import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -89,10 +90,14 @@ public class MercenaryCommand implements CommandExecutor, TabCompleter {
                     .collect(Collectors.toList());
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("bind")) {
-            return CitizensAPI.getNPCRegistry().sorted().stream()
-                    .map(npc -> Integer.toString(npc.getId()))
-                    .filter(id -> id.startsWith(args[1]))
-                    .collect(Collectors.toList());
+            List<String> ids = new ArrayList<>();
+            for (NPC npc : CitizensAPI.getNPCRegistry().sorted()) {
+                String id = Integer.toString(npc.getId());
+                if (id.startsWith(args[1])) {
+                    ids.add(id);
+                }
+            }
+            return ids;
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("bind")) {
             return Bukkit.getOnlinePlayers().stream()
