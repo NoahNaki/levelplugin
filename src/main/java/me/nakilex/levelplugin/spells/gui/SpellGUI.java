@@ -88,6 +88,12 @@ public class SpellGUI {
         SPELL_DESCRIPTIONS.put("tidal_wave", "Summon a wave that knocks foes back.");
         SPELL_DESCRIPTIONS.put("aqua_aura", "Emit an aura that empowers allies.");
         SPELL_DESCRIPTIONS.put("abyssal_smash", "Leap high and smash down with tidal force.");
+        // Assassin
+        SPELL_DESCRIPTIONS.put("blade_slash", "Slash enemies with your blade.");
+        SPELL_DESCRIPTIONS.put("assassin_dash", "Dash swiftly forward.");
+        SPELL_DESCRIPTIONS.put("dagger_throw", "Hurl daggers at distant foes.");
+        SPELL_DESCRIPTIONS.put("blade_dance", "Teleport between enemies with deadly strikes.");
+        SPELL_DESCRIPTIONS.put("shadow_walk", "Vanish into the shadows to gain invisibility.");
         SPELL_DESCRIPTIONS.put("fireball", "Launch a blazing projectile.");
         SPELL_DESCRIPTIONS.put("blink", "Teleport a short distance.");
         SPELL_DESCRIPTIONS.put("frost_nova", "Freeze and damage nearby foes.");
@@ -167,6 +173,11 @@ public class SpellGUI {
         SPELL_USAGE.put("tidal_wave", "Sneak + Right Click");
         SPELL_USAGE.put("aqua_aura", "Sneak");
         SPELL_USAGE.put("abyssal_smash", "Sneak + Left Click");
+        SPELL_USAGE.put("blade_slash", "Left Click");
+        SPELL_USAGE.put("assassin_dash", "Right Click");
+        SPELL_USAGE.put("dagger_throw", "Sneak + Right Click");
+        SPELL_USAGE.put("blade_dance", "Sneak + Left Click");
+        SPELL_USAGE.put("shadow_walk", "Sneak");
         SPELL_USAGE.put("fireball", "Left Click");
         SPELL_USAGE.put("blink", "Right Click");
         SPELL_USAGE.put("meteor", "Sneak + Right Click");
@@ -248,6 +259,11 @@ public class SpellGUI {
         Map.entry("tidal_wave", "icon_tidal_wave"),
         Map.entry("aqua_aura", "icon_aqua_aura"),
         Map.entry("abyssal_smash", "icon_abyssal_smash"),
+        Map.entry("blade_slash", "icon_blade_slash"),
+        Map.entry("assassin_dash", "icon_assassin_dash"),
+        Map.entry("dagger_throw", "icon_dagger_throw"),
+        Map.entry("blade_dance", "icon_blade_dance"),
+        Map.entry("shadow_walk", "icon_shadow_walk"),
         Map.entry("fireball", "icon_fireball"),
         Map.entry("blink", "icon_blink"),
         Map.entry("meteor", "icon_meteor"),
@@ -307,6 +323,7 @@ public class SpellGUI {
             case BARBARIAN -> "barbarian";
             case PALADIN -> "paladin";
             case DEATHKNIGHT -> "deathknight";
+            case ASSASSIN -> "assassin";
             case ABYSSION -> "abyssion";
             case MAGE -> "mage";
             case DRAGONIAN -> "dragonian";

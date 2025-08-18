@@ -231,6 +231,48 @@ public class SpellManager {
         spellsById.put("deadeye", Collections.unmodifiableMap(deadeyeIdMap));
         plugin.getLogger().info("[SPELLS] Deadeye combos: " + deadeyeMap.keySet());
 
+        // — ASSASSIN CLASS —
+        Map<String, Spell> assassinMap = new HashMap<>();
+        assassinMap.put("BASIC_ATTACK", basicAttack(
+            "blade_slash", "Blade Slash",
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_BLADE_SLASH"
+        ));
+        assassinMap.put("LRL", new Spell(
+            "assassin_dash", "Assassin Dash", "LRL",
+            5.0,
+            MythicSkillConfig.getCooldownSeconds("Assassin_Dash"), 3,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_ASSASSIN_DASH", 0.0
+        ));
+        assassinMap.put("LLL", new Spell(
+            "dagger_throw", "Dagger Throw", "LLL",
+            8.0,
+            MythicSkillConfig.getCooldownSeconds("Dagger_Throw"), 5,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_DAGGER_THROW", 0.0
+        ));
+        assassinMap.put("RRR", new Spell(
+            "blade_dance", "Blade Dance", "RRR",
+            20.0,
+            MythicSkillConfig.getCooldownSeconds("Blade_Dance"), 10,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_BLADE_DANCE", 0.0
+        ));
+        assassinMap.put("LRR", new Spell(
+            "shadow_walk", "Shadow Walk", "LRR",
+            10.0,
+            MythicSkillConfig.getCooldownSeconds("Shadow_Walk_Skill"), 5,
+            WeaponType.SWORD.getMaterials(),
+            "MYTHIC_SHADOW_WALK", 0.0,
+            true
+        ));
+        spellsByClass.put("assassin", Collections.unmodifiableMap(assassinMap));
+        Map<String, Spell> assassinIdMap = new HashMap<>();
+        for (Spell s : assassinMap.values()) assassinIdMap.put(s.getId().toLowerCase(), s);
+        spellsById.put("assassin", Collections.unmodifiableMap(assassinIdMap));
+        plugin.getLogger().info("[SPELLS] Assassin combos: " + assassinMap.keySet());
+
         // — WARRIOR CLASS —
         Map<String, Spell> warriorMap = new HashMap<>();
         warriorMap.put("BASIC_ATTACK", basicAttack(

@@ -138,7 +138,8 @@ public class SubclassGUI implements Listener {
             Map.entry(PlayerClass.DEADEYE, new Rating(4,2,4,3)),
             Map.entry(PlayerClass.PHOENIXHUNTER, new Rating(5,2,4,4)),
             Map.entry(PlayerClass.PALADIN, new Rating(4,5,2,3)),
-            Map.entry(PlayerClass.ABYSSION, new Rating(4,4,3,3))
+            Map.entry(PlayerClass.ABYSSION, new Rating(4,4,3,3)),
+            Map.entry(PlayerClass.ASSASSIN, new Rating(5,2,5,3))
     );
 
     private static Map<String, String> SPELL_USAGE;
@@ -169,7 +170,8 @@ public class SubclassGUI implements Listener {
             Map.entry(PlayerClass.DEADEYE, "Sharpshooter wielding pistols and explosives."),
             Map.entry(PlayerClass.PHOENIXHUNTER, "Flame archer empowered by the phoenix."),
             Map.entry(PlayerClass.PALADIN, "Holy fighter boasting strong defence."),
-            Map.entry(PlayerClass.ABYSSION, "Tide-wielding swordsman controlling water."));
+            Map.entry(PlayerClass.ABYSSION, "Tide-wielding swordsman controlling water."),
+            Map.entry(PlayerClass.ASSASSIN, "Stealthy fighter striking swiftly from shadows."));
 
     private static String bar(int val) {
         StringBuilder sb = new StringBuilder();

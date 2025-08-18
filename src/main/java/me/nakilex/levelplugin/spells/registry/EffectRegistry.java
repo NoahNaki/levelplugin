@@ -107,6 +107,13 @@ public class EffectRegistry {
         register("MYTHIC_AQUA_AURA", new MythicSkillEffect("Aqua_Aura"));
         register("MYTHIC_ABYSSAL_SMASH", new MythicSkillEffect("Abyssal_Smash"));
 
+        // --- Assassin Mythic skills ---
+        register("MYTHIC_BLADE_SLASH", new MythicSkillEffect("Blade_Slash"));
+        register("MYTHIC_ASSASSIN_DASH", new MythicSkillEffect("Assassin_Dash"));
+        register("MYTHIC_DAGGER_THROW", new MythicSkillEffect("Dagger_Throw"));
+        register("MYTHIC_BLADE_DANCE", new MythicSkillEffect("Blade_Dance"));
+        register("MYTHIC_SHADOW_WALK", new MythicSkillEffect("Shadow_Walk"));
+
         // --- Mage Mythic skills ---
         register("MYTHIC_FIREBALL", new MythicSkillEffect("Fireball"));
         register("MYTHIC_BLINK", new me.nakilex.levelplugin.spells.effect.mage.TeleportEffect());
