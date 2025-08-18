@@ -44,6 +44,8 @@ public class ClassSpellListener implements Listener {
         List<String> rightSneak = Collections.emptyList();
         List<String> sneakStart = Collections.emptyList();
         List<String> sneakEnd = Collections.emptyList();
+        /** Mythic skill names to cast immediately on crouch before unsneak */
+        List<String> sneakPrep = Collections.emptyList();
     }
 
     private static final Map<PlayerClass, Triggers> MAP = new EnumMap<>(PlayerClass.class);
@@ -75,6 +77,7 @@ public class ClassSpellListener implements Listener {
         t.rightSneak = List.of("meteor");
         t.right = List.of("blink");
         t.sneakStart = List.of("frost_nova");
+        t.sneakPrep = List.of("Frost_Nova");
         MAP.put(PlayerClass.MAGE, t);
 
         // Warrior class
@@ -148,6 +151,7 @@ public class ClassSpellListener implements Listener {
         t.leftSneak = List.of("last_dance");
         // Death Bloom is the class's sneak ability
         t.sneakStart = List.of("death_bloom");
+        t.sneakPrep = List.of("Death_Bloom");
         MAP.put(PlayerClass.AWAKASSASSIN, t);
 
         // Awakened Warrior class
@@ -312,11 +316,12 @@ public class ClassSpellListener implements Listener {
         Triggers tr = MAP.get(pc);
         if (tr == null) return;
         if (event.isSneaking()) {
-            if (pc != PlayerClass.WITCH && !tr.sneakStart.isEmpty()) {
-                pendingSneak.add(p.getUniqueId());
-                if (pc == PlayerClass.AWAKASSASSIN) {
-                    // Death Bloom requires a prep cast on crouch to apply its aura
-                    MythicBukkit.inst().getAPIHelper().castSkill(p, "Death_Bloom");
+            if (pc != PlayerClass.WITCH) {
+                if (!tr.sneakStart.isEmpty()) {
+                    pendingSneak.add(p.getUniqueId());
+                }
+                for (String skill : tr.sneakPrep) {
+                    MythicBukkit.inst().getAPIHelper().castSkill(p, skill);
                 }
             }
 
