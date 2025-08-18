@@ -190,7 +190,7 @@ public class ClassSpellListener implements Listener {
         t.rightSneak = List.of("chains_of_void");
         t.sneakStart = List.of("meteor_storm");
         t.sneakEnd = List.of("cloak_of_hastur");
-        MAP.put(PlayerClass.AWAKMAGE, t);
+        MAP.put(PlayerClass.ARCHMAGE, t);
 
         // Dragonian class
         t = new Triggers();
@@ -335,8 +335,9 @@ public class ClassSpellListener implements Listener {
         Triggers tr = MAP.get(pc);
         if (tr == null) return;
         if (event.isSneaking()) {
+            UUID id = p.getUniqueId();
             // cancel any pending unsneak cast if player crouches again quickly
-            BukkitTask pending = pendingUnsneak.remove(p.getUniqueId());
+            BukkitTask pending = pendingUnsneak.remove(id);
             if (pending != null) {
                 pending.cancel();
                 // make sure any preparatory aura from the first crouch still fires
@@ -345,9 +346,19 @@ public class ClassSpellListener implements Listener {
                 }
             }
 
+            boolean doubleSneak = false;
+            if (pc != PlayerClass.WITCH && !tr.sneakEnd.isEmpty()) {
+                long now = System.currentTimeMillis();
+                Long last = lastUnsneak.get(id);
+                if (last != null && now - last <= 500) {
+                    cast(p, tr.sneakEnd, pc);
+                    doubleSneak = true;
+                }
+            }
+
             if (pc != PlayerClass.WITCH) {
-                if (!tr.sneakStart.isEmpty()) {
-                    pendingSneak.add(p.getUniqueId());
+                if (!doubleSneak && !tr.sneakStart.isEmpty()) {
+                    pendingSneak.add(id);
                 }
                 for (String skill : tr.sneakPrep) {
                     MythicBukkit.inst().getAPIHelper().castSkill(p, skill);
@@ -356,7 +367,7 @@ public class ClassSpellListener implements Listener {
 
             if (pc == PlayerClass.WITCH) {
                 long now = System.currentTimeMillis();
-                Long last = lastUnsneak.get(p.getUniqueId());
+                Long last = lastUnsneak.get(id);
                 if (last != null && now - last <= 500) {
                     // double crouch
                     MythicBukkit.inst().getAPIHelper().castSkill(p, "mf_class_witch_shiftshift");
@@ -387,31 +398,32 @@ public class ClassSpellListener implements Listener {
                 if (old != null) old.cancel();
             }
         } else {
-            boolean castSneak = pendingSneak.remove(p.getUniqueId());
+            UUID id = p.getUniqueId();
+            boolean castSneak = pendingSneak.remove(id);
             if (castSneak) {
-                BukkitTask old = pendingUnsneak.remove(p.getUniqueId());
+                BukkitTask old = pendingUnsneak.remove(id);
                 if (old != null) old.cancel();
                 BukkitTask task = Bukkit.getScheduler().runTaskLater(
                         Main.getPlugin(),
                         () -> {
                             if (p.isOnline() && !p.isSneaking()) {
                                 cast(p, tr.sneakStart, pc);
-                                cast(p, tr.sneakEnd, pc);
                             }
-                            pendingUnsneak.remove(p.getUniqueId());
+                            pendingUnsneak.remove(id);
                         },
                         4L
                 );
-                pendingUnsneak.put(p.getUniqueId(), task);
+                pendingUnsneak.put(id, task);
             } else if (pc == PlayerClass.WITCH) {
                 cast(p, tr.sneakEnd, pc);
             }
 
+            lastUnsneak.put(id, System.currentTimeMillis());
+
             if (pc == PlayerClass.WITCH) {
-                lastUnsneak.put(p.getUniqueId(), System.currentTimeMillis());
-                BukkitTask task = holdCountTasks.remove(p.getUniqueId());
+                BukkitTask task = holdCountTasks.remove(id);
                 if (task != null) task.cancel();
-                task = holdCastTasks.remove(p.getUniqueId());
+                task = holdCastTasks.remove(id);
                 if (task != null) task.cancel();
             }
         }
