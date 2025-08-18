@@ -5,6 +5,7 @@ import net.citizensnpcs.api.ai.event.NavigationStuckEvent;
 import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.api.trait.trait.Equipment;
 import io.lumine.mythic.bukkit.MythicBukkit;
+import me.nakilex.levelplugin.spells.managers.CooldownManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -108,6 +109,11 @@ public class PathfindingManager {
         private BukkitTask task;
         private int index = 1;
         private LivingEntity combatTarget;
+        private static final String SKILL_DASH = "awakassassin_ravagingdash";
+        private static final String SKILL_LETHAL = "awakassassin_lethalcombo";
+        private static final String SKILL_SHADOW = "awakassassin_shadowstep";
+        private static final String SKILL_FLURRY = "awakassassin_bladeflurry";
+        private final CooldownManager cd = CooldownManager.getInstance();
 
         PathRunner(Plugin plugin, List<Location> points) {
             this.plugin = plugin;
@@ -136,6 +142,21 @@ public class PathfindingManager {
                     if (combatTarget.isDead() || !combatTarget.isValid()) {
                         combatTarget = null;
                         npc.getNavigator().setTarget(points.get(index));
+                        return;
+                    }
+
+                    Location npcLoc = npc.getEntity().getLocation();
+                    Location targetLoc = combatTarget.getLocation();
+                    double distSq = npcLoc.distanceSquared(targetLoc);
+
+                    if (distSq > 9) {
+                        if (!castWithCooldown(SKILL_DASH, 5, combatTarget)) {
+                            npc.getNavigator().setTarget(combatTarget, true);
+                        }
+                    } else {
+                        castWithCooldown(SKILL_LETHAL, 1, combatTarget);
+                        castWithCooldown(SKILL_SHADOW, 8, combatTarget);
+                        castWithCooldown(SKILL_FLURRY, 10, combatTarget);
                     }
                     return;
                 }
@@ -143,8 +164,7 @@ public class PathfindingManager {
                 LivingEntity hostile = findNearestHostile();
                 if (hostile != null) {
                     combatTarget = hostile;
-                    npc.getNavigator().setTarget(hostile, true);
-                    castSkills("awakassassin_shadowstep", "awakassassin_bladeflurry");
+                    castWithCooldown(SKILL_DASH, 5, hostile);
                     return;
                 }
 
@@ -155,7 +175,7 @@ public class PathfindingManager {
                     }
                     npc.getNavigator().setTarget(points.get(index));
                 }
-            }, 20L, 20L);
+            }, 10L, 10L);
         }
 
         @EventHandler
@@ -203,10 +223,18 @@ public class PathfindingManager {
             equip.set(Equipment.EquipmentSlot.BOOTS, new ItemStack(Material.NETHERITE_BOOTS));
         }
 
-        private void castSkills(String... skills) {
-            for (String skill : skills) {
+        private boolean castWithCooldown(String skill, double cooldownSeconds, LivingEntity target) {
+            UUID id = npc.getEntity().getUniqueId();
+            if (cd.isOnCooldown(id, skill)) {
+                return false;
+            }
+            try {
+                MythicBukkit.inst().getAPIHelper().castSkill(npc.getEntity(), skill, target);
+            } catch (NoSuchMethodError e) {
                 MythicBukkit.inst().getAPIHelper().castSkill(npc.getEntity(), skill);
             }
+            cd.setCooldown(id, skill, cooldownSeconds);
+            return true;
         }
     }
 }
