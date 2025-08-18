@@ -71,6 +71,12 @@ import me.nakilex.levelplugin.environment.stage.TownStageCommand;
 import me.nakilex.levelplugin.environment.stage.BuildingStageCommand;
 import me.nakilex.levelplugin.environment.stage.TownPosCommand;
 import me.nakilex.levelplugin.environment.stage.StageSelectionListener;
+import me.nakilex.levelplugin.utils.commands.CenterGuiCommand;
+import me.nakilex.levelplugin.utils.commands.CenterTooltipCommand;
+import me.nakilex.levelplugin.pathfinding.PathfindingCommand;
+import me.nakilex.levelplugin.pathfinding.PathfindingManager;
+import me.nakilex.levelplugin.pathfinding.MercenaryCommand;
+import me.nakilex.levelplugin.pathfinding.MercenaryManager;
 
 public class CommandRegistry {
 
@@ -105,7 +111,9 @@ public class CommandRegistry {
                                         me.nakilex.levelplugin.motd.MotdManager motdManager,
                                         UpgradeGUI upgradeGUI,
                                         CodexMainGUI codexGUI,
-                                        WanderingMerchantManager wmManager) {
+                                        WanderingMerchantManager wmManager,
+                                        PathfindingManager pathManager,
+                                        MercenaryManager mercManager) {
 
 
         plugin.getCommand("addpoints").setExecutor(new AddPointsCommand());
@@ -205,5 +213,14 @@ public class CommandRegistry {
         plugin.getCommand("cutscene").setExecutor(new me.nakilex.levelplugin.cutscene.commands.CutsceneCommand(plugin.getCutsceneManager()));
         plugin.getCommand("dungeon").setExecutor(new me.nakilex.levelplugin.dungeon.DungeonCommand(plugin));
         plugin.getCommand("world").setExecutor(new me.nakilex.levelplugin.world.WorldCommand(plugin.getWorldManager()));
+        plugin.getCommand("centertooltip").setExecutor(new CenterTooltipCommand());
+        plugin.getCommand("centergui").setExecutor(new CenterGuiCommand());
+        PathfindingCommand pfCmd = new PathfindingCommand(pathManager);
+        plugin.getCommand("pathfinding").setExecutor(pfCmd);
+        plugin.getCommand("pathfinding").setTabCompleter(pfCmd);
+
+        MercenaryCommand mercCmd = new MercenaryCommand(mercManager);
+        plugin.getCommand("mercenary").setExecutor(mercCmd);
+        plugin.getCommand("mercenary").setTabCompleter(mercCmd);
     }
 }

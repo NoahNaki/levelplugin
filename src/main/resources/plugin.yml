@@ -231,3 +231,15 @@ commands:
   world:
     description: Manage worlds
     usage: /world <create|import|delete|unload|tp|spawn|setspawn|list|info>
+  centertooltip:
+    description: Give an item with a centered tooltip
+    usage: /centertooltip
+  centergui:
+    description: Open a GUI with a centered title
+    usage: /centergui
+  pathfinding:
+    description: Create and execute NPC paths
+    usage: /pathfinding <set|create|execute>
+  mercenary:
+    description: Bind and control mercenary NPCs
+    usage: /mercenary <bind|unbind|hostile|target>

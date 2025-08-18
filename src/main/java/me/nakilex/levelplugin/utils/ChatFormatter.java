@@ -19,11 +19,24 @@ public class ChatFormatter {
      * in chat. This does not send anything to the player.
      */
     public static String getCenteredText(String message) {
+        return getCenteredText(message, CENTER_PX);
+    }
+
+    /**
+     * Return the provided message padded so that it appears centered based on
+     * a custom pixel width. This is useful for centering text in contexts other
+     * than the standard chat window.
+     *
+     * @param message  the text to center
+     * @param centerPx the pixel position that represents the visual center
+     * @return the message prefixed with spaces to appear centered
+     */
+    public static String getCenteredText(String message, int centerPx) {
         if (message == null || message.isEmpty()) return "";
 
         int messagePxSize = pixelLength(message);
 
-        int toCompensate = CENTER_PX - (messagePxSize / 2);
+        int toCompensate = centerPx - (messagePxSize / 2);
         int spaceLength = DefaultFontInfo.SPACE.getLength() + 1;
         int compensated = 0;
         StringBuilder sb = new StringBuilder();
