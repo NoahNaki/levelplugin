@@ -9,16 +9,14 @@ import org.bukkit.util.Vector;
 
 /** Ranged mage profile wielding multiple Awakened Mage spells. */
 public class MageMercenary extends AbstractRangedMercenary {
-    private final Skill meteor = new Skill("Meteor", 8);
-    private final Skill frost = new Skill("Frost_Nova", 5);
-    private final Skill fireball = new Skill("Fireball", 1);
-    private final Skill missile = new Skill("Arcane_Missile", 2);
-    private final Skill blink = new Skill("Blink", 6);
-    private final Skill[] offensive = {meteor, missile, fireball};
-    private int nextSkill = 0;
+    private static final Skill METEOR = new Skill("Meteor", 8);
+    private static final Skill FROST = new Skill("Frost_Nova", 5);
+    private static final Skill FIREBALL = new Skill("Fireball", 1);
+    private static final Skill MISSILE = new Skill("Arcane_Missile", 2);
+    private static final Skill BLINK = new Skill("Blink", 6);
 
     public MageMercenary() {
-        super(org.bukkit.Material.BLAZE_ROD, meteor, missile, fireball);
+        super(org.bukkit.Material.BLAZE_ROD, METEOR, MISSILE, FIREBALL);
     }
 
     @Override
@@ -35,10 +33,10 @@ public class MageMercenary extends AbstractRangedMercenary {
 
         // If too close, try Frost Nova then blink away
         if (distSq < 25) {
-            if (cast(npc, frost, target, cd)) return;
+            if (cast(npc, FROST, target, cd)) return;
             Vector awayDir = npcLoc.toVector().subtract(targetLoc.toVector()).normalize();
             Location away = npcLoc.clone().add(awayDir);
-            if (cast(npc, blink, target, cd)) {
+            if (cast(npc, BLINK, target, cd)) {
                 npc.getNavigator().setTarget(away);
                 return;
             }
@@ -46,13 +44,7 @@ public class MageMercenary extends AbstractRangedMercenary {
 
         if (!maintainRange(npc, target)) return;
 
-        // Offensive spells rotate to use full kit
-        for (int i = 0; i < offensive.length; i++) {
-            int idx = (nextSkill + i) % offensive.length;
-            if (cast(npc, offensive[idx], target, cd)) {
-                nextSkill = (idx + 1) % offensive.length;
-                break;
-            }
-        }
+        // Offensive spells rotate automatically via superclass helper
+        castNextSkill(npc, target, cd);
     }
 }
