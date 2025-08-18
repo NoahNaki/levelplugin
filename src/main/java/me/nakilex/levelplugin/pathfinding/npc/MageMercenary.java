@@ -1,9 +1,10 @@
 package me.nakilex.levelplugin.pathfinding.npc;
 
-/** Ranged mage profile casting a basic bolt from afar. */
+/** Ranged mage profile hurling fireballs from a distance. */
 public class MageMercenary extends AbstractRangedMercenary {
     public MageMercenary() {
-        super(org.bukkit.Material.BLAZE_ROD, "Mage_Bolt");
+        // Fires the Awakened Mage's Fireball spell as its basic attack
+        super(org.bukkit.Material.BLAZE_ROD, "Fireball");
     }
 
     @Override

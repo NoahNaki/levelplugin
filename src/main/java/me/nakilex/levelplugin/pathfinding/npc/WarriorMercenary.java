@@ -7,9 +7,9 @@ import org.bukkit.Material;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.inventory.ItemStack;
 
-/** Simple melee warrior using a basic slash. */
+/** Simple melee warrior using Awakened Warrior's Brutal Combo. */
 public class WarriorMercenary extends AbstractMercenary {
-    private static final String SKILL_SLASH = "Lethal_Combo";
+    private static final String SKILL_SLASH = "Brutal_Combo";
 
     @Override
     protected ItemStack weapon() {

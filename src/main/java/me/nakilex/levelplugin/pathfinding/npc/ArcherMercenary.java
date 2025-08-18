@@ -1,9 +1,10 @@
 package me.nakilex.levelplugin.pathfinding.npc;
 
-/** Ranged archer profile firing arrows from a distance. */
+/** Ranged archer profile firing Blasting Combo arrows from a distance. */
 public class ArcherMercenary extends AbstractRangedMercenary {
     public ArcherMercenary() {
-        super(org.bukkit.Material.BOW, "Archer_Shot");
+        // Uses AwakenedArcher's basic Blasting Combo as its auto-attack
+        super(org.bukkit.Material.BOW, "Blasting_Combo");
     }
 
     @Override
