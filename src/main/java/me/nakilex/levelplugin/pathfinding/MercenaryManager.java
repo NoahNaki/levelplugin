@@ -8,6 +8,7 @@ import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -58,6 +59,8 @@ public class MercenaryManager implements Listener {
         MercenaryFollower f = bindings.get(player.getUniqueId());
         if (f == null) return false;
         f.mode = mode;
+        f.target = null;
+        playerTargets.remove(player.getUniqueId());
         return true;
     }
 
@@ -68,6 +71,9 @@ public class MercenaryManager implements Listener {
     @EventHandler
     public void onPlayerDamage(EntityDamageByEntityEvent event) {
         if (event.getDamager() instanceof Player p && event.getEntity() instanceof LivingEntity le) {
+            if (CitizensAPI.getNPCRegistry().isNPC(p) || CitizensAPI.getNPCRegistry().isNPC(le) || le instanceof Player || !(le instanceof Monster)) {
+                return;
+            }
             playerTargets.put(p.getUniqueId(), le);
         }
     }
@@ -110,8 +116,8 @@ public class MercenaryManager implements Listener {
             }
 
             if (mode == Mode.TARGET) {
-                LivingEntity t = playerTargets.get(owner.getUniqueId());
-                if (t != null && t.isValid() && !t.isDead()) {
+                LivingEntity t = playerTargets.remove(owner.getUniqueId());
+                if (t != null && t.isValid() && !t.isDead() && t != owner && !CitizensAPI.getNPCRegistry().isNPC(t)) {
                     target = t;
                     plugin.getLogger().info("[MercenaryDebug] Targeting mob " + t.getName() + " for " + owner.getName());
                     profile.handleCombat(npc, target, cd);

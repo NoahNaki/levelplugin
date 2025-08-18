@@ -12,10 +12,11 @@ import org.bukkit.inventory.ItemStack;
  * Default pathfinding NPC that mimics an assassin mercenary.
  */
 public class AssassinMercenary implements PathNpc {
-    private static final String SKILL_DASH = "awakassassin_ravagingdash";
-    private static final String SKILL_LETHAL = "awakassassin_lethalcombo";
-    private static final String SKILL_SHADOW = "awakassassin_shadowstep";
-    private static final String SKILL_FLURRY = "awakassassin_bladeflurry";
+    // MythicMobs skill names from the AwakAssassin class configuration
+    private static final String SKILL_DASH = "Ravaging_Dash";
+    private static final String SKILL_LETHAL = "Lethal_Combo";
+    private static final String SKILL_SHADOW = "Shadowquake";
+    private static final String SKILL_BLOOM = "Death_Bloom";
 
     @Override
     public float speedMultiplier() {
@@ -43,8 +44,8 @@ public class AssassinMercenary implements PathNpc {
             }
         } else {
             cast(npc, SKILL_LETHAL, 1, target, cd);
+            cast(npc, SKILL_BLOOM, 5, target, cd);
             cast(npc, SKILL_SHADOW, 8, target, cd);
-            cast(npc, SKILL_FLURRY, 10, target, cd);
         }
     }
 
