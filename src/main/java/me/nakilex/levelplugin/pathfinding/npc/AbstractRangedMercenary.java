@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.pathfinding.npc;
 
 import me.nakilex.levelplugin.spells.managers.CooldownManager;
+import me.nakilex.levelplugin.utils.MobUtil;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -34,22 +35,34 @@ public abstract class AbstractRangedMercenary extends AbstractMercenary {
 
     @Override
     public void handleCombat(NPC npc, LivingEntity target, CooldownManager cd) {
+        if (!maintainRange(npc, target)) return;
+        for (Skill s : skills) {
+            if (cast(npc, s, target, cd)) {
+                break;
+            }
+        }
+    }
+
+    /**
+     * Faces the target and keeps roughly 8–10 blocks of distance.
+     *
+     * @return true if within desired range and ready to attack
+     */
+    protected boolean maintainRange(NPC npc, LivingEntity target) {
         Location npcLoc = npc.getEntity().getLocation();
         Location targetLoc = target.getEyeLocation();
-        npc.faceLocation(targetLoc);
+        MobUtil.faceEntity((LivingEntity) npc.getEntity(), targetLoc);
         double distSq = npcLoc.distanceSquared(targetLoc);
-        if (distSq > 100) { // too far, move closer
-            npc.getNavigator().setTarget(targetLoc);
-        } else if (distSq < 64) { // too close, back off to roughly 8 blocks
+        if (distSq > 100) { // >10 blocks, chase target entity
+            npc.getNavigator().setTarget(target, true);
+            return false;
+        }
+        if (distSq < 64) { // <8 blocks, back off to ~8
             Vector dir = npcLoc.toVector().subtract(targetLoc.toVector()).normalize().multiply(8);
             Location away = targetLoc.clone().add(dir);
             npc.getNavigator().setTarget(away);
-        } else {
-            for (Skill s : skills) {
-                if (cast(npc, s, target, cd)) {
-                    break;
-                }
-            }
+            return false;
         }
+        return true;
     }
 }
