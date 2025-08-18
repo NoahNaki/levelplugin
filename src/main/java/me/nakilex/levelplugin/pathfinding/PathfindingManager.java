@@ -3,9 +3,9 @@ package me.nakilex.levelplugin.pathfinding;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.ai.event.NavigationStuckEvent;
 import net.citizensnpcs.api.npc.NPC;
-import net.citizensnpcs.api.trait.trait.Equipment;
-import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.spells.managers.CooldownManager;
+import me.nakilex.levelplugin.pathfinding.npc.AssassinMercenary;
+import me.nakilex.levelplugin.pathfinding.npc.PathNpc;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -13,8 +13,6 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Monster;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.Material;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
@@ -85,13 +83,18 @@ public class PathfindingManager {
         editingPoints.clear();
     }
 
-    /** Execute a previously created path. */
+    /** Execute a previously created path with default assassin profile. */
     public void executePath(String name) {
+        executePath(name, new AssassinMercenary());
+    }
+
+    /** Execute a previously created path with a custom NPC profile. */
+    public void executePath(String name, PathNpc profile) {
         List<Location> list = paths.get(name.toLowerCase(Locale.ROOT));
         if (list == null || list.isEmpty()) {
             return;
         }
-        new PathRunner(plugin, list).start();
+        new PathRunner(plugin, list, profile).start();
     }
 
     public Set<String> getPathNames() {
@@ -106,31 +109,27 @@ public class PathfindingManager {
         private final Plugin plugin;
         private final NPC npc;
         private final List<Location> points;
+        private final PathNpc profile;
         private BukkitTask task;
         private int index = 1;
         private LivingEntity combatTarget;
-        private static final String SKILL_DASH = "awakassassin_ravagingdash";
-        private static final String SKILL_LETHAL = "awakassassin_lethalcombo";
-        private static final String SKILL_SHADOW = "awakassassin_shadowstep";
-        private static final String SKILL_FLURRY = "awakassassin_bladeflurry";
         private final CooldownManager cd = CooldownManager.getInstance();
 
-        PathRunner(Plugin plugin, List<Location> points) {
+        PathRunner(Plugin plugin, List<Location> points, PathNpc profile) {
             this.plugin = plugin;
             this.points = points;
-            this.npc = CitizensAPI.getNPCRegistry().createNPC(EntityType.PLAYER, "PathNPC");
+            this.profile = profile;
+            this.npc = CitizensAPI.getNPCRegistry().createNPC(EntityType.PLAYER, profile.name());
             Bukkit.getPluginManager().registerEvents(this, plugin);
         }
 
         void start() {
             npc.spawn(points.get(0));
 
-            // Increase walking speed 1.5x beyond the previous triple boost
+            // Apply speed multiplier and equipment from the profile
             var params = npc.getNavigator().getDefaultParameters();
-            params.baseSpeed(params.baseSpeed() * 4.5f);
-
-            // Equip the NPC with mythic weapon and netherite armor
-            equipGear();
+            params.baseSpeed(params.baseSpeed() * profile.speedMultiplier());
+            profile.equip(npc);
 
             if (points.size() <= 1) {
                 cleanup();
@@ -144,27 +143,14 @@ public class PathfindingManager {
                         npc.getNavigator().setTarget(points.get(index));
                         return;
                     }
-
-                    Location npcLoc = npc.getEntity().getLocation();
-                    Location targetLoc = combatTarget.getLocation();
-                    double distSq = npcLoc.distanceSquared(targetLoc);
-
-                    if (distSq > 9) {
-                        if (!castWithCooldown(SKILL_DASH, 5, combatTarget)) {
-                            npc.getNavigator().setTarget(combatTarget, true);
-                        }
-                    } else {
-                        castWithCooldown(SKILL_LETHAL, 1, combatTarget);
-                        castWithCooldown(SKILL_SHADOW, 8, combatTarget);
-                        castWithCooldown(SKILL_FLURRY, 10, combatTarget);
-                    }
+                    profile.handleCombat(npc, combatTarget, cd);
                     return;
                 }
 
                 LivingEntity hostile = findNearestHostile();
                 if (hostile != null) {
                     combatTarget = hostile;
-                    castWithCooldown(SKILL_DASH, 5, hostile);
+                    profile.handleCombat(npc, combatTarget, cd);
                     return;
                 }
 
@@ -209,32 +195,6 @@ public class PathfindingManager {
                     .map(e -> (LivingEntity) e)
                     .min(Comparator.comparingDouble(e -> e.getLocation().distanceSquared(loc)))
                     .orElse(null);
-        }
-
-        private void equipGear() {
-            Equipment equip = npc.getOrAddTrait(Equipment.class);
-            ItemStack weapon = MythicBukkit.inst().getItemManager()
-                    .getItemStack("awakened_assassin_duskblade")
-                    .orElse(new ItemStack(Material.NETHERITE_SWORD));
-            equip.set(Equipment.EquipmentSlot.HAND, weapon);
-            equip.set(Equipment.EquipmentSlot.HELMET, new ItemStack(Material.NETHERITE_HELMET));
-            equip.set(Equipment.EquipmentSlot.CHESTPLATE, new ItemStack(Material.NETHERITE_CHESTPLATE));
-            equip.set(Equipment.EquipmentSlot.LEGGINGS, new ItemStack(Material.NETHERITE_LEGGINGS));
-            equip.set(Equipment.EquipmentSlot.BOOTS, new ItemStack(Material.NETHERITE_BOOTS));
-        }
-
-        private boolean castWithCooldown(String skill, double cooldownSeconds, LivingEntity target) {
-            UUID id = npc.getEntity().getUniqueId();
-            if (cd.isOnCooldown(id, skill)) {
-                return false;
-            }
-            try {
-                MythicBukkit.inst().getAPIHelper().castSkill(npc.getEntity(), skill, target);
-            } catch (NoSuchMethodError e) {
-                MythicBukkit.inst().getAPIHelper().castSkill(npc.getEntity(), skill);
-            }
-            cd.setCooldown(id, skill, cooldownSeconds);
-            return true;
         }
     }
 }
