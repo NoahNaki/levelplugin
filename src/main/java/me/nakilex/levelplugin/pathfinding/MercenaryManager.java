@@ -9,6 +9,7 @@ import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.trait.CurrentLocation;
 import net.citizensnpcs.trait.LookClose;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
@@ -171,7 +172,8 @@ public class MercenaryManager implements Listener {
                     return;
                 }
 
-                npc.getEntity().lookAt(target.getEyeLocation(), LookAnchor.EYES);
+                Location eye = target.getEyeLocation();
+                npc.getEntity().lookAt(eye.getX(), eye.getY(), eye.getZ(), LookAnchor.EYES);
                 profile.handleCombat(npc, target, cd);
                 return;
             }
