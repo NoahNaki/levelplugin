@@ -34,6 +34,8 @@ public class ClassSpellListener implements Listener {
     private final Map<UUID, Long> lastUnsneak = new HashMap<>();
     /** Players who started sneaking and haven't used a sneak-click combo yet */
     private final Set<UUID> pendingSneak = new HashSet<>();
+    /** Sneak releases scheduled to fire after a short delay */
+    private final Map<UUID, BukkitTask> pendingUnsneak = new HashMap<>();
 
     private enum Trigger { LEFT, LEFT_SNEAK, RIGHT, RIGHT_SNEAK, SNEAK_START, SNEAK_END }
 
@@ -316,6 +318,10 @@ public class ClassSpellListener implements Listener {
         Triggers tr = MAP.get(pc);
         if (tr == null) return;
         if (event.isSneaking()) {
+            // cancel any pending unsneak cast if player crouches again quickly
+            BukkitTask pending = pendingUnsneak.remove(p.getUniqueId());
+            if (pending != null) pending.cancel();
+
             if (pc != PlayerClass.WITCH) {
                 if (!tr.sneakStart.isEmpty()) {
                     pendingSneak.add(p.getUniqueId());
@@ -360,8 +366,20 @@ public class ClassSpellListener implements Listener {
         } else {
             boolean castSneak = pendingSneak.remove(p.getUniqueId());
             if (castSneak) {
-                cast(p, tr.sneakStart, pc);
-                cast(p, tr.sneakEnd, pc);
+                BukkitTask old = pendingUnsneak.remove(p.getUniqueId());
+                if (old != null) old.cancel();
+                BukkitTask task = Bukkit.getScheduler().runTaskLater(
+                        Main.getPlugin(),
+                        () -> {
+                            if (p.isOnline() && !p.isSneaking()) {
+                                cast(p, tr.sneakStart, pc);
+                                cast(p, tr.sneakEnd, pc);
+                            }
+                            pendingUnsneak.remove(p.getUniqueId());
+                        },
+                        4L
+                );
+                pendingUnsneak.put(p.getUniqueId(), task);
             } else if (pc == PlayerClass.WITCH) {
                 cast(p, tr.sneakEnd, pc);
             }
