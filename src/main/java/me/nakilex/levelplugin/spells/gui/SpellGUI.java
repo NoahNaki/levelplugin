@@ -200,7 +200,8 @@ public class SpellGUI {
         SPELL_USAGE.put("ravaging_dash", "Right Click");
         SPELL_USAGE.put("crimson_arc", "Sneak + Right Click");
         SPELL_USAGE.put("last_dance", "Sneak + Left Click");
-        SPELL_USAGE.put("shadowquake", "Sneak");
+        // Shadowquake now uses a click combo rather than a sneak trigger
+        SPELL_USAGE.put("shadowquake", "Left + Left + Right");
         SPELL_USAGE.put("death_bloom", "Sneak + Toggle");
         SPELL_USAGE.put("deadly_calm", "Passive");
         // Awakened Warrior

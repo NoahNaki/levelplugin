@@ -308,8 +308,9 @@ public class SpellManager {
             WeaponType.SWORD.getMaterials(),
             "MYTHIC_SHADOWQUAKE", 0.0
         ));
-        awakassassinMap.put("RLL", new Spell(
-            "death_bloom", "Death Bloom", "RLL",
+        // Death Bloom is triggered via the player sneaking rather than a click combo
+        awakassassinMap.put("SNEAK", new Spell(
+            "death_bloom", "Death Bloom", "SNEAK",
             12.0,
             MythicSkillConfig.getCooldownSeconds("Death_Bloom_CAST"), 8,
             WeaponType.SWORD.getMaterials(),

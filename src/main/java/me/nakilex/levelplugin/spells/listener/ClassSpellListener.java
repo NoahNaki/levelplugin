@@ -146,8 +146,8 @@ public class ClassSpellListener implements Listener {
         t.right = List.of("ravaging_dash");
         t.rightSneak = List.of("crimson_arc");
         t.leftSneak = List.of("last_dance");
-        t.sneakStart = List.of("shadowquake");
-        t.sneakEnd = List.of("death_bloom");
+        // Death Bloom is the class's sneak ability
+        t.sneakStart = List.of("death_bloom");
         MAP.put(PlayerClass.AWAKASSASSIN, t);
 
         // Awakened Warrior class
