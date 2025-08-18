@@ -305,6 +305,10 @@ public class ClassSpellListener implements Listener {
         if (event.isSneaking()) {
             if (pc != PlayerClass.WITCH && !tr.sneakStart.isEmpty()) {
                 pendingSneak.add(p.getUniqueId());
+                if (pc == PlayerClass.AWAKASSASSIN) {
+                    // Death Bloom requires a prep cast on crouch to apply its aura
+                    MythicBukkit.inst().getAPIHelper().castSkill(p, "Death_Bloom");
+                }
             }
 
             if (pc == PlayerClass.WITCH) {
