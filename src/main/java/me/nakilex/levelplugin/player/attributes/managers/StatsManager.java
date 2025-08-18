@@ -11,6 +11,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class StatsManager {
 
@@ -142,6 +143,19 @@ public class StatsManager {
         recalcDerivedStats(player);
 
         player.sendMessage(ChatColor.GREEN + "All skill points have been refunded!");
+    }
+
+    /** Set the base value of a stat directly, bypassing skill point checks. */
+    public void setBaseStat(PlayerStats ps, StatType stat, int value) {
+        switch (stat) {
+            case STR -> ps.baseStrength = value;
+            case AGI -> ps.baseAgility = value;
+            case INT -> ps.baseIntelligence = value;
+            case DEX -> ps.baseDexterity = value;
+            case VIT -> ps.baseVitality = value;
+            case WIL -> ps.baseWill = value;
+            case TEC -> ps.baseTechnique = value;
+        }
     }
 
     /** Unlock a class for the given player without switching to it. */
@@ -326,6 +340,31 @@ public class StatsManager {
     }
 
         public enum StatType {
-        STR, AGI, INT, DEX, VIT, WIL, TEC
+        STR("Strength", "str"),
+        AGI("Agility", "agi"),
+        INT("Intelligence", "int"),
+        DEX("Dexterity", "dex"),
+        VIT("Vitality", "vit"),
+        WIL("Will", "wil"),
+        TEC("Technique", "tec");
+
+        private final String displayName;
+        private final String abbrev;
+
+        StatType(String displayName, String abbrev) {
+            this.displayName = displayName;
+            this.abbrev = abbrev;
+        }
+
+        public String getDisplayName() { return displayName; }
+
+        public String getAbbrev() { return abbrev; }
+
+        private static final Map<String, StatType> BY_ABBREV = Arrays.stream(values())
+                .collect(Collectors.toMap(stat -> stat.abbrev, stat -> stat));
+
+        public static StatType fromAbbrev(String abbrev) {
+            return BY_ABBREV.get(abbrev.toLowerCase());
+        }
     }
 }

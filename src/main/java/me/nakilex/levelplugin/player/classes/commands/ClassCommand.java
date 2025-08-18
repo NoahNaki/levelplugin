@@ -4,16 +4,20 @@ import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.utils.CommandUtil;
 import me.nakilex.levelplugin.Main;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
 import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
-public class ClassCommand implements CommandExecutor {
+public class ClassCommand implements TabExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
@@ -166,5 +170,28 @@ public class ClassCommand implements CommandExecutor {
             player.sendMessage(ChatColor.RED + "Unknown class: " + args[0]);
         }
         return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (args.length == 1) {
+            List<String> options = new ArrayList<>(List.of("unlock", "unlockall", "lock", "admin",
+                    "mage", "archer", "rogue", "warrior", "cleric"));
+            return CommandUtil.filterStartingWith(options, args[0]);
+        } else if (args.length == 2) {
+            String first = args[0].toLowerCase();
+            if (first.equals("unlock") || first.equals("unlockall") || first.equals("lock") || first.equals("admin")) {
+                return CommandUtil.onlinePlayerNames(args[1]);
+            }
+        } else if (args.length == 3) {
+            String first = args[0].toLowerCase();
+            if (first.equals("unlock") || first.equals("lock") || first.equals("admin")) {
+                List<String> classes = Arrays.stream(PlayerClass.values())
+                        .map(pc -> pc.name().toLowerCase())
+                        .toList();
+                return CommandUtil.filterStartingWith(classes, args[2]);
+            }
+        }
+        return List.of();
     }
 }
