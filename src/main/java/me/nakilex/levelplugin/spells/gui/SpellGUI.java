@@ -121,8 +121,8 @@ public class SpellGUI {
     /** Simple usage hints for non-combo based spells. */
     private static final Map<String, String> SPELL_USAGE = new HashMap<>();
     static {
-        SPELL_USAGE.put("quick_shot", "Left Click");
-        SPELL_USAGE.put("backstep", "Right Click");
+        SPELL_USAGE.put("quick_shot", "Right Click");
+        SPELL_USAGE.put("backstep", "Left Click");
         SPELL_USAGE.put("windrazor", "Sneak");
         SPELL_USAGE.put("arrow_barrage", "Sneak + Right Click");
         SPELL_USAGE.put("dragon_piercer", "Sneak + Left Click");

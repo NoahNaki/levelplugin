@@ -83,7 +83,7 @@ public class SpellManager {
         Map<String, Spell> archerMap = new HashMap<>();
         archerMap.put("BASIC_ATTACK", basicAttack(
             "quick_shot",
-            "Quick Shot",
+            "Quick_Shot",
             WeaponType.BOW.getMaterials(),
             "MYTHIC_QUICK_SHOT"
         ));

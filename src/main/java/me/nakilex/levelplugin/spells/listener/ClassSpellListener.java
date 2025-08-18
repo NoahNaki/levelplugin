@@ -52,9 +52,9 @@ public class ClassSpellListener implements Listener {
         // Archer class
         Triggers t = new Triggers();
         t.leftSneak = List.of("bow_drone");
-        t.left = List.of("quick_shot");
+        t.left = List.of("backstep");
         t.rightSneak = List.of("dragon_piercer");
-        t.right = List.of("backstep");
+        t.right = List.of("quick_shot");
         t.sneakStart = List.of("arrow_barrage");
         MAP.put(PlayerClass.ARCHER, t);
 

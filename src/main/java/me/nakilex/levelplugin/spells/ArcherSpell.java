@@ -53,7 +53,7 @@ public class ArcherSpell implements Listener {
         if (player.isSneaking()) {
             castSpell(player, "RRR"); // Bow Drone
         } else {
-            castSpell(player, "BASIC_ATTACK"); // Quick Shot
+            castSpell(player, "LRL"); // Backstep
         }
     }
 
@@ -70,7 +70,7 @@ public class ArcherSpell implements Listener {
         if (player.isSneaking()) {
             castSpell(player, "LLL"); // Dragon Piercer
         } else {
-            castSpell(player, "LRL"); // Backstep
+            castSpell(player, "BASIC_ATTACK"); // Quick_Shot
         }
     }
 
