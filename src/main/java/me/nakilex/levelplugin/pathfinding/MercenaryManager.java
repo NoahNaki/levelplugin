@@ -120,19 +120,36 @@ public class MercenaryManager implements Listener {
                 return;
             }
             if (target != null) {
+                // allow switching to a newly damaged target in TARGET mode
+                if (mode == Mode.TARGET) {
+                    LivingEntity swap = playerTargets.remove(owner.getUniqueId());
+                    if (swap != null && swap instanceof Monster && swap != owner && !CitizensAPI.getNPCRegistry().isNPC(swap)) {
+                        target = swap;
+                        plugin.getLogger().info("[MercenaryDebug] Switching target to " + swap.getName() + " for " + owner.getName());
+                    }
+                }
+
+                if (target == owner || target instanceof Player || CitizensAPI.getNPCRegistry().isNPC(target)) {
+                    plugin.getLogger().info("[MercenaryDebug] Ignoring player target for " + owner.getName());
+                    target = null;
+                    npc.getNavigator().setTarget(owner, true);
+                    return;
+                }
+
                 if (target.isDead() || !target.isValid()) {
                     plugin.getLogger().info("[MercenaryDebug] Killed all targets in vicinity for " + owner.getName());
                     target = null;
                     npc.getNavigator().setTarget(owner, true);
                     return;
                 }
+
                 profile.handleCombat(npc, target, cd);
                 return;
             }
 
             if (mode == Mode.TARGET) {
                 LivingEntity t = playerTargets.remove(owner.getUniqueId());
-                if (t != null && t.isValid() && !t.isDead() && t != owner && !CitizensAPI.getNPCRegistry().isNPC(t)) {
+                if (t instanceof Monster && t.isValid() && !t.isDead() && t != owner && !CitizensAPI.getNPCRegistry().isNPC(t)) {
                     target = t;
                     plugin.getLogger().info("[MercenaryDebug] Targeting mob " + t.getName() + " for " + owner.getName());
                     profile.handleCombat(npc, target, cd);

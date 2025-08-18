@@ -167,13 +167,16 @@ public class PathfindingManager {
                     }
                 }
 
-                if (!npc.getNavigator().isNavigating()) {
+                Location current = points.get(index);
+                if (npc.getEntity().getLocation().distanceSquared(current) < 1) {
                     if (++index >= points.size()) {
                         cleanup();
                         return;
                     }
                     npc.getNavigator().setTarget(points.get(index));
                     plugin.getLogger().info("[PathfindingDebug] Moving to point " + index);
+                } else if (!npc.getNavigator().isNavigating()) {
+                    npc.getNavigator().setTarget(current);
                 }
             }, 10L, 10L);
         }
