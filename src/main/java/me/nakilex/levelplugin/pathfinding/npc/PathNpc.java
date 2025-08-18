@@ -1,8 +1,10 @@
 package me.nakilex.levelplugin.pathfinding.npc;
 
+import io.lumine.mythic.bukkit.BukkitAdapter;
 import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.spells.managers.CooldownManager;
 import net.citizensnpcs.api.npc.NPC;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.LivingEntity;
 
 import java.util.UUID;
@@ -34,11 +36,24 @@ public interface PathNpc {
                          LivingEntity target, CooldownManager cooldowns) {
         UUID id = npc.getEntity().getUniqueId();
         if (cooldowns.isOnCooldown(id, skill)) {
+            Bukkit.getLogger().info("[MercenaryDebug] " + skill + " on cooldown for NPC " + id);
             return false;
         }
-        MythicBukkit.inst().getAPIHelper()
-                .castSkill(npc.getEntity(), skill, target.getLocation());
+        if (MythicBukkit.inst().getSkillManager().getSkill(skill).isEmpty()) {
+            Bukkit.getLogger().warning("[MercenaryDebug] Skill '" + skill + "' not found");
+            return false;
+        }
+        Bukkit.getLogger().info("[MercenaryDebug] Attempting to cast '" + skill + "' at " + target.getName());
+        boolean success = MythicBukkit.inst().getAPIHelper().castSkill(npc.getEntity(), skill, meta -> {
+            meta.setTrigger(BukkitAdapter.adapt(target));
+            meta.setLocation(BukkitAdapter.adapt(target.getLocation()));
+        });
+        if (!success) {
+            Bukkit.getLogger().warning("[MercenaryDebug] castSkill returned false for '" + skill + "'");
+            return false;
+        }
         cooldowns.setCooldown(id, skill, cooldownSeconds);
+        Bukkit.getLogger().info("[MercenaryDebug] Cast '" + skill + "' successfully");
         return true;
     }
 }

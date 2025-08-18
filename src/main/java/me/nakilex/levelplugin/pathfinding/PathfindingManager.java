@@ -135,9 +135,11 @@ public class PathfindingManager {
                 return;
             }
             npc.getNavigator().setTarget(points.get(1));
+            plugin.getLogger().info("[PathfindingDebug] Moving to point 1");
             task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
                 if (combatTarget != null) {
                     if (combatTarget.isDead() || !combatTarget.isValid()) {
+                        plugin.getLogger().info("[PathfindingDebug] Killed all targets in vicinity");
                         combatTarget = null;
                         npc.getNavigator().setTarget(points.get(index));
                         return;
@@ -150,6 +152,7 @@ public class PathfindingManager {
                     LivingEntity hostile = me.nakilex.levelplugin.utils.MobUtil.findNearestHostile(le, 10);
                     if (hostile != null) {
                         combatTarget = hostile;
+                        plugin.getLogger().info("[PathfindingDebug] Targeting mob " + hostile.getName());
                         profile.handleCombat(npc, combatTarget, cd);
                         return;
                     }
@@ -161,6 +164,7 @@ public class PathfindingManager {
                         return;
                     }
                     npc.getNavigator().setTarget(points.get(index));
+                    plugin.getLogger().info("[PathfindingDebug] Moving to point " + index);
                 }
             }, 10L, 10L);
         }

@@ -12,6 +12,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -99,6 +100,7 @@ public class MercenaryManager implements Listener {
             }
             if (target != null) {
                 if (target.isDead() || !target.isValid()) {
+                    plugin.getLogger().info("[MercenaryDebug] Killed all targets in vicinity for " + owner.getName());
                     target = null;
                     npc.getNavigator().setTarget(owner, true);
                     return;
@@ -111,6 +113,7 @@ public class MercenaryManager implements Listener {
                 LivingEntity t = playerTargets.get(owner.getUniqueId());
                 if (t != null && t.isValid() && !t.isDead()) {
                     target = t;
+                    plugin.getLogger().info("[MercenaryDebug] Targeting mob " + t.getName() + " for " + owner.getName());
                     profile.handleCombat(npc, target, cd);
                     return;
                 }
@@ -118,13 +121,19 @@ public class MercenaryManager implements Listener {
                 LivingEntity hostile = MobUtil.findNearestHostile((LivingEntity) npc.getEntity(), 10);
                 if (hostile != null) {
                     target = hostile;
+                    plugin.getLogger().info("[MercenaryDebug] Targeting mob " + hostile.getName() + " for " + owner.getName());
                     profile.handleCombat(npc, target, cd);
                     return;
                 }
             }
 
-            if (!npc.getNavigator().isNavigating() || npc.getEntity().getLocation().distanceSquared(owner.getLocation()) > 9) {
+            double distSq = npc.getEntity().getLocation().distanceSquared(owner.getLocation());
+            if (distSq > 400) {
+                npc.teleport(owner.getLocation(), PlayerTeleportEvent.TeleportCause.PLUGIN);
+                plugin.getLogger().info("[MercenaryDebug] Teleported mercenary for " + owner.getName() + " due to distance");
+            } else if (!npc.getNavigator().isNavigating() || distSq > 9) {
                 npc.getNavigator().setTarget(owner, true);
+                plugin.getLogger().info("[MercenaryDebug] Moving to owner for " + owner.getName());
             }
         }
 
