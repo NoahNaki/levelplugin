@@ -148,6 +148,15 @@ public class EffectRegistry {
         register("MYTHIC_FROST_NOVA", new MythicSkillEffect("Frost_Nova"));
         register("MYTHIC_INFERNO_CHAINS", new MythicSkillEffect("Inferno_Chains"));
 
+        // --- Archmage Mythic skills ---
+        register("MYTHIC_ARCANE_SLASH", new MythicSkillEffect("Arcane_Slash"));
+        register("MYTHIC_BLIZZARD", new MythicSkillEffect("Blizzard"));
+        register("MYTHIC_CHAINS_OF_VOID", new MythicSkillEffect("Chains_Of_Void"));
+        register("MYTHIC_CLOAK_OF_HASTUR", new MythicSkillEffect("Cloak_Of_Hastur"));
+        register("MYTHIC_ARCANE_DEVASTATION", new MythicSkillEffect("Arcane_Devastation"));
+        register("MYTHIC_METEOR_STORM", new MythicSkillEffect("Meteor_Storm"));
+        register("MYTHIC_ARCANE_SHIELD", new MythicSkillEffect("Arcane_Shield"));
+
         // --- Dragonian Mythic skills ---
         register("MYTHIC_DRAGONIAN_L_T", new MythicSkillEffect("dragonian_l_t"));
         register("MYTHIC_DRAGONIAN_R_T", new MythicSkillEffect("dragonian_r_t"));

@@ -442,6 +442,62 @@ public class SpellManager {
         spellsById.put("awakarcher", Collections.unmodifiableMap(awakArIdMap));
         plugin.getLogger().info("[SPELLS] AwakArcher combos: " + awakarcherMap.keySet());
 
+        // — ARCHMAGE CLASS —
+        Map<String, Spell> archmageMap = new HashMap<>();
+        archmageMap.put("BASIC_ATTACK", basicAttack(
+            "arcane_slash", "Arcane Slash",
+            WeaponType.WAND.getMaterials(),
+            "MYTHIC_ARCANE_SLASH"
+        ));
+        archmageMap.put("LRL", new Spell(
+            "blizzard", "Blizzard", "LRL",
+            8.0,
+            MythicSkillConfig.getCooldownSeconds("Blizzard"), 3,
+            WeaponType.WAND.getMaterials(),
+            "MYTHIC_BLIZZARD", 0.0
+        ));
+        archmageMap.put("LLL", new Spell(
+            "chains_of_void", "Chains Of Void", "LLL",
+            10.0,
+            MythicSkillConfig.getCooldownSeconds("Chains_Of_Void"), 5,
+            WeaponType.WAND.getMaterials(),
+            "MYTHIC_CHAINS_OF_VOID", 0.0
+        ));
+        archmageMap.put("RLL", new Spell(
+            "cloak_of_hastur", "Cloak Of Hastur", "RLL",
+            12.0,
+            MythicSkillConfig.getCooldownSeconds("Cloak_Of_Hastur_SKILL"), 5,
+            WeaponType.WAND.getMaterials(),
+            "MYTHIC_CLOAK_OF_HASTUR", 0.0
+        ));
+        archmageMap.put("RRR", new Spell(
+            "arcane_devastation", "Arcane Devastation", "RRR",
+            20.0,
+            MythicSkillConfig.getCooldownSeconds("Arcane_Devastation"), 10,
+            WeaponType.WAND.getMaterials(),
+            "MYTHIC_ARCANE_DEVASTATION", 0.0
+        ));
+        archmageMap.put("SNEAK", new Spell(
+            "meteor_storm", "Meteor Storm", "SNEAK",
+            10.0,
+            MythicSkillConfig.getCooldownSeconds("Meteor_Storm_Skill"), 5,
+            WeaponType.WAND.getMaterials(),
+            "MYTHIC_METEOR_STORM", 0.0
+        ));
+        archmageMap.put("LRR", new Spell(
+            "arcane_shield", "Arcane Shield", "LRR",
+            0.0,
+            MythicSkillConfig.getCooldownSeconds("Arcane_Shield_Damaged_BLUE"), 0,
+            WeaponType.WAND.getMaterials(),
+            "MYTHIC_ARCANE_SHIELD", 0.0,
+            true
+        ));
+        spellsByClass.put("archmage", Collections.unmodifiableMap(archmageMap));
+        Map<String, Spell> archmageIdMap = new HashMap<>();
+        for (Spell s : archmageMap.values()) archmageIdMap.put(s.getId().toLowerCase(), s);
+        spellsById.put("archmage", Collections.unmodifiableMap(archmageIdMap));
+        plugin.getLogger().info("[SPELLS] Archmage combos: " + archmageMap.keySet());
+
         // — WARRIOR CLASS —
         Map<String, Spell> warriorMap = new HashMap<>();
         warriorMap.put("BASIC_ATTACK", basicAttack(
