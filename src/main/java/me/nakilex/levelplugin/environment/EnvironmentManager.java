@@ -1107,6 +1107,8 @@ public class EnvironmentManager {
         Sound[] breakSounds = { Sound.BLOCK_STONE_BREAK, Sound.BLOCK_DEEPSLATE_BREAK, Sound.BLOCK_WOOD_BREAK };
         Sound[] placeSounds = { Sound.BLOCK_STONE_PLACE, Sound.BLOCK_DEEPSLATE_PLACE, Sound.BLOCK_WOOD_PLACE };
 
+        Map<String, Integer> priMap = blockPriorities.computeIfAbsent(uuid, k -> new java.util.HashMap<>());
+
         BukkitTask task = new BukkitRunnable() {
             int index = 0;
             @Override public void run() {
@@ -1115,7 +1117,15 @@ public class EnvironmentManager {
                 for (int i = 0; i < blocksPerTick && index < blocks.size(); i++, index++) {
                     TownStageManager.BlockDef b = blocks.get(index);
                     Location loc = baseOrigin.clone().add(b.x - stageData.ox, b.y - stageData.oy, b.z - stageData.oz);
+                    String k = key(loc);
+                    int exist = priMap.getOrDefault(k, Integer.MIN_VALUE);
+                    if (exist > stageData.priority && priMap.containsKey(k)) continue;
                     batch.put(loc, b.data);
+                    if (b.data.getMaterial() == org.bukkit.Material.AIR) {
+                        priMap.remove(k);
+                    } else {
+                        priMap.put(k, stageData.priority);
+                    }
                     Sound breakS = breakSounds[rand.nextInt(breakSounds.length)];
                     Sound placeS = placeSounds[rand.nextInt(placeSounds.length)];
                     player.getWorld().playSound(loc, breakS, 0.7f, 1f);
@@ -1166,10 +1176,19 @@ public class EnvironmentManager {
         Map<String, Integer> priMap = blockPriorities.computeIfAbsent(uuid, k -> new java.util.HashMap<>());
         for (var b : stageData.blocks) {
             Location loc = baseOrigin.clone().add(b.x - stageData.ox, b.y - stageData.oy, b.z - stageData.oz);
+            String k = key(loc);
+            int exist = priMap.getOrDefault(k, Integer.MIN_VALUE);
+            if (exist > stageData.priority && priMap.containsKey(k)) continue;
             batch.put(loc, b.data);
-            priMap.put(key(loc), stageData.priority);
+            if (b.data.getMaterial() == org.bukkit.Material.AIR) {
+                priMap.remove(k);
+            } else {
+                priMap.put(k, stageData.priority);
+            }
         }
-        applyBlocks(batch);
+        if (!batch.isEmpty()) {
+            applyBlocks(batch);
+        }
         stageManager.spawnForStage(player, town, level, stage, baseOrigin);
     }
 
@@ -1182,6 +1201,10 @@ public class EnvironmentManager {
         for (var b : data.blocks) {
             Location loc = baseOrigin.clone().add(b.x - data.ox, b.y - data.oy, b.z - data.oz);
             loc.getBlock().setType(org.bukkit.Material.AIR, false);
+            String k = key(loc);
+            for (var priMap : blockPriorities.values()) {
+                if (priMap != null) priMap.remove(k);
+            }
         }
     }
 
@@ -1194,6 +1217,10 @@ public class EnvironmentManager {
         for (var b : data.blocks) {
             Location loc = base.clone().add(b.x - data.ox, b.y - data.oy, b.z - data.oz);
             loc.getBlock().setType(org.bukkit.Material.AIR, false);
+            String k = key(loc);
+            for (var priMap : blockPriorities.values()) {
+                if (priMap != null) priMap.remove(k);
+            }
         }
     }
 
@@ -1244,8 +1271,15 @@ public class EnvironmentManager {
             int lcx = loc.getBlockX() >> 4;
             int lcz = loc.getBlockZ() >> 4;
             if (lcx == cx && lcz == cz) {
+                String k = key(loc);
+                int exist = priMap.getOrDefault(k, Integer.MIN_VALUE);
+                if (exist > stageData.priority && priMap.containsKey(k)) continue;
                 batch.put(loc, b.data);
-                priMap.put(key(loc), stageData.priority);
+                if (b.data.getMaterial() == org.bukkit.Material.AIR) {
+                    priMap.remove(k);
+                } else {
+                    priMap.put(k, stageData.priority);
+                }
             }
         }
         if (!batch.isEmpty()) {
