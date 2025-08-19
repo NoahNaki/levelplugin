@@ -189,7 +189,8 @@ public class StatsInventory {
             lore.add(ChatColor.GRAY + "Progress to Level " + ChatColor.YELLOW + (StatsManager.getInstance().getLevel(player) + 1) + ChatColor.GRAY + ": " + ChatColor.YELLOW + percent + "%");
             String bar = GuiUtil.createProgressBar(progress, 15);
             String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
-            lore.add(bar + " " + ChatColor.YELLOW + currentXP + ChatColor.GOLD + "/" + ChatColor.YELLOW + nextLevelXP + " <glyph:experience_orb_icon> " + expLabel);
+            String expColor = me.nakilex.levelplugin.utils.ChatFormatter.experienceColor();
+            lore.add(bar + " " + expColor + currentXP + ChatColor.GOLD + "/" + expColor + nextLevelXP + " <glyph:experience_orb_icon> " + expLabel);
         } else {
             int mLevel = miningManager.getLevel(player);
             int next = miningManager.getXpRequired(mLevel);

@@ -149,6 +149,7 @@ public class TradingWindow implements Listener {
         // 3. Show chat prompt
         ConversationFactory factory = new ConversationFactory(Main.getPlugin())
             .withFirstPrompt(new CoinInputPrompt(
+                Main.getPlugin(),
                 p,
                 ChatColor.GOLD + "Please enter the number of coins you want to offer:",
                 amt -> tw.getEconomyManager().getBalance(p) >= amt && amt > 0,

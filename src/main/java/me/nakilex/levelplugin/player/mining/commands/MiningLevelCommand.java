@@ -28,10 +28,11 @@ public class MiningLevelCommand implements CommandExecutor {
 
         player.sendMessage("§6Mining Level: §e" + level);
         String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
+        String expColor = me.nakilex.levelplugin.utils.ChatFormatter.experienceColor();
         if (level < miningManager.getMaxLevel()) {
-            player.sendMessage("§7<glyph:experience_orb_icon> " + expLabel + "§7: §e" + xp + "§7/§e" + needed);
+            player.sendMessage("§7<glyph:experience_orb_icon> " + expLabel + "§7: " + expColor + xp + "§7/" + expColor + needed);
         } else {
-            player.sendMessage("§7<glyph:experience_orb_icon> " + expLabel + "§7: §eMAX");
+            player.sendMessage("§7<glyph:experience_orb_icon> " + expLabel + "§7: " + expColor + "MAX");
         }
         return true;
     }

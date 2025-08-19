@@ -844,7 +844,8 @@ public class EnvironmentManager {
             if (g != null) {
                 g.addExp(1000);
                 GuildManager.getInstance().save();
-                player.sendMessage(ChatColor.GRAY + "Guild earned " + ChatColor.GOLD + "1000 <glyph:experience_orb_icon>" + ChatColor.GRAY + ".");
+                String expColor = me.nakilex.levelplugin.utils.ChatFormatter.experienceColor();
+                player.sendMessage(ChatColor.GRAY + "Guild earned " + expColor + "1000 <glyph:experience_orb_icon>" + ChatColor.GRAY + ".");
             }
             String town = towns.get(base);
             Location origin = origins.get(base);

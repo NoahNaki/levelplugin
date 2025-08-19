@@ -7,9 +7,9 @@ public class GuildVault {
     private final String guildName;
     private final GuildVaultGUI storageGUI;
 
-    public GuildVault(String guildName, StorageEvents events) {
+    public GuildVault(String guildName, StorageEvents events, GuildMemberGUI memberGUI) {
         this.guildName = guildName;
-        this.storageGUI = new GuildVaultGUI(guildName, events);
+        this.storageGUI = new GuildVaultGUI(guildName, events, memberGUI);
         this.storageGUI.loadFromDisk();
     }
 

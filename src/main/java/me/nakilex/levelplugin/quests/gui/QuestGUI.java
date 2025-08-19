@@ -169,7 +169,8 @@ public class QuestGUI {
                     QuestReward r = quest.getReward();
                     if (r.getXp() > 0) {
                         String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
-                        lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + r.getXp() + " <glyph:experience_orb_icon> " + expLabel);
+                        String expColor = me.nakilex.levelplugin.utils.ChatFormatter.experienceColor();
+                        lore.add(ChatColor.GREEN + "- " + expColor + r.getXp() + ChatColor.RESET + " <glyph:experience_orb_icon> " + expLabel);
                     }
                     if (r.getCoins() > 0) lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + r.getCoins() + " <glyph:coins_icon>");
                     if (r.getGems() > 0) lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + r.getGems() + " " + ChatColor.LIGHT_PURPLE + "<glyph:purple_orb_icon>");

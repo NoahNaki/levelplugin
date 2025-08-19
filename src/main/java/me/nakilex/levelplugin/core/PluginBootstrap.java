@@ -270,6 +270,7 @@ public class PluginBootstrap {
         guildSettingsGUI = new me.nakilex.levelplugin.guild.GuildSettingsGUI(guildManager);
         guildMemberGUI = new me.nakilex.levelplugin.guild.GuildMemberGUI(guildManager, guildGUI, guildApplicantsGUI, guildSettingsGUI);
         guildApplicantsGUI.setMemberGUI(guildMemberGUI);
+        guildSettingsGUI.setMemberGUI(guildMemberGUI);
         guildSiegeManager = me.nakilex.levelplugin.guild.siege.GuildSiegeManager.getInstance();
         guildSiegeManager.init(plugin);
         gemsManager = new GemsManager();
@@ -330,7 +331,7 @@ public class PluginBootstrap {
         settingsGUI = new SettingsGUI(settingsManager);
         debugGUI = new me.nakilex.levelplugin.debug.gui.DebugGUI(mobDebugToggleManager, scoreboardManager);
         this.storageManager = new StorageManager();
-        this.guildVaultManager = new me.nakilex.levelplugin.guild.GuildVaultManager(storageEvents);
+        this.guildVaultManager = new me.nakilex.levelplugin.guild.GuildVaultManager(storageEvents, guildMemberGUI);
         CommandRegistry.registerCommands(
             plugin,
             blacksmithGUI,

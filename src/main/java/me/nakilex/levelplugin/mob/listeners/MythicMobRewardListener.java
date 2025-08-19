@@ -135,8 +135,9 @@ public class MythicMobRewardListener implements Listener {
             }
             if (DropDisplayToggles.isChatEnabled(player)) {
                 String expLabel = ChatFormatter.experienceLabel();
+                String expColor = ChatFormatter.experienceColor();
                 player.sendMessage(ChatColor.GOLD + "You received "
-                        + ChatColor.WHITE + "+" + awardedExp + " <glyph:experience_orb_icon> " + expLabel
+                        + expColor + "+" + awardedExp + " <glyph:experience_orb_icon> " + expLabel
                         + ChatColor.GOLD + " and "
                         + me.nakilex.levelplugin.utils.CurrencyMessageUtil.formatAmount(
                                 me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency.COINS, coins)
@@ -144,7 +145,8 @@ public class MythicMobRewardListener implements Listener {
             }
             if (debugToggle.isEnabled(player)) {
                 sendDebugInfo(player, rawMobType, mythicMob, baseEntity, numericHpName);
-                player.sendMessage(ChatColor.YELLOW + "[MobDebug] Exp: " + awardedExp
+                String expColor = ChatFormatter.experienceColor();
+                player.sendMessage(ChatColor.YELLOW + "[MobDebug] Exp: " + expColor + awardedExp
                         + ChatColor.GRAY + ", Coins: " + coins);
             }
         }

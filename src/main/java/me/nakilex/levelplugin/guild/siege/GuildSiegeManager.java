@@ -368,7 +368,8 @@ public class GuildSiegeManager {
                     Player p = Bukkit.getPlayer(id);
                     if (p != null) {
                         ChatFormatter.sendCenteredMessage(p, " ");
-                        ChatFormatter.sendCenteredMessage(p, ChatColor.GRAY + "Your guild earned " + ChatColor.GOLD + "1000 <glyph:coins_icon>" + ChatColor.GRAY + " and " + ChatColor.GOLD + "500 <glyph:experience_orb_icon>" + ChatColor.GRAY + " for participating in the siege!");
+                        String expColor = ChatFormatter.experienceColor();
+                        ChatFormatter.sendCenteredMessage(p, ChatColor.GRAY + "Your guild earned " + ChatColor.GOLD + "1000 <glyph:coins_icon>" + ChatColor.GRAY + " and " + expColor + "500 <glyph:experience_orb_icon>" + ChatColor.GRAY + " for participating in the siege!");
                         ChatFormatter.sendCenteredMessage(p, " ");
                     }
                 }
@@ -383,7 +384,8 @@ public class GuildSiegeManager {
                     Player p = Bukkit.getPlayer(id);
                     if (p != null) {
                         ChatFormatter.sendCenteredMessage(p, " ");
-                        ChatFormatter.sendCenteredMessage(p, ChatColor.GOLD + "Your guild won the siege and earned " + ChatColor.YELLOW + "10000 <glyph:coins_icon>" + ChatColor.GOLD + " and " + ChatColor.YELLOW + "2000 <glyph:experience_orb_icon>" + ChatColor.GOLD + "!");
+                        String expColorWin = ChatFormatter.experienceColor();
+                        ChatFormatter.sendCenteredMessage(p, ChatColor.GOLD + "Your guild won the siege and earned " + ChatColor.YELLOW + "10000 <glyph:coins_icon>" + ChatColor.GOLD + " and " + expColorWin + "2000 <glyph:experience_orb_icon>" + ChatColor.GOLD + "!");
                         ChatFormatter.sendCenteredMessage(p, " ");
                     }
                 }

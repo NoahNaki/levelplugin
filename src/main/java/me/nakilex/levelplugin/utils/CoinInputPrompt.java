@@ -5,6 +5,8 @@ import org.bukkit.conversations.ConversationContext;
 import org.bukkit.conversations.Prompt;
 import org.bukkit.conversations.StringPrompt;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.Bukkit;
 
 import java.util.function.IntConsumer;
 import java.util.function.IntPredicate;
@@ -15,13 +17,15 @@ import java.util.function.IntPredicate;
  * once a valid amount is supplied.
  */
 public class CoinInputPrompt extends StringPrompt {
+    private final Plugin plugin;
     private final Player player;
     private final String promptText;
     private final IntPredicate validator;
     private final IntConsumer onAccept;
 
-    public CoinInputPrompt(Player player, String promptText,
+    public CoinInputPrompt(Plugin plugin, Player player, String promptText,
                            IntPredicate validator, IntConsumer onAccept) {
+        this.plugin = plugin;
         this.player = player;
         this.promptText = promptText;
         this.validator = validator;
@@ -44,7 +48,7 @@ public class CoinInputPrompt extends StringPrompt {
             player.sendMessage(ChatColor.RED + "You do not have enough coins for that.");
             return Prompt.END_OF_CONVERSATION;
         }
-        onAccept.accept(coins);
+        Bukkit.getScheduler().runTask(plugin, () -> onAccept.accept(coins));
         return Prompt.END_OF_CONVERSATION;
     }
 }

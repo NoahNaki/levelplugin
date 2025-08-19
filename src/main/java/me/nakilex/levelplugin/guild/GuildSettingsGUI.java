@@ -17,15 +17,21 @@ import java.util.*;
 
 public class GuildSettingsGUI implements Listener {
     private final GuildManager manager;
+    private GuildMemberGUI memberGUI;
     private final Map<UUID, Integer> permIndex = new HashMap<>();
     private final Map<UUID, Integer> roleIndex = new HashMap<>();
-    private static final int SIZE = 27;
+    private static final int SIZE = 45;
     private static final String TITLE = ChatColor.BLACK + "Guild Settings";
-    private static final int ITEM_SLOT = 13;
+    private static final int ITEM_SLOT = 22;
+    private static final int BACK_SLOT = 0;
 
     public GuildSettingsGUI(GuildManager manager) {
         this.manager = manager;
         Bukkit.getPluginManager().registerEvents(this, Main.getInstance());
+    }
+
+    public void setMemberGUI(GuildMemberGUI memberGUI) {
+        this.memberGUI = memberGUI;
     }
 
     public void open(Player player) {
@@ -36,8 +42,11 @@ public class GuildSettingsGUI implements Listener {
         Inventory inv = Bukkit.createInventory(null, SIZE, TITLE);
         ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
         for (int i = 0; i < SIZE; i++) {
-            if (i < 9 || i >= 18) inv.setItem(i, filler);
+            if (i < 9 || i >= 45 || i % 9 == 0 || i % 9 == 8) {
+                inv.setItem(i, filler);
+            }
         }
+        inv.setItem(BACK_SLOT, GuiUtil.getNexoItem("arrow_left2", ChatColor.GRAY + "Back"));
         ItemStack item = buildItem(g, GuildPermission.values()[pIdx], rIdx);
         inv.setItem(ITEM_SLOT, item);
         player.openInventory(inv);
@@ -73,7 +82,14 @@ public class GuildSettingsGUI implements Listener {
         if (g == null) return;
         int pIdx = permIndex.getOrDefault(player.getUniqueId(), 0);
         int rIdx = roleIndex.getOrDefault(player.getUniqueId(), 0);
-        if (e.getRawSlot() == ITEM_SLOT) {
+        int slot = e.getRawSlot();
+        if (slot == BACK_SLOT) {
+            if (memberGUI != null) {
+                memberGUI.open(player);
+            }
+            return;
+        }
+        if (slot == ITEM_SLOT) {
             if (e.isLeftClick()) {
                 pIdx = (pIdx + 1) % GuildPermission.values().length;
                 rIdx = 0;

@@ -10,9 +10,11 @@ import java.util.Map;
 public class GuildVaultManager {
     private final Map<String, GuildVault> vaults = new HashMap<>();
     private final StorageEvents events;
+    private final GuildMemberGUI memberGUI;
 
-    public GuildVaultManager(StorageEvents events) {
+    public GuildVaultManager(StorageEvents events, GuildMemberGUI memberGUI) {
         this.events = events;
+        this.memberGUI = memberGUI;
         loadExisting();
     }
 
@@ -28,12 +30,12 @@ public class GuildVaultManager {
             String name = file.getName();
             if (!name.startsWith("guild_") || !name.endsWith(".yml")) continue;
             String guild = name.substring("guild_".length(), name.length() - 4);
-            vaults.put(guild.toLowerCase(), new GuildVault(guild, events));
+            vaults.put(guild.toLowerCase(), new GuildVault(guild, events, memberGUI));
         }
     }
 
     public GuildVault getVault(String guildName) {
-        return vaults.computeIfAbsent(guildName.toLowerCase(), g -> new GuildVault(g, events));
+        return vaults.computeIfAbsent(guildName.toLowerCase(), g -> new GuildVault(g, events, memberGUI));
     }
 
     public void saveAll() {

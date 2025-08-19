@@ -153,7 +153,8 @@ public class GuildMemberGUI implements Listener {
                 double percent = Math.round(progress * 1000.0) / 10.0;
                 lore.add(ChatColor.GRAY + "Progress: " + ChatColor.YELLOW + percent + "%");
                 String bar = GuiUtil.createProgressBar(progress, 15);
-                lore.add(bar + " " + ChatColor.YELLOW + cur + ChatColor.GOLD + "/" + ChatColor.YELLOW + need + " " + ChatFormatter.experienceLabel());
+                String expColor = ChatFormatter.experienceColor();
+                lore.add(bar + " " + expColor + cur + ChatColor.GOLD + "/" + expColor + need + " " + ChatFormatter.experienceLabel());
             }
             infoMeta.setLore(lore);
             infoItem.setItemMeta(infoMeta);

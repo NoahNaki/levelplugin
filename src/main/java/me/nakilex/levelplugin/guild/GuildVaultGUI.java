@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.storage.events.StorageEvents;
 import me.nakilex.levelplugin.storage.gui.StorageGUI;
 import me.nakilex.levelplugin.utils.CoinInputPrompt;
+import me.nakilex.levelplugin.utils.GuiUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -24,11 +25,14 @@ import java.util.List;
  */
 public class GuildVaultGUI extends StorageGUI {
     private static final int COIN_SLOT = 4;
+    private static final int BACK_SLOT = 0;
     private final String guildName;
+    private final GuildMemberGUI memberGUI;
 
-    public GuildVaultGUI(String guildName, StorageEvents events) {
+    public GuildVaultGUI(String guildName, StorageEvents events, GuildMemberGUI memberGUI) {
         super(guildName.toLowerCase(), "guildvault", "guild_", "Guild Vault", events, false, 1);
         this.guildName = guildName;
+        this.memberGUI = memberGUI;
     }
 
     @Override
@@ -37,6 +41,7 @@ public class GuildVaultGUI extends StorageGUI {
         if (g != null) setMaxPages(g.getMaxPages());
         super.open(player);
         Inventory inv = player.getOpenInventory().getTopInventory();
+        inv.setItem(BACK_SLOT, GuiUtil.getNexoItem("arrow_left2", ChatColor.GRAY + "Back"));
         inv.setItem(COIN_SLOT, createCoinItem());
     }
 
@@ -60,7 +65,15 @@ public class GuildVaultGUI extends StorageGUI {
 
     @Override
     public void handleClick(InventoryClickEvent event) {
-        if (event.getRawSlot() == COIN_SLOT) {
+        int slot = event.getRawSlot();
+        if (slot == BACK_SLOT) {
+            event.setCancelled(true);
+            if (memberGUI != null) {
+                memberGUI.open((Player) event.getWhoClicked());
+            }
+            return;
+        }
+        if (slot == COIN_SLOT) {
             event.setCancelled(true);
             Player player = (Player) event.getWhoClicked();
             Guild g = GuildManager.getInstance().getGuild(guildName);
@@ -71,6 +84,7 @@ public class GuildVaultGUI extends StorageGUI {
                 player.closeInventory();
                 ConversationFactory factory = new ConversationFactory(Main.getInstance())
                         .withFirstPrompt(new CoinInputPrompt(
+                                Main.getInstance(),
                                 player,
                                 ChatColor.GOLD + "Enter amount to deposit:",
                                 amt -> amt > 0 && econ.getBalance(player) >= amt,
@@ -96,6 +110,7 @@ public class GuildVaultGUI extends StorageGUI {
                 player.closeInventory();
                 ConversationFactory factory = new ConversationFactory(Main.getInstance())
                         .withFirstPrompt(new CoinInputPrompt(
+                                Main.getInstance(),
                                 player,
                                 ChatColor.GOLD + "Enter amount to withdraw:",
                                 amt -> amt > 0 && g.getCoins() >= amt,
@@ -119,6 +134,7 @@ public class GuildVaultGUI extends StorageGUI {
     public void saveToDisk() {
         for (Inventory page : getPages()) {
             page.setItem(COIN_SLOT, null);
+            page.setItem(BACK_SLOT, null);
         }
         super.saveToDisk();
     }
