@@ -45,10 +45,6 @@ public class ItemUtil {
      * material when refreshing the tooltip.
      */
     public static final NamespacedKey NEXO_MODEL_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "nexo_model");
-    public static final NamespacedKey EGO_ID_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "ego_weapon_id");
-    public static final NamespacedKey EGO_RANK_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "ego_weapon_rank");
-    public static final NamespacedKey EGO_EXP_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "ego_weapon_exp");
-    public static final NamespacedKey EGO_RARITY_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "ego_weapon_rarity");
     public static final NamespacedKey SOULBOUND_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "soulbound");
 
     private static final int PREFIX_BONUS = 20;
@@ -248,48 +244,46 @@ public class ItemUtil {
 
         PersistentDataContainer pdc = meta.getPersistentDataContainer();
 
-        if (!pdc.has(EGO_ID_KEY, PersistentDataType.STRING)) {
-            // --- Class Requirement ---
-            String clsReqRaw = cItem.getClassRequirement();
-            me.nakilex.levelplugin.player.classes.data.PlayerClass reqClass = null;
-            try {
-                if (clsReqRaw != null && !clsReqRaw.isBlank()) {
-                    reqClass = me.nakilex.levelplugin.player.classes.data.PlayerClass.valueOf(clsReqRaw.toUpperCase());
-                }
-            } catch (IllegalArgumentException ignored) {}
-
-            if (reqClass != null && reqClass != me.nakilex.levelplugin.player.classes.data.PlayerClass.VILLAGER) {
-                me.nakilex.levelplugin.player.classes.data.PlayerClass playerClass = null;
-                if (player != null) {
-                    playerClass = me.nakilex.levelplugin.player.attributes.managers.StatsManager
-                            .getInstance().getPlayerStats(player.getUniqueId()).playerClass;
-                }
-                boolean meets = player == null ||
-                        me.nakilex.levelplugin.player.classes.data.ClassUtil.meetsRequirement(playerClass, reqClass);
-                String reqName = reqClass.name().substring(0,1) + reqClass.name().substring(1).toLowerCase();
-                String line = (meets ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ") +
-                        ChatColor.GRAY + "Class Requirement: " + ChatColor.WHITE + reqName;
-                lore.add(line);
+        // --- Class Requirement ---
+        String clsReqRaw = cItem.getClassRequirement();
+        me.nakilex.levelplugin.player.classes.data.PlayerClass reqClass = null;
+        try {
+            if (clsReqRaw != null && !clsReqRaw.isBlank()) {
+                reqClass = me.nakilex.levelplugin.player.classes.data.PlayerClass.valueOf(clsReqRaw.toUpperCase());
             }
+        } catch (IllegalArgumentException ignored) {}
 
-            // --- Level Requirement ---
-            int playerLevel = (player != null) ? LevelManager.getInstance().getLevel(player) : 0;
-            String levelRequirementLine;
-            if (player == null) {
-                levelRequirementLine = ChatColor.GRAY + "Level Requirement: " + cItem.getLevelRequirement();
-            } else if (playerLevel < cItem.getLevelRequirement()) {
-                levelRequirementLine = ChatColor.RED + "✘ " + ChatColor.GRAY + "Level Requirement: " + ChatColor.WHITE + cItem.getLevelRequirement();
-            } else {
-                levelRequirementLine = ChatColor.GREEN + "✔ " + ChatColor.GRAY + "Level Requirement: " + ChatColor.WHITE + cItem.getLevelRequirement();
+        if (reqClass != null && reqClass != me.nakilex.levelplugin.player.classes.data.PlayerClass.VILLAGER) {
+            me.nakilex.levelplugin.player.classes.data.PlayerClass playerClass = null;
+            if (player != null) {
+                playerClass = me.nakilex.levelplugin.player.attributes.managers.StatsManager
+                        .getInstance().getPlayerStats(player.getUniqueId()).playerClass;
             }
-            lore.add(levelRequirementLine);
-            lore.add(""); // Divider before Gear Score
-
-            int gearScore = SalvageManager.getInstance().getTotalStats(cItem);
-            lore.add("<glyph:sword_icon> " + ChatColor.GRAY + "Gear Score: "
-                    + ChatColor.LIGHT_PURPLE + ChatColor.BOLD + gearScore);
-            lore.add(""); // divider after Gear Score
+            boolean meets = player == null ||
+                    me.nakilex.levelplugin.player.classes.data.ClassUtil.meetsRequirement(playerClass, reqClass);
+            String reqName = reqClass.name().substring(0,1) + reqClass.name().substring(1).toLowerCase();
+            String line = (meets ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ") +
+                    ChatColor.GRAY + "Class Requirement: " + ChatColor.WHITE + reqName;
+            lore.add(line);
         }
+
+        // --- Level Requirement ---
+        int playerLevel = (player != null) ? LevelManager.getInstance().getLevel(player) : 0;
+        String levelRequirementLine;
+        if (player == null) {
+            levelRequirementLine = ChatColor.GRAY + "Level Requirement: " + cItem.getLevelRequirement();
+        } else if (playerLevel < cItem.getLevelRequirement()) {
+            levelRequirementLine = ChatColor.RED + "✘ " + ChatColor.GRAY + "Level Requirement: " + ChatColor.WHITE + cItem.getLevelRequirement();
+        } else {
+            levelRequirementLine = ChatColor.GREEN + "✔ " + ChatColor.GRAY + "Level Requirement: " + ChatColor.WHITE + cItem.getLevelRequirement();
+        }
+        lore.add(levelRequirementLine);
+        lore.add(""); // Divider before Gear Score
+
+        int gearScore = SalvageManager.getInstance().getTotalStats(cItem);
+        lore.add("<glyph:sword_icon> " + ChatColor.GRAY + "Gear Score: "
+                + ChatColor.LIGHT_PURPLE + ChatColor.BOLD + gearScore);
+        lore.add(""); // divider after Gear Score
 
         // --- Stats Information ---
         String prefix = parsePrefix(cItem.getBaseName());

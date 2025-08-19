@@ -25,8 +25,6 @@ public class CustomItem {
     private final int levelRequirement;
     private final String classRequirement;
     private final Material material;
-    private final boolean ego;
-    private final String egoKey;
     private final boolean soulbound;
 
     private int currentDurability;
@@ -89,8 +87,6 @@ public class CustomItem {
                       StatRange wilRange,
                       StatRange tecRange,
                       int upgradeLevel,
-                      boolean ego,
-                      String egoKey,
                       boolean soulbound) {
         this.uuid             = uuid;
         this.id               = id;
@@ -99,8 +95,6 @@ public class CustomItem {
         this.levelRequirement = levelRequirement;
         this.classRequirement = classRequirement;
         this.material         = material;
-        this.ego              = ego;
-        this.egoKey           = egoKey;
         this.soulbound        = soulbound;
 
         this.hpRange    = hpRange;
@@ -145,13 +139,11 @@ public class CustomItem {
                       StatRange intelRange,
                       StatRange dexRange,
                       StatRange wilRange,
-                      StatRange tecRange,
-                      boolean ego,
-                      String egoKey) {
+                      StatRange tecRange) {
         this(UUID.randomUUID(),
             id, baseName, rarity, levelRequirement, classRequirement, material,
             hpRange, defRange, strRange, agiRange, intelRange, dexRange, wilRange, tecRange,
-            0, ego, egoKey, false);
+            0, false);
     }
 
     /** Convenience overload retaining backward compatibility with old constructor signature. */
@@ -170,12 +162,10 @@ public class CustomItem {
                       StatRange dexRange,
                       StatRange wilRange,
                       StatRange tecRange,
-                      int upgradeLevel,
-                      boolean ego,
-                      String egoKey) {
+                      int upgradeLevel) {
         this(uuid, id, baseName, rarity, levelRequirement, classRequirement, material,
                 hpRange, defRange, strRange, agiRange, intelRange, dexRange, wilRange, tecRange,
-                upgradeLevel, ego, egoKey, false);
+                upgradeLevel, false);
     }
 
     /** Convenience overload for brand new items including soulbound parameter. */
@@ -193,13 +183,11 @@ public class CustomItem {
                       StatRange dexRange,
                       StatRange wilRange,
                       StatRange tecRange,
-                      boolean ego,
-                      String egoKey,
                       boolean soulbound) {
         this(UUID.randomUUID(),
                 id, baseName, rarity, levelRequirement, classRequirement, material,
                 hpRange, defRange, strRange, agiRange, intelRange, dexRange, wilRange, tecRange,
-                0, ego, egoKey, soulbound);
+                0, soulbound);
     }
 
     // ─── Getters ───────────────────────────────────────────────────────────────
@@ -211,8 +199,6 @@ public class CustomItem {
     public int getLevelRequirement()    { return levelRequirement; }
     public String getClassRequirement() { return classRequirement; }
     public Material getMaterial()       { return material; }
-    public boolean isEgo()              { return ego; }
-    public String getEgoKey()           { return egoKey; }
     public boolean isSoulbound()        { return soulbound; }
 
     public StatRange getHpRange()    { return hpRange; }

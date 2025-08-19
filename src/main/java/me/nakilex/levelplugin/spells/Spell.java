@@ -171,7 +171,7 @@ public class Spell {
                 return;
             }
         }
-        // rank and ego requirements removed
+        // rank requirements removed
 
         // 1) Cooldown guard
         if (cooldownMgr.isOnCooldown(pid, id)) {

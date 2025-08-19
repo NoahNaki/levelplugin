@@ -33,9 +33,7 @@ public class OpSwordCommand implements CommandExecutor {
                 new StatRange(1000, 1000),
                 new StatRange(1000, 1000),
                 new StatRange(1000, 1000),
-                new StatRange(1000, 1000),
-                false,
-                null
+                new StatRange(1000, 1000)
         );
         ItemManager.getInstance().addInstance(sword);
         player.getInventory().addItem(ItemUtil.createItemStackFromCustomItem(sword, 1, player));

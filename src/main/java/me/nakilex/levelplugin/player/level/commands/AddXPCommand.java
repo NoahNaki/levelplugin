@@ -43,7 +43,7 @@ public class AddXPCommand implements CommandExecutor {
             return true;
         }
 
-        // Grant XP to player and their active Ego weapon
+        // Grant XP to player
         levelManager.addXP(target, amount);
         String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
         sender.sendMessage("§aGave " + amount + " <glyph:experience_orb_icon> " + expLabel + " §ato " + target.getName());
