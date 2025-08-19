@@ -172,7 +172,7 @@ public class DungeonBuilder implements Listener {
     public void onRespawn(PlayerRespawnEvent event) {
         Session s = sessions.get(event.getPlayer().getUniqueId());
         if (s == null) return;
-        Location respawn = new Location(s.world, 0, 0, 0);
+        Location respawn = new Location(s.dungeon.getWorld(), 0, 0, 0);
         event.setRespawnLocation(respawn);
         Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
             event.getPlayer().setAllowFlight(true);
