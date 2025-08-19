@@ -182,7 +182,7 @@ public class GuildMemberGUI implements Listener {
         }
         inv.setItem(CAMERA_SLOT, camItem);
         inv.setItem(SORT_SLOT, createSortButton(sort));
-        inv.setItem(INFO_SLOT, GuiUtil.getNexoItem("info", ChatColor.YELLOW + "Information"));
+        inv.setItem(INFO_SLOT, createInfoButton(g));
         inv.setItem(REFRESH_SLOT, GuiUtil.getNexoItem("refresh", ChatColor.RED + "Refresh"));
         inv.setItem(VAULT_SLOT, GuiUtil.getNexoItem("chest", ChatColor.GOLD + "Guild Vault"));
         inv.setItem(SETTINGS_SLOT, GuiUtil.getNexoItem("gear", ChatColor.YELLOW + "Settings"));
@@ -239,6 +239,23 @@ public class GuildMemberGUI implements Listener {
             lore.add(" ");
             lore.add(ChatColor.WHITE + "Left-Click " + ChatColor.GRAY + "to go forward");
             lore.add(ChatColor.WHITE + "Right-Click " + ChatColor.GRAY + "to go backward");
+            meta.setLore(lore);
+            it.setItemMeta(meta);
+        }
+        return it;
+    }
+
+    private ItemStack createInfoButton(Guild g) {
+        ItemStack it = GuiUtil.getNexoItem("info", ChatColor.YELLOW + "Information");
+        ItemMeta meta = it.getItemMeta();
+        if (meta != null) {
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Benefits of Level " + ChatColor.YELLOW + g.getLevel());
+            lore.add(ChatColor.GRAY + "Members: " + ChatColor.WHITE + g.getMaxMembers());
+            lore.add(ChatColor.GRAY + "Coin Capacity: " + ChatColor.GOLD + g.getCoinCapacity() + ChatColor.YELLOW + " <glyph:coins_icon>");
+            lore.add(ChatColor.GRAY + "Storage Pages: " + ChatColor.WHITE + g.getMaxPages());
+            int disc = (int) Math.round(g.getUpgradeDiscount() * 100);
+            lore.add(ChatColor.GRAY + "Upgrade Discount: " + ChatColor.GREEN + disc + "%");
             meta.setLore(lore);
             it.setItemMeta(meta);
         }
