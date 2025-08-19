@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.guild;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.HeadUtil;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -143,7 +144,17 @@ public class GuildMemberGUI implements Listener {
         if (infoMeta != null) {
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.GRAY + "Leader: " + ChatColor.WHITE + g.getLeaderName());
-            lore.add(ChatColor.GRAY + "Members: " + ChatColor.WHITE + g.getMembers().size());
+            lore.add(ChatColor.GRAY + "Members: " + ChatColor.WHITE + g.getMembers().size() + ChatColor.GRAY + "/" + ChatColor.WHITE + g.getMaxMembers());
+            lore.add(ChatColor.GRAY + "Level: " + ChatColor.YELLOW + g.getLevel());
+            int need = g.getExpNeeded();
+            if (need > 0) {
+                int cur = g.getExp();
+                double progress = cur / (double) need;
+                double percent = Math.round(progress * 1000.0) / 10.0;
+                lore.add(ChatColor.GRAY + "Progress: " + ChatColor.YELLOW + percent + "%");
+                String bar = GuiUtil.createProgressBar(progress, 15);
+                lore.add(bar + " " + ChatColor.YELLOW + cur + ChatColor.GOLD + "/" + ChatColor.YELLOW + need + " " + ChatFormatter.experienceLabel());
+            }
             infoMeta.setLore(lore);
             infoItem.setItemMeta(infoMeta);
         }

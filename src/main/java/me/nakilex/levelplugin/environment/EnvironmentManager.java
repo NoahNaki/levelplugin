@@ -840,6 +840,12 @@ public class EnvironmentManager {
             advance(bs);
             invalidateTownChunks(base);
             player.sendMessage(ChatColor.GREEN + building + " upgraded to Stage " + bs.stage);
+            Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
+            if (g != null) {
+                g.addExp(1000);
+                GuildManager.getInstance().save();
+                player.sendMessage(ChatColor.GRAY + "Guild earned " + ChatColor.GOLD + "1000 <glyph:experience_orb_icon>" + ChatColor.GRAY + ".");
+            }
             String town = towns.get(base);
             Location origin = origins.get(base);
             if (town != null && origin != null) {
@@ -872,6 +878,10 @@ public class EnvironmentManager {
             }
         }
         int coinCost = nextStageData.coinCost;
+        Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
+        if (g != null) {
+            coinCost = (int) Math.round(coinCost * (1.0 - g.getUpgradeDiscount()));
+        }
         int balance = Main.getInstance().getEconomyManager().getBalance(player);
         if (balance < coinCost) {
             player.sendMessage(ChatColor.RED + "You need " + coinCost + " coins.");

@@ -30,6 +30,7 @@ public class StorageGUI {
     private int currentPage;
     private final StorageEvents storageEvents;
     private final boolean allowSoulbound;
+    private int maxPages;
 
     /** Base price for unlocking storage pages. */
     private static final int BASE_PAGE_COST = 300;
@@ -48,13 +49,14 @@ public class StorageGUI {
     private static final int INFO_SLOT     = 8;
     private static final ItemStack FILLER  = createFiller();
 
-    public StorageGUI(String ownerKey, String folder, String prefix, String titleBase, StorageEvents storageEvents, boolean allowSoulbound) {
+    public StorageGUI(String ownerKey, String folder, String prefix, String titleBase, StorageEvents storageEvents, boolean allowSoulbound, int maxPages) {
         this.ownerKey = ownerKey;
         this.folder = folder;
         this.prefix = prefix;
         this.titleBase = titleBase;
         this.storageEvents = storageEvents;
         this.allowSoulbound = allowSoulbound;
+        this.maxPages = maxPages;
         this.pages = new ArrayList<>();
         this.currentPage = 0;
 
@@ -64,7 +66,11 @@ public class StorageGUI {
 
     /** Convenience constructor for personal storage using defaults. */
     public StorageGUI(String ownerKey, StorageEvents storageEvents) {
-        this(ownerKey, "storage", "player_", "Personal Storage", storageEvents, true);
+        this(ownerKey, "storage", "player_", "Personal Storage", storageEvents, true, Integer.MAX_VALUE);
+    }
+
+    public StorageGUI(String ownerKey, String folder, String prefix, String titleBase, StorageEvents storageEvents, boolean allowSoulbound) {
+        this(ownerKey, folder, prefix, titleBase, storageEvents, allowSoulbound, Integer.MAX_VALUE);
     }
 
     /**
@@ -84,7 +90,9 @@ public class StorageGUI {
         // Next arrow: if on last page, show purchase cost; otherwise "Next Page"
         ItemStack nextItem;
         if (currentPage == pages.size() - 1) {
-            if (confirmUnlock) {
+            if (pages.size() >= maxPages) {
+                nextItem = FILLER.clone();
+            } else if (confirmUnlock) {
                 nextItem = getNexoItem("check",
                         ChatColor.GREEN + "Confirm " + currentPageCost + " <glyph:coins_icon>");
             } else {
@@ -198,6 +206,12 @@ public class StorageGUI {
         if (player == null) return;
 
         if (currentPage == pages.size() - 1) {
+            if (pages.size() >= maxPages) {
+                player.sendMessage(ChatColor.RED + "Storage is at maximum pages.");
+                confirmUnlock = false;
+                open(player);
+                return;
+            }
             if (!confirmUnlock) {
                 confirmUnlock = true;
                 open(player);
@@ -236,6 +250,10 @@ public class StorageGUI {
             currentPage--;
             open(player);
         }
+    }
+
+    public void setMaxPages(int maxPages) {
+        this.maxPages = maxPages;
     }
 
     /** Persists all pages to disk under this owner's UUID. */

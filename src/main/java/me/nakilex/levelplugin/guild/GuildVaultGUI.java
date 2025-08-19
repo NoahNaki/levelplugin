@@ -27,12 +27,14 @@ public class GuildVaultGUI extends StorageGUI {
     private final String guildName;
 
     public GuildVaultGUI(String guildName, StorageEvents events) {
-        super(guildName.toLowerCase(), "guildvault", "guild_", "Guild Vault", events, false);
+        super(guildName.toLowerCase(), "guildvault", "guild_", "Guild Vault", events, false, 1);
         this.guildName = guildName;
     }
 
     @Override
     public void open(Player player) {
+        Guild g = GuildManager.getInstance().getGuild(guildName);
+        if (g != null) setMaxPages(g.getMaxPages());
         super.open(player);
         Inventory inv = player.getOpenInventory().getTopInventory();
         inv.setItem(COIN_SLOT, createCoinItem());
@@ -41,12 +43,13 @@ public class GuildVaultGUI extends StorageGUI {
     private ItemStack createCoinItem() {
         Guild g = GuildManager.getInstance().getGuild(guildName);
         int coins = g != null ? g.getCoins() : 0;
+        int capacity = g != null ? g.getCoinCapacity() : 0;
         ItemStack stack = new ItemStack(Material.GOLD_BLOCK);
         ItemMeta meta = stack.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(ChatColor.GOLD + "Guild Coins");
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Guild Coins: " + ChatColor.GOLD + coins + " <glyph:coins_icon>");
+            lore.add(ChatColor.GRAY + "Guild Coins: " + ChatColor.GOLD + coins + ChatColor.GRAY + "/" + ChatColor.GOLD + capacity + " <glyph:coins_icon>");
             lore.add(ChatColor.WHITE + "Left-click " + ChatColor.GRAY + "to deposit");
             lore.add(ChatColor.WHITE + "Right-click " + ChatColor.GRAY + "to withdraw");
             meta.setLore(lore);
@@ -73,8 +76,16 @@ public class GuildVaultGUI extends StorageGUI {
                                 amt -> amt > 0 && econ.getBalance(player) >= amt,
                                 amt -> {
                                     econ.deductCoins(player, amt);
+                                    int before = g.getCoins();
                                     g.addCoins(amt);
-                                    player.sendMessage(ChatColor.GRAY + "Deposited " + ChatColor.GOLD + amt + " <glyph:coins_icon>");
+                                    int added = g.getCoins() - before;
+                                    if (added < amt) {
+                                        int refund = amt - added;
+                                        econ.addCoins(player, refund);
+                                        player.sendMessage(ChatColor.RED + "Vault full. Deposited " + ChatColor.GOLD + added + " <glyph:coins_icon>" + ChatColor.RED + " and refunded " + refund + ".");
+                                    } else {
+                                        player.sendMessage(ChatColor.GRAY + "Deposited " + ChatColor.GOLD + amt + " <glyph:coins_icon>");
+                                    }
                                     GuildManager.getInstance().save();
                                 }
                         ))

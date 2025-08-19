@@ -81,7 +81,7 @@ public class GuildManager {
         if (name == null) return false;
         Guild g = guilds.get(name);
         if (g == null) return false;
-        g.addMember(player);
+        if (!g.addMember(player)) return false;
         playerGuild.put(player, name);
         fireEvent(player, g, GuildMembershipEvent.Action.JOIN);
         return true;
@@ -143,7 +143,7 @@ public class GuildManager {
         Guild g = guilds.get(guildName);
         if (g == null) return false;
         if (!g.removeApplicant(applicant)) return false;
-        g.addMember(applicant);
+        if (!g.addMember(applicant)) return false;
         playerGuild.put(applicant, guildName);
         fireEvent(applicant, g, GuildMembershipEvent.Action.JOIN);
         return true;
@@ -319,6 +319,8 @@ public class GuildManager {
                 g.getHostiles().addAll(cfg.getStringList(base + "hostiles"));
                 g.setMotd(cfg.getString(base + "motd", ""));
                 g.setCoins(cfg.getInt(base + "coins", 0));
+                g.setLevel(cfg.getInt(base + "level", 1));
+                g.setExp(cfg.getInt(base + "exp", 0));
 
                 ConfigurationSection apps = cfg.getConfigurationSection(base + "applicants");
                 if (apps != null) {
@@ -352,6 +354,8 @@ public class GuildManager {
             cfg.set(base + "hostiles", new ArrayList<>(g.getHostiles()));
             cfg.set(base + "motd", g.getMotd());
             cfg.set(base + "coins", g.getCoins());
+            cfg.set(base + "level", g.getLevel());
+            cfg.set(base + "exp", g.getExp());
             if (!g.getApplicants().isEmpty()) {
                 ConfigurationSection sec = cfg.createSection(base + "applicants");
                 for (Map.Entry<UUID, Long> e : g.getApplicants().entrySet()) {
