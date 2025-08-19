@@ -838,7 +838,7 @@ public class DungeonBuilder implements Listener {
         void resetPlayer() {
             Location origin = new Location(dungeon.getWorld(), 0, 0, 0);
             player.teleport(origin);
-            player.setHealth(player.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue());
+            player.setHealth(player.getAttribute(Attribute.MAX_HEALTH).getValue());
             player.setAllowFlight(true);
             player.setFlying(true);
         }
