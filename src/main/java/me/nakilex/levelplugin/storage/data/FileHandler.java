@@ -68,11 +68,11 @@ public class FileHandler {
         List<Inventory> loadedPages = new ArrayList<>();
 
         if (config.contains("pages")) {
-            for (String key : config.getConfigurationSection("pages").getKeys(false)) {
-                String pageKey = "pages." + key;
+            for (String pageId : config.getConfigurationSection("pages").getKeys(false)) {
+                String pageKey = "pages." + pageId;
                 List<ItemStack> items = (List<ItemStack>) config.get(pageKey);
 
-                int pageIndex = Integer.parseInt(key) + 1;
+                int pageIndex = Integer.parseInt(pageId) + 1;
                 Inventory page = Bukkit.createInventory(
                     null,
                     54,
