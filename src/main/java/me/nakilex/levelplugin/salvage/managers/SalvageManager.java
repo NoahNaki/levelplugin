@@ -29,6 +29,19 @@ public class SalvageManager {
         return instance;
     }
 
+    /** Per-player toggle whether depositing a chosen rarity also moves lower rarities. */
+    private final Map<java.util.UUID, Boolean> includeLower = new java.util.HashMap<>();
+
+    /** Check if the player has enabled including lower rarities. */
+    public boolean isIncludingLower(java.util.UUID player) {
+        return includeLower.getOrDefault(player, false);
+    }
+
+    /** Toggle the player's include-lower-rarity setting. */
+    public void toggleIncludingLower(java.util.UUID player) {
+        includeLower.put(player, !isIncludingLower(player));
+    }
+
     /** As before: total coins based on stats */
     /** Sum of all base stats for reuse in multiple calculations. */
     public int getTotalStats(CustomItem cItem) {

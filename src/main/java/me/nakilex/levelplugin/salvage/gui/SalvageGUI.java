@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.salvage.gui;
 
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.salvage.managers.SalvageManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -17,6 +18,7 @@ public class SalvageGUI {
 
     private static final int GUI_SIZE = 54;
     private static final String GUI_TITLE = ChatColor.BLACK + "Salvage Items";
+    public static final int TOGGLE_SLOT = 9;
 
     public static void openMerchantGUI(Player player) {
         Inventory gui = Bukkit.createInventory(null, GUI_SIZE, GUI_TITLE);
@@ -26,6 +28,9 @@ public class SalvageGUI {
                 gui.setItem(i, filler);
             }
         }
+
+        boolean includeLower = SalvageManager.getInstance().isIncludingLower(player.getUniqueId());
+        gui.setItem(TOGGLE_SLOT, createLowerToggle(includeLower));
 
         ItemStack info = GuiUtil.getNexoItem("info", ChatColor.YELLOW + "Information");
         ItemMeta infoMeta = info.getItemMeta();
@@ -69,6 +74,13 @@ public class SalvageGUI {
         player.openInventory(gui);
     }
 
+
+    public static ItemStack createLowerToggle(boolean enabled) {
+        return GuiUtil.createToggleItem(enabled,
+                ChatColor.YELLOW + "Include Lower Rarities",
+                ChatColor.GRAY + "Deposit buttons also move",
+                ChatColor.GRAY + "lower rarity gear when enabled.");
+    }
 
     private static ItemStack createRarityDepositButton(ItemRarity rarity) {
         String id;

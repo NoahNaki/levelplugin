@@ -20,6 +20,10 @@ tips:
     - "Every mobility spell scales with agility!"
     - "You can trade with others using /trade <username>"
     - "You can sell your unwanted items at a Scrapper for <glyph:coins_icon> &6coins & <glyph:purple_orb_icon> &dgems&f!"
+    - "Use /friends to view and sort your friends list!"
+    - "Salvage unwanted gear at a Salvager to earn coins and gems."
+    - "Toggle lower rarity deposits in the salvage menu with the left switch."
+    - "Unlock waystones to fast travel around the world using /fasttravel."
 
 # Leaderboard locations
 leaderboards:

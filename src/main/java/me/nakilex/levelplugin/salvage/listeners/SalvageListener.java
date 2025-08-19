@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.salvage.managers.SalvageManager;
+import me.nakilex.levelplugin.salvage.gui.SalvageGUI;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.potions.data.PotionInstance;
 import org.bukkit.ChatColor;
@@ -72,6 +73,15 @@ public class SalvageListener implements Listener {
             if (slot == 53) {
                 event.setCancelled(true);
                 handleSellButtonClick(event);
+                return;
+            }
+            if (slot == SalvageGUI.TOGGLE_SLOT) {
+                event.setCancelled(true);
+                java.util.UUID id = player.getUniqueId();
+                SalvageManager mgr = SalvageManager.getInstance();
+                mgr.toggleIncludingLower(id);
+                topInv.setItem(SalvageGUI.TOGGLE_SLOT,
+                        SalvageGUI.createLowerToggle(mgr.isIncludingLower(id)));
                 return;
             }
             if (slot == 45) {
@@ -215,6 +225,7 @@ public class SalvageListener implements Listener {
         Inventory gui = player.getOpenInventory().getTopInventory();
         PlayerInventory playerInv = player.getInventory();
         int handSlot = playerInv.getHeldItemSlot();
+        boolean includeLower = SalvageManager.getInstance().isIncludingLower(player.getUniqueId());
         // move matching items from the player's inventory into the GUI
         ItemStack[] storageContents = playerInv.getStorageContents();
         for (int i = 0; i < storageContents.length; i++) {
@@ -223,26 +234,34 @@ public class SalvageListener implements Listener {
             if (invItem == null || invItem.getType() == Material.AIR) continue;
 
             CustomItem cItemInv = ItemManager.getInstance().getCustomItemFromItemStack(invItem);
-            if (cItemInv != null && cItemInv.getRarity() == targetRarity) {
-                int dest = firstEmptyInputSlot(gui);
-                if (dest == -1) break;
-                playerInv.setItem(i, null);
-                gui.setItem(dest, invItem);
+            if (cItemInv != null) {
+                ItemRarity r = cItemInv.getRarity();
+                if (r == targetRarity || (includeLower && r.ordinal() <= targetRarity.ordinal())) {
+                    int dest = firstEmptyInputSlot(gui);
+                    if (dest == -1) break;
+                    playerInv.setItem(i, null);
+                    gui.setItem(dest, invItem);
+                }
             }
         }
 
         ItemStack off = playerInv.getItemInOffHand();
         if (off != null && off.getType() != Material.AIR) {
             CustomItem cOff = ItemManager.getInstance().getCustomItemFromItemStack(off);
-            if (cOff != null && cOff.getRarity() == targetRarity) {
-                int dest = firstEmptyInputSlot(gui);
-                if (dest != -1) {
-                    playerInv.setItemInOffHand(null);
-                    gui.setItem(dest, off);
+            if (cOff != null) {
+                ItemRarity r = cOff.getRarity();
+                if (r == targetRarity || (includeLower && r.ordinal() <= targetRarity.ordinal())) {
+                    int dest = firstEmptyInputSlot(gui);
+                    if (dest != -1) {
+                        playerInv.setItemInOffHand(null);
+                        gui.setItem(dest, off);
+                    }
                 }
             }
         }
-        player.sendMessage(ChatColor.YELLOW + "Moved all " + targetRarity.name().toLowerCase() + " items.");
+        player.sendMessage(ChatColor.YELLOW + "Moved all "
+                + (includeLower ? "<= " : "")
+                + targetRarity.name().toLowerCase() + " items.");
     }
 
     /** Moves all salvageable items from the player's inventory into the GUI. */

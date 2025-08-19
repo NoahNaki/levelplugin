@@ -49,6 +49,8 @@ import me.nakilex.levelplugin.party.PartyCommands;
 import me.nakilex.levelplugin.party.PartyGlowCommand;
 import me.nakilex.levelplugin.friend.FriendCommand;
 import me.nakilex.levelplugin.friend.FriendGlowCommand;
+import me.nakilex.levelplugin.friend.FriendGUI;
+import me.nakilex.levelplugin.friend.FriendsCommand;
 import me.nakilex.levelplugin.codex.CodexMainGUI;
 import me.nakilex.levelplugin.codex.CodexCommand;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantCommand;
@@ -144,6 +146,8 @@ public class CommandRegistry {
         FriendCommand friendCmd = new FriendCommand(plugin.getFriendManager());
         plugin.getCommand("friend").setExecutor(friendCmd);
         plugin.getCommand("friend").setTabCompleter(friendCmd);
+        FriendGUI friendGui = new FriendGUI(plugin.getFriendManager());
+        plugin.getCommand("friends").setExecutor(new FriendsCommand(friendGui));
         plugin.getCommand("friendglow").setExecutor(new FriendGlowCommand(plugin.getFriendGlowManager()));
         plugin.getCommand("ignore").setExecutor(new IgnoreCommand(plugin.getIgnoreManager()));
         plugin.getCommand("unignore").setExecutor(new UnignoreCommand(plugin.getIgnoreManager()));
