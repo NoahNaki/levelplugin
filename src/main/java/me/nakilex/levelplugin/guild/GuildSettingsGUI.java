@@ -66,8 +66,8 @@ public class GuildSettingsGUI implements Listener {
                 ChatColor.AQUA + permName,
                 ChatColor.GRAY + "Role: " + ChatColor.WHITE + roleName,
                 "",
-                ChatColor.WHITE + "Left-click " + ChatColor.GRAY + "to cycle role",
-                ChatColor.WHITE + "Right-click " + ChatColor.GRAY + "to toggle");
+                ChatColor.WHITE + "Right-click " + ChatColor.GRAY + "to cycle role",
+                ChatColor.WHITE + "Left-click " + ChatColor.GRAY + "to toggle");
     }
 
     @EventHandler
@@ -88,10 +88,10 @@ public class GuildSettingsGUI implements Listener {
         GuildPermission[] perms = GuildPermission.values();
         for (int i = 0; i < perms.length && i < PERM_SLOTS.length; i++) {
             if (slot == PERM_SLOTS[i]) {
-                if (e.isLeftClick()) {
+                if (e.isRightClick()) {
                     rIdx = (rIdx + 1) % GuildRole.values().length;
                     roleIndex.put(player.getUniqueId(), rIdx);
-                } else if (e.isRightClick()) {
+                } else if (e.isLeftClick()) {
                     GuildRole role = GuildRole.values()[rIdx];
                     GuildPermission perm = perms[i];
                     manager.setPermission(player.getUniqueId(), role, perm, !g.getPermissions(role).has(perm));

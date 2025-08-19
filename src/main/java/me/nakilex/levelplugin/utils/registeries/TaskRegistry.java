@@ -17,10 +17,12 @@ import me.nakilex.levelplugin.world.LeafParticleTask;
 import me.nakilex.levelplugin.leaderboards.LeaderboardUpdateTask;
 import me.nakilex.levelplugin.leaderboards.LeaderboardManager;
 import org.bukkit.entity.Player;
+import me.nakilex.levelplugin.environment.EnvironmentManager;
 
 public class TaskRegistry {
 
     private static QuestNPCEffectTask questNpcTask;
+    private static org.bukkit.scheduler.BukkitTask hologramTask;
 
     public static void startTasks(Main plugin,
                                   HorseConfigManager horseConfigManager,
@@ -45,6 +47,16 @@ public class TaskRegistry {
 
         new LeafParticleTask(plugin).runTaskTimer(plugin, 20L, 20L);
 
+        EnvironmentManager env = plugin.getEnvironmentManager();
+        if (env != null) {
+            hologramTask = new org.bukkit.scheduler.BukkitRunnable() {
+                @Override
+                public void run() {
+                    env.refreshAllHolograms();
+                }
+            }.runTaskTimer(plugin, 100L, 100L);
+        }
+
         questNpcTask = new QuestNPCEffectTask(plugin.getQuestManager());
         questNpcTask.runTaskTimer(plugin, 20L, 20L);
         BeaconManager beaconMgr = plugin.getBeaconManager();
@@ -67,6 +79,10 @@ public class TaskRegistry {
             questNpcTask.cancel();
             questNpcTask.clearGlyphs();
             questNpcTask = null;
+        }
+        if (hologramTask != null) {
+            hologramTask.cancel();
+            hologramTask = null;
         }
     }
 }

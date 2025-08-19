@@ -698,6 +698,16 @@ public class EnvironmentManager {
         }
     }
 
+    /** Refresh holograms for every tracked player. */
+    public void refreshAllHolograms() {
+        for (UUID id : new java.util.ArrayList<>(buildingHolograms.keySet())) {
+            Player p = Bukkit.getPlayer(id);
+            if (p != null && p.isOnline()) {
+                refreshAllBuildingHolograms(p);
+            }
+        }
+    }
+
     /** Rebuild a single building hologram based on the player's current inventory. */
     private void refreshBuildingHologram(Player player, String building) {
         UUID uuid = player.getUniqueId();
