@@ -11,6 +11,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
@@ -25,6 +27,7 @@ import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.HeadUtil;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.Main;
+import org.bukkit.attribute.Attribute;
 
 import java.util.*;
 import java.awt.Point;
@@ -172,12 +175,18 @@ public class DungeonBuilder implements Listener {
     public void onRespawn(PlayerRespawnEvent event) {
         Session s = sessions.get(event.getPlayer().getUniqueId());
         if (s == null) return;
-        Location respawn = new Location(s.dungeon.getWorld(), 0, 0, 0);
-        event.setRespawnLocation(respawn);
-        Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
-            event.getPlayer().setAllowFlight(true);
-            event.getPlayer().setFlying(true);
-        });
+        event.setRespawnLocation(new Location(s.dungeon.getWorld(), 0, 0, 0));
+        Bukkit.getScheduler().runTask(Main.getInstance(), s::resetPlayer);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onVoidDamage(EntityDamageEvent event) {
+        if (event.getCause() != EntityDamageEvent.DamageCause.VOID) return;
+        if (!(event.getEntity() instanceof Player player)) return;
+        Session s = sessions.get(player.getUniqueId());
+        if (s == null) return;
+        event.setCancelled(true);
+        s.resetPlayer();
     }
 
     private void setupInventory(Player player) {
@@ -736,6 +745,14 @@ public class DungeonBuilder implements Listener {
             this.dungeon = new Dungeon(world, player.getName() + "_builder");
             this.returnLocation = back;
             this.tempWorld = tempWorld;
+        }
+
+        void resetPlayer() {
+            Location origin = new Location(dungeon.getWorld(), 0, 0, 0);
+            player.teleport(origin);
+            player.setHealth(player.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue());
+            player.setAllowFlight(true);
+            player.setFlying(true);
         }
         void undo() {
             History h = history.pollLast();
