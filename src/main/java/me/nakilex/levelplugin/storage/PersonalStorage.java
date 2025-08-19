@@ -17,7 +17,7 @@ public class PersonalStorage {
 
         // Pass both arguments to StorageGUI
         this.storageGUI = new StorageGUI(
-            ownerId,
+            ownerId.toString(),
             Main.getInstance().getStorageEvents()
         );
     }
@@ -26,7 +26,7 @@ public class PersonalStorage {
         if (storageGUI == null) {
             // Fix #2: Also pass both arguments here
             this.storageGUI = new StorageGUI(
-                ownerId,
+                ownerId.toString(),
                 Main.getInstance().getStorageEvents()
             );
         }
@@ -41,7 +41,7 @@ public class PersonalStorage {
     public void load() {
         if (storageGUI == null) {
             storageGUI = new StorageGUI(
-                ownerId,
+                ownerId.toString(),
                 Main.getInstance().getStorageEvents()
             );
         }

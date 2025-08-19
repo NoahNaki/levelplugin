@@ -24,7 +24,11 @@ public class FileHandler {
      * Saves a list of Inventory pages for a given player.
      */
     public void saveStorage(UUID playerId, List<Inventory> pages) {
-        File file = getStorageFile(playerId);
+        saveStorage(playerId.toString(), pages, "storage", "player_");
+    }
+
+    public void saveStorage(String key, List<Inventory> pages, String folder, String prefix) {
+        File file = getStorageFile(key, folder, prefix);
         YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
 
         // Clear out old data
@@ -50,7 +54,11 @@ public class FileHandler {
      * Loads a list of Inventory pages for a given player.
      */
     public List<Inventory> loadStorage(UUID playerId) {
-        File file = getStorageFile(playerId);
+        return loadStorage(playerId.toString(), "storage", "player_");
+    }
+
+    public List<Inventory> loadStorage(String key, String folder, String prefix) {
+        File file = getStorageFile(key, folder, prefix);
         if (!file.exists()) {
             // No data, return empty
             return new ArrayList<>();
@@ -104,7 +112,11 @@ public class FileHandler {
      * Delete the storage file for the given player if it exists.
      */
     public void deleteStorage(UUID playerId) {
-        File file = getStorageFile(playerId);
+        deleteStorage(playerId.toString(), "storage", "player_");
+    }
+
+    public void deleteStorage(String key, String folder, String prefix) {
+        File file = getStorageFile(key, folder, prefix);
         if (file.exists()) {
             file.delete();
         }
@@ -113,12 +125,12 @@ public class FileHandler {
     /**
      * Locates or creates the file storing player data in a folder named 'storage'.
      */
-    private File getStorageFile(UUID playerId) {
+    private File getStorageFile(String key, String folderName, String prefix) {
         File folder = new File(Bukkit.getPluginManager()
-            .getPlugin("LevelPlugin").getDataFolder(), "storage");
+            .getPlugin("LevelPlugin").getDataFolder(), folderName);
         if (!folder.exists()) {
             folder.mkdirs();
         }
-        return new File(folder, "player_" + playerId + ".yml");
+        return new File(folder, prefix + key + ".yml");
     }
 }

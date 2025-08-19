@@ -49,6 +49,7 @@ public class ItemUtil {
     public static final NamespacedKey EGO_RANK_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "ego_weapon_rank");
     public static final NamespacedKey EGO_EXP_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "ego_weapon_exp");
     public static final NamespacedKey EGO_RARITY_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "ego_weapon_rarity");
+    public static final NamespacedKey SOULBOUND_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "soulbound");
 
     private static final int PREFIX_BONUS = 20;
     private static final java.util.Map<String, StatsManager.StatType> PREFIX_MAP = new java.util.HashMap<>();
@@ -339,6 +340,10 @@ public class ItemUtil {
                 + "/" + cItem.getMaxDurability());
         }
 
+        if (cItem.isSoulbound()) {
+            lore.add(ChatColor.DARK_PURPLE + "Soulbound");
+            pdc.set(SOULBOUND_KEY, PersistentDataType.BYTE, (byte)1);
+        }
         meta.setLore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES); // Hide item attributes
         meta.setUnbreakable(true); // Make the item unbreakable
@@ -358,6 +363,11 @@ public class ItemUtil {
 
         stack.setItemMeta(meta);
         return stack;
+    }
+
+    public static boolean isSoulbound(ItemStack stack) {
+        if (stack == null || !stack.hasItemMeta()) return false;
+        return stack.getItemMeta().getPersistentDataContainer().has(SOULBOUND_KEY, PersistentDataType.BYTE);
     }
 
     /**

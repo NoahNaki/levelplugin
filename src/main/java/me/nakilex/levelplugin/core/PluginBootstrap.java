@@ -95,6 +95,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.guild.GuildManager guildManager;
     private me.nakilex.levelplugin.guild.GuildGUI guildGUI;
     private me.nakilex.levelplugin.guild.GuildMemberGUI guildMemberGUI;
+    private me.nakilex.levelplugin.guild.GuildSettingsGUI guildSettingsGUI;
     private me.nakilex.levelplugin.guild.GuildApplicantsGUI guildApplicantsGUI;
     private me.nakilex.levelplugin.guild.siege.GuildSiegeManager guildSiegeManager;
     private PartyGlowManager partyGlowManager;
@@ -119,6 +120,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.mob.config.ModelSetManager modelSetManager;
     private StorageEvents storageEvents;
     private StorageManager storageManager;
+    private me.nakilex.levelplugin.guild.GuildVaultManager guildVaultManager;
     private ItemConfig itemConfig;
     private PlayerConfig playerConfig;
     private PlayerToggleManager dmgNumberToggleManager;
@@ -265,7 +267,8 @@ public class PluginBootstrap {
         guildManager.init(plugin);
         guildGUI = new me.nakilex.levelplugin.guild.GuildGUI(guildManager);
         guildApplicantsGUI = new me.nakilex.levelplugin.guild.GuildApplicantsGUI(guildManager);
-        guildMemberGUI = new me.nakilex.levelplugin.guild.GuildMemberGUI(guildManager, guildGUI, guildApplicantsGUI);
+        guildSettingsGUI = new me.nakilex.levelplugin.guild.GuildSettingsGUI(guildManager);
+        guildMemberGUI = new me.nakilex.levelplugin.guild.GuildMemberGUI(guildManager, guildGUI, guildApplicantsGUI, guildSettingsGUI);
         guildApplicantsGUI.setMemberGUI(guildMemberGUI);
         guildSiegeManager = me.nakilex.levelplugin.guild.siege.GuildSiegeManager.getInstance();
         guildSiegeManager.init(plugin);
@@ -327,6 +330,7 @@ public class PluginBootstrap {
         settingsGUI = new SettingsGUI(settingsManager);
         debugGUI = new me.nakilex.levelplugin.debug.gui.DebugGUI(mobDebugToggleManager, scoreboardManager);
         this.storageManager = new StorageManager();
+        this.guildVaultManager = new me.nakilex.levelplugin.guild.GuildVaultManager(storageEvents);
         CommandRegistry.registerCommands(
             plugin,
             blacksmithGUI,
@@ -445,6 +449,7 @@ public class PluginBootstrap {
             playerConfig.saveAllPlayers();
         }
         if (storageManager != null) storageManager.saveAllStorages();
+        if (guildVaultManager != null) guildVaultManager.saveAll();
         if (auctionHouseManager != null) auctionHouseManager.saveAuctionsSync();
         if (lootChestManager != null) lootChestManager.removeAllChests();
         if (dungeonManager != null) {
@@ -490,6 +495,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.guild.GuildManager getGuildManager() { return guildManager; }
     public me.nakilex.levelplugin.guild.GuildGUI getGuildGUI() { return guildGUI; }
     public me.nakilex.levelplugin.guild.GuildMemberGUI getGuildMemberGUI() { return guildMemberGUI; }
+    public me.nakilex.levelplugin.guild.GuildSettingsGUI getGuildSettingsGUI() { return guildSettingsGUI; }
     public me.nakilex.levelplugin.guild.GuildApplicantsGUI getGuildApplicantsGUI() { return guildApplicantsGUI; }
     public me.nakilex.levelplugin.guild.siege.GuildSiegeManager getGuildSiegeManager() { return guildSiegeManager; }
     public PartyGlowManager getPartyGlowManager() { return partyGlowManager; }
@@ -513,6 +519,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.mob.config.ModelSetManager getModelSetManager() { return modelSetManager; }
     public StorageEvents getStorageEvents() { return storageEvents; }
     public StorageManager getStorageManager() { return storageManager; }
+    public me.nakilex.levelplugin.guild.GuildVaultManager getGuildVaultManager() { return guildVaultManager; }
     public ItemConfig getItemConfig() { return itemConfig; }
     public PlayerConfig getPlayerConfig() { return playerConfig; }
     public PlayerToggleManager getDmgNumberToggleManager() { return dmgNumberToggleManager; }

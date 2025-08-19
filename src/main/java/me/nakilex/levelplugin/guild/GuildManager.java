@@ -1,6 +1,8 @@
 package me.nakilex.levelplugin.guild;
 
 import me.nakilex.levelplugin.guild.events.GuildMembershipEvent;
+import me.nakilex.levelplugin.guild.GuildPermission;
+import me.nakilex.levelplugin.guild.GuildRole;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -85,10 +87,10 @@ public class GuildManager {
         return true;
     }
 
-    public boolean removeMember(UUID leader, UUID target) {
-        Guild g = getGuild(leader);
-        if (g == null || !g.getLeader().equals(leader)) return false;
-        if (leader.equals(target)) return false; // cannot kick yourself
+    public boolean removeMember(UUID actor, UUID target) {
+        Guild g = getGuild(actor);
+        if (g == null || !hasPermission(actor, GuildPermission.KICK)) return false;
+        if (actor.equals(target)) return false; // cannot kick yourself
         if (!g.removeMember(target)) return false;
         playerGuild.remove(target);
         fireEvent(target, g, GuildMembershipEvent.Action.LEAVE);
@@ -101,12 +103,29 @@ public class GuildManager {
         return true;
     }
 
-    public boolean promote(UUID leader, UUID target) {
-        Guild g = getGuild(leader);
-        if (g == null || !g.getLeader().equals(leader)) return false;
+    public boolean promote(UUID executor, UUID target, GuildRole role) {
+        Guild g = getGuild(executor);
+        if (g == null || g.getRole(executor) != GuildRole.LEADER) return false;
         if (!g.getMembers().contains(target)) return false;
-        g.promote(target);
+        if (role == GuildRole.LEADER) {
+            g.setRole(g.getLeader(), GuildRole.ADVISOR);
+        }
+        g.setRole(target, role);
         me.nakilex.levelplugin.Main.getInstance().getEnvironmentManager().syncGuildTown(g);
+        return true;
+    }
+
+    public boolean hasPermission(UUID player, GuildPermission perm) {
+        Guild g = getGuild(player);
+        if (g == null) return false;
+        GuildRole role = g.getRole(player);
+        return g.getPermissions(role).has(perm);
+    }
+
+    public boolean setPermission(UUID executor, GuildRole role, GuildPermission perm, boolean value) {
+        Guild g = getGuild(executor);
+        if (g == null || g.getRole(executor) != GuildRole.LEADER) return false;
+        g.setPermission(role, perm, value);
         return true;
     }
 

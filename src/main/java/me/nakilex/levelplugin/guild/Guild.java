@@ -11,6 +11,8 @@ public class Guild {
     private final Set<UUID> members = new HashSet<>();
     private final Set<String> allies = new HashSet<>();
     private final Set<String> hostiles = new HashSet<>();
+    private final Map<UUID, GuildRole> roles = new HashMap<>();
+    private final java.util.EnumMap<GuildRole, RolePermissions> permissions = new java.util.EnumMap<>(GuildRole.class);
     /** Pending applicants mapped to timestamp applied. */
     private final Map<UUID, Long> applicants = new LinkedHashMap<>();
     /** Optional guild message of the day. */
@@ -20,6 +22,11 @@ public class Guild {
         this.name = name;
         this.leader = leader;
         this.members.add(leader);
+        roles.put(leader, GuildRole.LEADER);
+        permissions.put(GuildRole.LEADER, new RolePermissions(true,true,true,true,true));
+        permissions.put(GuildRole.ADVISOR, new RolePermissions(true,true,true,true,true));
+        permissions.put(GuildRole.VETERAN, new RolePermissions(true,true,true,false,false));
+        permissions.put(GuildRole.MEMBER, new RolePermissions(false,false,false,false,false));
     }
 
     public String getName() {
@@ -57,6 +64,7 @@ public class Guild {
     }
 
     public boolean addMember(UUID id) {
+        roles.put(id, GuildRole.MEMBER);
         return members.add(id);
     }
 
@@ -73,9 +81,11 @@ public class Guild {
 
     public boolean removeMember(UUID id) {
         if (members.remove(id)) {
+            roles.remove(id);
             if (id.equals(leader)) {
                 if (!members.isEmpty()) {
                     leader = members.iterator().next();
+                    roles.put(leader, GuildRole.LEADER);
                 }
             }
             return true;
@@ -83,10 +93,24 @@ public class Guild {
         return false;
     }
 
-    public void promote(UUID id) {
-        if (members.contains(id)) {
+    public void setRole(UUID id, GuildRole role) {
+        roles.put(id, role);
+        if (role == GuildRole.LEADER) {
             leader = id;
         }
+    }
+
+    public GuildRole getRole(UUID id) {
+        if (id.equals(leader)) return GuildRole.LEADER;
+        return roles.getOrDefault(id, GuildRole.MEMBER);
+    }
+
+    public RolePermissions getPermissions(GuildRole role) {
+        return permissions.get(role);
+    }
+
+    public void setPermission(GuildRole role, GuildPermission perm, boolean value) {
+        permissions.get(role).set(perm, value);
     }
 
     public String getLeaderName() {

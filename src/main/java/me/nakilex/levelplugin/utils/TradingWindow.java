@@ -693,8 +693,13 @@ public class TradingWindow implements Listener {
                 }
                 // Allow interacting with own item fields if neither party has accepted yet
                 else if (isOwnField(e.getSlot())) {
-                    if (tw.playerAcceptedDeal || tw.oppositeAcceptedDeal) {
+                    if (ItemUtil.isSoulbound(e.getCursor()) || ItemUtil.isSoulbound(e.getCurrentItem())) {
                         e.setCancelled(true);
+                        p.sendMessage(ChatColor.RED + "Soulbound items cannot be traded.");
+                    } else if (tw.playerAcceptedDeal || tw.oppositeAcceptedDeal) {
+                        e.setCancelled(true);
+                    } else {
+                        e.setCancelled(false);
                     }
                     tw.refreshInventorySwitch();
                 } else {
@@ -724,7 +729,10 @@ public class TradingWindow implements Listener {
                 }
                 // Allow interacting with own item fields if neither party has accepted yet
                 else if (isOwnField(e.getSlot())) {
-                    if (tw.playerAcceptedDeal || tw.oppositeAcceptedDeal) {
+                    if (ItemUtil.isSoulbound(e.getCursor()) || ItemUtil.isSoulbound(e.getCurrentItem())) {
+                        e.setCancelled(true);
+                        p.sendMessage(ChatColor.RED + "Soulbound items cannot be traded.");
+                    } else if (tw.playerAcceptedDeal || tw.oppositeAcceptedDeal) {
                         e.setCancelled(true);
                     } else {
                         e.setCancelled(false);

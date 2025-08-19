@@ -7,6 +7,8 @@ import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import me.nakilex.levelplugin.guild.GuildPermission;
+import me.nakilex.levelplugin.guild.GuildRole;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -27,6 +29,7 @@ public class GuildMemberGUI implements Listener {
     private final GuildManager manager;
     private final GuildGUI guildGUI;
     private final GuildApplicantsGUI applicantsGUI;
+    private final GuildSettingsGUI settingsGUI;
 
     private static final int SIZE = 54;
     private static final String TITLE = ChatColor.BLACK + "Guild Menu";
@@ -46,6 +49,8 @@ public class GuildMemberGUI implements Listener {
     private static final int HOME_SLOT   = 49;
     private static final int CAMERA_SLOT = 50;
     private static final int SORT_SLOT   = 51;
+    private static final int VAULT_SLOT  = 46;
+    private static final int SETTINGS_SLOT = 52;
     private static final int INFO_SLOT   = 8;
     private static final int REFRESH_SLOT = 0;
 
@@ -55,10 +60,11 @@ public class GuildMemberGUI implements Listener {
     private final Set<UUID> awaitingSearch = new HashSet<>();
     private final Set<UUID> awaitingMotd = new HashSet<>();
 
-    public GuildMemberGUI(GuildManager manager, GuildGUI guildGUI, GuildApplicantsGUI applicantsGUI) {
+    public GuildMemberGUI(GuildManager manager, GuildGUI guildGUI, GuildApplicantsGUI applicantsGUI, GuildSettingsGUI settingsGUI) {
         this.manager = manager;
         this.guildGUI = guildGUI;
         this.applicantsGUI = applicantsGUI;
+        this.settingsGUI = settingsGUI;
         Bukkit.getPluginManager().registerEvents(this, Main.getInstance());
     }
 
@@ -166,6 +172,8 @@ public class GuildMemberGUI implements Listener {
         inv.setItem(SORT_SLOT, createSortButton(sort));
         inv.setItem(INFO_SLOT, GuiUtil.getNexoItem("info", ChatColor.YELLOW + "Information"));
         inv.setItem(REFRESH_SLOT, GuiUtil.getNexoItem("refresh", ChatColor.RED + "Refresh"));
+        inv.setItem(VAULT_SLOT, GuiUtil.getNexoItem("chest", ChatColor.GOLD + "Guild Vault"));
+        inv.setItem(SETTINGS_SLOT, GuiUtil.getNexoItem("gear", ChatColor.YELLOW + "Settings"));
 
         player.openInventory(inv);
     }
@@ -195,7 +203,7 @@ public class GuildMemberGUI implements Listener {
             String motd = g.getMotd();
             if (motd == null || motd.isEmpty()) motd = ChatColor.GRAY + "None";
             lore.add(motd);
-            if (g.getLeader().equals(viewer.getUniqueId())) {
+            if (manager.hasPermission(viewer.getUniqueId(), GuildPermission.CHANGE_MOTD)) {
                 lore.add(" ");
                 lore.add(ChatColor.WHITE + "Left-click to edit");
             }
@@ -242,8 +250,7 @@ public class GuildMemberGUI implements Listener {
             return;
         }
         if (slot == CAMERA_SLOT) {
-            Guild g = manager.getGuild(player.getUniqueId());
-            if (g != null && g.getLeader().equals(player.getUniqueId())) {
+            if (manager.hasPermission(player.getUniqueId(), GuildPermission.ACCEPT_APPLICANTS)) {
                 applicantsGUI.open(player);
             }
             return;
@@ -259,7 +266,7 @@ public class GuildMemberGUI implements Listener {
             }
             return;
         }
-        if (slot == MOTD_SLOT && manager.getGuild(player.getUniqueId()).getLeader().equals(player.getUniqueId())) {
+        if (slot == MOTD_SLOT && manager.hasPermission(player.getUniqueId(), GuildPermission.CHANGE_MOTD)) {
             awaitingMotd.add(player.getUniqueId());
             player.closeInventory();
             player.sendMessage(ChatColor.YELLOW + "Enter new MOTD or 'cancel'.");
@@ -274,6 +281,22 @@ public class GuildMemberGUI implements Listener {
             }
             sortModes.put(player.getUniqueId(), m);
             open(player, pageMap.getOrDefault(player.getUniqueId(), 0));
+            return;
+        }
+        if (slot == VAULT_SLOT) {
+            if (manager.hasPermission(player.getUniqueId(), GuildPermission.VAULT_ACCESS)) {
+                Guild g = manager.getGuild(player.getUniqueId());
+                if (g != null) {
+                    me.nakilex.levelplugin.Main.getInstance().getGuildVaultManager().getVault(g.getName()).open(player);
+                }
+            }
+            return;
+        }
+        if (slot == SETTINGS_SLOT) {
+            Guild g = manager.getGuild(player.getUniqueId());
+            if (g != null && g.getRole(player.getUniqueId()) == GuildRole.LEADER) {
+                settingsGUI.open(player);
+            }
             return;
         }
         if (slot == REFRESH_SLOT) {
@@ -300,7 +323,7 @@ public class GuildMemberGUI implements Listener {
             String msg = e.getMessage();
             if (!msg.equalsIgnoreCase("cancel")) {
                 Guild g = manager.getGuild(id);
-                if (g != null && g.getLeader().equals(id)) {
+                if (g != null && manager.hasPermission(id, GuildPermission.CHANGE_MOTD)) {
                     g.setMotd(msg);
                 }
             }
