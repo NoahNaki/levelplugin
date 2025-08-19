@@ -146,9 +146,9 @@ public class DungeonBuilder implements Listener {
         storedReturns.put(player.getUniqueId(), back);
         saveStoredReturns();
         setupInventory(player);
-        player.teleport(new Location(world, 0, 64, 0));
         player.setAllowFlight(true);
         player.setFlying(true);
+        player.teleport(new Location(world, 0, 0, 0));
         player.sendMessage(ChatColor.YELLOW + "Right-click to place the entrance at your feet.");
     }
 
