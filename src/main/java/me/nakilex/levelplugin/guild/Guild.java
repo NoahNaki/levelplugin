@@ -111,12 +111,13 @@ public class Guild {
             if (exp < need) break;
             exp -= need;
             level++;
-            // Broadcast level up to online members
+            // Broadcast level up to online members and refresh their holograms
             for (UUID id : members) {
                 org.bukkit.entity.Player p = org.bukkit.Bukkit.getPlayer(id);
                 if (p != null) {
                     me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(p,
                         org.bukkit.ChatColor.GOLD + "Your guild reached level " + level + "!");
+                    me.nakilex.levelplugin.Main.getInstance().getEnvironmentManager().refreshAllBuildingHolograms(p);
                 }
             }
         }

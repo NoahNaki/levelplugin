@@ -237,9 +237,20 @@ public class EnvironmentManager {
             reqLines.add(line);
         }
         int coinCost = nextData.coinCost;
-        boolean hasCoins = coins >= coinCost;
+        Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
+        int discounted = coinCost;
+        if (g != null) {
+            discounted = (int) Math.round(coinCost * (1.0 - g.getUpgradeDiscount()));
+        }
+        boolean hasCoins = coins >= discounted;
+        String costText;
+        if (discounted < coinCost) {
+            costText = ChatColor.DARK_GRAY + "" + ChatColor.STRIKETHROUGH + coinCost + ChatColor.RESET + ChatColor.GRAY + " -> " + ChatColor.WHITE + discounted;
+        } else {
+            costText = ChatColor.WHITE + "" + coinCost;
+        }
         String coinLine = (hasCoins ? ChatColor.GREEN + "\u2714" : ChatColor.RED + "\u2718")
-                + ChatColor.GRAY + " - " + ChatColor.WHITE + "" + coinCost + " coins "
+                + ChatColor.GRAY + " - " + costText + " coins "
                 + ChatColor.GOLD + " <glyph:coins_icon>";
         reqLines.add(coinLine);
 

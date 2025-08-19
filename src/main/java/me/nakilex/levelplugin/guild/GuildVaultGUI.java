@@ -89,19 +89,29 @@ public class GuildVaultGUI extends StorageGUI {
         if (slot == COIN_SLOT) {
             event.setCancelled(true);
             Player player = (Player) event.getWhoClicked();
+            Main.getInstance().getLogger().info("[GuildVault] coin slot clicked by " + player.getName());
             Guild g = GuildManager.getInstance().getGuild(guildName);
-            if (g == null) return;
+            if (g == null) {
+                Main.getInstance().getLogger().warning("[GuildVault] guild not found for name " + guildName);
+                return;
+            }
             EconomyManager econ = Main.getInstance().getEconomyManager();
 
             if (event.isLeftClick()) {
                 player.closeInventory();
+                Main.getInstance().getLogger().info("[GuildVault] opening deposit prompt for " + player.getName());
                 ConversationFactory factory = new ConversationFactory(Main.getInstance())
                         .withFirstPrompt(new CoinInputPrompt(
                                 Main.getInstance(),
                                 player,
                                 ChatColor.GOLD + "Enter amount to deposit:",
-                                amt -> amt > 0 && econ.getBalance(player) >= amt,
                                 amt -> {
+                                    boolean ok = amt > 0 && econ.getBalance(player) >= amt;
+                                    Main.getInstance().getLogger().info("[GuildVault] deposit validate amt=" + amt + " ok=" + ok);
+                                    return ok;
+                                },
+                                amt -> {
+                                    Main.getInstance().getLogger().info("[GuildVault] depositing " + amt + " for " + player.getName());
                                     econ.deductCoins(player, amt);
                                     int before = g.getCoins();
                                     g.addCoins(amt);
@@ -110,6 +120,7 @@ public class GuildVaultGUI extends StorageGUI {
                                         int refund = amt - added;
                                         econ.addCoins(player, refund);
                                         player.sendMessage(ChatColor.RED + "Storage full. Deposited " + ChatColor.GOLD + added + " <glyph:coins_icon>" + ChatColor.RED + " and refunded " + refund + ".");
+                                        Main.getInstance().getLogger().info("[GuildVault] storage full, refunded " + refund);
                                     } else {
                                         player.sendMessage(ChatColor.GRAY + "Deposited " + ChatColor.GOLD + amt + " <glyph:coins_icon>");
                                     }
@@ -121,13 +132,19 @@ public class GuildVaultGUI extends StorageGUI {
                 factory.buildConversation(player).begin();
             } else if (event.isRightClick()) {
                 player.closeInventory();
+                Main.getInstance().getLogger().info("[GuildVault] opening withdraw prompt for " + player.getName());
                 ConversationFactory factory = new ConversationFactory(Main.getInstance())
                         .withFirstPrompt(new CoinInputPrompt(
                                 Main.getInstance(),
                                 player,
                                 ChatColor.GOLD + "Enter amount to withdraw:",
-                                amt -> amt > 0 && g.getCoins() >= amt,
                                 amt -> {
+                                    boolean ok = amt > 0 && g.getCoins() >= amt;
+                                    Main.getInstance().getLogger().info("[GuildVault] withdraw validate amt=" + amt + " ok=" + ok);
+                                    return ok;
+                                },
+                                amt -> {
+                                    Main.getInstance().getLogger().info("[GuildVault] withdrawing " + amt + " for " + player.getName());
                                     g.removeCoins(amt);
                                     econ.addCoins(player, amt);
                                     player.sendMessage(ChatColor.GRAY + "Withdrew " + ChatColor.GOLD + amt + " <glyph:coins_icon>");

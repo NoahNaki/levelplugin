@@ -13,6 +13,8 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.guild.Guild;
+import me.nakilex.levelplugin.guild.GuildManager;
 
 import java.util.*;
 
@@ -63,10 +65,22 @@ public class BuildingUpgradeGUI implements Listener {
                         + ChatColor.WHITE + matName;
                 lore.add(line);
             }
-            boolean hasCoins = coins >= nextData.coinCost;
+            int coinCost = nextData.coinCost;
+            Guild g = GuildManager.getInstance().getGuild(p.getUniqueId());
+            int discounted = coinCost;
+            if (g != null) {
+                discounted = (int) Math.round(coinCost * (1.0 - g.getUpgradeDiscount()));
+            }
+            boolean hasCoins = coins >= discounted;
             String prefix = hasCoins ? ChatColor.GREEN + "\u2714" : ChatColor.RED + "\u2718";
+            String costText;
+            if (discounted < coinCost) {
+                costText = ChatColor.DARK_GRAY + "" + ChatColor.STRIKETHROUGH + coinCost + ChatColor.RESET + ChatColor.GRAY + " -> " + ChatColor.WHITE + discounted;
+            } else {
+                costText = ChatColor.WHITE + "" + coinCost;
+            }
             String coinLine = prefix + ChatColor.GRAY + " - "
-                    + ChatColor.WHITE + nextData.coinCost + " coins "
+                    + costText + " coins "
                     + ChatColor.GOLD + " <glyph:coins_icon>";
             lore.add(coinLine);
         }
