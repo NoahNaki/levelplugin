@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.guild;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.TextUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -59,12 +60,14 @@ public class GuildSettingsGUI implements Listener {
     private ItemStack buildItem(Guild g, GuildPermission perm, int roleIdx) {
         GuildRole role = GuildRole.values()[roleIdx];
         boolean allowed = g.getPermissions(role).has(perm);
+        String permName = TextUtil.beautifyWords(perm.name());
+        String roleName = TextUtil.beautifyWords(role.name());
         return GuiUtil.createToggleItem(allowed,
-                ChatColor.AQUA + perm.name().toLowerCase().replace('_', ' '),
-                ChatColor.GRAY + "Role: " + ChatColor.WHITE + role.name(),
+                ChatColor.AQUA + permName,
+                ChatColor.GRAY + "Role: " + ChatColor.WHITE + roleName,
                 "",
-                ChatColor.YELLOW + "Left-click to cycle role",
-                ChatColor.YELLOW + "Right-click to toggle");
+                ChatColor.WHITE + "Left-click " + ChatColor.GRAY + "to cycle role",
+                ChatColor.WHITE + "Right-click " + ChatColor.GRAY + "to toggle");
     }
 
     @EventHandler

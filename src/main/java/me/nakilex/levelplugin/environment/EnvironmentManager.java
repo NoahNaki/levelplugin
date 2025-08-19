@@ -75,19 +75,6 @@ public class EnvironmentManager {
         }
     }
 
-    /** Convert a lowercase, underscore- or space-separated name into capitalized words. */
-    public static String beautifyWords(String name) {
-        String[] parts = name.toLowerCase().replace('_', ' ').split(" ");
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < parts.length; i++) {
-            if (parts[i].isEmpty()) continue;
-            sb.append(Character.toUpperCase(parts[i].charAt(0)))
-              .append(parts[i].substring(1));
-            if (i < parts.length - 1) sb.append(' ');
-        }
-        return sb.toString();
-    }
-
     /** Physically set blocks for all players instead of showing fake blocks. */
     private static void applyBlocks(Map<Location, org.bukkit.block.data.BlockData> blocks) {
         if (blocks == null || blocks.isEmpty()) return;
@@ -226,22 +213,24 @@ public class EnvironmentManager {
 
         java.util.List<String> reqLines = new java.util.ArrayList<>();
         int coins = Main.getInstance().getEconomyManager().getBalance(player);
+        Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
+        double disc = g != null ? g.getUpgradeDiscount() : 0.0;
         for (var entry : nextData.materialCost.entrySet()) {
             org.bukkit.Material mat = entry.getKey();
-            int amt = entry.getValue();
-            boolean has = player.getInventory().containsAtLeast(new org.bukkit.inventory.ItemStack(mat, amt), amt);
-            String matName = beautifyWords(mat.name().toLowerCase().replace('_', ' '));
+            int baseAmt = entry.getValue();
+            int needed = (int) Math.round(baseAmt * (1.0 - disc));
+            boolean has = player.getInventory().containsAtLeast(new org.bukkit.inventory.ItemStack(mat, needed), needed);
+            String matName = me.nakilex.levelplugin.utils.TextUtil.beautifyWords(mat.name().toLowerCase().replace('_', ' '));
+            String amountText = needed < baseAmt
+                    ? ChatColor.DARK_GRAY + "" + ChatColor.STRIKETHROUGH + baseAmt + ChatColor.RESET + ChatColor.GRAY + " -> " + ChatColor.WHITE + needed
+                    : ChatColor.WHITE + "" + needed;
             String line = (has ? ChatColor.GREEN + "\u2714" : ChatColor.RED + "\u2718")
-                    + ChatColor.GRAY + " - " + ChatColor.WHITE + matName
-                    + ChatColor.GRAY + " x" + ChatColor.WHITE + amt;
+                    + ChatColor.GRAY + " - " + amountText + ChatColor.DARK_GRAY + "x "
+                    + ChatColor.WHITE + matName;
             reqLines.add(line);
         }
         int coinCost = nextData.coinCost;
-        Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
-        int discounted = coinCost;
-        if (g != null) {
-            discounted = (int) Math.round(coinCost * (1.0 - g.getUpgradeDiscount()));
-        }
+        int discounted = (int) Math.round(coinCost * (1.0 - disc));
         boolean hasCoins = coins >= discounted;
         String costText;
         if (discounted < coinCost) {
@@ -881,19 +870,18 @@ public class EnvironmentManager {
             return;
         }
         // Check materials
+        Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
+        double disc = g != null ? g.getUpgradeDiscount() : 0.0;
         for (var entry : nextStageData.materialCost.entrySet()) {
             org.bukkit.Material mat = entry.getKey();
-            int amt = entry.getValue();
-            if (!player.getInventory().containsAtLeast(new org.bukkit.inventory.ItemStack(mat, amt), amt)) {
+            int baseAmt = entry.getValue();
+            int needed = (int) Math.round(baseAmt * (1.0 - disc));
+            if (!player.getInventory().containsAtLeast(new org.bukkit.inventory.ItemStack(mat, needed), needed)) {
                 player.sendMessage(ChatColor.RED + "Missing required materials for upgrade.");
                 return;
             }
         }
-        int coinCost = nextStageData.coinCost;
-        Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
-        if (g != null) {
-            coinCost = (int) Math.round(coinCost * (1.0 - g.getUpgradeDiscount()));
-        }
+        int coinCost = (int) Math.round(nextStageData.coinCost * (1.0 - disc));
         int balance = Main.getInstance().getEconomyManager().getBalance(player);
         if (balance < coinCost) {
             player.sendMessage(ChatColor.RED + "You need " + coinCost + " coins.");
@@ -901,7 +889,8 @@ public class EnvironmentManager {
         }
         // Deduct items
         for (var entry : nextStageData.materialCost.entrySet()) {
-            player.getInventory().removeItem(new org.bukkit.inventory.ItemStack(entry.getKey(), entry.getValue()));
+            int needed = (int) Math.round(entry.getValue() * (1.0 - disc));
+            player.getInventory().removeItem(new org.bukkit.inventory.ItemStack(entry.getKey(), needed));
         }
         if (coinCost > 0) {
             Main.getInstance().getEconomyManager().deductCoins(player, coinCost);

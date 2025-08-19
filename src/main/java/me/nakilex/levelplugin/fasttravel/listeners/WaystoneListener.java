@@ -7,7 +7,6 @@ import me.nakilex.levelplugin.fakeblock.ModelGate;
 import me.nakilex.levelplugin.fakeblock.ModelGateManager;
 import me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI;
 import me.nakilex.levelplugin.utils.ChatFormatter;
-import me.nakilex.levelplugin.environment.EnvironmentManager;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -58,7 +57,7 @@ public class WaystoneListener implements Listener {
     private void sendUnlockMessage(Player player, Location loc, String id) {
         ChatFormatter.constructDivider(player, "", 45);
         ChatFormatter.sendCenteredMessage(player, "§6§lWaystone Unlocked!");
-        ChatFormatter.sendCenteredMessage(player, "§e" + EnvironmentManager.beautifyWords(id));
+        ChatFormatter.sendCenteredMessage(player, "§e" + me.nakilex.levelplugin.utils.TextUtil.beautifyWords(id));
         ChatFormatter.constructDivider(player, " ", 45);
         player.playSound(loc, Sound.BLOCK_RESPAWN_ANCHOR_SET_SPAWN, 1f, 1f);
         player.spawnParticle(Particle.FIREWORK, loc.add(0.5, 1, 0.5), 30, 0.3, 0.5, 0.3, 0.02);
