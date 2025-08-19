@@ -30,7 +30,7 @@ public class GuildVaultGUI extends StorageGUI {
     private final GuildMemberGUI memberGUI;
 
     public GuildVaultGUI(String guildName, StorageEvents events, GuildMemberGUI memberGUI) {
-        super(guildName.toLowerCase(), "guildvault", "guild_", "Guild Vault", events, false, 1);
+        super(guildName.toLowerCase(), "guildvault", "guild_", "Guild Storage", events, false, 1);
         this.guildName = guildName;
         this.memberGUI = memberGUI;
     }
@@ -61,6 +61,19 @@ public class GuildVaultGUI extends StorageGUI {
             stack.setItemMeta(meta);
         }
         return stack;
+    }
+
+    @Override
+    protected ItemStack createInfoItem() {
+        ItemStack info = GuiUtil.getNexoItem("info", ChatColor.YELLOW + "Information");
+        ItemMeta meta = info.getItemMeta();
+        if (meta != null) {
+            meta.setLore(List.of(
+                    ChatColor.GRAY + "Shared guild storage.",
+                    ChatColor.GRAY + "Use arrows to change pages."));
+            info.setItemMeta(meta);
+        }
+        return info;
     }
 
     @Override
@@ -96,7 +109,7 @@ public class GuildVaultGUI extends StorageGUI {
                                     if (added < amt) {
                                         int refund = amt - added;
                                         econ.addCoins(player, refund);
-                                        player.sendMessage(ChatColor.RED + "Vault full. Deposited " + ChatColor.GOLD + added + " <glyph:coins_icon>" + ChatColor.RED + " and refunded " + refund + ".");
+                                        player.sendMessage(ChatColor.RED + "Storage full. Deposited " + ChatColor.GOLD + added + " <glyph:coins_icon>" + ChatColor.RED + " and refunded " + refund + ".");
                                     } else {
                                         player.sendMessage(ChatColor.GRAY + "Deposited " + ChatColor.GOLD + amt + " <glyph:coins_icon>");
                                     }

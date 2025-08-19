@@ -30,12 +30,18 @@ public class GuildVaultManager {
             String name = file.getName();
             if (!name.startsWith("guild_") || !name.endsWith(".yml")) continue;
             String guild = name.substring("guild_".length(), name.length() - 4);
-            vaults.put(guild.toLowerCase(), new GuildVault(guild, events, memberGUI));
+            Guild existing = GuildManager.getInstance().getGuild(guild);
+            String proper = existing != null ? existing.getName() : guild;
+            vaults.put(guild.toLowerCase(), new GuildVault(proper, events, memberGUI));
         }
     }
 
     public GuildVault getVault(String guildName) {
-        return vaults.computeIfAbsent(guildName.toLowerCase(), g -> new GuildVault(g, events, memberGUI));
+        return vaults.computeIfAbsent(guildName.toLowerCase(), g -> {
+            Guild existing = GuildManager.getInstance().getGuild(guildName);
+            String proper = existing != null ? existing.getName() : guildName;
+            return new GuildVault(proper, events, memberGUI);
+        });
     }
 
     public void saveAll() {

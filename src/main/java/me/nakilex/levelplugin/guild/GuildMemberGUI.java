@@ -184,8 +184,14 @@ public class GuildMemberGUI implements Listener {
         inv.setItem(SORT_SLOT, createSortButton(sort));
         inv.setItem(INFO_SLOT, createInfoButton(g));
         inv.setItem(REFRESH_SLOT, GuiUtil.getNexoItem("refresh", ChatColor.RED + "Refresh"));
-        inv.setItem(VAULT_SLOT, GuiUtil.getNexoItem("chest", ChatColor.GOLD + "Guild Vault"));
-        inv.setItem(SETTINGS_SLOT, GuiUtil.getNexoItem("gear", ChatColor.YELLOW + "Settings"));
+        ItemStack vaultItem = new ItemStack(Material.CHEST);
+        ItemMeta vMeta = vaultItem.getItemMeta();
+        if (vMeta != null) {
+            vMeta.setDisplayName(ChatColor.GOLD + "Guild Storage");
+            vaultItem.setItemMeta(vMeta);
+        }
+        inv.setItem(VAULT_SLOT, vaultItem);
+        inv.setItem(SETTINGS_SLOT, GuiUtil.getNexoItem("settings", ChatColor.AQUA + "Settings"));
 
         player.openInventory(inv);
     }

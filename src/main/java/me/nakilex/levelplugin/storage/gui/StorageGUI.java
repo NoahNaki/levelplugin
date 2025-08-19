@@ -363,7 +363,7 @@ public class StorageGUI {
         return it;
     }
 
-    private ItemStack createInfoItem() {
+    protected ItemStack createInfoItem() {
         ItemStack info = getNexoItem("info", ChatColor.YELLOW + "Information");
         ItemMeta meta = info.getItemMeta();
         if (meta != null) {
