@@ -313,7 +313,10 @@ public class GuildSiegeManager {
         captureTask = null;
         captureElapsed = 0;
         Main.getInstance().getModelGateManager().setGateHidden("rowan", false);
+        Set<String> participantGuilds = new HashSet<>();
         for (UUID id : active) {
+            Guild g = GuildManager.getInstance().getGuild(id);
+            if (g != null) participantGuilds.add(g.getName());
             Player p = Bukkit.getPlayer(id);
             if (p != null) {
                 ChatFormatter.sendCenteredMessage(p, " ");
@@ -354,6 +357,38 @@ public class GuildSiegeManager {
         } else {
             msg = "<glyph:flagleft_icon> " + ChatColor.RED + "No guild captured the town." + ChatColor.GRAY + " <glyph:flagright_icon>";
         }
+
+        GuildManager gm = GuildManager.getInstance();
+        for (String name : participantGuilds) {
+            Guild g = gm.getGuild(name);
+            if (g != null) {
+                g.addCoins(1000);
+                for (UUID id : g.getMembers()) {
+                    Player p = Bukkit.getPlayer(id);
+                    if (p != null) {
+                        ChatFormatter.sendCenteredMessage(p, " ");
+                        ChatFormatter.sendCenteredMessage(p, ChatColor.GRAY + "Your guild earned " + ChatColor.GOLD + "1000 <glyph:coins_icon>" + ChatColor.GRAY + " for participating in the siege!");
+                        ChatFormatter.sendCenteredMessage(p, " ");
+                    }
+                }
+            }
+        }
+        if (winner != null) {
+            Guild g = gm.getGuild(winner);
+            if (g != null) {
+                g.addCoins(9000);
+                for (UUID id : g.getMembers()) {
+                    Player p = Bukkit.getPlayer(id);
+                    if (p != null) {
+                        ChatFormatter.sendCenteredMessage(p, " ");
+                        ChatFormatter.sendCenteredMessage(p, ChatColor.GOLD + "Your guild won the siege and earned " + ChatColor.YELLOW + "10000 <glyph:coins_icon>" + ChatColor.GOLD + "!");
+                        ChatFormatter.sendCenteredMessage(p, " ");
+                    }
+                }
+            }
+        }
+        gm.save();
+
         for (Player p : Bukkit.getOnlinePlayers()) {
             ChatFormatter.sendCenteredMessage(p, " ");
             ChatFormatter.sendCenteredMessage(p, msg);

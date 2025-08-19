@@ -17,6 +17,8 @@ public class Guild {
     private final Map<UUID, Long> applicants = new LinkedHashMap<>();
     /** Optional guild message of the day. */
     private String motd = "";
+    /** Stored guild coin balance. */
+    private int coins = 0;
 
     public Guild(String name, UUID leader) {
         this.name = name;
@@ -62,6 +64,22 @@ public class Guild {
     public void setMotd(String motd) {
         this.motd = motd == null ? "" : motd;
     }
+
+    /** Current guild coin balance. */
+    public int getCoins() { return coins; }
+
+    /** Add coins to the guild vault. */
+    public void addCoins(int amount) { if (amount > 0) coins += amount; }
+
+    /** Remove coins if available. @return true if enough coins were present */
+    public boolean removeCoins(int amount) {
+        if (amount <= 0 || amount > coins) return false;
+        coins -= amount;
+        return true;
+    }
+
+    /** Set coin balance directly (for loading). */
+    public void setCoins(int coins) { this.coins = Math.max(0, coins); }
 
     public boolean addMember(UUID id) {
         roles.put(id, GuildRole.MEMBER);

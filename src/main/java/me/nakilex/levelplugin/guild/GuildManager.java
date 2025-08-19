@@ -318,6 +318,7 @@ public class GuildManager {
                 g.getAllies().addAll(cfg.getStringList(base + "allies"));
                 g.getHostiles().addAll(cfg.getStringList(base + "hostiles"));
                 g.setMotd(cfg.getString(base + "motd", ""));
+                g.setCoins(cfg.getInt(base + "coins", 0));
 
                 ConfigurationSection apps = cfg.getConfigurationSection(base + "applicants");
                 if (apps != null) {
@@ -350,6 +351,7 @@ public class GuildManager {
             cfg.set(base + "allies", new ArrayList<>(g.getAllies()));
             cfg.set(base + "hostiles", new ArrayList<>(g.getHostiles()));
             cfg.set(base + "motd", g.getMotd());
+            cfg.set(base + "coins", g.getCoins());
             if (!g.getApplicants().isEmpty()) {
                 ConfigurationSection sec = cfg.createSection(base + "applicants");
                 for (Map.Entry<UUID, Long> e : g.getApplicants().entrySet()) {

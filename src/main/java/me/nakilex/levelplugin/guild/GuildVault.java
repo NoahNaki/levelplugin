@@ -1,16 +1,15 @@
 package me.nakilex.levelplugin.guild;
 
-import me.nakilex.levelplugin.storage.gui.StorageGUI;
 import me.nakilex.levelplugin.storage.events.StorageEvents;
 import org.bukkit.entity.Player;
 
 public class GuildVault {
     private final String guildName;
-    private final StorageGUI storageGUI;
+    private final GuildVaultGUI storageGUI;
 
     public GuildVault(String guildName, StorageEvents events) {
-        this.guildName = guildName.toLowerCase();
-        this.storageGUI = new StorageGUI(this.guildName, "guildvault", "guild_", "Guild Vault", events, false);
+        this.guildName = guildName;
+        this.storageGUI = new GuildVaultGUI(guildName, events);
         this.storageGUI.loadFromDisk();
     }
 
@@ -26,7 +25,7 @@ public class GuildVault {
         return guildName;
     }
 
-    public StorageGUI getStorageGUI() {
+    public GuildVaultGUI getStorageGUI() {
         return storageGUI;
     }
 }

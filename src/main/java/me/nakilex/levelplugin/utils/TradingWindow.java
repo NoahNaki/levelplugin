@@ -148,11 +148,24 @@ public class TradingWindow implements Listener {
 
         // 3. Show chat prompt
         ConversationFactory factory = new ConversationFactory(Main.getPlugin())
-            .withFirstPrompt(new CoinInputPrompt(tw, p))
+            .withFirstPrompt(new CoinInputPrompt(
+                p,
+                ChatColor.GOLD + "Please enter the number of coins you want to offer:",
+                amt -> tw.getEconomyManager().getBalance(p) >= amt && amt > 0,
+                amt -> {
+                    if (tw.getPlayer().equals(p)) {
+                        tw.setPlayerCoinOffer(amt);
+                    } else if (tw.getOpponent().equals(p)) {
+                        tw.setOpponentCoinOffer(amt);
+                    }
+                    p.sendMessage(ChatColor.GREEN + "Your coin offer has been set to: " + amt);
+                    tw.updateCoinOfferItems();
+                    tw.reopenInventories();
+                }
+            ))
             .withLocalEcho(false)
             .withTimeout(30)
             .addConversationAbandonedListener(event -> {
-                // Always reopen, whether they typed or timed out
                 awaitingChatInput.remove(p.getUniqueId());
                 Bukkit.getScheduler().runTask(Main.getPlugin(), tw::reopenInventories);
             });
