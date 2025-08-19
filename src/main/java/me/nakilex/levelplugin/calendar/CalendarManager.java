@@ -77,6 +77,7 @@ public class CalendarManager implements Listener {
         chooseDailyWeather();
         updateOverride();
         plugin.getScoreboardManager().updateAll();
+        plugin.getEnvironmentManager().grantDailyPayout("town");
     }
 
     /** Legacy numeric date for debugging */

@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.guild.Guild;
 import me.nakilex.levelplugin.guild.GuildManager;
 import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
 import me.nakilex.levelplugin.utils.MultiLineHologram;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -1749,6 +1750,38 @@ public class EnvironmentManager {
 
         owner.sendMessage(ChatColor.GREEN + "Transferred town ownership to " + newOwner.getName() + ".");
         newOwner.sendMessage(ChatColor.GREEN + "You are now the town owner.");
+    }
+
+    /**
+     * Grant daily coin payout to the guild owning the specified town based on
+     * the sum of its building levels.
+     */
+    public void grantDailyPayout(String townName) {
+        if (townName == null) return;
+        String key = townName.toLowerCase();
+        java.util.UUID owner = townOwners.get(key);
+        if (owner == null) return;
+
+        Guild guild = GuildManager.getInstance().getGuild(owner);
+        if (guild == null) return;
+
+        int totalLevels = 0;
+        for (String b : buildingStageManager.getBuildings(townName)) {
+            totalLevels += getBuildingStage(owner, b);
+        }
+        int payout = totalLevels * 500;
+        if (payout <= 0) return;
+
+        guild.addCoins(payout);
+        for (java.util.UUID id : guild.getMembers()) {
+            Player p = Bukkit.getPlayer(id);
+            if (p != null) {
+                ChatFormatter.sendCenteredMessage(p, " ");
+                ChatFormatter.sendCenteredMessage(p, ChatColor.GRAY + "Your town generated " + ChatColor.GOLD + payout + " <glyph:coins_icon>" + ChatColor.GRAY + " today!");
+                ChatFormatter.sendCenteredMessage(p, " ");
+            }
+        }
+        GuildManager.getInstance().save();
     }
 
     public void sendInfo(Player player) {
