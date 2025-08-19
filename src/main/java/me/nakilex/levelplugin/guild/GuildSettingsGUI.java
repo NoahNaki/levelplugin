@@ -60,10 +60,11 @@ public class GuildSettingsGUI implements Listener {
         GuildRole role = GuildRole.values()[roleIdx];
         boolean allowed = g.getPermissions(role).has(perm);
         return GuiUtil.createToggleItem(allowed,
-                ChatColor.YELLOW + perm.name().toLowerCase().replace('_', ' '),
+                ChatColor.AQUA + perm.name().toLowerCase().replace('_', ' '),
                 ChatColor.GRAY + "Role: " + ChatColor.WHITE + role.name(),
-                ChatColor.WHITE + "Left-click to cycle role",
-                ChatColor.WHITE + "Right-click to toggle");
+                "",
+                ChatColor.YELLOW + "Left-click to cycle role",
+                ChatColor.YELLOW + "Right-click to toggle");
     }
 
     @EventHandler

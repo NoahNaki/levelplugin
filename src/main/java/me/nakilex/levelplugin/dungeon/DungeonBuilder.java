@@ -17,12 +17,14 @@ import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.HeadUtil;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
+import me.nakilex.levelplugin.Main;
 
 import java.util.*;
 import java.awt.Point;
@@ -76,6 +78,8 @@ public class DungeonBuilder implements Listener {
         sessions.put(player.getUniqueId(), s);
         setupInventory(player);
         player.teleport(new Location(world, 0, 64, 0));
+        player.setAllowFlight(true);
+        player.setFlying(true);
         player.sendMessage(ChatColor.YELLOW + "Right-click to place the entrance at your feet.");
     }
 
@@ -162,6 +166,18 @@ public class DungeonBuilder implements Listener {
         if (entranceX == -1) {
             player.sendMessage(ChatColor.YELLOW + "Right-click to place the entrance at your feet.");
         }
+    }
+
+    @EventHandler
+    public void onRespawn(PlayerRespawnEvent event) {
+        Session s = sessions.get(event.getPlayer().getUniqueId());
+        if (s == null) return;
+        Location respawn = new Location(s.world, 0, 0, 0);
+        event.setRespawnLocation(respawn);
+        Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+            event.getPlayer().setAllowFlight(true);
+            event.getPlayer().setFlying(true);
+        });
     }
 
     private void setupInventory(Player player) {

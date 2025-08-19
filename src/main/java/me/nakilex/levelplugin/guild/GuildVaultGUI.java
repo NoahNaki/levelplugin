@@ -37,7 +37,7 @@ public class GuildVaultGUI extends StorageGUI {
 
     @Override
     public void open(Player player) {
-        Guild g = GuildManager.getInstance().getGuild(guildName);
+        Guild g = GuildManager.getInstance().getGuildIgnoreCase(guildName);
         if (g != null) setMaxPages(g.getMaxPages());
         super.open(player);
         Inventory inv = player.getOpenInventory().getTopInventory();
@@ -46,7 +46,7 @@ public class GuildVaultGUI extends StorageGUI {
     }
 
     private ItemStack createCoinItem() {
-        Guild g = GuildManager.getInstance().getGuild(guildName);
+        Guild g = GuildManager.getInstance().getGuildIgnoreCase(guildName);
         int coins = g != null ? g.getCoins() : 0;
         int capacity = g != null ? g.getCoinCapacity() : 0;
         ItemStack stack = new ItemStack(Material.GOLD_BLOCK);
@@ -90,7 +90,7 @@ public class GuildVaultGUI extends StorageGUI {
             event.setCancelled(true);
             Player player = (Player) event.getWhoClicked();
             Main.getInstance().getLogger().info("[GuildVault] coin slot clicked by " + player.getName());
-            Guild g = GuildManager.getInstance().getGuild(guildName);
+            Guild g = GuildManager.getInstance().getGuildIgnoreCase(guildName);
             if (g == null) {
                 Main.getInstance().getLogger().warning("[GuildVault] guild not found for name " + guildName);
                 return;

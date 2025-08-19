@@ -61,6 +61,22 @@ public class GuildManager {
     }
 
     public Guild getGuild(String name) { return guilds.get(name); }
+
+    /**
+     * Retrieve a guild by name, ignoring capitalization differences.
+     * Falls back to an exact match first before scanning all guilds.
+     */
+    public Guild getGuildIgnoreCase(String name) {
+        Guild g = guilds.get(name);
+        if (g != null) return g;
+        for (Guild guild : guilds.values()) {
+            if (guild.getName().equalsIgnoreCase(name)) {
+                return guild;
+            }
+        }
+        return null;
+    }
+
     public Guild getGuild(UUID player) {
         String g = playerGuild.get(player);
         return g != null ? guilds.get(g) : null;
