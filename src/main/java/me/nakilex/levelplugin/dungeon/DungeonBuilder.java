@@ -16,6 +16,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -64,14 +65,22 @@ public class DungeonBuilder implements Listener {
     }
 
     public void start(Player player) {
-        Session s = new Session(player);
+        Location back = player.getLocation();
+        String worldName = "dgn_edit_" + player.getUniqueId();
+        World world = manager.createVoidWorld(worldName);
+        if (world == null) {
+            player.sendMessage(ChatColor.RED + "Failed to create edit world.");
+            return;
+        }
+        Session s = new Session(player, world, back, true);
         sessions.put(player.getUniqueId(), s);
         setupInventory(player);
+        player.teleport(new Location(world, 0, 64, 0));
         player.sendMessage(ChatColor.YELLOW + "Right-click to place the entrance at your feet.");
     }
 
     public void edit(Player player, DungeonLayout layout) {
-        Session s = new Session(player);
+        Session s = new Session(player, player.getWorld(), player.getLocation(), false);
         sessions.put(player.getUniqueId(), s);
         setupInventory(player);
 
@@ -381,6 +390,7 @@ public class DungeonBuilder implements Listener {
                 s.awaitingName = false;
                 return;
             }
+            event.getPlayer().sendTitle(ChatColor.YELLOW + "Saving...", "", 10, 70, 20);
             String display = msg;
             String key = DungeonManager.normalizeKey(display);
             if (manager.layoutExists(display)) {
@@ -394,6 +404,15 @@ public class DungeonBuilder implements Listener {
             event.getPlayer().getInventory().clear();
             sessions.remove(event.getPlayer().getUniqueId());
         });
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        Session s = sessions.remove(event.getPlayer().getUniqueId());
+        if (s != null) {
+            s.cancel();
+            event.getPlayer().getInventory().clear();
+        }
     }
 
     private void placeVariant(Session s, RoomTemplate templ) {
@@ -687,6 +706,8 @@ public class DungeonBuilder implements Listener {
     private class Session {
         final Player player;
         final Dungeon dungeon;
+        final Location returnLocation;
+        final boolean tempWorld;
         final Deque<History> history = new ArrayDeque<>();
         final Map<Integer, ConnectorInfo> connectors = new HashMap<>();
         boolean placingEntrance = true;
@@ -694,9 +715,11 @@ public class DungeonBuilder implements Listener {
         boolean awaitingName = false;
         String selectedMob = null;
         RoomTemplate selectedTemplate = null;
-        Session(Player player) {
+        Session(Player player, World world, Location back, boolean tempWorld) {
             this.player = player;
-            this.dungeon = new Dungeon(player.getWorld(), player.getName() + "_builder");
+            this.dungeon = new Dungeon(world, player.getName() + "_builder");
+            this.returnLocation = back;
+            this.tempWorld = tempWorld;
         }
         void undo() {
             History h = history.pollLast();
@@ -746,6 +769,12 @@ public class DungeonBuilder implements Listener {
                 DungeonBuilder.this.removeConnector(this, c);
             }
             dungeon.delete();
+            if (player.isOnline() && returnLocation != null) {
+                player.teleport(returnLocation);
+            }
+            if (tempWorld) {
+                manager.getPlugin().getWorldManager().deleteWorld(dungeon.getWorld().getName());
+            }
         }
 
         DungeonLayout buildLayout() {
