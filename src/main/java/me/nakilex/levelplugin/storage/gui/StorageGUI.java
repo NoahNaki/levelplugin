@@ -265,7 +265,7 @@ public class StorageGUI {
     /** Loads pages from disk, replacing any in-memory pages. */
     public void loadFromDisk() {
         FileHandler fileHandler = new FileHandler();
-        List<Inventory> loaded = fileHandler.loadStorage(ownerKey, folder, prefix);
+        List<Inventory> loaded = fileHandler.loadStorage(ownerKey, folder, prefix, titleBase);
         if (!loaded.isEmpty()) {
             pages.clear();
             pages.addAll(loaded);
@@ -363,7 +363,7 @@ public class StorageGUI {
         return it;
     }
 
-    private ItemStack createInfoItem() {
+    protected ItemStack createInfoItem() {
         ItemStack info = getNexoItem("info", ChatColor.YELLOW + "Information");
         ItemMeta meta = info.getItemMeta();
         if (meta != null) {

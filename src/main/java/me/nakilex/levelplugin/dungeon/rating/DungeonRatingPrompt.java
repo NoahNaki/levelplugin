@@ -36,9 +36,10 @@ public class DungeonRatingPrompt extends StringPrompt {
         Main.getInstance().getLevelManager().addXP(player, 100);
 
         String expLabel = ChatFormatter.experienceLabel();
+        String expColor = ChatFormatter.experienceColor();
         ChatFormatter.sendBoxedCenteredMessages(player, "§a",
                 "§aThank you for your rating!",
-                "§7You earned §f+100 <glyph:experience_orb_icon> " + expLabel);
+                "§7You earned " + expColor + "+100 <glyph:experience_orb_icon> " + expLabel);
         me.nakilex.levelplugin.dungeon.DungeonManager dm = Main.getInstance().getDungeonManager();
         dm.clearPendingRating(player.getUniqueId());
         return Prompt.END_OF_CONVERSATION;

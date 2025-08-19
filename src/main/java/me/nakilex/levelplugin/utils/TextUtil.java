@@ -60,4 +60,18 @@ public final class TextUtil {
         }
         item.setItemMeta(meta);
     }
+
+    /** Convert a lowercase, underscore- or space-separated name into capitalized words. */
+    public static String beautifyWords(String name) {
+        if (name == null) return "";
+        String[] parts = name.toLowerCase().replace('_', ' ').split(" ");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < parts.length; i++) {
+            if (parts[i].isEmpty()) continue;
+            sb.append(Character.toUpperCase(parts[i].charAt(0)))
+              .append(parts[i].substring(1));
+            if (i < parts.length - 1) sb.append(' ');
+        }
+        return sb.toString();
+    }
 }

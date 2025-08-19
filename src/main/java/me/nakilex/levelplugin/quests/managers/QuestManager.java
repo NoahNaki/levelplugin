@@ -12,6 +12,7 @@ import me.nakilex.levelplugin.quests.data.*;
 import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.data.QuestResetScript;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -796,7 +797,8 @@ public class QuestManager {
         if (reward != null) {
             if (reward.getXp() > 0) {
                 String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
-                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + reward.getXp() + " <glyph:experience_orb_icon> " + expLabel);
+                String expColor = me.nakilex.levelplugin.utils.ChatFormatter.experienceColor();
+                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- " + expColor + reward.getXp() + ChatColor.RESET + " <glyph:experience_orb_icon> " + expLabel);
             }
             if (reward.getCoins() > 0) {
                 me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player,

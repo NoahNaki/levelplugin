@@ -23,7 +23,8 @@ public final class RewardHologramUtil {
      */
     public static void showRewardHologram(Location loc, int xp, int coins) {
         loc = loc.clone().add(0, 1.2, 0);
-        String xpLine = ChatColor.GRAY + "[" + ChatColor.WHITE + "+" + xp + " "
+        String xpColor = me.nakilex.levelplugin.utils.ChatFormatter.experienceColor();
+        String xpLine = ChatColor.GRAY + "[" + xpColor + "+" + xp + " "
                 + ChatColor.GREEN + "<glyph:experience_orb_icon> "
                 + me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel() + ChatColor.GRAY + "]";
         ArmorStand xpStand = loc.getWorld().spawn(loc, ArmorStand.class, as -> {

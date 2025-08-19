@@ -11,18 +11,28 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.HeadUtil;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
+import me.nakilex.levelplugin.Main;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
+import java.io.File;
+import java.io.IOException;
 
 import java.util.*;
 import java.awt.Point;
@@ -35,6 +45,9 @@ import java.awt.Point;
 public class DungeonBuilder implements Listener {
     private final DungeonManager manager;
     private final Map<UUID, Session> sessions = new HashMap<>();
+    private final Map<UUID, Location> storedReturns = new HashMap<>();
+    private final File sessionFile;
+    private final FileConfiguration sessionConfig;
 
     // custom head textures for room icons
     private static final String CHEST_DECOR_HEAD = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvN2UyZWI0NzUxZTNjNTBkNTBmZjE2MzUyNTc2NjYzZDhmZWRmZTNlMDRiMmYwYjhhMmFhODAzYjQxOTM2M2NhMSJ9fX0=";
@@ -47,6 +60,42 @@ public class DungeonBuilder implements Listener {
 
     public DungeonBuilder(DungeonManager manager) {
         this.manager = manager;
+        File data = manager.getPlugin().getDataFolder();
+        sessionFile = new File(data, "builder_sessions.yml");
+        sessionConfig = YamlConfiguration.loadConfiguration(sessionFile);
+        if (sessionConfig.isConfigurationSection("sessions")) {
+            for (String key : sessionConfig.getConfigurationSection("sessions").getKeys(false)) {
+                try {
+                    UUID id = java.util.UUID.fromString(key);
+                    String path = "sessions." + key + ".";
+                    String world = sessionConfig.getString(path + "world");
+                    if (world == null) continue;
+                    World w = org.bukkit.Bukkit.getWorld(world);
+                    if (w == null) continue;
+                    double x = sessionConfig.getDouble(path + "x");
+                    double y = sessionConfig.getDouble(path + "y");
+                    double z = sessionConfig.getDouble(path + "z");
+                    float yaw = (float) sessionConfig.getDouble(path + "yaw");
+                    float pitch = (float) sessionConfig.getDouble(path + "pitch");
+                    storedReturns.put(id, new Location(w, x, y, z, yaw, pitch));
+                } catch (IllegalArgumentException ignored) {}
+            }
+        }
+    }
+
+    private void saveStoredReturns() {
+        sessionConfig.set("sessions", null);
+        for (var e : storedReturns.entrySet()) {
+            String base = "sessions." + e.getKey();
+            Location loc = e.getValue();
+            sessionConfig.set(base + ".world", loc.getWorld().getName());
+            sessionConfig.set(base + ".x", loc.getX());
+            sessionConfig.set(base + ".y", loc.getY());
+            sessionConfig.set(base + ".z", loc.getZ());
+            sessionConfig.set(base + ".yaw", loc.getYaw());
+            sessionConfig.set(base + ".pitch", loc.getPitch());
+        }
+        try { sessionConfig.save(sessionFile); } catch (IOException ignored) {}
     }
 
     /** Cancel all active builder sessions, removing placed rooms and holograms. */
@@ -62,6 +111,26 @@ public class DungeonBuilder implements Listener {
                 }
             }
         }
+        saveStoredReturns();
+    }
+
+    /** Remove leftover edit worlds and return players to their saved locations. */
+    public void cleanupOrphans() {
+        for (World w : new java.util.ArrayList<>(Bukkit.getWorlds())) {
+            if (w.getName().startsWith("dgn_edit_")) {
+                for (Player p : new java.util.ArrayList<>(w.getPlayers())) {
+                    Location back = storedReturns.remove(p.getUniqueId());
+                    if (back == null) {
+                        World main = Bukkit.getWorld("world");
+                        back = main != null ? main.getSpawnLocation() : p.getLocation();
+                    }
+                    p.teleport(back);
+                    p.getInventory().clear();
+                }
+                manager.getPlugin().getWorldManager().deleteWorld(w.getName());
+            }
+        }
+        saveStoredReturns();
     }
 
     public void start(Player player) {
@@ -74,14 +143,20 @@ public class DungeonBuilder implements Listener {
         }
         Session s = new Session(player, world, back, true);
         sessions.put(player.getUniqueId(), s);
+        storedReturns.put(player.getUniqueId(), back);
+        saveStoredReturns();
         setupInventory(player);
-        player.teleport(new Location(world, 0, 64, 0));
+        player.setAllowFlight(true);
+        player.setFlying(true);
+        player.teleport(new Location(world, 0, 0, 0));
         player.sendMessage(ChatColor.YELLOW + "Right-click to place the entrance at your feet.");
     }
 
     public void edit(Player player, DungeonLayout layout) {
         Session s = new Session(player, player.getWorld(), player.getLocation(), false);
         sessions.put(player.getUniqueId(), s);
+        storedReturns.put(player.getUniqueId(), player.getLocation());
+        saveStoredReturns();
         setupInventory(player);
 
         // spawn existing rooms relative to the entrance
@@ -162,6 +237,24 @@ public class DungeonBuilder implements Listener {
         if (entranceX == -1) {
             player.sendMessage(ChatColor.YELLOW + "Right-click to place the entrance at your feet.");
         }
+    }
+
+    @EventHandler
+    public void onRespawn(PlayerRespawnEvent event) {
+        Session s = sessions.get(event.getPlayer().getUniqueId());
+        if (s == null) return;
+        event.setRespawnLocation(new Location(s.dungeon.getWorld(), 0, 0, 0));
+        Bukkit.getScheduler().runTask(Main.getInstance(), s::resetPlayer);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onVoidDamage(EntityDamageEvent event) {
+        if (event.getCause() != EntityDamageEvent.DamageCause.VOID) return;
+        if (!(event.getEntity() instanceof Player player)) return;
+        Session s = sessions.get(player.getUniqueId());
+        if (s == null) return;
+        event.setCancelled(true);
+        s.resetPlayer();
     }
 
     private void setupInventory(Player player) {
@@ -412,6 +505,26 @@ public class DungeonBuilder implements Listener {
         if (s != null) {
             s.cancel();
             event.getPlayer().getInventory().clear();
+        }
+    }
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) {
+        Player p = event.getPlayer();
+        UUID id = p.getUniqueId();
+        if (storedReturns.containsKey(id) || p.getWorld().getName().startsWith("dgn_edit_")) {
+            World original = p.getWorld();
+            Location back = storedReturns.remove(id);
+            if (back == null) {
+                World main = Bukkit.getWorld("world");
+                back = main != null ? main.getSpawnLocation() : p.getLocation();
+            }
+            p.teleport(back);
+            p.getInventory().clear();
+            saveStoredReturns();
+            if (original.getName().startsWith("dgn_edit_")) {
+                manager.getPlugin().getWorldManager().deleteWorld(original.getName());
+            }
         }
     }
 
@@ -721,6 +834,14 @@ public class DungeonBuilder implements Listener {
             this.returnLocation = back;
             this.tempWorld = tempWorld;
         }
+
+        void resetPlayer() {
+            Location origin = new Location(dungeon.getWorld(), 0, 0, 0);
+            player.teleport(origin);
+            player.setHealth(player.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue());
+            player.setAllowFlight(true);
+            player.setFlying(true);
+        }
         void undo() {
             History h = history.pollLast();
             if (h == null) return;
@@ -772,8 +893,11 @@ public class DungeonBuilder implements Listener {
             if (player.isOnline() && returnLocation != null) {
                 player.teleport(returnLocation);
             }
+            storedReturns.remove(player.getUniqueId());
+            saveStoredReturns();
             if (tempWorld) {
-                manager.getPlugin().getWorldManager().deleteWorld(dungeon.getWorld().getName());
+                org.bukkit.Bukkit.getScheduler().runTaskLater(manager.getPlugin(),
+                        () -> manager.getPlugin().getWorldManager().deleteWorld(dungeon.getWorld().getName()), 1L);
             }
         }
 

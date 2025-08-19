@@ -127,6 +127,9 @@ public class DungeonManager {
         if (world != null) {
             world.setKeepSpawnInMemory(false);
             world.setAutoSave(false);
+            world.setDifficulty(org.bukkit.Difficulty.PEACEFUL);
+            world.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, false);
+            world.setSpawnLocation(0, 0, 0);
         }
         return world;
     }

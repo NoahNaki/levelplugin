@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.storage.events.StorageEvents;
 import me.nakilex.levelplugin.storage.gui.StorageGUI;
 import me.nakilex.levelplugin.utils.CoinInputPrompt;
+import me.nakilex.levelplugin.utils.GuiUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -24,24 +25,28 @@ import java.util.List;
  */
 public class GuildVaultGUI extends StorageGUI {
     private static final int COIN_SLOT = 4;
+    private static final int BACK_SLOT = 0;
     private final String guildName;
+    private final GuildMemberGUI memberGUI;
 
-    public GuildVaultGUI(String guildName, StorageEvents events) {
-        super(guildName.toLowerCase(), "guildvault", "guild_", "Guild Vault", events, false, 1);
+    public GuildVaultGUI(String guildName, StorageEvents events, GuildMemberGUI memberGUI) {
+        super(guildName.toLowerCase(), "guildvault", "guild_", "Guild Storage", events, false, 1);
         this.guildName = guildName;
+        this.memberGUI = memberGUI;
     }
 
     @Override
     public void open(Player player) {
-        Guild g = GuildManager.getInstance().getGuild(guildName);
+        Guild g = GuildManager.getInstance().getGuildIgnoreCase(guildName);
         if (g != null) setMaxPages(g.getMaxPages());
         super.open(player);
         Inventory inv = player.getOpenInventory().getTopInventory();
+        inv.setItem(BACK_SLOT, GuiUtil.getNexoItem("arrow_left2", ChatColor.GRAY + "Back"));
         inv.setItem(COIN_SLOT, createCoinItem());
     }
 
     private ItemStack createCoinItem() {
-        Guild g = GuildManager.getInstance().getGuild(guildName);
+        Guild g = GuildManager.getInstance().getGuildIgnoreCase(guildName);
         int coins = g != null ? g.getCoins() : 0;
         int capacity = g != null ? g.getCoinCapacity() : 0;
         ItemStack stack = new ItemStack(Material.GOLD_BLOCK);
@@ -59,22 +64,54 @@ public class GuildVaultGUI extends StorageGUI {
     }
 
     @Override
+    protected ItemStack createInfoItem() {
+        ItemStack info = GuiUtil.getNexoItem("info", ChatColor.YELLOW + "Information");
+        ItemMeta meta = info.getItemMeta();
+        if (meta != null) {
+            meta.setLore(List.of(
+                    ChatColor.GRAY + "Shared guild storage.",
+                    ChatColor.GRAY + "Use arrows to change pages."));
+            info.setItemMeta(meta);
+        }
+        return info;
+    }
+
+    @Override
     public void handleClick(InventoryClickEvent event) {
-        if (event.getRawSlot() == COIN_SLOT) {
+        int slot = event.getRawSlot();
+        if (slot == BACK_SLOT) {
+            event.setCancelled(true);
+            if (memberGUI != null) {
+                memberGUI.open((Player) event.getWhoClicked());
+            }
+            return;
+        }
+        if (slot == COIN_SLOT) {
             event.setCancelled(true);
             Player player = (Player) event.getWhoClicked();
-            Guild g = GuildManager.getInstance().getGuild(guildName);
-            if (g == null) return;
+            Main.getInstance().getLogger().info("[GuildVault] coin slot clicked by " + player.getName());
+            Guild g = GuildManager.getInstance().getGuildIgnoreCase(guildName);
+            if (g == null) {
+                Main.getInstance().getLogger().warning("[GuildVault] guild not found for name " + guildName);
+                return;
+            }
             EconomyManager econ = Main.getInstance().getEconomyManager();
 
             if (event.isLeftClick()) {
                 player.closeInventory();
+                Main.getInstance().getLogger().info("[GuildVault] opening deposit prompt for " + player.getName());
                 ConversationFactory factory = new ConversationFactory(Main.getInstance())
                         .withFirstPrompt(new CoinInputPrompt(
+                                Main.getInstance(),
                                 player,
                                 ChatColor.GOLD + "Enter amount to deposit:",
-                                amt -> amt > 0 && econ.getBalance(player) >= amt,
                                 amt -> {
+                                    boolean ok = amt > 0 && econ.getBalance(player) >= amt;
+                                    Main.getInstance().getLogger().info("[GuildVault] deposit validate amt=" + amt + " ok=" + ok);
+                                    return ok;
+                                },
+                                amt -> {
+                                    Main.getInstance().getLogger().info("[GuildVault] depositing " + amt + " for " + player.getName());
                                     econ.deductCoins(player, amt);
                                     int before = g.getCoins();
                                     g.addCoins(amt);
@@ -82,7 +119,8 @@ public class GuildVaultGUI extends StorageGUI {
                                     if (added < amt) {
                                         int refund = amt - added;
                                         econ.addCoins(player, refund);
-                                        player.sendMessage(ChatColor.RED + "Vault full. Deposited " + ChatColor.GOLD + added + " <glyph:coins_icon>" + ChatColor.RED + " and refunded " + refund + ".");
+                                        player.sendMessage(ChatColor.RED + "Storage full. Deposited " + ChatColor.GOLD + added + " <glyph:coins_icon>" + ChatColor.RED + " and refunded " + refund + ".");
+                                        Main.getInstance().getLogger().info("[GuildVault] storage full, refunded " + refund);
                                     } else {
                                         player.sendMessage(ChatColor.GRAY + "Deposited " + ChatColor.GOLD + amt + " <glyph:coins_icon>");
                                     }
@@ -94,12 +132,19 @@ public class GuildVaultGUI extends StorageGUI {
                 factory.buildConversation(player).begin();
             } else if (event.isRightClick()) {
                 player.closeInventory();
+                Main.getInstance().getLogger().info("[GuildVault] opening withdraw prompt for " + player.getName());
                 ConversationFactory factory = new ConversationFactory(Main.getInstance())
                         .withFirstPrompt(new CoinInputPrompt(
+                                Main.getInstance(),
                                 player,
                                 ChatColor.GOLD + "Enter amount to withdraw:",
-                                amt -> amt > 0 && g.getCoins() >= amt,
                                 amt -> {
+                                    boolean ok = amt > 0 && g.getCoins() >= amt;
+                                    Main.getInstance().getLogger().info("[GuildVault] withdraw validate amt=" + amt + " ok=" + ok);
+                                    return ok;
+                                },
+                                amt -> {
+                                    Main.getInstance().getLogger().info("[GuildVault] withdrawing " + amt + " for " + player.getName());
                                     g.removeCoins(amt);
                                     econ.addCoins(player, amt);
                                     player.sendMessage(ChatColor.GRAY + "Withdrew " + ChatColor.GOLD + amt + " <glyph:coins_icon>");
@@ -119,6 +164,7 @@ public class GuildVaultGUI extends StorageGUI {
     public void saveToDisk() {
         for (Inventory page : getPages()) {
             page.setItem(COIN_SLOT, null);
+            page.setItem(BACK_SLOT, null);
         }
         super.saveToDisk();
     }

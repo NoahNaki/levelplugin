@@ -20,8 +20,10 @@ public class PlayVoidListener implements Listener {
         }
 
         Player player = event.getPlayer();
+        if (player.getWorld().getName().startsWith("dgn_edit_")) {
+            return;
+        }
         if (player.getLocation().getY() <= VOID_THRESHOLD) {
-            // kill the player
             player.setHealth(0.0);
             player.sendMessage(ChatColor.RED + "idk how you did it but you fell into the void!");
         }

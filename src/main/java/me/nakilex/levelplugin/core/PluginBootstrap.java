@@ -270,6 +270,7 @@ public class PluginBootstrap {
         guildSettingsGUI = new me.nakilex.levelplugin.guild.GuildSettingsGUI(guildManager);
         guildMemberGUI = new me.nakilex.levelplugin.guild.GuildMemberGUI(guildManager, guildGUI, guildApplicantsGUI, guildSettingsGUI);
         guildApplicantsGUI.setMemberGUI(guildMemberGUI);
+        guildSettingsGUI.setMemberGUI(guildMemberGUI);
         guildSiegeManager = me.nakilex.levelplugin.guild.siege.GuildSiegeManager.getInstance();
         guildSiegeManager.init(plugin);
         gemsManager = new GemsManager();
@@ -301,6 +302,7 @@ public class PluginBootstrap {
         dungeonRatingManager = new me.nakilex.levelplugin.dungeon.rating.DungeonRatingManager(plugin);
         dungeonManager = new me.nakilex.levelplugin.dungeon.DungeonManager(plugin, lootChestManager);
         dungeonManager.cleanupOldInstanceWorlds();
+        dungeonManager.getBuilder().cleanupOrphans();
         dungeonListGUI = new me.nakilex.levelplugin.dungeon.gui.DungeonListGUI(dungeonManager);
         townStageManager = new me.nakilex.levelplugin.environment.stage.TownStageManager(plugin);
         buildingStageManager = new me.nakilex.levelplugin.environment.stage.BuildingStageManager(plugin);
@@ -330,7 +332,7 @@ public class PluginBootstrap {
         settingsGUI = new SettingsGUI(settingsManager);
         debugGUI = new me.nakilex.levelplugin.debug.gui.DebugGUI(mobDebugToggleManager, scoreboardManager);
         this.storageManager = new StorageManager();
-        this.guildVaultManager = new me.nakilex.levelplugin.guild.GuildVaultManager(storageEvents);
+        this.guildVaultManager = new me.nakilex.levelplugin.guild.GuildVaultManager(storageEvents, guildMemberGUI);
         CommandRegistry.registerCommands(
             plugin,
             blacksmithGUI,

@@ -75,19 +75,6 @@ public class EnvironmentManager {
         }
     }
 
-    /** Convert a lowercase, underscore- or space-separated name into capitalized words. */
-    public static String beautifyWords(String name) {
-        String[] parts = name.toLowerCase().replace('_', ' ').split(" ");
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < parts.length; i++) {
-            if (parts[i].isEmpty()) continue;
-            sb.append(Character.toUpperCase(parts[i].charAt(0)))
-              .append(parts[i].substring(1));
-            if (i < parts.length - 1) sb.append(' ');
-        }
-        return sb.toString();
-    }
-
     /** Physically set blocks for all players instead of showing fake blocks. */
     private static void applyBlocks(Map<Location, org.bukkit.block.data.BlockData> blocks) {
         if (blocks == null || blocks.isEmpty()) return;
@@ -226,20 +213,33 @@ public class EnvironmentManager {
 
         java.util.List<String> reqLines = new java.util.ArrayList<>();
         int coins = Main.getInstance().getEconomyManager().getBalance(player);
+        Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
+        double disc = g != null ? g.getUpgradeDiscount() : 0.0;
         for (var entry : nextData.materialCost.entrySet()) {
             org.bukkit.Material mat = entry.getKey();
-            int amt = entry.getValue();
-            boolean has = player.getInventory().containsAtLeast(new org.bukkit.inventory.ItemStack(mat, amt), amt);
-            String matName = beautifyWords(mat.name().toLowerCase().replace('_', ' '));
+            int baseAmt = entry.getValue();
+            int needed = (int) Math.round(baseAmt * (1.0 - disc));
+            boolean has = player.getInventory().containsAtLeast(new org.bukkit.inventory.ItemStack(mat, needed), needed);
+            String matName = me.nakilex.levelplugin.utils.TextUtil.beautifyWords(mat.name().toLowerCase().replace('_', ' '));
+            String amountText = needed < baseAmt
+                    ? ChatColor.DARK_GRAY + "" + ChatColor.STRIKETHROUGH + baseAmt + ChatColor.RESET + ChatColor.GRAY + " -> " + ChatColor.WHITE + needed
+                    : ChatColor.WHITE + "" + needed;
             String line = (has ? ChatColor.GREEN + "\u2714" : ChatColor.RED + "\u2718")
-                    + ChatColor.GRAY + " - " + ChatColor.WHITE + matName
-                    + ChatColor.GRAY + " x" + ChatColor.WHITE + amt;
+                    + ChatColor.GRAY + " - " + amountText + ChatColor.DARK_GRAY + "x "
+                    + ChatColor.WHITE + matName;
             reqLines.add(line);
         }
         int coinCost = nextData.coinCost;
-        boolean hasCoins = coins >= coinCost;
+        int discounted = (int) Math.round(coinCost * (1.0 - disc));
+        boolean hasCoins = coins >= discounted;
+        String costText;
+        if (discounted < coinCost) {
+            costText = ChatColor.DARK_GRAY + "" + ChatColor.STRIKETHROUGH + coinCost + ChatColor.RESET + ChatColor.GRAY + " -> " + ChatColor.WHITE + discounted;
+        } else {
+            costText = ChatColor.WHITE + "" + coinCost;
+        }
         String coinLine = (hasCoins ? ChatColor.GREEN + "\u2714" : ChatColor.RED + "\u2718")
-                + ChatColor.GRAY + " - " + ChatColor.WHITE + "" + coinCost + " coins "
+                + ChatColor.GRAY + " - " + costText + " coins "
                 + ChatColor.GOLD + " <glyph:coins_icon>";
         reqLines.add(coinLine);
 
@@ -698,6 +698,16 @@ public class EnvironmentManager {
         }
     }
 
+    /** Refresh holograms for every tracked player. */
+    public void refreshAllHolograms() {
+        for (UUID id : new java.util.ArrayList<>(buildingHolograms.keySet())) {
+            Player p = Bukkit.getPlayer(id);
+            if (p != null && p.isOnline()) {
+                refreshAllBuildingHolograms(p);
+            }
+        }
+    }
+
     /** Rebuild a single building hologram based on the player's current inventory. */
     private void refreshBuildingHologram(Player player, String building) {
         UUID uuid = player.getUniqueId();
@@ -844,7 +854,8 @@ public class EnvironmentManager {
             if (g != null) {
                 g.addExp(1000);
                 GuildManager.getInstance().save();
-                player.sendMessage(ChatColor.GRAY + "Guild earned " + ChatColor.GOLD + "1000 <glyph:experience_orb_icon>" + ChatColor.GRAY + ".");
+                String expColor = me.nakilex.levelplugin.utils.ChatFormatter.experienceColor();
+                player.sendMessage(ChatColor.GRAY + "Guild earned " + expColor + "1000 <glyph:experience_orb_icon>" + ChatColor.GRAY + ".");
             }
             String town = towns.get(base);
             Location origin = origins.get(base);
@@ -869,19 +880,18 @@ public class EnvironmentManager {
             return;
         }
         // Check materials
+        Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
+        double disc = g != null ? g.getUpgradeDiscount() : 0.0;
         for (var entry : nextStageData.materialCost.entrySet()) {
             org.bukkit.Material mat = entry.getKey();
-            int amt = entry.getValue();
-            if (!player.getInventory().containsAtLeast(new org.bukkit.inventory.ItemStack(mat, amt), amt)) {
+            int baseAmt = entry.getValue();
+            int needed = (int) Math.round(baseAmt * (1.0 - disc));
+            if (!player.getInventory().containsAtLeast(new org.bukkit.inventory.ItemStack(mat, needed), needed)) {
                 player.sendMessage(ChatColor.RED + "Missing required materials for upgrade.");
                 return;
             }
         }
-        int coinCost = nextStageData.coinCost;
-        Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
-        if (g != null) {
-            coinCost = (int) Math.round(coinCost * (1.0 - g.getUpgradeDiscount()));
-        }
+        int coinCost = (int) Math.round(nextStageData.coinCost * (1.0 - disc));
         int balance = Main.getInstance().getEconomyManager().getBalance(player);
         if (balance < coinCost) {
             player.sendMessage(ChatColor.RED + "You need " + coinCost + " coins.");
@@ -889,7 +899,8 @@ public class EnvironmentManager {
         }
         // Deduct items
         for (var entry : nextStageData.materialCost.entrySet()) {
-            player.getInventory().removeItem(new org.bukkit.inventory.ItemStack(entry.getKey(), entry.getValue()));
+            int needed = (int) Math.round(entry.getValue() * (1.0 - disc));
+            player.getInventory().removeItem(new org.bukkit.inventory.ItemStack(entry.getKey(), needed));
         }
         if (coinCost > 0) {
             Main.getInstance().getEconomyManager().deductCoins(player, coinCost);
@@ -1096,6 +1107,8 @@ public class EnvironmentManager {
         Sound[] breakSounds = { Sound.BLOCK_STONE_BREAK, Sound.BLOCK_DEEPSLATE_BREAK, Sound.BLOCK_WOOD_BREAK };
         Sound[] placeSounds = { Sound.BLOCK_STONE_PLACE, Sound.BLOCK_DEEPSLATE_PLACE, Sound.BLOCK_WOOD_PLACE };
 
+        Map<String, Integer> priMap = blockPriorities.computeIfAbsent(uuid, k -> new java.util.HashMap<>());
+
         BukkitTask task = new BukkitRunnable() {
             int index = 0;
             @Override public void run() {
@@ -1104,7 +1117,15 @@ public class EnvironmentManager {
                 for (int i = 0; i < blocksPerTick && index < blocks.size(); i++, index++) {
                     TownStageManager.BlockDef b = blocks.get(index);
                     Location loc = baseOrigin.clone().add(b.x - stageData.ox, b.y - stageData.oy, b.z - stageData.oz);
+                    String k = key(loc);
+                    int exist = priMap.getOrDefault(k, Integer.MIN_VALUE);
+                    if (exist > stageData.priority && priMap.containsKey(k)) continue;
                     batch.put(loc, b.data);
+                    if (b.data.getMaterial() == org.bukkit.Material.AIR) {
+                        priMap.remove(k);
+                    } else {
+                        priMap.put(k, stageData.priority);
+                    }
                     Sound breakS = breakSounds[rand.nextInt(breakSounds.length)];
                     Sound placeS = placeSounds[rand.nextInt(placeSounds.length)];
                     player.getWorld().playSound(loc, breakS, 0.7f, 1f);
@@ -1155,10 +1176,19 @@ public class EnvironmentManager {
         Map<String, Integer> priMap = blockPriorities.computeIfAbsent(uuid, k -> new java.util.HashMap<>());
         for (var b : stageData.blocks) {
             Location loc = baseOrigin.clone().add(b.x - stageData.ox, b.y - stageData.oy, b.z - stageData.oz);
+            String k = key(loc);
+            int exist = priMap.getOrDefault(k, Integer.MIN_VALUE);
+            if (exist > stageData.priority && priMap.containsKey(k)) continue;
             batch.put(loc, b.data);
-            priMap.put(key(loc), stageData.priority);
+            if (b.data.getMaterial() == org.bukkit.Material.AIR) {
+                priMap.remove(k);
+            } else {
+                priMap.put(k, stageData.priority);
+            }
         }
-        applyBlocks(batch);
+        if (!batch.isEmpty()) {
+            applyBlocks(batch);
+        }
         stageManager.spawnForStage(player, town, level, stage, baseOrigin);
     }
 
@@ -1171,6 +1201,10 @@ public class EnvironmentManager {
         for (var b : data.blocks) {
             Location loc = baseOrigin.clone().add(b.x - data.ox, b.y - data.oy, b.z - data.oz);
             loc.getBlock().setType(org.bukkit.Material.AIR, false);
+            String k = key(loc);
+            for (var priMap : blockPriorities.values()) {
+                if (priMap != null) priMap.remove(k);
+            }
         }
     }
 
@@ -1183,6 +1217,10 @@ public class EnvironmentManager {
         for (var b : data.blocks) {
             Location loc = base.clone().add(b.x - data.ox, b.y - data.oy, b.z - data.oz);
             loc.getBlock().setType(org.bukkit.Material.AIR, false);
+            String k = key(loc);
+            for (var priMap : blockPriorities.values()) {
+                if (priMap != null) priMap.remove(k);
+            }
         }
     }
 
@@ -1233,8 +1271,15 @@ public class EnvironmentManager {
             int lcx = loc.getBlockX() >> 4;
             int lcz = loc.getBlockZ() >> 4;
             if (lcx == cx && lcz == cz) {
+                String k = key(loc);
+                int exist = priMap.getOrDefault(k, Integer.MIN_VALUE);
+                if (exist > stageData.priority && priMap.containsKey(k)) continue;
                 batch.put(loc, b.data);
-                priMap.put(key(loc), stageData.priority);
+                if (b.data.getMaterial() == org.bukkit.Material.AIR) {
+                    priMap.remove(k);
+                } else {
+                    priMap.put(k, stageData.priority);
+                }
             }
         }
         if (!batch.isEmpty()) {

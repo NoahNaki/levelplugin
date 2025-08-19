@@ -10,9 +10,11 @@ import java.util.Map;
 public class GuildVaultManager {
     private final Map<String, GuildVault> vaults = new HashMap<>();
     private final StorageEvents events;
+    private final GuildMemberGUI memberGUI;
 
-    public GuildVaultManager(StorageEvents events) {
+    public GuildVaultManager(StorageEvents events, GuildMemberGUI memberGUI) {
         this.events = events;
+        this.memberGUI = memberGUI;
         loadExisting();
     }
 
@@ -28,12 +30,22 @@ public class GuildVaultManager {
             String name = file.getName();
             if (!name.startsWith("guild_") || !name.endsWith(".yml")) continue;
             String guild = name.substring("guild_".length(), name.length() - 4);
-            vaults.put(guild.toLowerCase(), new GuildVault(guild, events));
+            Guild existing = GuildManager.getInstance().getGuildIgnoreCase(guild);
+            String proper = existing != null ? existing.getName() : guild;
+            vaults.put(guild.toLowerCase(), new GuildVault(proper, events, memberGUI));
         }
     }
 
     public GuildVault getVault(String guildName) {
-        return vaults.computeIfAbsent(guildName.toLowerCase(), g -> new GuildVault(g, events));
+        String key = guildName.toLowerCase();
+        Guild existing = GuildManager.getInstance().getGuildIgnoreCase(guildName);
+        String proper = existing != null ? existing.getName() : guildName;
+        return vaults.compute(key, (k, v) -> {
+            if (v == null || !v.getGuildName().equals(proper)) {
+                return new GuildVault(proper, events, memberGUI);
+            }
+            return v;
+        });
     }
 
     public void saveAll() {

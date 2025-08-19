@@ -54,10 +54,14 @@ public class FileHandler {
      * Loads a list of Inventory pages for a given player.
      */
     public List<Inventory> loadStorage(UUID playerId) {
-        return loadStorage(playerId.toString(), "storage", "player_");
+        return loadStorage(playerId.toString(), "storage", "player_", "Personal Storage");
     }
 
     public List<Inventory> loadStorage(String key, String folder, String prefix) {
+        return loadStorage(key, folder, prefix, "Personal Storage");
+    }
+
+    public List<Inventory> loadStorage(String key, String folder, String prefix, String titleBase) {
         File file = getStorageFile(key, folder, prefix);
         if (!file.exists()) {
             // No data, return empty
@@ -68,15 +72,15 @@ public class FileHandler {
         List<Inventory> loadedPages = new ArrayList<>();
 
         if (config.contains("pages")) {
-            for (String key : config.getConfigurationSection("pages").getKeys(false)) {
-                String pageKey = "pages." + key;
+            for (String pageId : config.getConfigurationSection("pages").getKeys(false)) {
+                String pageKey = "pages." + pageId;
                 List<ItemStack> items = (List<ItemStack>) config.get(pageKey);
 
-                int pageIndex = Integer.parseInt(key) + 1;
+                int pageIndex = Integer.parseInt(pageId) + 1;
                 Inventory page = Bukkit.createInventory(
                     null,
                     54,
-                    ChatColor.BLACK + "Personal Storage (Page " + pageIndex + ")"
+                    ChatColor.BLACK + titleBase + " (Page " + pageIndex + ")"
                 );
 
                 for (int slot = 0; slot < items.size(); slot++) {

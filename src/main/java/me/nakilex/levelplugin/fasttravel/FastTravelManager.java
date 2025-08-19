@@ -2,7 +2,6 @@ package me.nakilex.levelplugin.fasttravel;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.fasttravel.data.FastTravelPoint;
-import me.nakilex.levelplugin.environment.EnvironmentManager;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -55,7 +54,7 @@ public class FastTravelManager {
                     w = plugin.getServer().getWorld("world");
                 }
                 Location loc = new Location(w, x, y, z);
-                String displayName = EnvironmentManager.beautifyWords(key);
+                String displayName = me.nakilex.levelplugin.utils.TextUtil.beautifyWords(key);
                 FastTravelPoint pt = new FastTravelPoint(displayName, ChatColor.valueOf(colorName), desc, loc, radius, town);
                 points.put(key.toLowerCase(), pt);
             }
@@ -98,7 +97,7 @@ public class FastTravelManager {
     }
 
     public void addLocation(String name, ChatColor color, String desc, Location loc, double radius, boolean town) {
-        String displayName = EnvironmentManager.beautifyWords(name);
+        String displayName = me.nakilex.levelplugin.utils.TextUtil.beautifyWords(name);
         points.put(name.toLowerCase(), new FastTravelPoint(displayName, color, desc, loc, radius, town));
         save();
     }
@@ -164,7 +163,7 @@ public class FastTravelManager {
             plugin.getPlayerConfig().savePlayerData(id);
         }
         if (recordCodex) {
-            Main.getInstance().getCodexManager().recordLocation(player, EnvironmentManager.beautifyWords(name));
+            Main.getInstance().getCodexManager().recordLocation(player, me.nakilex.levelplugin.utils.TextUtil.beautifyWords(name));
         }
         Main.getInstance().getQuestManager().handleDiscover(player, name.toLowerCase());
         Main.getInstance().getQuestManager().handleWaystoneUnlock(player, name.toLowerCase());

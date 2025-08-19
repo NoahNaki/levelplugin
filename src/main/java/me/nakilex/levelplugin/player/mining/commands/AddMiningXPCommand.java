@@ -44,8 +44,9 @@ public class AddMiningXPCommand implements CommandExecutor {
 
         miningManager.addXP(target, amount);
         String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
-        sender.sendMessage("§aGave " + amount + " Mining <glyph:experience_orb_icon> " + expLabel + " §ato " + target.getName());
-        target.sendMessage("§aYou have received " + amount + " Mining <glyph:experience_orb_icon> " + expLabel + "!");
+        String expColor = me.nakilex.levelplugin.utils.ChatFormatter.experienceColor();
+        sender.sendMessage("§aGave " + expColor + amount + " Mining <glyph:experience_orb_icon> " + expLabel + " §ato " + target.getName());
+        target.sendMessage("§aYou have received " + expColor + amount + " Mining <glyph:experience_orb_icon> " + expLabel + "!");
         return true;
     }
 }
