@@ -75,9 +75,11 @@ import me.nakilex.levelplugin.environment.stage.TownPosCommand;
 import me.nakilex.levelplugin.environment.stage.StageSelectionListener;
 import me.nakilex.levelplugin.utils.commands.CenterGuiCommand;
 import me.nakilex.levelplugin.utils.commands.CenterTooltipCommand;
+import me.nakilex.levelplugin.utils.commands.EmptyTabCompleter;
 import me.nakilex.levelplugin.pathfinding.PathfindingCommand;
 import me.nakilex.levelplugin.pathfinding.PathfindingManager;
 import me.nakilex.levelplugin.pathfinding.MercenaryCommand;
+import org.bukkit.command.PluginCommand;
 import me.nakilex.levelplugin.pathfinding.MercenaryManager;
 
 public class CommandRegistry {
@@ -226,5 +228,14 @@ public class CommandRegistry {
         MercenaryCommand mercCmd = new MercenaryCommand(mercManager);
         plugin.getCommand("mercenary").setExecutor(mercCmd);
         plugin.getCommand("mercenary").setTabCompleter(mercCmd);
+
+        // Ensure every command has a tab completer to avoid null completions
+        EmptyTabCompleter empty = new EmptyTabCompleter();
+        for (String name : plugin.getDescription().getCommands().keySet()) {
+            PluginCommand cmd = plugin.getCommand(name);
+            if (cmd != null && cmd.getTabCompleter() == null) {
+                cmd.setTabCompleter(empty);
+            }
+        }
     }
 }
