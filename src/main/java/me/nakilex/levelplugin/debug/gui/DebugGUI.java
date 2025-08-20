@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -32,9 +33,11 @@ public class DebugGUI implements Listener {
 
     /** Open the debug tools menu for the player. */
     public void open(Player player) {
-        Inventory inv = Bukkit.createInventory(null, GUI_SIZE, "Debug Tools");
-        var filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
-        GuiUtil.fillBorder(inv, filler);
+        Inventory inv = GuiBuilder.create(GUI_SIZE, "Debug Tools")
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .fillEmptySlots(false)
+                .border()
+                .build();
         inv.setItem(MOBINFO_SLOT, GuiUtil.createToggleItem(
                 mobDebugManager.isEnabled(player),
                 "§bMob Info Debug",

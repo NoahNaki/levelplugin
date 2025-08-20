@@ -7,6 +7,9 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
+
 public class HorseCommand implements CommandExecutor {
 
     private final HorseManager horseManager;
@@ -21,14 +24,14 @@ public class HorseCommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage("Only players can use this command.");
+            send(sender, MessageType.ERROR, "Only players can use this command.");
             return true;
         }
 
         Player player = (Player) sender;
 
         if (args.length == 0) {
-            player.sendMessage("Usage: /horse [spawn|reroll]");
+            send(player, MessageType.INFO, "Usage: /horse [spawn|reroll]");
             return true;
         }
 
@@ -46,7 +49,7 @@ public class HorseCommand implements CommandExecutor {
             return true;
         }
 
-        player.sendMessage("Usage: /horse [spawn|reroll]");
+        send(player, MessageType.INFO, "Usage: /horse [spawn|reroll]");
         return true;
     }
 }

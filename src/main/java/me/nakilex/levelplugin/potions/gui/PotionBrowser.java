@@ -24,6 +24,9 @@ import org.bukkit.persistence.PersistentDataType;
 import java.util.ArrayList;
 import java.util.List;
 
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
+
 public class PotionBrowser implements CommandExecutor, Listener {
     private static final int ROWS = 6;
     private static final int COLS = 9;
@@ -95,7 +98,7 @@ public class PotionBrowser implements CommandExecutor, Listener {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage("Only players can use this command.");
+            send(sender, MessageType.ERROR, "Only players can use this command.");
             return true;
         }
         open((Player) sender, 0);
@@ -126,7 +129,7 @@ public class PotionBrowser implements CommandExecutor, Listener {
         PotionInstance inst = potionManager.getInstanceFromItem(clicked);
         if (inst != null) {
             player.getInventory().addItem(clicked.clone());
-            player.sendMessage(ChatColor.GREEN + "You received: " + name);
+            send(player, MessageType.SUCCESS, "You received: " + ChatColor.WHITE + name);
         }
     }
 }

@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.UUID;
 
 import me.nakilex.levelplugin.utils.CommandUtil;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 
 
 public class AddCoinsCommand implements TabExecutor {
@@ -28,12 +30,13 @@ public class AddCoinsCommand implements TabExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if(!(sender instanceof Player)) {
-            sender.sendMessage("Players only!");
+            sender.sendMessage(ChatMessageUtil.format(MessageType.ERROR, "Players only!"));
             return true;
         }
 
         if(args.length < 2) {
-            sender.sendMessage("Usage: /addcoins <player|@everyone> <amount>");
+            sender.sendMessage(ChatMessageUtil.format(MessageType.ERROR,
+                    "Usage: /addcoins <player|@everyone> <amount>"));
             return true;
         }
 
@@ -42,7 +45,8 @@ public class AddCoinsCommand implements TabExecutor {
         try {
             amount = Integer.parseInt(args[1]);
         } catch(NumberFormatException e) {
-            sender.sendMessage("Invalid amount: " + args[1]);
+            sender.sendMessage(ChatMessageUtil.format(MessageType.ERROR,
+                    "Invalid amount: " + args[1]));
             return true;
         }
 
@@ -50,15 +54,18 @@ public class AddCoinsCommand implements TabExecutor {
             for (Player p : Bukkit.getOnlinePlayers()) {
                 applyAmount(p.getUniqueId(), amount, p);
             }
-            sender.sendMessage("Adjusted everyone's coins by " + amount + ".");
+            sender.sendMessage(ChatMessageUtil.format(MessageType.SUCCESS,
+                    "Adjusted everyone's coins by " + amount + "."));
         } else {
             OfflinePlayer target = Bukkit.getOfflinePlayer(targetArg);
             if (target.getName() == null) {
-                sender.sendMessage("Player not found: " + targetArg);
+                sender.sendMessage(ChatMessageUtil.format(MessageType.ERROR,
+                        "Player not found: " + targetArg));
                 return true;
             }
             applyAmount(target.getUniqueId(), amount, target.getPlayer());
-            sender.sendMessage("Adjusted " + target.getName() + "'s coins by " + amount + ".");
+            sender.sendMessage(ChatMessageUtil.format(MessageType.SUCCESS,
+                    "Adjusted " + target.getName() + "'s coins by " + amount + "."));
         }
 
         return true;

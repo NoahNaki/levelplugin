@@ -7,6 +7,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,6 +15,18 @@ import java.util.List;
 /** Utility helpers for basic GUI elements. */
 public final class GuiUtil {
     private GuiUtil() {}
+
+    /**
+     * Standard 28-slot layout used by paginated menus. The pattern spans
+     * four centered rows of seven slots each and leaves a border around the
+     * edges for navigation controls.
+     */
+    public static final int[] PAGED_SLOTS = {
+            10,11,12,13,14,15,16,
+            19,20,21,22,23,24,25,
+            28,29,30,31,32,33,34,
+            37,38,39,40,41,42,43
+    };
 
     /** Create a simple filler pane with a blank display name. */
     public static ItemStack createFiller(Material material) {
@@ -36,6 +49,22 @@ public final class GuiUtil {
             item.setItemMeta(meta);
         }
         return item;
+    }
+
+    /**
+     * Append standardized left/right click instructions to a lore list.
+     *
+     * @param lore       list to append to
+     * @param leftAction description following "Left-Click" or {@code null}
+     * @param rightAction description following "Right-Click" or {@code null}
+     */
+    public static void addClickInstructions(List<String> lore, String leftAction, String rightAction) {
+        if (leftAction != null) {
+            lore.add(ChatColor.WHITE + "Left-Click " + ChatColor.GRAY + leftAction);
+        }
+        if (rightAction != null) {
+            lore.add(ChatColor.WHITE + "Right-Click " + ChatColor.GRAY + rightAction);
+        }
     }
 
     /**
@@ -110,6 +139,32 @@ public final class GuiUtil {
     public static String glyphStars(int count) {
         if (count <= 0) return "";
         return "<glyph:star>".repeat(count);
+    }
+
+    private record StatFormat(String icon, ChatColor color) {}
+
+    private static StatFormat getStatFormat(StatType type) {
+        return switch (type) {
+            case STR -> new StatFormat("\u2620", ChatColor.BLUE);
+            case AGI -> new StatFormat("\u2248", ChatColor.GREEN);
+            case INT -> new StatFormat("\u2666", ChatColor.AQUA);
+            case DEX -> new StatFormat("\u27B9", ChatColor.YELLOW);
+            case VIT -> new StatFormat("\u2764", ChatColor.RED);
+            case WIL -> new StatFormat("\u272A", ChatColor.BLUE);
+            case TEC -> new StatFormat("\u2694", ChatColor.DARK_PURPLE);
+        };
+    }
+
+    /** Format a stat name with its icon and standard colouring. */
+    public static String formatStatName(StatType type) {
+        StatFormat fmt = getStatFormat(type);
+        return fmt.color + fmt.icon + " " + ChatColor.GRAY + type.getDisplayName();
+    }
+
+    /** Format a stat line using standard icons and colours. */
+    public static String formatStatLine(StatType type, int value, boolean percent) {
+        String suffix = percent ? "%" : "";
+        return formatStatName(type) + ": " + ChatColor.WHITE + "+" + value + suffix;
     }
 
     /**

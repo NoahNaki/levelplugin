@@ -12,6 +12,9 @@ import org.bukkit.plugin.Plugin;
 
 import java.io.File;
 
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
+
 public class MerchantCommand implements CommandExecutor {
     private final Plugin plugin;
     private final FileConfiguration merchantConfig;
@@ -29,16 +32,16 @@ public class MerchantCommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage("Only players can use this command.");
+            send(sender, MessageType.ERROR, "Only players can use this command.");
             return true;
         }
         if (args.length < 1) {
-            sender.sendMessage(ChatColor.RED + "Usage: /merchant <name>");
+            send(sender, MessageType.ERROR, "Usage: /merchant <name>");
             return true;
         }
         String merchantName = args[0];
         if (!merchantConfig.contains("merchants." + merchantName)) {
-            sender.sendMessage(ChatColor.RED + "Merchant not found!");
+            send(sender, MessageType.ERROR, "Merchant not found!");
             return true;
         }
         // Create and open the merchant GUI

@@ -8,7 +8,11 @@ import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.merchants.data.MerchantItem;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.guild.GuildManager;
+import me.nakilex.levelplugin.guild.TownPerk;
+import me.nakilex.levelplugin.guild.TownPerkManager;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -32,6 +36,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
+
 public class MerchantGUI implements Listener {
     private final Inventory inventory;
     private final Map<Integer, MerchantItem> merchantItems = new HashMap<>();
@@ -51,10 +58,11 @@ public class MerchantGUI implements Listener {
         String basePath = "merchants." + merchantName;
         String title = merchantConfig.getString(basePath + ".title", "Merchant");
         int size = merchantConfig.getInt(basePath + ".size", 27);
-        this.inventory = Bukkit.createInventory(null, size, title);
-
-        ItemStack placeholder = GuiUtil.createFiller(Material.BLACK_STAINED_GLASS_PANE);
-        GuiUtil.fillBorder(inventory, placeholder);
+        this.inventory = GuiBuilder.create(size, title)
+                .filler(Material.BLACK_STAINED_GLASS_PANE)
+                .fillEmptySlots(false)
+                .border()
+                .build();
 
         // Load merchant-items definitions
         List<?> list = merchantConfig.getList(basePath + ".items");
@@ -248,7 +256,10 @@ public class MerchantGUI implements Listener {
 
             Player player = (Player) event.getWhoClicked();
 
-            int coinCost = mItem.getCost();
+            int coinCost = TownPerkManager.getInstance().applyDiscount(
+                    GuildManager.getInstance().getGuild(player.getUniqueId()),
+                    TownPerk.MERCHANT_DISCOUNT,
+                    mItem.getCost());
             int gemCost = mItem.getGems();
 
             int coinBalance = economyManager.getBalance(player);
@@ -256,13 +267,13 @@ public class MerchantGUI implements Listener {
 
             // Check coin requirement
             if (coinBalance < coinCost) {
-                player.sendMessage(ChatColor.RED + "You don't have enough coins!");
+                send(player, MessageType.ERROR, "You don't have enough coins!");
                 return;
             }
 
             // Check gem requirement
             if (gemCost > 0 && gemBalance < gemCost) {
-                player.sendMessage(ChatColor.RED + "You don't have enough gems!");
+                send(player, MessageType.ERROR, "You don't have enough gems!");
                 return;
             }
 
@@ -275,7 +286,7 @@ public class MerchantGUI implements Listener {
             try {
                 economyManager.deductCoins(player, coinCost);
             } catch (IllegalArgumentException ex) {
-                player.sendMessage(ChatColor.RED + "Transaction failed: " + ex.getMessage());
+                send(player, MessageType.ERROR, "Transaction failed: " + ex.getMessage());
                 return;
             }
 
@@ -292,13 +303,13 @@ public class MerchantGUI implements Listener {
                 ItemStack purchasedItem = ItemUtil.createItemStackFromCustomItem(newInstance, mItem.getAmount(), player);
                 player.getInventory().addItem(purchasedItem);
                 Main.getInstance().getQuestManager().handleBuy(player, String.valueOf(mItem.getItemId()));
-                player.sendMessage(ChatColor.GREEN +
+                send(player, MessageType.SUCCESS,
                         "You purchased " +
-                        purchasedItem.getItemMeta().getDisplayName() +
-                        ChatColor.GREEN + " for " +
-                        ChatColor.YELLOW + coinCost + " <glyph:coins_icon> coins" +
-                        (gemCost > 0 ? ChatColor.GRAY + " and " + ChatColor.LIGHT_PURPLE + gemCost + "<glyph:purple_orb_icon>" : "") +
-                        ChatColor.GREEN + ".");
+                                purchasedItem.getItemMeta().getDisplayName() +
+                                ChatColor.GREEN + " for " +
+                                ChatColor.YELLOW + coinCost + " <glyph:coins_icon> coins" +
+                                (gemCost > 0 ? ChatColor.GRAY + " and " + ChatColor.LIGHT_PURPLE + gemCost + "<glyph:purple_orb_icon>" : "") +
+                                ChatColor.GREEN + ".");
             }
         }
     }
@@ -307,6 +318,7 @@ public class MerchantGUI implements Listener {
         int lvl       = StatsManager.getInstance().getLevel(player);
         int coins     = economyManager.getBalance(player);
         int totalGems = Main.getInstance().getGemsManager().getTotalUnits(player);
+        me.nakilex.levelplugin.guild.Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
 
         for (MerchantItem mItem : merchantItems.values()) {
             ItemStack stack = inventory.getItem(mItem.getSlot());
@@ -337,12 +349,12 @@ public class MerchantGUI implements Listener {
             // ── 3) Coin Price ────────────────────────────────
             int priceHdr = lore.indexOf(ChatColor.GOLD + "Price:");
             if (priceHdr != -1 && priceHdr + 1 < lore.size()) {
-                boolean afford = coins >= mItem.getCost();
+                int discounted = TownPerkManager.getInstance().applyDiscount(g, TownPerk.MERCHANT_DISCOUNT, mItem.getCost());
+                boolean afford = coins >= discounted;
                 lore.set(priceHdr + 1,
                     ChatColor.GRAY + ""
                         + (afford ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
-                        + mItem.getCost()
-                        + " "
+                        + discounted + " "
                         + ChatColor.GOLD + "<glyph:coins_icon>"
                 );
             }

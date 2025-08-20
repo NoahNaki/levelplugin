@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.guild;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TextUtil;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -37,13 +38,12 @@ public class GuildSettingsGUI implements Listener {
         Guild g = manager.getGuild(player.getUniqueId());
         if (g == null) return;
         int rIdx = roleIndex.getOrDefault(player.getUniqueId(), 0);
-        Inventory inv = Bukkit.createInventory(null, SIZE, TITLE);
         ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
-        for (int i = 0; i < SIZE; i++) {
-            if (i < 9 || i >= 45 || i % 9 == 0 || i % 9 == 8) {
-                inv.setItem(i, filler);
-            }
-        }
+        Inventory inv = GuiBuilder.create(SIZE, TITLE)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .fillEmptySlots(false)
+                .border()
+                .build();
         inv.setItem(BACK_SLOT, GuiUtil.getNexoItem("arrow_left2", ChatColor.GRAY + "Back"));
         GuildPermission[] perms = GuildPermission.values();
         for (int i = 0; i < perms.length && i < PERM_SLOTS.length; i++) {

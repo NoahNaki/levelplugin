@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.salvage.managers.SalvageManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.player.mining.managers.MiningManager;
+import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import me.nakilex.levelplugin.items.data.ArmorType;
 import me.nakilex.levelplugin.items.data.WeaponType;
 import org.bukkit.Bukkit;
@@ -22,6 +23,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import me.nakilex.levelplugin.utils.GuiUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -290,37 +292,37 @@ public class ItemUtil {
         StatsManager.StatType prefixStat = prefix != null ? PREFIX_MAP.get(prefix) : null;
         int vit = cItem.getHp() + cItem.getDef();
         if (vit != 0) {
-            String line = ChatColor.RED + "❤ " + ChatColor.GRAY + "Vitality: " + ChatColor.RED + "+" + vit;
+            String line = GuiUtil.formatStatLine(StatsManager.StatType.VIT, vit, false);
             if (prefixStat == StatsManager.StatType.VIT) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
             lore.add(line);
         }
         if (cItem.getStr() != 0) {
-            String line = ChatColor.BLUE + "☠ " + ChatColor.GRAY + "Strength: " + ChatColor.WHITE + "+" + cItem.getStr();
+            String line = GuiUtil.formatStatLine(StatsManager.StatType.STR, cItem.getStr(), false);
             if (prefixStat == StatsManager.StatType.STR) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
             lore.add(line);
         }
         if (cItem.getAgi() != 0) {
-            String line = ChatColor.GREEN + "≈ " + ChatColor.GRAY + "Agility: " + ChatColor.WHITE + "+" + cItem.getAgi();
+            String line = GuiUtil.formatStatLine(StatsManager.StatType.AGI, cItem.getAgi(), false);
             if (prefixStat == StatsManager.StatType.AGI) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
             lore.add(line);
         }
         if (cItem.getIntel() != 0) {
-            String line = ChatColor.AQUA + "♦ " + ChatColor.GRAY + "Intelligence: " + ChatColor.WHITE + "+" + cItem.getIntel();
+            String line = GuiUtil.formatStatLine(StatsManager.StatType.INT, cItem.getIntel(), false);
             if (prefixStat == StatsManager.StatType.INT) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
             lore.add(line);
         }
         if (cItem.getDex() != 0) {
-            String line = ChatColor.YELLOW + "➹ " + ChatColor.GRAY + "Dexterity: " + ChatColor.WHITE + "+" + cItem.getDex();
+            String line = GuiUtil.formatStatLine(StatsManager.StatType.DEX, cItem.getDex(), false);
             if (prefixStat == StatsManager.StatType.DEX) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
             lore.add(line);
         }
         if (cItem.getWil() != 0) {
-            String line = ChatColor.BLUE + "✪ " + ChatColor.GRAY + "Will: " + ChatColor.WHITE + "+" + cItem.getWil();
+            String line = GuiUtil.formatStatLine(StatsManager.StatType.WIL, cItem.getWil(), false);
             if (prefixStat == StatsManager.StatType.WIL) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
             lore.add(line);
         }
         if (cItem.getTec() != 0) {
-            String line = ChatColor.DARK_PURPLE + "⚔ " + ChatColor.GRAY + "Technique: " + ChatColor.WHITE + "+" + cItem.getTec();
+            String line = GuiUtil.formatStatLine(StatsManager.StatType.TEC, cItem.getTec(), false);
             if (prefixStat == StatsManager.StatType.TEC) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
             lore.add(line);
         }
@@ -690,6 +692,16 @@ public class ItemUtil {
             CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(off);
             if (ci != null) items.add(ci);
         }
-        return calculateTotalGearScore(items);
+        int total = calculateTotalGearScore(items);
+        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
+        if (ps != null) {
+            for (int i = 0; i < ps.equippedEssences.length; i++) {
+                if (ps.equippedEssences[i]) {
+                    ItemStack ess = ps.essenceSlots[i];
+                    if (ess != null) total += ClassEssence.getGearScore(ess);
+                }
+            }
+        }
+        return total;
     }
 }

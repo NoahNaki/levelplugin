@@ -4,7 +4,9 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.HeadUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.guild.quests.GuildQuestGUI;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -35,12 +37,7 @@ public class GuildMemberGUI implements Listener {
     private static final int SIZE = 54;
     private static final String TITLE = ChatColor.BLACK + "Guild Menu";
 
-    private static final int[] MEMBER_SLOTS = {
-            10,11,12,13,14,15,16,
-            19,20,21,22,23,24,25,
-            28,29,30,31,32,33,34,
-            37,38,39,40,41,42,43
-    };
+    private static final int[] MEMBER_SLOTS = GuiUtil.PAGED_SLOTS;
     private static final int ITEMS_PER_PAGE = MEMBER_SLOTS.length;
 
     private static final int PREV_SLOT   = 45;
@@ -54,6 +51,7 @@ public class GuildMemberGUI implements Listener {
     private static final int SETTINGS_SLOT = 52;
     private static final int INFO_SLOT   = 8;
     private static final int REFRESH_SLOT = 0;
+    private static final int QUESTS_SLOT = 44;
 
     private final Map<UUID, Integer> pageMap = new HashMap<>();
     private final Map<UUID, String> searchTerms = new HashMap<>();
@@ -81,13 +79,11 @@ public class GuildMemberGUI implements Listener {
             return;
         }
         pageMap.put(player.getUniqueId(), page);
-        Inventory inv = Bukkit.createInventory(null, SIZE, TITLE);
-        ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
-        for (int i = 0; i < SIZE; i++) {
-            if (i < 9 || i >= 45 || i % 9 == 0 || i % 9 == 8) {
-                inv.setItem(i, filler);
-            }
-        }
+        Inventory inv = GuiBuilder.create(SIZE, TITLE)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .fillEmptySlots(false)
+                .border()
+                .build();
 
         String term = searchTerms.getOrDefault(player.getUniqueId(), "").toLowerCase();
         int sort = sortModes.getOrDefault(player.getUniqueId(), 0);
@@ -192,6 +188,7 @@ public class GuildMemberGUI implements Listener {
         }
         inv.setItem(VAULT_SLOT, vaultItem);
         inv.setItem(SETTINGS_SLOT, GuiUtil.getNexoItem("settings", ChatColor.AQUA + "Settings"));
+        inv.setItem(QUESTS_SLOT, GuiUtil.getNexoItem("book", ChatColor.LIGHT_PURPLE + "Guild Quests"));
 
         player.openInventory(inv);
     }
@@ -331,6 +328,13 @@ public class GuildMemberGUI implements Listener {
             Guild g = manager.getGuild(player.getUniqueId());
             if (g != null && g.getRole(player.getUniqueId()) == GuildRole.LEADER) {
                 settingsGUI.open(player);
+            }
+            return;
+        }
+        if (slot == QUESTS_SLOT) {
+            Guild g = manager.getGuild(player.getUniqueId());
+            if (g != null) {
+                player.openInventory(GuildQuestGUI.create(player, g.getQuests()));
             }
             return;
         }

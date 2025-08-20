@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.potions.data.PotionInstance;
 import me.nakilex.levelplugin.potions.data.PotionTemplate;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -24,6 +25,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.*;
 
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
+
 public class PotionMerchantGUI implements Listener {
     private final Inventory inventory;
     private final Map<Integer, PotionTemplate> potionItems = new HashMap<>();
@@ -40,11 +44,13 @@ public class PotionMerchantGUI implements Listener {
         String basePath = "merchants.potion_merchant";
         String title = merchantConfig.getString(basePath + ".title", "Potion Merchant");
         int size = merchantConfig.getInt(basePath + ".size", 27);
-        this.inventory = Bukkit.createInventory(null, size, title);
+        this.inventory = GuiBuilder.create(size, title)
+                .filler(Material.BLACK_STAINED_GLASS_PANE)
+                .fillEmptySlots(false)
+                .border()
+                .build();
 
         Bukkit.getLogger().info("[PotionMerchantGUI] Initializing Potion Merchant GUI...");
-        ItemStack placeholder = GuiUtil.createFiller(Material.BLACK_STAINED_GLASS_PANE);
-        GuiUtil.fillBorder(inventory, placeholder);
 
         List<?> list = merchantConfig.getList(basePath + ".items");
         if (list != null) {
@@ -131,7 +137,7 @@ public class PotionMerchantGUI implements Listener {
             int balance = economyManager.getBalance(player);
 
             if (balance < cost) {
-                player.sendMessage(ChatColor.RED + "You don't have enough coins!");
+                send(player, MessageType.ERROR, "You don't have enough coins!");
                 return;
             }
 
@@ -143,14 +149,14 @@ public class PotionMerchantGUI implements Listener {
             try {
                 economyManager.deductCoins(player, cost);
             } catch (IllegalArgumentException ex) {
-                player.sendMessage(ChatColor.RED + "Transaction failed: " + ex.getMessage());
+                send(player, MessageType.ERROR, "Transaction failed: " + ex.getMessage());
                 return;
             }
 
             PotionInstance instance = new PotionInstance(potion);
             ItemStack purchasedPotion = instance.toItemStack((JavaPlugin) plugin);
             player.getInventory().addItem(purchasedPotion);
-            player.sendMessage(ChatColor.GREEN + "You purchased " +
+            send(player, MessageType.SUCCESS, "You purchased " +
                 purchasedPotion.getItemMeta().getDisplayName() + ChatColor.GREEN +
                 "for " + cost + " coins.");
         }

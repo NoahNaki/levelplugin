@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -19,9 +20,11 @@ import org.bukkit.plugin.Plugin;
 
 import java.util.*;
 
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
+
 /** Simple GUI displaying random offers from the wandering merchant. */
 public class WanderingMerchantGUI implements Listener {
-    private static final ItemStack FILLER = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
 
     private final Plugin plugin;
     private final EconomyManager economy;
@@ -32,8 +35,11 @@ public class WanderingMerchantGUI implements Listener {
     public WanderingMerchantGUI(Plugin plugin, List<WanderingMerchantOffer> list) {
         this.plugin = plugin;
         this.economy = Main.getInstance().getEconomyManager();
-        this.inv = Bukkit.createInventory(null, 27, ChatColor.DARK_GREEN + "Wandering Merchant");
-        GuiUtil.fillBorder(inv, FILLER);
+        this.inv = GuiBuilder.create(27, ChatColor.DARK_GREEN + "Wandering Merchant")
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .fillEmptySlots(false)
+                .border()
+                .build();
         for (int i = 0; i < list.size(); i++) {
             WanderingMerchantOffer of = list.get(i);
             offers.put(10 + i, of);
@@ -90,11 +96,11 @@ public class WanderingMerchantGUI implements Listener {
         if (offer == null) return;
         Player player = (Player) e.getWhoClicked();
         if (offer.getStock() <= 0) {
-            player.sendMessage(ChatColor.RED + "Out of stock!");
+            send(player, MessageType.ERROR, "Out of stock!");
             return;
         }
         if (economy.getBalance(player) < offer.getCost()) {
-            player.sendMessage(ChatColor.RED + "Not enough coins!");
+            send(player, MessageType.ERROR, "Not enough coins!");
             return;
         }
         economy.deductCoins(player, offer.getCost());

@@ -20,6 +20,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
+
 public class HorseGUI implements Listener {
 
     private final HorseManager horseManager;
@@ -162,7 +165,8 @@ public class HorseGUI implements Listener {
         // Check if the player has enough coins
         int playerBalance = economyManager.getBalance(player);
         if (playerBalance < REROLL_COST) {
-            player.sendMessage("§cYou don't have enough coins to buy a new horse! (Cost: §6" + REROLL_COST + " <glyph:coins_icon>§c)");
+            send(player, MessageType.ERROR,
+                    "You don't have enough coins to buy a new horse! (Cost: §6" + REROLL_COST + " <glyph:coins_icon>§c)");
             return;
         }
 
@@ -174,6 +178,7 @@ public class HorseGUI implements Listener {
         // Update the horse stats immediately in the GUI
         updateHorseInfo(inventory, playerUUID);
 
-        player.sendMessage("§aYou bought a new horse for §6" + REROLL_COST + " <glyph:coins_icon>§a!");
+        send(player, MessageType.SUCCESS,
+                "You bought a new horse for §6" + REROLL_COST + " <glyph:coins_icon>§a!");
     }
 }

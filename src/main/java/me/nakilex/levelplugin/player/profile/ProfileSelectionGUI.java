@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.player.profile;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
 import org.bukkit.Bukkit;
@@ -29,7 +30,6 @@ public class ProfileSelectionGUI implements Listener {
     private static final String TITLE = ChatColor.BLACK + "Select Profile";
     private static final int SIZE = 27;
     private static final int[] PROFILE_SLOTS = {10, 12, 14, 16};
-    private static final ItemStack FILLER = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
     private static final int LOGOUT_SLOT = 22;
     private static final ItemStack LOGOUT_ITEM;
     private static final String EDIT_TITLE = ChatColor.BLACK + "Edit Profile";
@@ -144,8 +144,9 @@ public class ProfileSelectionGUI implements Listener {
             }
         }
 
-        Inventory inv = Bukkit.createInventory(null, SIZE, TITLE);
-        for (int i = 0; i < SIZE; i++) inv.setItem(i, FILLER);
+        Inventory inv = GuiBuilder.create(SIZE, TITLE)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .build();
 
         int unlocked = pm.getUnlockedSlots(player.getUniqueId());
         List<PlayerProfile> list = pm.getProfiles(player.getUniqueId());
@@ -173,8 +174,9 @@ public class ProfileSelectionGUI implements Listener {
     }
 
     private static void openEdit(Player player, int slotIndex) {
-        Inventory inv = Bukkit.createInventory(null, SIZE, EDIT_TITLE);
-        for (int i = 0; i < SIZE; i++) inv.setItem(i, FILLER);
+        Inventory inv = GuiBuilder.create(SIZE, EDIT_TITLE)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .build();
         inv.setItem(DELETE_SLOT, DELETE_ITEM);
         inv.setItem(BACK_SLOT, GuiUtil.getNexoItem("arrow_left", ChatColor.GRAY + "Back"));
         EDIT_OPEN.put(player.getUniqueId(), inv);
@@ -183,8 +185,9 @@ public class ProfileSelectionGUI implements Listener {
     }
 
     private static void openConfirmDelete(Player player, int slotIndex) {
-        Inventory inv = Bukkit.createInventory(null, SIZE, CONFIRM_TITLE);
-        for (int i = 0; i < SIZE; i++) inv.setItem(i, FILLER);
+        Inventory inv = GuiBuilder.create(SIZE, CONFIRM_TITLE)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .build();
         // Build the confirm items dynamically so Nexo is already initialized
         inv.setItem(CONFIRM_YES_SLOT,
                 GuiUtil.getNexoItem("check", ChatColor.GREEN + "Confirm"));

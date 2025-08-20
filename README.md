@@ -32,5 +32,6 @@ Copy the built jar to your server's `plugins` folder and start the server. The p
 - Procedural dungeons with custom MythicMob spawns
 - Scaled skill damage based on player stats
 - Extensive item, quest and economy systems
+- For consistent in-game messages see [docs/CHAT_STYLE.md](docs/CHAT_STYLE.md).
 
 Contributions are welcome. See `LICENSE` for terms.

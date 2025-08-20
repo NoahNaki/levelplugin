@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.codex;
 
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.HeadUtil;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import net.citizensnpcs.api.npc.NPC;
 import net.citizensnpcs.trait.SkinTrait;
 import org.bukkit.Bukkit;
@@ -36,7 +37,6 @@ public class NpcCodexGUI implements Listener {
 
     private final CodexManager manager;
     private CodexMainGUI mainGui;
-    private final ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
     private final Map<UUID, Integer> pageMap = new HashMap<>();
 
     public NpcCodexGUI(CodexManager manager, CodexMainGUI mainGui) {
@@ -53,8 +53,11 @@ public class NpcCodexGUI implements Listener {
 
     private void open(Player player, int page) {
         pageMap.put(player.getUniqueId(), page);
-        Inventory inv = Bukkit.createInventory(null, SIZE, TITLE);
-        GuiUtil.fillBorder(inv, filler);
+        Inventory inv = GuiBuilder.create(SIZE, TITLE)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .fillEmptySlots(false)
+                .border()
+                .build();
 
         UUID id = player.getUniqueId();
         Map<String, String> lines = new LinkedHashMap<>();

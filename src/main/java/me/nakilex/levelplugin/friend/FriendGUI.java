@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.HeadUtil;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -71,9 +72,11 @@ public class FriendGUI implements Listener {
         }
         list.sort(comp);
 
-        Inventory inv = Bukkit.createInventory(null, SIZE, TITLE);
-        ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
-        GuiUtil.fillBorder(inv, filler);
+        Inventory inv = GuiBuilder.create(SIZE, TITLE)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .fillEmptySlots(false)
+                .border()
+                .build();
 
         int start = page * ITEMS_PER_PAGE;
         for (int i = start, slot = 0; i < list.size() && slot < ITEMS_PER_PAGE; i++) {

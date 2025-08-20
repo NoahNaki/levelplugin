@@ -11,6 +11,9 @@ import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
+import me.nakilex.levelplugin.guild.GuildManager;
+import me.nakilex.levelplugin.guild.TownPerk;
+import me.nakilex.levelplugin.guild.TownPerkManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -26,6 +29,9 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
 import java.util.*;
+
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
 
 public class BlacksmithGUI implements Listener {
 
@@ -246,11 +252,13 @@ public class BlacksmithGUI implements Listener {
 
     private int calculateTotalRepairCost(Player player) {
         int total = 0;
+        me.nakilex.levelplugin.guild.Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
         for (ItemStack item : player.getInventory().getContents()) {
             if (item == null || item.getType().isAir()) continue;
             CustomItem ci = itemManager.getCustomItemFromItemStack(item);
             if (ci != null && ci.getCurrentDurability() < ci.getMaxDurability()) {
-                total += repairManager.getRepairCost(ci);
+                int base = repairManager.getRepairCost(ci);
+                total += TownPerkManager.getInstance().applyDiscount(g, TownPerk.BLACKSMITH_DISCOUNT, base);
             }
         }
         return total;
@@ -390,41 +398,51 @@ public class BlacksmithGUI implements Listener {
 
             if (title.equals(GUI_TITLE_UPGRADE)) {
                 if (ci.getUpgradeLevel() >= 5) {
-                    player.sendMessage("§cItem has reached the maximum upgrade level.");
+                    send(player, MessageType.ERROR, "Item has reached the maximum upgrade level.");
                     return;
                 }
-                int cost = upgradeManager.getUpgradeCost(ci);
+                int cost = TownPerkManager.getInstance().applyDiscount(
+                        GuildManager.getInstance().getGuild(player.getUniqueId()),
+                        TownPerk.BLACKSMITH_DISCOUNT,
+                        upgradeManager.getUpgradeCost(ci));
                 int chance = upgradeManager.getSuccessChance(ci);
                 try {
                     economyManager.deductCoins(player, cost);
                 } catch (IllegalArgumentException ex) {
-                    player.sendMessage("§cNot enough coins! Upgrade cost: §6<glyph:coins_icon> " + cost);
+                    send(player, MessageType.ERROR, "Not enough coins! Upgrade cost: §6<glyph:coins_icon> " + cost);
                     return;
                 }
                 if (upgradeManager.attemptUpgrade(player, item, ci)) {
-                    player.sendMessage("§aUpgrade successful!");
+                    send(player, MessageType.SUCCESS, "Upgrade successful!");
                     Main.getInstance().getQuestManager().handleUpgrade(player, String.valueOf(ci.getId()));
                     gui.setItem(13, item);
                 } else {
-                    player.sendMessage("§cUpgrade failed!");
+                    send(player, MessageType.ERROR, "Upgrade failed!");
                 }
                 if (ci.getUpgradeLevel() >= 5) {
                     gui.setItem(22, createUpgradeButton(-1, 0));
                 } else {
+                    int nextCost = TownPerkManager.getInstance().applyDiscount(
+                            GuildManager.getInstance().getGuild(player.getUniqueId()),
+                            TownPerk.BLACKSMITH_DISCOUNT,
+                            upgradeManager.getUpgradeCost(ci));
                     gui.setItem(22, createUpgradeButton(
-                            upgradeManager.getUpgradeCost(ci),
+                            nextCost,
                             upgradeManager.getSuccessChance(ci)));
                 }
             } else if (title.equals(GUI_TITLE_REPAIR)) {
-                int cost = repairManager.getRepairCost(ci);
+                int cost = TownPerkManager.getInstance().applyDiscount(
+                        GuildManager.getInstance().getGuild(player.getUniqueId()),
+                        TownPerk.BLACKSMITH_DISCOUNT,
+                        repairManager.getRepairCost(ci));
                 try {
                     economyManager.deductCoins(player, cost);
                 } catch (IllegalArgumentException ex) {
-                    player.sendMessage("§cNot enough coins to repair! Cost: §6<glyph:coins_icon> " + cost);
+                    send(player, MessageType.ERROR, "Not enough coins to repair! Cost: §6<glyph:coins_icon> " + cost);
                     return;
                 }
                 if (repairManager.repairItem(player, item, ci)) {
-                    player.sendMessage("§aItem repaired!");
+                    send(player, MessageType.SUCCESS, "Item repaired!");
                     gui.setItem(13, item);
                     ItemUtil.updateTooltip(item, player);
                     Main.getInstance().getQuestManager().handleRepair(player, String.valueOf(ci.getId()));
@@ -433,25 +451,28 @@ public class BlacksmithGUI implements Listener {
             } else if (title.equals(GUI_TITLE_REROLL)) {
                 ItemStack placeholder = gui.getItem(15);
                 if (placeholder == null || placeholder.getType().isAir()) {
-                    player.sendMessage("§cPlace a stat placeholder on the right.");
+                    send(player, MessageType.WARNING, "Place a stat placeholder on the right.");
                     return;
                 }
                 StatType stat = materialToStat(placeholder.getType());
                 if (stat == null) {
-                    player.sendMessage("§cInvalid placeholder item!");
+                    send(player, MessageType.ERROR, "Invalid placeholder item!");
                     return;
                 }
 
                 if (!rerollManager.hasStat(ci, stat)) {
-                    player.sendMessage("§cThis item does not have " + statDisplayName(stat) + "!");
+                    send(player, MessageType.ERROR, "This item does not have " + statDisplayName(stat) + "!");
                     return;
                 }
 
-                int cost = rerollManager.getRerollCost(ci);
+                int cost = TownPerkManager.getInstance().applyDiscount(
+                        GuildManager.getInstance().getGuild(player.getUniqueId()),
+                        TownPerk.BLACKSMITH_DISCOUNT,
+                        rerollManager.getRerollCost(ci));
                 try {
                     economyManager.deductCoins(player, cost);
                 } catch (IllegalArgumentException ex) {
-                    player.sendMessage("§cNot enough coins to reroll! Cost: §6<glyph:coins_icon>" + cost);
+                    send(player, MessageType.ERROR, "Not enough coins to reroll! Cost: §6<glyph:coins_icon>" + cost);
                     return;
                 }
 
@@ -465,7 +486,7 @@ public class BlacksmithGUI implements Listener {
                         + ChatColor.YELLOW + statDisplayName(stat) + (diff >= 0
                         ? " increased by " + ChatColor.GREEN + "+" + diff
                         : " decreased by " + ChatColor.RED + diff);
-                player.sendMessage(message);
+                send(player, MessageType.SUCCESS, message);
             }
         }
 
@@ -477,22 +498,24 @@ public class BlacksmithGUI implements Listener {
     private void handleRepairAllClick(Player player) {
         int totalCost = 0;
         List<ItemStack> toRepair = new ArrayList<>();
+        me.nakilex.levelplugin.guild.Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
         for (ItemStack item : player.getInventory().getContents()) {
             if (item == null || item.getType().isAir()) continue;
             CustomItem ci = itemManager.getCustomItemFromItemStack(item);
             if (ci != null && ci.getCurrentDurability() < ci.getMaxDurability()) {
-                totalCost += repairManager.getRepairCost(ci);
+                int base = repairManager.getRepairCost(ci);
+                totalCost += TownPerkManager.getInstance().applyDiscount(g, TownPerk.BLACKSMITH_DISCOUNT, base);
                 toRepair.add(item);
             }
         }
         if (totalCost == 0) {
-            player.sendMessage("§7No damaged items found.");
+            send(player, MessageType.INFO, "No damaged items found.");
             return;
         }
         try {
             economyManager.deductCoins(player, totalCost);
         } catch (IllegalArgumentException ex) {
-            player.sendMessage("§cYou need §6<glyph:coins_icon> " + totalCost + " §cto repair all items.");
+            send(player, MessageType.ERROR, "You need §6<glyph:coins_icon> " + totalCost + " §cto repair all items.");
             return;
         }
         for (ItemStack item : toRepair) {
@@ -503,7 +526,7 @@ public class BlacksmithGUI implements Listener {
                 Main.getInstance().getQuestManager().handleRepair(player, String.valueOf(ci.getId()));
             }
         }
-        player.sendMessage("§aAll items repaired! Total cost: §6<glyph:coins_icon> " + totalCost);
+        send(player, MessageType.SUCCESS, "All items repaired! Total cost: §6<glyph:coins_icon> " + totalCost);
     }
 
     private void updateActionButton(Player player, Inventory gui, String title) {
@@ -535,14 +558,24 @@ public class BlacksmithGUI implements Listener {
             if (ci.getUpgradeLevel() >= 5) {
                 gui.setItem(22, createUpgradeButton(-1, 0));
             } else {
-                gui.setItem(22, createUpgradeButton(
-                    upgradeManager.getUpgradeCost(ci),
-                    upgradeManager.getSuccessChance(ci)));
+                int cost = TownPerkManager.getInstance().applyDiscount(
+                        GuildManager.getInstance().getGuild(player.getUniqueId()),
+                        TownPerk.BLACKSMITH_DISCOUNT,
+                        upgradeManager.getUpgradeCost(ci));
+                gui.setItem(22, createUpgradeButton(cost, upgradeManager.getSuccessChance(ci)));
             }
         } else if (title.equals(GUI_TITLE_REPAIR)) {
-            gui.setItem(22, createRepairButton(repairManager.getRepairCost(ci)));
+            int cost = TownPerkManager.getInstance().applyDiscount(
+                    GuildManager.getInstance().getGuild(player.getUniqueId()),
+                    TownPerk.BLACKSMITH_DISCOUNT,
+                    repairManager.getRepairCost(ci));
+            gui.setItem(22, createRepairButton(cost));
         } else if (title.equals(GUI_TITLE_REROLL)) {
-            gui.setItem(22, createRerollButton(rerollManager.getRerollCost(ci)));
+            int cost = TownPerkManager.getInstance().applyDiscount(
+                    GuildManager.getInstance().getGuild(player.getUniqueId()),
+                    TownPerk.BLACKSMITH_DISCOUNT,
+                    rerollManager.getRerollCost(ci));
+            gui.setItem(22, createRerollButton(cost));
         } else {
             gui.setItem(22, title.equals(GUI_TITLE_UPGRADE)
                 ? createUpgradeButton(0,0)

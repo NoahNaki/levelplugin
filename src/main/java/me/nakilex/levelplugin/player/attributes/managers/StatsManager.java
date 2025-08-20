@@ -275,7 +275,7 @@ public class StatsManager {
         PlayerStats ps = getPlayerStats(player.getUniqueId());
 
         // Apply stats
-        ps.bonusVitality     += newItem.getHp() + newItem.getDef();
+        ps.bonusVitality     += newItem.getHp();
         ps.bonusStrength     += newItem.getStr();
         ps.bonusAgility      += newItem.getAgi();
         ps.bonusIntelligence += newItem.getIntel();
@@ -319,6 +319,10 @@ public class StatsManager {
         public PlayerClass playerClass = PlayerClass.VILLAGER;
 
         public Set<PlayerClass> unlockedClasses = new HashSet<>();
+
+        // Up to three slotted class essences for this player
+        public final org.bukkit.inventory.ItemStack[] essenceSlots = new org.bukkit.inventory.ItemStack[3];
+        public final boolean[] equippedEssences = new boolean[3];
 
         public PlayerStats() {
             unlockedClasses.add(playerClass);

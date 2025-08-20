@@ -2,7 +2,8 @@ package me.nakilex.levelplugin.horse.managers;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.horse.data.HorseData;
-import net.md_5.bungee.api.ChatColor;
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.attribute.Attribute;
@@ -66,9 +67,9 @@ public class HorseManager implements Listener {
         Long last = lastSpawnTimestamps.get(uuid);
         if (last != null && now - last < COOLDOWN_MS) {
             long secsLeft = (COOLDOWN_MS - (now - last) + 999) / 1000;
-            player.sendMessage(ChatColor.RED +
+            send(player, MessageType.WARNING,
                 "Please wait " + secsLeft + " more second" +
-                (secsLeft == 1 ? "" : "s") + " before spawning another horse.");
+                    (secsLeft == 1 ? "" : "s") + " before spawning another horse.");
             return;
         }
 
@@ -78,7 +79,8 @@ public class HorseManager implements Listener {
         // ── Existing spawn logic ──────────────────────────────────────────────────────
         HorseData horseData = getHorse(uuid);
         if (horseData == null) {
-            player.sendMessage(ChatColor.RED + "You do not own a horse.");
+            send(player, MessageType.ERROR,
+                "You do not own a horse.");
             return;
         }
 

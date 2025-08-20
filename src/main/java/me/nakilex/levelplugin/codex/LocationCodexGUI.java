@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.codex;
 
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.codex.CodexGuiUtil;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -23,7 +24,6 @@ public class LocationCodexGUI implements Listener {
     private static final String TITLE = ChatColor.BLACK + "Codex - Locations";
 
     private final CodexManager manager;
-    private final ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
     private CodexMainGUI mainGui;
 
     public LocationCodexGUI(CodexManager manager, CodexMainGUI mainGui) {
@@ -36,8 +36,9 @@ public class LocationCodexGUI implements Listener {
     public void open(Player player) {
         List<String> list = new ArrayList<>(manager.getDiscoveredLocations(player.getUniqueId()));
         int size = ((list.size() - 1) / 9 + 1) * 9;
-        Inventory inv = Bukkit.createInventory(null, Math.max(size, 27), TITLE);
-        for (int i = 0; i < inv.getSize(); i++) inv.setItem(i, filler);
+        Inventory inv = GuiBuilder.create(Math.max(size, 27), TITLE)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .build();
 
         Map<String, String> lines = new LinkedHashMap<>();
         lines.put("Locations", String.valueOf(list.size()));
