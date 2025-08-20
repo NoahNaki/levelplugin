@@ -23,6 +23,7 @@ import me.nakilex.levelplugin.debug.commands.DebugCommand;
 import me.nakilex.levelplugin.player.attributes.commands.AddPointsCommand;
 import me.nakilex.levelplugin.player.attributes.commands.StatsCommand;
 import me.nakilex.levelplugin.player.classes.commands.ClassCommand;
+import me.nakilex.levelplugin.player.classes.commands.GenClassCommand;
 import me.nakilex.levelplugin.player.level.commands.AddXPCommand;
 import me.nakilex.levelplugin.player.mining.commands.AddMiningXPCommand;
 import me.nakilex.levelplugin.player.mining.commands.MiningLevelCommand;
@@ -129,6 +130,7 @@ public class CommandRegistry {
         plugin.getCommand("additem").setExecutor(new AddItemCommand());
         plugin.getCommand("opsword").setExecutor(new OpSwordCommand());
         plugin.getCommand("genitem").setExecutor(new me.nakilex.levelplugin.items.commands.GenerateItemCommand());
+        plugin.getCommand("genclass").setExecutor(new GenClassCommand());
         plugin.getCommand("setlevel").setExecutor(new SetLevelCommand(plugin));
         ClassCommand classCmd = new ClassCommand();
         plugin.getCommand("class").setExecutor(classCmd);
