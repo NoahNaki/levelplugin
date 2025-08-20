@@ -45,6 +45,9 @@ public class GuildQuest {
     /** Whether the quest slot has already been rerolled. */
     private boolean rerolled = false;
 
+    /** Whether the quest objective has been completed. */
+    private boolean completed = false;
+
     public GuildQuest(String id, String name, int stars,
                       QuestObjective objective,
                       QuestReward personalReward,
@@ -134,5 +137,13 @@ public class GuildQuest {
 
     public void setRerolled(boolean rerolled) {
         this.rerolled = rerolled;
+    }
+
+    public boolean isCompleted() {
+        return completed;
+    }
+
+    public void setCompleted(boolean completed) {
+        this.completed = completed;
     }
 }

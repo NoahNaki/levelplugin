@@ -10,6 +10,8 @@ import me.nakilex.levelplugin.quests.data.QuestObjective;
 import me.nakilex.levelplugin.quests.data.QuestObjectiveType;
 import me.nakilex.levelplugin.quests.data.QuestReward;
 import me.nakilex.levelplugin.quests.data.QuestRewardCompat;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 
@@ -191,14 +193,38 @@ public class GuildQuestManager {
     private void updateObjective(Player player, QuestObjectiveType type, String target, int amount) {
         Guild guild = GuildManager.getInstance().getGuild(player.getUniqueId());
         if (guild == null) return;
-        for (GuildQuest quest : guild.getQuests().values()) {
-            if (!quest.isAccepted()) continue;
+        for (java.util.Map.Entry<String, GuildQuest> e : guild.getQuests().entrySet()) {
+            GuildQuest quest = e.getValue();
+            if (!quest.isAccepted() || quest.isCompleted()) continue;
             QuestObjective obj = quest.getObjective();
             if (obj.getType() != type) continue;
             String tgt = obj.getTarget();
             if (tgt != null && !tgt.equalsIgnoreCase(target) && !tgt.isEmpty()) continue;
             quest.addContribution(player.getUniqueId(), amount);
+            if (quest.getTotalContribution() >= quest.getTargetAmount()) {
+                completeQuest(guild, e.getKey(), quest, player);
+            }
         }
+    }
+
+    /** Handle quest completion, award rewards and generate a replacement quest. */
+    private void completeQuest(Guild guild, String slot, GuildQuest quest, Player player) {
+        quest.setCompleted(true);
+        guild.addExp(quest.getGuildExpReward());
+        guild.addCoins(quest.getGuildCoinReward());
+        if (player != null) {
+            Main.getInstance().getQuestManager().applyReward(player, quest.getPersonalReward());
+        }
+        for (java.util.UUID id : guild.getMembers()) {
+            Player p = Bukkit.getPlayer(id);
+            if (p != null) {
+                ChatMessageUtil.send(p, ChatMessageUtil.MessageType.SUCCESS,
+                        "Guild quest \"" + quest.getName() + "\" complete!");
+            }
+        }
+        guild.getQuests().remove(slot);
+        tracked.entrySet().removeIf(ent -> ent.getValue().equals(quest.getId()));
+        ensureQuests(guild);
     }
 
     /** Toggle tracking for the specified quest. Returns true if now tracked. */

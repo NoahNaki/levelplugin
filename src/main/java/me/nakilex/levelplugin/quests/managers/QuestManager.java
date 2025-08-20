@@ -751,7 +751,14 @@ public class QuestManager {
     }
 
     private void giveRewards(Player player, Quest quest) {
-        QuestReward reward = quest.getReward();
+        applyReward(player, quest.getReward());
+    }
+
+    /**
+     * Apply a raw {@link QuestReward} to the player. Extracted so other
+     * systems like guild quests can reuse reward logic.
+     */
+    public void applyReward(Player player, QuestReward reward) {
         if (reward == null) return;
 
         if (reward.getXp() > 0) {

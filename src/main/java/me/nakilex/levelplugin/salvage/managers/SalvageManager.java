@@ -11,6 +11,7 @@ public class SalvageManager {
 
     // coins per stat‐point (unchanged)
     private static final int COINS_PER_STAT_POINT = 1;
+    private static final int VANILLA_POTION_COINS = 1;
 
     // how many gem‐units per stat‐point by rarity
     private static final Map<ItemRarity, Integer> GEM_MULTIPLIERS;
@@ -82,6 +83,11 @@ public class SalvageManager {
      */
     public int getPotionSellPrice(PotionInstance potion) {
         return potion.getCharges();
+    }
+
+    /** Coins returned for vanilla potions without custom data. */
+    public int getVanillaPotionSellPrice() {
+        return VANILLA_POTION_COINS;
     }
 
 }
