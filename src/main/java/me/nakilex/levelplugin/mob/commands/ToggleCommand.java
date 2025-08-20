@@ -1,7 +1,6 @@
 package me.nakilex.levelplugin.mob.commands;
 
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.mob.utils.DropDisplayToggles;
 import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
 import me.nakilex.levelplugin.settings.data.PlayerSettings;
@@ -35,21 +34,26 @@ public class ToggleCommand implements TabExecutor {
         }
 
         String feature = args[0].toLowerCase();
+        SettingsManager sm = plugin.getSettingsManager();
+        PlayerSettings ps = sm != null ? sm.getSettings(player) : null;
+
         switch (feature) {
             case "dropdetails":
-                boolean nowHolo = DropDisplayToggles.toggleDropDetails(player);
-                ToggleFeedbackUtil.sendToggle(player, "Drop details (holograms)", nowHolo);
+                if (ps != null) {
+                    ps.toggleDropDetails();
+                    ToggleFeedbackUtil.sendToggle(player, "Drop details (holograms)", ps.isDropDetailsEnabled());
+                }
                 break;
 
             case "dropdetailschat":
-                boolean nowChat = DropDisplayToggles.toggleChat(player);
-                ToggleFeedbackUtil.sendToggle(player, "Drop details chat", nowChat);
+                if (ps != null) {
+                    ps.toggleDropDetailsChat();
+                    ToggleFeedbackUtil.sendToggle(player, "Drop details chat", ps.isDropDetailsChatEnabled());
+                }
                 break;
 
             case "songskip":
-                SettingsManager sm = plugin.getSettingsManager();
-                if (sm != null) {
-                    PlayerSettings ps = sm.getSettings(player);
+                if (ps != null) {
                     ps.toggleAutoSkipSongs();
                     ToggleFeedbackUtil.sendToggle(player, "Auto Skip Songs", ps.isAutoSkipSongs());
                     if (ps.isAutoSkipSongs()) {
