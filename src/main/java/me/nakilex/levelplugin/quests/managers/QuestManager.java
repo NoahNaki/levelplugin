@@ -904,6 +904,12 @@ public class QuestManager {
                 return "Participate in a duel";
             case DUEL_LOSE:
                 return "Lose a duel";
+            case LOOTCHEST_OPEN:
+                return "Open loot chests";
+            case SIEGE_PARTICIPATE:
+                return "Participate in a siege";
+            case DUEL_WIN:
+                return "Win a duel";
             default:
                 return obj.getTarget();
         }

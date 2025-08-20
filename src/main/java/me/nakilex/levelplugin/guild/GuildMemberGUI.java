@@ -188,7 +188,7 @@ public class GuildMemberGUI implements Listener {
         }
         inv.setItem(VAULT_SLOT, vaultItem);
         inv.setItem(SETTINGS_SLOT, GuiUtil.getNexoItem("settings", ChatColor.AQUA + "Settings"));
-        inv.setItem(QUESTS_SLOT, GuiUtil.getNexoItem("book", ChatColor.LIGHT_PURPLE + "Guild Quests"));
+        inv.setItem(QUESTS_SLOT, GuiUtil.getNexoItem("pack1_scroll2", ChatColor.LIGHT_PURPLE + "Guild Quests"));
 
         player.openInventory(inv);
     }
