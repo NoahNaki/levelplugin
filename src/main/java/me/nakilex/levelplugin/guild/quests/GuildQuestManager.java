@@ -3,13 +3,13 @@ package me.nakilex.levelplugin.guild.quests;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.guild.Guild;
 import me.nakilex.levelplugin.guild.GuildManager;
+import me.nakilex.levelplugin.mob.utils.CombatPowerUtil;
+import me.nakilex.levelplugin.mob.utils.ThreatUtil;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.quests.data.QuestObjective;
 import me.nakilex.levelplugin.quests.data.QuestObjectiveType;
 import me.nakilex.levelplugin.quests.data.QuestReward;
 import me.nakilex.levelplugin.quests.data.QuestRewardCompat;
-import me.nakilex.levelplugin.mob.utils.CombatPowerUtil;
-import me.nakilex.levelplugin.mob.utils.ThreatUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
@@ -30,23 +30,45 @@ public class GuildQuestManager {
     private final List<String> easyMobs = new ArrayList<>();
     private final List<String> mediumMobs = new ArrayList<>();
     private final List<String> hardMobs = new ArrayList<>();
+    private boolean mobsLoaded = false;
 
-    private GuildQuestManager() {
-        ConfigurationSection mobs = Main.getInstance().getMobRewardsConfig()
-                .getConfig().getConfigurationSection("mobs");
-        if (mobs != null) {
-            for (String key : mobs.getKeys(false)) {
-                int power = CombatPowerUtil.estimateCombatPower(key);
-                int threat = ThreatUtil.levelForPower(power);
-                if (threat <= 2) {
-                    easyMobs.add(key);
-                } else if (threat == 3) {
-                    mediumMobs.add(key);
-                } else {
-                    hardMobs.add(key);
-                }
+    private GuildQuestManager() {}
+
+    /**
+     * Populate mob difficulty buckets from the configured mob rewards. This is
+     * called lazily so the manager can be constructed before the mob rewards
+     * configuration is loaded during plugin bootstrap.
+     */
+    public void reloadMobCategories() {
+        easyMobs.clear();
+        mediumMobs.clear();
+        hardMobs.clear();
+        mobsLoaded = false;
+
+        Main plugin = Main.getInstance();
+        if (plugin == null || plugin.getMobRewardsConfig() == null) {
+            return; // config not ready yet
+        }
+
+        ConfigurationSection mobs = plugin.getMobRewardsConfig().getConfig()
+                .getConfigurationSection("mobs");
+        if (mobs == null) {
+            return;
+        }
+
+        for (String key : mobs.getKeys(false)) {
+            int power = CombatPowerUtil.estimateCombatPower(key);
+            int threat = ThreatUtil.levelForPower(power);
+            if (threat <= 2) {
+                easyMobs.add(key);
+            } else if (threat == 3) {
+                mediumMobs.add(key);
+            } else {
+                hardMobs.add(key);
             }
         }
+
+        mobsLoaded = true;
     }
 
     /** Ensure the guild always has three quest slots populated without duplicates. */
@@ -88,6 +110,11 @@ public class GuildQuestManager {
     public GuildQuest generateQuest(Guild guild, Set<QuestObjectiveType> usedTypes) {
         int stars = computeDifficulty(guild);
 
+        // Ensure mob difficulty buckets are loaded before attempting kill quests
+        if (!mobsLoaded) {
+            reloadMobCategories();
+        }
+
         QuestObjectiveType[] types = {
                 QuestObjectiveType.LOOTCHEST_OPEN,
                 QuestObjectiveType.KILL,
@@ -98,6 +125,10 @@ public class GuildQuestManager {
         List<QuestObjectiveType> options = new ArrayList<>(Arrays.asList(types));
         if (usedTypes != null) {
             options.removeAll(usedTypes);
+        }
+        // If mob data isn't available, skip kill quests for now
+        if (easyMobs.isEmpty() && mediumMobs.isEmpty() && hardMobs.isEmpty()) {
+            options.remove(QuestObjectiveType.KILL);
         }
         if (options.isEmpty()) {
             options = Arrays.asList(types);

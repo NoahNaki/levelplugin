@@ -51,6 +51,7 @@ import me.nakilex.levelplugin.storage.events.StorageEvents;
 import me.nakilex.levelplugin.tips.BroadcastManager;
 import me.nakilex.levelplugin.tips.TipsConfigManager;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.guild.quests.GuildQuestManager;
 import me.nakilex.levelplugin.trade.data.ConfigValues;
 import me.nakilex.levelplugin.trade.utils.MessageStrings;
 import me.nakilex.levelplugin.utils.DealMaker;
@@ -208,6 +209,7 @@ public class PluginBootstrap {
             return;
         }
         mobRewardsConfig = new MobRewardsConfig(plugin);
+        GuildQuestManager.getInstance().reloadMobCategories();
         codexManager = new CodexManager(playerConfig, mobRewardsConfig, bossConfig);
         mobCodexGUI = new MobCodexGUI(codexManager, null);
         npcCodexGUI = new NpcCodexGUI(codexManager, null);
