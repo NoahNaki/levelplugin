@@ -25,7 +25,7 @@ import me.nakilex.levelplugin.player.attributes.commands.StatsCommand;
 import me.nakilex.levelplugin.player.classes.commands.ClassCommand;
 import me.nakilex.levelplugin.player.classes.commands.GenClassCommand;
 import me.nakilex.levelplugin.player.classes.commands.EssenceCommand;
-import me.nakilex.levelplugin.player.classes.commands.EssenceProgressCommand;
+import me.nakilex.levelplugin.player.classes.commands.EssenceUpgradeCommand;
 import me.nakilex.levelplugin.player.level.commands.AddXPCommand;
 import me.nakilex.levelplugin.player.mining.commands.AddMiningXPCommand;
 import me.nakilex.levelplugin.player.mining.commands.MiningLevelCommand;
@@ -132,9 +132,13 @@ public class CommandRegistry {
         plugin.getCommand("additem").setExecutor(new AddItemCommand());
         plugin.getCommand("opsword").setExecutor(new OpSwordCommand());
         plugin.getCommand("genitem").setExecutor(new me.nakilex.levelplugin.items.commands.GenerateItemCommand());
-        plugin.getCommand("genclass").setExecutor(new GenClassCommand());
+        GenClassCommand genClassCmd = new GenClassCommand();
+        plugin.getCommand("genclass").setExecutor(genClassCmd);
+        plugin.getCommand("genclass").setTabCompleter(genClassCmd);
         plugin.getCommand("essence").setExecutor(new EssenceCommand());
-        plugin.getCommand("essenceprogress").setExecutor(new EssenceProgressCommand());
+        EssenceUpgradeCommand essenceUpgradeCmd = new EssenceUpgradeCommand();
+        plugin.getCommand("essenceupgrade").setExecutor(essenceUpgradeCmd);
+        plugin.getCommand("essenceupgrade").setTabCompleter(essenceUpgradeCmd);
         plugin.getCommand("setlevel").setExecutor(new SetLevelCommand(plugin));
         ClassCommand classCmd = new ClassCommand();
         plugin.getCommand("class").setExecutor(classCmd);
@@ -192,7 +196,9 @@ public class CommandRegistry {
         plugin.getCommand("location").setTabCompleter(locationCmd);
         FastTravelCommand fastTravelCmd = new FastTravelCommand(plugin.getFastTravelGUI());
         plugin.getCommand("fasttravel").setExecutor(fastTravelCmd);
+        plugin.getCommand("fasttravel").setTabCompleter(fastTravelCmd);
         plugin.getCommand("travel").setExecutor(fastTravelCmd);
+        plugin.getCommand("travel").setTabCompleter(fastTravelCmd);
         plugin.getCommand("profile").setExecutor(new me.nakilex.levelplugin.player.commands.ProfileCommand());
         plugin.getCommand("wipeprofile").setExecutor(new WipeProfileCommand());
 

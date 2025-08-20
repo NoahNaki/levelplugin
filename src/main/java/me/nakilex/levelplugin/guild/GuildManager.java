@@ -338,6 +338,12 @@ public class GuildManager {
                 g.setLevel(cfg.getInt(base + "level", 1));
                 g.setExp(cfg.getInt(base + "exp", 0));
 
+                for (String perkName : cfg.getStringList(base + "perks")) {
+                    try {
+                        g.getTownPerks().add(TownPerk.valueOf(perkName));
+                    } catch (IllegalArgumentException ignored) {}
+                }
+
                 ConfigurationSection apps = cfg.getConfigurationSection(base + "applicants");
                 if (apps != null) {
                     for (String key : apps.getKeys(false)) {
@@ -372,6 +378,13 @@ public class GuildManager {
             cfg.set(base + "coins", g.getCoins());
             cfg.set(base + "level", g.getLevel());
             cfg.set(base + "exp", g.getExp());
+            if (!g.getTownPerks().isEmpty()) {
+                java.util.List<String> perkNames = new java.util.ArrayList<>();
+                for (TownPerk perk : g.getTownPerks()) {
+                    perkNames.add(perk.name());
+                }
+                cfg.set(base + "perks", perkNames);
+            }
             if (!g.getApplicants().isEmpty()) {
                 ConfigurationSection sec = cfg.createSection(base + "applicants");
                 for (Map.Entry<UUID, Long> e : g.getApplicants().entrySet()) {

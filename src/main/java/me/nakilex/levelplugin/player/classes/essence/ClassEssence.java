@@ -5,6 +5,9 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.utils.TooltipUtil;
+import me.nakilex.levelplugin.utils.TextUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -40,18 +43,32 @@ public final class ClassEssence {
     private ClassEssence() {}
 
     /**
-     * Generate a class essence item with random class, rarity and attributes.
-     * Star level defaults to 0.
+     * Generate a random essence of any rarity.
      */
     public static ItemStack generateRandomEssence() {
+        ItemRarity[] rarities = ItemRarity.values();
+        return generateRandomEssence(rarities[new Random().nextInt(rarities.length)]);
+    }
+
+    /**
+     * Generate a random essence with the specified rarity.
+     */
+    public static ItemStack generateRandomEssence(ItemRarity rarity) {
         Random rand = new Random();
         PlayerClass[] classes = PlayerClass.values();
         PlayerClass clazz = classes[rand.nextInt(classes.length)];
-        ItemRarity[] rarities = ItemRarity.values();
-        ItemRarity rarity = rarities[rand.nextInt(rarities.length)];
         int slots = getAttributeSlots(rarity);
         Map<StatType, AttrData> attrs = rollAttributes(slots, rarity, 0, rand);
         return create(clazz, rarity, 0, attrs, true);
+    }
+
+    /**
+     * Generate an essence for a specific class, rarity and star level.
+     */
+    public static ItemStack generateEssence(PlayerClass clazz, ItemRarity rarity, int starLevel) {
+        int slots = getAttributeSlots(rarity);
+        Map<StatType, AttrData> attrs = rollAttributes(slots, rarity, starLevel, new Random());
+        return create(clazz, rarity, starLevel, attrs, true);
     }
 
     /**
@@ -63,22 +80,10 @@ public final class ClassEssence {
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) return stack;
 
-        meta.setDisplayName(rarity.getColor() + clazz.name() + " Class Essence");
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS);
 
         int exp = 0;
         int next = getRarityThreshold(rarity);
-
-        List<String> lore = new ArrayList<>();
-        lore.add(ChatColor.GRAY + "Rarity: " + rarity.name());
-        lore.add(ChatColor.GRAY + "Stars: " + starLevel);
-        lore.add(ChatColor.GRAY + "EXP: " + GuiUtil.createProgressBar(0, 10) + ChatColor.YELLOW + exp + ChatColor.GRAY + "/" + next);
-        lore.add(" ");
-        for (Map.Entry<StatType, AttrData> entry : attributes.entrySet()) {
-            String suffix = entry.getValue().percent ? "%" : "";
-            lore.add(ChatColor.GREEN + entry.getKey().name() + ": +" + entry.getValue().value + suffix);
-        }
-        meta.setLore(lore);
 
         PersistentDataContainer pdc = meta.getPersistentDataContainer();
         pdc.set(ESSENCE_KEY, PersistentDataType.BYTE, (byte)1);
@@ -94,6 +99,7 @@ public final class ClassEssence {
         pdc.set(ATTR_KEY, PersistentDataType.STRING, attrString);
 
         stack.setItemMeta(meta);
+        updateLore(stack);
         return stack;
     }
 
@@ -208,6 +214,22 @@ public final class ClassEssence {
         return flag != null && flag == (byte)1;
     }
 
+    /** Add equip/unequip instructions to an essence's lore. */
+    public static void addSlotTips(ItemStack stack) {
+        if (!isEssence(stack)) return;
+        updateLore(stack);
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return;
+        List<String> lore = meta.getLore();
+        if (lore == null) lore = new ArrayList<>();
+        if (lore.isEmpty() || !lore.get(lore.size() - 1).isEmpty()) {
+            lore.add("");
+        }
+        GuiUtil.addClickInstructions(lore, "to equip", "to unequip");
+        meta.setLore(lore);
+        stack.setItemMeta(meta);
+    }
+
     /** Extract attribute map from an essence item. */
     public static Map<StatType, AttrData> getAttributes(ItemStack stack) {
         Map<StatType, AttrData> map = new LinkedHashMap<>();
@@ -227,6 +249,16 @@ public final class ClassEssence {
             } catch (IllegalArgumentException ignored) {}
         }
         return map;
+    }
+
+    /** Retrieve the stat types present on an essence. */
+    public static java.util.Set<StatType> getStatTypes(ItemStack stack) {
+        return getAttributes(stack).keySet();
+    }
+
+    /** Calculate the gear score for an essence. */
+    public static int getGearScore(ItemStack stack) {
+        return getAttributes(stack).values().stream().mapToInt(a -> a.value).sum();
     }
 
     /** Apply attribute bonuses of an essence to a player. */
@@ -295,19 +327,52 @@ public final class ClassEssence {
         return val == null ? 0 : val;
     }
 
-    public static void addExp(ItemStack stack, int amount) {
-        if (!isEssence(stack) || amount <= 0) return;
+    /** Retrieve the current star level of an essence. */
+    public static int getStar(ItemStack stack) {
+        if (!isEssence(stack)) return 0;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return 0;
+        Integer val = meta.getPersistentDataContainer().get(STAR_KEY, PersistentDataType.INTEGER);
+        return val == null ? 0 : val;
+    }
+
+    /** Increase star level of an essence, rerolling attributes accordingly. */
+    public static void upgradeStar(ItemStack stack) {
+        if (!isEssence(stack)) return;
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) return;
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        int star = pdc.has(STAR_KEY, PersistentDataType.INTEGER) ? pdc.get(STAR_KEY, PersistentDataType.INTEGER) : 0;
+        if (star >= 5) return;
+        star++;
+        ItemRarity rarity = ItemRarity.valueOf(pdc.get(RARITY_KEY, PersistentDataType.STRING));
+        int slots = getAttributeSlots(rarity);
+        Map<StatType, AttrData> newAttrs = rollAttributes(slots, rarity, star, new Random());
+        String attrString = newAttrs.entrySet().stream()
+                .map(e -> e.getKey().name() + ":" + e.getValue().value + ":" + (e.getValue().percent ? 1 : 0))
+                .collect(Collectors.joining(";"));
+        pdc.set(ATTR_KEY, PersistentDataType.STRING, attrString);
+        pdc.set(STAR_KEY, PersistentDataType.INTEGER, star);
+        stack.setItemMeta(meta);
+        updateLore(stack);
+    }
+
+    public static ItemRarity addExp(ItemStack stack, int amount) {
+        if (!isEssence(stack) || amount <= 0) return null;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return null;
         PersistentDataContainer pdc = meta.getPersistentDataContainer();
         int exp = pdc.has(EXP_KEY, PersistentDataType.INTEGER) ? pdc.get(EXP_KEY, PersistentDataType.INTEGER) : 0;
         exp += amount;
         int next = pdc.has(NEXT_EXP_KEY, PersistentDataType.INTEGER) ? pdc.get(NEXT_EXP_KEY, PersistentDataType.INTEGER) : 0;
         ItemRarity rarity = ItemRarity.valueOf(pdc.get(RARITY_KEY, PersistentDataType.STRING));
         int star = pdc.has(STAR_KEY, PersistentDataType.INTEGER) ? pdc.get(STAR_KEY, PersistentDataType.INTEGER) : 0;
-        if (next > 0 && exp >= next) {
+        ItemRarity upgradedTo = null;
+
+        while (next > 0 && exp >= next && rarity != ItemRarity.FABLED) {
             exp -= next;
             rarity = nextRarity(rarity);
+            upgradedTo = rarity;
             int slots = getAttributeSlots(rarity);
             Map<StatType, AttrData> newAttrs = rollAttributes(slots, rarity, star, new Random());
             String attrString = newAttrs.entrySet().stream()
@@ -315,12 +380,22 @@ public final class ClassEssence {
                     .collect(Collectors.joining(";"));
             pdc.set(ATTR_KEY, PersistentDataType.STRING, attrString);
             next = getRarityThreshold(rarity);
-            pdc.set(RARITY_KEY, PersistentDataType.STRING, rarity.name());
         }
+
+        if (next == 0) {
+            exp = 0;
+        }
+
+        pdc.set(RARITY_KEY, PersistentDataType.STRING, rarity.name());
         pdc.set(EXP_KEY, PersistentDataType.INTEGER, exp);
         pdc.set(NEXT_EXP_KEY, PersistentDataType.INTEGER, next);
         stack.setItemMeta(meta);
         updateLore(stack);
+        return upgradedTo;
+    }
+
+    public static int getInvestExp(ItemRarity rarity) {
+        return 50 * (rarity.ordinal() + 1);
     }
 
     private static ItemRarity nextRarity(ItemRarity r) {
@@ -346,16 +421,26 @@ public final class ClassEssence {
         int next = pdc.has(NEXT_EXP_KEY, PersistentDataType.INTEGER) ? pdc.get(NEXT_EXP_KEY, PersistentDataType.INTEGER) : 0;
         Map<StatType, AttrData> attrs = getAttributes(stack);
 
+        String className = TextUtil.beautifyWords(pdc.get(CLASS_KEY, PersistentDataType.STRING));
+        String stars = GuiUtil.glyphStars(star);
+        meta.setDisplayName(rarity.getColor() + className + " Essence " + stars);
+
         List<String> lore = new ArrayList<>();
-        lore.add(ChatColor.GRAY + "Rarity: " + rarity.name());
-        lore.add(ChatColor.GRAY + "Stars: " + star);
-        double progress = next > 0 ? (double)exp / next : 1.0;
-        lore.add(ChatColor.GRAY + "EXP: " + GuiUtil.createProgressBar(progress, 10) + ChatColor.YELLOW + exp + ChatColor.GRAY + "/" + next);
-        lore.add(" ");
+        String rarityGlyph = "<glyph:" + rarity.name().toLowerCase() + ">";
+        lore.add(rarityGlyph + "<glyph:essence>");
+        lore.add("");
+        int gearScore = getGearScore(stack);
+        lore.add("<glyph:sword_icon> " + ChatColor.GRAY + "Gear Score: "
+                + ChatColor.LIGHT_PURPLE + ChatColor.BOLD + gearScore);
+        lore.add("");
         for (Map.Entry<StatType, AttrData> e : attrs.entrySet()) {
-            String suffix = e.getValue().percent ? "%" : "";
-            lore.add(ChatColor.GREEN + e.getKey().name() + ": +" + e.getValue().value + suffix);
+            lore.add(GuiUtil.formatStatLine(e.getKey(), e.getValue().value, e.getValue().percent));
         }
+        lore.add("");
+        String bar = TooltipUtil.progressBar(exp, next, 15);
+        String expColor = ChatFormatter.experienceColor();
+        String expLabel = ChatFormatter.experienceLabel();
+        lore.add(bar + " " + expColor + exp + ChatColor.GOLD + "/" + expColor + next + " <glyph:experience_orb_icon> " + expLabel);
         meta.setLore(lore);
         stack.setItemMeta(meta);
     }

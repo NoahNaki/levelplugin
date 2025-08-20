@@ -11,6 +11,9 @@ import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
+import me.nakilex.levelplugin.guild.GuildManager;
+import me.nakilex.levelplugin.guild.TownPerk;
+import me.nakilex.levelplugin.guild.TownPerkManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -249,11 +252,13 @@ public class BlacksmithGUI implements Listener {
 
     private int calculateTotalRepairCost(Player player) {
         int total = 0;
+        me.nakilex.levelplugin.guild.Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
         for (ItemStack item : player.getInventory().getContents()) {
             if (item == null || item.getType().isAir()) continue;
             CustomItem ci = itemManager.getCustomItemFromItemStack(item);
             if (ci != null && ci.getCurrentDurability() < ci.getMaxDurability()) {
-                total += repairManager.getRepairCost(ci);
+                int base = repairManager.getRepairCost(ci);
+                total += TownPerkManager.getInstance().applyDiscount(g, TownPerk.BLACKSMITH_DISCOUNT, base);
             }
         }
         return total;
@@ -396,7 +401,10 @@ public class BlacksmithGUI implements Listener {
                     send(player, MessageType.ERROR, "Item has reached the maximum upgrade level.");
                     return;
                 }
-                int cost = upgradeManager.getUpgradeCost(ci);
+                int cost = TownPerkManager.getInstance().applyDiscount(
+                        GuildManager.getInstance().getGuild(player.getUniqueId()),
+                        TownPerk.BLACKSMITH_DISCOUNT,
+                        upgradeManager.getUpgradeCost(ci));
                 int chance = upgradeManager.getSuccessChance(ci);
                 try {
                     economyManager.deductCoins(player, cost);
@@ -414,12 +422,19 @@ public class BlacksmithGUI implements Listener {
                 if (ci.getUpgradeLevel() >= 5) {
                     gui.setItem(22, createUpgradeButton(-1, 0));
                 } else {
+                    int nextCost = TownPerkManager.getInstance().applyDiscount(
+                            GuildManager.getInstance().getGuild(player.getUniqueId()),
+                            TownPerk.BLACKSMITH_DISCOUNT,
+                            upgradeManager.getUpgradeCost(ci));
                     gui.setItem(22, createUpgradeButton(
-                            upgradeManager.getUpgradeCost(ci),
+                            nextCost,
                             upgradeManager.getSuccessChance(ci)));
                 }
             } else if (title.equals(GUI_TITLE_REPAIR)) {
-                int cost = repairManager.getRepairCost(ci);
+                int cost = TownPerkManager.getInstance().applyDiscount(
+                        GuildManager.getInstance().getGuild(player.getUniqueId()),
+                        TownPerk.BLACKSMITH_DISCOUNT,
+                        repairManager.getRepairCost(ci));
                 try {
                     economyManager.deductCoins(player, cost);
                 } catch (IllegalArgumentException ex) {
@@ -450,7 +465,10 @@ public class BlacksmithGUI implements Listener {
                     return;
                 }
 
-                int cost = rerollManager.getRerollCost(ci);
+                int cost = TownPerkManager.getInstance().applyDiscount(
+                        GuildManager.getInstance().getGuild(player.getUniqueId()),
+                        TownPerk.BLACKSMITH_DISCOUNT,
+                        rerollManager.getRerollCost(ci));
                 try {
                     economyManager.deductCoins(player, cost);
                 } catch (IllegalArgumentException ex) {
@@ -480,11 +498,13 @@ public class BlacksmithGUI implements Listener {
     private void handleRepairAllClick(Player player) {
         int totalCost = 0;
         List<ItemStack> toRepair = new ArrayList<>();
+        me.nakilex.levelplugin.guild.Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
         for (ItemStack item : player.getInventory().getContents()) {
             if (item == null || item.getType().isAir()) continue;
             CustomItem ci = itemManager.getCustomItemFromItemStack(item);
             if (ci != null && ci.getCurrentDurability() < ci.getMaxDurability()) {
-                totalCost += repairManager.getRepairCost(ci);
+                int base = repairManager.getRepairCost(ci);
+                totalCost += TownPerkManager.getInstance().applyDiscount(g, TownPerk.BLACKSMITH_DISCOUNT, base);
                 toRepair.add(item);
             }
         }
@@ -538,14 +558,24 @@ public class BlacksmithGUI implements Listener {
             if (ci.getUpgradeLevel() >= 5) {
                 gui.setItem(22, createUpgradeButton(-1, 0));
             } else {
-                gui.setItem(22, createUpgradeButton(
-                    upgradeManager.getUpgradeCost(ci),
-                    upgradeManager.getSuccessChance(ci)));
+                int cost = TownPerkManager.getInstance().applyDiscount(
+                        GuildManager.getInstance().getGuild(player.getUniqueId()),
+                        TownPerk.BLACKSMITH_DISCOUNT,
+                        upgradeManager.getUpgradeCost(ci));
+                gui.setItem(22, createUpgradeButton(cost, upgradeManager.getSuccessChance(ci)));
             }
         } else if (title.equals(GUI_TITLE_REPAIR)) {
-            gui.setItem(22, createRepairButton(repairManager.getRepairCost(ci)));
+            int cost = TownPerkManager.getInstance().applyDiscount(
+                    GuildManager.getInstance().getGuild(player.getUniqueId()),
+                    TownPerk.BLACKSMITH_DISCOUNT,
+                    repairManager.getRepairCost(ci));
+            gui.setItem(22, createRepairButton(cost));
         } else if (title.equals(GUI_TITLE_REROLL)) {
-            gui.setItem(22, createRerollButton(rerollManager.getRerollCost(ci)));
+            int cost = TownPerkManager.getInstance().applyDiscount(
+                    GuildManager.getInstance().getGuild(player.getUniqueId()),
+                    TownPerk.BLACKSMITH_DISCOUNT,
+                    rerollManager.getRerollCost(ci));
+            gui.setItem(22, createRerollButton(cost));
         } else {
             gui.setItem(22, title.equals(GUI_TITLE_UPGRADE)
                 ? createUpgradeButton(0,0)

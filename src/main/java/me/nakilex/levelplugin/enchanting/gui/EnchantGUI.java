@@ -8,6 +8,9 @@ import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.guild.GuildManager;
+import me.nakilex.levelplugin.guild.TownPerk;
+import me.nakilex.levelplugin.guild.TownPerkManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -100,7 +103,10 @@ public class EnchantGUI implements Listener {
             if (item == null || item.getType().isAir()) return;
             CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(item);
             if (ci == null) return;
-            int cost = manager.getEnchantCost(ci);
+            int cost = TownPerkManager.getInstance().applyDiscount(
+                    GuildManager.getInstance().getGuild(p.getUniqueId()),
+                    TownPerk.ENCHANTING_DISCOUNT,
+                    manager.getEnchantCost(ci));
             try {
                 economy.deductCoins(p, cost);
             } catch (IllegalArgumentException ex) {
@@ -138,6 +144,10 @@ public class EnchantGUI implements Listener {
             gui.setItem(22, createButton(0));
             return;
         }
-        gui.setItem(22, createButton(manager.getEnchantCost(ci)));
+            int cost = TownPerkManager.getInstance().applyDiscount(
+                    GuildManager.getInstance().getGuild(p.getUniqueId()),
+                    TownPerk.ENCHANTING_DISCOUNT,
+                    manager.getEnchantCost(ci));
+            gui.setItem(22, createButton(cost));
     }
 }

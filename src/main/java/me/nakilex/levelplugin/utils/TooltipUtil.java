@@ -1,12 +1,8 @@
 package me.nakilex.levelplugin.utils;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
- * Helper methods for formatting item tooltips.  Provides common operations
- * such as generating progress bars and centering lore lines.  This utility is
- * intentionally lightweight so it can be reused across many GUI classes.
+ * Helper methods for formatting item tooltips. Provides lightweight utilities
+ * such as generating progress bars that can be reused across many GUI classes.
  */
 public final class TooltipUtil {
 
@@ -24,19 +20,5 @@ public final class TooltipUtil {
     public static String progressBar(double current, double max, int length) {
         double progress = max <= 0 ? 0.0 : current / max;
         return GuiUtil.createProgressBar(progress, length);
-    }
-
-    /**
-     * Return a new list where each line has been centered relative to the
-     * widest line using {@link ChatFormatter} pixel measurements.
-     */
-    public static List<String> centerLore(List<String> lore) {
-        if (lore == null || lore.isEmpty()) return lore;
-        int max = lore.stream().mapToInt(ChatFormatter::pixelLength).max().orElse(0) / 2;
-        List<String> centered = new ArrayList<>(lore.size());
-        for (String line : lore) {
-            centered.add(ChatFormatter.getCenteredText(line, max));
-        }
-        return centered;
     }
 }
