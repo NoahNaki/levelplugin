@@ -59,20 +59,25 @@ public class ClassEssenceMenuListener implements Listener {
                 event.getWhoClicked().setItemOnCursor(null);
             } else if (current != null && ClassEssence.isEssence(current) && !ps.equippedEssences[idx]) {
                 PlayerClass essenceClass = ClassEssence.getClass(current);
+
+                // Track stats before switching essences, including stats from the essence being unequipped.
+                Map<StatType, Integer> before = new HashMap<>();
+                for (StatType st : ClassEssence.getStatTypes(current)) {
+                    before.put(st, StatsManager.getInstance().getStatValue(player, st));
+                }
                 for (int i = 0; i < ps.equippedEssences.length; i++) {
                     if (ps.equippedEssences[i] && i != idx) {
                         ItemStack other = event.getView().getItem(ClassEssenceGUI.slotFromIndex(i));
                         if (other != null && ClassEssence.isEssence(other)) {
+                            for (StatType st : ClassEssence.getStatTypes(other)) {
+                                before.putIfAbsent(st, StatsManager.getInstance().getStatValue(player, st));
+                            }
                             ClassEssence.removeAttributes(player, other);
                             ClassEssence.setEquipped(other, false);
                             ClassEssence.addSlotTips(other);
                         }
                         ps.equippedEssences[i] = false;
                     }
-                }
-                Map<StatType, Integer> before = new HashMap<>();
-                for (StatType st : ClassEssence.getStatTypes(current)) {
-                    before.put(st, StatsManager.getInstance().getStatValue(player, st));
                 }
 
                 ClassEssence.setEquipped(current, true);
@@ -94,11 +99,13 @@ public class ClassEssenceMenuListener implements Listener {
                 me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, " ", 45);
                 for (StatType st : before.keySet()) {
                     int after = StatsManager.getInstance().getStatValue(player, st);
-                    ChatColor col = after >= before.get(st) ? ChatColor.GREEN : ChatColor.RED;
-                    String name = GuiUtil.formatStatName(st);
-                    me.nakilex.levelplugin.utils.ChatMessageUtil.send(player,
-                            me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType.INFO,
-                            name + ": " + ChatColor.WHITE + before.get(st) + ChatColor.GRAY + " -> " + col + after);
+                    if (after != before.get(st)) {
+                        ChatColor col = after >= before.get(st) ? ChatColor.GREEN : ChatColor.RED;
+                        String name = GuiUtil.formatStatName(st);
+                        me.nakilex.levelplugin.utils.ChatMessageUtil.send(player,
+                                me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType.INFO,
+                                name + ": " + ChatColor.WHITE + before.get(st) + ChatColor.GRAY + " -> " + col + after);
+                    }
                 }
                 me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, " ", 45);
                 me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§6§l-", 45);
