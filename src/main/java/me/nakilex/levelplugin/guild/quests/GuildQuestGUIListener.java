@@ -34,7 +34,7 @@ public class GuildQuestGUIListener implements Listener {
         if (g == null) return;
         String key = String.valueOf(idx);
         me.nakilex.levelplugin.guild.quests.GuildQuest quest = g.getQuests().get(key);
-        if (quest == null) return;
+        if (quest == null || quest.isCompleted()) return;
 
         if (event.getClick() == ClickType.LEFT) {
             if (!quest.isAccepted()) {

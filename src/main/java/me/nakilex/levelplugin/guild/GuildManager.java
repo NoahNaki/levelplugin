@@ -383,6 +383,7 @@ public class GuildManager {
                                 qs.getInt("guild_exp", 0), qs.getInt("guild_coins", 0));
                         quest.setAccepted(qs.getBoolean("accepted", false));
                         quest.setRerolled(qs.getBoolean("rerolled", false));
+                        quest.setCompleted(qs.getBoolean("completed", false));
                         ConfigurationSection contrib = qs.getConfigurationSection("contrib");
                         if (contrib != null) {
                             for (String key : contrib.getKeys(false)) {
@@ -455,6 +456,7 @@ public class GuildManager {
                     qs.set("guild_coins", q.getGuildCoinReward());
                     qs.set("accepted", q.isAccepted());
                     qs.set("rerolled", q.isRerolled());
+                    qs.set("completed", q.isCompleted());
                     if (!q.getContributions().isEmpty()) {
                         ConfigurationSection contrib = qs.createSection("contrib");
                         for (Map.Entry<UUID, Integer> c : q.getContributions().entrySet()) {

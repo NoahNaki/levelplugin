@@ -7,12 +7,12 @@ import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.quests.util.QuestMessageUtil;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.quests.data.*;
 import me.nakilex.levelplugin.quests.gui.QuestState;
 import me.nakilex.levelplugin.quests.data.QuestResetScript;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -699,7 +699,11 @@ public class QuestManager {
                         if (quest.getId().equals(trackedQuests.get(uuid))) {
                             trackedQuests.remove(uuid);
                         }
-                        sendCompletionMessage(player, quest);
+                        if (!"officeerrands".equalsIgnoreCase(quest.getId())) {
+                            QuestMessageUtil.sendCompletionMessage(player,
+                                    "§6§lQuest Complete!", quest.getName(),
+                                    0, 0, quest.getReward());
+                        }
                         giveRewards(player, quest);
                         if (quest instanceof me.nakilex.levelplugin.quests.data.QuestCompletionScript script) {
                             script.onComplete(player, plugin);
@@ -739,7 +743,11 @@ public class QuestManager {
                             trackedQuests.remove(memberId);
                         }
                         completedQuests.computeIfAbsent(memberId, k -> new HashSet<>()).add(other.getQuest().getId());
-                        sendCompletionMessage(p, other.getQuest());
+                        if (!"officeerrands".equalsIgnoreCase(other.getQuest().getId())) {
+                            QuestMessageUtil.sendCompletionMessage(p,
+                                    "§6§lQuest Complete!", other.getQuest().getName(),
+                                    0, 0, other.getQuest().getReward());
+                        }
                         giveRewards(p, other.getQuest());
                         if (other.getQuest() instanceof me.nakilex.levelplugin.quests.data.QuestCompletionScript script) {
                             script.onComplete(p, plugin);
@@ -785,61 +793,6 @@ public class QuestManager {
         for (me.nakilex.levelplugin.player.classes.data.PlayerClass pc : reward.getUnlockClasses()) {
             StatsManager.getInstance().unlockClass(player.getUniqueId(), pc);
         }
-    }
-
-    /**
-     * Display a styled quest completion message to the player.
-     */
-    private void sendCompletionMessage(Player player, Quest quest) {
-        if ("officeerrands".equalsIgnoreCase(quest.getId())) {
-            return;
-        }
-        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "", 45);
-        me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§6§lQuest Complete!");
-        me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§e" + quest.getName());
-        me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, " ", 45);
-        me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§aRewards:");
-
-        QuestReward reward = quest.getReward();
-        if (reward != null) {
-            if (reward.getXp() > 0) {
-                String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
-                String expColor = me.nakilex.levelplugin.utils.ChatFormatter.experienceColor();
-                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- " + expColor + reward.getXp() + ChatColor.RESET + " <glyph:experience_orb_icon> " + expLabel);
-            }
-            if (reward.getCoins() > 0) {
-                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player,
-                        "§a- §7" + reward.getCoins() + " <glyph:coins_icon> §6coins");
-            }
-            if (reward.getGems() > 0) {
-                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + reward.getGems() + " §d<glyph:purple_orb_icon>");
-            }
-            for (int id : reward.getItemIds()) {
-                me.nakilex.levelplugin.items.data.CustomItem tpl = plugin.getItemManager().getTemplateById(id);
-                String name = tpl != null ? tpl.getBaseName() : ("Item " + id);
-                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + name);
-            }
-            for (me.nakilex.levelplugin.player.classes.data.PlayerClass pc : reward.getUnlockClasses()) {
-                String pretty = pc.name().substring(0,1) + pc.name().substring(1).toLowerCase();
-                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + pretty + " Class");
-            }
-            if ("newbeginning".equals(quest.getId())) {
-                me.nakilex.levelplugin.player.classes.data.PlayerClass pc = StatsManager
-                        .getInstance().getPlayerStats(player.getUniqueId()).playerClass;
-                int id;
-                switch (pc) {
-                    case WARRIOR -> id = 1;
-                    case ROGUE -> id = 2;
-                    case MAGE -> id = 3;
-                    default -> id = 4;
-                }
-                me.nakilex.levelplugin.items.data.CustomItem tpl = plugin.getItemManager().getTemplateById(id);
-                String name = tpl != null ? tpl.getBaseName() : ("Item " + id);
-                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player, "§a- §7" + name);
-            }
-            me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, " ", 45);
-        }
-        player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
     }
 
     /**

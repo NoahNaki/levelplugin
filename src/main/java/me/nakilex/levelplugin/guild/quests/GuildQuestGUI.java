@@ -39,11 +39,19 @@ public final class GuildQuestGUI {
             if (quest == null) continue;
             int slot = QUEST_SLOTS[i];
             String tracked = GuildQuestManager.getInstance().getTrackedQuest(viewer.getUniqueId());
-            String iconId = "pack1_scroll2";
-            if (quest.isAccepted() && tracked != null && tracked.equals(quest.getId())) {
-                iconId = "pack1_scroll4";
+            String iconId;
+            String name;
+            if (quest.isCompleted()) {
+                iconId = "check";
+                name = ChatColor.DARK_GREEN + quest.getName();
+            } else {
+                iconId = "pack1_scroll2";
+                if (quest.isAccepted() && tracked != null && tracked.equals(quest.getId())) {
+                    iconId = "pack1_scroll4";
+                }
+                name = ChatColor.GOLD + quest.getName();
             }
-            ItemStack icon = GuiUtil.getNexoItem(iconId, ChatColor.GOLD + quest.getName());
+            ItemStack icon = GuiUtil.getNexoItem(iconId, name);
             ItemMeta meta = icon.getItemMeta();
             List<String> lore = new ArrayList<>();
 
@@ -51,12 +59,14 @@ public final class GuildQuestGUI {
             int total = quest.getTotalContribution();
             int need = quest.getTargetAmount();
             lore.add(ChatColor.GRAY + desc);
-            lore.add(ChatColor.GRAY + "Progress: " + ChatColor.YELLOW + total + ChatColor.GRAY + "/" + ChatColor.YELLOW + need);
-            lore.add(TooltipUtil.progressBar(total, need, 10));
-
-            lore.add(ChatColor.GRAY + "Difficulty: " + ChatColor.YELLOW + GuiUtil.glyphStars(quest.getStars()));
-
-            lore.add(" ");
+            if (!quest.isCompleted()) {
+                lore.add(ChatColor.GRAY + "Progress: " + ChatColor.YELLOW + total + ChatColor.GRAY + "/" + ChatColor.YELLOW + need);
+                lore.add(TooltipUtil.progressBar(total, need, 10));
+                lore.add(ChatColor.GRAY + "Difficulty: " + ChatColor.YELLOW + GuiUtil.glyphStars(quest.getStars()));
+                lore.add(" ");
+            } else {
+                lore.add(" ");
+            }
             lore.add(ChatColor.GREEN + "Guild Rewards:");
             String expLabel = ChatFormatter.experienceLabel();
             String expColor = ChatFormatter.experienceColor();
@@ -76,7 +86,9 @@ public final class GuildQuestGUI {
             }
 
             lore.add(" ");
-            if (quest.isAccepted()) {
+            if (quest.isCompleted()) {
+                lore.add(ChatColor.GREEN + "Completed");
+            } else if (quest.isAccepted()) {
                 if (tracked != null && tracked.equals(quest.getId())) {
                     lore.add(ChatColor.YELLOW + "Tracking");
                     lore.add(ChatColor.WHITE + "Left-click " + ChatColor.GRAY + "to untrack");
