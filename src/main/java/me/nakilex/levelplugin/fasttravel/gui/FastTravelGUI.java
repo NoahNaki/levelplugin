@@ -24,6 +24,9 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
 
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
+
 public class FastTravelGUI implements Listener {
     private static final String TITLE = ChatColor.BLACK + "Fast Travel";
     private static final int SIZE = 54;
@@ -171,13 +174,13 @@ public class FastTravelGUI implements Listener {
         if(!manager.isUnlocked(player,target.getId())) return;
         if (GuildSiegeManager.getInstance().isSiegeRunning() &&
                 "rowan".equalsIgnoreCase(target.getId())) {
-            player.sendMessage(ChatColor.RED +
+            send(player, MessageType.ERROR,
                     "You cannot fast travel to this location because there is an ongoing siege!");
             return;
         }
         int cost=(int)player.getLocation().distance(target.getLocation());
         if(economy.getBalance(player)<cost){
-            player.sendMessage(ChatColor.RED+"You need "+cost+" coins to travel.");
+            send(player, MessageType.ERROR, "You need "+cost+" coins to travel.");
             return;
         }
         player.closeInventory();
@@ -192,7 +195,7 @@ public class FastTravelGUI implements Listener {
             int t=60;
             @Override public void run(){
                 if(!player.isOnline()){ cancel(); return; }
-                if(player.getLocation().distanceSquared(startLoc)>0.1){ player.sendMessage(ChatColor.RED+"Teleport cancelled."); cancel(); return; }
+                if(player.getLocation().distanceSquared(startLoc)>0.1){ send(player, MessageType.ERROR, "Teleport cancelled."); cancel(); return; }
                 double radius=3.0*(t/60.0);
                 for(int i=0;i<20;i++){
                     double angle=2*Math.PI*i/20.0;

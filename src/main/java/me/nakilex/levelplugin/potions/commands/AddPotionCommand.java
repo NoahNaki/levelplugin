@@ -16,6 +16,9 @@ import java.util.stream.Collectors;
 
 import me.nakilex.levelplugin.utils.CommandUtil;
 
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
+
 public class AddPotionCommand implements TabExecutor {
 
     private final PotionManager potionManager;
@@ -31,11 +34,11 @@ public class AddPotionCommand implements TabExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage("Only players can use this command.");
+            send(sender, MessageType.ERROR, "Only players can use this command.");
             return true;
         }
         if (args.length < 2) {
-            sender.sendMessage("Usage: /addpotion <player> <template_id>");
+            send(sender, MessageType.INFO, "Usage: /addpotion <player> <template_id>");
             return true;
         }
 
@@ -43,19 +46,19 @@ public class AddPotionCommand implements TabExecutor {
         String templateId = args[1];
 
         if (player == null) {
-            sender.sendMessage("Player not found.");
+            send(sender, MessageType.ERROR, "Player not found.");
             return true;
         }
 
         PotionTemplate template = potionManager.getTemplate(templateId);
         if (template == null) {
-            sender.sendMessage("Potion ID not found: " + templateId);
+            send(sender, MessageType.ERROR, "Potion ID not found: " + templateId);
             return true;
         }
 
         PotionInstance instance = potionManager.createInstance(template);
         player.getInventory().addItem(instance.toItemStack(plugin));
-        sender.sendMessage("Potion added to " + player.getName());
+        send(sender, MessageType.SUCCESS, "Potion added to " + player.getName());
         return true;
     }
 

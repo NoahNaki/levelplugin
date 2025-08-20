@@ -32,6 +32,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
+
 public class MerchantGUI implements Listener {
     private final Inventory inventory;
     private final Map<Integer, MerchantItem> merchantItems = new HashMap<>();
@@ -256,13 +259,13 @@ public class MerchantGUI implements Listener {
 
             // Check coin requirement
             if (coinBalance < coinCost) {
-                player.sendMessage(ChatColor.RED + "You don't have enough coins!");
+                send(player, MessageType.ERROR, "You don't have enough coins!");
                 return;
             }
 
             // Check gem requirement
             if (gemCost > 0 && gemBalance < gemCost) {
-                player.sendMessage(ChatColor.RED + "You don't have enough gems!");
+                send(player, MessageType.ERROR, "You don't have enough gems!");
                 return;
             }
 
@@ -275,7 +278,7 @@ public class MerchantGUI implements Listener {
             try {
                 economyManager.deductCoins(player, coinCost);
             } catch (IllegalArgumentException ex) {
-                player.sendMessage(ChatColor.RED + "Transaction failed: " + ex.getMessage());
+                send(player, MessageType.ERROR, "Transaction failed: " + ex.getMessage());
                 return;
             }
 
@@ -292,13 +295,13 @@ public class MerchantGUI implements Listener {
                 ItemStack purchasedItem = ItemUtil.createItemStackFromCustomItem(newInstance, mItem.getAmount(), player);
                 player.getInventory().addItem(purchasedItem);
                 Main.getInstance().getQuestManager().handleBuy(player, String.valueOf(mItem.getItemId()));
-                player.sendMessage(ChatColor.GREEN +
+                send(player, MessageType.SUCCESS,
                         "You purchased " +
-                        purchasedItem.getItemMeta().getDisplayName() +
-                        ChatColor.GREEN + " for " +
-                        ChatColor.YELLOW + coinCost + " <glyph:coins_icon> coins" +
-                        (gemCost > 0 ? ChatColor.GRAY + " and " + ChatColor.LIGHT_PURPLE + gemCost + "<glyph:purple_orb_icon>" : "") +
-                        ChatColor.GREEN + ".");
+                                purchasedItem.getItemMeta().getDisplayName() +
+                                ChatColor.GREEN + " for " +
+                                ChatColor.YELLOW + coinCost + " <glyph:coins_icon> coins" +
+                                (gemCost > 0 ? ChatColor.GRAY + " and " + ChatColor.LIGHT_PURPLE + gemCost + "<glyph:purple_orb_icon>" : "") +
+                                ChatColor.GREEN + ".");
             }
         }
     }

@@ -24,6 +24,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.*;
 
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
+
 public class PotionMerchantGUI implements Listener {
     private final Inventory inventory;
     private final Map<Integer, PotionTemplate> potionItems = new HashMap<>();
@@ -131,7 +134,7 @@ public class PotionMerchantGUI implements Listener {
             int balance = economyManager.getBalance(player);
 
             if (balance < cost) {
-                player.sendMessage(ChatColor.RED + "You don't have enough coins!");
+                send(player, MessageType.ERROR, "You don't have enough coins!");
                 return;
             }
 
@@ -143,14 +146,14 @@ public class PotionMerchantGUI implements Listener {
             try {
                 economyManager.deductCoins(player, cost);
             } catch (IllegalArgumentException ex) {
-                player.sendMessage(ChatColor.RED + "Transaction failed: " + ex.getMessage());
+                send(player, MessageType.ERROR, "Transaction failed: " + ex.getMessage());
                 return;
             }
 
             PotionInstance instance = new PotionInstance(potion);
             ItemStack purchasedPotion = instance.toItemStack((JavaPlugin) plugin);
             player.getInventory().addItem(purchasedPotion);
-            player.sendMessage(ChatColor.GREEN + "You purchased " +
+            send(player, MessageType.SUCCESS, "You purchased " +
                 purchasedPotion.getItemMeta().getDisplayName() + ChatColor.GREEN +
                 "for " + cost + " coins.");
         }

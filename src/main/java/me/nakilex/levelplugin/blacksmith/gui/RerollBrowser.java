@@ -18,6 +18,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.ArrayList;
 import java.util.List;
 
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
+
 public class RerollBrowser implements CommandExecutor, Listener {
 
     private static final int SIZE = 27;
@@ -65,7 +68,7 @@ public class RerollBrowser implements CommandExecutor, Listener {
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage(ChatColor.RED + "Only players can use this command.");
+            send(sender, MessageType.ERROR, "Only players can use this command.");
             return true;
         }
         openGui(player);
@@ -82,6 +85,6 @@ public class RerollBrowser implements CommandExecutor, Listener {
         if (clicked == null || clicked.getType().isAir()) return;
 
         player.getInventory().addItem(clicked.clone());
-        player.sendMessage(ChatColor.GREEN + "You received: " + clicked.getItemMeta().getDisplayName());
+        send(player, MessageType.SUCCESS, "You received: " + ChatColor.WHITE + clicked.getItemMeta().getDisplayName());
     }
 }

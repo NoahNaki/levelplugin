@@ -3,6 +3,9 @@ package me.nakilex.levelplugin.utils;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
+
 /** Utility for consistent currency messages. */
 public final class CurrencyMessageUtil {
     private CurrencyMessageUtil() {}
@@ -23,13 +26,13 @@ public final class CurrencyMessageUtil {
     }
 
     public static void sendReceive(Player player, Currency currency, int amount) {
-        player.sendMessage(ChatColor.GOLD + "You received " +
-                formatAmount(currency, amount) + ChatColor.GOLD + "!");
+        send(player, MessageType.REWARD,
+                "You received " + formatAmount(currency, amount) + ChatColor.GOLD + "!");
     }
 
     public static void sendLoss(Player player, Currency currency, int amount) {
-        player.sendMessage(ChatColor.GOLD + "You lost " +
-                formatAmount(currency, amount) + ChatColor.GOLD + "!");
+        send(player, MessageType.WARNING,
+                "You lost " + formatAmount(currency, amount) + ChatColor.GOLD + "!");
     }
 
     public static String formatAmount(Currency currency, int amount) {

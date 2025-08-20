@@ -13,6 +13,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
+
 public class LocationCommand implements TabExecutor {
     private final FastTravelManager manager;
 
@@ -21,7 +24,7 @@ public class LocationCommand implements TabExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("Only players.");
+            send(sender, MessageType.ERROR, "Only players.");
             return true;
         }
         if (args.length < 1) return false;
@@ -34,20 +37,20 @@ public class LocationCommand implements TabExecutor {
             boolean town = Boolean.parseBoolean(args[5]);
             Location loc = player.getLocation();
             manager.addLocation(name, color, desc, loc, radius, town);
-            player.sendMessage(ChatColor.GREEN + "Location " + name + " added.");
+            send(player, MessageType.SUCCESS, "Location " + ChatColor.WHITE + name + ChatColor.GREEN + " added.");
         } else if (sub.equals("move") && args.length >= 2) {
             manager.moveLocation(args[1], player.getLocation());
-            player.sendMessage(ChatColor.YELLOW + "Location moved.");
+            send(player, MessageType.SUCCESS, ChatColor.YELLOW + "Location moved.");
         } else if (sub.equals("remove") && args.length >= 2) {
             manager.removeLocation(args[1]);
-            player.sendMessage(ChatColor.RED + "Location removed.");
+            send(player, MessageType.ERROR, "Location removed.");
         } else if (sub.equals("list")) {
-            player.sendMessage(ChatColor.GOLD + "Fast Travel Locations:");
+            send(player, MessageType.INFO, ChatColor.GOLD + "Fast Travel Locations:");
             manager.getPoints().forEach(pt ->
-                    player.sendMessage(pt.getColor() + pt.getName() + ChatColor.GRAY + " - " + pt.getDescription())
+                    send(player, MessageType.INFO, pt.getColor() + pt.getName() + ChatColor.GRAY + " - " + pt.getDescription())
             );
         } else {
-            player.sendMessage(ChatColor.RED + "Usage: /location set <name> <color> <description_with_underscores> <radius> <true/false>");
+            send(player, MessageType.ERROR, "Usage: /location set <name> <color> <description_with_underscores> <radius> <true/false>");
         }
         return true;
     }

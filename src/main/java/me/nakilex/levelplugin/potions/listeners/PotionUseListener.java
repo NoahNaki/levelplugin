@@ -24,6 +24,9 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.UUID;
 
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
+
 public class PotionUseListener implements Listener {
 
     private final PotionManager potionManager;
@@ -70,7 +73,7 @@ public class PotionUseListener implements Listener {
         if (potionManager.isOnCooldown(uuid)) {
             long remain = potionManager.getRemainingCooldown(uuid);
             String baseName = ChatColor.translateAlternateColorCodes('&', instance.getTemplate().getName());
-            player.sendMessage(ChatColor.RED + "You must wait " + ChatColor.GOLD + remain + "s "
+            send(player, MessageType.WARNING, "You must wait " + ChatColor.GOLD + remain + "s "
                     + ChatColor.RED + "before using " + ChatColor.YELLOW + baseName + ChatColor.RED + " again.");
             return;
         }
@@ -87,12 +90,12 @@ public class PotionUseListener implements Listener {
             int currentMana = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).getCurrentMana();
             int maxMana = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).getMaxMana();
             if (currentMana >= maxMana) {
-                player.sendMessage(ChatColor.AQUA + "Your mana is already full!");
+                send(player, MessageType.WARNING, "Your mana is already full!");
                 return;
             }
         } else {
             if (player.getHealth() >= player.getMaxHealth()) {
-                player.sendMessage(ChatColor.RED + "Your health is already full!");
+                send(player, MessageType.WARNING, "Your health is already full!");
                 return;
             }
         }
@@ -151,7 +154,7 @@ public class PotionUseListener implements Listener {
 
         String symbol = potionId.startsWith("mana") ? "\u2728" : "\u2764"; // ✨ or ❤
         ChatColor symColor = potionId.startsWith("mana") ? ChatColor.AQUA : ChatColor.RED;
-        player.sendMessage(ChatColor.GREEN + "+" + ChatColor.WHITE + (int) restored + " "
+        send(player, MessageType.SUCCESS, ChatColor.GREEN + "+" + ChatColor.WHITE + (int) restored + " "
                 + symColor + symbol + ChatColor.GRAY + " (" + instance.getCharges() + " left)");
         item.setItemMeta(meta);
 

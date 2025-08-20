@@ -6,6 +6,9 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
+
 public class BlacksmithCommand implements CommandExecutor {
 
     private final BlacksmithGUI blacksmithGUI;
@@ -17,7 +20,7 @@ public class BlacksmithCommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage("§cOnly players can use this command!");
+            send(sender, MessageType.ERROR, "Only players can use this command!");
             return true;
         }
 

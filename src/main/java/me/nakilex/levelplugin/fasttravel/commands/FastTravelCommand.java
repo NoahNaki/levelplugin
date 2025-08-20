@@ -6,6 +6,9 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
+
 public class FastTravelCommand implements CommandExecutor {
     private final FastTravelGUI gui;
     public FastTravelCommand(FastTravelGUI gui) {
@@ -14,7 +17,7 @@ public class FastTravelCommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("Only players may use this command.");
+            send(sender, MessageType.ERROR, "Only players may use this command.");
             return true;
         }
         gui.open(player);
