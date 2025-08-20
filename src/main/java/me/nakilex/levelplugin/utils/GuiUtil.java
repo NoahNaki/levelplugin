@@ -55,15 +55,15 @@ public final class GuiUtil {
      * Append standardized left/right click instructions to a lore list.
      *
      * @param lore       list to append to
-     * @param leftAction description following "Left-Click" or {@code null}
-     * @param rightAction description following "Right-Click" or {@code null}
+     * @param leftAction description following "Left-click" or {@code null}
+     * @param rightAction description following "Right-click" or {@code null}
      */
     public static void addClickInstructions(List<String> lore, String leftAction, String rightAction) {
         if (leftAction != null) {
-            lore.add(ChatColor.WHITE + "Left-Click " + ChatColor.GRAY + leftAction);
+            lore.add(ChatColor.WHITE + "Left-click " + ChatColor.GRAY + leftAction);
         }
         if (rightAction != null) {
-            lore.add(ChatColor.WHITE + "Right-Click " + ChatColor.GRAY + rightAction);
+            lore.add(ChatColor.WHITE + "Right-click " + ChatColor.GRAY + rightAction);
         }
     }
 

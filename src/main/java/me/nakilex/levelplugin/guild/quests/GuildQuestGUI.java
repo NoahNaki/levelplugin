@@ -48,24 +48,24 @@ public final class GuildQuestGUI {
             lore.add(ChatColor.GRAY + "Progress: " + ChatColor.YELLOW + total + ChatColor.GRAY + "/" + ChatColor.YELLOW + need);
             lore.add(TooltipUtil.progressBar(total, need, 10));
 
-            lore.add(ChatColor.GRAY + "Difficulty: " + GuiUtil.generateStars(quest.getStars(), 3));
+            lore.add(ChatColor.GRAY + "Difficulty: " + ChatColor.YELLOW + GuiUtil.glyphStars(quest.getStars()));
 
             lore.add(" ");
-            lore.add(ChatColor.GOLD + "Guild Rewards:");
+            lore.add(ChatColor.GREEN + "Guild Rewards:");
             String expLabel = ChatFormatter.experienceLabel();
             String expColor = ChatFormatter.experienceColor();
-            lore.add(ChatColor.YELLOW + "- " + expColor + quest.getGuildExpReward() + ChatColor.RESET + " " + expLabel);
-            lore.add(ChatColor.YELLOW + "- " + quest.getGuildCoinReward() + " coins");
+            lore.add(ChatColor.GREEN + "- " + expColor + quest.getGuildExpReward() + ChatColor.RESET + " <glyph:experience_orb_icon> " + expLabel);
+            lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + quest.getGuildCoinReward() + " <glyph:coins_icon>");
 
             QuestReward pr = quest.getPersonalReward();
             if (pr != null && (pr.getXp() > 0 || pr.getCoins() > 0)) {
                 lore.add(" ");
-                lore.add(ChatColor.GOLD + "Personal Rewards:");
+                lore.add(ChatColor.GREEN + "Personal Rewards:");
                 if (pr.getXp() > 0) {
-                    lore.add(ChatColor.YELLOW + "- " + expColor + pr.getXp() + ChatColor.RESET + " " + expLabel);
+                    lore.add(ChatColor.GREEN + "- " + expColor + pr.getXp() + ChatColor.RESET + " <glyph:experience_orb_icon> " + expLabel);
                 }
                 if (pr.getCoins() > 0) {
-                    lore.add(ChatColor.YELLOW + "- " + pr.getCoins() + " coins");
+                    lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + pr.getCoins() + " <glyph:coins_icon>");
                 }
             }
 
@@ -73,10 +73,8 @@ public final class GuildQuestGUI {
             if (quest.isAccepted()) {
                 lore.add(ChatColor.GREEN + "Accepted");
             } else {
-                lore.add(ChatColor.GRAY + "Left-click to accept");
-                if (!quest.isRerolled()) {
-                    lore.add(ChatColor.GRAY + "Right-click to reroll");
-                } else {
+                GuiUtil.addClickInstructions(lore, "to accept", quest.isRerolled() ? null : "to reroll");
+                if (quest.isRerolled()) {
                     lore.add(ChatColor.RED + "Reroll used");
                 }
             }
