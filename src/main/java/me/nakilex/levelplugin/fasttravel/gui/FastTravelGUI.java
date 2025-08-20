@@ -91,13 +91,13 @@ public class FastTravelGUI implements Listener {
             if(i<9 || i>=45 || i%9==0 || i%9==8){ gui.setItem(i,filler); }
         }
         int filter = typeMap.getOrDefault(player.getUniqueId(),0);
-        me.nakilex.levelplugin.guild.Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
+        me.nakilex.levelplugin.guild.Guild guild = GuildManager.getInstance().getGuild(player.getUniqueId());
         List<ModelGate> list = new ArrayList<>(gateManager.getGates());
         String exclude = excludeMap.get(player.getUniqueId());
         if(exclude != null){
-            list.removeIf(g -> g.getId().equalsIgnoreCase(exclude));
+            list.removeIf(gate -> gate.getId().equalsIgnoreCase(exclude));
         }
-        if(filter==1) list.removeIf(g->!g.isTown());
+        if(filter==1) list.removeIf(gate -> !gate.isTown());
         else if(filter==2) list.removeIf(ModelGate::isTown);
         int mode = sortMap.getOrDefault(player.getUniqueId(),0);
         list.sort(getComparator(mode,player));
@@ -114,7 +114,7 @@ public class FastTravelGUI implements Listener {
                 List<String> lore=new ArrayList<>();
                 if(unlocked){
                     int cost=(int)player.getLocation().distance(pt.getLocation());
-                    cost = TownPerkManager.getInstance().applyDiscount(g, TownPerk.FAST_TRAVEL_DISCOUNT, cost);
+                    cost = TownPerkManager.getInstance().applyDiscount(guild, TownPerk.FAST_TRAVEL_DISCOUNT, cost);
                     lore.add(ChatColor.GRAY+"Teleportation Cost:");
                     lore.add(ChatColor.WHITE+""+cost+ChatColor.YELLOW+" <glyph:coins_icon>");
                 } else {
