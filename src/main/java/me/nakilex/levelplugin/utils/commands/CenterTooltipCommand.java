@@ -1,6 +1,6 @@
 package me.nakilex.levelplugin.utils.commands;
 
-import me.nakilex.levelplugin.utils.TextUtil;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -32,7 +32,7 @@ public class CenterTooltipCommand implements CommandExecutor {
             item.setItemMeta(meta);
         }
 
-        TextUtil.centerItemTooltip(item);
+        TooltipUtil.centerLore(item);
         player.getInventory().addItem(item);
         player.sendMessage("§aEnjoy your centered item!");
         return true;

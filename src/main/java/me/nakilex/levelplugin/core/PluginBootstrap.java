@@ -97,6 +97,8 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.guild.GuildMemberGUI guildMemberGUI;
     private me.nakilex.levelplugin.guild.GuildSettingsGUI guildSettingsGUI;
     private me.nakilex.levelplugin.guild.GuildApplicantsGUI guildApplicantsGUI;
+    private me.nakilex.levelplugin.guild.quests.GuildQuestManager guildQuestManager;
+    private me.nakilex.levelplugin.guild.quests.GuildQuestGUI guildQuestGUI;
     private me.nakilex.levelplugin.guild.siege.GuildSiegeManager guildSiegeManager;
     private PartyGlowManager partyGlowManager;
     private me.nakilex.levelplugin.friend.FriendManager friendManager;
@@ -268,7 +270,9 @@ public class PluginBootstrap {
         guildGUI = new me.nakilex.levelplugin.guild.GuildGUI(guildManager);
         guildApplicantsGUI = new me.nakilex.levelplugin.guild.GuildApplicantsGUI(guildManager);
         guildSettingsGUI = new me.nakilex.levelplugin.guild.GuildSettingsGUI(guildManager);
-        guildMemberGUI = new me.nakilex.levelplugin.guild.GuildMemberGUI(guildManager, guildGUI, guildApplicantsGUI, guildSettingsGUI);
+        guildQuestManager = me.nakilex.levelplugin.guild.quests.GuildQuestManager.getInstance();
+        guildQuestGUI = new me.nakilex.levelplugin.guild.quests.GuildQuestGUI(guildManager, guildQuestManager);
+        guildMemberGUI = new me.nakilex.levelplugin.guild.GuildMemberGUI(guildManager, guildGUI, guildApplicantsGUI, guildSettingsGUI, guildQuestGUI);
         guildApplicantsGUI.setMemberGUI(guildMemberGUI);
         guildSettingsGUI.setMemberGUI(guildMemberGUI);
         guildSiegeManager = me.nakilex.levelplugin.guild.siege.GuildSiegeManager.getInstance();

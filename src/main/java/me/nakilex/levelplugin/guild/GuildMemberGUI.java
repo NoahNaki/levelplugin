@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.HeadUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -31,6 +32,7 @@ public class GuildMemberGUI implements Listener {
     private final GuildGUI guildGUI;
     private final GuildApplicantsGUI applicantsGUI;
     private final GuildSettingsGUI settingsGUI;
+    private final me.nakilex.levelplugin.guild.quests.GuildQuestGUI questGUI;
 
     private static final int SIZE = 54;
     private static final String TITLE = ChatColor.BLACK + "Guild Menu";
@@ -52,6 +54,7 @@ public class GuildMemberGUI implements Listener {
     private static final int SORT_SLOT   = 51;
     private static final int VAULT_SLOT  = 46;
     private static final int SETTINGS_SLOT = 52;
+    private static final int QUESTS_SLOT = 44;
     private static final int INFO_SLOT   = 8;
     private static final int REFRESH_SLOT = 0;
 
@@ -61,11 +64,13 @@ public class GuildMemberGUI implements Listener {
     private final Set<UUID> awaitingSearch = new HashSet<>();
     private final Set<UUID> awaitingMotd = new HashSet<>();
 
-    public GuildMemberGUI(GuildManager manager, GuildGUI guildGUI, GuildApplicantsGUI applicantsGUI, GuildSettingsGUI settingsGUI) {
+    public GuildMemberGUI(GuildManager manager, GuildGUI guildGUI, GuildApplicantsGUI applicantsGUI, GuildSettingsGUI settingsGUI,
+                          me.nakilex.levelplugin.guild.quests.GuildQuestGUI questGUI) {
         this.manager = manager;
         this.guildGUI = guildGUI;
         this.applicantsGUI = applicantsGUI;
         this.settingsGUI = settingsGUI;
+        this.questGUI = questGUI;
         Bukkit.getPluginManager().registerEvents(this, Main.getInstance());
     }
 
@@ -152,12 +157,12 @@ public class GuildMemberGUI implements Listener {
                 double progress = cur / (double) need;
                 double percent = Math.round(progress * 1000.0) / 10.0;
                 lore.add(ChatColor.GRAY + "Progress: " + ChatColor.YELLOW + percent + "%");
-                String bar = GuiUtil.createProgressBar(progress, 15);
                 String expColor = ChatFormatter.experienceColor();
-                lore.add(bar + " " + expColor + cur + ChatColor.GOLD + "/" + expColor + need + " " + ChatFormatter.experienceLabel());
+                TooltipUtil.addProgressBar(lore, progress, 15, expColor + cur + ChatColor.GOLD + "/" + expColor + need + " " + ChatFormatter.experienceLabel());
             }
             infoMeta.setLore(lore);
             infoItem.setItemMeta(infoMeta);
+            TooltipUtil.centerLore(infoItem);
         }
         inv.setItem(HOME_SLOT, infoItem);
         inv.setItem(SEARCH_SLOT, createSearchButton(term));
@@ -192,6 +197,7 @@ public class GuildMemberGUI implements Listener {
         }
         inv.setItem(VAULT_SLOT, vaultItem);
         inv.setItem(SETTINGS_SLOT, GuiUtil.getNexoItem("settings", ChatColor.AQUA + "Settings"));
+        inv.setItem(QUESTS_SLOT, GuiUtil.getNexoItem("pack1_scroll2", ChatColor.GOLD + "Guild Quests"));
 
         player.openInventory(inv);
     }
@@ -332,6 +338,10 @@ public class GuildMemberGUI implements Listener {
             if (g != null && g.getRole(player.getUniqueId()) == GuildRole.LEADER) {
                 settingsGUI.open(player);
             }
+            return;
+        }
+        if (slot == QUESTS_SLOT) {
+            questGUI.open(player);
             return;
         }
         if (slot == REFRESH_SLOT) {

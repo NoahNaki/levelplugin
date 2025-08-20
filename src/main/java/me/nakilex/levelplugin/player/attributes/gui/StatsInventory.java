@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStats;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
@@ -187,10 +188,9 @@ public class StatsInventory {
             double progress = nextLevelXP > 0 ? (double) currentXP / nextLevelXP : 0.0;
             double percent = Math.round(progress * 1000.0) / 10.0;
             lore.add(ChatColor.GRAY + "Progress to Level " + ChatColor.YELLOW + (StatsManager.getInstance().getLevel(player) + 1) + ChatColor.GRAY + ": " + ChatColor.YELLOW + percent + "%");
-            String bar = GuiUtil.createProgressBar(progress, 15);
             String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
             String expColor = me.nakilex.levelplugin.utils.ChatFormatter.experienceColor();
-            lore.add(bar + " " + expColor + currentXP + ChatColor.GOLD + "/" + expColor + nextLevelXP + " <glyph:experience_orb_icon> " + expLabel);
+            TooltipUtil.addProgressBar(lore, progress, 15, expColor + currentXP + ChatColor.GOLD + "/" + expColor + nextLevelXP + " <glyph:experience_orb_icon> " + expLabel);
         } else {
             int mLevel = miningManager.getLevel(player);
             int next = miningManager.getXpRequired(mLevel);
@@ -212,6 +212,7 @@ public class StatsInventory {
         lore.add(ChatColor.GREEN + "< " + box1 + " " + box2 + ChatColor.GREEN + " >");
         meta.setLore(lore);
         head.setItemMeta(meta);
+        TooltipUtil.centerLore(head);
         return head;
     }
 
