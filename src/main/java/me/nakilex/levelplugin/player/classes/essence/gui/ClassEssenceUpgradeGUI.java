@@ -2,8 +2,10 @@ package me.nakilex.levelplugin.player.classes.essence.gui;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
+import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.TextUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -17,17 +19,18 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
+
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
 
 /**
  * Blacksmith-style GUI for investing duplicate essences and upgrading stars.
  */
 public class ClassEssenceUpgradeGUI implements Listener {
 
-    private static final String INVEST_TITLE = ChatColor.BLACK + "<glyph:essence> Essence: Invest";
-    private static final String STAR_TITLE = ChatColor.BLACK + "<glyph:essence> Essence: Star Upgrade";
+    private static final String INVEST_TITLE = ChatColor.BLACK + "Essence: Invest";
+    private static final String STAR_TITLE = ChatColor.BLACK + "Essence: Star Upgrade";
 
     private static final int SACRIFICE_SLOT = 11;
     private static final int TARGET_SLOT = 15;
@@ -35,6 +38,8 @@ public class ClassEssenceUpgradeGUI implements Listener {
     private static final int CONFIRM_SLOT = 22;
     private static final int LEFT_ARROW_SLOT = 9;
     private static final int RIGHT_ARROW_SLOT = 17;
+
+    private static final Set<UUID> SWITCHING = new HashSet<>();
 
     public static void openInvest(Player player, ItemStack target) {
         Inventory gui = GuiBuilder.create(27, INVEST_TITLE)
@@ -109,6 +114,9 @@ public class ClassEssenceUpgradeGUI implements Listener {
             if (INVEST_TITLE.equals(title)) {
                 ItemStack sacrifice = inv.getItem(SACRIFICE_SLOT);
                 if (sacrifice != null) player.getInventory().addItem(sacrifice);
+            }
+            SWITCHING.add(player.getUniqueId());
+            if (INVEST_TITLE.equals(title)) {
                 openStar(player, carry);
             } else {
                 openInvest(player, carry);
@@ -127,12 +135,17 @@ public class ClassEssenceUpgradeGUI implements Listener {
                 if (target != null && sacrifice != null &&
                         ClassEssence.isEssence(target) && ClassEssence.isEssence(sacrifice) &&
                         ClassEssence.getClass(target) == ClassEssence.getClass(sacrifice)) {
-                    ClassEssence.addExp(target, 50);
+                    ItemRarity sacRarity = ClassEssence.getRarity(sacrifice);
+                    int amount = ClassEssence.getInvestExp(sacRarity) + ClassEssence.getExp(sacrifice);
+                    ItemRarity upgraded = ClassEssence.addExp(target, amount);
                     inv.setItem(TARGET_SLOT, target);
                     inv.setItem(SACRIFICE_SLOT, null);
-                    player.sendMessage(ChatColor.GREEN + "Invested essence (+50 EXP)");
+                    send(player, MessageType.SUCCESS, "Invested essence (+" + amount + " EXP)");
+                    if (upgraded != null) {
+                        send(player, MessageType.SUCCESS, "Essence rarity increased to " + upgraded.getColor() + TextUtil.beautifyWords(upgraded.name()));
+                    }
                 } else {
-                    player.sendMessage(ChatColor.RED + "Essences must match class.");
+                    send(player, MessageType.ERROR, "Essences must match class.");
                 }
             }
             return;
@@ -157,20 +170,20 @@ public class ClassEssenceUpgradeGUI implements Listener {
                             econ.deductCoins(player, cost);
                             if (new Random().nextInt(100) < chance) {
                                 ClassEssence.upgradeStar(essence);
-                                player.sendMessage(ChatColor.GREEN + "Star upgrade succeeded!");
+                                send(player, MessageType.SUCCESS, "Star upgrade succeeded!");
                             } else {
-                                player.sendMessage(ChatColor.RED + "Star upgrade failed!");
+                                send(player, MessageType.ERROR, "Star upgrade failed!");
                             }
                             inv.setItem(STAR_SLOT, essence);
                             updateStarButton(inv);
                         } else {
-                            player.sendMessage(ChatColor.RED + "You need " + cost + " coins.");
+                            send(player, MessageType.ERROR, "You need " + cost + " coins.");
                         }
                     } else {
-                        player.sendMessage(ChatColor.RED + "Essence is already max star.");
+                        send(player, MessageType.ERROR, "Essence is already max star.");
                     }
                 } else {
-                    player.sendMessage(ChatColor.RED + "Place an essence to upgrade.");
+                    send(player, MessageType.ERROR, "Place an essence to upgrade.");
                 }
             }
         }
@@ -180,6 +193,8 @@ public class ClassEssenceUpgradeGUI implements Listener {
     public void onClose(InventoryCloseEvent e) {
         String title = e.getView().getTitle();
         Player player = (Player) e.getPlayer();
+        if (SWITCHING.remove(player.getUniqueId())) return;
+
         Inventory inv = e.getInventory();
         if (INVEST_TITLE.equals(title)) {
             ItemStack target = inv.getItem(TARGET_SLOT);

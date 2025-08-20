@@ -349,15 +349,16 @@ public final class ClassEssence {
         updateLore(stack);
     }
 
-    public static void addExp(ItemStack stack, int amount) {
-        if (!isEssence(stack) || amount <= 0) return;
+    public static ItemRarity addExp(ItemStack stack, int amount) {
+        if (!isEssence(stack) || amount <= 0) return null;
         ItemMeta meta = stack.getItemMeta();
-        if (meta == null) return;
+        if (meta == null) return null;
         PersistentDataContainer pdc = meta.getPersistentDataContainer();
         int exp = pdc.has(EXP_KEY, PersistentDataType.INTEGER) ? pdc.get(EXP_KEY, PersistentDataType.INTEGER) : 0;
         exp += amount;
         int next = pdc.has(NEXT_EXP_KEY, PersistentDataType.INTEGER) ? pdc.get(NEXT_EXP_KEY, PersistentDataType.INTEGER) : 0;
         ItemRarity rarity = ItemRarity.valueOf(pdc.get(RARITY_KEY, PersistentDataType.STRING));
+        ItemRarity original = rarity;
         int star = pdc.has(STAR_KEY, PersistentDataType.INTEGER) ? pdc.get(STAR_KEY, PersistentDataType.INTEGER) : 0;
         if (next > 0 && exp >= next) {
             exp -= next;
@@ -375,6 +376,11 @@ public final class ClassEssence {
         pdc.set(NEXT_EXP_KEY, PersistentDataType.INTEGER, next);
         stack.setItemMeta(meta);
         updateLore(stack);
+        return rarity != original ? rarity : null;
+    }
+
+    public static int getInvestExp(ItemRarity rarity) {
+        return 50 * (rarity.ordinal() + 1);
     }
 
     private static ItemRarity nextRarity(ItemRarity r) {
