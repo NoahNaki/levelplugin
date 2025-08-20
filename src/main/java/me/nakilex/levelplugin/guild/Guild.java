@@ -26,8 +26,8 @@ public class Guild {
     private int exp = 0;
     /** Purchased town perks retained by the guild. */
     private final java.util.EnumSet<TownPerk> townPerks = java.util.EnumSet.noneOf(TownPerk.class);
-    /** Active guild quests keyed by quest id. */
-    private final java.util.Map<String, GuildQuest> quests = new java.util.HashMap<>();
+    /** Active guild quests keyed by slot index. */
+    private final java.util.Map<String, GuildQuest> quests = new java.util.LinkedHashMap<>();
 
     public Guild(String name, UUID leader) {
         this.name = name;

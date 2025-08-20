@@ -33,13 +33,14 @@ public final class GuildQuestGUI {
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .border();
 
-        int slot = 10;
-        for (GuildQuest quest : quests.values()) {
+        for (int i = 0; i < 3; i++) {
+            GuildQuest quest = quests.get(String.valueOf(i));
+            if (quest == null) continue;
+            int slot = 10 + i;
             ItemStack icon = GuiUtil.getNexoItem("pack1_scroll2", ChatColor.GOLD + quest.getName());
             ItemMeta meta = icon.getItemMeta();
             List<String> lore = new ArrayList<>();
 
-            // Objective and progress
             String desc = Main.getInstance().getQuestManager().describeObjective(quest.getObjective());
             int total = quest.getTotalContribution();
             int need = quest.getTargetAmount();
@@ -47,10 +48,8 @@ public final class GuildQuestGUI {
             lore.add(ChatColor.GRAY + "Progress: " + ChatColor.YELLOW + total + ChatColor.GRAY + "/" + ChatColor.YELLOW + need);
             lore.add(TooltipUtil.progressBar(total, need, 10));
 
-            // Difficulty
             lore.add(ChatColor.GRAY + "Difficulty: " + GuiUtil.generateStars(quest.getStars(), 3));
 
-            // Rewards
             lore.add(" ");
             lore.add(ChatColor.GOLD + "Guild Rewards:");
             String expLabel = ChatFormatter.experienceLabel();
@@ -70,11 +69,21 @@ public final class GuildQuestGUI {
                 }
             }
 
+            lore.add(" ");
+            if (quest.isAccepted()) {
+                lore.add(ChatColor.GREEN + "Accepted");
+            } else {
+                lore.add(ChatColor.GRAY + "Left-click to accept");
+                if (!quest.isRerolled()) {
+                    lore.add(ChatColor.GRAY + "Right-click to reroll");
+                } else {
+                    lore.add(ChatColor.RED + "Reroll used");
+                }
+            }
+
             meta.setLore(lore);
             icon.setItemMeta(meta);
             builder.setItem(slot, icon);
-            slot++;
-            if (slot % 9 == 8) slot += 2; // move to next row skipping borders
         }
 
         return builder.build();

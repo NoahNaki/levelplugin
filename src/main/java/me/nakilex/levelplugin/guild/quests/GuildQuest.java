@@ -39,6 +39,12 @@ public class GuildQuest {
     /** Track contributions from each guild member toward the objective. */
     private final Map<UUID, Integer> contributions = new HashMap<>();
 
+    /** Whether the guild has accepted this quest. */
+    private boolean accepted = false;
+
+    /** Whether the quest slot has already been rerolled. */
+    private boolean rerolled = false;
+
     public GuildQuest(String id, String name, int stars,
                       QuestObjective objective,
                       QuestReward personalReward,
@@ -101,11 +107,32 @@ public class GuildQuest {
         return contributions.getOrDefault(member, 0);
     }
 
+    /** Expose contribution map for persistence. */
+    public Map<UUID, Integer> getContributions() {
+        return contributions;
+    }
+
     /**
      * Reset contributions, effectively rerolling progress.
      * Callers should also swap the objective/rewards as needed.
      */
     public void reroll() {
         contributions.clear();
+    }
+
+    public boolean isAccepted() {
+        return accepted;
+    }
+
+    public void setAccepted(boolean accepted) {
+        this.accepted = accepted;
+    }
+
+    public boolean isRerolled() {
+        return rerolled;
+    }
+
+    public void setRerolled(boolean rerolled) {
+        this.rerolled = rerolled;
     }
 }

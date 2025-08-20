@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.inventory.ItemStack;
 
 import java.io.File;
 import java.io.IOException;
@@ -72,6 +73,19 @@ public class PlayerConfig {
             config.set(path + ".fasttravel", new ArrayList<>(ftm.getUnlocked(uuid)));
         }
 
+        // Persist essence slots and which ones are equipped
+        List<ItemStack> essenceList = new ArrayList<>();
+        for (ItemStack stack : stats.essenceSlots) {
+            essenceList.add(stack);
+        }
+        config.set(path + ".essences.slots", essenceList);
+
+        List<Boolean> equippedList = new ArrayList<>();
+        for (boolean equipped : stats.equippedEssences) {
+            equippedList.add(equipped);
+        }
+        config.set(path + ".essences.equipped", equippedList);
+
         saveConfig();
     }
 
@@ -120,6 +134,19 @@ public class PlayerConfig {
 
         List<String> ft = config.getStringList(root + ".fasttravel");
         plugin.getFastTravelManager().setUnlocked(uuid, new HashSet<>(ft));
+
+        // Restore essence slots and equipped state
+        List<ItemStack> essences = (List<ItemStack>) config.getList(root + ".essences.slots");
+        if (essences != null) {
+            for (int i = 0; i < Math.min(stats.essenceSlots.length, essences.size()); i++) {
+                stats.essenceSlots[i] = essences.get(i);
+            }
+        }
+
+        List<Boolean> equipped = config.getBooleanList(root + ".essences.equipped");
+        for (int i = 0; i < Math.min(stats.equippedEssences.length, equipped.size()); i++) {
+            stats.equippedEssences[i] = equipped.get(i);
+        }
     }
 
     /** Saves data for all players. */
