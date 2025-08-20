@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.guild;
 
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
+import me.nakilex.levelplugin.guild.quests.GuildQuest;
 
 import java.util.*;
 
@@ -25,6 +26,8 @@ public class Guild {
     private int exp = 0;
     /** Purchased town perks retained by the guild. */
     private final java.util.EnumSet<TownPerk> townPerks = java.util.EnumSet.noneOf(TownPerk.class);
+    /** Active guild quests keyed by quest id. */
+    private final java.util.Map<String, GuildQuest> quests = new java.util.HashMap<>();
 
     public Guild(String name, UUID leader) {
         this.name = name;
@@ -107,6 +110,11 @@ public class Guild {
     /** Access the guild's purchased town perks. */
     public java.util.EnumSet<TownPerk> getTownPerks() {
         return townPerks;
+    }
+
+    /** Access guild quests for display or progress tracking. */
+    public java.util.Map<String, GuildQuest> getQuests() {
+        return quests;
     }
 
     public boolean hasPerk(TownPerk perk) {

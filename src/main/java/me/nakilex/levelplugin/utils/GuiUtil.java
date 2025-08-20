@@ -16,6 +16,18 @@ import java.util.List;
 public final class GuiUtil {
     private GuiUtil() {}
 
+    /**
+     * Standard 28-slot layout used by paginated menus. The pattern spans
+     * four centered rows of seven slots each and leaves a border around the
+     * edges for navigation controls.
+     */
+    public static final int[] PAGED_SLOTS = {
+            10,11,12,13,14,15,16,
+            19,20,21,22,23,24,25,
+            28,29,30,31,32,33,34,
+            37,38,39,40,41,42,43
+    };
+
     /** Create a simple filler pane with a blank display name. */
     public static ItemStack createFiller(Material material) {
         ItemStack item = new ItemStack(material);
