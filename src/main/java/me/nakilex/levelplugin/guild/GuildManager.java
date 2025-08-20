@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.guild.quests.GuildQuestManager;
 import me.nakilex.levelplugin.quests.data.QuestObjective;
 import me.nakilex.levelplugin.quests.data.QuestObjectiveType;
 import me.nakilex.levelplugin.quests.data.QuestReward;
+import me.nakilex.levelplugin.quests.data.QuestRewardCompat;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -372,7 +373,12 @@ public class GuildManager {
                                 objSec.getString("target", null),
                                 objSec.getInt("amount", 1)
                         );
-                        QuestReward pr = new QuestReward(qs.getInt("personal.xp", 0), qs.getInt("personal.coins", 0));
+                        QuestReward pr = QuestRewardCompat.create(
+                                qs.getInt("personal.xp", 0),
+                                qs.getInt("personal.coins", 0),
+                                0,
+                                java.util.Collections.emptyList()
+                        );
                         GuildQuest quest = new GuildQuest(qid, qname, stars, obj, pr,
                                 qs.getInt("guild_exp", 0), qs.getInt("guild_coins", 0));
                         quest.setAccepted(qs.getBoolean("accepted", false));

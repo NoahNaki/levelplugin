@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.quests.data.QuestObjective;
 import me.nakilex.levelplugin.quests.data.QuestObjectiveType;
 import me.nakilex.levelplugin.quests.data.QuestReward;
+import me.nakilex.levelplugin.quests.data.QuestRewardCompat;
 
 import java.util.*;
 
@@ -73,7 +74,12 @@ public class GuildQuestManager {
 
         QuestObjective obj = new QuestObjective(type, null, amount);
 
-        QuestReward personal = new QuestReward(stars * 50, stars * 25);
+        QuestReward personal = QuestRewardCompat.create(
+                stars * 50,
+                stars * 25,
+                0,
+                java.util.Collections.emptyList()
+        );
         int guildExp = stars * 100;
         int guildCoins = stars * 50;
 
