@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.calendar;
 
 import me.nakilex.levelplugin.Main;
 import org.bukkit.Bukkit;
+import org.bukkit.GameRule;
 import org.bukkit.World;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.event.Listener;
@@ -16,6 +17,7 @@ public class CalendarManager implements Listener {
     private final Random random = new Random();
     private String baseWeatherGlyph = GLYPH_HOT;
     private String overrideWeatherGlyph = null;
+    private WeatherType currentWeather = WeatherType.CLEAR;
     private final int[] monthLengths = {31,28,31,30,31,30,31,31,30,31,30,31};
     private int year = 0;
     private int month = 1; // 1-12
@@ -44,9 +46,11 @@ public class CalendarManager implements Listener {
         if (this.world == null && !Bukkit.getWorlds().isEmpty()) {
             this.world = Bukkit.getWorlds().get(0);
         }
+        if (this.world != null) {
+            this.world.setGameRule(GameRule.DO_WEATHER_CYCLE, false);
+        }
         Bukkit.getPluginManager().registerEvents(this, plugin);
         chooseDailyWeather();
-        updateOverride();
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -75,7 +79,6 @@ public class CalendarManager implements Listener {
             }
         }
         chooseDailyWeather();
-        updateOverride();
         plugin.getScoreboardManager().updateAll();
         plugin.getEnvironmentManager().grantDailyPayout("town");
     }
@@ -131,19 +134,53 @@ public class CalendarManager implements Listener {
     }
 
     private void chooseDailyWeather() {
-        int pick = random.nextInt(4); // hot, hot, cloud, cold
+        int pick = random.nextInt(4);
         switch (pick) {
             case 0:
+                currentWeather = WeatherType.CLEAR;
+                break;
             case 1:
-                baseWeatherGlyph = GLYPH_HOT;
+                currentWeather = WeatherType.RAIN;
                 break;
             case 2:
-                baseWeatherGlyph = GLYPH_CLOUD;
+                currentWeather = WeatherType.SNOW;
                 break;
             default:
-                baseWeatherGlyph = GLYPH_COLD;
+                currentWeather = WeatherType.STORM;
                 break;
         }
+        applyWeather(currentWeather);
+    }
+
+    private void applyWeather(WeatherType type) {
+        if (world == null) return;
+        switch (type) {
+            case CLEAR:
+                world.setStorm(false);
+                world.setThundering(false);
+                world.setWeatherDuration(20 * 60 * 10);
+                baseWeatherGlyph = GLYPH_HOT;
+                break;
+            case RAIN:
+                world.setStorm(true);
+                world.setThundering(false);
+                world.setWeatherDuration(20 * 60 * 10);
+                baseWeatherGlyph = GLYPH_RAIN;
+                break;
+            case SNOW:
+                world.setStorm(true);
+                world.setThundering(false);
+                world.setWeatherDuration(20 * 60 * 10);
+                baseWeatherGlyph = GLYPH_SNOW;
+                break;
+            case STORM:
+                world.setStorm(true);
+                world.setThundering(true);
+                world.setWeatherDuration(20 * 60 * 10);
+                baseWeatherGlyph = GLYPH_THUNDER;
+                break;
+        }
+        updateOverride();
     }
 
     private void updateOverride() {
