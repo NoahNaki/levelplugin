@@ -106,9 +106,36 @@ public class ClassEssenceMenuListener implements Listener {
         } else if (click.isRightClick()) {
             if (current != null && ClassEssence.isEssence(current)) {
                 if (ps.equippedEssences[idx]) {
+                    Map<StatType, Integer> before = new HashMap<>();
+                    for (StatType st : ClassEssence.getStatTypes(current)) {
+                        before.put(st, StatsManager.getInstance().getStatValue(player, st));
+                    }
                     ClassEssence.removeAttributes(player, current);
                     ps.equippedEssences[idx] = false;
                     ClassEssence.setEquipped(current, false);
+
+                    // revert class to Villager
+                    ps.playerClass = PlayerClass.VILLAGER;
+                    me.nakilex.levelplugin.player.classes.managers.PlayerClassManager.getInstance()
+                            .setPlayerClass(player, PlayerClass.VILLAGER);
+                    me.nakilex.levelplugin.items.utils.ItemUtil.refreshTooltips(player);
+
+                    me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§6§l-", 45);
+                    me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§6§lESSENCE UNEQUIPPED!");
+                    me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, " ", 45);
+                    me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player,
+                            ChatColor.GRAY + "You are now the §e§lVillager §7class!");
+                    me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, " ", 45);
+                    for (StatType st : before.keySet()) {
+                        int after = StatsManager.getInstance().getStatValue(player, st);
+                        ChatColor col = after >= before.get(st) ? ChatColor.GREEN : ChatColor.RED;
+                        String name = GuiUtil.formatStatName(st);
+                        me.nakilex.levelplugin.utils.ChatMessageUtil.send(player,
+                                me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType.INFO,
+                                name + ": " + ChatColor.WHITE + before.get(st) + ChatColor.GRAY + " -> " + col + after);
+                    }
+                    me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, " ", 45);
+                    me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§6§l-", 45);
                 }
                 ClassEssence.updateLore(current);
                 player.getInventory().addItem(current);

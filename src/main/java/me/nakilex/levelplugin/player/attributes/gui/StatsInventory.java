@@ -143,7 +143,7 @@ public class StatsInventory {
         lore.add(ChatColor.WHITE + "Bonus: " + ChatColor.GREEN + bonusValue);
         lore.add(ChatColor.WHITE + "Total: " + ChatColor.GOLD + (baseValue + bonusValue));
         for (String line : effectDetails) lore.add(ChatColor.WHITE + line);
-        meta.setLore(TooltipUtil.centerLore(lore));
+        meta.setLore(lore);
         book.setItemMeta(meta);
         return book;
     }
@@ -202,7 +202,7 @@ public class StatsInventory {
         String box1 = (page == 0 ? ChatColor.GREEN : ChatColor.DARK_GRAY) + "■";
         String box2 = (page == 1 ? ChatColor.GREEN : ChatColor.DARK_GRAY) + "■";
         lore.add(ChatColor.GREEN + "< " + box1 + " " + box2 + ChatColor.GREEN + " >");
-        meta.setLore(TooltipUtil.centerLore(lore));
+        meta.setLore(lore);
         head.setItemMeta(meta);
         return head;
     }

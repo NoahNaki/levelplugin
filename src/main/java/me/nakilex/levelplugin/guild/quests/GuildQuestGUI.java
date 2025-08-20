@@ -36,7 +36,7 @@ public final class GuildQuestGUI {
             lore.add(ChatColor.GRAY + "Difficulty: " + GuiUtil.generateStars(quest.getStars(), 5));
             lore.add(ChatColor.GRAY + "Total Contributions: " + ChatColor.YELLOW + quest.getTotalContribution());
             lore.add(TooltipUtil.progressBar(quest.getTotalContribution(), quest.getRewardTiers().size(), 10));
-            meta.setLore(TooltipUtil.centerLore(lore));
+            meta.setLore(lore);
             icon.setItemMeta(meta);
             builder.setItem(slot, icon);
             slot++;

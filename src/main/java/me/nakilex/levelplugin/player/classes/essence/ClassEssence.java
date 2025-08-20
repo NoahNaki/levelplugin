@@ -222,6 +222,9 @@ public final class ClassEssence {
         if (meta == null) return;
         List<String> lore = meta.getLore();
         if (lore == null) lore = new ArrayList<>();
+        if (lore.isEmpty() || !lore.get(lore.size() - 1).isEmpty()) {
+            lore.add("");
+        }
         GuiUtil.addClickInstructions(lore, "to equip", "to unequip");
         meta.setLore(lore);
         stack.setItemMeta(meta);
