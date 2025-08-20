@@ -4,6 +4,7 @@ import com.nexomc.nexo.api.events.furniture.NexoFurnitureInteractEvent;
 import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.guild.quests.GuildQuestManager;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -66,5 +67,7 @@ public class LootChestListener implements Listener {
 
         // 7) Remember which chest this player just opened
         lootChestManager.markPlayerViewingChest(player.getUniqueId(), chestId);
+
+        GuildQuestManager.getInstance().handleLootChestOpen(player);
     }
 }

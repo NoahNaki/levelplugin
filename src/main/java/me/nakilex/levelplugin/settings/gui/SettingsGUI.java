@@ -127,6 +127,15 @@ public class SettingsGUI implements Listener {
             ));
         }
 
+        // Guild quest progress chat toggle
+        if (filter == Filter.ALL || filter == Filter.VISUAL) {
+            gui.setItem(20, GuiUtil.createToggleItem(
+                    playerSettings.isGuildQuestChatEnabled(),
+                    "§bGuild Quest Chat",
+                    "§eClick to toggle"
+            ));
+        }
+
         gui.setItem(FILTER_SLOT, createFilterItem(filter));
 
         // Filler border
@@ -283,6 +292,10 @@ public class SettingsGUI implements Listener {
             Bukkit.dispatchCommand(player, "toggle songskip");
             updateSettingItem(event.getInventory(), 19,
                 settings.isAutoSkipSongs(), "§bAuto Skip Songs", "/toggle songskip");
+        } else if (slot == 20) {
+            settings.toggleGuildQuestChat();
+            updateSettingItem(event.getInventory(), 20,
+                settings.isGuildQuestChatEnabled(), "§bGuild Quest Chat", "");
         }
     }
 }

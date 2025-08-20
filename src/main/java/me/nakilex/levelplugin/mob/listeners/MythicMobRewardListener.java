@@ -14,6 +14,7 @@ import me.nakilex.levelplugin.mob.utils.RewardHologramUtil;
 import me.nakilex.levelplugin.mob.utils.CombatPowerUtil;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
+import me.nakilex.levelplugin.guild.quests.GuildQuestManager;
 import io.lumine.mythic.api.skills.placeholders.PlaceholderString;
 import me.nakilex.levelplugin.party.Party;
 import me.nakilex.levelplugin.party.PartyManager;
@@ -143,6 +144,7 @@ public class MythicMobRewardListener implements Listener {
                                 me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency.COINS, coins)
                         + ChatColor.GOLD + "!");
             }
+            GuildQuestManager.getInstance().handleKill(player, mobType);
             if (debugToggle.isEnabled(player)) {
                 sendDebugInfo(player, rawMobType, mythicMob, baseEntity, numericHpName);
                 String expColor = ChatFormatter.experienceColor();

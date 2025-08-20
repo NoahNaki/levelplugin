@@ -14,6 +14,7 @@ public class PlayerSettings {
     private PlayerVisibility playerVisibility = PlayerVisibility.SHOW_ALL;
     private boolean autoSkipCutscenes = false;
     private boolean autoSkipSongs = false;
+    private boolean guildQuestChat = true;
 
     public boolean isDmgChatEnabled() {
         return dmgChat;
@@ -98,6 +99,14 @@ public class PlayerSettings {
 
     public void toggleAutoSkipSongs() {
         autoSkipSongs = !autoSkipSongs;
+    }
+
+    public boolean isGuildQuestChatEnabled() {
+        return guildQuestChat;
+    }
+
+    public void toggleGuildQuestChat() {
+        guildQuestChat = !guildQuestChat;
     }
 
 }

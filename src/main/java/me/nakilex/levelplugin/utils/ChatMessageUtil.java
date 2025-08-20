@@ -24,7 +24,7 @@ public final class ChatMessageUtil {
         SUCCESS(ChatColor.GREEN, ""),
         WARNING(ChatColor.YELLOW, ""),
         ERROR(ChatColor.RED, ""),
-        REWARD(ChatColor.GOLD, "<glyph:star>");
+        REWARD(ChatColor.GOLD, "");
 
         private final ChatColor color;
         private final String prefix;

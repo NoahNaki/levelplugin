@@ -7,6 +7,11 @@ import me.nakilex.levelplugin.quests.data.QuestObjective;
 import me.nakilex.levelplugin.quests.data.QuestObjectiveType;
 import me.nakilex.levelplugin.quests.data.QuestReward;
 import me.nakilex.levelplugin.quests.data.QuestRewardCompat;
+import me.nakilex.levelplugin.mob.utils.CombatPowerUtil;
+import me.nakilex.levelplugin.mob.utils.ThreatUtil;
+import org.bukkit.ChatColor;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.Player;
 
 import java.util.*;
 
@@ -21,8 +26,27 @@ public class GuildQuestManager {
     public static GuildQuestManager getInstance() { return INSTANCE; }
 
     private final Random random = new Random();
+    private final List<String> easyMobs = new ArrayList<>();
+    private final List<String> mediumMobs = new ArrayList<>();
+    private final List<String> hardMobs = new ArrayList<>();
 
-    private GuildQuestManager() {}
+    private GuildQuestManager() {
+        ConfigurationSection mobs = Main.getInstance().getMobRewardsConfig()
+                .getConfig().getConfigurationSection("mobs");
+        if (mobs != null) {
+            for (String key : mobs.getKeys(false)) {
+                int power = CombatPowerUtil.estimateCombatPower(key);
+                int threat = ThreatUtil.levelForPower(power);
+                if (threat <= 2) {
+                    easyMobs.add(key);
+                } else if (threat == 3) {
+                    mediumMobs.add(key);
+                } else {
+                    hardMobs.add(key);
+                }
+            }
+        }
+    }
 
     /** Ensure the guild always has three quest slots populated without duplicates. */
     public void ensureQuests(Guild guild) {
@@ -97,7 +121,19 @@ public class GuildQuestManager {
             default -> "Guild Task";
         };
 
-        QuestObjective obj = new QuestObjective(type, null, amount);
+        String target = null;
+        if (type == QuestObjectiveType.KILL) {
+            List<String> pool = switch (stars) {
+                case 1 -> easyMobs;
+                case 2 -> mediumMobs.isEmpty() ? easyMobs : mediumMobs;
+                default -> hardMobs.isEmpty() ? mediumMobs : hardMobs;
+            };
+            if (!pool.isEmpty()) {
+                target = pool.get(random.nextInt(pool.size()));
+            }
+        }
+
+        QuestObjective obj = new QuestObjective(type, target, amount);
 
         QuestReward personal = QuestRewardCompat.create(
                 stars * 50,
@@ -109,6 +145,34 @@ public class GuildQuestManager {
         int guildCoins = stars * 50;
 
         return new GuildQuest(UUID.randomUUID().toString(), name, stars, obj, personal, guildExp, guildCoins);
+    }
+
+    public void handleLootChestOpen(Player player) {
+        updateObjective(player, QuestObjectiveType.LOOTCHEST_OPEN, "", 1);
+    }
+
+    public void handleKill(Player player, String mobType) {
+        updateObjective(player, QuestObjectiveType.KILL, mobType, 1);
+    }
+
+    private void updateObjective(Player player, QuestObjectiveType type, String target, int amount) {
+        Guild guild = Main.getInstance().getGuildManager().getGuild(player.getUniqueId());
+        if (guild == null) return;
+        for (GuildQuest quest : guild.getQuests().values()) {
+            if (!quest.isAccepted()) continue;
+            QuestObjective obj = quest.getObjective();
+            if (obj.getType() != type) continue;
+            String tgt = obj.getTarget();
+            if (tgt != null && !tgt.equalsIgnoreCase(target) && !tgt.isEmpty()) continue;
+            quest.addContribution(player.getUniqueId(), amount);
+            if (Main.getInstance().getSettingsManager()
+                    .getSettings(player).isGuildQuestChatEnabled()) {
+                int total = quest.getTotalContribution();
+                player.sendMessage(ChatColor.AQUA + "Guild Quest " + ChatColor.WHITE
+                        + quest.getName() + ChatColor.GRAY + ": " + total + "/"
+                        + obj.getAmount());
+            }
+        }
     }
 
     /**
