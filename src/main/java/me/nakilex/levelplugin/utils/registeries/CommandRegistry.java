@@ -134,7 +134,9 @@ public class CommandRegistry {
         plugin.getCommand("genitem").setExecutor(new me.nakilex.levelplugin.items.commands.GenerateItemCommand());
         plugin.getCommand("genclass").setExecutor(new GenClassCommand());
         plugin.getCommand("essence").setExecutor(new EssenceCommand());
-        plugin.getCommand("essenceupgrade").setExecutor(new EssenceUpgradeCommand());
+        EssenceUpgradeCommand essenceUpgradeCmd = new EssenceUpgradeCommand();
+        plugin.getCommand("essenceupgrade").setExecutor(essenceUpgradeCmd);
+        plugin.getCommand("essenceupgrade").setTabCompleter(essenceUpgradeCmd);
         plugin.getCommand("setlevel").setExecutor(new SetLevelCommand(plugin));
         ClassCommand classCmd = new ClassCommand();
         plugin.getCommand("class").setExecutor(classCmd);
@@ -192,7 +194,9 @@ public class CommandRegistry {
         plugin.getCommand("location").setTabCompleter(locationCmd);
         FastTravelCommand fastTravelCmd = new FastTravelCommand(plugin.getFastTravelGUI());
         plugin.getCommand("fasttravel").setExecutor(fastTravelCmd);
+        plugin.getCommand("fasttravel").setTabCompleter(fastTravelCmd);
         plugin.getCommand("travel").setExecutor(fastTravelCmd);
+        plugin.getCommand("travel").setTabCompleter(fastTravelCmd);
         plugin.getCommand("profile").setExecutor(new me.nakilex.levelplugin.player.commands.ProfileCommand());
         plugin.getCommand("wipeprofile").setExecutor(new WipeProfileCommand());
 
