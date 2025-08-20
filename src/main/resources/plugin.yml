@@ -97,6 +97,9 @@ commands:
   friend:
     description: Manage friends
     usage: /friend <add|remove|list|accept|deny>
+  friends:
+    description: View your friends list
+    usage: /friends
   ignore:
     description: Ignore a player or list ignored players
     usage: /ignore <player|list>

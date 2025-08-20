@@ -3,9 +3,7 @@ package me.nakilex.levelplugin.spells.gui;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.spells.Spell;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
-import me.nakilex.levelplugin.items.utils.ItemUtil;
-import org.bukkit.persistence.PersistentDataContainer;
-import org.bukkit.persistence.PersistentDataType;
+import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -453,17 +451,12 @@ public class SpellGUI {
         List<Spell> spells = new ArrayList<>(classSpells.values());
         spells.sort(Comparator.comparingInt(Spell::getLevelReq));
 
-        int playerRank = 0;
-        ItemStack hand = player.getInventory().getItemInMainHand();
-        if (hand != null && hand.hasItemMeta()) {
-            PersistentDataContainer pdc = hand.getItemMeta().getPersistentDataContainer();
-            playerRank = pdc.getOrDefault(ItemUtil.EGO_RANK_KEY, PersistentDataType.INTEGER, 0);
-        }
+        int playerLevel = LevelManager.getInstance().getLevel(player);
 
         // Place up to 4 spells in the designated slots.
         for (int i = 0; i < SPELL_SLOTS.length && i < spells.size(); i++) {
             Spell spell = spells.get(i);
-            ItemStack spellItem = createSpellItem(player, spell, playerRank);
+            ItemStack spellItem = createSpellItem(player, spell, playerLevel);
             gui.setItem(SPELL_SLOTS[i], spellItem);
             Bukkit.getLogger().info("[SpellGUI] Placed spell '" + spell.getDisplayName() + "' in slot " + SPELL_SLOTS[i]);
         }

@@ -106,8 +106,6 @@ public class ItemManager {
                     itemsConfig.getString(path + "wil", "0-0"));
                 StatRange tecRange   = StatRange.fromString(
                     itemsConfig.getString(path + "tec", "0-0"));
-                boolean egoFlag = itemsConfig.getBoolean(path + "ego", false);
-                String egoKey  = itemsConfig.getString(path + "ego_key", null);
 
                 // Build the template (rolls will happen when creating instances)
                 CustomItem template = new CustomItem(
@@ -124,9 +122,7 @@ public class ItemManager {
                     intelRange,
                     dexRange,
                     wilRange,
-                    tecRange,
-                    egoFlag,
-                    egoKey
+                    tecRange
                 );
 
                 templatesMap.put(numericId, template);
@@ -198,9 +194,7 @@ public class ItemManager {
             tpl.getIntelRange(),
             tpl.getDexRange(),
             tpl.getWilRange(),
-            tpl.getTecRange(),
-            tpl.isEgo(),
-            tpl.getEgoKey()
+            tpl.getTecRange()
         );
         addInstance(inst);
         return inst;

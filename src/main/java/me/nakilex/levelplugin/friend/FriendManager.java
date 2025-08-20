@@ -9,6 +9,8 @@ public class FriendManager {
     private static final long EXPIRY = 5 * 60 * 1000L; // 5 minutes
     private final Map<UUID, Set<UUID>> friends = new HashMap<>();
     private final Map<UUID, Request> requests = new HashMap<>(); // invitee -> request
+    /** Track when friendships were established: player -> (friend -> timestamp). */
+    private final Map<UUID, Map<UUID, Long>> friendDates = new HashMap<>();
 
     private static class Request {
         final UUID inviter;
@@ -29,6 +31,9 @@ public class FriendManager {
         Set<UUID> fa = getList(a);
         if (!fa.add(b)) return false;
         getList(b).add(a);
+        long now = System.currentTimeMillis();
+        friendDates.computeIfAbsent(a, k -> new HashMap<>()).put(b, now);
+        friendDates.computeIfAbsent(b, k -> new HashMap<>()).put(a, now);
         return true;
     }
 
@@ -77,12 +82,22 @@ public class FriendManager {
         Set<UUID> fb = getList(b);
         boolean removed = fa.remove(b);
         fb.remove(a);
+        Map<UUID, Long> da = friendDates.get(a);
+        if (da != null) da.remove(b);
+        Map<UUID, Long> db = friendDates.get(b);
+        if (db != null) db.remove(a);
         return removed;
     }
 
     /** Get the set of friends for the given player. */
     public Set<UUID> getFriends(UUID id) {
         return Collections.unmodifiableSet(getList(id));
+    }
+
+    /** Timestamp (ms) when the friendship was created, or 0 if unknown. */
+    public long getFriendAddedTime(UUID owner, UUID friend) {
+        Map<UUID, Long> map = friendDates.get(owner);
+        return map != null ? map.getOrDefault(friend, 0L) : 0L;
     }
 
     /** Check if two players are friends. */

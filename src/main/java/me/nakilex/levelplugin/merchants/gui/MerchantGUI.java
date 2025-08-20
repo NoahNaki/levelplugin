@@ -86,8 +86,7 @@ public class MerchantGUI implements Listener {
             CustomItem tpl = ItemManager.getInstance().getTemplateById(mItem.getItemId());
             if (tpl == null) continue;
 
-            // Base stack. For Ego templates use the Nexo model so previews match
-            // the final generated item.
+            // Base stack using the template's rolled stats.
             ItemStack stack = ItemUtil.createItemStackFromCustomItem(tpl, mItem.getAmount(), null);
             ItemMeta meta = stack.getItemMeta();
             if (meta == null || !meta.hasLore()) {

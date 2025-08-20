@@ -1,6 +1,8 @@
 package me.nakilex.levelplugin.guild;
 
 import me.nakilex.levelplugin.guild.events.GuildMembershipEvent;
+import me.nakilex.levelplugin.guild.GuildPermission;
+import me.nakilex.levelplugin.guild.GuildRole;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -59,6 +61,22 @@ public class GuildManager {
     }
 
     public Guild getGuild(String name) { return guilds.get(name); }
+
+    /**
+     * Retrieve a guild by name, ignoring capitalization differences.
+     * Falls back to an exact match first before scanning all guilds.
+     */
+    public Guild getGuildIgnoreCase(String name) {
+        Guild g = guilds.get(name);
+        if (g != null) return g;
+        for (Guild guild : guilds.values()) {
+            if (guild.getName().equalsIgnoreCase(name)) {
+                return guild;
+            }
+        }
+        return null;
+    }
+
     public Guild getGuild(UUID player) {
         String g = playerGuild.get(player);
         return g != null ? guilds.get(g) : null;
@@ -79,16 +97,16 @@ public class GuildManager {
         if (name == null) return false;
         Guild g = guilds.get(name);
         if (g == null) return false;
-        g.addMember(player);
+        if (!g.addMember(player)) return false;
         playerGuild.put(player, name);
         fireEvent(player, g, GuildMembershipEvent.Action.JOIN);
         return true;
     }
 
-    public boolean removeMember(UUID leader, UUID target) {
-        Guild g = getGuild(leader);
-        if (g == null || !g.getLeader().equals(leader)) return false;
-        if (leader.equals(target)) return false; // cannot kick yourself
+    public boolean removeMember(UUID actor, UUID target) {
+        Guild g = getGuild(actor);
+        if (g == null || !hasPermission(actor, GuildPermission.KICK)) return false;
+        if (actor.equals(target)) return false; // cannot kick yourself
         if (!g.removeMember(target)) return false;
         playerGuild.remove(target);
         fireEvent(target, g, GuildMembershipEvent.Action.LEAVE);
@@ -101,12 +119,29 @@ public class GuildManager {
         return true;
     }
 
-    public boolean promote(UUID leader, UUID target) {
-        Guild g = getGuild(leader);
-        if (g == null || !g.getLeader().equals(leader)) return false;
+    public boolean promote(UUID executor, UUID target, GuildRole role) {
+        Guild g = getGuild(executor);
+        if (g == null || g.getRole(executor) != GuildRole.LEADER) return false;
         if (!g.getMembers().contains(target)) return false;
-        g.promote(target);
+        if (role == GuildRole.LEADER) {
+            g.setRole(g.getLeader(), GuildRole.ADVISOR);
+        }
+        g.setRole(target, role);
         me.nakilex.levelplugin.Main.getInstance().getEnvironmentManager().syncGuildTown(g);
+        return true;
+    }
+
+    public boolean hasPermission(UUID player, GuildPermission perm) {
+        Guild g = getGuild(player);
+        if (g == null) return false;
+        GuildRole role = g.getRole(player);
+        return g.getPermissions(role).has(perm);
+    }
+
+    public boolean setPermission(UUID executor, GuildRole role, GuildPermission perm, boolean value) {
+        Guild g = getGuild(executor);
+        if (g == null || g.getRole(executor) != GuildRole.LEADER) return false;
+        g.setPermission(role, perm, value);
         return true;
     }
 
@@ -124,7 +159,7 @@ public class GuildManager {
         Guild g = guilds.get(guildName);
         if (g == null) return false;
         if (!g.removeApplicant(applicant)) return false;
-        g.addMember(applicant);
+        if (!g.addMember(applicant)) return false;
         playerGuild.put(applicant, guildName);
         fireEvent(applicant, g, GuildMembershipEvent.Action.JOIN);
         return true;
@@ -299,6 +334,9 @@ public class GuildManager {
                 g.getAllies().addAll(cfg.getStringList(base + "allies"));
                 g.getHostiles().addAll(cfg.getStringList(base + "hostiles"));
                 g.setMotd(cfg.getString(base + "motd", ""));
+                g.setCoins(cfg.getInt(base + "coins", 0));
+                g.setLevel(cfg.getInt(base + "level", 1));
+                g.setExp(cfg.getInt(base + "exp", 0));
 
                 ConfigurationSection apps = cfg.getConfigurationSection(base + "applicants");
                 if (apps != null) {
@@ -331,6 +369,9 @@ public class GuildManager {
             cfg.set(base + "allies", new ArrayList<>(g.getAllies()));
             cfg.set(base + "hostiles", new ArrayList<>(g.getHostiles()));
             cfg.set(base + "motd", g.getMotd());
+            cfg.set(base + "coins", g.getCoins());
+            cfg.set(base + "level", g.getLevel());
+            cfg.set(base + "exp", g.getExp());
             if (!g.getApplicants().isEmpty()) {
                 ConfigurationSection sec = cfg.createSection(base + "applicants");
                 for (Map.Entry<UUID, Long> e : g.getApplicants().entrySet()) {

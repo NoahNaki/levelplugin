@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.guild.Guild;
 import me.nakilex.levelplugin.guild.GuildManager;
 import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
 import me.nakilex.levelplugin.utils.MultiLineHologram;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -72,19 +73,6 @@ public class EnvironmentManager {
         if (isDebug()) {
             Main.getInstance().getLogger().info("[ChunkDebug] " + msg);
         }
-    }
-
-    /** Convert a lowercase, underscore- or space-separated name into capitalized words. */
-    public static String beautifyWords(String name) {
-        String[] parts = name.toLowerCase().replace('_', ' ').split(" ");
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < parts.length; i++) {
-            if (parts[i].isEmpty()) continue;
-            sb.append(Character.toUpperCase(parts[i].charAt(0)))
-              .append(parts[i].substring(1));
-            if (i < parts.length - 1) sb.append(' ');
-        }
-        return sb.toString();
     }
 
     /** Physically set blocks for all players instead of showing fake blocks. */
@@ -225,20 +213,33 @@ public class EnvironmentManager {
 
         java.util.List<String> reqLines = new java.util.ArrayList<>();
         int coins = Main.getInstance().getEconomyManager().getBalance(player);
+        Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
+        double disc = g != null ? g.getUpgradeDiscount() : 0.0;
         for (var entry : nextData.materialCost.entrySet()) {
             org.bukkit.Material mat = entry.getKey();
-            int amt = entry.getValue();
-            boolean has = player.getInventory().containsAtLeast(new org.bukkit.inventory.ItemStack(mat, amt), amt);
-            String matName = beautifyWords(mat.name().toLowerCase().replace('_', ' '));
+            int baseAmt = entry.getValue();
+            int needed = (int) Math.round(baseAmt * (1.0 - disc));
+            boolean has = player.getInventory().containsAtLeast(new org.bukkit.inventory.ItemStack(mat, needed), needed);
+            String matName = me.nakilex.levelplugin.utils.TextUtil.beautifyWords(mat.name().toLowerCase().replace('_', ' '));
+            String amountText = needed < baseAmt
+                    ? ChatColor.DARK_GRAY + "" + ChatColor.STRIKETHROUGH + baseAmt + ChatColor.RESET + ChatColor.GRAY + " -> " + ChatColor.WHITE + needed
+                    : ChatColor.WHITE + "" + needed;
             String line = (has ? ChatColor.GREEN + "\u2714" : ChatColor.RED + "\u2718")
-                    + ChatColor.GRAY + " - " + ChatColor.WHITE + matName
-                    + ChatColor.GRAY + " x" + ChatColor.WHITE + amt;
+                    + ChatColor.GRAY + " - " + amountText + ChatColor.DARK_GRAY + "x "
+                    + ChatColor.WHITE + matName;
             reqLines.add(line);
         }
         int coinCost = nextData.coinCost;
-        boolean hasCoins = coins >= coinCost;
+        int discounted = (int) Math.round(coinCost * (1.0 - disc));
+        boolean hasCoins = coins >= discounted;
+        String costText;
+        if (discounted < coinCost) {
+            costText = ChatColor.DARK_GRAY + "" + ChatColor.STRIKETHROUGH + coinCost + ChatColor.RESET + ChatColor.GRAY + " -> " + ChatColor.WHITE + discounted;
+        } else {
+            costText = ChatColor.WHITE + "" + coinCost;
+        }
         String coinLine = (hasCoins ? ChatColor.GREEN + "\u2714" : ChatColor.RED + "\u2718")
-                + ChatColor.GRAY + " - " + ChatColor.WHITE + "" + coinCost + " coins "
+                + ChatColor.GRAY + " - " + costText + " coins "
                 + ChatColor.GOLD + " <glyph:coins_icon>";
         reqLines.add(coinLine);
 
@@ -697,6 +698,16 @@ public class EnvironmentManager {
         }
     }
 
+    /** Refresh holograms for every tracked player. */
+    public void refreshAllHolograms() {
+        for (UUID id : new java.util.ArrayList<>(buildingHolograms.keySet())) {
+            Player p = Bukkit.getPlayer(id);
+            if (p != null && p.isOnline()) {
+                refreshAllBuildingHolograms(p);
+            }
+        }
+    }
+
     /** Rebuild a single building hologram based on the player's current inventory. */
     private void refreshBuildingHologram(Player player, String building) {
         UUID uuid = player.getUniqueId();
@@ -839,6 +850,13 @@ public class EnvironmentManager {
             advance(bs);
             invalidateTownChunks(base);
             player.sendMessage(ChatColor.GREEN + building + " upgraded to Stage " + bs.stage);
+            Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
+            if (g != null) {
+                g.addExp(1000);
+                GuildManager.getInstance().save();
+                String expColor = me.nakilex.levelplugin.utils.ChatFormatter.experienceColor();
+                player.sendMessage(ChatColor.GRAY + "Guild earned " + expColor + "1000 <glyph:experience_orb_icon>" + ChatColor.GRAY + ".");
+            }
             String town = towns.get(base);
             Location origin = origins.get(base);
             if (town != null && origin != null) {
@@ -862,15 +880,18 @@ public class EnvironmentManager {
             return;
         }
         // Check materials
+        Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
+        double disc = g != null ? g.getUpgradeDiscount() : 0.0;
         for (var entry : nextStageData.materialCost.entrySet()) {
             org.bukkit.Material mat = entry.getKey();
-            int amt = entry.getValue();
-            if (!player.getInventory().containsAtLeast(new org.bukkit.inventory.ItemStack(mat, amt), amt)) {
+            int baseAmt = entry.getValue();
+            int needed = (int) Math.round(baseAmt * (1.0 - disc));
+            if (!player.getInventory().containsAtLeast(new org.bukkit.inventory.ItemStack(mat, needed), needed)) {
                 player.sendMessage(ChatColor.RED + "Missing required materials for upgrade.");
                 return;
             }
         }
-        int coinCost = nextStageData.coinCost;
+        int coinCost = (int) Math.round(nextStageData.coinCost * (1.0 - disc));
         int balance = Main.getInstance().getEconomyManager().getBalance(player);
         if (balance < coinCost) {
             player.sendMessage(ChatColor.RED + "You need " + coinCost + " coins.");
@@ -878,7 +899,8 @@ public class EnvironmentManager {
         }
         // Deduct items
         for (var entry : nextStageData.materialCost.entrySet()) {
-            player.getInventory().removeItem(new org.bukkit.inventory.ItemStack(entry.getKey(), entry.getValue()));
+            int needed = (int) Math.round(entry.getValue() * (1.0 - disc));
+            player.getInventory().removeItem(new org.bukkit.inventory.ItemStack(entry.getKey(), needed));
         }
         if (coinCost > 0) {
             Main.getInstance().getEconomyManager().deductCoins(player, coinCost);
@@ -1749,6 +1771,38 @@ public class EnvironmentManager {
 
         owner.sendMessage(ChatColor.GREEN + "Transferred town ownership to " + newOwner.getName() + ".");
         newOwner.sendMessage(ChatColor.GREEN + "You are now the town owner.");
+    }
+
+    /**
+     * Grant daily coin payout to the guild owning the specified town based on
+     * the sum of its building levels.
+     */
+    public void grantDailyPayout(String townName) {
+        if (townName == null) return;
+        String key = townName.toLowerCase();
+        java.util.UUID owner = townOwners.get(key);
+        if (owner == null) return;
+
+        Guild guild = GuildManager.getInstance().getGuild(owner);
+        if (guild == null) return;
+
+        int totalLevels = 0;
+        for (String b : buildingStageManager.getBuildings(townName)) {
+            totalLevels += getBuildingStage(owner, b);
+        }
+        int payout = totalLevels * 500;
+        if (payout <= 0) return;
+
+        guild.addCoins(payout);
+        for (java.util.UUID id : guild.getMembers()) {
+            Player p = Bukkit.getPlayer(id);
+            if (p != null) {
+                ChatFormatter.sendCenteredMessage(p, " ");
+                ChatFormatter.sendCenteredMessage(p, ChatColor.GRAY + "Your town generated " + ChatColor.GOLD + payout + " <glyph:coins_icon>" + ChatColor.GRAY + " today!");
+                ChatFormatter.sendCenteredMessage(p, " ");
+            }
+        }
+        GuildManager.getInstance().save();
     }
 
     public void sendInfo(Player player) {

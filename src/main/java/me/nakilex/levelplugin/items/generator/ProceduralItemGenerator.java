@@ -51,7 +51,7 @@ public class ProceduralItemGenerator {
         ItemRarity rarity = rollRarity(level);
         String clazz = pickClassForMob(mobType);
 
-        // Ego weapon system removes random weapon drops, so always create armor
+        // Currently only armor is generated
         boolean createArmor = true;
         String base = pickBaseName(clazz, createArmor);
         int baseVal = Math.max(1, level);
@@ -138,9 +138,7 @@ public class ProceduralItemGenerator {
             createRange(intel),
             createRange(dex),
             createRange(wil),
-            createRange(tec),
-            false,
-            null
+            createRange(tec)
         );
 
         ItemManager.getInstance().addInstance(item);

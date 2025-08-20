@@ -66,6 +66,9 @@ public class Dungeon {
 
     public String getName() { return name; }
 
+    /** Return the world this dungeon resides in. */
+    public World getWorld() { return world; }
+
     public void addRoom(RoomInstance inst) {
         rooms.add(inst);
     }

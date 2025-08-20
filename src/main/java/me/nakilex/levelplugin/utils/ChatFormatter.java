@@ -92,9 +92,17 @@ public class ChatFormatter {
         player.sendMessage("        " + message);
     }
 
+    /** Hex color used for experience text and amounts. */
+    private static final String EXP_COLOR = net.md_5.bungee.api.ChatColor.of("#47b587").toString();
+
     /** Return the standard colored label used for experience amounts. */
     public static String experienceLabel() {
-        return net.md_5.bungee.api.ChatColor.of("#47b587") + "EXP";
+        return EXP_COLOR + "EXP";
+    }
+
+    /** Return just the color code used for experience numbers. */
+    public static String experienceColor() {
+        return EXP_COLOR;
     }
 
     /**

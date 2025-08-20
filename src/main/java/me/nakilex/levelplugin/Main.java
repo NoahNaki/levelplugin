@@ -63,6 +63,8 @@ public class Main extends JavaPlugin {
     public ConfigValues getConfigValues() { return bootstrap.getConfigValues(); }
     public me.nakilex.levelplugin.storage.events.StorageEvents getStorageEvents() { return bootstrap.getStorageEvents(); }
     public StorageManager getStorageManager() { return bootstrap.getStorageManager(); }
+    public me.nakilex.levelplugin.guild.GuildVaultManager getGuildVaultManager() { return bootstrap.getGuildVaultManager(); }
+    public me.nakilex.levelplugin.guild.GuildSettingsGUI getGuildSettingsGUI() { return bootstrap.getGuildSettingsGUI(); }
     public HorseManager getHorseManager() { return bootstrap.getHorseManager(); }
     public DealMaker getDealMaker() { return bootstrap.getDealMaker(); }
     public ItemConfig getItemConfig() { return bootstrap.getItemConfig(); }

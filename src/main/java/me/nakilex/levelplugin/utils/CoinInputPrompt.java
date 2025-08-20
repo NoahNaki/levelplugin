@@ -1,50 +1,54 @@
 package me.nakilex.levelplugin.utils;
 
-import org.bukkit.conversations.StringPrompt;
+import org.bukkit.ChatColor;
 import org.bukkit.conversations.ConversationContext;
 import org.bukkit.conversations.Prompt;
-import org.bukkit.ChatColor;
+import org.bukkit.conversations.StringPrompt;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.Bukkit;
 
+import java.util.function.IntConsumer;
+import java.util.function.IntPredicate;
+
+/**
+ * Generic chat prompt for requesting a coin amount from a player.
+ * A validator is used to verify the amount and an action is executed
+ * once a valid amount is supplied.
+ */
 public class CoinInputPrompt extends StringPrompt {
-    private final TradingWindow tradingWindow;
+    private final Plugin plugin;
     private final Player player;
+    private final String promptText;
+    private final IntPredicate validator;
+    private final IntConsumer onAccept;
 
-    public CoinInputPrompt(TradingWindow tradingWindow, Player player) {
-        this.tradingWindow = tradingWindow;
+    public CoinInputPrompt(Plugin plugin, Player player, String promptText,
+                           IntPredicate validator, IntConsumer onAccept) {
+        this.plugin = plugin;
         this.player = player;
+        this.promptText = promptText;
+        this.validator = validator;
+        this.onAccept = onAccept;
     }
 
     @Override
     public String getPromptText(ConversationContext context) {
-        return ChatColor.GOLD + "Please enter the number of coins you want to offer:";
+        return promptText;
     }
 
     @Override
     public Prompt acceptInput(ConversationContext context, String input) {
         if (!input.matches("\\d+")) {
             player.sendMessage(ChatColor.RED + "Invalid input! Please enter a valid number.");
-            return this; // re-prompt the same message
+            return this;
         }
         int coins = Integer.parseInt(input);
-        // Check if the player has enough coins
-        if (tradingWindow.getEconomyManager().getBalance(player) < coins) {
-            player.sendMessage(ChatColor.RED + "You do not have enough coins to offer that amount.");
+        if (!validator.test(coins)) {
+            player.sendMessage(ChatColor.RED + "You do not have enough coins for that.");
             return Prompt.END_OF_CONVERSATION;
         }
-
-        // Update the correct coin offer based on who the player is in this trade.
-        if (tradingWindow.getPlayer().equals(player)) {
-            tradingWindow.setPlayerCoinOffer(coins);
-            player.sendMessage(ChatColor.GREEN + "Your coin offer has been set to: " + coins);
-        } else if (tradingWindow.getOpponent().equals(player)) {
-            tradingWindow.setOpponentCoinOffer(coins);
-            player.sendMessage(ChatColor.GREEN + "Your coin offer has been set to: " + coins);
-        }
-
-        // Update the coin display and re-open the inventories
-        tradingWindow.updateCoinOfferItems();
-        tradingWindow.reopenInventories();
+        Bukkit.getScheduler().runTask(plugin, () -> onAccept.accept(coins));
         return Prompt.END_OF_CONVERSATION;
     }
 }

@@ -4,7 +4,6 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
-import me.nakilex.levelplugin.environment.EnvironmentManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -229,7 +228,7 @@ public class ProfileSelectionGUI implements Listener {
 
             int playMinutes = profile.getPlayMinutes();
 
-            String className = me.nakilex.levelplugin.environment.EnvironmentManager
+            String className = me.nakilex.levelplugin.utils.TextUtil
                     .beautifyWords(pc.name().toLowerCase().replace('_', ' '));
 
             lore.add(ChatColor.GRAY + "Level: " + ChatColor.WHITE + level);

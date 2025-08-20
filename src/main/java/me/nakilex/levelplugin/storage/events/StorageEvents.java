@@ -11,6 +11,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -48,8 +49,19 @@ public class StorageEvents implements Listener {
     public void onInventoryClick(InventoryClickEvent event) {
         Inventory top = event.getView().getTopInventory();
         if (trackedInventories.containsKey(top)) {
-            // Delegate handling to the StorageGUI
             StorageGUI gui = trackedInventories.get(top);
+            if (!gui.allowsSoulbound() && event.getClickedInventory() != top) {
+                ItemStack cursor = event.getCursor();
+                ItemStack current = event.getCurrentItem();
+                if (me.nakilex.levelplugin.items.utils.ItemUtil.isSoulbound(cursor) ||
+                    me.nakilex.levelplugin.items.utils.ItemUtil.isSoulbound(current)) {
+                    event.setCancelled(true);
+                    if (event.getWhoClicked() instanceof Player p) {
+                        p.sendMessage(ChatColor.RED + "Soulbound items cannot be stored here.");
+                    }
+                    return;
+                }
+            }
             gui.handleClick(event);
         }
     }
@@ -62,6 +74,10 @@ public class StorageEvents implements Listener {
         Inventory top = event.getView().getTopInventory();
         if (trackedInventories.containsKey(top)) {
             StorageGUI gui = trackedInventories.get(top);
+            if (!gui.allowsSoulbound() && me.nakilex.levelplugin.items.utils.ItemUtil.isSoulbound(event.getOldCursor())) {
+                event.setCancelled(true);
+                return;
+            }
             gui.handleDrag(event);
         }
     }

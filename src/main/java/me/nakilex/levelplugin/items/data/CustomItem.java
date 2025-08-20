@@ -25,8 +25,7 @@ public class CustomItem {
     private final int levelRequirement;
     private final String classRequirement;
     private final Material material;
-    private final boolean ego;
-    private final String egoKey;
+    private final boolean soulbound;
 
     private int currentDurability;
     private static final int MAX_DURABILITY = 100;
@@ -88,8 +87,7 @@ public class CustomItem {
                       StatRange wilRange,
                       StatRange tecRange,
                       int upgradeLevel,
-                      boolean ego,
-                      String egoKey) {
+                      boolean soulbound) {
         this.uuid             = uuid;
         this.id               = id;
         this.baseName         = baseName;
@@ -97,8 +95,7 @@ public class CustomItem {
         this.levelRequirement = levelRequirement;
         this.classRequirement = classRequirement;
         this.material         = material;
-        this.ego              = ego;
-        this.egoKey           = egoKey;
+        this.soulbound        = soulbound;
 
         this.hpRange    = hpRange;
         this.defRange   = defRange;
@@ -142,13 +139,55 @@ public class CustomItem {
                       StatRange intelRange,
                       StatRange dexRange,
                       StatRange wilRange,
-                      StatRange tecRange,
-                      boolean ego,
-                      String egoKey) {
+                      StatRange tecRange) {
         this(UUID.randomUUID(),
             id, baseName, rarity, levelRequirement, classRequirement, material,
             hpRange, defRange, strRange, agiRange, intelRange, dexRange, wilRange, tecRange,
-            0, ego, egoKey);
+            0, false);
+    }
+
+    /** Convenience overload retaining backward compatibility with old constructor signature. */
+    public CustomItem(UUID uuid,
+                      int id,
+                      String baseName,
+                      ItemRarity rarity,
+                      int levelRequirement,
+                      String classRequirement,
+                      Material material,
+                      StatRange hpRange,
+                      StatRange defRange,
+                      StatRange strRange,
+                      StatRange agiRange,
+                      StatRange intelRange,
+                      StatRange dexRange,
+                      StatRange wilRange,
+                      StatRange tecRange,
+                      int upgradeLevel) {
+        this(uuid, id, baseName, rarity, levelRequirement, classRequirement, material,
+                hpRange, defRange, strRange, agiRange, intelRange, dexRange, wilRange, tecRange,
+                upgradeLevel, false);
+    }
+
+    /** Convenience overload for brand new items including soulbound parameter. */
+    public CustomItem(int id,
+                      String baseName,
+                      ItemRarity rarity,
+                      int levelRequirement,
+                      String classRequirement,
+                      Material material,
+                      StatRange hpRange,
+                      StatRange defRange,
+                      StatRange strRange,
+                      StatRange agiRange,
+                      StatRange intelRange,
+                      StatRange dexRange,
+                      StatRange wilRange,
+                      StatRange tecRange,
+                      boolean soulbound) {
+        this(UUID.randomUUID(),
+                id, baseName, rarity, levelRequirement, classRequirement, material,
+                hpRange, defRange, strRange, agiRange, intelRange, dexRange, wilRange, tecRange,
+                0, soulbound);
     }
 
     // ─── Getters ───────────────────────────────────────────────────────────────
@@ -160,8 +199,7 @@ public class CustomItem {
     public int getLevelRequirement()    { return levelRequirement; }
     public String getClassRequirement() { return classRequirement; }
     public Material getMaterial()       { return material; }
-    public boolean isEgo()              { return ego; }
-    public String getEgoKey()           { return egoKey; }
+    public boolean isSoulbound()        { return soulbound; }
 
     public StatRange getHpRange()    { return hpRange; }
     public StatRange getDefRange()   { return defRange; }

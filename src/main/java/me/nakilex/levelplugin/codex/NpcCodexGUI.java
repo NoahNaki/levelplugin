@@ -1,6 +1,5 @@
 package me.nakilex.levelplugin.codex;
 
-import me.nakilex.levelplugin.environment.EnvironmentManager;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.HeadUtil;
 import net.citizensnpcs.api.npc.NPC;
@@ -84,7 +83,7 @@ public class NpcCodexGUI implements Listener {
         if (has) {
             SkinTrait skin = npc.getOrAddTrait(SkinTrait.class);
             String texture = skin.getTexture();
-            String display = ChatColor.GREEN + EnvironmentManager.beautifyWords(rawName);
+            String display = ChatColor.GREEN + me.nakilex.levelplugin.utils.TextUtil.beautifyWords(rawName);
             ItemStack head;
             if (texture != null && !texture.isEmpty()) {
                 head = HeadUtil.createCustomHead(texture, display, null);

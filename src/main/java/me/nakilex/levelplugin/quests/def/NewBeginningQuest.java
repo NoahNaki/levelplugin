@@ -362,8 +362,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 template.getLevelRequirement(), template.getClassRequirement(),
                 template.getMaterial(), template.getHpRange(), template.getDefRange(),
                 template.getStrRange(), template.getAgiRange(), template.getIntelRange(),
-                template.getDexRange(), template.getWilRange(), template.getTecRange(),
-                template.isEgo(), template.getEgoKey()
+                template.getDexRange(), template.getWilRange(), template.getTecRange()
         );
         ItemManager.getInstance().addInstance(instance);
         player.getInventory().addItem(ItemUtil.createItemStackFromCustomItem(instance, 1, player));

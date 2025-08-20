@@ -22,10 +22,15 @@ import java.util.UUID;
 
 public class StorageGUI {
 
-    private final UUID ownerId;
+    private final String ownerKey;
+    private final String folder;
+    private final String prefix;
+    private final String titleBase;
     private final List<Inventory> pages;
     private int currentPage;
     private final StorageEvents storageEvents;
+    private final boolean allowSoulbound;
+    private int maxPages;
 
     /** Base price for unlocking storage pages. */
     private static final int BASE_PAGE_COST = 300;
@@ -44,16 +49,28 @@ public class StorageGUI {
     private static final int INFO_SLOT     = 8;
     private static final ItemStack FILLER  = createFiller();
 
-    public StorageGUI(UUID ownerId, StorageEvents storageEvents) {
-        this.ownerId = ownerId;
+    public StorageGUI(String ownerKey, String folder, String prefix, String titleBase, StorageEvents storageEvents, boolean allowSoulbound, int maxPages) {
+        this.ownerKey = ownerKey;
+        this.folder = folder;
+        this.prefix = prefix;
+        this.titleBase = titleBase;
         this.storageEvents = storageEvents;
+        this.allowSoulbound = allowSoulbound;
+        this.maxPages = maxPages;
         this.pages = new ArrayList<>();
         this.currentPage = 0;
 
-        // initialize with one blank page
         pages.add(createBlankPage(1));
-        // initial cost based on existing page count
         this.currentPageCost = BASE_PAGE_COST * pages.size();
+    }
+
+    /** Convenience constructor for personal storage using defaults. */
+    public StorageGUI(String ownerKey, StorageEvents storageEvents) {
+        this(ownerKey, "storage", "player_", "Personal Storage", storageEvents, true, Integer.MAX_VALUE);
+    }
+
+    public StorageGUI(String ownerKey, String folder, String prefix, String titleBase, StorageEvents storageEvents, boolean allowSoulbound) {
+        this(ownerKey, folder, prefix, titleBase, storageEvents, allowSoulbound, Integer.MAX_VALUE);
     }
 
     /**
@@ -61,7 +78,7 @@ public class StorageGUI {
      * Nav items will be added/updated dynamically in open().
      */
     private Inventory createBlankPage(int pageNumber) {
-        String title = ChatColor.BLACK + "Personal Storage (Page " + pageNumber + ")";
+        String title = ChatColor.BLACK + titleBase + " (Page " + pageNumber + ")";
         return Bukkit.createInventory(null, PAGE_SIZE, title);
     }
 
@@ -73,7 +90,9 @@ public class StorageGUI {
         // Next arrow: if on last page, show purchase cost; otherwise "Next Page"
         ItemStack nextItem;
         if (currentPage == pages.size() - 1) {
-            if (confirmUnlock) {
+            if (pages.size() >= maxPages) {
+                nextItem = FILLER.clone();
+            } else if (confirmUnlock) {
                 nextItem = getNexoItem("check",
                         ChatColor.GREEN + "Confirm " + currentPageCost + " <glyph:coins_icon>");
             } else {
@@ -187,6 +206,12 @@ public class StorageGUI {
         if (player == null) return;
 
         if (currentPage == pages.size() - 1) {
+            if (pages.size() >= maxPages) {
+                player.sendMessage(ChatColor.RED + "Storage is at maximum pages.");
+                confirmUnlock = false;
+                open(player);
+                return;
+            }
             if (!confirmUnlock) {
                 confirmUnlock = true;
                 open(player);
@@ -227,16 +252,20 @@ public class StorageGUI {
         }
     }
 
+    public void setMaxPages(int maxPages) {
+        this.maxPages = maxPages;
+    }
+
     /** Persists all pages to disk under this owner's UUID. */
     public void saveToDisk() {
         FileHandler fileHandler = new FileHandler();
-        fileHandler.saveStorage(ownerId, pages);
+        fileHandler.saveStorage(ownerKey, pages, folder, prefix);
     }
 
     /** Loads pages from disk, replacing any in-memory pages. */
     public void loadFromDisk() {
         FileHandler fileHandler = new FileHandler();
-        List<Inventory> loaded = fileHandler.loadStorage(ownerId);
+        List<Inventory> loaded = fileHandler.loadStorage(ownerKey, folder, prefix, titleBase);
         if (!loaded.isEmpty()) {
             pages.clear();
             pages.addAll(loaded);
@@ -248,8 +277,12 @@ public class StorageGUI {
 
 
     // standard getters
-    public UUID getOwnerId() {
-        return ownerId;
+    public String getOwnerKey() {
+        return ownerKey;
+    }
+
+    public boolean allowsSoulbound() {
+        return allowSoulbound;
     }
     public List<Inventory> getPages() {
         return pages;
@@ -330,7 +363,7 @@ public class StorageGUI {
         return it;
     }
 
-    private ItemStack createInfoItem() {
+    protected ItemStack createInfoItem() {
         ItemStack info = getNexoItem("info", ChatColor.YELLOW + "Information");
         ItemMeta meta = info.getItemMeta();
         if (meta != null) {

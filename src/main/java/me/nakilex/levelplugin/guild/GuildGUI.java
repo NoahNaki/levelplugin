@@ -37,6 +37,11 @@ public class GuildGUI {
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.YELLOW + "Leader: " + g.getLeaderName());
             lore.add(ChatColor.WHITE + "Members: " + g.getMembers().size());
+            lore.add(ChatColor.GRAY + "Level: " + ChatColor.YELLOW + g.getLevel());
+            int need = g.getExpNeeded();
+            if (need > 0) {
+                lore.add(ChatColor.GRAY + "XP: " + ChatColor.YELLOW + g.getExp() + ChatColor.GRAY + "/" + ChatColor.YELLOW + need);
+            }
             lore.add(ChatColor.GREEN + "Allies: " + String.join(", ", g.getAllies()));
             lore.add(ChatColor.RED + "Hostile: " + String.join(", ", g.getHostiles()));
             if (noGuild) {

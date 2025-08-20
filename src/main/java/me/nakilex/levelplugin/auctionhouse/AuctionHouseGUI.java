@@ -196,7 +196,8 @@ public class AuctionHouseGUI implements Listener {
                 player.sendMessage(ChatColor.RED + "Hold the item you wish to sell in your hand.");
                 return;
             }
-            if (me.nakilex.levelplugin.items.listeners.StaticItemListener.isStaticItem(hand)) {
+            if (me.nakilex.levelplugin.items.listeners.StaticItemListener.isStaticItem(hand)
+                    || me.nakilex.levelplugin.items.utils.ItemUtil.isSoulbound(hand)) {
                 player.sendMessage(ChatColor.RED + "You cannot list that item.");
                 return;
             }
@@ -631,7 +632,8 @@ public class AuctionHouseGUI implements Listener {
                 player.sendMessage(ChatColor.RED + "Hold the item you wish to sell in your hand.");
                 return;
             }
-            if (me.nakilex.levelplugin.items.listeners.StaticItemListener.isStaticItem(hand)) {
+            if (me.nakilex.levelplugin.items.listeners.StaticItemListener.isStaticItem(hand)
+                    || me.nakilex.levelplugin.items.utils.ItemUtil.isSoulbound(hand)) {
                 player.sendMessage(ChatColor.RED + "You cannot list that item.");
                 return;
             }

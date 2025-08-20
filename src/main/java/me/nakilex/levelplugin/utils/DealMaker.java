@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.utils;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.trade.data.ConfigValues;
 import me.nakilex.levelplugin.trade.utils.MessageStrings;
 import me.nakilex.levelplugin.trade.utils.Translations;
@@ -31,6 +32,10 @@ public class DealMaker {
     public boolean makeTradeOffer(Player owner, Player target) {
         MessageStrings messageStrings = Main.getPlugin().getMessageStrings();
         ConfigValues configValues = Main.getPlugin().getConfigValues();
+        if (ItemUtil.isSoulbound(owner.getInventory().getItemInMainHand())) {
+            owner.sendMessage(Main.PREFIX + "Soulbound items cannot be traded.");
+            return false;
+        }
         if(owner.getUniqueId().equals(target.getUniqueId())) {
             owner.sendMessage(Main.PREFIX + messageStrings.getTranslation(Translations.CAN_NOT_TRADE_WITH_YOURSELF));
             return false;

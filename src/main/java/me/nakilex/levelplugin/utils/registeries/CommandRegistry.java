@@ -49,6 +49,8 @@ import me.nakilex.levelplugin.party.PartyCommands;
 import me.nakilex.levelplugin.party.PartyGlowCommand;
 import me.nakilex.levelplugin.friend.FriendCommand;
 import me.nakilex.levelplugin.friend.FriendGlowCommand;
+import me.nakilex.levelplugin.friend.FriendGUI;
+import me.nakilex.levelplugin.friend.FriendsCommand;
 import me.nakilex.levelplugin.codex.CodexMainGUI;
 import me.nakilex.levelplugin.codex.CodexCommand;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantCommand;
@@ -73,9 +75,11 @@ import me.nakilex.levelplugin.environment.stage.TownPosCommand;
 import me.nakilex.levelplugin.environment.stage.StageSelectionListener;
 import me.nakilex.levelplugin.utils.commands.CenterGuiCommand;
 import me.nakilex.levelplugin.utils.commands.CenterTooltipCommand;
+import me.nakilex.levelplugin.utils.commands.EmptyTabCompleter;
 import me.nakilex.levelplugin.pathfinding.PathfindingCommand;
 import me.nakilex.levelplugin.pathfinding.PathfindingManager;
 import me.nakilex.levelplugin.pathfinding.MercenaryCommand;
+import org.bukkit.command.PluginCommand;
 import me.nakilex.levelplugin.pathfinding.MercenaryManager;
 
 public class CommandRegistry {
@@ -144,6 +148,8 @@ public class CommandRegistry {
         FriendCommand friendCmd = new FriendCommand(plugin.getFriendManager());
         plugin.getCommand("friend").setExecutor(friendCmd);
         plugin.getCommand("friend").setTabCompleter(friendCmd);
+        FriendGUI friendGui = new FriendGUI(plugin.getFriendManager());
+        plugin.getCommand("friends").setExecutor(new FriendsCommand(friendGui));
         plugin.getCommand("friendglow").setExecutor(new FriendGlowCommand(plugin.getFriendGlowManager()));
         plugin.getCommand("ignore").setExecutor(new IgnoreCommand(plugin.getIgnoreManager()));
         plugin.getCommand("unignore").setExecutor(new UnignoreCommand(plugin.getIgnoreManager()));
@@ -222,5 +228,14 @@ public class CommandRegistry {
         MercenaryCommand mercCmd = new MercenaryCommand(mercManager);
         plugin.getCommand("mercenary").setExecutor(mercCmd);
         plugin.getCommand("mercenary").setTabCompleter(mercCmd);
+
+        // Ensure every command has a tab completer to avoid null completions
+        EmptyTabCompleter empty = new EmptyTabCompleter();
+        for (String name : plugin.getDescription().getCommands().keySet()) {
+            PluginCommand cmd = plugin.getCommand(name);
+            if (cmd != null && cmd.getTabCompleter() == null) {
+                cmd.setTabCompleter(empty);
+            }
+        }
     }
 }

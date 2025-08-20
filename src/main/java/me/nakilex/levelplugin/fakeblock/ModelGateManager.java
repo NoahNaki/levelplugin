@@ -92,6 +92,8 @@ public class ModelGateManager implements Listener {
             String closed = config.getString(base + "closed_model", "");
             boolean state = config.getBoolean(base + "closed", true);
             ModelGate gate = new ModelGate(key, new Location(world, x, y, z), open, closed, state);
+            // ensure no lingering furniture is at this location before spawning
+            gate.removeAll();
             gate.spawnEntities(plugin);
             registerEntities(gate);
             gates.put(key.toLowerCase(), gate);

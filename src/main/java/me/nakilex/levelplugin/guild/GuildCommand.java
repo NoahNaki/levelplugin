@@ -7,6 +7,8 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
+import me.nakilex.levelplugin.guild.GuildRole;
+import me.nakilex.levelplugin.guild.GuildPermission;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -150,8 +152,8 @@ public class GuildCommand implements TabExecutor {
                 }
                 break;
             case "promote":
-                if (args.length < 2) {
-                    player.sendMessage(ChatColor.RED + "Usage: /guild promote <player>");
+                if (args.length < 3) {
+                    player.sendMessage(ChatColor.RED + "Usage: /guild promote <player> <role>");
                     return true;
                 }
                 Player promote = Bukkit.getPlayer(args[1]);
@@ -159,9 +161,14 @@ public class GuildCommand implements TabExecutor {
                     player.sendMessage(ChatColor.RED + "Player not found");
                     return true;
                 }
-                if (manager.promote(id, promote.getUniqueId())) {
-                    player.sendMessage(ChatColor.GREEN + promote.getName() + " is now the leader.");
-                    promote.sendMessage(ChatColor.GREEN + "You are now the guild leader!");
+                GuildRole role = GuildRole.fromString(args[2]);
+                if (role == null) {
+                    player.sendMessage(ChatColor.RED + "Unknown role.");
+                    return true;
+                }
+                if (manager.promote(id, promote.getUniqueId(), role)) {
+                    player.sendMessage(ChatColor.GREEN + promote.getName() + " promoted to " + role.name().toLowerCase() + ".");
+                    promote.sendMessage(ChatColor.GREEN + "You are now a " + role.name().toLowerCase() + "!");
                 } else {
                     player.sendMessage(ChatColor.RED + "Could not promote player");
                 }
@@ -186,8 +193,8 @@ public class GuildCommand implements TabExecutor {
                     return true;
                 }
                 Guild my = manager.getGuild(id);
-                if (my == null || !my.getLeader().equals(id)) {
-                    player.sendMessage(ChatColor.RED + "Only guild leaders can set alliances.");
+                if (my == null || !manager.hasPermission(id, GuildPermission.MANAGE_RELATIONS)) {
+                    player.sendMessage(ChatColor.RED + "You lack permission.");
                     return true;
                 }
                 if (manager.requestAlliance(my.getName(), args[1])) {
@@ -209,8 +216,8 @@ public class GuildCommand implements TabExecutor {
                     return true;
                 }
                 Guild myh = manager.getGuild(id);
-                if (myh == null || !myh.getLeader().equals(id)) {
-                    player.sendMessage(ChatColor.RED + "Only guild leaders can declare hostility.");
+                if (myh == null || !manager.hasPermission(id, GuildPermission.MANAGE_RELATIONS)) {
+                    player.sendMessage(ChatColor.RED + "You lack permission.");
                     return true;
                 }
                 if (manager.setHostile(myh.getName(), args[1])) {
@@ -225,8 +232,8 @@ public class GuildCommand implements TabExecutor {
                     return true;
                 }
                 Guild myn = manager.getGuild(id);
-                if (myn == null || !myn.getLeader().equals(id)) {
-                    player.sendMessage(ChatColor.RED + "Only guild leaders can change relations.");
+                if (myn == null || !manager.hasPermission(id, GuildPermission.MANAGE_RELATIONS)) {
+                    player.sendMessage(ChatColor.RED + "You lack permission.");
                     return true;
                 }
                 if (myn.getAllies().contains(args[1])) {
@@ -254,8 +261,8 @@ public class GuildCommand implements TabExecutor {
                     return true;
                 }
                 Guild recA = manager.getGuild(id);
-                if (recA == null || !recA.getLeader().equals(id)) {
-                    player.sendMessage(ChatColor.RED + "Only guild leaders can accept alliances.");
+                if (recA == null || !manager.hasPermission(id, GuildPermission.MANAGE_RELATIONS)) {
+                    player.sendMessage(ChatColor.RED + "You lack permission.");
                     return true;
                 }
                 if (manager.acceptAlliance(recA.getName(), args[1])) {
@@ -277,8 +284,8 @@ public class GuildCommand implements TabExecutor {
                     return true;
                 }
                 Guild recAD = manager.getGuild(id);
-                if (recAD == null || !recAD.getLeader().equals(id)) {
-                    player.sendMessage(ChatColor.RED + "Only guild leaders can deny alliances.");
+                if (recAD == null || !manager.hasPermission(id, GuildPermission.MANAGE_RELATIONS)) {
+                    player.sendMessage(ChatColor.RED + "You lack permission.");
                     return true;
                 }
                 if (manager.denyAlliance(recAD.getName(), args[1])) {
@@ -293,8 +300,8 @@ public class GuildCommand implements TabExecutor {
                     return true;
                 }
                 Guild myRev = manager.getGuild(id);
-                if (myRev == null || !myRev.getLeader().equals(id)) {
-                    player.sendMessage(ChatColor.RED + "Only guild leaders can revoke alliances.");
+                if (myRev == null || !manager.hasPermission(id, GuildPermission.MANAGE_RELATIONS)) {
+                    player.sendMessage(ChatColor.RED + "You lack permission.");
                     return true;
                 }
                 if (manager.revokeAlliance(myRev.getName(), args[1])) {
@@ -309,8 +316,8 @@ public class GuildCommand implements TabExecutor {
                     return true;
                 }
                 Guild recN = manager.getGuild(id);
-                if (recN == null || !recN.getLeader().equals(id)) {
-                    player.sendMessage(ChatColor.RED + "Only guild leaders can accept neutrality.");
+                if (recN == null || !manager.hasPermission(id, GuildPermission.MANAGE_RELATIONS)) {
+                    player.sendMessage(ChatColor.RED + "You lack permission.");
                     return true;
                 }
                 if (manager.acceptNeutral(recN.getName(), args[1])) {
@@ -325,8 +332,8 @@ public class GuildCommand implements TabExecutor {
                     return true;
                 }
                 Guild recND = manager.getGuild(id);
-                if (recND == null || !recND.getLeader().equals(id)) {
-                    player.sendMessage(ChatColor.RED + "Only guild leaders can deny neutrality.");
+                if (recND == null || !manager.hasPermission(id, GuildPermission.MANAGE_RELATIONS)) {
+                    player.sendMessage(ChatColor.RED + "You lack permission.");
                     return true;
                 }
                 if (manager.denyNeutral(recND.getName(), args[1])) {
@@ -377,6 +384,13 @@ public class GuildCommand implements TabExecutor {
                 default:
                     break;
             }
+        }
+        if (args.length == 3 && sub.equals("promote")) {
+            List<String> roles = new ArrayList<>();
+            for (GuildRole r : GuildRole.values()) {
+                roles.add(r.name().toLowerCase());
+            }
+            return CommandUtil.filterStartingWith(roles, args[2]);
         }
         return Collections.emptyList();
     }

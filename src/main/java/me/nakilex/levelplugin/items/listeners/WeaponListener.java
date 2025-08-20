@@ -298,6 +298,11 @@ public class WeaponListener implements Listener {
         Player player = event.getPlayer();
         ItemStack dropped = event.getItemDrop().getItemStack();
 
+        if (me.nakilex.levelplugin.items.utils.ItemUtil.isSoulbound(dropped)) {
+            event.setCancelled(true);
+            return;
+        }
+
         CustomItem inst = ItemManager.getInstance().getCustomItemFromItemStack(dropped);
         Set<Integer> eq = StatsManager.getInstance().getEquippedItems(player.getUniqueId());
         // if they dropped a weapon you currently had applied

@@ -89,9 +89,7 @@ public class ItemDropper {
                         template.getIntelRange(),
                         template.getDexRange(),
                         template.getWilRange(),
-                        template.getTecRange(),
-                        template.isEgo(),
-                        template.getEgoKey()
+                        template.getTecRange()
                 );
                 ItemManager.getInstance().addInstance(newInstance);
                 String nexo = modelSet != null ? modelSetManager.getModelId(modelSet, newInstance.getMaterial()) : null;

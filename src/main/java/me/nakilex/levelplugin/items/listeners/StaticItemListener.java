@@ -93,7 +93,8 @@ public class StaticItemListener implements Listener {
         ItemStack dropped = event.getItemDrop().getItemStack();
         if (dropped.isSimilar(STATIC_ITEM)
             || dropped.isSimilar(STATIC_HORSE_SADDLE)
-            || dropped.isSimilar(STATIC_QUEST_BOOK)) {
+            || dropped.isSimilar(STATIC_QUEST_BOOK)
+            || me.nakilex.levelplugin.items.utils.ItemUtil.isSoulbound(dropped)) {
             event.setCancelled(true);
         }
     }
