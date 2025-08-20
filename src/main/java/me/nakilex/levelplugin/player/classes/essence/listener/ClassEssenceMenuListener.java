@@ -88,10 +88,10 @@ public class ClassEssenceMenuListener implements Listener {
 
                 me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§6§l-", 45);
                 me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§6§lESSENCE EQUIPPED!");
-                me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "");
+                me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, " ", 45);
                 me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player,
                         ChatColor.GRAY + "You are now the §e§l" + TextUtil.beautifyWords(essenceClass.name()) + " §7class!");
-                me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "");
+                me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, " ", 45);
                 for (StatType st : before.keySet()) {
                     int after = StatsManager.getInstance().getStatValue(player, st);
                     ChatColor col = after >= before.get(st) ? ChatColor.GREEN : ChatColor.RED;
@@ -100,7 +100,7 @@ public class ClassEssenceMenuListener implements Listener {
                             me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType.INFO,
                             name + ": " + ChatColor.WHITE + before.get(st) + ChatColor.GRAY + " -> " + col + after);
                 }
-                me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "");
+                me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, " ", 45);
                 me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§6§l-", 45);
             }
         } else if (click.isRightClick()) {
