@@ -358,11 +358,13 @@ public final class ClassEssence {
         exp += amount;
         int next = pdc.has(NEXT_EXP_KEY, PersistentDataType.INTEGER) ? pdc.get(NEXT_EXP_KEY, PersistentDataType.INTEGER) : 0;
         ItemRarity rarity = ItemRarity.valueOf(pdc.get(RARITY_KEY, PersistentDataType.STRING));
-        ItemRarity original = rarity;
         int star = pdc.has(STAR_KEY, PersistentDataType.INTEGER) ? pdc.get(STAR_KEY, PersistentDataType.INTEGER) : 0;
-        if (next > 0 && exp >= next) {
+        ItemRarity upgradedTo = null;
+
+        while (next > 0 && exp >= next && rarity != ItemRarity.FABLED) {
             exp -= next;
             rarity = nextRarity(rarity);
+            upgradedTo = rarity;
             int slots = getAttributeSlots(rarity);
             Map<StatType, AttrData> newAttrs = rollAttributes(slots, rarity, star, new Random());
             String attrString = newAttrs.entrySet().stream()
@@ -370,13 +372,18 @@ public final class ClassEssence {
                     .collect(Collectors.joining(";"));
             pdc.set(ATTR_KEY, PersistentDataType.STRING, attrString);
             next = getRarityThreshold(rarity);
-            pdc.set(RARITY_KEY, PersistentDataType.STRING, rarity.name());
         }
+
+        if (next == 0) {
+            exp = 0;
+        }
+
+        pdc.set(RARITY_KEY, PersistentDataType.STRING, rarity.name());
         pdc.set(EXP_KEY, PersistentDataType.INTEGER, exp);
         pdc.set(NEXT_EXP_KEY, PersistentDataType.INTEGER, next);
         stack.setItemMeta(meta);
         updateLore(stack);
-        return rarity != original ? rarity : null;
+        return upgradedTo;
     }
 
     public static int getInvestExp(ItemRarity rarity) {

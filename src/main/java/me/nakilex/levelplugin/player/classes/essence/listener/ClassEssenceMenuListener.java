@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import me.nakilex.levelplugin.player.classes.essence.gui.ClassEssenceGUI;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
+import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TextUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -94,10 +95,12 @@ public class ClassEssenceMenuListener implements Listener {
                 for (StatType st : before.keySet()) {
                     int after = StatsManager.getInstance().getStatValue(player, st);
                     ChatColor col = after >= before.get(st) ? ChatColor.GREEN : ChatColor.RED;
+                    String name = GuiUtil.formatStatName(st);
                     me.nakilex.levelplugin.utils.ChatMessageUtil.send(player,
                             me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType.INFO,
-                            st.getDisplayName() + ": " + before.get(st) + " -> " + col + after);
+                            name + ": " + ChatColor.WHITE + before.get(st) + ChatColor.GRAY + " -> " + col + after);
                 }
+                me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "");
                 me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§6§l-", 45);
             }
         } else if (click.isRightClick()) {

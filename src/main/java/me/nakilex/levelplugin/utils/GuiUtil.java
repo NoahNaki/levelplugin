@@ -141,23 +141,30 @@ public final class GuiUtil {
         return "<glyph:star>".repeat(count);
     }
 
+    private record StatFormat(String icon, ChatColor color) {}
+
+    private static StatFormat getStatFormat(StatType type) {
+        return switch (type) {
+            case STR -> new StatFormat("\u2620", ChatColor.BLUE);
+            case AGI -> new StatFormat("\u2248", ChatColor.GREEN);
+            case INT -> new StatFormat("\u2666", ChatColor.AQUA);
+            case DEX -> new StatFormat("\u27B9", ChatColor.YELLOW);
+            case VIT -> new StatFormat("\u2764", ChatColor.RED);
+            case WIL -> new StatFormat("\u272A", ChatColor.BLUE);
+            case TEC -> new StatFormat("\u2694", ChatColor.DARK_PURPLE);
+        };
+    }
+
+    /** Format a stat name with its icon and standard colouring. */
+    public static String formatStatName(StatType type) {
+        StatFormat fmt = getStatFormat(type);
+        return fmt.color + fmt.icon + " " + ChatColor.GRAY + type.getDisplayName();
+    }
+
     /** Format a stat line using standard icons and colours. */
     public static String formatStatLine(StatType type, int value, boolean percent) {
-        String icon;
-        ChatColor iconColor;
-        switch (type) {
-            case STR -> { icon = "\u2620"; iconColor = ChatColor.BLUE; }
-            case AGI -> { icon = "\u2248"; iconColor = ChatColor.GREEN; }
-            case INT -> { icon = "\u2666"; iconColor = ChatColor.AQUA; }
-            case DEX -> { icon = "\u27B9"; iconColor = ChatColor.YELLOW; }
-            case VIT -> { icon = "\u2764"; iconColor = ChatColor.RED; }
-            case WIL -> { icon = "\u272A"; iconColor = ChatColor.BLUE; }
-            case TEC -> { icon = "\u2694"; iconColor = ChatColor.DARK_PURPLE; }
-            default -> { icon = ""; iconColor = ChatColor.GRAY; }
-        }
         String suffix = percent ? "%" : "";
-        return iconColor + icon + " " + ChatColor.GRAY + type.getDisplayName() + ": "
-                + ChatColor.WHITE + "+" + value + suffix;
+        return formatStatName(type) + ": " + ChatColor.WHITE + "+" + value + suffix;
     }
 
     /**
