@@ -27,16 +27,17 @@ public final class GuildQuestGUI {
     private GuildQuestGUI() {}
 
     public static final String TITLE = ChatColor.BLACK + "Guild Quests";
+    private static final int[] QUEST_SLOTS = {11, 13, 15};
 
     public static Inventory create(Player viewer, Map<String, GuildQuest> quests) {
         GuiBuilder builder = GuiBuilder.create(27, TITLE)
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .border();
 
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < QUEST_SLOTS.length; i++) {
             GuildQuest quest = quests.get(String.valueOf(i));
             if (quest == null) continue;
-            int slot = 10 + i;
+            int slot = QUEST_SLOTS[i];
             ItemStack icon = GuiUtil.getNexoItem("pack1_scroll2", ChatColor.GOLD + quest.getName());
             ItemMeta meta = icon.getItemMeta();
             List<String> lore = new ArrayList<>();
@@ -85,5 +86,16 @@ public final class GuildQuestGUI {
         }
 
         return builder.build();
+    }
+
+    public static int indexFromSlot(int rawSlot) {
+        for (int i = 0; i < QUEST_SLOTS.length; i++) {
+            if (QUEST_SLOTS[i] == rawSlot) return i;
+        }
+        return -1;
+    }
+
+    public static int slotFromIndex(int index) {
+        return QUEST_SLOTS[index];
     }
 }

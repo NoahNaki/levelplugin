@@ -24,11 +24,23 @@ public class GuildQuestManager {
 
     private GuildQuestManager() {}
 
-    /** Ensure the guild always has three quest slots populated. */
+    /** Ensure the guild always has three quest slots populated without duplicates. */
     public void ensureQuests(Guild guild) {
+        Set<QuestObjectiveType> used = new HashSet<>();
+        // Remove duplicates among existing quests
+        for (Map.Entry<String, GuildQuest> e : new ArrayList<>(guild.getQuests().entrySet())) {
+            QuestObjectiveType type = e.getValue().getObjective().getType();
+            if (!used.add(type)) {
+                GuildQuest q = generateQuest(guild, used);
+                guild.getQuests().put(e.getKey(), q);
+                used.add(q.getObjective().getType());
+            }
+        }
         while (guild.getQuests().size() < 3) {
             String key = String.valueOf(guild.getQuests().size());
-            guild.getQuests().put(key, generateQuest(guild));
+            GuildQuest q = generateQuest(guild, used);
+            guild.getQuests().put(key, q);
+            used.add(q.getObjective().getType());
         }
     }
 
@@ -36,13 +48,19 @@ public class GuildQuestManager {
     public void rerollQuest(Guild guild, String slot) {
         GuildQuest current = guild.getQuests().get(slot);
         if (current == null || current.isAccepted() || current.isRerolled()) return;
-        GuildQuest next = generateQuest(guild);
+        Set<QuestObjectiveType> used = new HashSet<>();
+        for (Map.Entry<String, GuildQuest> e : guild.getQuests().entrySet()) {
+            if (!e.getKey().equals(slot)) {
+                used.add(e.getValue().getObjective().getType());
+            }
+        }
+        GuildQuest next = generateQuest(guild, used);
         next.setRerolled(true); // reroll for this slot has been consumed
         guild.getQuests().put(slot, next);
     }
 
-    /** Generate a quest with difficulty scaled to the guild. */
-    public GuildQuest generateQuest(Guild guild) {
+    /** Generate a quest with difficulty scaled to the guild, avoiding used types. */
+    public GuildQuest generateQuest(Guild guild, Set<QuestObjectiveType> usedTypes) {
         int stars = computeDifficulty(guild);
 
         QuestObjectiveType[] types = {
@@ -52,7 +70,14 @@ public class GuildQuestManager {
                 QuestObjectiveType.SIEGE_PARTICIPATE,
                 QuestObjectiveType.DUEL_WIN
         };
-        QuestObjectiveType type = types[random.nextInt(types.length)];
+        List<QuestObjectiveType> options = new ArrayList<>(Arrays.asList(types));
+        if (usedTypes != null) {
+            options.removeAll(usedTypes);
+        }
+        if (options.isEmpty()) {
+            options = Arrays.asList(types);
+        }
+        QuestObjectiveType type = options.get(random.nextInt(options.size()));
 
         int amount = switch (type) {
             case LOOTCHEST_OPEN -> stars * 5;

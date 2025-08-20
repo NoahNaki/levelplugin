@@ -26,8 +26,8 @@ public class GuildQuestGUIListener implements Listener {
         event.setCancelled(true);
 
         int slot = event.getRawSlot();
-        int idx = slot - 10;
-        if (idx < 0 || idx > 2) return;
+        int idx = GuildQuestGUI.indexFromSlot(slot);
+        if (idx == -1) return;
 
         Player player = (Player) event.getWhoClicked();
         Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
