@@ -256,6 +256,11 @@ public final class ClassEssence {
         return getAttributes(stack).keySet();
     }
 
+    /** Calculate the gear score for an essence. */
+    public static int getGearScore(ItemStack stack) {
+        return getAttributes(stack).values().stream().mapToInt(a -> a.value).sum();
+    }
+
     /** Apply attribute bonuses of an essence to a player. */
     public static void applyAttributes(org.bukkit.entity.Player player, ItemStack stack) {
         Map<StatType, AttrData> attrs = getAttributes(stack);
@@ -424,7 +429,7 @@ public final class ClassEssence {
         String rarityGlyph = "<glyph:" + rarity.name().toLowerCase() + ">";
         lore.add(rarityGlyph + "<glyph:essence>");
         lore.add("");
-        int gearScore = attrs.values().stream().mapToInt(a -> a.value).sum();
+        int gearScore = getGearScore(stack);
         lore.add("<glyph:sword_icon> " + ChatColor.GRAY + "Gear Score: "
                 + ChatColor.LIGHT_PURPLE + ChatColor.BOLD + gearScore);
         lore.add("");

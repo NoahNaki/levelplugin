@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.salvage.managers.SalvageManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.player.mining.managers.MiningManager;
+import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import me.nakilex.levelplugin.items.data.ArmorType;
 import me.nakilex.levelplugin.items.data.WeaponType;
 import org.bukkit.Bukkit;
@@ -691,6 +692,16 @@ public class ItemUtil {
             CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(off);
             if (ci != null) items.add(ci);
         }
-        return calculateTotalGearScore(items);
+        int total = calculateTotalGearScore(items);
+        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
+        if (ps != null) {
+            for (int i = 0; i < ps.equippedEssences.length; i++) {
+                if (ps.equippedEssences[i]) {
+                    ItemStack ess = ps.essenceSlots[i];
+                    if (ess != null) total += ClassEssence.getGearScore(ess);
+                }
+            }
+        }
+        return total;
     }
 }
