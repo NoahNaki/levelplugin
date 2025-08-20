@@ -23,6 +23,8 @@ public class Guild {
     private int level = 1;
     /** Accumulated guild experience toward next level */
     private int exp = 0;
+    /** Purchased town perks retained by the guild. */
+    private final java.util.EnumSet<TownPerk> townPerks = java.util.EnumSet.noneOf(TownPerk.class);
 
     public Guild(String name, UUID leader) {
         this.name = name;
@@ -100,6 +102,19 @@ public class Guild {
     public int getExpNeeded() {
         if (level >= 10) return 0;
         return xpForLevel(level);
+    }
+
+    /** Access the guild's purchased town perks. */
+    public java.util.EnumSet<TownPerk> getTownPerks() {
+        return townPerks;
+    }
+
+    public boolean hasPerk(TownPerk perk) {
+        return townPerks.contains(perk);
+    }
+
+    public void addPerk(TownPerk perk) {
+        townPerks.add(perk);
     }
 
     /** Add guild experience and handle level ups. */

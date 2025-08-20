@@ -8,6 +8,9 @@ import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.merchants.data.MerchantItem;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.guild.GuildManager;
+import me.nakilex.levelplugin.guild.TownPerk;
+import me.nakilex.levelplugin.guild.TownPerkManager;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
@@ -253,7 +256,10 @@ public class MerchantGUI implements Listener {
 
             Player player = (Player) event.getWhoClicked();
 
-            int coinCost = mItem.getCost();
+            int coinCost = TownPerkManager.getInstance().applyDiscount(
+                    GuildManager.getInstance().getGuild(player.getUniqueId()),
+                    TownPerk.MERCHANT_DISCOUNT,
+                    mItem.getCost());
             int gemCost = mItem.getGems();
 
             int coinBalance = economyManager.getBalance(player);
@@ -312,6 +318,7 @@ public class MerchantGUI implements Listener {
         int lvl       = StatsManager.getInstance().getLevel(player);
         int coins     = economyManager.getBalance(player);
         int totalGems = Main.getInstance().getGemsManager().getTotalUnits(player);
+        me.nakilex.levelplugin.guild.Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
 
         for (MerchantItem mItem : merchantItems.values()) {
             ItemStack stack = inventory.getItem(mItem.getSlot());
@@ -342,12 +349,12 @@ public class MerchantGUI implements Listener {
             // ── 3) Coin Price ────────────────────────────────
             int priceHdr = lore.indexOf(ChatColor.GOLD + "Price:");
             if (priceHdr != -1 && priceHdr + 1 < lore.size()) {
-                boolean afford = coins >= mItem.getCost();
+                int discounted = TownPerkManager.getInstance().applyDiscount(g, TownPerk.MERCHANT_DISCOUNT, mItem.getCost());
+                boolean afford = coins >= discounted;
                 lore.set(priceHdr + 1,
                     ChatColor.GRAY + ""
                         + (afford ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
-                        + mItem.getCost()
-                        + " "
+                        + discounted + " "
                         + ChatColor.GOLD + "<glyph:coins_icon>"
                 );
             }

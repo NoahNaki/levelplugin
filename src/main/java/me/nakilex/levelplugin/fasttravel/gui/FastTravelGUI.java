@@ -6,6 +6,9 @@ import me.nakilex.levelplugin.fakeblock.ModelGate;
 import me.nakilex.levelplugin.fakeblock.ModelGateManager;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
+import me.nakilex.levelplugin.guild.GuildManager;
+import me.nakilex.levelplugin.guild.TownPerk;
+import me.nakilex.levelplugin.guild.TownPerkManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -88,6 +91,7 @@ public class FastTravelGUI implements Listener {
             if(i<9 || i>=45 || i%9==0 || i%9==8){ gui.setItem(i,filler); }
         }
         int filter = typeMap.getOrDefault(player.getUniqueId(),0);
+        me.nakilex.levelplugin.guild.Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
         List<ModelGate> list = new ArrayList<>(gateManager.getGates());
         String exclude = excludeMap.get(player.getUniqueId());
         if(exclude != null){
@@ -110,6 +114,7 @@ public class FastTravelGUI implements Listener {
                 List<String> lore=new ArrayList<>();
                 if(unlocked){
                     int cost=(int)player.getLocation().distance(pt.getLocation());
+                    cost = TownPerkManager.getInstance().applyDiscount(g, TownPerk.FAST_TRAVEL_DISCOUNT, cost);
                     lore.add(ChatColor.GRAY+"Teleportation Cost:");
                     lore.add(ChatColor.WHITE+""+cost+ChatColor.YELLOW+" <glyph:coins_icon>");
                 } else {
@@ -179,6 +184,10 @@ public class FastTravelGUI implements Listener {
             return;
         }
         int cost=(int)player.getLocation().distance(target.getLocation());
+        cost = TownPerkManager.getInstance().applyDiscount(
+                GuildManager.getInstance().getGuild(player.getUniqueId()),
+                TownPerk.FAST_TRAVEL_DISCOUNT,
+                cost);
         if(economy.getBalance(player)<cost){
             send(player, MessageType.ERROR, "You need "+cost+" coins to travel.");
             return;

@@ -44,6 +44,8 @@ public class GuildSiegeManager {
 
     private final Set<UUID> queue = new HashSet<>();
     private final Set<UUID> active = new HashSet<>();
+    private final Set<UUID> attackers = new HashSet<>();
+    private final Set<UUID> defenders = new HashSet<>();
 
     private final Location center = new Location(Bukkit.getWorld("world"), 192, 73, -71);
     private final Location teleportLocation = new Location(Bukkit.getWorld("world"), 193, 67, -174);
@@ -139,6 +141,10 @@ public class GuildSiegeManager {
             ChatFormatter.sendCenteredMessage(p, ChatColor.RED + "You must be in a guild to join the siege.");
             return;
         }
+        if (ownerGuild != null && ownerGuild.equalsIgnoreCase(g.getName())) {
+            ChatFormatter.sendCenteredMessage(p, ChatColor.RED + "Your guild is defending this siege.");
+            return;
+        }
         if (queue.add(p.getUniqueId())) {
             ChatFormatter.sendCenteredMessage(p, ChatColor.GREEN + "You have signed up for the siege!");
             if (queue.size() == 1) startCountdown();
@@ -148,7 +154,7 @@ public class GuildSiegeManager {
     /** Remove a player from the queue/active sets.
      *  @return true if the player was queued or active. */
     public boolean leave(UUID id) {
-        boolean removed = queue.remove(id) | active.remove(id);
+        boolean removed = queue.remove(id) | active.remove(id) | attackers.remove(id) | defenders.remove(id);
         if (removed && queue.isEmpty() && countdownTask != null) {
             countdownTask.cancel();
             countdownTask = null;
@@ -162,8 +168,23 @@ public class GuildSiegeManager {
             countdownTask = null;
         }
         active.clear();
-        active.addAll(queue);
+        attackers.clear();
+        attackers.addAll(queue);
         queue.clear();
+        defenders.clear();
+        if (ownerGuild != null) {
+            Guild defGuild = GuildManager.getInstance().getGuild(ownerGuild);
+            if (defGuild != null) {
+                for (UUID id : defGuild.getMembers()) {
+                    Player dp = Bukkit.getPlayer(id);
+                    if (dp != null) {
+                        defenders.add(id);
+                    }
+                }
+            }
+        }
+        active.addAll(attackers);
+        active.addAll(defenders);
         progress = 0;
         capturingGuild = null;
         Main.getInstance().getModelGateManager().setGateHidden("rowan", true);
@@ -179,11 +200,19 @@ public class GuildSiegeManager {
         bossBar.setVisible(true);
         updateBossBar();
 
-        for (UUID id : active) {
+        for (UUID id : attackers) {
             Player p = Bukkit.getPlayer(id);
             if (p != null) {
                 bossBar.addPlayer(p);
                 me.nakilex.levelplugin.utils.TeleportUtils.teleportWithEffect(p, teleportLocation);
+                Main.getInstance().getLocationMusicManager().startSiege(p);
+            }
+        }
+        for (UUID id : defenders) {
+            Player p = Bukkit.getPlayer(id);
+            if (p != null) {
+                bossBar.addPlayer(p);
+                me.nakilex.levelplugin.utils.TeleportUtils.teleportWithEffect(p, center);
                 Main.getInstance().getLocationMusicManager().startSiege(p);
             }
         }
@@ -263,8 +292,21 @@ public class GuildSiegeManager {
 
     private void tickCapture() {
         spawnParticles();
+        // Defenders inside the circle prevent capture progress entirely
+        for (UUID id : defenders) {
+            Player p = Bukkit.getPlayer(id);
+            if (p == null) continue;
+            if (!p.getWorld().equals(center.getWorld())) continue;
+            if (p.getLocation().distanceSquared(center) <= RADIUS * RADIUS) {
+                capturingGuild = null;
+                progress = 0;
+                updateBossBar();
+                return;
+            }
+        }
+
         Map<String, Integer> counts = new HashMap<>();
-        for (UUID id : active) {
+        for (UUID id : attackers) {
             Player p = Bukkit.getPlayer(id);
             if (p == null) continue;
             if (!p.getWorld().equals(center.getWorld())) continue;
@@ -331,6 +373,8 @@ public class GuildSiegeManager {
         }
         active.clear();
         queue.clear();
+        attackers.clear();
+        defenders.clear();
         progress = 0;
         capturingGuild = null;
         if (bossBar != null) {
@@ -550,6 +594,10 @@ public class GuildSiegeManager {
         if (announceTask != null) announceTask.cancel();
         if (countdownTask != null) countdownTask.cancel();
         if (captureTask != null) captureTask.cancel();
+        attackers.clear();
+        defenders.clear();
+        active.clear();
+        queue.clear();
         if (bossBar != null) {
             bossBar.removeAll();
             bossBar = null;
