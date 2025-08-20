@@ -38,6 +38,7 @@ import me.nakilex.levelplugin.spells.listener.ClassSpellListener;
 import me.nakilex.levelplugin.spells.gui.SpellGUIListener;
 import me.nakilex.levelplugin.spells.listener.*;
 import me.nakilex.levelplugin.player.classes.gui.SubclassGUI;
+import me.nakilex.levelplugin.player.classes.essence.listener.ClassEssenceMenuListener;
 import me.nakilex.levelplugin.trade.listeners.PlayerRightClicksPlayerListener;
 import me.nakilex.levelplugin.guild.GuildGUIListener;
 import me.nakilex.levelplugin.utils.*;
@@ -162,6 +163,7 @@ public class ListenerRegistry {
         pm.registerEvents(new ShockwaveListener(), plugin);
         pm.registerEvents(new ClassSpellListener(), plugin);
         pm.registerEvents(new SubclassGUI(), plugin);
+        pm.registerEvents(new ClassEssenceMenuListener(), plugin);
         pm.registerEvents(new ChestHologramListener(lootChestManager), plugin);
         pm.registerEvents(new LootChestShutdownListener(plugin, lootChestManager), plugin);
 

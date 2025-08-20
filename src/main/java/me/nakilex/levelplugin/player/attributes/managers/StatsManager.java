@@ -320,6 +320,10 @@ public class StatsManager {
 
         public Set<PlayerClass> unlockedClasses = new HashSet<>();
 
+        // Up to three slotted class essences for this player
+        public final org.bukkit.inventory.ItemStack[] essenceSlots = new org.bukkit.inventory.ItemStack[3];
+        public final boolean[] equippedEssences = new boolean[3];
+
         public PlayerStats() {
             unlockedClasses.add(playerClass);
         }

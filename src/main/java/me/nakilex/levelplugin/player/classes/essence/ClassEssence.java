@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.player.classes.essence;
 
 import me.nakilex.levelplugin.items.data.ItemRarity;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import org.bukkit.ChatColor;
@@ -28,6 +29,7 @@ public final class ClassEssence {
     private static final NamespacedKey RARITY_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ClassEssence.class), "essence_rarity");
     private static final NamespacedKey STAR_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ClassEssence.class), "essence_star");
     private static final NamespacedKey ATTR_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ClassEssence.class), "essence_attrs");
+    private static final NamespacedKey EQUIPPED_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ClassEssence.class), "essence_equipped");
 
     private ClassEssence() {}
 
@@ -117,5 +119,91 @@ public final class ClassEssence {
         PersistentDataContainer pdc = meta.getPersistentDataContainer();
         Byte flag = pdc.get(ESSENCE_KEY, PersistentDataType.BYTE);
         return flag != null && flag == (byte)1;
+    }
+
+    public static PlayerClass getClass(ItemStack stack) {
+        if (!isEssence(stack)) return null;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return null;
+        String clazz = meta.getPersistentDataContainer().get(CLASS_KEY, PersistentDataType.STRING);
+        try {
+            return PlayerClass.valueOf(clazz);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** Mark an essence as equipped or unequipped. */
+    public static void setEquipped(ItemStack stack, boolean equipped) {
+        if (!isEssence(stack)) return;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return;
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        pdc.set(EQUIPPED_KEY, PersistentDataType.BYTE, equipped ? (byte)1 : (byte)0);
+        stack.setItemMeta(meta);
+        stack.setType(equipped ? Material.ENCHANTED_BOOK : Material.BOOK);
+    }
+
+    public static boolean isEquipped(ItemStack stack) {
+        if (!isEssence(stack)) return false;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return false;
+        Byte flag = meta.getPersistentDataContainer().get(EQUIPPED_KEY, PersistentDataType.BYTE);
+        return flag != null && flag == (byte)1;
+    }
+
+    /** Extract attribute map from an essence item. */
+    public static Map<StatType,Integer> getAttributes(ItemStack stack) {
+        Map<StatType,Integer> map = new LinkedHashMap<>();
+        if (!isEssence(stack)) return map;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return map;
+        String attrString = meta.getPersistentDataContainer().get(ATTR_KEY, PersistentDataType.STRING);
+        if (attrString == null || attrString.isEmpty()) return map;
+        for (String part : attrString.split(";")) {
+            String[] kv = part.split(":");
+            if (kv.length != 2) continue;
+            try {
+                StatType st = StatType.valueOf(kv[0]);
+                int val = Integer.parseInt(kv[1]);
+                map.put(st, val);
+            } catch (IllegalArgumentException ignored) {}
+        }
+        return map;
+    }
+
+    /** Apply attribute bonuses of an essence to a player. */
+    public static void applyAttributes(org.bukkit.entity.Player player, ItemStack stack) {
+        Map<StatType,Integer> attrs = getAttributes(stack);
+        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
+        for (Map.Entry<StatType,Integer> e : attrs.entrySet()) {
+            switch (e.getKey()) {
+                case STR -> ps.bonusStrength += e.getValue();
+                case AGI -> ps.bonusAgility += e.getValue();
+                case INT -> ps.bonusIntelligence += e.getValue();
+                case DEX -> ps.bonusDexterity += e.getValue();
+                case VIT -> ps.bonusVitality += e.getValue();
+                case WIL -> ps.bonusWill += e.getValue();
+                case TEC -> ps.bonusTechnique += e.getValue();
+            }
+        }
+        StatsManager.getInstance().recalcDerivedStats(player);
+    }
+
+    public static void removeAttributes(org.bukkit.entity.Player player, ItemStack stack) {
+        Map<StatType,Integer> attrs = getAttributes(stack);
+        StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
+        for (Map.Entry<StatType,Integer> e : attrs.entrySet()) {
+            switch (e.getKey()) {
+                case STR -> ps.bonusStrength = Math.max(0, ps.bonusStrength - e.getValue());
+                case AGI -> ps.bonusAgility = Math.max(0, ps.bonusAgility - e.getValue());
+                case INT -> ps.bonusIntelligence = Math.max(0, ps.bonusIntelligence - e.getValue());
+                case DEX -> ps.bonusDexterity = Math.max(0, ps.bonusDexterity - e.getValue());
+                case VIT -> ps.bonusVitality = Math.max(0, ps.bonusVitality - e.getValue());
+                case WIL -> ps.bonusWill = Math.max(0, ps.bonusWill - e.getValue());
+                case TEC -> ps.bonusTechnique = Math.max(0, ps.bonusTechnique - e.getValue());
+            }
+        }
+        StatsManager.getInstance().recalcDerivedStats(player);
     }
 }
