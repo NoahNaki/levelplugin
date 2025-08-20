@@ -22,7 +22,11 @@ public class ClassEssenceProgressListener implements Listener {
             ItemStack target = ClassEssenceProgressGUI.getTarget(player);
             if (cursor != null && target != null && ClassEssence.isEssence(cursor) &&
                     ClassEssence.getClass(cursor) == ClassEssence.getClass(target)) {
-                ClassEssence.addExp(target, 50);
+                if (ClassEssence.getRarity(cursor) == ClassEssence.getRarity(target)) {
+                    ClassEssence.upgradeStar(target);
+                } else {
+                    ClassEssence.addExp(target, 50);
+                }
                 event.getWhoClicked().setItemOnCursor(null);
                 ClassEssence.updateLore(target);
                 ClassEssenceProgressGUI.open(player, target);

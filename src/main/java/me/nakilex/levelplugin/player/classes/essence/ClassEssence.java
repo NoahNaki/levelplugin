@@ -5,6 +5,8 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -70,15 +72,17 @@ public final class ClassEssence {
         int next = getRarityThreshold(rarity);
 
         List<String> lore = new ArrayList<>();
-        lore.add(ChatColor.GRAY + "Rarity: " + rarity.name());
-        lore.add(ChatColor.GRAY + "Stars: " + starLevel);
-        lore.add(ChatColor.GRAY + "EXP: " + GuiUtil.createProgressBar(0, 10) + ChatColor.YELLOW + exp + ChatColor.GRAY + "/" + next);
+        lore.add(ChatColor.GRAY + "Rarity: " + rarity.getColor() + rarity.getSymbol());
+        lore.add(ChatColor.GRAY + "Stars: " + GuiUtil.glyphStars(starLevel));
+        String bar = TooltipUtil.progressBar(exp, next, 15);
+        String expColor = ChatFormatter.experienceColor();
+        String expLabel = ChatFormatter.experienceLabel();
+        lore.add(bar + " " + expColor + exp + ChatColor.GOLD + "/" + expColor + next + " <glyph:experience_orb_icon> " + expLabel);
         lore.add(" ");
         for (Map.Entry<StatType, AttrData> entry : attributes.entrySet()) {
-            String suffix = entry.getValue().percent ? "%" : "";
-            lore.add(ChatColor.GREEN + entry.getKey().name() + ": +" + entry.getValue().value + suffix);
+            lore.add(GuiUtil.formatStatLine(entry.getKey(), entry.getValue().value, entry.getValue().percent));
         }
-        meta.setLore(lore);
+        meta.setLore(TooltipUtil.centerLore(lore));
 
         PersistentDataContainer pdc = meta.getPersistentDataContainer();
         pdc.set(ESSENCE_KEY, PersistentDataType.BYTE, (byte)1);
@@ -295,6 +299,27 @@ public final class ClassEssence {
         return val == null ? 0 : val;
     }
 
+    /** Increase star level of an essence, rerolling attributes accordingly. */
+    public static void upgradeStar(ItemStack stack) {
+        if (!isEssence(stack)) return;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return;
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        int star = pdc.has(STAR_KEY, PersistentDataType.INTEGER) ? pdc.get(STAR_KEY, PersistentDataType.INTEGER) : 0;
+        if (star >= 5) return;
+        star++;
+        ItemRarity rarity = ItemRarity.valueOf(pdc.get(RARITY_KEY, PersistentDataType.STRING));
+        int slots = getAttributeSlots(rarity);
+        Map<StatType, AttrData> newAttrs = rollAttributes(slots, rarity, star, new Random());
+        String attrString = newAttrs.entrySet().stream()
+                .map(e -> e.getKey().name() + ":" + e.getValue().value + ":" + (e.getValue().percent ? 1 : 0))
+                .collect(Collectors.joining(";"));
+        pdc.set(ATTR_KEY, PersistentDataType.STRING, attrString);
+        pdc.set(STAR_KEY, PersistentDataType.INTEGER, star);
+        stack.setItemMeta(meta);
+        updateLore(stack);
+    }
+
     public static void addExp(ItemStack stack, int amount) {
         if (!isEssence(stack) || amount <= 0) return;
         ItemMeta meta = stack.getItemMeta();
@@ -347,16 +372,18 @@ public final class ClassEssence {
         Map<StatType, AttrData> attrs = getAttributes(stack);
 
         List<String> lore = new ArrayList<>();
-        lore.add(ChatColor.GRAY + "Rarity: " + rarity.name());
-        lore.add(ChatColor.GRAY + "Stars: " + star);
-        double progress = next > 0 ? (double)exp / next : 1.0;
-        lore.add(ChatColor.GRAY + "EXP: " + GuiUtil.createProgressBar(progress, 10) + ChatColor.YELLOW + exp + ChatColor.GRAY + "/" + next);
+        lore.add(ChatColor.GRAY + "Rarity: " + rarity.getColor() + rarity.getSymbol());
+        lore.add(ChatColor.GRAY + "Stars: " + GuiUtil.glyphStars(star));
+        double progress = next > 0 ? (double) exp / next : 0.0;
+        String bar = TooltipUtil.progressBar(exp, next, 15);
+        String expColor = ChatFormatter.experienceColor();
+        String expLabel = ChatFormatter.experienceLabel();
+        lore.add(bar + " " + expColor + exp + ChatColor.GOLD + "/" + expColor + next + " <glyph:experience_orb_icon> " + expLabel);
         lore.add(" ");
         for (Map.Entry<StatType, AttrData> e : attrs.entrySet()) {
-            String suffix = e.getValue().percent ? "%" : "";
-            lore.add(ChatColor.GREEN + e.getKey().name() + ": +" + e.getValue().value + suffix);
+            lore.add(GuiUtil.formatStatLine(e.getKey(), e.getValue().value, e.getValue().percent));
         }
-        meta.setLore(lore);
+        meta.setLore(TooltipUtil.centerLore(lore));
         stack.setItemMeta(meta);
     }
 }

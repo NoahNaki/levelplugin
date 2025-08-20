@@ -7,6 +7,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -110,6 +111,25 @@ public final class GuiUtil {
     public static String glyphStars(int count) {
         if (count <= 0) return "";
         return "<glyph:star>".repeat(count);
+    }
+
+    /** Format a stat line using standard icons and colours. */
+    public static String formatStatLine(StatType type, int value, boolean percent) {
+        String icon;
+        ChatColor iconColor;
+        switch (type) {
+            case STR -> { icon = "\u2620"; iconColor = ChatColor.BLUE; }
+            case AGI -> { icon = "\u2248"; iconColor = ChatColor.GREEN; }
+            case INT -> { icon = "\u2666"; iconColor = ChatColor.AQUA; }
+            case DEX -> { icon = "\u27B9"; iconColor = ChatColor.YELLOW; }
+            case VIT -> { icon = "\u2764"; iconColor = ChatColor.RED; }
+            case WIL -> { icon = "\u272A"; iconColor = ChatColor.BLUE; }
+            case TEC -> { icon = "\u2694"; iconColor = ChatColor.DARK_PURPLE; }
+            default -> { icon = ""; iconColor = ChatColor.GRAY; }
+        }
+        String suffix = percent ? "%" : "";
+        return iconColor + icon + " " + ChatColor.GRAY + type.getDisplayName() + ": "
+                + ChatColor.WHITE + "+" + value + suffix;
     }
 
     /**

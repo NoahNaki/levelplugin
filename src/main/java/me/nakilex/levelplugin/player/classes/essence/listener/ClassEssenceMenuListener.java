@@ -24,6 +24,12 @@ public class ClassEssenceMenuListener implements Listener {
     @EventHandler
     public void onClick(InventoryClickEvent event) {
         if (!ClassEssenceGUI.TITLE.equals(event.getView().getTitle())) return;
+
+        int topSize = event.getView().getTopInventory().getSize();
+        if (event.getRawSlot() >= topSize) {
+            // allow normal interaction in player inventory
+            return;
+        }
         event.setCancelled(true);
 
         int idx = ClassEssenceGUI.indexFromSlot(event.getRawSlot());
