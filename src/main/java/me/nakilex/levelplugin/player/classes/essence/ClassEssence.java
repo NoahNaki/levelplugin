@@ -43,15 +43,20 @@ public final class ClassEssence {
     private ClassEssence() {}
 
     /**
-     * Generate a class essence item with random class, rarity and attributes.
-     * Star level defaults to 0.
+     * Generate a random essence of any rarity.
      */
     public static ItemStack generateRandomEssence() {
+        ItemRarity[] rarities = ItemRarity.values();
+        return generateRandomEssence(rarities[new Random().nextInt(rarities.length)]);
+    }
+
+    /**
+     * Generate a random essence with the specified rarity.
+     */
+    public static ItemStack generateRandomEssence(ItemRarity rarity) {
         Random rand = new Random();
         PlayerClass[] classes = PlayerClass.values();
         PlayerClass clazz = classes[rand.nextInt(classes.length)];
-        ItemRarity[] rarities = ItemRarity.values();
-        ItemRarity rarity = rarities[rand.nextInt(rarities.length)];
         int slots = getAttributeSlots(rarity);
         Map<StatType, AttrData> attrs = rollAttributes(slots, rarity, 0, rand);
         return create(clazz, rarity, 0, attrs, true);
@@ -284,6 +289,15 @@ public final class ClassEssence {
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) return 0;
         Integer val = meta.getPersistentDataContainer().get(EXP_KEY, PersistentDataType.INTEGER);
+        return val == null ? 0 : val;
+    }
+
+    /** Retrieve the current star level of an essence. */
+    public static int getStar(ItemStack stack) {
+        if (!isEssence(stack)) return 0;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return 0;
+        Integer val = meta.getPersistentDataContainer().get(STAR_KEY, PersistentDataType.INTEGER);
         return val == null ? 0 : val;
     }
 
