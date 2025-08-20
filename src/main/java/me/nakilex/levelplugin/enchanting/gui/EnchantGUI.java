@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -36,9 +37,9 @@ public class EnchantGUI implements Listener {
     }
 
     public void open(Player player) {
-        Inventory gui = Bukkit.createInventory(player, SIZE, TITLE);
-        ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
-        for (int i = 0; i < SIZE; i++) gui.setItem(i, filler);
+        Inventory gui = GuiBuilder.create(SIZE, TITLE)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .build();
         gui.setItem(INFO_SLOT, createInfoItem());
         gui.setItem(13, null);
         gui.setItem(22, createButton(0));

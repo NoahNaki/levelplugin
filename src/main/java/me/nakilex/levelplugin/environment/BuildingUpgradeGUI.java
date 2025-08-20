@@ -15,6 +15,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.guild.Guild;
 import me.nakilex.levelplugin.guild.GuildManager;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 
 import java.util.*;
 
@@ -42,11 +43,9 @@ public class BuildingUpgradeGUI implements Listener {
         me.nakilex.levelplugin.Main.getInstance().getLogger().info(
                 "[BuildingUpgradeGUI] open player=" + p.getName() + " building=" + building);
         String nice = me.nakilex.levelplugin.utils.TextUtil.beautifyWords(building.replace('_', ' '));
-        Inventory inv = Bukkit.createInventory(null, 27, TITLE_PREFIX + nice);
-        ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
-        for (int i = 0; i < inv.getSize(); i++) {
-            inv.setItem(i, filler);
-        }
+        Inventory inv = GuiBuilder.create(27, TITLE_PREFIX + nice)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .build();
 
         int stage = manager.getPlayerBuildingStage(p, building);
         var nextData = manager.getBuildingStageManager().getStage(building, stage + 1);

@@ -9,6 +9,7 @@ import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.merchants.data.MerchantItem;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -54,10 +55,11 @@ public class MerchantGUI implements Listener {
         String basePath = "merchants." + merchantName;
         String title = merchantConfig.getString(basePath + ".title", "Merchant");
         int size = merchantConfig.getInt(basePath + ".size", 27);
-        this.inventory = Bukkit.createInventory(null, size, title);
-
-        ItemStack placeholder = GuiUtil.createFiller(Material.BLACK_STAINED_GLASS_PANE);
-        GuiUtil.fillBorder(inventory, placeholder);
+        this.inventory = GuiBuilder.create(size, title)
+                .filler(Material.BLACK_STAINED_GLASS_PANE)
+                .fillEmptySlots(false)
+                .border()
+                .build();
 
         // Load merchant-items definitions
         List<?> list = merchantConfig.getList(basePath + ".items");

@@ -22,6 +22,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
 
 public class GemExchangeGUI implements Listener {
     private static final String TITLE = ChatColor.BLACK + "Gem Exchange";
@@ -35,10 +38,11 @@ public class GemExchangeGUI implements Listener {
 
     public GemExchangeGUI(Main plugin, GemsManager gemsManager) {
         this.plugin = plugin;
-        this.gui = Bukkit.createInventory(null, 27, TITLE);
         this.gemsManager  = gemsManager;
+        this.gui = GuiBuilder.create(27, TITLE)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .build();
         initItems();
-        fillFiller();
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
@@ -73,18 +77,6 @@ public class GemExchangeGUI implements Listener {
         ));
     }
 
-    private void fillFiller() {
-        ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
-        ItemMeta meta = filler.getItemMeta();
-        if (meta != null) {
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-            filler.setItemMeta(meta);
-        }
-        for (int slot = 0; slot < gui.getSize(); slot++) {
-            if (gui.getItem(slot) == null) gui.setItem(slot, filler);
-        }
-    }
-
     public void open(Player player) {
         player.openInventory(gui);
     }
@@ -116,10 +108,8 @@ public class GemExchangeGUI implements Listener {
         Map<Integer, ItemStack> map = (Map<Integer, ItemStack>) p.getInventory().all(fromMat);
         int total = map.values().stream().mapToInt(ItemStack::getAmount).sum();
         if (total < fromAmt) {
-            p.sendMessage(ChatColor.RED
-                + "Not enough "
-                + fromMat.name().toLowerCase().replace('_',' ')
-                + "! Need " + fromAmt + ".");
+            send(p, MessageType.ERROR,
+                    "Not enough " + fromMat.name().toLowerCase().replace('_',' ') + "! Need " + fromAmt + ".");
             return;
         }
         int rem = fromAmt;
@@ -144,11 +134,8 @@ public class GemExchangeGUI implements Listener {
 
         ItemStack pretty = gemsManager.createCurrencyItem(toMat, toAmt, unitValue);
         p.getInventory().addItem(pretty);
-        p.sendMessage(ChatColor.GREEN
-            + "Converted " + fromAmt + " "
-            + fromMat.name().toLowerCase().replace('_',' ')
-            + " into " + toAmt + " "
-            + toMat.name().toLowerCase().replace('_',' ') + "!");
+        send(p, MessageType.SUCCESS,
+                "Converted " + fromAmt + " " + fromMat.name().toLowerCase().replace('_',' ') + " into " + toAmt + " " + toMat.name().toLowerCase().replace('_',' ') + "!");
 
         new BukkitRunnable() {
             @Override

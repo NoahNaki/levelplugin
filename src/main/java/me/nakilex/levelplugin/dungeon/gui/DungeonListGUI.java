@@ -12,6 +12,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 
 import java.util.List;
 import java.text.DecimalFormat;
@@ -22,17 +23,17 @@ public class DungeonListGUI implements Listener {
     private static final int SIZE = 54;
 
     private final DungeonManager manager;
-    private final ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
 
     public DungeonListGUI(DungeonManager manager) {
         this.manager = manager;
     }
 
     public void open(Player player) {
-        Inventory inv = Bukkit.createInventory(null, SIZE, TITLE);
-        for (int i = 0; i < SIZE; i++) {
-            if (i < 9 || i >= 45 || i % 9 == 0 || i % 9 == 8) inv.setItem(i, filler);
-        }
+        Inventory inv = GuiBuilder.create(SIZE, TITLE)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .fillEmptySlots(false)
+                .border()
+                .build();
         int slot = 10;
         DecimalFormat df = new DecimalFormat("#.#");
         for (var entry : manager.getLayoutEntries()) {

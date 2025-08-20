@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.potions.data.PotionInstance;
 import me.nakilex.levelplugin.potions.data.PotionTemplate;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -43,11 +44,13 @@ public class PotionMerchantGUI implements Listener {
         String basePath = "merchants.potion_merchant";
         String title = merchantConfig.getString(basePath + ".title", "Potion Merchant");
         int size = merchantConfig.getInt(basePath + ".size", 27);
-        this.inventory = Bukkit.createInventory(null, size, title);
+        this.inventory = GuiBuilder.create(size, title)
+                .filler(Material.BLACK_STAINED_GLASS_PANE)
+                .fillEmptySlots(false)
+                .border()
+                .build();
 
         Bukkit.getLogger().info("[PotionMerchantGUI] Initializing Potion Merchant GUI...");
-        ItemStack placeholder = GuiUtil.createFiller(Material.BLACK_STAINED_GLASS_PANE);
-        GuiUtil.fillBorder(inventory, placeholder);
 
         List<?> list = merchantConfig.getList(basePath + ".items");
         if (list != null) {

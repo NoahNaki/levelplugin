@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.player.classes.essence.gui;
 
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -24,9 +25,9 @@ public final class ClassEssenceProgressGUI {
     private ClassEssenceProgressGUI() {}
 
     public static void open(Player player, ItemStack essence) {
-        Inventory inv = Bukkit.createInventory(null, 27, TITLE);
-        ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
-        for (int i = 0; i < 27; i++) inv.setItem(i, filler);
+        Inventory inv = GuiBuilder.create(27, TITLE)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .build();
         inv.setItem(SACRIFICE_SLOT, null);
         inv.setItem(DISPLAY_SLOT, essence.clone());
         TARGET.put(player.getUniqueId(), essence);

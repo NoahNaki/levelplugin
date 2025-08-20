@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.HeadUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -81,13 +82,11 @@ public class GuildMemberGUI implements Listener {
             return;
         }
         pageMap.put(player.getUniqueId(), page);
-        Inventory inv = Bukkit.createInventory(null, SIZE, TITLE);
-        ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
-        for (int i = 0; i < SIZE; i++) {
-            if (i < 9 || i >= 45 || i % 9 == 0 || i % 9 == 8) {
-                inv.setItem(i, filler);
-            }
-        }
+        Inventory inv = GuiBuilder.create(SIZE, TITLE)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .fillEmptySlots(false)
+                .border()
+                .build();
 
         String term = searchTerms.getOrDefault(player.getUniqueId(), "").toLowerCase();
         int sort = sortModes.getOrDefault(player.getUniqueId(), 0);

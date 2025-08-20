@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.HeadUtil;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -83,13 +84,11 @@ public class GuildApplicantsGUI implements Listener {
             return;
         }
         pageMap.put(player.getUniqueId(), page);
-        Inventory inv = Bukkit.createInventory(null, SIZE, TITLE);
-        ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
-        for (int i = 0; i < SIZE; i++) {
-            if (i < 9 || i >= 45 || i % 9 == 0 || i % 9 == 8) {
-                inv.setItem(i, filler);
-            }
-        }
+        Inventory inv = GuiBuilder.create(SIZE, TITLE)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .fillEmptySlots(false)
+                .border()
+                .build();
 
         String term = searchTerms.getOrDefault(player.getUniqueId(), "").toLowerCase();
         int sort = sortModes.getOrDefault(player.getUniqueId(), 0);
@@ -184,9 +183,9 @@ public class GuildApplicantsGUI implements Listener {
     }
 
     private void openConfirm(Player player, UUID applicant, boolean accept) {
-        Inventory inv = Bukkit.createInventory(null, CONFIRM_SIZE, CONFIRM_TITLE);
-        ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
-        for (int i = 0; i < CONFIRM_SIZE; i++) inv.setItem(i, filler);
+        Inventory inv = GuiBuilder.create(CONFIRM_SIZE, CONFIRM_TITLE)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .build();
         OfflinePlayer op = Bukkit.getOfflinePlayer(applicant);
         inv.setItem(CONFIRM_YES_SLOT, GuiUtil.getNexoItem("check", ChatColor.GREEN + "Confirm"));
         inv.setItem(13, HeadUtil.createPlayerHead(op, ChatColor.YELLOW + op.getName(), null));

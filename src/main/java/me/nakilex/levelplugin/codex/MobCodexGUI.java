@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.codex;
 
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -34,7 +35,6 @@ public class MobCodexGUI implements Listener {
 
     private final CodexManager manager;
     private CodexMainGUI mainGui;
-    private final ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
     private final Map<UUID, Integer> pageMap = new HashMap<>();
 
     public MobCodexGUI(CodexManager manager, CodexMainGUI mainGui) {
@@ -51,8 +51,11 @@ public class MobCodexGUI implements Listener {
 
     private void open(Player player, int page) {
         pageMap.put(player.getUniqueId(), page);
-        Inventory inv = Bukkit.createInventory(null, SIZE, TITLE);
-        GuiUtil.fillBorder(inv, filler);
+        Inventory inv = GuiBuilder.create(SIZE, TITLE)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .fillEmptySlots(false)
+                .border()
+                .build();
         Map<String, String> lines = new LinkedHashMap<>();
         lines.put("Mobs", manager.getDiscoveredMobCount(player.getUniqueId()) + "/" + manager.getTotalMobCount());
         inv.setItem(4, CodexGuiUtil.createInfoBook("Discoveries", lines));

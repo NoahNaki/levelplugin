@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.codex;
 
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.HeadUtil;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -25,7 +26,6 @@ public class CodexMainGUI implements Listener {
     private final MobCodexGUI mobGui;
     private final NpcCodexGUI npcGui;
     private final LocationCodexGUI locGui;
-    private final ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
 
     public CodexMainGUI(MobCodexGUI m, NpcCodexGUI n, LocationCodexGUI l) {
         this.mobGui = m;
@@ -34,8 +34,9 @@ public class CodexMainGUI implements Listener {
     }
 
     public void open(Player player) {
-        Inventory inv = Bukkit.createInventory(null, SIZE, TITLE);
-        for (int i = 0; i < SIZE; i++) inv.setItem(i, filler);
+        Inventory inv = GuiBuilder.create(SIZE, TITLE)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .build();
         inv.setItem(11, createHead(LOC_HEAD, ChatColor.GREEN + "Locations"));
         inv.setItem(13, createHead(NPC_HEAD, ChatColor.YELLOW + "NPCs"));
         inv.setItem(15, createHead(MOB_HEAD, ChatColor.RED + "Mobs"));

@@ -21,6 +21,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import me.nakilex.levelplugin.items.data.ItemRarity;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 
 import java.util.*;
 
@@ -89,13 +90,11 @@ public class AuctionHouseGUI implements Listener {
         pageMap.put(player.getUniqueId(), page);
         levelFilters.putIfAbsent(player.getUniqueId(), 5);
         rarityFilters.putIfAbsent(player.getUniqueId(), ItemRarity.values().length);
-        Inventory inv = Bukkit.createInventory(null, SIZE, TITLE);
-        ItemStack filler = createFiller();
-        for (int i = 0; i < SIZE; i++) {
-            if (i < 9 || i >= 45 || i % 9 == 0 || i % 9 == 8) {
-                inv.setItem(i, filler);
-            }
-        }
+        Inventory inv = GuiBuilder.create(SIZE, TITLE)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .fillEmptySlots(false)
+                .border()
+                .build();
         String term = searchTerms.getOrDefault(player.getUniqueId(), "");
         int filter = levelFilters.getOrDefault(player.getUniqueId(), 5);
         int rarityFilter = rarityFilters.getOrDefault(player.getUniqueId(), ItemRarity.values().length);
@@ -563,13 +562,11 @@ public class AuctionHouseGUI implements Listener {
 
     private void openMyListings(Player player, int page) {
         myPageMap.put(player.getUniqueId(), page);
-        Inventory inv = Bukkit.createInventory(null, SIZE, MY_LISTINGS_TITLE);
-        ItemStack filler = createFiller();
-        for (int i = 0; i < SIZE; i++) {
-            if (i < 9 || i >= 45 || i % 9 == 0 || i % 9 == 8) {
-                inv.setItem(i, filler);
-            }
-        }
+        Inventory inv = GuiBuilder.create(SIZE, MY_LISTINGS_TITLE)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .fillEmptySlots(false)
+                .border()
+                .build();
         List<AuctionItem> list = new ArrayList<>();
         List<Integer> indices = new ArrayList<>();
         List<AuctionItem> all = manager.getAuctions();
@@ -667,9 +664,9 @@ public class AuctionHouseGUI implements Listener {
     }
 
     private void openConfirmGUI(Player player, int index) {
-        Inventory inv = Bukkit.createInventory(null, CONFIRM_SIZE, CONFIRM_TITLE);
-        ItemStack filler = createFiller();
-        for (int i = 0; i < CONFIRM_SIZE; i++) inv.setItem(i, filler);
+        Inventory inv = GuiBuilder.create(CONFIRM_SIZE, CONFIRM_TITLE)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .build();
         AuctionItem ai = manager.getAuctions().get(index);
         inv.setItem(11, getNexoItem("check", ChatColor.GREEN + "Confirm"));
         inv.setItem(13, ai.getItem().clone());

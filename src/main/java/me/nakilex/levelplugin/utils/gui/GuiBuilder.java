@@ -16,6 +16,7 @@ public final class GuiBuilder {
 
     private final Inventory inventory;
     private ItemStack filler;
+    private boolean fillEmpty = true;
 
     private GuiBuilder(int size, String title) {
         this.inventory = Bukkit.createInventory(null, size, title);
@@ -41,6 +42,15 @@ public final class GuiBuilder {
         return this;
     }
 
+    /**
+     * Control whether {@link #build()} should fill remaining empty slots with
+     * the filler item. Defaults to {@code true}.
+     */
+    public GuiBuilder fillEmptySlots(boolean fill) {
+        this.fillEmpty = fill;
+        return this;
+    }
+
     /** Place an item at the given slot. */
     public GuiBuilder setItem(int slot, ItemStack item) {
         inventory.setItem(slot, item);
@@ -52,7 +62,7 @@ public final class GuiBuilder {
      * the configured filler item if present.
      */
     public Inventory build() {
-        if (filler != null) {
+        if (fillEmpty && filler != null) {
             for (int i = 0; i < inventory.getSize(); i++) {
                 if (inventory.getItem(i) == null) {
                     inventory.setItem(i, filler);

@@ -4,6 +4,7 @@ package me.nakilex.levelplugin.salvage.gui;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.salvage.managers.SalvageManager;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -21,13 +22,11 @@ public class SalvageGUI {
     public static final int TOGGLE_SLOT = 9;
 
     public static void openMerchantGUI(Player player) {
-        Inventory gui = Bukkit.createInventory(null, GUI_SIZE, GUI_TITLE);
-        ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
-        for (int i = 0; i < GUI_SIZE; i++) {
-            if (i < 9 || i >= 45 || i % 9 == 0 || i % 9 == 8) {
-                gui.setItem(i, filler);
-            }
-        }
+        Inventory gui = GuiBuilder.create(GUI_SIZE, GUI_TITLE)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .fillEmptySlots(false)
+                .border()
+                .build();
 
         boolean includeLower = SalvageManager.getInstance().isIncludingLower(player.getUniqueId());
         gui.setItem(TOGGLE_SLOT, createLowerToggle(includeLower));

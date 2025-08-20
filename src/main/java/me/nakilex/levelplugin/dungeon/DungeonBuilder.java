@@ -26,6 +26,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.HeadUtil;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.Main;
 import org.bukkit.attribute.Attribute;
@@ -680,10 +681,9 @@ public class DungeonBuilder implements Listener {
     }
 
     private Inventory createRoomSelect() {
-        Inventory inv = Bukkit.createInventory(null, 27, ChatColor.DARK_GREEN + "Select Room");
-
-        ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
-        for (int i = 0; i < 27; i++) inv.setItem(i, filler);
+        Inventory inv = GuiBuilder.create(27, ChatColor.DARK_GREEN + "Select Room")
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .build();
 
         ItemStack basic = item(Material.YELLOW_WOOL, ChatColor.YELLOW + "Basic Room");
         ItemStack hall = item(Material.BROWN_WOOL, ChatColor.YELLOW + "Hallway");
@@ -716,10 +716,9 @@ public class DungeonBuilder implements Listener {
     }
 
     private Inventory createVariantSelect() {
-        Inventory inv = Bukkit.createInventory(null, 27, ChatColor.DARK_GREEN + "Basic Room Variants");
-
-        ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
-        for (int i = 0; i < 27; i++) inv.setItem(i, filler);
+        Inventory inv = GuiBuilder.create(27, ChatColor.DARK_GREEN + "Basic Room Variants")
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .build();
 
         inv.setItem(10, item(Material.RED_WOOL, ChatColor.RED + "Basic Room Dead End"));
         inv.setItem(12, item(Material.ORANGE_WOOL, ChatColor.GOLD + "Basic Room Straight"));
@@ -734,10 +733,9 @@ public class DungeonBuilder implements Listener {
     }
 
     private Inventory createCombatVariantSelect() {
-        Inventory inv = Bukkit.createInventory(null, 27, ChatColor.DARK_GREEN + "Combat Variants");
-
-        ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
-        for (int i = 0; i < 27; i++) inv.setItem(i, filler);
+        Inventory inv = GuiBuilder.create(27, ChatColor.DARK_GREEN + "Combat Variants")
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .build();
 
         inv.setItem(11, item(Material.GRAY_WOOL, ChatColor.GRAY + "Combat Left"));
         inv.setItem(15, item(Material.LIGHT_GRAY_WOOL, ChatColor.GRAY + "Combat Right"));
@@ -748,9 +746,9 @@ public class DungeonBuilder implements Listener {
 
     private Inventory createMobSelect(Set<String> mobs, String title) {
         int size = ((mobs.size() - 1) / 9 + 1) * 9;
-        Inventory inv = Bukkit.createInventory(null, size, ChatColor.DARK_GREEN + title);
-        ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
-        for (int i = 0; i < size; i++) inv.setItem(i, filler);
+        Inventory inv = GuiBuilder.create(size, ChatColor.DARK_GREEN + title)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .build();
         int idx = 0;
         for (String m : mobs) {
             ItemStack is = new ItemStack(Material.PAPER);

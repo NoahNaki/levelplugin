@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.player.classes.essence.gui;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -18,11 +19,9 @@ public class ClassEssenceGUI {
     private ClassEssenceGUI() {}
 
     public static void open(Player player) {
-        Inventory inv = Bukkit.createInventory(null, 27, TITLE);
-        ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
-        for (int i = 0; i < 27; i++) {
-            inv.setItem(i, filler);
-        }
+        Inventory inv = GuiBuilder.create(27, TITLE)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .build();
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
         for (int i = 0; i < ESSENCE_SLOTS.length; i++) {
             ItemStack essence = ps.essenceSlots[i];
