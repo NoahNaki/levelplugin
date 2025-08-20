@@ -195,6 +195,9 @@ commands:
   essence:
     description: Opens the class essence GUI
     usage: /essence
+  essenceprogress:
+    description: Opens the class essence progression GUI
+    usage: /essenceprogress
   enchant:
     description: Opens the enchanting GUI
     usage: /enchant

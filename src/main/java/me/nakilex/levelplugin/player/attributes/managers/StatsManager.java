@@ -275,7 +275,7 @@ public class StatsManager {
         PlayerStats ps = getPlayerStats(player.getUniqueId());
 
         // Apply stats
-        ps.bonusVitality     += newItem.getHp() + newItem.getDef();
+        ps.bonusVitality     += newItem.getHp();
         ps.bonusStrength     += newItem.getStr();
         ps.bonusAgility      += newItem.getAgi();
         ps.bonusIntelligence += newItem.getIntel();
