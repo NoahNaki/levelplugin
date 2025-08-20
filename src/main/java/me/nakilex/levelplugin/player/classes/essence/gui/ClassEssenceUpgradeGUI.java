@@ -130,6 +130,9 @@ public class ClassEssenceUpgradeGUI implements Listener {
                     ClassEssence.addExp(target, 50);
                     inv.setItem(TARGET_SLOT, target);
                     inv.setItem(SACRIFICE_SLOT, null);
+                    player.sendMessage(ChatColor.GREEN + "Invested essence (+50 EXP)");
+                } else {
+                    player.sendMessage(ChatColor.RED + "Essences must match class.");
                 }
             }
             return;
@@ -154,11 +157,20 @@ public class ClassEssenceUpgradeGUI implements Listener {
                             econ.deductCoins(player, cost);
                             if (new Random().nextInt(100) < chance) {
                                 ClassEssence.upgradeStar(essence);
+                                player.sendMessage(ChatColor.GREEN + "Star upgrade succeeded!");
+                            } else {
+                                player.sendMessage(ChatColor.RED + "Star upgrade failed!");
                             }
                             inv.setItem(STAR_SLOT, essence);
                             updateStarButton(inv);
+                        } else {
+                            player.sendMessage(ChatColor.RED + "You need " + cost + " coins.");
                         }
+                    } else {
+                        player.sendMessage(ChatColor.RED + "Essence is already max star.");
                     }
+                } else {
+                    player.sendMessage(ChatColor.RED + "Place an essence to upgrade.");
                 }
             }
         }

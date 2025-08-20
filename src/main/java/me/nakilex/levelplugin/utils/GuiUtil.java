@@ -52,6 +52,22 @@ public final class GuiUtil {
     }
 
     /**
+     * Append standardized left/right click instructions to a lore list.
+     *
+     * @param lore       list to append to
+     * @param leftAction description following "Left-Click" or {@code null}
+     * @param rightAction description following "Right-Click" or {@code null}
+     */
+    public static void addClickInstructions(List<String> lore, String leftAction, String rightAction) {
+        if (leftAction != null) {
+            lore.add(ChatColor.WHITE + "Left-Click " + ChatColor.GRAY + leftAction);
+        }
+        if (rightAction != null) {
+            lore.add(ChatColor.WHITE + "Right-Click " + ChatColor.GRAY + rightAction);
+        }
+    }
+
+    /**
      * Create a standardized toggle item using check/cross Nexo icons and lore
      * indicating the current enabled status.
      *

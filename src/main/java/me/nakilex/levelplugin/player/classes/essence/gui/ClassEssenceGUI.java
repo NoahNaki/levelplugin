@@ -29,6 +29,7 @@ public class ClassEssenceGUI {
                 if (ps.equippedEssences[i]) {
                     ClassEssence.setEquipped(essence, true);
                 }
+                ClassEssence.addSlotTips(essence);
                 inv.setItem(ESSENCE_SLOTS[i], essence);
             } else {
                 inv.setItem(ESSENCE_SLOTS[i], null);

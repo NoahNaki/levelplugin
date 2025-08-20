@@ -132,7 +132,9 @@ public class CommandRegistry {
         plugin.getCommand("additem").setExecutor(new AddItemCommand());
         plugin.getCommand("opsword").setExecutor(new OpSwordCommand());
         plugin.getCommand("genitem").setExecutor(new me.nakilex.levelplugin.items.commands.GenerateItemCommand());
-        plugin.getCommand("genclass").setExecutor(new GenClassCommand());
+        GenClassCommand genClassCmd = new GenClassCommand();
+        plugin.getCommand("genclass").setExecutor(genClassCmd);
+        plugin.getCommand("genclass").setTabCompleter(genClassCmd);
         plugin.getCommand("essence").setExecutor(new EssenceCommand());
         EssenceUpgradeCommand essenceUpgradeCmd = new EssenceUpgradeCommand();
         plugin.getCommand("essenceupgrade").setExecutor(essenceUpgradeCmd);

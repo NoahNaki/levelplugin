@@ -63,6 +63,15 @@ public final class ClassEssence {
     }
 
     /**
+     * Generate an essence for a specific class, rarity and star level.
+     */
+    public static ItemStack generateEssence(PlayerClass clazz, ItemRarity rarity, int starLevel) {
+        int slots = getAttributeSlots(rarity);
+        Map<StatType, AttrData> attrs = rollAttributes(slots, rarity, starLevel, new Random());
+        return create(clazz, rarity, starLevel, attrs, true);
+    }
+
+    /**
      * Create an essence item with the provided parameters.
      */
     public static ItemStack create(PlayerClass clazz, ItemRarity rarity, int starLevel,
@@ -205,6 +214,19 @@ public final class ClassEssence {
         return flag != null && flag == (byte)1;
     }
 
+    /** Add equip/unequip instructions to an essence's lore. */
+    public static void addSlotTips(ItemStack stack) {
+        if (!isEssence(stack)) return;
+        updateLore(stack);
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return;
+        List<String> lore = meta.getLore();
+        if (lore == null) lore = new ArrayList<>();
+        GuiUtil.addClickInstructions(lore, "to equip", "to unequip");
+        meta.setLore(lore);
+        stack.setItemMeta(meta);
+    }
+
     /** Extract attribute map from an essence item. */
     public static Map<StatType, AttrData> getAttributes(ItemStack stack) {
         Map<StatType, AttrData> map = new LinkedHashMap<>();
@@ -224,6 +246,11 @@ public final class ClassEssence {
             } catch (IllegalArgumentException ignored) {}
         }
         return map;
+    }
+
+    /** Retrieve the stat types present on an essence. */
+    public static java.util.Set<StatType> getStatTypes(ItemStack stack) {
+        return getAttributes(stack).keySet();
     }
 
     /** Apply attribute bonuses of an essence to a player. */
