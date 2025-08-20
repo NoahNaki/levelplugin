@@ -30,7 +30,12 @@ public class ClassEssenceUpgradeGUI implements Listener {
     private static final Map<UUID, Integer> PAGE = new HashMap<>();
     private static final Map<UUID, List<ItemStack>> CACHE = new HashMap<>();
 
-    private ClassEssenceUpgradeGUI() {}
+    /**
+     * Public constructor required for registering event listeners. The GUI
+     * logic is otherwise driven by static helpers, so this constructor has no
+     * state.
+     */
+    public ClassEssenceUpgradeGUI() {}
 
     public static void open(Player player) {
         open(player, 0);
