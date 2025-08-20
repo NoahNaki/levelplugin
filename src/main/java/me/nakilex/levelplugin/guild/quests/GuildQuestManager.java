@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.guild.quests;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.guild.Guild;
+import me.nakilex.levelplugin.guild.GuildManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.quests.data.QuestObjective;
 import me.nakilex.levelplugin.quests.data.QuestObjectiveType;
@@ -156,7 +157,7 @@ public class GuildQuestManager {
     }
 
     private void updateObjective(Player player, QuestObjectiveType type, String target, int amount) {
-        Guild guild = Main.getInstance().getGuildManager().getGuild(player.getUniqueId());
+        Guild guild = GuildManager.getInstance().getGuild(player.getUniqueId());
         if (guild == null) return;
         for (GuildQuest quest : guild.getQuests().values()) {
             if (!quest.isAccepted()) continue;
