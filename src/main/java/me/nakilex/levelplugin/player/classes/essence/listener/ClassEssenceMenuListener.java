@@ -58,10 +58,6 @@ public class ClassEssenceMenuListener implements Listener {
                 event.getWhoClicked().setItemOnCursor(null);
             } else if (current != null && ClassEssence.isEssence(current) && !ps.equippedEssences[idx]) {
                 PlayerClass essenceClass = ClassEssence.getClass(current);
-                if (essenceClass != ps.playerClass) {
-                    player.sendMessage(ChatColor.RED + "You can only equip essences for your class.");
-                    return;
-                }
                 for (int i = 0; i < ps.equippedEssences.length; i++) {
                     if (ps.equippedEssences[i] && i != idx) {
                         ItemStack other = event.getView().getItem(ClassEssenceGUI.slotFromIndex(i));
@@ -77,15 +73,32 @@ public class ClassEssenceMenuListener implements Listener {
                 for (StatType st : ClassEssence.getStatTypes(current)) {
                     before.put(st, StatsManager.getInstance().getStatValue(player, st));
                 }
+
                 ClassEssence.setEquipped(current, true);
                 ClassEssence.applyAttributes(player, current);
                 ps.equippedEssences[idx] = true;
-                player.sendMessage(ChatColor.GOLD + TextUtil.beautifyWords(essenceClass.name()) + " Essence Equipped");
+
+                // Change the player's class to match the essence
+                ps.playerClass = essenceClass;
+                ps.unlockedClasses.add(essenceClass);
+                me.nakilex.levelplugin.player.classes.managers.PlayerClassManager.getInstance()
+                        .setPlayerClass(player, essenceClass);
+                me.nakilex.levelplugin.items.utils.ItemUtil.refreshTooltips(player);
+
+                me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§6§l-", 45);
+                me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§6§lESSENCE EQUIPPED!");
+                me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "");
+                me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player,
+                        ChatColor.GRAY + "You are now the §e§l" + TextUtil.beautifyWords(essenceClass.name()) + " §7class!");
+                me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "");
                 for (StatType st : before.keySet()) {
                     int after = StatsManager.getInstance().getStatValue(player, st);
                     ChatColor col = after >= before.get(st) ? ChatColor.GREEN : ChatColor.RED;
-                    player.sendMessage(ChatColor.GRAY + st.getDisplayName() + ": " + before.get(st) + " -> " + col + after);
+                    me.nakilex.levelplugin.utils.ChatMessageUtil.send(player,
+                            me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType.INFO,
+                            st.getDisplayName() + ": " + before.get(st) + " -> " + col + after);
                 }
+                me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§6§l-", 45);
             }
         } else if (click.isRightClick()) {
             if (current != null && ClassEssence.isEssence(current)) {
