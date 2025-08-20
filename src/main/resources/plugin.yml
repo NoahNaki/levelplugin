@@ -189,9 +189,10 @@ commands:
   genitem:
     description: Gives a procedurally generated item
     usage: /genitem [player] <mobType> <level> [amount]
-    genclass:
-      description: Generates a class essence for a player
-      usage: /genclass <player> <class> <rarity> <star level>
+
+  genclass:
+    description: Generates a class essence for a player
+    usage: /genclass <player> <class> <rarity> <star level>
   essence:
     description: Opens the class essence GUI
     usage: /essence
