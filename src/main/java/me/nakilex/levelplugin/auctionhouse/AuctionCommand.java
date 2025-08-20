@@ -7,6 +7,9 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+
 public class AuctionCommand implements CommandExecutor {
 
     private final AuctionHouseManager manager;
@@ -20,7 +23,8 @@ public class AuctionCommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("Only players may use this command.");
+            sender.sendMessage(ChatMessageUtil.format(MessageType.ERROR,
+                    "Only players may use this command."));
             return true;
         }
 
@@ -31,7 +35,8 @@ public class AuctionCommand implements CommandExecutor {
 
         if (args[0].equalsIgnoreCase("sell")) {
             if (args.length < 2) {
-                player.sendMessage(ChatColor.RED + "Usage: /auctionhouse sell <start> [bin] [hours]");
+                ChatMessageUtil.send(player, MessageType.ERROR,
+                        "Usage: /auctionhouse sell <start> [bin] [hours]");
                 return true;
             }
             int start;
@@ -42,20 +47,22 @@ public class AuctionCommand implements CommandExecutor {
                 if (args.length > 2) bin = Integer.parseInt(args[2]);
                 if (args.length > 3) hours = Long.parseLong(args[3]);
             } catch (NumberFormatException e) {
-                player.sendMessage(ChatColor.RED + "Invalid number.");
+                ChatMessageUtil.send(player, MessageType.ERROR, "Invalid number.");
                 return true;
             }
             if (hours > AuctionHouseManager.MAX_DURATION_HOURS) {
                 hours = AuctionHouseManager.MAX_DURATION_HOURS;
-                player.sendMessage(ChatColor.YELLOW + "Duration capped at " + AuctionHouseManager.MAX_DURATION_HOURS + "h.");
+                ChatMessageUtil.send(player, MessageType.WARNING,
+                        "Duration capped at " + AuctionHouseManager.MAX_DURATION_HOURS + "h.");
             }
             ItemStack item = player.getInventory().getItemInMainHand();
             if (item == null || item.getType().isAir()) {
-                player.sendMessage(ChatColor.RED + "Hold the item you wish to sell in your hand.");
+                ChatMessageUtil.send(player, MessageType.ERROR,
+                        "Hold the item you wish to sell in your hand.");
                 return true;
             }
             if (me.nakilex.levelplugin.items.listeners.StaticItemListener.isStaticItem(item)) {
-                player.sendMessage(ChatColor.RED + "You cannot list that item.");
+                ChatMessageUtil.send(player, MessageType.ERROR, "You cannot list that item.");
                 return true;
             }
             player.getInventory().setItemInMainHand(null);
@@ -67,22 +74,23 @@ public class AuctionCommand implements CommandExecutor {
 
         if (args[0].equalsIgnoreCase("bid")) {
             if (args.length < 3) {
-                player.sendMessage(ChatColor.RED + "Usage: /auctionhouse bid <index> <amount>");
+                ChatMessageUtil.send(player, MessageType.ERROR,
+                        "Usage: /auctionhouse bid <index> <amount>");
                 return true;
             }
             try {
                 int index = Integer.parseInt(args[1]);
                 int amount = Integer.parseInt(args[2]);
                 if (manager.bid(player, index, amount)) {
-                    player.sendMessage(ChatColor.GREEN + "Bid placed.");
+                    ChatMessageUtil.send(player, MessageType.SUCCESS, "Bid placed.");
                 }
             } catch (NumberFormatException e) {
-                player.sendMessage(ChatColor.RED + "Invalid number.");
+                ChatMessageUtil.send(player, MessageType.ERROR, "Invalid number.");
             }
             return true;
         }
 
-        player.sendMessage(ChatColor.RED + "Usage: /auctionhouse [open|sell|bid]");
+        ChatMessageUtil.send(player, MessageType.ERROR, "Usage: /auctionhouse [open|sell|bid]");
         return true;
     }
 }

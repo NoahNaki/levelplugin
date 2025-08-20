@@ -12,6 +12,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
@@ -116,12 +118,13 @@ public class AuctionHouseManager {
         if (ai.getStatus() != AuctionStatus.ACTIVE) return false;
         int minBid = Math.max(ai.getStartingPrice(), ai.getCurrentBid() + 1);
         if (amount < minBid) {
-            bidder.sendMessage(ChatColor.RED + "Bid must be at least "
-                    + ChatColor.YELLOW + minBid + " <glyph:coins_icon>");
+            ChatMessageUtil.send(bidder, MessageType.ERROR,
+                    "Bid must be at least " + ChatColor.YELLOW + minBid + " <glyph:coins_icon>");
             return false;
         }
         if (economyManager.getBalance(bidder) < amount) {
-            bidder.sendMessage(ChatColor.RED + "Not enough " + ChatColor.YELLOW + "<glyph:coins_icon>" + ChatColor.RED + "!");
+            ChatMessageUtil.send(bidder, MessageType.ERROR,
+                    "Not enough " + ChatColor.YELLOW + "<glyph:coins_icon>" + ChatColor.RED + "!");
             return false;
         }
         // refund previous bidder
@@ -154,7 +157,8 @@ public class AuctionHouseManager {
         int price = ai.getBinPrice();
         if (price <= 0) return false;
         if (economyManager.getBalance(buyer) < price) {
-            buyer.sendMessage(ChatColor.RED + "Not enough " + ChatColor.YELLOW + "<glyph:coins_icon>" + ChatColor.RED + "!");
+            ChatMessageUtil.send(buyer, MessageType.ERROR,
+                    "Not enough " + ChatColor.YELLOW + "<glyph:coins_icon>" + ChatColor.RED + "!");
             return false;
         }
         economyManager.deductCoins(buyer, price);
@@ -254,7 +258,8 @@ public class AuctionHouseManager {
                     Player seller = Bukkit.getPlayer(ai.getSeller());
                     if (seller != null) {
                         seller.getInventory().addItem(ai.getItem());
-                        seller.sendMessage(ChatColor.RED + "Your auction expired without bids.");
+                        ChatMessageUtil.send(seller, MessageType.ERROR,
+                                "Your auction expired without bids.");
                     }
                 }
                 ai.setStatus(AuctionStatus.EXPIRED);

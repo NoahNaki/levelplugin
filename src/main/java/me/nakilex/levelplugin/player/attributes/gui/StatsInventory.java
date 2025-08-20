@@ -1,13 +1,13 @@
 package me.nakilex.levelplugin.player.attributes.gui;
 
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.TooltipUtil;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
-import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStats;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -15,7 +15,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
-import org.bukkit.inventory.ItemFlag;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,12 +40,11 @@ public class StatsInventory {
     public static Inventory getStatsMenu(Player player, int page) {
         pageMap.put(player.getUniqueId(), page);
         PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
-        Inventory inv = Bukkit.createInventory(
-            null,
-            54,
-            ps.skillPoints + " skill points remaining"
-        );
-        inv.setItem(19, createStatBook(
+        GuiBuilder builder = GuiBuilder.create(54, ps.skillPoints + " skill points remaining")
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .border();
+
+        builder.setItem(19, createStatBook(
             "Strength", StatType.STR, ps.baseStrength, ps.bonusStrength, ps.skillPoints,
             "Boosts melee damage and adds a bit of health.",
             new String[]{
@@ -58,7 +56,7 @@ public class StatsInventory {
         double dodgePercent = totalAgility / (totalAgility + 200.0) * 100.0;
         dodgePercent = Math.round(dodgePercent * 10.0) / 10.0;
 
-        inv.setItem(20, createStatBook(
+        builder.setItem(20, createStatBook(
             "Agility", StatType.AGI, ps.baseAgility, ps.bonusAgility, ps.skillPoints,
             "Improves your speed and dodge chance.",
             new String[]{
@@ -68,7 +66,7 @@ public class StatsInventory {
             }
         ));
 
-        inv.setItem(21, createStatBook(
+        builder.setItem(21, createStatBook(
             "Intelligence", StatType.INT, ps.baseIntelligence, ps.bonusIntelligence, ps.skillPoints,
             "Improves magical prowess and max mana.",
             new String[]{
@@ -80,7 +78,7 @@ public class StatsInventory {
         int totalDexterity = ps.baseDexterity + ps.bonusDexterity;
         double critPercent  = totalDexterity / (totalDexterity + 100.0) * 100.0;
         critPercent = Math.round(critPercent * 10.0) / 10.0;
-        inv.setItem(23, createStatBook(
+        builder.setItem(23, createStatBook(
             "Dexterity", StatType.DEX, ps.baseDexterity, ps.bonusDexterity, ps.skillPoints,
             "Improves crit chance and subtracts from enemy dodge based on your DEX.",
             new String[]{
@@ -89,7 +87,7 @@ public class StatsInventory {
             }
         ));
 
-        inv.setItem(24, createStatBook(
+        builder.setItem(24, createStatBook(
             "Vitality", StatType.VIT, ps.baseVitality, ps.bonusVitality, ps.skillPoints,
             "Increases max health and reduces damage taken.",
             new String[]{
@@ -98,7 +96,7 @@ public class StatsInventory {
             }
         ));
 
-        inv.setItem(25, createStatBook(
+        builder.setItem(25, createStatBook(
             "Will", StatType.WIL, ps.baseWill, ps.bonusWill, ps.skillPoints,
             "Boosts mana and mana regeneration.",
             new String[]{
@@ -108,7 +106,7 @@ public class StatsInventory {
         ));
 
         double atkSpeed = 0.5 * (1.0 + 0.01 * (ps.baseTechnique + ps.bonusTechnique));
-        inv.setItem(22, createStatBook(
+        builder.setItem(22, createStatBook(
             "Technique", StatType.TEC, ps.baseTechnique, ps.bonusTechnique, ps.skillPoints,
             "Amplifies attack speed and all damage.",
             new String[]{
@@ -116,20 +114,14 @@ public class StatsInventory {
                 "Current atk speed: " + ChatColor.YELLOW + atkSpeed + " attacks/s"
             }
         ));
-        inv.setItem(13, GuiUtil.getNexoItem("refresh", ChatColor.RED + "Refund All Skill Points"));
-        inv.setItem(8, createPlayerHead(player, ps, page));
-        inv.setItem(37, GuiUtil.getNexoItem("arrow_left", ChatColor.GRAY + "Back"));
-        inv.setItem(43, GuiUtil.getNexoItem("arrow_right", ChatColor.GRAY + "Forward"));
-        inv.setItem(48, GuiUtil.getNexoItem("camera", ChatColor.YELLOW + "Coming Soon"));
-        inv.setItem(50, GuiUtil.getNexoItem("settings", ChatColor.AQUA + "Settings"));
-        ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
-        for (int i = 0; i < inv.getSize(); i++) {
-            if (inv.getItem(i) == null) {
-                inv.setItem(i, filler);
-            }
-        }
+        builder.setItem(13, GuiUtil.getNexoItem("refresh", ChatColor.RED + "Refund All Skill Points"));
+        builder.setItem(8, createPlayerHead(player, ps, page));
+        builder.setItem(37, GuiUtil.getNexoItem("arrow_left", ChatColor.GRAY + "Back"));
+        builder.setItem(43, GuiUtil.getNexoItem("arrow_right", ChatColor.GRAY + "Forward"));
+        builder.setItem(48, GuiUtil.getNexoItem("camera", ChatColor.YELLOW + "Coming Soon"));
+        builder.setItem(50, GuiUtil.getNexoItem("settings", ChatColor.AQUA + "Settings"));
 
-        return inv;
+        return builder.build();
     }
 
 
@@ -151,7 +143,7 @@ public class StatsInventory {
         lore.add(ChatColor.WHITE + "Bonus: " + ChatColor.GREEN + bonusValue);
         lore.add(ChatColor.WHITE + "Total: " + ChatColor.GOLD + (baseValue + bonusValue));
         for (String line : effectDetails) lore.add(ChatColor.WHITE + line);
-        meta.setLore(lore);
+        meta.setLore(TooltipUtil.centerLore(lore));
         book.setItemMeta(meta);
         return book;
     }
@@ -187,7 +179,7 @@ public class StatsInventory {
             double progress = nextLevelXP > 0 ? (double) currentXP / nextLevelXP : 0.0;
             double percent = Math.round(progress * 1000.0) / 10.0;
             lore.add(ChatColor.GRAY + "Progress to Level " + ChatColor.YELLOW + (StatsManager.getInstance().getLevel(player) + 1) + ChatColor.GRAY + ": " + ChatColor.YELLOW + percent + "%");
-            String bar = GuiUtil.createProgressBar(progress, 15);
+            String bar = TooltipUtil.progressBar(currentXP, nextLevelXP, 15);
             String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
             String expColor = me.nakilex.levelplugin.utils.ChatFormatter.experienceColor();
             lore.add(bar + " " + expColor + currentXP + ChatColor.GOLD + "/" + expColor + nextLevelXP + " <glyph:experience_orb_icon> " + expLabel);
@@ -210,7 +202,7 @@ public class StatsInventory {
         String box1 = (page == 0 ? ChatColor.GREEN : ChatColor.DARK_GRAY) + "■";
         String box2 = (page == 1 ? ChatColor.GREEN : ChatColor.DARK_GRAY) + "■";
         lore.add(ChatColor.GREEN + "< " + box1 + " " + box2 + ChatColor.GREEN + " >");
-        meta.setLore(lore);
+        meta.setLore(TooltipUtil.centerLore(lore));
         head.setItemMeta(meta);
         return head;
     }
