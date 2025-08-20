@@ -38,7 +38,12 @@ public final class GuildQuestGUI {
             GuildQuest quest = quests.get(String.valueOf(i));
             if (quest == null) continue;
             int slot = QUEST_SLOTS[i];
-            ItemStack icon = GuiUtil.getNexoItem("pack1_scroll2", ChatColor.GOLD + quest.getName());
+            String tracked = GuildQuestManager.getInstance().getTrackedQuest(viewer.getUniqueId());
+            String iconId = "pack1_scroll2";
+            if (quest.isAccepted() && tracked != null && tracked.equals(quest.getId())) {
+                iconId = "pack1_scroll4";
+            }
+            ItemStack icon = GuiUtil.getNexoItem(iconId, ChatColor.GOLD + quest.getName());
             ItemMeta meta = icon.getItemMeta();
             List<String> lore = new ArrayList<>();
 
@@ -72,7 +77,13 @@ public final class GuildQuestGUI {
 
             lore.add(" ");
             if (quest.isAccepted()) {
-                lore.add(ChatColor.GREEN + "Accepted");
+                if (tracked != null && tracked.equals(quest.getId())) {
+                    lore.add(ChatColor.YELLOW + "Tracking");
+                    lore.add(ChatColor.WHITE + "Left-click " + ChatColor.GRAY + "to untrack");
+                } else {
+                    lore.add(ChatColor.GREEN + "Accepted");
+                    lore.add(ChatColor.WHITE + "Left-click " + ChatColor.GRAY + "to track");
+                }
             } else {
                 GuiUtil.addClickInstructions(lore, "to accept", quest.isRerolled() ? null : "to reroll");
                 if (quest.isRerolled()) {

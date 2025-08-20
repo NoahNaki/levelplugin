@@ -10,6 +10,10 @@ import me.nakilex.levelplugin.quests.data.PlayerQuestProgress;
 import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.quests.data.QuestObjective;
+import me.nakilex.levelplugin.guild.Guild;
+import me.nakilex.levelplugin.guild.GuildManager;
+import me.nakilex.levelplugin.guild.quests.GuildQuest;
+import me.nakilex.levelplugin.guild.quests.GuildQuestManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -260,6 +264,39 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
                 setLine(board, obj, idx, line, current[idx]);
             }
             idx++; line--;
+        }
+
+        String gTrackedId = GuildQuestManager.getInstance().getTrackedQuest(player.getUniqueId());
+        if (gTrackedId != null) {
+            Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
+            if (g != null) {
+                GuildQuest gq = null;
+                for (GuildQuest q : g.getQuests().values()) {
+                    if (q.getId().equals(gTrackedId) && q.isAccepted()) { gq = q; break; }
+                }
+                if (gq != null) {
+                    current[idx] = ChatColor.RED + "Guild Quest: " + ChatColor.WHITE + gq.getName();
+                    if (!current[idx].equals(prev[idx])) {
+                        setLine(board, obj, idx, line, current[idx]);
+                    }
+                    idx++; line--;
+
+                    current[idx] = ChatColor.RED + "Progress:";
+                    if (!current[idx].equals(prev[idx])) {
+                        setLine(board, obj, idx, line, current[idx]);
+                    }
+                    idx++; line--;
+
+                    QuestObjective o = gq.getObjective();
+                    String desc2 = questManager.describeObjective(o);
+                    int total = gq.getTotalContribution();
+                    current[idx] = ChatColor.GRAY + "- " + desc2 + ": " + ChatColor.WHITE + total + "/" + o.getAmount();
+                    if (!current[idx].equals(prev[idx])) {
+                        setLine(board, obj, idx, line, current[idx]);
+                    }
+                    idx++; line--;
+                }
+            }
         }
 
         Party party = partyManager.getParty(player.getUniqueId());

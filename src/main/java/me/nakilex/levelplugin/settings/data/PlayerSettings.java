@@ -7,14 +7,13 @@ public class PlayerSettings {
     private boolean dmgChat     = false;
     private boolean dmgNumber   = false;
     private boolean dropDetails = true;
-    private boolean dropDetailsChatEnabled = true;
+    private boolean dropDetailsChatEnabled = false;
     private boolean partyGlow = true;
     private boolean friendGlow = true;
     private boolean balancePublic = true;
     private PlayerVisibility playerVisibility = PlayerVisibility.SHOW_ALL;
     private boolean autoSkipCutscenes = false;
     private boolean autoSkipSongs = false;
-    private boolean guildQuestChat = true;
 
     public boolean isDmgChatEnabled() {
         return dmgChat;
@@ -99,14 +98,6 @@ public class PlayerSettings {
 
     public void toggleAutoSkipSongs() {
         autoSkipSongs = !autoSkipSongs;
-    }
-
-    public boolean isGuildQuestChatEnabled() {
-        return guildQuestChat;
-    }
-
-    public void toggleGuildQuestChat() {
-        guildQuestChat = !guildQuestChat;
     }
 
 }

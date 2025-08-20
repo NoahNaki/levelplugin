@@ -40,6 +40,13 @@ public class GuildQuestGUIListener implements Listener {
             if (!quest.isAccepted()) {
                 quest.setAccepted(true);
                 player.sendMessage(ChatColor.GREEN + "Accepted guild quest: " + quest.getName());
+            } else {
+                boolean tracked = GuildQuestManager.getInstance().toggleTracking(player, quest);
+                if (tracked) {
+                    player.sendMessage(ChatColor.GREEN + "Tracking guild quest: " + quest.getName());
+                } else {
+                    player.sendMessage(ChatColor.YELLOW + "Stopped tracking guild quest: " + quest.getName());
+                }
             }
         } else if (event.getClick() == ClickType.RIGHT) {
             if (!quest.isAccepted() && !quest.isRerolled()) {

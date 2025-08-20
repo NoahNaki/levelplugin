@@ -10,7 +10,6 @@ import me.nakilex.levelplugin.quests.data.QuestObjective;
 import me.nakilex.levelplugin.quests.data.QuestObjectiveType;
 import me.nakilex.levelplugin.quests.data.QuestReward;
 import me.nakilex.levelplugin.quests.data.QuestRewardCompat;
-import org.bukkit.ChatColor;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 
@@ -31,6 +30,8 @@ public class GuildQuestManager {
     private final List<String> mediumMobs = new ArrayList<>();
     private final List<String> hardMobs = new ArrayList<>();
     private boolean mobsLoaded = false;
+    /** Players tracking a specific guild quest. */
+    private final Map<UUID, String> tracked = new HashMap<>();
 
     private GuildQuestManager() {}
 
@@ -197,14 +198,25 @@ public class GuildQuestManager {
             String tgt = obj.getTarget();
             if (tgt != null && !tgt.equalsIgnoreCase(target) && !tgt.isEmpty()) continue;
             quest.addContribution(player.getUniqueId(), amount);
-            if (Main.getInstance().getSettingsManager()
-                    .getSettings(player).isGuildQuestChatEnabled()) {
-                int total = quest.getTotalContribution();
-                player.sendMessage(ChatColor.AQUA + "Guild Quest " + ChatColor.WHITE
-                        + quest.getName() + ChatColor.GRAY + ": " + total + "/"
-                        + obj.getAmount());
-            }
         }
+    }
+
+    /** Toggle tracking for the specified quest. Returns true if now tracked. */
+    public boolean toggleTracking(Player player, GuildQuest quest) {
+        UUID id = player.getUniqueId();
+        String current = tracked.get(id);
+        if (quest.getId().equals(current)) {
+            tracked.remove(id);
+            return false;
+        } else {
+            tracked.put(id, quest.getId());
+            return true;
+        }
+    }
+
+    /** Get the id of the guild quest a player is tracking, if any. */
+    public String getTrackedQuest(UUID player) {
+        return tracked.get(player);
     }
 
     /**
