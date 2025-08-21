@@ -10,14 +10,26 @@ public class FastTravelPoint {
     private Location location;
     private double radius;
     private boolean town;
+    private int expReward;
 
-    public FastTravelPoint(String name, ChatColor color, String description, Location loc, double radius, boolean town) {
+    public FastTravelPoint(String name,
+                           ChatColor color,
+                           String description,
+                           Location loc,
+                           double radius,
+                           boolean town,
+                           int expReward) {
         this.name = name;
         this.color = color;
         this.description = description;
         this.location = loc;
         this.radius = radius;
         this.town = town;
+        this.expReward = expReward;
+    }
+
+    public FastTravelPoint(String name, ChatColor color, String description, Location loc, double radius, boolean town) {
+        this(name, color, description, loc, radius, town, 0);
     }
 
     public String getName() { return name; }
@@ -26,6 +38,8 @@ public class FastTravelPoint {
     public Location getLocation() { return location; }
     public double getRadius() { return radius; }
     public boolean isTown() { return town; }
+    public int getExpReward() { return expReward; }
 
     public void setLocation(Location loc) { this.location = loc; }
+    public void setExpReward(int expReward) { this.expReward = expReward; }
 }

@@ -8,6 +8,7 @@ regions:
     desc: This is a test.
     radius: 10.0
     town: true
+    exp: 0
   rowan:
     world: world
     x: 191.5028491990798
@@ -17,4 +18,5 @@ regions:
     desc: Where every journey begins.
     radius: 70.0
     town: true
+    exp: 50
 
