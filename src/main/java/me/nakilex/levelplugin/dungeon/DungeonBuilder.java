@@ -27,6 +27,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.HeadUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.Main;
 import org.bukkit.attribute.Attribute;
@@ -697,8 +698,7 @@ public class DungeonBuilder implements Listener {
         ItemStack library = HeadUtil.createCustomHead(LIBRARY_HEAD, ChatColor.GOLD + "Library", null);
         ItemMeta cMeta = combat.getItemMeta();
         if (cMeta != null) {
-            cMeta.setLore(Arrays.asList(ChatColor.WHITE + "Left-click to place",
-                    ChatColor.WHITE + "Right-click to edit"));
+            cMeta.setLore(TooltipUtil.clickInstructions("to place", "to edit"));
             combat.setItemMeta(cMeta);
         }
 

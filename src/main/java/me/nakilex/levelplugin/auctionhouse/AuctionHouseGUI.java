@@ -21,6 +21,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import me.nakilex.levelplugin.items.data.ItemRarity;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 
 import java.util.*;
@@ -129,8 +130,7 @@ public class AuctionHouseGUI implements Listener {
                     lore.add(ChatColor.RED + "Click to cancel listing");
                 } else {
                     lore.add("");
-                    lore.add(ChatColor.GRAY + "Left-click to buy");
-                    lore.add(ChatColor.GRAY + "Right-click to bid");
+                    lore.addAll(TooltipUtil.clickInstructions("to buy", "to bid"));
                 }
                 meta.setLore(lore);
                 meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
@@ -475,8 +475,7 @@ public class AuctionHouseGUI implements Listener {
             lore.add(rangeLine(4, filter, "Lv. 80+"));
             lore.add(rangeLine(5, filter, "Show All"));
             lore.add(" ");
-            lore.add(ChatColor.WHITE + "Left-Click " + ChatColor.GRAY + "to go forward");
-            lore.add(ChatColor.WHITE + "Right-Click " + ChatColor.GRAY + "to go backward");
+            lore.addAll(TooltipUtil.clickInstructions("to go forward", "to go backward"));
             meta.setLore(lore);
             it.setItemMeta(meta);
         }
@@ -533,12 +532,12 @@ public class AuctionHouseGUI implements Listener {
         ItemStack info = getNexoItem("info", ChatColor.YELLOW + "Information");
         ItemMeta meta = info.getItemMeta();
         if (meta != null) {
-            meta.setLore(Arrays.asList(
-                    ChatColor.GRAY + "",
-                    ChatColor.WHITE + "Left-Click " + ChatColor.GRAY + "items to buy (if BIN set).",
-                    ChatColor.WHITE + "Right-click " + ChatColor.GRAY + "items to place a bid.",
-                    ChatColor.GRAY + "",
-                    ChatColor.GRAY + "Use search and filters below."));
+            List<String> lines = new ArrayList<>();
+            lines.add(ChatColor.GRAY + "");
+            lines.addAll(TooltipUtil.clickInstructions("items to buy (if BIN set).", "items to place a bid."));
+            lines.add(ChatColor.GRAY + "");
+            lines.add(ChatColor.GRAY + "Use search and filters below.");
+            meta.setLore(lines);
             info.setItemMeta(meta);
         }
         return info;

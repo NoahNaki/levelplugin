@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.storage.events.StorageEvents;
 import me.nakilex.levelplugin.storage.gui.StorageGUI;
 import me.nakilex.levelplugin.utils.CoinInputPrompt;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -55,8 +56,7 @@ public class GuildVaultGUI extends StorageGUI {
             meta.setDisplayName(ChatColor.GOLD + "Guild Coins");
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.GRAY + "Guild Coins: " + ChatColor.GOLD + coins + ChatColor.GRAY + "/" + ChatColor.GOLD + capacity + " <glyph:coins_icon>");
-            lore.add(ChatColor.WHITE + "Left-click " + ChatColor.GRAY + "to deposit");
-            lore.add(ChatColor.WHITE + "Right-click " + ChatColor.GRAY + "to withdraw");
+            lore.addAll(TooltipUtil.clickInstructions("to deposit", "to withdraw"));
             meta.setLore(lore);
             stack.setItemMeta(meta);
         }

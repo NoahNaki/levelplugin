@@ -13,6 +13,7 @@ import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.NamespacedKey;
@@ -129,7 +130,7 @@ public class PotionUseListener implements Listener {
             lore.add(ChatColor.AQUA + "- " + ChatColor.GRAY + "Restore " + ChatColor.WHITE + amount + ChatColor.AQUA + " ✨");
             lore.add(ChatColor.AQUA + "- " + ChatColor.GRAY + "Cooldown: " + ChatColor.GRAY + instance.getTemplate().getCooldownSeconds() + " seconds");
             lore.add(" ");
-            lore.add(ChatColor.WHITE + "Right-click " + ChatColor.GRAY + "to consume");
+            lore.addAll(TooltipUtil.clickInstructions(null, "to consume"));
             meta.setLore(lore);
         } else {
             double healAmt = instance.getTemplate().getHealAmount();
@@ -148,7 +149,7 @@ public class PotionUseListener implements Listener {
             lore.add(ChatColor.RED + "- " + ChatColor.GRAY + "Heal " + ChatColor.WHITE + amount + ChatColor.RED + " ❤");
             lore.add(ChatColor.RED + "- " + ChatColor.GRAY + "Cooldown: " + ChatColor.GRAY + instance.getTemplate().getCooldownSeconds() + " seconds");
             lore.add(" ");
-            lore.add(ChatColor.WHITE + "Right-click " + ChatColor.GRAY + "to consume");
+            lore.addAll(TooltipUtil.clickInstructions(null, "to consume"));
             meta.setLore(lore);
         }
 

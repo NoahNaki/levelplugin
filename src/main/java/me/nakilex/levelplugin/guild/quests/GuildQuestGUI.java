@@ -91,10 +91,10 @@ public final class GuildQuestGUI {
             } else if (quest.isAccepted()) {
                 if (tracked != null && tracked.equals(quest.getId())) {
                     lore.add(ChatColor.YELLOW + "Tracking");
-                    lore.add(ChatColor.WHITE + "Left-click " + ChatColor.GRAY + "to untrack");
+                    lore.addAll(TooltipUtil.clickInstructions("to untrack", null));
                 } else {
                     lore.add(ChatColor.GREEN + "Accepted");
-                    lore.add(ChatColor.WHITE + "Left-click " + ChatColor.GRAY + "to track");
+                    lore.addAll(TooltipUtil.clickInstructions("to track", null));
                 }
             } else {
                 lore.addAll(TooltipUtil.clickInstructions("to accept", quest.isRerolled() ? null : "to reroll"));

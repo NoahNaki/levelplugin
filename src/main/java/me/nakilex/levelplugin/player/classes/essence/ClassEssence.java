@@ -59,7 +59,7 @@ public final class ClassEssence {
         PlayerClass clazz = classes[rand.nextInt(classes.length)];
         int slots = getAttributeSlots(rarity);
         Map<StatType, AttrData> attrs = rollAttributes(slots, rarity, 0, rand, java.util.Collections.emptySet());
-        return create(clazz, rarity, 0, attrs, true);
+        return create(clazz, rarity, 0, attrs, false);
     }
 
     /**
@@ -86,7 +86,7 @@ public final class ClassEssence {
     public static ItemStack generateEssence(PlayerClass clazz, ItemRarity rarity, int starLevel) {
         int slots = getAttributeSlots(rarity);
         Map<StatType, AttrData> attrs = rollAttributes(slots, rarity, starLevel, new Random(), java.util.Collections.emptySet());
-        return create(clazz, rarity, starLevel, attrs, true);
+        return create(clazz, rarity, starLevel, attrs, false);
     }
 
     /**
@@ -338,6 +338,17 @@ public final class ClassEssence {
         return flag != null && flag == (byte)1;
     }
 
+    /** Mark or unmark an essence as soulbound. */
+    public static void setSoulbound(ItemStack stack, boolean soulbound) {
+        if (!isEssence(stack)) return;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return;
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        pdc.set(SOULBOUND_KEY, PersistentDataType.BYTE, soulbound ? (byte)1 : (byte)0);
+        stack.setItemMeta(meta);
+        updateLore(stack);
+    }
+
     public static int getExp(ItemStack stack) {
         if (!isEssence(stack)) return 0;
         ItemMeta meta = stack.getItemMeta();
@@ -464,6 +475,9 @@ public final class ClassEssence {
         String expColor = ChatFormatter.experienceColor();
         String expLabel = ChatFormatter.experienceLabel();
         lore.add(bar + " " + expColor + exp + ChatColor.GOLD + "/" + expColor + next + " <glyph:experience_orb_icon> " + expLabel);
+        if (isSoulbound(stack)) {
+            lore.add(ChatColor.DARK_PURPLE + "Soulbound");
+        }
         meta.setLore(lore);
         stack.setItemMeta(meta);
     }

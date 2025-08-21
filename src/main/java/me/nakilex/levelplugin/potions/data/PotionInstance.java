@@ -5,6 +5,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import com.nexomc.nexo.api.NexoItems;
@@ -88,7 +89,7 @@ public class PotionInstance {
         lore.add(bulletColor + "- " + ChatColor.GRAY + action + ChatColor.WHITE + amountStr + bulletColor + symbol);
         lore.add(bulletColor + "- " + ChatColor.GRAY + "Cooldown: " + ChatColor.GRAY + template.getCooldownSeconds() + " seconds");
         lore.add(" ");
-        lore.add(ChatColor.WHITE + "Right-click " + ChatColor.GRAY + "to consume");
+        lore.addAll(TooltipUtil.clickInstructions(null, "to consume"));
         meta.setLore(lore);
 
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_DYE);

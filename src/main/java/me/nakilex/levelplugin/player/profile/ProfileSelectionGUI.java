@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.player.profile;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
@@ -240,8 +241,7 @@ public class ProfileSelectionGUI implements Listener {
             lore.add(ChatColor.GRAY + "Finished Quests: " + ChatColor.WHITE + completed + "/" + total);
             lore.add(ChatColor.GRAY + "Playtime: " + ChatColor.WHITE + playMinutes + "m");
             lore.add("");
-            lore.add(ChatColor.WHITE + "Left-click " + ChatColor.GRAY + "to select this profile");
-            lore.add(ChatColor.WHITE + "Right-click " + ChatColor.GRAY + "to edit this profile");
+            lore.addAll(TooltipUtil.clickInstructions("to select this profile", "to edit this profile"));
             meta.setLore(lore);
             item.setItemMeta(meta);
         }

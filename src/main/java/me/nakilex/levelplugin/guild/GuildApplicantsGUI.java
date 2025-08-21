@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.guild;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.HeadUtil;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
@@ -127,8 +128,7 @@ public class GuildApplicantsGUI implements Listener {
             lore.add(ChatColor.GRAY + "Level: " + level);
             lore.add(ChatColor.GRAY + "Applied: " + fmt.format(new Date(ts)));
             lore.add(" ");
-            lore.add(ChatColor.WHITE + "Left-click to accept");
-            lore.add(ChatColor.WHITE + "Right-click to deny");
+            lore.addAll(TooltipUtil.clickInstructions("to accept", "to deny"));
             ItemStack head = HeadUtil.createPlayerHead(op, ChatColor.YELLOW + op.getName(), lore);
             inv.setItem(APPLICANT_SLOTS[slot++], head);
         }
@@ -152,7 +152,7 @@ public class GuildApplicantsGUI implements Listener {
             List<String> lore = new ArrayList<>();
             if (!term.isEmpty()) {
                 lore.add(ChatColor.GRAY + "Current: " + ChatColor.WHITE + term);
-                lore.add(ChatColor.GRAY + "Right-click to clear");
+                lore.addAll(TooltipUtil.clickInstructions(null, "to clear"));
             } else {
                 lore.add(ChatColor.GRAY + "Click to enter a term");
             }
@@ -174,8 +174,7 @@ public class GuildApplicantsGUI implements Listener {
                 lore.add(b + "- " + c + opts[i]);
             }
             lore.add(" ");
-            lore.add(ChatColor.WHITE + "Left-Click " + ChatColor.GRAY + "to go forward");
-            lore.add(ChatColor.WHITE + "Right-Click " + ChatColor.GRAY + "to go backward");
+            lore.addAll(TooltipUtil.clickInstructions("to go forward", "to go backward"));
             meta.setLore(lore);
             it.setItemMeta(meta);
         }
