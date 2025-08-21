@@ -126,7 +126,7 @@ public class StatsInventory {
 
 
     private static ItemStack createStatBook(
-        String statName, StatType statType, int baseValue, int bonusValue, int skillPoints,
+        String statName, StatsManager.StatType statType, int baseValue, int bonusValue, int skillPoints,
         String description, String[] effectDetails
     ) {
         ItemStack book = new ItemStack(Material.ENCHANTED_BOOK);

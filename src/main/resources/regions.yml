@@ -1,4 +1,104 @@
 regions:
+  zahmir:
+    world: world
+    x: -1218.4560869271909
+    y: 115.07155796633543
+    z: -779.8816601158762
+    color: GOLD
+    desc: Man idk sandy something
+    radius: 100.0
+    town: false
+    exp: 700
+  rinford:
+    world: world
+    x: -148.11011638932354
+    y: 120.08943565354174
+    z: 797.3758699261139
+    color: MAGIC
+    desc: The mage tower
+    radius: 60.0
+    town: true
+    exp: 300
+  orsted:
+    world: world
+    x: 939.0656397976494
+    y: 187.48736049046877
+    z: -850.6886769516229
+    color: WHITE
+    desc: The pinnacle of power
+    radius: 100.0
+    town: false
+    exp: 1500
+  tolga village:
+    world: world
+    x: 534.6986629695889
+    y: 103.0
+    z: 1.699999988079071
+    color: RED
+    desc: A small cozy village
+    radius: 60.0
+    town: true
+    exp: 150
+  bolete island:
+    world: world
+    x: 1248.501993986512
+    y: 129.2679598666517
+    z: -176.4933503590026
+    color: DARK_PURPLE
+    desc: Mushrooms, everywhere!
+    radius: 110.0
+    town: false
+    exp: 600
+  corwyn:
+    world: world
+    x: -843.588833032114
+    y: 140.80782556891833
+    z: -339.3170322495665
+    color: GREEN
+    desc: A large city
+    radius: 100.0
+    town: false
+    exp: 450
+  wyvercade:
+    world: world
+    x: -79.39697726035182
+    y: 87.0
+    z: -85.62894235327856
+    color: GRAY
+    desc: A small cozy village
+    radius: 60.0
+    town: true
+    exp: 150
+  sotiro village:
+    world: world
+    x: 474.68049263381266
+    y: 96.62222037284955
+    z: 467.1891054999596
+    color: YELLOW
+    desc: Within the heart of the jungle
+    radius: 60.0
+    town: true
+    exp: 250
+  quanxi:
+    world: world
+    x: 882.3603287350005
+    y: 148.15574942404365
+    z: 193.19053170586068
+    color: BLUE
+    desc: Royal Palace of the Shogun
+    radius: 120.0
+    town: true
+    exp: 500
+  frostford:
+    world: world
+    x: 957.423088088069
+    y: 109.83546326799402
+    z: 497.97835516480615
+    color: AQUA
+    desc: Frozen in time
+    radius: 60.0
+    town: true
+    exp: 400
   test area:
     world: world
     x: 12.380530423560046
@@ -9,6 +109,16 @@ regions:
     radius: 10.0
     town: true
     exp: 0
+  rococo village:
+    world: world
+    x: -1047.6730116601416
+    y: 120.82252760739024
+    z: 453.4243090524134
+    color: YELLOW
+    desc: A swampy settlement
+    radius: 100.0
+    town: false
+    exp: 700
   rowan:
     world: world
     x: 191.5028491990798
@@ -18,5 +128,24 @@ regions:
     desc: Where every journey begins.
     radius: 70.0
     town: true
-    exp: 50
-
+    exp: 0
+  mount alaid:
+    world: world
+    x: 972.164063772091
+    y: 118.04955850375421
+    z: -609.5431957356011
+    color: GOLD
+    desc: Where blood boils
+    radius: 80.0
+    town: false
+    exp: 1200
+  kazan village:
+    world: world
+    x: 497.7660352771342
+    y: 98.26287953555912
+    z: -718.9864089173487
+    color: RED
+    desc: A bustling marketplace
+    radius: 60.0
+    town: true
+    exp: 300

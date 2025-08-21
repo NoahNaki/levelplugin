@@ -54,15 +54,6 @@ public class PlayerJoinListener implements Listener {
             player.setHealthScaled(true);
             player.setHealthScale(20.0);
 
-            EconomyManager eco = Main.getInstance().getEconomyManager();
-            if (eco.getBalance(player) == 0) {
-                eco.addCoins(player, 20);
-                String amt = me.nakilex.levelplugin.utils.CurrencyMessageUtil.formatAmount(
-                        me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency.COINS, 20);
-                player.sendMessage(org.bukkit.ChatColor.GOLD + "You received " + amt
-                        + org.bukkit.ChatColor.GOLD + " to get started!");
-            }
-
             // Teleport to profile lobby in world
             org.bukkit.World lobbyWorld = org.bukkit.Bukkit.getWorld("world");
             if (lobbyWorld != null) {
