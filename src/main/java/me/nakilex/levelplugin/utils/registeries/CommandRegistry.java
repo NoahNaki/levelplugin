@@ -82,6 +82,7 @@ import me.nakilex.levelplugin.utils.commands.EmptyTabCompleter;
 import me.nakilex.levelplugin.pathfinding.PathfindingCommand;
 import me.nakilex.levelplugin.pathfinding.PathfindingManager;
 import me.nakilex.levelplugin.pathfinding.MercenaryCommand;
+import me.nakilex.levelplugin.chat.ChatModerationCommand;
 import org.bukkit.command.PluginCommand;
 import me.nakilex.levelplugin.pathfinding.MercenaryManager;
 
@@ -240,6 +241,14 @@ public class CommandRegistry {
         MercenaryCommand mercCmd = new MercenaryCommand(mercManager);
         plugin.getCommand("mercenary").setExecutor(mercCmd);
         plugin.getCommand("mercenary").setTabCompleter(mercCmd);
+
+        ChatModerationCommand chatCmd = new ChatModerationCommand();
+        plugin.getCommand("mute").setExecutor(chatCmd);
+        plugin.getCommand("mute").setTabCompleter(chatCmd);
+        plugin.getCommand("unmute").setExecutor(chatCmd);
+        plugin.getCommand("unmute").setTabCompleter(chatCmd);
+        plugin.getCommand("clearchat").setExecutor(chatCmd);
+        plugin.getCommand("clearchat").setTabCompleter(chatCmd);
 
         // Ensure every command has a tab completer to avoid null completions
         EmptyTabCompleter empty = new EmptyTabCompleter();

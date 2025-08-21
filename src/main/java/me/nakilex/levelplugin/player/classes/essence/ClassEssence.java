@@ -63,6 +63,24 @@ public final class ClassEssence {
     }
 
     /**
+     * Generate an essence biased toward common rarity.
+     * 89% chance for common, 10% for uncommon and 1% for rare.
+     */
+    public static ItemStack generateEssence() {
+        Random rand = new Random();
+        double roll = rand.nextDouble();
+        ItemRarity rarity = ItemRarity.COMMON;
+        if (roll < 0.01) {
+            rarity = ItemRarity.RARE;
+        } else if (roll < 0.11) {
+            rarity = ItemRarity.UNCOMMON;
+        }
+        PlayerClass[] classes = PlayerClass.values();
+        PlayerClass clazz = classes[rand.nextInt(classes.length)];
+        return generateEssence(clazz, rarity, 0);
+    }
+
+    /**
      * Generate an essence for a specific class, rarity and star level.
      */
     public static ItemStack generateEssence(PlayerClass clazz, ItemRarity rarity, int starLevel) {
@@ -226,7 +244,7 @@ public final class ClassEssence {
         if (lore.isEmpty() || !lore.get(lore.size() - 1).isEmpty()) {
             lore.add("");
         }
-        GuiUtil.addClickInstructions(lore, "to equip", "to unequip");
+        lore.addAll(TooltipUtil.clickInstructions("to equip", "to unequip"));
         meta.setLore(lore);
         stack.setItemMeta(meta);
     }

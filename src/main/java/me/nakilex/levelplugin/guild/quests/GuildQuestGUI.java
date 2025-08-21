@@ -97,7 +97,7 @@ public final class GuildQuestGUI {
                     lore.add(ChatColor.WHITE + "Left-click " + ChatColor.GRAY + "to track");
                 }
             } else {
-                GuiUtil.addClickInstructions(lore, "to accept", quest.isRerolled() ? null : "to reroll");
+                lore.addAll(TooltipUtil.clickInstructions("to accept", quest.isRerolled() ? null : "to reroll"));
                 if (quest.isRerolled()) {
                     lore.add(ChatColor.RED + "Reroll used");
                 }
