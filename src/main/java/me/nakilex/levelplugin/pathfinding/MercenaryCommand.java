@@ -2,7 +2,7 @@ package me.nakilex.levelplugin.pathfinding;
 
 import me.nakilex.levelplugin.pathfinding.MercenaryManager.Mode;
 import me.nakilex.levelplugin.pathfinding.npc.ArcherMercenary;
-import me.nakilex.levelplugin.pathfinding.npc.AssassinMercenary;
+import me.nakilex.levelplugin.pathfinding.npc.RogueMercenary;
 import me.nakilex.levelplugin.pathfinding.npc.MageMercenary;
 import me.nakilex.levelplugin.pathfinding.npc.PathNpc;
 import me.nakilex.levelplugin.pathfinding.npc.WarriorMercenary;
@@ -50,14 +50,14 @@ public class MercenaryCommand implements CommandExecutor, TabCompleter {
                   }
                   String cls = args[2].toLowerCase(Locale.ROOT);
                   PathNpc profile = switch (cls) {
-                      case "assassin" -> new AssassinMercenary();
+                      case "rogue" -> new RogueMercenary();
                       case "mage" -> new MageMercenary();
                       case "warrior" -> new WarriorMercenary();
                       case "archer" -> new ArcherMercenary();
                       default -> null;
                   };
                   if (profile == null) {
-                      sender.sendMessage("Unknown class. Use assassin, mage, warrior or archer");
+                      sender.sendMessage("Unknown class. Use rogue, mage, warrior or archer");
                       return true;
                   }
                   Player target = Bukkit.getPlayer(args[3]);
@@ -160,7 +160,7 @@ public class MercenaryCommand implements CommandExecutor, TabCompleter {
         }
           if (args.length == 3) {
               if (args[0].equalsIgnoreCase("bind")) {
-                  return List.of("assassin", "mage", "warrior", "archer").stream()
+                  return List.of("rogue", "mage", "warrior", "archer").stream()
                           .filter(c -> c.startsWith(args[2].toLowerCase(Locale.ROOT)))
                           .collect(Collectors.toList());
               }

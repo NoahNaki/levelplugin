@@ -86,13 +86,13 @@ public class SpellGUI {
         SPELL_DESCRIPTIONS.put("tidal_wave", "Summon a wave that knocks foes back.");
         SPELL_DESCRIPTIONS.put("aqua_aura", "Emit an aura that empowers allies.");
         SPELL_DESCRIPTIONS.put("abyssal_smash", "Leap high and smash down with tidal force.");
-        // Assassin
+        // Rogue
         SPELL_DESCRIPTIONS.put("blade_slash", "Slash enemies with your blade.");
         SPELL_DESCRIPTIONS.put("assassin_dash", "Dash swiftly forward.");
         SPELL_DESCRIPTIONS.put("dagger_throw", "Hurl daggers at distant foes.");
         SPELL_DESCRIPTIONS.put("blade_dance", "Teleport between enemies with deadly strikes.");
         SPELL_DESCRIPTIONS.put("shadow_walk", "Vanish into the shadows to gain invisibility.");
-        // Awakened Assassin
+        // Awakened Rogue
         SPELL_DESCRIPTIONS.put("lethal_combo", "Chain blades into a lethal combo.");
         SPELL_DESCRIPTIONS.put("ravaging_dash", "Dash forward leaving slashes in your wake.");
         SPELL_DESCRIPTIONS.put("death_bloom", "Vanish then cut nearby enemies repeatedly.");
@@ -201,7 +201,7 @@ public class SpellGUI {
         SPELL_USAGE.put("dagger_throw", "Sneak + Right Click");
         SPELL_USAGE.put("blade_dance", "Sneak + Left Click");
         SPELL_USAGE.put("shadow_walk", "Sneak");
-        // Awakened Assassin
+        // Awakened Rogue
         SPELL_USAGE.put("lethal_combo", "Left Click");
         SPELL_USAGE.put("ravaging_dash", "Right Click");
         SPELL_USAGE.put("crimson_arc", "Sneak + Right Click");
@@ -312,7 +312,7 @@ public class SpellGUI {
         Map.entry("dagger_throw", "icon_dagger_throw"),
         Map.entry("blade_dance", "icon_blade_dance"),
         Map.entry("shadow_walk", "icon_shadow_walk"),
-        // Awakened Assassin
+        // Awakened Rogue
         Map.entry("lethal_combo", "icon_lethal_combo"),
         Map.entry("ravaging_dash", "icon_ravaging_dash"),
         Map.entry("death_bloom", "icon_death_bloom"),
@@ -395,14 +395,14 @@ public class SpellGUI {
             case BARBARIAN -> "barbarian";
             case PALADIN -> "paladin";
             case DEATHKNIGHT -> "deathknight";
-            case ASSASSIN -> "assassin";
+            case ROGUE -> "rogue";
             case ABYSSION -> "abyssion";
             case MAGE -> "mage";
             case DRAGONIAN -> "dragonian";
             case GALEGLAIVE -> "windrune";
             case ARCTICKNIGHT -> "arctic";
             case DRAGONWARRIOR -> "dragonwarrior";
-            case AWAKASSASSIN -> "awakassassin";
+            case AWAKROGUE -> "awakrogue";
             case AWAKWARRIOR -> "awakwarrior";
             case AWAKARCHER -> "awakarcher";
             case ARCHMAGE -> "archmage";

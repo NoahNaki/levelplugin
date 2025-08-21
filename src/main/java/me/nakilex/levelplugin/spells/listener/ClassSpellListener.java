@@ -143,16 +143,16 @@ public class ClassSpellListener implements Listener {
         t.sneakStart = List.of("aqua_aura");
         MAP.put(PlayerClass.ABYSSION, t);
 
-        // Assassin class
+        // Rogue class
         t = new Triggers();
         t.leftSneak = List.of("blade_dance");
         t.left = List.of("blade_slash");
         t.rightSneak = List.of("dagger_throw");
         t.right = List.of("assassin_dash");
         t.sneakStart = List.of("shadow_walk");
-        MAP.put(PlayerClass.ASSASSIN, t);
+        MAP.put(PlayerClass.ROGUE, t);
 
-        // Awakened Assassin class
+        // Awakened Rogue class
         t = new Triggers();
         t.left = List.of("lethal_combo");
         t.right = List.of("ravaging_dash");
@@ -161,7 +161,7 @@ public class ClassSpellListener implements Listener {
         // Death Bloom is the class's sneak ability
         t.sneakStart = List.of("death_bloom");
         t.sneakPrep = List.of("Death_Bloom");
-        MAP.put(PlayerClass.AWAKASSASSIN, t);
+        MAP.put(PlayerClass.AWAKROGUE, t);
 
         // Awakened Warrior class
         t = new Triggers();
@@ -244,9 +244,6 @@ public class ClassSpellListener implements Listener {
                 "mf_class_witch_shiftshift_cruibile_count"
         );
         MAP.put(PlayerClass.WITCH, t);
-
-        // Rogue class (no default combos yet)
-        MAP.put(PlayerClass.ROGUE, new Triggers());
 
         // Cleric class (no default combos yet)
         MAP.put(PlayerClass.CLERIC, new Triggers());
