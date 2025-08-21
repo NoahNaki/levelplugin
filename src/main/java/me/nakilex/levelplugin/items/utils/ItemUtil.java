@@ -10,6 +10,9 @@ import me.nakilex.levelplugin.player.mining.managers.MiningManager;
 import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import me.nakilex.levelplugin.items.data.ArmorType;
 import me.nakilex.levelplugin.items.data.WeaponType;
+import me.nakilex.levelplugin.items.data.ItemRarity;
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.potions.data.PotionInstance;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -383,6 +386,41 @@ public class ItemUtil {
             }
         }
         return false;
+    }
+
+    /**
+     * Determine the rarity of an ItemStack. Supports custom items,
+     * custom potions, and vanilla potion types. Returns {@code null}
+     * when the stack is not recognized.
+     */
+    public static ItemRarity getItemRarity(ItemStack stack) {
+        if (stack == null || stack.getType() == Material.AIR) return null;
+
+        CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(stack);
+        if (cItem != null) return cItem.getRarity();
+
+        PotionInstance pInst = Main.getInstance().getPotionManager().getInstanceFromItem(stack);
+        if (pInst != null) return ItemRarity.fromTier(pInst.getTemplate().getTier());
+
+        Material type = stack.getType();
+        if (type == Material.POTION || type == Material.SPLASH_POTION || type == Material.LINGERING_POTION) {
+            return ItemRarity.COMMON;
+        }
+        return null;
+    }
+
+    /**
+     * Checks whether an ItemStack can be placed into the salvage GUI.
+     * Accepts any custom item or potion (including vanilla potions).
+     */
+    public static boolean isSalvageable(ItemStack stack) {
+        if (stack == null || stack.getType() == Material.AIR) return false;
+
+        if (ItemManager.getInstance().getCustomItemFromItemStack(stack) != null) return true;
+        if (Main.getInstance().getPotionManager().getInstanceFromItem(stack) != null) return true;
+
+        Material type = stack.getType();
+        return type == Material.POTION || type == Material.SPLASH_POTION || type == Material.LINGERING_POTION;
     }
 
     /**
