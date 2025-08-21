@@ -70,9 +70,11 @@ public class QuestManager {
         Quest nb = new me.nakilex.levelplugin.quests.def.NewBeginningQuest();
         Quest seras = new me.nakilex.levelplugin.quests.def.SerasQuest();
         Quest hawie = new me.nakilex.levelplugin.quests.def.HawieQuest();
+        Quest dungeonMaster = new me.nakilex.levelplugin.quests.def.DungeonMasterQuest();
         registerQuest(nb);
         registerQuest(seras);
         registerQuest(hawie);
+        registerQuest(dungeonMaster);
         plugin.getLogger().info("Registered " + quests.size() + " quests.");
     }
 
