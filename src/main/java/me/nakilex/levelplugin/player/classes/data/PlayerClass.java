@@ -38,22 +38,15 @@ public enum PlayerClass {
     }
 
     /**
-     * Parse a class name, providing backwards compatibility for legacy names.
-     * Falls back to {@link #VILLAGER} if the name is unrecognized or null.
+     * Parse a class name case-insensitively.
+     * Returns {@code null} if the name does not match any enum constant.
      */
     public static PlayerClass fromString(String name) {
         if (name == null) return null;
-        String key = name.toUpperCase();
-        return switch (key) {
-            case "ASSASSIN" -> PlayerClass.ROGUE;
-            case "AWAKASSASSIN" -> PlayerClass.AWAKROGUE;
-            default -> {
-                try {
-                    yield PlayerClass.valueOf(key);
-                } catch (IllegalArgumentException e) {
-                    yield null;
-                }
-            }
-        };
+        try {
+            return PlayerClass.valueOf(name.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 }
