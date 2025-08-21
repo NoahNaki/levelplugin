@@ -52,22 +52,6 @@ public final class GuiUtil {
     }
 
     /**
-     * Append standardized left/right click instructions to a lore list.
-     *
-     * @param lore       list to append to
-     * @param leftAction description following "Left-click" or {@code null}
-     * @param rightAction description following "Right-click" or {@code null}
-     */
-    public static void addClickInstructions(List<String> lore, String leftAction, String rightAction) {
-        if (leftAction != null) {
-            lore.add(ChatColor.WHITE + "Left-click " + ChatColor.GRAY + leftAction);
-        }
-        if (rightAction != null) {
-            lore.add(ChatColor.WHITE + "Right-click " + ChatColor.GRAY + rightAction);
-        }
-    }
-
-    /**
      * Create a standardized toggle item using check/cross Nexo icons and lore
      * indicating the current enabled status.
      *
@@ -145,13 +129,13 @@ public final class GuiUtil {
 
     private static StatFormat getStatFormat(StatType type) {
         return switch (type) {
-            case STR -> new StatFormat("\u2620", ChatColor.BLUE);
-            case AGI -> new StatFormat("\u2248", ChatColor.GREEN);
-            case INT -> new StatFormat("\u2666", ChatColor.AQUA);
-            case DEX -> new StatFormat("\u27B9", ChatColor.YELLOW);
-            case VIT -> new StatFormat("\u2764", ChatColor.RED);
-            case WIL -> new StatFormat("\u272A", ChatColor.BLUE);
-            case TEC -> new StatFormat("\u2694", ChatColor.DARK_PURPLE);
+            case STR -> new StatFormat("<glyph:str>", ChatColor.BLUE);
+            case AGI -> new StatFormat("<glyph:agi>", ChatColor.GREEN);
+            case INT -> new StatFormat("<glyph:int>", ChatColor.AQUA);
+            case DEX -> new StatFormat("<glyph:dex>", ChatColor.YELLOW);
+            case VIT -> new StatFormat("<glyph:vit>", ChatColor.RED);
+            case WIL -> new StatFormat("<glyph:wil>", ChatColor.BLUE);
+            case TEC -> new StatFormat("<glyph:tec>", ChatColor.DARK_PURPLE);
         };
     }
 
@@ -164,7 +148,8 @@ public final class GuiUtil {
     /** Format a stat line using standard icons and colours. */
     public static String formatStatLine(StatType type, int value, boolean percent) {
         String suffix = percent ? "%" : "";
-        return formatStatName(type) + ": " + ChatColor.WHITE + "+" + value + suffix;
+        ChatColor valueColor = (type == StatType.VIT) ? ChatColor.RED : ChatColor.GREEN;
+        return formatStatName(type) + ": " + valueColor + "+" + value + suffix;
     }
 
     /**

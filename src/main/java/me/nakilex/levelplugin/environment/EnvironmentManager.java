@@ -14,6 +14,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.TextDisplay;
@@ -254,7 +255,7 @@ public class EnvironmentManager {
         lines.add(ChatColor.DARK_GRAY + ChatColor.STRIKETHROUGH.toString() + "--------------------");
         lines.add(ChatColor.AQUA + "Requirements:");
         lines.addAll(reqLines);
-        lines.add(ChatColor.YELLOW.toString() + ChatColor.UNDERLINE + "Right-click to upgrade!");
+        lines.addAll(TooltipUtil.clickInstructions(null, "to upgrade!"));
         return lines;
     }
 

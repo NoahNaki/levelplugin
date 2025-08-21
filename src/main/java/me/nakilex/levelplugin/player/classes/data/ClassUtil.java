@@ -40,6 +40,18 @@ public final class ClassUtil {
     }
 
     /**
+     * Returns a flavor text describing the default combat action for the given class.
+     * Warrior and rogue families swing blades, archers loose arrows and mages cast spells.
+     * All other classes default to swinging a blade.
+     */
+    public static String getAttackPhrase(PlayerClass cls) {
+        if (isMageFamily(cls)) return "casting that spell";
+        if (isArcherFamily(cls)) return "loosing that arrow";
+        // Warriors, rogues and any other classes default to blade-based combat.
+        return "swinging that blade";
+    }
+
+    /**
      * Determine if a player's class meets the required class, accounting for
      * subclasses. A null or VILLAGER requirement means all classes are allowed.
      */

@@ -6,6 +6,8 @@ import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.mob.config.ModelSetManager;
+import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
@@ -97,6 +99,31 @@ public class ItemDropper {
                 ItemUtil.updateTooltip(dropStack, player);
                 player.getWorld().dropItemNaturally(player.getLocation(), dropStack);
             }
+        }
+    }
+
+    /** Possibly drop a configured class essence. */
+    public void maybeDropEssence(Player player, ConfigurationSection node) {
+        if (node == null) return;
+        String spec = node.getString("essence");
+        if (spec == null || spec.isEmpty()) return;
+        String[] parts = spec.split(",");
+        if (parts.length < 2) return;
+        String className = parts[0].trim();
+        double chance;
+        try {
+            chance = Double.parseDouble(parts[1].trim());
+        } catch (NumberFormatException ex) {
+            return;
+        }
+        double roll = ThreadLocalRandom.current().nextDouble() * 100.0;
+        if (roll > chance) return;
+        try {
+            PlayerClass clazz = PlayerClass.valueOf(className.toUpperCase());
+            ItemStack ess = ClassEssence.generateEssence(clazz);
+            player.getInventory().addItem(ess).values()
+                    .forEach(i -> player.getWorld().dropItemNaturally(player.getLocation(), i));
+        } catch (IllegalArgumentException ignored) {
         }
     }
 

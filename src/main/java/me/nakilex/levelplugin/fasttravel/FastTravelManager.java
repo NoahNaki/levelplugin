@@ -49,13 +49,14 @@ public class FastTravelManager {
                 String desc = config.getString(path + ".desc", "");
                 double radius = config.getDouble(path + ".radius", 10);
                 boolean town = config.getBoolean(path + ".town", false);
+                int exp = config.getInt(path + ".exp", 0);
                 org.bukkit.World w = plugin.getServer().getWorld(world);
                 if (w == null && "world2".equalsIgnoreCase(world)) {
                     w = plugin.getServer().getWorld("world");
                 }
                 Location loc = new Location(w, x, y, z);
                 String displayName = me.nakilex.levelplugin.utils.TextUtil.beautifyWords(key);
-                FastTravelPoint pt = new FastTravelPoint(displayName, ChatColor.valueOf(colorName), desc, loc, radius, town);
+                FastTravelPoint pt = new FastTravelPoint(displayName, ChatColor.valueOf(colorName), desc, loc, radius, town, exp);
                 points.put(key.toLowerCase(), pt);
             }
         }
@@ -91,15 +92,26 @@ public class FastTravelManager {
             config.set(path + ".desc", pt.getDescription());
             config.set(path + ".radius", pt.getRadius());
             config.set(path + ".town", pt.isTown());
+            config.set(path + ".exp", pt.getExpReward());
         }
         config.set("players", null);
         try { config.save(file); } catch (IOException e) { e.printStackTrace(); }
     }
 
-    public void addLocation(String name, ChatColor color, String desc, Location loc, double radius, boolean town) {
+    public void addLocation(String name,
+                             ChatColor color,
+                             String desc,
+                             Location loc,
+                             double radius,
+                             boolean town,
+                             int exp) {
         String displayName = me.nakilex.levelplugin.utils.TextUtil.beautifyWords(name);
-        points.put(name.toLowerCase(), new FastTravelPoint(displayName, color, desc, loc, radius, town));
+        points.put(name.toLowerCase(), new FastTravelPoint(displayName, color, desc, loc, radius, town, exp));
         save();
+    }
+
+    public void addLocation(String name, ChatColor color, String desc, Location loc, double radius, boolean town) {
+        addLocation(name, color, desc, loc, radius, town, 0);
     }
 
     public void moveLocation(String name, Location loc) {
@@ -167,6 +179,22 @@ public class FastTravelManager {
         }
         Main.getInstance().getQuestManager().handleDiscover(player, name.toLowerCase());
         Main.getInstance().getQuestManager().handleWaystoneUnlock(player, name.toLowerCase());
+
+        FastTravelPoint pt = points.get(name.toLowerCase());
+        if (pt != null) {
+            int exp = pt.getExpReward();
+            me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, " ", 45);
+            me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§6§lRegion Discovered");
+            me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, pt.getColor() + pt.getName());
+            if (exp > 0) {
+                plugin.getLevelManager().addXP(player, exp);
+                String expColor = me.nakilex.levelplugin.utils.ChatFormatter.experienceColor();
+                String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
+                player.sendMessage(" ");
+                player.sendMessage(expColor + "+" + exp + " <glyph:experience_orb_icon> " + expLabel);
+            }
+            me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, " ", 45);
+        }
     }
 
     public boolean isUnlocked(Player player, String name) {

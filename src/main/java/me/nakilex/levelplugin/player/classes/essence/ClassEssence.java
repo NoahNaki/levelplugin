@@ -59,7 +59,26 @@ public final class ClassEssence {
         PlayerClass clazz = classes[rand.nextInt(classes.length)];
         int slots = getAttributeSlots(rarity);
         Map<StatType, AttrData> attrs = rollAttributes(slots, rarity, 0, rand, java.util.Collections.emptySet());
-        return create(clazz, rarity, 0, attrs, true);
+        return create(clazz, rarity, 0, attrs, false);
+    }
+
+    /**
+     * Generate an essence biased toward common rarity.
+     * 89% chance for common, 10% for uncommon and 1% for rare.
+     */
+    public static ItemStack generateEssence() {
+        Random rand = new Random();
+        ItemRarity rarity = rollWeightedRarity(rand);
+        PlayerClass[] classes = PlayerClass.values();
+        PlayerClass clazz = classes[rand.nextInt(classes.length)];
+        return generateEssence(clazz, rarity, 0);
+    }
+
+    /** Generate an essence for a specific class with weighted rarity. */
+    public static ItemStack generateEssence(PlayerClass clazz) {
+        Random rand = new Random();
+        ItemRarity rarity = rollWeightedRarity(rand);
+        return generateEssence(clazz, rarity, 0);
     }
 
     /**
@@ -68,7 +87,19 @@ public final class ClassEssence {
     public static ItemStack generateEssence(PlayerClass clazz, ItemRarity rarity, int starLevel) {
         int slots = getAttributeSlots(rarity);
         Map<StatType, AttrData> attrs = rollAttributes(slots, rarity, starLevel, new Random(), java.util.Collections.emptySet());
-        return create(clazz, rarity, starLevel, attrs, true);
+        return create(clazz, rarity, starLevel, attrs, false);
+    }
+
+    /** Roll a rarity with 89% common, 10% uncommon and 1% rare. */
+    private static ItemRarity rollWeightedRarity(Random rand) {
+        double roll = rand.nextDouble();
+        if (roll < 0.01) {
+            return ItemRarity.RARE;
+        }
+        if (roll < 0.11) {
+            return ItemRarity.UNCOMMON;
+        }
+        return ItemRarity.COMMON;
     }
 
     /**
@@ -226,7 +257,7 @@ public final class ClassEssence {
         if (lore.isEmpty() || !lore.get(lore.size() - 1).isEmpty()) {
             lore.add("");
         }
-        GuiUtil.addClickInstructions(lore, "to equip", "to unequip");
+        lore.addAll(TooltipUtil.clickInstructions("to equip", "to unequip"));
         meta.setLore(lore);
         stack.setItemMeta(meta);
     }
@@ -318,6 +349,17 @@ public final class ClassEssence {
         if (meta == null) return false;
         Byte flag = meta.getPersistentDataContainer().get(SOULBOUND_KEY, PersistentDataType.BYTE);
         return flag != null && flag == (byte)1;
+    }
+
+    /** Mark or unmark an essence as soulbound. */
+    public static void setSoulbound(ItemStack stack, boolean soulbound) {
+        if (!isEssence(stack)) return;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return;
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        pdc.set(SOULBOUND_KEY, PersistentDataType.BYTE, soulbound ? (byte)1 : (byte)0);
+        stack.setItemMeta(meta);
+        updateLore(stack);
     }
 
     public static int getExp(ItemStack stack) {
@@ -446,6 +488,9 @@ public final class ClassEssence {
         String expColor = ChatFormatter.experienceColor();
         String expLabel = ChatFormatter.experienceLabel();
         lore.add(bar + " " + expColor + exp + ChatColor.GOLD + "/" + expColor + next + " <glyph:experience_orb_icon> " + expLabel);
+        if (isSoulbound(stack)) {
+            lore.add(ChatColor.RED + "Soulbound");
+        }
         meta.setLore(lore);
         stack.setItemMeta(meta);
     }

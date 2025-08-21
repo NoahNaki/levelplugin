@@ -256,3 +256,12 @@ commands:
   mercenary:
     description: Bind and control mercenary NPCs
     usage: /mercenary <bind|unbind|hostile|target>
+  mute:
+    description: Mute world chat
+    usage: /mute all
+  unmute:
+    description: Unmute world chat
+    usage: /unmute all
+  clearchat:
+    description: Clear the world chat
+    usage: /clearchat

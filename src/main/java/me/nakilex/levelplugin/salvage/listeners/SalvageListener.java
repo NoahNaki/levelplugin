@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.salvage.managers.SalvageManager;
 import me.nakilex.levelplugin.salvage.gui.SalvageGUI;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.potions.data.PotionInstance;
 import org.bukkit.ChatColor;
@@ -41,19 +42,6 @@ public class SalvageListener implements Listener {
         return slot >= 0 && slot < 54 && !(slot < 9 || slot >= 45 || slot % 9 == 0 || slot % 9 == 8);
     }
 
-    private boolean isSalvageable(ItemStack stack) {
-        if (stack == null || stack.getType() == Material.AIR) return false;
-        CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(stack);
-        if (cItem != null) return true;
-
-        if (Main.getInstance().getPotionManager().getInstanceFromItem(stack) != null)
-            return true;
-
-        // Allow vanilla potions to be placed in the GUI even if they aren't custom
-        Material type = stack.getType();
-        return type == Material.POTION || type == Material.SPLASH_POTION || type == Material.LINGERING_POTION;
-    }
-
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         if (!isMerchant(event.getView())) return;
@@ -63,7 +51,7 @@ public class SalvageListener implements Listener {
         Player player = (Player) event.getWhoClicked();
 
         if (event.isShiftClick() && event.getCurrentItem() != null) {
-            if (!isSalvageable(event.getCurrentItem())) {
+            if (!ItemUtil.isSalvageable(event.getCurrentItem())) {
                 event.setCancelled(true);
             }
             return;
@@ -111,7 +99,7 @@ public class SalvageListener implements Listener {
 
             ItemStack cursor = event.getCursor();
             if (cursor != null && cursor.getType() != Material.AIR) {
-                if (!isSalvageable(cursor)) {
+                if (!ItemUtil.isSalvageable(cursor)) {
                     event.setCancelled(true);
                 }
             }
@@ -126,7 +114,7 @@ public class SalvageListener implements Listener {
             if (isInputSlot(slot)) {
                 ItemStack dragged = event.getOldCursor();
                 if (dragged != null && dragged.getType() != Material.AIR) {
-                    if (!isSalvageable(dragged)) {
+                    if (!ItemUtil.isSalvageable(dragged)) {
                         event.setCancelled(true);
                         return;
                     }
@@ -234,29 +222,23 @@ public class SalvageListener implements Listener {
             ItemStack invItem = storageContents[i];
             if (invItem == null || invItem.getType() == Material.AIR) continue;
 
-            CustomItem cItemInv = ItemManager.getInstance().getCustomItemFromItemStack(invItem);
-            if (cItemInv != null) {
-                ItemRarity r = cItemInv.getRarity();
-                if (r == targetRarity || (includeLower && r.ordinal() <= targetRarity.ordinal())) {
-                    int dest = firstEmptyInputSlot(gui);
-                    if (dest == -1) break;
-                    playerInv.setItem(i, null);
-                    gui.setItem(dest, invItem);
-                }
+            ItemRarity r = ItemUtil.getItemRarity(invItem);
+            if (r != null && (r == targetRarity || (includeLower && r.ordinal() <= targetRarity.ordinal()))) {
+                int dest = firstEmptyInputSlot(gui);
+                if (dest == -1) break;
+                playerInv.setItem(i, null);
+                gui.setItem(dest, invItem);
             }
         }
 
         ItemStack off = playerInv.getItemInOffHand();
         if (off != null && off.getType() != Material.AIR) {
-            CustomItem cOff = ItemManager.getInstance().getCustomItemFromItemStack(off);
-            if (cOff != null) {
-                ItemRarity r = cOff.getRarity();
-                if (r == targetRarity || (includeLower && r.ordinal() <= targetRarity.ordinal())) {
-                    int dest = firstEmptyInputSlot(gui);
-                    if (dest != -1) {
-                        playerInv.setItemInOffHand(null);
-                        gui.setItem(dest, off);
-                    }
+            ItemRarity r = ItemUtil.getItemRarity(off);
+            if (r != null && (r == targetRarity || (includeLower && r.ordinal() <= targetRarity.ordinal()))) {
+                int dest = firstEmptyInputSlot(gui);
+                if (dest != -1) {
+                    playerInv.setItemInOffHand(null);
+                    gui.setItem(dest, off);
                 }
             }
         }
@@ -265,6 +247,7 @@ public class SalvageListener implements Listener {
                 + targetRarity.name().toLowerCase() + " items.");
     }
 
+    /** Determine the rarity of a stack if it represents a custom item or potion. */
     /** Moves all salvageable items from the player's inventory into the GUI. */
     private void depositAllItems(Player player, Inventory gui) {
         PlayerInventory inv = player.getInventory();
@@ -278,7 +261,7 @@ public class SalvageListener implements Listener {
 
             ItemStack item = inv.getItem(i);
             if (item == null || item.getType() == Material.AIR) continue;
-            if (!isSalvageable(item)) continue;
+            if (!ItemUtil.isSalvageable(item)) continue;
 
             int dest = firstEmptyInputSlot(gui);
             if (dest == -1) break; // no space left
@@ -288,7 +271,7 @@ public class SalvageListener implements Listener {
         }
 
         ItemStack off = inv.getItemInOffHand();
-        if (off != null && off.getType() != Material.AIR && isSalvageable(off)) {
+        if (off != null && off.getType() != Material.AIR && ItemUtil.isSalvageable(off)) {
             int dest = firstEmptyInputSlot(gui);
             if (dest != -1) {
                 inv.setItemInOffHand(null);

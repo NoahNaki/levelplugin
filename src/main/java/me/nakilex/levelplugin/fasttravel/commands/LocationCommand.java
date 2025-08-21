@@ -35,8 +35,9 @@ public class LocationCommand implements TabExecutor {
             String desc = args[3].replace('_', ' ');
             double radius = Double.parseDouble(args[4]);
             boolean town = Boolean.parseBoolean(args[5]);
+            int exp = args.length >= 7 ? Integer.parseInt(args[6]) : 0;
             Location loc = player.getLocation();
-            manager.addLocation(name, color, desc, loc, radius, town);
+            manager.addLocation(name, color, desc, loc, radius, town, exp);
             send(player, MessageType.SUCCESS, "Location " + ChatColor.WHITE + name + ChatColor.GREEN + " added.");
         } else if (sub.equals("move") && args.length >= 2) {
             manager.moveLocation(args[1], player.getLocation());
@@ -50,7 +51,7 @@ public class LocationCommand implements TabExecutor {
                     send(player, MessageType.INFO, pt.getColor() + pt.getName() + ChatColor.GRAY + " - " + pt.getDescription())
             );
         } else {
-            send(player, MessageType.ERROR, "Usage: /location set <name> <color> <description_with_underscores> <radius> <true/false>");
+            send(player, MessageType.ERROR, "Usage: /location set <name> <color> <description_with_underscores> <radius> <true/false> [exp]");
         }
         return true;
     }
@@ -74,6 +75,12 @@ public class LocationCommand implements TabExecutor {
             return Arrays.stream(ChatColor.values())
                     .map(ChatColor::name)
                     .filter(color -> color.toLowerCase().startsWith(args[2].toLowerCase()))
+                    .collect(Collectors.toList());
+        }
+
+        if (args.length == 6 && args[0].equalsIgnoreCase("set")) {
+            return Arrays.asList("true", "false").stream()
+                    .filter(opt -> opt.startsWith(args[5].toLowerCase()))
                     .collect(Collectors.toList());
         }
 

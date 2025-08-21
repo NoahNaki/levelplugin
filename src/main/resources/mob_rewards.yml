@@ -5,6 +5,7 @@ mobs:
     tier: 6
     tier_chance: 100.0
     model_set: molten
+    essence: archer, 0.3
 
   Slime_Common:
     exp: 50

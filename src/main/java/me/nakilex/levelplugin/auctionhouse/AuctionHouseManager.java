@@ -92,6 +92,10 @@ public class AuctionHouseManager {
      * seller's earnings when the item is sold.
      */
     public synchronized boolean listItem(Player seller, ItemStack item, int startPrice, int binPrice, long durationHours) {
+        if (me.nakilex.levelplugin.items.utils.ItemUtil.isSoulbound(item)) {
+            seller.sendMessage(ChatColor.RED + "Soulbound items cannot be listed.");
+            return false;
+        }
         long hours = Math.min(durationHours, MAX_DURATION_HOURS);
         int priceBasis = binPrice > 0 ? binPrice : startPrice;
         double rate = Math.min(hours * TAX_PER_HOUR, MAX_TAX_PERCENT);
