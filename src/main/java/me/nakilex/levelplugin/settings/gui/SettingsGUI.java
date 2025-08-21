@@ -127,6 +127,15 @@ public class SettingsGUI implements Listener {
             ));
         }
 
+        // Skill Point Reminder toggle
+        if (filter == Filter.ALL || filter == Filter.VISUAL) {
+            gui.setItem(24, GuiUtil.createToggleItem(
+                    playerSettings.isSkillPointReminderEnabled(),
+                    "§bSkill Point Reminder",
+                    "§eClick to toggle"
+            ));
+        }
+
         gui.setItem(FILTER_SLOT, createFilterItem(filter));
 
         // Filler border
@@ -281,6 +290,10 @@ public class SettingsGUI implements Listener {
             Bukkit.dispatchCommand(player, "toggle songskip");
             updateSettingItem(event.getInventory(), 23,
                 settings.isAutoSkipSongs(), "§bAuto Skip Songs", "/toggle songskip");
+        } else if (slot == 24) {
+            settings.toggleSkillPointReminder();
+            updateSettingItem(event.getInventory(), 24,
+                settings.isSkillPointReminderEnabled(), "§bSkill Point Reminder", "");
         }
     }
 }
