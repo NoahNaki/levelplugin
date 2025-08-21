@@ -34,15 +34,18 @@ public class GenClassCommand implements TabExecutor {
             sender.sendMessage("§cPlayer not found.");
             return true;
         }
-        PlayerClass clazz;
+        PlayerClass clazz = PlayerClass.fromString(args[1]);
         ItemRarity rarity;
         int star;
         try {
-            clazz = PlayerClass.valueOf(args[1].toUpperCase());
             rarity = ItemRarity.valueOf(args[2].toUpperCase());
             star = Integer.parseInt(args[3]);
         } catch (Exception ex) {
             sender.sendMessage("§cInvalid arguments.");
+            return true;
+        }
+        if (clazz == null) {
+            sender.sendMessage("§cInvalid class.");
             return true;
         }
         star = Math.max(0, Math.min(5, star));

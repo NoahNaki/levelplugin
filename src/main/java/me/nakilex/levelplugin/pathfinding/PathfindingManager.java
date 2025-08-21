@@ -4,7 +4,7 @@ import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.ai.event.NavigationStuckEvent;
 import net.citizensnpcs.api.npc.NPC;
 import me.nakilex.levelplugin.spells.managers.CooldownManager;
-import me.nakilex.levelplugin.pathfinding.npc.AssassinMercenary;
+import me.nakilex.levelplugin.pathfinding.npc.RogueMercenary;
 import me.nakilex.levelplugin.pathfinding.npc.PathNpc;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -82,9 +82,9 @@ public class PathfindingManager {
         editingPoints.clear();
     }
 
-    /** Execute a previously created path with default assassin profile. */
+    /** Execute a previously created path with default rogue profile. */
     public void executePath(String name) {
-        executePath(name, new AssassinMercenary());
+        executePath(name, new RogueMercenary());
     }
 
     /** Execute a previously created path with a custom NPC profile. */

@@ -142,7 +142,11 @@ public class StatsInventory {
         lore.add(ChatColor.WHITE + "Base: " + ChatColor.YELLOW + baseValue);
         lore.add(ChatColor.WHITE + "Bonus: " + ChatColor.GREEN + bonusValue);
         lore.add(ChatColor.WHITE + "Total: " + ChatColor.GOLD + (baseValue + bonusValue));
-        for (String line : effectDetails) lore.add(ChatColor.WHITE + line);
+        for (String line : effectDetails) {
+            lore.add(ChatColor.WHITE + line);
+        }
+        lore.add("");
+        lore.addAll(TooltipUtil.clickInstructions("to invest a point", "to remove a point"));
         meta.setLore(lore);
         book.setItemMeta(meta);
         return book;

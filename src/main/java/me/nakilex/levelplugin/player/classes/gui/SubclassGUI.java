@@ -134,7 +134,7 @@ public class SubclassGUI implements Listener {
             Map.entry(PlayerClass.DEATHKNIGHT, new Rating(5,4,2,3)),
             Map.entry(PlayerClass.ARCTICKNIGHT, new Rating(4,4,2,3)),
             Map.entry(PlayerClass.DRAGONWARRIOR, new Rating(5,4,3,2)),
-            Map.entry(PlayerClass.AWAKASSASSIN, new Rating(5,3,5,3)),
+            Map.entry(PlayerClass.AWAKROGUE, new Rating(5,3,5,3)),
             Map.entry(PlayerClass.AWAKWARRIOR, new Rating(5,4,3,3)),
             Map.entry(PlayerClass.AWAKARCHER, new Rating(4,2,4,4)),
             Map.entry(PlayerClass.ARCHMAGE, new Rating(5,2,3,5)),
@@ -142,8 +142,7 @@ public class SubclassGUI implements Listener {
             Map.entry(PlayerClass.DEADEYE, new Rating(4,2,4,3)),
             Map.entry(PlayerClass.PHOENIXHUNTER, new Rating(5,2,4,4)),
             Map.entry(PlayerClass.PALADIN, new Rating(4,5,2,3)),
-            Map.entry(PlayerClass.ABYSSION, new Rating(4,4,3,3)),
-            Map.entry(PlayerClass.ASSASSIN, new Rating(5,2,5,3))
+            Map.entry(PlayerClass.ABYSSION, new Rating(4,4,3,3))
     );
 
     private static Map<String, String> SPELL_USAGE;
@@ -160,7 +159,7 @@ public class SubclassGUI implements Listener {
 
     private static final Map<PlayerClass, String> CLASS_SUMMARY = Map.ofEntries(
             Map.entry(PlayerClass.WARRIOR, "Close range fighter with charge and hook combos."),
-            Map.entry(PlayerClass.ROGUE, "Swift assassin with high mobility skills."),
+            Map.entry(PlayerClass.ROGUE, "Swift rogue with high mobility skills."),
             Map.entry(PlayerClass.MAGE, "Master of elemental magic with powerful spells."),
             Map.entry(PlayerClass.CLERIC, "Support class able to heal and shield allies."),
             Map.entry(PlayerClass.WITCH, "Mystic caster wielding curses and dark arts."),
@@ -170,7 +169,7 @@ public class SubclassGUI implements Listener {
             Map.entry(PlayerClass.DEATHKNIGHT, "Dark knight controlling necrotic power."),
             Map.entry(PlayerClass.ARCTICKNIGHT, "Frost warrior unleashing icy attacks."),
             Map.entry(PlayerClass.DRAGONWARRIOR, "Hybrid dragon warrior channeling draconic energy."),
-            Map.entry(PlayerClass.AWAKASSASSIN, "Awakened assassin harnessing lethal combos and shadow power."),
+            Map.entry(PlayerClass.AWAKROGUE, "Awakened rogue harnessing lethal combos and shadow power."),
             Map.entry(PlayerClass.AWAKWARRIOR, "Awakened warrior wielding brutal combos and barriers."),
             Map.entry(PlayerClass.AWAKARCHER, "Awakened archer unleashing explosive arrow storms."),
             Map.entry(PlayerClass.ARCHMAGE, "Archmage wielding arcane storms and void chains."),
@@ -178,8 +177,7 @@ public class SubclassGUI implements Listener {
             Map.entry(PlayerClass.DEADEYE, "Sharpshooter wielding pistols and explosives."),
             Map.entry(PlayerClass.PHOENIXHUNTER, "Flame archer empowered by the phoenix."),
             Map.entry(PlayerClass.PALADIN, "Holy fighter boasting strong defence."),
-            Map.entry(PlayerClass.ABYSSION, "Tide-wielding swordsman controlling water."),
-            Map.entry(PlayerClass.ASSASSIN, "Stealthy fighter striking swiftly from shadows."));
+            Map.entry(PlayerClass.ABYSSION, "Tide-wielding swordsman controlling water."));
 
     private static String bar(int val) {
         StringBuilder sb = new StringBuilder();

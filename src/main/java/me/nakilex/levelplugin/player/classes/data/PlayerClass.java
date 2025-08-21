@@ -15,7 +15,7 @@ public enum PlayerClass {
     DEATHKNIGHT(1),
     ARCTICKNIGHT(1),
     DRAGONWARRIOR(1),
-    AWAKASSASSIN(1),
+    AWAKROGUE(1),
     AWAKWARRIOR(1),
     AWAKARCHER(1),
     ARCHMAGE(1),
@@ -25,8 +25,7 @@ public enum PlayerClass {
     ARCHER(1),
     PHOENIXHUNTER(1),
     PALADIN(1),
-    ABYSSION(1),
-    ASSASSIN(1);
+    ABYSSION(1);
 
     private final int requiredLevel;
 
@@ -36,5 +35,18 @@ public enum PlayerClass {
 
     public int getRequiredLevel() {
         return requiredLevel;
+    }
+
+    /**
+     * Parse a class name case-insensitively.
+     * Returns {@code null} if the name does not match any enum constant.
+     */
+    public static PlayerClass fromString(String name) {
+        if (name == null) return null;
+        try {
+            return PlayerClass.valueOf(name.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 }

@@ -7,9 +7,9 @@ import org.bukkit.entity.LivingEntity;
 import me.nakilex.levelplugin.pathfinding.npc.PathNpc.Skill;
 
 /**
- * Melee assassin profile that cycles through the full Awakened Assassin kit.
+ * Melee rogue profile that cycles through the full Awakened Rogue kit.
  */
-public class AssassinMercenary extends AbstractMeleeMercenary {
+public class RogueMercenary extends AbstractMeleeMercenary {
     private static final Skill SKILL_DASH = new Skill("Ravaging_Dash", 5);
     private static final Skill SKILL_LETHAL = new Skill("Lethal_Combo", 1);
     private static final Skill SKILL_BLOOM = new Skill("Death_Bloom", 5);
@@ -18,7 +18,7 @@ public class AssassinMercenary extends AbstractMeleeMercenary {
     private static final Skill SKILL_LAST = new Skill("Last_Dance", 12);
     private static final Skill SKILL_DEADLY = new Skill("Deadly_Calm", 20);
 
-    public AssassinMercenary() {
+    public RogueMercenary() {
         super(Material.NETHERITE_SWORD, SKILL_LETHAL, SKILL_BLOOM, SKILL_SHADOW, SKILL_CRIMSON, SKILL_LAST);
     }
 
@@ -37,7 +37,7 @@ public class AssassinMercenary extends AbstractMeleeMercenary {
 
     @Override
     public String name() {
-        return "assassinmercenary";
+        return "roguemercenary";
     }
 
     @Override

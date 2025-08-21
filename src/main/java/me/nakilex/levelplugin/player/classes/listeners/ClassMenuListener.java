@@ -127,12 +127,8 @@ public class ClassMenuListener implements Listener {
         int reqLevel = ci.getLevelRequirement();
         String clsReqRaw = ci.getClassRequirement();
 
-        PlayerClass reqClass;
-        try {
-            reqClass = PlayerClass.valueOf(clsReqRaw.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            reqClass = PlayerClass.VILLAGER;
-        }
+        PlayerClass reqClass = PlayerClass.fromString(clsReqRaw);
+        if (reqClass == null) reqClass = PlayerClass.VILLAGER;
 
         PlayerClass currentClass = StatsManager.getInstance().getPlayerStats(puuid).playerClass;
 

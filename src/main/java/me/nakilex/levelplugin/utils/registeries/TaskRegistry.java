@@ -63,6 +63,23 @@ public class TaskRegistry {
         new QuestBeaconTask(plugin.getQuestManager(), beaconMgr).runTaskTimer(plugin, 10L, 20L);
         new QuestPlayTimeTask(plugin.getQuestManager()).runTaskTimer(plugin, 1200L, 1200L);
 
+        // Notify players about unused skill points every minute
+        new org.bukkit.scheduler.BukkitRunnable() {
+            @Override
+            public void run() {
+                me.nakilex.levelplugin.settings.managers.SettingsManager sm = plugin.getSettingsManager();
+                for (org.bukkit.entity.Player pl : plugin.getServer().getOnlinePlayers()) {
+                    if (!sm.getSettings(pl).isSkillPointReminderEnabled()) continue;
+                    int pts = me.nakilex.levelplugin.player.attributes.managers.StatsManager.getInstance()
+                            .getSkillPoints(pl.getUniqueId());
+                    if (pts > 0) {
+                        pl.sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&',
+                                "&cYou have &4&l" + pts + "&c unused Skill Points&c, you can spend them by opening up the /stats menu."));
+                    }
+                }
+            }
+        }.runTaskTimer(plugin, 1200L, 1200L);
+
         new org.bukkit.scheduler.BukkitRunnable() {
             @Override
             public void run() {

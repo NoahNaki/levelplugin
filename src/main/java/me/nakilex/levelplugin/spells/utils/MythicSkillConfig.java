@@ -7,7 +7,6 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * Utility to load MythicMobs skill configurations so we can read cooldown values.

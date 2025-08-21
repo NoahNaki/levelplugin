@@ -28,8 +28,7 @@ public final class ClassUtil {
     public static boolean isRogueFamily(PlayerClass cls) {
         return cls == PlayerClass.ROGUE
                 || cls == PlayerClass.ABYSSION
-                || cls == PlayerClass.ASSASSIN
-                || cls == PlayerClass.AWAKASSASSIN;
+                || cls == PlayerClass.AWAKROGUE;
     }
 
     /** Returns true if the class belongs to the Mage family. */

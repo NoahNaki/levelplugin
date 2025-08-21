@@ -1,6 +1,6 @@
 package me.nakilex.levelplugin.pathfinding;
 
-import me.nakilex.levelplugin.pathfinding.npc.AssassinMercenary;
+import me.nakilex.levelplugin.pathfinding.npc.RogueMercenary;
 import me.nakilex.levelplugin.pathfinding.npc.PathNpc;
 import me.nakilex.levelplugin.spells.managers.CooldownManager;
 import me.nakilex.levelplugin.utils.MobUtil;
@@ -40,9 +40,9 @@ public class MercenaryManager implements Listener {
     /** Modes a mercenary can operate in. */
     public enum Mode { HOSTILE, TARGET }
 
-    /** Bind an NPC by id to follow and fight for the player using default assassin profile. */
+    /** Bind an NPC by id to follow and fight for the player using default rogue profile. */
     public boolean bind(int npcId, Player player) {
-        return bind(npcId, player, new AssassinMercenary());
+        return bind(npcId, player, new RogueMercenary());
     }
 
     /** Bind an NPC by id to follow and fight for the player using a custom profile. */

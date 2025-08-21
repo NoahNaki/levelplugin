@@ -31,13 +31,13 @@ public class ClassCommand implements TabExecutor {
                 sender.sendMessage(ChatColor.RED + "Player not found: " + args[1]);
                 return true;
             }
-            try {
-                PlayerClass cls = PlayerClass.valueOf(args[2].toUpperCase());
-                StatsManager.getInstance().unlockClass(target.getUniqueId(), cls);
-                sender.sendMessage(ChatColor.GREEN + "Unlocked " + cls.name() + " for " + target.getName());
-            } catch (IllegalArgumentException ex) {
+            PlayerClass cls = PlayerClass.fromString(args[2]);
+            if (cls == null) {
                 sender.sendMessage(ChatColor.RED + "Unknown class: " + args[2]);
+                return true;
             }
+            StatsManager.getInstance().unlockClass(target.getUniqueId(), cls);
+            sender.sendMessage(ChatColor.GREEN + "Unlocked " + cls.name() + " for " + target.getName());
             return true;
         }
 
@@ -66,13 +66,13 @@ public class ClassCommand implements TabExecutor {
                 sender.sendMessage(ChatColor.RED + "Player not found: " + args[1]);
                 return true;
             }
-            try {
-                PlayerClass cls = PlayerClass.valueOf(args[2].toUpperCase());
-                StatsManager.getInstance().lockClass(target.getUniqueId(), cls);
-                sender.sendMessage(ChatColor.GREEN + "Locked " + cls.name() + " for " + target.getName());
-            } catch (IllegalArgumentException ex) {
+            PlayerClass cls = PlayerClass.fromString(args[2]);
+            if (cls == null) {
                 sender.sendMessage(ChatColor.RED + "Unknown class: " + args[2]);
+                return true;
             }
+            StatsManager.getInstance().lockClass(target.getUniqueId(), cls);
+            sender.sendMessage(ChatColor.GREEN + "Locked " + cls.name() + " for " + target.getName());
             return true;
         }
 
@@ -86,31 +86,31 @@ public class ClassCommand implements TabExecutor {
                 sender.sendMessage(ChatColor.RED + "Player not found: " + args[1]);
                 return true;
             }
-            try {
-                PlayerClass chosen = PlayerClass.valueOf(args[2].toUpperCase());
-                StatsManager.PlayerStats tps = StatsManager.getInstance().getPlayerStats(target.getUniqueId());
-                tps.playerClass = chosen;
-                tps.unlockedClasses.add(chosen);
-                boolean flight = chosen == PlayerClass.ARCHER || chosen == PlayerClass.ROGUE;
-                target.setAllowFlight(flight);
-                if (!flight) target.setFlying(false);
-                sender.sendMessage(ChatColor.GREEN + "Class for " + target.getName() + " set to " + chosen.name());
-
-                ChatFormatter.constructDivider(target, "§6§l-", 45);
-                ChatFormatter.sendCenteredMessage(target, "§6§lCLASS SELECTED!");
-                ChatFormatter.sendCenteredMessage(target, "");
-                ChatFormatter.sendCenteredMessage(target,
-                        "§7You are now the §e§l" + chosen.name() + " §7class!");
-                ChatFormatter.sendCenteredMessage(target, "");
-                ChatFormatter.constructDivider(target, "§6§l-", 45);
-                target.playSound(target.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
-                target.closeInventory();
-                Main.getInstance().getQuestManager().handleClassSelect(target);
-
-                me.nakilex.levelplugin.items.utils.ItemUtil.refreshTooltips(target);
-            } catch (IllegalArgumentException ex) {
+            PlayerClass chosen = PlayerClass.fromString(args[2]);
+            if (chosen == null) {
                 sender.sendMessage(ChatColor.RED + "Unknown class: " + args[2]);
+                return true;
             }
+            StatsManager.PlayerStats tps = StatsManager.getInstance().getPlayerStats(target.getUniqueId());
+            tps.playerClass = chosen;
+            tps.unlockedClasses.add(chosen);
+            boolean flight = chosen == PlayerClass.ARCHER || chosen == PlayerClass.ROGUE;
+            target.setAllowFlight(flight);
+            if (!flight) target.setFlying(false);
+            sender.sendMessage(ChatColor.GREEN + "Class for " + target.getName() + " set to " + chosen.name());
+
+            ChatFormatter.constructDivider(target, "§6§l-", 45);
+            ChatFormatter.sendCenteredMessage(target, "§6§lCLASS SELECTED!");
+            ChatFormatter.sendCenteredMessage(target, "");
+            ChatFormatter.sendCenteredMessage(target,
+                    "§7You are now the §e§l" + chosen.name() + " §7class!");
+            ChatFormatter.sendCenteredMessage(target, "");
+            ChatFormatter.constructDivider(target, "§6§l-", 45);
+            target.playSound(target.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
+            target.closeInventory();
+            Main.getInstance().getQuestManager().handleClassSelect(target);
+
+            me.nakilex.levelplugin.items.utils.ItemUtil.refreshTooltips(target);
             return true;
         }
 
@@ -139,36 +139,36 @@ public class ClassCommand implements TabExecutor {
             return true;
         }
 
-        try {
-            PlayerClass chosen = PlayerClass.valueOf(args[0].toUpperCase());
-            if (chosen != PlayerClass.MAGE && chosen != PlayerClass.ARCHER
-                    && chosen != PlayerClass.ROGUE && chosen != PlayerClass.WARRIOR
-                    && chosen != PlayerClass.CLERIC) {
-                player.sendMessage(ChatColor.RED + "You cannot select that class with /class.");
-                return true;
-            }
-
-            ps.playerClass = chosen;
-            ps.unlockedClasses.add(chosen);
-            boolean flight = chosen == PlayerClass.ARCHER || chosen == PlayerClass.ROGUE;
-            player.setAllowFlight(flight);
-            if (!flight) player.setFlying(false);
-
-            ChatFormatter.constructDivider(player, "§6§l-", 45);
-            ChatFormatter.sendCenteredMessage(player, "§6§lCLASS SELECTED!");
-            ChatFormatter.sendCenteredMessage(player, "");
-            ChatFormatter.sendCenteredMessage(player,
-                    "§7You are now the §e§l" + chosen.name() + " §7class!");
-            ChatFormatter.sendCenteredMessage(player, "");
-            ChatFormatter.constructDivider(player, "§6§l-", 45);
-            player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
-            player.closeInventory();
-            Main.getInstance().getQuestManager().handleClassSelect(player);
-
-            me.nakilex.levelplugin.items.utils.ItemUtil.refreshTooltips(player);
-        } catch (IllegalArgumentException ex) {
+        PlayerClass chosen = PlayerClass.fromString(args[0]);
+        if (chosen == null) {
             player.sendMessage(ChatColor.RED + "Unknown class: " + args[0]);
+            return true;
         }
+        if (chosen != PlayerClass.MAGE && chosen != PlayerClass.ARCHER
+                && chosen != PlayerClass.ROGUE && chosen != PlayerClass.WARRIOR
+                && chosen != PlayerClass.CLERIC) {
+            player.sendMessage(ChatColor.RED + "You cannot select that class with /class.");
+            return true;
+        }
+
+        ps.playerClass = chosen;
+        ps.unlockedClasses.add(chosen);
+        boolean flight = chosen == PlayerClass.ARCHER || chosen == PlayerClass.ROGUE;
+        player.setAllowFlight(flight);
+        if (!flight) player.setFlying(false);
+
+        ChatFormatter.constructDivider(player, "§6§l-", 45);
+        ChatFormatter.sendCenteredMessage(player, "§6§lCLASS SELECTED!");
+        ChatFormatter.sendCenteredMessage(player, "");
+        ChatFormatter.sendCenteredMessage(player,
+                "§7You are now the §e§l" + chosen.name() + " §7class!");
+        ChatFormatter.sendCenteredMessage(player, "");
+        ChatFormatter.constructDivider(player, "§6§l-", 45);
+        player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
+        player.closeInventory();
+        Main.getInstance().getQuestManager().handleClassSelect(player);
+
+        me.nakilex.levelplugin.items.utils.ItemUtil.refreshTooltips(player);
         return true;
     }
 

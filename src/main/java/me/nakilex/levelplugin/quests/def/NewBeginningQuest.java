@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.quests.def;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import me.nakilex.levelplugin.quests.data.*;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
@@ -10,6 +11,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -328,13 +330,25 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 PlayerClass pc = StatsManager.getInstance().getPlayerStats(pid).playerClass;
                 String className = pc.name().substring(0, 1) + pc.name().substring(1).toLowerCase();
                 java.util.List<String> lines = java.util.List.of(
-                        "Ah you went with the " + className + ", I should have a spare weapon lying around here somewhere, let's see hmmmm",
-                        "AH! here you go.",
+                        "You went with the " + className + ", I should have a spare weapon & essence lying around here somewhere, let's see hmmmm",
+                        "AH! here you go, check out the class essence in your /essence menu.",
                         "Now you're all set, I'm sure our paths will cross again adventurer, now go and explore the vast world of Eldrin."
                 );
 
                 plugin.getDialogManager().startDialog(pl, lines, npc, () -> {
                     giveClassWeapon(pl);
+                    // Populate and equip a starting class essence
+                    StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(pl.getUniqueId());
+                    if (ps.essenceSlots[0] == null) {
+                        ItemStack essence = ClassEssence.generateEssence(ps.playerClass);
+                        ClassEssence.setEquipped(essence, true);
+                        ClassEssence.setSoulbound(essence, true);
+                        ClassEssence.addSlotTips(essence);
+                        ClassEssence.applyAttributes(pl, essence);
+                        ps.essenceSlots[0] = essence;
+                        ps.equippedEssences[0] = true;
+                        ItemUtil.refreshTooltips(pl);
+                    }
                     plugin.getQuestManager().handleTalk(pl, "npc546_final");
                 });
             }
