@@ -74,7 +74,7 @@ public class TaskRegistry {
                             .getSkillPoints(pl.getUniqueId());
                     if (pts > 0) {
                         pl.sendMessage(org.bukkit.ChatColor.translateAlternateColorCodes('&',
-                                "&cYou have &4" + pts + "&c, you can spend them by opening up the /stats menu."));
+                                "&cYou have &4&l" + pts + "&c unused Skill Points&c, you can spend them by opening up the /stats menu."));
                     }
                 }
             }
