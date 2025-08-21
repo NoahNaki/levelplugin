@@ -94,9 +94,10 @@ public class PlayerConfig {
         String root = "players." + uuid.toString();
         if (!config.contains(root)) return;
 
-        PlayerClass playerClass = PlayerClass.valueOf(
+        PlayerClass playerClass = PlayerClass.fromString(
             config.getString(root + ".class", PlayerClass.VILLAGER.name())
         );
+        if (playerClass == null) playerClass = PlayerClass.VILLAGER;
         int level = config.getInt(root + ".level", 1);
         int xp = config.getInt(root + ".xp", 0);
         int miningLevel = config.getInt(root + ".mining.level", 1);
@@ -127,9 +128,8 @@ public class PlayerConfig {
         stats.unlockedClasses.clear();
         stats.unlockedClasses.add(playerClass);
         for (String s : unlockedList) {
-            try {
-                stats.unlockedClasses.add(PlayerClass.valueOf(s));
-            } catch (IllegalArgumentException ignored) {}
+            PlayerClass cls = PlayerClass.fromString(s);
+            if (cls != null) stats.unlockedClasses.add(cls);
         }
 
         List<String> ft = config.getStringList(root + ".fasttravel");

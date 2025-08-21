@@ -118,12 +118,11 @@ public class ItemDropper {
         }
         double roll = ThreadLocalRandom.current().nextDouble() * 100.0;
         if (roll > chance) return;
-        try {
-            PlayerClass clazz = PlayerClass.valueOf(className.toUpperCase());
+        PlayerClass clazz = PlayerClass.fromString(className);
+        if (clazz != null) {
             ItemStack ess = ClassEssence.generateEssence(clazz);
             player.getInventory().addItem(ess).values()
                     .forEach(i -> player.getWorld().dropItemNaturally(player.getLocation(), i));
-        } catch (IllegalArgumentException ignored) {
         }
     }
 

@@ -96,11 +96,9 @@ public class WeaponStatsListener implements Listener {
 
                     String clsReqRaw = inst.getClassRequirement();
                     me.nakilex.levelplugin.player.classes.data.PlayerClass reqClass = null;
-                    try {
-                        if (clsReqRaw != null && !clsReqRaw.isBlank()) {
-                            reqClass = me.nakilex.levelplugin.player.classes.data.PlayerClass.valueOf(clsReqRaw.toUpperCase());
-                        }
-                    } catch (IllegalArgumentException ignored) {}
+                    if (clsReqRaw != null && !clsReqRaw.isBlank()) {
+                        reqClass = me.nakilex.levelplugin.player.classes.data.PlayerClass.fromString(clsReqRaw);
+                    }
 
                     StatsManager.PlayerStats ps = statsManager.getPlayerStats(puuid);
                     me.nakilex.levelplugin.player.classes.data.PlayerClass playerClass = ps.playerClass;

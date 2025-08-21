@@ -36,4 +36,24 @@ public enum PlayerClass {
     public int getRequiredLevel() {
         return requiredLevel;
     }
+
+    /**
+     * Parse a class name, providing backwards compatibility for legacy names.
+     * Falls back to {@link #VILLAGER} if the name is unrecognized or null.
+     */
+    public static PlayerClass fromString(String name) {
+        if (name == null) return null;
+        String key = name.toUpperCase();
+        return switch (key) {
+            case "ASSASSIN" -> PlayerClass.ROGUE;
+            case "AWAKASSASSIN" -> PlayerClass.AWAKROGUE;
+            default -> {
+                try {
+                    yield PlayerClass.valueOf(key);
+                } catch (IllegalArgumentException e) {
+                    yield null;
+                }
+            }
+        };
+    }
 }

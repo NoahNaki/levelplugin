@@ -139,11 +139,9 @@ public class Spell {
         if (ci != null) {
             String reqRaw = ci.getClassRequirement();
             me.nakilex.levelplugin.player.classes.data.PlayerClass req = null;
-            try {
-                if (reqRaw != null && !reqRaw.isBlank()) {
-                    req = me.nakilex.levelplugin.player.classes.data.PlayerClass.valueOf(reqRaw.toUpperCase());
-                }
-            } catch (IllegalArgumentException ignored) {}
+            if (reqRaw != null && !reqRaw.isBlank()) {
+                req = me.nakilex.levelplugin.player.classes.data.PlayerClass.fromString(reqRaw);
+            }
 
             me.nakilex.levelplugin.player.classes.data.PlayerClass playerClass =
                     StatsManager.getInstance().getPlayerStats(pid).playerClass;

@@ -208,11 +208,7 @@ public final class ClassEssence {
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) return null;
         String clazz = meta.getPersistentDataContainer().get(CLASS_KEY, PersistentDataType.STRING);
-        try {
-            return PlayerClass.valueOf(clazz);
-        } catch (Exception e) {
-            return null;
-        }
+        return PlayerClass.fromString(clazz);
     }
 
     public static ItemRarity getRarity(ItemStack stack) {

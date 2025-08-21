@@ -252,11 +252,9 @@ public class ItemUtil {
         // --- Class Requirement ---
         String clsReqRaw = cItem.getClassRequirement();
         me.nakilex.levelplugin.player.classes.data.PlayerClass reqClass = null;
-        try {
-            if (clsReqRaw != null && !clsReqRaw.isBlank()) {
-                reqClass = me.nakilex.levelplugin.player.classes.data.PlayerClass.valueOf(clsReqRaw.toUpperCase());
-            }
-        } catch (IllegalArgumentException ignored) {}
+        if (clsReqRaw != null && !clsReqRaw.isBlank()) {
+            reqClass = me.nakilex.levelplugin.player.classes.data.PlayerClass.fromString(clsReqRaw);
+        }
 
         if (reqClass != null && reqClass != me.nakilex.levelplugin.player.classes.data.PlayerClass.VILLAGER) {
             me.nakilex.levelplugin.player.classes.data.PlayerClass playerClass = null;
@@ -495,11 +493,9 @@ public class ItemUtil {
         // --- Class Requirement ---
         String clsReqRaw = cItem.getClassRequirement();
         me.nakilex.levelplugin.player.classes.data.PlayerClass reqClass = null;
-        try {
-            if (clsReqRaw != null && !clsReqRaw.isBlank()) {
-                reqClass = me.nakilex.levelplugin.player.classes.data.PlayerClass.valueOf(clsReqRaw.toUpperCase());
-            }
-        } catch (IllegalArgumentException ignored) {}
+        if (clsReqRaw != null && !clsReqRaw.isBlank()) {
+            reqClass = me.nakilex.levelplugin.player.classes.data.PlayerClass.fromString(clsReqRaw);
+        }
 
         if (reqClass != null && reqClass != me.nakilex.levelplugin.player.classes.data.PlayerClass.VILLAGER) {
             me.nakilex.levelplugin.player.classes.data.PlayerClass playerClass = null;
