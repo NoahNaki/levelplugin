@@ -1,6 +1,9 @@
 package me.nakilex.levelplugin.quests.def;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.player.classes.data.ClassUtil;
+import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.quests.data.*;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
@@ -32,9 +35,11 @@ public class DungeonMasterQuest extends Quest implements QuestScript {
     public void onStart(Player player, Main plugin) {
         NPC npc = CitizensAPI.getNPCRegistry().getById(900);
         if (npc == null) return;
+        PlayerClass cls = PlayerClassManager.getInstance().getPlayerClass(player);
+        String action = ClassUtil.getAttackPhrase(cls);
         List<String> lines = List.of(
                 "Ah, so you're the infamous " + player.getName() + ". Word of your exploits has reached even me - dungeons cleared, monsters felled, treasures claimed. And now... you've set your sights on mine.",
-                "But before you go swinging that blade / loosing that arrow / casting that spell, let me offer you a different perspective.",
+                "But before you go " + action + ", let me offer you a different perspective.",
                 "A dungeon is no different from a casino. Sometimes the house wins, sometimes the adventurers do. Some come chasing treasure, others glory - but one truth remains: a dungeon is never short of challengers. The game always goes on.",
                 "And in that, our goals are the same. Adventurers want riches, experience, and fame. Dungeon masters want a steady flow of contenders to keep the halls alive, to feed the walls with mana, essence, and fear. Without adventurers, a dungeon withers. Without dungeons, adventurers have nowhere to prove themselves.",
                 "So you see, when you clear a dungeon, you're not conquering a fortress - you're shutting down the very game both sides rely on.",
