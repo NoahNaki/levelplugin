@@ -489,7 +489,7 @@ public final class ClassEssence {
         String expLabel = ChatFormatter.experienceLabel();
         lore.add(bar + " " + expColor + exp + ChatColor.GOLD + "/" + expColor + next + " <glyph:experience_orb_icon> " + expLabel);
         if (isSoulbound(stack)) {
-            lore.add(ChatColor.DARK_PURPLE + "Soulbound");
+            lore.add(ChatColor.RED + "Soulbound");
         }
         meta.setLore(lore);
         stack.setItemMeta(meta);

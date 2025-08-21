@@ -39,7 +39,7 @@ public class StorageGUI {
 
     private boolean confirmUnlock = false;
     private int sortMode = 0;
-    private int filterMode = 0;
+    private int filterMode = 5;
 
     private static final int PAGE_SIZE     = 54;  // double chest size
     private static final int NAV_NEXT_SLOT = 53;

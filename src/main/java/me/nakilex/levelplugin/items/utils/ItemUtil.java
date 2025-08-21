@@ -337,7 +337,7 @@ public class ItemUtil {
         }
 
         if (cItem.isSoulbound()) {
-            lore.add(ChatColor.DARK_PURPLE + "Soulbound");
+            lore.add(ChatColor.RED + "Soulbound");
             pdc.set(SOULBOUND_KEY, PersistentDataType.BYTE, (byte)1);
         }
         meta.setLore(lore);
