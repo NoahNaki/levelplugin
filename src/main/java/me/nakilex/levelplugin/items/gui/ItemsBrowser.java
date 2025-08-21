@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.items.data.StatRange;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.utils.GuiUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -209,27 +210,27 @@ public class ItemsBrowser implements CommandExecutor, Listener {
                 StatRange s;
                 s = tpl.getHpRange();
                 if (!(s.getMin()==0 && s.getMax()==0))
-                    lore.add(ChatColor.RED   + "❤ " + ChatColor.GRAY + "Health: "
-                            + ChatColor.WHITE + "+" + s);
+                    lore.add(ChatColor.RED + "<glyph:vit> " + ChatColor.GRAY + "Health: "
+                            + ChatColor.RED + "+" + s);
                 s = tpl.getDefRange();
                 if (!(s.getMin()==0 && s.getMax()==0))
                     lore.add(ChatColor.GRAY  + "⛂ " + ChatColor.GRAY + "Defence: "
                             + ChatColor.WHITE + "+" + s);
                 s = tpl.getStrRange();
                 if (!(s.getMin()==0 && s.getMax()==0))
-                    lore.add(ChatColor.BLUE  + "☠ " + ChatColor.GRAY + "Strength: "
+                    lore.add(GuiUtil.formatStatName(StatsManager.StatType.STR) + ": "
                             + ChatColor.WHITE + "+" + s);
                 s = tpl.getAgiRange();
                 if (!(s.getMin()==0 && s.getMax()==0))
-                    lore.add(ChatColor.GREEN + "≈ " + ChatColor.GRAY + "Agility: "
+                    lore.add(GuiUtil.formatStatName(StatsManager.StatType.AGI) + ": "
                             + ChatColor.WHITE + "+" + s);
                 s = tpl.getIntelRange();
                 if (!(s.getMin()==0 && s.getMax()==0))
-                    lore.add(ChatColor.AQUA  + "♦ " + ChatColor.GRAY + "Intelligence: "
+                    lore.add(GuiUtil.formatStatName(StatsManager.StatType.INT) + ": "
                             + ChatColor.WHITE + "+" + s);
                 s = tpl.getDexRange();
                 if (!(s.getMin()==0 && s.getMax()==0))
-                    lore.add(ChatColor.YELLOW+ "➹ " + ChatColor.GRAY + "Dexterity: "
+                    lore.add(GuiUtil.formatStatName(StatsManager.StatType.DEX) + ": "
                             + ChatColor.WHITE + "+" + s);
 
                 lore.add(""); // spacer

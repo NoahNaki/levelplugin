@@ -107,23 +107,23 @@ public class MerchantGUI implements Listener {
             // 1) Rewrite each stat line to show the RANGE (white numbers)
             for (int i = 0; i < lore.size(); i++) {
                 String line = lore.get(i);
-                if (line.contains("☠")) {
-                    lore.set(i, ChatColor.BLUE  + "☠ " + ChatColor.GRAY + "Strength: "
+                if (line.contains("<glyph:str>")) {
+                    lore.set(i, GuiUtil.formatStatName(StatsManager.StatType.STR) + ": "
                             + ChatColor.WHITE + "+" + tpl.getStrRange());
-                } else if (line.contains("❤")) {
-                    lore.set(i, ChatColor.RED   + "❤ " + ChatColor.GRAY + "Health: "
-                            + ChatColor.WHITE + "+" + tpl.getHpRange());
+                } else if (line.contains("<glyph:vit>")) {
+                    lore.set(i, ChatColor.RED + "<glyph:vit> " + ChatColor.GRAY + "Health: "
+                            + ChatColor.RED + "+" + tpl.getHpRange());
                 } else if (line.contains("⛂")) {
                     lore.set(i, ChatColor.GRAY  + "⛂ " + ChatColor.GRAY + "Defence: "
                             + ChatColor.WHITE + "+" + tpl.getDefRange());
-                } else if (line.contains("≈")) {
-                    lore.set(i, ChatColor.GREEN + "≈ " + ChatColor.GRAY + "Agility: "
+                } else if (line.contains("<glyph:agi>")) {
+                    lore.set(i, GuiUtil.formatStatName(StatsManager.StatType.AGI) + ": "
                             + ChatColor.WHITE + "+" + tpl.getAgiRange());
-                } else if (line.contains("♦")) {
-                    lore.set(i, ChatColor.AQUA  + "♦ " + ChatColor.GRAY + "Intelligence: "
+                } else if (line.contains("<glyph:int>")) {
+                    lore.set(i, GuiUtil.formatStatName(StatsManager.StatType.INT) + ": "
                             + ChatColor.WHITE + "+" + tpl.getIntelRange());
-                } else if (line.contains("➹")) {
-                    lore.set(i, ChatColor.YELLOW+ "➹ " + ChatColor.GRAY + "Dexterity: "
+                } else if (line.contains("<glyph:dex>")) {
+                    lore.set(i, GuiUtil.formatStatName(StatsManager.StatType.DEX) + ": "
                             + ChatColor.WHITE + "+" + tpl.getDexRange());
                 }
             }
