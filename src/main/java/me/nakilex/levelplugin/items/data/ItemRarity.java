@@ -30,4 +30,21 @@ public enum ItemRarity {
     public String getSymbol() {
         return symbol;
     }
+
+    /**
+     * Convert a numeric tier (starting at 1) into an ItemRarity.
+     * Tiers beyond the defined range default to COMMON.
+     */
+    public static ItemRarity fromTier(int tier) {
+        return switch (tier) {
+            case 1 -> COMMON;
+            case 2 -> UNCOMMON;
+            case 3 -> RARE;
+            case 4 -> EPIC;
+            case 5 -> LEGENDARY;
+            case 6 -> MYTHIC;
+            case 7 -> FABLED;
+            default -> COMMON;
+        };
+    }
 }
