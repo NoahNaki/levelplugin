@@ -215,23 +215,23 @@ public class ItemsBrowser implements CommandExecutor, Listener {
                 s = tpl.getDefRange();
                 if (!(s.getMin()==0 && s.getMax()==0))
                     lore.add(ChatColor.GRAY  + "⛂ " + ChatColor.GRAY + "Defence: "
-                            + ChatColor.WHITE + "+" + s);
+                            + ChatColor.GREEN + "+" + s);
                 s = tpl.getStrRange();
                 if (!(s.getMin()==0 && s.getMax()==0))
                     lore.add(GuiUtil.formatStatName(StatsManager.StatType.STR) + ": "
-                            + ChatColor.WHITE + "+" + s);
+                            + ChatColor.GREEN + "+" + s);
                 s = tpl.getAgiRange();
                 if (!(s.getMin()==0 && s.getMax()==0))
                     lore.add(GuiUtil.formatStatName(StatsManager.StatType.AGI) + ": "
-                            + ChatColor.WHITE + "+" + s);
+                            + ChatColor.GREEN + "+" + s);
                 s = tpl.getIntelRange();
                 if (!(s.getMin()==0 && s.getMax()==0))
                     lore.add(GuiUtil.formatStatName(StatsManager.StatType.INT) + ": "
-                            + ChatColor.WHITE + "+" + s);
+                            + ChatColor.GREEN + "+" + s);
                 s = tpl.getDexRange();
                 if (!(s.getMin()==0 && s.getMax()==0))
                     lore.add(GuiUtil.formatStatName(StatsManager.StatType.DEX) + ": "
-                            + ChatColor.WHITE + "+" + s);
+                            + ChatColor.GREEN + "+" + s);
 
                 lore.add(""); // spacer
 

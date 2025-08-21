@@ -109,22 +109,22 @@ public class MerchantGUI implements Listener {
                 String line = lore.get(i);
                 if (line.contains("<glyph:str>")) {
                     lore.set(i, GuiUtil.formatStatName(StatsManager.StatType.STR) + ": "
-                            + ChatColor.WHITE + "+" + tpl.getStrRange());
+                            + ChatColor.GREEN + "+" + tpl.getStrRange());
                 } else if (line.contains("<glyph:vit>")) {
                     lore.set(i, ChatColor.RED + "<glyph:vit> " + ChatColor.GRAY + "Health: "
                             + ChatColor.RED + "+" + tpl.getHpRange());
                 } else if (line.contains("⛂")) {
                     lore.set(i, ChatColor.GRAY  + "⛂ " + ChatColor.GRAY + "Defence: "
-                            + ChatColor.WHITE + "+" + tpl.getDefRange());
+                            + ChatColor.GREEN + "+" + tpl.getDefRange());
                 } else if (line.contains("<glyph:agi>")) {
                     lore.set(i, GuiUtil.formatStatName(StatsManager.StatType.AGI) + ": "
-                            + ChatColor.WHITE + "+" + tpl.getAgiRange());
+                            + ChatColor.GREEN + "+" + tpl.getAgiRange());
                 } else if (line.contains("<glyph:int>")) {
                     lore.set(i, GuiUtil.formatStatName(StatsManager.StatType.INT) + ": "
-                            + ChatColor.WHITE + "+" + tpl.getIntelRange());
+                            + ChatColor.GREEN + "+" + tpl.getIntelRange());
                 } else if (line.contains("<glyph:dex>")) {
                     lore.set(i, GuiUtil.formatStatName(StatsManager.StatType.DEX) + ": "
-                            + ChatColor.WHITE + "+" + tpl.getDexRange());
+                            + ChatColor.GREEN + "+" + tpl.getDexRange());
                 }
             }
 
