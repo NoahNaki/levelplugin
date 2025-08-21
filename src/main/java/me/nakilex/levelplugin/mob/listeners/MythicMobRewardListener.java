@@ -8,12 +8,12 @@ import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.mob.config.ModelSetManager;
-import me.nakilex.levelplugin.mob.utils.DropDisplayToggles;
 import me.nakilex.levelplugin.mob.utils.ItemDropper;
 import me.nakilex.levelplugin.mob.utils.RewardHologramUtil;
 import me.nakilex.levelplugin.mob.utils.CombatPowerUtil;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
+import me.nakilex.levelplugin.guild.quests.GuildQuestManager;
 import io.lumine.mythic.api.skills.placeholders.PlaceholderString;
 import me.nakilex.levelplugin.party.Party;
 import me.nakilex.levelplugin.party.PartyManager;
@@ -129,11 +129,12 @@ public class MythicMobRewardListener implements Listener {
                 }
             }
             itemDropper.maybeDropRerollScroll(player);
-            if (DropDisplayToggles.isDropDetailsEnabled(player)) {
+            var settings = Main.getInstance().getSettingsManager().getSettings(player);
+            if (settings.isDropDetailsEnabled()) {
                 Location deathLoc = event.getEntity().getLocation();
                 RewardHologramUtil.showRewardHologram(deathLoc, awardedExp, coins);
             }
-            if (DropDisplayToggles.isChatEnabled(player)) {
+            if (settings.isDropDetailsChatEnabled()) {
                 String expLabel = ChatFormatter.experienceLabel();
                 String expColor = ChatFormatter.experienceColor();
                 player.sendMessage(ChatColor.GOLD + "You received "
@@ -143,6 +144,7 @@ public class MythicMobRewardListener implements Listener {
                                 me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency.COINS, coins)
                         + ChatColor.GOLD + "!");
             }
+            GuildQuestManager.getInstance().handleKill(player, mobType);
             if (debugToggle.isEnabled(player)) {
                 sendDebugInfo(player, rawMobType, mythicMob, baseEntity, numericHpName);
                 String expColor = ChatFormatter.experienceColor();

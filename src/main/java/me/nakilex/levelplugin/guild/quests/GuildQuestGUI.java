@@ -1,5 +1,8 @@
 package me.nakilex.levelplugin.guild.quests;
 
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.quests.data.QuestReward;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
@@ -23,26 +26,99 @@ public final class GuildQuestGUI {
 
     private GuildQuestGUI() {}
 
+    public static final String TITLE = ChatColor.BLACK + "Guild Quests";
+    private static final int[] QUEST_SLOTS = {11, 13, 15};
+
     public static Inventory create(Player viewer, Map<String, GuildQuest> quests) {
-        GuiBuilder builder = GuiBuilder.create(27, ChatColor.BLACK + "Guild Quests")
+        GuiBuilder builder = GuiBuilder.create(27, TITLE)
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .border();
 
-        int slot = 10;
-        for (GuildQuest quest : quests.values()) {
-            ItemStack icon = GuiUtil.getNexoItem("book", ChatColor.GOLD + quest.getName());
+        for (int i = 0; i < QUEST_SLOTS.length; i++) {
+            GuildQuest quest = quests.get(String.valueOf(i));
+            if (quest == null) continue;
+            int slot = QUEST_SLOTS[i];
+            String tracked = GuildQuestManager.getInstance().getTrackedQuest(viewer.getUniqueId());
+            String iconId;
+            String name;
+            if (quest.isCompleted()) {
+                iconId = "check";
+                name = ChatColor.DARK_GREEN + quest.getName();
+            } else {
+                iconId = "pack1_scroll2";
+                if (quest.isAccepted() && tracked != null && tracked.equals(quest.getId())) {
+                    iconId = "pack1_scroll4";
+                }
+                name = ChatColor.GOLD + quest.getName();
+            }
+            ItemStack icon = GuiUtil.getNexoItem(iconId, name);
             ItemMeta meta = icon.getItemMeta();
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Difficulty: " + GuiUtil.generateStars(quest.getStars(), 5));
-            lore.add(ChatColor.GRAY + "Total Contributions: " + ChatColor.YELLOW + quest.getTotalContribution());
-            lore.add(TooltipUtil.progressBar(quest.getTotalContribution(), quest.getRewardTiers().size(), 10));
+
+            String desc = Main.getInstance().getQuestManager().describeObjective(quest.getObjective());
+            int total = quest.getTotalContribution();
+            int need = quest.getTargetAmount();
+            lore.add(ChatColor.GRAY + desc);
+            if (!quest.isCompleted()) {
+                lore.add(ChatColor.GRAY + "Progress: " + ChatColor.YELLOW + total + ChatColor.GRAY + "/" + ChatColor.YELLOW + need);
+                lore.add(TooltipUtil.progressBar(total, need, 10));
+                lore.add(ChatColor.GRAY + "Difficulty: " + ChatColor.YELLOW + GuiUtil.glyphStars(quest.getStars()));
+                lore.add(" ");
+            } else {
+                lore.add(" ");
+            }
+            lore.add(ChatColor.GREEN + "Guild Rewards:");
+            String expLabel = ChatFormatter.experienceLabel();
+            String expColor = ChatFormatter.experienceColor();
+            lore.add(ChatColor.GREEN + "- " + expColor + quest.getGuildExpReward() + ChatColor.RESET + " <glyph:experience_orb_icon> " + expLabel);
+            lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + quest.getGuildCoinReward() + " <glyph:coins_icon>");
+
+            QuestReward pr = quest.getPersonalReward();
+            if (pr != null && (pr.getXp() > 0 || pr.getCoins() > 0)) {
+                lore.add(" ");
+                lore.add(ChatColor.GREEN + "Personal Rewards:");
+                if (pr.getXp() > 0) {
+                    lore.add(ChatColor.GREEN + "- " + expColor + pr.getXp() + ChatColor.RESET + " <glyph:experience_orb_icon> " + expLabel);
+                }
+                if (pr.getCoins() > 0) {
+                    lore.add(ChatColor.GREEN + "- " + ChatColor.GRAY + pr.getCoins() + " <glyph:coins_icon>");
+                }
+            }
+
+            lore.add(" ");
+            if (quest.isCompleted()) {
+                lore.add(ChatColor.GREEN + "Completed");
+            } else if (quest.isAccepted()) {
+                if (tracked != null && tracked.equals(quest.getId())) {
+                    lore.add(ChatColor.YELLOW + "Tracking");
+                    lore.add(ChatColor.WHITE + "Left-click " + ChatColor.GRAY + "to untrack");
+                } else {
+                    lore.add(ChatColor.GREEN + "Accepted");
+                    lore.add(ChatColor.WHITE + "Left-click " + ChatColor.GRAY + "to track");
+                }
+            } else {
+                GuiUtil.addClickInstructions(lore, "to accept", quest.isRerolled() ? null : "to reroll");
+                if (quest.isRerolled()) {
+                    lore.add(ChatColor.RED + "Reroll used");
+                }
+            }
+
             meta.setLore(lore);
             icon.setItemMeta(meta);
             builder.setItem(slot, icon);
-            slot++;
-            if (slot % 9 == 8) slot += 2; // move to next row skipping borders
         }
 
         return builder.build();
+    }
+
+    public static int indexFromSlot(int rawSlot) {
+        for (int i = 0; i < QUEST_SLOTS.length; i++) {
+            if (QUEST_SLOTS[i] == rawSlot) return i;
+        }
+        return -1;
+    }
+
+    public static int slotFromIndex(int index) {
+        return QUEST_SLOTS[index];
     }
 }

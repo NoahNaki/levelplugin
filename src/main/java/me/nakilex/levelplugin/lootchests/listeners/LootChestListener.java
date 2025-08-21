@@ -4,6 +4,7 @@ import com.nexomc.nexo.api.events.furniture.NexoFurnitureInteractEvent;
 import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.guild.quests.GuildQuestManager;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -46,12 +47,17 @@ public class LootChestListener implements Listener {
             return;
         }
 
-        // 4) Build the custom loot GUI
+        // 4) Identify player and ensure we only process the first interaction
         Player player = event.getPlayer();
+        if (!lootChestManager.markPlayerViewingChest(player.getUniqueId(), chestId)) {
+            return; // duplicate event, ignore to avoid double counting
+        }
+
+        // 5) Build the custom loot GUI
         Inventory lootGui = lootChestManager.buildLootInventory(chestId, player);
 
         // ─────────────────────────────────────────────────────────────────────
-        // 5) Update each ItemStack’s tooltip (lore) before the player sees it
+        // 6) Update each ItemStack’s tooltip (lore) before the player sees it
         for (int slot = 0; slot < lootGui.getSize(); slot++) {
             ItemStack stack = lootGui.getItem(slot);
             if (stack == null || stack.getType().isAir()) continue;
@@ -61,10 +67,10 @@ public class LootChestListener implements Listener {
         }
         // ─────────────────────────────────────────────────────────────────────
 
-        // 6) Open the inventory
+        // 7) Open the inventory
         player.openInventory(lootGui);
 
-        // 7) Remember which chest this player just opened
-        lootChestManager.markPlayerViewingChest(player.getUniqueId(), chestId);
+        // 8) Track guild quest progress
+        GuildQuestManager.getInstance().handleLootChestOpen(player);
     }
 }

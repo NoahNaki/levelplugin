@@ -241,14 +241,12 @@ public class SettingsGUI implements Listener {
                 settings.isDmgNumberEnabled(), "§bDamage Numbers", "/dmgnumber");
 
         } else if (slot == 12) {
-            settings.toggleDropDetails();
             Bukkit.dispatchCommand(player, "toggle dropdetails");
             updateSettingItem(event.getInventory(), 12,
                 settings.isDropDetailsEnabled(), "§bDrop Details", "/toggle dropdetails");
 
         } else if (slot == 13) {
             // new drop-details-chat toggle
-            settings.toggleDropDetailsChat();
             Bukkit.dispatchCommand(player, "toggle dropdetailschat");
             updateSettingItem(event.getInventory(), 13,
                 settings.isDropDetailsChatEnabled(), "§bDrop Details Chat", "/toggle dropdetailschat");

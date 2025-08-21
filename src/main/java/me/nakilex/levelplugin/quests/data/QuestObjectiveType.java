@@ -31,5 +31,8 @@ public enum QuestObjectiveType {
     RUNE_EQUIP,
     RUNE_UNEQUIP,
     DUEL_PARTICIPATE,
-    DUEL_LOSE
+    DUEL_LOSE,
+    LOOTCHEST_OPEN,
+    SIEGE_PARTICIPATE,
+    DUEL_WIN
 }

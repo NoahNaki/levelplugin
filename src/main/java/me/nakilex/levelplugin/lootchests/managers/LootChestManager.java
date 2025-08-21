@@ -506,9 +506,9 @@ public class LootChestManager {
         }
     }
 
-    // NEW: call this when a player opens a chest GUI
-    public void markPlayerViewingChest(java.util.UUID playerUUID, int chestId) {
-        openChestByPlayer.put(playerUUID, chestId);
+    // NEW: call this when a player opens a chest GUI. Returns true if this is the first open.
+    public boolean markPlayerViewingChest(java.util.UUID playerUUID, int chestId) {
+        return openChestByPlayer.putIfAbsent(playerUUID, chestId) == null;
     }
 
     // NEW: call this when a player closes a chest GUI

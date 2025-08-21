@@ -43,6 +43,7 @@ import me.nakilex.levelplugin.player.classes.essence.listener.ClassEssenceBoundL
 import me.nakilex.levelplugin.player.classes.essence.gui.ClassEssenceUpgradeGUI;
 import me.nakilex.levelplugin.trade.listeners.PlayerRightClicksPlayerListener;
 import me.nakilex.levelplugin.guild.GuildGUIListener;
+import me.nakilex.levelplugin.guild.quests.GuildQuestGUIListener;
 import me.nakilex.levelplugin.utils.*;
 import me.nakilex.levelplugin.quests.listeners.QuestKillListener;
 import me.nakilex.levelplugin.quests.listeners.QuestCraftListener;
@@ -161,6 +162,7 @@ public class ListenerRegistry {
         pm.registerEvents(settingsGUI, plugin);
         pm.registerEvents(debugGUI, plugin);
         pm.registerEvents(new GuildGUIListener(), plugin);
+        pm.registerEvents(new GuildQuestGUIListener(), plugin);
         pm.registerEvents(new MeteorListener(), plugin);
         pm.registerEvents(new ShockwaveListener(), plugin);
         pm.registerEvents(new ClassSpellListener(), plugin);

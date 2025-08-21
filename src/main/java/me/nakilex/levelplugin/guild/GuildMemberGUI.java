@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.HeadUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.guild.quests.GuildQuestGUI;
+import me.nakilex.levelplugin.guild.quests.GuildQuestManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
@@ -188,7 +189,7 @@ public class GuildMemberGUI implements Listener {
         }
         inv.setItem(VAULT_SLOT, vaultItem);
         inv.setItem(SETTINGS_SLOT, GuiUtil.getNexoItem("settings", ChatColor.AQUA + "Settings"));
-        inv.setItem(QUESTS_SLOT, GuiUtil.getNexoItem("book", ChatColor.LIGHT_PURPLE + "Guild Quests"));
+        inv.setItem(QUESTS_SLOT, GuiUtil.getNexoItem("pack1_scroll2", ChatColor.LIGHT_PURPLE + "Guild Quests"));
 
         player.openInventory(inv);
     }
@@ -334,6 +335,7 @@ public class GuildMemberGUI implements Listener {
         if (slot == QUESTS_SLOT) {
             Guild g = manager.getGuild(player.getUniqueId());
             if (g != null) {
+                GuildQuestManager.getInstance().ensureQuests(g);
                 player.openInventory(GuildQuestGUI.create(player, g.getQuests()));
             }
             return;

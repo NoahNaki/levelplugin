@@ -187,9 +187,10 @@ public class SalvageListener implements Listener {
                 continue;
             }
 
-            // Vanilla potions without custom data are simply removed with no reward
+            // Vanilla potions without custom data yield a small coin reward
             Material type = item.getType();
             if (type == Material.POTION || type == Material.SPLASH_POTION || type == Material.LINGERING_POTION) {
+                totalCoins += SalvageManager.getInstance().getVanillaPotionSellPrice();
                 inv.setItem(i, null);
             }
         }

@@ -7,7 +7,7 @@ public class PlayerSettings {
     private boolean dmgChat     = false;
     private boolean dmgNumber   = false;
     private boolean dropDetails = true;
-    private boolean dropDetailsChatEnabled = true;
+    private boolean dropDetailsChatEnabled = false;
     private boolean partyGlow = true;
     private boolean friendGlow = true;
     private boolean balancePublic = true;

@@ -3,6 +3,12 @@ package me.nakilex.levelplugin.guild;
 import me.nakilex.levelplugin.guild.events.GuildMembershipEvent;
 import me.nakilex.levelplugin.guild.GuildPermission;
 import me.nakilex.levelplugin.guild.GuildRole;
+import me.nakilex.levelplugin.guild.quests.GuildQuest;
+import me.nakilex.levelplugin.guild.quests.GuildQuestManager;
+import me.nakilex.levelplugin.quests.data.QuestObjective;
+import me.nakilex.levelplugin.quests.data.QuestObjectiveType;
+import me.nakilex.levelplugin.quests.data.QuestReward;
+import me.nakilex.levelplugin.quests.data.QuestRewardCompat;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -43,6 +49,7 @@ public class GuildManager {
         Guild g = new Guild(name, leader);
         guilds.put(name, g);
         playerGuild.put(leader, name);
+        GuildQuestManager.getInstance().ensureQuests(g);
         fireEvent(leader, g, GuildMembershipEvent.Action.JOIN);
         return g;
     }
@@ -353,6 +360,44 @@ public class GuildManager {
                     }
                 }
 
+                ConfigurationSection questSec = cfg.getConfigurationSection(base + "quests");
+                if (questSec != null) {
+                    for (String qid : questSec.getKeys(false)) {
+                        ConfigurationSection qs = questSec.getConfigurationSection(qid);
+                        if (qs == null) continue;
+                        String qname = qs.getString("name", "Quest");
+                        int stars = qs.getInt("stars", 1);
+                        ConfigurationSection objSec = qs.getConfigurationSection("objective");
+                        QuestObjective obj = new QuestObjective(
+                                QuestObjectiveType.valueOf(objSec.getString("type", "KILL")),
+                                objSec.getString("target", null),
+                                objSec.getInt("amount", 1)
+                        );
+                        QuestReward pr = QuestRewardCompat.create(
+                                qs.getInt("personal.xp", 0),
+                                qs.getInt("personal.coins", 0),
+                                0,
+                                java.util.Collections.emptyList()
+                        );
+                        GuildQuest quest = new GuildQuest(qid, qname, stars, obj, pr,
+                                qs.getInt("guild_exp", 0), qs.getInt("guild_coins", 0));
+                        quest.setAccepted(qs.getBoolean("accepted", false));
+                        quest.setRerolled(qs.getBoolean("rerolled", false));
+                        quest.setCompleted(qs.getBoolean("completed", false));
+                        ConfigurationSection contrib = qs.getConfigurationSection("contrib");
+                        if (contrib != null) {
+                            for (String key : contrib.getKeys(false)) {
+                                try {
+                                    quest.addContribution(UUID.fromString(key), contrib.getInt(key));
+                                } catch (IllegalArgumentException ignored) {}
+                            }
+                        }
+                        g.getQuests().put(qid, quest);
+                    }
+                }
+
+                GuildQuestManager.getInstance().ensureQuests(g);
+
                 guilds.put(name, g);
             } catch (IllegalArgumentException ignored) {
                 // Skip invalid UUIDs
@@ -389,6 +434,35 @@ public class GuildManager {
                 ConfigurationSection sec = cfg.createSection(base + "applicants");
                 for (Map.Entry<UUID, Long> e : g.getApplicants().entrySet()) {
                     sec.set(e.getKey().toString(), e.getValue());
+                }
+            }
+            if (!g.getQuests().isEmpty()) {
+                ConfigurationSection qRoot = cfg.createSection(base + "quests");
+                for (Map.Entry<String, GuildQuest> e : g.getQuests().entrySet()) {
+                    GuildQuest q = e.getValue();
+                    ConfigurationSection qs = qRoot.createSection(e.getKey());
+                    qs.set("name", q.getName());
+                    qs.set("stars", q.getStars());
+                    QuestObjective obj = q.getObjective();
+                    qs.set("objective.type", obj.getType().name());
+                    qs.set("objective.target", obj.getTarget());
+                    qs.set("objective.amount", obj.getAmount());
+                    QuestReward pr = q.getPersonalReward();
+                    if (pr != null) {
+                        qs.set("personal.xp", pr.getXp());
+                        qs.set("personal.coins", pr.getCoins());
+                    }
+                    qs.set("guild_exp", q.getGuildExpReward());
+                    qs.set("guild_coins", q.getGuildCoinReward());
+                    qs.set("accepted", q.isAccepted());
+                    qs.set("rerolled", q.isRerolled());
+                    qs.set("completed", q.isCompleted());
+                    if (!q.getContributions().isEmpty()) {
+                        ConfigurationSection contrib = qs.createSection("contrib");
+                        for (Map.Entry<UUID, Integer> c : q.getContributions().entrySet()) {
+                            contrib.set(c.getKey().toString(), c.getValue());
+                        }
+                    }
                 }
             }
         }

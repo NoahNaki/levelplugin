@@ -58,7 +58,7 @@ public final class ClassEssence {
         PlayerClass[] classes = PlayerClass.values();
         PlayerClass clazz = classes[rand.nextInt(classes.length)];
         int slots = getAttributeSlots(rarity);
-        Map<StatType, AttrData> attrs = rollAttributes(slots, rarity, 0, rand);
+        Map<StatType, AttrData> attrs = rollAttributes(slots, rarity, 0, rand, java.util.Collections.emptySet());
         return create(clazz, rarity, 0, attrs, true);
     }
 
@@ -67,7 +67,7 @@ public final class ClassEssence {
      */
     public static ItemStack generateEssence(PlayerClass clazz, ItemRarity rarity, int starLevel) {
         int slots = getAttributeSlots(rarity);
-        Map<StatType, AttrData> attrs = rollAttributes(slots, rarity, starLevel, new Random());
+        Map<StatType, AttrData> attrs = rollAttributes(slots, rarity, starLevel, new Random(), java.util.Collections.emptySet());
         return create(clazz, rarity, starLevel, attrs, true);
     }
 
@@ -142,8 +142,9 @@ public final class ClassEssence {
         };
     }
 
-    private static Map<StatType, AttrData> rollAttributes(int slots, ItemRarity rarity, int starLevel, Random rand) {
+    private static Map<StatType, AttrData> rollAttributes(int slots, ItemRarity rarity, int starLevel, Random rand, Collection<StatType> exclude) {
         List<StatType> stats = new ArrayList<>(Arrays.asList(StatType.values()));
+        if (exclude != null) stats.removeAll(exclude);
         Collections.shuffle(stats, rand);
         Map<StatType, AttrData> map = new LinkedHashMap<>();
         int percentSlots = Math.min(starLevel, slots);
@@ -347,7 +348,7 @@ public final class ClassEssence {
         star++;
         ItemRarity rarity = ItemRarity.valueOf(pdc.get(RARITY_KEY, PersistentDataType.STRING));
         int slots = getAttributeSlots(rarity);
-        Map<StatType, AttrData> newAttrs = rollAttributes(slots, rarity, star, new Random());
+        Map<StatType, AttrData> newAttrs = rollAttributes(slots, rarity, star, new Random(), java.util.Collections.emptySet());
         String attrString = newAttrs.entrySet().stream()
                 .map(e -> e.getKey().name() + ":" + e.getValue().value + ":" + (e.getValue().percent ? 1 : 0))
                 .collect(Collectors.joining(";"));
@@ -368,17 +369,17 @@ public final class ClassEssence {
         ItemRarity rarity = ItemRarity.valueOf(pdc.get(RARITY_KEY, PersistentDataType.STRING));
         int star = pdc.has(STAR_KEY, PersistentDataType.INTEGER) ? pdc.get(STAR_KEY, PersistentDataType.INTEGER) : 0;
         ItemRarity upgradedTo = null;
+        Map<StatType, AttrData> attrs = getAttributes(stack);
 
         while (next > 0 && exp >= next && rarity != ItemRarity.FABLED) {
             exp -= next;
             rarity = nextRarity(rarity);
             upgradedTo = rarity;
             int slots = getAttributeSlots(rarity);
-            Map<StatType, AttrData> newAttrs = rollAttributes(slots, rarity, star, new Random());
-            String attrString = newAttrs.entrySet().stream()
-                    .map(e -> e.getKey().name() + ":" + e.getValue().value + ":" + (e.getValue().percent ? 1 : 0))
-                    .collect(Collectors.joining(";"));
-            pdc.set(ATTR_KEY, PersistentDataType.STRING, attrString);
+            if (attrs.size() < slots) {
+                Map<StatType, AttrData> extra = rollAttributes(slots - attrs.size(), rarity, star, new Random(), attrs.keySet());
+                attrs.putAll(extra);
+            }
             next = getRarityThreshold(rarity);
         }
 
@@ -386,6 +387,10 @@ public final class ClassEssence {
             exp = 0;
         }
 
+        String attrString = attrs.entrySet().stream()
+                .map(e -> e.getKey().name() + ":" + e.getValue().value + ":" + (e.getValue().percent ? 1 : 0))
+                .collect(Collectors.joining(";"));
+        pdc.set(ATTR_KEY, PersistentDataType.STRING, attrString);
         pdc.set(RARITY_KEY, PersistentDataType.STRING, rarity.name());
         pdc.set(EXP_KEY, PersistentDataType.INTEGER, exp);
         pdc.set(NEXT_EXP_KEY, PersistentDataType.INTEGER, next);
