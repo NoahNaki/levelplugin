@@ -12,8 +12,10 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.text.DecimalFormat;
 
@@ -48,9 +50,11 @@ public class DungeonListGUI implements Listener {
                 double rating = me.nakilex.levelplugin.Main.getInstance().getDungeonRatingManager().getAverage(key);
                 String stars = GuiUtil.glyphStars((int) Math.floor(rating));
                 String ratingLine = rating > 0 ? ChatColor.GOLD + "Rating: " + df.format(rating) + " " + stars : ChatColor.GOLD + "Rating: N/A";
-                meta.setLore(List.of(ChatColor.GRAY + "Left-click to play",
-                        ChatColor.DARK_RED + "Threat Level: " + threat,
-                        ratingLine));
+                List<String> lore = new ArrayList<>();
+                lore.addAll(TooltipUtil.clickInstructions("to play", null));
+                lore.add(ChatColor.DARK_RED + "Threat Level: " + threat);
+                lore.add(ratingLine);
+                meta.setLore(lore);
                 meta.setLocalizedName(key);
                 item.setItemMeta(meta);
             }

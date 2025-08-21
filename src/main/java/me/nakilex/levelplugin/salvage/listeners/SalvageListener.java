@@ -234,35 +234,44 @@ public class SalvageListener implements Listener {
             ItemStack invItem = storageContents[i];
             if (invItem == null || invItem.getType() == Material.AIR) continue;
 
-            CustomItem cItemInv = ItemManager.getInstance().getCustomItemFromItemStack(invItem);
-            if (cItemInv != null) {
-                ItemRarity r = cItemInv.getRarity();
-                if (r == targetRarity || (includeLower && r.ordinal() <= targetRarity.ordinal())) {
-                    int dest = firstEmptyInputSlot(gui);
-                    if (dest == -1) break;
-                    playerInv.setItem(i, null);
-                    gui.setItem(dest, invItem);
-                }
+            ItemRarity r = getItemRarity(invItem);
+            if (r != null && (r == targetRarity || (includeLower && r.ordinal() <= targetRarity.ordinal()))) {
+                int dest = firstEmptyInputSlot(gui);
+                if (dest == -1) break;
+                playerInv.setItem(i, null);
+                gui.setItem(dest, invItem);
             }
         }
 
         ItemStack off = playerInv.getItemInOffHand();
         if (off != null && off.getType() != Material.AIR) {
-            CustomItem cOff = ItemManager.getInstance().getCustomItemFromItemStack(off);
-            if (cOff != null) {
-                ItemRarity r = cOff.getRarity();
-                if (r == targetRarity || (includeLower && r.ordinal() <= targetRarity.ordinal())) {
-                    int dest = firstEmptyInputSlot(gui);
-                    if (dest != -1) {
-                        playerInv.setItemInOffHand(null);
-                        gui.setItem(dest, off);
-                    }
+            ItemRarity r = getItemRarity(off);
+            if (r != null && (r == targetRarity || (includeLower && r.ordinal() <= targetRarity.ordinal()))) {
+                int dest = firstEmptyInputSlot(gui);
+                if (dest != -1) {
+                    playerInv.setItemInOffHand(null);
+                    gui.setItem(dest, off);
                 }
             }
         }
         player.sendMessage(ChatColor.YELLOW + "Moved all "
                 + (includeLower ? "<= " : "")
                 + targetRarity.name().toLowerCase() + " items.");
+    }
+
+    /** Determine the rarity of a stack if it represents a custom item or potion. */
+    private ItemRarity getItemRarity(ItemStack stack) {
+        CustomItem cItem = ItemManager.getInstance().getCustomItemFromItemStack(stack);
+        if (cItem != null) return cItem.getRarity();
+
+        PotionInstance pInst = Main.getInstance().getPotionManager().getInstanceFromItem(stack);
+        if (pInst != null) return ItemRarity.fromTier(pInst.getTemplate().getTier());
+
+        Material type = stack.getType();
+        if (type == Material.POTION || type == Material.SPLASH_POTION || type == Material.LINGERING_POTION) {
+            return ItemRarity.COMMON;
+        }
+        return null;
     }
 
     /** Moves all salvageable items from the player's inventory into the GUI. */

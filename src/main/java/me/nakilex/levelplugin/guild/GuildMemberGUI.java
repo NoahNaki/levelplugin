@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.HeadUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.guild.quests.GuildQuestGUI;
 import me.nakilex.levelplugin.guild.quests.GuildQuestManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
@@ -201,7 +202,7 @@ public class GuildMemberGUI implements Listener {
             List<String> lore = new ArrayList<>();
             if (!term.isEmpty()) {
                 lore.add(ChatColor.GRAY + "Current: " + ChatColor.WHITE + term);
-                lore.add(ChatColor.GRAY + "Right-click to clear");
+                lore.addAll(TooltipUtil.clickInstructions(null, "to clear"));
             } else {
                 lore.add(ChatColor.GRAY + "Click to enter a term");
             }
@@ -221,7 +222,7 @@ public class GuildMemberGUI implements Listener {
             lore.add(motd);
             if (manager.hasPermission(viewer.getUniqueId(), GuildPermission.CHANGE_MOTD)) {
                 lore.add(" ");
-                lore.add(ChatColor.WHITE + "Left-click to edit");
+                lore.addAll(TooltipUtil.clickInstructions("to edit", null));
             }
             meta.setLore(lore);
             it.setItemMeta(meta);
@@ -241,8 +242,7 @@ public class GuildMemberGUI implements Listener {
                 lore.add(b + "- " + c + opts[i]);
             }
             lore.add(" ");
-            lore.add(ChatColor.WHITE + "Left-Click " + ChatColor.GRAY + "to go forward");
-            lore.add(ChatColor.WHITE + "Right-Click " + ChatColor.GRAY + "to go backward");
+            lore.addAll(TooltipUtil.clickInstructions("to go forward", "to go backward"));
             meta.setLore(lore);
             it.setItemMeta(meta);
         }

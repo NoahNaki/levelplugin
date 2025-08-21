@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.items.data.CustomItem;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import com.nexomc.nexo.api.NexoItems;
 import com.nexomc.nexo.items.ItemBuilder;
 import org.bukkit.Bukkit;
@@ -189,10 +190,7 @@ public class QuestGUI {
 
                 if (state == QuestState.ACCEPTED || state == QuestState.IN_PROGRESS || state == QuestState.TURN_IN_READY) {
                     lore.add(" ");
-                    lore.add(ChatColor.WHITE + "Left-click " + ChatColor.GRAY + "to track");
-                    if (!quest.isMainQuest()) {
-                        lore.add(ChatColor.WHITE + "Right-click " + ChatColor.GRAY + "to abandon");
-                    }
+                    lore.addAll(TooltipUtil.clickInstructions("to track", quest.isMainQuest() ? null : "to abandon"));
                 }
             }
 

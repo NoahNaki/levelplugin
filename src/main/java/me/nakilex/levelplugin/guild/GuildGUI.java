@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.guild;
 
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.HeadUtil;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -47,7 +48,7 @@ public class GuildGUI {
                 if (g.getApplicants().containsKey(player.getUniqueId())) {
                     lore.add(ChatColor.GRAY + "Status: " + ChatColor.YELLOW + "Pending");
                 } else {
-                    lore.add(ChatColor.WHITE + "Left-click " + ChatColor.GRAY + "to apply");
+                    lore.addAll(TooltipUtil.clickInstructions("to apply", null));
                 }
             }
             ItemStack head = HeadUtil.createPlayerHead(lp, ChatColor.GOLD + g.getName(), lore);

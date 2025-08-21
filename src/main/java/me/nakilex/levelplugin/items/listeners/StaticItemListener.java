@@ -10,6 +10,7 @@ import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -28,7 +29,7 @@ public class StaticItemListener implements Listener {
         ItemMeta statsMeta = STATIC_ITEM.getItemMeta();
         if (statsMeta != null) {
             statsMeta.setDisplayName(ChatColor.AQUA + "Stats Viewer");
-            statsMeta.setLore(Collections.singletonList(ChatColor.GRAY + "Right-click to view your stats."));
+            statsMeta.setLore(TooltipUtil.clickInstructions(null, "to view your stats."));
             STATIC_ITEM.setItemMeta(statsMeta);
         }
 
@@ -37,7 +38,7 @@ public class StaticItemListener implements Listener {
         ItemMeta horseMeta = STATIC_HORSE_SADDLE.getItemMeta();
         if (horseMeta != null) {
             horseMeta.setDisplayName(ChatColor.AQUA + "Horse");
-            horseMeta.setLore(Collections.singletonList(ChatColor.GRAY + "Right-click to spawn a horse."));
+            horseMeta.setLore(TooltipUtil.clickInstructions(null, "to spawn a horse."));
             STATIC_HORSE_SADDLE.setItemMeta(horseMeta);
         }
 
@@ -46,7 +47,7 @@ public class StaticItemListener implements Listener {
         ItemMeta bookMeta = STATIC_QUEST_BOOK.getItemMeta();
         if (bookMeta != null) {
             bookMeta.setDisplayName(ChatColor.AQUA + "Quest Book");
-            bookMeta.setLore(Collections.singletonList(ChatColor.GRAY + "Right-click to view your quests."));
+            bookMeta.setLore(TooltipUtil.clickInstructions(null, "to view your quests."));
             STATIC_QUEST_BOOK.setItemMeta(bookMeta);
         }
     }

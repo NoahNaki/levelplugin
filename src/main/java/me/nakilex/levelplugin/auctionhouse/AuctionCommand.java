@@ -61,7 +61,8 @@ public class AuctionCommand implements CommandExecutor {
                         "Hold the item you wish to sell in your hand.");
                 return true;
             }
-            if (me.nakilex.levelplugin.items.listeners.StaticItemListener.isStaticItem(item)) {
+            if (me.nakilex.levelplugin.items.listeners.StaticItemListener.isStaticItem(item)
+                    || me.nakilex.levelplugin.items.utils.ItemUtil.isSoulbound(item)) {
                 ChatMessageUtil.send(player, MessageType.ERROR, "You cannot list that item.");
                 return true;
             }

@@ -106,12 +106,12 @@ public class SettingsGUI implements Listener {
         }
 
         if (filter == Filter.ALL || filter == Filter.SOCIAL) {
-            gui.setItem(17, createVisibilityItem(playerSettings.getPlayerVisibility()));
+            gui.setItem(21, createVisibilityItem(playerSettings.getPlayerVisibility()));
         }
 
         // Auto-skip Cutscenes toggle
         if (filter == Filter.ALL || filter == Filter.VISUAL) {
-            gui.setItem(18, GuiUtil.createToggleItem(
+            gui.setItem(22, GuiUtil.createToggleItem(
                     playerSettings.isAutoSkipCutscenes(),
                     "§bAuto Skip Cutscenes",
                     "§eClick to toggle"
@@ -120,7 +120,7 @@ public class SettingsGUI implements Listener {
 
         // Auto-skip Songs toggle
         if (filter == Filter.ALL || filter == Filter.VISUAL) {
-            gui.setItem(19, GuiUtil.createToggleItem(
+            gui.setItem(23, GuiUtil.createToggleItem(
                     playerSettings.isAutoSkipSongs(),
                     "§bAuto Skip Songs",
                     "§eClick to toggle and run /toggle songskip"
@@ -178,7 +178,7 @@ public class SettingsGUI implements Listener {
     }
 
     private void updateVisibilityItem(Inventory inv, PlayerVisibility vis) {
-        inv.setItem(17, createVisibilityItem(vis));
+        inv.setItem(21, createVisibilityItem(vis));
     }
 
     private ItemStack createFilterItem(Filter filter) {
@@ -268,18 +268,18 @@ public class SettingsGUI implements Listener {
             if (main != null && main.getLeaderboardManager() != null) {
                 main.getLeaderboardManager().updateType(LeaderboardType.BALANCE);
             }
-        } else if (slot == 17) {
+        } else if (slot == 21) {
             settings.cyclePlayerVisibility();
             updateVisibilityItem(event.getInventory(), settings.getPlayerVisibility());
             me.nakilex.levelplugin.Main.getInstance()
                 .getPlayerVisibilityManager().updatePlayer(player);
-        } else if (slot == 18) {
+        } else if (slot == 22) {
             settings.toggleAutoSkipCutscenes();
-            updateSettingItem(event.getInventory(), 18,
+            updateSettingItem(event.getInventory(), 22,
                 settings.isAutoSkipCutscenes(), "§bAuto Skip Cutscenes", "");
-        } else if (slot == 19) {
+        } else if (slot == 23) {
             Bukkit.dispatchCommand(player, "toggle songskip");
-            updateSettingItem(event.getInventory(), 19,
+            updateSettingItem(event.getInventory(), 23,
                 settings.isAutoSkipSongs(), "§bAuto Skip Songs", "/toggle songskip");
         }
     }

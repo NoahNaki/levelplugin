@@ -5,6 +5,8 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import me.nakilex.levelplugin.utils.TooltipUtil;
+import me.nakilex.levelplugin.items.data.ItemRarity;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import com.nexomc.nexo.api.NexoItems;
@@ -64,13 +66,7 @@ public class PotionInstance {
         List<String> lore = new java.util.ArrayList<>();
         boolean mana = template.getId().startsWith("mana");
 
-        me.nakilex.levelplugin.items.data.ItemRarity rarity;
-        switch (template.getTier()) {
-            case 1 -> rarity = me.nakilex.levelplugin.items.data.ItemRarity.COMMON;
-            case 2 -> rarity = me.nakilex.levelplugin.items.data.ItemRarity.UNCOMMON;
-            case 3 -> rarity = me.nakilex.levelplugin.items.data.ItemRarity.RARE;
-            default -> rarity = me.nakilex.levelplugin.items.data.ItemRarity.COMMON;
-        }
+        ItemRarity rarity = ItemRarity.fromTier(template.getTier());
 
         String rarityGlyph = "<glyph:" + rarity.name().toLowerCase() + ">";
         lore.add(rarityGlyph + "<glyph:potion>");
@@ -88,7 +84,7 @@ public class PotionInstance {
         lore.add(bulletColor + "- " + ChatColor.GRAY + action + ChatColor.WHITE + amountStr + bulletColor + symbol);
         lore.add(bulletColor + "- " + ChatColor.GRAY + "Cooldown: " + ChatColor.GRAY + template.getCooldownSeconds() + " seconds");
         lore.add(" ");
-        lore.add(ChatColor.WHITE + "Right-click " + ChatColor.GRAY + "to consume");
+        lore.addAll(TooltipUtil.clickInstructions(null, "to consume"));
         meta.setLore(lore);
 
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_DYE);

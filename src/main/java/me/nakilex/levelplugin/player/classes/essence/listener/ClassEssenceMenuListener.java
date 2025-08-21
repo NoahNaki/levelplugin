@@ -81,6 +81,8 @@ public class ClassEssenceMenuListener implements Listener {
                 }
 
                 ClassEssence.setEquipped(current, true);
+                ClassEssence.setSoulbound(current, true);
+                ClassEssence.addSlotTips(current);
                 ClassEssence.applyAttributes(player, current);
                 ps.equippedEssences[idx] = true;
 

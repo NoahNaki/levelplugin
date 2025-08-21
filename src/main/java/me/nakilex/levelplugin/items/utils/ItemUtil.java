@@ -337,7 +337,7 @@ public class ItemUtil {
         }
 
         if (cItem.isSoulbound()) {
-            lore.add(ChatColor.DARK_PURPLE + "Soulbound");
+            lore.add(ChatColor.RED + "Soulbound");
             pdc.set(SOULBOUND_KEY, PersistentDataType.BYTE, (byte)1);
         }
         meta.setLore(lore);
@@ -363,7 +363,26 @@ public class ItemUtil {
 
     public static boolean isSoulbound(ItemStack stack) {
         if (stack == null || !stack.hasItemMeta()) return false;
-        return stack.getItemMeta().getPersistentDataContainer().has(SOULBOUND_KEY, PersistentDataType.BYTE);
+
+        // Primary check: custom items that have the standard soulbound key
+        if (stack.getItemMeta().getPersistentDataContainer().has(SOULBOUND_KEY, PersistentDataType.BYTE)) {
+            return true;
+        }
+
+        // Handle class essences which use a different key
+        if (ClassEssence.isSoulbound(stack)) {
+            return true;
+        }
+
+        // Fallback for legacy items that only have a lore indicator
+        if (stack.getItemMeta().hasLore()) {
+            for (String line : stack.getItemMeta().getLore()) {
+                if (ChatColor.stripColor(line).equalsIgnoreCase("Soulbound")) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
@@ -482,37 +501,37 @@ public class ItemUtil {
         StatsManager.StatType prefixStat = prefix != null ? PREFIX_MAP.get(prefix) : null;
         int vit = cItem.getHp() + cItem.getDef();
         if (vit != 0) {
-            String line = ChatColor.RED + "❤ " + ChatColor.GRAY + "Vitality: " + ChatColor.RED + "+" + vit;
+            String line = GuiUtil.formatStatLine(StatsManager.StatType.VIT, vit, false);
             if (prefixStat == StatsManager.StatType.VIT) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
             lore.add(line);
         }
         if (cItem.getStr() != 0) {
-            String line = ChatColor.BLUE + "☠ " + ChatColor.GRAY + "Strength: " + ChatColor.WHITE + "+" + cItem.getStr();
+            String line = GuiUtil.formatStatLine(StatsManager.StatType.STR, cItem.getStr(), false);
             if (prefixStat == StatsManager.StatType.STR) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
             lore.add(line);
         }
         if (cItem.getAgi() != 0) {
-            String line = ChatColor.GREEN + "≈ " + ChatColor.GRAY + "Agility: " + ChatColor.WHITE + "+" + cItem.getAgi();
+            String line = GuiUtil.formatStatLine(StatsManager.StatType.AGI, cItem.getAgi(), false);
             if (prefixStat == StatsManager.StatType.AGI) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
             lore.add(line);
         }
         if (cItem.getIntel() != 0) {
-            String line = ChatColor.AQUA + "♦ " + ChatColor.GRAY + "Intelligence: " + ChatColor.WHITE + "+" + cItem.getIntel();
+            String line = GuiUtil.formatStatLine(StatsManager.StatType.INT, cItem.getIntel(), false);
             if (prefixStat == StatsManager.StatType.INT) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
             lore.add(line);
         }
         if (cItem.getDex() != 0) {
-            String line = ChatColor.YELLOW + "➹ " + ChatColor.GRAY + "Dexterity: " + ChatColor.WHITE + "+" + cItem.getDex();
+            String line = GuiUtil.formatStatLine(StatsManager.StatType.DEX, cItem.getDex(), false);
             if (prefixStat == StatsManager.StatType.DEX) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
             lore.add(line);
         }
         if (cItem.getWil() != 0) {
-            String line = ChatColor.BLUE + "✪ " + ChatColor.GRAY + "Will: " + ChatColor.WHITE + "+" + cItem.getWil();
+            String line = GuiUtil.formatStatLine(StatsManager.StatType.WIL, cItem.getWil(), false);
             if (prefixStat == StatsManager.StatType.WIL) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
             lore.add(line);
         }
         if (cItem.getTec() != 0) {
-            String line = ChatColor.DARK_PURPLE + "⚔ " + ChatColor.GRAY + "Technique: " + ChatColor.WHITE + "+" + cItem.getTec();
+            String line = GuiUtil.formatStatLine(StatsManager.StatType.TEC, cItem.getTec(), false);
             if (prefixStat == StatsManager.StatType.TEC) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
             lore.add(line);
         }
