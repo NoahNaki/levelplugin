@@ -191,7 +191,7 @@ public class FastTravelManager {
                 String expColor = me.nakilex.levelplugin.utils.ChatFormatter.experienceColor();
                 String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
                 player.sendMessage(" ");
-                me.nakilex.levelplugin.utils.ChatFormatter.sendIndentedMessage(player,
+                me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player,
                         expColor + "+" + exp + " <glyph:experience_orb_icon> " + expLabel);
             }
             me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, " ", 45);
