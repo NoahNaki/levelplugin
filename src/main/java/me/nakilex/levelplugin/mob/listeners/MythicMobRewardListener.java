@@ -117,6 +117,7 @@ public class MythicMobRewardListener implements Listener {
             int coins = ThreadLocalRandom.current().nextInt(minCoins, maxCoins + 1);
             economyManager.addCoins(player, coins);
             itemDropper.dropCustomItems(player, node, modelSet);
+            itemDropper.maybeDropEssence(player, node);
             if (tier > 0) {
                 double roll = ThreadLocalRandom.current().nextDouble() * 100.0;
                 if (roll <= tierChance) {

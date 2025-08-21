@@ -68,15 +68,16 @@ public final class ClassEssence {
      */
     public static ItemStack generateEssence() {
         Random rand = new Random();
-        double roll = rand.nextDouble();
-        ItemRarity rarity = ItemRarity.COMMON;
-        if (roll < 0.01) {
-            rarity = ItemRarity.RARE;
-        } else if (roll < 0.11) {
-            rarity = ItemRarity.UNCOMMON;
-        }
+        ItemRarity rarity = rollWeightedRarity(rand);
         PlayerClass[] classes = PlayerClass.values();
         PlayerClass clazz = classes[rand.nextInt(classes.length)];
+        return generateEssence(clazz, rarity, 0);
+    }
+
+    /** Generate an essence for a specific class with weighted rarity. */
+    public static ItemStack generateEssence(PlayerClass clazz) {
+        Random rand = new Random();
+        ItemRarity rarity = rollWeightedRarity(rand);
         return generateEssence(clazz, rarity, 0);
     }
 
@@ -87,6 +88,18 @@ public final class ClassEssence {
         int slots = getAttributeSlots(rarity);
         Map<StatType, AttrData> attrs = rollAttributes(slots, rarity, starLevel, new Random(), java.util.Collections.emptySet());
         return create(clazz, rarity, starLevel, attrs, false);
+    }
+
+    /** Roll a rarity with 89% common, 10% uncommon and 1% rare. */
+    private static ItemRarity rollWeightedRarity(Random rand) {
+        double roll = rand.nextDouble();
+        if (roll < 0.01) {
+            return ItemRarity.RARE;
+        }
+        if (roll < 0.11) {
+            return ItemRarity.UNCOMMON;
+        }
+        return ItemRarity.COMMON;
     }
 
     /**
