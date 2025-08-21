@@ -88,7 +88,7 @@ public class SpellGUI {
         SPELL_DESCRIPTIONS.put("abyssal_smash", "Leap high and smash down with tidal force.");
         // Rogue
         SPELL_DESCRIPTIONS.put("blade_slash", "Slash enemies with your blade.");
-        SPELL_DESCRIPTIONS.put("rogue_dash", "Dash swiftly forward.");
+        SPELL_DESCRIPTIONS.put("assassin_dash", "Dash swiftly forward.");
         SPELL_DESCRIPTIONS.put("dagger_throw", "Hurl daggers at distant foes.");
         SPELL_DESCRIPTIONS.put("blade_dance", "Teleport between enemies with deadly strikes.");
         SPELL_DESCRIPTIONS.put("shadow_walk", "Vanish into the shadows to gain invisibility.");
@@ -197,7 +197,7 @@ public class SpellGUI {
         SPELL_USAGE.put("aqua_aura", "Sneak");
         SPELL_USAGE.put("abyssal_smash", "Sneak + Left Click");
         SPELL_USAGE.put("blade_slash", "Left Click");
-        SPELL_USAGE.put("rogue_dash", "Right Click");
+        SPELL_USAGE.put("assassin_dash", "Right Click");
         SPELL_USAGE.put("dagger_throw", "Sneak + Right Click");
         SPELL_USAGE.put("blade_dance", "Sneak + Left Click");
         SPELL_USAGE.put("shadow_walk", "Sneak");
@@ -308,7 +308,7 @@ public class SpellGUI {
         Map.entry("aqua_aura", "icon_aqua_aura"),
         Map.entry("abyssal_smash", "icon_abyssal_smash"),
         Map.entry("blade_slash", "icon_blade_slash"),
-        Map.entry("rogue_dash", "icon_rogue_dash"),
+        Map.entry("assassin_dash", "icon_assassin_dash"),
         Map.entry("dagger_throw", "icon_dagger_throw"),
         Map.entry("blade_dance", "icon_blade_dance"),
         Map.entry("shadow_walk", "icon_shadow_walk"),

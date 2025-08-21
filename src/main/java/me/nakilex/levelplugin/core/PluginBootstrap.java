@@ -46,7 +46,6 @@ import me.nakilex.levelplugin.spells.listener.MeteorListener;
 import me.nakilex.levelplugin.spells.managers.ManaCostTracker;
 import me.nakilex.levelplugin.spells.managers.SpellManager;
 import me.nakilex.levelplugin.spells.registry.EffectRegistry;
-import me.nakilex.levelplugin.spells.utils.MythicSkillConfig;
 import me.nakilex.levelplugin.storage.StorageManager;
 import me.nakilex.levelplugin.storage.events.StorageEvents;
 import me.nakilex.levelplugin.tips.BroadcastManager;
@@ -239,8 +238,6 @@ public class PluginBootstrap {
         plugin.saveResource("field_bosses.yml", false);
         bossConfigFile = new File(plugin.getDataFolder(), "field_bosses.yml");
         bossConfig = YamlConfiguration.loadConfiguration(bossConfigFile);
-        // Ensure MythicMobs has our Rogue skill definitions
-        MythicSkillConfig.ensureSkillFile(plugin, "rogue_skills.yml");
     }
 
     private void initializeManagers() {

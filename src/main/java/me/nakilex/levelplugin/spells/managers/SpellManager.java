@@ -233,11 +233,11 @@ public class SpellManager {
             "MYTHIC_BLADE_SLASH"
         ));
         rogueMap.put("LRL", new Spell(
-            "rogue_dash", "Rogue Dash", "LRL",
+            "assassin_dash", "Assassin Dash", "LRL",
             5.0,
-            MythicSkillConfig.getCooldownSeconds("Rogue_Dash"), 3,
+            MythicSkillConfig.getCooldownSeconds("Assassin_Dash"), 3,
             WeaponType.SWORD.getMaterials(),
-            "MYTHIC_ROGUE_DASH", 0.0
+            "MYTHIC_ASSASSIN_DASH", 0.0
         ));
         rogueMap.put("LLL", new Spell(
             "dagger_throw", "Dagger Throw", "LLL",

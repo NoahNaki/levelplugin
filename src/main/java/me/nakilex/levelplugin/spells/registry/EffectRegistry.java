@@ -109,7 +109,7 @@ public class EffectRegistry {
 
         // --- Rogue Mythic skills ---
         register("MYTHIC_BLADE_SLASH", new MythicSkillEffect("Blade_Slash"));
-        register("MYTHIC_ROGUE_DASH", new MythicSkillEffect("Rogue_Dash"));
+        register("MYTHIC_ASSASSIN_DASH", new MythicSkillEffect("Assassin_Dash"));
         register("MYTHIC_DAGGER_THROW", new MythicSkillEffect("Dagger_Throw"));
         register("MYTHIC_BLADE_DANCE", new MythicSkillEffect("Blade_Dance"));
         register("MYTHIC_SHADOW_WALK", new MythicSkillEffect("Shadow_Walk"));

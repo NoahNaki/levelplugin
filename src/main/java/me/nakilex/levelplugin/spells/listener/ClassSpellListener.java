@@ -148,7 +148,7 @@ public class ClassSpellListener implements Listener {
         t.leftSneak = List.of("blade_dance");
         t.left = List.of("blade_slash");
         t.rightSneak = List.of("dagger_throw");
-        t.right = List.of("rogue_dash");
+        t.right = List.of("assassin_dash");
         t.sneakStart = List.of("shadow_walk");
         MAP.put(PlayerClass.ROGUE, t);
 
