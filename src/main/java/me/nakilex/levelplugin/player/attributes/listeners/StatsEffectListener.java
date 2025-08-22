@@ -31,6 +31,17 @@ public class StatsEffectListener implements Listener {
         return wasCrit != null && wasCrit;
     }
 
+    /**
+     * Records whether the player's last hit should be treated as a critical
+     * strike so other systems (chat logs, damage popups, etc.) can query it.
+     * Used by spells that determine crit chance outside of this listener.
+     */
+    public static void recordCrit(Player player, boolean isCrit) {
+        if (player != null) {
+            lastCritMap.put(player.getUniqueId(), isCrit);
+        }
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
         Entity damager = event.getDamager();

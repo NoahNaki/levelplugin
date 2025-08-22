@@ -4,6 +4,10 @@ import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
 import me.nakilex.levelplugin.spells.context.SpellCastContextCompat;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.attributes.listeners.StatsEffectListener;
+import me.nakilex.levelplugin.player.classes.data.ClassUtil;
+import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import me.nakilex.levelplugin.spells.managers.SpellContextManager;
 import org.bukkit.entity.Player;
 
 /**
@@ -20,10 +24,31 @@ public class MythicSkillEffect implements SpellEffect {
     public void apply(SpellCastContext ctx) {
         Player caster = ctx.getPlayer();
 
-        // Calculate scaled damage using player stats and any modifiers
+        // Grab player stats and figure out the primary offensive attribute
         var stats = StatsManager.getInstance().getPlayerStats(caster.getUniqueId());
-        double strength = stats.baseStrength + stats.bonusStrength;
-        double damage = ctx.getFinalDamage() + strength * 0.5;
+        PlayerClass cls = stats.playerClass;
+        double primary;
+        if (ClassUtil.isMageFamily(cls)) {
+            primary = stats.baseIntelligence + stats.bonusIntelligence;
+        } else {
+            primary = stats.baseStrength + stats.bonusStrength;
+        }
+
+        double damage = ctx.getFinalDamage() + primary * 0.5;
+
+        // Technique scales overall damage
+        int totalTec = stats.baseTechnique + stats.bonusTechnique;
+        damage *= (1.0 + totalTec * 0.003);
+
+        // Dexterity → critical chance
+        int totalDex = stats.baseDexterity + stats.bonusDexterity;
+        double critChance = (double) totalDex / (totalDex + 100.0);
+        boolean isCrit = Math.random() < critChance;
+        if (isCrit) damage *= 2.0;
+
+        // Record crit outcome for downstream listeners and chat
+        StatsEffectListener.recordCrit(caster, isCrit);
+        SpellContextManager.setPending(caster.getUniqueId(), ctx.getBaseSpell().getDisplayName(), isCrit);
 
         me.nakilex.levelplugin.Main.getPlugin().getLogger().info(
                 "[MythicSkillEffect] skill=" + skill + " dmg=" + damage +
