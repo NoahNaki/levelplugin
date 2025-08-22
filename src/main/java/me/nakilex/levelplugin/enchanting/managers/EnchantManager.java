@@ -30,23 +30,11 @@ public class EnchantManager {
         for (String key : cfg.getKeys(false)) {
             String prefix = cfg.getString(key);
             if (prefix == null) continue;
-            StatType st = mapKey(key);
+            StatType st = StatType.fromKey(key);
+            if (st == null) st = StatType.VIT;
             prefixMap.put(prefix, st);
             prefixList.add(prefix);
         }
-    }
-
-    private StatType mapKey(String key) {
-        return switch (key.toLowerCase()) {
-            case "strength" -> StatType.STR;
-            case "agility" -> StatType.AGI;
-            case "dexterity" -> StatType.DEX;
-            case "intelligence" -> StatType.INT;
-            case "defense", "hp", "vitality" -> StatType.VIT;
-            case "will" -> StatType.WIL;
-            case "technique" -> StatType.TEC;
-            default -> StatType.VIT;
-        };
     }
 
     public int getEnchantCost(CustomItem item) {

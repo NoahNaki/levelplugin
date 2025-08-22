@@ -62,16 +62,8 @@ public class ItemUtil {
         for (String key : cfg.getKeys(false)) {
             String prefix = cfg.getString(key);
             if (prefix == null) continue;
-            StatsManager.StatType st = switch (key.toLowerCase()) {
-                case "strength" -> StatsManager.StatType.STR;
-                case "agility" -> StatsManager.StatType.AGI;
-                case "dexterity" -> StatsManager.StatType.DEX;
-                case "intelligence" -> StatsManager.StatType.INT;
-                case "defense", "hp", "vitality" -> StatsManager.StatType.VIT;
-                case "will" -> StatsManager.StatType.WIL;
-                case "technique" -> StatsManager.StatType.TEC;
-                default -> StatsManager.StatType.VIT;
-            };
+            StatsManager.StatType st = StatsManager.StatType.fromKey(key);
+            if (st == null) st = StatsManager.StatType.VIT;
             PREFIX_MAP.put(prefix, st);
             PREFIX_LIST.add(prefix);
         }

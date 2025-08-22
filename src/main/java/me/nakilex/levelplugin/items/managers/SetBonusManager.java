@@ -39,30 +39,19 @@ public class SetBonusManager {
         for (String key : preCfg.getKeys(false)) {
             String prefix = preCfg.getString(key);
             if (prefix == null) continue;
-            StatType st = mapSuffixKey(key); // reuse mapper for stats
+            StatType st = StatType.fromKey(key);
+            if (st == null) st = StatType.VIT;
             prefixStrings.add(prefix);
             prefixStat.put(prefix, st);
         }
 
         for (String key : sufCfg.getKeys(false)) {
-            StatType st = mapSuffixKey(key);
+            StatType st = StatType.fromKey(key);
+            if (st == null) st = StatType.VIT;
             for (String s : sufCfg.getStringList(key)) {
                 suffixStrings.add(s);
                 suffixStat.put(s, st);
             }
-        }
-    }
-
-    private StatType mapSuffixKey(String key) {
-        switch (key.toLowerCase()) {
-            case "strength": return StatType.STR;
-            case "agility": return StatType.AGI;
-            case "dexterity": return StatType.DEX;
-            case "intelligence": return StatType.INT;
-            case "hp", "defense", "vitality": return StatType.VIT;
-            case "will": return StatType.WIL;
-            case "technique": return StatType.TEC;
-            default: return StatType.VIT;
         }
     }
 

@@ -141,7 +141,7 @@ intelligence:
   - of Mental Clarity
   - of Arcane Light
 
-defense:
+vitality:
   - of Fortitude
   - of the Wall
   - of the Turtle
@@ -175,4 +175,14 @@ defense:
   - of Bastionsteel
   - of the Shieldbearer
   - of the Stoneborn
+
+will:
+  - of Resolve
+  - of Spirit
+  - of the Brave
+
+technique:
+  - of Mastery
+  - of Skill
+  - of the Artisan
 
