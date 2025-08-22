@@ -22,7 +22,7 @@ public class StatsEffectListener implements Listener {
 
     // Basic attacks still trail spells but shouldn't feel useless
     // 0.20 ~= half of the original 0.4 scaling
-    public static final double BASIC_ATTACK_MULTIPLIER = 0.20;
+    public static final double BASIC_ATTACK_MULTIPLIER = 0.60;
 
     // Slightly boost spell damage so they retain the edge over basics
     public static final double SPELL_DAMAGE_MULTIPLIER = 1.10;
