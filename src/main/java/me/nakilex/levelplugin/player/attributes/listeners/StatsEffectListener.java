@@ -20,8 +20,9 @@ public class StatsEffectListener implements Listener {
 
     private final Random random = new Random();
 
-    // Basic attacks should deal less damage so spells feel impactful
-    public static final double BASIC_ATTACK_MULTIPLIER = 0.4;
+    // Basic attacks should deal far less damage so spells feel impactful
+    // 0.12 == 30% of the previous 0.4 scaling
+    public static final double BASIC_ATTACK_MULTIPLIER = 0.12;
 
     // Track whether each player's last hit was a crit
     private static final Map<UUID, Boolean> lastCritMap = new ConcurrentHashMap<>();
