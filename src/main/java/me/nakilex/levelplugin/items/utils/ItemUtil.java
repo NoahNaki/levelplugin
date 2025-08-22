@@ -127,7 +127,8 @@ public class ItemUtil {
             // Use a proper sword material so rogue weapons remain equipable
             "ROGUE",   new Model(Material.DIAMOND_SWORD, 1012),
             "ARCHER",  new Model(Material.BOW,         1002),
-            "WARRIOR", new Model(Material.DIAMOND_AXE, 1005)
+            // Warriors wield shovels by default to distinguish from rogue swords
+            "WARRIOR", new Model(Material.DIAMOND_SHOVEL, 1005)
     );
 
     /** Default armor models for the early levels. */
@@ -187,10 +188,17 @@ public class ItemUtil {
         Model defaultModel = null;
         if (willApplyDefaultModel && cItem.getLevelRequirement() <= DEFAULT_MODEL_MAX_LEVEL) {
             String cls = cItem.getClassRequirement();
-            if (wType != null && cls != null) {
-                defaultModel = CLASS_DEFAULT_WEAPONS.get(cls.toUpperCase());
+            if (wType != null) {
+                cls = switch (wType) {
+                    case WAND -> "MAGE";
+                    case BOW -> "ARCHER";
+                    case SHOVEL, AXE -> "WARRIOR";
+                    case SWORD -> "ROGUE";
+                };
             }
-            if (defaultModel == null && aType != null) {
+            if (wType != null) {
+                defaultModel = CLASS_DEFAULT_WEAPONS.get(cls.toUpperCase());
+            } else if (aType != null) {
                 defaultModel = DEFAULT_ARMOR_MODELS.get(aType);
             }
             if (defaultModel != null) {
@@ -199,6 +207,14 @@ public class ItemUtil {
         } else if (!hasNexoModel && aType == null) {
             // fallback material for weapons without models outside the early range
             String cls = cItem.getClassRequirement();
+            if (wType != null) {
+                cls = switch (wType) {
+                    case WAND -> "MAGE";
+                    case BOW -> "ARCHER";
+                    case SHOVEL, AXE -> "WARRIOR";
+                    case SWORD -> "ROGUE";
+                };
+            }
             if (cls != null) {
                 switch (cls.toUpperCase()) {
                     case "WARRIOR" -> mat = Material.DIAMOND_SHOVEL;
@@ -258,6 +274,14 @@ public class ItemUtil {
 
         // --- Class Requirement ---
         String clsReqRaw = cItem.getClassRequirement();
+        if (wType != null) {
+            clsReqRaw = switch (wType) {
+                case WAND -> "MAGE";
+                case BOW -> "ARCHER";
+                case SHOVEL, AXE -> "WARRIOR";
+                case SWORD -> "ROGUE";
+            };
+        }
         me.nakilex.levelplugin.player.classes.data.PlayerClass reqClass = null;
         if (clsReqRaw != null && !clsReqRaw.isBlank()) {
             reqClass = me.nakilex.levelplugin.player.classes.data.PlayerClass.fromString(clsReqRaw);

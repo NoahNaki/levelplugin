@@ -522,7 +522,7 @@ public class SpellManager {
         ));
         warriorMap.put("RLL", new Spell(
             "shockwave", "Shockwave", "RLL",
-            20.0,
+            30.0,
             MythicSkillConfig.getCooldownSeconds("Whirlwind"), 3,
             WARRIOR_WEAPONS,
             "SHOCKWAVE", 1.5

@@ -227,9 +227,13 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                                 plugin.getQuestManager().startQuest(player, "newbeginning");
 
                                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                                    gates.updatePlayer(player);
+                                    // Ensure both the inner elevator door and the
+                                    // outer world door are closed immediately after
+                                    // the player arrives so the opening animation
+                                    // starts from a closed state.
                                     gates.closeGate(player, roomGateId);
-                                }, 10L);
+                                    gates.closeGate(player, worldGateId);
+                                }, 1L);
                                 Bukkit.getScheduler().runTaskLater(plugin,
                                         () -> gates.openGate(player, worldGateId), 40L);
 
