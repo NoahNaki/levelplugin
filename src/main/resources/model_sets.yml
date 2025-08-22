@@ -1,10 +1,5 @@
 sets:
   molten:
-    armor:
-      HELMET: molten_helmet
-      CHESTPLATE: molten_chestplate
-      LEGGINGS: molten_leggings
-      BOOTS: molten_boots
     weapon_types:
       SWORD: molten_magma_animated_weapon_set_sword
       AXE: molten_magma_animated_weapon_set_axe
@@ -15,11 +10,6 @@ sets:
       CROSSBOW: molten_magma_animated_weapon_set_crossbow
 
   default1_10:
-    armor:
-      HELMET: rogue_assortment_helmet3d
-      CHESTPLATE: rogueassortment_chestplate
-      LEGGINGS: rogueassortment_leggings
-      BOOTS: rogueassortment_boots
     weapon_types:
       SWORD: rogue_assortment-rogue_sword
       AXE: rogue_assortment-rogue_axe
@@ -28,11 +18,6 @@ sets:
       BOW: rogue_assortment-bow
 
   dwarven11_20:
-    armor:
-      HELMET: dwarven_weapon_assortment_helmet
-      CHESTPLATE: dwarven_chestplate
-      LEGGINGS: dwarven_leggings
-      BOOTS: dwarven_boots
     weapon_types:
       SWORD: dwarven_weapon_assortment_sword
       AXE: dwarven_weapon_assortment_axe
@@ -53,11 +38,6 @@ sets:
       CROSSBOW: conqueror_assortment-crossbow
 
   arctic:
-    armor:
-      HELMET: arcticknight_helmet
-      CHESTPLATE: arcticknight_chestplate
-      LEGGINGS: arcticknight_leggings
-      BOOTS: arcticknight_boots
     weapon_types:
       SWORD: arctic_knight_animated_weapon_set_sword
       AXE: arctic_knight_animated_weapon_set_axe
@@ -76,3 +56,14 @@ sets:
       BOW: witchcaster_animated-bow
     materials:
       CROSSBOW: witchcaster_animated-crossbow
+
+  assortment31_45:
+    weapon_types:
+      SWORD: assortment_big_sword
+      AXE: assortment_battle_axe
+      SHOVEL: assortment_hammer
+      WAND: assortment_soul_staff
+      BOW: assortment_paladin_bow
+    materials:
+      CROSSBOW: assortment_skull_bow
+      SHIELD: assortment_paladin_shield

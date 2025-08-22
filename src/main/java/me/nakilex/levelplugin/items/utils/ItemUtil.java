@@ -101,6 +101,7 @@ public class ItemUtil {
     private static final String MODEL_SET_1_10 = "default1_10";
     private static final String MODEL_SET_11_20 = "dwarven11_20";
     private static final String MODEL_SET_21_30 = "conqueror21_30";
+    private static final String MODEL_SET_31_45 = "assortment31_45";
 
     /**
      * Determine which model set should be used for the given level.
@@ -112,6 +113,7 @@ public class ItemUtil {
         if (level <= 10) return MODEL_SET_1_10;
         if (level <= 20) return MODEL_SET_11_20;
         if (level <= 30) return MODEL_SET_21_30;
+        if (level <= 45) return MODEL_SET_31_45;
         return null;
     }
 
@@ -131,14 +133,6 @@ public class ItemUtil {
             "WARRIOR", new Model(Material.DIAMOND_SHOVEL, 1005)
     );
 
-    /** Default armor models for the early levels. */
-    private static final java.util.Map<ArmorType, Model> DEFAULT_ARMOR_MODELS = java.util.Map.of(
-            // Use actual armor items so pieces can be equipped
-            ArmorType.HELMET,     new Model(Material.LEATHER_HELMET,      1000),
-            ArmorType.CHESTPLATE, new Model(Material.LEATHER_CHESTPLATE, 1002),
-            ArmorType.LEGGINGS,   new Model(Material.LEATHER_LEGGINGS,   1002),
-            ArmorType.BOOTS,      new Model(Material.LEATHER_BOOTS,      1002)
-    );
 
 
     /**
@@ -198,8 +192,6 @@ public class ItemUtil {
             }
             if (wType != null) {
                 defaultModel = CLASS_DEFAULT_WEAPONS.get(cls.toUpperCase());
-            } else if (aType != null) {
-                defaultModel = DEFAULT_ARMOR_MODELS.get(aType);
             }
             if (defaultModel != null) {
                 mat = defaultModel.material();
