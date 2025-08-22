@@ -232,8 +232,7 @@ public class ProfileSelectionGUI implements Listener {
 
             int playMinutes = profile.getPlayMinutes();
 
-            String className = me.nakilex.levelplugin.utils.TextUtil
-                    .beautifyWords(pc.name().toLowerCase().replace('_', ' '));
+            String className = pc.getDisplayName();
 
             lore.add(ChatColor.GRAY + "Level: " + ChatColor.WHITE + level);
             lore.add(ChatColor.GRAY + "XP: " + ChatColor.WHITE + pct + "%");

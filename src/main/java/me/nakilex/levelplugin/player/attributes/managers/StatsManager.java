@@ -370,5 +370,12 @@ public class StatsManager {
         public static StatType fromAbbrev(String abbrev) {
             return BY_ABBREV.get(abbrev.toLowerCase());
         }
+
+        /**
+         * Preferred display ordering for stats when shown in tooltips.
+         * Vitality first followed by the six primary attributes.
+         */
+        public static final List<StatType> DISPLAY_ORDER =
+                java.util.List.of(VIT, STR, AGI, INT, DEX, WIL, TEC);
     }
 }

@@ -7,7 +7,6 @@ import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.TooltipUtil;
-import me.nakilex.levelplugin.utils.TextUtil;
 import com.nexomc.nexo.api.NexoItems;
 import com.nexomc.nexo.items.ItemBuilder;
 import org.bukkit.ChatColor;
@@ -49,7 +48,7 @@ public final class ClassEssence {
             PlayerClass.CLERIC, "smite",
             PlayerClass.ROGUE, "protection",
             PlayerClass.ARCHER, "projectile_protection",
-            PlayerClass.AWAKMAGE, "windburst",
+            PlayerClass.AWAKMAGE, "wind_burst",
             PlayerClass.AWAKROGUE, "unbreaking",
             PlayerClass.AWAKWARRIOR, "sweeping_edge",
             PlayerClass.AWAKARCHER, "piercing",
@@ -504,7 +503,8 @@ public final class ClassEssence {
         int next = pdc.has(NEXT_EXP_KEY, PersistentDataType.INTEGER) ? pdc.get(NEXT_EXP_KEY, PersistentDataType.INTEGER) : 0;
         Map<StatType, AttrData> attrs = getAttributes(stack);
 
-        String className = TextUtil.beautifyWords(pdc.get(CLASS_KEY, PersistentDataType.STRING));
+        PlayerClass pc = PlayerClass.valueOf(pdc.get(CLASS_KEY, PersistentDataType.STRING));
+        String className = pc.getDisplayName();
         String stars = GuiUtil.glyphStars(star);
         meta.setDisplayName(rarity.getColor() + className + " Essence " + stars);
 
@@ -516,8 +516,11 @@ public final class ClassEssence {
         lore.add("<glyph:sword_icon> " + ChatColor.GRAY + "Gear Score: "
                 + ChatColor.LIGHT_PURPLE + ChatColor.BOLD + gearScore);
         lore.add("");
-        for (Map.Entry<StatType, AttrData> e : attrs.entrySet()) {
-            lore.add(GuiUtil.formatStatLine(e.getKey(), e.getValue().value, e.getValue().percent));
+        for (StatType type : StatType.DISPLAY_ORDER) {
+            AttrData data = attrs.get(type);
+            if (data != null) {
+                lore.add(GuiUtil.formatStatLine(type, data.value, data.percent));
+            }
         }
         lore.add("");
         String bar = TooltipUtil.progressBar(exp, next, 15);

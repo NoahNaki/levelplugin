@@ -85,6 +85,21 @@ public class ItemUtil {
         return null;
     }
 
+    /** Append stat lines to lore following the standard display order. */
+    private static void addStatLines(List<String> lore, CustomItem cItem,
+                                    StatsManager.StatType prefixStat) {
+        for (StatsManager.StatType type : StatsManager.StatType.DISPLAY_ORDER) {
+            int val = cItem.getStat(type);
+            if (val != 0) {
+                String line = GuiUtil.formatStatLine(type, val, false);
+                if (prefixStat == type) {
+                    line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
+                }
+                lore.add(line);
+            }
+        }
+    }
+
     // ─── Default Models ─────────────────────────────────────────────────────
 
     /** Maximum level that uses the early-game model set. */
@@ -291,42 +306,7 @@ public class ItemUtil {
         // --- Stats Information ---
         String prefix = parsePrefix(cItem.getBaseName());
         StatsManager.StatType prefixStat = prefix != null ? PREFIX_MAP.get(prefix) : null;
-        int vit = cItem.getHp() + cItem.getDef();
-        if (vit != 0) {
-            String line = GuiUtil.formatStatLine(StatsManager.StatType.VIT, vit, false);
-            if (prefixStat == StatsManager.StatType.VIT) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
-        if (cItem.getStr() != 0) {
-            String line = GuiUtil.formatStatLine(StatsManager.StatType.STR, cItem.getStr(), false);
-            if (prefixStat == StatsManager.StatType.STR) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
-        if (cItem.getAgi() != 0) {
-            String line = GuiUtil.formatStatLine(StatsManager.StatType.AGI, cItem.getAgi(), false);
-            if (prefixStat == StatsManager.StatType.AGI) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
-        if (cItem.getIntel() != 0) {
-            String line = GuiUtil.formatStatLine(StatsManager.StatType.INT, cItem.getIntel(), false);
-            if (prefixStat == StatsManager.StatType.INT) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
-        if (cItem.getDex() != 0) {
-            String line = GuiUtil.formatStatLine(StatsManager.StatType.DEX, cItem.getDex(), false);
-            if (prefixStat == StatsManager.StatType.DEX) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
-        if (cItem.getWil() != 0) {
-            String line = GuiUtil.formatStatLine(StatsManager.StatType.WIL, cItem.getWil(), false);
-            if (prefixStat == StatsManager.StatType.WIL) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
-        if (cItem.getTec() != 0) {
-            String line = GuiUtil.formatStatLine(StatsManager.StatType.TEC, cItem.getTec(), false);
-            if (prefixStat == StatsManager.StatType.TEC) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
+        addStatLines(lore, cItem, prefixStat);
 
         lore.add("");
         if (cItem.isBroken()) {
@@ -533,42 +513,7 @@ public class ItemUtil {
         // --- Stats Information ---
         String prefix = parsePrefix(cItem.getBaseName());
         StatsManager.StatType prefixStat = prefix != null ? PREFIX_MAP.get(prefix) : null;
-        int vit = cItem.getHp() + cItem.getDef();
-        if (vit != 0) {
-            String line = GuiUtil.formatStatLine(StatsManager.StatType.VIT, vit, false);
-            if (prefixStat == StatsManager.StatType.VIT) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
-        if (cItem.getStr() != 0) {
-            String line = GuiUtil.formatStatLine(StatsManager.StatType.STR, cItem.getStr(), false);
-            if (prefixStat == StatsManager.StatType.STR) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
-        if (cItem.getAgi() != 0) {
-            String line = GuiUtil.formatStatLine(StatsManager.StatType.AGI, cItem.getAgi(), false);
-            if (prefixStat == StatsManager.StatType.AGI) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
-        if (cItem.getIntel() != 0) {
-            String line = GuiUtil.formatStatLine(StatsManager.StatType.INT, cItem.getIntel(), false);
-            if (prefixStat == StatsManager.StatType.INT) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
-        if (cItem.getDex() != 0) {
-            String line = GuiUtil.formatStatLine(StatsManager.StatType.DEX, cItem.getDex(), false);
-            if (prefixStat == StatsManager.StatType.DEX) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
-        if (cItem.getWil() != 0) {
-            String line = GuiUtil.formatStatLine(StatsManager.StatType.WIL, cItem.getWil(), false);
-            if (prefixStat == StatsManager.StatType.WIL) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
-        if (cItem.getTec() != 0) {
-            String line = GuiUtil.formatStatLine(StatsManager.StatType.TEC, cItem.getTec(), false);
-            if (prefixStat == StatsManager.StatType.TEC) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
+        addStatLines(lore, cItem, prefixStat);
 
 
         lore.add(""); // Blank line before rarity

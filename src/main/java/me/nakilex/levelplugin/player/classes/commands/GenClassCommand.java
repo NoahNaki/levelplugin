@@ -4,7 +4,6 @@ import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import me.nakilex.levelplugin.utils.CommandUtil;
-import me.nakilex.levelplugin.utils.TextUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -51,7 +50,7 @@ public class GenClassCommand implements TabExecutor {
         star = Math.max(0, Math.min(5, star));
         ItemStack essence = ClassEssence.generateEssence(clazz, rarity, star);
         target.getInventory().addItem(essence);
-        sender.sendMessage("§aGenerated " + TextUtil.beautifyWords(clazz.name()) + " essence for " + target.getName());
+        sender.sendMessage("§aGenerated " + clazz.getDisplayName() + " essence for " + target.getName());
         return true;
     }
 

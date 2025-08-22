@@ -39,6 +39,15 @@ public enum PlayerClass {
         return requiredLevel;
     }
 
+    /** Human-friendly display name for the class. */
+    public String getDisplayName() {
+        String name = name();
+        if (name.startsWith("AWAK")) {
+            return "Awakened " + me.nakilex.levelplugin.utils.TextUtil.beautifyWords(name.substring(4));
+        }
+        return me.nakilex.levelplugin.utils.TextUtil.beautifyWords(name);
+    }
+
     /**
      * Parse a class name case-insensitively.
      * Returns {@code null} if the name does not match any enum constant.
