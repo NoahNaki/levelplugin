@@ -204,10 +204,9 @@ public class ProfileSelectionGUI implements Listener {
     }
 
     private static ItemStack createProfileItem(Player player, PlayerProfile profile) {
-        ItemStack item = new ItemStack(Material.NAME_TAG);
+        ItemStack item = GuiUtil.getNexoItem("save", ChatColor.YELLOW + profile.getName());
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(ChatColor.YELLOW + profile.getName());
             List<String> lore = new ArrayList<>();
             // blank divider so the name is visually separated from stats
             lore.add("");
