@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.player.attributes.listeners;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStats;
 import me.nakilex.levelplugin.mob.utils.SweepAttack;
+import me.nakilex.levelplugin.spells.managers.SpellContextManager;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -19,6 +20,10 @@ public class StatsEffectListener implements Listener {
 
     private final Random random = new Random();
 
+    // Basic attacks should deal far less damage so spells feel impactful
+    // 0.12 == 30% of the previous 0.4 scaling
+    public static final double BASIC_ATTACK_MULTIPLIER = 0.12;
+
     // Track whether each player's last hit was a crit
     private static final Map<UUID, Boolean> lastCritMap = new ConcurrentHashMap<>();
 
@@ -29,6 +34,17 @@ public class StatsEffectListener implements Listener {
     public static boolean consumeLastCrit(Player player) {
         Boolean wasCrit = lastCritMap.remove(player.getUniqueId());
         return wasCrit != null && wasCrit;
+    }
+
+    /**
+     * Records whether the player's last hit should be treated as a critical
+     * strike so other systems (chat logs, damage popups, etc.) can query it.
+     * Used by spells that determine crit chance outside of this listener.
+     */
+    public static void recordCrit(Player player, boolean isCrit) {
+        if (player != null) {
+            lastCritMap.put(player.getUniqueId(), isCrit);
+        }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -71,8 +87,14 @@ public class StatsEffectListener implements Listener {
             double critChance = (double) totalDexterity / (totalDexterity + 100.0);
             critChance = Math.max(0.0, Math.min(1.0, critChance));
 
-            boolean isCrit = random.nextDouble() < critChance;
+            SpellContextManager.Context ctx = SpellContextManager.peek(player.getUniqueId());
+            boolean isCrit = (ctx != null) ? ctx.isCrit : random.nextDouble() < critChance;
             if (isCrit) finalDamage *= 2;
+
+            // Treat untagged hits and basic-attack spells the same
+            if (ctx == null || ctx.basicAttack) {
+                finalDamage *= BASIC_ATTACK_MULTIPLIER;
+            }
 
             me.nakilex.levelplugin.Main.getPlugin().getLogger().info(
                 "[StatsEffect] dmg=" + event.getDamage() + "->" + finalDamage +

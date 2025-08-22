@@ -10,12 +10,13 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 
 public class DamageChatListener implements Listener {
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
         Entity rawDamager = event.getDamager();
         Player player = null;
@@ -73,6 +74,7 @@ public class DamageChatListener implements Listener {
         String targetName = event.getEntity().getType().name();
         targetName = targetName.charAt(0) + targetName.substring(1).toLowerCase();
 
+        double raw = event.getDamage();
         double dmg = event.getFinalDamage();
         String hitWord = isCrit ? "critically hit" : "hit";
         ChatColor mainColor = isCrit ? ChatColor.YELLOW : ChatColor.WHITE;
@@ -82,7 +84,8 @@ public class DamageChatListener implements Listener {
             ChatColor.YELLOW + targetName +
             ChatColor.GRAY + " for " +
             ChatColor.GRAY + String.format("%.1f", dmg) + " " +
-            ChatColor.RED + "\u2764";
+                ChatColor.RED + "\u2764" +
+            ChatColor.DARK_GRAY + String.format(" [raw %.1f]", raw);
 
         Main.getInstance().getLogger()
             .info("[ChatListener] Sending chat: " + ChatColor.stripColor(msg));

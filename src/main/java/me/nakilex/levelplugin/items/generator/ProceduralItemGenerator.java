@@ -29,6 +29,10 @@ public class ProceduralItemGenerator {
     private final FileConfiguration prefixesConfig;
     private final FileConfiguration suffixesConfig;
     private final Random random = new Random();
+    /** Percentage range (±) applied when rolling stat min/max values. */
+    private static final double ROLL_VARIANCE = 0.05;
+    /** Extra bonus applied to one random armor stat for variety. */
+    private static final double DOMINANT_BONUS = 0.10;
 
     public ProceduralItemGenerator(Main plugin) {
         File namesFile = new File(plugin.getDataFolder(), "item_names.yml");
@@ -69,66 +73,64 @@ public class ProceduralItemGenerator {
             Map.Entry<String, String> base = pickWeaponName(clazz);
             baseDisplay = base.getValue();
         }
-        int baseVal = Math.max(1, level);
-
-        int hp = 0, def = 0, str = 0, agi = 0, intel = 0, dex = 0, wil = 0, tec = 0;
+        int hp = 0, def, str, agi, intel, dex, wil, tec;
 
         if (createArmor) {
-            hp  = baseVal * 2;
-            def = baseVal;
-            str   = random.nextInt(baseVal + 1);
-            agi   = random.nextInt(baseVal + 1);
-            intel = random.nextInt(baseVal + 1);
-            dex   = random.nextInt(baseVal + 1);
-            wil   = random.nextInt(baseVal + 1);
-            tec   = random.nextInt(baseVal + 1);
+            hp  = scaleStat(level, rarity, 2.0);
+            def = scaleStat(level, rarity, 1.0);
+            str   = scaleStat(level, rarity, 1.0);
+            agi   = scaleStat(level, rarity, 1.0);
+            intel = scaleStat(level, rarity, 1.0);
+            dex   = scaleStat(level, rarity, 1.0);
+            wil   = scaleStat(level, rarity, 1.0);
+            tec   = scaleStat(level, rarity, 1.0);
+
+            // Give the armor a random dominant stat for variety
+            int choice = random.nextInt(5); // str, agi, intel, dex, def
+            switch (choice) {
+                case 0 -> str  = (int) Math.round(str  * (1 + DOMINANT_BONUS));
+                case 1 -> agi  = (int) Math.round(agi  * (1 + DOMINANT_BONUS));
+                case 2 -> intel= (int) Math.round(intel* (1 + DOMINANT_BONUS));
+                case 3 -> dex  = (int) Math.round(dex  * (1 + DOMINANT_BONUS));
+                case 4 -> def  = (int) Math.round(def  * (1 + DOMINANT_BONUS));
+            }
         } else {
-            def = random.nextInt(baseVal + 1);
+            def = scaleStat(level, rarity, 1.0);
             switch (clazz) {
-                case "WARRIOR":
-                    str = baseVal * 2;
-                    agi = random.nextInt(baseVal + 1);
-                    dex = random.nextInt(baseVal + 1);
-                    intel = random.nextInt(baseVal + 1);
-                    wil = random.nextInt(baseVal + 1);
-                    tec = random.nextInt(baseVal + 1);
-                    break;
-                case "ROGUE":
-                    dex = baseVal * 2;
-                    agi = baseVal;
-                    str = random.nextInt(baseVal + 1);
-                    intel = random.nextInt(baseVal + 1);
-                    wil = random.nextInt(baseVal + 1);
-                    tec = random.nextInt(baseVal + 1);
-                    break;
-                case "ARCHER":
-                    dex = baseVal * 2;
-                    agi = baseVal;
-                    str = random.nextInt(baseVal + 1);
-                    intel = random.nextInt(baseVal + 1);
-                    wil = random.nextInt(baseVal + 1);
-                    tec = random.nextInt(baseVal + 1);
-                    break;
-                case "MAGE":
-                    intel = baseVal * 2;
-                    agi = random.nextInt(baseVal + 1);
-                    dex = random.nextInt(baseVal + 1);
-                    str = random.nextInt(baseVal + 1);
-                    wil = random.nextInt(baseVal + 1);
-                    tec = random.nextInt(baseVal + 1);
-                    break;
+                case "WARRIOR" -> {
+                    str = scaleStat(level, rarity, 2.0);
+                    agi = scaleStat(level, rarity, 1.0);
+                    dex = scaleStat(level, rarity, 1.0);
+                    intel = scaleStat(level, rarity, 1.0);
+                    wil = scaleStat(level, rarity, 1.0);
+                    tec = scaleStat(level, rarity, 1.0);
+                }
+                case "ROGUE", "ARCHER" -> {
+                    dex = scaleStat(level, rarity, 2.0);
+                    agi = scaleStat(level, rarity, 1.0);
+                    str = scaleStat(level, rarity, 1.0);
+                    intel = scaleStat(level, rarity, 1.0);
+                    wil = scaleStat(level, rarity, 1.0);
+                    tec = scaleStat(level, rarity, 1.0);
+                }
+                case "MAGE" -> {
+                    intel = scaleStat(level, rarity, 2.0);
+                    agi = scaleStat(level, rarity, 1.0);
+                    dex = scaleStat(level, rarity, 1.0);
+                    str = scaleStat(level, rarity, 1.0);
+                    wil = scaleStat(level, rarity, 1.0);
+                    tec = scaleStat(level, rarity, 1.0);
+                }
+                default -> {
+                    str = scaleStat(level, rarity, 1.0);
+                    agi = scaleStat(level, rarity, 1.0);
+                    dex = scaleStat(level, rarity, 1.0);
+                    intel = scaleStat(level, rarity, 1.0);
+                    wil = scaleStat(level, rarity, 1.0);
+                    tec = scaleStat(level, rarity, 1.0);
+                }
             }
         }
-
-        double mult = 1.0 + rarityBonus(rarity);
-        hp    = (int) (hp * mult);
-        def   = (int) (def * mult);
-        str   = (int) (str * mult);
-        agi   = (int) (agi * mult);
-        dex   = (int) (dex * mult);
-        intel = (int) (intel * mult);
-        wil   = (int) (wil * mult);
-        tec   = (int) (tec * mult);
 
         String dominant = getDominantStat(str, agi, intel, dex, def);
         String name = buildName(mobType, baseDisplay, rarity, dominant);
@@ -182,14 +184,14 @@ public class ProceduralItemGenerator {
 
     /**
      * Build a rollable range around a target value so generated items
-     * can be rerolled later on. The range is roughly ±20% of the value.
+     * can be rerolled later on. The range is roughly ±5% of the value.
      */
     private StatRange createRange(int value) {
         if (value <= 0) {
             return new StatRange(0, 0);
         }
-        int min = Math.max(0, (int) Math.round(value * 0.8));
-        int max = Math.max(min + 1, (int) Math.round(value * 1.2));
+        int min = Math.max(0, (int) Math.round(value * (1 - ROLL_VARIANCE)));
+        int max = Math.max(min + 1, (int) Math.round(value * (1 + ROLL_VARIANCE)));
         return new StatRange(min, max);
     }
 
@@ -310,20 +312,19 @@ public class ProceduralItemGenerator {
         return ItemRarity.EPIC;
     }
 
-    private double rarityBonus(ItemRarity rarity) {
-        switch (rarity) {
-            case UNCOMMON:
-                return 0.05;
-            case RARE:
-                return 0.1;
-            case EPIC:
-                return 0.2;
-            case LEGENDARY:
-                return 0.3;
-            case MYTHIC:
-                return 0.5;
-            default:
-                return 0.0;
-        }
+    /**
+     * Scaling factor for stats based on rarity. Each step multiplies stats by 1.3,
+     * ensuring higher rarity items always have higher baselines than lower ones.
+     */
+    private double rarityMultiplier(ItemRarity rarity) {
+        return Math.pow(1.3, rarity.ordinal());
+    }
+
+    /**
+     * Convenience to scale a stat by level, rarity and a slot-specific coefficient.
+     */
+    private int scaleStat(int level, ItemRarity rarity, double coeff) {
+        double value = coeff * level * rarityMultiplier(rarity);
+        return (int) Math.round(value);
     }
 }

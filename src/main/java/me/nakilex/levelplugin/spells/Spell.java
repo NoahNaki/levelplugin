@@ -13,6 +13,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import me.nakilex.levelplugin.items.data.WeaponType;
+import me.nakilex.levelplugin.player.level.managers.LevelManager;
 
 
 import java.util.List;
@@ -116,6 +117,13 @@ public class Spell {
             return;
         }
 
+        // Guard against casting spells above the player's level
+        int playerLevel = LevelManager.getInstance().getLevel(player);
+        if (playerLevel < levelReq) {
+            player.sendMessage("§cYou must be level " + levelReq + " to cast " + displayName + ".");
+            return;
+        }
+
         // Debug initial cast attempt
         Main.getPlugin().getLogger().info("[SpellCast] " + player.getName() +
                 " attempts " + id + " via " + combo);
@@ -147,6 +155,13 @@ public class Spell {
                     StatsManager.getInstance().getPlayerStats(pid).playerClass;
             if (!me.nakilex.levelplugin.player.classes.data.ClassUtil.meetsRequirement(playerClass, req)) {
                 player.sendMessage("§cYou are not the right class to cast spells with this weapon.");
+                return;
+            }
+
+            int weaponLevel = ci.getLevelRequirement();
+            if (playerLevel < weaponLevel) {
+                player.sendMessage("§cYou must be level " + weaponLevel
+                        + " to cast spells with " + ci.getBaseName() + ".");
                 return;
             }
 

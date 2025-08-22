@@ -78,7 +78,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
 
         // Close the office elevator once the player should have the world loaded
         Bukkit.getScheduler().runTaskLater(plugin,
-                () -> gates.closeGateInstant(player, gateId),
+                () -> gates.closeGate(player, gateId),
                 40L);
 
         // Close the destination elevator and its interior gate since they
@@ -175,7 +175,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                                        String gateId, String worldGateId,
                                        String roomGateId) {
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            gates.closeGateInstant(player, gateId);
+            gates.closeGate(player, gateId);
 
             World rWorld = Bukkit.getWorld("redrocks");
             if (rWorld == null) return;

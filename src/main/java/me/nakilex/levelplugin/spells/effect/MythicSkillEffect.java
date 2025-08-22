@@ -4,6 +4,7 @@ import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
 import me.nakilex.levelplugin.spells.context.SpellCastContextCompat;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.spells.managers.SpellContextManager;
 import org.bukkit.entity.Player;
 
 /**
@@ -20,38 +21,24 @@ public class MythicSkillEffect implements SpellEffect {
     public void apply(SpellCastContext ctx) {
         Player caster = ctx.getPlayer();
 
-        // Calculate scaled damage using player stats and any modifiers
+        // Grab player stats to roll crit chance once, allowing StatsEffectListener
+        // to reuse the result when applying final damage
         var stats = StatsManager.getInstance().getPlayerStats(caster.getUniqueId());
-        double strength = stats.baseStrength + stats.bonusStrength;
-        double damage = ctx.getFinalDamage() + strength * 0.5;
+        int totalDex = stats.baseDexterity + stats.bonusDexterity;
+        double critChance = (double) totalDex / (totalDex + 100.0);
+        boolean isCrit = Math.random() < critChance;
+
+        boolean basic = "BASIC_ATTACK".equals(ctx.getBaseSpell().getCombo());
+        SpellContextManager.setPending(caster.getUniqueId(), ctx.getBaseSpell().getDisplayName(), isCrit, basic);
 
         me.nakilex.levelplugin.Main.getPlugin().getLogger().info(
-                "[MythicSkillEffect] skill=" + skill + " dmg=" + damage +
-                " player=" + caster.getName());
+                "[MythicSkillEffect] skill=" + skill + " cast by " + caster.getName());
 
-        // Pass the damage value as a metadata variable so MythicMobs can use
-        // <skill.damage> in the skill file. Fall back to simple cast if the
-        // API version lacks the Consumer overload.
+        // Cast skill normally; damage & stat scaling handled in StatsEffectListener
         boolean success;
         try {
-            success = MythicBukkit.inst().getAPIHelper().castSkill(caster, skill, meta -> {
-                try {
-                    var vars = meta.getVariables();
-                    // Attempt to call setDouble(String,double) if present
-                    try {
-                        var m = vars.getClass().getMethod("setDouble", String.class, double.class);
-                        m.invoke(vars, "damage", damage);
-                    } catch (NoSuchMethodException ex) {
-                        // Fallback to a generic setter
-                        var m = vars.getClass().getMethod("set", String.class, Object.class);
-                        m.invoke(vars, "damage", damage);
-                    }
-                } catch (Exception ignore) {
-                    // ignore if variable API changed
-                }
-            });
+            success = MythicBukkit.inst().getAPIHelper().castSkill(caster, skill);
         } catch (NoSuchMethodError e) {
-            // Older API - just cast normally
             success = MythicBukkit.inst().getAPIHelper().castSkill(caster, skill);
         }
         SpellCastContextCompat.markSuccess(ctx, success);
