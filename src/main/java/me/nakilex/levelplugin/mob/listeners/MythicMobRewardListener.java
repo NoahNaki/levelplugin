@@ -62,7 +62,7 @@ public class MythicMobRewardListener implements Listener {
         this.economyManager = economyManager;
         this.lootChestManager = lootChestManager;
         this.modelSetManager = modelSetManager;
-        this.itemDropper = new ItemDropper(levelManager, mobRewardsConfig, modelSetManager);
+        this.itemDropper = new ItemDropper(levelManager, modelSetManager);
         this.debugToggle = debugToggle;
     }
 

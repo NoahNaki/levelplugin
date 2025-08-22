@@ -370,5 +370,34 @@ public class StatsManager {
         public static StatType fromAbbrev(String abbrev) {
             return BY_ABBREV.get(abbrev.toLowerCase());
         }
+
+        /**
+         * Maps configuration keys or common stat names to a {@link StatType}.
+         * Accepts full names ("strength"), abbreviations ("str"), and legacy
+         * identifiers like "hp" or "defense".
+         *
+         * @param key string from configuration
+         * @return matching stat type or {@code null} if none
+         */
+        public static StatType fromKey(String key) {
+            if (key == null) return null;
+            return switch (key.toLowerCase()) {
+                case "strength", "str" -> STR;
+                case "agility", "agi" -> AGI;
+                case "intelligence", "int" -> INT;
+                case "dexterity", "dex" -> DEX;
+                case "vitality", "vit", "hp", "defense", "def" -> VIT;
+                case "will", "wil" -> WIL;
+                case "technique", "tec" -> TEC;
+                default -> null;
+            };
+        }
+
+        /**
+         * Preferred display ordering for stats when shown in tooltips.
+         * Vitality first followed by the six primary attributes.
+         */
+        public static final List<StatType> DISPLAY_ORDER =
+                java.util.List.of(VIT, STR, AGI, INT, DEX, WIL, TEC);
     }
 }

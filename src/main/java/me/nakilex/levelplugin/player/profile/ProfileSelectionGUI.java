@@ -204,10 +204,9 @@ public class ProfileSelectionGUI implements Listener {
     }
 
     private static ItemStack createProfileItem(Player player, PlayerProfile profile) {
-        ItemStack item = new ItemStack(Material.NAME_TAG);
+        ItemStack item = GuiUtil.getNexoItem("save", ChatColor.YELLOW + profile.getName());
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(ChatColor.YELLOW + profile.getName());
             List<String> lore = new ArrayList<>();
             // blank divider so the name is visually separated from stats
             lore.add("");
@@ -232,8 +231,7 @@ public class ProfileSelectionGUI implements Listener {
 
             int playMinutes = profile.getPlayMinutes();
 
-            String className = me.nakilex.levelplugin.utils.TextUtil
-                    .beautifyWords(pc.name().toLowerCase().replace('_', ' '));
+            String className = pc.getDisplayName();
 
             lore.add(ChatColor.GRAY + "Level: " + ChatColor.WHITE + level);
             lore.add(ChatColor.GRAY + "XP: " + ChatColor.WHITE + pct + "%");

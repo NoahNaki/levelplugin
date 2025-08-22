@@ -13,6 +13,9 @@ mobs:
     tier: 1
     tier_chance: 10.0
     model_set: default
+    items:
+      - drop_rate: 60.0
+        quantity: "1-2"
 
   Slime_King:
     exp: 5000

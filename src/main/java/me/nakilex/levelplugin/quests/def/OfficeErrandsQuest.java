@@ -78,13 +78,13 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
 
         // Close the office elevator once the player should have the world loaded
         Bukkit.getScheduler().runTaskLater(plugin,
-                () -> gates.closeGate(player, gateId),
+                () -> gates.closeGateInstant(player, gateId),
                 40L);
 
         // Close the destination elevator and its interior gate since they
         // default to open for all players
-        gates.closeGate(player, worldGateId);
-        gates.closeGate(player, roomGateId);
+        gates.closeGateInstant(player, worldGateId);
+        gates.closeGateInstant(player, roomGateId);
 
         // After blindness wears off, send initial dialog line
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
@@ -175,7 +175,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                                        String gateId, String worldGateId,
                                        String roomGateId) {
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            gates.closeGate(player, gateId);
+            gates.closeGateInstant(player, gateId);
 
             World rWorld = Bukkit.getWorld("redrocks");
             if (rWorld == null) return;
@@ -215,6 +215,8 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                             World destWorld = destMin.getWorld();
 
                             if (destWorld != null) {
+                                destWorld.getChunkAt(destMin).load();
+                                gates.closeGateInstant(player, roomGateId);
                                 Location dest = destMin.clone().add(
                                         cur.getX() - originMin.getX(),
                                         cur.getY() - originMin.getY(),
@@ -225,11 +227,15 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                                 plugin.getQuestManager().startQuest(player, "newbeginning");
 
                                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                                    gates.updatePlayer(player);
-                                    gates.closeGate(player, roomGateId);
+                                    // Delay closing until the destination chunks are fully
+                                    // loaded client-side so the gates appear instead of
+                                    // vanishing. The world gate then opens with its
+                                    // elevator animation a short time later.
+                                    gates.closeGateInstant(player, roomGateId);
+                                    gates.closeGateInstant(player, worldGateId);
+                                    Bukkit.getScheduler().runTaskLater(plugin,
+                                            () -> gates.openGate(player, worldGateId), 40L);
                                 }, 10L);
-                                Bukkit.getScheduler().runTaskLater(plugin,
-                                        () -> gates.openGate(player, worldGateId), 40L);
 
                                 Listener exitListener = new Listener() {
                                     @org.bukkit.event.EventHandler

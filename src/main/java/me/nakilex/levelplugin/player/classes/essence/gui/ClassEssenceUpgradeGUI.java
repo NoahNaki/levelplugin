@@ -140,7 +140,11 @@ public class ClassEssenceUpgradeGUI implements Listener {
                     ItemRarity upgraded = ClassEssence.addExp(target, amount);
                     inv.setItem(TARGET_SLOT, target);
                     inv.setItem(SACRIFICE_SLOT, null);
-                    send(player, MessageType.SUCCESS, "Invested essence (+" + amount + " EXP)");
+                    String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
+                    String expColor = me.nakilex.levelplugin.utils.ChatFormatter.experienceColor();
+                    send(player, MessageType.SUCCESS,
+                            "Invested essence (" + expColor + "+" + amount + org.bukkit.ChatColor.RESET
+                                    + " <glyph:experience_orb_icon> " + expLabel + ")");
                     if (upgraded != null) {
                         send(player, MessageType.SUCCESS, "Essence rarity increased to " + upgraded.getColor() + TextUtil.beautifyWords(upgraded.name()));
                     }

@@ -18,6 +18,8 @@ public enum PlayerClass {
     AWAKROGUE(1),
     AWAKWARRIOR(1),
     AWAKARCHER(1),
+    AWAKMAGE(1),
+    AWAKCLERIC(1),
     ARCHMAGE(1),
     DEADEYE(1),
 
@@ -35,6 +37,15 @@ public enum PlayerClass {
 
     public int getRequiredLevel() {
         return requiredLevel;
+    }
+
+    /** Human-friendly display name for the class. */
+    public String getDisplayName() {
+        String name = name();
+        if (name.startsWith("AWAK")) {
+            return "Awakened " + me.nakilex.levelplugin.utils.TextUtil.beautifyWords(name.substring(4));
+        }
+        return me.nakilex.levelplugin.utils.TextUtil.beautifyWords(name);
     }
 
     /**

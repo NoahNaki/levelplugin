@@ -3,7 +3,6 @@ package me.nakilex.levelplugin.mob.utils;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
-import me.nakilex.levelplugin.mob.config.MobRewardsConfig;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.mob.config.ModelSetManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
@@ -26,12 +25,10 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public class ItemDropper {
     private final LevelManager levelManager;
-    private final MobRewardsConfig rewardsConfig;
     private final ModelSetManager modelSetManager;
 
-    public ItemDropper(LevelManager levelManager, MobRewardsConfig rewardsConfig, ModelSetManager modelSetManager) {
+    public ItemDropper(LevelManager levelManager, ModelSetManager modelSetManager) {
         this.levelManager = levelManager;
-        this.rewardsConfig = rewardsConfig;
         this.modelSetManager = modelSetManager;
     }
 
@@ -48,58 +45,29 @@ public class ItemDropper {
         }
         String mobType = node.getName();
         for (Map<?, ?> entry : itemList) {
-            if (!entry.containsKey("itemid")) continue;
-            int itemId = (int) entry.get("itemid");
             double dropRate = entry.containsKey("drop_rate") ? (double) entry.get("drop_rate") : 100.0;
             double roll = ThreadLocalRandom.current().nextDouble() * 100.0;
             if (roll > dropRate) continue;
+
             String qtyRange = entry.containsKey("quantity") ? (String) entry.get("quantity") : "1-1";
             String[] rangeSplit = qtyRange.split("-");
             int minQty = Integer.parseInt(rangeSplit[0]);
             int maxQty = Integer.parseInt(rangeSplit[1]);
             int quantity = ThreadLocalRandom.current().nextInt(minQty, maxQty + 1);
 
-            if (itemId == -1) {
-                for (int i = 0; i < quantity; i++) {
-                    int lvl = levelManager.getLevel(player);
-                    CustomItem ci = ItemManager.getInstance().generateItem(mobType, lvl);
-                    String nexo = modelSet != null ? modelSetManager.getModelId(modelSet, ci.getMaterial()) : null;
-                    ItemStack stack = ItemUtil.createItemStackFromCustomItem(ci, 1, player, nexo);
-                    ItemUtil.updateTooltip(stack, player);
-                    player.getWorld().dropItemNaturally(player.getLocation(), stack);
-                }
-                continue;
-            }
-
-            CustomItem template = ItemManager.getInstance().getTemplateById(itemId);
-            if (template == null) {
-                player.sendMessage("§c[Warning] No CustomItem found with ID: " + itemId);
-                continue;
-            }
             for (int i = 0; i < quantity; i++) {
-                CustomItem newInstance = new CustomItem(
-                        template.getId(),
-                        template.getBaseName(),
-                        template.getRarity(),
-                        template.getLevelRequirement(),
-                        template.getClassRequirement(),
-                        template.getMaterial(),
-                        template.getHpRange(),
-                        template.getDefRange(),
-                        template.getStrRange(),
-                        template.getAgiRange(),
-                        template.getIntelRange(),
-                        template.getDexRange(),
-                        template.getWilRange(),
-                        template.getTecRange()
-                );
-                ItemManager.getInstance().addInstance(newInstance);
-                String nexo = modelSet != null ? modelSetManager.getModelId(modelSet, newInstance.getMaterial()) : null;
-                ItemStack dropStack = ItemUtil.createItemStackFromCustomItem(newInstance, 1, player, nexo);
-                ItemUtil.updateTooltip(dropStack, player);
-                player.getWorld().dropItemNaturally(player.getLocation(), dropStack);
+                dropGeneratedItem(player, mobType, modelSet);
             }
         }
+    }
+
+    private void dropGeneratedItem(Player player, String mobType, String modelSet) {
+        int lvl = levelManager.getLevel(player);
+        CustomItem ci = ItemManager.getInstance().generateItem(mobType, lvl);
+        String nexo = modelSet != null ? modelSetManager.getModelId(modelSet, ci.getMaterial()) : null;
+        ItemStack stack = ItemUtil.createItemStackFromCustomItem(ci, 1, player, nexo);
+        ItemUtil.updateTooltip(stack, player);
+        player.getWorld().dropItemNaturally(player.getLocation(), stack);
     }
 
     /** Possibly drop a configured class essence. */

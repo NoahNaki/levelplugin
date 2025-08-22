@@ -6,7 +6,6 @@ import me.nakilex.levelplugin.player.classes.essence.gui.ClassEssenceGUI;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import me.nakilex.levelplugin.utils.GuiUtil;
-import me.nakilex.levelplugin.utils.TextUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -97,7 +96,7 @@ public class ClassEssenceMenuListener implements Listener {
                 me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§6§lESSENCE EQUIPPED!");
                 me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, " ", 45);
                 me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player,
-                        ChatColor.GRAY + "You are now the §e§l" + TextUtil.beautifyWords(essenceClass.name()) + " §7class!");
+                        ChatColor.GRAY + "You are now the §e§l" + essenceClass.getDisplayName() + " §7class!");
                 me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, " ", 45);
                 for (StatType st : before.keySet()) {
                     int after = StatsManager.getInstance().getStatValue(player, st);

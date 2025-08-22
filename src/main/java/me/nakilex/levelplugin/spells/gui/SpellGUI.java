@@ -22,7 +22,6 @@ public class SpellGUI {
     private static final Map<String, String> SPELL_DESCRIPTIONS = new HashMap<>();
     static {
         SPELL_DESCRIPTIONS.put("iron_fortress", "Fortify yourself with an iron barrier.");
-        SPELL_DESCRIPTIONS.put("heroic_leap",   "Leap heroically to close distance.");
         SPELL_DESCRIPTIONS.put("uppercut",      "Strike upwards, launching your enemy.");
         SPELL_DESCRIPTIONS.put("ground_slam",   "Slam the ground to damage nearby foes.");
 

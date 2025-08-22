@@ -2,18 +2,50 @@ weapon_types:
   ROGUE:
     - Dagger
     - Shortsword
+    - Knife
+    - Blade
+    - Dirk
+    - Stiletto
   MAGE:
     - Wand
     - Staff
+    - Rod
+    - Scepter
+    - Orb
   ARCHER:
     - Bow
     - Longbow
+    - Shortbow
+    - Crossbow
+    - Recurve Bow
   WARRIOR:
     - Spear
     - Greatsword
+    - Axe
+    - Hammer
+    - Mace
 armor_types:
-  general:
+  helmet:
     - Helmet
+    - Cap
+    - Hood
+    - Helm
+    - Hat
+  chestplate:
     - Chestplate
+    - Armor
+    - Vest
+    - Tunic
+    - Cuirass
+  leggings:
     - Leggings
+    - Pants
+    - Greaves
+    - Trousers
+    - Legguards
+  boots:
     - Boots
+    - Shoes
+    - Footwear
+    - Sabatons
+    - Treads

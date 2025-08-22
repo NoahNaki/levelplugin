@@ -218,19 +218,28 @@ public class QuestGateManager implements Listener {
 
     /** Explicitly open a gate for a player. */
     public boolean openGate(Player player, String id) {
-        return setGateState(player, id, false);
+        return setGateState(player, id, false, false);
     }
 
     /** Explicitly close a gate for a player. */
     public boolean closeGate(Player player, String id) {
-        return setGateState(player, id, true);
+        return setGateState(player, id, true, false);
     }
 
-    private boolean setGateState(Player player, String id, boolean closed) {
+    /** Close a gate instantly without running its animation. */
+    public boolean closeGateInstant(Player player, String id) {
+        return setGateState(player, id, true, true);
+    }
+
+    private boolean setGateState(Player player, String id, boolean closed, boolean instant) {
         QuestGate gate = gates.get(id.toLowerCase());
         if (gate == null) return false;
         gate.setClosed(player.getUniqueId(), closed);
-        animateGate(player, gate, closed);
+        if (instant && gate.getAnimation() != GateAnimation.INSTANT) {
+            animateGate(player, gate, closed, GateAnimation.INSTANT);
+        } else {
+            animateGate(player, gate, closed, gate.getAnimation());
+        }
         logDebug(player.getName() + " set " + id + " to " + (closed ? "closed" : "open"));
         return true;
     }
@@ -242,9 +251,13 @@ public class QuestGateManager implements Listener {
     }
 
     private void animateGate(Player player, QuestGate gate, boolean closed) {
+        animateGate(player, gate, closed, gate.getAnimation());
+    }
+
+    private void animateGate(Player player, QuestGate gate, boolean closed, GateAnimation anim) {
         java.util.List<java.util.List<org.bukkit.Location>> groups = new java.util.ArrayList<>();
 
-        switch (gate.getAnimation()) {
+        switch (anim) {
             case GATE, WATERFALL -> {
                 java.util.Map<Integer, java.util.List<org.bukkit.Location>> map = new java.util.HashMap<>();
                 for (var loc : gate.getBlocks()) {
@@ -252,7 +265,7 @@ public class QuestGateManager implements Listener {
                 }
                 java.util.List<Integer> ys = new java.util.ArrayList<>(map.keySet());
                 ys.sort(Integer::compare);
-                if (gate.getAnimation() == GateAnimation.WATERFALL) java.util.Collections.reverse(ys);
+                if (anim == GateAnimation.WATERFALL) java.util.Collections.reverse(ys);
                 for (int y : ys) groups.add(map.get(y));
             }
             case ELEVATOR -> {
@@ -281,7 +294,7 @@ public class QuestGateManager implements Listener {
             default -> groups.add(gate.getBlocks());
         }
 
-        if (closed && gate.getAnimation() != GateAnimation.INSTANT) java.util.Collections.reverse(groups);
+        if (closed && anim != GateAnimation.INSTANT) java.util.Collections.reverse(groups);
 
         java.util.Iterator<java.util.List<org.bukkit.Location>> it = groups.iterator();
 
@@ -302,7 +315,7 @@ public class QuestGateManager implements Listener {
             }
         };
 
-        if (gate.getAnimation() == GateAnimation.INSTANT) {
+        if (anim == GateAnimation.INSTANT) {
             task.run();
         } else {
             long interval = 1L;

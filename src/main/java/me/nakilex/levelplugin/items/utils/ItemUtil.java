@@ -62,16 +62,8 @@ public class ItemUtil {
         for (String key : cfg.getKeys(false)) {
             String prefix = cfg.getString(key);
             if (prefix == null) continue;
-            StatsManager.StatType st = switch (key.toLowerCase()) {
-                case "strength" -> StatsManager.StatType.STR;
-                case "agility" -> StatsManager.StatType.AGI;
-                case "dexterity" -> StatsManager.StatType.DEX;
-                case "intelligence" -> StatsManager.StatType.INT;
-                case "defense", "hp", "vitality" -> StatsManager.StatType.VIT;
-                case "will" -> StatsManager.StatType.WIL;
-                case "technique" -> StatsManager.StatType.TEC;
-                default -> StatsManager.StatType.VIT;
-            };
+            StatsManager.StatType st = StatsManager.StatType.fromKey(key);
+            if (st == null) st = StatsManager.StatType.VIT;
             PREFIX_MAP.put(prefix, st);
             PREFIX_LIST.add(prefix);
         }
@@ -83,6 +75,21 @@ public class ItemUtil {
             if (name.equals(p)) return p;
         }
         return null;
+    }
+
+    /** Append stat lines to lore following the standard display order. */
+    private static void addStatLines(List<String> lore, CustomItem cItem,
+                                    StatsManager.StatType prefixStat) {
+        for (StatsManager.StatType type : StatsManager.StatType.DISPLAY_ORDER) {
+            int val = cItem.getStat(type);
+            if (val != 0) {
+                String line = GuiUtil.formatStatLine(type, val, false);
+                if (prefixStat == type) {
+                    line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
+                }
+                lore.add(line);
+            }
+        }
     }
 
     // ─── Default Models ─────────────────────────────────────────────────────
@@ -120,7 +127,8 @@ public class ItemUtil {
             // Use a proper sword material so rogue weapons remain equipable
             "ROGUE",   new Model(Material.DIAMOND_SWORD, 1012),
             "ARCHER",  new Model(Material.BOW,         1002),
-            "WARRIOR", new Model(Material.DIAMOND_AXE, 1005)
+            // Warriors wield shovels by default to distinguish from rogue swords
+            "WARRIOR", new Model(Material.DIAMOND_SHOVEL, 1005)
     );
 
     /** Default armor models for the early levels. */
@@ -180,10 +188,17 @@ public class ItemUtil {
         Model defaultModel = null;
         if (willApplyDefaultModel && cItem.getLevelRequirement() <= DEFAULT_MODEL_MAX_LEVEL) {
             String cls = cItem.getClassRequirement();
-            if (wType != null && cls != null) {
-                defaultModel = CLASS_DEFAULT_WEAPONS.get(cls.toUpperCase());
+            if (wType != null) {
+                cls = switch (wType) {
+                    case WAND -> "MAGE";
+                    case BOW -> "ARCHER";
+                    case SHOVEL, AXE -> "WARRIOR";
+                    case SWORD -> "ROGUE";
+                };
             }
-            if (defaultModel == null && aType != null) {
+            if (wType != null) {
+                defaultModel = CLASS_DEFAULT_WEAPONS.get(cls.toUpperCase());
+            } else if (aType != null) {
                 defaultModel = DEFAULT_ARMOR_MODELS.get(aType);
             }
             if (defaultModel != null) {
@@ -192,6 +207,14 @@ public class ItemUtil {
         } else if (!hasNexoModel && aType == null) {
             // fallback material for weapons without models outside the early range
             String cls = cItem.getClassRequirement();
+            if (wType != null) {
+                cls = switch (wType) {
+                    case WAND -> "MAGE";
+                    case BOW -> "ARCHER";
+                    case SHOVEL, AXE -> "WARRIOR";
+                    case SWORD -> "ROGUE";
+                };
+            }
             if (cls != null) {
                 switch (cls.toUpperCase()) {
                     case "WARRIOR" -> mat = Material.DIAMOND_SHOVEL;
@@ -251,6 +274,14 @@ public class ItemUtil {
 
         // --- Class Requirement ---
         String clsReqRaw = cItem.getClassRequirement();
+        if (wType != null) {
+            clsReqRaw = switch (wType) {
+                case WAND -> "MAGE";
+                case BOW -> "ARCHER";
+                case SHOVEL, AXE -> "WARRIOR";
+                case SWORD -> "ROGUE";
+            };
+        }
         me.nakilex.levelplugin.player.classes.data.PlayerClass reqClass = null;
         if (clsReqRaw != null && !clsReqRaw.isBlank()) {
             reqClass = me.nakilex.levelplugin.player.classes.data.PlayerClass.fromString(clsReqRaw);
@@ -291,42 +322,7 @@ public class ItemUtil {
         // --- Stats Information ---
         String prefix = parsePrefix(cItem.getBaseName());
         StatsManager.StatType prefixStat = prefix != null ? PREFIX_MAP.get(prefix) : null;
-        int vit = cItem.getHp() + cItem.getDef();
-        if (vit != 0) {
-            String line = GuiUtil.formatStatLine(StatsManager.StatType.VIT, vit, false);
-            if (prefixStat == StatsManager.StatType.VIT) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
-        if (cItem.getStr() != 0) {
-            String line = GuiUtil.formatStatLine(StatsManager.StatType.STR, cItem.getStr(), false);
-            if (prefixStat == StatsManager.StatType.STR) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
-        if (cItem.getAgi() != 0) {
-            String line = GuiUtil.formatStatLine(StatsManager.StatType.AGI, cItem.getAgi(), false);
-            if (prefixStat == StatsManager.StatType.AGI) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
-        if (cItem.getIntel() != 0) {
-            String line = GuiUtil.formatStatLine(StatsManager.StatType.INT, cItem.getIntel(), false);
-            if (prefixStat == StatsManager.StatType.INT) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
-        if (cItem.getDex() != 0) {
-            String line = GuiUtil.formatStatLine(StatsManager.StatType.DEX, cItem.getDex(), false);
-            if (prefixStat == StatsManager.StatType.DEX) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
-        if (cItem.getWil() != 0) {
-            String line = GuiUtil.formatStatLine(StatsManager.StatType.WIL, cItem.getWil(), false);
-            if (prefixStat == StatsManager.StatType.WIL) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
-        if (cItem.getTec() != 0) {
-            String line = GuiUtil.formatStatLine(StatsManager.StatType.TEC, cItem.getTec(), false);
-            if (prefixStat == StatsManager.StatType.TEC) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
+        addStatLines(lore, cItem, prefixStat);
 
         lore.add("");
         if (cItem.isBroken()) {
@@ -533,42 +529,7 @@ public class ItemUtil {
         // --- Stats Information ---
         String prefix = parsePrefix(cItem.getBaseName());
         StatsManager.StatType prefixStat = prefix != null ? PREFIX_MAP.get(prefix) : null;
-        int vit = cItem.getHp() + cItem.getDef();
-        if (vit != 0) {
-            String line = GuiUtil.formatStatLine(StatsManager.StatType.VIT, vit, false);
-            if (prefixStat == StatsManager.StatType.VIT) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
-        if (cItem.getStr() != 0) {
-            String line = GuiUtil.formatStatLine(StatsManager.StatType.STR, cItem.getStr(), false);
-            if (prefixStat == StatsManager.StatType.STR) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
-        if (cItem.getAgi() != 0) {
-            String line = GuiUtil.formatStatLine(StatsManager.StatType.AGI, cItem.getAgi(), false);
-            if (prefixStat == StatsManager.StatType.AGI) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
-        if (cItem.getIntel() != 0) {
-            String line = GuiUtil.formatStatLine(StatsManager.StatType.INT, cItem.getIntel(), false);
-            if (prefixStat == StatsManager.StatType.INT) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
-        if (cItem.getDex() != 0) {
-            String line = GuiUtil.formatStatLine(StatsManager.StatType.DEX, cItem.getDex(), false);
-            if (prefixStat == StatsManager.StatType.DEX) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
-        if (cItem.getWil() != 0) {
-            String line = GuiUtil.formatStatLine(StatsManager.StatType.WIL, cItem.getWil(), false);
-            if (prefixStat == StatsManager.StatType.WIL) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
-        if (cItem.getTec() != 0) {
-            String line = GuiUtil.formatStatLine(StatsManager.StatType.TEC, cItem.getTec(), false);
-            if (prefixStat == StatsManager.StatType.TEC) line += ChatColor.LIGHT_PURPLE + " (" + "+" + PREFIX_BONUS + ")";
-            lore.add(line);
-        }
+        addStatLines(lore, cItem, prefixStat);
 
 
         lore.add(""); // Blank line before rarity

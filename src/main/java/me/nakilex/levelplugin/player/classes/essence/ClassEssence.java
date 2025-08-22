@@ -7,13 +7,15 @@ import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.TooltipUtil;
-import me.nakilex.levelplugin.utils.TextUtil;
+import com.nexomc.nexo.api.NexoItems;
+import com.nexomc.nexo.items.ItemBuilder;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -39,6 +41,19 @@ public final class ClassEssence {
     private static final NamespacedKey SOULBOUND_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ClassEssence.class), "essence_soulbound");
 
     private record AttrData(int value, boolean percent) {}
+
+    private static final java.util.Map<PlayerClass, String> CLASS_NEXO_IDS = java.util.Map.of(
+            PlayerClass.MAGE, "riptide",
+            PlayerClass.WARRIOR, "sharpness",
+            PlayerClass.CLERIC, "smite",
+            PlayerClass.ROGUE, "protection",
+            PlayerClass.ARCHER, "projectile_protection",
+            PlayerClass.AWAKMAGE, "wind_burst",
+            PlayerClass.AWAKROGUE, "unbreaking",
+            PlayerClass.AWAKWARRIOR, "sweeping_edge",
+            PlayerClass.AWAKARCHER, "piercing",
+            PlayerClass.AWAKCLERIC, "mending"
+    );
 
     private ClassEssence() {}
 
@@ -107,10 +122,14 @@ public final class ClassEssence {
      */
     public static ItemStack create(PlayerClass clazz, ItemRarity rarity, int starLevel,
                                    Map<StatType, AttrData> attributes, boolean soulbound) {
-        ItemStack stack = new ItemStack(Material.BOOK);
+        ItemStack stack = buildBaseItem(clazz);
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) return stack;
 
+        // Remove any existing enchants so new essences are not glinting by default
+        for (Enchantment ench : new java.util.ArrayList<>(meta.getEnchants().keySet())) {
+            meta.removeEnchant(ench);
+        }
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS);
 
         int exp = 0;
@@ -135,6 +154,21 @@ public final class ClassEssence {
     }
 
     /**
+     * Build the base ItemStack for an essence using class-specific Nexo items
+     * when available. Falls back to a standard book if no mapping exists.
+     */
+    private static ItemStack buildBaseItem(PlayerClass clazz) {
+        String id = CLASS_NEXO_IDS.get(clazz);
+        if (id != null) {
+            ItemBuilder builder = NexoItems.itemFromId(id);
+            if (builder != null) {
+                return builder.build();
+            }
+        }
+        return new ItemStack(Material.BOOK);
+    }
+
+    /**
      * Determine how many attribute slots an essence of the given rarity should have.
      */
     public static int getAttributeSlots(ItemRarity rarity) {
@@ -146,18 +180,6 @@ public final class ClassEssence {
             case LEGENDARY -> 5;
             case MYTHIC -> 6;
             case FABLED -> 7;
-        };
-    }
-
-    private static double getRarityMult(ItemRarity rarity) {
-        return switch (rarity) {
-            case COMMON -> 0.0;
-            case UNCOMMON -> 0.05;
-            case RARE -> 0.10;
-            case EPIC -> 0.20;
-            case LEGENDARY -> 0.30;
-            case MYTHIC -> 0.40;
-            case FABLED -> 0.50;
         };
     }
 
@@ -181,14 +203,21 @@ public final class ClassEssence {
         int percentSlots = Math.min(starLevel, slots);
         for (int i = 0; i < slots && i < stats.size(); i++) {
             StatType st = stats.get(i);
-            int base = 10 + rand.nextInt(91);
-            double rarityMult = 1.0 + getRarityMult(rarity);
-            double starMult = 1.0 + (starLevel * 0.05);
-            int value = (int)Math.round(base * rarityMult * starMult);
+            int value = rollStatValue(rarity, starLevel, rand);
             boolean percent = i < percentSlots;
             map.put(st, new AttrData(value, percent));
         }
         return map;
+    }
+
+    /** Roll a balanced stat value based on rarity and star level. */
+    private static int rollStatValue(ItemRarity rarity, int starLevel, Random rand) {
+        int ord = rarity.ordinal();
+        int min = 1 + ord;
+        int max = min + 2 + ord; // growing range per rarity
+        int base = rand.nextInt(max - min + 1) + min;
+        double starMult = 1.0 + (starLevel * 0.05);
+        return (int) Math.round(base * starMult);
     }
 
     /**
@@ -230,8 +259,13 @@ public final class ClassEssence {
         if (meta == null) return;
         PersistentDataContainer pdc = meta.getPersistentDataContainer();
         pdc.set(EQUIPPED_KEY, PersistentDataType.BYTE, equipped ? (byte)1 : (byte)0);
+        meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+        if (equipped) {
+            meta.addEnchant(Enchantment.UNBREAKING, 1, true);
+        } else {
+            meta.removeEnchant(Enchantment.UNBREAKING);
+        }
         stack.setItemMeta(meta);
-        stack.setType(equipped ? Material.ENCHANTED_BOOK : Material.BOOK);
     }
 
     public static boolean isEquipped(ItemStack stack) {
@@ -464,7 +498,8 @@ public final class ClassEssence {
         int next = pdc.has(NEXT_EXP_KEY, PersistentDataType.INTEGER) ? pdc.get(NEXT_EXP_KEY, PersistentDataType.INTEGER) : 0;
         Map<StatType, AttrData> attrs = getAttributes(stack);
 
-        String className = TextUtil.beautifyWords(pdc.get(CLASS_KEY, PersistentDataType.STRING));
+        PlayerClass pc = PlayerClass.valueOf(pdc.get(CLASS_KEY, PersistentDataType.STRING));
+        String className = pc.getDisplayName();
         String stars = GuiUtil.glyphStars(star);
         meta.setDisplayName(rarity.getColor() + className + " Essence " + stars);
 
@@ -476,8 +511,11 @@ public final class ClassEssence {
         lore.add("<glyph:sword_icon> " + ChatColor.GRAY + "Gear Score: "
                 + ChatColor.LIGHT_PURPLE + ChatColor.BOLD + gearScore);
         lore.add("");
-        for (Map.Entry<StatType, AttrData> e : attrs.entrySet()) {
-            lore.add(GuiUtil.formatStatLine(e.getKey(), e.getValue().value, e.getValue().percent));
+        for (StatType type : StatType.DISPLAY_ORDER) {
+            AttrData data = attrs.get(type);
+            if (data != null) {
+                lore.add(GuiUtil.formatStatLine(type, data.value, data.percent));
+            }
         }
         lore.add("");
         String bar = TooltipUtil.progressBar(exp, next, 15);

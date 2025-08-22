@@ -219,6 +219,19 @@ public class CustomItem {
     public int getWil()   { return baseWil   + bonusWil; }
     public int getTec()   { return baseTec   + bonusTec; }
 
+    /** Retrieve the total value for the given stat type. */
+    public int getStat(StatType type) {
+        return switch (type) {
+            case VIT -> getHp() + getDef();
+            case STR -> getStr();
+            case AGI -> getAgi();
+            case INT -> getIntel();
+            case DEX -> getDex();
+            case WIL -> getWil();
+            case TEC -> getTec();
+        };
+    }
+
     public int getUpgradeLevel() { return upgradeLevel; }
     public int getEnchantCount() { return enchantCount; }
 

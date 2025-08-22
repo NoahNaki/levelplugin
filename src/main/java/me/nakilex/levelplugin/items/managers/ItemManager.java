@@ -88,6 +88,17 @@ public class ItemManager {
                 String classReq   = itemsConfig.getString(path + "class_requirement", "ANY");
                 Material material = Material.valueOf(
                     itemsConfig.getString(path + "material", "STONE").toUpperCase());
+                // Normalize class requirement based on weapon family if mismatched
+                me.nakilex.levelplugin.items.data.WeaponType wt =
+                        me.nakilex.levelplugin.items.data.WeaponType.matchType(new org.bukkit.inventory.ItemStack(material));
+                if (wt != null) {
+                    classReq = switch (wt) {
+                        case WAND -> "MAGE";
+                        case BOW -> "ARCHER";
+                        case SHOVEL, AXE -> "WARRIOR";
+                        case SWORD -> "ROGUE";
+                    };
+                }
 
                 // === NEW: parse StatRanges instead of ints ===
                 StatRange hpRange    = StatRange.fromString(
