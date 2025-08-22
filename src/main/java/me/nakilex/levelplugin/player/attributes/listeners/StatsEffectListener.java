@@ -54,9 +54,12 @@ public class StatsEffectListener implements Listener {
 
         // Determine if a player is responsible for the damage
         Player player = null;
+        SpellContextManager.Context ctx = null; // may hold basic-attack flag
         if (damager instanceof Player p) {
             boolean sweeping = p.hasMetadata(SweepAttack.SWEEP_META);
-            if (!sweeping && p.getAttackCooldown() < 1.0f) {
+            ctx = SpellContextManager.peek(p.getUniqueId());
+            boolean basic = ctx != null && ctx.basicAttack;
+            if (!sweeping && !basic && p.getAttackCooldown() < 1.0f) {
                 event.setCancelled(true);
                 return;
             }
@@ -67,6 +70,7 @@ public class StatsEffectListener implements Listener {
                 player = null;
             } else {
                 player = shooter;
+                ctx = SpellContextManager.peek(shooter.getUniqueId());
             }
         }
 
@@ -87,7 +91,9 @@ public class StatsEffectListener implements Listener {
             double critChance = (double) totalDexterity / (totalDexterity + 100.0);
             critChance = Math.max(0.0, Math.min(1.0, critChance));
 
-            SpellContextManager.Context ctx = SpellContextManager.peek(player.getUniqueId());
+            if (ctx == null) {
+                ctx = SpellContextManager.peek(player.getUniqueId());
+            }
             boolean isCrit = (ctx != null) ? ctx.isCrit : random.nextDouble() < critChance;
             if (isCrit) finalDamage *= 2;
 
