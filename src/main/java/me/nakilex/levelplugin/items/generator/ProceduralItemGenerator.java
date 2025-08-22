@@ -8,10 +8,15 @@ import me.nakilex.levelplugin.items.managers.ItemManager;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.configuration.ConfigurationSection;
 
 import java.io.File;
 import java.util.List;
 import java.util.Random;
+import java.util.Map;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Collections;
 
 /**
  * Simple procedural item generator used for testing. It builds item names
@@ -53,7 +58,9 @@ public class ProceduralItemGenerator {
 
         // Currently only armor is generated
         boolean createArmor = true;
-        String base = pickBaseName(clazz, createArmor);
+        Map.Entry<String, String> base = pickBaseName(clazz, createArmor);
+        String basePart = base.getKey();
+        String baseDisplay = base.getValue();
         int baseVal = Math.max(1, level);
 
         int hp = 0, def = 0, str = 0, agi = 0, intel = 0, dex = 0, wil = 0, tec = 0;
@@ -116,8 +123,8 @@ public class ProceduralItemGenerator {
         tec   = (int) (tec * mult);
 
         String dominant = getDominantStat(str, agi, intel, dex, def);
-        String name = buildName(mobType, base, rarity, dominant);
-        Material material = createArmor ? pickArmorMaterial(level, base) : pickWeaponMaterial(clazz, level);
+        String name = buildName(mobType, baseDisplay, rarity, dominant);
+        Material material = createArmor ? pickArmorMaterial(level, basePart) : pickWeaponMaterial(clazz, level);
 
         String classReq = createArmor ? "ANY" : clazz;
 
@@ -198,14 +205,29 @@ public class ProceduralItemGenerator {
         return classes[random.nextInt(classes.length)];
     }
 
-    private String pickBaseName(String clazz, boolean armor) {
-        List<String> list = armor ?
-                namesConfig.getStringList("armor_types.general") :
-                namesConfig.getStringList("weapon_types." + clazz);
-        if (list.isEmpty()) {
-            list.add(armor ? "Boots" : "Item");
+    private Map.Entry<String, String> pickBaseName(String clazz, boolean armor) {
+        if (armor) {
+            ConfigurationSection sec = namesConfig.getConfigurationSection("armor_types");
+            if (sec == null || sec.getKeys(false).isEmpty()) {
+                return new AbstractMap.SimpleEntry<>("Boots", "Boots");
+            }
+            List<String> parts = new ArrayList<>(sec.getKeys(false));
+            String part = parts.get(random.nextInt(parts.size()));
+            List<String> names = sec.getStringList(part);
+            if (names.isEmpty()) {
+                names = Collections.singletonList(part);
+            }
+            String display = names.get(random.nextInt(names.size()));
+            String canonical = Character.toUpperCase(part.charAt(0)) + part.substring(1);
+            return new AbstractMap.SimpleEntry<>(canonical, display);
         }
-        return list.get(random.nextInt(list.size()));
+
+        List<String> list = namesConfig.getStringList("weapon_types." + clazz);
+        if (list.isEmpty()) {
+            list.add("Item");
+        }
+        String display = list.get(random.nextInt(list.size()));
+        return new AbstractMap.SimpleEntry<>(display, display);
     }
 
     private Material pickWeaponMaterial(String clazz, int level) {
