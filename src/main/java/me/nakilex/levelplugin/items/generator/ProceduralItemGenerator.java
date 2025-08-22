@@ -69,7 +69,7 @@ public class ProceduralItemGenerator {
             Map.Entry<String, String> base = pickWeaponName(clazz);
             baseDisplay = base.getValue();
         }
-        int hp, def, str, agi, intel, dex, wil, tec;
+        int hp = 0, def, str, agi, intel, dex, wil, tec;
 
         if (createArmor) {
             hp  = scaleStat(level, rarity, 2.0);
