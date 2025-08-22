@@ -87,11 +87,12 @@ public class StatsEffectListener implements Listener {
             double critChance = (double) totalDexterity / (totalDexterity + 100.0);
             critChance = Math.max(0.0, Math.min(1.0, critChance));
 
-            boolean isCrit = random.nextDouble() < critChance;
+            SpellContextManager.Context ctx = SpellContextManager.peek(player.getUniqueId());
+            boolean isCrit = (ctx != null) ? ctx.isCrit : random.nextDouble() < critChance;
             if (isCrit) finalDamage *= 2;
 
-            // If this hit isn't associated with a spell, treat it as a basic attack
-            if (!SpellContextManager.hasPending(player.getUniqueId())) {
+            // Treat untagged hits and basic-attack spells the same
+            if (ctx == null || ctx.basicAttack) {
                 finalDamage *= BASIC_ATTACK_MULTIPLIER;
             }
 

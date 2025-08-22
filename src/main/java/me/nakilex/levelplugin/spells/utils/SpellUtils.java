@@ -98,7 +98,7 @@ public class SpellUtils {
 
         // Apply the damage
         SpellContextManager.applySpellDamage(
-            caster, target, rawDamage, spellName, false
+            caster, target, rawDamage, spellName, false, false
         );
         //logger.info("dealWithChat: applySpellDamage called for " + caster.getName());
 
