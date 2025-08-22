@@ -19,6 +19,8 @@ import me.nakilex.levelplugin.party.Party;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.utils.ExperienceUtil;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.LivingEntity;
@@ -32,7 +34,12 @@ import me.nakilex.levelplugin.utils.ChatFormatter;
 import org.bukkit.ChatColor;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -104,15 +111,41 @@ public class MythicMobRewardListener implements Listener {
         int minCoins = Integer.parseInt(sp[0]);
         int maxCoins = Integer.parseInt(sp[1]);
 
-        for (Player player : participants) {
-            PartyManager pm = Main.getInstance().getPartyManager();
-            Party party = pm.getParty(player.getUniqueId());
-            int bonusPercent = 0;
+        Location deathLoc = event.getEntity().getLocation();
+        PartyManager pm = Main.getInstance().getPartyManager();
+        Set<Player> recipients = new HashSet<>();
+        for (Player participant : participants) {
+            Party party = pm.getParty(participant.getUniqueId());
             if (party != null) {
-                int size = party.getSize();
-                bonusPercent = Math.min(Math.max(size - 1, 0), 3) * 10;
+                for (UUID memberId : party.getMembers()) {
+                    Player member = Bukkit.getPlayer(memberId);
+                    if (member != null && member.getWorld().equals(deathLoc.getWorld())
+                            && member.getLocation().distanceSquared(deathLoc) <= 10000) {
+                        recipients.add(member);
+                    }
+                }
+            } else if (participant.getWorld().equals(deathLoc.getWorld())
+                    && participant.getLocation().distanceSquared(deathLoc) <= 10000) {
+                recipients.add(participant);
             }
-            int awardedExp = exp + (exp * bonusPercent) / 100;
+        }
+
+        Map<Party, List<Player>> nearbyPartyMembers = new HashMap<>();
+        for (Player p : recipients) {
+            Party party = pm.getParty(p.getUniqueId());
+            if (party != null) {
+                nearbyPartyMembers.computeIfAbsent(party, k -> new java.util.ArrayList<>()).add(p);
+            }
+        }
+
+        for (Player player : recipients) {
+            Party party = pm.getParty(player.getUniqueId());
+            int partySize = 1;
+            if (party != null) {
+                partySize = nearbyPartyMembers.getOrDefault(party, List.of()).size();
+            }
+            int scaledExp = ExperienceUtil.scaleExperience(exp, levelManager.getLevel(player), mythicMob.getLevel());
+            int awardedExp = ExperienceUtil.applyPartyBonus(scaledExp, partySize);
             levelManager.addXP(player, awardedExp);
             int coins = ThreadLocalRandom.current().nextInt(minCoins, maxCoins + 1);
             economyManager.addCoins(player, coins);
@@ -132,7 +165,6 @@ public class MythicMobRewardListener implements Listener {
             itemDropper.maybeDropRerollScroll(player);
             var settings = Main.getInstance().getSettingsManager().getSettings(player);
             if (settings.isDropDetailsEnabled()) {
-                Location deathLoc = event.getEntity().getLocation();
                 RewardHologramUtil.showRewardHologram(deathLoc, awardedExp, coins);
             }
             if (settings.isDropDetailsChatEnabled()) {
