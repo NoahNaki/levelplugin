@@ -76,7 +76,9 @@ public class ProfileManager {
         me.nakilex.levelplugin.player.attributes.managers.StatsManager stats =
                 me.nakilex.levelplugin.player.attributes.managers.StatsManager.getInstance();
         stats.resetPlayer(uuid);
-        me.nakilex.levelplugin.player.level.managers.LevelManager.getInstance().setLevel(uuid, 1);
+        me.nakilex.levelplugin.player.level.managers.LevelManager lm =
+                me.nakilex.levelplugin.player.level.managers.LevelManager.getInstance();
+        lm.setLevel(uuid, 1);
         me.nakilex.levelplugin.Main plugin = me.nakilex.levelplugin.Main.getInstance();
         if (plugin.getEconomyManager() != null) {
             plugin.getEconomyManager().setBalance(uuid, 0);
@@ -104,6 +106,9 @@ public class ProfileManager {
         player.getInventory().setItemInOffHand(null);
         PotionEffectUtil.clearAllEffects(player);
         stats.recalcDerivedStats(player);
+        // Reset the player's visible XP bar to match the wiped profile
+        me.nakilex.levelplugin.player.level.managers.XPBarHandler.updateXPBar(player, lm);
+
         me.nakilex.levelplugin.player.config.PlayerConfig cfg = plugin.getPlayerConfig();
         cfg.clearEnvironmentData(uuid);
         cfg.clearFastTravelData(uuid);

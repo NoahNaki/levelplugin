@@ -73,7 +73,6 @@ public class EffectRegistry {
         register("MYTHIC_JUDGEMENT", new MythicSkillEffect("Judgement"));
         register("MYTHIC_RAMPAGE", new MythicSkillEffect("Rampage"));
         register("SHOCKWAVE", new me.nakilex.levelplugin.spells.effect.warrior.ShockwaveEffect());
-        register("HEROIC_LEAP", new me.nakilex.levelplugin.spells.effect.warrior.HeroicLeapEffect());
 
         // No legacy warrior or rogue spell effects retained
 

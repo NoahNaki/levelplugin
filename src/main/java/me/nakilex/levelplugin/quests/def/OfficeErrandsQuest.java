@@ -78,13 +78,13 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
 
         // Close the office elevator once the player should have the world loaded
         Bukkit.getScheduler().runTaskLater(plugin,
-                () -> gates.closeGate(player, gateId),
+                () -> gates.closeGateInstant(player, gateId),
                 40L);
 
         // Close the destination elevator and its interior gate since they
         // default to open for all players
-        gates.closeGate(player, worldGateId);
-        gates.closeGate(player, roomGateId);
+        gates.closeGateInstant(player, worldGateId);
+        gates.closeGateInstant(player, roomGateId);
 
         // After blindness wears off, send initial dialog line
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
@@ -175,7 +175,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                                        String gateId, String worldGateId,
                                        String roomGateId) {
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            gates.closeGate(player, gateId);
+            gates.closeGateInstant(player, gateId);
 
             World rWorld = Bukkit.getWorld("redrocks");
             if (rWorld == null) return;
@@ -216,7 +216,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
 
                             if (destWorld != null) {
                                 destWorld.getChunkAt(destMin).load();
-                                gates.closeGate(player, roomGateId);
+                                gates.closeGateInstant(player, roomGateId);
                                 Location dest = destMin.clone().add(
                                         cur.getX() - originMin.getX(),
                                         cur.getY() - originMin.getY(),
@@ -231,8 +231,8 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                                     // outer world door are closed immediately after
                                     // the player arrives so the opening animation
                                     // starts from a closed state.
-                                    gates.closeGate(player, roomGateId);
-                                    gates.closeGate(player, worldGateId);
+                                    gates.closeGateInstant(player, roomGateId);
+                                    gates.closeGateInstant(player, worldGateId);
                                 }, 1L);
                                 Bukkit.getScheduler().runTaskLater(plugin,
                                         () -> gates.openGate(player, worldGateId), 40L);

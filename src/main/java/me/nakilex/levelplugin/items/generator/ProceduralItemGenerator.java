@@ -57,8 +57,8 @@ public class ProceduralItemGenerator {
         ItemRarity rarity = rollRarity(level);
         String clazz = pickClassForMob(mobType);
 
-        // Currently only armor is generated
-        boolean createArmor = true;
+        // Randomly decide whether to create armor or a weapon
+        boolean createArmor = random.nextBoolean();
         ArmorType armorSlot = null;
         String baseDisplay;
         if (createArmor) {
