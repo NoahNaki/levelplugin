@@ -260,10 +260,11 @@ public final class ClassEssence {
         if (meta == null) return;
         PersistentDataContainer pdc = meta.getPersistentDataContainer();
         pdc.set(EQUIPPED_KEY, PersistentDataType.BYTE, equipped ? (byte)1 : (byte)0);
+        meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
         if (equipped) {
-            meta.addEnchant(Enchantment.DURABILITY, 1, true);
+            meta.addEnchant(Enchantment.UNBREAKING, 1, true);
         } else {
-            meta.removeEnchant(Enchantment.DURABILITY);
+            meta.removeEnchant(Enchantment.UNBREAKING);
         }
         stack.setItemMeta(meta);
     }
