@@ -48,7 +48,12 @@ public final class ClassEssence {
             PlayerClass.WARRIOR, "sharpness",
             PlayerClass.CLERIC, "smite",
             PlayerClass.ROGUE, "protection",
-            PlayerClass.ARCHER, "projectile_protection"
+            PlayerClass.ARCHER, "projectile_protection",
+            PlayerClass.AWAKMAGE, "windburst",
+            PlayerClass.AWAKROGUE, "unbreaking",
+            PlayerClass.AWAKWARRIOR, "sweeping_edge",
+            PlayerClass.AWAKARCHER, "piercing",
+            PlayerClass.AWAKCLERIC, "mending"
     );
 
     private ClassEssence() {}

@@ -18,6 +18,8 @@ public enum PlayerClass {
     AWAKROGUE(1),
     AWAKWARRIOR(1),
     AWAKARCHER(1),
+    AWAKMAGE(1),
+    AWAKCLERIC(1),
     ARCHMAGE(1),
     DEADEYE(1),
 
