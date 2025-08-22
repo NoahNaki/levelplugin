@@ -20,9 +20,12 @@ public class StatsEffectListener implements Listener {
 
     private final Random random = new Random();
 
-    // Basic attacks should deal far less damage so spells feel impactful
-    // 0.12 == 30% of the previous 0.4 scaling
-    public static final double BASIC_ATTACK_MULTIPLIER = 0.12;
+    // Basic attacks still trail spells but shouldn't feel useless
+    // 0.20 ~= half of the original 0.4 scaling
+    public static final double BASIC_ATTACK_MULTIPLIER = 0.60;
+
+    // Slightly boost spell damage so they retain the edge over basics
+    public static final double SPELL_DAMAGE_MULTIPLIER = 1.10;
 
     // Track whether each player's last hit was a crit
     private static final Map<UUID, Boolean> lastCritMap = new ConcurrentHashMap<>();
@@ -54,9 +57,12 @@ public class StatsEffectListener implements Listener {
 
         // Determine if a player is responsible for the damage
         Player player = null;
+        SpellContextManager.Context ctx = null; // may hold basic-attack flag
         if (damager instanceof Player p) {
             boolean sweeping = p.hasMetadata(SweepAttack.SWEEP_META);
-            if (!sweeping && p.getAttackCooldown() < 1.0f) {
+            ctx = SpellContextManager.peek(p.getUniqueId());
+            boolean basic = ctx != null && ctx.basicAttack;
+            if (!sweeping && !basic && p.getAttackCooldown() < 1.0f) {
                 event.setCancelled(true);
                 return;
             }
@@ -67,6 +73,7 @@ public class StatsEffectListener implements Listener {
                 player = null;
             } else {
                 player = shooter;
+                ctx = SpellContextManager.peek(shooter.getUniqueId());
             }
         }
 
@@ -87,14 +94,17 @@ public class StatsEffectListener implements Listener {
             double critChance = (double) totalDexterity / (totalDexterity + 100.0);
             critChance = Math.max(0.0, Math.min(1.0, critChance));
 
-            SpellContextManager.Context ctx = SpellContextManager.peek(player.getUniqueId());
+            if (ctx == null) {
+                ctx = SpellContextManager.peek(player.getUniqueId());
+            }
             boolean isCrit = (ctx != null) ? ctx.isCrit : random.nextDouble() < critChance;
             if (isCrit) finalDamage *= 2;
 
-            // Treat untagged hits and basic-attack spells the same
-            if (ctx == null || ctx.basicAttack) {
-                finalDamage *= BASIC_ATTACK_MULTIPLIER;
-            }
+            // Apply type-based multiplier to keep spells ahead of basics
+            double scale = (ctx == null || ctx.basicAttack)
+                ? BASIC_ATTACK_MULTIPLIER
+                : SPELL_DAMAGE_MULTIPLIER;
+            finalDamage *= scale;
 
             me.nakilex.levelplugin.Main.getPlugin().getLogger().info(
                 "[StatsEffect] dmg=" + event.getDamage() + "->" + finalDamage +
