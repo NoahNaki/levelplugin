@@ -183,18 +183,6 @@ public final class ClassEssence {
         };
     }
 
-    private static double getRarityMult(ItemRarity rarity) {
-        return switch (rarity) {
-            case COMMON -> 0.0;
-            case UNCOMMON -> 0.05;
-            case RARE -> 0.10;
-            case EPIC -> 0.20;
-            case LEGENDARY -> 0.30;
-            case MYTHIC -> 0.40;
-            case FABLED -> 0.50;
-        };
-    }
-
     private static int getRarityThreshold(ItemRarity rarity) {
         return switch (rarity) {
             case COMMON -> 100;
@@ -215,14 +203,21 @@ public final class ClassEssence {
         int percentSlots = Math.min(starLevel, slots);
         for (int i = 0; i < slots && i < stats.size(); i++) {
             StatType st = stats.get(i);
-            int base = 10 + rand.nextInt(91);
-            double rarityMult = 1.0 + getRarityMult(rarity);
-            double starMult = 1.0 + (starLevel * 0.05);
-            int value = (int)Math.round(base * rarityMult * starMult);
+            int value = rollStatValue(rarity, starLevel, rand);
             boolean percent = i < percentSlots;
             map.put(st, new AttrData(value, percent));
         }
         return map;
+    }
+
+    /** Roll a balanced stat value based on rarity and star level. */
+    private static int rollStatValue(ItemRarity rarity, int starLevel, Random rand) {
+        int ord = rarity.ordinal();
+        int min = 1 + ord;
+        int max = min + 2 + ord; // growing range per rarity
+        int base = rand.nextInt(max - min + 1) + min;
+        double starMult = 1.0 + (starLevel * 0.05);
+        return (int) Math.round(base * starMult);
     }
 
     /**
