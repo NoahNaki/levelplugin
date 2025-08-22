@@ -1,15 +1,22 @@
 package me.nakilex.levelplugin.items.commands;
 
-import me.nakilex.levelplugin.items.managers.ItemManager;
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.data.CustomItem;
+import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 
-public class GenerateItemCommand implements CommandExecutor {
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
+public class GenerateItemCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         if (args.length < 2) {
@@ -58,5 +65,42 @@ public class GenerateItemCommand implements CommandExecutor {
 
         sender.sendMessage("§aGenerated " + amount + " item(s) for " + target.getName());
         return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        List<String> suggestions = new ArrayList<>();
+        if (args.length == 1) {
+            String start = args[0].toLowerCase(Locale.ROOT);
+            Bukkit.getOnlinePlayers().forEach(p -> {
+                if (p.getName().toLowerCase(Locale.ROOT).startsWith(start)) {
+                    suggestions.add(p.getName());
+                }
+            });
+            ConfigurationSection mobs = Main.getInstance().getMobRewardsConfig().getConfig().getConfigurationSection("mobs");
+            if (mobs != null) {
+                for (String key : mobs.getKeys(false)) {
+                    if (key.toLowerCase(Locale.ROOT).startsWith(start)) {
+                        suggestions.add(key);
+                    }
+                }
+            }
+            return suggestions;
+        }
+        if (args.length == 2) {
+            Player possible = Bukkit.getPlayerExact(args[0]);
+            if (possible != null) {
+                String start = args[1].toLowerCase(Locale.ROOT);
+                ConfigurationSection mobs = Main.getInstance().getMobRewardsConfig().getConfig().getConfigurationSection("mobs");
+                if (mobs != null) {
+                    for (String key : mobs.getKeys(false)) {
+                        if (key.toLowerCase(Locale.ROOT).startsWith(start)) {
+                            suggestions.add(key);
+                        }
+                    }
+                }
+            }
+        }
+        return suggestions;
     }
 }
