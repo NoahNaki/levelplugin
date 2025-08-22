@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.player.attributes.listeners;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStats;
 import me.nakilex.levelplugin.mob.utils.SweepAttack;
+import me.nakilex.levelplugin.spells.managers.SpellContextManager;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -18,6 +19,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public class StatsEffectListener implements Listener {
 
     private final Random random = new Random();
+
+    // Basic attacks should deal less damage so spells feel impactful
+    public static final double BASIC_ATTACK_MULTIPLIER = 0.4;
 
     // Track whether each player's last hit was a crit
     private static final Map<UUID, Boolean> lastCritMap = new ConcurrentHashMap<>();
@@ -84,6 +88,11 @@ public class StatsEffectListener implements Listener {
 
             boolean isCrit = random.nextDouble() < critChance;
             if (isCrit) finalDamage *= 2;
+
+            // If this hit isn't associated with a spell, treat it as a basic attack
+            if (!SpellContextManager.hasPending(player.getUniqueId())) {
+                finalDamage *= BASIC_ATTACK_MULTIPLIER;
+            }
 
             me.nakilex.levelplugin.Main.getPlugin().getLogger().info(
                 "[StatsEffect] dmg=" + event.getDamage() + "->" + finalDamage +

@@ -36,6 +36,11 @@ public class MythicSkillEffect implements SpellEffect {
 
         double damage = ctx.getFinalDamage() + primary * 0.5;
 
+        // Basic attacks get toned down to keep spells feeling powerful
+        if ("BASIC_ATTACK".equals(ctx.getBaseSpell().getCombo())) {
+            damage *= StatsEffectListener.BASIC_ATTACK_MULTIPLIER;
+        }
+
         // Technique scales overall damage
         int totalTec = stats.baseTechnique + stats.bonusTechnique;
         damage *= (1.0 + totalTec * 0.003);

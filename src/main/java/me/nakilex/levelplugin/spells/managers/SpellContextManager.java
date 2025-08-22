@@ -27,6 +27,11 @@ public class SpellContextManager {
         return ctx;
     }
 
+    /** Returns true if the player has a pending spell damage context. */
+    public static boolean hasPending(UUID playerId) {
+        return pending.containsKey(playerId);
+    }
+
     public static void applySpellDamage(Player caster,
                                         LivingEntity target,
                                         double damage,
