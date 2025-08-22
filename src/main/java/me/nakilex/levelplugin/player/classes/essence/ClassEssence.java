@@ -8,12 +8,15 @@ import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.TextUtil;
+import com.nexomc.nexo.api.NexoItems;
+import com.nexomc.nexo.items.ItemBuilder;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -39,6 +42,14 @@ public final class ClassEssence {
     private static final NamespacedKey SOULBOUND_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ClassEssence.class), "essence_soulbound");
 
     private record AttrData(int value, boolean percent) {}
+
+    private static final java.util.Map<PlayerClass, String> CLASS_NEXO_IDS = java.util.Map.of(
+            PlayerClass.MAGE, "riptide",
+            PlayerClass.WARRIOR, "sharpness",
+            PlayerClass.CLERIC, "smite",
+            PlayerClass.ROGUE, "protection",
+            PlayerClass.ARCHER, "projectile_protection"
+    );
 
     private ClassEssence() {}
 
@@ -107,10 +118,14 @@ public final class ClassEssence {
      */
     public static ItemStack create(PlayerClass clazz, ItemRarity rarity, int starLevel,
                                    Map<StatType, AttrData> attributes, boolean soulbound) {
-        ItemStack stack = new ItemStack(Material.BOOK);
+        ItemStack stack = buildBaseItem(clazz);
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) return stack;
 
+        // Remove any existing enchants so new essences are not glinting by default
+        for (Enchantment ench : new java.util.ArrayList<>(meta.getEnchants().keySet())) {
+            meta.removeEnchant(ench);
+        }
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS);
 
         int exp = 0;
@@ -132,6 +147,21 @@ public final class ClassEssence {
         stack.setItemMeta(meta);
         updateLore(stack);
         return stack;
+    }
+
+    /**
+     * Build the base ItemStack for an essence using class-specific Nexo items
+     * when available. Falls back to a standard book if no mapping exists.
+     */
+    private static ItemStack buildBaseItem(PlayerClass clazz) {
+        String id = CLASS_NEXO_IDS.get(clazz);
+        if (id != null) {
+            ItemBuilder builder = NexoItems.itemFromId(id);
+            if (builder != null) {
+                return builder.build();
+            }
+        }
+        return new ItemStack(Material.BOOK);
     }
 
     /**
@@ -230,8 +260,12 @@ public final class ClassEssence {
         if (meta == null) return;
         PersistentDataContainer pdc = meta.getPersistentDataContainer();
         pdc.set(EQUIPPED_KEY, PersistentDataType.BYTE, equipped ? (byte)1 : (byte)0);
+        if (equipped) {
+            meta.addEnchant(Enchantment.DURABILITY, 1, true);
+        } else {
+            meta.removeEnchant(Enchantment.DURABILITY);
+        }
         stack.setItemMeta(meta);
-        stack.setType(equipped ? Material.ENCHANTED_BOOK : Material.BOOK);
     }
 
     public static boolean isEquipped(ItemStack stack) {
