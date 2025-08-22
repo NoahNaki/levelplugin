@@ -102,6 +102,7 @@ public class ItemUtil {
     private static final String MODEL_SET_11_20 = "dwarven11_20";
     private static final String MODEL_SET_21_30 = "conqueror21_30";
     private static final String MODEL_SET_31_45 = "assortment31_45";
+    private static final String MODEL_SET_46_60 = "demonking46_60";
 
     /**
      * Determine which model set should be used for the given level.
@@ -114,6 +115,7 @@ public class ItemUtil {
         if (level <= 20) return MODEL_SET_11_20;
         if (level <= 30) return MODEL_SET_21_30;
         if (level <= 45) return MODEL_SET_31_45;
+        if (level <= 60) return MODEL_SET_46_60;
         return null;
     }
 

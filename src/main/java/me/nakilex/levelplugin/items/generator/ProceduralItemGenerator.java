@@ -29,6 +29,10 @@ public class ProceduralItemGenerator {
     private final FileConfiguration prefixesConfig;
     private final FileConfiguration suffixesConfig;
     private final Random random = new Random();
+    /** Percentage range (±) applied when rolling stat min/max values. */
+    private static final double ROLL_VARIANCE = 0.05;
+    /** Extra bonus applied to one random armor stat for variety. */
+    private static final double DOMINANT_BONUS = 0.10;
 
     public ProceduralItemGenerator(Main plugin) {
         File namesFile = new File(plugin.getDataFolder(), "item_names.yml");
@@ -84,11 +88,11 @@ public class ProceduralItemGenerator {
             // Give the armor a random dominant stat for variety
             int choice = random.nextInt(5); // str, agi, intel, dex, def
             switch (choice) {
-                case 0 -> str  = (int) Math.round(str  * 1.2);
-                case 1 -> agi  = (int) Math.round(agi  * 1.2);
-                case 2 -> intel= (int) Math.round(intel* 1.2);
-                case 3 -> dex  = (int) Math.round(dex  * 1.2);
-                case 4 -> def  = (int) Math.round(def  * 1.2);
+                case 0 -> str  = (int) Math.round(str  * (1 + DOMINANT_BONUS));
+                case 1 -> agi  = (int) Math.round(agi  * (1 + DOMINANT_BONUS));
+                case 2 -> intel= (int) Math.round(intel* (1 + DOMINANT_BONUS));
+                case 3 -> dex  = (int) Math.round(dex  * (1 + DOMINANT_BONUS));
+                case 4 -> def  = (int) Math.round(def  * (1 + DOMINANT_BONUS));
             }
         } else {
             def = scaleStat(level, rarity, 1.0);
@@ -180,14 +184,14 @@ public class ProceduralItemGenerator {
 
     /**
      * Build a rollable range around a target value so generated items
-     * can be rerolled later on. The range is roughly ±10% of the value.
+     * can be rerolled later on. The range is roughly ±5% of the value.
      */
     private StatRange createRange(int value) {
         if (value <= 0) {
             return new StatRange(0, 0);
         }
-        int min = Math.max(0, (int) Math.round(value * 0.9));
-        int max = Math.max(min + 1, (int) Math.round(value * 1.1));
+        int min = Math.max(0, (int) Math.round(value * (1 - ROLL_VARIANCE)));
+        int max = Math.max(min + 1, (int) Math.round(value * (1 + ROLL_VARIANCE)));
         return new StatRange(min, max);
     }
 

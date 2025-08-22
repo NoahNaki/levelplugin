@@ -67,3 +67,15 @@ sets:
     materials:
       CROSSBOW: assortment_skull_bow
       SHIELD: assortment_paladin_shield
+
+  demonking46_60:
+    weapon_types:
+      SWORD: demonking_assortment-sword
+      AXE: demonking_assortment-axe
+      SHOVEL: demonking_assortment-hammer
+      WAND: demonking_assortment-staff
+      BOW: demonking_assortment-bow
+    materials:
+      CROSSBOW: demonking_assortment-crossbow
+      SHIELD: demonking_assortment-shield
+      FISHING_ROD: demonking_assortment-fishing_rod
