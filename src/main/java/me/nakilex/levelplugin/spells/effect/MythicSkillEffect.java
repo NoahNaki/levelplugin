@@ -58,6 +58,7 @@ public class MythicSkillEffect implements SpellEffect {
         // <skill.damage> in the skill file. Fall back to simple cast if the
         // API version lacks the Consumer overload.
         boolean success;
+        final double castDamage = damage;
         try {
             success = MythicBukkit.inst().getAPIHelper().castSkill(caster, skill, meta -> {
                 try {
@@ -65,11 +66,11 @@ public class MythicSkillEffect implements SpellEffect {
                     // Attempt to call setDouble(String,double) if present
                     try {
                         var m = vars.getClass().getMethod("setDouble", String.class, double.class);
-                        m.invoke(vars, "damage", damage);
+                        m.invoke(vars, "damage", castDamage);
                     } catch (NoSuchMethodException ex) {
                         // Fallback to a generic setter
                         var m = vars.getClass().getMethod("set", String.class, Object.class);
-                        m.invoke(vars, "damage", damage);
+                        m.invoke(vars, "damage", castDamage);
                     }
                 } catch (Exception ignore) {
                     // ignore if variable API changed
