@@ -500,11 +500,11 @@ public class SpellManager {
             "MYTHIC_BRUTAL_STRIKE"
         ));
         warriorMap.put("LRL", new Spell(
-            "charge", "Charge", "LRL",
-            5.0,
+            "heroic_leap", "Heroic Leap", "LRL",
+            8.0,
             MythicSkillConfig.getCooldownSeconds("Charge"), 3,
             WARRIOR_WEAPONS,
-            "MYTHIC_CHARGE", 0.0
+            "HEROIC_LEAP", 0.0
         ));
         warriorMap.put("LRR", new Spell(
             "chain_hook", "Chain Hook", "LRR",
@@ -522,7 +522,7 @@ public class SpellManager {
         ));
         warriorMap.put("RLL", new Spell(
             "shockwave", "Shockwave", "RLL",
-            14.0,
+            20.0,
             MythicSkillConfig.getCooldownSeconds("Whirlwind"), 3,
             WARRIOR_WEAPONS,
             "SHOCKWAVE", 1.5

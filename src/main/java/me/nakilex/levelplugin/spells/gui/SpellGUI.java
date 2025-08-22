@@ -54,7 +54,6 @@ public class SpellGUI {
         SPELL_DESCRIPTIONS.put("phoenix_rebirth", "Transform into a phoenix to scorch foes.");
 
         SPELL_DESCRIPTIONS.put("brutal_strike", "Swing your axe in a brutal strike.");
-        SPELL_DESCRIPTIONS.put("charge", "Rush forward, knocking enemies aside.");
         SPELL_DESCRIPTIONS.put("chain_hook", "Throw a chain to pull foes to you.");
         SPELL_DESCRIPTIONS.put("shield_barrier", "Raise a temporary blocking shield.");
         SPELL_DESCRIPTIONS.put("whirlwind", "Spin and damage nearby foes.");
@@ -163,7 +162,7 @@ public class SpellGUI {
         SPELL_USAGE.put("phoenix_rebirth", "Sneak + Left Click");
 
         SPELL_USAGE.put("brutal_strike", "Left Click");
-        SPELL_USAGE.put("charge", "Right Click");
+        SPELL_USAGE.put("heroic_leap", "Right Click");
         SPELL_USAGE.put("chain_hook", "Sneak + Right Click");
         SPELL_USAGE.put("shield_barrier", "Sneak");
         SPELL_USAGE.put("shockwave", "Sneak + Left Click");
@@ -273,7 +272,7 @@ public class SpellGUI {
         Map.entry("flameborn", "icon_flameborn"),
         // Warrior
         Map.entry("brutal_strike", "icon_brutal_strike"),
-        Map.entry("charge", "icon_charge"),
+        Map.entry("heroic_leap", "icon_charge"),
         Map.entry("chain_hook", "icon_chain_hook"),
         Map.entry("shield_barrier", "icon_shield_barrier"),
         Map.entry("whirlwind", "icon_rampage"),

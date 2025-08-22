@@ -94,7 +94,7 @@ public class ClassSpellListener implements Listener {
         t.leftSneak = List.of("shockwave");
         t.left = List.of("brutal_strike");
         t.rightSneak = List.of("chain_hook");
-        t.right = List.of("charge");
+        t.right = List.of("heroic_leap");
         t.sneakStart = List.of("shield_barrier");
         MAP.put(PlayerClass.WARRIOR, t);
 

@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.data.StatRange;
+import me.nakilex.levelplugin.items.data.ArmorType;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -58,9 +59,16 @@ public class ProceduralItemGenerator {
 
         // Currently only armor is generated
         boolean createArmor = true;
-        Map.Entry<String, String> base = pickBaseName(clazz, createArmor);
-        String basePart = base.getKey();
-        String baseDisplay = base.getValue();
+        ArmorType armorSlot = null;
+        String baseDisplay;
+        if (createArmor) {
+            Map.Entry<ArmorType, String> base = pickArmorName();
+            armorSlot = base.getKey();
+            baseDisplay = base.getValue();
+        } else {
+            Map.Entry<String, String> base = pickWeaponName(clazz);
+            baseDisplay = base.getValue();
+        }
         int baseVal = Math.max(1, level);
 
         int hp = 0, def = 0, str = 0, agi = 0, intel = 0, dex = 0, wil = 0, tec = 0;
@@ -124,7 +132,7 @@ public class ProceduralItemGenerator {
 
         String dominant = getDominantStat(str, agi, intel, dex, def);
         String name = buildName(mobType, baseDisplay, rarity, dominant);
-        Material material = createArmor ? pickArmorMaterial(level, basePart) : pickWeaponMaterial(clazz, level);
+        Material material = createArmor ? pickArmorMaterial(level, armorSlot) : pickWeaponMaterial(clazz, level);
 
         String classReq = createArmor ? "ANY" : clazz;
 
@@ -205,23 +213,22 @@ public class ProceduralItemGenerator {
         return classes[random.nextInt(classes.length)];
     }
 
-    private Map.Entry<String, String> pickBaseName(String clazz, boolean armor) {
-        if (armor) {
-            ConfigurationSection sec = namesConfig.getConfigurationSection("armor_types");
-            if (sec == null || sec.getKeys(false).isEmpty()) {
-                return new AbstractMap.SimpleEntry<>("Boots", "Boots");
-            }
-            List<String> parts = new ArrayList<>(sec.getKeys(false));
-            String part = parts.get(random.nextInt(parts.size()));
-            List<String> names = sec.getStringList(part);
-            if (names.isEmpty()) {
-                names = Collections.singletonList(part);
-            }
-            String display = names.get(random.nextInt(names.size()));
-            String canonical = Character.toUpperCase(part.charAt(0)) + part.substring(1);
-            return new AbstractMap.SimpleEntry<>(canonical, display);
+    private Map.Entry<ArmorType, String> pickArmorName() {
+        ConfigurationSection sec = namesConfig.getConfigurationSection("armor_types");
+        if (sec == null || sec.getKeys(false).isEmpty()) {
+            return new AbstractMap.SimpleEntry<>(ArmorType.BOOTS, "Boots");
         }
+        ArmorType[] types = ArmorType.values();
+        ArmorType slot = types[random.nextInt(types.length)];
+        List<String> names = sec.getStringList(slot.name().toLowerCase());
+        if (names.isEmpty()) {
+            names = Collections.singletonList(slot.name().substring(0,1) + slot.name().substring(1).toLowerCase());
+        }
+        String display = names.get(random.nextInt(names.size()));
+        return new AbstractMap.SimpleEntry<>(slot, display);
+    }
 
+    private Map.Entry<String, String> pickWeaponName(String clazz) {
         List<String> list = namesConfig.getStringList("weapon_types." + clazz);
         if (list.isEmpty()) {
             list.add("Item");
@@ -275,8 +282,7 @@ public class ProceduralItemGenerator {
         }
     }
 
-    private Material pickArmorMaterial(int level, String partName) {
-        partName = partName.toUpperCase();
+    private Material pickArmorMaterial(int level, ArmorType slot) {
         String suffix;
         if (level >= 76)      suffix = "NETHERITE_";
         else if (level >= 61) suffix = "DIAMOND_";
@@ -285,11 +291,10 @@ public class ProceduralItemGenerator {
         else if (level >= 11) suffix = "CHAINMAIL_";
         else                  suffix = "LEATHER_";
 
-        String matName = suffix + partName.toUpperCase().replace(' ', '_');
+        String matName = suffix + slot.name();
         try {
             return Material.valueOf(matName);
         } catch (IllegalArgumentException ex) {
-            // Fallback to LEATHER_BOOTS if invalid
             return Material.LEATHER_BOOTS;
         }
     }

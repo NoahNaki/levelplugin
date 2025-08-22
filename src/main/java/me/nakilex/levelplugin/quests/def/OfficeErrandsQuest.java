@@ -215,6 +215,8 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                             World destWorld = destMin.getWorld();
 
                             if (destWorld != null) {
+                                destWorld.getChunkAt(destMin).load();
+                                gates.closeGate(player, roomGateId);
                                 Location dest = destMin.clone().add(
                                         cur.getX() - originMin.getX(),
                                         cur.getY() - originMin.getY(),

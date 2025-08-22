@@ -67,7 +67,7 @@ public class WarriorSpell implements Listener {
         if (player.isSneaking()) {
             castSpell(player, "LRR"); // Chain Hook
         } else {
-            castSpell(player, "LRL"); // Charge
+            castSpell(player, "LRL"); // Heroic Leap
         }
     }
 
