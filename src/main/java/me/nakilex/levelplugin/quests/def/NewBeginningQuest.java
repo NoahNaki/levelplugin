@@ -399,6 +399,6 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
 
     @Override
     public void onComplete(Player player, Main plugin) {
-        // No additional completion logic
+        plugin.getQuestManager().startQuest(player, "serashelp");
     }
 }
