@@ -178,7 +178,7 @@ public class CommandRegistry {
         plugin.getCommand("enchant").setExecutor(new me.nakilex.levelplugin.enchanting.commands.EnchantCommand(enchantGUI));
         plugin.getCommand("spells").setExecutor(new SpellCommand());
         plugin.getCommand("dmgnumber").setExecutor(new DmgNumberCommand(dmgToggleManager));
-        plugin.getCommand("dmgchat").setExecutor(new DmgChatCommand());
+        plugin.getCommand("dmgchat").setExecutor(new DmgChatCommand(settingsGUI.getSettingsManager()));
         plugin.getCommand("settings").setExecutor(new SettingsCommand(settingsGUI));
         AddGemsCommand addGemsCmd = new AddGemsCommand(gemsManager);
         plugin.getCommand("addgems").setExecutor(addGemsCmd);

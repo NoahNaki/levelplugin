@@ -14,15 +14,24 @@ public class PlayerToggleManager {
 
     // Thread‑safe map of player UUID → enabled flag
     private final Map<UUID, Boolean> toggles = new ConcurrentHashMap<>();
+    private final boolean defaultEnabled;
+
+    public PlayerToggleManager() {
+        this(false);
+    }
+
+    public PlayerToggleManager(boolean defaultEnabled) {
+        this.defaultEnabled = defaultEnabled;
+    }
 
     /**
      * Check whether this feature is enabled for the player.
      *
      * @param player the player to check
-     * @return true if they’ve toggled it ON (default false)
+     * @return true if they’ve toggled it ON (default depends on ctor)
      */
     public boolean isEnabled(Player player) {
-        return toggles.getOrDefault(player.getUniqueId(), false);
+        return toggles.getOrDefault(player.getUniqueId(), defaultEnabled);
     }
 
     /**
@@ -43,7 +52,7 @@ public class PlayerToggleManager {
      */
     public boolean toggle(Player player) {
         UUID uuid = player.getUniqueId();
-        boolean now = !toggles.getOrDefault(uuid, false);
+        boolean now = !toggles.getOrDefault(uuid, defaultEnabled);
         toggles.put(uuid, now);
         return now;
     }
