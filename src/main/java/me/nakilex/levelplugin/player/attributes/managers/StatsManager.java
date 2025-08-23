@@ -22,6 +22,12 @@ public class StatsManager {
     private final Map<UUID, PlayerStats> statsMap = new HashMap<>();
     private final Map<UUID, Set<Integer>> equippedItemsMap = new HashMap<>();
 
+    // ——— Health Scaling Constants ———
+    public static final double BASE_HEALTH = 20.0;
+    public static final double HEALTH_PER_VITALITY = 0.4;
+    public static final double HEALTH_PER_STRENGTH = 0.1;
+    private static final double REGEN_STAT_DIVISOR = 25.0;
+
     public StatsManager() {}
 
     public void setLevelManager(LevelManager levelManager) {
@@ -204,9 +210,11 @@ public class StatsManager {
         double healthRatio = oldHealth / oldMaxHealth;
 
         // Calculate the new max health based on the health stats
-        double newMaxHealth = 20.0
-                + ((ps.baseVitality + ps.bonusVitality) * 3.0)
-                + ((ps.baseStrength + ps.bonusStrength) * 1.0);
+        double totalVitality = ps.baseVitality + ps.bonusVitality;
+        double totalStrength = ps.baseStrength + ps.bonusStrength;
+        double newMaxHealth = BASE_HEALTH
+                + (totalVitality * HEALTH_PER_VITALITY)
+                + (totalStrength * HEALTH_PER_STRENGTH);
         newMaxHealth = Math.max(1.0, Math.min(newMaxHealth, 9999999.0));
 
         // Set the new max health
@@ -243,7 +251,7 @@ public class StatsManager {
 
             double baseRegenPerSec = 1.0;
             double regenFromStats = (ps.baseVitality + ps.bonusVitality
-                    + ps.baseStrength + ps.bonusStrength) / 5.0;
+                    + ps.baseStrength + ps.bonusStrength) / REGEN_STAT_DIVISOR;
             double regenFromMaxHealth = player.getMaxHealth() / 100.0;
 
             double totalRegen = baseRegenPerSec + regenFromStats + regenFromMaxHealth;

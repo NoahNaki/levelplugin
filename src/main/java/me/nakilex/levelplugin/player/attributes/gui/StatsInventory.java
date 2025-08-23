@@ -48,8 +48,9 @@ public class StatsInventory {
             "Strength", StatType.STR, ps.baseStrength, ps.bonusStrength, ps.skillPoints,
             "Boosts melee damage and adds a bit of health.",
             new String[]{
-                "Each point: +0.5 melee dmg & +1 HP.",
-                "HP bonus: " + ChatColor.YELLOW + ((ps.baseStrength + ps.bonusStrength) * 1) + " HP"
+                String.format("Each point: +0.5 melee dmg & +%.1f HP.", StatsManager.HEALTH_PER_STRENGTH),
+                String.format("HP bonus: %s%.1f HP", ChatColor.YELLOW,
+                        (ps.baseStrength + ps.bonusStrength) * StatsManager.HEALTH_PER_STRENGTH)
             }
         ));
         int totalAgility = ps.baseAgility + ps.bonusAgility;
@@ -91,8 +92,9 @@ public class StatsInventory {
             "Vitality", StatType.VIT, ps.baseVitality, ps.bonusVitality, ps.skillPoints,
             "Increases max health and reduces damage taken.",
             new String[]{
-                "Each point grants 3 HP and defense.",
-                "Current HP bonus: " + ChatColor.YELLOW + ((ps.baseVitality + ps.bonusVitality) * 3) + " HP."
+                String.format("Each point grants %.1f HP and defense.", StatsManager.HEALTH_PER_VITALITY),
+                String.format("Current HP bonus: %s%.1f HP.", ChatColor.YELLOW,
+                        (ps.baseVitality + ps.bonusVitality) * StatsManager.HEALTH_PER_VITALITY)
             }
         ));
 
