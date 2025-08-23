@@ -25,6 +25,7 @@ import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Intro quest that plays a short conversation with Piwan.
@@ -239,13 +240,13 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
     }
 
     private void playDialog(Player player, Main plugin, NPC npc) {
-        java.util.List<String> lines = java.util.List.of(
-                "Hey you there! I could've sworn no one was standing there a second ago, how did you suddenly appear?",
-                "You certainly don't look from around here, especially with those clothes, perhaps a noble from another country.",
-                "Another world you say? Well you wouldn't be the first to make such bold claims, my mom said she once knew someone that claimed the same thing, said they were from a place called, \"ip\".",
-                "I'm sure you have many questions, how about to start off I show you around my village.",
-                "First things first, you're going to have to look like you're from this world, go talk to that merchant over there and buy some equipment."
-        );
+        String country = "Unknown";
+        if (player.hasMetadata("country") && !player.getMetadata("country").isEmpty()) {
+            country = player.getMetadata("country").get(0).asString();
+        }
+        List<String> lines = getDialogLines().stream()
+                .map(line -> line.replace("\"ip\"", "\"" + country + "\""))
+                .collect(Collectors.toList());
 
         plugin.getDialogManager().startDialog(player, lines, npc, () -> {
             if (player.isOnline()) {
