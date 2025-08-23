@@ -240,10 +240,9 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
     }
 
     private void playDialog(Player player, Main plugin, NPC npc) {
-        String country = "Unknown";
-        if (player.hasMetadata("country") && !player.getMetadata("country").isEmpty()) {
-            country = player.getMetadata("country").get(0).asString();
-        }
+        final String country = player.hasMetadata("country") && !player.getMetadata("country").isEmpty()
+                ? player.getMetadata("country").get(0).asString()
+                : "Unknown";
         List<String> lines = getDialogLines().stream()
                 .map(line -> line.replace("\"ip\"", "\"" + country + "\""))
                 .collect(Collectors.toList());
