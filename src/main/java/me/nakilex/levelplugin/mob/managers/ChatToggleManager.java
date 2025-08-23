@@ -15,15 +15,18 @@ public class ChatToggleManager {
 
     private final Map<UUID, Boolean> toggles = new ConcurrentHashMap<>();
 
-    /** True if chat output is ON for this player. */
+    /**
+     * True if chat output is ON for this player.
+     * Defaults to enabled so new players immediately see damage feedback.
+     */
     public boolean isEnabled(Player p) {
-        return toggles.getOrDefault(p.getUniqueId(), false);
+        return toggles.getOrDefault(p.getUniqueId(), true);
     }
 
     /** Flip the state and return the new value. */
     public boolean toggle(Player p) {
         UUID u = p.getUniqueId();
-        boolean now = !toggles.getOrDefault(u, false);
+        boolean now = !toggles.getOrDefault(u, true);
         toggles.put(u, now);
         return now;
     }
