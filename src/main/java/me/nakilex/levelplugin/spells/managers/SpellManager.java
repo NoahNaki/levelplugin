@@ -27,6 +27,13 @@ public class SpellManager {
         WARRIOR_WEAPONS.addAll(WeaponType.SHOVEL.getMaterials());
     }
 
+    // Standardized level unlock thresholds
+    private static final int LVL_ONE   = 1;
+    private static final int LVL_THREE = 3;
+    private static final int LVL_FIVE  = 5;
+    private static final int LVL_EIGHT = 8;
+    private static final int LVL_TEN   = 10;
+
     public static SpellManager getInstance() {
         if (instance == null) throw new IllegalStateException("SpellManager not init’d!");
         return instance;
@@ -74,7 +81,7 @@ public class SpellManager {
      */
     private static Spell basicAttack(String id, String name, List<Material> weapons, String effectKey) {
         // Cooldown 0 so ClassSpellListener can throttle via player attack speed
-        return new Spell(id, name, "BASIC_ATTACK", 0.0, 0L, 1, weapons, effectKey, 0.0);
+        return new Spell(id, name, "BASIC_ATTACK", 0.0, 0L, LVL_ONE, weapons, effectKey, 0.0);
     }
 
     private void loadSpells() {
@@ -90,28 +97,28 @@ public class SpellManager {
         archerMap.put("LEFT", new Spell(
             "backstep", "Backstep", "LEFT",
             5.0,
-            MythicSkillConfig.getCooldownSeconds("Backstep"), 3,
+            MythicSkillConfig.getCooldownSeconds("Backstep"), LVL_THREE,
             WeaponType.BOW.getMaterials(),
             "MYTHIC_BACKSTEP", 0.0
         ));
         archerMap.put("SNEAK", new Spell(
             "arrow_barrage", "Arrow Barrage", "SNEAK",
             12.0,
-            MythicSkillConfig.getCooldownSeconds("Arrow_Barrage"), 10,
+            MythicSkillConfig.getCooldownSeconds("Arrow_Barrage"), LVL_FIVE,
             WeaponType.BOW.getMaterials(),
             "MYTHIC_ARROW_BARRAGE", 0.0
         ));
         archerMap.put("SHIFT_LEFT", new Spell(
             "bow_drone", "Bow Drone", "SHIFT_LEFT",
             10.0,
-            MythicSkillConfig.getCooldownSeconds("Deadly_Javelin"), 10,
+            MythicSkillConfig.getCooldownSeconds("Deadly_Javelin"), LVL_EIGHT,
             WeaponType.BOW.getMaterials(),
             "BOW_DRONE", 0.0
         ));
         archerMap.put("SHIFT_RIGHT", new Spell(
             "dragon_piercer", "Dragon Piercer", "SHIFT_RIGHT",
             15.0,
-            MythicSkillConfig.getCooldownSeconds("Dragon_Piercer"), 10,
+            MythicSkillConfig.getCooldownSeconds("Dragon_Piercer"), LVL_TEN,
             WeaponType.BOW.getMaterials(),
             "MYTHIC_DRAGON_PIERCER", 0.0
         ));
