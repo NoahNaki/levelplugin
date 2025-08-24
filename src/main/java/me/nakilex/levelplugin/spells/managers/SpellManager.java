@@ -271,7 +271,7 @@ public class SpellManager {
             MythicSkillConfig.getCooldownSeconds("Shadow_Walk_Skill"), 5,
             WeaponType.SWORD.getMaterials(),
             "MYTHIC_SHADOW_WALK", 0.0,
-            true,
+            false,
             false
         ));
         spellsByClass.put("rogue", Collections.unmodifiableMap(rogueMap));

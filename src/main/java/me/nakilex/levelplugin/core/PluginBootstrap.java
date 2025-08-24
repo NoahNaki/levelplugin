@@ -287,7 +287,7 @@ public class PluginBootstrap {
         settingsManager = new SettingsManager();
         questManager = new QuestManager(plugin, partyManager);
         dialogManager = new me.nakilex.levelplugin.npc.dialog.NPCDialogManager(plugin);
-        scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(plugin, economyManager, gemsManager, partyManager, questManager);
+        scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(plugin, partyManager, questManager);
         calendarManager = new me.nakilex.levelplugin.calendar.CalendarManager(plugin);
         duelStatsManager = new me.nakilex.levelplugin.leaderboards.DuelStatsManager(plugin);
         partyGlowManager = new PartyGlowManager(plugin, partyManager, scoreboardManager::getBoard);

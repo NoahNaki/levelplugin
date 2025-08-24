@@ -198,7 +198,7 @@ public class Spell {
         // 1) Cooldown guard
         if (cooldownMgr.isOnCooldown(pid, id)) {
             long rem = cooldownMgr.getRemainingTime(pid, id);
-            //player.sendMessage("§c" + displayName + " cooling down: " + (rem/1000) + "s left");
+            CooldownIndicatorManager.getInstance().show(player, displayName, rem, 0);
             return;
         }
 
@@ -264,8 +264,8 @@ public class Spell {
         // 6) Start cooldown (ctx.getFinalCooldown returns 0 if applyCooldown==false)
         long cdMs = ctx.getFinalCooldown();
         cooldownMgr.setCooldown(pid, id, cdMs / 1000.0);
-        if (cdMs > 0 || intCost > 0) {
-            CooldownIndicatorManager.getInstance().show(player, displayName, cdMs, intCost);
+        if (intCost > 0) {
+            CooldownIndicatorManager.getInstance().show(player, displayName, 0, intCost);
         }
     }
 

@@ -22,7 +22,7 @@ public class ActionBarTask extends BukkitRunnable {
             if (plugin.getCutsceneManager().isInCutscene(player)) continue;
             CooldownIndicatorManager.Info info = CooldownIndicatorManager.getInstance().get(player);
             if (info != null) {
-                boolean showCd = now < info.expireAt;
+                boolean showCd = now < info.expireAt && now < info.costExpireAt;
                 boolean showCost = info.cost > 0 && now < info.costExpireAt;
                 if (showCd || showCost) {
                     StringBuilder msg = new StringBuilder();
