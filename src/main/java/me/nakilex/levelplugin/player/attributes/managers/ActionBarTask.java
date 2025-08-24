@@ -39,8 +39,8 @@ public class ActionBarTask extends BukkitRunnable {
                         }
                         msg.append(" ")
                            .append(ChatColor.DARK_GRAY).append("[")
-                           .append(ChatColor.AQUA).append("-")
-                           .append(ChatColor.WHITE).append(info.cost)
+                           .append(ChatColor.GRAY).append("-")
+                           .append(ChatColor.GRAY).append(info.cost)
                            .append(ChatColor.DARK_GRAY).append("]");
                     }
                     player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(msg.toString()));
