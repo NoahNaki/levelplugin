@@ -28,12 +28,15 @@ public final class TextUtil {
     }
 
     /**
-     * Center the display name and lore of an item so that each line is centered
-     * relative to the widest line. The item meta is modified in-place.
+     * Center portions of an item's tooltip relative to the widest line. This
+     * method can independently center the display name and lore, allowing
+     * callers to center only the parts they need.
      *
-     * @param item the item whose tooltip should be centered
+     * @param item       the item whose tooltip should be centered
+     * @param centerName whether to center the display name
+     * @param centerLore whether to center the lore lines
      */
-    public static void centerItemTooltip(ItemStack item) {
+    public static void centerItemTooltip(ItemStack item, boolean centerName, boolean centerLore) {
         if (item == null) return;
         ItemMeta meta = item.getItemMeta();
         if (meta == null) return;
@@ -48,10 +51,10 @@ public final class TextUtil {
         int max = lines.stream().mapToInt(ChatFormatter::pixelLength).max().orElse(0);
         int center = max / 2;
 
-        if (meta.hasDisplayName()) {
+        if (centerName && meta.hasDisplayName()) {
             meta.setDisplayName(ChatFormatter.getCenteredText(meta.getDisplayName(), center));
         }
-        if (lore != null) {
+        if (centerLore && lore != null) {
             List<String> centeredLore = new ArrayList<>();
             for (String line : lore) {
                 centeredLore.add(ChatFormatter.getCenteredText(line, center));
@@ -59,6 +62,13 @@ public final class TextUtil {
             meta.setLore(centeredLore);
         }
         item.setItemMeta(meta);
+    }
+
+    /**
+     * Convenience overload that centers both the display name and lore.
+     */
+    public static void centerItemTooltip(ItemStack item) {
+        centerItemTooltip(item, true, true);
     }
 
     /** Convert a lowercase, underscore- or space-separated name into capitalized words. */

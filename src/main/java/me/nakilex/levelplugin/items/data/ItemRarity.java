@@ -32,6 +32,18 @@ public enum ItemRarity {
     }
 
     /**
+     * Tooltip border style identifier used for Nexo's tooltip_style component.
+     * Defaults to the lowercase rarity name except for rarities that map to a
+     * differently named style.
+     */
+    public String getTooltipStyle() {
+        return switch (this) {
+            case MYTHIC -> "artifact"; // red border is called "artifact"
+            default -> name().toLowerCase();
+        };
+    }
+
+    /**
      * Convert a numeric tier (starting at 1) into an ItemRarity.
      * Tiers beyond the defined range default to COMMON.
      */

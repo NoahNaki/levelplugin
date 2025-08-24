@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.player.classes.essence;
 
 import me.nakilex.levelplugin.items.data.ItemRarity;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
@@ -487,6 +488,19 @@ public final class ClassEssence {
         };
     }
 
+    /**
+     * Refresh the tooltip border on an essence based on its stored rarity.
+     * This can be invoked after external rarity changes to keep the border
+     * in sync without rebuilding the entire lore.
+     */
+    public static void updateTooltipStyle(ItemStack stack) {
+        if (!isEssence(stack)) return;
+        ItemRarity rarity = getRarity(stack);
+        if (rarity != null) {
+            ItemUtil.applyRarityTooltipStyle(stack, rarity);
+        }
+    }
+
     public static void updateLore(ItemStack stack) {
         if (!isEssence(stack)) return;
         ItemMeta meta = stack.getItemMeta();
@@ -527,5 +541,6 @@ public final class ClassEssence {
         }
         meta.setLore(lore);
         stack.setItemMeta(meta);
+        updateTooltipStyle(stack);
     }
 }

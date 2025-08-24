@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.items.tools.gui;
 import me.nakilex.levelplugin.items.tools.CustomTool;
 import me.nakilex.levelplugin.items.tools.ToolManager;
 import me.nakilex.levelplugin.items.tools.ToolTier;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -14,12 +15,10 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class ToolBrowser implements CommandExecutor, Listener {
@@ -39,24 +38,8 @@ public class ToolBrowser implements CommandExecutor, Listener {
             ToolTier tier = tool.getTier();
             ChatColor color = tier.getRarity().getColor();
             meta.setDisplayName(color + "Tier " + tier.getTierName() + " Pickaxe");
-
-            List<String> lore = new ArrayList<>();
-            String rarityGlyph = "<glyph:" + tier.getRarity().name().toLowerCase() + ">";
-            lore.add(rarityGlyph + "<glyph:tool>");
-            lore.add("");
-            int level = me.nakilex.levelplugin.player.mining.managers.MiningManager.getInstance().getLevel(viewer);
-            String reqLine;
-            if (level >= tier.getLevelRequirement()) {
-                reqLine = ChatColor.GREEN + "✔ " + ChatColor.GRAY + "Mining Lv. Requirement: " + ChatColor.WHITE + tier.getLevelRequirement();
-            } else {
-                reqLine = ChatColor.RED + "✘ " + ChatColor.GRAY + "Mining Lv. Requirement: " + ChatColor.WHITE + tier.getLevelRequirement();
-            }
-            lore.add(reqLine);
-            lore.add(" ");
-            lore.add(ChatColor.GRAY + "Mining Speed: " + ChatColor.GREEN + "+" + tier.getMiningSpeed());
-            meta.setLore(lore);
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
             it.setItemMeta(meta);
+            ItemUtil.updateCustomToolTooltip(it, viewer);
         }
         return it;
     }

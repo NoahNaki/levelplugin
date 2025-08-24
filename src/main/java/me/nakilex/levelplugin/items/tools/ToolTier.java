@@ -1,7 +1,7 @@
 package me.nakilex.levelplugin.items.tools;
 
+import me.nakilex.levelplugin.items.data.ItemRarity;
 import org.bukkit.Material;
-import org.bukkit.ChatColor;
 
 import java.util.Arrays;
 import java.util.List;

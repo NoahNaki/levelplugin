@@ -5,6 +5,8 @@ import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.potions.data.PotionInstance;
 import me.nakilex.levelplugin.potions.data.PotionTemplate;
+import me.nakilex.levelplugin.items.data.ItemRarity;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
@@ -119,6 +121,8 @@ public class PotionMerchantGUI implements Listener {
         lore.add(ChatColor.GOLD + "Price: " + ChatColor.GREEN + potion.getCooldownSeconds() + " <glyph:coins_icon>");
         meta.setLore(lore);
         potionItem.setItemMeta(meta);
+        ItemRarity rarity = ItemRarity.fromTier(potion.getTier());
+        ItemUtil.applyRarityTooltipStyle(potionItem, rarity);
         return potionItem;
     }
 

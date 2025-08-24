@@ -14,10 +14,19 @@ import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
 import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
+import org.bukkit.ChatColor;
+import org.bukkit.NamespacedKey;
+import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
+import io.papermc.paper.datacomponent.DataComponentTypes;
+import net.kyori.adventure.key.Key;
 
 /**
  * Root debug command that hosts various developer utilities.
@@ -129,6 +138,64 @@ public class DebugCommand implements TabExecutor {
                 ToggleFeedbackUtil.sendToggle(p3, "Mage autocast", auto);
                 return true;
 
+            case "hand":
+                if (!(sender instanceof Player p4)) {
+                    sender.sendMessage("Players only.");
+                    return true;
+                }
+                ItemStack held = p4.getInventory().getItemInMainHand();
+                if (held == null || held.getType() == Material.AIR) {
+                    p4.sendMessage("No item in hand.");
+                    return true;
+                }
+                p4.sendMessage(ChatColor.YELLOW + "=== Hand Debug ===");
+                p4.sendMessage(ChatColor.GRAY + "Type: " + held.getType());
+                ItemMeta meta = held.getItemMeta();
+                if (meta != null) {
+                    if (meta.hasDisplayName()) {
+                        p4.sendMessage(ChatColor.GRAY + "Name: " + ChatColor.RESET + meta.getDisplayName());
+                    }
+                    if (meta.hasLore()) {
+                        p4.sendMessage(ChatColor.GRAY + "Lore:");
+                        for (String l : meta.getLore()) {
+                            p4.sendMessage(ChatColor.DARK_GRAY + "- " + ChatColor.RESET + l);
+                        }
+                    }
+                    Key style = held.getData(DataComponentTypes.TOOLTIP_STYLE);
+                    if (style != null) {
+                        p4.sendMessage(ChatColor.GRAY + "Tooltip style: " + style.asString());
+                    }
+                    PersistentDataContainer pdc = meta.getPersistentDataContainer();
+                    if (!pdc.getKeys().isEmpty()) {
+                        p4.sendMessage(ChatColor.GRAY + "PDC:" );
+                        for (NamespacedKey k : pdc.getKeys()) {
+                            String val = pdc.get(k, PersistentDataType.STRING);
+                            if (val == null) {
+                                Integer i = pdc.get(k, PersistentDataType.INTEGER);
+                                if (i != null) val = i.toString();
+                            }
+                            if (val == null) {
+                                Long l = pdc.get(k, PersistentDataType.LONG);
+                                if (l != null) val = l.toString();
+                            }
+                            if (val == null) {
+                                Double d = pdc.get(k, PersistentDataType.DOUBLE);
+                                if (d != null) val = d.toString();
+                            }
+                            if (val == null) {
+                                Byte b = pdc.get(k, PersistentDataType.BYTE);
+                                if (b != null) val = b.toString();
+                            }
+                            if (val == null) {
+                                Short s = pdc.get(k, PersistentDataType.SHORT);
+                                if (s != null) val = s.toString();
+                            }
+                            p4.sendMessage(ChatColor.DARK_GRAY + "- " + k + " = " + val);
+                        }
+                    }
+                }
+                return true;
+
             default:
                 sender.sendMessage("Unknown debug subcommand: " + sub);
                 String statUsage2 = Arrays.stream(StatType.values())
@@ -142,7 +209,7 @@ public class DebugCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "autocast"));
+            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "autocast", "hand"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))

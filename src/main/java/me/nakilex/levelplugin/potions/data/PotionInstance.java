@@ -7,6 +7,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.items.data.ItemRarity;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import com.nexomc.nexo.api.NexoItems;
@@ -96,6 +97,7 @@ public class PotionInstance {
         data.set(key, PersistentDataType.STRING, uuid.toString());
 
         item.setItemMeta(meta);
+        ItemUtil.applyRarityTooltipStyle(item, rarity);
         return item;
     }
 

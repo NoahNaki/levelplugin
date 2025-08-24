@@ -13,6 +13,7 @@ import me.nakilex.levelplugin.items.data.WeaponType;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.potions.data.PotionInstance;
+import me.nakilex.levelplugin.utils.TextUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -24,6 +25,9 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.persistence.PersistentDataType;
+import io.papermc.paper.datacomponent.DataComponentType;
+import io.papermc.paper.datacomponent.DataComponentTypes;
+import net.kyori.adventure.key.Key;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import me.nakilex.levelplugin.utils.GuiUtil;
@@ -349,6 +353,8 @@ public class ItemUtil {
         }
 
         stack.setItemMeta(meta);
+        applyRarityTooltipStyle(stack, cItem.getRarity());
+        centerGearName(stack);
         return stack;
     }
 
@@ -398,6 +404,98 @@ public class ItemUtil {
     }
 
     /**
+     * Insert a lore line into an ItemStack at the given index. Negative or
+     * out-of-range indices append to the end of the lore. This method is
+     * intentionally generic so it can be reused anywhere we need to tweak
+     * existing item tooltips.
+     *
+     * @param stack the item whose lore should be modified
+     * @param index the position to insert at; values outside the current range
+     *              are clamped to the end
+     * @param line  the text to insert
+     */
+    public static void insertLoreLine(ItemStack stack, int index, String line) {
+        if (stack == null || stack.getType() == Material.AIR) return;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return;
+
+        List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+        if (index < 0 || index > lore.size()) {
+            lore.add(line);
+        } else {
+            lore.add(index, line);
+        }
+
+        meta.setLore(lore);
+        stack.setItemMeta(meta);
+    }
+
+    /**
+     * Generic helper to store a string value in an item's persistent data
+     * container. Useful for lightweight component-style metadata like
+     * tooltip borders.
+     */
+    public static void setStringData(ItemStack stack, NamespacedKey key, String value) {
+        if (stack == null || stack.getType() == Material.AIR) return;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return;
+        meta.getPersistentDataContainer().set(key, PersistentDataType.STRING, value);
+        stack.setItemMeta(meta);
+    }
+
+    /**
+     * Generic helper to apply a keyed data component (such as tooltip style)
+     * directly onto an {@link ItemStack}. The component type must accept a
+     * {@link Key} value.
+     *
+     * @param stack the stack to modify
+     * @param type  the data component type to set
+     * @param value the key value for the component
+     */
+    public static void setKeyedComponent(ItemStack stack, DataComponentType.Valued<Key> type, Key value) {
+        if (stack == null || stack.getType() == Material.AIR) return;
+        if (type == null || value == null) return;
+        stack.setData(type, value);
+    }
+
+    /**
+     * Convenience method to add {@link ItemFlag}s to an {@link ItemStack} while
+     * safely handling null checks.
+     */
+    public static void addItemFlags(ItemStack stack, ItemFlag... flags) {
+        if (stack == null || stack.getType() == Material.AIR) return;
+        if (flags == null || flags.length == 0) return;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return;
+        meta.addItemFlags(flags);
+        stack.setItemMeta(meta);
+    }
+
+    /**
+     * Center the display name of weapons and armor without altering lore lines.
+     * This ensures only gear names are centered, leaving other items untouched.
+     *
+     * @param stack the item stack to adjust
+     */
+    public static void centerGearName(ItemStack stack) {
+        if (stack == null || stack.getType() == Material.AIR) return;
+        if (WeaponType.matchType(stack) != null || ArmorType.matchType(stack) != null) {
+            TextUtil.centerItemTooltip(stack, true, false);
+        }
+    }
+
+    /**
+     * Convenience wrapper to set the tooltip border style based on an
+     * {@link ItemRarity}. This ensures items consistently display the correct
+     * frame whenever they are created or refreshed.
+     */
+    public static void applyRarityTooltipStyle(ItemStack stack, ItemRarity rarity) {
+        if (stack == null || rarity == null) return;
+        String style = "minecraft:" + rarity.getTooltipStyle();
+        setKeyedComponent(stack, DataComponentTypes.TOOLTIP_STYLE, Key.key(style));
+    }
+
+    /**
      * Checks whether an ItemStack can be placed into the salvage GUI.
      * Accepts any custom item or potion (including vanilla potions).
      */
@@ -442,6 +540,9 @@ public class ItemUtil {
             Bukkit.getLogger().warning("[CustomItem] No instance found for UUID " + uuid);
             return;
         }
+
+        applyRarityTooltipStyle(stack, cItem.getRarity());
+        centerGearName(stack);
 
         // Build the updated lore.
         List<String> lore = new ArrayList<>();
@@ -595,6 +696,9 @@ public class ItemUtil {
         if (tier == null) return;
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) return;
+
+        applyRarityTooltipStyle(stack, tier.getRarity());
+        centerGearName(stack);
 
         List<String> lore = new ArrayList<>();
         String rarityGlyph = "<glyph:" + tier.getRarity().name().toLowerCase() + ">";

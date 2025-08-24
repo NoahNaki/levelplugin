@@ -2,6 +2,8 @@ package me.nakilex.levelplugin.potions.listeners;
 
 import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.potions.data.PotionInstance;
+import me.nakilex.levelplugin.items.data.ItemRarity;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import org.bukkit.Material;
 import org.bukkit.ChatColor;
@@ -158,6 +160,8 @@ public class PotionUseListener implements Listener {
         send(player, MessageType.SUCCESS, ChatColor.GREEN + "+" + ChatColor.WHITE + (int) restored + " "
                 + symColor + symbol + ChatColor.GRAY + " (" + instance.getCharges() + " left)");
         item.setItemMeta(meta);
+        ItemRarity rarity = ItemRarity.fromTier(instance.getTemplate().getTier());
+        ItemUtil.applyRarityTooltipStyle(item, rarity);
 
         me.nakilex.levelplugin.Main.getInstance().getQuestManager().handleConsumePotion(player, potionId);
 
