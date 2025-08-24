@@ -1,16 +1,12 @@
 package me.nakilex.levelplugin.player.attributes.managers;
 
-import me.nakilex.levelplugin.player.attributes.managers.ManaIndicatorManager;
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.utils.ChatFormatter;
-import me.nakilex.levelplugin.utils.DefaultFontInfo;
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
-
-import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.TextComponent;
 
 public class ActionBarTask extends BukkitRunnable {
     private final Main plugin;
@@ -18,93 +14,42 @@ public class ActionBarTask extends BukkitRunnable {
     public ActionBarTask(Main plugin) {
         this.plugin = plugin;
     }
+
     @Override
     public void run() {
+        long now = System.currentTimeMillis();
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (plugin.getCutsceneManager().isInCutscene(player)) continue;
-            StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
-
-            double hp = player.getHealth();
-            double maxHp = player.getMaxHealth();
-            int currentMana = (int) ps.currentMana;
-            int maxMana = ps.maxMana;
-
-            // Show pending mana cost in the middle if available
-            Integer manaCost = ManaIndicatorManager.getInstance().getCost(player);
-            String centerDisplay = "";
-            if (manaCost != null) {
-                centerDisplay = formatCost(manaCost);
-            }
-
-            // Construct action bar message
-            String leftText = String.format("§c%d/%d", (int) hp, (int) maxHp);
-            String rightText = String.format("§b%d/%d", currentMana, maxMana);
-            String message = padRightPx(trimToPx(leftText, LEFT_PX), LEFT_PX) +
-                    centerTextPx(trimToPx(centerDisplay, CENTER_PX), CENTER_PX) +
-                    padLeftPx(trimToPx(rightText, RIGHT_PX), RIGHT_PX);
-
-            // Send action bar
-            player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(message));
-        }
-    }
-
-    private static final String NBSP = "\u00A0";
-
-    // Slightly shift HP and mana towards the center
-    private static final int LEFT_PX = 40;
-    // Shrink the gap between HP and mana a bit more
-    private static final int CENTER_PX = 50;
-    private static final int RIGHT_PX = 40;
-
-    private String repeatSpacePixels(int px) {
-        int spacePx = DefaultFontInfo.SPACE.getLength() + 1;
-        int count = (int) Math.ceil(Math.max(0, px) / (double) spacePx);
-        return NBSP.repeat(count);
-    }
-
-    private String padRightPx(String text, int px) {
-        int diff = px - ChatFormatter.pixelLength(text);
-        return text + repeatSpacePixels(diff);
-    }
-
-    private String padLeftPx(String text, int px) {
-        int diff = px - ChatFormatter.pixelLength(text);
-        return repeatSpacePixels(diff) + text;
-    }
-
-    private String centerTextPx(String text, int px) {
-        int diff = px - ChatFormatter.pixelLength(text);
-        int left = diff / 2;
-        int right = diff - left;
-        return repeatSpacePixels(left) + text + repeatSpacePixels(right);
-    }
-
-    /**
-     * Trim a string so that its visual width does not exceed the given pixel
-     * count. This is aware of color codes and glyph placeholders to avoid
-     * cutting them in half.
-     */
-    private String trimToPx(String text, int px) {
-        while (!text.isEmpty() && ChatFormatter.pixelLength(text) > px) {
-            int end = text.length() - 1;
-            text = text.substring(0, end);
-
-            // Remove trailing color code character if present
-            if (text.endsWith("§")) {
-                text = text.substring(0, text.length() - 1);
-            }
-
-            // Remove an unfinished glyph placeholder
-            int start = text.lastIndexOf("<glyph:");
-            if (start != -1 && text.indexOf('>', start) == -1) {
-                text = text.substring(0, start);
+            CooldownIndicatorManager.Info info = CooldownIndicatorManager.getInstance().get(player);
+            if (info != null) {
+                boolean showCd = now < info.expireAt && now < info.costExpireAt;
+                boolean showCost = info.cost > 0 && now < info.costExpireAt;
+                if (showCd || showCost) {
+                    StringBuilder msg = new StringBuilder();
+                    if (showCd) {
+                        long remaining = info.expireAt - now;
+                        int seconds = (int) Math.ceil(remaining / 1000.0);
+                        msg.append(ChatColor.YELLOW).append(info.name)
+                           .append(ChatColor.GRAY).append(" cooldown ")
+                           .append(ChatColor.YELLOW).append(seconds).append("s");
+                    }
+                    if (showCost) {
+                        if (!showCd) {
+                            msg.append(ChatColor.YELLOW).append(info.name);
+                        }
+                        msg.append(" ")
+                           .append(ChatColor.DARK_GRAY).append("[")
+                           .append(ChatColor.GRAY).append("-")
+                           .append(ChatColor.GRAY).append(info.cost)
+                           .append(ChatColor.DARK_GRAY).append("]");
+                    }
+                    player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(msg.toString()));
+                } else {
+                    player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(""));
+                }
+            } else {
+                player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(""));
             }
         }
-        return text;
-    }
-
-    private String formatCost(int cost) {
-        if (cost <= 0) return "";
-        return "§8[§b-" + cost + "§8]";
     }
 }

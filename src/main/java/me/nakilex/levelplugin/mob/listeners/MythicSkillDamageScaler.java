@@ -2,6 +2,8 @@ package me.nakilex.levelplugin.mob.listeners;
 
 import io.lumine.mythic.bukkit.events.MythicDamageEvent;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
+import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -53,11 +55,22 @@ public class MythicSkillDamageScaler implements Listener {
         if (player == null) return;
 
         var stats = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
-        double strength = stats.baseStrength + stats.bonusStrength;
-        double scaled = event.getDamage() + strength * 0.5;
+
+        boolean isMage = ClassUtil.isMageFamily(
+                PlayerClassManager.getInstance().getPlayerClass(player));
+
+        int mainStat = isMage
+                ? stats.baseIntelligence + stats.bonusIntelligence
+                : stats.baseStrength + stats.bonusStrength;
+        int totalTec = stats.baseTechnique + stats.bonusTechnique;
+
+        double scaled = event.getDamage() + mainStat * 0.5;
+        scaled *= (1.0 + totalTec * 0.003);
+
         if (debug) {
             me.nakilex.levelplugin.Main.getPlugin().getLogger().info(
-                    "[MythicDamageScaler] base=" + event.getDamage() + " scaled=" + scaled +
+                    "[MythicDamageScaler] base=" + event.getDamage() +
+                    " scaled=" + scaled +
                     " caster=" + player.getName());
         }
         event.setDamage(scaled);

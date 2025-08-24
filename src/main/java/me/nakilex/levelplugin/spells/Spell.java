@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.spells;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.attributes.managers.CooldownIndicatorManager;
 
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
 import me.nakilex.levelplugin.spells.context.SpellCastContextCompat;
@@ -33,6 +34,7 @@ public class Spell {
     private final String effectKey;
     private final double baseDamage;        // base unmodified damage
     private final boolean passive;          // if true skip mana cost indicator
+    private final boolean mobility;         // if true use ManaCostTracker scaling
 
     // static managers
     private static final CooldownManager cooldownMgr = CooldownManager.getInstance();
@@ -47,7 +49,8 @@ public class Spell {
         List<Material> allowedWeapons,
         String effectKey,
         double baseDamage,             // ← pass in the raw dmg here
-        boolean passive
+        boolean passive,
+        boolean mobility
     ) {
         this.id               = id;
         this.displayName      = displayName;
@@ -59,6 +62,7 @@ public class Spell {
         this.effectKey        = effectKey;
         this.baseDamage       = baseDamage;
         this.passive          = passive;
+        this.mobility         = mobility;
     }
 
     public Spell(
@@ -72,7 +76,7 @@ public class Spell {
         String effectKey,
         double baseDamage
     ) {
-        this(id, displayName, combo, baseManaCost, cooldownSeconds, levelReq, allowedWeapons, effectKey, baseDamage, false);
+        this(id, displayName, combo, baseManaCost, cooldownSeconds, levelReq, allowedWeapons, effectKey, baseDamage, false, false);
     }
 
     // getters...
@@ -99,12 +103,17 @@ public class Spell {
 
     /** Returns the base mana cost. Dynamic increases were removed. */
     public double getCurrentManaCost(Player player) {
+        if (mobility) {
+            return Main.getInstance().getManaTracker().getCost(player.getUniqueId(), id, baseManaCost);
+        }
         return baseManaCost;
     }
 
     /** No-op since cost scaling has been removed. */
     public void recordSpellCast(Player player) {
-        // intentionally left blank
+        if (mobility) {
+            Main.getInstance().getManaTracker().recordCast(player.getUniqueId(), id, baseManaCost);
+        }
     }
 
     /**
@@ -189,7 +198,7 @@ public class Spell {
         // 1) Cooldown guard
         if (cooldownMgr.isOnCooldown(pid, id)) {
             long rem = cooldownMgr.getRemainingTime(pid, id);
-            //player.sendMessage("§c" + displayName + " cooling down: " + (rem/1000) + "s left");
+            CooldownIndicatorManager.getInstance().show(player, displayName, rem, 0);
             return;
         }
 
@@ -204,8 +213,9 @@ public class Spell {
         // 4) Mana check
         double cost = ctx.getFinalManaCost();
         var ps    = StatsManager.getInstance().getPlayerStats(pid);
-        if (ps.getCurrentMana() < Math.ceil(cost)) {
-            player.sendMessage("§cNot enough mana (" + cost + ") to cast " + displayName);
+        int intCost = (int)Math.ceil(cost);
+        if (ps.getCurrentMana() < intCost) {
+            player.sendMessage("§cNot enough mana (" + intCost + ") to cast " + displayName);
             return;
         }
 
@@ -247,17 +257,16 @@ public class Spell {
             }
         }
 
-        int intCost = (int)Math.ceil(cost);
         ps.setCurrentMana(ps.getCurrentMana() - intCost);
         recordSpellCast(player);
-        if (!passive && intCost > 0) {
-            me.nakilex.levelplugin.player.attributes.managers.ManaIndicatorManager
-                .getInstance().showCost(player, intCost);
-        }
         Main.getInstance().getQuestManager().handleCast(player, id);
 
         // 6) Start cooldown (ctx.getFinalCooldown returns 0 if applyCooldown==false)
-        cooldownMgr.setCooldown(pid, id, ctx.getFinalCooldown() / 1000.0);
+        long cdMs = ctx.getFinalCooldown();
+        cooldownMgr.setCooldown(pid, id, cdMs / 1000.0);
+        if (intCost > 0) {
+            CooldownIndicatorManager.getInstance().show(player, displayName, 0, intCost);
+        }
     }
 
 

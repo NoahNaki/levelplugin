@@ -27,6 +27,13 @@ public class SpellManager {
         WARRIOR_WEAPONS.addAll(WeaponType.SHOVEL.getMaterials());
     }
 
+    // Standardized level unlock thresholds
+    private static final int LVL_ONE   = 1;
+    private static final int LVL_THREE = 3;
+    private static final int LVL_FIVE  = 5;
+    private static final int LVL_EIGHT = 8;
+    private static final int LVL_TEN   = 10;
+
     public static SpellManager getInstance() {
         if (instance == null) throw new IllegalStateException("SpellManager not init’d!");
         return instance;
@@ -74,7 +81,7 @@ public class SpellManager {
      */
     private static Spell basicAttack(String id, String name, List<Material> weapons, String effectKey) {
         // Cooldown 0 so ClassSpellListener can throttle via player attack speed
-        return new Spell(id, name, "BASIC_ATTACK", 0.0, 0L, 1, weapons, effectKey, 0.0);
+        return new Spell(id, name, "BASIC_ATTACK", 0.0, 0L, LVL_ONE, weapons, effectKey, 0.0);
     }
 
     private void loadSpells() {
@@ -90,28 +97,30 @@ public class SpellManager {
         archerMap.put("LEFT", new Spell(
             "backstep", "Backstep", "LEFT",
             5.0,
-            MythicSkillConfig.getCooldownSeconds("Backstep"), 3,
+            MythicSkillConfig.getCooldownSeconds("Backstep"), LVL_THREE,
             WeaponType.BOW.getMaterials(),
-            "MYTHIC_BACKSTEP", 0.0
+            "MYTHIC_BACKSTEP", 0.0,
+            false,
+            true
         ));
         archerMap.put("SNEAK", new Spell(
             "arrow_barrage", "Arrow Barrage", "SNEAK",
             12.0,
-            MythicSkillConfig.getCooldownSeconds("Arrow_Barrage"), 10,
+            MythicSkillConfig.getCooldownSeconds("Arrow_Barrage"), LVL_FIVE,
             WeaponType.BOW.getMaterials(),
             "MYTHIC_ARROW_BARRAGE", 0.0
         ));
         archerMap.put("SHIFT_LEFT", new Spell(
             "bow_drone", "Bow Drone", "SHIFT_LEFT",
             10.0,
-            MythicSkillConfig.getCooldownSeconds("Deadly_Javelin"), 10,
+            MythicSkillConfig.getCooldownSeconds("Deadly_Javelin"), LVL_EIGHT,
             WeaponType.BOW.getMaterials(),
             "BOW_DRONE", 0.0
         ));
         archerMap.put("SHIFT_RIGHT", new Spell(
             "dragon_piercer", "Dragon Piercer", "SHIFT_RIGHT",
             15.0,
-            MythicSkillConfig.getCooldownSeconds("Dragon_Piercer"), 10,
+            MythicSkillConfig.getCooldownSeconds("Dragon_Piercer"), LVL_TEN,
             WeaponType.BOW.getMaterials(),
             "MYTHIC_DRAGON_PIERCER", 0.0
         ));
@@ -149,7 +158,8 @@ public class SpellManager {
             MythicSkillConfig.getCooldownSeconds("Phoenix_Totem"), 0,
             WeaponType.BOW.getMaterials(),
             "MYTHIC_PHOENIX_TOTEM", 0.0,
-            true
+            true,
+            false
         ));
         phoenixMap.put("LLL", new Spell(
             "pyroclasmic_barrage", "Pyroclasmic Barrage", "LLL",
@@ -237,7 +247,9 @@ public class SpellManager {
             5.0,
             MythicSkillConfig.getCooldownSeconds("Assassin_Dash"), 3,
             WeaponType.SWORD.getMaterials(),
-            "MYTHIC_ASSASSIN_DASH", 0.0
+            "MYTHIC_ASSASSIN_DASH", 0.0,
+            false,
+            true
         ));
         rogueMap.put("LLL", new Spell(
             "dagger_throw", "Dagger Throw", "LLL",
@@ -259,7 +271,8 @@ public class SpellManager {
             MythicSkillConfig.getCooldownSeconds("Shadow_Walk_Skill"), 5,
             WeaponType.SWORD.getMaterials(),
             "MYTHIC_SHADOW_WALK", 0.0,
-            true
+            false,
+            false
         ));
         spellsByClass.put("rogue", Collections.unmodifiableMap(rogueMap));
         Map<String, Spell> rogueIdMap = new HashMap<>();
@@ -316,7 +329,8 @@ public class SpellManager {
             MythicSkillConfig.getCooldownSeconds("Deadly_Calm"), 0,
             WeaponType.SWORD.getMaterials(),
             "MYTHIC_DEADLY_CALM", 0.0,
-            true
+            true,
+            false
         ));
         spellsByClass.put("awakrogue", Collections.unmodifiableMap(awakrogueMap));
         Map<String, Spell> awakRogueIdMap = new HashMap<>();
@@ -372,7 +386,8 @@ public class SpellManager {
             MythicSkillConfig.getCooldownSeconds("Bulwark_Instinct"), 0,
             WARRIOR_WEAPONS,
             "MYTHIC_BULWARK_INSTINCT", 0.0,
-            true
+            true,
+            false
         ));
         spellsByClass.put("awakwarrior", Collections.unmodifiableMap(awakwarriorMap));
         Map<String, Spell> awakIdMap = new HashMap<>();
@@ -428,7 +443,8 @@ public class SpellManager {
             MythicSkillConfig.getCooldownSeconds("Ambush"), 0,
             WeaponType.BOW.getMaterials(),
             "MYTHIC_AMBUSH", 0.0,
-            true
+            true,
+            false
         ));
         spellsByClass.put("awakarcher", Collections.unmodifiableMap(awakarcherMap));
         Map<String, Spell> awakArIdMap = new HashMap<>();
@@ -484,7 +500,8 @@ public class SpellManager {
             MythicSkillConfig.getCooldownSeconds("Arcane_Shield_Damaged_BLUE"), 0,
             WeaponType.WAND.getMaterials(),
             "MYTHIC_ARCANE_SHIELD", 0.0,
-            true
+            true,
+            false
         ));
         spellsByClass.put("archmage", Collections.unmodifiableMap(archmageMap));
         Map<String, Spell> archmageIdMap = new HashMap<>();
@@ -504,7 +521,9 @@ public class SpellManager {
             5.0,
             MythicSkillConfig.getCooldownSeconds("Charge"), 3,
             WARRIOR_WEAPONS,
-            "MYTHIC_CHARGE", 0.0
+            "MYTHIC_CHARGE", 0.0,
+            false,
+            true
         ));
         warriorMap.put("LRR", new Spell(
             "chain_hook", "Chain Hook", "LRR",
@@ -745,7 +764,9 @@ public class SpellManager {
             1,
             3,
             WeaponType.WAND.getMaterials(),
-            "MYTHIC_BLINK", 0.0
+            "MYTHIC_BLINK", 0.0,
+            false,
+            true
         ));
         mageMap.put("LLL", new Spell(
             "meteor", "Meteor", "LLL",

@@ -1,8 +1,6 @@
 package me.nakilex.levelplugin.scoreboard;
 
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.economy.managers.EconomyManager;
-import me.nakilex.levelplugin.economy.managers.GemsManager;
 import me.nakilex.levelplugin.party.Party;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
@@ -19,7 +17,6 @@ import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
-import org.bukkit.scoreboard.Score;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.ScoreboardManager;
 import org.bukkit.scoreboard.Team;
@@ -28,8 +25,6 @@ import java.util.*;
 
 public class PlayerScoreboardManager implements org.bukkit.event.Listener {
     private final Main plugin;
-    private final EconomyManager economyManager;
-    private final GemsManager gemsManager;
     private final PartyManager partyManager;
     private final QuestManager questManager;
     private final LevelManager levelManager;
@@ -49,7 +44,7 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
 
     @org.bukkit.event.EventHandler
     public void onJoin(org.bukkit.event.player.PlayerJoinEvent event) {
-        createBoard(event.getPlayer());
+        updateBoard(event.getPlayer());
     }
 
     @org.bukkit.event.EventHandler
@@ -58,13 +53,9 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
     }
 
     public PlayerScoreboardManager(Main plugin,
-                                   EconomyManager economyManager,
-                                   GemsManager gemsManager,
                                    PartyManager partyManager,
                                    QuestManager questManager) {
         this.plugin = plugin;
-        this.economyManager = economyManager;
-        this.gemsManager = gemsManager;
         this.partyManager = partyManager;
         this.questManager = questManager;
         this.levelManager = plugin.getLevelManager();
@@ -139,87 +130,75 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
     }
 
     public void updateBoard(Player player) {
-        Scoreboard board = boards.get(player.getUniqueId());
-        if (board == null) return;
+        UUID id = player.getUniqueId();
+
+        // Determine if we should show a board at all
+        me.nakilex.levelplugin.guild.siege.GuildSiegeManager siege = plugin.getGuildSiegeManager();
+        boolean siegeActive = siege != null && siege.isActive(id);
+
+        PlayerQuestProgress progress = questManager.getProgress(id);
+        Quest quest = progress != null ? progress.getQuest() : null;
+        String trackedId = questManager.getTrackedQuest(id);
+        if (trackedId != null && (quest == null || !quest.getId().equals(trackedId))) {
+            Quest other = questManager.getQuest(trackedId);
+            if (other != null) quest = other;
+        }
+        boolean hasQuest = quest != null;
+
+        String gTrackedId = GuildQuestManager.getInstance().getTrackedQuest(id);
+        boolean hasGuildQuest = false;
+        if (gTrackedId != null) {
+            Guild g = GuildManager.getInstance().getGuild(id);
+            if (g != null) {
+                for (GuildQuest q : g.getQuests().values()) {
+                    if (q.getId().equals(gTrackedId) && q.isAccepted()) { hasGuildQuest = true; break; }
+                }
+            }
+        }
+
+        Party party = partyManager.getParty(id);
+        boolean inParty = party != null;
+
+        boolean showBoard = siegeActive || hasQuest || hasGuildQuest || inParty;
+        Scoreboard board = boards.get(id);
+        if (!showBoard) {
+            if (board != null) {
+                removeBoard(player);
+            }
+            return;
+        }
+        if (board == null) {
+            createBoard(player);
+            return;
+        }
+
         Objective obj = board.getObjective("stats");
         if (obj == null) return;
-        String[] prev = lastLines.computeIfAbsent(player.getUniqueId(), k -> new String[entries.length]);
+
+        String[] prev = lastLines.computeIfAbsent(id, k -> new String[entries.length]);
         String[] current = new String[entries.length];
 
         int line = 15;
         int idx = 0;
 
-        // spacer above currency lines
-        current[idx] = " ";
-        if (!current[idx].equals(prev[idx])) {
-            setLine(board, obj, idx, line, current[idx]);
-        }
-        idx++; line--;
-
-        String coinStr = java.text.NumberFormat.getIntegerInstance().format(economyManager.getBalance(player));
-        current[idx] = ChatColor.GOLD + "<glyph:coins_icon> " + ChatColor.WHITE + "Coins: " + ChatColor.GOLD + coinStr;
-        if (!current[idx].equals(prev[idx])) {
-            setLine(board, obj, idx, line, current[idx]);
-        }
-        idx++; line--;
-
-        String gemStr = java.text.NumberFormat.getIntegerInstance().format(gemsManager.getTotalUnits(player));
-        current[idx] = ChatColor.LIGHT_PURPLE + "<glyph:purple_orb_icon> " + ChatColor.WHITE + "Gems: " + ChatColor.LIGHT_PURPLE + gemStr;
-        if (!current[idx].equals(prev[idx])) {
-            setLine(board, obj, idx, line, current[idx]);
-        }
-        idx++; line--;
-
-        // spacer above calendar
-        current[idx] = " ";
-        if (!current[idx].equals(prev[idx])) {
-            setLine(board, obj, idx, line, current[idx]);
-        }
-        idx++; line--;
-
-        String date = plugin.getCalendarManager().getSeasonDate();
-        current[idx] = ChatColor.WHITE + date;
-        if (!current[idx].equals(prev[idx])) {
-            setLine(board, obj, idx, line, current[idx]);
-        }
-        idx++; line--;
-
-        String time = plugin.getCalendarManager().getTimeString() + " " + ChatColor.YELLOW + plugin.getCalendarManager().getWeatherGlyph();
-        current[idx] = ChatColor.GRAY + time;
-        if (!current[idx].equals(prev[idx])) {
-            setLine(board, obj, idx, line, current[idx]);
-        }
-        idx++; line--;
-
-        // spacer below calendar
-        current[idx] = " ";
-        if (!current[idx].equals(prev[idx])) {
-            setLine(board, obj, idx, line, current[idx]);
-        }
-        idx++; line--;
-
         // Siege status
-        me.nakilex.levelplugin.guild.siege.GuildSiegeManager siege = plugin.getGuildSiegeManager();
-        if (siege != null && siege.isActive(player.getUniqueId())) {
+        if (siegeActive) {
             String cap = siege.getCapturingGuild();
             int prog = siege.getProgress();
             String name = cap == null ? ChatColor.WHITE + "None" : ChatColor.WHITE + cap;
             String capText = name + " " + ChatColor.DARK_GRAY + "[" + ChatColor.GRAY + prog + "%" + ChatColor.DARK_GRAY + "]";
-            // Further indent the siege line so it aligns with the flag on the duration line
             current[idx] = ChatColor.RED + "      Siege: " + capText;
             if (!current[idx].equals(prev[idx])) {
                 setLine(board, obj, idx, line, current[idx]);
             }
             idx++; line--;
 
-            // Move the flag glyph to the duration line
             current[idx] = ChatColor.RED + "<glyph:flagleft_icon> " + ChatColor.WHITE + "Duration: " + ChatColor.GRAY + siege.getFormattedRemaining();
             if (!current[idx].equals(prev[idx])) {
                 setLine(board, obj, idx, line, current[idx]);
             }
             idx++; line--;
 
-            // spacer below siege lines
             current[idx] = " ";
             if (!current[idx].equals(prev[idx])) {
                 setLine(board, obj, idx, line, current[idx]);
@@ -227,14 +206,7 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
             idx++; line--;
         }
 
-        PlayerQuestProgress progress = questManager.getProgress(player.getUniqueId());
-        Quest quest = progress != null ? progress.getQuest() : null;
-        String trackedId = questManager.getTrackedQuest(player.getUniqueId());
-        if (trackedId != null && (quest == null || !quest.getId().equals(trackedId))) {
-            Quest other = questManager.getQuest(trackedId);
-            if (other != null) quest = other;
-        }
-        if (quest != null) {
+        if (hasQuest) {
             current[idx] = ChatColor.GREEN + "Quest: " + ChatColor.WHITE + quest.getName();
             if (!current[idx].equals(prev[idx])) {
                 setLine(board, obj, idx, line, current[idx]);
@@ -246,14 +218,12 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
                 setLine(board, obj, idx, line, current[idx]);
             }
             idx++; line--;
+
             int progIndex = 0;
             int progValue = 0;
             if (progress != null && progress.getQuest().getId().equals(quest.getId())) {
                 for (int i = 0; i < quest.getObjectives().size(); i++) {
-                    if (progress.getProgress(i) < quest.getObjectives().get(i).getAmount()) {
-                        progIndex = i;
-                        break;
-                    }
+                    if (progress.getProgress(i) < quest.getObjectives().get(i).getAmount()) { progIndex = i; break; }
                 }
                 progValue = progress.getProgress(progIndex);
             }
@@ -266,9 +236,8 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
             idx++; line--;
         }
 
-        String gTrackedId = GuildQuestManager.getInstance().getTrackedQuest(player.getUniqueId());
-        if (gTrackedId != null) {
-            Guild g = GuildManager.getInstance().getGuild(player.getUniqueId());
+        if (hasGuildQuest) {
+            Guild g = GuildManager.getInstance().getGuild(id);
             if (g != null) {
                 GuildQuest gq = null;
                 for (GuildQuest q : g.getQuests().values()) {
@@ -299,8 +268,7 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
             }
         }
 
-        Party party = partyManager.getParty(player.getUniqueId());
-        if (party != null) {
+        if (inParty) {
             current[idx] = ChatColor.AQUA + "Party:";
             if (!current[idx].equals(prev[idx])) {
                 setLine(board, obj, idx, line, current[idx]);
@@ -329,7 +297,7 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
             }
         }
 
-        if (showTps.contains(player.getUniqueId())) {
+        if (showTps.contains(id)) {
             double tps = Bukkit.getTPS()[0];
             current[idx] = ChatColor.DARK_AQUA + "TPS: " + String.format("%.1f", tps);
             if (!current[idx].equals(prev[idx])) {
@@ -349,6 +317,6 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
                 if (t != null) t.setPrefix("");
             }
         }
-        lastLines.put(player.getUniqueId(), current);
+        lastLines.put(id, current);
     }
 }

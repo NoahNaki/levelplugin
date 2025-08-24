@@ -55,6 +55,7 @@ import me.nakilex.levelplugin.guild.quests.GuildQuestManager;
 import me.nakilex.levelplugin.trade.data.ConfigValues;
 import me.nakilex.levelplugin.trade.utils.MessageStrings;
 import me.nakilex.levelplugin.utils.DealMaker;
+import me.nakilex.levelplugin.utils.NakiPlaceholderExpansion;
 import me.nakilex.levelplugin.utils.MetadataTrait;
 import me.nakilex.levelplugin.utils.registeries.CommandRegistry;
 import me.nakilex.levelplugin.utils.registeries.ListenerRegistry;
@@ -182,7 +183,7 @@ public class PluginBootstrap {
     }
 
     public void enable() {
-        manaTracker = new ManaCostTracker(1.5, 5_000L);
+        manaTracker = new ManaCostTracker(1.5, 4_000L);
         loadConfigFiles();
         setupCustomConfig();
         playerConfig = new PlayerConfig(plugin);
@@ -219,6 +220,7 @@ public class PluginBootstrap {
         npcCodexGUI.setMainGui(codexGUI);
         locationCodexGUI.setMainGui(codexGUI);
         registerCommandsAndListeners();
+        registerPlaceholders();
         new ItemsBrowser(plugin);
         new me.nakilex.levelplugin.items.tools.gui.ToolBrowser(plugin);
         new RerollBrowser(plugin);
@@ -285,7 +287,7 @@ public class PluginBootstrap {
         settingsManager = new SettingsManager();
         questManager = new QuestManager(plugin, partyManager);
         dialogManager = new me.nakilex.levelplugin.npc.dialog.NPCDialogManager(plugin);
-        scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(plugin, economyManager, gemsManager, partyManager, questManager);
+        scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(plugin, partyManager, questManager);
         calendarManager = new me.nakilex.levelplugin.calendar.CalendarManager(plugin);
         duelStatsManager = new me.nakilex.levelplugin.leaderboards.DuelStatsManager(plugin);
         partyGlowManager = new PartyGlowManager(plugin, partyManager, scoreboardManager::getBoard);
@@ -422,6 +424,27 @@ public class PluginBootstrap {
                 plugin);
         plugin.getServer().getPluginManager().registerEvents(beaconManager, plugin);
         TaskRegistry.startTasks(plugin, horseConfigManager, horseManager, wanderingMerchantManager);
+    }
+
+    /**
+     * Registers PlaceholderAPI expansion if the plugin is present.
+     * Provided placeholders:
+     * <ul>
+     *   <li><code>%naki_level%</code></li>
+     *   <li><code>%naki_class%</code></li>
+     *   <li><code>%naki_coins%</code></li>
+     *   <li><code>%naki_gems%</code></li>
+     *   <li><code>%naki_currentMana%</code></li>
+     *   <li><code>%naki_maxMana%</code></li>
+     *   <li><code>%naki_currentXP%</code></li>
+     *   <li><code>%naki_xpNextLevel%</code></li>
+     *   <li><code>%naki_seasonDate%</code></li>
+     * </ul>
+     */
+    private void registerPlaceholders() {
+        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            new NakiPlaceholderExpansion(plugin).register();
+        }
     }
 
     private boolean validateDependencies() {
