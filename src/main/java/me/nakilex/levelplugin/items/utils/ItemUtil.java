@@ -24,6 +24,8 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.persistence.PersistentDataType;
+import io.papermc.paper.datacomponent.DataComponentType;
+import net.kyori.adventure.key.Key;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import me.nakilex.levelplugin.utils.GuiUtil;
@@ -51,8 +53,6 @@ public class ItemUtil {
      */
     public static final NamespacedKey NEXO_MODEL_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "nexo_model");
     public static final NamespacedKey SOULBOUND_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "soulbound");
-    /** Built-in component for fancy tooltip borders (Nexo styles). */
-    public static final NamespacedKey TOOLTIP_STYLE_KEY = NamespacedKey.minecraft("tooltip_style");
 
     private static final int PREFIX_BONUS = 20;
     private static final java.util.Map<String, StatsManager.StatType> PREFIX_MAP = new java.util.HashMap<>();
@@ -437,6 +437,21 @@ public class ItemUtil {
         if (meta == null) return;
         meta.getPersistentDataContainer().set(key, PersistentDataType.STRING, value);
         stack.setItemMeta(meta);
+    }
+
+    /**
+     * Generic helper to apply a keyed data component (such as tooltip style)
+     * directly onto an {@link ItemStack}. The component type must accept a
+     * {@link Key} value.
+     *
+     * @param stack the stack to modify
+     * @param type  the data component type to set
+     * @param value the key value for the component
+     */
+    public static void setKeyedComponent(ItemStack stack, DataComponentType.Valued<Key> type, Key value) {
+        if (stack == null || stack.getType() == Material.AIR) return;
+        if (type == null || value == null) return;
+        stack.setData(type, value);
     }
 
     /**

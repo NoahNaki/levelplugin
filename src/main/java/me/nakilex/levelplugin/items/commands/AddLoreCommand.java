@@ -1,7 +1,9 @@
 package me.nakilex.levelplugin.items.commands;
 
+import io.papermc.paper.datacomponent.DataComponentTypes;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import net.kyori.adventure.key.Key;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
@@ -38,7 +40,7 @@ public class AddLoreCommand implements CommandExecutor {
         if (args.length >= 2 && args[0].equalsIgnoreCase("style")) {
             String raw = args[1];
             String style = raw.contains(":") ? raw : "minecraft:" + raw.toLowerCase();
-            ItemUtil.setStringData(stack, ItemUtil.TOOLTIP_STYLE_KEY, style);
+            ItemUtil.setKeyedComponent(stack, DataComponentTypes.TOOLTIP_STYLE, Key.key(style));
             player.getInventory().setItemInMainHand(stack);
             player.sendMessage(ChatColor.GREEN + "Tooltip style set to " + style + ".");
             return true;
@@ -63,7 +65,7 @@ public class AddLoreCommand implements CommandExecutor {
             }
             line = rarity.getSymbol() + "<glyph:item>";
             String style = "minecraft:" + rarity.name().toLowerCase();
-            ItemUtil.setStringData(stack, ItemUtil.TOOLTIP_STYLE_KEY, style);
+            ItemUtil.setKeyedComponent(stack, DataComponentTypes.TOOLTIP_STYLE, Key.key(style));
         }
 
         ItemUtil.insertLoreLine(stack, index, line);
