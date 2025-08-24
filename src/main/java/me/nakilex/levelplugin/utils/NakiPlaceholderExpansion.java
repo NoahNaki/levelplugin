@@ -30,9 +30,13 @@ public class NakiPlaceholderExpansion extends PlaceholderExpansion {
         });
         placeholders.put("coins", p -> String.valueOf(plugin.getEconomyManager().getBalance(p)));
         placeholders.put("gems", p -> String.valueOf(plugin.getGemsManager().getTotalUnits(p)));
-        placeholders.put("mana", p -> {
+        placeholders.put("currentmana", p -> {
             StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(p.getUniqueId());
             return String.valueOf(ps.getCurrentMana());
+        });
+        placeholders.put("maxmana", p -> {
+            StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(p.getUniqueId());
+            return String.valueOf(ps.getMaxMana());
         });
         placeholders.put("currentxp", p -> String.valueOf(plugin.getLevelManager().getXP(p)));
         placeholders.put("xpnextlevel", p -> String.valueOf(plugin.getLevelManager().getXpNeededForNextLevel(p)));

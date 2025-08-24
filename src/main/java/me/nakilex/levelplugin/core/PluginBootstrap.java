@@ -434,7 +434,8 @@ public class PluginBootstrap {
      *   <li><code>%naki_class%</code></li>
      *   <li><code>%naki_coins%</code></li>
      *   <li><code>%naki_gems%</code></li>
-     *   <li><code>%naki_mana%</code></li>
+     *   <li><code>%naki_currentMana%</code></li>
+     *   <li><code>%naki_maxMana%</code></li>
      *   <li><code>%naki_currentXP%</code></li>
      *   <li><code>%naki_xpNextLevel%</code></li>
      *   <li><code>%naki_seasonDate%</code></li>
