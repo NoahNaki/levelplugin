@@ -55,6 +55,7 @@ import me.nakilex.levelplugin.guild.quests.GuildQuestManager;
 import me.nakilex.levelplugin.trade.data.ConfigValues;
 import me.nakilex.levelplugin.trade.utils.MessageStrings;
 import me.nakilex.levelplugin.utils.DealMaker;
+import me.nakilex.levelplugin.utils.NakiPlaceholderExpansion;
 import me.nakilex.levelplugin.utils.MetadataTrait;
 import me.nakilex.levelplugin.utils.registeries.CommandRegistry;
 import me.nakilex.levelplugin.utils.registeries.ListenerRegistry;
@@ -219,6 +220,7 @@ public class PluginBootstrap {
         npcCodexGUI.setMainGui(codexGUI);
         locationCodexGUI.setMainGui(codexGUI);
         registerCommandsAndListeners();
+        registerPlaceholders();
         new ItemsBrowser(plugin);
         new me.nakilex.levelplugin.items.tools.gui.ToolBrowser(plugin);
         new RerollBrowser(plugin);
@@ -422,6 +424,23 @@ public class PluginBootstrap {
                 plugin);
         plugin.getServer().getPluginManager().registerEvents(beaconManager, plugin);
         TaskRegistry.startTasks(plugin, horseConfigManager, horseManager, wanderingMerchantManager);
+    }
+
+    /**
+     * Registers PlaceholderAPI expansion if the plugin is present.
+     * Provided placeholders:
+     * <ul>
+     *   <li><code>%naki_level%</code></li>
+     *   <li><code>%naki_class%</code></li>
+     *   <li><code>%naki_coins%</code></li>
+     *   <li><code>%naki_gems%</code></li>
+     *   <li><code>%naki_mana%</code></li>
+     * </ul>
+     */
+    private void registerPlaceholders() {
+        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            new NakiPlaceholderExpansion(plugin).register();
+        }
     }
 
     private boolean validateDependencies() {
