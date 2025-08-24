@@ -393,7 +393,7 @@ public class ProfileSelectionGUI implements Listener {
         openEdit(player, index);
     }
 
-    private void promptForName(Player player, int index, boolean firstCreation) {
+    private static void promptForName(Player player, int index, boolean firstCreation) {
         NAMING.add(player.getUniqueId());
         PENDING_SLOT.put(player.getUniqueId(), index);
         player.closeInventory();
