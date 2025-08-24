@@ -40,7 +40,7 @@ public class NakiPlaceholderExpansion extends PlaceholderExpansion {
         });
         placeholders.put("currentxp", p -> String.valueOf(plugin.getLevelManager().getXP(p)));
         placeholders.put("xpnextlevel", p -> String.valueOf(plugin.getLevelManager().getXpNeededForNextLevel(p)));
-        placeholders.put("seasondate", p -> plugin.getCalendarManager().getSeasonDate());
+        placeholders.put("seasondate", p -> plugin.getCalendarManager().getSeasonDate(false));
     }
 
     @Override

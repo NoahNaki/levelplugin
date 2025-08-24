@@ -89,13 +89,23 @@ public class CalendarManager implements Listener {
     }
 
     /**
-     * Returns date like "ꑆ Early Spring 18th" with the custom season glyph.
+     * Returns date like "Early Spring 18th" optionally prefixed with the season glyph.
      */
     public String getSeasonDate() {
+        return getSeasonDate(true);
+    }
+
+    /**
+     * Returns date like "Early Spring 18th" with optional season glyph.
+     *
+     * @param includeGlyph whether to prefix the season glyph
+     * @return the season/date string
+     */
+    public String getSeasonDate(boolean includeGlyph) {
         int season = MONTH_TO_SEASON[month - 1];
         int phase = MONTH_TO_PHASE[month - 1];
-        String glyph = getSeasonGlyph(season);
-        return glyph + " " + PHASES[phase] + " " + SEASONS[season] + " " + ordinal(day);
+        String prefix = includeGlyph ? getSeasonGlyph(season) + " " : "";
+        return prefix + PHASES[phase] + " " + SEASONS[season] + " " + ordinal(day);
     }
 
     /** Glyph representing the current season. */
