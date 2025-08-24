@@ -184,8 +184,8 @@ commands:
     description: Wipe a player's profile
     usage: /wipeprofile <player>
   profile:
-    description: Switch or create profiles
-    usage: /profile
+    description: Manage player profiles
+    usage: /profile [create|delete|select|update|unlock|lock]
   genitem:
     description: Gives a procedurally generated item
     usage: /genitem [player] <mobType> <level> [amount]

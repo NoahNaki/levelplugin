@@ -2,7 +2,7 @@ package me.nakilex.levelplugin.player.profile;
 
 public class PlayerProfile {
     private final int slot;
-    private final String name;
+    private String name;
     private int playMinutes;
     private org.bukkit.Location lastLocation;
 
@@ -13,6 +13,7 @@ public class PlayerProfile {
 
     public int getSlot() { return slot; }
     public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
 
     public int getPlayMinutes() { return playMinutes; }
     public void setPlayMinutes(int minutes) { this.playMinutes = minutes; }

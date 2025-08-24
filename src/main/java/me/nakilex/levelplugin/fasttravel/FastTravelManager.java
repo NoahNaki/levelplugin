@@ -187,7 +187,6 @@ public class FastTravelManager {
             me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, "§6§lRegion Discovered");
             me.nakilex.levelplugin.utils.ChatFormatter.sendCenteredMessage(player, pt.getColor() + pt.getName());
             if (exp > 0) {
-                plugin.getLevelManager().addXP(player, exp);
                 String expColor = me.nakilex.levelplugin.utils.ChatFormatter.experienceColor();
                 String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
                 player.sendMessage(" ");
@@ -195,6 +194,9 @@ public class FastTravelManager {
                         expColor + "+" + exp + " <glyph:experience_orb_icon> " + expLabel);
             }
             me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, " ", 45);
+            if (exp > 0) {
+                plugin.getLevelManager().addXP(player, exp);
+            }
         }
     }
 

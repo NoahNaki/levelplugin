@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.player.mining.managers.MiningManager;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
+import me.nakilex.levelplugin.utils.BetterHudUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
@@ -137,6 +138,7 @@ public class PlayerJoinListener implements Listener {
                 StaticItemListener.giveStaticItems(player);
             }
             if (armor.length > 0) player.getInventory().setArmorContents(armor);
+            BetterHudUtil.addHud(player);
         } else {
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
                 if (!player.isOnline()) return;

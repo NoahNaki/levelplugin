@@ -202,7 +202,10 @@ public class CommandRegistry {
         plugin.getCommand("fasttravel").setTabCompleter(fastTravelCmd);
         plugin.getCommand("travel").setExecutor(fastTravelCmd);
         plugin.getCommand("travel").setTabCompleter(fastTravelCmd);
-        plugin.getCommand("profile").setExecutor(new me.nakilex.levelplugin.player.commands.ProfileCommand());
+        me.nakilex.levelplugin.player.commands.ProfileCommand profileCmd =
+                new me.nakilex.levelplugin.player.commands.ProfileCommand();
+        plugin.getCommand("profile").setExecutor(profileCmd);
+        plugin.getCommand("profile").setTabCompleter(profileCmd);
         plugin.getCommand("wipeprofile").setExecutor(new WipeProfileCommand());
 
         DebugCommand debugCmd = new DebugCommand(mobDebugToggleManager,

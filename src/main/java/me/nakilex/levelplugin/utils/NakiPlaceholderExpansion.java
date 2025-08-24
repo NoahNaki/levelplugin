@@ -5,6 +5,8 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
+import me.nakilex.levelplugin.player.profile.ProfileManager;
+import me.nakilex.levelplugin.player.profile.PlayerProfile;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
@@ -61,7 +63,17 @@ public class NakiPlaceholderExpansion extends PlaceholderExpansion {
     @Override
     public String onPlaceholderRequest(Player player, String params) {
         if (player == null || params == null) return "";
-        Function<Player, String> handler = placeholders.get(params.toLowerCase());
+        String key = params.toLowerCase();
+        if (key.startsWith("profile")) {
+            try {
+                int slot = Integer.parseInt(key.substring(7)) - 1;
+                PlayerProfile prof = ProfileManager.getInstance().getProfile(player.getUniqueId(), slot);
+                return prof != null ? prof.getName() : "";
+            } catch (NumberFormatException ignored) {
+                return "";
+            }
+        }
+        Function<Player, String> handler = placeholders.get(key);
         return handler != null ? handler.apply(player) : null;
     }
 }

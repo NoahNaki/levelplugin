@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
+import me.nakilex.levelplugin.utils.BetterHudUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -100,6 +101,7 @@ public class ProfileSelectionGUI implements Listener {
     public static void startSelection(Player player) {
         SELECTING.add(player.getUniqueId());
         hideOthers(player);
+        BetterHudUtil.removeHud(player);
 
         // Save state from the currently active profile, if any
         ProfileManager pm = ProfileManager.getInstance();
@@ -257,7 +259,7 @@ public class ProfileSelectionGUI implements Listener {
                 if (e.isRightClick()) {
                     handleEdit(player, i);
                 } else {
-                    handleSelect(player, i);
+                    selectProfile(player, i);
                 }
                 return;
             }
@@ -322,7 +324,7 @@ public class ProfileSelectionGUI implements Listener {
         }
     }
 
-    private void handleSelect(Player player, int index) {
+    public static void selectProfile(Player player, int index) {
         ProfileManager pm = ProfileManager.getInstance();
         if (index >= pm.getUnlockedSlots(player.getUniqueId())) {
             player.sendMessage(ChatColor.RED + "This profile is locked.");
@@ -331,15 +333,18 @@ public class ProfileSelectionGUI implements Listener {
         List<PlayerProfile> existing = pm.getProfiles(player.getUniqueId());
         boolean firstCreation = existing.stream().allMatch(Objects::isNull);
 
-        Integer active = pm.getActiveSlot(player.getUniqueId());
-        if (active != null && active == index) {
-            player.sendMessage(ChatColor.RED + "You already have this profile selected!");
-            return;
-        }
-
         PlayerProfile prof = pm.getProfile(player.getUniqueId(), index);
         if (prof == null) {
             promptForName(player, index, firstCreation);
+            return;
+        }
+
+        Integer active = pm.getActiveSlot(player.getUniqueId());
+        if (active != null && active == index) {
+            player.sendMessage(ChatColor.YELLOW + "Selected character " + prof.getName());
+            stopSelection(player);
+            player.closeInventory();
+            BetterHudUtil.addHud(player);
             return;
         }
 
@@ -377,7 +382,7 @@ public class ProfileSelectionGUI implements Listener {
         if (armor.length > 0) player.getInventory().setArmorContents(armor);
         stopSelection(player);
         player.closeInventory();
-
+        BetterHudUtil.addHud(player);
 
     }
 
@@ -391,7 +396,7 @@ public class ProfileSelectionGUI implements Listener {
         openEdit(player, index);
     }
 
-    private void promptForName(Player player, int index, boolean firstCreation) {
+    private static void promptForName(Player player, int index, boolean firstCreation) {
         NAMING.add(player.getUniqueId());
         PENDING_SLOT.put(player.getUniqueId(), index);
         player.closeInventory();
@@ -432,55 +437,58 @@ public class ProfileSelectionGUI implements Listener {
         player.kickPlayer(ChatColor.YELLOW + "Disconnected");
     }
 
+    private static boolean anyGuiOpen(UUID id) {
+        return OPEN.containsKey(id) || EDIT_OPEN.containsKey(id) || CONFIRM_OPEN.containsKey(id);
+    }
+
+    private static void handlePostClose(Player player) {
+        UUID id = player.getUniqueId();
+        if (!SELECTING.contains(id) || NAMING.contains(id) || anyGuiOpen(id)) {
+            return;
+        }
+        ProfileManager pm = ProfileManager.getInstance();
+        if (pm.getActiveSlot(id) == null) {
+            Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+                if (player.isOnline() && SELECTING.contains(id)
+                        && pm.getActiveSlot(id) == null && !anyGuiOpen(id)) {
+                    open(player);
+                }
+            }, 40L);
+        } else {
+            stopSelection(player);
+            BetterHudUtil.addHud(player);
+        }
+    }
+
     @EventHandler
     public void onClose(InventoryCloseEvent e) {
-        UUID id = e.getPlayer().getUniqueId();
+        Player player = (Player) e.getPlayer();
+        UUID id = player.getUniqueId();
+        Inventory inv = e.getInventory();
+
+        boolean handled = false;
         Inventory open = OPEN.get(id);
-        if (open != null && e.getInventory().equals(open)) {
+        if (open != null && inv.equals(open)) {
             OPEN.remove(id);
-            Player p = (Player) e.getPlayer();
-            if (SELECTING.contains(id) && !NAMING.contains(id)
-                    && ProfileManager.getInstance().getActiveSlot(id) == null
-                    && !EDIT_OPEN.containsKey(id)) {
-                Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-                    if (p.isOnline() && SELECTING.contains(id)
-                            && ProfileManager.getInstance().getActiveSlot(id) == null
-                            && !EDIT_OPEN.containsKey(id)) {
-                        open(p);
-                    }
-                }, 40L);
-            } else if (SELECTING.contains(id) && ProfileManager.getInstance().getActiveSlot(id) != null) {
-                // Player closed the menu while a profile was already selected;
-                // stop enforcing selection so they can continue playing.
-                stopSelection(p);
-            }
+            handled = true;
         }
 
         Inventory edit = EDIT_OPEN.get(id);
-        if (edit != null && e.getInventory().equals(edit)) {
+        if (edit != null && inv.equals(edit)) {
             EDIT_OPEN.remove(id);
             PENDING_SLOT.remove(id);
-            if (SELECTING.contains(id) && !NAMING.contains(id)
-                    && ProfileManager.getInstance().getActiveSlot(id) == null
-                    && !CONFIRM_OPEN.containsKey(id)) {
-                Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> open((Player) e.getPlayer()), 1L);
-            } else if (SELECTING.contains(id) && ProfileManager.getInstance().getActiveSlot(id) != null) {
-                stopSelection((Player) e.getPlayer());
-            }
-            return;
+            handled = true;
         }
 
         Inventory confirm = CONFIRM_OPEN.get(id);
-        if (confirm != null && e.getInventory().equals(confirm)) {
+        if (confirm != null && inv.equals(confirm)) {
             CONFIRM_OPEN.remove(id);
             PENDING_SLOT.remove(id);
-            if (SELECTING.contains(id) && !NAMING.contains(id)
-                    && ProfileManager.getInstance().getActiveSlot(id) == null
-                    && !EDIT_OPEN.containsKey(id)) {
-                Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> open((Player) e.getPlayer()), 1L);
-            } else if (SELECTING.contains(id) && ProfileManager.getInstance().getActiveSlot(id) != null) {
-                stopSelection((Player) e.getPlayer());
-            }
+            handled = true;
+        }
+
+        if (handled) {
+            handlePostClose(player);
         }
     }
 
