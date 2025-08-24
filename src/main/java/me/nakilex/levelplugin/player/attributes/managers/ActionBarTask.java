@@ -22,10 +22,30 @@ public class ActionBarTask extends BukkitRunnable {
             if (plugin.getCutsceneManager().isInCutscene(player)) continue;
             CooldownIndicatorManager.Info info = CooldownIndicatorManager.getInstance().get(player);
             if (info != null) {
-                long remaining = info.expireAt - now;
-                int seconds = (int) Math.ceil(remaining / 1000.0);
-                String msg = ChatColor.YELLOW + info.name + ChatColor.GRAY + " cooldown " + ChatColor.YELLOW + seconds + "s";
-                player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(msg));
+                boolean showCd = now < info.expireAt;
+                boolean showCost = info.cost > 0 && now < info.costExpireAt;
+                if (showCd || showCost) {
+                    StringBuilder msg = new StringBuilder();
+                    if (showCd) {
+                        long remaining = info.expireAt - now;
+                        int seconds = (int) Math.ceil(remaining / 1000.0);
+                        msg.append(ChatColor.YELLOW).append(info.name)
+                           .append(ChatColor.GRAY).append(" cooldown ")
+                           .append(ChatColor.YELLOW).append(seconds).append("s");
+                    }
+                    if (showCost) {
+                        if (!showCd) {
+                            msg.append(ChatColor.YELLOW).append(info.name);
+                        }
+                        msg.append(" ")
+                           .append(ChatColor.DARK_GRAY).append("[")
+                           .append(ChatColor.AQUA).append("-").append(info.cost)
+                           .append(ChatColor.DARK_GRAY).append("]");
+                    }
+                    player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(msg.toString()));
+                } else {
+                    player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(""));
+                }
             } else {
                 player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(""));
             }

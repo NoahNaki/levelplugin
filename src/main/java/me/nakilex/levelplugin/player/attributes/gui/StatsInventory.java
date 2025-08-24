@@ -48,22 +48,22 @@ public class StatsInventory {
             "Strength", StatType.STR, ps.baseStrength, ps.bonusStrength, ps.skillPoints,
             "Boosts melee damage and adds a bit of health.",
             new String[]{
-                String.format("Each point: +0.5 melee dmg & +%.1f HP.", StatsManager.HEALTH_PER_STRENGTH),
-                String.format("HP bonus: %s%.1f HP", ChatColor.YELLOW,
+                String.format("Each point: +%.2f melee dmg & +%.2f HP.", 0.5, StatsManager.HEALTH_PER_STRENGTH),
+                String.format("HP bonus: %s%.2f HP", ChatColor.YELLOW,
                         (ps.baseStrength + ps.bonusStrength) * StatsManager.HEALTH_PER_STRENGTH)
             }
         ));
         int totalAgility = ps.baseAgility + ps.bonusAgility;
         double dodgePercent = totalAgility / (totalAgility + 200.0) * 100.0;
-        dodgePercent = Math.round(dodgePercent * 10.0) / 10.0;
+        dodgePercent = Math.round(dodgePercent * 100.0) / 100.0;
 
         builder.setItem(20, createStatBook(
             "Agility", StatType.AGI, ps.baseAgility, ps.bonusAgility, ps.skillPoints,
             "Improves your speed and dodge chance.",
             new String[]{
                 "Dodge chance scales with total Agility.",
-                "Current dodge chance: " + ChatColor.YELLOW + dodgePercent + "%.",
-                "Speed bonus: +" + ((ps.baseAgility + ps.bonusAgility) * 0.001f)
+                "Current dodge chance: " + ChatColor.YELLOW + String.format("%.2f", dodgePercent) + "%.",
+                "Speed bonus: +" + String.format("%.2f", (ps.baseAgility + ps.bonusAgility) * 0.001f)
             }
         ));
 
@@ -78,12 +78,12 @@ public class StatsInventory {
 
         int totalDexterity = ps.baseDexterity + ps.bonusDexterity;
         double critPercent  = totalDexterity / (totalDexterity + 100.0) * 100.0;
-        critPercent = Math.round(critPercent * 10.0) / 10.0;
+        critPercent = Math.round(critPercent * 100.0) / 100.0;
         builder.setItem(23, createStatBook(
             "Dexterity", StatType.DEX, ps.baseDexterity, ps.bonusDexterity, ps.skillPoints,
             "Improves crit chance and subtracts from enemy dodge based on your DEX.",
             new String[]{
-                "Crit chance: " + ChatColor.YELLOW + critPercent + "% (DR formula).",
+                "Crit chance: " + ChatColor.YELLOW + String.format("%.2f", critPercent) + "% (DR formula).",
                 "Accuracy: subtracts " + totalDexterity + " Agility points from the target before dodge."
             }
         ));
@@ -92,8 +92,8 @@ public class StatsInventory {
             "Vitality", StatType.VIT, ps.baseVitality, ps.bonusVitality, ps.skillPoints,
             "Increases max health and reduces damage taken.",
             new String[]{
-                String.format("Each point grants %.1f HP and defense.", StatsManager.HEALTH_PER_VITALITY),
-                String.format("Current HP bonus: %s%.1f HP.", ChatColor.YELLOW,
+                String.format("Each point grants %.2f HP and defense.", StatsManager.HEALTH_PER_VITALITY),
+                String.format("Current HP bonus: %s%.2f HP.", ChatColor.YELLOW,
                         (ps.baseVitality + ps.bonusVitality) * StatsManager.HEALTH_PER_VITALITY)
             }
         ));
@@ -113,7 +113,7 @@ public class StatsInventory {
             "Amplifies attack speed and all damage.",
             new String[]{
                 "+1% atk speed & +0.3 dmg per point.",
-                "Current atk speed: " + ChatColor.YELLOW + atkSpeed + " attacks/s"
+                "Current atk speed: " + ChatColor.YELLOW + String.format("%.2f", atkSpeed) + " attacks/s"
             }
         ));
         builder.setItem(13, GuiUtil.getNexoItem("refresh", ChatColor.RED + "Refund All Skill Points"));
@@ -183,8 +183,8 @@ public class StatsInventory {
             lore.add(""); // divider after Gear Score
 
             double progress = nextLevelXP > 0 ? (double) currentXP / nextLevelXP : 0.0;
-            double percent = Math.round(progress * 1000.0) / 10.0;
-            lore.add(ChatColor.GRAY + "Progress to Level " + ChatColor.YELLOW + (StatsManager.getInstance().getLevel(player) + 1) + ChatColor.GRAY + ": " + ChatColor.YELLOW + percent + "%");
+            double percent = Math.round(progress * 10000.0) / 100.0;
+            lore.add(ChatColor.GRAY + "Progress to Level " + ChatColor.YELLOW + (StatsManager.getInstance().getLevel(player) + 1) + ChatColor.GRAY + ": " + ChatColor.YELLOW + String.format("%.2f", percent) + "%");
             String bar = TooltipUtil.progressBar(currentXP, nextLevelXP, 15);
             String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
             String expColor = me.nakilex.levelplugin.utils.ChatFormatter.experienceColor();
@@ -194,14 +194,14 @@ public class StatsInventory {
             int next = miningManager.getXpRequired(mLevel);
             int mXp = miningManager.getXP(player);
             double percent = next > 0 ? (mXp * 100.0 / next) : 0.0;
-            percent = Math.round(percent * 10.0) / 10.0;
+            percent = Math.round(percent * 100.0) / 100.0;
 
             lore.add(ChatColor.GRAY + "General information about");
             lore.add(ChatColor.GRAY + "your characters profressions");
             lore.add("");
             lore.add(ChatColor.GOLD + "Gathering Skills:");
             lore.add(ChatColor.GOLD + "- " + ChatColor.GRAY + "Lv. " + mLevel + " Mining "
-                + ChatColor.DARK_GRAY + "[" + ChatColor.DARK_GRAY + percent + "%]");
+                + ChatColor.DARK_GRAY + "[" + ChatColor.DARK_GRAY + String.format("%.2f", percent) + "%]");
         }
 
         lore.add(" ");

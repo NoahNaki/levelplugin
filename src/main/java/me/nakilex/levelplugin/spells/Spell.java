@@ -213,8 +213,9 @@ public class Spell {
         // 4) Mana check
         double cost = ctx.getFinalManaCost();
         var ps    = StatsManager.getInstance().getPlayerStats(pid);
-        if (ps.getCurrentMana() < Math.ceil(cost)) {
-            player.sendMessage("§cNot enough mana (" + cost + ") to cast " + displayName);
+        int intCost = (int)Math.ceil(cost);
+        if (ps.getCurrentMana() < intCost) {
+            player.sendMessage("§cNot enough mana (" + intCost + ") to cast " + displayName);
             return;
         }
 
@@ -256,17 +257,15 @@ public class Spell {
             }
         }
 
-        int intCost = (int)Math.ceil(cost);
         ps.setCurrentMana(ps.getCurrentMana() - intCost);
         recordSpellCast(player);
-        // no mana cost indicator; action bar reserved for cooldown display
         Main.getInstance().getQuestManager().handleCast(player, id);
 
         // 6) Start cooldown (ctx.getFinalCooldown returns 0 if applyCooldown==false)
         long cdMs = ctx.getFinalCooldown();
         cooldownMgr.setCooldown(pid, id, cdMs / 1000.0);
-        if (cdMs > 0) {
-            CooldownIndicatorManager.getInstance().show(player, displayName, cdMs);
+        if (cdMs > 0 || intCost > 0) {
+            CooldownIndicatorManager.getInstance().show(player, displayName, cdMs, intCost);
         }
     }
 
