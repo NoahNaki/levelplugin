@@ -65,7 +65,8 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         ScoreboardManager sm = Bukkit.getScoreboardManager();
         if (sm == null) return;
         Scoreboard board = sm.getNewScoreboard();
-        Objective obj = board.registerNewObjective("stats", "dummy", ChatColor.GREEN + "Profile Stats");
+        Objective obj = board.registerNewObjective("stats", "dummy",
+                ChatColor.YELLOW.toString() + ChatColor.BOLD + "Objectives");
         try {
             // Paper 1.20+ includes an overload allowing sidebar numbers to be hidden
             java.lang.reflect.Method m = obj.getClass().getMethod("setDisplaySlot", DisplaySlot.class, boolean.class);
@@ -174,12 +175,19 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
 
         Objective obj = board.getObjective("stats");
         if (obj == null) return;
+        obj.setDisplayName(ChatColor.YELLOW.toString() + ChatColor.BOLD + "Objectives");
 
         String[] prev = lastLines.computeIfAbsent(id, k -> new String[entries.length]);
         String[] current = new String[entries.length];
 
         int line = 15;
         int idx = 0;
+
+        current[idx] = " ";
+        if (!current[idx].equals(prev[idx])) {
+            setLine(board, obj, idx, line, current[idx]);
+        }
+        idx++; line--;
 
         // Siege status
         if (siegeActive) {

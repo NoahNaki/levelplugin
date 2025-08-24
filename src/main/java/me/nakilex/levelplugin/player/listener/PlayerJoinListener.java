@@ -41,7 +41,6 @@ public class PlayerJoinListener implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         UUID pid = player.getUniqueId();
-        BetterHudUtil.removeHud(player);
 
         // Delay to let other plugins finish their startup logic
         // Early initialization and teleport

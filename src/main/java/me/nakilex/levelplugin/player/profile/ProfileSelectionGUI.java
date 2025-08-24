@@ -333,15 +333,18 @@ public class ProfileSelectionGUI implements Listener {
         List<PlayerProfile> existing = pm.getProfiles(player.getUniqueId());
         boolean firstCreation = existing.stream().allMatch(Objects::isNull);
 
-        Integer active = pm.getActiveSlot(player.getUniqueId());
-        if (active != null && active == index) {
-            player.sendMessage(ChatColor.RED + "You already have this profile selected!");
-            return;
-        }
-
         PlayerProfile prof = pm.getProfile(player.getUniqueId(), index);
         if (prof == null) {
             promptForName(player, index, firstCreation);
+            return;
+        }
+
+        Integer active = pm.getActiveSlot(player.getUniqueId());
+        if (active != null && active == index) {
+            player.sendMessage(ChatColor.YELLOW + "Selected character " + prof.getName());
+            stopSelection(player);
+            player.closeInventory();
+            BetterHudUtil.addHud(player);
             return;
         }
 
@@ -453,8 +456,9 @@ public class ProfileSelectionGUI implements Listener {
                 }, 40L);
             } else if (SELECTING.contains(id) && ProfileManager.getInstance().getActiveSlot(id) != null) {
                 // Player closed the menu while a profile was already selected;
-                // stop enforcing selection so they can continue playing.
+                // stop enforcing selection so they can continue playing and restore HUD.
                 stopSelection(p);
+                BetterHudUtil.addHud(p);
             }
         }
 
@@ -467,7 +471,9 @@ public class ProfileSelectionGUI implements Listener {
                     && !CONFIRM_OPEN.containsKey(id)) {
                 Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> open((Player) e.getPlayer()), 1L);
             } else if (SELECTING.contains(id) && ProfileManager.getInstance().getActiveSlot(id) != null) {
-                stopSelection((Player) e.getPlayer());
+                Player p = (Player) e.getPlayer();
+                stopSelection(p);
+                BetterHudUtil.addHud(p);
             }
             return;
         }
@@ -481,7 +487,9 @@ public class ProfileSelectionGUI implements Listener {
                     && !EDIT_OPEN.containsKey(id)) {
                 Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> open((Player) e.getPlayer()), 1L);
             } else if (SELECTING.contains(id) && ProfileManager.getInstance().getActiveSlot(id) != null) {
-                stopSelection((Player) e.getPlayer());
+                Player p = (Player) e.getPlayer();
+                stopSelection(p);
+                BetterHudUtil.addHud(p);
             }
         }
     }
