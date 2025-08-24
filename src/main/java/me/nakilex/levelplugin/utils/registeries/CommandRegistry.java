@@ -13,6 +13,7 @@ import me.nakilex.levelplugin.friend.UnignoreCommand;
 import me.nakilex.levelplugin.horse.commands.HorseCommand;
 import me.nakilex.levelplugin.horse.gui.HorseGUI;
 import me.nakilex.levelplugin.items.commands.AddItemCommand;
+import me.nakilex.levelplugin.items.commands.AddLoreCommand;
 import me.nakilex.levelplugin.items.commands.OpSwordCommand;
 import me.nakilex.levelplugin.merchants.commands.MerchantCommand;
 import me.nakilex.levelplugin.mob.commands.DmgChatCommand;
@@ -239,6 +240,7 @@ public class CommandRegistry {
         plugin.getCommand("world").setExecutor(new me.nakilex.levelplugin.world.WorldCommand(plugin.getWorldManager()));
         plugin.getCommand("centertooltip").setExecutor(new CenterTooltipCommand());
         plugin.getCommand("centergui").setExecutor(new CenterGuiCommand());
+        plugin.getCommand("addlore").setExecutor(new AddLoreCommand());
         PathfindingCommand pfCmd = new PathfindingCommand(pathManager);
         plugin.getCommand("pathfinding").setExecutor(pfCmd);
         plugin.getCommand("pathfinding").setTabCompleter(pfCmd);

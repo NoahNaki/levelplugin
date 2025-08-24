@@ -250,6 +250,9 @@ commands:
   centergui:
     description: Open a GUI with a centered title
     usage: /centergui
+  addlore:
+    description: Insert a lore line into the held item
+    usage: /addlore [line] [text]
   pathfinding:
     description: Create and execute NPC paths
     usage: /pathfinding <set|create|execute>

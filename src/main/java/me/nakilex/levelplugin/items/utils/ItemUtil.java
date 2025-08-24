@@ -398,6 +398,33 @@ public class ItemUtil {
     }
 
     /**
+     * Insert a lore line into an ItemStack at the given index. Negative or
+     * out-of-range indices append to the end of the lore. This method is
+     * intentionally generic so it can be reused anywhere we need to tweak
+     * existing item tooltips.
+     *
+     * @param stack the item whose lore should be modified
+     * @param index the position to insert at; values outside the current range
+     *              are clamped to the end
+     * @param line  the text to insert
+     */
+    public static void insertLoreLine(ItemStack stack, int index, String line) {
+        if (stack == null || stack.getType() == Material.AIR) return;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return;
+
+        List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+        if (index < 0 || index > lore.size()) {
+            lore.add(line);
+        } else {
+            lore.add(index, line);
+        }
+
+        meta.setLore(lore);
+        stack.setItemMeta(meta);
+    }
+
+    /**
      * Checks whether an ItemStack can be placed into the salvage GUI.
      * Accepts any custom item or potion (including vanilla potions).
      */
