@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
+import me.nakilex.levelplugin.utils.BetterHudUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -100,7 +101,7 @@ public class ProfileSelectionGUI implements Listener {
     public static void startSelection(Player player) {
         SELECTING.add(player.getUniqueId());
         hideOthers(player);
-        Main.getInstance().getScoreboardManager().removeBoard(player);
+        BetterHudUtil.removeHud(player);
 
         // Save state from the currently active profile, if any
         ProfileManager pm = ProfileManager.getInstance();
@@ -378,7 +379,7 @@ public class ProfileSelectionGUI implements Listener {
         if (armor.length > 0) player.getInventory().setArmorContents(armor);
         stopSelection(player);
         player.closeInventory();
-
+        BetterHudUtil.addHud(player);
 
     }
 

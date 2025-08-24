@@ -1,6 +1,5 @@
 package me.nakilex.levelplugin.player.commands;
 
-import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.profile.PlayerProfile;
 import me.nakilex.levelplugin.player.profile.ProfileManager;
 import me.nakilex.levelplugin.player.profile.ProfileSelectionGUI;
@@ -31,12 +30,7 @@ public class ProfileCommand implements CommandExecutor, TabCompleter {
         ProfileManager pm = ProfileManager.getInstance();
 
         if (args.length == 0) {
-            Main.getInstance().getScoreboardManager().removeBoard(player);
-            if (pm.getActiveSlot(player.getUniqueId()) == null) {
-                ProfileSelectionGUI.startSelection(player);
-            } else {
-                ProfileSelectionGUI.open(player);
-            }
+            ProfileSelectionGUI.startSelection(player);
             return true;
         }
 
