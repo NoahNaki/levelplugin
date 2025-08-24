@@ -437,6 +437,7 @@ public class PluginBootstrap {
      *   <li><code>%naki_mana%</code></li>
      *   <li><code>%naki_currentXP%</code></li>
      *   <li><code>%naki_xpNextLevel%</code></li>
+     *   <li><code>%naki_seasonDate%</code></li>
      * </ul>
      */
     private void registerPlaceholders() {
