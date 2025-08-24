@@ -112,7 +112,7 @@ public class EffectRegistry {
         register("MYTHIC_ASSASSIN_DASH", new MythicSkillEffect("Assassin_Dash"));
         register("MYTHIC_DAGGER_THROW", new MythicSkillEffect("Dagger_Throw"));
         register("MYTHIC_BLADE_DANCE", new MythicSkillEffect("Blade_Dance"));
-        register("MYTHIC_SHADOW_WALK", new MythicSkillEffect("Shadow_Walk"));
+        register("MYTHIC_SHADOW_WALK", new MythicSkillEffect("Shadow_Walk_Skill"));
 
         // --- Awakened Rogue Mythic skills ---
         register("MYTHIC_LETHAL_COMBO", new MythicSkillEffect("Lethal_Combo"));

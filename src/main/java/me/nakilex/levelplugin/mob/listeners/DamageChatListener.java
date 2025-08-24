@@ -1,7 +1,10 @@
 package me.nakilex.levelplugin.mob.listeners;
 
+import io.lumine.mythic.api.skills.placeholders.PlaceholderString;
+import io.lumine.mythic.core.mobs.ActiveMob;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.mob.managers.ChatToggleManager;
+import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.player.attributes.listeners.StatsEffectListener;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.spells.managers.SpellContextManager;
@@ -23,16 +26,18 @@ public class DamageChatListener implements Listener {
         String spellName = null;
         boolean isCrit = false;
 
-        Main.getInstance().getLogger()
-            .info("[ChatListener] Damage event: damager=" + rawDamager + " target=" + event.getEntity());
-
         // 1) Projectile-based spells & basic‐attack arrows
         if (rawDamager instanceof Projectile) {
             Projectile proj = (Projectile) rawDamager;
             if (proj.getShooter() instanceof Player) {
                 player = (Player) proj.getShooter();
 
-                if (proj.hasMetadata("Meteor")) {
+                SpellContextManager.Context ctx =
+                        SpellContextManager.consume(player.getUniqueId());
+                if (ctx != null) {
+                    spellName = ctx.spellName;
+                    isCrit = ctx.isCrit;
+                } else if (proj.hasMetadata("Meteor")) {
                     spellName = "Meteor";
                 } else if (proj.hasMetadata("BasicAttack")) {
                     spellName = "Basic Attack";
@@ -46,9 +51,6 @@ public class DamageChatListener implements Listener {
             // a) consume any spell context
             SpellContextManager.Context ctx =
                 SpellContextManager.consume(player.getUniqueId());
-            Main.getInstance().getLogger()
-                .info("[ChatListener] Consumed context: " +
-                    (ctx == null ? "null" : ctx.spellName + ", crit=" + ctx.isCrit));
 
             if (ctx != null) {
                 spellName = ctx.spellName;
@@ -71,10 +73,19 @@ public class DamageChatListener implements Listener {
         if (!ChatToggleManager.getInstance().isEnabled(player)) return;
 
         // build & send message
-        String targetName = event.getEntity().getType().name();
-        targetName = targetName.charAt(0) + targetName.substring(1).toLowerCase();
+        String targetName;
+        ActiveMob mythic = Main.getInstance().getMythicHelper()
+                .getMythicMobInstance(event.getEntity());
+        if (mythic != null) {
+            PlaceholderString disp = mythic.getType().getDisplayName();
+            String name = disp != null ? disp.get() : mythic.getType().getInternalName();
+            targetName = ChatColor.stripColor(name != null ? name :
+                    MobNameUtil.toPrettyName(mythic.getType().getInternalName()));
+        } else {
+            targetName = event.getEntity().getType().name();
+            targetName = targetName.charAt(0) + targetName.substring(1).toLowerCase();
+        }
 
-        double raw = event.getDamage();
         double dmg = event.getFinalDamage();
         String hitWord = isCrit ? "critically hit" : "hit";
         ChatColor mainColor = isCrit ? ChatColor.YELLOW : ChatColor.WHITE;
@@ -84,11 +95,7 @@ public class DamageChatListener implements Listener {
             ChatColor.YELLOW + targetName +
             ChatColor.GRAY + " for " +
             ChatColor.GRAY + String.format("%.1f", dmg) + " " +
-                ChatColor.RED + "\u2764" +
-            ChatColor.DARK_GRAY + String.format(" [raw %.1f]", raw);
-
-        Main.getInstance().getLogger()
-            .info("[ChatListener] Sending chat: " + ChatColor.stripColor(msg));
+                ChatColor.RED + "\u2764";
 
         player.sendMessage(msg);
     }

@@ -61,7 +61,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                 List.of(
                         "Hey you there! I could've sworn no one was standing there a second ago, how did you suddenly appear?",
                         "You certainly don't look from around here, especially with those clothes, perhaps a noble from another country.",
-                        "Another world you say? Well you wouldn't be the first to make such bold claims, my mom said she once knew someone that claimed the same thing, said they were from a place called, \"ip\".",
+                        "Another world you say? Well you wouldn't be the first to make such bold claims, my mom said she once knew someone that claimed the same thing, said they were from a place called, \"Japan\".",
                         "I'm sure you have many questions, how about to start off I show you around my village.",
                         "First things first, you're going to have to look like you're from this world, go talk to that merchant over there and buy some equipment."
                 ),
@@ -242,7 +242,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
         java.util.List<String> lines = java.util.List.of(
                 "Hey you there! I could've sworn no one was standing there a second ago, how did you suddenly appear?",
                 "You certainly don't look from around here, especially with those clothes, perhaps a noble from another country.",
-                "Another world you say? Well you wouldn't be the first to make such bold claims, my mom said she once knew someone that claimed the same thing, said they were from a place called, \"ip\".",
+                "Another world you say? Well you wouldn't be the first to make such bold claims, my mom said she once knew someone that claimed the same thing, said they were from a place called, \"Japan\".",
                 "I'm sure you have many questions, how about to start off I show you around my village.",
                 "First things first, you're going to have to look like you're from this world, go talk to that merchant over there and buy some equipment."
         );
@@ -399,6 +399,6 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
 
     @Override
     public void onComplete(Player player, Main plugin) {
-        // No additional completion logic
+        plugin.getQuestManager().startQuest(player, "serashelp");
     }
 }

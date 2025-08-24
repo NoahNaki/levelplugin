@@ -102,9 +102,9 @@ public class ChatFormatter {
 
     /** Return the color code used for experience numbers. */
     public static String experienceColor() {
-        // Display XP amounts in white while keeping the EXP label tinted
-        // so the numerical value matches coin formatting.
-        return net.md_5.bungee.api.ChatColor.WHITE.toString();
+        // Display XP amounts in gray so reward numbers stand out
+        // uniformly across coins, gems, and experience.
+        return net.md_5.bungee.api.ChatColor.GRAY.toString();
     }
 
     /**

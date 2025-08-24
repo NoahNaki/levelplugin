@@ -33,6 +33,10 @@ public class ProceduralItemGenerator {
     private static final double ROLL_VARIANCE = 0.05;
     /** Extra bonus applied to one random armor stat for variety. */
     private static final double DOMINANT_BONUS = 0.10;
+    /** Base coefficient used when scaling health for armor pieces. */
+    private static final double HP_COEFF = 1.5;
+    /** Rarity growth factor ensuring higher rarities always outrank lower ones. */
+    private static final double RARITY_STEP = 1.4;
 
     public ProceduralItemGenerator(Main plugin) {
         File namesFile = new File(plugin.getDataFolder(), "item_names.yml");
@@ -76,7 +80,7 @@ public class ProceduralItemGenerator {
         int hp = 0, def, str, agi, intel, dex, wil, tec;
 
         if (createArmor) {
-            hp  = scaleStat(level, rarity, 2.0);
+            hp  = scaleStat(level, rarity, HP_COEFF);
             def = scaleStat(level, rarity, 1.0);
             str   = scaleStat(level, rarity, 1.0);
             agi   = scaleStat(level, rarity, 1.0);
@@ -313,18 +317,19 @@ public class ProceduralItemGenerator {
     }
 
     /**
-     * Scaling factor for stats based on rarity. Each step multiplies stats by 1.3,
-     * ensuring higher rarity items always have higher baselines than lower ones.
+     * Scaling factor for stats based on rarity. Each step multiplies stats by a
+     * fixed growth factor so higher rarities always beat lower ones.
      */
     private double rarityMultiplier(ItemRarity rarity) {
-        return Math.pow(1.3, rarity.ordinal());
+        return Math.pow(RARITY_STEP, rarity.ordinal());
     }
 
     /**
      * Convenience to scale a stat by level, rarity and a slot-specific coefficient.
+     * We ceil the result to guarantee that rarities never overlap after rounding.
      */
     private int scaleStat(int level, ItemRarity rarity, double coeff) {
         double value = coeff * level * rarityMultiplier(rarity);
-        return (int) Math.round(value);
+        return (int) Math.ceil(value);
     }
 }

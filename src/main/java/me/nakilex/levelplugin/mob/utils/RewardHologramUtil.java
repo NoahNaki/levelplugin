@@ -23,10 +23,10 @@ public final class RewardHologramUtil {
      */
     public static void showRewardHologram(Location loc, int xp, int coins) {
         loc = loc.clone().add(0, 1.2, 0);
-        String xpColor = me.nakilex.levelplugin.utils.ChatFormatter.experienceColor();
-        String xpLine = ChatColor.GRAY + "[" + xpColor + "+" + xp + " "
+        String amountColor = ChatFormatter.experienceColor();
+        String xpLine = ChatColor.GRAY + "[" + amountColor + "+" + xp + " "
                 + ChatColor.GREEN + "<glyph:experience_orb_icon> "
-                + me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel() + ChatColor.GRAY + "]";
+                + ChatFormatter.experienceLabel() + ChatColor.GRAY + "]";
         ArmorStand xpStand = loc.getWorld().spawn(loc, ArmorStand.class, as -> {
             as.setVisible(false);
             as.setGravity(false);
@@ -34,7 +34,7 @@ public final class RewardHologramUtil {
             as.setCustomNameVisible(true);
             as.setCustomName(xpLine);
         });
-        String coinLine = ChatColor.GRAY + "[" + ChatColor.WHITE + "+" + coins + " "
+        String coinLine = ChatColor.GRAY + "[" + amountColor + "+" + coins + " "
                 + ChatColor.GOLD + "<glyph:coins_icon>" + ChatColor.GRAY + "]";
         Location coinLoc = loc.clone().add(0, -0.3, 0);
         ArmorStand coinStand = coinLoc.getWorld().spawn(coinLoc, ArmorStand.class, as -> {

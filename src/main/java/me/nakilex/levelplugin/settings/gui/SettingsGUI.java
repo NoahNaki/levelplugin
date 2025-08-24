@@ -5,7 +5,9 @@ import me.nakilex.levelplugin.settings.data.PlayerSettings;
 import me.nakilex.levelplugin.settings.data.PlayerVisibility;
 import me.nakilex.levelplugin.leaderboards.LeaderboardType;
 import me.nakilex.levelplugin.player.attributes.gui.StatsInventory;
+import me.nakilex.levelplugin.mob.managers.ChatToggleManager;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -33,6 +35,10 @@ public class SettingsGUI implements Listener {
         this.settingsManager = settingsManager;
     }
 
+    public SettingsManager getSettingsManager() {
+        return settingsManager;
+    }
+
     public void openSettingsMenu(Player player) {
         PlayerSettings playerSettings = settingsManager.getSettings(player);
         Filter filter = filters.getOrDefault(player.getUniqueId(), Filter.ALL);
@@ -47,7 +53,7 @@ public class SettingsGUI implements Listener {
             gui.setItem(10, GuiUtil.createToggleItem(
                     playerSettings.isDmgChatEnabled(),
                     "§bDamage Chat",
-                    "§eClick to toggle and run /dmgchat"
+                    "§eClick to toggle"
             ));
         }
 
@@ -239,9 +245,11 @@ public class SettingsGUI implements Listener {
 
         if (slot == 10) {
             settings.toggleDmgChat();
-            Bukkit.dispatchCommand(player, "dmgchat");
+            boolean enabled = settings.isDmgChatEnabled();
+            ChatToggleManager.getInstance().setEnabled(player, enabled);
+            ToggleFeedbackUtil.sendToggle(player, "Damage chat", enabled);
             updateSettingItem(event.getInventory(), 10,
-                settings.isDmgChatEnabled(), "§bDamage Chat", "/dmgchat");
+                enabled, "§bDamage Chat", null);
 
         } else if (slot == 11) {
             settings.toggleDmgNumber();

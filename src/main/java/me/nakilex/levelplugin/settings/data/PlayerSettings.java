@@ -4,7 +4,7 @@ import me.nakilex.levelplugin.settings.data.PlayerVisibility;
 
 public class PlayerSettings {
 
-    private boolean dmgChat     = false;
+    private boolean dmgChat     = true;
     private boolean dmgNumber   = false;
     private boolean dropDetails = true;
     private boolean dropDetailsChatEnabled = false;

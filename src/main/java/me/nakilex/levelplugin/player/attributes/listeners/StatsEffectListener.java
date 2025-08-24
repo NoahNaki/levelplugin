@@ -4,6 +4,8 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.PlayerStats;
 import me.nakilex.levelplugin.mob.utils.SweepAttack;
 import me.nakilex.levelplugin.spells.managers.SpellContextManager;
+import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
+import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -81,15 +83,24 @@ public class StatsEffectListener implements Listener {
         if (player != null && !player.hasMetadata(SweepAttack.SWEEP_META)) {
             PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
 
-            // 1) Strength bonus
-            int totalStrength = ps.baseStrength + ps.bonusStrength;
-            double finalDamage = event.getDamage() + (totalStrength * 0.5);
-
-            // 2) Technique scaling (overall damage)
+            double finalDamage = event.getDamage();
             int totalTec = ps.baseTechnique + ps.bonusTechnique;
+
+            // Use Intelligence instead of Strength for all mage attacks
+            boolean isMage = ClassUtil.isMageFamily(
+                    PlayerClassManager.getInstance().getPlayerClass(player));
+            if (isMage) {
+                int totalInt = ps.baseIntelligence + ps.bonusIntelligence;
+                finalDamage += totalInt * 0.5;
+            } else {
+                int totalStrength = ps.baseStrength + ps.bonusStrength;
+                finalDamage += totalStrength * 0.5;
+            }
+
+            // Technique scaling (overall damage)
             finalDamage *= (1.0 + totalTec * 0.003);
 
-            // 3) Dex → crit (diminishing returns)
+            // Dex → crit (diminishing returns)
             int totalDexterity = ps.baseDexterity + ps.bonusDexterity;
             double critChance = (double) totalDexterity / (totalDexterity + 100.0);
             critChance = Math.max(0.0, Math.min(1.0, critChance));
