@@ -435,6 +435,8 @@ public class PluginBootstrap {
      *   <li><code>%naki_coins%</code></li>
      *   <li><code>%naki_gems%</code></li>
      *   <li><code>%naki_mana%</code></li>
+     *   <li><code>%naki_currentXP%</code></li>
+     *   <li><code>%naki_xpNextLevel%</code></li>
      * </ul>
      */
     private void registerPlaceholders() {

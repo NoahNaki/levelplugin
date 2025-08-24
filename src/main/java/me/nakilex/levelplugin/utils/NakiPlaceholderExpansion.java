@@ -34,6 +34,8 @@ public class NakiPlaceholderExpansion extends PlaceholderExpansion {
             StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(p.getUniqueId());
             return String.valueOf(ps.getCurrentMana());
         });
+        placeholders.put("currentxp", p -> String.valueOf(plugin.getLevelManager().getXP(p)));
+        placeholders.put("xpnextlevel", p -> String.valueOf(plugin.getLevelManager().getXpNeededForNextLevel(p)));
     }
 
     @Override
