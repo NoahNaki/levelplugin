@@ -457,13 +457,26 @@ public class ItemUtil {
     }
 
     /**
+     * Convenience method to add {@link ItemFlag}s to an {@link ItemStack} while
+     * safely handling null checks.
+     */
+    public static void addItemFlags(ItemStack stack, ItemFlag... flags) {
+        if (stack == null || stack.getType() == Material.AIR) return;
+        if (flags == null || flags.length == 0) return;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return;
+        meta.addItemFlags(flags);
+        stack.setItemMeta(meta);
+    }
+
+    /**
      * Convenience wrapper to set the tooltip border style based on an
      * {@link ItemRarity}. This ensures items consistently display the correct
      * frame whenever they are created or refreshed.
      */
     public static void applyRarityTooltipStyle(ItemStack stack, ItemRarity rarity) {
         if (stack == null || rarity == null) return;
-        String style = "minecraft:" + rarity.name().toLowerCase();
+        String style = "minecraft:" + rarity.getTooltipStyle();
         setKeyedComponent(stack, DataComponentTypes.TOOLTIP_STYLE, Key.key(style));
     }
 

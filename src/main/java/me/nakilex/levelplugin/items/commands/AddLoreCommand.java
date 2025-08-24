@@ -9,6 +9,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.Arrays;
@@ -40,6 +41,7 @@ public class AddLoreCommand implements CommandExecutor {
             String raw = args[1];
             String style = raw.contains(":") ? raw : "minecraft:" + raw.toLowerCase();
             ItemUtil.setKeyedComponent(stack, DataComponentTypes.TOOLTIP_STYLE, Key.key(style));
+            ItemUtil.addItemFlags(stack, ItemFlag.HIDE_ATTRIBUTES); // hide vanilla attribute lines
             player.getInventory().setItemInMainHand(stack);
             player.sendMessage(ChatColor.GREEN + "Tooltip style set to " + style + ".");
             return true;
