@@ -158,7 +158,8 @@ public class SpellManager {
             MythicSkillConfig.getCooldownSeconds("Phoenix_Totem"), 0,
             WeaponType.BOW.getMaterials(),
             "MYTHIC_PHOENIX_TOTEM", 0.0,
-            true
+            true,
+            false
         ));
         phoenixMap.put("LLL", new Spell(
             "pyroclasmic_barrage", "Pyroclasmic Barrage", "LLL",
@@ -270,7 +271,8 @@ public class SpellManager {
             MythicSkillConfig.getCooldownSeconds("Shadow_Walk_Skill"), 5,
             WeaponType.SWORD.getMaterials(),
             "MYTHIC_SHADOW_WALK", 0.0,
-            true
+            true,
+            false
         ));
         spellsByClass.put("rogue", Collections.unmodifiableMap(rogueMap));
         Map<String, Spell> rogueIdMap = new HashMap<>();
@@ -327,7 +329,8 @@ public class SpellManager {
             MythicSkillConfig.getCooldownSeconds("Deadly_Calm"), 0,
             WeaponType.SWORD.getMaterials(),
             "MYTHIC_DEADLY_CALM", 0.0,
-            true
+            true,
+            false
         ));
         spellsByClass.put("awakrogue", Collections.unmodifiableMap(awakrogueMap));
         Map<String, Spell> awakRogueIdMap = new HashMap<>();
@@ -383,7 +386,8 @@ public class SpellManager {
             MythicSkillConfig.getCooldownSeconds("Bulwark_Instinct"), 0,
             WARRIOR_WEAPONS,
             "MYTHIC_BULWARK_INSTINCT", 0.0,
-            true
+            true,
+            false
         ));
         spellsByClass.put("awakwarrior", Collections.unmodifiableMap(awakwarriorMap));
         Map<String, Spell> awakIdMap = new HashMap<>();
@@ -439,7 +443,8 @@ public class SpellManager {
             MythicSkillConfig.getCooldownSeconds("Ambush"), 0,
             WeaponType.BOW.getMaterials(),
             "MYTHIC_AMBUSH", 0.0,
-            true
+            true,
+            false
         ));
         spellsByClass.put("awakarcher", Collections.unmodifiableMap(awakarcherMap));
         Map<String, Spell> awakArIdMap = new HashMap<>();
@@ -495,7 +500,8 @@ public class SpellManager {
             MythicSkillConfig.getCooldownSeconds("Arcane_Shield_Damaged_BLUE"), 0,
             WeaponType.WAND.getMaterials(),
             "MYTHIC_ARCANE_SHIELD", 0.0,
-            true
+            true,
+            false
         ));
         spellsByClass.put("archmage", Collections.unmodifiableMap(archmageMap));
         Map<String, Spell> archmageIdMap = new HashMap<>();
