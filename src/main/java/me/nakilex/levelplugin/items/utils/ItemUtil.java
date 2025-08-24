@@ -13,6 +13,7 @@ import me.nakilex.levelplugin.items.data.WeaponType;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.potions.data.PotionInstance;
+import me.nakilex.levelplugin.utils.TextUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -353,6 +354,7 @@ public class ItemUtil {
 
         stack.setItemMeta(meta);
         applyRarityTooltipStyle(stack, cItem.getRarity());
+        centerGearName(stack);
         return stack;
     }
 
@@ -470,6 +472,19 @@ public class ItemUtil {
     }
 
     /**
+     * Center the display name of weapons and armor without altering lore lines.
+     * This ensures only gear names are centered, leaving other items untouched.
+     *
+     * @param stack the item stack to adjust
+     */
+    public static void centerGearName(ItemStack stack) {
+        if (stack == null || stack.getType() == Material.AIR) return;
+        if (WeaponType.matchType(stack) != null || ArmorType.matchType(stack) != null) {
+            TextUtil.centerItemTooltip(stack, true, false);
+        }
+    }
+
+    /**
      * Convenience wrapper to set the tooltip border style based on an
      * {@link ItemRarity}. This ensures items consistently display the correct
      * frame whenever they are created or refreshed.
@@ -527,6 +542,7 @@ public class ItemUtil {
         }
 
         applyRarityTooltipStyle(stack, cItem.getRarity());
+        centerGearName(stack);
 
         // Build the updated lore.
         List<String> lore = new ArrayList<>();
@@ -682,6 +698,7 @@ public class ItemUtil {
         if (meta == null) return;
 
         applyRarityTooltipStyle(stack, tier.getRarity());
+        centerGearName(stack);
 
         List<String> lore = new ArrayList<>();
         String rarityGlyph = "<glyph:" + tier.getRarity().name().toLowerCase() + ">";

@@ -42,6 +42,7 @@ public class AddLoreCommand implements CommandExecutor {
             String style = raw.contains(":") ? raw : "minecraft:" + raw.toLowerCase();
             ItemUtil.setKeyedComponent(stack, DataComponentTypes.TOOLTIP_STYLE, Key.key(style));
             ItemUtil.addItemFlags(stack, ItemFlag.HIDE_ATTRIBUTES); // hide vanilla attribute lines
+            ItemUtil.centerGearName(stack);
             player.getInventory().setItemInMainHand(stack);
             player.sendMessage(ChatColor.GREEN + "Tooltip style set to " + style + ".");
             return true;
