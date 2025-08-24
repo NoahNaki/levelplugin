@@ -25,6 +25,7 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.persistence.PersistentDataType;
 import io.papermc.paper.datacomponent.DataComponentType;
+import io.papermc.paper.datacomponent.DataComponentTypes;
 import net.kyori.adventure.key.Key;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -351,6 +352,7 @@ public class ItemUtil {
         }
 
         stack.setItemMeta(meta);
+        applyRarityTooltipStyle(stack, cItem.getRarity());
         return stack;
     }
 
@@ -455,6 +457,17 @@ public class ItemUtil {
     }
 
     /**
+     * Convenience wrapper to set the tooltip border style based on an
+     * {@link ItemRarity}. This ensures items consistently display the correct
+     * frame whenever they are created or refreshed.
+     */
+    public static void applyRarityTooltipStyle(ItemStack stack, ItemRarity rarity) {
+        if (stack == null || rarity == null) return;
+        String style = "minecraft:" + rarity.name().toLowerCase();
+        setKeyedComponent(stack, DataComponentTypes.TOOLTIP_STYLE, Key.key(style));
+    }
+
+    /**
      * Checks whether an ItemStack can be placed into the salvage GUI.
      * Accepts any custom item or potion (including vanilla potions).
      */
@@ -499,6 +512,8 @@ public class ItemUtil {
             Bukkit.getLogger().warning("[CustomItem] No instance found for UUID " + uuid);
             return;
         }
+
+        applyRarityTooltipStyle(stack, cItem.getRarity());
 
         // Build the updated lore.
         List<String> lore = new ArrayList<>();
@@ -652,6 +667,8 @@ public class ItemUtil {
         if (tier == null) return;
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) return;
+
+        applyRarityTooltipStyle(stack, tier.getRarity());
 
         List<String> lore = new ArrayList<>();
         String rarityGlyph = "<glyph:" + tier.getRarity().name().toLowerCase() + ">";

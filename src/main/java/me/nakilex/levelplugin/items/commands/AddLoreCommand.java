@@ -1,7 +1,6 @@
 package me.nakilex.levelplugin.items.commands;
 
 import io.papermc.paper.datacomponent.DataComponentTypes;
-import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import net.kyori.adventure.key.Key;
 import org.bukkit.ChatColor;
@@ -17,9 +16,9 @@ import java.util.Arrays;
 /**
  * /addlore [index] [text]
  *
- * If text is omitted, a rarity glyph line is inserted at the top of the held
- * item's lore. Otherwise behaves like the ItemsAdder command where the first
- * argument is the line index and the rest form the lore text.
+ * Simple utility mirroring ItemsAdder's lore editing command. Inserts a line
+ * of lore into the held item at the specified index. Use the {@code style}
+ * subcommand to change the item's tooltip border.
  */
 public class AddLoreCommand implements CommandExecutor {
 
@@ -46,27 +45,21 @@ public class AddLoreCommand implements CommandExecutor {
             return true;
         }
 
-        int index = 0;
-        String line;
-
-        if (args.length >= 2) {
-            try {
-                index = Integer.parseInt(args[0]);
-            } catch (NumberFormatException e) {
-                player.sendMessage(ChatColor.RED + "Invalid line index: " + args[0]);
-                return true;
-            }
-            line = ChatColor.translateAlternateColorCodes('&', String.join(" ", Arrays.copyOfRange(args, 1, args.length)));
-        } else {
-            ItemRarity rarity = ItemUtil.getItemRarity(stack);
-            if (rarity == null) {
-                player.sendMessage(ChatColor.RED + "Could not determine item rarity.");
-                return true;
-            }
-            line = rarity.getSymbol() + "<glyph:item>";
-            String style = "minecraft:" + rarity.name().toLowerCase();
-            ItemUtil.setKeyedComponent(stack, DataComponentTypes.TOOLTIP_STYLE, Key.key(style));
+        if (args.length < 2) {
+            player.sendMessage(ChatColor.RED + "Usage: /addlore <index> <text>");
+            return true;
         }
+
+        int index;
+        try {
+            index = Integer.parseInt(args[0]);
+        } catch (NumberFormatException e) {
+            player.sendMessage(ChatColor.RED + "Invalid line index: " + args[0]);
+            return true;
+        }
+
+        String line = ChatColor.translateAlternateColorCodes('&',
+                String.join(" ", Arrays.copyOfRange(args, 1, args.length)));
 
         ItemUtil.insertLoreLine(stack, index, line);
         player.getInventory().setItemInMainHand(stack);
