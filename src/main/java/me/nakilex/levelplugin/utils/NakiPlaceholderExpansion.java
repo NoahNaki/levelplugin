@@ -28,8 +28,8 @@ public class NakiPlaceholderExpansion extends PlaceholderExpansion {
             PlayerClass pc = PlayerClassManager.getInstance().getPlayerClass(p);
             return pc.getDisplayName();
         });
-        placeholders.put("coins", p -> String.valueOf(plugin.getEconomyManager().getBalance(p)));
-        placeholders.put("gems", p -> String.valueOf(plugin.getGemsManager().getTotalUnits(p)));
+        placeholders.put("coins", p -> NumberUtil.formatCommas(plugin.getEconomyManager().getBalance(p)));
+        placeholders.put("gems", p -> NumberUtil.formatCommas(plugin.getGemsManager().getTotalUnits(p)));
         placeholders.put("currentmana", p -> {
             StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(p.getUniqueId());
             return String.valueOf(ps.getCurrentMana());
