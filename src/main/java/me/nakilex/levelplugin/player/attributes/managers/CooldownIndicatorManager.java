@@ -7,38 +7,37 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Tracks the mana cost of the most recently cast spell so it can be briefly
+ * Tracks the cooldown of the most recently used spell so it can be
  * displayed in the action bar.
  */
-public class ManaIndicatorManager {
-    private static final ManaIndicatorManager instance = new ManaIndicatorManager();
-    public static ManaIndicatorManager getInstance() { return instance; }
+public class CooldownIndicatorManager {
+    private static final CooldownIndicatorManager instance = new CooldownIndicatorManager();
+    public static CooldownIndicatorManager getInstance() { return instance; }
 
-    private static class Info {
-        int cost;
-        long expireAt;
+    public static class Info {
+        public String name;
+        public long expireAt;
     }
 
     private final Map<UUID, Info> indicators = new ConcurrentHashMap<>();
-    private static final long DURATION_MS = 1500; // 1.5 seconds
 
-    /** Record the mana cost to show on the action bar. */
-    public void showCost(Player player, int cost) {
+    /** Record a cooldown to show on the action bar. */
+    public void show(Player player, String spellName, long durationMs) {
         Info info = new Info();
-        info.cost = cost;
-        info.expireAt = System.currentTimeMillis() + DURATION_MS;
+        info.name = spellName;
+        info.expireAt = System.currentTimeMillis() + durationMs;
         indicators.put(player.getUniqueId(), info);
     }
 
-    /** Return the active cost or null if expired/none. */
-    public Integer getCost(Player player) {
+    /** Return the active info or null if expired/none. */
+    public Info get(Player player) {
         Info info = indicators.get(player.getUniqueId());
         if (info == null) return null;
         if (System.currentTimeMillis() > info.expireAt) {
             indicators.remove(player.getUniqueId());
             return null;
         }
-        return info.cost;
+        return info;
     }
 
     /** Clear any active indicator for the player. */
@@ -46,3 +45,4 @@ public class ManaIndicatorManager {
         indicators.remove(player.getUniqueId());
     }
 }
+

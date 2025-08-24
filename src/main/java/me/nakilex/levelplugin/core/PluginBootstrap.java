@@ -183,7 +183,7 @@ public class PluginBootstrap {
     }
 
     public void enable() {
-        manaTracker = new ManaCostTracker(1.5, 5_000L);
+        manaTracker = new ManaCostTracker(1.5, 4_000L);
         loadConfigFiles();
         setupCustomConfig();
         playerConfig = new PlayerConfig(plugin);

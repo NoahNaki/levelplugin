@@ -99,7 +99,9 @@ public class SpellManager {
             5.0,
             MythicSkillConfig.getCooldownSeconds("Backstep"), LVL_THREE,
             WeaponType.BOW.getMaterials(),
-            "MYTHIC_BACKSTEP", 0.0
+            "MYTHIC_BACKSTEP", 0.0,
+            false,
+            true
         ));
         archerMap.put("SNEAK", new Spell(
             "arrow_barrage", "Arrow Barrage", "SNEAK",
@@ -244,7 +246,9 @@ public class SpellManager {
             5.0,
             MythicSkillConfig.getCooldownSeconds("Assassin_Dash"), 3,
             WeaponType.SWORD.getMaterials(),
-            "MYTHIC_ASSASSIN_DASH", 0.0
+            "MYTHIC_ASSASSIN_DASH", 0.0,
+            false,
+            true
         ));
         rogueMap.put("LLL", new Spell(
             "dagger_throw", "Dagger Throw", "LLL",
@@ -511,7 +515,9 @@ public class SpellManager {
             5.0,
             MythicSkillConfig.getCooldownSeconds("Charge"), 3,
             WARRIOR_WEAPONS,
-            "MYTHIC_CHARGE", 0.0
+            "MYTHIC_CHARGE", 0.0,
+            false,
+            true
         ));
         warriorMap.put("LRR", new Spell(
             "chain_hook", "Chain Hook", "LRR",
@@ -752,7 +758,9 @@ public class SpellManager {
             1,
             3,
             WeaponType.WAND.getMaterials(),
-            "MYTHIC_BLINK", 0.0
+            "MYTHIC_BLINK", 0.0,
+            false,
+            true
         ));
         mageMap.put("LLL", new Spell(
             "meteor", "Meteor", "LLL",

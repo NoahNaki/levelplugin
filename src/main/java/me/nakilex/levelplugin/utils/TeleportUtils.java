@@ -18,15 +18,19 @@ public final class TeleportUtils {
      * origin and destination along with the enderman teleport sound.
      */
     public static void teleportWithEffect(Player player, Location dest) {
-        teleportWithEffect(player, dest, 15L);
+        teleportWithEffect(player, dest, 15L, true);
+    }
+
+    public static void teleportWithEffect(Player player, Location dest, long delayTicks) {
+        teleportWithEffect(player, dest, delayTicks, true);
     }
 
     /**
      * Teleport the player with particles/sound after the given delay.
      */
-    public static void teleportWithEffect(Player player, Location dest, long delayTicks) {
+    public static void teleportWithEffect(Player player, Location dest, long delayTicks, boolean blind) {
         Location origin = player.getLocation();
-        player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 40, 0, false, false));
+        if (blind) player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 40, 0, false, false));
         origin.getWorld().spawnParticle(Particle.DRAGON_BREATH, origin, 100, 0.6, 1.2, 0.6, 0);
         origin.getWorld().spawnParticle(Particle.PORTAL, origin, 60, 0.6, 1.2, 0.6, 0.2);
         origin.getWorld().spawnParticle(Particle.END_ROD, origin, 80, 0.6, 1.2, 0.6, 0.1);
@@ -34,7 +38,7 @@ public final class TeleportUtils {
 
         Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
             player.teleport(dest);
-            player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 40, 0, false, false));
+            if (blind) player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 40, 0, false, false));
             dest.getWorld().spawnParticle(Particle.DRAGON_BREATH, dest, 140, 0.6, 1.2, 0.6, 0);
             dest.getWorld().spawnParticle(Particle.END_ROD, dest, 80, 0.6, 1.2, 0.6, 0.1);
             dest.getWorld().spawnParticle(Particle.PORTAL, dest, 80, 0.6, 1.2, 0.6, 0.2);
