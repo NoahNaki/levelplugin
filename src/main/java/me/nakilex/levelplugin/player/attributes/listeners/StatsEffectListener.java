@@ -86,11 +86,10 @@ public class StatsEffectListener implements Listener {
             double finalDamage = event.getDamage();
             int totalTec = ps.baseTechnique + ps.bonusTechnique;
 
-            // Use Intelligence instead of Strength for mage spells
+            // Use Intelligence instead of Strength for all mage attacks
             boolean isMage = ClassUtil.isMageFamily(
                     PlayerClassManager.getInstance().getPlayerClass(player));
-            boolean useInt = isMage && (ctx == null || !ctx.basicAttack);
-            if (useInt) {
+            if (isMage) {
                 int totalInt = ps.baseIntelligence + ps.bonusIntelligence;
                 finalDamage += totalInt * 0.5;
             } else {

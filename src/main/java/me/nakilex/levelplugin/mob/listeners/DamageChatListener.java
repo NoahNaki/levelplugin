@@ -32,7 +32,12 @@ public class DamageChatListener implements Listener {
             if (proj.getShooter() instanceof Player) {
                 player = (Player) proj.getShooter();
 
-                if (proj.hasMetadata("Meteor")) {
+                SpellContextManager.Context ctx =
+                        SpellContextManager.consume(player.getUniqueId());
+                if (ctx != null) {
+                    spellName = ctx.spellName;
+                    isCrit = ctx.isCrit;
+                } else if (proj.hasMetadata("Meteor")) {
                     spellName = "Meteor";
                 } else if (proj.hasMetadata("BasicAttack")) {
                     spellName = "Basic Attack";
