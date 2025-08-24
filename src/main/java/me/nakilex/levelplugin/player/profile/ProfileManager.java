@@ -68,6 +68,18 @@ public class ProfileManager {
         return p;
     }
 
+    /** Rename an existing profile. */
+    public boolean renameProfile(UUID uuid, int slot, String name) {
+        PlayerProfile prof = getProfile(uuid, slot);
+        if (prof == null || name == null || name.isBlank()) return false;
+        prof.setName(name);
+        me.nakilex.levelplugin.player.config.PlayerConfig cfg =
+                me.nakilex.levelplugin.Main.getInstance().getPlayerConfig();
+        cfg.setProfileName(uuid, slot, name);
+        cfg.saveConfigFile();
+        return true;
+    }
+
     /**
      * Reset all persistent data for the given player.
      */
@@ -143,6 +155,17 @@ public class ProfileManager {
             cfg.setUnlockedProfiles(uuid, unlockedSlots);
             cfg.saveConfigFile();
         }
+    }
+
+    /** Set the number of unlocked profile slots for a player. */
+    public void setUnlockedSlots(UUID uuid, int count) {
+        if (count < 1) count = 1;
+        if (count > TOTAL_SLOTS) count = TOTAL_SLOTS;
+        unlocked.put(uuid, count);
+        me.nakilex.levelplugin.player.config.PlayerConfig cfg =
+                me.nakilex.levelplugin.Main.getInstance().getPlayerConfig();
+        cfg.setUnlockedProfiles(uuid, count);
+        cfg.saveConfigFile();
     }
 
     public void setActiveSlot(UUID uuid, int slot) {

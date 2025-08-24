@@ -100,6 +100,7 @@ public class ProfileSelectionGUI implements Listener {
     public static void startSelection(Player player) {
         SELECTING.add(player.getUniqueId());
         hideOthers(player);
+        Main.getInstance().getScoreboardManager().removeBoard(player);
 
         // Save state from the currently active profile, if any
         ProfileManager pm = ProfileManager.getInstance();
@@ -257,7 +258,7 @@ public class ProfileSelectionGUI implements Listener {
                 if (e.isRightClick()) {
                     handleEdit(player, i);
                 } else {
-                    handleSelect(player, i);
+                    selectProfile(player, i);
                 }
                 return;
             }
@@ -322,7 +323,7 @@ public class ProfileSelectionGUI implements Listener {
         }
     }
 
-    private void handleSelect(Player player, int index) {
+    public static void selectProfile(Player player, int index) {
         ProfileManager pm = ProfileManager.getInstance();
         if (index >= pm.getUnlockedSlots(player.getUniqueId())) {
             player.sendMessage(ChatColor.RED + "This profile is locked.");
