@@ -51,6 +51,8 @@ public class ItemUtil {
      */
     public static final NamespacedKey NEXO_MODEL_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "nexo_model");
     public static final NamespacedKey SOULBOUND_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "soulbound");
+    /** Built-in component for fancy tooltip borders (Nexo styles). */
+    public static final NamespacedKey TOOLTIP_STYLE_KEY = NamespacedKey.minecraft("tooltip_style");
 
     private static final int PREFIX_BONUS = 20;
     private static final java.util.Map<String, StatsManager.StatType> PREFIX_MAP = new java.util.HashMap<>();
@@ -421,6 +423,19 @@ public class ItemUtil {
         }
 
         meta.setLore(lore);
+        stack.setItemMeta(meta);
+    }
+
+    /**
+     * Generic helper to store a string value in an item's persistent data
+     * container. Useful for lightweight component-style metadata like
+     * tooltip borders.
+     */
+    public static void setStringData(ItemStack stack, NamespacedKey key, String value) {
+        if (stack == null || stack.getType() == Material.AIR) return;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return;
+        meta.getPersistentDataContainer().set(key, PersistentDataType.STRING, value);
         stack.setItemMeta(meta);
     }
 

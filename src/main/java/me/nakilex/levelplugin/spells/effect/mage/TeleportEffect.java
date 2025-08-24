@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
 import me.nakilex.levelplugin.spells.effect.SpellEffect;
 import me.nakilex.levelplugin.spells.utils.SpellUtils;
+import me.nakilex.levelplugin.spells.context.SpellCastContextCompat;
 import me.nakilex.levelplugin.utils.TeleportUtils;
 import org.bukkit.Location;
 import org.bukkit.Particle;
@@ -101,6 +102,9 @@ public class TeleportEffect implements SpellEffect {
 
             // The blink itself (no blindness)
             TeleportUtils.teleportWithEffect(player, safe, 0L, false);
+
+            // Mark the spell as successfully cast so mana is consumed
+            SpellCastContextCompat.markSuccess(ctx, true);
 
             // Explosion on arrival (no knockback)
             if (explosionOnArrive) {

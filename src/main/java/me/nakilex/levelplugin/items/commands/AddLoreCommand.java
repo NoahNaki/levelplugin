@@ -34,6 +34,16 @@ public class AddLoreCommand implements CommandExecutor {
             return true;
         }
 
+        // Subcommand: /addlore style <name>
+        if (args.length >= 2 && args[0].equalsIgnoreCase("style")) {
+            String raw = args[1];
+            String style = raw.contains(":") ? raw : "minecraft:" + raw.toLowerCase();
+            ItemUtil.setStringData(stack, ItemUtil.TOOLTIP_STYLE_KEY, style);
+            player.getInventory().setItemInMainHand(stack);
+            player.sendMessage(ChatColor.GREEN + "Tooltip style set to " + style + ".");
+            return true;
+        }
+
         int index = 0;
         String line;
 
@@ -52,6 +62,8 @@ public class AddLoreCommand implements CommandExecutor {
                 return true;
             }
             line = rarity.getSymbol() + "<glyph:item>";
+            String style = "minecraft:" + rarity.name().toLowerCase();
+            ItemUtil.setStringData(stack, ItemUtil.TOOLTIP_STYLE_KEY, style);
         }
 
         ItemUtil.insertLoreLine(stack, index, line);

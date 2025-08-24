@@ -252,7 +252,7 @@ commands:
     usage: /centergui
   addlore:
     description: Insert a lore line into the held item
-    usage: /addlore [line] [text]
+    usage: /addlore [line] [text] | /addlore style <name>
   pathfinding:
     description: Create and execute NPC paths
     usage: /pathfinding <set|create|execute>
