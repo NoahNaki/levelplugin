@@ -93,7 +93,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
         boolean played = false;
         if (startNpc != null && startNpc.isSpawned() && player.isOnline() &&
                 startNpc.getEntity().getWorld().equals(player.getWorld()) &&
-                player.getLocation().distanceSquared(startNpc.getEntity().getLocation()) <= 100) {
+                player.getLocation().distanceSquared(startNpc.getEntity().getLocation()) <= 25) {
             playDialog(player, plugin, startNpc);
             played = true;
         }
@@ -107,7 +107,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                     if (npc == null || !npc.isSpawned()) return;
                     if (!player.isOnline()) { cancel(); return; }
                     if (!npc.getEntity().getWorld().equals(player.getWorld())) return;
-                    if (!triggered && player.getLocation().distanceSquared(npc.getEntity().getLocation()) <= 100) {
+                    if (!triggered && player.getLocation().distanceSquared(npc.getEntity().getLocation()) <= 25) {
                         playDialog(player, plugin, npc);
                         triggered = true;
                         cancel();
