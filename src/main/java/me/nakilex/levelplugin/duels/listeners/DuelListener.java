@@ -181,7 +181,7 @@ public class DuelListener implements Listener {
     @EventHandler
     public void onKnockback(EntityKnockbackByEntityEvent event) {
         if (!(event.getEntity() instanceof Player victim)) return;
-        if (!(event.getHitBy() instanceof Player attacker)) return;
+        if (!(event.getHitByEntity() instanceof Player attacker)) return;
 
         if (!DuelManager.getInstance()
                 .areInDuel(victim.getUniqueId(), attacker.getUniqueId())) {
