@@ -86,7 +86,7 @@ public class NakiPlaceholderExpansion extends PlaceholderExpansion {
             if (target == null) {
                 return "true"; // Non-player or offline target
             }
-            boolean allowed = DuelManager.getInstance().areInDuel(player.getUniqueId(), target.getUniqueId());
+            boolean allowed = DuelManager.getInstance().canDamage(player.getUniqueId(), target.getUniqueId());
             return String.valueOf(allowed);
         }
         Function<Player, String> handler = placeholders.get(key);

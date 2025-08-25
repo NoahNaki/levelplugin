@@ -181,7 +181,7 @@ public class BowDroneEffect implements SpellEffect {
                     for (Entity e : loc.getWorld().getNearbyEntities(loc, 15, 15, 15)) {
                         if (!(e instanceof LivingEntity le)) continue;
                         if (le.equals(player)) continue;
-                        if (le instanceof Player p && !DuelManager.getInstance().areInDuel(pid, p.getUniqueId())) continue;
+                        if (le instanceof Player p && !DuelManager.getInstance().canDamage(pid, p.getUniqueId())) continue;
                         if (shouldIgnoreName(le.getCustomName())) continue;
 
                         double d = le.getLocation().distanceSquared(loc);
@@ -205,7 +205,7 @@ public class BowDroneEffect implements SpellEffect {
                             for (Entity near : shot.getNearbyEntities(1, 1, 1)) {
                                 if (!(near instanceof LivingEntity le)) continue;
                                 if (le.equals(player)) continue;
-                                if (le instanceof Player p && !DuelManager.getInstance().areInDuel(pid, p.getUniqueId())) continue;
+                                if (le instanceof Player p && !DuelManager.getInstance().canDamage(pid, p.getUniqueId())) continue;
 
                                 SpellUtils.dealWithChat(
                                     player, le,

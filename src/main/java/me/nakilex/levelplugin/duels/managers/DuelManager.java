@@ -196,16 +196,21 @@ public class DuelManager {
         return partner != null && partner.equals(p2);
     }
 
-    public boolean areInDuel(UUID p1, UUID p2) {
-        UUID partner = activeDuels.get(p1);
-        if (partner != null && partner.equals(p2)) return true;
+    /**
+     * Determines whether attacker is allowed to damage target. This accounts for
+     * active duels as well as other contexts like hostile guild relations or
+     * opposing siege participation.
+     */
+    public boolean canDamage(UUID attacker, UUID target) {
+        UUID partner = activeDuels.get(attacker);
+        if (partner != null && partner.equals(target)) return true;
         // Treat hostile guilds or opposing siege participants as duelling for damage purposes
         if (me.nakilex.levelplugin.guild.GuildManager.getInstance()
-                .areHostile(p1, p2)) {
+                .areHostile(attacker, target)) {
             return true;
         }
         return me.nakilex.levelplugin.guild.siege.GuildSiegeManager.getInstance()
-                .areSiegeOpponents(p1, p2);
+                .areSiegeOpponents(attacker, target);
     }
 
     /**

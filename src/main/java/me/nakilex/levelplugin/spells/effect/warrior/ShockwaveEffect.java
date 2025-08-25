@@ -82,7 +82,7 @@ public class ShockwaveEffect implements SpellEffect {
 
                     for (Entity e : loc.getWorld().getNearbyEntities(loc, 1, 1, 1)) {
                         if (e instanceof LivingEntity le && !le.equals(player)) {
-                            if (le instanceof Player p && !DuelManager.getInstance().areInDuel(player.getUniqueId(), p.getUniqueId()))
+                            if (le instanceof Player p && !DuelManager.getInstance().canDamage(player.getUniqueId(), p.getUniqueId()))
                                 continue;
                             SpellUtils.dealWithChat(player, le, damage, "Shockwave");
                             Vector kb = le.getLocation().toVector().subtract(player.getLocation().toVector()).normalize().multiply(0.5);

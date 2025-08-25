@@ -204,7 +204,7 @@ commands:
     usage: /enchant
   debug:
     description: Developer debug tools
-    usage: /debug [mobinfo|tps|siege|autocast|tec|hand]
+    usage: /debug [mobinfo|tps|siege|autocast|tec|hand|candamage <player>]
   motd:
     description: Reload or preview the server MOTD
     usage: /motd <reload|preview>

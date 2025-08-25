@@ -8,12 +8,14 @@ import java.util.stream.Collectors;
 
 import me.nakilex.levelplugin.debug.gui.DebugGUI;
 import me.nakilex.levelplugin.debug.AutoCastManager;
+import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
 import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Material;
@@ -138,6 +140,33 @@ public class DebugCommand implements TabExecutor {
                 ToggleFeedbackUtil.sendToggle(p3, "Mage autocast", auto);
                 return true;
 
+            case "candamage":
+                if (args.length < 2) {
+                    sender.sendMessage("Usage: /debug candamage <target> [attacker]");
+                    return true;
+                }
+                Player target = Bukkit.getPlayer(args[1]);
+                if (target == null) {
+                    sender.sendMessage("Player not found: " + args[1]);
+                    return true;
+                }
+                Player attacker;
+                if (args.length >= 3) {
+                    attacker = Bukkit.getPlayer(args[2]);
+                    if (attacker == null) {
+                        sender.sendMessage("Player not found: " + args[2]);
+                        return true;
+                    }
+                } else if (sender instanceof Player pSelf) {
+                    attacker = pSelf;
+                } else {
+                    sender.sendMessage("Console must specify attacker: /debug candamage <target> <attacker>");
+                    return true;
+                }
+                boolean can = DuelManager.getInstance().canDamage(attacker.getUniqueId(), target.getUniqueId());
+                sender.sendMessage(attacker.getName() + (can ? " can " : " cannot ") + "damage " + target.getName());
+                return true;
+
             case "hand":
                 if (!(sender instanceof Player p4)) {
                     sender.sendMessage("Players only.");
@@ -209,10 +238,22 @@ public class DebugCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "autocast", "hand"));
+            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "autocast", "hand", "candamage"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
+                    .toList();
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("candamage")) {
+            return Bukkit.getOnlinePlayers().stream()
+                    .map(Player::getName)
+                    .filter(name -> name.toLowerCase().startsWith(args[1].toLowerCase()))
+                    .toList();
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("candamage") && !(sender instanceof Player)) {
+            return Bukkit.getOnlinePlayers().stream()
+                    .map(Player::getName)
+                    .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))
                     .toList();
         }
         return Collections.emptyList();

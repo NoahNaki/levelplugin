@@ -72,7 +72,7 @@ public class DuelListener implements Listener {
         Player damager = (Player) event.getDamager();
 
         DuelManager manager = DuelManager.getInstance();
-        boolean inDuel = manager.areInDuel(victim.getUniqueId(), damager.getUniqueId());
+        boolean inDuel = manager.canDamage(damager.getUniqueId(), victim.getUniqueId());
 
         if (!inDuel) {
             // Cancel the damage if they're not allowed to fight

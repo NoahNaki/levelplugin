@@ -30,7 +30,7 @@ public class ProjectileFriendlyFireListener implements Listener {
         if (!(s instanceof Player attacker)) return;           // shooter must be a player
         if (attacker.equals(victim)) return;                   // self-hits allowed
 
-        if (!duels.areInDuel(attacker.getUniqueId(), victim.getUniqueId())) {
+        if (!duels.canDamage(attacker.getUniqueId(), victim.getUniqueId())) {
             e.setCancelled(true);
             attacker.sendMessage(ChatColor.RED + "You can only damage players you’re duelling!");
         }

@@ -28,7 +28,7 @@ public class MeteorListener implements Listener {
         if (!fb.hasMetadata("Meteor")) return;
         if (!(event.getEntity() instanceof Player victim)) return;
         if (!(fb.getShooter() instanceof Player shooter)) return;
-        if (!DuelManager.getInstance().areInDuel(shooter.getUniqueId(), victim.getUniqueId())) {
+        if (!DuelManager.getInstance().canDamage(shooter.getUniqueId(), victim.getUniqueId())) {
             event.setCancelled(true);
         }
     }
