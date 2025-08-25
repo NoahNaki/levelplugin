@@ -76,21 +76,40 @@ public class NakiPlaceholderExpansion extends PlaceholderExpansion {
             }
         }
         if (key.startsWith("candamage_")) {
-            String targetId = key.substring("candamage_".length());
-            Player target = Bukkit.getPlayerExact(targetId);
-            if (target == null) {
-                try {
-                    target = Bukkit.getPlayer(java.util.UUID.fromString(targetId));
-                } catch (IllegalArgumentException ignored) { }
+            String ids = key.substring("candamage_".length());
+            String[] parts = ids.split("_", 2);
+
+            Player attacker;
+            Player target;
+
+            if (parts.length == 1) {
+                attacker = player;
+                target = resolvePlayer(parts[0]);
+            } else {
+                attacker = resolvePlayer(parts[0]);
+                target = resolvePlayer(parts[1]);
             }
-            if (target == null) {
-                return "true"; // Non-player or offline target
+
+            if (attacker == null || target == null) {
+                return "true"; // treat non-players/offline as allowed
             }
-            boolean allowed = DuelManager.getInstance().canDamage(player.getUniqueId(), target.getUniqueId());
+
+            boolean allowed = DuelManager.getInstance().canDamage(attacker.getUniqueId(), target.getUniqueId());
             return String.valueOf(allowed);
         }
         Function<Player, String> handler = placeholders.get(key);
         return handler != null ? handler.apply(player) : null;
+    }
+
+    private Player resolvePlayer(String id) {
+        if (id == null) return null;
+        Player p = Bukkit.getPlayerExact(id);
+        if (p != null) return p;
+        try {
+            return Bukkit.getPlayer(java.util.UUID.fromString(id));
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
     }
 }
 
