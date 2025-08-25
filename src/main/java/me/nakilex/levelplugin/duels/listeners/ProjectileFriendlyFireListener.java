@@ -10,7 +10,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
-import io.papermc.paper.event.entity.ProjectileCollideEvent;
+import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.plugin.Plugin;
 
@@ -38,17 +38,16 @@ public class ProjectileFriendlyFireListener implements Listener {
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onCollide(ProjectileCollideEvent e) {
+    public void onCollide(ProjectileHitEvent e) {
         Projectile proj = e.getEntity();
-        Entity hit = e.getCollidedWith();
+        Entity hit = e.getHitEntity();
         if (!(hit instanceof Player victim)) return;
         if (!proj.hasMetadata(MYTHIC_META) && !proj.hasMetadata(ARCHER_META)) return;
         Object s = proj.getShooter();
         if (!(s instanceof Player attacker)) return;
         if (duels.areInDuel(attacker.getUniqueId(), victim.getUniqueId())) return;
 
-        e.setCancelled(true);
-        plugin.getLogger().info("[DuelSkillDebug] Cancelled collision of projectile from " + attacker.getName() + " with bystander " + victim.getName());
+        plugin.getLogger().info("[DuelSkillDebug] Detected projectile collision from " + attacker.getName() + " with bystander " + victim.getName());
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
