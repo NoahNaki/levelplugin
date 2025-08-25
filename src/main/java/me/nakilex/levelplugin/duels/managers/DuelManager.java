@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.duels.managers;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.utils.CollisionUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -96,8 +97,8 @@ public class DuelManager {
         Player player2 = Bukkit.getPlayer(p2);
 
         if (player1 != null && player2 != null) {
-            player1.setCollidable(true);
-            player2.setCollidable(true);
+            CollisionUtil.setCollidable(player1, true);
+            CollisionUtil.setCollidable(player2, true);
             ChatFormatter.sendCenteredMessage(player1, "§aDuel started with " + player2.getName() + "!");
             ChatFormatter.sendCenteredMessage(player2, "§aDuel started with " + player1.getName() + "!");
             Main.getInstance().getQuestManager().handleDuelParticipate(player1);
@@ -149,7 +150,7 @@ public class DuelManager {
     }
 
     private void restorePlayer(Player p) {
-        p.setCollidable(false);
+        CollisionUtil.setCollidable(p, false);
         p.setHealth(p.getMaxHealth());
         // Restore mana, etc. if you have a system for that.
     }

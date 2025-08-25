@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
 import me.nakilex.levelplugin.player.profile.ProfileManager;
+import me.nakilex.levelplugin.utils.CollisionUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -29,6 +30,8 @@ public class PlayerQuitListener implements Listener {
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
         UUID pid = player.getUniqueId();
+
+        CollisionUtil.remove(player);
 
         if (Main.getInstance().getQuestManager().isDebug()) {
             Main.getInstance().getLogger().info("[QuestDebug] PlayerQuit " + player.getName());

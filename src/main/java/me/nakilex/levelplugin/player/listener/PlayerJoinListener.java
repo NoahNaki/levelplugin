@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.player.mining.managers.MiningManager;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.utils.BetterHudUtil;
+import me.nakilex.levelplugin.utils.CollisionUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
@@ -40,7 +41,7 @@ public class PlayerJoinListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        player.setCollidable(false);
+        CollisionUtil.setCollidable(player, false);
         UUID pid = player.getUniqueId();
 
         // Delay to let other plugins finish their startup logic
