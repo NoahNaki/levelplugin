@@ -8,6 +8,7 @@ import org.bukkit.event.Event;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.EventExecutor;
+import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.plugin.Plugin;
 
 import java.util.Collection;
@@ -22,8 +23,10 @@ import java.util.Set;
 public class DuelSkillListener implements Listener {
 
     private final DuelManager duels = DuelManager.getInstance();
+    private final Plugin plugin;
 
     public DuelSkillListener(Plugin plugin) {
+        this.plugin = plugin;
         register(plugin, "io.lumine.mythic.api.events.MythicMobSkillEvent");
         register(plugin, "io.lumine.mythic.bukkit.events.MythicMobSkillEvent");
     }
@@ -45,6 +48,15 @@ public class DuelSkillListener implements Listener {
             var casterEntity = MythicMobModifier.toBukkitEntity(casterObj);
             if (!(casterEntity instanceof Player caster)) return;
 
+            Object nameObj = event.getClass().getMethod("getSkillName").invoke(event);
+            String skillName = nameObj != null ? nameObj.toString() : "unknown";
+            Bukkit.getLogger().info("[DuelSkillDebug] " + caster.getName() + " cast skill " + skillName);
+
+            // Mark caster so upcoming projectiles can be identified
+            caster.setMetadata(ProjectileFriendlyFireListener.MYTHIC_META, new FixedMetadataValue(plugin, skillName));
+            Bukkit.getScheduler().runTask(plugin,
+                    () -> caster.removeMetadata(ProjectileFriendlyFireListener.MYTHIC_META, plugin));
+
             Object targetsObj = event.getClass().getMethod("getTargets").invoke(event);
             if (!(targetsObj instanceof Collection<?> targets)) return;
 
@@ -54,6 +66,7 @@ public class DuelSkillListener implements Listener {
                 if (bukkit instanceof Player victim
                         && !duels.areInDuel(caster.getUniqueId(), victim.getUniqueId())) {
                     remove.add(target);
+                    Bukkit.getLogger().info("[DuelSkillDebug] Removed bystander " + victim.getName() + " from skill " + skillName);
                 }
             }
             targets.removeAll(remove);

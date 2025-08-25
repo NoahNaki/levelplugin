@@ -9,12 +9,47 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.ProjectileLaunchEvent;
+import io.papermc.paper.event.entity.ProjectileCollideEvent;
+import org.bukkit.metadata.FixedMetadataValue;
+import org.bukkit.plugin.Plugin;
 
 public class ProjectileFriendlyFireListener implements Listener {
 
-    private static final String ARCHER_META = "ArcherSpell";   // ⇠ keep in one place
+    public static final String ARCHER_META = "ArcherSpell";   // ⇠ keep in one place
+    public static final String MYTHIC_META = "MythicSkill";
 
     private final DuelManager duels = DuelManager.getInstance();
+    private final Plugin plugin;
+
+    public ProjectileFriendlyFireListener(Plugin plugin) {
+        this.plugin = plugin;
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onLaunch(ProjectileLaunchEvent e) {
+        Projectile proj = e.getEntity();
+        if (!(proj.getShooter() instanceof Player shooter)) return;
+        if (!shooter.hasMetadata(MYTHIC_META)) return;
+        String skill = shooter.getMetadata(MYTHIC_META).get(0).asString();
+        proj.setMetadata(MYTHIC_META, new FixedMetadataValue(plugin, skill));
+        shooter.removeMetadata(MYTHIC_META, plugin);
+        plugin.getLogger().info("[DuelSkillDebug] Tagged projectile from " + shooter.getName() + " for skill " + skill);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onCollide(ProjectileCollideEvent e) {
+        Projectile proj = e.getEntity();
+        Entity hit = e.getCollidedWith();
+        if (!(hit instanceof Player victim)) return;
+        if (!proj.hasMetadata(MYTHIC_META) && !proj.hasMetadata(ARCHER_META)) return;
+        Object s = proj.getShooter();
+        if (!(s instanceof Player attacker)) return;
+        if (duels.areInDuel(attacker.getUniqueId(), victim.getUniqueId())) return;
+
+        e.setCancelled(true);
+        plugin.getLogger().info("[DuelSkillDebug] Cancelled collision of projectile from " + attacker.getName() + " with bystander " + victim.getName());
+    }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onProjPvp(EntityDamageByEntityEvent e) {
@@ -24,7 +59,7 @@ public class ProjectileFriendlyFireListener implements Listener {
 
         Entity rawDamager = e.getDamager();
         if (!(rawDamager instanceof Projectile proj)) return;
-        if (!proj.hasMetadata(ARCHER_META)) return;            // <— our filter
+        if (!proj.hasMetadata(ARCHER_META) && !proj.hasMetadata(MYTHIC_META)) return; // our filter
 
         Object s = proj.getShooter();
         if (!(s instanceof Player attacker)) return;           // shooter must be a player
@@ -33,6 +68,7 @@ public class ProjectileFriendlyFireListener implements Listener {
         if (!duels.areInDuel(attacker.getUniqueId(), victim.getUniqueId())) {
             e.setCancelled(true);
             attacker.sendMessage(ChatColor.RED + "You can only damage players you’re duelling!");
+            plugin.getLogger().info("[DuelSkillDebug] Cancelled damage from projectile between " + attacker.getName() + " and bystander " + victim.getName());
         }
     }
 }
