@@ -48,6 +48,7 @@ public class ProjectileFriendlyFireListener implements Listener {
         if (duels.areInDuel(attacker.getUniqueId(), victim.getUniqueId())) return;
 
         plugin.getLogger().info("[DuelSkillDebug] Detected projectile collision from " + attacker.getName() + " with bystander " + victim.getName());
+        proj.remove();
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)

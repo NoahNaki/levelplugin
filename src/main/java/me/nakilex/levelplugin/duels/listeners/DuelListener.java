@@ -184,7 +184,16 @@ public class DuelListener implements Listener {
         if (!(event.getEntity() instanceof Player victim)) return;
         Object attackerObj = ReflectionUtil.invoke(event,
                 "getHitByEntity", "getHitBy", "getKnockbacker", "getBumper", "getDamager");
-        if (!(attackerObj instanceof Player attacker)) return;
+
+        Player attacker = null;
+        if (attackerObj instanceof Player p) {
+            attacker = p;
+        } else if (attackerObj instanceof org.bukkit.entity.Projectile proj
+                && proj.getShooter() instanceof Player shooter) {
+            attacker = shooter;
+        }
+
+        if (attacker == null) return;
 
         if (!DuelManager.getInstance().areInDuel(victim.getUniqueId(), attacker.getUniqueId())) {
             event.setCancelled(true);
