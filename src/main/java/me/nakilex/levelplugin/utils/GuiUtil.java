@@ -125,27 +125,12 @@ public final class GuiUtil {
         return "<glyph:star>".repeat(count);
     }
 
-    private record StatFormat(String icon, ChatColor color) {}
-
-    private static StatFormat getStatFormat(StatType type) {
-        return switch (type) {
-            case STR -> new StatFormat("<glyph:str>", ChatColor.BLUE);
-            case AGI -> new StatFormat("<glyph:agi>", ChatColor.GREEN);
-            case INT -> new StatFormat("<glyph:int>", ChatColor.AQUA);
-            case DEX -> new StatFormat("<glyph:dex>", ChatColor.YELLOW);
-            case VIT -> new StatFormat("<glyph:vit>", ChatColor.RED);
-            case WIL -> new StatFormat("<glyph:wil>", ChatColor.BLUE);
-            case TEC -> new StatFormat("<glyph:tec>", ChatColor.DARK_PURPLE);
-        };
-    }
-
-    /** Format a stat name with its icon and standard colouring. */
+    /** Format a stat name using standard colouring without icons. */
     public static String formatStatName(StatType type) {
-        StatFormat fmt = getStatFormat(type);
-        return fmt.color + fmt.icon + " " + ChatColor.GRAY + type.getDisplayName();
+        return ChatColor.GRAY + type.getDisplayName();
     }
 
-    /** Format a stat line using standard icons and colours. */
+    /** Format a stat line using standard colours without icons. */
     public static String formatStatLine(StatType type, int value, boolean percent) {
         String suffix = percent ? "%" : "";
         ChatColor valueColor = (type == StatType.VIT) ? ChatColor.RED : ChatColor.GREEN;

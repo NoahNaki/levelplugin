@@ -202,7 +202,7 @@ public class ItemsBrowser implements CommandExecutor, Listener {
                 String gsDisplay = (minGs == maxGs)
                         ? String.valueOf(minGs)
                         : (minGs + "-" + maxGs);
-                lore.add("<glyph:sword_icon> " + ChatColor.GRAY + "Gear Score: "
+                lore.add(ChatColor.GRAY + "Gear Score: "
                         + ChatColor.LIGHT_PURPLE + ChatColor.BOLD + gsDisplay);
                 lore.add(""); // divider after Gear Score
 
@@ -210,7 +210,7 @@ public class ItemsBrowser implements CommandExecutor, Listener {
                 StatRange s;
                 s = tpl.getHpRange();
                 if (!(s.getMin()==0 && s.getMax()==0))
-                    lore.add(ChatColor.RED + "<glyph:vit> " + ChatColor.GRAY + "Health: "
+                    lore.add(GuiUtil.formatStatName(StatsManager.StatType.VIT) + ": "
                             + ChatColor.RED + "+" + s);
                 s = tpl.getDefRange();
                 if (!(s.getMin()==0 && s.getMax()==0))

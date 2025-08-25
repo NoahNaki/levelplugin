@@ -102,6 +102,8 @@ public class ProfileSelectionGUI implements Listener {
         SELECTING.add(player.getUniqueId());
         hideOthers(player);
         BetterHudUtil.removeHud(player);
+        var sbManager = Main.getInstance().getScoreboardManager();
+        if (sbManager != null) sbManager.removeBoard(player);
 
         // Save state from the currently active profile, if any
         ProfileManager pm = ProfileManager.getInstance();
@@ -120,6 +122,8 @@ public class ProfileSelectionGUI implements Listener {
         SELECTING.remove(player.getUniqueId());
         showOthers(player);
         Main.getInstance().getPlayerVisibilityManager().apply(player);
+        var sbManager = Main.getInstance().getScoreboardManager();
+        if (sbManager != null) sbManager.createBoard(player);
     }
 
     /** Called when a player quits to clear any temporary state. */

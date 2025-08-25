@@ -522,7 +522,7 @@ public final class ClassEssence {
         lore.add(rarityGlyph + "<glyph:essence>");
         lore.add("");
         int gearScore = getGearScore(stack);
-        lore.add("<glyph:sword_icon> " + ChatColor.GRAY + "Gear Score: "
+        lore.add(ChatColor.GRAY + "Gear Score: "
                 + ChatColor.LIGHT_PURPLE + ChatColor.BOLD + gearScore);
         lore.add("");
         for (StatType type : StatType.DISPLAY_ORDER) {

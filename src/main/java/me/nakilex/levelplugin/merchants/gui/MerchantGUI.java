@@ -111,7 +111,7 @@ public class MerchantGUI implements Listener {
                     lore.set(i, GuiUtil.formatStatName(StatsManager.StatType.STR) + ": "
                             + ChatColor.GREEN + "+" + tpl.getStrRange());
                 } else if (line.contains("<glyph:vit>")) {
-                    lore.set(i, ChatColor.RED + "<glyph:vit> " + ChatColor.GRAY + "Health: "
+                    lore.set(i, GuiUtil.formatStatName(StatsManager.StatType.VIT) + ": "
                             + ChatColor.RED + "+" + tpl.getHpRange());
                 } else if (line.contains("⛂")) {
                     lore.set(i, ChatColor.GRAY  + "⛂ " + ChatColor.GRAY + "Defence: "
