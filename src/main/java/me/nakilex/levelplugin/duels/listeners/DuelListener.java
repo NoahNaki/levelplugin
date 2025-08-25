@@ -6,15 +6,13 @@ import net.md_5.bungee.api.chat.*;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Particle;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityKnockbackByEntityEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.util.RayTraceResult;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -171,6 +169,23 @@ public class DuelListener implements Listener {
                 // Prevent actual death
                 event.setCancelled(true);
             }
+        }
+    }
+
+    /**
+     * Cancel knockback between players who are not duelling. MythicMobs and
+     * other mechanics may apply velocity even when the damage event is
+     * cancelled, so this serves as an additional safeguard against skills
+     * pushing bystanders.
+     */
+    @EventHandler
+    public void onKnockback(EntityKnockbackByEntityEvent event) {
+        if (!(event.getEntity() instanceof Player victim)) return;
+        if (!(event.getHitBy() instanceof Player attacker)) return;
+
+        if (!DuelManager.getInstance()
+                .areInDuel(victim.getUniqueId(), attacker.getUniqueId())) {
+            event.setCancelled(true);
         }
     }
 
