@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
 import me.nakilex.levelplugin.boss.FieldBossListener;
 import me.nakilex.levelplugin.doublejump.listeners.DoubleJumpListener;
 import me.nakilex.levelplugin.duels.listeners.DuelListener;
+import me.nakilex.levelplugin.duels.listeners.DuelSkillListener;
 import me.nakilex.levelplugin.duels.listeners.ProjectileFriendlyFireListener;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.economy.managers.GemsManager;
@@ -152,6 +153,7 @@ public class ListenerRegistry {
         pm.registerEvents(new HungerDisabler(), plugin);
         pm.registerEvents(new CropTrampleListener(), plugin);
         pm.registerEvents(new DuelListener(), plugin);
+        pm.registerEvents(new DuelSkillListener(), plugin);
         pm.registerEvents(new PickupCustomItemListener(plugin), plugin);
         pm.registerEvents(new CustomItemUpdateListener(), plugin);
         pm.registerEvents(new SalvageListener(economyManager, gemsManager), plugin);
