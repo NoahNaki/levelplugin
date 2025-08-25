@@ -153,7 +153,7 @@ public class ListenerRegistry {
         pm.registerEvents(new HungerDisabler(), plugin);
         pm.registerEvents(new CropTrampleListener(), plugin);
         pm.registerEvents(new DuelListener(), plugin);
-        pm.registerEvents(new DuelSkillListener(), plugin);
+        pm.registerEvents(new DuelSkillListener(plugin), plugin);
         pm.registerEvents(new PickupCustomItemListener(plugin), plugin);
         pm.registerEvents(new CustomItemUpdateListener(), plugin);
         pm.registerEvents(new SalvageListener(economyManager, gemsManager), plugin);
