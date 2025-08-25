@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.core;
 
 import de.slikey.effectlib.EffectManager;
 import io.lumine.mythic.bukkit.BukkitAPIHelper;
+import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
 import me.nakilex.levelplugin.blacksmith.managers.ItemRepairManager;
@@ -243,6 +244,12 @@ public class PluginBootstrap {
     }
 
     private void initializeManagers() {
+        // Resolve the MythicMobs API helper once at startup so other
+        // components can safely query MythicMob data without null checks.
+        // MythicBukkit#inst() will throw if the plugin is missing, which is
+        // acceptable since LevelPlugin depends on MythicMobs.
+        mythicHelper = MythicBukkit.inst().getAPIHelper();
+
         // World-dependent managers like gates or fast travel require target
         // worlds to be loaded. Ensure the necessary worlds are available
         // before other managers are initialized.
