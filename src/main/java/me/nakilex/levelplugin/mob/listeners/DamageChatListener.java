@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.mob.listeners;
 
 import io.lumine.mythic.api.skills.placeholders.PlaceholderString;
+import io.lumine.mythic.bukkit.BukkitAPIHelper;
 import io.lumine.mythic.core.mobs.ActiveMob;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.mob.managers.ChatToggleManager;
@@ -74,8 +75,8 @@ public class DamageChatListener implements Listener {
 
         // build & send message
         String targetName;
-        ActiveMob mythic = Main.getInstance().getMythicHelper()
-                .getMythicMobInstance(event.getEntity());
+        BukkitAPIHelper helper = Main.getInstance().getMythicHelper();
+        ActiveMob mythic = helper != null ? helper.getMythicMobInstance(event.getEntity()) : null;
         if (mythic != null) {
             PlaceholderString disp = mythic.getType().getDisplayName();
             String name = disp != null ? disp.get() : mythic.getType().getInternalName();
