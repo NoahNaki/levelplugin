@@ -115,8 +115,8 @@ commands:
     usage: /addpotion <playername> <potion_id>
     permission: none
   duel:
-    description: Accepts or Declines a duel request
-    usage: /duel <accept|decline>
+    description: Manage duel requests
+    usage: /duel <player|accept|decline>
   salvage:
     description: Opens the Salvage GUI
     usage: /salvage

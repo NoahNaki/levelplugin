@@ -2,11 +2,13 @@ package me.nakilex.levelplugin.utils;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.player.profile.ProfileManager;
 import me.nakilex.levelplugin.player.profile.PlayerProfile;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
@@ -72,6 +74,20 @@ public class NakiPlaceholderExpansion extends PlaceholderExpansion {
             } catch (NumberFormatException ignored) {
                 return "";
             }
+        }
+        if (key.startsWith("candamage_")) {
+            String targetId = key.substring("candamage_".length());
+            Player target = Bukkit.getPlayerExact(targetId);
+            if (target == null) {
+                try {
+                    target = Bukkit.getPlayer(java.util.UUID.fromString(targetId));
+                } catch (IllegalArgumentException ignored) { }
+            }
+            if (target == null) {
+                return "true"; // Non-player or offline target
+            }
+            boolean allowed = DuelManager.getInstance().areInDuel(player.getUniqueId(), target.getUniqueId());
+            return String.valueOf(allowed);
         }
         Function<Player, String> handler = placeholders.get(key);
         return handler != null ? handler.apply(player) : null;

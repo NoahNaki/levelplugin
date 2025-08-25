@@ -2,7 +2,12 @@ package me.nakilex.levelplugin.duels.managers;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.ChatFormatter;
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.ComponentBuilder;
+import net.md_5.bungee.api.chat.HoverEvent;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -22,6 +27,41 @@ public class DuelManager {
         DuelRequest req = new DuelRequest(requester.getUniqueId(), target.getUniqueId(), System.currentTimeMillis());
         duelRequests.put(target.getUniqueId(), req);
         // (Do NOT send messages here, to avoid duplicates.)
+    }
+
+    /**
+     * Creates a duel request and notifies the target with clickable accept / decline
+     * buttons. Also sends a confirmation message to the requester.
+     */
+    public void sendDuelRequest(Player requester, Player target) {
+        createRequest(requester, target);
+        ChatFormatter.sendCenteredMessage(requester,
+            ChatColor.YELLOW + "Duel request sent to " + target.getName() + "!");
+        sendDuelRequestMessage(target, requester.getName());
+    }
+
+    private void sendDuelRequestMessage(Player target, String challengerName) {
+        ChatFormatter.sendCenteredMessage(target,
+            ChatColor.YELLOW + challengerName + " has challenged you! Click below:");
+
+        String padding = "                     ";
+
+        TextComponent acceptBtn = new TextComponent("§a§l[ACCEPT]");
+        acceptBtn.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/duel accept"));
+        acceptBtn.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+            new ComponentBuilder("Click to accept the duel").create()));
+
+        TextComponent declineBtn = new TextComponent(" §c§l[DECLINE]");
+        declineBtn.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/duel decline"));
+        declineBtn.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+            new ComponentBuilder("Click to decline the duel").create()));
+
+        TextComponent finalMessage = new TextComponent(padding);
+        finalMessage.addExtra(acceptBtn);
+        finalMessage.addExtra("   ");
+        finalMessage.addExtra(declineBtn);
+
+        target.spigot().sendMessage(finalMessage);
     }
 
     public DuelRequest getRequest(UUID targetId) {

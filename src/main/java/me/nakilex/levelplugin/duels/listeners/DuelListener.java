@@ -1,65 +1,24 @@
 package me.nakilex.levelplugin.duels.listeners;
 
 import me.nakilex.levelplugin.duels.managers.DuelManager;
-import me.nakilex.levelplugin.duels.managers.DuelRequest;
 import me.nakilex.levelplugin.utils.ChatFormatter;
-import net.md_5.bungee.api.chat.*;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Particle;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.util.RayTraceResult;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 public class DuelListener implements Listener {
 
-    private final Map<UUID, Long> lastRequestTime = new HashMap<>();
-    private final Map<UUID, Long> lastAcceptTime = new HashMap<>();
-    private final long REQUEST_COOLDOWN_MS = 5000; // 5 seconds
-
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
         // Duel requests via shift left-click have been removed
-    }
-
-
-    private void sendCenteredAcceptDecline(Player target, String challengerName) {
-        // Send the prompt
-        ChatFormatter.sendCenteredMessage(target,
-            ChatColor.YELLOW + challengerName + " has challenged you! Click below:");
-
-        // Calculate the approximate padding needed for centering
-        String padding = "                     "; // Adjust this based on testing for proper centering
-
-        // Construct the centered [ACCEPT] button
-        TextComponent acceptBtn = new TextComponent("§a§l[ACCEPT]");
-        acceptBtn.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/duel accept"));
-        acceptBtn.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
-            new ComponentBuilder("Click to accept the duel").create()));
-
-        // Construct the centered [DECLINE] button
-        TextComponent declineBtn = new TextComponent(" §c§l[DECLINE]");
-        declineBtn.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/duel decline"));
-        declineBtn.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
-            new ComponentBuilder("Click to decline the duel").create()));
-
-        // Combine buttons with padding and send them as a single centered message
-        TextComponent finalMessage = new TextComponent(padding);
-        finalMessage.addExtra(acceptBtn);
-        finalMessage.addExtra("   "); // Space between buttons
-        finalMessage.addExtra(declineBtn);
-
-        target.spigot().sendMessage(finalMessage);
     }
 
     @EventHandler
@@ -97,34 +56,6 @@ public class DuelListener implements Listener {
                 }
             );
         }
-    }
-
-    public void sendDuelRequestMessage(Player target, String challengerName) {
-        // Send a centered prompt line
-        ChatFormatter.sendCenteredMessage(target,
-            ChatColor.YELLOW + challengerName + " has challenged you! Click below:");
-
-        // Call the method to send the centered accept/decline buttons
-        sendCenteredAcceptDecline(target, challengerName);
-    }
-
-
-    private boolean canRequest(Player p) {
-        long now = System.currentTimeMillis();
-        long lastTime = lastRequestTime.getOrDefault(p.getUniqueId(), 0L);
-        return (now - lastTime) >= 5000; // 5s in ms
-    }
-    private void setRequestCooldown(Player p) {
-        lastRequestTime.put(p.getUniqueId(), System.currentTimeMillis());
-    }
-
-    private boolean canAccept(Player p) {
-        long now = System.currentTimeMillis();
-        long lastTime = lastAcceptTime.getOrDefault(p.getUniqueId(), 0L);
-        return (now - lastTime) >= 5000;
-    }
-    private void setAcceptCooldown(Player p) {
-        lastAcceptTime.put(p.getUniqueId(), System.currentTimeMillis());
     }
 
     /**

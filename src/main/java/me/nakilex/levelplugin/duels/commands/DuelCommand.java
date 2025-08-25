@@ -38,8 +38,17 @@ public class DuelCommand implements CommandExecutor {
             } else {
                 send(player, MessageType.ERROR, "You have no valid duel request to decline!");
             }
+        } else if (args.length == 1) {
+            Player target = player.getServer().getPlayer(args[0]);
+            if (target == null || !target.isOnline()) {
+                send(player, MessageType.ERROR, "Player not found.");
+            } else if (target.equals(player)) {
+                send(player, MessageType.ERROR, "You cannot duel yourself.");
+            } else {
+                DuelManager.getInstance().sendDuelRequest(player, target);
+            }
         } else {
-            send(player, MessageType.INFO, "Usage: /duel <accept|decline>");
+            send(player, MessageType.INFO, "Usage: /duel <player|accept|decline>");
         }
         return true;
     }
