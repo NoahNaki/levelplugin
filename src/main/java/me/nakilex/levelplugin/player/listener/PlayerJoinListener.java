@@ -40,6 +40,7 @@ public class PlayerJoinListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
+        player.setCollidable(false);
         UUID pid = player.getUniqueId();
 
         // Delay to let other plugins finish their startup logic

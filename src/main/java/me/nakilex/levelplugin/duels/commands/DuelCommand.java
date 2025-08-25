@@ -37,10 +37,7 @@ public class DuelCommand implements TabExecutor {
         DuelManager manager = DuelManager.getInstance();
 
         if (sub.equalsIgnoreCase("accept")) {
-            boolean accepted = manager.acceptRequest(player);
-            if (accepted) {
-                send(player, MessageType.SUCCESS, "You have accepted the duel request!");
-            } else {
+            if (!manager.acceptRequest(player)) {
                 send(player, MessageType.ERROR, "You have no valid duel request to accept!");
             }
             return true;
@@ -49,7 +46,7 @@ public class DuelCommand implements TabExecutor {
         if (sub.equalsIgnoreCase("decline")) {
             boolean declined = manager.declineRequest(player);
             if (declined) {
-                send(player, MessageType.ERROR, "You have declined the duel request!");
+                send(player, MessageType.INFO, "You have declined the duel request!");
             } else {
                 send(player, MessageType.ERROR, "You have no valid duel request to decline!");
             }
@@ -74,8 +71,6 @@ public class DuelCommand implements TabExecutor {
         DuelRequest incoming = manager.getRequest(player.getUniqueId());
         if (incoming != null && incoming.getRequester().equals(target.getUniqueId())) {
             manager.acceptRequest(player);
-            send(player, MessageType.SUCCESS, "You have accepted the duel request from " + target.getName() + "!");
-            send(target, MessageType.SUCCESS, player.getName() + " has accepted your duel request!");
             return true;
         }
 
@@ -86,7 +81,7 @@ public class DuelCommand implements TabExecutor {
 
         manager.createRequest(player, target);
         send(player, MessageType.SUCCESS, "Duel request sent to " + target.getName() + "!");
-        new DuelListener().sendDuelRequestMessage(target, player.getName());
+        DuelListener.sendDuelRequestMessage(target, player.getName());
         return true;
     }
 

@@ -1,7 +1,6 @@
 package me.nakilex.levelplugin.duels.listeners;
 
 import me.nakilex.levelplugin.duels.managers.DuelManager;
-import me.nakilex.levelplugin.duels.managers.DuelRequest;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import net.md_5.bungee.api.chat.*;
 import org.bukkit.Bukkit;
@@ -31,9 +30,7 @@ public class DuelListener implements Listener {
     public void onPlayerInteract(PlayerInteractEvent event) {
         // Duel requests via shift left-click have been removed
     }
-
-
-    private void sendCenteredAcceptDecline(Player target, String challengerName) {
+    private static void sendCenteredAcceptDecline(Player target, String challengerName) {
         // Send the prompt
         ChatFormatter.sendCenteredMessage(target,
             ChatColor.YELLOW + challengerName + " has challenged you! Click below:");
@@ -72,10 +69,7 @@ public class DuelListener implements Listener {
             Bukkit.getScheduler().runTask(
                 Bukkit.getPluginManager().getPlugin("LevelPlugin"), () -> {
                     boolean accepted = DuelManager.getInstance().acceptRequest(player);
-                    if (accepted) {
-                        ChatFormatter.sendCenteredMessage(player,
-                            "§aYou accepted the duel request!");
-                    } else {
+                    if (!accepted) {
                         ChatFormatter.sendCenteredMessage(player,
                             "§cNo valid duel request to accept.");
                     }
@@ -99,7 +93,7 @@ public class DuelListener implements Listener {
         }
     }
 
-    public void sendDuelRequestMessage(Player target, String challengerName) {
+    public static void sendDuelRequestMessage(Player target, String challengerName) {
         // Send a centered prompt line
         ChatFormatter.sendCenteredMessage(target,
             ChatColor.YELLOW + challengerName + " has challenged you! Click below:");
