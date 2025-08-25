@@ -1,6 +1,6 @@
 package me.nakilex.levelplugin.duels.listeners;
 
-import io.lumine.mythic.bukkit.events.MythicMobSkillEvent;
+import io.lumine.mythic.api.events.MythicMobSkillEvent;
 import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.mob.utils.MythicMobModifier;
 import org.bukkit.entity.Player;
