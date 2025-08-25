@@ -62,6 +62,7 @@ public class StatsInventory {
             "Improves your speed and dodge chance.",
             new String[]{
                 "Dodge chance scales with total Agility.",
+                "A successful dodge reduces damage by 90%.",
                 "Current dodge chance: " + ChatColor.YELLOW + String.format("%.2f", dodgePercent) + "%.",
                 "Speed bonus: +" + String.format("%.2f", (ps.baseAgility + ps.bonusAgility) * 0.001f)
             }
