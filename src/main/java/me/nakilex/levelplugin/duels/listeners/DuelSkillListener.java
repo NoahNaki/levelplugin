@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.duels.listeners;
 
 import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.mob.utils.MythicMobModifier;
+import me.nakilex.levelplugin.utils.ReflectionUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
@@ -44,11 +45,11 @@ public class DuelSkillListener implements Listener {
 
     private void handle(Event event) {
         try {
-            Object casterObj = tryInvoke(event, "getCaster", "getMob", "getEntity");
+            Object casterObj = ReflectionUtil.invoke(event, "getCaster", "getMob", "getEntity");
             var casterEntity = MythicMobModifier.toBukkitEntity(casterObj);
             if (!(casterEntity instanceof Player caster)) return;
 
-            Object nameObj = tryInvoke(event, "getSkillName", "getName");
+            Object nameObj = ReflectionUtil.invoke(event, "getSkillName", "getName");
             String skillName = nameObj != null ? nameObj.toString() : "unknown";
             Bukkit.getLogger().info("[DuelSkillDebug] " + caster.getName() + " cast skill " + skillName);
 
@@ -58,13 +59,13 @@ public class DuelSkillListener implements Listener {
                     () -> caster.removeMetadata(ProjectileFriendlyFireListener.MYTHIC_META, plugin));
 
             Collection<?> targets = null;
-            Object meta = tryInvoke(event, "getMetadata");
+            Object meta = ReflectionUtil.invoke(event, "getMetadata");
             if (meta != null) {
-                Object t = tryInvoke(meta, "getEntityTargets", "getTargets");
+                Object t = ReflectionUtil.invoke(meta, "getEntityTargets", "getTargets");
                 if (t instanceof Collection<?> c) targets = c;
             }
             if (targets == null) {
-                Object direct = tryInvoke(event, "getTargets", "getEntityTargets");
+                Object direct = ReflectionUtil.invoke(event, "getTargets", "getEntityTargets");
                 if (direct instanceof Collection<?> c) targets = c;
             }
             if (targets == null) {
@@ -85,16 +86,5 @@ public class DuelSkillListener implements Listener {
         } catch (Exception ex) {
             Bukkit.getLogger().info("[DuelSkillDebug] Failed to handle skill event: " + ex.getMessage());
         }
-    }
-
-    private static Object tryInvoke(Object obj, String... methods) {
-        if (obj == null) return null;
-        for (String m : methods) {
-            try {
-                return obj.getClass().getMethod(m).invoke(obj);
-            } catch (Exception ignored) {
-            }
-        }
-        return null;
     }
 }

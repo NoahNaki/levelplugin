@@ -11,6 +11,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityKnockbackByEntityEvent;
+import me.nakilex.levelplugin.utils.ReflectionUtil;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 
@@ -181,10 +182,11 @@ public class DuelListener implements Listener {
     @EventHandler
     public void onKnockback(EntityKnockbackByEntityEvent event) {
         if (!(event.getEntity() instanceof Player victim)) return;
-        if (!(event.getHitByEntity() instanceof Player attacker)) return;
+        Object attackerObj = ReflectionUtil.invoke(event,
+                "getHitByEntity", "getHitBy", "getKnockbacker", "getBumper", "getDamager");
+        if (!(attackerObj instanceof Player attacker)) return;
 
-        if (!DuelManager.getInstance()
-                .areInDuel(victim.getUniqueId(), attacker.getUniqueId())) {
+        if (!DuelManager.getInstance().areInDuel(victim.getUniqueId(), attacker.getUniqueId())) {
             event.setCancelled(true);
         }
     }
