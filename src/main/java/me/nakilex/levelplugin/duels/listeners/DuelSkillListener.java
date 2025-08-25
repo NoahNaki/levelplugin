@@ -5,9 +5,9 @@ import me.nakilex.levelplugin.mob.utils.MythicMobModifier;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
+import org.bukkit.event.EventExecutor;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.EventExecutor;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.plugin.Plugin;
 
@@ -44,11 +44,11 @@ public class DuelSkillListener implements Listener {
 
     private void handle(Event event) {
         try {
-            Object casterObj = event.getClass().getMethod("getCaster").invoke(event);
+            Object casterObj = tryInvoke(event, "getCaster", "getMob", "getEntity");
             var casterEntity = MythicMobModifier.toBukkitEntity(casterObj);
             if (!(casterEntity instanceof Player caster)) return;
 
-            Object nameObj = event.getClass().getMethod("getSkillName").invoke(event);
+            Object nameObj = tryInvoke(event, "getSkillName", "getName");
             String skillName = nameObj != null ? nameObj.toString() : "unknown";
             Bukkit.getLogger().info("[DuelSkillDebug] " + caster.getName() + " cast skill " + skillName);
 
@@ -57,11 +57,23 @@ public class DuelSkillListener implements Listener {
             Bukkit.getScheduler().runTask(plugin,
                     () -> caster.removeMetadata(ProjectileFriendlyFireListener.MYTHIC_META, plugin));
 
-            Object targetsObj = event.getClass().getMethod("getTargets").invoke(event);
-            if (!(targetsObj instanceof Collection<?> targets)) return;
+            Collection<?> targets = null;
+            Object meta = tryInvoke(event, "getMetadata");
+            if (meta != null) {
+                Object t = tryInvoke(meta, "getEntityTargets", "getTargets");
+                if (t instanceof Collection<?> c) targets = c;
+            }
+            if (targets == null) {
+                Object direct = tryInvoke(event, "getTargets", "getEntityTargets");
+                if (direct instanceof Collection<?> c) targets = c;
+            }
+            if (targets == null) {
+                Bukkit.getLogger().info("[DuelSkillDebug] Could not resolve targets for skill " + skillName);
+                return;
+            }
 
             Set<Object> remove = new HashSet<>();
-            for (var target : targets) {
+            for (Object target : targets) {
                 var bukkit = MythicMobModifier.toBukkitEntity(target);
                 if (bukkit instanceof Player victim
                         && !duels.areInDuel(caster.getUniqueId(), victim.getUniqueId())) {
@@ -70,8 +82,19 @@ public class DuelSkillListener implements Listener {
                 }
             }
             targets.removeAll(remove);
-        } catch (ReflectiveOperationException ignored) {
-            // If MythicMobs changes its API, fail silently
+        } catch (Exception ex) {
+            Bukkit.getLogger().info("[DuelSkillDebug] Failed to handle skill event: " + ex.getMessage());
         }
+    }
+
+    private static Object tryInvoke(Object obj, String... methods) {
+        if (obj == null) return null;
+        for (String m : methods) {
+            try {
+                return obj.getClass().getMethod(m).invoke(obj);
+            } catch (Exception ignored) {
+            }
+        }
+        return null;
     }
 }
