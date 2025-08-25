@@ -40,7 +40,7 @@ public class QuestNPCEffectTask extends BukkitRunnable {
 
     /** Horizontal offsets for specific glyphs to fine-tune centering. */
     private static final Map<String, Double> GLYPH_X_OFFSETS = Map.of(
-            "<glyph:alert>", -0.25
+            "<glyph:alert>", 0.15
     );
 
     public QuestNPCEffectTask(QuestManager questManager) {

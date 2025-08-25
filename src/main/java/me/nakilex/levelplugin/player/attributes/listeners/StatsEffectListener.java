@@ -151,18 +151,18 @@ public class StatsEffectListener implements Listener {
             double dodgeChance = (double) effectiveAgility / (effectiveAgility + 100.0);
             dodgeChance = Math.max(0.0, Math.min(1.0, dodgeChance));
 
-            // 5) Dodge roll
+            // 5) Dodge roll - a successful dodge now mitigates 90% of the damage
+            double incoming = event.getDamage();
             if (random.nextDouble() < dodgeChance) {
-                event.setCancelled(true);
-                return;
+                incoming *= 0.1; // take only 10% damage on dodge
             }
 
             // 6) Vitality-based damage reduction
             int totalVitality = vs.baseVitality + vs.bonusVitality;
             double percentReduction = (double) totalVitality / (totalVitality + 200.0);
-            double reducedDamage = event.getDamage() * (1.0 - percentReduction);
+            incoming *= (1.0 - percentReduction);
 
-            event.setDamage(reducedDamage);
+            event.setDamage(incoming);
         }
     }
 }

@@ -62,6 +62,7 @@ public class StatsInventory {
             "Improves your speed and dodge chance.",
             new String[]{
                 "Dodge chance scales with total Agility.",
+                "A successful dodge reduces damage by 90%.",
                 "Current dodge chance: " + ChatColor.YELLOW + String.format("%.2f", dodgePercent) + "%.",
                 "Speed bonus: +" + String.format("%.2f", (ps.baseAgility + ps.bonusAgility) * 0.001f)
             }
@@ -178,8 +179,8 @@ public class StatsInventory {
             lore.add("");
 
             int gearScore = ItemUtil.calculateTotalGearScore(player);
-            lore.add("<glyph:sword_icon> " + ChatColor.GRAY + "Gear Score: "
-                    + ChatColor.LIGHT_PURPLE + ChatColor.BOLD + gearScore);
+              lore.add(ChatColor.GRAY + "Gear Score: "
+                      + ChatColor.LIGHT_PURPLE + ChatColor.BOLD + gearScore);
             lore.add(""); // divider after Gear Score
 
             double progress = nextLevelXP > 0 ? (double) currentXP / nextLevelXP : 0.0;

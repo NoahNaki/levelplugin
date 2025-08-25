@@ -313,7 +313,7 @@ public class ItemUtil {
         lore.add(""); // Divider before Gear Score
 
         int gearScore = SalvageManager.getInstance().getTotalStats(cItem);
-        lore.add("<glyph:sword_icon> " + ChatColor.GRAY + "Gear Score: "
+        lore.add(ChatColor.GRAY + "Gear Score: "
                 + ChatColor.LIGHT_PURPLE + ChatColor.BOLD + gearScore);
         lore.add(""); // divider after Gear Score
 
@@ -617,7 +617,7 @@ public class ItemUtil {
         lore.add(""); // Blank line before Gear Score
 
         int gearScore = SalvageManager.getInstance().getTotalStats(cItem);
-        lore.add("<glyph:sword_icon> " + ChatColor.GRAY + "Gear Score: "
+        lore.add(ChatColor.GRAY + "Gear Score: "
                 + ChatColor.LIGHT_PURPLE + ChatColor.BOLD + gearScore);
         lore.add(""); // divider after Gear Score
 
