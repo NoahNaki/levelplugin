@@ -29,6 +29,8 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import net.kyori.adventure.key.Key;
+import io.lumine.mythic.bukkit.MythicBukkit;
+import io.lumine.mythic.bukkit.utils.bukkit.BukkitAdapter;
 
 /**
  * Root debug command that hosts various developer utilities.
@@ -167,6 +169,26 @@ public class DebugCommand implements TabExecutor {
                 sender.sendMessage(attacker.getName() + (can ? " can " : " cannot ") + "damage " + target.getName());
                 return true;
 
+            case "mmskill":
+                if (!(sender instanceof Player caster)) {
+                    sender.sendMessage("Players only.");
+                    return true;
+                }
+                String skillId = args.length >= 2 ? args[1] : "debug_papi";
+                Player tgt = args.length >= 3 ? Bukkit.getPlayer(args[2]) : caster;
+                if (tgt == null) {
+                    sender.sendMessage("Player not found: " + args[2]);
+                    return true;
+                }
+                if (MythicBukkit.inst().getSkillManager().getSkill(skillId).isEmpty()) {
+                    sender.sendMessage("Unknown skill: " + skillId);
+                    return true;
+                }
+                boolean ok = MythicBukkit.inst().getAPIHelper().castSkill(caster, skillId,
+                        meta -> meta.setTrigger(BukkitAdapter.adapt(tgt)));
+                sender.sendMessage("Cast " + skillId + (ok ? "" : " (failed)"));
+                return true;
+
             case "hand":
                 if (!(sender instanceof Player p4)) {
                     sender.sendMessage("Players only.");
@@ -238,7 +260,7 @@ public class DebugCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "autocast", "hand", "candamage"));
+            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "autocast", "hand", "candamage", "mmskill"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
@@ -251,6 +273,17 @@ public class DebugCommand implements TabExecutor {
                     .toList();
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("candamage") && !(sender instanceof Player)) {
+            return Bukkit.getOnlinePlayers().stream()
+                    .map(Player::getName)
+                    .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))
+                    .toList();
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("mmskill")) {
+            return List.of("debug_papi").stream()
+                    .filter(s -> s.startsWith(args[1].toLowerCase()))
+                    .toList();
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("mmskill")) {
             return Bukkit.getOnlinePlayers().stream()
                     .map(Player::getName)
                     .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))

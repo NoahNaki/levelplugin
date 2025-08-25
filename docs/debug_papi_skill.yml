@@ -1,0 +1,6 @@
+# Example MythicMobs skill for /debug mmskill
+# Casts with a trigger entity and prints placeholder results to the caster.
+debug_papi:
+  Skills:
+    - message{m="<caster.name> -> <trigger.name>: %naki_candamage_<caster.uuid>_<trigger.uuid>%"} @self
+
