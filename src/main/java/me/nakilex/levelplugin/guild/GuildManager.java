@@ -301,6 +301,21 @@ public class GuildManager {
         return g1.getHostiles().contains(g2.getName()) || g2.getHostiles().contains(g1.getName());
     }
 
+    /**
+     * Check if two players belong to the same guild or allied guilds.
+     *
+     * @param p1 first player UUID
+     * @param p2 second player UUID
+     * @return {@code true} if both players are in the same guild or their guilds are allied
+     */
+    public boolean areFriendly(UUID p1, UUID p2) {
+        Guild g1 = getGuild(p1);
+        Guild g2 = getGuild(p2);
+        if (g1 == null || g2 == null) return false;
+        if (g1.getName().equals(g2.getName())) return true;
+        return g1.getAllies().contains(g2.getName()) || g2.getAllies().contains(g1.getName());
+    }
+
     // ----- Persistence -----
 
     /** Load guild data from disk. */

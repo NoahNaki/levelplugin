@@ -7,10 +7,17 @@ import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.player.profile.ProfileManager;
 import me.nakilex.levelplugin.player.profile.PlayerProfile;
+import me.nakilex.levelplugin.duels.managers.DuelManager;
+import me.nakilex.levelplugin.guild.GuildManager;
+import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 
 /**
@@ -62,8 +69,44 @@ public class NakiPlaceholderExpansion extends PlaceholderExpansion {
 
     @Override
     public String onPlaceholderRequest(Player player, String params) {
-        if (player == null || params == null) return "";
+        if (params == null) return "";
         String key = params.toLowerCase();
+
+        if (key.startsWith("canbedamaged_")) {
+            String[] parts = key.substring(13).split("_");
+            if (parts.length == 2) {
+                try {
+                    UUID attackerId = UUID.fromString(parts[0]);
+                    UUID targetId = UUID.fromString(parts[1]);
+                    Entity attackerEnt = Bukkit.getEntity(attackerId);
+                    Entity targetEnt = Bukkit.getEntity(targetId);
+
+                    // All non-player living entities are always damageable
+                    if (!(targetEnt instanceof Player)) {
+                        return String.valueOf(targetEnt instanceof LivingEntity);
+                    }
+
+                    if (!(attackerEnt instanceof Player attacker)) {
+                        return "true";
+                    }
+                    Player victim = (Player) targetEnt;
+
+                    // deny if same guild or allied
+                    if (GuildManager.getInstance().areFriendly(attacker.getUniqueId(), victim.getUniqueId())) {
+                        return "false";
+                    }
+
+                    DuelManager duels = DuelManager.getInstance();
+                    boolean duel = duels.areFormallyDueling(attacker.getUniqueId(), victim.getUniqueId());
+                    boolean siege = GuildSiegeManager.getInstance().areSiegeOpponents(attacker.getUniqueId(), victim.getUniqueId());
+                    return String.valueOf(duel || siege);
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+            return "false";
+        }
+
+        if (player == null) return "";
         if (key.startsWith("profile")) {
             try {
                 int slot = Integer.parseInt(key.substring(7)) - 1;
