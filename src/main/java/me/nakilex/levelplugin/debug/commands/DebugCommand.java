@@ -14,9 +14,11 @@ import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
 import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
+import me.nakilex.levelplugin.utils.CombatUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Material;
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
@@ -35,6 +37,7 @@ import net.kyori.adventure.key.Key;
  *   <li><code>mobinfo</code> – toggles MythicMob kill debug output</li>
  *   <li><code>tps</code> – toggles TPS display on the sidebar scoreboard</li>
  *   <li><code>siege</code> – toggles fast guild siege capture mode</li>
+ *   <li><code>candamage &lt;player&gt;</code> – checks if you can damage the named player</li>
  * </ul>
  */
 public class DebugCommand implements TabExecutor {
@@ -60,7 +63,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|autocast|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|autocast|candamage|" + statUsage + ">");
             }
             return true;
         }
@@ -196,12 +199,30 @@ public class DebugCommand implements TabExecutor {
                 }
                 return true;
 
+            case "candamage":
+                if (!(sender instanceof Player p5)) {
+                    sender.sendMessage("Players only.");
+                    return true;
+                }
+                if (args.length < 2) {
+                    p5.sendMessage("Usage: /debug candamage <player>");
+                    return true;
+                }
+                Player target = Bukkit.getPlayer(args[1]);
+                if (target == null) {
+                    p5.sendMessage("Player not found.");
+                    return true;
+                }
+                boolean canDamage = CombatUtil.canDamage(p5.getUniqueId(), target.getUniqueId());
+                p5.sendMessage(ChatColor.YELLOW + "Can damage " + target.getName() + ": " + canDamage);
+                return true;
+
             default:
                 sender.sendMessage("Unknown debug subcommand: " + sub);
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|autocast|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|autocast|candamage|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -209,11 +230,17 @@ public class DebugCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "autocast", "hand"));
+            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "autocast", "candamage", "hand"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
                     .toList();
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("candamage")) {
+            return Bukkit.getOnlinePlayers().stream()
+                    .map(Player::getName)
+                    .filter(n -> n.toLowerCase().startsWith(args[1].toLowerCase()))
+                    .collect(Collectors.toList());
         }
         return Collections.emptyList();
     }

@@ -7,12 +7,6 @@ import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.player.profile.ProfileManager;
 import me.nakilex.levelplugin.player.profile.PlayerProfile;
-import me.nakilex.levelplugin.duels.managers.DuelManager;
-import me.nakilex.levelplugin.guild.GuildManager;
-import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
@@ -78,29 +72,7 @@ public class NakiPlaceholderExpansion extends PlaceholderExpansion {
                 try {
                     UUID attackerId = UUID.fromString(parts[0]);
                     UUID targetId = UUID.fromString(parts[1]);
-                    Entity attackerEnt = Bukkit.getEntity(attackerId);
-                    Entity targetEnt = Bukkit.getEntity(targetId);
-
-                    // Allow damage to any non-player entity. If the target entity
-                    // cannot be resolved, default to true so PvE is never blocked.
-                    if (!(targetEnt instanceof Player)) {
-                        return "true";
-                    }
-
-                    if (!(attackerEnt instanceof Player attacker)) {
-                        return "true";
-                    }
-                    Player victim = (Player) targetEnt;
-
-                    // deny if same guild or allied
-                    if (GuildManager.getInstance().areFriendly(attacker.getUniqueId(), victim.getUniqueId())) {
-                        return "false";
-                    }
-
-                    DuelManager duels = DuelManager.getInstance();
-                    boolean duel = duels.areFormallyDueling(attacker.getUniqueId(), victim.getUniqueId());
-                    boolean siege = GuildSiegeManager.getInstance().areSiegeOpponents(attacker.getUniqueId(), victim.getUniqueId());
-                    return String.valueOf(duel || siege);
+                    return String.valueOf(CombatUtil.canDamage(attackerId, targetId));
                 } catch (IllegalArgumentException ignored) {
                 }
             }
