@@ -23,7 +23,7 @@ import me.nakilex.levelplugin.mob.managers.MythicMobNameManager;
 import me.nakilex.levelplugin.npc.listeners.NPCClickListener;
 import me.nakilex.levelplugin.npc.listeners.NPCCommandListener;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
-import me.nakilex.levelplugin.party.PartyChatListener;
+import me.nakilex.levelplugin.chat.ChatChannelListener;
 import me.nakilex.levelplugin.party.PartyInviteListener;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.attributes.listeners.StatsMenuListener;
@@ -138,8 +138,7 @@ public class ListenerRegistry {
         pm.registerEvents(new NPCCommandListener(), plugin);
         pm.registerEvents(new PlayerRightClicksPlayerListener(), plugin);
         pm.registerEvents(new TradingWindow(), plugin);
-        pm.registerEvents(new PartyChatListener(partyManager), plugin);
-        pm.registerEvents(new ItemChatListener(), plugin);
+        pm.registerEvents(new ChatChannelListener(plugin), plugin);
         pm.registerEvents(new PartyInviteListener(partyManager), plugin);
         pm.registerEvents(new LootChestListener(lootChestManager), plugin);
         pm.registerEvents(new LootChestCloseListener(lootChestManager, economyManager,

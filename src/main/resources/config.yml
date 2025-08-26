@@ -24,6 +24,7 @@ tips:
     - "Swap between profiles with /profile to try new builds."
     - "Group up and share rewards with friends using /party."
     - "Check quest progress anytime with /quest status."
+    - "Swap to different chat channels with the /chat command"
 
 # Leaderboard locations
 leaderboards:

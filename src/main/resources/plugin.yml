@@ -277,3 +277,6 @@ commands:
   clearchat:
     description: Clear the world chat
     usage: /clearchat
+  chat:
+    description: Switch chat channels
+    usage: /chat <guild|party|region>

@@ -11,14 +11,12 @@ public class Party {
     // Fields
     private UUID leader; // Party leader's UUID
     private List<UUID> members; // List of members in the party
-    private boolean chatEnabled; // Party chat toggle
 
     // Constructor
     public Party(UUID leader) {
         this.leader = leader;
         this.members = new ArrayList<>();
         this.members.add(leader); // Leader is added as the first member
-        this.chatEnabled = false;
     }
 
     // Getters
@@ -30,17 +28,9 @@ public class Party {
         return members;
     }
 
-    public boolean isChatEnabled() {
-        return chatEnabled;
-    }
-
     // Setters
     public void setLeader(UUID newLeader) {
         this.leader = newLeader;
-    }
-
-    public void setChatEnabled(boolean enabled) {
-        this.chatEnabled = enabled;
     }
 
     // Methods
@@ -75,11 +65,6 @@ public class Party {
     // Check if player is the leader
     public boolean isLeader(UUID player) {
         return leader.equals(player);
-    }
-
-    // Toggle party chat
-    public void toggleChat() {
-        chatEnabled = !chatEnabled;
     }
 
     // Check if a player is in the party

@@ -1,18 +1,19 @@
 package me.nakilex.levelplugin.chat;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.player.AsyncPlayerChatEvent;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 /**
- * Handles global chat state such as muting and clearing.
+ * Handles global chat state such as muting, clearing and per-player channels.
  */
-public class ChatManager implements Listener {
+public class ChatManager {
 
     private static boolean muted = false;
+    private static final Map<UUID, ChatChannel> channels = new HashMap<>();
 
     /** Mute all chat messages. */
     public static void muteAll() {
@@ -38,11 +39,13 @@ public class ChatManager implements Listener {
         }
     }
 
-    @EventHandler
-    public void onPlayerChat(AsyncPlayerChatEvent event) {
-        if (muted && !event.getPlayer().hasPermission("levelplugin.chat.bypass")) {
-            event.setCancelled(true);
-            event.getPlayer().sendMessage(ChatColor.RED + "Chat is currently muted.");
-        }
+    /** Set a player's active chat channel. */
+    public static void setChannel(UUID player, ChatChannel channel) {
+        channels.put(player, channel);
+    }
+
+    /** Get a player's current chat channel. Defaults to region chat. */
+    public static ChatChannel getChannel(UUID player) {
+        return channels.getOrDefault(player, ChatChannel.REGION);
     }
 }

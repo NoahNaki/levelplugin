@@ -433,8 +433,6 @@ public class PluginBootstrap {
             wanderingMerchantManager
         );
         plugin.getServer().getPluginManager().registerEvents(
-                new me.nakilex.levelplugin.chat.ChatManager(), plugin);
-        plugin.getServer().getPluginManager().registerEvents(
                 new me.nakilex.levelplugin.guild.siege.GuildSiegeListener(guildSiegeManager),
                 plugin);
         plugin.getServer().getPluginManager().registerEvents(
