@@ -81,9 +81,10 @@ public class NakiPlaceholderExpansion extends PlaceholderExpansion {
                     Entity attackerEnt = Bukkit.getEntity(attackerId);
                     Entity targetEnt = Bukkit.getEntity(targetId);
 
-                    // All non-player living entities are always damageable
+                    // Allow damage to any non-player entity. If the target entity
+                    // cannot be resolved, default to true so PvE is never blocked.
                     if (!(targetEnt instanceof Player)) {
-                        return String.valueOf(targetEnt instanceof LivingEntity);
+                        return "true";
                     }
 
                     if (!(attackerEnt instanceof Player attacker)) {

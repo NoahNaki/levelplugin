@@ -33,7 +33,7 @@ public class DuelListener implements Listener {
     }
 
 
-    private void sendCenteredAcceptDecline(Player target, String challengerName) {
+    private static void sendCenteredAcceptDecline(Player target, String challengerName) {
         // Send the prompt
         ChatFormatter.sendCenteredMessage(target,
             ChatColor.YELLOW + challengerName + " has challenged you! Click below:");
@@ -99,7 +99,7 @@ public class DuelListener implements Listener {
         }
     }
 
-    public void sendDuelRequestMessage(Player target, String challengerName) {
+    public static void sendDuelRequestMessage(Player target, String challengerName) {
         // Send a centered prompt line
         ChatFormatter.sendCenteredMessage(target,
             ChatColor.YELLOW + challengerName + " has challenged you! Click below:");
