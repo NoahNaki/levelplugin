@@ -40,7 +40,17 @@ public class MotdManager implements Listener {
 
     @EventHandler
     public void onPing(ServerListPingEvent event) {
-        event.setMotd(getLine1() + "\n" + getLine2());
+        me.nakilex.levelplugin.maintenance.MaintenanceManager mm = plugin.getMaintenanceManager();
+        if (mm != null && mm.isEnabled()) {
+            String reason = mm.getReason();
+            String line = ChatColor.RED + "Maintenance";
+            if (!reason.isEmpty()) {
+                line += ChatColor.GRAY + ": " + ChatColor.WHITE + reason;
+            }
+            event.setMotd(line);
+        } else {
+            event.setMotd(getLine1() + "\n" + getLine2());
+        }
     }
 
     public String getLine1() {

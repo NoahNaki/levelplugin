@@ -73,6 +73,12 @@ public class PlayerConfig {
             config.set(path + ".fasttravel", new ArrayList<>(ftm.getUnlocked(uuid)));
         }
 
+        me.nakilex.levelplugin.transmog.TransmogManager tm = plugin.getTransmogManager();
+        if (tm != null) {
+            config.set(path + ".transmog.weapon", new ArrayList<>(tm.getUnlocked(uuid, true)));
+            config.set(path + ".transmog.armor", new ArrayList<>(tm.getUnlocked(uuid, false)));
+        }
+
         // Persist essence slots and which ones are equipped
         List<ItemStack> essenceList = new ArrayList<>();
         for (ItemStack stack : stats.essenceSlots) {
@@ -134,6 +140,10 @@ public class PlayerConfig {
 
         List<String> ft = config.getStringList(root + ".fasttravel");
         plugin.getFastTravelManager().setUnlocked(uuid, new HashSet<>(ft));
+
+        java.util.List<String> wModels = config.getStringList(root + ".transmog.weapon");
+        java.util.List<String> aModels = config.getStringList(root + ".transmog.armor");
+        plugin.getTransmogManager().setUnlocked(uuid, new HashSet<>(wModels), new HashSet<>(aModels));
 
         // Restore essence slots and equipped state
         List<ItemStack> essences = (List<ItemStack>) config.getList(root + ".essences.slots");

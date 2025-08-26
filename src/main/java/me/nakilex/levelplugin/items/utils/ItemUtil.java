@@ -81,6 +81,41 @@ public class ItemUtil {
         return null;
     }
 
+    /**
+     * Extract the stored Nexo model id from an item stack, if present.
+     */
+    public static String getNexoModelId(org.bukkit.inventory.ItemStack stack) {
+        if (stack == null) return null;
+        org.bukkit.inventory.meta.ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return null;
+        org.bukkit.persistence.PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        if (pdc.has(NEXO_MODEL_KEY, org.bukkit.persistence.PersistentDataType.STRING)) {
+            return pdc.get(NEXO_MODEL_KEY, org.bukkit.persistence.PersistentDataType.STRING);
+        }
+        return null;
+    }
+
+    /**
+     * Apply a Nexo model id to an existing item, adjusting its material and
+     * custom model data while preserving other metadata.
+     */
+    public static void applyNexoModel(org.bukkit.inventory.ItemStack stack, String nexoId) {
+        if (stack == null || nexoId == null || nexoId.isBlank()) return;
+        org.bukkit.inventory.meta.ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return;
+        com.nexomc.nexo.items.ItemBuilder b = com.nexomc.nexo.api.NexoItems.itemFromId(nexoId);
+        if (b != null) {
+            org.bukkit.inventory.ItemStack base = b.build();
+            org.bukkit.inventory.meta.ItemMeta baseMeta = base.getItemMeta();
+            if (baseMeta != null && baseMeta.hasCustomModelData()) {
+                meta.setCustomModelData(baseMeta.getCustomModelData());
+            }
+            stack.setType(base.getType());
+        }
+        meta.getPersistentDataContainer().set(NEXO_MODEL_KEY, org.bukkit.persistence.PersistentDataType.STRING, nexoId);
+        stack.setItemMeta(meta);
+    }
+
     /** Append stat lines to lore following the standard display order. */
     private static void addStatLines(List<String> lore, CustomItem cItem,
                                     StatsManager.StatType prefixStat) {
