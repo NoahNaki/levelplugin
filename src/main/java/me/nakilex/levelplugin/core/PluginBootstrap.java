@@ -38,6 +38,7 @@ import me.nakilex.levelplugin.friend.FriendRequestListener;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.pathfinding.PathfindingManager;
+import me.nakilex.levelplugin.chat.ChatManager;
 import me.nakilex.levelplugin.pathfinding.MercenaryManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
@@ -281,6 +282,7 @@ public class PluginBootstrap {
         friendManager = new FriendManager();
         guildManager = me.nakilex.levelplugin.guild.GuildManager.getInstance();
         guildManager.init(plugin);
+        ChatManager.init(partyManager, guildManager);
         guildGUI = new me.nakilex.levelplugin.guild.GuildGUI(guildManager);
         guildApplicantsGUI = new me.nakilex.levelplugin.guild.GuildApplicantsGUI(guildManager);
         guildSettingsGUI = new me.nakilex.levelplugin.guild.GuildSettingsGUI(guildManager);

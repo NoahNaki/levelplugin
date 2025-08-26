@@ -85,6 +85,7 @@ import me.nakilex.levelplugin.pathfinding.PathfindingManager;
 import me.nakilex.levelplugin.pathfinding.MercenaryCommand;
 import me.nakilex.levelplugin.chat.ChatModerationCommand;
 import me.nakilex.levelplugin.chat.ChatCommand;
+import me.nakilex.levelplugin.chat.RollCommand;
 import org.bukkit.command.PluginCommand;
 import me.nakilex.levelplugin.pathfinding.MercenaryManager;
 
@@ -253,6 +254,8 @@ public class CommandRegistry {
         ChatCommand channelCmd = new ChatCommand(plugin);
         plugin.getCommand("chat").setExecutor(channelCmd);
         plugin.getCommand("chat").setTabCompleter(channelCmd);
+
+        plugin.getCommand("roll").setExecutor(new RollCommand());
 
         ChatModerationCommand chatCmd = new ChatModerationCommand();
         plugin.getCommand("mute").setExecutor(chatCmd);

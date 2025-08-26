@@ -280,3 +280,6 @@ commands:
   chat:
     description: Switch chat channels
     usage: /chat <guild|party|region>
+  roll:
+    description: Roll a number between 1 and 100
+    usage: /roll
