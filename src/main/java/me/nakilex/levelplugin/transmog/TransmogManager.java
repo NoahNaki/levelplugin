@@ -39,12 +39,19 @@ public class TransmogManager implements Listener {
 
     /** Unlock a model id for the given player. */
     public void unlockModel(UUID uuid, String id, boolean weapon) {
+        Set<String> set = weapon
+                ? weaponUnlocked.computeIfAbsent(uuid, k -> new HashSet<>())
+                : armorUnlocked.computeIfAbsent(uuid, k -> new HashSet<>());
+        boolean added = set.add(id);
         if (weapon) {
-            weaponUnlocked.computeIfAbsent(uuid, k -> new HashSet<>()).add(id);
             knownWeaponModels.add(id);
         } else {
-            armorUnlocked.computeIfAbsent(uuid, k -> new HashSet<>()).add(id);
             knownArmorModels.add(id);
+        }
+        if (added) {
+            Player p = plugin.getServer().getPlayer(uuid);
+            String name = p != null ? p.getName() : uuid.toString();
+            Bukkit.getLogger().info("[TransmogDebug] " + name + " unlocked model " + id);
         }
     }
 

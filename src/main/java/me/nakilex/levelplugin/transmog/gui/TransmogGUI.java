@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.items.data.WeaponType;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.transmog.TransmogManager;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -47,11 +48,13 @@ public class TransmogGUI implements CommandExecutor, Listener {
     }
 
     private void open(Player player) {
-        Inventory inv = Bukkit.createInventory(null, 27, TITLE);
-        ItemStack filler = GuiUtil.createFiller(Material.BLACK_STAINED_GLASS_PANE);
-        GuiUtil.fillBorder(inv, filler);
-        inv.setItem(MODEL_SLOT, GuiUtil.getNexoItem("book", ChatColor.YELLOW + "Select Skin"));
-        inv.setItem(CONFIRM_SLOT, GuiUtil.getNexoItem("check", ChatColor.GREEN + "Apply"));
+        Inventory inv = GuiBuilder.create(27, TITLE)
+                .filler(Material.BLACK_STAINED_GLASS_PANE)
+                .border()
+                .setItem(MODEL_SLOT, GuiUtil.getNexoItem("book", ChatColor.YELLOW + "Select Skin"))
+                .setItem(CONFIRM_SLOT, GuiUtil.getNexoItem("check", ChatColor.GREEN + "Apply"))
+                .build();
+        inv.setItem(ITEM_SLOT, null);
         player.openInventory(inv);
     }
 
@@ -78,19 +81,24 @@ public class TransmogGUI implements CommandExecutor, Listener {
     @EventHandler
     public void onClick(InventoryClickEvent e) {
         if (!e.getView().getTitle().equals(TITLE)) return;
+        Inventory inv = e.getInventory();
         int raw = e.getRawSlot();
+        if (raw >= inv.getSize()) {
+            return; // allow interaction with the player's inventory
+        }
         if (raw == ITEM_SLOT) {
             ItemStack cursor = e.getCursor();
             if (cursor != null && !cursor.getType().isAir()) {
                 boolean w = WeaponType.matchType(cursor) != null;
                 boolean a = ArmorType.matchType(cursor) != null;
-                if (!w && !a) e.setCancelled(true);
+                if (!w && !a) {
+                    e.setCancelled(true);
+                }
             }
             return;
         }
         e.setCancelled(true);
         Player p = (Player) e.getWhoClicked();
-        Inventory inv = e.getInventory();
         if (raw == MODEL_SLOT) {
             ItemStack item = inv.getItem(ITEM_SLOT);
             if (item == null) return;
