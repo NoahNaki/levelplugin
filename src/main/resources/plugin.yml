@@ -164,6 +164,12 @@ commands:
   rerollbrowser:
     description: Browse reroll placeholder items.
     usage: /rerollbrowser
+  transmogbrowser:
+    description: Browse unlocked transmogs.
+    usage: /transmogbrowser
+  transmog:
+    description: Open the transmog menu.
+    usage: /transmog
   auctionhouse:
     description: Open the auction house, sell items or place bids.
     usage: /auctionhouse [open|sell <start> [bin] [hours]|bid <index> <amount>]
@@ -208,6 +214,9 @@ commands:
   motd:
     description: Reload or preview the server MOTD
     usage: /motd <reload|preview>
+  maintenance:
+    description: Toggle maintenance mode and manage whitelist
+    usage: /maintenance <on|off|add|remove|whitelist>
   fakegate:
     description: Manage fake block gates
     usage: /fakegate <wand|create|toggle|open|close|remove|list|debug>
@@ -268,3 +277,9 @@ commands:
   clearchat:
     description: Clear the world chat
     usage: /clearchat
+  chat:
+    description: Switch chat channels
+    usage: /chat <guild|party|region>
+  roll:
+    description: Roll a number between 1 and 100
+    usage: /roll

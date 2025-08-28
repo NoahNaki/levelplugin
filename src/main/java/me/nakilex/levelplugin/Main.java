@@ -59,6 +59,7 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.spells.managers.SpellManager getSpellManager() { return bootstrap.getSpellmanager(); }
     public FileConfiguration getCustomConfig() { return bootstrap.getCustomConfig(); }
     public PartyManager getPartyManager() { return bootstrap.getPartyManager(); }
+    public me.nakilex.levelplugin.guild.GuildManager getGuildManager() { return bootstrap.getGuildManager(); }
     public EconomyManager getEconomyManager() { return bootstrap.getEconomyManager(); }
     public ConfigValues getConfigValues() { return bootstrap.getConfigValues(); }
     public me.nakilex.levelplugin.storage.events.StorageEvents getStorageEvents() { return bootstrap.getStorageEvents(); }
@@ -104,6 +105,7 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI getFastTravelGUI() { return bootstrap.getFastTravelGUI(); }
     public me.nakilex.levelplugin.music.LocationMusicManager getLocationMusicManager() { return bootstrap.getLocationMusicManager(); }
     public me.nakilex.levelplugin.motd.MotdManager getMotdManager() { return bootstrap.getMotdManager(); }
+    public me.nakilex.levelplugin.maintenance.MaintenanceManager getMaintenanceManager() { return bootstrap.getMaintenanceManager(); }
     public me.nakilex.levelplugin.fakeblock.QuestGateManager getQuestGateManager() { return bootstrap.getQuestGateManager(); }
     public me.nakilex.levelplugin.fakeblock.FakeBlockManager getFakeBlockManager() { return bootstrap.getFakeBlockManager(); }
     public me.nakilex.levelplugin.fakeblock.ModelGateManager getModelGateManager() { return bootstrap.getModelGateManager(); }
@@ -126,4 +128,5 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.dungeon.gui.DungeonListGUI getDungeonListGUI() { return bootstrap.getDungeonListGUI(); }
     public me.nakilex.levelplugin.guild.siege.GuildSiegeManager getGuildSiegeManager() { return bootstrap.getGuildSiegeManager(); }
     public PathfindingManager getPathfindingManager() { return bootstrap.getPathfindingManager(); }
+    public me.nakilex.levelplugin.transmog.TransmogManager getTransmogManager() { return bootstrap.getTransmogManager(); }
 }

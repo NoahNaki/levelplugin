@@ -38,6 +38,7 @@ import me.nakilex.levelplugin.friend.FriendRequestListener;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.pathfinding.PathfindingManager;
+import me.nakilex.levelplugin.chat.ChatManager;
 import me.nakilex.levelplugin.pathfinding.MercenaryManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.potions.managers.PotionManager;
@@ -147,6 +148,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.music.LocationMusicManager locationMusicManager;
     private me.nakilex.levelplugin.dungeon.gui.DungeonListGUI dungeonListGUI;
     private me.nakilex.levelplugin.motd.MotdManager motdManager;
+    private me.nakilex.levelplugin.maintenance.MaintenanceManager maintenanceManager;
     private me.nakilex.levelplugin.calendar.CalendarManager calendarManager;
     private me.nakilex.levelplugin.cutscene.CutsceneManager cutsceneManager;
     private me.nakilex.levelplugin.fakeblock.FakeBlockManager fakeBlockManager;
@@ -178,6 +180,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager wanderingMerchantManager;
     private PathfindingManager pathfindingManager;
     private MercenaryManager mercenaryManager;
+    private me.nakilex.levelplugin.transmog.TransmogManager transmogManager;
 
     public PluginBootstrap(Main plugin) {
         this.plugin = plugin;
@@ -222,6 +225,9 @@ public class PluginBootstrap {
         locationCodexGUI.setMainGui(codexGUI);
         registerCommandsAndListeners();
         registerPlaceholders();
+        me.nakilex.levelplugin.transmog.gui.TransmogBrowser tBrowser =
+                new me.nakilex.levelplugin.transmog.gui.TransmogBrowser(plugin, transmogManager);
+        new me.nakilex.levelplugin.transmog.gui.TransmogGUI(plugin, transmogManager, tBrowser);
         new ItemsBrowser(plugin);
         new me.nakilex.levelplugin.items.tools.gui.ToolBrowser(plugin);
         new RerollBrowser(plugin);
@@ -276,6 +282,7 @@ public class PluginBootstrap {
         friendManager = new FriendManager();
         guildManager = me.nakilex.levelplugin.guild.GuildManager.getInstance();
         guildManager.init(plugin);
+        ChatManager.init(partyManager, guildManager);
         guildGUI = new me.nakilex.levelplugin.guild.GuildGUI(guildManager);
         guildApplicantsGUI = new me.nakilex.levelplugin.guild.GuildApplicantsGUI(guildManager);
         guildSettingsGUI = new me.nakilex.levelplugin.guild.GuildSettingsGUI(guildManager);
@@ -307,6 +314,7 @@ public class PluginBootstrap {
         modelGateManager = new me.nakilex.levelplugin.fakeblock.ModelGateManager(plugin);
         fastTravelGUI = new me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI(fastTravelManager, economyManager, modelGateManager);
         locationMusicManager = new me.nakilex.levelplugin.music.LocationMusicManager();
+        maintenanceManager = new me.nakilex.levelplugin.maintenance.MaintenanceManager(plugin);
         motdManager = new me.nakilex.levelplugin.motd.MotdManager(plugin);
         fakeBlockManager = new me.nakilex.levelplugin.fakeblock.FakeBlockManager();
         questGateManager = new me.nakilex.levelplugin.fakeblock.QuestGateManager(plugin, fakeBlockManager);
@@ -322,6 +330,7 @@ public class PluginBootstrap {
         enchantGUI = new me.nakilex.levelplugin.enchanting.gui.EnchantGUI(enchantManager, economyManager);
         StatsManager.getInstance().setLevelManager(levelManager);
         modelSetManager = new me.nakilex.levelplugin.mob.config.ModelSetManager(plugin);
+        transmogManager = new me.nakilex.levelplugin.transmog.TransmogManager(plugin, modelSetManager);
         cutsceneManager = new me.nakilex.levelplugin.cutscene.CutsceneManager(plugin);
         cutsceneManager.loadCutscenes();
         wanderingMerchantManager = new me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager(plugin);
@@ -380,6 +389,10 @@ public class PluginBootstrap {
             pathfindingManager,
             mercenaryManager
         );
+        me.nakilex.levelplugin.maintenance.MaintenanceCommand maintenanceCmd =
+                new me.nakilex.levelplugin.maintenance.MaintenanceCommand(maintenanceManager);
+        plugin.getCommand("maintenance").setExecutor(maintenanceCmd);
+        plugin.getCommand("maintenance").setTabCompleter(maintenanceCmd);
         me.nakilex.levelplugin.guild.siege.GuildSiegeCommand siegeCmd =
                 new me.nakilex.levelplugin.guild.siege.GuildSiegeCommand(guildSiegeManager);
         plugin.getCommand("siege").setExecutor(siegeCmd);
@@ -421,8 +434,6 @@ public class PluginBootstrap {
             locationCodexGUI,
             wanderingMerchantManager
         );
-        plugin.getServer().getPluginManager().registerEvents(
-                new me.nakilex.levelplugin.chat.ChatManager(), plugin);
         plugin.getServer().getPluginManager().registerEvents(
                 new me.nakilex.levelplugin.guild.siege.GuildSiegeListener(guildSiegeManager),
                 plugin);
@@ -578,6 +589,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI getFastTravelGUI() { return fastTravelGUI; }
     public me.nakilex.levelplugin.music.LocationMusicManager getLocationMusicManager() { return locationMusicManager; }
     public me.nakilex.levelplugin.motd.MotdManager getMotdManager() { return motdManager; }
+    public me.nakilex.levelplugin.maintenance.MaintenanceManager getMaintenanceManager() { return maintenanceManager; }
     public me.nakilex.levelplugin.fakeblock.FakeBlockManager getFakeBlockManager() { return fakeBlockManager; }
     public me.nakilex.levelplugin.fakeblock.QuestGateManager getQuestGateManager() { return questGateManager; }
     public me.nakilex.levelplugin.fakeblock.ModelGateManager getModelGateManager() { return modelGateManager; }
@@ -606,6 +618,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager getWanderingMerchantManager() { return wanderingMerchantManager; }
     public PathfindingManager getPathfindingManager() { return pathfindingManager; }
     public MercenaryManager getMercenaryManager() { return mercenaryManager; }
+    public me.nakilex.levelplugin.transmog.TransmogManager getTransmogManager() { return transmogManager; }
 
     private void createCustomConfig() {
         customConfigFile = new File(plugin.getDataFolder(), "config.yml");

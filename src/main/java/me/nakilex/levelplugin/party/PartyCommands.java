@@ -219,16 +219,6 @@ public class PartyCommands implements CommandExecutor {
                 break;
 
 
-            case "chat":
-                Party chatParty = partyManager.getParty(playerId);
-                if (chatParty != null) {
-                    chatParty.toggleChat();
-                    player.sendMessage(ChatColor.GREEN + "Party chat is now " + (chatParty.isChatEnabled() ? "enabled" : "disabled") + ".");
-                } else {
-                    player.sendMessage(ChatColor.RED + "You are not in a party.");
-                }
-                break;
-
             default:
                 player.sendMessage(ChatColor.RED + "Unknown subcommand.");
                 break;

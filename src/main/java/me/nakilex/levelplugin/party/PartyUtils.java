@@ -42,16 +42,6 @@ public class PartyUtils {
         return partyManager.getParty(playerId) != null;
     }
 
-    // Toggle party chat mode for a player
-    public static boolean togglePartyChat(PartyManager partyManager, UUID playerId) {
-        Party party = partyManager.getParty(playerId);
-        if (party != null) {
-            party.toggleChat();
-            return true;
-        }
-        return false;
-    }
-
     public static UUID getInviter(UUID invitee) {
         return pendingInvites.get(invitee);
     }

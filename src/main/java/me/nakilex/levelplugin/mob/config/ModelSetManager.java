@@ -104,4 +104,26 @@ public class ModelSetManager {
         }
         return null;
     }
+
+    /**
+     * @return all model ids referenced by armor mappings across every set.
+     */
+    public java.util.Set<String> getAllArmorModelIds() {
+        java.util.Set<String> out = new java.util.HashSet<>();
+        for (Map<ArmorType, String> map : armorSets.values()) {
+            out.addAll(map.values());
+        }
+        return out;
+    }
+
+    /**
+     * @return all model ids referenced by weapon mappings across every set.
+     */
+    public java.util.Set<String> getAllWeaponModelIds() {
+        java.util.Set<String> out = new java.util.HashSet<>();
+        for (Map<me.nakilex.levelplugin.items.data.WeaponType, String> map : weaponSets.values()) {
+            out.addAll(map.values());
+        }
+        return out;
+    }
 }
