@@ -29,6 +29,7 @@ public class TransmogBrowser implements CommandExecutor, Listener {
     private static final int PAGE_SIZE = GuiUtil.PAGED_SLOTS.length;
     private final JavaPlugin plugin;
     private final TransmogManager manager;
+    private TransmogGUI gui; // optional back-reference for returning items on cancel
     private final Map<UUID, Integer> pages = new HashMap<>();
     private final Map<UUID, Consumer<String>> callbacks = new HashMap<>();
     private final Map<UUID, Boolean> weaponView = new HashMap<>();
@@ -40,6 +41,14 @@ public class TransmogBrowser implements CommandExecutor, Listener {
         this.manager = manager;
         plugin.getCommand("transmogbrowser").setExecutor(this);
         Bukkit.getPluginManager().registerEvents(this, plugin);
+    }
+
+    /**
+     * Provide a reference to the Transmog GUI so we can return held items if
+     * the player closes the browser without making a selection.
+     */
+    public void setGui(TransmogGUI gui) {
+        this.gui = gui;
     }
 
     private String title(int page) {
@@ -124,6 +133,17 @@ public class TransmogBrowser implements CommandExecutor, Listener {
         int page = pages.getOrDefault(p.getUniqueId(), 0);
         boolean weapon = weaponView.getOrDefault(p.getUniqueId(), true);
         List<String> models = new ArrayList<>(manager.getKnownModels(weapon));
+        if (weapon) {
+            WeaponType filter = weaponFilter.get(p.getUniqueId());
+            if (filter != null) {
+                models.removeIf(id -> manager.getWeaponType(id) != filter);
+            }
+        } else {
+            ArmorType filter = armorFilter.get(p.getUniqueId());
+            if (filter != null) {
+                models.removeIf(id -> manager.getArmorType(id) != filter);
+            }
+        }
         Collections.sort(models);
         int slot = e.getRawSlot();
         if (slot == 45 && page > 0) {
@@ -154,10 +174,15 @@ public class TransmogBrowser implements CommandExecutor, Listener {
     public void onClose(InventoryCloseEvent e) {
         if (e.getView().getTitle().startsWith(ChatColor.BLACK + "Transmogs")) {
             UUID id = e.getPlayer().getUniqueId();
-            callbacks.remove(id);
+            boolean pending = callbacks.remove(id) != null;
             weaponView.remove(id);
             weaponFilter.remove(id);
             armorFilter.remove(id);
+            // If the browser closed while awaiting a callback, return the item
+            // the player had placed in the transmog GUI.
+            if (pending && gui != null && e.getPlayer() instanceof Player p) {
+                gui.cancelSelection(p);
+            }
         }
     }
 }

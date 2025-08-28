@@ -23,9 +23,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /** GUI allowing players to apply unlocked transmogs to an item. */
 public class TransmogGUI implements CommandExecutor, Listener {
@@ -38,11 +36,16 @@ public class TransmogGUI implements CommandExecutor, Listener {
     private final TransmogManager manager;
     private final TransmogBrowser browser;
     private final Map<UUID, String> selectedModel = new HashMap<>();
+    /** inventories waiting for a model selection */
+    private final Map<UUID, Inventory> pending = new HashMap<>();
+    /** players who opened the model browser */
+    private final Set<UUID> browsing = new HashSet<>();
 
     public TransmogGUI(JavaPlugin plugin, TransmogManager manager, TransmogBrowser browser) {
         this.plugin = plugin;
         this.manager = manager;
         this.browser = browser;
+        this.browser.setGui(this);
         plugin.getCommand("transmog").setExecutor(this);
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
@@ -105,10 +108,16 @@ public class TransmogGUI implements CommandExecutor, Listener {
             WeaponType wType = WeaponType.matchType(item);
             ArmorType aType = ArmorType.matchType(item);
             if (wType == null && aType == null) return;
+            browsing.add(p.getUniqueId());
             browser.openSelector(p, wType, aType, id -> {
-                selectedModel.put(p.getUniqueId(), id);
-                updateModelSlot(inv, id);
-                Bukkit.getScheduler().runTask(plugin, () -> p.openInventory(inv));
+                UUID uid = p.getUniqueId();
+                Inventory back = pending.remove(uid);
+                if (back != null) {
+                    selectedModel.put(uid, id);
+                    updateModelSlot(back, id);
+                    browsing.remove(uid);
+                    Bukkit.getScheduler().runTask(plugin, () -> p.openInventory(back));
+                }
             });
         } else if (raw == CONFIRM_SLOT) {
             ItemStack item = inv.getItem(ITEM_SLOT);
@@ -133,11 +142,32 @@ public class TransmogGUI implements CommandExecutor, Listener {
     @EventHandler
     public void onClose(InventoryCloseEvent e) {
         if (!e.getView().getTitle().equals(TITLE)) return;
+        UUID id = e.getPlayer().getUniqueId();
         Inventory inv = e.getInventory();
+        if (browsing.contains(id)) {
+            pending.put(id, inv);
+            return; // wait for browser selection
+        }
         ItemStack item = inv.getItem(ITEM_SLOT);
         if (item != null) {
             e.getPlayer().getInventory().addItem(item);
         }
-        selectedModel.remove(e.getPlayer().getUniqueId());
+        selectedModel.remove(id);
+        pending.remove(id);
+        browsing.remove(id);
+    }
+
+    /** Return the pending item if the player closed the browser without choosing. */
+    public void cancelSelection(Player p) {
+        UUID id = p.getUniqueId();
+        Inventory inv = pending.remove(id);
+        if (inv != null) {
+            ItemStack item = inv.getItem(ITEM_SLOT);
+            if (item != null) {
+                p.getInventory().addItem(item);
+            }
+        }
+        browsing.remove(id);
+        selectedModel.remove(id);
     }
 }
