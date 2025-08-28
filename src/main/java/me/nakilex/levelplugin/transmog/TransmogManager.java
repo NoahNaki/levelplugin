@@ -28,6 +28,10 @@ public class TransmogManager implements Listener {
     private final Set<String> knownWeaponModels = new HashSet<>();
     private final Set<String> knownArmorModels  = new HashSet<>();
 
+    /** Track the type associated with each model id for validation. */
+    private final Map<String, WeaponType> weaponModelTypes = new HashMap<>();
+    private final Map<String, ArmorType> armorModelTypes  = new HashMap<>();
+
     public TransmogManager(JavaPlugin plugin, ModelSetManager modelSetManager) {
         this.plugin = plugin;
         Bukkit.getPluginManager().registerEvents(this, plugin);
@@ -37,16 +41,22 @@ public class TransmogManager implements Listener {
         }
     }
 
-    /** Unlock a model id for the given player. */
-    public void unlockModel(UUID uuid, String id, boolean weapon) {
+    /**
+     * Unlock a model id for the given player and remember the model's type so
+     * we can validate future transmogs.
+     */
+    public void unlockModel(UUID uuid, String id, WeaponType weaponType, ArmorType armorType) {
+        boolean weapon = weaponType != null;
         Set<String> set = weapon
                 ? weaponUnlocked.computeIfAbsent(uuid, k -> new HashSet<>())
                 : armorUnlocked.computeIfAbsent(uuid, k -> new HashSet<>());
         boolean added = set.add(id);
         if (weapon) {
             knownWeaponModels.add(id);
+            weaponModelTypes.put(id, weaponType);
         } else {
             knownArmorModels.add(id);
+            armorModelTypes.put(id, armorType);
         }
         if (added) {
             Player p = plugin.getServer().getPlayer(uuid);
@@ -69,9 +79,59 @@ public class TransmogManager implements Listener {
                 || armorUnlocked.getOrDefault(uuid, Collections.emptySet()).contains(id);
     }
 
+    /** Get the weapon type associated with a model id, if known. */
+    public WeaponType getWeaponType(String modelId) {
+        WeaponType wt = weaponModelTypes.get(modelId);
+        if (wt == null) {
+            wt = inferWeaponType(modelId);
+            if (wt != null) weaponModelTypes.put(modelId, wt);
+        }
+        return wt;
+    }
+
+    /** Get the armor type associated with a model id, if known. */
+    public ArmorType getArmorType(String modelId) {
+        ArmorType at = armorModelTypes.get(modelId);
+        if (at == null) {
+            at = inferArmorType(modelId);
+            if (at != null) armorModelTypes.put(modelId, at);
+        }
+        return at;
+    }
+
+    private WeaponType inferWeaponType(String modelId) {
+        com.nexomc.nexo.items.ItemBuilder b = com.nexomc.nexo.api.NexoItems.itemFromId(modelId);
+        if (b == null) return null;
+        ItemStack stack = b.build();
+        return WeaponType.matchType(stack);
+    }
+
+    private ArmorType inferArmorType(String modelId) {
+        com.nexomc.nexo.items.ItemBuilder b = com.nexomc.nexo.api.NexoItems.itemFromId(modelId);
+        if (b == null) return null;
+        ItemStack stack = b.build();
+        return ArmorType.matchType(stack);
+    }
+
     public void setUnlocked(UUID uuid, Set<String> weapons, Set<String> armors) {
         weaponUnlocked.put(uuid, new HashSet<>(weapons));
         armorUnlocked.put(uuid, new HashSet<>(armors));
+
+        // Attempt to infer model types for validation purposes on load.
+        for (String id : weapons) {
+            WeaponType wt = inferWeaponType(id);
+            if (wt != null) {
+                weaponModelTypes.put(id, wt);
+                knownWeaponModels.add(id);
+            }
+        }
+        for (String id : armors) {
+            ArmorType at = inferArmorType(id);
+            if (at != null) {
+                armorModelTypes.put(id, at);
+                knownArmorModels.add(id);
+            }
+        }
     }
 
     private void handleItem(Player player, ItemStack stack) {
@@ -80,9 +140,9 @@ public class TransmogManager implements Listener {
         WeaponType w = WeaponType.matchType(stack);
         ArmorType a = ArmorType.matchType(stack);
         if (w != null) {
-            unlockModel(player.getUniqueId(), id, true);
+            unlockModel(player.getUniqueId(), id, w, null);
         } else if (a != null) {
-            unlockModel(player.getUniqueId(), id, false);
+            unlockModel(player.getUniqueId(), id, null, a);
         }
     }
 

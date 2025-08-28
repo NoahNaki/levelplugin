@@ -2,6 +2,8 @@ package me.nakilex.levelplugin.transmog.gui;
 
 import me.nakilex.levelplugin.transmog.TransmogManager;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.items.data.WeaponType;
+import me.nakilex.levelplugin.items.data.ArmorType;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -30,6 +32,8 @@ public class TransmogBrowser implements CommandExecutor, Listener {
     private final Map<UUID, Integer> pages = new HashMap<>();
     private final Map<UUID, Consumer<String>> callbacks = new HashMap<>();
     private final Map<UUID, Boolean> weaponView = new HashMap<>();
+    private final Map<UUID, WeaponType> weaponFilter = new HashMap<>();
+    private final Map<UUID, ArmorType> armorFilter = new HashMap<>();
 
     public TransmogBrowser(JavaPlugin plugin, TransmogManager manager) {
         this.plugin = plugin;
@@ -42,15 +46,34 @@ public class TransmogBrowser implements CommandExecutor, Listener {
         return ChatColor.BLACK + "Transmogs - Page " + (page + 1);
     }
 
-    public void openSelector(Player player, boolean weapon, Consumer<String> cb) {
+    public void openSelector(Player player, WeaponType wType, ArmorType aType, Consumer<String> cb) {
         callbacks.put(player.getUniqueId(), cb);
-        open(player, weapon, pages.getOrDefault(player.getUniqueId(), 0));
+        if (wType != null) {
+            weaponFilter.put(player.getUniqueId(), wType);
+            weaponView.put(player.getUniqueId(), true);
+            open(player, true, pages.getOrDefault(player.getUniqueId(), 0));
+        } else {
+            armorFilter.put(player.getUniqueId(), aType);
+            weaponView.put(player.getUniqueId(), false);
+            open(player, false, pages.getOrDefault(player.getUniqueId(), 0));
+        }
     }
 
     private void open(Player player, boolean weapon, int page) {
         weaponView.put(player.getUniqueId(), weapon);
         pages.put(player.getUniqueId(), page);
         List<String> models = new ArrayList<>(manager.getKnownModels(weapon));
+        if (weapon) {
+            WeaponType filter = weaponFilter.get(player.getUniqueId());
+            if (filter != null) {
+                models.removeIf(id -> manager.getWeaponType(id) != filter);
+            }
+        } else {
+            ArmorType filter = armorFilter.get(player.getUniqueId());
+            if (filter != null) {
+                models.removeIf(id -> manager.getArmorType(id) != filter);
+            }
+        }
         Collections.sort(models);
         Inventory inv = Bukkit.createInventory(null, 54, title(page));
         ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
@@ -119,6 +142,8 @@ public class TransmogBrowser implements CommandExecutor, Listener {
                 if (!manager.isUnlocked(p.getUniqueId(), id)) return;
                 Consumer<String> cb = callbacks.remove(p.getUniqueId());
                 weaponView.remove(p.getUniqueId());
+                weaponFilter.remove(p.getUniqueId());
+                armorFilter.remove(p.getUniqueId());
                 if (cb != null) cb.accept(id);
                 return;
             }
@@ -128,8 +153,11 @@ public class TransmogBrowser implements CommandExecutor, Listener {
     @EventHandler
     public void onClose(InventoryCloseEvent e) {
         if (e.getView().getTitle().startsWith(ChatColor.BLACK + "Transmogs")) {
-            callbacks.remove(e.getPlayer().getUniqueId());
-            weaponView.remove(e.getPlayer().getUniqueId());
+            UUID id = e.getPlayer().getUniqueId();
+            callbacks.remove(id);
+            weaponView.remove(id);
+            weaponFilter.remove(id);
+            armorFilter.remove(id);
         }
     }
 }

@@ -102,10 +102,10 @@ public class TransmogGUI implements CommandExecutor, Listener {
         if (raw == MODEL_SLOT) {
             ItemStack item = inv.getItem(ITEM_SLOT);
             if (item == null) return;
-            boolean weapon = WeaponType.matchType(item) != null;
-            boolean armor = ArmorType.matchType(item) != null;
-            if (!weapon && !armor) return;
-            browser.openSelector(p, weapon, id -> {
+            WeaponType wType = WeaponType.matchType(item);
+            ArmorType aType = ArmorType.matchType(item);
+            if (wType == null && aType == null) return;
+            browser.openSelector(p, wType, aType, id -> {
                 selectedModel.put(p.getUniqueId(), id);
                 updateModelSlot(inv, id);
                 Bukkit.getScheduler().runTask(plugin, () -> p.openInventory(inv));
@@ -114,22 +114,16 @@ public class TransmogGUI implements CommandExecutor, Listener {
             ItemStack item = inv.getItem(ITEM_SLOT);
             String id = selectedModel.get(p.getUniqueId());
             if (item != null && id != null) {
-                com.nexomc.nexo.items.ItemBuilder builder = com.nexomc.nexo.api.NexoItems.itemFromId(id);
-                if (builder != null) {
-                    ItemStack modelStack = builder.build();
-                    WeaponType itemWeapon = WeaponType.matchType(item);
-                    WeaponType modelWeapon = WeaponType.matchType(modelStack);
-                    ArmorType itemArmor = ArmorType.matchType(item);
-                    ArmorType modelArmor = ArmorType.matchType(modelStack);
-                    if ((itemWeapon != null && itemWeapon != modelWeapon) || (itemArmor != null && itemArmor != modelArmor)) {
-                        p.sendMessage(ChatColor.RED + "That skin can't be applied to this item.");
-                        return;
-                    }
+                WeaponType itemWeapon = WeaponType.matchType(item);
+                ArmorType itemArmor = ArmorType.matchType(item);
+                WeaponType modelWeapon = manager.getWeaponType(id);
+                ArmorType modelArmor = manager.getArmorType(id);
+                if ((itemWeapon != null && itemWeapon != modelWeapon) ||
+                        (itemArmor != null && itemArmor != modelArmor)) {
+                    p.sendMessage(ChatColor.RED + "That skin can't be applied to this item.");
+                    return;
                 }
                 ItemUtil.applyNexoModel(item, id);
-                p.getInventory().addItem(item);
-                inv.setItem(ITEM_SLOT, null);
-                inv.setItem(MODEL_SLOT, GuiUtil.getNexoItem("book", ChatColor.YELLOW + "Select Skin"));
                 selectedModel.remove(p.getUniqueId());
                 p.closeInventory();
             }
