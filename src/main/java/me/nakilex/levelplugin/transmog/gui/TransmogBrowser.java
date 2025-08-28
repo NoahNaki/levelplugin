@@ -120,7 +120,6 @@ public class TransmogBrowser implements CommandExecutor, Listener {
                 Consumer<String> cb = callbacks.remove(p.getUniqueId());
                 weaponView.remove(p.getUniqueId());
                 if (cb != null) cb.accept(id);
-                p.closeInventory();
                 return;
             }
         }

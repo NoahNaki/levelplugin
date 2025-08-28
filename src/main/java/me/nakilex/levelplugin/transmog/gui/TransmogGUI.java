@@ -108,11 +108,24 @@ public class TransmogGUI implements CommandExecutor, Listener {
             browser.openSelector(p, weapon, id -> {
                 selectedModel.put(p.getUniqueId(), id);
                 updateModelSlot(inv, id);
+                Bukkit.getScheduler().runTask(plugin, () -> p.openInventory(inv));
             });
         } else if (raw == CONFIRM_SLOT) {
             ItemStack item = inv.getItem(ITEM_SLOT);
             String id = selectedModel.get(p.getUniqueId());
             if (item != null && id != null) {
+                com.nexomc.nexo.items.ItemBuilder builder = com.nexomc.nexo.api.NexoItems.itemFromId(id);
+                if (builder != null) {
+                    ItemStack modelStack = builder.build();
+                    WeaponType itemWeapon = WeaponType.matchType(item);
+                    WeaponType modelWeapon = WeaponType.matchType(modelStack);
+                    ArmorType itemArmor = ArmorType.matchType(item);
+                    ArmorType modelArmor = ArmorType.matchType(modelStack);
+                    if ((itemWeapon != null && itemWeapon != modelWeapon) || (itemArmor != null && itemArmor != modelArmor)) {
+                        p.sendMessage(ChatColor.RED + "That skin can't be applied to this item.");
+                        return;
+                    }
+                }
                 ItemUtil.applyNexoModel(item, id);
                 p.getInventory().addItem(item);
                 inv.setItem(ITEM_SLOT, null);
