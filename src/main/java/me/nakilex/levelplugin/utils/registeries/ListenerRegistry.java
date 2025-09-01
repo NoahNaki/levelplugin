@@ -162,6 +162,7 @@ public class ListenerRegistry {
         pm.registerEvents(new GuildQuestGUIListener(), plugin);
         pm.registerEvents(new MeteorListener(), plugin);
         pm.registerEvents(new ShockwaveListener(), plugin);
+        pm.registerEvents(new MythicSkillPullListener("Chain_Hook_Target", 1.2), plugin);
         pm.registerEvents(new ClassSpellListener(), plugin);
         pm.registerEvents(new SubclassGUI(), plugin);
         pm.registerEvents(new ClassEssenceMenuListener(), plugin);
