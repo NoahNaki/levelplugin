@@ -37,7 +37,7 @@ public class MythicSkillPullListener implements Listener {
         Entity casterEnt = MythicMobModifier.toBukkitEntity(event.getCaster());
         if (!(casterEnt instanceof Player caster)) return;
 
-        Entity targetEnt = event.getEntity();
+        Entity targetEnt = extractTarget(event);
         if (!(targetEnt instanceof LivingEntity target)) return;
 
         if (target instanceof Player victim &&
@@ -61,6 +61,28 @@ public class MythicSkillPullListener implements Listener {
                     return (String) skill.getClass().getMethod("getInternalName").invoke(skill);
                 }
             }
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    private Entity extractTarget(MythicDamageEvent event) {
+        try {
+            Object raw = event.getClass().getMethod("getEntity").invoke(event);
+            Entity resolved = MythicMobModifier.toBukkitEntity(raw);
+            if (resolved != null) return resolved;
+        } catch (Exception ignored) {
+        }
+        try {
+            Object raw = event.getClass().getMethod("getTarget").invoke(event);
+            Entity resolved = MythicMobModifier.toBukkitEntity(raw);
+            if (resolved != null) return resolved;
+        } catch (Exception ignored) {
+        }
+        try {
+            Object raw = event.getClass().getMethod("getDamagee").invoke(event);
+            Entity resolved = MythicMobModifier.toBukkitEntity(raw);
+            if (resolved != null) return resolved;
         } catch (Exception ignored) {
         }
         return null;
