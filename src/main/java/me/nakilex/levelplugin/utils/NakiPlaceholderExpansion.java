@@ -64,8 +64,16 @@ public class NakiPlaceholderExpansion extends PlaceholderExpansion {
 
     @Override
     public String onPlaceholderRequest(Player player, String params) {
-        if (player == null || params == null) return "";
+        if (params == null) return "";
         String key = params.toLowerCase();
+
+        // MythicMobs may request placeholders for non-player entities. For the
+        // duel check we consider all non-players as "in duel" so that mobs are
+        // always affected by skills using this condition.
+        if (player == null) {
+            return key.equals("induel") ? "true" : "";
+        }
+
         if (key.startsWith("profile")) {
             try {
                 int slot = Integer.parseInt(key.substring(7)) - 1;

@@ -117,6 +117,9 @@ commands:
   duel:
     description: Send, accept, or decline a duel request
     usage: /duel <player|accept|decline>
+  induel:
+    description: Debug a player's duel status
+    usage: /induel <player>
   salvage:
     description: Opens the Salvage GUI
     usage: /salvage

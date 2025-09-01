@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.blacksmith.commands.BlacksmithCommand;
 import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
 import me.nakilex.levelplugin.duels.commands.DuelCommand;
+import me.nakilex.levelplugin.duels.commands.InDuelCommand;
 import me.nakilex.levelplugin.economy.commands.*;
 import me.nakilex.levelplugin.economy.gui.GemExchangeGUI;
 import me.nakilex.levelplugin.economy.managers.GemsManager;
@@ -175,6 +176,9 @@ public class CommandRegistry {
         plugin.getCommand("lootchest").setExecutor(new LootChestCommand(configManager, lootChestManager));
         plugin.getCommand("trade").setExecutor(new TradeCommand());
         plugin.getCommand("duel").setExecutor(new DuelCommand());
+        InDuelCommand inDuelCmd = new InDuelCommand();
+        plugin.getCommand("induel").setExecutor(inDuelCmd);
+        plugin.getCommand("induel").setTabCompleter(inDuelCmd);
         plugin.getCommand("ps").setExecutor(new StorageCommand(storageManager));
         plugin.getCommand("merchant").setExecutor(new MerchantCommand(plugin));
         plugin.getCommand("salvage").setExecutor(new SalvageCommand(plugin));
