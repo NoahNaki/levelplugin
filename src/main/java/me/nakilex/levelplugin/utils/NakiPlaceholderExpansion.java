@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.utils;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
@@ -43,6 +44,7 @@ public class NakiPlaceholderExpansion extends PlaceholderExpansion {
         placeholders.put("currentxp", p -> String.valueOf(plugin.getLevelManager().getXP(p)));
         placeholders.put("xpnextlevel", p -> String.valueOf(plugin.getLevelManager().getXpNeededForNextLevel(p)));
         placeholders.put("seasondate", p -> plugin.getCalendarManager().getSeasonDate(false));
+        placeholders.put("induel", p -> Boolean.toString(DuelManager.getInstance().areInAnyDuel(p)));
     }
 
     @Override
