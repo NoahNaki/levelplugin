@@ -7,7 +7,6 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
 import me.nakilex.levelplugin.blacksmith.managers.ItemRepairManager;
 import me.nakilex.levelplugin.blacksmith.managers.ItemUpgradeManager;
-import me.nakilex.levelplugin.duels.listeners.ProjectileFriendlyFireListener;
 import me.nakilex.levelplugin.economy.gui.GemExchangeGUI;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.economy.managers.GemsManager;
@@ -130,7 +129,6 @@ public class PluginBootstrap {
     private PlayerToggleManager dmgNumberToggleManager;
     private PlayerToggleManager mobDebugToggleManager;
     private ManaCostTracker manaTracker;
-    private ProjectileFriendlyFireListener projectileFriendlyFireListener;
     private FileConfiguration bossConfig;
     private File bossConfigFile;
     private GemsManager gemsManager;
@@ -411,7 +409,6 @@ public class PluginBootstrap {
             pickupCustomItemListener,
             settingsGUI,
             debugGUI,
-            projectileFriendlyFireListener,
             bossConfig,
             meteorListener,
             gemsManager,
@@ -572,7 +569,6 @@ public class PluginBootstrap {
     public PlayerToggleManager getDmgNumberToggleManager() { return dmgNumberToggleManager; }
     public PlayerToggleManager getMobDebugToggleManager() { return mobDebugToggleManager; }
     public ManaCostTracker getManaTracker() { return manaTracker; }
-    public ProjectileFriendlyFireListener getProjectileFriendlyFireListener() { return projectileFriendlyFireListener; }
     public FileConfiguration getBossConfig() { return bossConfig; }
     public File getBossConfigFile() { return bossConfigFile; }
     public GemsManager getGemsManager() { return gemsManager; }

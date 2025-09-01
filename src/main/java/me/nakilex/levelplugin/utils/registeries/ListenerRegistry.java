@@ -5,7 +5,6 @@ import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
 import me.nakilex.levelplugin.boss.FieldBossListener;
 import me.nakilex.levelplugin.doublejump.listeners.DoubleJumpListener;
 import me.nakilex.levelplugin.duels.listeners.DuelListener;
-import me.nakilex.levelplugin.duels.listeners.ProjectileFriendlyFireListener;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.economy.managers.GemsManager;
 import me.nakilex.levelplugin.lootchests.listeners.ChestHologramListener;
@@ -83,7 +82,6 @@ public class ListenerRegistry {
                                          PickupCustomItemListener pickupCustomItemListener,
                                          SettingsGUI settingsGUI,
                                          me.nakilex.levelplugin.debug.gui.DebugGUI debugGUI,
-                                         ProjectileFriendlyFireListener projectileFriendlyFireListener,
                                          FileConfiguration bossConfig,
                                          MeteorListener meteorListener,
                                          GemsManager gemsManager,
@@ -172,7 +170,6 @@ public class ListenerRegistry {
         pm.registerEvents(new ChestHologramListener(lootChestManager), plugin);
         pm.registerEvents(new LootChestShutdownListener(plugin, lootChestManager), plugin);
 
-        pm.registerEvents(new ProjectileFriendlyFireListener(), plugin);
         pm.registerEvents(new FieldBossListener(plugin, plugin.getBossConfig(), plugin.getItemManager(), plugin.getGemsManager()), plugin);
         pm.registerEvents(new EquipOnJoinListener(), plugin);
         pm.registerEvents(new PlayerDeathListener(plugin), plugin);
