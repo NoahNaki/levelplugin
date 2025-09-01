@@ -64,7 +64,7 @@ public class DuelListener implements Listener {
      * Restrict damage so players can only harm each other if they are in an active duel.
      * Also check if someone's HP has dropped to 0 or 1, in which case end the duel.
      */
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onEntityDamage(EntityDamageByEntityEvent event) {
         if (!(event.getEntity() instanceof Player victim)) {
             return;
@@ -89,6 +89,8 @@ public class DuelListener implements Listener {
         }
 
         if (manager.handleDuelDamage(victim, attacker, event.getFinalDamage())) {
+            // Cancel and zero-out damage so other plugins don’t process a lethal hit
+            event.setDamage(0);
             event.setCancelled(true);
         }
     }
