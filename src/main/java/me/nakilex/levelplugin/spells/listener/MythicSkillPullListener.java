@@ -1,10 +1,13 @@
 package me.nakilex.levelplugin.spells.listener;
 
-import io.lumine.mythic.bukkit.events.MythicTargetedEntitySkillEvent;
+import io.lumine.mythic.bukkit.events.MythicDamageEvent;
 import me.nakilex.levelplugin.duels.managers.DuelManager;
+import me.nakilex.levelplugin.mob.utils.MythicMobModifier;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.util.Vector;
 
@@ -26,20 +29,41 @@ public class MythicSkillPullListener implements Listener {
         this.speed = speed;
     }
 
-    @EventHandler
-    public void onSkillHit(MythicTargetedEntitySkillEvent event) {
-        if (!event.getSkill().getInternalName().equalsIgnoreCase(skillName)) return;
-        if (!(event.getCaster().getEntity().getBukkitEntity() instanceof Player caster)) return;
-        if (!(event.getTarget().getBukkitEntity() instanceof LivingEntity target)) return;
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onSkillDamage(MythicDamageEvent event) {
+        String internal = extractSkillName(event);
+        if (internal == null || !internal.equalsIgnoreCase(skillName)) return;
 
-        if (target instanceof Player targetPlayer &&
-                !DuelManager.getInstance().areInDuel(caster.getUniqueId(), targetPlayer.getUniqueId())) {
+        Entity casterEnt = MythicMobModifier.toBukkitEntity(event.getCaster());
+        if (!(casterEnt instanceof Player caster)) return;
+
+        Entity targetEnt = event.getEntity();
+        if (!(targetEnt instanceof LivingEntity target)) return;
+
+        if (target instanceof Player victim &&
+                !DuelManager.getInstance().areInDuel(caster.getUniqueId(), victim.getUniqueId())) {
             return; // don't pull players who aren't dueling the caster
         }
 
-        Vector pull = caster.getLocation().toVector().subtract(target.getLocation().toVector()).normalize().multiply(speed);
+        Vector pull = caster.getLocation().toVector()
+                .subtract(target.getLocation().toVector())
+                .normalize().multiply(speed);
         pull.setY(0.2);
         target.setVelocity(pull);
+    }
+
+    private String extractSkillName(MythicDamageEvent event) {
+        try {
+            Object meta = event.getClass().getMethod("getMetadata").invoke(event);
+            if (meta != null) {
+                Object skill = meta.getClass().getMethod("getSkill").invoke(meta);
+                if (skill != null) {
+                    return (String) skill.getClass().getMethod("getInternalName").invoke(skill);
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
     }
 }
 
