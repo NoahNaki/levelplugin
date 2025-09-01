@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.utils.ChatFormatter;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.Particle;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
@@ -173,5 +174,40 @@ public class DuelManager {
      */
     public boolean areInAnyDuel(Player p) {
         return activeDuels.containsKey(p.getUniqueId());
+    }
+
+    /**
+     * Applies knockout logic for formal duels. If the calculated new health would drop below or
+     * equal to one, the duel ends and victory/defeat messages are dispatched.
+     *
+     * @param victim      player taking damage
+     * @param attacker    player dealing damage
+     * @param finalDamage the final damage that would be applied
+     * @return true if the event should be cancelled to prevent death
+     */
+    public boolean handleDuelDamage(Player victim, Player attacker, double finalDamage) {
+        if (!areFormallyDueling(victim.getUniqueId(), attacker.getUniqueId())) {
+            return false;
+        }
+
+        double newHealth = victim.getHealth() - finalDamage;
+        if (newHealth <= 1) {
+            endDuel(victim.getUniqueId(), attacker.getUniqueId());
+
+            victim.getWorld().spawnParticle(Particle.EXPLOSION, victim.getLocation(), 2);
+            ChatFormatter.sendCenteredMessage(victim,
+                    "§cYou lost the duel against " + attacker.getName() + "!");
+            ChatFormatter.sendCenteredMessage(attacker,
+                    "§aYou have won the duel against " + victim.getName() + "!");
+
+            Main.getInstance().getQuestManager().handleDuel(attacker);
+            Main.getInstance().getQuestManager().handleDuelLose(victim);
+            Main.getInstance().getDuelStatsManager().addWin(attacker.getUniqueId());
+            if (Main.getInstance().getLeaderboardManager() != null) {
+                Main.getInstance().getLeaderboardManager().updateAll();
+            }
+            return true;
+        }
+        return false;
     }
 }
