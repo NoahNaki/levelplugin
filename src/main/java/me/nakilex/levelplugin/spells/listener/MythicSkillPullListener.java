@@ -34,6 +34,7 @@ public class MythicSkillPullListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onSkillDamage(MythicDamageEvent event) {
+        debug("Damage event from MythicMobs detected");
         String internal = extractSkillName(event);
         if (internal == null) {
             debug("Unknown skill for MythicDamageEvent");
@@ -71,6 +72,12 @@ public class MythicSkillPullListener implements Listener {
     }
 
     private String extractSkillName(MythicDamageEvent event) {
+        // Newer MythicMobs versions expose the internal name directly.
+        try {
+            return (String) event.getClass().getMethod("getSkillName").invoke(event);
+        } catch (Exception ignored) {
+        }
+        // Older versions provide metadata with the skill instance.
         try {
             Object meta = event.getClass().getMethod("getMetadata").invoke(event);
             if (meta != null) {
