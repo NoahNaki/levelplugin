@@ -14,6 +14,9 @@ public class DuelManager {
     private static final DuelManager instance = new DuelManager();
     public static DuelManager getInstance() { return instance; }
 
+    /** Scoreboard tag applied to players currently in a duel. */
+    private static final String DUEL_TAG = "in_duel";
+
     private final Map<UUID, DuelRequest> duelRequests = new HashMap<>();
 
     // activeDuels: p1->p2 and p2->p1
@@ -96,6 +99,9 @@ public class DuelManager {
         Player player1 = Bukkit.getPlayer(p1);
         Player player2 = Bukkit.getPlayer(p2);
 
+        setDuelTag(player1, true);
+        setDuelTag(player2, true);
+
         if (player1 != null && player2 != null) {
             ChatFormatter.sendCenteredMessage(player1, "§aDuel started with " + player2.getName() + "!");
             ChatFormatter.sendCenteredMessage(player2, "§aDuel started with " + player1.getName() + "!");
@@ -138,12 +144,23 @@ public class DuelManager {
         Player player1 = Bukkit.getPlayer(p1);
         Player player2 = Bukkit.getPlayer(p2);
         if (player1 != null) {
+            setDuelTag(player1, false);
             restorePlayer(player1);
             ChatFormatter.sendCenteredMessage(player1, "§cYour duel has ended!");
         }
         if (player2 != null) {
+            setDuelTag(player2, false);
             restorePlayer(player2);
             ChatFormatter.sendCenteredMessage(player2, "§cYour duel has ended!");
+        }
+    }
+
+    private void setDuelTag(Player player, boolean inDuel) {
+        if (player == null) return;
+        if (inDuel) {
+            player.addScoreboardTag(DUEL_TAG);
+        } else {
+            player.removeScoreboardTag(DUEL_TAG);
         }
     }
 
