@@ -346,6 +346,8 @@ public class PluginBootstrap {
     private void registerCommandsAndListeners() {
         BlacksmithGUI blacksmithGUI = new BlacksmithGUI(economyManager, itemUpgradeManager, itemManager, itemRepairManager);
         horseManager = new HorseManager(horseConfigManager);
+        // Register trait listener so horses can use abilities
+        Bukkit.getPluginManager().registerEvents(new me.nakilex.levelplugin.horse.traits.TraitActivationListener(horseManager), plugin);
         HorseGUI horseGUI = new HorseGUI(horseManager, economyManager);
         settingsGUI = new SettingsGUI(settingsManager);
         debugGUI = new me.nakilex.levelplugin.debug.gui.DebugGUI(mobDebugToggleManager, scoreboardManager);

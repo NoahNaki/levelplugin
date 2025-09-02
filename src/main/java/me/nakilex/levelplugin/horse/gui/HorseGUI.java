@@ -87,14 +87,16 @@ public class HorseGUI implements Listener {
             String formattedType = horseData.getType().substring(0, 1).toUpperCase() + horseData.getType().substring(1).toLowerCase();
 
             // Create and return the horse info item
-            return createMenuItem(
-                Material.BOOK,
-                "§bYour Horse",
-                "",
-                "§7Type: §f" + formattedType,
-                "§7Speed: §6" + speedStars,
-                "§7Jump: §6" + jumpStars
-            );
+              String trait = horseData.getTraitId() != null ? horseData.getTraitId() : "None";
+              return createMenuItem(
+                  Material.BOOK,
+                  "§bYour Horse",
+                  "",
+                  "§7Type: §f" + formattedType,
+                  "§7Speed: §6" + speedStars,
+                  "§7Jump: §6" + jumpStars,
+                  "§7Trait: §e" + trait
+              );
         } else {
             // Fallback if no horse data is found
             return createMenuItem(
