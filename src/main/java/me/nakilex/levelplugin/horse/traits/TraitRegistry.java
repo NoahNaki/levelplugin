@@ -15,6 +15,9 @@ public final class TraitRegistry {
     static {
         // Register default traits here
         register(new DashTrait());
+        register(new LeapTrait());
+        register(new GhostTrait());
+        register(new KickbackTrait());
     }
 
     public static void register(HorseTrait trait) {
