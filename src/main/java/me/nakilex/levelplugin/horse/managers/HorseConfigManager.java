@@ -1,11 +1,13 @@
 package me.nakilex.levelplugin.horse.managers;
 
 import me.nakilex.levelplugin.horse.data.HorseData;
+import me.nakilex.levelplugin.horse.traits.TraitRegistry;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
@@ -50,6 +52,15 @@ public class HorseConfigManager {
               int speed = config.getInt(base + ".speed");
               int jumpHeight = config.getInt(base + ".jumpHeight");
               String trait = config.getString(base + ".trait");
+              if (trait == null || TraitRegistry.get(trait) == null) {
+                  trait = TraitRegistry.getRandomId(new Random());
+                  config.set(base + ".trait", trait);
+                  try {
+                      config.save(file);
+                  } catch (IOException e) {
+                      e.printStackTrace();
+                  }
+              }
               return new HorseData(type, isVariant, speed, jumpHeight, uuid, trait);
         }
         return null;

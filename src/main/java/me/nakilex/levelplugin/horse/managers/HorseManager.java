@@ -27,6 +27,8 @@ public class HorseManager implements Listener {
     private final HashMap<UUID, HorseData> horses = new HashMap<>();
     private final HashMap<UUID, Long> lastSpawnTimestamps = new HashMap<>();
     private static final long COOLDOWN_MS = 5_000L; // 5 seconds
+    private static final double BASE_SPEED = 0.2; // higher baseline so horses outrun players
+    private static final double SPEED_PER_STAR = 0.04; // incremental boost per speed star
 
     // Constructor to accept HorseConfigManager
     public HorseManager(HorseConfigManager configManager) {
@@ -108,7 +110,7 @@ public class HorseManager implements Listener {
         int speedStars = Math.min(horseData.getSpeed(), 5);
         horse.setJumpStrength(0.3 + jumpStars * 0.1);
         var speedAttr = horse.getAttribute(Attribute.MOVEMENT_SPEED);
-        if (speedAttr != null) speedAttr.setBaseValue(0.1 + speedStars * 0.03);
+        if (speedAttr != null) speedAttr.setBaseValue(BASE_SPEED + speedStars * SPEED_PER_STAR);
         horse.getInventory().setSaddle(new ItemStack(Material.SADDLE));
         horse.addPassenger(player);
 
