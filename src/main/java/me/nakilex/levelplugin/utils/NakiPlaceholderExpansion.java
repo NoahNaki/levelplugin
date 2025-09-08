@@ -7,10 +7,10 @@ import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.player.profile.ProfileManager;
 import me.nakilex.levelplugin.player.profile.PlayerProfile;
+import me.nakilex.levelplugin.duels.managers.DuelManager;
 import org.bukkit.entity.Player;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 
 /**
@@ -19,11 +19,14 @@ import java.util.function.Function;
  * <code>%naki_&lt;key&gt;%</code>.
  */
 public class NakiPlaceholderExpansion extends PlaceholderExpansion {
+    private static NakiPlaceholderExpansion instance;
+
     private final Main plugin;
     private final Map<String, Function<Player, String>> placeholders = new HashMap<>();
 
     public NakiPlaceholderExpansion(Main plugin) {
         this.plugin = plugin;
+        instance = this;
 
         placeholders.put("level", p -> String.valueOf(plugin.getLevelManager().getLevel(p)));
         placeholders.put("class", p -> {
@@ -43,6 +46,7 @@ public class NakiPlaceholderExpansion extends PlaceholderExpansion {
         placeholders.put("currentxp", p -> String.valueOf(plugin.getLevelManager().getXP(p)));
         placeholders.put("xpnextlevel", p -> String.valueOf(plugin.getLevelManager().getXpNeededForNextLevel(p)));
         placeholders.put("seasondate", p -> plugin.getCalendarManager().getSeasonDate(false));
+        placeholders.put("induel", p -> String.valueOf(DuelManager.getInstance().areInAnyDuel(p)));
     }
 
     @Override
@@ -75,6 +79,18 @@ public class NakiPlaceholderExpansion extends PlaceholderExpansion {
         }
         Function<Player, String> handler = placeholders.get(key);
         return handler != null ? handler.apply(player) : null;
+    }
+
+    public static NakiPlaceholderExpansion getInstance() {
+        return instance;
+    }
+
+    public Set<String> getPlaceholderKeys() {
+        Set<String> keys = new HashSet<>(placeholders.keySet());
+        for (int i = 1; i <= 9; i++) {
+            keys.add("profile" + i);
+        }
+        return Collections.unmodifiableSet(keys);
     }
 }
 

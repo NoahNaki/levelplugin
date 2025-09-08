@@ -259,6 +259,9 @@ commands:
   centergui:
     description: Open a GUI with a centered title
     usage: /centergui
+  parseplaceholder:
+    description: Parse a Naki placeholder
+    usage: /parseplaceholder <placeholder>
   addlore:
     description: Insert a lore line into the held item
     usage: /addlore [line] [text] | /addlore style <name>

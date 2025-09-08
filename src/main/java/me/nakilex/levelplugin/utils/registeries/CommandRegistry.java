@@ -79,6 +79,7 @@ import me.nakilex.levelplugin.environment.stage.TownPosCommand;
 import me.nakilex.levelplugin.environment.stage.StageSelectionListener;
 import me.nakilex.levelplugin.utils.commands.CenterGuiCommand;
 import me.nakilex.levelplugin.utils.commands.CenterTooltipCommand;
+import me.nakilex.levelplugin.utils.commands.ParsePlaceholderCommand;
 import me.nakilex.levelplugin.utils.commands.EmptyTabCompleter;
 import me.nakilex.levelplugin.pathfinding.PathfindingCommand;
 import me.nakilex.levelplugin.pathfinding.PathfindingManager;
@@ -242,6 +243,9 @@ public class CommandRegistry {
         plugin.getCommand("world").setExecutor(new me.nakilex.levelplugin.world.WorldCommand(plugin.getWorldManager()));
         plugin.getCommand("centertooltip").setExecutor(new CenterTooltipCommand());
         plugin.getCommand("centergui").setExecutor(new CenterGuiCommand());
+        ParsePlaceholderCommand parseCmd = new ParsePlaceholderCommand();
+        plugin.getCommand("parseplaceholder").setExecutor(parseCmd);
+        plugin.getCommand("parseplaceholder").setTabCompleter(parseCmd);
         plugin.getCommand("addlore").setExecutor(new AddLoreCommand());
         PathfindingCommand pfCmd = new PathfindingCommand(pathManager);
         plugin.getCommand("pathfinding").setExecutor(pfCmd);
