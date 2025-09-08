@@ -261,7 +261,7 @@ commands:
     usage: /centergui
   parseplaceholder:
     description: Parse a Naki placeholder
-    usage: /parseplaceholder <placeholder>
+    usage: /parseplaceholder <placeholder> [holo]
   addlore:
     description: Insert a lore line into the held item
     usage: /addlore [line] [text] | /addlore style <name>

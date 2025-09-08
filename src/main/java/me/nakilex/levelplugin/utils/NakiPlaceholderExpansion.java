@@ -77,6 +77,12 @@ public class NakiPlaceholderExpansion extends PlaceholderExpansion {
                 return "";
             }
         }
+        if (key.startsWith("induel_")) {
+            String targetName = key.substring("induel_".length());
+            org.bukkit.entity.Player target = org.bukkit.Bukkit.getPlayerExact(targetName);
+            if (target == null) return "false";
+            return String.valueOf(DuelManager.getInstance().areFormallyDueling(player.getUniqueId(), target.getUniqueId()));
+        }
         Function<Player, String> handler = placeholders.get(key);
         return handler != null ? handler.apply(player) : null;
     }
@@ -87,6 +93,7 @@ public class NakiPlaceholderExpansion extends PlaceholderExpansion {
 
     public Set<String> getPlaceholderKeys() {
         Set<String> keys = new HashSet<>(placeholders.keySet());
+        keys.add("induel_<player>");
         for (int i = 1; i <= 9; i++) {
             keys.add("profile" + i);
         }
