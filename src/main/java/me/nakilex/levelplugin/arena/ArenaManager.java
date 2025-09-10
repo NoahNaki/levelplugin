@@ -97,8 +97,10 @@ public class ArenaManager implements Listener {
         ids.sort(Comparator.comparingInt(id -> getRating(id).mmr));
         for (int i = 0; i < ids.size() - 1; i++) {
             UUID a = ids.get(i);
+            if (!queue.containsKey(a)) continue; // removed while iterating
             for (int j = i + 1; j < ids.size(); j++) {
                 UUID b = ids.get(j);
+                if (!queue.containsKey(b)) continue;
                 int diff = Math.abs(getRating(a).mmr - getRating(b).mmr);
                 if (diff <= 300) {
                     Player pa = Bukkit.getPlayer(a);
@@ -124,8 +126,10 @@ public class ArenaManager implements Listener {
                         pb.teleport(new Location(world, 0, 64, 5));
 
                         DuelManager.getInstance().startDuel(a, b);
+                        return; // successful match
                     }
-                    return;
+                    if (pa == null) queue.remove(a);
+                    if (pb == null) queue.remove(b);
                 }
             }
         }
@@ -134,6 +138,10 @@ public class ArenaManager implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
         UUID id = e.getPlayer().getUniqueId();
+        if (queue.remove(id) != null) {
+            matchmake();
+        }
+
         String key = playerArena.get(id);
         if (key == null) return;
         ArenaInstance inst = matches.get(key);
