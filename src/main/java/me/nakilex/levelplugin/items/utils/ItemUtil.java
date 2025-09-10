@@ -55,6 +55,7 @@ public class ItemUtil {
      */
     public static final NamespacedKey NEXO_MODEL_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "nexo_model");
     public static final NamespacedKey SOULBOUND_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "soulbound");
+    public static final NamespacedKey SEALING_CHARM_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(ItemUtil.class), "sealing_charm");
 
     private static final int PREFIX_BONUS = 20;
     private static final java.util.Map<String, StatsManager.StatType> PREFIX_MAP = new java.util.HashMap<>();
@@ -104,6 +105,25 @@ public class ItemUtil {
         return meta != null && name.equals(meta.getDisplayName());
     }
 
+    /**
+     * Mark an item with a simple byte flag under the given key.
+     */
+    public static void flagItem(ItemStack stack, NamespacedKey key) {
+        if (stack == null || stack.getType() == Material.AIR || key == null) return;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return;
+        meta.getPersistentDataContainer().set(key, PersistentDataType.BYTE, (byte)1);
+        stack.setItemMeta(meta);
+    }
+
+    /**
+     * Check whether an item carries the given byte flag.
+     */
+    public static boolean hasFlag(ItemStack stack, NamespacedKey key) {
+        if (stack == null || stack.getType() == Material.AIR || key == null || !stack.hasItemMeta()) return false;
+        return stack.getItemMeta().getPersistentDataContainer().has(key, PersistentDataType.BYTE);
+    }
+
     /** Display name for the temporary sealing charm item. */
     public static final String SEALING_CHARM_NAME = ChatColor.AQUA + "Sealing Charm";
 
@@ -113,13 +133,14 @@ public class ItemUtil {
      */
     public static ItemStack createSealingCharm(int amount) {
         ItemStack item = createNamedItem(Material.PAPER, SEALING_CHARM_NAME, List.of(ChatColor.GRAY + "Used to reseal class essences."));
+        flagItem(item, SEALING_CHARM_KEY);
         item.setAmount(amount);
         return item;
     }
 
     /** Check whether the provided stack represents a sealing charm. */
     public static boolean isSealingCharm(ItemStack stack) {
-        return isNamedItem(stack, Material.PAPER, SEALING_CHARM_NAME);
+        return stack != null && stack.getType() == Material.PAPER && hasFlag(stack, SEALING_CHARM_KEY);
     }
 
     /**
@@ -438,7 +459,7 @@ public class ItemUtil {
         if (stack == null || !stack.hasItemMeta()) return false;
 
         // Primary check: custom items that have the standard soulbound key
-        if (stack.getItemMeta().getPersistentDataContainer().has(SOULBOUND_KEY, PersistentDataType.BYTE)) {
+        if (hasFlag(stack, SOULBOUND_KEY)) {
             return true;
         }
 
