@@ -206,6 +206,8 @@ public class DuelManager {
             if (Main.getInstance().getLeaderboardManager() != null) {
                 Main.getInstance().getLeaderboardManager().updateAll();
             }
+            me.nakilex.levelplugin.arena.ArenaManager.getInstance()
+                .handleDuelResult(attacker.getUniqueId(), victim.getUniqueId());
             return true;
         }
         return false;

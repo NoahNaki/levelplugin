@@ -162,6 +162,8 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.environment.stage.BuildingStageManager buildingStageManager;
     private me.nakilex.levelplugin.leaderboards.LeaderboardManager leaderboardManager;
     private me.nakilex.levelplugin.leaderboards.DuelStatsManager duelStatsManager;
+    private me.nakilex.levelplugin.arena.ArenaManager arenaManager;
+    private me.nakilex.levelplugin.arena.ArenaGUI arenaGUI;
     private final Map<UUID, List<NPC>> activeBowDrones = new HashMap<>();
     private ChestHologramListener chestHologramListener;
     private me.nakilex.levelplugin.auctionhouse.AuctionHouseManager auctionHouseManager;
@@ -302,6 +304,9 @@ public class PluginBootstrap {
         scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(plugin, partyManager, questManager);
         calendarManager = new me.nakilex.levelplugin.calendar.CalendarManager(plugin);
         duelStatsManager = new me.nakilex.levelplugin.leaderboards.DuelStatsManager(plugin);
+        arenaManager = me.nakilex.levelplugin.arena.ArenaManager.getInstance();
+        org.bukkit.Bukkit.getPluginManager().registerEvents(arenaManager, plugin);
+        arenaGUI = new me.nakilex.levelplugin.arena.ArenaGUI(arenaManager);
         partyGlowManager = new PartyGlowManager(plugin, partyManager, scoreboardManager::getBoard);
         friendGlowManager = new FriendGlowManager(plugin, friendManager, scoreboardManager::getBoard);
         visibilityManager = new PlayerVisibilityManager(plugin, friendManager, settingsManager);
@@ -614,6 +619,8 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager getWanderingMerchantManager() { return wanderingMerchantManager; }
     public PathfindingManager getPathfindingManager() { return pathfindingManager; }
     public MercenaryManager getMercenaryManager() { return mercenaryManager; }
+    public me.nakilex.levelplugin.arena.ArenaManager getArenaManager() { return arenaManager; }
+    public me.nakilex.levelplugin.arena.ArenaGUI getArenaGUI() { return arenaGUI; }
     public me.nakilex.levelplugin.transmog.TransmogManager getTransmogManager() { return transmogManager; }
 
     private void createCustomConfig() {

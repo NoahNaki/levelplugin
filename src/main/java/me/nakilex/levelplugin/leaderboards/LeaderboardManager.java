@@ -179,6 +179,10 @@ public class LeaderboardManager {
                 lines.add("§e§lBALANCE LEADERBOARD");
                 color = "§e";
             }
+            case ARENA -> {
+                lines.add("§b§lARENA LEADERBOARD");
+                color = "§b";
+            }
             default -> {
                 lines.add("§eLEADERBOARD");
                 color = "§e";
@@ -235,6 +239,16 @@ public class LeaderboardManager {
                     UUID id = UUID.fromString(uuidStr);
                     int w = duelStats.getWins(id);
                     map.put(id, w);
+                }
+            }
+            case ARENA -> {
+                FileConfiguration pcfg = playerConfig.getConfig();
+                if (pcfg.isConfigurationSection("players")) {
+                    for (String uuidStr : pcfg.getConfigurationSection("players").getKeys(false)) {
+                        UUID id = UUID.fromString(uuidStr);
+                        int mmr = pcfg.getInt("players." + uuidStr + ".arena.mmr", 1000);
+                        map.put(id, mmr);
+                    }
                 }
             }
         }

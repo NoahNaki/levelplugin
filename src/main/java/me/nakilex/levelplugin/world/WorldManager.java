@@ -80,6 +80,22 @@ public class WorldManager {
         try { config.save(file); } catch (IOException e) { e.printStackTrace(); }
     }
 
+    /**
+     * Create a temporary void world that is not persisted in the worlds.yml.
+     * This is useful for short‑lived instances such as dungeons or arenas.
+     */
+    public World createVoidWorld(String name) {
+        WorldCreator wc = new WorldCreator(name).environment(Environment.NORMAL).type(WorldType.FLAT);
+        wc.generateStructures(false);
+        wc.generator(new VoidWorldGenerator());
+        World world = Bukkit.createWorld(wc);
+        if (world != null) {
+            world.setKeepSpawnInMemory(false);
+            world.setAutoSave(false);
+        }
+        return world;
+    }
+
     public World createWorld(String name, WorldType type, Environment env) {
         WorldCreator wc = new WorldCreator(name).environment(env).type(type);
         wc.generateStructures(false);

@@ -175,6 +175,12 @@ public class CommandRegistry {
         plugin.getCommand("lootchest").setExecutor(new LootChestCommand(configManager, lootChestManager));
         plugin.getCommand("trade").setExecutor(new TradeCommand());
         plugin.getCommand("duel").setExecutor(new DuelCommand());
+        me.nakilex.levelplugin.arena.ArenaCommand arenaCmd = new me.nakilex.levelplugin.arena.ArenaCommand(plugin.getArenaGUI());
+        plugin.getCommand("arena").setExecutor(arenaCmd);
+        plugin.getCommand("arena").setTabCompleter(arenaCmd);
+        me.nakilex.levelplugin.arena.RankCommand rankCmd = new me.nakilex.levelplugin.arena.RankCommand();
+        plugin.getCommand("rank").setExecutor(rankCmd);
+        plugin.getCommand("elo").setExecutor(rankCmd);
         plugin.getCommand("ps").setExecutor(new StorageCommand(storageManager));
         plugin.getCommand("merchant").setExecutor(new MerchantCommand(plugin));
         plugin.getCommand("salvage").setExecutor(new SalvageCommand(plugin));

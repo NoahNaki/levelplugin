@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
+import me.nakilex.levelplugin.arena.ArenaManager;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -92,6 +93,11 @@ public class PlayerConfig {
         }
         config.set(path + ".essences.equipped", equippedList);
 
+        ArenaManager arena = ArenaManager.getInstance();
+        ArenaManager.Rating rating = arena.getRating(uuid);
+        config.set(path + ".arena.mmr", rating.mmr);
+        config.set(path + ".arena.rank_points", rating.rankPoints);
+
         saveConfig();
     }
 
@@ -157,6 +163,10 @@ public class PlayerConfig {
         for (int i = 0; i < Math.min(stats.equippedEssences.length, equipped.size()); i++) {
             stats.equippedEssences[i] = equipped.get(i);
         }
+
+        int mmr = config.getInt(root + ".arena.mmr", 1000);
+        int rp = config.getInt(root + ".arena.rank_points", mmr);
+        ArenaManager.getInstance().setRating(uuid, mmr, rp);
     }
 
     /** Saves data for all players. */

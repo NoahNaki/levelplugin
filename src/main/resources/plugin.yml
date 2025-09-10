@@ -117,6 +117,15 @@ commands:
   duel:
     description: Send, accept, or decline a duel request
     usage: /duel <player|accept|decline>
+  arena:
+    description: Open the arena menu
+    usage: /arena
+  rank:
+    description: Show your arena rank
+    usage: /rank
+  elo:
+    description: Show your hidden MMR
+    usage: /elo
   salvage:
     description: Opens the Salvage GUI
     usage: /salvage

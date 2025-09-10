@@ -138,7 +138,7 @@ public class DungeonBuilder implements Listener {
     public void start(Player player) {
         Location back = player.getLocation();
         String worldName = "dgn_edit_" + player.getUniqueId();
-        World world = manager.createVoidWorld(worldName);
+        World world = manager.getPlugin().getWorldManager().createVoidWorld(worldName);
         if (world == null) {
             player.sendMessage(ChatColor.RED + "Failed to create edit world.");
             return;

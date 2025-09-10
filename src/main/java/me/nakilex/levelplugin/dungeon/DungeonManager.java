@@ -9,8 +9,6 @@ import org.bukkit.World;
 import org.bukkit.Material;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
-import org.bukkit.WorldType;
-import org.bukkit.WorldCreator;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Skull;
@@ -117,19 +115,6 @@ public class DungeonManager {
     public int getStep() { return step; }
     public Main getPlugin() { return plugin; }
 
-    /** Create a void world used for temporary dungeon sessions. */
-    public World createVoidWorld(String worldName) {
-        WorldCreator wc = new WorldCreator(worldName);
-        wc.generator(new VoidWorldGenerator());
-        wc.type(WorldType.FLAT);
-        wc.generateStructures(false);
-        World world = Bukkit.createWorld(wc);
-        if (world != null) {
-            world.setKeepSpawnInMemory(false);
-            world.setAutoSave(false);
-        }
-        return world;
-    }
 
     /** Return the template instance for the given identifier. */
     public RoomTemplate getTemplate(TemplateType type) {
@@ -681,7 +666,7 @@ public class DungeonManager {
         }
         long debugStart = System.currentTimeMillis();
         String worldName = "dgn_" + keyName + "_" + System.currentTimeMillis();
-        World world = createVoidWorld(worldName);
+        World world = plugin.getWorldManager().createVoidWorld(worldName);
         if (world == null) return;
         player.sendMessage(ChatColor.GRAY + "[Debug] World created in "
                 + (System.currentTimeMillis() - debugStart) + "ms");
