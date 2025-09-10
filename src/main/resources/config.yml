@@ -13,7 +13,6 @@ tips:
   delay: 120
   messages:
     - "You can type [item] to link what you're holding in chat!"
-    - "Don’t forget to spend your skill points!"
     - "You can trade &d<glyph:purple_orb_icon> &rat a Gem Exchanger."
     - "You can change your class at anytime using /class"
     - "Type /settings to toggle different visual features"
