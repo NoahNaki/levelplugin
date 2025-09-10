@@ -82,6 +82,47 @@ public class ItemUtil {
     }
 
     /**
+     * Create a basic named item with optional lore. Useful for simple
+     * placeholder items that do not require a full {@link CustomItem}
+     * definition.
+     */
+    public static ItemStack createNamedItem(Material material, String name, List<String> lore) {
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(name);
+            if (lore != null) meta.setLore(lore);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    /** Convenient check for an item matching a material and display name. */
+    public static boolean isNamedItem(ItemStack stack, Material type, String name) {
+        if (stack == null || stack.getType() != type) return false;
+        ItemMeta meta = stack.getItemMeta();
+        return meta != null && name.equals(meta.getDisplayName());
+    }
+
+    /** Display name for the temporary sealing charm item. */
+    public static final String SEALING_CHARM_NAME = ChatColor.AQUA + "Sealing Charm";
+
+    /**
+     * Create a placeholder sealing charm item. The charm currently uses paper
+     * as its material until a custom model is available.
+     */
+    public static ItemStack createSealingCharm(int amount) {
+        ItemStack item = createNamedItem(Material.PAPER, SEALING_CHARM_NAME, List.of(ChatColor.GRAY + "Used to reseal class essences."));
+        item.setAmount(amount);
+        return item;
+    }
+
+    /** Check whether the provided stack represents a sealing charm. */
+    public static boolean isSealingCharm(ItemStack stack) {
+        return isNamedItem(stack, Material.PAPER, SEALING_CHARM_NAME);
+    }
+
+    /**
      * Extract the stored Nexo model id from an item stack, if present.
      */
     public static String getNexoModelId(org.bukkit.inventory.ItemStack stack) {

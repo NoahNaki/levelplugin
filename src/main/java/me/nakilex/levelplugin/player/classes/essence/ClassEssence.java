@@ -410,6 +410,15 @@ public final class ClassEssence {
         return val == null ? 0 : val;
     }
 
+    /** Calculate the number of sealing charms required to reseal an essence. */
+    public static int getResealCost(ItemStack stack) {
+        if (!isEssence(stack)) return 0;
+        ItemRarity rarity = getRarity(stack);
+        int star = getStar(stack);
+        int tier = rarity == null ? 0 : rarity.ordinal() + 1;
+        return star + tier;
+    }
+
     /** Increase star level of an essence, rerolling attributes accordingly. */
     public static void upgradeStar(ItemStack stack) {
         if (!isEssence(stack)) return;

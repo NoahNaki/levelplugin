@@ -27,6 +27,7 @@ import me.nakilex.levelplugin.player.classes.commands.ClassCommand;
 import me.nakilex.levelplugin.player.classes.commands.GenClassCommand;
 import me.nakilex.levelplugin.player.classes.commands.EssenceCommand;
 import me.nakilex.levelplugin.player.classes.commands.EssenceUpgradeCommand;
+import me.nakilex.levelplugin.player.classes.commands.EssenceResealCommand;
 import me.nakilex.levelplugin.player.level.commands.AddXPCommand;
 import me.nakilex.levelplugin.player.mining.commands.AddMiningXPCommand;
 import me.nakilex.levelplugin.player.mining.commands.MiningLevelCommand;
@@ -145,6 +146,8 @@ public class CommandRegistry {
         EssenceUpgradeCommand essenceUpgradeCmd = new EssenceUpgradeCommand();
         plugin.getCommand("essenceupgrade").setExecutor(essenceUpgradeCmd);
         plugin.getCommand("essenceupgrade").setTabCompleter(essenceUpgradeCmd);
+        EssenceResealCommand essenceResealCmd = new EssenceResealCommand();
+        plugin.getCommand("essencereseal").setExecutor(essenceResealCmd);
         plugin.getCommand("setlevel").setExecutor(new SetLevelCommand(plugin));
         ClassCommand classCmd = new ClassCommand();
         plugin.getCommand("class").setExecutor(classCmd);
