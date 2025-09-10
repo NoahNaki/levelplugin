@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.arena;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -43,6 +44,12 @@ public class ArenaGUI implements Listener {
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.GRAY + "Rank Points: " + rating.rankPoints);
             lore.add(ChatColor.GRAY + "MMR: " + rating.mmr);
+            int floor = arena.getTierFloor(rating.rankPoints);
+            int next = arena.getTierCeiling(rating.rankPoints);
+            if (next > floor) {
+                lore.add(" ");
+                lore.add(TooltipUtil.progressBar(rating.rankPoints - floor, next - floor, 15));
+            }
             meta.setLore(lore);
             stats.setItemMeta(meta);
         }
@@ -65,10 +72,7 @@ public class ArenaGUI implements Listener {
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(name);
-            List<String> lore = new ArrayList<>();
-            lore.add(" ");
-            lore.add(ChatColor.GRAY + (queued ? "Click to leave" : "Click to join"));
-            meta.setLore(lore);
+            meta.setLore(TooltipUtil.clickInstructions(queued ? "to leave the queue" : "to join the queue", null));
             item.setItemMeta(meta);
         }
         return item;

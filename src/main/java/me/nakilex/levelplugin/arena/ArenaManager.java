@@ -36,6 +36,9 @@ public class ArenaManager implements Listener {
     private final Map<String, ArenaInstance> matches = new HashMap<>();
     private final Map<UUID, String> playerArena = new HashMap<>();
 
+    /** Tier floors from Bronze through Grandmaster. */
+    private static final int[] TIER_FLOORS = {0, 1000, 1200, 1400, 1600, 1800, 2000};
+
     private String pairKey(UUID a, UUID b) {
         return a.compareTo(b) < 0 ? a + ":" + b : b + ":" + a;
     }
@@ -193,13 +196,22 @@ public class ArenaManager implements Listener {
 
     /** Determine tier floor based on rank points. */
     public int getTierFloor(int mmr) {
-        if (mmr >= 2000) return 2000;
-        if (mmr >= 1800) return 1800;
-        if (mmr >= 1600) return 1600;
-        if (mmr >= 1400) return 1400;
-        if (mmr >= 1200) return 1200;
-        if (mmr >= 1000) return 1000;
+        for (int i = TIER_FLOORS.length - 1; i >= 0; i--) {
+            if (mmr >= TIER_FLOORS[i]) {
+                return TIER_FLOORS[i];
+            }
+        }
         return 0;
+    }
+
+    /** Determine the next tier floor (ceiling of current tier). */
+    public int getTierCeiling(int mmr) {
+        for (int i = 0; i < TIER_FLOORS.length - 1; i++) {
+            if (mmr >= TIER_FLOORS[i] && mmr < TIER_FLOORS[i + 1]) {
+                return TIER_FLOORS[i + 1];
+            }
+        }
+        return TIER_FLOORS[TIER_FLOORS.length - 1];
     }
 
     /** Return formatted tier/division name for the given mmr. */
