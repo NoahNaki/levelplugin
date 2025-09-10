@@ -14,7 +14,6 @@ tips:
   messages:
     - "You can type [item] to link what you're holding in chat!"
     - "You can trade &d<glyph:purple_orb_icon> &rat a Gem Exchanger."
-    - "You can change your class at anytime using /class"
     - "Type /settings to toggle different visual features"
     - "Every mobility spell scales with agility!"
     - "You can trade with others using /trade <username>"
