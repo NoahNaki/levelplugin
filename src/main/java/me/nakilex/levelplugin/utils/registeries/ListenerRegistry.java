@@ -40,6 +40,7 @@ import me.nakilex.levelplugin.player.classes.gui.SubclassGUI;
 import me.nakilex.levelplugin.player.classes.essence.listener.ClassEssenceMenuListener;
 import me.nakilex.levelplugin.player.classes.essence.listener.ClassEssenceBoundListener;
 import me.nakilex.levelplugin.player.classes.essence.gui.ClassEssenceUpgradeGUI;
+import me.nakilex.levelplugin.player.classes.essence.gui.ClassEssenceResealGUI;
 import me.nakilex.levelplugin.trade.listeners.PlayerRightClicksPlayerListener;
 import me.nakilex.levelplugin.guild.GuildGUIListener;
 import me.nakilex.levelplugin.guild.quests.GuildQuestGUIListener;
@@ -167,6 +168,7 @@ public class ListenerRegistry {
         pm.registerEvents(new ClassEssenceMenuListener(), plugin);
         pm.registerEvents(new ClassEssenceBoundListener(), plugin);
         pm.registerEvents(new ClassEssenceUpgradeGUI(), plugin);
+        pm.registerEvents(new ClassEssenceResealGUI(), plugin);
         pm.registerEvents(new ChestHologramListener(lootChestManager), plugin);
         pm.registerEvents(new LootChestShutdownListener(plugin, lootChestManager), plugin);
 

@@ -214,6 +214,12 @@ commands:
   essenceupgrade:
     description: Opens the class essence upgrade menu
     usage: /essenceupgrade [rarity]
+  essencereseal:
+    description: Opens the class essence reseal menu
+    usage: /essencereseal
+  sealingcharm:
+    description: Give sealing charms to a player
+    usage: /sealingcharm <player> <amount>
   enchant:
     description: Opens the enchanting GUI
     usage: /enchant
