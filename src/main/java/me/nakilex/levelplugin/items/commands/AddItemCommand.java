@@ -5,11 +5,16 @@ import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 
-public class AddItemCommand implements CommandExecutor {
+import java.util.Collections;
+import java.util.List;
+
+import me.nakilex.levelplugin.utils.CommandUtil;
+
+public class AddItemCommand implements TabExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
@@ -80,5 +85,24 @@ public class AddItemCommand implements CommandExecutor {
             + "! (ID:" + itemId + ")");
 
         return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (args.length == 1) {
+            return CommandUtil.filterStartingWith(
+                    ItemManager.getInstance().getAllTemplates().keySet().stream()
+                            .map(String::valueOf)
+                            .sorted()
+                            .toList(),
+                    args[0]);
+        }
+        if (args.length == 2) {
+            return CommandUtil.onlinePlayerNames(args[1]);
+        }
+        if (args.length == 3) {
+            return CommandUtil.filterStartingWith(List.of("1", "16", "32", "64"), args[2]);
+        }
+        return Collections.emptyList();
     }
 }
