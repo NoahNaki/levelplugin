@@ -28,6 +28,12 @@ public class LocationMusicManager {
     private static final long FADE_IN_TICKS = 5L;
     private static final long FADE_OUT_TICKS = 10L;
     private static final long SIEGE_INTRO_DELAY = 200L;
+    private static final Map<String, String> LEGACY_DEFAULT_SONGS = Map.of(
+            "rowan", "nexo:music.greennature"
+    );
+    private static final Set<String> DISABLE_TOKENS = Set.of(
+            "none", "null", "off", "disable", "disabled", "false"
+    );
 
     private final Main plugin;
     private final Map<String, String> configuredSongs = new HashMap<>();
@@ -36,6 +42,7 @@ public class LocationMusicManager {
     private final Map<UUID, String> playing = new HashMap<>();
     private final Map<UUID, SongTransition> transitions = new HashMap<>();
     private final Set<UUID> siegePlayers = new HashSet<>();
+    private final Set<String> disabledLocations = new HashSet<>();
 
     public LocationMusicManager(Main plugin) {
         this.plugin = plugin;
@@ -46,19 +53,43 @@ public class LocationMusicManager {
 
     /** Reload mappings from regions and the optional location_music.yml file. */
     public void reload() {
+        configuredSongs.clear();
+        disabledLocations.clear();
+
         int fastTravel = loadFromFastTravel();
         int fileOverrides = loadFromFile();
+        int defaultsApplied = applyFallbackDefaults();
+
         rebuildSongCache();
+
         plugin.getLogger().info(String.format(
-                "[LocationMusic] Loaded %d tracks (%d fast-travel, %d overrides).",
+                "[LocationMusic] Loaded %d tracks (%d fast-travel, %d overrides, %d defaults, %d runtime).",
                 locationSongs.size(),
                 fastTravel,
-                fileOverrides + runtimeOverrides.size()));
+                fileOverrides,
+                defaultsApplied,
+                runtimeOverrides.size()));
+
+        if (defaultsApplied > 0) {
+            plugin.getLogger().warning("[LocationMusic] Applied legacy defaults for missing tracks. " +
+                    "Add explicit 'music:' entries in regions.yml or location_music.yml to configure them.");
+        }
     }
 
     /** Register a transient song override at runtime (not persisted). */
     public void registerLocationSong(String location, String sound) {
-        runtimeOverrides.put(normalize(location), sound);
+        String key = normalize(location);
+        if (key.isEmpty()) {
+            return;
+        }
+
+        String normalizedSound = normalizeSound(sound);
+        if (normalizedSound == null) {
+            runtimeOverrides.remove(key);
+        } else {
+            runtimeOverrides.put(key, normalizedSound);
+        }
+
         rebuildSongCache();
     }
 
@@ -129,16 +160,14 @@ public class LocationMusicManager {
     }
 
     private int loadFromFastTravel() {
-        configuredSongs.clear();
         FastTravelManager ft = plugin.getFastTravelManager();
         if (ft == null) return 0;
 
         int count = 0;
         for (FastTravelPoint pt : ft.getPoints()) {
-            String track = pt.getMusicTrack();
-            if (track == null || track.isBlank()) continue;
-            configuredSongs.put(normalize(pt.getName()), track);
-            count++;
+            if (pt != null && applyConfigEntry(pt.getName(), pt.getMusicTrack())) {
+                count++;
+            }
         }
         return count;
     }
@@ -166,10 +195,9 @@ public class LocationMusicManager {
 
         int count = 0;
         for (String key : sec.getKeys(false)) {
-            String sound = sec.getString(key);
-            if (sound == null || sound.isBlank()) continue;
-            configuredSongs.put(normalize(key), sound);
-            count++;
+            if (applyConfigEntry(key, sec.getString(key))) {
+                count++;
+            }
         }
         return count;
     }
@@ -178,6 +206,54 @@ public class LocationMusicManager {
         locationSongs.clear();
         locationSongs.putAll(configuredSongs);
         locationSongs.putAll(runtimeOverrides);
+    }
+
+    private boolean applyConfigEntry(String locationName, String rawSound) {
+        String key = normalize(locationName);
+        if (key.isEmpty()) {
+            return false;
+        }
+
+        String sound = normalizeSound(rawSound);
+        if (sound == null) {
+            configuredSongs.remove(key);
+            return false;
+        }
+
+        if (isDisableToken(sound)) {
+            disabledLocations.add(key);
+            configuredSongs.remove(key);
+            return false;
+        }
+
+        disabledLocations.remove(key);
+        configuredSongs.put(key, sound);
+        return true;
+    }
+
+    private int applyFallbackDefaults() {
+        int added = 0;
+        for (Map.Entry<String, String> entry : LEGACY_DEFAULT_SONGS.entrySet()) {
+            String key = normalize(entry.getKey());
+            if (key.isEmpty() || disabledLocations.contains(key) || configuredSongs.containsKey(key)) {
+                continue;
+            }
+            configuredSongs.put(key, entry.getValue());
+            added++;
+        }
+        return added;
+    }
+
+    private static String normalizeSound(String sound) {
+        if (sound == null) {
+            return null;
+        }
+        String trimmed = sound.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private static boolean isDisableToken(String sound) {
+        return DISABLE_TOKENS.contains(sound.toLowerCase(Locale.ROOT));
     }
 
     private void playWithFade(Player player, FastTravelPoint point, String sound) {
@@ -234,7 +310,7 @@ public class LocationMusicManager {
         plugin.getLogger().fine("[LocationMusic] " + player.getName() + ": " + msg);
     }
 
-    private String normalize(String name) {
+    private static String normalize(String name) {
         return name == null ? "" : name.toLowerCase(Locale.ROOT).trim();
     }
 
