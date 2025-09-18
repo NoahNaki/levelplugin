@@ -212,6 +212,8 @@ public class FastTravelManager {
             me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, " ", 45);
             if (exp > 0) {
                 plugin.getLevelManager().addXP(player, exp);
+            }
+        }
     }
 
     public void setMusic(String name, String musicTrack) {
@@ -229,8 +231,6 @@ public class FastTravelManager {
         if (mgr != null) {
             mgr.reload();
         }
-    }
-}
     }
 
     public boolean isUnlocked(Player player, String name) {

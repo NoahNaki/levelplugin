@@ -189,6 +189,8 @@ public class PluginBootstrap {
         loadConfigFiles();
         setupCustomConfig();
         playerConfig = new PlayerConfig(plugin);
+        settingsManager = new SettingsManager();
+        playerConfig.setSettingsManager(settingsManager);
         initializeManagers();
         playerConfig.loadAllPlayers();
         itemConfig = new ItemConfig(plugin);
@@ -296,7 +298,9 @@ public class PluginBootstrap {
         tipsCfg = new TipsConfigManager(plugin);
         broadcastMgr = new BroadcastManager(plugin, this.tipsCfg);
         broadcastMgr.start();
-        settingsManager = new SettingsManager();
+        if (settingsManager == null) {
+            settingsManager = new SettingsManager();
+        }
         if (playerConfig != null) {
             playerConfig.setSettingsManager(settingsManager);
         }
