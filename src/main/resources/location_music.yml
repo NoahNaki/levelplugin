@@ -1,0 +1,7 @@
+# Additional location music overrides.
+# Keys should match the display name of a fast-travel point (case-insensitive)
+# or any custom identifier you want to target.
+# Example:
+# locations:
+#   rowan: nexo:music.greennature
+locations: {}

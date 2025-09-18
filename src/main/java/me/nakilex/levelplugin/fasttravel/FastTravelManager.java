@@ -56,7 +56,15 @@ public class FastTravelManager {
                 }
                 Location loc = new Location(w, x, y, z);
                 String displayName = me.nakilex.levelplugin.utils.TextUtil.beautifyWords(key);
-                FastTravelPoint pt = new FastTravelPoint(displayName, ChatColor.valueOf(colorName), desc, loc, radius, town, exp);
+                String music = config.getString(path + ".music");
+                FastTravelPoint pt = new FastTravelPoint(displayName,
+                        ChatColor.valueOf(colorName),
+                        desc,
+                        loc,
+                        radius,
+                        town,
+                        exp,
+                        (music != null && !music.isBlank()) ? music : null);
                 points.put(key.toLowerCase(), pt);
             }
         }
@@ -93,6 +101,11 @@ public class FastTravelManager {
             config.set(path + ".radius", pt.getRadius());
             config.set(path + ".town", pt.isTown());
             config.set(path + ".exp", pt.getExpReward());
+            if (pt.getMusicTrack() != null && !pt.getMusicTrack().isBlank()) {
+                config.set(path + ".music", pt.getMusicTrack());
+            } else {
+                config.set(path + ".music", null);
+            }
         }
         config.set("players", null);
         try { config.save(file); } catch (IOException e) { e.printStackTrace(); }
@@ -108,6 +121,7 @@ public class FastTravelManager {
         String displayName = me.nakilex.levelplugin.utils.TextUtil.beautifyWords(name);
         points.put(name.toLowerCase(), new FastTravelPoint(displayName, color, desc, loc, radius, town, exp));
         save();
+        notifyMusicManager();
     }
 
     public void addLocation(String name, ChatColor color, String desc, Location loc, double radius, boolean town) {
@@ -119,12 +133,14 @@ public class FastTravelManager {
         if (pt != null) {
             pt.setLocation(loc);
             save();
+            notifyMusicManager();
         }
     }
 
     public void removeLocation(String name) {
         points.remove(name.toLowerCase());
         save();
+        notifyMusicManager();
     }
 
     public Collection<FastTravelPoint> getPoints() { return points.values(); }
@@ -196,8 +212,25 @@ public class FastTravelManager {
             me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, " ", 45);
             if (exp > 0) {
                 plugin.getLevelManager().addXP(player, exp);
-            }
+    }
+
+    public void setMusic(String name, String musicTrack) {
+        FastTravelPoint pt = points.get(name.toLowerCase());
+        if (pt == null) return;
+        pt.setMusicTrack((musicTrack == null || musicTrack.isBlank()) ? null : musicTrack);
+        save();
+        notifyMusicManager();
+    }
+
+    private void notifyMusicManager() {
+        Main main = Main.getInstance();
+        if (main == null) return;
+        me.nakilex.levelplugin.music.LocationMusicManager mgr = main.getLocationMusicManager();
+        if (mgr != null) {
+            mgr.reload();
         }
+    }
+}
     }
 
     public boolean isUnlocked(Player player, String name) {

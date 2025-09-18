@@ -115,6 +115,14 @@ public class SettingsGUI implements Listener {
             gui.setItem(21, createVisibilityItem(playerSettings.getPlayerVisibility()));
         }
 
+        if (filter == Filter.ALL || filter == Filter.SOCIAL) {
+            gui.setItem(25, GuiUtil.createToggleItem(
+                    playerSettings.isTipsEnabled(),
+                    "§bShow Tips",
+                    "§eClick to toggle and run /toggle tips"
+            ));
+        }
+
         // Auto-skip Cutscenes toggle
         if (filter == Filter.ALL || filter == Filter.VISUAL) {
             gui.setItem(22, GuiUtil.createToggleItem(
@@ -302,6 +310,10 @@ public class SettingsGUI implements Listener {
             settings.toggleSkillPointReminder();
             updateSettingItem(event.getInventory(), 24,
                 settings.isSkillPointReminderEnabled(), "§bSkill Point Reminder", "");
+        } else if (slot == 25) {
+            Bukkit.dispatchCommand(player, "toggle tips");
+            updateSettingItem(event.getInventory(), 25,
+                settings.isTipsEnabled(), "§bShow Tips", "/toggle tips");
         }
     }
 }

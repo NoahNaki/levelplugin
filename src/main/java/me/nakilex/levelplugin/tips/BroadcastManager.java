@@ -7,6 +7,8 @@ public class BroadcastManager {
     private final Main plugin;
     private final TipsConfigManager cfg;
     private BukkitTask broadcastTask;
+    private long delayTicks;
+    private long nextRunAt;
 
     public BroadcastManager(Main plugin, TipsConfigManager cfg) {
         this.plugin = plugin;
@@ -17,26 +19,35 @@ public class BroadcastManager {
      * Starts or restarts the broadcast task.
      */
     public void start() {
-        // Cancel existing task if running
-        if (broadcastTask != null && !broadcastTask.isCancelled()) {
-            broadcastTask.cancel();
-        }
-
-        // Load config
+        cancelTask();
         cfg.load();
-        int delay = cfg.getDelaySeconds();
-
-        // Schedule broadcast: first run immediately, then every 'delay' seconds
-        broadcastTask = new TipBroadcastTask(plugin, cfg, this)
-            .runTaskTimer(plugin, 0L, delay * 30L);
-
-        plugin.getLogger().info("[Tips] BroadcastManager started.");
+        delayTicks = Math.max(20L, cfg.getDelaySeconds() * 20L);
+        scheduleNext(0L);
+        plugin.getLogger().info("[Tips] BroadcastManager started (" + cfg.getDelaySeconds() + "s interval).");
     }
 
-    /**
-     * No-op: countdown removed.
-     */
     public void resetCountdown() {
-        // Debug countdown removed
+        scheduleNext(delayTicks);
+    }
+
+    private void scheduleNext(long delay) {
+        cancelTask();
+        if (!cfg.hasTips()) {
+            nextRunAt = -1L;
+            return;
+        }
+        broadcastTask = new TipBroadcastTask(plugin, cfg, this).runTaskLater(plugin, delay);
+        nextRunAt = System.currentTimeMillis() + (delay * 50L);
+    }
+
+    private void cancelTask() {
+        if (broadcastTask != null) {
+            broadcastTask.cancel();
+            broadcastTask = null;
+        }
+    }
+
+    public long getNextRunAt() {
+        return nextRunAt;
     }
 }

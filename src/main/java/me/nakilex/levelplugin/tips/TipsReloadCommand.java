@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.tips;
 
 import me.nakilex.levelplugin.tips.TipsConfigManager;
 import me.nakilex.levelplugin.tips.BroadcastManager;
+import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -19,7 +20,7 @@ public class TipsReloadCommand implements CommandExecutor {
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         cfg.load();
         mgr.start();
-        sender.sendMessage("&a[Tips] Reloaded tips successfully.");
+        sender.sendMessage(ChatColor.GREEN + "[Tips] " + ChatColor.GRAY + "Reloaded tips successfully.");
         return true;
     }
 }

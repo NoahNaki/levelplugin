@@ -297,6 +297,9 @@ public class PluginBootstrap {
         broadcastMgr = new BroadcastManager(plugin, this.tipsCfg);
         broadcastMgr.start();
         settingsManager = new SettingsManager();
+        if (playerConfig != null) {
+            playerConfig.setSettingsManager(settingsManager);
+        }
         questManager = new QuestManager(plugin, partyManager);
         dialogManager = new me.nakilex.levelplugin.npc.dialog.NPCDialogManager(plugin);
         scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(plugin, partyManager, questManager);
@@ -311,7 +314,7 @@ public class PluginBootstrap {
         fastTravelManager = new me.nakilex.levelplugin.fasttravel.FastTravelManager(plugin);
         modelGateManager = new me.nakilex.levelplugin.fakeblock.ModelGateManager(plugin);
         fastTravelGUI = new me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI(fastTravelManager, economyManager, modelGateManager);
-        locationMusicManager = new me.nakilex.levelplugin.music.LocationMusicManager();
+        locationMusicManager = new me.nakilex.levelplugin.music.LocationMusicManager(plugin);
         maintenanceManager = new me.nakilex.levelplugin.maintenance.MaintenanceManager(plugin);
         motdManager = new me.nakilex.levelplugin.motd.MotdManager(plugin);
         fakeBlockManager = new me.nakilex.levelplugin.fakeblock.FakeBlockManager();

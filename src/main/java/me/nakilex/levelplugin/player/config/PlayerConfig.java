@@ -4,7 +4,10 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
+import me.nakilex.levelplugin.settings.data.PlayerSettings;
+import me.nakilex.levelplugin.settings.managers.SettingsManager;
 import org.bukkit.Bukkit;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemStack;
@@ -25,6 +28,7 @@ public class PlayerConfig {
     private final Main plugin;
     private final File file;
     private final FileConfiguration config;
+    private SettingsManager settingsManager;
 
     public PlayerConfig(Main plugin) {
         this.plugin = plugin;
@@ -40,6 +44,10 @@ public class PlayerConfig {
     }
     public FileConfiguration getConfig() {
         return config;
+    }
+
+    public void setSettingsManager(SettingsManager settingsManager) {
+        this.settingsManager = settingsManager;
     }
 
 
@@ -91,6 +99,16 @@ public class PlayerConfig {
             equippedList.add(equipped);
         }
         config.set(path + ".essences.equipped", equippedList);
+
+        if (settingsManager != null) {
+            PlayerSettings settings = settingsManager.getSettings(uuid);
+            String settingsPath = path + ".settings";
+            ConfigurationSection settingsSection = config.getConfigurationSection(settingsPath);
+            if (settingsSection == null) {
+                settingsSection = config.createSection(settingsPath);
+            }
+            settings.saveToConfig(settingsSection);
+        }
 
         saveConfig();
     }
@@ -156,6 +174,12 @@ public class PlayerConfig {
         List<Boolean> equipped = config.getBooleanList(root + ".essences.equipped");
         for (int i = 0; i < Math.min(stats.equippedEssences.length, equipped.size()); i++) {
             stats.equippedEssences[i] = equipped.get(i);
+        }
+
+        if (settingsManager != null) {
+            PlayerSettings settings = settingsManager.getSettings(uuid);
+            ConfigurationSection section = config.getConfigurationSection(root + ".settings");
+            settings.loadFromConfig(section);
         }
     }
 

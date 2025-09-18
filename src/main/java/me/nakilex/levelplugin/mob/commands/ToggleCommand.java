@@ -9,11 +9,14 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ToggleCommand implements TabExecutor {
+    private static final List<String> OPTIONS = List.of("dropdetails", "dropdetailschat", "songskip", "tips");
+    private static final String USAGE = "Usage: /toggle <" + String.join("|", OPTIONS) + ">";
+
     private final Main plugin;
 
     public ToggleCommand(Main plugin) {
@@ -29,7 +32,7 @@ public class ToggleCommand implements TabExecutor {
         Player player = (Player) sender;
 
         if (args.length != 1) {
-            player.sendMessage("Usage: /toggle <dropdetails|dropdetailschat|songskip>");
+            player.sendMessage(USAGE);
             return true;
         }
 
@@ -62,9 +65,16 @@ public class ToggleCommand implements TabExecutor {
                 }
                 break;
 
+            case "tips":
+                if (ps != null) {
+                    ps.toggleTipsEnabled();
+                    ToggleFeedbackUtil.sendToggle(player, "Tips", ps.isTipsEnabled());
+                }
+                break;
+
             default:
                 player.sendMessage("Unknown feature: " + feature);
-                player.sendMessage("Usage: /toggle <dropdetails|dropdetailschat|songskip>");
+                player.sendMessage(USAGE);
         }
 
         return true;
@@ -73,9 +83,10 @@ public class ToggleCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return Arrays.asList("dropdetails", "dropdetailschat", "songskip").stream()
-                    .filter(opt -> opt.startsWith(args[0].toLowerCase()))
-                    .toList();
+            String prefix = args[0].toLowerCase();
+            return OPTIONS.stream()
+                    .filter(opt -> opt.startsWith(prefix))
+                    .collect(Collectors.toList());
         }
         return Collections.emptyList();
     }

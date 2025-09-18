@@ -19,4 +19,5 @@ regions:
     radius: 70.0
     town: true
     exp: 50
+    music: nexo:music.greennature
 
