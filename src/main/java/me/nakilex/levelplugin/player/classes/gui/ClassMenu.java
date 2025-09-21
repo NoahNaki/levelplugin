@@ -56,7 +56,7 @@ public class ClassMenu {
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Charge " + ChatColor.GRAY +
                     "(Combo: LRL)",
                 ChatColor.YELLOW + "" + ChatColor.BOLD + "ABILITY 2:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Chain Hook " + ChatColor.GRAY +
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Vortex Pull " + ChatColor.GRAY +
                     "(Combo: LRR)",
                 ChatColor.BLUE + "" + ChatColor.BOLD + "ABILITY 3:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Shield Barrier " + ChatColor.GRAY +

@@ -67,7 +67,7 @@ public class EffectRegistry {
         // --- Warrior Mythic skills ---
         register("MYTHIC_BRUTAL_STRIKE", new MythicSkillEffect("Brutal_Strike"));
         register("MYTHIC_CHARGE", new MythicSkillEffect("Charge"));
-        register("MYTHIC_CHAIN_HOOK", new MythicSkillEffect("Chain_Hook"));
+        register("VORTEX_PULL", new me.nakilex.levelplugin.spells.effect.warrior.VortexPullEffect());
         register("MYTHIC_SHIELD_BARRIER", new MythicSkillEffect("Shield_Barrier"));
         register("MYTHIC_WHIRLWIND", new MythicSkillEffect("Whirlwind"));
         register("MYTHIC_JUDGEMENT", new MythicSkillEffect("Judgement"));

@@ -583,11 +583,11 @@ public class SpellManager {
             true
         ));
         warriorMap.put("LRR", new Spell(
-            "chain_hook", "Chain Hook", "LRR",
+            "chain_hook", "Vortex Pull", "LRR",
             6.0,
-            MythicSkillConfig.getCooldownSeconds("Chain_Hook"), 5,
+            5,
             WARRIOR_WEAPONS,
-            "MYTHIC_CHAIN_HOOK", 0.0
+            "VORTEX_PULL", 0.0
         ));
         warriorMap.put("LLR", new Spell(
             "shield_barrier", "Shield Barrier", "LLR",
