@@ -84,7 +84,7 @@ public class VortexPullEffect implements SpellEffect {
 
                 Location finish = player.getLocation().add(0, 0.65, 0);
                 world.playSound(finish, Sound.BLOCK_AMETHYST_BLOCK_RESONATE, 0.5f, 1.5f);
-                world.spawnParticle(Particle.SPELL_WITCH, finish, 10, 0.25, 0.25, 0.25, 0.08);
+                world.spawnParticle(Particle.WITCH, finish, 10, 0.25, 0.25, 0.25, 0.08);
             }
 
             private void spawnGroundCircles(Location groundCenter, double outerRadius, double progress) {
@@ -93,23 +93,23 @@ public class VortexPullEffect implements SpellEffect {
                 double innerRadius = Math.max(0.45, outerRadius * 0.45);
 
                 drawRing(groundCenter, outerRadius, 70, swirl, (point, index) -> {
-                    runeWorld.spawnParticle(Particle.REDSTONE, point, 1, 0.025, 0.0, 0.025, 0, OUTER_RING_DUST);
+                    runeWorld.spawnParticle(Particle.DUST, point, 1, 0.025, 0.0, 0.025, 0, OUTER_RING_DUST);
                     if (index % 7 == 0) {
-                        runeWorld.spawnParticle(Particle.CRIT_MAGIC, point.clone().add(0, 0.05, 0), 1, 0.0, 0.0, 0.0, 0.0);
+                        runeWorld.spawnParticle(Particle.ENCHANTED_HIT, point.clone().add(0, 0.05, 0), 1, 0.0, 0.0, 0.0, 0.0);
                     }
                 });
 
                 drawRing(groundCenter.clone().add(0, 0.02, 0), middleRadius, 58, -swirl * 0.6, (point, index) -> {
-                    runeWorld.spawnParticle(Particle.REDSTONE, point, 1, 0.02, 0.0, 0.02, 0, INNER_RING_DUST);
+                    runeWorld.spawnParticle(Particle.DUST, point, 1, 0.02, 0.0, 0.02, 0, INNER_RING_DUST);
                     if (index % 9 == 0) {
-                        runeWorld.spawnParticle(Particle.ENCHANTMENT_TABLE, point.clone().add(0, 0.1, 0), 1, 0.0, 0.0, 0.0, 0.0);
+                        runeWorld.spawnParticle(Particle.ENCHANT, point.clone().add(0, 0.1, 0), 1, 0.0, 0.0, 0.0, 0.0);
                     }
                 });
 
                 drawRing(groundCenter.clone().add(0, 0.04, 0), innerRadius, 46, swirl * 1.1, (point, index) -> {
-                    runeWorld.spawnParticle(Particle.REDSTONE, point, 1, 0.015, 0.0, 0.015, 0, INNER_RING_DUST);
+                    runeWorld.spawnParticle(Particle.DUST, point, 1, 0.015, 0.0, 0.015, 0, INNER_RING_DUST);
                     if (index % 2 == 0) {
-                        runeWorld.spawnParticle(Particle.SPELL_WITCH, point.clone().add(0, 0.05, 0), 1, 0.0, 0.0, 0.0, 0.0);
+                        runeWorld.spawnParticle(Particle.WITCH, point.clone().add(0, 0.05, 0), 1, 0.0, 0.0, 0.0, 0.0);
                     }
                 });
 
