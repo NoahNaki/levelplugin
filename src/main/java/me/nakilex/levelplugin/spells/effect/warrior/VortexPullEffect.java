@@ -19,7 +19,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 /**
- * Pulls nearby entities toward the warrior while a swirling vortex of particles builds around them.
+ * Pulls nearby entities toward the warrior while concentric ground rings collapse inward.
  */
 public class VortexPullEffect implements SpellEffect {
     private static final double AOE_RADIUS = 5.0;
@@ -44,9 +44,8 @@ public class VortexPullEffect implements SpellEffect {
 
         World world = player.getWorld();
         Location castLocation = player.getLocation();
-        world.playSound(castLocation, Sound.ITEM_TRIDENT_RETURN, 0.7f, 0.8f);
-        world.playSound(castLocation, Sound.ENTITY_WITHER_AMBIENT, 0.35f, 2.0f);
-        world.spawnParticle(Particle.SWEEP_ATTACK, castLocation.clone().add(0, 1.0, 0), 12, 0.25, 0.15, 0.25, 0.0);
+        world.playSound(castLocation, Sound.ITEM_TRIDENT_RETURN, 0.6f, 1.25f);
+        world.playSound(castLocation, Sound.BLOCK_ENCHANTMENT_TABLE_USE, 0.65f, 1.1f);
 
         new SpellAnimation(INTERVAL_TICKS, ANIMATION_STEPS) {
             private double swirl = 0.0;
@@ -63,23 +62,18 @@ public class VortexPullEffect implements SpellEffect {
                 Location vortexCenter = currentFeet.clone().add(0, 0.55, 0);
 
                 double progress = ANIMATION_STEPS <= 1 ? 1.0 : tick / (double) (ANIMATION_STEPS - 1);
-                double outerRadius = Math.max(MIN_GROUND_RADIUS, AOE_RADIUS * (1.0 - progress * 0.45));
-                double innerRadius = Math.max(0.6, outerRadius * 0.45 + Math.sin(progress * Math.PI * 2.2) * 0.18);
+                double outerRadius = Math.max(MIN_GROUND_RADIUS,
+                    AOE_RADIUS - (AOE_RADIUS - MIN_GROUND_RADIUS) * progress);
 
-                spawnGroundRunes(groundCenter, outerRadius, innerRadius);
-                spawnVortexColumns(vortexCenter.clone().add(0, -0.2, 0), outerRadius, progress);
+                spawnGroundCircles(groundCenter, outerRadius, progress);
 
-                world.spawnParticle(Particle.CRIT_MAGIC, vortexCenter, 10, 0.35, 0.45, 0.35, 0.12);
-                world.spawnParticle(Particle.PORTAL, vortexCenter, 36, outerRadius * 0.25, 0.35, outerRadius * 0.25, 0.08);
-                world.spawnParticle(Particle.SMOKE_NORMAL, groundCenter, 12, outerRadius * 0.2, 0.18, outerRadius * 0.2, 0.01);
-
-                if (tick % 4 == 0) {
-                    world.playSound(groundCenter, Sound.BLOCK_BEACON_AMBIENT, 0.3f, 1.8f);
+                if (tick % 5 == 0) {
+                    world.playSound(groundCenter, Sound.BLOCK_BEACON_AMBIENT, 0.22f, 1.65f);
                 }
 
                 pullEntities(vortexCenter, progress);
 
-                swirl += Math.PI / 10.0;
+                swirl += Math.PI / 16.0;
             }
 
             @Override
@@ -89,53 +83,45 @@ public class VortexPullEffect implements SpellEffect {
                 }
 
                 Location finish = player.getLocation().add(0, 0.65, 0);
-                world.playSound(finish, Sound.ENTITY_ENDERMAN_TELEPORT, 0.6f, 1.4f);
-                world.spawnParticle(Particle.EXPLOSION_NORMAL, finish, 22, 0.25, 0.35, 0.25, 0.05);
-                world.spawnParticle(Particle.SPELL_WITCH, finish, 16, 0.35, 0.45, 0.35, 0.1);
+                world.playSound(finish, Sound.BLOCK_AMETHYST_BLOCK_RESONATE, 0.5f, 1.5f);
+                world.spawnParticle(Particle.SPELL_WITCH, finish, 10, 0.25, 0.25, 0.25, 0.08);
             }
 
-            private void spawnGroundRunes(Location groundCenter, double outerRadius, double innerRadius) {
+            private void spawnGroundCircles(Location groundCenter, double outerRadius, double progress) {
                 World runeWorld = groundCenter.getWorld();
-                drawRing(groundCenter, outerRadius, 72, swirl, (point, index) -> {
-                    runeWorld.spawnParticle(Particle.REDSTONE, point, 1, 0.04, 0.01, 0.04, 0, OUTER_RING_DUST);
-                    if (index % 3 == 0) {
-                        runeWorld.spawnParticle(Particle.SOUL, point.clone().add(0, 0.05, 0), 1, 0.01, 0.02, 0.01, 0.0);
-                    }
-                    if (index % 6 == 0) {
-                        runeWorld.spawnParticle(Particle.SMOKE_NORMAL, point.clone().add(0, 0.12, 0), 1, 0.05, 0.02, 0.05, 0.0);
+                double middleRadius = Math.max(0.75, outerRadius * 0.7);
+                double innerRadius = Math.max(0.45, outerRadius * 0.45);
+
+                drawRing(groundCenter, outerRadius, 70, swirl, (point, index) -> {
+                    runeWorld.spawnParticle(Particle.REDSTONE, point, 1, 0.025, 0.0, 0.025, 0, OUTER_RING_DUST);
+                    if (index % 7 == 0) {
+                        runeWorld.spawnParticle(Particle.CRIT_MAGIC, point.clone().add(0, 0.05, 0), 1, 0.0, 0.0, 0.0, 0.0);
                     }
                 });
 
-                drawRing(groundCenter.clone().add(0, 0.08, 0), innerRadius, 56, -swirl * 1.3, (point, index) -> {
-                    runeWorld.spawnParticle(Particle.REDSTONE, point, 1, 0.03, 0.01, 0.03, 0, INNER_RING_DUST);
-                    if (index % 4 == 0) {
-                        runeWorld.spawnParticle(Particle.ENCHANTMENT_TABLE, point, 1, 0.2, 0.0, 0.2, 0.0);
+                drawRing(groundCenter.clone().add(0, 0.02, 0), middleRadius, 58, -swirl * 0.6, (point, index) -> {
+                    runeWorld.spawnParticle(Particle.REDSTONE, point, 1, 0.02, 0.0, 0.02, 0, INNER_RING_DUST);
+                    if (index % 9 == 0) {
+                        runeWorld.spawnParticle(Particle.ENCHANTMENT_TABLE, point.clone().add(0, 0.1, 0), 1, 0.0, 0.0, 0.0, 0.0);
                     }
                 });
-            }
 
-            private void spawnVortexColumns(Location center, double baseRadius, double progress) {
-                World vortexWorld = center.getWorld();
-                double height = 2.6 + (1.0 - progress) * 0.8;
-                int arms = 4;
-                double armSeparation = (Math.PI * 2) / arms;
-                for (int arm = 0; arm < arms; arm++) {
-                    double baseAngle = swirl + armSeparation * arm;
-                    for (double y = 0; y <= height; y += 0.35) {
-                        double taper = 0.55 + progress * 0.25;
-                        double radius = baseRadius * Math.max(0.15, 1.0 - (y / height) * taper);
-                        double spiralAngle = baseAngle + y * 1.3 + progress * Math.PI * 3.0;
-                        double x = Math.cos(spiralAngle) * radius;
-                        double z = Math.sin(spiralAngle) * radius;
-                        Location point = center.clone().add(x, y, z);
-                        vortexWorld.spawnParticle(Particle.END_ROD, point, 1, 0.0, 0.0, 0.0, 0.0);
-                        if (((int) Math.round(y * 10)) % 4 == 0) {
-                            vortexWorld.spawnParticle(Particle.SPELL_WITCH, point, 1, 0.0, 0.0, 0.0, 0.0);
-                        }
-                        if (((int) Math.round(y * 10 + arm)) % 6 == 0) {
-                            vortexWorld.spawnParticle(Particle.CRIT, point, 1, 0.0, 0.0, 0.0, 0.0);
-                        }
+                drawRing(groundCenter.clone().add(0, 0.04, 0), innerRadius, 46, swirl * 1.1, (point, index) -> {
+                    runeWorld.spawnParticle(Particle.REDSTONE, point, 1, 0.015, 0.0, 0.015, 0, INNER_RING_DUST);
+                    if (index % 2 == 0) {
+                        runeWorld.spawnParticle(Particle.SPELL_WITCH, point.clone().add(0, 0.05, 0), 1, 0.0, 0.0, 0.0, 0.0);
                     }
+                });
+
+                int rays = 6;
+                double collapseRadius = Math.max(innerRadius * 0.6,
+                    outerRadius * (0.25 + 0.2 * (1.0 - progress)));
+                for (int ray = 0; ray < rays; ray++) {
+                    double angle = swirl * 0.5 + (Math.PI * 2.0 / rays) * ray;
+                    double x = Math.cos(angle) * collapseRadius;
+                    double z = Math.sin(angle) * collapseRadius;
+                    Location point = groundCenter.clone().add(x, 0.03, z);
+                    runeWorld.spawnParticle(Particle.CRIT, point, 1, 0.02, 0.0, 0.02, 0.0);
                 }
             }
 
