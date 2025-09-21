@@ -49,7 +49,7 @@ public final class ClassEssence {
             PlayerClass.CLERIC, "smite",
             PlayerClass.ROGUE, "protection",
             PlayerClass.ARCHER, "projectile_protection",
-            PlayerClass.AWAKMAGE, "wind_burst",
+            PlayerClass.AWAKMAGE, "channeling",
             PlayerClass.AWAKROGUE, "unbreaking",
             PlayerClass.AWAKWARRIOR, "sweeping_edge",
             PlayerClass.AWAKARCHER, "piercing",

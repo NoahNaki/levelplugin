@@ -116,6 +116,15 @@ public class SpellGUI {
         SPELL_DESCRIPTIONS.put("volley_of_arrows", "Call down a volley of arrows around you.");
         SPELL_DESCRIPTIONS.put("ambush", "Prepare to bleed targets with your next strike.");
 
+        // Awakened Mage
+        SPELL_DESCRIPTIONS.put("sorcery_combo", "Weave arcane bolts into a relentless combo.");
+        SPELL_DESCRIPTIONS.put("teleport_strike", "Blink forward and strike foes at lightning speed.");
+        SPELL_DESCRIPTIONS.put("blazing_barrage", "Channel layered fireballs that culminate in an eruption.");
+        SPELL_DESCRIPTIONS.put("cryo_prison", "Encase enemies in a freezing prison before shattering it.");
+        SPELL_DESCRIPTIONS.put("hailpiercer", "Summon frigid spikes that burst from the ground.");
+        SPELL_DESCRIPTIONS.put("meteor_of_doom", "Call down a catastrophic meteor to devastate the battlefield.");
+        SPELL_DESCRIPTIONS.put("mana_barrier", "Manifest a protective barrier that absorbs incoming damage.");
+
         SPELL_DESCRIPTIONS.put("fireball", "Launch a blazing projectile.");
         SPELL_DESCRIPTIONS.put("blink", "Teleport a short distance.");
         SPELL_DESCRIPTIONS.put("frost_nova", "Freeze and damage nearby foes.");
@@ -225,6 +234,16 @@ public class SpellGUI {
         SPELL_USAGE.put("shot_of_destruction", "Right + Right + Right");
         SPELL_USAGE.put("volley_of_arrows", "Sneak + Toggle");
         SPELL_USAGE.put("ambush", "Passive");
+
+        // Awakened Mage
+        SPELL_USAGE.put("sorcery_combo", "Left Click");
+        SPELL_USAGE.put("teleport_strike", "Right Click");
+        SPELL_USAGE.put("hailpiercer", "Sneak + Left Click");
+        SPELL_USAGE.put("meteor_of_doom", "Sneak + Right Click");
+        SPELL_USAGE.put("blazing_barrage", "Sneak (Hold then Release)");
+        SPELL_USAGE.put("cryo_prison", "Sneak Twice");
+        SPELL_USAGE.put("mana_barrier", "Sneak (Start)");
+
         SPELL_USAGE.put("fireball", "Left Click");
         SPELL_USAGE.put("blink", "Right Click");
         SPELL_USAGE.put("meteor", "Sneak + Right Click");
@@ -335,6 +354,14 @@ public class SpellGUI {
         Map.entry("shot_of_destruction", "icon_shot_of_destruction"),
         Map.entry("volley_of_arrows", "icon_volley_of_arrows"),
         Map.entry("ambush", "icon_ambush"),
+        // Awakened Mage
+        Map.entry("sorcery_combo", "icon_sorcery_combo"),
+        Map.entry("teleport_strike", "icon_teleport_strike"),
+        Map.entry("blazing_barrage", "icon_blazing_barrage"),
+        Map.entry("cryo_prison", "icon_cryo_prison"),
+        Map.entry("hailpiercer", "icon_hailpiercer"),
+        Map.entry("meteor_of_doom", "icon_meteor_of_doom"),
+        Map.entry("mana_barrier", "icon_mana_barrier"),
         Map.entry("fireball", "icon_fireball"),
         Map.entry("blink", "icon_blink"),
         Map.entry("meteor", "icon_meteor"),
@@ -404,6 +431,7 @@ public class SpellGUI {
             case AWAKROGUE -> "awakrogue";
             case AWAKWARRIOR -> "awakwarrior";
             case AWAKARCHER -> "awakarcher";
+            case AWAKMAGE -> "awakmage";
             case ARCHMAGE -> "archmage";
             case WITCH -> "witch";
             default -> null;

@@ -452,6 +452,63 @@ public class SpellManager {
         spellsById.put("awakarcher", Collections.unmodifiableMap(awakArIdMap));
         plugin.getLogger().info("[SPELLS] AwakArcher combos: " + awakarcherMap.keySet());
 
+        // — AWAKMAGE CLASS —
+        Map<String, Spell> awakmageMap = new HashMap<>();
+        awakmageMap.put("BASIC_ATTACK", basicAttack(
+            "sorcery_combo", "Sorcery Combo",
+            WeaponType.WAND.getMaterials(),
+            "MYTHIC_SORCERY_COMBO"
+        ));
+        awakmageMap.put("LRL", new Spell(
+            "teleport_strike", "Teleport Strike", "LRL",
+            8.0,
+            MythicSkillConfig.getCooldownSeconds("Teleport_Strike_CAST"), LVL_THREE,
+            WeaponType.WAND.getMaterials(),
+            "MYTHIC_TELEPORT_STRIKE", 0.0,
+            false,
+            true
+        ));
+        awakmageMap.put("LLL", new Spell(
+            "blazing_barrage", "Blazing Barrage", "LLL",
+            12.0,
+            MythicSkillConfig.getCooldownSeconds("Blazing_Barrage_CAST"), LVL_EIGHT,
+            WeaponType.WAND.getMaterials(),
+            "MYTHIC_BLAZING_BARRAGE", 0.0
+        ));
+        awakmageMap.put("LLR", new Spell(
+            "cryo_prison", "Cryo Prison", "LLR",
+            10.0,
+            MythicSkillConfig.getCooldownSeconds("Cryo_Prison_Skill"), LVL_FIVE,
+            WeaponType.WAND.getMaterials(),
+            "MYTHIC_CRYO_PRISON", 0.0
+        ));
+        awakmageMap.put("RLL", new Spell(
+            "hailpiercer", "Hailpiercer", "RLL",
+            10.0,
+            MythicSkillConfig.getCooldownSeconds("Hailpiercer"), LVL_FIVE,
+            WeaponType.WAND.getMaterials(),
+            "MYTHIC_HAILPIERCER", 0.0
+        ));
+        awakmageMap.put("RRR", new Spell(
+            "meteor_of_doom", "Meteor Of Doom", "RRR",
+            20.0,
+            MythicSkillConfig.getCooldownSeconds("Meteor_Of_Doom"), LVL_TEN,
+            WeaponType.WAND.getMaterials(),
+            "MYTHIC_METEOR_OF_DOOM", 0.0
+        ));
+        awakmageMap.put("SNEAK", new Spell(
+            "mana_barrier", "Mana Barrier", "SNEAK",
+            0.0,
+            MythicSkillConfig.getCooldownSeconds("Mana_Barrier"), LVL_THREE,
+            WeaponType.WAND.getMaterials(),
+            "MYTHIC_MANA_BARRIER", 0.0
+        ));
+        spellsByClass.put("awakmage", Collections.unmodifiableMap(awakmageMap));
+        Map<String, Spell> awakMageIdMap = new HashMap<>();
+        for (Spell s : awakmageMap.values()) awakMageIdMap.put(s.getId().toLowerCase(), s);
+        spellsById.put("awakmage", Collections.unmodifiableMap(awakMageIdMap));
+        plugin.getLogger().info("[SPELLS] AwakMage combos: " + awakmageMap.keySet());
+
         // — ARCHMAGE CLASS —
         Map<String, Spell> archmageMap = new HashMap<>();
         archmageMap.put("BASIC_ATTACK", basicAttack(
