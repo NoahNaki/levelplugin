@@ -120,8 +120,9 @@ public class ShockwaveEffect implements SpellEffect {
         }
         final Plugin effectPlugin = plugin;
 
+        double finalMaxRadius = maxRadius;
         new SpellAnimation(duration / steps, duration) {
-            double currentRadius = waveDirection == WaveDirection.OUTWARD ? 0.0 : maxRadius + radiusStep;
+            double currentRadius = waveDirection == WaveDirection.OUTWARD ? 0.0 : finalMaxRadius + radiusStep;
 
             @Override
             protected void onTick(int tick) {
@@ -131,7 +132,7 @@ public class ShockwaveEffect implements SpellEffect {
                 }
 
                 if (waveDirection == WaveDirection.OUTWARD) {
-                    if (currentRadius >= maxRadius) {
+                    if (currentRadius >= finalMaxRadius) {
                         cancel();
                         return;
                     }
