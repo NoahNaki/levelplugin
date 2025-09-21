@@ -27,10 +27,10 @@ import java.util.*;
  */
 public class ClassSpellListener implements Listener {
 
-    /** Repeating task applying the hold-shift counter each tick while sneaking */
-    private final Map<UUID, BukkitTask> holdCountTasks = new HashMap<>();
-    /** Repeating task attempting to cast the hold-shift spell each tick */
-    private final Map<UUID, BukkitTask> holdCastTasks = new HashMap<>();
+    /** Repeating task invoking hold-style crouch abilities each tick */
+    private final Map<UUID, BukkitTask> holdTasks = new HashMap<>();
+    /** Track how many times a player's hold task has executed while sneaking */
+    private final Map<UUID, Integer> holdRuns = new HashMap<>();
     /** Track last unsneak times for Witch double-sneak detection */
     private final Map<UUID, Long> lastUnsneak = new HashMap<>();
     /** Players who started sneaking and haven't used a sneak-click combo yet */
@@ -51,7 +51,23 @@ public class ClassSpellListener implements Listener {
         List<String> sneakPrep = Collections.emptyList();
     }
 
+    private static class HoldConfig {
+        final long delay;
+        final long period;
+        final List<String> skills;
+        /** Number of executions before the crouch tap combo should be cancelled */
+        final int consumeAfterRuns;
+
+        HoldConfig(long delay, long period, List<String> skills, int consumeAfterRuns) {
+            this.delay = delay;
+            this.period = period;
+            this.skills = skills;
+            this.consumeAfterRuns = consumeAfterRuns;
+        }
+    }
+
     private static final Map<PlayerClass, Triggers> MAP = new EnumMap<>(PlayerClass.class);
+    private static final Map<PlayerClass, HoldConfig> HOLD_MAP = new EnumMap<>(PlayerClass.class);
     private static final EnumSet<PlayerClass> BOW_CLASSES = EnumSet.noneOf(PlayerClass.class);
     private static final String ATTACK_COOLDOWN_KEY = "basic_attack";
     static {
@@ -184,6 +200,16 @@ public class ClassSpellListener implements Listener {
 
         // Awakened Mage class
         t = new Triggers();
+        t.left = List.of("sorcery_combo");
+        t.right = List.of("teleport_strike");
+        t.leftSneak = List.of("hailpiercer");
+        t.rightSneak = List.of("meteor_of_doom");
+        t.sneakStart = List.of("blazing_barrage");
+        t.sneakPrep = List.of("Mana_Barrier");
+        MAP.put(PlayerClass.AWAKMAGE, t);
+
+        // Archmage class
+        t = new Triggers();
         t.left = List.of("arcane_slash");
         t.right = List.of("blizzard");
         t.leftSneak = List.of("arcane_devastation");
@@ -247,6 +273,27 @@ public class ClassSpellListener implements Listener {
 
         // Cleric class (no default combos yet)
         MAP.put(PlayerClass.CLERIC, new Triggers());
+
+        HOLD_MAP.put(PlayerClass.WITCH, new HoldConfig(
+                0L,
+                1L,
+                List.of("mf_class_witch_holdshift_cruibile_count", "mf_class_witch_holdshift"),
+                -1
+        ));
+        HOLD_MAP.put(PlayerClass.AWAKMAGE, new HoldConfig(
+                0L,
+                1L,
+                List.of("Cryo_Prison"),
+                3
+        ));
+    }
+
+    private void cancelHoldTask(UUID id) {
+        BukkitTask task = holdTasks.remove(id);
+        if (task != null) {
+            task.cancel();
+        }
+        holdRuns.remove(id);
     }
 
     private void cast(Player player, List<String> combos, PlayerClass pc) {
@@ -333,6 +380,7 @@ public class ClassSpellListener implements Listener {
         if (tr == null) return;
         if (event.isSneaking()) {
             UUID id = p.getUniqueId();
+            cancelHoldTask(id);
             // cancel any pending unsneak cast if player crouches again quickly
             BukkitTask pending = pendingUnsneak.remove(id);
             if (pending != null) {
@@ -369,33 +417,47 @@ public class ClassSpellListener implements Listener {
                     // double crouch
                     MythicBukkit.inst().getAPIHelper().castSkill(p, "mf_class_witch_shiftshift");
                 }
-
-                BukkitTask countTask = Bukkit.getScheduler().runTaskTimer(
+            }
+            HoldConfig hold = HOLD_MAP.get(pc);
+            if (hold != null) {
+                holdRuns.put(id, 0);
+                final UUID playerId = id;
+                BukkitTask task = Bukkit.getScheduler().runTaskTimer(
                         Main.getPlugin(),
                         () -> {
-                            if (p.isOnline() && p.isSneaking()) {
-                                MythicBukkit.inst().getAPIHelper().castSkill(p, "mf_class_witch_holdshift_cruibile_count");
+                            Player target = Bukkit.getPlayer(playerId);
+                            if (target == null || !target.isOnline()) {
+                                cancelHoldTask(playerId);
+                                return;
                             }
-                        },
-                        0L, 1L
-                );
-                BukkitTask castTask = Bukkit.getScheduler().runTaskTimer(
-                        Main.getPlugin(),
-                        () -> {
-                            if (p.isOnline() && p.isSneaking()) {
-                                MythicBukkit.inst().getAPIHelper().castSkill(p, "mf_class_witch_holdshift");
-                            }
-                        },
-                        0L, 1L
-                );
 
-                BukkitTask old = holdCountTasks.put(p.getUniqueId(), countTask);
-                if (old != null) old.cancel();
-                old = holdCastTasks.put(p.getUniqueId(), castTask);
-                if (old != null) old.cancel();
+                            int previousRuns = holdRuns.getOrDefault(playerId, 0);
+                            if (!target.isSneaking()) {
+                                if (previousRuns > 0) {
+                                    cancelHoldTask(playerId);
+                                }
+                                return;
+                            }
+
+                            int runs = holdRuns.compute(playerId, (uuid, count) -> count == null ? 1 : count + 1);
+                            for (String skill : hold.skills) {
+                                MythicBukkit.inst().getAPIHelper().castSkill(target, skill);
+                            }
+                            if (hold.consumeAfterRuns > 0 && runs >= hold.consumeAfterRuns) {
+                                pendingSneak.remove(playerId);
+                            }
+                        },
+                        hold.delay,
+                        hold.period
+                );
+                BukkitTask previous = holdTasks.put(playerId, task);
+                if (previous != null) {
+                    previous.cancel();
+                }
             }
         } else {
             UUID id = p.getUniqueId();
+            cancelHoldTask(id);
             boolean castSneak = pendingSneak.remove(id);
             if (castSneak) {
                 BukkitTask old = pendingUnsneak.remove(id);
@@ -416,13 +478,6 @@ public class ClassSpellListener implements Listener {
             }
 
             lastUnsneak.put(id, System.currentTimeMillis());
-
-            if (pc == PlayerClass.WITCH) {
-                BukkitTask task = holdCountTasks.remove(id);
-                if (task != null) task.cancel();
-                task = holdCastTasks.remove(id);
-                if (task != null) task.cancel();
-            }
         }
     }
 }

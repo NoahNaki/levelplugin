@@ -141,6 +141,17 @@ public class EffectRegistry {
         register("MYTHIC_SHOT_OF_DESTRUCTION", new MythicSkillEffect("Shot_Of_Destruction"));
         register("MYTHIC_AMBUSH", new MythicSkillEffect("Ambush"));
 
+        // --- Awakened Mage Mythic skills ---
+        register("MYTHIC_SORCERY_COMBO", new MythicSkillEffect("Sorcery_Combo"));
+        register("MYTHIC_TELEPORT_STRIKE", new MythicSkillEffect("Teleport_Strike"));
+        // Use the *_SKILL variants so the full Awakened Mage abilities fire immediately
+        // instead of only priming their Mythic stacking auras.
+        register("MYTHIC_BLAZING_BARRAGE", new MythicSkillEffect("Blazing_Barrage_SKILL"));
+        register("MYTHIC_CRYO_PRISON", new MythicSkillEffect("Cryo_Prison_Skill"));
+        register("MYTHIC_HAILPIERCER", new MythicSkillEffect("Hailpiercer"));
+        register("MYTHIC_METEOR_OF_DOOM", new MythicSkillEffect("Meteor_Of_Doom"));
+        register("MYTHIC_MANA_BARRIER", new MythicSkillEffect("Mana_Barrier"));
+
         // --- Mage Mythic skills ---
         register("MYTHIC_FIREBALL", new MythicSkillEffect("Fireball"));
         register("MYTHIC_BLINK", new me.nakilex.levelplugin.spells.effect.mage.TeleportEffect());

@@ -35,6 +35,7 @@ public final class ClassUtil {
     public static boolean isMageFamily(PlayerClass cls) {
         return cls == PlayerClass.MAGE
                 || cls == PlayerClass.WITCH
+                || cls == PlayerClass.AWAKMAGE
                 || cls == PlayerClass.ARCHMAGE;
     }
 
