@@ -426,8 +426,16 @@ public class ClassSpellListener implements Listener {
                         Main.getPlugin(),
                         () -> {
                             Player target = Bukkit.getPlayer(playerId);
-                            if (target == null || !target.isOnline() || !target.isSneaking()) {
+                            if (target == null || !target.isOnline()) {
                                 cancelHoldTask(playerId);
+                                return;
+                            }
+
+                            int previousRuns = holdRuns.getOrDefault(playerId, 0);
+                            if (!target.isSneaking()) {
+                                if (previousRuns > 0) {
+                                    cancelHoldTask(playerId);
+                                }
                                 return;
                             }
 
