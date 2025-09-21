@@ -1,5 +1,7 @@
 package me.nakilex.levelplugin.spells.effect.warrior;
 
+import java.util.function.BiConsumer;
+
 import me.nakilex.levelplugin.duels.managers.DuelManager;
 import me.nakilex.levelplugin.spells.context.SpellCastContext;
 import me.nakilex.levelplugin.spells.context.SpellCastContextCompat;
@@ -9,6 +11,7 @@ import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.World;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -16,14 +19,19 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 /**
- * Pulls nearby entities toward the warrior while a shrinking circle of particles forms on the ground.
+ * Pulls nearby entities toward the warrior while a swirling vortex of particles builds around them.
  */
 public class VortexPullEffect implements SpellEffect {
     private static final double AOE_RADIUS = 5.0;
     private static final double AOE_HEIGHT = 3.0;
-    private static final double MIN_RING_RADIUS = 0.8;
-    private static final int    ITERATIONS = 18;
+    private static final double MIN_GROUND_RADIUS = 1.1;
+    private static final int    ANIMATION_STEPS = 28;
     private static final int    INTERVAL_TICKS = 2;
+
+    private static final Particle.DustOptions OUTER_RING_DUST =
+        new Particle.DustOptions(Color.fromRGB(78, 17, 17), 1.35f);
+    private static final Particle.DustOptions INNER_RING_DUST =
+        new Particle.DustOptions(Color.fromRGB(158, 46, 46), 0.95f);
 
     @Override
     public void apply(SpellCastContext ctx) {
@@ -34,15 +42,14 @@ public class VortexPullEffect implements SpellEffect {
 
         SpellCastContextCompat.markSuccess(ctx, true);
 
-        var world = player.getWorld();
-        world.playSound(player.getLocation(), Sound.ITEM_TRIDENT_THROW, 0.8f, 0.75f);
-        world.spawnParticle(Particle.SWEEP_ATTACK, player.getLocation().add(0, 1.0, 0), 8, 0.2, 0.1, 0.2, 0.01);
+        World world = player.getWorld();
+        Location castLocation = player.getLocation();
+        world.playSound(castLocation, Sound.ITEM_TRIDENT_RETURN, 0.7f, 0.8f);
+        world.playSound(castLocation, Sound.ENTITY_WITHER_AMBIENT, 0.35f, 2.0f);
+        world.spawnParticle(Particle.SWEEP_ATTACK, castLocation.clone().add(0, 1.0, 0), 12, 0.25, 0.15, 0.25, 0.0);
 
-        final Particle.DustOptions outerDust = new Particle.DustOptions(Color.fromRGB(92, 22, 22), 1.35f);
-        final Particle.DustOptions innerDust = new Particle.DustOptions(Color.fromRGB(168, 47, 47), 0.9f);
-
-        new SpellAnimation(INTERVAL_TICKS, ITERATIONS) {
-            private double ringRotation = 0.0;
+        new SpellAnimation(INTERVAL_TICKS, ANIMATION_STEPS) {
+            private double swirl = 0.0;
 
             @Override
             protected void onTick(int tick) {
@@ -51,46 +58,103 @@ public class VortexPullEffect implements SpellEffect {
                     return;
                 }
 
-                Location feet = player.getLocation().clone();
-                Location groundCenter = feet.clone();
-                groundCenter.setY(feet.getY() - 0.1);
-                Location pullCenter = feet.add(0, 0.55, 0);
+                Location currentFeet = player.getLocation();
+                Location groundCenter = currentFeet.clone().add(0, -0.12, 0);
+                Location vortexCenter = currentFeet.clone().add(0, 0.55, 0);
 
-                double progress = ITERATIONS <= 1 ? 1.0 : (tick / (double) (ITERATIONS - 1));
-                double baseRadius = Math.max(MIN_RING_RADIUS, AOE_RADIUS - (AOE_RADIUS - MIN_RING_RADIUS) * progress);
-                double ripple = Math.sin(progress * Math.PI * 1.5) * 0.35;
-                double ringRadius = Math.max(MIN_RING_RADIUS * 0.65, baseRadius + ripple);
+                double progress = ANIMATION_STEPS <= 1 ? 1.0 : tick / (double) (ANIMATION_STEPS - 1);
+                double outerRadius = Math.max(MIN_GROUND_RADIUS, AOE_RADIUS * (1.0 - progress * 0.45));
+                double innerRadius = Math.max(0.6, outerRadius * 0.45 + Math.sin(progress * Math.PI * 2.2) * 0.18);
 
-                spawnRing(groundCenter, ringRadius, outerDust);
-                if (tick % 2 == 0) {
-                    double innerRadius = Math.max(MIN_RING_RADIUS * 0.5, ringRadius * 0.6);
-                    spawnRing(groundCenter.clone().add(0, 0.1, 0), innerRadius, innerDust);
+                spawnGroundRunes(groundCenter, outerRadius, innerRadius);
+                spawnVortexColumns(vortexCenter.clone().add(0, -0.2, 0), outerRadius, progress);
+
+                world.spawnParticle(Particle.CRIT_MAGIC, vortexCenter, 10, 0.35, 0.45, 0.35, 0.12);
+                world.spawnParticle(Particle.PORTAL, vortexCenter, 36, outerRadius * 0.25, 0.35, outerRadius * 0.25, 0.08);
+                world.spawnParticle(Particle.SMOKE_NORMAL, groundCenter, 12, outerRadius * 0.2, 0.18, outerRadius * 0.2, 0.01);
+
+                if (tick % 4 == 0) {
+                    world.playSound(groundCenter, Sound.BLOCK_BEACON_AMBIENT, 0.3f, 1.8f);
                 }
 
-                world.spawnParticle(Particle.SMOKE_NORMAL, groundCenter, 10, ringRadius * 0.25, 0.15, ringRadius * 0.25, 0.01);
-                world.spawnParticle(Particle.PORTAL, pullCenter, 18, 0.35, 0.4, 0.35, 0.05);
+                pullEntities(vortexCenter, progress);
 
-                pullEntities(pullCenter);
+                swirl += Math.PI / 10.0;
+            }
 
-                ringRotation += Math.PI / 12.0;
-                if (tick % 3 == 0) {
-                    world.playSound(groundCenter, Sound.BLOCK_BEACON_AMBIENT, 0.35f, 1.9f);
+            @Override
+            protected void onEnd() {
+                if (!player.isOnline()) {
+                    return;
+                }
+
+                Location finish = player.getLocation().add(0, 0.65, 0);
+                world.playSound(finish, Sound.ENTITY_ENDERMAN_TELEPORT, 0.6f, 1.4f);
+                world.spawnParticle(Particle.EXPLOSION_NORMAL, finish, 22, 0.25, 0.35, 0.25, 0.05);
+                world.spawnParticle(Particle.SPELL_WITCH, finish, 16, 0.35, 0.45, 0.35, 0.1);
+            }
+
+            private void spawnGroundRunes(Location groundCenter, double outerRadius, double innerRadius) {
+                World runeWorld = groundCenter.getWorld();
+                drawRing(groundCenter, outerRadius, 72, swirl, (point, index) -> {
+                    runeWorld.spawnParticle(Particle.REDSTONE, point, 1, 0.04, 0.01, 0.04, 0, OUTER_RING_DUST);
+                    if (index % 3 == 0) {
+                        runeWorld.spawnParticle(Particle.SOUL, point.clone().add(0, 0.05, 0), 1, 0.01, 0.02, 0.01, 0.0);
+                    }
+                    if (index % 6 == 0) {
+                        runeWorld.spawnParticle(Particle.SMOKE_NORMAL, point.clone().add(0, 0.12, 0), 1, 0.05, 0.02, 0.05, 0.0);
+                    }
+                });
+
+                drawRing(groundCenter.clone().add(0, 0.08, 0), innerRadius, 56, -swirl * 1.3, (point, index) -> {
+                    runeWorld.spawnParticle(Particle.REDSTONE, point, 1, 0.03, 0.01, 0.03, 0, INNER_RING_DUST);
+                    if (index % 4 == 0) {
+                        runeWorld.spawnParticle(Particle.ENCHANTMENT_TABLE, point, 1, 0.2, 0.0, 0.2, 0.0);
+                    }
+                });
+            }
+
+            private void spawnVortexColumns(Location center, double baseRadius, double progress) {
+                World vortexWorld = center.getWorld();
+                double height = 2.6 + (1.0 - progress) * 0.8;
+                int arms = 4;
+                double armSeparation = (Math.PI * 2) / arms;
+                for (int arm = 0; arm < arms; arm++) {
+                    double baseAngle = swirl + armSeparation * arm;
+                    for (double y = 0; y <= height; y += 0.35) {
+                        double taper = 0.55 + progress * 0.25;
+                        double radius = baseRadius * Math.max(0.15, 1.0 - (y / height) * taper);
+                        double spiralAngle = baseAngle + y * 1.3 + progress * Math.PI * 3.0;
+                        double x = Math.cos(spiralAngle) * radius;
+                        double z = Math.sin(spiralAngle) * radius;
+                        Location point = center.clone().add(x, y, z);
+                        vortexWorld.spawnParticle(Particle.END_ROD, point, 1, 0.0, 0.0, 0.0, 0.0);
+                        if (((int) Math.round(y * 10)) % 4 == 0) {
+                            vortexWorld.spawnParticle(Particle.SPELL_WITCH, point, 1, 0.0, 0.0, 0.0, 0.0);
+                        }
+                        if (((int) Math.round(y * 10 + arm)) % 6 == 0) {
+                            vortexWorld.spawnParticle(Particle.CRIT, point, 1, 0.0, 0.0, 0.0, 0.0);
+                        }
+                    }
                 }
             }
 
-            private void spawnRing(Location center, double radius, Particle.DustOptions dust) {
-                double step = Math.PI / 12.0;
-                for (double angle = ringRotation; angle < ringRotation + Math.PI * 2; angle += step) {
+            private void drawRing(Location center, double radius, int samples, double angleOffset,
+                                   BiConsumer<Location, Integer> pointConsumer) {
+                Location base = center.clone();
+                double increment = (Math.PI * 2) / samples;
+                for (int i = 0; i < samples; i++) {
+                    double angle = angleOffset + increment * i;
                     double x = Math.cos(angle) * radius;
                     double z = Math.sin(angle) * radius;
-                    Location sample = center.clone().add(x, 0, z);
-                    center.getWorld().spawnParticle(Particle.REDSTONE, sample, 1, 0.02, 0.02, 0.02, 0, dust);
-                    center.getWorld().spawnParticle(Particle.CRIT, sample.clone().add(0, 0.15, 0), 1, 0.0, 0.0, 0.0, 0.0);
+                    Location point = base.clone().add(x, 0, z);
+                    pointConsumer.accept(point, i);
                 }
             }
 
-            private void pullEntities(Location center) {
-                for (Entity entity : center.getWorld().getNearbyEntities(center, AOE_RADIUS, AOE_HEIGHT, AOE_RADIUS)) {
+            private void pullEntities(Location center, double progress) {
+                World pullWorld = center.getWorld();
+                for (Entity entity : pullWorld.getNearbyEntities(center, AOE_RADIUS, AOE_HEIGHT, AOE_RADIUS)) {
                     if (!(entity instanceof LivingEntity living) || living.equals(player) || entity instanceof ArmorStand) {
                         continue;
                     }
@@ -105,22 +169,13 @@ public class VortexPullEffect implements SpellEffect {
                         continue;
                     }
 
-                    double pullStrength = 0.18 + (1.0 - distance / AOE_RADIUS) * 0.55;
+                    double closeness = 1.0 - Math.min(1.0, distance / AOE_RADIUS);
+                    double pullStrength = 0.26 + progress * 0.12 + closeness * 0.5;
                     Vector velocity = delta.normalize().multiply(pullStrength);
-                    double yBoost = 0.12 + (1.0 - distance / AOE_RADIUS) * 0.18;
-                    velocity.setY(Math.min(0.45, Math.max(velocity.getY(), yBoost)));
-                    living.setVelocity(living.getVelocity().multiply(0.35).add(velocity));
+                    double verticalBoost = 0.12 + closeness * 0.25 + progress * 0.1;
+                    velocity.setY(Math.min(0.55, Math.max(velocity.getY(), verticalBoost)));
+                    living.setVelocity(living.getVelocity().multiply(0.25).add(velocity));
                 }
-            }
-
-            @Override
-            protected void onEnd() {
-                if (!player.isOnline()) {
-                    return;
-                }
-                Location endLoc = player.getLocation().add(0, 0.5, 0);
-                world.playSound(endLoc, Sound.ENTITY_ENDERMAN_TELEPORT, 0.65f, 1.3f);
-                world.spawnParticle(Particle.EXPLOSION_NORMAL, endLoc, 16, 0.2, 0.2, 0.2, 0.04);
             }
         };
     }
