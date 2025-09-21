@@ -54,7 +54,7 @@ public class SpellGUI {
 
         SPELL_DESCRIPTIONS.put("brutal_strike", "Swing your axe in a brutal strike.");
         SPELL_DESCRIPTIONS.put("charge", "Rush forward, knocking enemies aside.");
-        SPELL_DESCRIPTIONS.put("chain_hook", "Throw a chain to pull foes to you.");
+        SPELL_DESCRIPTIONS.put("chain_hook", "Summon a vortex that drags nearby foes to you.");
         SPELL_DESCRIPTIONS.put("shield_barrier", "Raise a temporary blocking shield.");
         SPELL_DESCRIPTIONS.put("whirlwind", "Spin and damage nearby foes.");
         SPELL_DESCRIPTIONS.put("judgement", "Leap and smash the ground mightily.");

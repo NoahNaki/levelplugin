@@ -65,7 +65,7 @@ public class WarriorSpell implements Listener {
         event.setCancelled(true);
         Main.getPlugin().getLogger().info("[WR] right click " + player.getName() + " sneaking=" + player.isSneaking());
         if (player.isSneaking()) {
-            castSpell(player, "LRR"); // Chain Hook
+            castSpell(player, "LRR"); // Vortex Pull
         } else {
             castSpell(player, "LRL"); // Charge
         }
