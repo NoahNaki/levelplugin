@@ -144,8 +144,10 @@ public class EffectRegistry {
         // --- Awakened Mage Mythic skills ---
         register("MYTHIC_SORCERY_COMBO", new MythicSkillEffect("Sorcery_Combo"));
         register("MYTHIC_TELEPORT_STRIKE", new MythicSkillEffect("Teleport_Strike"));
-        register("MYTHIC_BLAZING_BARRAGE", new MythicSkillEffect("Blazing_Barrage"));
-        register("MYTHIC_CRYO_PRISON", new MythicSkillEffect("Cryo_Prison"));
+        // Use the *_SKILL variants so the full Awakened Mage abilities fire immediately
+        // instead of only priming their Mythic stacking auras.
+        register("MYTHIC_BLAZING_BARRAGE", new MythicSkillEffect("Blazing_Barrage_SKILL"));
+        register("MYTHIC_CRYO_PRISON", new MythicSkillEffect("Cryo_Prison_Skill"));
         register("MYTHIC_HAILPIERCER", new MythicSkillEffect("Hailpiercer"));
         register("MYTHIC_METEOR_OF_DOOM", new MythicSkillEffect("Meteor_Of_Doom"));
         register("MYTHIC_MANA_BARRIER", new MythicSkillEffect("Mana_Barrier"));
