@@ -585,6 +585,7 @@ public class SpellManager {
         warriorMap.put("LRR", new Spell(
             "chain_hook", "Vortex Pull", "LRR",
             6.0,
+            5L,
             5,
             WARRIOR_WEAPONS,
             "VORTEX_PULL", 0.0
