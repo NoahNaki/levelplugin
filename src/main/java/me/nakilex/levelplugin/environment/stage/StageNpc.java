@@ -86,7 +86,13 @@ public final class StageNpc {
             Objects.requireNonNull(type, "type");
         }
 
-        /** Parse a configuration string into a {@link Definition}. */
+        /**
+         * Parse a configuration string into a {@link Definition}.
+         * <p>
+         * Supports the historical plain Citizens id format as well as entries prefixed with a
+         * type (e.g. {@code mythic:mob_id}). When a non-numeric identifier is supplied without a
+         * prefix it is treated as a MythicMob id for convenience.
+         */
         public static Definition parse(String raw) {
             if (raw == null || raw.isEmpty()) {
                 throw new IllegalArgumentException("NPC definition cannot be empty");
@@ -128,19 +134,21 @@ public final class StageNpc {
 
                 int colonIdx = idPart.indexOf(':');
                 if (colonIdx < 0) {
-                    throw new IllegalArgumentException("NPC definition missing type prefix: " + raw);
-                }
-                String typeKey = idPart.substring(0, colonIdx);
-                String identifier = idPart.substring(colonIdx + 1);
-                type = Type.fromKey(typeKey);
-                if (type == Type.CITIZENS) {
-                    citizenId = parseInt(identifier, "citizenId");
-                    if (interactionId < 0) interactionId = citizenId;
-                } else if (type == Type.MYTHIC_MOB) {
-                    if (identifier.isEmpty()) {
-                        throw new IllegalArgumentException("MythicMob identifier cannot be empty: " + raw);
+                    type = Type.MYTHIC_MOB;
+                    mythicMobId = idPart;
+                } else {
+                    String typeKey = idPart.substring(0, colonIdx);
+                    String identifier = idPart.substring(colonIdx + 1);
+                    type = Type.fromKey(typeKey);
+                    if (type == Type.CITIZENS) {
+                        citizenId = parseInt(identifier, "citizenId");
+                        if (interactionId < 0) interactionId = citizenId;
+                    } else if (type == Type.MYTHIC_MOB) {
+                        if (identifier.isEmpty()) {
+                            throw new IllegalArgumentException("MythicMob identifier cannot be empty: " + raw);
+                        }
+                        mythicMobId = identifier;
                     }
-                    mythicMobId = identifier;
                 }
             }
 
