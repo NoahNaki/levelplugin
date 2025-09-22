@@ -61,6 +61,7 @@ import me.nakilex.levelplugin.environment.UpgradeGUI;
 import me.nakilex.levelplugin.environment.BuildingUpgradeGUI;
 import me.nakilex.levelplugin.environment.listeners.BuildingHologramListener;
 import me.nakilex.levelplugin.environment.listeners.StageBlockInteractListener;
+import me.nakilex.levelplugin.environment.listeners.StageNpcInteractionListener;
 import me.nakilex.levelplugin.codex.*;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantListener;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager;
@@ -132,7 +133,9 @@ public class ListenerRegistry {
         pm.registerEvents(new StaticItemListener(), plugin);
         pm.registerEvents(blacksmithGUI, plugin);
         pm.registerEvents(horseGUI, plugin);
-        pm.registerEvents(new NPCClickListener(economyManager, questManager, dialogManager), plugin);
+        NPCClickListener npcClickListener = new NPCClickListener(economyManager, questManager, dialogManager);
+        pm.registerEvents(npcClickListener, plugin);
+        pm.registerEvents(new StageNpcInteractionListener(npcClickListener), plugin);
         pm.registerEvents(new NPCCommandListener(), plugin);
         pm.registerEvents(new PlayerRightClicksPlayerListener(), plugin);
         pm.registerEvents(new TradingWindow(), plugin);

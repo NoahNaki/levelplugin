@@ -40,6 +40,17 @@ public class NPCClickListener implements Listener {
             Player player = event.getPlayer();
             NPC npc = CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked());
 
+            handleInteraction(player, npc);
+        }
+    }
+
+    /**
+     * Handle an interaction with a Citizens NPC. This logic is shared with staged MythicMob NPCs
+     * so they behave identically to their Citizens counterparts.
+     */
+    public void handleInteraction(Player player, NPC npc) {
+        if (player == null || npc == null) return;
+
             String stripped = org.bukkit.ChatColor.stripColor(npc.getName());
             if (npc.getId() == 546) {
                 Main.getInstance().getCodexManager().recordNpc(player, stripped);
@@ -131,6 +142,5 @@ public class NPCClickListener implements Listener {
                     default -> {}
                 }
             }
-        }
     }
 }

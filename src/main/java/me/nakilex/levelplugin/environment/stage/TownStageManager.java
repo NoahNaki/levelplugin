@@ -6,7 +6,6 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
-import net.citizensnpcs.trait.CurrentLocation;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -30,7 +29,7 @@ public class TownStageManager {
     private final Main plugin;
     /** Map of town -> level -> stage -> data */
     private final Map<String, Map<Integer, Map<Integer, TownStage>>> stages = new HashMap<>();
-    private final Map<java.util.UUID, Map<String, java.util.List<NPC>>> spawnedNPCs = new HashMap<>();
+    private final Map<java.util.UUID, Map<String, java.util.List<StageNpc.Instance>>> spawnedNPCs = new HashMap<>();
     /** Folder containing FAWE schematics for each stage. */
     private final File schemFolder;
     private File file;
@@ -65,7 +64,7 @@ public class TownStageManager {
     }
 
     public void createStage(String name, int level, int stage, Location p1, Location p2, Location origin, int priority) {
-        java.util.List<NPCSpawn> npcs = new java.util.ArrayList<>();
+        java.util.List<StageNpc.Definition> npcs = new java.util.ArrayList<>();
         java.util.List<BlockDef> blocks = new java.util.ArrayList<>();
         var boxMinX = Math.min(p1.getBlockX(), p2.getBlockX());
         var boxMaxX = Math.max(p1.getBlockX(), p2.getBlockX());
@@ -81,7 +80,10 @@ public class TownStageManager {
             int y = l.getBlockY();
             int z = l.getBlockZ();
             if (x >= boxMinX && x <= boxMaxX && y >= boxMinY && y <= boxMaxY && z >= boxMinZ && z <= boxMaxZ) {
-                npcs.add(new NPCSpawn(
+                npcs.add(new StageNpc.Definition(
+                        StageNpc.Type.CITIZENS,
+                        npc.getId(),
+                        null,
                         npc.getId(),
                         x - boxMinX,
                         y - boxMinY,
@@ -142,40 +144,24 @@ public class TownStageManager {
         var map = spawnedNPCs.computeIfAbsent(id, k -> new java.util.HashMap<>());
         String key = town.toLowerCase() + ":" + level + ":" + stage;
         var list = map.computeIfAbsent(key, k -> new java.util.ArrayList<>());
-        for (NPC npc : list) {
-            if (npc.isSpawned()) npc.despawn();
-            npc.destroy();
+        for (StageNpc.Instance instance : list) {
+            instance.despawn();
         }
         list.clear();
-        for (NPCSpawn ns : ts.npcs) {
-            NPC template = CitizensAPI.getNPCRegistry().getById(ns.id);
-            if (template == null) {
-                plugin.getLogger().warning("NPC template with ID " + ns.id + " not found while spawning stage NPCs");
-                continue;
-            }
-            // Use Citizens API clone support to copy all traits/metadata
-            NPC clone = template.copy();
-
-            // Translate original NPC position relative to the player's town
-            // origin. Add a Y offset so the NPC doesn't spawn partially in the ground.
+        for (StageNpc.Definition def : ts.npcs) {
             Location loc = origin.clone().add(
-                    ns.x - ts.ox + 0.5,
-                    ns.y - ts.oy + NPC_SPAWN_Y_OFFSET,
-                    ns.z - ts.oz + 0.5
+                    def.x() - ts.ox + 0.5,
+                    def.y() - ts.oy + NPC_SPAWN_Y_OFFSET,
+                    def.z() - ts.oz + 0.5
             );
-            loc.setYaw(ns.yaw);
-            loc.setPitch(ns.pitch);
+            loc.setYaw(def.yaw());
+            loc.setPitch(def.pitch());
 
-            clone.getOrAddTrait(CurrentLocation.class).setLocation(loc);
-            plugin.getLogger().info("Spawning NPC clone from template " + ns.id + " at "
-                    + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ()
-                    + " for " + viewer.getName());
-            clone.spawn(loc);
-            if (clone.isSpawned()) {
-                clone.getEntity().teleport(loc, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN);
-                clone.getEntity().setGravity(false);
+            StageNpc.Instance instance = def.spawn(loc, plugin.getLogger(),
+                    "town=" + town + ",level=" + level + ",stage=" + stage);
+            if (instance != null) {
+                list.add(instance);
             }
-            list.add(clone);
         }
     }
 
@@ -184,22 +170,14 @@ public class TownStageManager {
         if (map == null) return;
         String key = town.toLowerCase() + ":" + level + ":" + stage;
         var list = map.remove(key);
-        if (list != null) {
-            for (NPC npc : list) {
-                if (npc.isSpawned()) npc.despawn();
-                npc.destroy();
-            }
-        }
+        if (list != null) list.forEach(StageNpc.Instance::despawn);
         if (map.isEmpty()) spawnedNPCs.remove(viewerId);
     }
 
     public void despawnAll() {
         for (var map : spawnedNPCs.values()) {
             for (var list : map.values()) {
-                for (NPC npc : list) {
-                    if (npc.isSpawned()) npc.despawn();
-                    npc.destroy();
-                }
+                list.forEach(StageNpc.Instance::despawn);
             }
         }
         spawnedNPCs.clear();
@@ -210,7 +188,7 @@ public class TownStageManager {
         if (viewer == null) return;
         for (var map : spawnedNPCs.values()) {
             for (var list : map.values()) {
-                for (NPC npc : list) {
+                for (StageNpc.Instance ignored : list) {
                     // NPCs are now public; do nothing
                 }
             }
@@ -250,22 +228,16 @@ public class TownStageManager {
                     Location p1 = readLocation(world, base + "pos1");
                     Location p2 = readLocation(world, base + "pos2");
                     if (p1 == null || p2 == null) continue;
-                    java.util.List<NPCSpawn> npcs = new java.util.ArrayList<>();
+                    java.util.List<StageNpc.Definition> npcs = new java.util.ArrayList<>();
                     java.util.List<BlockDef> blocks;
                     if (config.isList(base + "npcs")) {
                         for (var o : config.getList(base + "npcs")) {
                             if (!(o instanceof String s)) continue;
-                            String[] parts = s.split(";");
-                            if (parts.length < 6) continue;
                             try {
-                                int id = Integer.parseInt(parts[0]);
-                                int dx = Integer.parseInt(parts[1]);
-                                int dy = Integer.parseInt(parts[2]);
-                                int dz = Integer.parseInt(parts[3]);
-                                float yaw = Float.parseFloat(parts[4]);
-                                float pitch = Float.parseFloat(parts[5]);
-                                npcs.add(new NPCSpawn(id, dx, dy, dz, yaw, pitch));
-                            } catch (NumberFormatException ignored) {}
+                                npcs.add(StageNpc.Definition.parse(s));
+                            } catch (IllegalArgumentException ex) {
+                                plugin.getLogger().warning("[TownStages] Failed to parse NPC entry '" + s + "' for town " + town + " level " + level + " stage " + stage + ": " + ex.getMessage());
+                            }
                         }
                     }
                     String fileName = config.getString(base + "schematic", town.toLowerCase() + "_" + level + "_" + stage + ".schem");
@@ -317,9 +289,8 @@ public class TownStageManager {
                     config.set(base + "pos2.y", p2.getBlockY());
                     config.set(base + "pos2.z", p2.getBlockZ());
                     java.util.List<String> list = new java.util.ArrayList<>();
-                    for (NPCSpawn npc : st.npcs) {
-                        list.add(npc.id + ";" + npc.x + ";" + npc.y + ";" + npc.z
-                                + ";" + npc.yaw + ";" + npc.pitch);
+                    for (StageNpc.Definition npc : st.npcs) {
+                        list.add(npc.serialize());
                     }
                     config.set(base + "npcs", list);
                     config.set(base + "blocks", null); // blocks stored as schematic
@@ -335,21 +306,6 @@ public class TownStageManager {
     }
 
     /** Represents a single NPC spawn within a stage, stored relative to pos1. */
-    public static class NPCSpawn {
-        public final int id;
-        public final int x, y, z;
-        public final float yaw, pitch;
-
-        public NPCSpawn(int id, int x, int y, int z, float yaw, float pitch) {
-            this.id = id;
-            this.x = x;
-            this.y = y;
-            this.z = z;
-            this.yaw = yaw;
-            this.pitch = pitch;
-        }
-    }
-
     /** Simple storage class for a town stage area. */
     public static class TownStage {
         public final String name;
@@ -357,7 +313,7 @@ public class TownStageManager {
         public final int stage;
         public final Location pos1;
         public final Location pos2;
-        public final java.util.List<NPCSpawn> npcs;
+        public final java.util.List<StageNpc.Definition> npcs;
         public final java.util.List<BlockDef> blocks;
         public final File schematic;
         public final String fileName;
@@ -366,7 +322,7 @@ public class TownStageManager {
         public final int ox, oy, oz;
 
         public TownStage(String name, int level, int stage, Location pos1, Location pos2,
-                         java.util.List<NPCSpawn> npcs, java.util.List<BlockDef> blocks,
+                         java.util.List<StageNpc.Definition> npcs, java.util.List<BlockDef> blocks,
                          File schematic, String fileName, int priority,
                          int ox, int oy, int oz) {
             this.name = name;
