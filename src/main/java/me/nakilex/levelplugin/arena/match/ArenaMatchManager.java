@@ -18,6 +18,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
@@ -59,9 +60,14 @@ public class ArenaMatchManager implements Listener {
         this.scoreboardManager = scoreboardManager;
     }
 
+    /** Fetch the match the given player is currently involved in, if any. */
+    public Optional<ArenaMatch> findMatch(UUID playerId) {
+        return Optional.ofNullable(matchesByPlayer.get(playerId));
+    }
+
     /** Check if the player is currently fighting in an arena instance. */
     public boolean isInMatch(UUID playerId) {
-        return matchesByPlayer.containsKey(playerId);
+        return findMatch(playerId).isPresent();
     }
 
     /** Begin a new match for the provided queue entrants. */
@@ -162,6 +168,28 @@ public class ArenaMatchManager implements Listener {
         timeoutTasks.put(match, timeout);
     }
 
+    @EventHandler(ignoreCancelled = true)
+    public void onPlayerMove(PlayerMoveEvent event) {
+        ArenaMatch match = findMatch(event.getPlayer().getUniqueId()).orElse(null);
+        if (match == null || match.getState() != ArenaMatch.State.COUNTDOWN) {
+            return;
+        }
+
+        Location from = event.getFrom();
+        Location to = event.getTo();
+        if (to == null) {
+            return;
+        }
+        if (from.getX() == to.getX() && from.getY() == to.getY() && from.getZ() == to.getZ()) {
+            return;
+        }
+
+        Location locked = from.clone();
+        locked.setYaw(to.getYaw());
+        locked.setPitch(to.getPitch());
+        event.setTo(locked);
+    }
+
     private void announceMatchFound(Player one,
                                     Player two,
                                     ArenaQueueManager.QueueEntry first,
@@ -202,7 +230,7 @@ public class ArenaMatchManager implements Listener {
         if (!(event.getEntity() instanceof Player victim)) {
             return;
         }
-        ArenaMatch match = matchesByPlayer.get(victim.getUniqueId());
+        ArenaMatch match = findMatch(victim.getUniqueId()).orElse(null);
         if (match == null) {
             return;
         }
@@ -236,7 +264,7 @@ public class ArenaMatchManager implements Listener {
         if (event instanceof EntityDamageByEntityEvent) {
             return; // handled in the more specific listener
         }
-        ArenaMatch match = matchesByPlayer.get(player.getUniqueId());
+        ArenaMatch match = findMatch(player.getUniqueId()).orElse(null);
         if (match == null) {
             return;
         }
@@ -257,7 +285,7 @@ public class ArenaMatchManager implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         UUID id = event.getPlayer().getUniqueId();
-        ArenaMatch match = matchesByPlayer.get(id);
+        ArenaMatch match = findMatch(id).orElse(null);
         if (match != null && match.getState() != ArenaMatch.State.FINISHED) {
             finishMatch(match,
                     Optional.of(match.opponent(id)),

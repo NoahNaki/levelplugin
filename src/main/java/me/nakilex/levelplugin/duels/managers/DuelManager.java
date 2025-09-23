@@ -1,6 +1,8 @@
 package me.nakilex.levelplugin.duels.managers;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.arena.match.ArenaMatch;
+import me.nakilex.levelplugin.arena.match.ArenaMatchManager;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -160,6 +162,17 @@ public class DuelManager {
     public boolean areInDuel(UUID p1, UUID p2) {
         UUID partner = activeDuels.get(p1);
         if (partner != null && partner.equals(p2)) return true;
+
+        Main plugin = Main.getInstance();
+        if (plugin != null) {
+            ArenaMatchManager matchManager = plugin.getArenaMatchManager();
+            if (matchManager != null) {
+                ArenaMatch match = matchManager.findMatch(p1).orElse(null);
+                if (match != null && match.involves(p2) && match.getState() == ArenaMatch.State.ACTIVE) {
+                    return true;
+                }
+            }
+        }
         // Treat hostile guilds or opposing siege participants as duelling for damage purposes
         if (me.nakilex.levelplugin.guild.GuildManager.getInstance()
                 .areHostile(p1, p2)) {
