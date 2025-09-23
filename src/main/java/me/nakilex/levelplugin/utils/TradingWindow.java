@@ -82,8 +82,6 @@ public class TradingWindow implements Listener {
     public TradingWindow() {
     }
 
-    ;
-
     public TradingWindow(Player player, Player oppositeDealPartner) {
         this.player = player;
         this.opposite = oppositeDealPartner;
@@ -125,36 +123,10 @@ public class TradingWindow implements Listener {
     }
 
 
-//    private void openCoinSignGUI(Player p, TradingWindow tw) {
-//        // Mark the player as having an active sign input
-//        awaitingSignInput.put(p.getUniqueId(), tw);
-//        activeSignInputs.add(p.getUniqueId()); // Add to active sign input set
-//
-//        // Define the specific location where the sign will be spawned
-//        Location loc = p.getLocation().clone().add(0, -1, 0);
-//        Block block = loc.getBlock();
-//        block.setType(Material.OAK_SIGN);
-//
-//        Sign sign = (Sign) block.getState();
-//        sign.setLine(0, "Enter coins");
-//        sign.update(true, false);
-//
-//        // Track the sign's location for cleanup
-//        activeSignLocations.put(p.getUniqueId(), loc);
-//
-//        p.openSign(sign);
-//    }
-
     private void openCoinChatInput(Player p, TradingWindow tw) {
-        // 1. Snapshot the current trade‐item slots
+        // 1. Snapshot the current trade-item slots so we can restore them after chat input
         tw.playerSlots = tw.projectToItemField(tw.playerInventory);
         tw.oppositeSlots = tw.projectToItemField(tw.oppositeInventory);
-
-        // 1b. Debug log how many items you’ve captured
-        int playerNonNull = Arrays.stream(tw.playerSlots).filter(Objects::nonNull).toArray().length;
-        int oppNonNull = Arrays.stream(tw.oppositeSlots).filter(Objects::nonNull).toArray().length;
-        Bukkit.getLogger().info("[TradeDebug] Captured “playerSlots” count = " + playerNonNull);
-        Bukkit.getLogger().info("[TradeDebug] Captured “oppositeSlots” count = " + oppNonNull);
 
         // 2. Mark awaiting chat so onInventoryClose won’t cancel
         awaitingChatInput.add(p.getUniqueId());
@@ -166,14 +138,18 @@ public class TradingWindow implements Listener {
                 Main.getPlugin(),
                 p,
                 ChatColor.GOLD + "Please enter the number of coins you want to offer:",
-                amt -> tw.getEconomyManager().getBalance(p) >= amt && amt > 0,
+                amt -> amt >= 0 && tw.getEconomyManager().getBalance(p) >= amt,
                 amt -> {
                     if (tw.getPlayer().equals(p)) {
                         tw.setPlayerCoinOffer(amt);
                     } else if (tw.getOpponent().equals(p)) {
                         tw.setOpponentCoinOffer(amt);
                     }
-                    p.sendMessage(ChatColor.GREEN + "Your coin offer has been set to: " + amt);
+                    if (amt == 0) {
+                        p.sendMessage(ChatColor.YELLOW + "You cleared your coin offer.");
+                    } else {
+                        p.sendMessage(ChatColor.GREEN + "Your coin offer has been set to: " + amt);
+                    }
                     tw.updateCoinOfferItems();
                     tw.reopenInventories();
                 }
@@ -271,22 +247,13 @@ public class TradingWindow implements Listener {
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) return;
 
-        List<String> lore = new ArrayList<>();
-        lore.add(ChatColor.GRAY + "Coins: " + ChatColor.YELLOW + amount + " <glyph:coins_icon>");
-        lore.add(" ");
-        if (editable) {
-            lore.addAll(TooltipUtil.clickInstructions("to set your offer", null));
-        } else {
-            lore.add(ChatColor.GRAY + "Updates when your partner changes");
-            lore.add(ChatColor.GRAY + "their offer.");
-        }
-        meta.setLore(lore);
+        meta.setLore(buildCoinLore(amount, editable));
         stack.setItemMeta(meta);
     }
 
 
     private void prepareInventory(Inventory inv, Player partner) {
-        initStatusItems();
+        ensureStatusItems();
 
         ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
 
@@ -319,6 +286,13 @@ public class TradingWindow implements Listener {
         opponentPendingItem = buildStatusItem("cross", ChatColor.RED, opponentWaiting, createOpponentWaitingLore());
         opponentReadyItem = buildStatusItem("check", ChatColor.GREEN, opponentAccepted, createOpponentReadyLore());
         separator = createSeparatorItem();
+    }
+
+    private void ensureStatusItems() {
+        if (ownReadyItem == null || ownCancelItem == null || opponentPendingItem == null
+            || opponentReadyItem == null || separator == null) {
+            initStatusItems();
+        }
     }
 
     private ItemStack buildStatusItem(String iconId, ChatColor color, String name, List<String> loreLines) {
@@ -387,20 +361,25 @@ public class TradingWindow implements Listener {
             String name = editable ? ChatColor.GOLD + "" + ChatColor.BOLD + "Your Coin Offer"
                 : ChatColor.GOLD + "" + ChatColor.BOLD + "Partner Coin Offer";
             meta.setDisplayName(name);
-            List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Coins: " + ChatColor.YELLOW + "0 <glyph:coins_icon>");
-            lore.add(" ");
-            if (editable) {
-                lore.addAll(TooltipUtil.clickInstructions("to set your offer", null));
-            } else {
-                lore.add(ChatColor.GRAY + "Updates when your partner changes");
-                lore.add(ChatColor.GRAY + "their offer.");
-            }
-            meta.setLore(lore);
+            meta.setLore(buildCoinLore(0, editable));
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             item.setItemMeta(meta);
         }
         return item;
+    }
+
+    private List<String> buildCoinLore(int amount, boolean editable) {
+        List<String> lore = new ArrayList<>();
+        lore.add(ChatColor.GRAY + "Coins: " + ChatColor.YELLOW + amount + " <glyph:coins_icon>");
+        lore.add(" ");
+        if (editable) {
+            lore.addAll(TooltipUtil.clickInstructions("to set your offer", null));
+            lore.add(ChatColor.GRAY + "Enter 0 to clear your offer.");
+        } else {
+            lore.add(ChatColor.GRAY + "Updates when your partner changes");
+            lore.add(ChatColor.GRAY + "their offer.");
+        }
+        return lore;
     }
 
     private ItemStack createInfoItem(Player partner) {
@@ -427,23 +406,23 @@ public class TradingWindow implements Listener {
     // -- Togggler for deal status
 
     public void toggleOpponentsStatus(TradingWindow tw) {
-        tw.initStatusItems();
+        tw.ensureStatusItems();
         tw.oppositeAcceptedDeal = !tw.oppositeAcceptedDeal; // Toggle opponent acceptance
 
         for (int i = 0; i < ROWS * 9; i++) {
             if (tw.oppositeAcceptedDeal) {
                 if (isOpponentsAccepmentField(i)) {
-                    tw.playerInventory.setItem(i, tw.opponentReadyItem);
+                    tw.playerInventory.setItem(i, tw.opponentReadyItem.clone());
                 }
                 if (isPersonalTradeAccepmentField(i)) {
-                    tw.oppositeInventory.setItem(i, tw.ownCancelItem);
+                    tw.oppositeInventory.setItem(i, tw.ownCancelItem.clone());
                 }
             } else {
                 if (isOpponentsAccepmentField(i)) {
-                    tw.playerInventory.setItem(i, tw.opponentPendingItem);
+                    tw.playerInventory.setItem(i, tw.opponentPendingItem.clone());
                 }
                 if (isPersonalTradeAccepmentField(i)) {
-                    tw.oppositeInventory.setItem(i, tw.ownReadyItem);
+                    tw.oppositeInventory.setItem(i, tw.ownReadyItem.clone());
                 }
             }
         }
@@ -458,23 +437,23 @@ public class TradingWindow implements Listener {
 
 
     public void toggleOwnStatus(TradingWindow tw, Inventory inv) {
-        tw.initStatusItems();
+        tw.ensureStatusItems();
         tw.playerAcceptedDeal = !tw.playerAcceptedDeal; // Toggle acceptance status
 
         for (int i = 0; i < ROWS * 9; i++) {
             if (tw.playerAcceptedDeal) {
                 if (isOpponentsAccepmentField(i)) {
-                    tw.oppositeInventory.setItem(i, tw.opponentReadyItem);
+                    tw.oppositeInventory.setItem(i, tw.opponentReadyItem.clone());
                 }
                 if (isPersonalTradeAccepmentField(i)) {
-                    tw.playerInventory.setItem(i, tw.ownCancelItem);
+                    tw.playerInventory.setItem(i, tw.ownCancelItem.clone());
                 }
             } else {
                 if (isOpponentsAccepmentField(i)) {
-                    tw.oppositeInventory.setItem(i, tw.opponentPendingItem);
+                    tw.oppositeInventory.setItem(i, tw.opponentPendingItem.clone());
                 }
                 if (isPersonalTradeAccepmentField(i)) {
-                    tw.playerInventory.setItem(i, tw.ownReadyItem);
+                    tw.playerInventory.setItem(i, tw.ownReadyItem.clone());
                 }
             }
         }
@@ -621,10 +600,8 @@ public class TradingWindow implements Listener {
         ItemStack[] result = new ItemStack[this.slots];
         for (int i = 0; i < ROWS * 9; i++) {
             if (isOwnField(i)) {
-                if (inv.getItem(i) != null)
-                    result[pointer] = inv.getItem(i);
-                else
-                    result[pointer] = null;
+                ItemStack current = inv.getItem(i);
+                result[pointer] = current == null ? null : current.clone();
                 pointer++;
             }
         }
@@ -632,6 +609,7 @@ public class TradingWindow implements Listener {
     }
 
     private void projectToOpponentField(ItemStack[] playerItems, boolean toPlayersInventory) {
+        ensureStatusItems();
         int pointer = 0;
         for (int i = 0; i < ROWS * 9; i++) {
             if (toPlayersInventory) {
@@ -640,7 +618,7 @@ public class TradingWindow implements Listener {
                         ItemStack itemStack = playerItems[pointer].clone();
                         this.playerInventory.setItem(i, itemStack);
                     } else {
-                        this.playerInventory.setItem(i, this.separator);
+                        this.playerInventory.setItem(i, this.separator.clone());
                     }
                     pointer++;
                 }
@@ -650,7 +628,7 @@ public class TradingWindow implements Listener {
                         ItemStack itemStack = playerItems[pointer].clone();
                         this.oppositeInventory.setItem(i, itemStack);
                     } else {
-                        this.oppositeInventory.setItem(i, this.separator);
+                        this.oppositeInventory.setItem(i, this.separator.clone());
                     }
                     pointer++;
                 }

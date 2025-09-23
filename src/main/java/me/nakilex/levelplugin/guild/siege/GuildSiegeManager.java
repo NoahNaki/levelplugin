@@ -9,6 +9,8 @@ import me.nakilex.levelplugin.utils.MultiLineHologram;
 import me.nakilex.levelplugin.utils.FireworkUtil;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.ComponentBuilder;
+import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -122,6 +124,12 @@ public class GuildSiegeManager {
                 + ChatColor.GRAY + "to sign up for the guild siege! " + ChatColor.RESET + "<glyph:flagright_icon>";
         TextComponent msg = new TextComponent(ChatFormatter.getCenteredText(raw));
         msg.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/siege join"));
+        int queued = queue.size();
+        String noun = queued == 1 ? "player" : "players";
+        ComponentBuilder hover = new ComponentBuilder(
+            ChatColor.GREEN + "" + ChatColor.BOLD + queued + ChatColor.GRAY + " " + noun + " in queue!"
+        ).append("\n").append(ChatColor.YELLOW + "Click to join the siege queue.");
+        msg.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, hover.create()));
         QuestManager qm = Main.getInstance().getQuestManager();
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (!p.getWorld().getName().equals("world")) continue;
