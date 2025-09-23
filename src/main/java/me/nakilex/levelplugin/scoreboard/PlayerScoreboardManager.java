@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.scoreboard;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.arena.ArenaQueueManager;
+import me.nakilex.levelplugin.arena.rating.ArenaRatingManager;
 import me.nakilex.levelplugin.party.Party;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
@@ -31,6 +32,7 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
     private final QuestManager questManager;
     private final LevelManager levelManager;
     private final ArenaQueueManager arenaQueueManager;
+    private final ArenaRatingManager arenaRatingManager;
 
     private final Map<UUID, Scoreboard> boards = new HashMap<>();
     private final String[] entries = new String[15];
@@ -58,12 +60,14 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
     public PlayerScoreboardManager(Main plugin,
                                    PartyManager partyManager,
                                    QuestManager questManager,
-                                   ArenaQueueManager arenaQueueManager) {
+                                   ArenaQueueManager arenaQueueManager,
+                                   ArenaRatingManager arenaRatingManager) {
         this.plugin = plugin;
         this.partyManager = partyManager;
         this.questManager = questManager;
         this.levelManager = plugin.getLevelManager();
         this.arenaQueueManager = arenaQueueManager;
+        this.arenaRatingManager = arenaRatingManager;
     }
 
     public void createBoard(Player player) {
@@ -236,6 +240,23 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
             idx++; line--;
 
             Duration wait = arenaQueueManager.getWaitDuration(id);
+            if (arenaRatingManager != null) {
+                int rating = arenaRatingManager.getRating(id);
+                current[idx] = ChatColor.GRAY + "ELO: " + ChatColor.WHITE + rating + ChatColor.GRAY + " ("
+                        + arenaRatingManager.formatTier(rating) + ChatColor.GRAY + ")";
+                if (!current[idx].equals(prev[idx])) {
+                    setLine(board, obj, idx, line, current[idx]);
+                }
+                idx++; line--;
+
+                int window = arenaRatingManager.computeMatchWindow(id, wait);
+                current[idx] = ChatColor.GRAY + "Window: " + ChatColor.WHITE + "±" + window;
+                if (!current[idx].equals(prev[idx])) {
+                    setLine(board, obj, idx, line, current[idx]);
+                }
+                idx++; line--;
+            }
+
             current[idx] = ChatColor.GRAY + "Waiting: " + ChatColor.WHITE + formatDuration(wait);
             if (!current[idx].equals(prev[idx])) {
                 setLine(board, obj, idx, line, current[idx]);

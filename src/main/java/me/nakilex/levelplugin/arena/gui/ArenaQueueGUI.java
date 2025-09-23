@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.arena.gui;
 
 import me.nakilex.levelplugin.arena.ArenaQueueManager;
+import me.nakilex.levelplugin.arena.rating.ArenaRatingManager;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import me.nakilex.levelplugin.utils.GuiUtil;
@@ -18,6 +19,7 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -39,10 +41,12 @@ public class ArenaQueueGUI implements Listener {
     private static final int QUEUE_SLOT = 13;
 
     private final ArenaQueueManager queueManager;
+    private final ArenaRatingManager ratingManager;
     private final Map<UUID, Inventory> openInventories = new HashMap<>();
 
-    public ArenaQueueGUI(ArenaQueueManager queueManager) {
+    public ArenaQueueGUI(ArenaQueueManager queueManager, ArenaRatingManager ratingManager) {
         this.queueManager = queueManager;
+        this.ratingManager = ratingManager;
     }
 
     /**
@@ -88,9 +92,23 @@ public class ArenaQueueGUI implements Listener {
             List<String> lore = new ArrayList<>();
             lore.add("");
             lore.add(ChatColor.GRAY + "Queue up to battle challengers.");
-            lore.add("");
+
+            if (viewerId != null) {
+                ArenaRatingManager.RatingSnapshot snapshot = ratingManager.getSnapshot(viewerId);
+                int rating = snapshot.rating();
+                int window = snapshot.matchWindow(Duration.ZERO);
+                int stability = (int) Math.round(snapshot.deviation());
+                lore.add(" ");
+                lore.add(ChatColor.GOLD + "Your ELO: " + ChatColor.WHITE + rating + ChatColor.GRAY + " ("
+                        + ratingManager.formatTier(rating) + ChatColor.GRAY + ")");
+                lore.add(ChatColor.DARK_GRAY + "Confidence: ±" + stability);
+                lore.add(ChatColor.DARK_GRAY + "Search window: ±" + window);
+                lore.add(ChatColor.DARK_GRAY + "Ranked matches: " + snapshot.matches());
+            }
+
+            lore.add(" ");
             lore.add(formatQueueStatusLine());
-            lore.add("");
+            lore.add(" ");
             if (queued) {
                 lore.addAll(TooltipUtil.clickInstructions("to leave the queue", null));
             } else {
@@ -120,8 +138,14 @@ public class ArenaQueueGUI implements Listener {
             queueManager.leave(id);
             send(player, MessageType.INFO, "You left the arena queue.");
         } else {
-            queueManager.join(player);
-            send(player, MessageType.SUCCESS, "You joined the arena queue.");
+            ArenaQueueManager.QueueJoinResult result = queueManager.join(player);
+            if (result == ArenaQueueManager.QueueJoinResult.JOINED) {
+                send(player, MessageType.SUCCESS, "You joined the arena queue.");
+            } else if (result == ArenaQueueManager.QueueJoinResult.IN_MATCH) {
+                send(player, MessageType.ERROR, "You cannot queue while an arena match is in progress.");
+            } else {
+                send(player, MessageType.WARNING, "You are already listed in the arena queue.");
+            }
         }
         refreshOpenInventories();
     }

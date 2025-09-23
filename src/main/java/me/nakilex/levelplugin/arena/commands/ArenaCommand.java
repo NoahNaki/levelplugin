@@ -46,9 +46,15 @@ public class ArenaCommand implements TabExecutor {
             if (queueManager.isQueued(id)) {
                 send(player, MessageType.WARNING, "You are already in the arena queue.");
             } else {
-                queueManager.join(player);
-                send(player, MessageType.SUCCESS, "You joined the arena queue.");
-                gui.refresh();
+                ArenaQueueManager.QueueJoinResult result = queueManager.join(player);
+                if (result == ArenaQueueManager.QueueJoinResult.JOINED) {
+                    send(player, MessageType.SUCCESS, "You joined the arena queue.");
+                    gui.refresh();
+                } else if (result == ArenaQueueManager.QueueJoinResult.IN_MATCH) {
+                    send(player, MessageType.ERROR, "You cannot queue while an arena match is active.");
+                } else {
+                    send(player, MessageType.WARNING, "You are already in the arena queue.");
+                }
             }
             return true;
         }

@@ -11,6 +11,8 @@ import me.nakilex.levelplugin.economy.gui.GemExchangeGUI;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.economy.managers.GemsManager;
 import me.nakilex.levelplugin.arena.ArenaQueueManager;
+import me.nakilex.levelplugin.arena.match.ArenaMatchManager;
+import me.nakilex.levelplugin.arena.rating.ArenaRatingManager;
 import me.nakilex.levelplugin.arena.gui.ArenaQueueGUI;
 import me.nakilex.levelplugin.arena.instance.ArenaInstanceManager;
 import me.nakilex.levelplugin.horse.gui.HorseGUI;
@@ -99,6 +101,8 @@ public class PluginBootstrap {
     private EffectManager effectManager;
     private PartyManager partyManager;
     private ArenaQueueManager arenaQueueManager;
+    private ArenaRatingManager arenaRatingManager;
+    private ArenaMatchManager arenaMatchManager;
     private ArenaQueueGUI arenaQueueGUI;
     private ArenaInstanceManager arenaInstanceManager;
     private me.nakilex.levelplugin.guild.GuildManager guildManager;
@@ -283,8 +287,9 @@ public class PluginBootstrap {
         itemRepairManager = new ItemRepairManager();
         spellmanager = new SpellManager(plugin);
         partyManager = new PartyManager();
-        arenaQueueManager = new ArenaQueueManager();
-        arenaQueueGUI = new ArenaQueueGUI(arenaQueueManager);
+        arenaRatingManager = new ArenaRatingManager(playerConfig);
+        arenaQueueManager = new ArenaQueueManager(arenaRatingManager);
+        arenaQueueGUI = new ArenaQueueGUI(arenaQueueManager, arenaRatingManager);
         arenaInstanceManager = new ArenaInstanceManager(plugin);
         friendManager = new FriendManager();
         guildManager = me.nakilex.levelplugin.guild.GuildManager.getInstance();
@@ -308,8 +313,12 @@ public class PluginBootstrap {
         settingsManager = new SettingsManager();
         questManager = new QuestManager(plugin, partyManager);
         dialogManager = new me.nakilex.levelplugin.npc.dialog.NPCDialogManager(plugin);
-        scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(plugin, partyManager, questManager, arenaQueueManager);
+        scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(plugin, partyManager, questManager, arenaQueueManager, arenaRatingManager);
         arenaQueueManager.setScoreboardManager(scoreboardManager);
+        arenaMatchManager = new ArenaMatchManager(plugin, arenaQueueManager, arenaInstanceManager, arenaRatingManager, scoreboardManager);
+        arenaQueueManager.setMatchCheck(arenaMatchManager::isInMatch);
+        arenaQueueManager.setMatchHandler(arenaMatchManager::startMatch);
+        arenaQueueManager.setQueueUpdateListener(arenaQueueGUI::refresh);
         calendarManager = new me.nakilex.levelplugin.calendar.CalendarManager(plugin);
         duelStatsManager = new me.nakilex.levelplugin.leaderboards.DuelStatsManager(plugin);
         partyGlowManager = new PartyGlowManager(plugin, partyManager, scoreboardManager::getBoard);
@@ -440,7 +449,8 @@ public class PluginBootstrap {
             npcCodexGUI,
             locationCodexGUI,
             wanderingMerchantManager,
-            arenaQueueGUI
+            arenaQueueGUI,
+            arenaMatchManager
         );
         plugin.getServer().getPluginManager().registerEvents(
                 new me.nakilex.levelplugin.guild.siege.GuildSiegeListener(guildSiegeManager),
@@ -550,6 +560,8 @@ public class PluginBootstrap {
     public EffectManager getEffectManager() { return effectManager; }
     public PartyManager getPartyManager() { return partyManager; }
     public ArenaQueueManager getArenaQueueManager() { return arenaQueueManager; }
+    public ArenaRatingManager getArenaRatingManager() { return arenaRatingManager; }
+    public ArenaMatchManager getArenaMatchManager() { return arenaMatchManager; }
     public ArenaQueueGUI getArenaQueueGUI() { return arenaQueueGUI; }
     public ArenaInstanceManager getArenaInstanceManager() { return arenaInstanceManager; }
     public me.nakilex.levelplugin.guild.GuildManager getGuildManager() { return guildManager; }
