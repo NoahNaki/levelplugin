@@ -307,17 +307,9 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
                         setLine(board, obj, idx, line, current[idx]);
                     }
                     idx++; line--;
-}
-
-    private static String formatDuration(Duration duration) {
-        long seconds = duration.getSeconds();
-        long minutes = seconds / 60;
-        long remSeconds = seconds % 60;
-        return minutes + ":" + String.format("%02d", remSeconds);
-    }
-}
+                }
+            }
         }
-
         if (inParty) {
             current[idx] = ChatColor.AQUA + "Party:";
             if (!current[idx].equals(prev[idx])) {
@@ -368,5 +360,12 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
             }
         }
         lastLines.put(id, current);
+    }
+
+    private static String formatDuration(Duration duration) {
+        long seconds = Math.max(0L, duration.getSeconds());
+        long minutes = seconds / 60;
+        long remSeconds = seconds % 60;
+        return minutes + ":" + String.format("%02d", remSeconds);
     }
 }
