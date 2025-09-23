@@ -12,6 +12,7 @@ import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.economy.managers.GemsManager;
 import me.nakilex.levelplugin.arena.ArenaQueueManager;
 import me.nakilex.levelplugin.arena.gui.ArenaQueueGUI;
+import me.nakilex.levelplugin.arena.instance.ArenaInstanceManager;
 import me.nakilex.levelplugin.horse.gui.HorseGUI;
 import me.nakilex.levelplugin.horse.managers.HorseConfigManager;
 import me.nakilex.levelplugin.horse.managers.HorseManager;
@@ -99,6 +100,7 @@ public class PluginBootstrap {
     private PartyManager partyManager;
     private ArenaQueueManager arenaQueueManager;
     private ArenaQueueGUI arenaQueueGUI;
+    private ArenaInstanceManager arenaInstanceManager;
     private me.nakilex.levelplugin.guild.GuildManager guildManager;
     private me.nakilex.levelplugin.guild.GuildGUI guildGUI;
     private me.nakilex.levelplugin.guild.GuildMemberGUI guildMemberGUI;
@@ -283,6 +285,7 @@ public class PluginBootstrap {
         partyManager = new PartyManager();
         arenaQueueManager = new ArenaQueueManager();
         arenaQueueGUI = new ArenaQueueGUI(arenaQueueManager);
+        arenaInstanceManager = new ArenaInstanceManager(plugin);
         friendManager = new FriendManager();
         guildManager = me.nakilex.levelplugin.guild.GuildManager.getInstance();
         guildManager.init(plugin);
@@ -305,7 +308,8 @@ public class PluginBootstrap {
         settingsManager = new SettingsManager();
         questManager = new QuestManager(plugin, partyManager);
         dialogManager = new me.nakilex.levelplugin.npc.dialog.NPCDialogManager(plugin);
-        scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(plugin, partyManager, questManager);
+        scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(plugin, partyManager, questManager, arenaQueueManager);
+        arenaQueueManager.setScoreboardManager(scoreboardManager);
         calendarManager = new me.nakilex.levelplugin.calendar.CalendarManager(plugin);
         duelStatsManager = new me.nakilex.levelplugin.leaderboards.DuelStatsManager(plugin);
         partyGlowManager = new PartyGlowManager(plugin, partyManager, scoreboardManager::getBoard);
@@ -484,6 +488,7 @@ public class PluginBootstrap {
         if (economyManager != null) economyManager.saveBalances();
         if (dealMaker != null) dealMaker.closeAllTrades();
         if (arenaQueueManager != null) arenaQueueManager.clear();
+        if (arenaInstanceManager != null) arenaInstanceManager.cleanup();
         if (itemConfig != null) itemConfig.saveItems();
         if (guildManager != null) guildManager.save();
         if (playerConfig != null) {
@@ -546,6 +551,7 @@ public class PluginBootstrap {
     public PartyManager getPartyManager() { return partyManager; }
     public ArenaQueueManager getArenaQueueManager() { return arenaQueueManager; }
     public ArenaQueueGUI getArenaQueueGUI() { return arenaQueueGUI; }
+    public ArenaInstanceManager getArenaInstanceManager() { return arenaInstanceManager; }
     public me.nakilex.levelplugin.guild.GuildManager getGuildManager() { return guildManager; }
     public me.nakilex.levelplugin.guild.GuildGUI getGuildGUI() { return guildGUI; }
     public me.nakilex.levelplugin.guild.GuildMemberGUI getGuildMemberGUI() { return guildMemberGUI; }

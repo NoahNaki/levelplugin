@@ -5,6 +5,8 @@ import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.trade.utils.MessageStrings;
 import me.nakilex.levelplugin.trade.utils.Translations;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.CurrencyMessageUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
@@ -490,6 +492,9 @@ public class TradingWindow implements Listener {
                 economyManager.deductCoins(o, tw.opponentCoinOffer);
                 economyManager.addCoins(p, tw.opponentCoinOffer);
 
+                sendCoinSummary(p, tw.playerCoinOffer, tw.opponentCoinOffer, o.getName());
+                sendCoinSummary(o, tw.opponentCoinOffer, tw.playerCoinOffer, p.getName());
+
                 // Check, if the items already got moved back to the inventory
                 for (int i = 0; i < ROWS * 9; i++) {
                     if (isOwnField(i)) {
@@ -561,6 +566,24 @@ public class TradingWindow implements Listener {
             }
             recipient.updateInventory();
         }
+    }
+
+    private void sendCoinSummary(Player recipient, int paid, int received, String partnerName) {
+        StringBuilder message = new StringBuilder();
+        message.append(ChatColor.GRAY).append("Trade with ")
+                .append(ChatColor.YELLOW).append(partnerName)
+                .append(ChatColor.GRAY).append(": ");
+
+        message.append("Received ")
+                .append(CurrencyMessageUtil.formatAmount(CurrencyMessageUtil.Currency.COINS, Math.max(0, received)))
+                .append(ChatColor.GRAY);
+
+        message.append(" • Paid ")
+                .append(CurrencyMessageUtil.formatAmount(CurrencyMessageUtil.Currency.COINS, Math.max(0, paid)))
+                .append(ChatColor.GRAY)
+                .append(".");
+
+        ChatMessageUtil.send(recipient, ChatMessageUtil.MessageType.SUCCESS, message.toString());
     }
 
     // --- Slot checker

@@ -61,6 +61,7 @@ public class Main extends JavaPlugin {
     public PartyManager getPartyManager() { return bootstrap.getPartyManager(); }
     public me.nakilex.levelplugin.arena.ArenaQueueManager getArenaQueueManager() { return bootstrap.getArenaQueueManager(); }
     public me.nakilex.levelplugin.arena.gui.ArenaQueueGUI getArenaQueueGUI() { return bootstrap.getArenaQueueGUI(); }
+    public me.nakilex.levelplugin.arena.instance.ArenaInstanceManager getArenaInstanceManager() { return bootstrap.getArenaInstanceManager(); }
     public me.nakilex.levelplugin.guild.GuildManager getGuildManager() { return bootstrap.getGuildManager(); }
     public EconomyManager getEconomyManager() { return bootstrap.getEconomyManager(); }
     public ConfigValues getConfigValues() { return bootstrap.getConfigValues(); }
