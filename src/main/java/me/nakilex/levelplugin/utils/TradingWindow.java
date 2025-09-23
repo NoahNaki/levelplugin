@@ -5,6 +5,11 @@ import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.trade.utils.MessageStrings;
 import me.nakilex.levelplugin.trade.utils.Translations;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.CurrencyMessageUtil;
+import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.TooltipUtil;
+import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
@@ -19,6 +24,7 @@ import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
@@ -29,6 +35,7 @@ public class TradingWindow implements Listener {
 
     private static final int PLAYER_COIN_SLOT = 0;  // now slot 0
     private static final int OPPONENT_COIN_SLOT = 8;  // now slot 8
+    private static final int INFO_SLOT = 4;
 
     // Tracks players waiting for sign input and their respective TradingWindow
     private static final java.util.Map<UUID, TradingWindow> awaitingSignInput = new java.util.HashMap<>();
@@ -59,10 +66,10 @@ public class TradingWindow implements Listener {
     ItemStack[] playerSlots;
     ItemStack[] oppositeSlots;
 
-    ItemStack oppositeRedGlass;
-    ItemStack oppositeGreenGlass;
-    ItemStack ownRedGlass;
-    ItemStack ownGreenGlass;
+    ItemStack opponentPendingItem;
+    ItemStack opponentReadyItem;
+    ItemStack ownCancelItem;
+    ItemStack ownReadyItem;
     ItemStack separator;
 
     Item droppedItemByPlayer;
@@ -77,8 +84,6 @@ public class TradingWindow implements Listener {
     public TradingWindow() {
     }
 
-    ;
-
     public TradingWindow(Player player, Player oppositeDealPartner) {
         this.player = player;
         this.opposite = oppositeDealPartner;
@@ -89,13 +94,11 @@ public class TradingWindow implements Listener {
         // Initialize the economy manager here
         this.economyManager = Main.getPlugin().getEconomyManager();
 
-        this.playerInventory = Bukkit.createInventory(null, CHEST_SIZE,
-            String.format(messageStrings.getTranslation(Translations.DEAL_WITH), oppositeDealPartner.getName()));
-        this.oppositeInventory = Bukkit.createInventory(null, CHEST_SIZE,
-            String.format(messageStrings.getTranslation(Translations.DEAL_WITH), player.getName()));
+        this.playerInventory = createInventory(oppositeDealPartner.getName());
+        this.oppositeInventory = createInventory(player.getName());
 
-        prepareInventory(playerInventory);
-        prepareInventory(oppositeInventory);
+        prepareInventory(playerInventory, oppositeDealPartner);
+        prepareInventory(oppositeInventory, player);
 
         this.slots = this.countOwnSlots();
         this.playerSlots = new ItemStack[slots];
@@ -111,36 +114,21 @@ public class TradingWindow implements Listener {
     }
 
 
-//    private void openCoinSignGUI(Player p, TradingWindow tw) {
-//        // Mark the player as having an active sign input
-//        awaitingSignInput.put(p.getUniqueId(), tw);
-//        activeSignInputs.add(p.getUniqueId()); // Add to active sign input set
-//
-//        // Define the specific location where the sign will be spawned
-//        Location loc = p.getLocation().clone().add(0, -1, 0);
-//        Block block = loc.getBlock();
-//        block.setType(Material.OAK_SIGN);
-//
-//        Sign sign = (Sign) block.getState();
-//        sign.setLine(0, "Enter coins");
-//        sign.update(true, false);
-//
-//        // Track the sign's location for cleanup
-//        activeSignLocations.put(p.getUniqueId(), loc);
-//
-//        p.openSign(sign);
-//    }
+    private Inventory createInventory(String partnerName) {
+        String formatted = String.format(messageStrings.getTranslation(Translations.DEAL_WITH), partnerName);
+        String plainTitle = ChatColor.stripColor(formatted);
+        return GuiBuilder.create(CHEST_SIZE, ChatColor.BLACK + plainTitle)
+            .filler(Material.GRAY_STAINED_GLASS_PANE)
+            .fillEmptySlots(false)
+            .border()
+            .build();
+    }
+
 
     private void openCoinChatInput(Player p, TradingWindow tw) {
-        // 1. Snapshot the current trade‐item slots
+        // 1. Snapshot the current trade-item slots so we can restore them after chat input
         tw.playerSlots = tw.projectToItemField(tw.playerInventory);
         tw.oppositeSlots = tw.projectToItemField(tw.oppositeInventory);
-
-        // 1b. Debug log how many items you’ve captured
-        int playerNonNull = Arrays.stream(tw.playerSlots).filter(Objects::nonNull).toArray().length;
-        int oppNonNull = Arrays.stream(tw.oppositeSlots).filter(Objects::nonNull).toArray().length;
-        Bukkit.getLogger().info("[TradeDebug] Captured “playerSlots” count = " + playerNonNull);
-        Bukkit.getLogger().info("[TradeDebug] Captured “oppositeSlots” count = " + oppNonNull);
 
         // 2. Mark awaiting chat so onInventoryClose won’t cancel
         awaitingChatInput.add(p.getUniqueId());
@@ -152,14 +140,18 @@ public class TradingWindow implements Listener {
                 Main.getPlugin(),
                 p,
                 ChatColor.GOLD + "Please enter the number of coins you want to offer:",
-                amt -> tw.getEconomyManager().getBalance(p) >= amt && amt > 0,
+                amt -> amt >= 0 && tw.getEconomyManager().getBalance(p) >= amt,
                 amt -> {
                     if (tw.getPlayer().equals(p)) {
                         tw.setPlayerCoinOffer(amt);
                     } else if (tw.getOpponent().equals(p)) {
                         tw.setOpponentCoinOffer(amt);
                     }
-                    p.sendMessage(ChatColor.GREEN + "Your coin offer has been set to: " + amt);
+                    if (amt == 0) {
+                        p.sendMessage(ChatColor.YELLOW + "You cleared your coin offer.");
+                    } else {
+                        p.sendMessage(ChatColor.GREEN + "Your coin offer has been set to: " + amt);
+                    }
                     tw.updateCoinOfferItems();
                     tw.reopenInventories();
                 }
@@ -218,14 +210,12 @@ public class TradingWindow implements Listener {
         // Reopen the trade window regardless of input validity
         Bukkit.getScheduler().runTaskLater(Main.getPlugin(), () -> {
             // Clear old inventories and create fresh ones
-            tw.playerInventory = Bukkit.createInventory(null, tw.CHEST_SIZE,
-                String.format(tw.messageStrings.getTranslation(Translations.DEAL_WITH), tw.opposite.getName()));
-            tw.oppositeInventory = Bukkit.createInventory(null, tw.CHEST_SIZE,
-                String.format(tw.messageStrings.getTranslation(Translations.DEAL_WITH), tw.player.getName()));
+            tw.playerInventory = tw.createInventory(tw.opposite.getName());
+            tw.oppositeInventory = tw.createInventory(tw.player.getName());
 
             // Reinitialize inventory contents
-            tw.prepareInventory(tw.playerInventory);
-            tw.prepareInventory(tw.oppositeInventory);
+            tw.prepareInventory(tw.playerInventory, tw.opposite);
+            tw.prepareInventory(tw.oppositeInventory, tw.player);
 
             // Sync slots and updates
             tw.projectToOpponentField(tw.playerSlots, false);
@@ -247,167 +237,194 @@ public class TradingWindow implements Listener {
 
 
     void updateCoinOfferItems() {
-        // Update the player's coin offer
-        ItemStack yourCoinIngot = playerInventory.getItem(PLAYER_COIN_SLOT);
-        if (yourCoinIngot != null && yourCoinIngot.getType() == Material.GOLD_INGOT) {
-            ItemMeta meta = yourCoinIngot.getItemMeta();
-            meta.setDisplayName(ChatColor.GOLD + "Your Coin Offer");
-            List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Coins: " + playerCoinOffer);
-            meta.setLore(lore);
-            yourCoinIngot.setItemMeta(meta);
-        }
+        updateCoinSlot(playerInventory, PLAYER_COIN_SLOT, playerCoinOffer, true);
+        updateCoinSlot(playerInventory, OPPONENT_COIN_SLOT, opponentCoinOffer, false);
+        updateCoinSlot(oppositeInventory, PLAYER_COIN_SLOT, opponentCoinOffer, true);
+        updateCoinSlot(oppositeInventory, OPPONENT_COIN_SLOT, playerCoinOffer, false);
+    }
 
-        // Update the opponent's coin offer
-        ItemStack opponentCoinIngot = playerInventory.getItem(OPPONENT_COIN_SLOT);
-        if (opponentCoinIngot != null && opponentCoinIngot.getType() == Material.GOLD_INGOT) {
-            ItemMeta meta = opponentCoinIngot.getItemMeta();
-            meta.setDisplayName(ChatColor.GOLD + "Opponent's Coin Offer");
-            List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Coins: " + opponentCoinOffer);
-            meta.setLore(lore);
-            opponentCoinIngot.setItemMeta(meta);
-        }
+    private void updateCoinSlot(Inventory inv, int slot, int amount, boolean editable) {
+        ItemStack stack = inv.getItem(slot);
+        if (stack == null) return;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return;
 
-        // Mirror the same updates on the opposite's inventory
-        ItemStack oppCoinIngot = oppositeInventory.getItem(PLAYER_COIN_SLOT);
-        if (oppCoinIngot != null && oppCoinIngot.getType() == Material.GOLD_INGOT) {
-            ItemMeta meta = oppCoinIngot.getItemMeta();
-            meta.setDisplayName(ChatColor.GOLD + "Your Coin Offer");
-            List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Coins: " + opponentCoinOffer); // From their perspective
-            meta.setLore(lore);
-            oppCoinIngot.setItemMeta(meta);
-        }
-
-        ItemStack yourOppCoinIngot = oppositeInventory.getItem(OPPONENT_COIN_SLOT);
-        if (yourOppCoinIngot != null && yourOppCoinIngot.getType() == Material.GOLD_INGOT) {
-            ItemMeta meta = yourOppCoinIngot.getItemMeta();
-            meta.setDisplayName(ChatColor.GOLD + "Opponent's Coin Offer");
-            List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Coins: " + playerCoinOffer); // From their perspective
-            meta.setLore(lore);
-            yourOppCoinIngot.setItemMeta(meta);
-        }
+        meta.setLore(buildCoinLore(amount, editable));
+        stack.setItemMeta(meta);
     }
 
 
-    private void prepareInventory(Inventory inv) {
-        // 1) Create “filler” & other standard items:
-        ItemStack filler = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
-        ItemMeta im = filler.getItemMeta();
-        im.setDisplayName(messageStrings.getTranslation(Translations.FILLER_ITEM));
-        filler.setItemMeta(im);
+    private void prepareInventory(Inventory inv, Player partner) {
+        ensureStatusItems();
 
-        separator = new ItemStack(Material.WHITE_STAINED_GLASS_PANE);
-        ItemMeta imSep = separator.getItemMeta();
-        imSep.setDisplayName(OPPOSITE_FIELD_GLASS_NAME);
-        separator.setItemMeta(imSep);
+        ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
 
-        // Prepare personal trade acceptance (green glass)
-        ItemStack personalTradeAccepment = new ItemStack(Material.GREEN_STAINED_GLASS_PANE);
-        ItemMeta imPTA = personalTradeAccepment.getItemMeta();
-        imPTA.setDisplayName(messageStrings.getTranslation(Translations.ACCEPT_TRADE_ITEM));
-        personalTradeAccepment.setItemMeta(imPTA);
-
-        // 2) Prepare our red & green glass items for toggling accept status:
-        this.initGlassConfig();
-
-        // 3) Fill the entire inventory layout with filler, accept fields, etc.
         for (int i = 0; i < ROWS * 9; i++) {
             if (isPersonalTradeAccepmentField(i)) {
-                inv.setItem(i, ownGreenGlass);
+                inv.setItem(i, ownReadyItem.clone());
             } else if (isOpponentsField(i)) {
-                inv.setItem(i, separator);
+                inv.setItem(i, separator.clone());
             } else if (isOpponentsAccepmentField(i)) {
-                inv.setItem(i, oppositeRedGlass);
+                inv.setItem(i, opponentPendingItem.clone());
             } else if (isFillerIndex(i)) {
-                inv.setItem(i, filler);
+                inv.setItem(i, filler.clone());
+            } else {
+                inv.setItem(i, null);
             }
         }
 
-        // ----------------------------------------------------------
-        // 4) Place the coin-offer ingots in slots 0 (player) & 8 (opponent).
-        // ----------------------------------------------------------
-        if (inv.equals(playerInventory)) {
-            // This is the main player's view
-            ItemStack yourCoinIngot = new ItemStack(Material.GOLD_INGOT);
-            ItemMeta yourCoinMeta = yourCoinIngot.getItemMeta();
-            yourCoinMeta.setDisplayName("Your Coin Offer");
-            yourCoinIngot.setItemMeta(yourCoinMeta);
+        inv.setItem(PLAYER_COIN_SLOT, createCoinSlot(true));
+        inv.setItem(OPPONENT_COIN_SLOT, createCoinSlot(false));
+        inv.setItem(INFO_SLOT, createInfoItem(partner));
+    }
+    private void initStatusItems() {
+        String ownAccept = ChatColor.stripColor(messageStrings.getTranslation(Translations.OWN_ACCEPT_DEAL_ITEM));
+        String ownDecline = ChatColor.stripColor(messageStrings.getTranslation(Translations.OWN_DECLINE_DEAL_ITEM));
+        String opponentWaiting = ChatColor.stripColor(messageStrings.getTranslation(Translations.OPPOSITE_DID_NOT_ACCEPTED_TRADE_ITEM));
+        String opponentAccepted = ChatColor.stripColor(messageStrings.getTranslation(Translations.OPPOSITE_ACCEPTS_DEAL_ITEM));
 
-            // Place it in slot 0
-            inv.setItem(PLAYER_COIN_SLOT, yourCoinIngot);
+        ownReadyItem = buildStatusItem("check", ChatColor.GREEN, ownAccept, createAcceptLore());
+        ownCancelItem = buildStatusItem("cross", ChatColor.RED, ownDecline, createCancelLore());
+        opponentPendingItem = buildStatusItem("cross", ChatColor.RED, opponentWaiting, createOpponentWaitingLore());
+        opponentReadyItem = buildStatusItem("check", ChatColor.GREEN, opponentAccepted, createOpponentReadyLore());
+        separator = createSeparatorItem();
+    }
 
-            ItemStack opponentCoinIngot = new ItemStack(Material.GOLD_INGOT);
-            ItemMeta oppCoinMeta = opponentCoinIngot.getItemMeta();
-            oppCoinMeta.setDisplayName("Opponent's Coin Offer");
-            opponentCoinIngot.setItemMeta(oppCoinMeta);
-
-            // Place it in slot 8
-            inv.setItem(OPPONENT_COIN_SLOT, opponentCoinIngot);
-
-        } else if (inv.equals(oppositeInventory)) {
-            // This is the opposite player's view
-            ItemStack yourCoinIngot = new ItemStack(Material.GOLD_INGOT);
-            ItemMeta yourCoinMeta = yourCoinIngot.getItemMeta();
-            yourCoinMeta.setDisplayName("Your Coin Offer");
-            yourCoinIngot.setItemMeta(yourCoinMeta);
-
-            inv.setItem(PLAYER_COIN_SLOT, yourCoinIngot);
-
-            ItemStack opponentCoinIngot = new ItemStack(Material.GOLD_INGOT);
-            ItemMeta oppCoinMeta = opponentCoinIngot.getItemMeta();
-            oppCoinMeta.setDisplayName("Opponent's Coin Offer");
-            opponentCoinIngot.setItemMeta(oppCoinMeta);
-
-            inv.setItem(OPPONENT_COIN_SLOT, opponentCoinIngot);
+    private void ensureStatusItems() {
+        if (ownReadyItem == null || ownCancelItem == null || opponentPendingItem == null
+            || opponentReadyItem == null || separator == null) {
+            initStatusItems();
         }
     }
 
+    private ItemStack buildStatusItem(String iconId, ChatColor color, String name, List<String> loreLines) {
+        ItemStack item = GuiUtil.getNexoItem(iconId, color + "" + ChatColor.BOLD + name);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setLore(new ArrayList<>(loreLines));
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
 
-    public void initGlassConfig() {
-        oppositeRedGlass = new ItemStack(Material.RED_STAINED_GLASS_PANE);
-        ItemMeta imRed = oppositeRedGlass.getItemMeta();
-        imRed.setDisplayName(messageStrings.getTranslation(Translations.OPPOSITE_DID_NOT_ACCEPTED_TRADE_ITEM));
-        oppositeRedGlass.setItemMeta(imRed);
+    private List<String> createAcceptLore() {
+        List<String> lore = new ArrayList<>();
+        lore.add(ChatColor.GRAY + "Mark yourself ready when you're");
+        lore.add(ChatColor.GRAY + "happy with the trade.");
+        lore.add(" ");
+        lore.addAll(TooltipUtil.clickInstructions("to ready up", null));
+        return lore;
+    }
 
-        oppositeGreenGlass = new ItemStack(Material.GREEN_STAINED_GLASS_PANE);
-        ItemMeta imOppGreen = oppositeGreenGlass.getItemMeta();
-        imOppGreen.setDisplayName(messageStrings.getTranslation(Translations.OPPOSITE_ACCEPTS_DEAL_ITEM));
-        oppositeGreenGlass.setItemMeta(imOppGreen);
+    private List<String> createCancelLore() {
+        List<String> lore = new ArrayList<>();
+        lore.add(ChatColor.GRAY + "You're ready to trade.");
+        lore.add(ChatColor.GRAY + "Click again to make changes.");
+        lore.add(" ");
+        lore.addAll(TooltipUtil.clickInstructions("to cancel your readiness", null));
+        return lore;
+    }
 
-        ownRedGlass = new ItemStack(Material.RED_STAINED_GLASS_PANE);
-        ItemMeta imOwnRed = ownRedGlass.getItemMeta();
-        imOwnRed.setDisplayName(messageStrings.getTranslation(Translations.OWN_DECLINE_DEAL_ITEM));
-        ownRedGlass.setItemMeta(imOwnRed);
+    private List<String> createOpponentWaitingLore() {
+        List<String> lore = new ArrayList<>();
+        lore.add(ChatColor.GRAY + "Waiting for your partner to");
+        lore.add(ChatColor.GRAY + "confirm the trade.");
+        return lore;
+    }
 
-        ownGreenGlass = new ItemStack(Material.GREEN_STAINED_GLASS_PANE);
-        ItemMeta imOwnGreen = ownGreenGlass.getItemMeta();
-        imOwnGreen.setDisplayName(messageStrings.getTranslation(Translations.OWN_ACCEPT_DEAL_ITEM));
-        ownGreenGlass.setItemMeta(imOwnGreen);
+    private List<String> createOpponentReadyLore() {
+        List<String> lore = new ArrayList<>();
+        lore.add(ChatColor.GRAY + "Your partner has readied up.");
+        lore.add(ChatColor.GRAY + "The trade will complete once you");
+        lore.add(ChatColor.GRAY + "are also ready.");
+        return lore;
+    }
+
+    private ItemStack createSeparatorItem() {
+        ItemStack item = GuiUtil.createFiller(Material.LIGHT_GRAY_STAINED_GLASS_PANE);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            String label = ChatColor.stripColor(OPPOSITE_FIELD_GLASS_NAME);
+            meta.setDisplayName(ChatColor.DARK_GRAY + "" + ChatColor.BOLD + label);
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Your partner's offering slots.");
+            meta.setLore(lore);
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private ItemStack createCoinSlot(boolean editable) {
+        ItemStack item = new ItemStack(Material.SUNFLOWER);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            String name = editable ? ChatColor.GOLD + "" + ChatColor.BOLD + "Your Coin Offer"
+                : ChatColor.GOLD + "" + ChatColor.BOLD + "Partner Coin Offer";
+            meta.setDisplayName(name);
+            meta.setLore(buildCoinLore(0, editable));
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private List<String> buildCoinLore(int amount, boolean editable) {
+        List<String> lore = new ArrayList<>();
+        lore.add(ChatColor.GRAY + "Coins: " + ChatColor.YELLOW + amount + " <glyph:coins_icon>");
+        lore.add(" ");
+        if (editable) {
+            lore.addAll(TooltipUtil.clickInstructions("to set your offer", null));
+            lore.add(ChatColor.GRAY + "Enter 0 to clear your offer.");
+        } else {
+            lore.add(ChatColor.GRAY + "Updates when your partner changes");
+            lore.add(ChatColor.GRAY + "their offer.");
+        }
+        return lore;
+    }
+
+    private ItemStack createInfoItem(Player partner) {
+        ItemStack info = GuiUtil.getNexoItem("info", ChatColor.YELLOW + "How Trading Works");
+        ItemMeta meta = info.getItemMeta();
+        if (meta != null) {
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Partner: " + ChatColor.GOLD + partner.getName());
+            lore.add(" ");
+            lore.add(ChatColor.GRAY + "• Place items in the left slots.");
+            lore.add(ChatColor.GRAY + "• Coins can be offered via the");
+            lore.add(ChatColor.GRAY + "  sunflower buttons.");
+            lore.add(ChatColor.GRAY + "• Both players must ready up.");
+            lore.add(" ");
+            lore.add(ChatColor.GRAY + "Closing the menu cancels the trade.");
+            meta.setLore(lore);
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            info.setItemMeta(meta);
+        }
+        return info;
     }
 
 
     // -- Togggler for deal status
 
     public void toggleOpponentsStatus(TradingWindow tw) {
+        tw.ensureStatusItems();
         tw.oppositeAcceptedDeal = !tw.oppositeAcceptedDeal; // Toggle opponent acceptance
 
         for (int i = 0; i < ROWS * 9; i++) {
             if (tw.oppositeAcceptedDeal) {
                 if (isOpponentsAccepmentField(i)) {
-                    tw.playerInventory.setItem(i, tw.oppositeGreenGlass);
+                    tw.playerInventory.setItem(i, tw.opponentReadyItem.clone());
                 }
                 if (isPersonalTradeAccepmentField(i)) {
-                    tw.oppositeInventory.setItem(i, tw.ownRedGlass);
+                    tw.oppositeInventory.setItem(i, tw.ownCancelItem.clone());
                 }
             } else {
                 if (isOpponentsAccepmentField(i)) {
-                    tw.playerInventory.setItem(i, tw.oppositeRedGlass);
+                    tw.playerInventory.setItem(i, tw.opponentPendingItem.clone());
                 }
                 if (isPersonalTradeAccepmentField(i)) {
-                    tw.oppositeInventory.setItem(i, tw.ownGreenGlass);
+                    tw.oppositeInventory.setItem(i, tw.ownReadyItem.clone());
                 }
             }
         }
@@ -422,22 +439,23 @@ public class TradingWindow implements Listener {
 
 
     public void toggleOwnStatus(TradingWindow tw, Inventory inv) {
+        tw.ensureStatusItems();
         tw.playerAcceptedDeal = !tw.playerAcceptedDeal; // Toggle acceptance status
 
         for (int i = 0; i < ROWS * 9; i++) {
             if (tw.playerAcceptedDeal) {
                 if (isOpponentsAccepmentField(i)) {
-                    tw.oppositeInventory.setItem(i, tw.oppositeGreenGlass);
+                    tw.oppositeInventory.setItem(i, tw.opponentReadyItem.clone());
                 }
                 if (isPersonalTradeAccepmentField(i)) {
-                    tw.playerInventory.setItem(i, tw.ownRedGlass);
+                    tw.playerInventory.setItem(i, tw.ownCancelItem.clone());
                 }
             } else {
                 if (isOpponentsAccepmentField(i)) {
-                    tw.oppositeInventory.setItem(i, tw.oppositeRedGlass);
+                    tw.oppositeInventory.setItem(i, tw.opponentPendingItem.clone());
                 }
                 if (isPersonalTradeAccepmentField(i)) {
-                    tw.playerInventory.setItem(i, tw.ownGreenGlass);
+                    tw.playerInventory.setItem(i, tw.ownReadyItem.clone());
                 }
             }
         }
@@ -473,6 +491,9 @@ public class TradingWindow implements Listener {
                 economyManager.addCoins(o, tw.playerCoinOffer);
                 economyManager.deductCoins(o, tw.opponentCoinOffer);
                 economyManager.addCoins(p, tw.opponentCoinOffer);
+
+                sendCoinSummary(p, tw.playerCoinOffer, tw.opponentCoinOffer, o.getName());
+                sendCoinSummary(o, tw.opponentCoinOffer, tw.playerCoinOffer, p.getName());
 
                 // Check, if the items already got moved back to the inventory
                 for (int i = 0; i < ROWS * 9; i++) {
@@ -547,6 +568,24 @@ public class TradingWindow implements Listener {
         }
     }
 
+    private void sendCoinSummary(Player recipient, int paid, int received, String partnerName) {
+        StringBuilder message = new StringBuilder();
+        message.append(ChatColor.GRAY).append("Trade with ")
+                .append(ChatColor.YELLOW).append(partnerName)
+                .append(ChatColor.GRAY).append(": ");
+
+        message.append("Received ")
+                .append(CurrencyMessageUtil.formatAmount(CurrencyMessageUtil.Currency.COINS, Math.max(0, received)))
+                .append(ChatColor.GRAY);
+
+        message.append(" • Paid ")
+                .append(CurrencyMessageUtil.formatAmount(CurrencyMessageUtil.Currency.COINS, Math.max(0, paid)))
+                .append(ChatColor.GRAY)
+                .append(".");
+
+        ChatMessageUtil.send(recipient, ChatMessageUtil.MessageType.SUCCESS, message.toString());
+    }
+
     // --- Slot checker
 
     private boolean isPersonalTradeAccepmentField(int index) {
@@ -584,10 +623,8 @@ public class TradingWindow implements Listener {
         ItemStack[] result = new ItemStack[this.slots];
         for (int i = 0; i < ROWS * 9; i++) {
             if (isOwnField(i)) {
-                if (inv.getItem(i) != null)
-                    result[pointer] = inv.getItem(i);
-                else
-                    result[pointer] = null;
+                ItemStack current = inv.getItem(i);
+                result[pointer] = current == null ? null : current.clone();
                 pointer++;
             }
         }
@@ -595,6 +632,7 @@ public class TradingWindow implements Listener {
     }
 
     private void projectToOpponentField(ItemStack[] playerItems, boolean toPlayersInventory) {
+        ensureStatusItems();
         int pointer = 0;
         for (int i = 0; i < ROWS * 9; i++) {
             if (toPlayersInventory) {
@@ -603,7 +641,7 @@ public class TradingWindow implements Listener {
                         ItemStack itemStack = playerItems[pointer].clone();
                         this.playerInventory.setItem(i, itemStack);
                     } else {
-                        this.playerInventory.setItem(i, this.separator);
+                        this.playerInventory.setItem(i, this.separator.clone());
                     }
                     pointer++;
                 }
@@ -613,7 +651,7 @@ public class TradingWindow implements Listener {
                         ItemStack itemStack = playerItems[pointer].clone();
                         this.oppositeInventory.setItem(i, itemStack);
                     } else {
-                        this.oppositeInventory.setItem(i, this.separator);
+                        this.oppositeInventory.setItem(i, this.separator.clone());
                     }
                     pointer++;
                 }
@@ -854,12 +892,10 @@ public class TradingWindow implements Listener {
      */
     public void reopenInventories() {
         // 1) Create fresh inventories
-        this.playerInventory = Bukkit.createInventory(null, CHEST_SIZE,
-            String.format(messageStrings.getTranslation(Translations.DEAL_WITH), this.opposite.getName()));
-        this.oppositeInventory = Bukkit.createInventory(null, CHEST_SIZE,
-            String.format(messageStrings.getTranslation(Translations.DEAL_WITH), this.player.getName()));
-        prepareInventory(this.playerInventory);
-        prepareInventory(this.oppositeInventory);
+        this.playerInventory = createInventory(this.opposite.getName());
+        this.oppositeInventory = createInventory(this.player.getName());
+        prepareInventory(this.playerInventory, this.opposite);
+        prepareInventory(this.oppositeInventory, this.player);
 
         // 2) Restore each player’s _own_ items into their own fields
         //    (playerSlots → playerInventory)

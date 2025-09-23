@@ -7,6 +7,8 @@ import me.nakilex.levelplugin.doublejump.listeners.DoubleJumpListener;
 import me.nakilex.levelplugin.duels.listeners.DuelListener;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.economy.managers.GemsManager;
+import me.nakilex.levelplugin.arena.gui.ArenaQueueGUI;
+import me.nakilex.levelplugin.arena.match.ArenaMatchManager;
 import me.nakilex.levelplugin.lootchests.listeners.ChestHologramListener;
 import me.nakilex.levelplugin.player.attributes.listeners.StatsEffectListener;
 import me.nakilex.levelplugin.horse.gui.HorseGUI;
@@ -102,7 +104,9 @@ public class ListenerRegistry {
                                         MobCodexGUI mobCodexGUI,
                                         NpcCodexGUI npcCodexGUI,
                                         LocationCodexGUI locationCodexGUI,
-                                        me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager wmManager) {
+                                        me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager wmManager,
+                                        ArenaQueueGUI arenaQueueGUI,
+                                        ArenaMatchManager arenaMatchManager) {
 
 
         PluginManager pm = plugin.getServer().getPluginManager();
@@ -136,6 +140,8 @@ public class ListenerRegistry {
         pm.registerEvents(new NPCCommandListener(), plugin);
         pm.registerEvents(new PlayerRightClicksPlayerListener(), plugin);
         pm.registerEvents(new TradingWindow(), plugin);
+        pm.registerEvents(arenaQueueGUI, plugin);
+        pm.registerEvents(arenaMatchManager, plugin);
         pm.registerEvents(new ChatChannelListener(), plugin);
         pm.registerEvents(new PartyInviteListener(partyManager), plugin);
         pm.registerEvents(new LootChestListener(lootChestManager), plugin);

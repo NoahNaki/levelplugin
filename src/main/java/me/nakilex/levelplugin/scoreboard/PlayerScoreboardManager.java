@@ -1,6 +1,8 @@
 package me.nakilex.levelplugin.scoreboard;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.arena.ArenaQueueManager;
+import me.nakilex.levelplugin.arena.rating.ArenaRatingManager;
 import me.nakilex.levelplugin.party.Party;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
@@ -21,6 +23,7 @@ import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.ScoreboardManager;
 import org.bukkit.scoreboard.Team;
 
+import java.time.Duration;
 import java.util.*;
 
 public class PlayerScoreboardManager implements org.bukkit.event.Listener {
@@ -28,6 +31,8 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
     private final PartyManager partyManager;
     private final QuestManager questManager;
     private final LevelManager levelManager;
+    private final ArenaQueueManager arenaQueueManager;
+    private final ArenaRatingManager arenaRatingManager;
 
     private final Map<UUID, Scoreboard> boards = new HashMap<>();
     private final String[] entries = new String[15];
@@ -54,11 +59,15 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
 
     public PlayerScoreboardManager(Main plugin,
                                    PartyManager partyManager,
-                                   QuestManager questManager) {
+                                   QuestManager questManager,
+                                   ArenaQueueManager arenaQueueManager,
+                                   ArenaRatingManager arenaRatingManager) {
         this.plugin = plugin;
         this.partyManager = partyManager;
         this.questManager = questManager;
         this.levelManager = plugin.getLevelManager();
+        this.arenaQueueManager = arenaQueueManager;
+        this.arenaRatingManager = arenaRatingManager;
     }
 
     public void createBoard(Player player) {
@@ -160,7 +169,9 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         Party party = partyManager.getParty(id);
         boolean inParty = party != null;
 
-        boolean showBoard = siegeActive || hasQuest || hasGuildQuest || inParty;
+        boolean queueing = arenaQueueManager != null && arenaQueueManager.isQueued(id);
+
+        boolean showBoard = siegeActive || hasQuest || hasGuildQuest || inParty || queueing;
         Scoreboard board = boards.get(id);
         if (!showBoard) {
             if (board != null) {
@@ -202,6 +213,51 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
             idx++; line--;
 
             current[idx] = ChatColor.RED + "<glyph:flagleft_icon> " + ChatColor.WHITE + "Duration: " + ChatColor.GRAY + siege.getFormattedRemaining();
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
+
+            current[idx] = " ";
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
+        }
+
+        if (queueing) {
+            current[idx] = ChatColor.GOLD + "Arena Queue";
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
+
+            int size = arenaQueueManager.getQueueSize();
+            current[idx] = ChatColor.GRAY + "Players: " + ChatColor.WHITE + size;
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
+
+            Duration wait = arenaQueueManager.getWaitDuration(id);
+            if (arenaRatingManager != null) {
+                int rating = arenaRatingManager.getRating(id);
+                current[idx] = ChatColor.GRAY + "ELO: " + ChatColor.WHITE + rating + ChatColor.GRAY + " ("
+                        + arenaRatingManager.formatTier(rating) + ChatColor.GRAY + ")";
+                if (!current[idx].equals(prev[idx])) {
+                    setLine(board, obj, idx, line, current[idx]);
+                }
+                idx++; line--;
+
+                int window = arenaRatingManager.computeMatchWindow(id, wait);
+                current[idx] = ChatColor.GRAY + "Window: " + ChatColor.WHITE + "±" + window;
+                if (!current[idx].equals(prev[idx])) {
+                    setLine(board, obj, idx, line, current[idx]);
+                }
+                idx++; line--;
+            }
+
+            current[idx] = ChatColor.GRAY + "Waiting: " + ChatColor.WHITE + formatDuration(wait);
             if (!current[idx].equals(prev[idx])) {
                 setLine(board, obj, idx, line, current[idx]);
             }
@@ -275,7 +331,6 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
                 }
             }
         }
-
         if (inParty) {
             current[idx] = ChatColor.AQUA + "Party:";
             if (!current[idx].equals(prev[idx])) {
@@ -326,5 +381,12 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
             }
         }
         lastLines.put(id, current);
+    }
+
+    private static String formatDuration(Duration duration) {
+        long seconds = Math.max(0L, duration.getSeconds());
+        long minutes = seconds / 60;
+        long remSeconds = seconds % 60;
+        return minutes + ":" + String.format("%02d", remSeconds);
     }
 }
