@@ -117,6 +117,10 @@ commands:
   duel:
     description: Send, accept, or decline a duel request
     usage: /duel <player|accept|decline>
+  arena:
+    description: Manage the arena queue
+    usage: /arena [join|leave|open]
+    aliases: [arenaqueue]
   salvage:
     description: Opens the Salvage GUI
     usage: /salvage

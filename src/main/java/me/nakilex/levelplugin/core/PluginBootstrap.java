@@ -10,6 +10,8 @@ import me.nakilex.levelplugin.blacksmith.managers.ItemUpgradeManager;
 import me.nakilex.levelplugin.economy.gui.GemExchangeGUI;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.economy.managers.GemsManager;
+import me.nakilex.levelplugin.arena.ArenaQueueManager;
+import me.nakilex.levelplugin.arena.gui.ArenaQueueGUI;
 import me.nakilex.levelplugin.horse.gui.HorseGUI;
 import me.nakilex.levelplugin.horse.managers.HorseConfigManager;
 import me.nakilex.levelplugin.horse.managers.HorseManager;
@@ -95,6 +97,8 @@ public class PluginBootstrap {
     private HorseManager horseManager;
     private EffectManager effectManager;
     private PartyManager partyManager;
+    private ArenaQueueManager arenaQueueManager;
+    private ArenaQueueGUI arenaQueueGUI;
     private me.nakilex.levelplugin.guild.GuildManager guildManager;
     private me.nakilex.levelplugin.guild.GuildGUI guildGUI;
     private me.nakilex.levelplugin.guild.GuildMemberGUI guildMemberGUI;
@@ -277,6 +281,8 @@ public class PluginBootstrap {
         itemRepairManager = new ItemRepairManager();
         spellmanager = new SpellManager(plugin);
         partyManager = new PartyManager();
+        arenaQueueManager = new ArenaQueueManager();
+        arenaQueueGUI = new ArenaQueueGUI(arenaQueueManager);
         friendManager = new FriendManager();
         guildManager = me.nakilex.levelplugin.guild.GuildManager.getInstance();
         guildManager.init(plugin);
@@ -429,7 +435,8 @@ public class PluginBootstrap {
             mobCodexGUI,
             npcCodexGUI,
             locationCodexGUI,
-            wanderingMerchantManager
+            wanderingMerchantManager,
+            arenaQueueGUI
         );
         plugin.getServer().getPluginManager().registerEvents(
                 new me.nakilex.levelplugin.guild.siege.GuildSiegeListener(guildSiegeManager),
@@ -476,6 +483,7 @@ public class PluginBootstrap {
         if (mercenaryManager != null) mercenaryManager.unbindAll();
         if (economyManager != null) economyManager.saveBalances();
         if (dealMaker != null) dealMaker.closeAllTrades();
+        if (arenaQueueManager != null) arenaQueueManager.clear();
         if (itemConfig != null) itemConfig.saveItems();
         if (guildManager != null) guildManager.save();
         if (playerConfig != null) {
@@ -536,6 +544,8 @@ public class PluginBootstrap {
     public HorseManager getHorseManager() { return horseManager; }
     public EffectManager getEffectManager() { return effectManager; }
     public PartyManager getPartyManager() { return partyManager; }
+    public ArenaQueueManager getArenaQueueManager() { return arenaQueueManager; }
+    public ArenaQueueGUI getArenaQueueGUI() { return arenaQueueGUI; }
     public me.nakilex.levelplugin.guild.GuildManager getGuildManager() { return guildManager; }
     public me.nakilex.levelplugin.guild.GuildGUI getGuildGUI() { return guildGUI; }
     public me.nakilex.levelplugin.guild.GuildMemberGUI getGuildMemberGUI() { return guildMemberGUI; }

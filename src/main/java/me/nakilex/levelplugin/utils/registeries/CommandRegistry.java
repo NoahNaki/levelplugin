@@ -4,6 +4,7 @@ import de.slikey.effectlib.EffectManager;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.blacksmith.commands.BlacksmithCommand;
 import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
+import me.nakilex.levelplugin.arena.commands.ArenaCommand;
 import me.nakilex.levelplugin.duels.commands.DuelCommand;
 import me.nakilex.levelplugin.economy.commands.*;
 import me.nakilex.levelplugin.economy.gui.GemExchangeGUI;
@@ -175,6 +176,9 @@ public class CommandRegistry {
         plugin.getCommand("lootchest").setExecutor(new LootChestCommand(configManager, lootChestManager));
         plugin.getCommand("trade").setExecutor(new TradeCommand());
         plugin.getCommand("duel").setExecutor(new DuelCommand());
+        ArenaCommand arenaCmd = new ArenaCommand(plugin.getArenaQueueGUI(), plugin.getArenaQueueManager());
+        plugin.getCommand("arena").setExecutor(arenaCmd);
+        plugin.getCommand("arena").setTabCompleter(arenaCmd);
         plugin.getCommand("ps").setExecutor(new StorageCommand(storageManager));
         plugin.getCommand("merchant").setExecutor(new MerchantCommand(plugin));
         plugin.getCommand("salvage").setExecutor(new SalvageCommand(plugin));

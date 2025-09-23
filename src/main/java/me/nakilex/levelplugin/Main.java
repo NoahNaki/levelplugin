@@ -59,6 +59,8 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.spells.managers.SpellManager getSpellManager() { return bootstrap.getSpellmanager(); }
     public FileConfiguration getCustomConfig() { return bootstrap.getCustomConfig(); }
     public PartyManager getPartyManager() { return bootstrap.getPartyManager(); }
+    public me.nakilex.levelplugin.arena.ArenaQueueManager getArenaQueueManager() { return bootstrap.getArenaQueueManager(); }
+    public me.nakilex.levelplugin.arena.gui.ArenaQueueGUI getArenaQueueGUI() { return bootstrap.getArenaQueueGUI(); }
     public me.nakilex.levelplugin.guild.GuildManager getGuildManager() { return bootstrap.getGuildManager(); }
     public EconomyManager getEconomyManager() { return bootstrap.getEconomyManager(); }
     public ConfigValues getConfigValues() { return bootstrap.getConfigValues(); }
