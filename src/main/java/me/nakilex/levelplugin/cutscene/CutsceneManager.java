@@ -31,6 +31,7 @@ import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.util.*;
+import java.util.regex.Pattern;
 
 public class CutsceneManager {
     private final Main plugin;
@@ -361,7 +362,7 @@ public class CutsceneManager {
                     player.sendMessage(ChatColor.YELLOW + "Cleared pending title.");
                     return true;
                 }
-                String[] parts = message.split("\|", 2);
+                String[] parts = message.split(Pattern.quote("|"), 2);
                 session.pendingTitle = parts[0].trim();
                 session.pendingSubtitle = parts.length > 1 ? parts[1].trim() : null;
                 player.sendMessage(ChatColor.GREEN + "Title set for the next frame.");
