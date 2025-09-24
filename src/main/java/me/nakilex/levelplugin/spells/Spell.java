@@ -206,6 +206,11 @@ public class Spell {
         SpellCastContext ctx = new SpellCastContext(this, player);
 
         // Additional effect modifiers could be applied here
+        me.nakilex.levelplugin.trinkets.managers.TrinketManager tManager =
+                me.nakilex.levelplugin.Main.getInstance().getTrinketManager();
+        if (tManager != null) {
+            tManager.applySpellModifiers(player, ctx);
+        }
         Main.getPlugin().getLogger().info("[Spell] " + id + " effects: " + ctx.getEffectKeys());
         Main.getPlugin().getLogger().info("[Spell] finalDamage=" + ctx.getFinalDamage() +
                 " finalCost=" + ctx.getFinalManaCost());

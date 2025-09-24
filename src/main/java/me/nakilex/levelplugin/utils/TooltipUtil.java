@@ -4,6 +4,7 @@ import org.bukkit.ChatColor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Helper methods for formatting item tooltips. Provides lightweight utilities
@@ -42,6 +43,33 @@ public final class TooltipUtil {
         if (rightAction != null) {
             lore.add(ChatColor.WHITE + "Right-click " + ChatColor.GRAY + rightAction);
         }
+        return lore;
+    }
+
+    /**
+     * Generate a single line describing a keybind instruction, e.g. "Press [F] to cast".
+     *
+     * @param key    the key to display (e.g. "F")
+     * @param action the action description following the key
+     * @return list containing the formatted instruction line (possibly empty)
+     */
+    public static List<String> keyInstructions(String key, String action) {
+        List<String> lore = new ArrayList<>(1);
+        if (key == null || key.isBlank()) {
+            return lore;
+        }
+        String upperKey = key.toUpperCase(Locale.ROOT);
+        StringBuilder line = new StringBuilder()
+            .append(ChatColor.GRAY)
+            .append("Press ")
+            .append(ChatColor.WHITE)
+            .append('[')
+            .append(upperKey)
+            .append(']');
+        if (action != null && !action.isBlank()) {
+            line.append(' ').append(ChatColor.GRAY).append(action);
+        }
+        lore.add(line.toString());
         return lore;
     }
 }

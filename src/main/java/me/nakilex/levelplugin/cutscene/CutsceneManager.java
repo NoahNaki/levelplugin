@@ -31,6 +31,7 @@ import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.util.*;
+import java.util.regex.Pattern;
 
 public class CutsceneManager {
     private final Main plugin;
@@ -103,7 +104,9 @@ public class CutsceneManager {
         if (participants.isEmpty()) {
             return;
         }
-        CutscenePlayback playback = new CutscenePlayback(plugin, cutscene, participants, () -> onPlaybackFinished(playback));
+        CutscenePlayback[] holder = new CutscenePlayback[1];
+        CutscenePlayback playback = new CutscenePlayback(plugin, cutscene, participants, () -> onPlaybackFinished(holder[0]));
+        holder[0] = playback;
         runningPlaybacks.add(playback);
         TextComponent skip = new TextComponent(ChatColor.YELLOW + "[Skip Cutscene]");
         skip.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/cutscene skip"));
@@ -361,7 +364,7 @@ public class CutsceneManager {
                     player.sendMessage(ChatColor.YELLOW + "Cleared pending title.");
                     return true;
                 }
-                String[] parts = message.split("\|", 2);
+                String[] parts = message.split(Pattern.quote("|"), 2);
                 session.pendingTitle = parts[0].trim();
                 session.pendingSubtitle = parts.length > 1 ? parts[1].trim() : null;
                 player.sendMessage(ChatColor.GREEN + "Title set for the next frame.");

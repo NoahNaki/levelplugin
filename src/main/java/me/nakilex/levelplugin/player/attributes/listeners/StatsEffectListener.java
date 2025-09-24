@@ -117,6 +117,12 @@ public class StatsEffectListener implements Listener {
                 : SPELL_DAMAGE_MULTIPLIER;
             finalDamage *= scale;
 
+            me.nakilex.levelplugin.trinkets.managers.TrinketManager tManager =
+                    me.nakilex.levelplugin.Main.getInstance().getTrinketManager();
+            if (tManager != null) {
+                finalDamage = tManager.modifyOutgoingDamage(player, finalDamage);
+            }
+
             me.nakilex.levelplugin.Main.getPlugin().getLogger().info(
                 "[StatsEffect] dmg=" + event.getDamage() + "->" + finalDamage +
                 " crit=" + isCrit + " player=" + player.getName());
@@ -131,6 +137,12 @@ public class StatsEffectListener implements Listener {
         // ── Incoming damage (when the target is a player) ──
         if (target instanceof Player) {
             Player attacked = (Player) target;
+            me.nakilex.levelplugin.trinkets.managers.TrinketManager tManager =
+                    me.nakilex.levelplugin.Main.getInstance().getTrinketManager();
+            if (tManager != null && tManager.shouldCancelDamage(attacked)) {
+                event.setCancelled(true);
+                return;
+            }
             PlayerStats vs = StatsManager.getInstance().getPlayerStats(attacked.getUniqueId());
 
             // 1) Target’s raw AGI

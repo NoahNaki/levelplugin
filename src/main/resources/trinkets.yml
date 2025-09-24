@@ -1,0 +1,65 @@
+trinkets:
+  rapid_fire:
+    id: rapid_fire
+    name: "&6Trinket of Rapid Fire"
+    material: BLAZE_POWDER
+    model: ""
+    description:
+      - "&7Focuses your reflexes, unleashing spells quickly."
+    effect:
+      type: COOLDOWN_REDUCTION
+      magnitudeRange: 1-100
+      durationRange: 1-5
+    cooldownSeconds: 45
+
+  arcane_overflow:
+    id: arcane_overflow
+    name: "&dTrinket of Arcane Overflow"
+    material: AMETHYST_SHARD
+    model: ""
+    description:
+      - "&7For a brief moment, spells cost no mana."
+    effect:
+      type: NO_MANA_COST
+      magnitudeRange: 0-0
+      durationRange: 2-4
+    cooldownSeconds: 60
+
+  last_resort:
+    id: last_resort
+    name: "&cTrinket of Last Resort"
+    material: WITHER_ROSE
+    model: ""
+    description:
+      - "&7Power surges as your life fades."
+    effect:
+      type: MISSING_HEALTH_DAMAGE
+      magnitudeRange: 40-120
+      durationRange: 3-6
+    cooldownSeconds: 60
+
+  guardian_shell:
+    id: guardian_shell
+    name: "&bTrinket of the Guardian"
+    material: PRISMARINE_SHARD
+    model: ""
+    description:
+      - "&7Summons a protective barrier around you."
+    effect:
+      type: ABSORPTION_SHIELD
+      magnitudeRange: 8-16
+      durationRange: 3-6
+    cooldownSeconds: 50
+
+  immortal_vow:
+    id: immortal_vow
+    name: "&5Immortal Vow"
+    material: NETHER_STAR
+    model: ""
+    description:
+      - "&7Defy death for a heartbeat."
+    effect:
+      type: IMMORTALITY
+      magnitudeRange: 0-0
+      durationRange: 3-5
+    cooldownSeconds: 90

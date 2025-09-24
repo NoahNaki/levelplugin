@@ -155,9 +155,14 @@ public final class CutsceneLoader {
     private static Frame parseActorAction(Map<?, ?> raw, long duration) {
         String actor = raw.get("actor") instanceof String s ? s : null;
         String action = raw.get("action") instanceof String s ? s : null;
-        Map<String, Object> params = raw.get("params") instanceof Map<?, ?> map
-                ? new LinkedHashMap<>((Map<?, ?>) map)
-                : new LinkedHashMap<>();
+        Map<String, Object> params = new LinkedHashMap<>();
+        if (raw.get("params") instanceof Map<?, ?> map) {
+            map.forEach((key, value) -> {
+                if (key instanceof String str) {
+                    params.put(str, value);
+                }
+            });
+        }
         if (params.isEmpty()) {
             raw.forEach((key, value) -> {
                 if (key instanceof String str && !List.of("type", "actor", "action", "duration").contains(str)) {

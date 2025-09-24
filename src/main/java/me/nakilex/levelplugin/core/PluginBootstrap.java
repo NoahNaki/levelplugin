@@ -22,6 +22,7 @@ import me.nakilex.levelplugin.items.config.ItemConfig;
 import me.nakilex.levelplugin.items.gui.ItemsBrowser;
 import me.nakilex.levelplugin.blacksmith.gui.RerollBrowser;
 import me.nakilex.levelplugin.potions.gui.PotionBrowser;
+import me.nakilex.levelplugin.trinkets.gui.TrinketBrowser;
 import me.nakilex.levelplugin.items.listeners.PickupCustomItemListener;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.lootchests.config.ConfigManager;
@@ -127,6 +128,7 @@ public class PluginBootstrap {
     private CooldownManager cooldownManager;
     private LootChestManager lootChestManager;
     private PotionManager potionManager;
+    private me.nakilex.levelplugin.trinkets.managers.TrinketManager trinketManager;
     private HorseConfigManager horseConfigManager;
     private NamespacedKey upgradeKey;
     private MobRewardsConfig mobRewardsConfig;
@@ -238,6 +240,7 @@ public class PluginBootstrap {
                 new me.nakilex.levelplugin.transmog.gui.TransmogBrowser(plugin, transmogManager);
         new me.nakilex.levelplugin.transmog.gui.TransmogGUI(plugin, transmogManager, tBrowser);
         new ItemsBrowser(plugin);
+        new TrinketBrowser(plugin, trinketManager);
         new me.nakilex.levelplugin.items.tools.gui.ToolBrowser(plugin);
         new RerollBrowser(plugin);
         new me.nakilex.levelplugin.potions.gui.PotionBrowser(plugin, potionManager);
@@ -252,6 +255,10 @@ public class PluginBootstrap {
         File configFile = new File(plugin.getDataFolder(), "potions.yml");
         FileConfiguration config = YamlConfiguration.loadConfiguration(configFile);
         potionManager = new PotionManager(config);
+        plugin.saveResource("trinkets.yml", false);
+        File trinketFile = new File(plugin.getDataFolder(), "trinkets.yml");
+        FileConfiguration trinketConfig = YamlConfiguration.loadConfiguration(trinketFile);
+        trinketManager = new me.nakilex.levelplugin.trinkets.managers.TrinketManager(plugin, trinketConfig);
         horseConfigManager = new HorseConfigManager(plugin.getDataFolder());
         plugin.saveResource("field_bosses.yml", false);
         bossConfigFile = new File(plugin.getDataFolder(), "field_bosses.yml");
@@ -463,6 +470,9 @@ public class PluginBootstrap {
             arenaMatchManager
         );
         plugin.getServer().getPluginManager().registerEvents(
+                new me.nakilex.levelplugin.trinkets.listeners.TrinketListener(trinketManager),
+                plugin);
+        plugin.getServer().getPluginManager().registerEvents(
                 new me.nakilex.levelplugin.battlepass.BattlePassListener(battlePassManager),
                 plugin);
         plugin.getServer().getPluginManager().registerEvents(
@@ -529,6 +539,11 @@ public class PluginBootstrap {
             playerConfig.saveAllPlayers();
         }
         if (battlePassManager != null) battlePassManager.saveAll();
+        if (trinketManager != null) {
+            for (org.bukkit.entity.Player online : org.bukkit.Bukkit.getOnlinePlayers()) {
+                trinketManager.clear(online);
+            }
+        }
         if (storageManager != null) storageManager.saveAllStorages();
         if (guildVaultManager != null) guildVaultManager.saveAll();
         if (auctionHouseManager != null) auctionHouseManager.saveAuctionsSync();
@@ -658,6 +673,7 @@ public class PluginBootstrap {
     public MercenaryManager getMercenaryManager() { return mercenaryManager; }
     public me.nakilex.levelplugin.transmog.TransmogManager getTransmogManager() { return transmogManager; }
     public me.nakilex.levelplugin.battlepass.BattlePassManager getBattlePassManager() { return battlePassManager; }
+    public me.nakilex.levelplugin.trinkets.managers.TrinketManager getTrinketManager() { return trinketManager; }
 
     private void createCustomConfig() {
         customConfigFile = new File(plugin.getDataFolder(), "config.yml");
