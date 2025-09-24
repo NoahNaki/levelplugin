@@ -115,12 +115,13 @@ public class TrinketTemplate {
             return stack;
         }
 
-        meta.setDisplayName(getFormattedName());
-
         int magnitudeTier = effect.getMagnitudeTier();
         int durationTier = effect.getDurationTier();
         int combinedTier = Math.max(1, magnitudeTier + durationTier);
         ItemRarity rarity = rarityFromTierSum(combinedTier);
+
+        String baseName = ChatColor.stripColor(getFormattedName());
+        meta.setDisplayName(rarity.getColor() + baseName);
 
         List<String> lore = new ArrayList<>();
         String rarityGlyph = "<glyph:" + rarity.name().toLowerCase() + ">";

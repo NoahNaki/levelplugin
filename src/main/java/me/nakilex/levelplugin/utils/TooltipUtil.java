@@ -4,6 +4,7 @@ import org.bukkit.ChatColor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Helper methods for formatting item tooltips. Provides lightweight utilities
@@ -57,11 +58,14 @@ public final class TooltipUtil {
         if (key == null || key.isBlank()) {
             return lore;
         }
+        String upperKey = key.toUpperCase(Locale.ROOT);
         StringBuilder line = new StringBuilder()
-            .append(ChatColor.YELLOW)
-            .append("Press [")
-            .append(key.toUpperCase())
-            .append("]");
+            .append(ChatColor.GRAY)
+            .append("Press ")
+            .append(ChatColor.WHITE)
+            .append('[')
+            .append(upperKey)
+            .append(']');
         if (action != null && !action.isBlank()) {
             line.append(' ').append(ChatColor.GRAY).append(action);
         }

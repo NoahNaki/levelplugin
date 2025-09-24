@@ -862,8 +862,6 @@ public class DungeonBuilder implements Listener {
         lore.add(ChatColor.GRAY + "Status: " + (unlocked ? ChatColor.GREEN + "Unlocked" : ChatColor.RED + "Locked"));
         lore.add("");
         if (unlocked) {
-            lore.add(ChatColor.GREEN + "✔ Room unlocked");
-            lore.add("");
             lore.addAll(TooltipUtil.clickInstructions("to place", null));
         } else {
             lore.add(ChatColor.GOLD + "Cost:");
