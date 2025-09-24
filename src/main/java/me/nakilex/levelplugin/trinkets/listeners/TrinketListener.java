@@ -25,8 +25,8 @@ public class TrinketListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onSwap(PlayerSwapHandItemsEvent event) {
         Player player = event.getPlayer();
-        ItemStack off = event.getOffHandItem();
-        ItemStack main = event.getMainHandItem();
+        ItemStack off = player.getInventory().getItemInOffHand();
+        ItemStack main = player.getInventory().getItemInMainHand();
         boolean offTrinket = manager.isTrinket(off);
         boolean mainTrinket = manager.isTrinket(main);
         if (!offTrinket && !mainTrinket) {
