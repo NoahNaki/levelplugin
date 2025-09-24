@@ -49,11 +49,18 @@ public class DungeonListGUI implements Listener {
                 int threat = manager.getThreatLevel(key);
                 double rating = me.nakilex.levelplugin.Main.getInstance().getDungeonRatingManager().getAverage(key);
                 String stars = GuiUtil.glyphStars((int) Math.floor(rating));
-                String ratingLine = rating > 0 ? ChatColor.GOLD + "Rating: " + df.format(rating) + " " + stars : ChatColor.GOLD + "Rating: N/A";
+                String formattedStars = ChatColor.YELLOW + stars;
                 List<String> lore = new ArrayList<>();
+                lore.add(ChatColor.GOLD + "Details:");
+                lore.add(ChatColor.GRAY + "- Threat: " + ChatColor.DARK_RED + threat);
+                if (rating > 0) {
+                    lore.add(ChatColor.GRAY + "- Rating: " + ChatColor.GOLD + df.format(rating)
+                            + ChatColor.GRAY + " " + formattedStars);
+                } else {
+                    lore.add(ChatColor.GRAY + "- Rating: " + ChatColor.RED + "N/A");
+                }
+                lore.add("");
                 lore.addAll(TooltipUtil.clickInstructions("to play", null));
-                lore.add(ChatColor.DARK_RED + "Threat Level: " + threat);
-                lore.add(ratingLine);
                 meta.setLore(lore);
                 meta.setLocalizedName(key);
                 item.setItemMeta(meta);

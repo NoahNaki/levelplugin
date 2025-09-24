@@ -24,6 +24,12 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.ItemFlag;
+import me.nakilex.levelplugin.economy.managers.EconomyManager;
+import me.nakilex.levelplugin.player.config.PlayerConfig;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.CurrencyMessageUtil;
+import me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.HeadUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
@@ -37,6 +43,8 @@ import java.io.File;
 import java.io.IOException;
 
 import java.util.*;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.awt.Point;
 
 /**
@@ -50,6 +58,30 @@ public class DungeonBuilder implements Listener {
     private final Map<UUID, Location> storedReturns = new HashMap<>();
     private final File sessionFile;
     private final FileConfiguration sessionConfig;
+    private final EconomyManager economyManager;
+    private final PlayerConfig playerConfig;
+    private final Map<String, RoomOption> roomOptions = new LinkedHashMap<>();
+
+    private static final String ROOM_KEY_BASIC = "basic";
+    private static final String ROOM_KEY_HALLWAY = "hallway";
+    private static final String ROOM_KEY_TREASURE_LEFT = "treasure_left";
+    private static final String ROOM_KEY_TREASURE_T_RIGHT = "treasure_t_right";
+    private static final String ROOM_KEY_DECOR_STONE = "decor_stone";
+    private static final String ROOM_KEY_DECOR_CHEST = "decor_chest";
+    private static final String ROOM_KEY_BOSS = "boss";
+    private static final String ROOM_KEY_COMBAT = "combat";
+    private static final String ROOM_KEY_EXIT = "exit";
+    private static final String ROOM_KEY_LIBRARY = "library";
+
+    private static final int COST_HALLWAY = 2200;
+    private static final int COST_TREASURE = 3400;
+    private static final int COST_TREASURE_T = 3600;
+    private static final int COST_DECOR_STONE = 2100;
+    private static final int COST_DECOR_CHEST = 2600;
+    private static final int COST_BOSS = 5000;
+    private static final int COST_COMBAT = 3200;
+    private static final int COST_EXIT = 2400;
+    private static final int COST_LIBRARY = 3800;
 
     // custom head textures for room icons
     private static final String CHEST_DECOR_HEAD = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvN2UyZWI0NzUxZTNjNTBkNTBmZjE2MzUyNTc2NjYzZDhmZWRmZTNlMDRiMmYwYjhhMmFhODAzYjQxOTM2M2NhMSJ9fX0=";
@@ -62,6 +94,9 @@ public class DungeonBuilder implements Listener {
 
     public DungeonBuilder(DungeonManager manager) {
         this.manager = manager;
+        Main main = Main.getInstance();
+        this.economyManager = main != null ? main.getEconomyManager() : null;
+        this.playerConfig = main != null ? main.getPlayerConfig() : null;
         File data = manager.getPlugin().getDataFolder();
         sessionFile = new File(data, "builder_sessions.yml");
         sessionConfig = YamlConfiguration.loadConfiguration(sessionFile);
@@ -83,7 +118,121 @@ public class DungeonBuilder implements Listener {
                 } catch (IllegalArgumentException ignored) {}
             }
         }
+        initRoomOptions();
     }
+
+    private void initRoomOptions() {
+        roomOptions.clear();
+        registerRoomOption(new RoomOption(
+                ROOM_KEY_BASIC,
+                10,
+                ChatColor.YELLOW + "Basic Room",
+                0,
+                builder -> builder.item(Material.YELLOW_WOOL, ChatColor.YELLOW + "Basic Room"),
+                (session, player) -> player.openInventory(createVariantSelect())
+        ));
+        registerRoomOption(new RoomOption(
+                ROOM_KEY_HALLWAY,
+                11,
+                ChatColor.YELLOW + "Hallway",
+                COST_HALLWAY,
+                builder -> builder.item(Material.BROWN_WOOL, ChatColor.YELLOW + "Hallway"),
+                (session, player) -> {
+                    placeVariant(session, manager.getHallway());
+                    player.closeInventory();
+                }
+        ));
+        registerRoomOption(new RoomOption(
+                ROOM_KEY_TREASURE_LEFT,
+                12,
+                ChatColor.GOLD + "Treasure Room Left",
+                COST_TREASURE,
+                builder -> HeadUtil.createCustomHead(TREASURE_HEAD, ChatColor.GOLD + "Treasure Room Left", null),
+                (session, player) -> {
+                    placeVariant(session, manager.getTreasureLeft());
+                    player.closeInventory();
+                }
+        ));
+        registerRoomOption(new RoomOption(
+                ROOM_KEY_TREASURE_T_RIGHT,
+                13,
+                ChatColor.GOLD + "Treasure Room T-Section Right",
+                COST_TREASURE_T,
+                builder -> HeadUtil.createCustomHead(TREASURE_HEAD, ChatColor.GOLD + "Treasure Room T-Section Right", null),
+                (session, player) -> {
+                    placeVariant(session, manager.getTreasureTRight());
+                    player.closeInventory();
+                }
+        ));
+        registerRoomOption(new RoomOption(
+                ROOM_KEY_DECOR_STONE,
+                14,
+                ChatColor.GRAY + "Decor Stone Room",
+                COST_DECOR_STONE,
+                builder -> HeadUtil.createCustomHead(STONE_DECOR_HEAD, ChatColor.GRAY + "Decor Stone Room", null),
+                (session, player) -> {
+                    placeVariant(session, manager.getDecorStone());
+                    player.closeInventory();
+                }
+        ));
+        registerRoomOption(new RoomOption(
+                ROOM_KEY_DECOR_CHEST,
+                15,
+                ChatColor.YELLOW + "Decor Chest Room",
+                COST_DECOR_CHEST,
+                builder -> HeadUtil.createCustomHead(CHEST_DECOR_HEAD, ChatColor.YELLOW + "Decor Chest Room", null),
+                (session, player) -> {
+                    placeVariant(session, manager.getDecorChest());
+                    player.closeInventory();
+                }
+        ));
+        registerRoomOption(new RoomOption(
+                ROOM_KEY_BOSS,
+                16,
+                ChatColor.DARK_GRAY + "Boss Room",
+                COST_BOSS,
+                builder -> HeadUtil.createCustomHead(BOSS_HEAD, ChatColor.DARK_GRAY + "Boss Room", null),
+                (session, player) -> {
+                    session.selectedTemplate = manager.getBoss();
+                    player.openInventory(createBossSelect());
+                }
+        ));
+        registerRoomOption(new RoomOption(
+                ROOM_KEY_COMBAT,
+                17,
+                ChatColor.RED + "Combat Room",
+                COST_COMBAT,
+                builder -> HeadUtil.createCustomHead(COMBAT_HEAD, ChatColor.RED + "Combat Room", null),
+                (session, player) -> player.openInventory(createCombatVariantSelect())
+        ));
+        registerRoomOption(new RoomOption(
+                ROOM_KEY_EXIT,
+                18,
+                ChatColor.DARK_PURPLE + "Exit Room",
+                COST_EXIT,
+                builder -> HeadUtil.createCustomHead(EXIT_HEAD, ChatColor.DARK_PURPLE + "Exit Room", null),
+                (session, player) -> {
+                    placeVariant(session, manager.getExit());
+                    player.closeInventory();
+                }
+        ));
+        registerRoomOption(new RoomOption(
+                ROOM_KEY_LIBRARY,
+                26,
+                ChatColor.GOLD + "Library",
+                COST_LIBRARY,
+                builder -> HeadUtil.createCustomHead(LIBRARY_HEAD, ChatColor.GOLD + "Library", null),
+                (session, player) -> {
+                    placeVariant(session, manager.getLibrary());
+                    player.closeInventory();
+                }
+        ));
+    }
+
+    private void registerRoomOption(RoomOption option) {
+        roomOptions.put(option.key(), option);
+    }
+
 
     private void saveStoredReturns() {
         sessionConfig.set("sessions", null);
@@ -354,7 +503,7 @@ public class DungeonBuilder implements Listener {
         if (info == null) return;
         event.setCancelled(true);
         s.pending = info;
-        player.openInventory(createRoomSelect());
+        player.openInventory(createRoomSelect(s));
     }
 
     @EventHandler
@@ -375,39 +524,42 @@ public class DungeonBuilder implements Listener {
 
         switch (rawTitle) {
             case "Select Room" -> {
-                if (name.equalsIgnoreCase("Basic Room")) {
-                    player.openInventory(createVariantSelect());
-                } else if (name.equalsIgnoreCase("Hallway")) {
-                    placeVariant(s, manager.getHallway());
-                    player.closeInventory();
-                } else if (name.equalsIgnoreCase("Treasure Room Left")) {
-                    placeVariant(s, manager.getTreasureLeft());
-                    player.closeInventory();
-                } else if (name.equalsIgnoreCase("Treasure Room T-Section Right")) {
-                    placeVariant(s, manager.getTreasureTRight());
-                    player.closeInventory();
-                } else if (name.equalsIgnoreCase("Decor Stone Room")) {
-                    placeVariant(s, manager.getDecorStone());
-                    player.closeInventory();
-                } else if (name.equalsIgnoreCase("Decor Chest Room")) {
-                    placeVariant(s, manager.getDecorChest());
-                    player.closeInventory();
-                } else if (name.equalsIgnoreCase("Combat Room")) {
-                    player.openInventory(createCombatVariantSelect());
-                } else if (name.equalsIgnoreCase("Boss Room")) {
-                    s.selectedTemplate = manager.getBoss();
-                    player.openInventory(createBossSelect());
-                } else if (name.equalsIgnoreCase("Exit Room")) {
-                    placeVariant(s, manager.getExit());
-                    player.closeInventory();
-                } else if (name.equalsIgnoreCase("Library")) {
-                    placeVariant(s, manager.getLibrary());
-                    player.closeInventory();
+                String key = (id != null && !id.isEmpty()) ? id : null;
+                if (key == null) {
+                    key = ChatColor.stripColor(name).toLowerCase().replace(' ', '_');
                 }
+                RoomOption option = roomOptions.get(key);
+                if (option == null) {
+                    for (RoomOption candidate : roomOptions.values()) {
+                        if (ChatColor.stripColor(candidate.displayName()).equalsIgnoreCase(name)) {
+                            option = candidate;
+                            break;
+                        }
+                    }
+                }
+                if (option == null) return;
+
+                boolean unlocked = s.unlockedRooms.contains(option.key());
+                if (!unlocked) {
+                    if (event.getClick().isRightClick()) {
+                        if (attemptUnlock(s, player, option)) {
+                            player.openInventory(createRoomSelect(s));
+                        }
+                    } else {
+                        String costLine = option.cost() > 0
+                                ? CurrencyMessageUtil.formatAmount(Currency.COINS, option.cost())
+                                : ChatColor.GREEN + "Free";
+                        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                                "Right-click to unlock this room (" + costLine + ChatColor.YELLOW + ")");
+                    }
+                    return;
+                }
+
+                option.action().accept(s, player);
             }
             case "Basic Room Variants" -> {
                 if (name.equalsIgnoreCase("Back")) {
-                    player.openInventory(createRoomSelect());
+                    player.openInventory(createRoomSelect(s));
                     return;
                 }
                 RoomTemplate templ = switch (item.getType()) {
@@ -427,7 +579,7 @@ public class DungeonBuilder implements Listener {
             }
             case "Combat Variants" -> {
                 if (name.equalsIgnoreCase("Back")) {
-                    player.openInventory(createRoomSelect());
+                    player.openInventory(createRoomSelect(s));
                     return;
                 }
                 RoomTemplate templ = switch (item.getType()) {
@@ -454,7 +606,7 @@ public class DungeonBuilder implements Listener {
             }
             case "Select Boss" -> {
                 if (name.equalsIgnoreCase("Back")) {
-                    player.openInventory(createRoomSelect());
+                    player.openInventory(createRoomSelect(s));
                     return;
                 }
                 s.selectedMob = (id != null && !id.isEmpty()) ? id : name;
@@ -465,7 +617,6 @@ public class DungeonBuilder implements Listener {
                 }
             }
         }
-    }
 
     @EventHandler
     public void onChat(AsyncPlayerChatEvent event) {
@@ -681,38 +832,95 @@ public class DungeonBuilder implements Listener {
         s.connectors.remove(info.interaction.getEntityId());
     }
 
-    private Inventory createRoomSelect() {
+    private Inventory createRoomSelect(Session session) {
+        ensureDefaultUnlock(session);
         Inventory inv = GuiBuilder.create(27, ChatColor.DARK_GREEN + "Select Room")
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .build();
 
-        ItemStack basic = item(Material.YELLOW_WOOL, ChatColor.YELLOW + "Basic Room");
-        ItemStack hall = item(Material.BROWN_WOOL, ChatColor.YELLOW + "Hallway");
-        ItemStack treasureLeft = HeadUtil.createCustomHead(TREASURE_HEAD, ChatColor.GOLD + "Treasure Room Left", null);
-        ItemStack treasureTRight = HeadUtil.createCustomHead(TREASURE_HEAD, ChatColor.GOLD + "Treasure Room T-Section Right", null);
-        ItemStack decorStone = HeadUtil.createCustomHead(STONE_DECOR_HEAD, ChatColor.GRAY + "Decor Stone Room", null);
-        ItemStack decorChest = HeadUtil.createCustomHead(CHEST_DECOR_HEAD, ChatColor.YELLOW + "Decor Chest Room", null);
-        ItemStack boss = HeadUtil.createCustomHead(BOSS_HEAD, ChatColor.DARK_GRAY + "Boss Room", null);
-        ItemStack combat = HeadUtil.createCustomHead(COMBAT_HEAD, ChatColor.RED + "Combat Room", null);
-        ItemStack exitRoom = HeadUtil.createCustomHead(EXIT_HEAD, ChatColor.DARK_PURPLE + "Exit Room", null);
-        ItemStack library = HeadUtil.createCustomHead(LIBRARY_HEAD, ChatColor.GOLD + "Library", null);
-        ItemMeta cMeta = combat.getItemMeta();
-        if (cMeta != null) {
-            cMeta.setLore(TooltipUtil.clickInstructions("to place", "to edit"));
-            combat.setItemMeta(cMeta);
+        for (RoomOption option : roomOptions.values()) {
+            ItemStack item = option.iconFactory().apply(this);
+            ItemMeta meta = item.getItemMeta();
+            if (meta != null) {
+                meta.setDisplayName(option.displayName());
+                meta.setLocalizedName(option.key());
+                item.setItemMeta(meta);
+            }
+            applyRoomLore(session, item, option);
+            inv.setItem(option.slot(), item);
         }
-
-        inv.setItem(10, basic);
-        inv.setItem(11, hall);
-        inv.setItem(12, treasureLeft);
-        inv.setItem(13, treasureTRight);
-        inv.setItem(14, decorStone);
-        inv.setItem(15, decorChest);
-        inv.setItem(16, boss);
-        inv.setItem(17, combat);
-        inv.setItem(18, exitRoom);
-        inv.setItem(26, library);
         return inv;
+    }
+
+    private void applyRoomLore(Session session, ItemStack item, RoomOption option) {
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return;
+        boolean unlocked = session.unlockedRooms.contains(option.key());
+        List<String> lore = new ArrayList<>();
+        lore.add(ChatColor.GRAY + "Status: " + (unlocked ? ChatColor.GREEN + "Unlocked" : ChatColor.RED + "Locked"));
+        lore.add("");
+        lore.add(ChatColor.GOLD + "Cost:");
+        if (option.cost() <= 0) {
+            lore.add(ChatColor.GRAY + "- " + ChatColor.GREEN + "✔ Free");
+        } else {
+            lore.add(ChatColor.GRAY + "- " + (unlocked ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
+                    + option.cost() + " " + ChatColor.GOLD + "<glyph:coins_icon>");
+        }
+        lore.add("");
+        if (unlocked) {
+            lore.addAll(TooltipUtil.clickInstructions("to place", null));
+        } else {
+            lore.addAll(TooltipUtil.clickInstructions("to select", "to unlock"));
+        }
+        meta.setLore(lore);
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+        item.setItemMeta(meta);
+    }
+
+    private boolean attemptUnlock(Session session, Player player, RoomOption option) {
+        if (session.unlockedRooms.contains(option.key())) return true;
+        if (option.cost() <= 0) {
+            addUnlockedRoom(session, player, option.key());
+            return true;
+        }
+        if (economyManager == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Unable to unlock rooms right now.");
+            return false;
+        }
+        int cost = option.cost();
+        int balance = economyManager.getBalance(player);
+        if (balance < cost) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "You need " + CurrencyMessageUtil.formatAmount(Currency.COINS, cost) +
+                            " to unlock this room.");
+            return false;
+        }
+        try {
+            economyManager.deductCoins(player, cost);
+        } catch (IllegalArgumentException ex) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Transaction failed: " + ex.getMessage());
+            return false;
+        }
+        addUnlockedRoom(session, player, option.key());
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                "Unlocked " + option.displayName() + ChatColor.GREEN + " for "
+                        + CurrencyMessageUtil.formatAmount(Currency.COINS, cost) + ChatColor.GREEN + ".");
+        return true;
+    }
+
+    private void addUnlockedRoom(Session session, Player player, String key) {
+        session.unlockedRooms.add(key);
+        if (playerConfig != null && playerConfig.unlockDungeonRoom(player.getUniqueId(), key)) {
+            playerConfig.saveConfigFile();
+        }
+    }
+
+    private void ensureDefaultUnlock(Session session) {
+        if (!session.unlockedRooms.contains(ROOM_KEY_BASIC)) {
+            addUnlockedRoom(session, session.player, ROOM_KEY_BASIC);
+        }
     }
 
     private Inventory createVariantSelect() {
@@ -785,6 +993,11 @@ public class DungeonBuilder implements Listener {
     }
 
 
+    private record RoomOption(String key, int slot, String displayName, int cost,
+                              Function<DungeonBuilder, ItemStack> iconFactory,
+                              BiConsumer<Session, Player> action) { }
+
+
     private static class ConnectorInfo {
         final Location location;
         final Direction facing;
@@ -821,6 +1034,7 @@ public class DungeonBuilder implements Listener {
         final boolean tempWorld;
         final Deque<History> history = new ArrayDeque<>();
         final Map<Integer, ConnectorInfo> connectors = new HashMap<>();
+        final Set<String> unlockedRooms = new HashSet<>();
         boolean placingEntrance = true;
         ConnectorInfo pending;
         boolean awaitingName = false;
@@ -831,6 +1045,10 @@ public class DungeonBuilder implements Listener {
             this.dungeon = new Dungeon(world, player.getName() + "_builder");
             this.returnLocation = back;
             this.tempWorld = tempWorld;
+            if (playerConfig != null) {
+                unlockedRooms.addAll(playerConfig.getDungeonRoomUnlocks(player.getUniqueId()));
+            }
+            ensureDefaultUnlock(this);
         }
 
         void resetPlayer() {

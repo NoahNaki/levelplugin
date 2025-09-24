@@ -438,6 +438,66 @@ public class PlayerConfig {
         config.set("players." + uuid + ".profiles.unlocked", count);
     }
 
+    // ----- Dungeon Builder -----
+
+    /**
+     * Retrieve the set of dungeon builder rooms a player has unlocked.
+     * Keys are stored in lower case to simplify comparisons.
+     */
+    public java.util.Set<String> getDungeonRoomUnlocks(UUID uuid) {
+        String path = "players." + uuid + ".dungeon.rooms";
+        java.util.List<String> stored = config.getStringList(path);
+        java.util.Set<String> result = new java.util.HashSet<>();
+        for (String value : stored) {
+            if (value == null || value.isEmpty()) continue;
+            result.add(value.toLowerCase());
+        }
+        return result;
+    }
+
+    /** Check whether the player has unlocked the specified dungeon room. */
+    public boolean isDungeonRoomUnlocked(UUID uuid, String key) {
+        if (key == null || key.isEmpty()) return false;
+        return getDungeonRoomUnlocks(uuid).contains(key.toLowerCase());
+    }
+
+    /**
+     * Record that a player has unlocked the specified dungeon builder room.
+     *
+     * @return {@code true} if the unlock list was modified
+     */
+    public boolean unlockDungeonRoom(UUID uuid, String key) {
+        if (key == null || key.isEmpty()) return false;
+        String normalized = key.toLowerCase();
+        String path = "players." + uuid + ".dungeon.rooms";
+        java.util.List<String> stored = new java.util.ArrayList<>(config.getStringList(path));
+        for (String value : stored) {
+            if (value != null && value.equalsIgnoreCase(normalized)) {
+                return false;
+            }
+        }
+        stored.add(normalized);
+        config.set(path, stored);
+        return true;
+    }
+
+    /**
+     * Replace the stored unlock list for dungeon builder rooms.
+     */
+    public void setDungeonRoomUnlocks(UUID uuid, java.util.Collection<String> keys) {
+        String path = "players." + uuid + ".dungeon.rooms";
+        if (keys == null || keys.isEmpty()) {
+            config.set(path, null);
+            return;
+        }
+        java.util.List<String> normalized = new java.util.ArrayList<>();
+        for (String key : keys) {
+            if (key == null || key.isEmpty()) continue;
+            normalized.add(key.toLowerCase());
+        }
+        config.set(path, normalized);
+    }
+
     /** Allows external classes to persist config changes. */
     public void saveConfigFile() {
         saveConfig();
