@@ -134,4 +134,5 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.guild.siege.GuildSiegeManager getGuildSiegeManager() { return bootstrap.getGuildSiegeManager(); }
     public PathfindingManager getPathfindingManager() { return bootstrap.getPathfindingManager(); }
     public me.nakilex.levelplugin.transmog.TransmogManager getTransmogManager() { return bootstrap.getTransmogManager(); }
+    public me.nakilex.levelplugin.battlepass.BattlePassManager getBattlePassManager() { return bootstrap.getBattlePassManager(); }
 }

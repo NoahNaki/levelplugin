@@ -189,6 +189,7 @@ public class PluginBootstrap {
     private PathfindingManager pathfindingManager;
     private MercenaryManager mercenaryManager;
     private me.nakilex.levelplugin.transmog.TransmogManager transmogManager;
+    private me.nakilex.levelplugin.battlepass.BattlePassManager battlePassManager;
 
     public PluginBootstrap(Main plugin) {
         this.plugin = plugin;
@@ -312,6 +313,14 @@ public class PluginBootstrap {
         broadcastMgr.start();
         settingsManager = new SettingsManager();
         questManager = new QuestManager(plugin, partyManager);
+        battlePassManager = new me.nakilex.levelplugin.battlepass.BattlePassManager(
+                plugin,
+                playerConfig,
+                economyManager,
+                gemsManager,
+                potionManager,
+                itemManager
+        );
         dialogManager = new me.nakilex.levelplugin.npc.dialog.NPCDialogManager(plugin);
         scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(plugin, partyManager, questManager, arenaQueueManager, arenaRatingManager);
         arenaQueueManager.setScoreboardManager(scoreboardManager);
@@ -404,7 +413,8 @@ public class PluginBootstrap {
             codexGUI,
             wanderingMerchantManager,
             pathfindingManager,
-            mercenaryManager
+            mercenaryManager,
+            battlePassManager
         );
         me.nakilex.levelplugin.maintenance.MaintenanceCommand maintenanceCmd =
                 new me.nakilex.levelplugin.maintenance.MaintenanceCommand(maintenanceManager);
@@ -452,6 +462,9 @@ public class PluginBootstrap {
             arenaQueueGUI,
             arenaMatchManager
         );
+        plugin.getServer().getPluginManager().registerEvents(
+                new me.nakilex.levelplugin.battlepass.BattlePassListener(battlePassManager),
+                plugin);
         plugin.getServer().getPluginManager().registerEvents(
                 new me.nakilex.levelplugin.guild.siege.GuildSiegeListener(guildSiegeManager),
                 plugin);
@@ -515,6 +528,7 @@ public class PluginBootstrap {
             }
             playerConfig.saveAllPlayers();
         }
+        if (battlePassManager != null) battlePassManager.saveAll();
         if (storageManager != null) storageManager.saveAllStorages();
         if (guildVaultManager != null) guildVaultManager.saveAll();
         if (auctionHouseManager != null) auctionHouseManager.saveAuctionsSync();
@@ -643,6 +657,7 @@ public class PluginBootstrap {
     public PathfindingManager getPathfindingManager() { return pathfindingManager; }
     public MercenaryManager getMercenaryManager() { return mercenaryManager; }
     public me.nakilex.levelplugin.transmog.TransmogManager getTransmogManager() { return transmogManager; }
+    public me.nakilex.levelplugin.battlepass.BattlePassManager getBattlePassManager() { return battlePassManager; }
 
     private void createCustomConfig() {
         customConfigFile = new File(plugin.getDataFolder(), "config.yml");

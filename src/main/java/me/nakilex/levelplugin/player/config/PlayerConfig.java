@@ -2,6 +2,8 @@ package me.nakilex.levelplugin.player.config;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.battlepass.BattlePassManager;
+import me.nakilex.levelplugin.battlepass.BattlePassProgress;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import org.bukkit.Bukkit;
@@ -92,6 +94,17 @@ public class PlayerConfig {
         }
         config.set(path + ".essences.equipped", equippedList);
 
+        BattlePassManager bpm = Main.getInstance().getBattlePassManager();
+        if (bpm != null) {
+            BattlePassProgress prog = bpm.getProgress(uuid);
+            String bp = path + ".battlepass.";
+            config.set(bp + "season", prog.getSeasonId());
+            config.set(bp + "xp", prog.getXp());
+            config.set(bp + "premium", prog.hasPremium());
+            config.set(bp + "claimed.free", new ArrayList<>(prog.getClaimedFree()));
+            config.set(bp + "claimed.premium", new ArrayList<>(prog.getClaimedPremium()));
+        }
+
         saveConfig();
     }
 
@@ -113,7 +126,7 @@ public class PlayerConfig {
 
         LevelManager lm = LevelManager.getInstance();
         lm.setLevel(uuid, level);
-        lm.addXP(uuid, xp);
+        lm.addXP(uuid, xp, false);
         me.nakilex.levelplugin.player.mining.managers.MiningManager mm = me.nakilex.levelplugin.player.mining.managers.MiningManager.getInstance();
         mm.setLevel(uuid, miningLevel);
         mm.addXP(uuid, miningXp);
@@ -156,6 +169,17 @@ public class PlayerConfig {
         List<Boolean> equipped = config.getBooleanList(root + ".essences.equipped");
         for (int i = 0; i < Math.min(stats.equippedEssences.length, equipped.size()); i++) {
             stats.equippedEssences[i] = equipped.get(i);
+        }
+
+        BattlePassManager bpm = Main.getInstance().getBattlePassManager();
+        if (bpm != null) {
+            String bp = root + ".battlepass.";
+            int season = config.getInt(bp + "season", bpm.getSeasonId());
+            int bpXp = config.getInt(bp + "xp", 0);
+            boolean premium = config.getBoolean(bp + "premium", false);
+            java.util.Set<Integer> freeClaims = new java.util.HashSet<>(config.getIntegerList(bp + "claimed.free"));
+            java.util.Set<Integer> premiumClaims = new java.util.HashSet<>(config.getIntegerList(bp + "claimed.premium"));
+            bpm.loadProgress(uuid, season, bpXp, premium, freeClaims, premiumClaims);
         }
     }
 

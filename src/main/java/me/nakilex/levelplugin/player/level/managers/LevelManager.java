@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.player.level.managers;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.battlepass.BattlePassManager;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -61,6 +62,19 @@ public class LevelManager {
 
     // Add XP by UUID
     public void addXP(UUID uuid, int amount) {
+        addXP(uuid, amount, true);
+    }
+
+    public void addXP(UUID uuid, int amount, boolean creditBattlePass) {
+        if (amount <= 0) return;
+
+        if (creditBattlePass) {
+            BattlePassManager bpm = Main.getInstance().getBattlePassManager();
+            if (bpm != null) {
+                bpm.addLevelXp(uuid, amount);
+            }
+        }
+
         if (getLevel(uuid) >= MAX_LEVEL) return;
 
         int newXP = getXP(uuid) + amount;
@@ -77,7 +91,7 @@ public class LevelManager {
     // Add XP by Player
     public void addXP(Player player, int amount) {
         if (player == null) return;
-        addXP(player.getUniqueId(), amount);
+        addXP(player.getUniqueId(), amount, true);
     }
 
     private void checkLevelUp(UUID uuid) {

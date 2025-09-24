@@ -62,6 +62,10 @@ commands:
     description: Shows your coin balance
     usage: /balance
     aliases: [b]
+  battlepass:
+    description: Open the seasonal battle pass
+    usage: /battlepass [claim|unlock]
+    aliases: [bp]
   addcoins:
     description: Adjust a player's coins (can be negative)
     usage: /addcoins <player|@everyone> <amount>

@@ -89,6 +89,8 @@ import me.nakilex.levelplugin.chat.ChatCommand;
 import me.nakilex.levelplugin.chat.RollCommand;
 import org.bukkit.command.PluginCommand;
 import me.nakilex.levelplugin.pathfinding.MercenaryManager;
+import me.nakilex.levelplugin.battlepass.BattlePassManager;
+import me.nakilex.levelplugin.battlepass.commands.BattlePassCommand;
 
 public class CommandRegistry {
 
@@ -125,7 +127,8 @@ public class CommandRegistry {
                                         CodexMainGUI codexGUI,
                                         WanderingMerchantManager wmManager,
                                         PathfindingManager pathManager,
-                                        MercenaryManager mercManager) {
+                                        MercenaryManager mercManager,
+                                        BattlePassManager battlePassManager) {
 
 
         plugin.getCommand("addpoints").setExecutor(new AddPointsCommand());
@@ -268,6 +271,10 @@ public class CommandRegistry {
         plugin.getCommand("unmute").setTabCompleter(chatCmd);
         plugin.getCommand("clearchat").setExecutor(chatCmd);
         plugin.getCommand("clearchat").setTabCompleter(chatCmd);
+
+        BattlePassCommand battlePassCommand = new BattlePassCommand(battlePassManager);
+        plugin.getCommand("battlepass").setExecutor(battlePassCommand);
+        plugin.getCommand("battlepass").setTabCompleter(battlePassCommand);
 
         // Ensure every command has a tab completer to avoid null completions
         EmptyTabCompleter empty = new EmptyTabCompleter();
