@@ -1,11 +1,8 @@
 package me.nakilex.levelplugin.pathfinding;
 
 import me.nakilex.levelplugin.pathfinding.MercenaryManager.Mode;
-import me.nakilex.levelplugin.pathfinding.npc.ArcherMercenary;
-import me.nakilex.levelplugin.pathfinding.npc.RogueMercenary;
-import me.nakilex.levelplugin.pathfinding.npc.MageMercenary;
 import me.nakilex.levelplugin.pathfinding.npc.PathNpc;
-import me.nakilex.levelplugin.pathfinding.npc.WarriorMercenary;
+import me.nakilex.levelplugin.pathfinding.npc.PathNpcFactory;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
@@ -48,14 +45,7 @@ public class MercenaryCommand implements CommandExecutor, TabCompleter {
                       sender.sendMessage("Invalid mercenary id");
                       return true;
                   }
-                  String cls = args[2].toLowerCase(Locale.ROOT);
-                  PathNpc profile = switch (cls) {
-                      case "rogue" -> new RogueMercenary();
-                      case "mage" -> new MageMercenary();
-                      case "warrior" -> new WarriorMercenary();
-                      case "archer" -> new ArcherMercenary();
-                      default -> null;
-                  };
+                  PathNpc profile = PathNpcFactory.fromId(args[2]).orElse(null);
                   if (profile == null) {
                       sender.sendMessage("Unknown class. Use rogue, mage, warrior or archer");
                       return true;
@@ -160,8 +150,9 @@ public class MercenaryCommand implements CommandExecutor, TabCompleter {
         }
           if (args.length == 3) {
               if (args[0].equalsIgnoreCase("bind")) {
-                  return List.of("rogue", "mage", "warrior", "archer").stream()
-                          .filter(c -> c.startsWith(args[2].toLowerCase(Locale.ROOT)))
+                  String prefix = args[2].toLowerCase(Locale.ROOT);
+                  return PathNpcFactory.identifiers().stream()
+                          .filter(c -> c.startsWith(prefix))
                           .collect(Collectors.toList());
               }
               if (args[0].equalsIgnoreCase("unbind")) {

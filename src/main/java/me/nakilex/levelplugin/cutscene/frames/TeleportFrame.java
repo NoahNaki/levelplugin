@@ -1,10 +1,8 @@
 package me.nakilex.levelplugin.cutscene.frames;
 
-import me.nakilex.levelplugin.Main;
-import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.TextComponent;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
+import me.nakilex.levelplugin.cutscene.effects.CutsceneEffects;
+import me.nakilex.levelplugin.cutscene.effects.EffectSettings;
+import me.nakilex.levelplugin.cutscene.playback.CutsceneContext;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -13,23 +11,15 @@ public class TeleportFrame implements Frame {
     private final Location location;
     private final String worldName;
     private final long durationMs;
-    private final String title;
-    private final String subtitle;
-    private final String actionBar;
-    private final String sound;
-    private final String command;
+    private final EffectSettings effects;
     /** blocks per second, <=0 means instant */
     private final double speed;
 
-    public TeleportFrame(Location location, long durationMs, String title, String subtitle,
-                         String actionBar, String sound, String command, String worldName, double speed) {
+    public TeleportFrame(Location location, long durationMs, EffectSettings effects,
+                         String worldName, double speed) {
         this.location = location;
         this.durationMs = durationMs;
-        this.title = title;
-        this.subtitle = subtitle;
-        this.actionBar = actionBar;
-        this.sound = sound;
-        this.command = command;
+        this.effects = effects == null ? EffectSettings.empty() : effects;
         this.worldName = worldName;
         this.speed = speed;
     }
@@ -51,24 +41,8 @@ public class TeleportFrame implements Frame {
         return speed;
     }
 
-    public String getTitle() {
-        return title;
-    }
-
-    public String getSubtitle() {
-        return subtitle;
-    }
-
-    public String getActionBar() {
-        return actionBar;
-    }
-
-    public String getSound() {
-        return sound;
-    }
-
-    public String getCommand() {
-        return command;
+    public EffectSettings getEffects() {
+        return effects;
     }
 
     private static float wrapAngle(float angle) {
@@ -79,7 +53,9 @@ public class TeleportFrame implements Frame {
     }
 
     @Override
-    public org.bukkit.scheduler.BukkitTask play(Player player, Main plugin) {
+    public org.bukkit.scheduler.BukkitTask play(CutsceneContext context) {
+        Player player = context.getViewer();
+        var plugin = context.getPlugin();
         if (location != null) {
             Location target = location.clone();
             if (worldName != null) {
@@ -109,7 +85,7 @@ public class TeleportFrame implements Frame {
                     public void run() {
                         if (t >= ticks) {
                             player.teleport(target);
-                            playEffects(player);
+                            CutsceneEffects.play(player, effects, target, plugin);
                             cancel();
                             return;
                         }
@@ -126,11 +102,11 @@ public class TeleportFrame implements Frame {
                 }.runTaskTimer(plugin, 0L, 1L);
             } else {
                 player.teleport(target);
-                playEffects(player);
+                CutsceneEffects.play(player, effects, target, plugin);
                 return null;
             }
         } else {
-            playEffects(player);
+            CutsceneEffects.play(player, effects, player.getLocation(), plugin);
             return null;
         }
     }
@@ -139,22 +115,8 @@ public class TeleportFrame implements Frame {
         return 3 * t * t - 2 * t * t * t; // smoothstep
     }
 
-    private void playEffects(Player player) {
-        if (title != null || subtitle != null) {
-            String t = title == null ? "" : ChatColor.translateAlternateColorCodes('&', title);
-            String sub = subtitle == null ? "" : ChatColor.translateAlternateColorCodes('&', subtitle);
-            player.sendTitle(t, sub, 10, 40, 10);
-        }
-        if (actionBar != null) {
-            String msg = ChatColor.translateAlternateColorCodes('&', actionBar);
-            player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(msg));
-        }
-        if (sound != null) {
-            player.playSound(player.getLocation(), sound, 1f, 1f);
-        }
-        if (command != null && !command.isEmpty()) {
-            String cmd = command.replace("%player%", player.getName());
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
-        }
+    @Override
+    public Location getTargetLocation() {
+        return location;
     }
 }

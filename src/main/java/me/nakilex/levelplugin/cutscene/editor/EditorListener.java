@@ -21,45 +21,80 @@ public class EditorListener implements Listener {
     @EventHandler
     public void onInteract(PlayerInteractEvent event) {
         ItemStack item = event.getItem();
-        if (item == null || !manager.isRecording(event.getPlayer())) return;
+        if (item == null || !manager.isRecording(event.getPlayer())) {
+            return;
+        }
 
         ItemMeta meta = item.getItemMeta();
-        if (meta == null || !meta.hasDisplayName()) return;
-        String name = meta.getDisplayName();
+        if (meta == null || !meta.hasDisplayName()) {
+            return;
+        }
+        String label = ChatColor.stripColor(meta.getDisplayName());
+        if (label == null) {
+            return;
+        }
 
         Action action = event.getAction();
+        var player = event.getPlayer();
+        boolean sneaking = player.isSneaking();
 
-        if (name.contains("Add Frame")) {
-            manager.addFrame(event.getPlayer());
-            event.getPlayer().sendMessage(ChatColor.GRAY + "Added frame");
+        if (label.startsWith("Add Frame")) {
+            manager.addFrame(player);
             event.setCancelled(true);
-        } else if (name.contains("Save")) {
-            manager.finishRecording(event.getPlayer());
-            event.getPlayer().sendMessage(ChatColor.GREEN + "Cutscene saved");
+        } else if (label.startsWith("Save")) {
+            manager.finishRecording(player);
             event.setCancelled(true);
-        } else if (name.contains("Cancel")) {
-            manager.cancelRecording(event.getPlayer());
-            event.getPlayer().sendMessage(ChatColor.RED + "Recording cancelled");
+        } else if (label.startsWith("Cancel")) {
+            manager.cancelRecording(player);
             event.setCancelled(true);
-        } else if (name.contains("Add Title")) {
-            manager.promptTitle(event.getPlayer());
-            event.getPlayer().sendMessage(ChatColor.YELLOW + "Type title in chat or 'cancel'");
-            event.setCancelled(true);
-        } else if (name.contains("Speed:")) {
+        } else if (label.startsWith("Mode:")) {
             if (action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK) {
-                manager.changeSpeed(event.getPlayer(), 1);
+                manager.cycleMode(player, -1);
             } else if (action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK) {
-                manager.changeSpeed(event.getPlayer(), -1);
+                manager.cycleMode(player, 1);
             }
             event.setCancelled(true);
-        } else if (name.contains("Mode:")) {
-            manager.toggleMovement(event.getPlayer());
+        } else if (label.startsWith("Duration:")) {
+            long step = sneaking ? 1000L : 500L;
+            if (action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK) {
+                manager.adjustDuration(player, -step);
+            } else if (action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK) {
+                manager.adjustDuration(player, step);
+            }
             event.setCancelled(true);
-        } else if (name.contains("Pause:")) {
-            if (action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK) {
-                manager.changePause(event.getPlayer(), 500L);
+        } else if (label.startsWith("Speed:")) {
+            double step = sneaking ? 0.5 : 1.0;
+            if (action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK) {
+                manager.adjustTeleportSpeed(player, -step);
+            } else if (action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK) {
+                manager.adjustTeleportSpeed(player, step);
+            }
+            event.setCancelled(true);
+        } else if (label.startsWith("Look Target")) {
+            if (action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK) {
+                manager.clearLookTarget(player);
+            } else if (action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK) {
+                manager.captureLookTarget(player);
+            }
+            event.setCancelled(true);
+        } else if (label.startsWith("Effects")) {
+            if (action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK) {
+                if (sneaking) {
+                    manager.promptBundles(player);
+                } else {
+                    manager.promptActionBar(player);
+                }
+            } else if (action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK) {
+                manager.promptTitle(player);
+            }
+            event.setCancelled(true);
+        } else if (label.startsWith("Metadata")) {
+            if (sneaking) {
+                manager.toggleAutoStart(player);
             } else if (action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK) {
-                manager.changePause(event.getPlayer(), -500L);
+                manager.promptTags(player);
+            } else if (action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK) {
+                manager.promptDescription(player);
             }
             event.setCancelled(true);
         }
@@ -67,9 +102,11 @@ public class EditorListener implements Listener {
 
     @EventHandler
     public void onChat(AsyncPlayerChatEvent event) {
-        if (!manager.isRecording(event.getPlayer())) return;
-        if (!manager.isAwaitingTitle(event.getPlayer())) return;
-        event.setCancelled(true);
-        manager.handleTitleChat(event.getPlayer(), event.getMessage());
+        if (!manager.isRecording(event.getPlayer())) {
+            return;
+        }
+        if (manager.handleChat(event.getPlayer(), event.getMessage())) {
+            event.setCancelled(true);
+        }
     }
 }

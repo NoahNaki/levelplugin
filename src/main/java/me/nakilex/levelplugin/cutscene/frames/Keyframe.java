@@ -1,6 +1,6 @@
 package me.nakilex.levelplugin.cutscene.frames;
 
-import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.cutscene.playback.CutsceneContext;
 import me.nakilex.levelplugin.utils.MobUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -34,6 +34,10 @@ public class Keyframe implements Frame {
         return location;
     }
 
+    public Location getLookAt() {
+        return lookAt;
+    }
+
     public String getWorldName() {
         return worldName;
     }
@@ -47,7 +51,9 @@ public class Keyframe implements Frame {
 
 
     @Override
-    public org.bukkit.scheduler.BukkitTask play(Player player, Main plugin) {
+    public org.bukkit.scheduler.BukkitTask play(CutsceneContext context) {
+        Player player = context.getViewer();
+        var plugin = context.getPlugin();
         if (location == null) return null;
 
         Location target = location.clone();
@@ -103,5 +109,10 @@ public class Keyframe implements Frame {
 
     private double smooth(double t) {
         return 3 * t * t - 2 * t * t * t;
+    }
+
+    @Override
+    public Location getTargetLocation() {
+        return location;
     }
 }

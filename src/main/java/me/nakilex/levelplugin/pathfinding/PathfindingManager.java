@@ -1,22 +1,13 @@
 package me.nakilex.levelplugin.pathfinding;
 
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.ai.event.NavigationStuckEvent;
-import net.citizensnpcs.api.npc.NPC;
-import me.nakilex.levelplugin.spells.managers.CooldownManager;
-import me.nakilex.levelplugin.pathfinding.npc.RogueMercenary;
 import me.nakilex.levelplugin.pathfinding.npc.PathNpc;
+import me.nakilex.levelplugin.pathfinding.npc.PathNpcFactory;
+import me.nakilex.levelplugin.pathfinding.npc.RogueMercenary;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.HandlerList;
-import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.scheduler.BukkitTask;
 
 import java.io.File;
 import java.io.IOException;
@@ -89,119 +80,57 @@ public class PathfindingManager {
 
     /** Execute a previously created path with a custom NPC profile. */
     public void executePath(String name, PathNpc profile) {
-        List<Location> list = paths.get(name.toLowerCase(Locale.ROOT));
-        if (list == null || list.isEmpty()) {
-            return;
+        PathSession session = createSession(name, profile);
+        if (session != null) {
+            session.setCompletion(() -> {});
+            session.start();
         }
-        new PathRunner(plugin, list, profile).start();
     }
 
     public Set<String> getPathNames() {
         return paths.keySet();
     }
 
+    /**
+     * Exposes a cloned list of the stored locations for the requested path.
+     * The returned list can safely be modified by callers.
+     */
+    public List<Location> getPathPoints(String name) {
+        List<Location> list = paths.get(name.toLowerCase(Locale.ROOT));
+        if (list == null) {
+            return Collections.emptyList();
+        }
+        List<Location> copy = new ArrayList<>(list.size());
+        for (Location loc : list) {
+            copy.add(loc == null ? null : loc.clone());
+        }
+        return copy;
+    }
+
     public int nextPointIndex() {
         return editingPoints.size() + 1;
     }
 
-    private static class PathRunner implements Listener {
-        private final Plugin plugin;
-        private final NPC npc;
-        private final List<Location> points;
-        private final PathNpc profile;
-        private BukkitTask task;
-        private int index = 1;
-        private LivingEntity combatTarget;
-        private final CooldownManager cd = CooldownManager.getInstance();
-
-        PathRunner(Plugin plugin, List<Location> points, PathNpc profile) {
-            this.plugin = plugin;
-            this.points = points;
-            this.profile = profile;
-            this.npc = CitizensAPI.getNPCRegistry().createNPC(EntityType.PLAYER, profile.name());
-            Bukkit.getPluginManager().registerEvents(this, plugin);
+    /**
+     * Creates a {@link PathSession} for the given path without automatically
+     * starting it. Returns {@code null} if the path does not exist.
+     */
+    public PathSession createSession(String name, PathNpc profile) {
+        List<Location> list = paths.get(name.toLowerCase(Locale.ROOT));
+        if (list == null || list.isEmpty()) {
+            return null;
         }
+        return new PathSession(plugin, list, profile);
+    }
 
-        void start() {
-            npc.spawn(points.get(0));
-
-            // Apply speed multiplier and equipment from the profile
-            var params = npc.getNavigator().getDefaultParameters();
-            params.baseSpeed(params.baseSpeed() * profile.speedMultiplier());
-            profile.equip(npc);
-
-            if (points.size() <= 1) {
-                cleanup();
-                return;
-            }
-            npc.getNavigator().setTarget(points.get(1));
-            plugin.getLogger().info("[PathfindingDebug] Moving to point 1");
-            task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-                if (combatTarget != null) {
-                    if (combatTarget.isDead() || !combatTarget.isValid()) {
-                        plugin.getLogger().info("[PathfindingDebug] Killed all targets in vicinity");
-                        // Look for another hostile before resuming the path
-                        if (npc.getEntity() instanceof LivingEntity le) {
-                            combatTarget = me.nakilex.levelplugin.utils.MobUtil.findNearestHostile(le, 10);
-                            if (combatTarget != null) {
-                                plugin.getLogger().info("[PathfindingDebug] Targeting mob " + combatTarget.getName());
-                                profile.handleCombat(npc, combatTarget, cd);
-                                return;
-                            }
-                        }
-                        combatTarget = null;
-                        npc.getNavigator().setTarget(points.get(index));
-                        return;
-                    }
-                    profile.handleCombat(npc, combatTarget, cd);
-                    return;
-                }
-
-                if (npc.getEntity() instanceof LivingEntity le) {
-                    LivingEntity hostile = me.nakilex.levelplugin.utils.MobUtil.findNearestHostile(le, 10);
-                    if (hostile != null) {
-                        combatTarget = hostile;
-                        plugin.getLogger().info("[PathfindingDebug] Targeting mob " + hostile.getName());
-                        profile.handleCombat(npc, combatTarget, cd);
-                        return;
-                    }
-                }
-
-                Location current = points.get(index);
-                if (npc.getEntity().getLocation().distanceSquared(current) < 1) {
-                    if (++index >= points.size()) {
-                        cleanup();
-                        return;
-                    }
-                    npc.getNavigator().setTarget(points.get(index));
-                    plugin.getLogger().info("[PathfindingDebug] Moving to point " + index);
-                } else if (!npc.getNavigator().isNavigating()) {
-                    npc.getNavigator().setTarget(current);
-                }
-            }, 10L, 10L);
-        }
-
-        @EventHandler
-        public void onStuck(NavigationStuckEvent event) {
-            if (event.getNPC().equals(npc)) {
-                if (combatTarget != null && combatTarget.isValid()) {
-                    npc.getNavigator().setTarget(combatTarget, true);
-                } else {
-                    npc.getNavigator().setTarget(points.get(index));
-                }
-            }
-        }
-
-        private void cleanup() {
-            if (task != null) {
-                task.cancel();
-            }
-            npc.despawn();
-            npc.destroy();
-            HandlerList.unregisterAll(this);
-        }
-
-        // hostile search moved to MobUtil for reuse
+    /**
+     * Helper used by YAML driven systems where only an NPC profile identifier
+     * is stored. Falls back to a rogue mercenary if the identifier is missing
+     * or unknown so legacy data remains functional.
+     */
+    public PathSession createSession(String name, String profileId) {
+        PathNpc profile = PathNpcFactory.fromId(profileId).orElseGet(RogueMercenary::new);
+        return createSession(name, profile);
     }
 }
 
