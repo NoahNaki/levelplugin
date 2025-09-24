@@ -34,7 +34,7 @@ public class TrinketListener implements Listener {
         }
         event.setCancelled(true);
         if (offTrinket) {
-            manager.trigger(player);
+            manager.trigger(player, off);
         }
     }
 

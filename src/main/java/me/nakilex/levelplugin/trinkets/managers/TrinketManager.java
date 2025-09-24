@@ -164,8 +164,11 @@ public class TrinketManager {
     }
 
     public boolean trigger(Player player) {
-        ItemStack offhand = player.getInventory().getItemInOffHand();
-        Optional<String> idOpt = getTrinketId(offhand);
+        return trigger(player, player.getInventory().getItemInOffHand());
+    }
+
+    public boolean trigger(Player player, ItemStack stack) {
+        Optional<String> idOpt = getTrinketId(stack);
         if (idOpt.isEmpty()) {
             return false;
         }
@@ -182,7 +185,7 @@ public class TrinketManager {
             return true;
         }
         endEffect(uuid, false);
-        TrinketEffectDefinition effect = resolveEffect(offhand, template);
+        TrinketEffectDefinition effect = resolveEffect(stack, template);
         TrinketEffectType type = effect.getType();
         long durationTicks = Math.max(1L, Math.round(effect.getDurationSeconds() * 20.0));
         long expiresAt = now + (long) (effect.getDurationSeconds() * 1000.0);
