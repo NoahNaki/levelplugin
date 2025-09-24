@@ -438,10 +438,26 @@ public class BattlePassManager {
                     + ChatColor.RED + " to unlock premium.");
             return false;
         }
-        prog.setPremium(true);
+        setPremiumStatus(player.getUniqueId(), true);
         CurrencyMessageUtil.sendLoss(player, CurrencyMessageUtil.Currency.GEMS, PREMIUM_COST_GEMS);
         ChatMessageUtil.send(player, MessageType.SUCCESS, "Premium track unlocked! Enjoy enhanced rewards.");
-        saveProgress(player.getUniqueId());
+        return true;
+    }
+
+    /**
+     * Forcefully update premium track access for a player without applying any cost or additional logic.
+     *
+     * @param uuid    the player to modify
+     * @param premium whether premium should be enabled
+     * @return {@code true} if the premium state changed, {@code false} otherwise
+     */
+    public boolean setPremiumStatus(UUID uuid, boolean premium) {
+        BattlePassProgress prog = getProgress(uuid);
+        if (prog.hasPremium() == premium) {
+            return false;
+        }
+        prog.setPremium(premium);
+        saveProgress(uuid);
         return true;
     }
 
