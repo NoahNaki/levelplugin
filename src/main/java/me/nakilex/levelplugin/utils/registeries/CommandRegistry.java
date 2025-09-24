@@ -244,7 +244,10 @@ public class CommandRegistry {
         plugin.getCommand("codex").setExecutor(new CodexCommand(codexGUI));
         plugin.getCommand("wm").setExecutor(new WanderingMerchantCommand(wmManager));
 
-        plugin.getCommand("cutscene").setExecutor(new me.nakilex.levelplugin.cutscene.commands.CutsceneCommand(plugin.getCutsceneManager()));
+        me.nakilex.levelplugin.cutscene.commands.CutsceneCommand cutsceneCmd =
+                new me.nakilex.levelplugin.cutscene.commands.CutsceneCommand(plugin.getCutsceneManager());
+        plugin.getCommand("cutscene").setExecutor(cutsceneCmd);
+        plugin.getCommand("cutscene").setTabCompleter(cutsceneCmd);
         plugin.getCommand("dungeon").setExecutor(new me.nakilex.levelplugin.dungeon.DungeonCommand(plugin));
         plugin.getCommand("world").setExecutor(new me.nakilex.levelplugin.world.WorldCommand(plugin.getWorldManager()));
         plugin.getCommand("centertooltip").setExecutor(new CenterTooltipCommand());

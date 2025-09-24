@@ -6,9 +6,17 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
+import org.bukkit.util.StringUtil;
 
-public class CutsceneCommand implements CommandExecutor {
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
+
+public class CutsceneCommand implements CommandExecutor, TabCompleter {
     private final CutsceneManager manager;
 
     public CutsceneCommand(CutsceneManager manager) {
@@ -127,5 +135,50 @@ public class CutsceneCommand implements CommandExecutor {
                 sender.sendMessage(ChatColor.RED + "Unknown subcommand.");
                 return true;
         }
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (args.length == 0) {
+            return Collections.emptyList();
+        }
+
+        List<String> subcommands = List.of("play", "list", "reload", "record", "addframe", "stop", "cancel", "skip");
+        if (args.length == 1) {
+            return StringUtil.copyPartialMatches(args[0], subcommands, new ArrayList<>());
+        }
+
+        String sub = args[0].toLowerCase(Locale.ROOT);
+        if (args.length == 2) {
+            switch (sub) {
+                case "play":
+                case "record":
+                    return StringUtil.copyPartialMatches(args[1], sortedCutsceneIds(), new ArrayList<>());
+                case "skip":
+                    return copyOnlinePlayers(args[1]);
+                default:
+                    return Collections.emptyList();
+            }
+        }
+
+        if (args.length == 3 && sub.equals("play")) {
+            return copyOnlinePlayers(args[2]);
+        }
+
+        return Collections.emptyList();
+    }
+
+    private List<String> sortedCutsceneIds() {
+        return manager.listCutscenes().stream()
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .collect(Collectors.toList());
+    }
+
+    private List<String> copyOnlinePlayers(String token) {
+        List<String> names = Bukkit.getOnlinePlayers().stream()
+                .map(Player::getName)
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .collect(Collectors.toList());
+        return StringUtil.copyPartialMatches(token, names, new ArrayList<>());
     }
 }

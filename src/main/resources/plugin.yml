@@ -159,6 +159,10 @@ commands:
     description: Opens the custom item browser GUI.
     usage: /itemsbrowser
     permission: none
+  trinketbrowser:
+    description: Browse and obtain trinkets.
+    usage: /trinketbrowser
+    permission: none
   potionbrowser:
     description: Browse and obtain potions.
     usage: /potionbrowser

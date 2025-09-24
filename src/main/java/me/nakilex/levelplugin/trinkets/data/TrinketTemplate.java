@@ -72,6 +72,14 @@ public class TrinketTemplate {
         return cooldownSeconds;
     }
 
+    public NumberRange getMagnitudeRange() {
+        return magnitudeRange;
+    }
+
+    public NumberRange getDurationRange() {
+        return durationRange;
+    }
+
     public TrinketEffectDefinition rollEffect() {
         double magnitude = magnitudeRange != null ? magnitudeRange.roll() : 0.0;
         double duration = durationRange != null ? durationRange.roll() : 0.0;

@@ -861,17 +861,18 @@ public class DungeonBuilder implements Listener {
         List<String> lore = new ArrayList<>();
         lore.add(ChatColor.GRAY + "Status: " + (unlocked ? ChatColor.GREEN + "Unlocked" : ChatColor.RED + "Locked"));
         lore.add("");
-        lore.add(ChatColor.GOLD + "Cost:");
-        if (option.cost() <= 0) {
-            lore.add(ChatColor.GRAY + "- " + ChatColor.GREEN + "✔ Free");
-        } else {
-            lore.add(ChatColor.GRAY + "- " + (unlocked ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
-                    + option.cost() + " " + ChatColor.GOLD + "<glyph:coins_icon>");
-        }
-        lore.add("");
         if (unlocked) {
+            lore.add(ChatColor.GREEN + "✔ Room unlocked");
+            lore.add("");
             lore.addAll(TooltipUtil.clickInstructions("to place", null));
         } else {
+            lore.add(ChatColor.GOLD + "Cost:");
+            if (option.cost() <= 0) {
+                lore.add(ChatColor.GRAY + "- " + ChatColor.GREEN + "✔ Free");
+            } else {
+                lore.add(ChatColor.GRAY + "- " + ChatColor.RED + "✘ " + option.cost() + " " + ChatColor.GOLD + "<glyph:coins_icon>");
+            }
+            lore.add("");
             lore.addAll(TooltipUtil.clickInstructions("to select", "to unlock"));
         }
         meta.setLore(lore);

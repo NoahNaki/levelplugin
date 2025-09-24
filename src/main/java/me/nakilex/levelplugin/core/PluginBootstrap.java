@@ -22,6 +22,7 @@ import me.nakilex.levelplugin.items.config.ItemConfig;
 import me.nakilex.levelplugin.items.gui.ItemsBrowser;
 import me.nakilex.levelplugin.blacksmith.gui.RerollBrowser;
 import me.nakilex.levelplugin.potions.gui.PotionBrowser;
+import me.nakilex.levelplugin.trinkets.gui.TrinketBrowser;
 import me.nakilex.levelplugin.items.listeners.PickupCustomItemListener;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.lootchests.config.ConfigManager;
@@ -239,6 +240,7 @@ public class PluginBootstrap {
                 new me.nakilex.levelplugin.transmog.gui.TransmogBrowser(plugin, transmogManager);
         new me.nakilex.levelplugin.transmog.gui.TransmogGUI(plugin, transmogManager, tBrowser);
         new ItemsBrowser(plugin);
+        new TrinketBrowser(plugin, trinketManager);
         new me.nakilex.levelplugin.items.tools.gui.ToolBrowser(plugin);
         new RerollBrowser(plugin);
         new me.nakilex.levelplugin.potions.gui.PotionBrowser(plugin, potionManager);
