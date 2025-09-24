@@ -63,8 +63,8 @@ commands:
     usage: /balance
     aliases: [b]
   battlepass:
-    description: Open the seasonal battle pass or manage premium access
-    usage: /battlepass [claim|unlock|lock|rewards]
+    description: Open the seasonal battle pass or manage premium access and progression
+    usage: /battlepass [claim|unlock|lock|rewards|addxp|setlevel]
     aliases: [bp]
   addcoins:
     description: Adjust a player's coins (can be negative)

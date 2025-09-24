@@ -367,32 +367,84 @@ public class BattlePassManager {
 
     public void addBonusXp(Player player, int amount, String reason) {
         if (amount <= 0) return;
-        addBattlePassXp(player.getUniqueId(), amount);
+        int gained = addBattlePassXp(player.getUniqueId(), amount);
+        if (gained <= 0) {
+            return;
+        }
         if (reason != null && !reason.isEmpty()) {
             ChatMessageUtil.send(player, MessageType.REWARD,
-                    "Gained " + amount + " Battle Pass XP for " + reason + ".");
+                    "Gained " + gained + " Battle Pass XP for " + reason + ".");
         }
     }
 
-    private void addBattlePassXp(UUID uuid, int amount) {
-        BattlePassProgress prog = getProgress(uuid);
-        int before = prog.unlockedTiers(XP_PER_TIER, tiers.size());
-        prog.addXp(amount, maxXp);
-        int after = prog.unlockedTiers(XP_PER_TIER, tiers.size());
-        pendingSaves.merge(uuid, amount, Integer::sum);
+    public int addXp(UUID uuid, int amount) {
+        if (amount <= 0) return 0;
+        return addBattlePassXp(uuid, amount);
+    }
 
-        if (after > before) {
+    public int setTierLevel(UUID uuid, int level) {
+        int clampedLevel = Math.max(0, Math.min(level, tiers.size()));
+        BattlePassProgress progress = getProgress(uuid);
+        int targetXp = clampedLevel * XP_PER_TIER;
+        return applyXpValue(uuid, progress, targetXp, targetXp > progress.getXp(), false, true);
+    }
+
+    private int addBattlePassXp(UUID uuid, int amount) {
+        if (amount <= 0) {
+            return 0;
+        }
+        return adjustBattlePassXp(uuid, amount, true, true, false);
+    }
+
+    private int adjustBattlePassXp(UUID uuid, int delta, boolean announceUnlocks, boolean trackPending, boolean immediateSave) {
+        if (delta == 0) {
+            return 0;
+        }
+        BattlePassProgress progress = getProgress(uuid);
+        int newXp = progress.getXp() + delta;
+        return applyXpValue(uuid, progress, newXp, announceUnlocks, trackPending, immediateSave);
+    }
+
+    private int applyXpValue(UUID uuid,
+                             BattlePassProgress progress,
+                             int newXp,
+                             boolean announceUnlocks,
+                             boolean trackPending,
+                             boolean immediateSave) {
+        int beforeUnlocked = progress.unlockedTiers(XP_PER_TIER, tiers.size());
+        int beforeXp = progress.getXp();
+        int clamped = Math.max(0, Math.min(maxXp, newXp));
+        if (clamped == beforeXp) {
+            if (immediateSave) {
+                saveProgress(uuid);
+            }
+            return 0;
+        }
+
+        progress.setXp(clamped);
+        int afterUnlocked = progress.unlockedTiers(XP_PER_TIER, tiers.size());
+        int delta = clamped - beforeXp;
+
+        if (trackPending && delta > 0) {
+            pendingSaves.merge(uuid, delta, Integer::sum);
+        } else {
+            pendingSaves.remove(uuid);
+        }
+
+        if (announceUnlocks && afterUnlocked > beforeUnlocked) {
             Player player = Bukkit.getPlayer(uuid);
             if (player != null) {
-                for (int tier = before + 1; tier <= after; tier++) {
+                for (int tier = beforeUnlocked + 1; tier <= afterUnlocked; tier++) {
                     ChatMessageUtil.send(player, MessageType.REWARD,
                             "Battle Pass Tier " + tier + " unlocked! Use /bp to claim.");
                 }
             }
             saveProgress(uuid);
-        } else if (pendingSaves.getOrDefault(uuid, 0) >= SAVE_THRESHOLD) {
+        } else if (immediateSave || (trackPending && pendingSaves.getOrDefault(uuid, 0) >= SAVE_THRESHOLD)) {
             saveProgress(uuid);
         }
+
+        return delta;
     }
 
     public boolean claim(Player player, int tierIndex, boolean premiumTrack) {
