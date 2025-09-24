@@ -44,4 +44,28 @@ public final class TooltipUtil {
         }
         return lore;
     }
+
+    /**
+     * Generate a single line describing a keybind instruction, e.g. "Press [F] to cast".
+     *
+     * @param key    the key to display (e.g. "F")
+     * @param action the action description following the key
+     * @return list containing the formatted instruction line (possibly empty)
+     */
+    public static List<String> keyInstructions(String key, String action) {
+        List<String> lore = new ArrayList<>(1);
+        if (key == null || key.isBlank()) {
+            return lore;
+        }
+        StringBuilder line = new StringBuilder()
+            .append(ChatColor.YELLOW)
+            .append("Press [")
+            .append(key.toUpperCase())
+            .append("]");
+        if (action != null && !action.isBlank()) {
+            line.append(' ').append(ChatColor.GRAY).append(action);
+        }
+        lore.add(line.toString());
+        return lore;
+    }
 }

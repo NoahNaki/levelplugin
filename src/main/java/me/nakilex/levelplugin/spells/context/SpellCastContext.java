@@ -16,11 +16,13 @@ public class SpellCastContext {
     // Modifier percents
     private double damagePercent = 0.0;
     private double cooldownReductionPercent = 0.0;
+    private double manaCostReductionPercent = 0.0;
 
     // Mapped extra params
     private double stunDuration = 0.0;
     private boolean applyCooldown = true;
     private double manaCostModifier = 0.0;
+    private boolean manaCostFree = false;
 
     // Support multiple TRANSFORM effects
     private final List<String> effectKeys = new ArrayList<>();
@@ -60,6 +62,21 @@ public class SpellCastContext {
         if (key != null && !key.isEmpty()) {
             effectKeys.add(key);
         }
+    }
+
+    /** Reduce mana cost by a percentage, stacking additively. */
+    public void reduceManaCostPercent(double percent) {
+        this.manaCostReductionPercent += percent;
+    }
+
+    /** Set whether the next cast should cost no mana. */
+    public void setManaCostFree(boolean free) {
+        this.manaCostFree = free;
+    }
+
+    /** Convenience helper to mark the cast as free. */
+    public void makeManaFree() {
+        setManaCostFree(true);
     }
 
     /** Replace the base effect key entirely. */
@@ -178,8 +195,15 @@ public class SpellCastContext {
 
     /** Count final mana cost, adding any flat increases. */
     public double getFinalManaCost() {
+        if (manaCostFree) {
+            return 0.0;
+        }
         double cost = baseSpell.getCurrentManaCost(player);
-        return cost + manaCostModifier;
+        double multiplier = 1 - manaCostReductionPercent / 100.0;
+        if (multiplier < 0) multiplier = 0;
+        cost *= multiplier;
+        cost += manaCostModifier;
+        return Math.max(0.0, cost);
     }
 
     public Spell getBaseSpell() { return baseSpell; }
