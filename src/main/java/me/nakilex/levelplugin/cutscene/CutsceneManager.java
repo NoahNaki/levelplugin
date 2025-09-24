@@ -104,7 +104,9 @@ public class CutsceneManager {
         if (participants.isEmpty()) {
             return;
         }
-        CutscenePlayback playback = new CutscenePlayback(plugin, cutscene, participants, () -> onPlaybackFinished(playback));
+        CutscenePlayback[] holder = new CutscenePlayback[1];
+        CutscenePlayback playback = new CutscenePlayback(plugin, cutscene, participants, () -> onPlaybackFinished(holder[0]));
+        holder[0] = playback;
         runningPlaybacks.add(playback);
         TextComponent skip = new TextComponent(ChatColor.YELLOW + "[Skip Cutscene]");
         skip.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/cutscene skip"));

@@ -618,6 +618,8 @@ public class DungeonBuilder implements Listener {
             }
         }
 
+    }
+
     @EventHandler
     public void onChat(AsyncPlayerChatEvent event) {
         Session s = sessions.get(event.getPlayer().getUniqueId());
