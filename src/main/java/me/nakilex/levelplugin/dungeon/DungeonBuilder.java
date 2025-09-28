@@ -33,6 +33,7 @@ import me.nakilex.levelplugin.Main;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import me.nakilex.levelplugin.utils.InventorySerialUtil;
 import java.io.File;
 import java.io.IOException;
 
@@ -48,6 +49,7 @@ public class DungeonBuilder implements Listener {
     private final DungeonManager manager;
     private final Map<UUID, Session> sessions = new HashMap<>();
     private final Map<UUID, Location> storedReturns = new HashMap<>();
+    private final Map<UUID, StoredInventory> storedInventories = new HashMap<>();
     private final File sessionFile;
     private final FileConfiguration sessionConfig;
 
@@ -71,31 +73,65 @@ public class DungeonBuilder implements Listener {
                     UUID id = java.util.UUID.fromString(key);
                     String path = "sessions." + key + ".";
                     String world = sessionConfig.getString(path + "world");
-                    if (world == null) continue;
-                    World w = org.bukkit.Bukkit.getWorld(world);
-                    if (w == null) continue;
-                    double x = sessionConfig.getDouble(path + "x");
-                    double y = sessionConfig.getDouble(path + "y");
-                    double z = sessionConfig.getDouble(path + "z");
-                    float yaw = (float) sessionConfig.getDouble(path + "yaw");
-                    float pitch = (float) sessionConfig.getDouble(path + "pitch");
-                    storedReturns.put(id, new Location(w, x, y, z, yaw, pitch));
+                    if (world != null) {
+                        World w = org.bukkit.Bukkit.getWorld(world);
+                        if (w != null) {
+                            double x = sessionConfig.getDouble(path + "x");
+                            double y = sessionConfig.getDouble(path + "y");
+                            double z = sessionConfig.getDouble(path + "z");
+                            float yaw = (float) sessionConfig.getDouble(path + "yaw");
+                            float pitch = (float) sessionConfig.getDouble(path + "pitch");
+                            storedReturns.put(id, new Location(w, x, y, z, yaw, pitch));
+                        }
+                    }
+                    String invData = sessionConfig.getString(path + "inventory");
+                    String armorData = sessionConfig.getString(path + "armor");
+                    String offhandData = sessionConfig.getString(path + "offhand");
+                    ItemStack[] contents = invData != null ? InventorySerialUtil.itemStackArrayFromBase64(invData) : null;
+                    ItemStack[] armor = armorData != null ? InventorySerialUtil.itemStackArrayFromBase64(armorData) : null;
+                    ItemStack offhand = null;
+                    if (offhandData != null) {
+                        ItemStack[] arr = InventorySerialUtil.itemStackArrayFromBase64(offhandData);
+                        if (arr.length > 0) offhand = arr[0];
+                    }
+                    if (contents != null || armor != null || offhand != null) {
+                        storedInventories.put(id, new StoredInventory(
+                                contents == null ? new ItemStack[0] : contents,
+                                armor == null ? new ItemStack[0] : armor,
+                                offhand
+                        ));
+                    }
                 } catch (IllegalArgumentException ignored) {}
             }
         }
     }
 
-    private void saveStoredReturns() {
+    private void saveSessionData() {
         sessionConfig.set("sessions", null);
-        for (var e : storedReturns.entrySet()) {
-            String base = "sessions." + e.getKey();
-            Location loc = e.getValue();
-            sessionConfig.set(base + ".world", loc.getWorld().getName());
-            sessionConfig.set(base + ".x", loc.getX());
-            sessionConfig.set(base + ".y", loc.getY());
-            sessionConfig.set(base + ".z", loc.getZ());
-            sessionConfig.set(base + ".yaw", loc.getYaw());
-            sessionConfig.set(base + ".pitch", loc.getPitch());
+        java.util.Set<UUID> ids = new java.util.HashSet<>();
+        ids.addAll(storedReturns.keySet());
+        ids.addAll(storedInventories.keySet());
+        for (UUID id : ids) {
+            String base = "sessions." + id;
+            Location loc = storedReturns.get(id);
+            if (loc != null && loc.getWorld() != null) {
+                sessionConfig.set(base + ".world", loc.getWorld().getName());
+                sessionConfig.set(base + ".x", loc.getX());
+                sessionConfig.set(base + ".y", loc.getY());
+                sessionConfig.set(base + ".z", loc.getZ());
+                sessionConfig.set(base + ".yaw", loc.getYaw());
+                sessionConfig.set(base + ".pitch", loc.getPitch());
+            }
+            StoredInventory inv = storedInventories.get(id);
+            if (inv != null) {
+                sessionConfig.set(base + ".inventory", InventorySerialUtil.itemStackArrayToBase64(inv.contents));
+                sessionConfig.set(base + ".armor", InventorySerialUtil.itemStackArrayToBase64(inv.armor));
+                if (inv.offhand != null) {
+                    sessionConfig.set(base + ".offhand", InventorySerialUtil.itemStackArrayToBase64(new ItemStack[]{inv.offhand}));
+                } else {
+                    sessionConfig.set(base + ".offhand", null);
+                }
+            }
         }
         try { sessionConfig.save(sessionFile); } catch (IOException ignored) {}
     }
@@ -108,12 +144,12 @@ public class DungeonBuilder implements Listener {
                 s.cancel();
                 Player p = Bukkit.getPlayer(id);
                 if (p != null) {
-                    p.getInventory().clear();
+                    restoreStoredInventory(p);
                     p.sendMessage(ChatColor.RED + "Dungeon build cancelled.");
                 }
             }
         }
-        saveStoredReturns();
+        saveSessionData();
     }
 
     /** Remove leftover edit worlds and return players to their saved locations. */
@@ -127,12 +163,12 @@ public class DungeonBuilder implements Listener {
                         back = main != null ? main.getSpawnLocation() : p.getLocation();
                     }
                     p.teleport(back);
-                    p.getInventory().clear();
+                    restoreStoredInventory(p);
                 }
                 manager.getPlugin().getWorldManager().deleteWorld(w.getName());
             }
         }
-        saveStoredReturns();
+        saveSessionData();
     }
 
     public void start(Player player) {
@@ -146,7 +182,7 @@ public class DungeonBuilder implements Listener {
         Session s = new Session(player, world, back, true);
         sessions.put(player.getUniqueId(), s);
         storedReturns.put(player.getUniqueId(), back);
-        saveStoredReturns();
+        storeInventory(player);
         setupInventory(player);
         player.teleport(new Location(world, 0, 64, 0));
         player.setAllowFlight(true);
@@ -158,7 +194,7 @@ public class DungeonBuilder implements Listener {
         Session s = new Session(player, player.getWorld(), player.getLocation(), false);
         sessions.put(player.getUniqueId(), s);
         storedReturns.put(player.getUniqueId(), player.getLocation());
-        saveStoredReturns();
+        storeInventory(player);
         setupInventory(player);
 
         // spawn existing rooms relative to the entrance
@@ -261,6 +297,7 @@ public class DungeonBuilder implements Listener {
 
     private void setupInventory(Player player) {
         player.getInventory().clear();
+        player.getInventory().setItemInOffHand(null);
         ItemStack wool = GuiUtil.getNexoItem("plus", ChatColor.GREEN + "Place Entrance");
         player.getInventory().setItem(0, wool);
         ItemStack undo = GuiUtil.getNexoItem("arrow_left", ChatColor.YELLOW + "Undo");
@@ -304,7 +341,7 @@ public class DungeonBuilder implements Listener {
             event.setCancelled(true);
             s.cancel();
             sessions.remove(player.getUniqueId());
-            player.getInventory().clear();
+            restoreStoredInventory(player);
             player.sendMessage(ChatColor.RED + "Dungeon build cancelled.");
             return;
         }
@@ -496,7 +533,6 @@ public class DungeonBuilder implements Listener {
             manager.saveLayout(event.getPlayer(), key, display, layout);
             s.cancel();
             event.getPlayer().sendMessage(ChatColor.GREEN + "Dungeon saved as '" + key + "'");
-            event.getPlayer().getInventory().clear();
             sessions.remove(event.getPlayer().getUniqueId());
         });
     }
@@ -506,7 +542,6 @@ public class DungeonBuilder implements Listener {
         Session s = sessions.remove(event.getPlayer().getUniqueId());
         if (s != null) {
             s.cancel();
-            event.getPlayer().getInventory().clear();
         }
     }
 
@@ -514,7 +549,7 @@ public class DungeonBuilder implements Listener {
     public void onJoin(PlayerJoinEvent event) {
         Player p = event.getPlayer();
         UUID id = p.getUniqueId();
-        if (storedReturns.containsKey(id) || p.getWorld().getName().startsWith("dgn_edit_")) {
+        if (storedReturns.containsKey(id) || storedInventories.containsKey(id) || p.getWorld().getName().startsWith("dgn_edit_")) {
             World original = p.getWorld();
             Location back = storedReturns.remove(id);
             if (back == null) {
@@ -522,8 +557,8 @@ public class DungeonBuilder implements Listener {
                 back = main != null ? main.getSpawnLocation() : p.getLocation();
             }
             p.teleport(back);
-            p.getInventory().clear();
-            saveStoredReturns();
+            restoreStoredInventory(p);
+            saveSessionData();
             if (original.getName().startsWith("dgn_edit_")) {
                 manager.getPlugin().getWorldManager().deleteWorld(original.getName());
             }
@@ -892,7 +927,10 @@ public class DungeonBuilder implements Listener {
                 player.teleport(returnLocation);
             }
             storedReturns.remove(player.getUniqueId());
-            saveStoredReturns();
+            if (player.isOnline()) {
+                restoreStoredInventory(player);
+            }
+            saveSessionData();
             if (tempWorld) {
                 org.bukkit.Bukkit.getScheduler().runTaskLater(manager.getPlugin(),
                         () -> manager.getPlugin().getWorldManager().deleteWorld(dungeon.getWorld().getName()), 1L);
@@ -948,6 +986,52 @@ public class DungeonBuilder implements Listener {
             }
             layout.setStep(step);
             return layout;
+        }
+    }
+
+    private void storeInventory(Player player) {
+        UUID id = player.getUniqueId();
+        StoredInventory stored = new StoredInventory(
+                cloneItems(player.getInventory().getContents()),
+                cloneItems(player.getInventory().getArmorContents()),
+                cloneItem(player.getInventory().getItemInOffHand())
+        );
+        storedInventories.put(id, stored);
+        saveSessionData();
+    }
+
+    private void restoreStoredInventory(Player player) {
+        StoredInventory stored = storedInventories.remove(player.getUniqueId());
+        if (stored == null) return;
+        player.getInventory().setContents(cloneItems(stored.contents));
+        player.getInventory().setArmorContents(cloneItems(stored.armor));
+        player.getInventory().setItemInOffHand(cloneItem(stored.offhand));
+        saveSessionData();
+    }
+
+    private ItemStack[] cloneItems(ItemStack[] items) {
+        if (items == null) return new ItemStack[0];
+        ItemStack[] copy = new ItemStack[items.length];
+        for (int i = 0; i < items.length; i++) {
+            ItemStack item = items[i];
+            copy[i] = item == null ? null : item.clone();
+        }
+        return copy;
+    }
+
+    private ItemStack cloneItem(ItemStack item) {
+        return item == null ? null : item.clone();
+    }
+
+    private static class StoredInventory {
+        final ItemStack[] contents;
+        final ItemStack[] armor;
+        final ItemStack offhand;
+
+        StoredInventory(ItemStack[] contents, ItemStack[] armor, ItemStack offhand) {
+            this.contents = contents == null ? new ItemStack[0] : contents;
+            this.armor = armor == null ? new ItemStack[0] : armor;
+            this.offhand = offhand;
         }
     }
 }

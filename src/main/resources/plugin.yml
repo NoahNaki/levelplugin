@@ -209,6 +209,10 @@ commands:
   essenceupgrade:
     description: Opens the class essence upgrade menu
     usage: /essenceupgrade [rarity]
+  sealingcharm:
+    description: Admin command to distribute sealing charms
+    usage: /sealingcharm give <player> <amount>
+    permission: levelplugin.admin
   enchant:
     description: Opens the enchanting GUI
     usage: /enchant
