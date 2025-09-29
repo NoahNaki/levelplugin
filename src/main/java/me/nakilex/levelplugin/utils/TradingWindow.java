@@ -143,9 +143,9 @@ public class TradingWindow implements Listener {
                 amt -> amt >= 0 && tw.getEconomyManager().getBalance(p) >= amt,
                 amt -> {
                     if (tw.getPlayer().equals(p)) {
-                        tw.setPlayerCoinOffer(amt);
+                        tw.setPlayerCoinOffer(p, amt);
                     } else if (tw.getOpponent().equals(p)) {
-                        tw.setOpponentCoinOffer(amt);
+                        tw.setOpponentCoinOffer(p, amt);
                     }
                     if (amt == 0) {
                         p.sendMessage(ChatColor.YELLOW + "You cleared your coin offer.");
@@ -195,10 +195,10 @@ public class TradingWindow implements Listener {
             } else {
                 // Update the coin offer for the correct player
                 if (tw.player.equals(p)) {
-                    tw.playerCoinOffer = coins;
+                    tw.setPlayerCoinOffer(p, coins);
                     p.sendMessage(ChatColor.GREEN + "You set your coin offer to: " + coins);
                 } else if (tw.opposite.equals(p)) {
-                    tw.opponentCoinOffer = coins;
+                    tw.setOpponentCoinOffer(p, coins);
                     p.sendMessage(ChatColor.GREEN + "You set your coin offer to: " + coins);
                 }
 
@@ -410,24 +410,7 @@ public class TradingWindow implements Listener {
     public void toggleOpponentsStatus(TradingWindow tw) {
         tw.ensureStatusItems();
         tw.oppositeAcceptedDeal = !tw.oppositeAcceptedDeal; // Toggle opponent acceptance
-
-        for (int i = 0; i < ROWS * 9; i++) {
-            if (tw.oppositeAcceptedDeal) {
-                if (isOpponentsAccepmentField(i)) {
-                    tw.playerInventory.setItem(i, tw.opponentReadyItem.clone());
-                }
-                if (isPersonalTradeAccepmentField(i)) {
-                    tw.oppositeInventory.setItem(i, tw.ownCancelItem.clone());
-                }
-            } else {
-                if (isOpponentsAccepmentField(i)) {
-                    tw.playerInventory.setItem(i, tw.opponentPendingItem.clone());
-                }
-                if (isPersonalTradeAccepmentField(i)) {
-                    tw.oppositeInventory.setItem(i, tw.ownReadyItem.clone());
-                }
-            }
-        }
+        tw.refreshAcceptanceVisuals();
 
         // Auto-close and finalize the trade if both players have accepted
         if (tw.playerAcceptedDeal && tw.oppositeAcceptedDeal) {
@@ -441,24 +424,7 @@ public class TradingWindow implements Listener {
     public void toggleOwnStatus(TradingWindow tw, Inventory inv) {
         tw.ensureStatusItems();
         tw.playerAcceptedDeal = !tw.playerAcceptedDeal; // Toggle acceptance status
-
-        for (int i = 0; i < ROWS * 9; i++) {
-            if (tw.playerAcceptedDeal) {
-                if (isOpponentsAccepmentField(i)) {
-                    tw.oppositeInventory.setItem(i, tw.opponentReadyItem.clone());
-                }
-                if (isPersonalTradeAccepmentField(i)) {
-                    tw.playerInventory.setItem(i, tw.ownCancelItem.clone());
-                }
-            } else {
-                if (isOpponentsAccepmentField(i)) {
-                    tw.oppositeInventory.setItem(i, tw.opponentPendingItem.clone());
-                }
-                if (isPersonalTradeAccepmentField(i)) {
-                    tw.playerInventory.setItem(i, tw.ownReadyItem.clone());
-                }
-            }
-        }
+        tw.refreshAcceptanceVisuals();
 
         // Auto-close and finalize the trade if both players have accepted
         if (tw.playerAcceptedDeal && tw.oppositeAcceptedDeal) {
@@ -878,12 +844,20 @@ public class TradingWindow implements Listener {
     }
 
     // Setters for coin offers
-    public void setPlayerCoinOffer(int coins) {
+    public void setPlayerCoinOffer(Player changer, int coins) {
+        boolean changed = this.playerCoinOffer != coins;
         this.playerCoinOffer = coins;
+        if (changed) {
+            handleCoinOfferChanged(changer);
+        }
     }
 
-    public void setOpponentCoinOffer(int coins) {
+    public void setOpponentCoinOffer(Player changer, int coins) {
+        boolean changed = this.opponentCoinOffer != coins;
         this.opponentCoinOffer = coins;
+        if (changed) {
+            handleCoinOfferChanged(changer);
+        }
     }
 
     /**
@@ -928,7 +902,46 @@ public class TradingWindow implements Listener {
         Main.getPlugin().getDealMaker().addTradingWindow(this);
         player.openInventory(playerInventory);
         opposite.openInventory(oppositeInventory);
+        refreshAcceptanceVisuals();
         refreshInventorySwitch();
+    }
+
+    private void refreshAcceptanceVisuals() {
+        if (playerInventory == null || oppositeInventory == null) {
+            return;
+        }
+
+        ensureStatusItems();
+        for (int i = 0; i < ROWS * 9; i++) {
+            if (isPersonalTradeAccepmentField(i)) {
+                ItemStack playerItem = (playerAcceptedDeal ? ownCancelItem : ownReadyItem).clone();
+                ItemStack opponentItem = (oppositeAcceptedDeal ? ownCancelItem : ownReadyItem).clone();
+                playerInventory.setItem(i, playerItem);
+                oppositeInventory.setItem(i, opponentItem);
+            } else if (isOpponentsAccepmentField(i)) {
+                ItemStack playerView = (oppositeAcceptedDeal ? opponentReadyItem : opponentPendingItem).clone();
+                ItemStack opponentView = (playerAcceptedDeal ? opponentReadyItem : opponentPendingItem).clone();
+                playerInventory.setItem(i, playerView);
+                oppositeInventory.setItem(i, opponentView);
+            }
+        }
+    }
+
+    private void handleCoinOfferChanged(Player changer) {
+        if (!playerAcceptedDeal && !oppositeAcceptedDeal) {
+            return;
+        }
+
+        playerAcceptedDeal = false;
+        oppositeAcceptedDeal = false;
+        refreshAcceptanceVisuals();
+
+        Player other = changer.equals(player) ? opposite : player;
+
+        ChatMessageUtil.send(changer, ChatMessageUtil.MessageType.WARNING,
+            ChatColor.GRAY + "You changed the coin offer. Both players need to ready up again.");
+        ChatMessageUtil.send(other, ChatMessageUtil.MessageType.WARNING,
+            ChatColor.YELLOW + changer.getName() + ChatColor.GRAY + " changed the coin offer. Both players need to ready up again.");
     }
 
 }
