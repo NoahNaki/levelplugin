@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.spells.listener;
 
 import io.lumine.mythic.bukkit.MythicBukkit;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.attributes.managers.CooldownIndicatorManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import me.nakilex.levelplugin.spells.Spell;
@@ -69,6 +70,8 @@ public class ClassSpellListener implements Listener {
     private static final Map<PlayerClass, Triggers> MAP = new EnumMap<>(PlayerClass.class);
     private static final Map<PlayerClass, HoldConfig> HOLD_MAP = new EnumMap<>(PlayerClass.class);
     private static final EnumSet<PlayerClass> BOW_CLASSES = EnumSet.noneOf(PlayerClass.class);
+    private static final Map<PlayerClass, Map<Trigger, Double>> MANUAL_TRIGGER_COOLDOWNS = new EnumMap<>(PlayerClass.class);
+    private static final Map<PlayerClass, Double> BASIC_ATTACK_MIN_COOLDOWNS = new EnumMap<>(PlayerClass.class);
     private static final String ATTACK_COOLDOWN_KEY = "basic_attack";
     static {
         for (PlayerClass pc : PlayerClass.values()) {
@@ -76,6 +79,8 @@ public class ClassSpellListener implements Listener {
                 BOW_CLASSES.add(pc);
             }
         }
+
+        BASIC_ATTACK_MIN_COOLDOWNS.put(PlayerClass.ARCHER, 1.0);
 
         // Archer class
         Triggers t = new Triggers();
@@ -188,6 +193,7 @@ public class ClassSpellListener implements Listener {
         t.sneakStart = List.of("bloodbound_barrier");
         t.sneakEnd = List.of("vicious_strike");
         MAP.put(PlayerClass.AWAKWARRIOR, t);
+        MANUAL_TRIGGER_COOLDOWNS.put(PlayerClass.AWAKWARRIOR, Map.of(Trigger.RIGHT, 2.0));
 
         // Awakened Archer class
         t = new Triggers();
@@ -296,9 +302,10 @@ public class ClassSpellListener implements Listener {
         holdRuns.remove(id);
     }
 
-    private void cast(Player player, List<String> combos, PlayerClass pc) {
-        if (combos == null) return;
+    private void cast(Player player, List<String> combos, PlayerClass pc, Trigger trigger) {
+        if (combos == null || combos.isEmpty()) return;
         if (Main.getInstance().getDialogManager().hasSession(player)) return;
+        if (applyManualCooldown(player, pc, trigger, combos)) return;
         for (String id : combos) {
             Spell spell = SpellManager.getInstance().getSpellById(pc.name().toLowerCase(), id);
             if (spell == null) {
@@ -310,14 +317,39 @@ public class ClassSpellListener implements Listener {
         }
     }
 
+    private boolean applyManualCooldown(Player player, PlayerClass pc, Trigger trigger, List<String> combos) {
+        Map<Trigger, Double> map = MANUAL_TRIGGER_COOLDOWNS.get(pc);
+        if (map == null) return false;
+        Double seconds = map.get(trigger);
+        if (seconds == null) return false;
+
+        CooldownManager cd = CooldownManager.getInstance();
+        UUID id = player.getUniqueId();
+        String key = pc.name().toLowerCase() + ":" + trigger.name().toLowerCase();
+        if (cd.isOnCooldown(id, key)) {
+            long rem = cd.getRemainingTime(id, key);
+            String label = combos.isEmpty() ? trigger.name() : combos.get(0);
+            Spell spell = SpellManager.getInstance().getSpellById(pc.name().toLowerCase(), label);
+            String display = spell != null ? spell.getDisplayName() : trigger.name();
+            CooldownIndicatorManager.getInstance().show(player, display, rem, 0);
+            return true;
+        }
+        cd.setCooldown(id, key, seconds);
+        return false;
+    }
+
     private PlayerClass getClass(Player player) {
         return StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass;
     }
 
-    private boolean tryBasicAttack(Player player) {
+    private boolean tryBasicAttack(Player player, PlayerClass pc) {
         if (player.getAttackCooldown() < 1.0) return false;
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
         double cooldown = 1.0 / ps.attackSpeed;
+        Double min = BASIC_ATTACK_MIN_COOLDOWNS.get(pc);
+        if (min != null) {
+            cooldown = Math.max(cooldown, min);
+        }
         CooldownManager cd = CooldownManager.getInstance();
         UUID id = player.getUniqueId();
         if (cd.isOnCooldown(id, ATTACK_COOLDOWN_KEY)) return false;
@@ -334,17 +366,17 @@ public class ClassSpellListener implements Listener {
         if (tr == null) return;
 
         if (!BOW_CLASSES.contains(pc)) {
-            if (!tryBasicAttack(p)) {
+            if (!tryBasicAttack(p, pc)) {
                 event.setCancelled(true);
                 return;
             }
         }
 
         if (p.isSneaking()) {
-            cast(p, tr.leftSneak, pc);
+            cast(p, tr.leftSneak, pc, Trigger.LEFT_SNEAK);
             pendingSneak.remove(p.getUniqueId());
         } else {
-            cast(p, tr.left, pc);
+            cast(p, tr.left, pc, Trigger.LEFT);
         }
     }
 
@@ -362,14 +394,14 @@ public class ClassSpellListener implements Listener {
         event.setCancelled(true);
 
         if (p.isSneaking()) {
-            cast(p, tr.rightSneak, pc);
+            cast(p, tr.rightSneak, pc, Trigger.RIGHT_SNEAK);
             pendingSneak.remove(p.getUniqueId());
             return;
         }
 
-        if (BOW_CLASSES.contains(pc) && !tryBasicAttack(p)) return;
+        if (BOW_CLASSES.contains(pc) && !tryBasicAttack(p, pc)) return;
 
-        cast(p, tr.right, pc);
+        cast(p, tr.right, pc, Trigger.RIGHT);
     }
 
     @EventHandler
@@ -387,7 +419,7 @@ public class ClassSpellListener implements Listener {
                 pending.cancel();
                 // make sure any preparatory aura from the first crouch still fires
                 if (!tr.sneakStart.isEmpty()) {
-                    cast(p, tr.sneakStart, pc);
+                    cast(p, tr.sneakStart, pc, Trigger.SNEAK_START);
                 }
             }
 
@@ -396,7 +428,7 @@ public class ClassSpellListener implements Listener {
                 long now = System.currentTimeMillis();
                 Long last = lastUnsneak.get(id);
                 if (last != null && now - last <= 500) {
-                    cast(p, tr.sneakEnd, pc);
+                    cast(p, tr.sneakEnd, pc, Trigger.SNEAK_END);
                     doubleSneak = true;
                 }
             }
@@ -466,7 +498,7 @@ public class ClassSpellListener implements Listener {
                         Main.getPlugin(),
                         () -> {
                             if (p.isOnline() && !p.isSneaking()) {
-                                cast(p, tr.sneakStart, pc);
+                                cast(p, tr.sneakStart, pc, Trigger.SNEAK_START);
                             }
                             pendingUnsneak.remove(id);
                         },
@@ -474,7 +506,7 @@ public class ClassSpellListener implements Listener {
                 );
                 pendingUnsneak.put(id, task);
             } else if (pc == PlayerClass.WITCH) {
-                cast(p, tr.sneakEnd, pc);
+                cast(p, tr.sneakEnd, pc, Trigger.SNEAK_END);
             }
 
             lastUnsneak.put(id, System.currentTimeMillis());

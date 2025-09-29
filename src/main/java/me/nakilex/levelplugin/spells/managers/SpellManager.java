@@ -80,8 +80,11 @@ public class SpellManager {
      * MythicMobs' own cooldown settings.
      */
     private static Spell basicAttack(String id, String name, List<Material> weapons, String effectKey) {
-        // Cooldown 0 so ClassSpellListener can throttle via player attack speed
-        return new Spell(id, name, "BASIC_ATTACK", 0.0, 0L, LVL_ONE, weapons, effectKey, 0.0);
+        return basicAttack(id, name, weapons, effectKey, 0L);
+    }
+
+    private static Spell basicAttack(String id, String name, List<Material> weapons, String effectKey, long cooldownSeconds) {
+        return new Spell(id, name, "BASIC_ATTACK", 0.0, cooldownSeconds, LVL_ONE, weapons, effectKey, 0.0);
     }
 
     private void loadSpells() {
@@ -92,12 +95,13 @@ public class SpellManager {
             "quick_shot",
             "Quick_Shot",
             WeaponType.BOW.getMaterials(),
-            "MYTHIC_QUICK_SHOT"
+            "MYTHIC_QUICK_SHOT",
+            1L
         ));
         archerMap.put("LEFT", new Spell(
             "backstep", "Backstep", "LEFT",
             5.0,
-            MythicSkillConfig.getCooldownSeconds("Backstep"), LVL_THREE,
+            Math.max(1L, MythicSkillConfig.getCooldownSeconds("Backstep")), LVL_THREE,
             WeaponType.BOW.getMaterials(),
             "MYTHIC_BACKSTEP", 0.0,
             false,
@@ -345,10 +349,11 @@ public class SpellManager {
             WARRIOR_WEAPONS,
             "MYTHIC_BRUTAL_COMBO"
         ));
+        long berserkCooldown = Math.max(2L, MythicSkillConfig.getCooldownSeconds("Berserkers_Leap"));
         awakwarriorMap.put("LRL", new Spell(
             "berserkers_leap", "Berserkers Leap", "LRL",
             8.0,
-            MythicSkillConfig.getCooldownSeconds("Berserkers_Leap"), 3,
+            berserkCooldown, 3,
             WARRIOR_WEAPONS,
             "MYTHIC_BERSERKERS_LEAP", 0.0
         ));

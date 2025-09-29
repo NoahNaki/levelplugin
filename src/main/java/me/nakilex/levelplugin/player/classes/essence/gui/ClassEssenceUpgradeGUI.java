@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
+import me.nakilex.levelplugin.player.classes.essence.SealingCharm;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TextUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
@@ -31,25 +32,91 @@ public class ClassEssenceUpgradeGUI implements Listener {
 
     private static final String INVEST_TITLE = ChatColor.BLACK + "Essence: Invest";
     private static final String STAR_TITLE = ChatColor.BLACK + "Essence: Star Upgrade";
+    private static final String RESEAL_TITLE = ChatColor.BLACK + "Essence: Reseal";
 
     private static final int SACRIFICE_SLOT = 11;
     private static final int TARGET_SLOT = 15;
     private static final int STAR_SLOT = 13;
+    private static final int RESEAL_CHARM_SLOT = 11;
+    private static final int RESEAL_ESSENCE_SLOT = 13;
     private static final int CONFIRM_SLOT = 22;
     private static final int LEFT_ARROW_SLOT = 9;
     private static final int RIGHT_ARROW_SLOT = 17;
 
     private static final Set<UUID> SWITCHING = new HashSet<>();
 
+    private enum Mode {
+        INVEST(INVEST_TITLE, "Invest"),
+        STAR(STAR_TITLE, "Star Upgrade"),
+        RESEAL(RESEAL_TITLE, "Reseal");
+
+        private final String title;
+        private final String display;
+
+        Mode(String title, String display) {
+            this.title = title;
+            this.display = display;
+        }
+
+        Mode next() {
+            return switch (this) {
+                case INVEST -> STAR;
+                case STAR -> RESEAL;
+                case RESEAL -> INVEST;
+            };
+        }
+
+        Mode previous() {
+            return switch (this) {
+                case INVEST -> RESEAL;
+                case STAR -> INVEST;
+                case RESEAL -> STAR;
+            };
+        }
+
+        String title() {
+            return title;
+        }
+
+        String display() {
+            return display;
+        }
+    }
+
+    private record ResealCost(int coins, int charms) {}
+
+    private static void setNavigationArrows(Inventory gui, Mode mode) {
+        Mode prev = mode.previous();
+        Mode next = mode.next();
+        gui.setItem(LEFT_ARROW_SLOT, navItem(prev, true));
+        gui.setItem(RIGHT_ARROW_SLOT, navItem(next, false));
+    }
+
+    private static ItemStack navItem(Mode target, boolean left) {
+        String glyph = left ? "arrow_left" : "arrow_right";
+        return GuiUtil.getNexoItem(glyph, ChatColor.GRAY + target.display());
+    }
+
+    private static Mode modeFromTitle(String title) {
+        if (INVEST_TITLE.equals(title)) return Mode.INVEST;
+        if (STAR_TITLE.equals(title)) return Mode.STAR;
+        if (RESEAL_TITLE.equals(title)) return Mode.RESEAL;
+        return null;
+    }
+
+    private static ResealCost getResealCost(ItemRarity rarity) {
+        int tier = Math.max(1, rarity.ordinal() + 1);
+        int coins = 500 * tier;
+        return new ResealCost(coins, tier);
+    }
+
     public static void openInvest(Player player, ItemStack target) {
         Inventory gui = GuiBuilder.create(27, INVEST_TITLE)
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .build();
-        gui.setItem(LEFT_ARROW_SLOT, GuiUtil.getNexoItem("arrow_left", ChatColor.GRAY + "Star Upgrade"));
-        gui.setItem(RIGHT_ARROW_SLOT, GuiUtil.getNexoItem("arrow_right", ChatColor.GRAY + "Star Upgrade"));
+        setNavigationArrows(gui, Mode.INVEST);
         gui.setItem(SACRIFICE_SLOT, null);
-        if (target != null) gui.setItem(TARGET_SLOT, target);
-        else gui.setItem(TARGET_SLOT, null);
+        gui.setItem(TARGET_SLOT, target);
         gui.setItem(CONFIRM_SLOT, GuiUtil.getNexoItem("check", ChatColor.GREEN + "Invest"));
         player.openInventory(gui);
     }
@@ -58,11 +125,20 @@ public class ClassEssenceUpgradeGUI implements Listener {
         Inventory gui = GuiBuilder.create(27, STAR_TITLE)
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .build();
-        gui.setItem(LEFT_ARROW_SLOT, GuiUtil.getNexoItem("arrow_left", ChatColor.GRAY + "Invest"));
-        gui.setItem(RIGHT_ARROW_SLOT, GuiUtil.getNexoItem("arrow_right", ChatColor.GRAY + "Invest"));
-        if (target != null) gui.setItem(STAR_SLOT, target);
-        else gui.setItem(STAR_SLOT, null);
+        setNavigationArrows(gui, Mode.STAR);
+        gui.setItem(STAR_SLOT, target);
         updateStarButton(gui);
+        player.openInventory(gui);
+    }
+
+    public static void openReseal(Player player, ItemStack essence, ItemStack charms) {
+        Inventory gui = GuiBuilder.create(27, RESEAL_TITLE)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .build();
+        setNavigationArrows(gui, Mode.RESEAL);
+        gui.setItem(RESEAL_ESSENCE_SLOT, essence);
+        gui.setItem(RESEAL_CHARM_SLOT, charms);
+        updateResealButton(gui);
         player.openInventory(gui);
     }
 
@@ -98,11 +174,63 @@ public class ClassEssenceUpgradeGUI implements Listener {
         gui.setItem(CONFIRM_SLOT, button);
     }
 
+    private static void updateResealButton(Inventory gui) {
+        ItemStack essence = gui.getItem(RESEAL_ESSENCE_SLOT);
+        ItemStack charms = gui.getItem(RESEAL_CHARM_SLOT);
+        ItemStack button;
+
+        if (essence == null || !ClassEssence.isEssence(essence)) {
+            button = GuiUtil.getNexoItem("cross", ChatColor.RED + "Place Essence");
+            ItemMeta meta = button.getItemMeta();
+            if (meta != null) {
+                meta.setLore(List.of(ChatColor.GRAY + "Insert a soulbound essence to reseal."));
+                button.setItemMeta(meta);
+            }
+        } else if (!ClassEssence.isSoulbound(essence)) {
+            button = GuiUtil.getNexoItem("cross", ChatColor.RED + "Already Unbound");
+            ItemMeta meta = button.getItemMeta();
+            if (meta != null) {
+                meta.setLore(List.of(ChatColor.GRAY + "This essence is not soulbound."));
+                button.setItemMeta(meta);
+            }
+        } else if (charms != null && charms.getType() != Material.AIR && !SealingCharm.isCharm(charms)) {
+            button = GuiUtil.getNexoItem("cross", ChatColor.RED + "Invalid Charm");
+            ItemMeta meta = button.getItemMeta();
+            if (meta != null) {
+                meta.setLore(List.of(ChatColor.GRAY + "Use sealing charms made from enchanted paper."));
+                button.setItemMeta(meta);
+            }
+        } else {
+            ItemRarity rarity = ClassEssence.getRarity(essence);
+            ResealCost cost = rarity == null ? new ResealCost(0, 0) : getResealCost(rarity);
+            int currentCharms = (charms != null && SealingCharm.isCharm(charms)) ? charms.getAmount() : 0;
+            button = GuiUtil.getNexoItem("check", ChatColor.GREEN + "Reseal");
+            ItemMeta meta = button.getItemMeta();
+            if (meta != null) {
+                List<String> lore = new ArrayList<>();
+                lore.add(ChatColor.GRAY + "Required Charms: " + ChatColor.AQUA + cost.charms()
+                        + ChatColor.GRAY + " (" + currentCharms + ChatColor.GRAY + ")");
+                lore.add(ChatColor.GRAY + "Cost: " + ChatColor.GOLD + "<glyph:coins_icon> " + cost.coins());
+                meta.setLore(lore);
+                button.setItemMeta(meta);
+            }
+        }
+
+        gui.setItem(CONFIRM_SLOT, button);
+    }
+
     @EventHandler
     public void onClick(InventoryClickEvent e) {
         String title = e.getView().getTitle();
-        if (!INVEST_TITLE.equals(title) && !STAR_TITLE.equals(title)) return;
-        if (e.getClickedInventory() != e.getView().getTopInventory()) return;
+        Mode mode = modeFromTitle(title);
+        if (mode == null) return;
+
+        if (e.getClickedInventory() != e.getView().getTopInventory()) {
+            if (mode == Mode.RESEAL && e.getClickedInventory() == e.getWhoClicked().getInventory() && e.isShiftClick()) {
+                e.setCancelled(true);
+            }
+            return;
+        }
 
         e.setCancelled(true);
         Player player = (Player) e.getWhoClicked();
@@ -110,87 +238,175 @@ public class ClassEssenceUpgradeGUI implements Listener {
         int slot = e.getRawSlot();
 
         if (slot == LEFT_ARROW_SLOT || slot == RIGHT_ARROW_SLOT) {
-            ItemStack carry = INVEST_TITLE.equals(title) ? inv.getItem(TARGET_SLOT) : inv.getItem(STAR_SLOT);
-            if (INVEST_TITLE.equals(title)) {
-                ItemStack sacrifice = inv.getItem(SACRIFICE_SLOT);
-                if (sacrifice != null) player.getInventory().addItem(sacrifice);
+            Mode targetMode = slot == LEFT_ARROW_SLOT ? mode.previous() : mode.next();
+            ItemStack carry = null;
+            switch (mode) {
+                case INVEST -> {
+                    carry = inv.getItem(TARGET_SLOT);
+                    ItemStack sacrifice = inv.getItem(SACRIFICE_SLOT);
+                    if (sacrifice != null) player.getInventory().addItem(sacrifice);
+                }
+                case STAR -> carry = inv.getItem(STAR_SLOT);
+                case RESEAL -> {
+                    carry = inv.getItem(RESEAL_ESSENCE_SLOT);
+                    ItemStack charm = inv.getItem(RESEAL_CHARM_SLOT);
+                    if (charm != null) player.getInventory().addItem(charm);
+                }
             }
             SWITCHING.add(player.getUniqueId());
-            if (INVEST_TITLE.equals(title)) {
-                openStar(player, carry);
+            switch (targetMode) {
+                case INVEST -> openInvest(player, carry);
+                case STAR -> openStar(player, carry);
+                case RESEAL -> openReseal(player, carry, null);
+            }
+            return;
+        }
+
+        switch (mode) {
+            case INVEST -> handleInvestClick(player, inv, slot, e);
+            case STAR -> handleStarClick(player, inv, slot, e);
+            case RESEAL -> handleResealClick(player, inv, slot, e);
+        }
+    }
+
+    private static void handleInvestClick(Player player, Inventory inv, int slot, InventoryClickEvent e) {
+        if (slot == SACRIFICE_SLOT || slot == TARGET_SLOT) {
+            e.setCancelled(false);
+            return;
+        }
+        if (slot != CONFIRM_SLOT) return;
+
+        ItemStack target = inv.getItem(TARGET_SLOT);
+        ItemStack sacrifice = inv.getItem(SACRIFICE_SLOT);
+        if (target != null && sacrifice != null &&
+                ClassEssence.isEssence(target) && ClassEssence.isEssence(sacrifice) &&
+                ClassEssence.getClass(target) == ClassEssence.getClass(sacrifice)) {
+            ItemRarity sacRarity = ClassEssence.getRarity(sacrifice);
+            int amount = ClassEssence.getInvestExp(sacRarity) + ClassEssence.getExp(sacrifice);
+            ItemRarity upgraded = ClassEssence.addExp(target, amount);
+            inv.setItem(TARGET_SLOT, target);
+            if (sacrifice.getAmount() > 1) {
+                ItemStack remainder = sacrifice.clone();
+                remainder.setAmount(sacrifice.getAmount() - 1);
+                inv.setItem(SACRIFICE_SLOT, remainder);
             } else {
-                openInvest(player, carry);
+                inv.setItem(SACRIFICE_SLOT, null);
             }
+            String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
+            String expColor = me.nakilex.levelplugin.utils.ChatFormatter.experienceColor();
+            send(player, MessageType.SUCCESS,
+                    "Invested essence (" + expColor + "+" + amount + ChatColor.RESET
+                            + " <glyph:experience_orb_icon> " + expLabel + ")");
+            if (upgraded != null) {
+                send(player, MessageType.SUCCESS, "Essence rarity increased to "
+                        + upgraded.getColor() + TextUtil.beautifyWords(upgraded.name()));
+            }
+        } else {
+            send(player, MessageType.ERROR, "Essences must match class.");
+        }
+    }
+
+    private static void handleStarClick(Player player, Inventory inv, int slot, InventoryClickEvent e) {
+        if (slot == STAR_SLOT) {
+            e.setCancelled(false);
+            Bukkit.getScheduler().runTask(Main.getInstance(), () -> updateStarButton(inv));
             return;
         }
+        if (slot != CONFIRM_SLOT) return;
 
-        if (INVEST_TITLE.equals(title)) {
-            if (slot == SACRIFICE_SLOT || slot == TARGET_SLOT) {
-                e.setCancelled(false);
-                return;
-            }
-            if (slot == CONFIRM_SLOT) {
-                ItemStack target = inv.getItem(TARGET_SLOT);
-                ItemStack sacrifice = inv.getItem(SACRIFICE_SLOT);
-                if (target != null && sacrifice != null &&
-                        ClassEssence.isEssence(target) && ClassEssence.isEssence(sacrifice) &&
-                        ClassEssence.getClass(target) == ClassEssence.getClass(sacrifice)) {
-                    ItemRarity sacRarity = ClassEssence.getRarity(sacrifice);
-                    int amount = ClassEssence.getInvestExp(sacRarity) + ClassEssence.getExp(sacrifice);
-                    ItemRarity upgraded = ClassEssence.addExp(target, amount);
-                    inv.setItem(TARGET_SLOT, target);
-                    inv.setItem(SACRIFICE_SLOT, null);
-                    String expLabel = me.nakilex.levelplugin.utils.ChatFormatter.experienceLabel();
-                    String expColor = me.nakilex.levelplugin.utils.ChatFormatter.experienceColor();
-                    send(player, MessageType.SUCCESS,
-                            "Invested essence (" + expColor + "+" + amount + org.bukkit.ChatColor.RESET
-                                    + " <glyph:experience_orb_icon> " + expLabel + ")");
-                    if (upgraded != null) {
-                        send(player, MessageType.SUCCESS, "Essence rarity increased to " + upgraded.getColor() + TextUtil.beautifyWords(upgraded.name()));
-                    }
-                } else {
-                    send(player, MessageType.ERROR, "Essences must match class.");
-                }
-            }
-            return;
-        }
-
-        if (STAR_TITLE.equals(title)) {
-            if (slot == STAR_SLOT) {
-                e.setCancelled(false);
-                Bukkit.getScheduler().runTask(Main.getInstance(), () -> updateStarButton(inv));
-                return;
-            }
-            if (slot == CONFIRM_SLOT) {
-                ItemStack essence = inv.getItem(STAR_SLOT);
-                if (essence != null && ClassEssence.isEssence(essence)) {
-                    int star = ClassEssence.getStar(essence);
-                    if (star < 5) {
-                        int cost = (star + 1) * 1000;
-                        int[] chances = {33, 15, 10, 5, 2};
-                        int chance = chances[Math.min(star, chances.length - 1)];
-                        EconomyManager econ = Main.getInstance().getEconomyManager();
-                        if (econ.getBalance(player) >= cost) {
-                            econ.deductCoins(player, cost);
-                            if (new Random().nextInt(100) < chance) {
-                                ClassEssence.upgradeStar(essence);
-                                send(player, MessageType.SUCCESS, "Star upgrade succeeded!");
-                            } else {
-                                send(player, MessageType.ERROR, "Star upgrade failed!");
-                            }
-                            inv.setItem(STAR_SLOT, essence);
-                            updateStarButton(inv);
-                        } else {
-                            send(player, MessageType.ERROR, "You need " + cost + " coins.");
-                        }
+        ItemStack essence = inv.getItem(STAR_SLOT);
+        if (essence != null && ClassEssence.isEssence(essence)) {
+            int star = ClassEssence.getStar(essence);
+            if (star < 5) {
+                int cost = (star + 1) * 1000;
+                int[] chances = {33, 15, 10, 5, 2};
+                int chance = chances[Math.min(star, chances.length - 1)];
+                EconomyManager econ = Main.getInstance().getEconomyManager();
+                if (econ.getBalance(player) >= cost) {
+                    econ.deductCoins(player, cost);
+                    if (new Random().nextInt(100) < chance) {
+                        ClassEssence.upgradeStar(essence);
+                        send(player, MessageType.SUCCESS, "Star upgrade succeeded!");
                     } else {
-                        send(player, MessageType.ERROR, "Essence is already max star.");
+                        send(player, MessageType.ERROR, "Star upgrade failed!");
                     }
+                    inv.setItem(STAR_SLOT, essence);
+                    updateStarButton(inv);
                 } else {
-                    send(player, MessageType.ERROR, "Place an essence to upgrade.");
+                    send(player, MessageType.ERROR, "You need " + cost + " coins.");
+                }
+            } else {
+                send(player, MessageType.ERROR, "Essence is already max star.");
+            }
+        } else {
+            send(player, MessageType.ERROR, "Place an essence to upgrade.");
+        }
+    }
+
+    private static void handleResealClick(Player player, Inventory inv, int slot, InventoryClickEvent e) {
+        if (slot == RESEAL_ESSENCE_SLOT) {
+            ItemStack cursor = e.getCursor();
+            if (cursor != null && cursor.getType() != Material.AIR) {
+                if (!ClassEssence.isEssence(cursor) || !ClassEssence.isSoulbound(cursor)) {
+                    e.setCancelled(true);
+                    send(player, MessageType.ERROR, "Only soulbound essences can be resealed.");
+                    return;
                 }
             }
+            e.setCancelled(false);
+            Bukkit.getScheduler().runTask(Main.getInstance(), () -> updateResealButton(inv));
+            return;
         }
+        if (slot == RESEAL_CHARM_SLOT) {
+            ItemStack cursor = e.getCursor();
+            if (cursor != null && cursor.getType() != Material.AIR && !SealingCharm.isCharm(cursor)) {
+                e.setCancelled(true);
+                send(player, MessageType.ERROR, "Insert sealing charms made from enchanted paper.");
+                return;
+            }
+            e.setCancelled(false);
+            Bukkit.getScheduler().runTask(Main.getInstance(), () -> updateResealButton(inv));
+            return;
+        }
+        if (slot != CONFIRM_SLOT) return;
+
+        ItemStack essence = inv.getItem(RESEAL_ESSENCE_SLOT);
+        if (essence == null || !ClassEssence.isEssence(essence)) {
+            send(player, MessageType.ERROR, "Place a soulbound essence to reseal.");
+            return;
+        }
+        if (!ClassEssence.isSoulbound(essence)) {
+            send(player, MessageType.ERROR, "This essence is already tradable.");
+            return;
+        }
+
+        ItemRarity rarity = ClassEssence.getRarity(essence);
+        ResealCost cost = rarity == null ? new ResealCost(0, 0) : getResealCost(rarity);
+        ItemStack charms = inv.getItem(RESEAL_CHARM_SLOT);
+        if (charms == null || !SealingCharm.isCharm(charms) || charms.getAmount() < cost.charms()) {
+            send(player, MessageType.ERROR, "You need " + cost.charms() + " sealing charms.");
+            return;
+        }
+
+        EconomyManager econ = Main.getInstance().getEconomyManager();
+        if (econ.getBalance(player) < cost.coins()) {
+            send(player, MessageType.ERROR, "You need " + cost.coins() + " coins.");
+            return;
+        }
+
+        econ.deductCoins(player, cost.coins());
+        if (charms.getAmount() > cost.charms()) {
+            ItemStack remainder = charms.clone();
+            remainder.setAmount(charms.getAmount() - cost.charms());
+            inv.setItem(RESEAL_CHARM_SLOT, remainder);
+        } else {
+            inv.setItem(RESEAL_CHARM_SLOT, null);
+        }
+
+        ClassEssence.setSoulbound(essence, false);
+        inv.setItem(RESEAL_ESSENCE_SLOT, essence);
+        updateResealButton(inv);
+        send(player, MessageType.SUCCESS, ChatColor.GREEN + "Essence resealed and ready for trade.");
     }
 
     @EventHandler
@@ -200,14 +416,26 @@ public class ClassEssenceUpgradeGUI implements Listener {
         if (SWITCHING.remove(player.getUniqueId())) return;
 
         Inventory inv = e.getInventory();
-        if (INVEST_TITLE.equals(title)) {
-            ItemStack target = inv.getItem(TARGET_SLOT);
-            ItemStack sacrifice = inv.getItem(SACRIFICE_SLOT);
-            if (target != null) player.getInventory().addItem(target);
-            if (sacrifice != null) player.getInventory().addItem(sacrifice);
-        } else if (STAR_TITLE.equals(title)) {
-            ItemStack target = inv.getItem(STAR_SLOT);
-            if (target != null) player.getInventory().addItem(target);
+        Mode mode = modeFromTitle(title);
+        if (mode == null) return;
+
+        switch (mode) {
+            case INVEST -> {
+                ItemStack target = inv.getItem(TARGET_SLOT);
+                ItemStack sacrifice = inv.getItem(SACRIFICE_SLOT);
+                if (target != null) player.getInventory().addItem(target);
+                if (sacrifice != null) player.getInventory().addItem(sacrifice);
+            }
+            case STAR -> {
+                ItemStack target = inv.getItem(STAR_SLOT);
+                if (target != null) player.getInventory().addItem(target);
+            }
+            case RESEAL -> {
+                ItemStack essence = inv.getItem(RESEAL_ESSENCE_SLOT);
+                ItemStack charms = inv.getItem(RESEAL_CHARM_SLOT);
+                if (essence != null) player.getInventory().addItem(essence);
+                if (charms != null) player.getInventory().addItem(charms);
+            }
         }
     }
 }

@@ -184,16 +184,32 @@ public final class ClassEssence {
         };
     }
 
+    private static final int[] RARITY_THRESHOLDS = {
+            50,   // COMMON
+            100,  // UNCOMMON
+            200,  // RARE
+            400,  // EPIC
+            1000, // LEGENDARY
+            0,    // MYTHIC (cannot upgrade further via exp)
+            0     // FABLED (max)
+    };
+
+    private static final double[] RARITY_ATTRIBUTE_SCALE = {
+            1.00, // COMMON
+            1.20, // UNCOMMON
+            1.45, // RARE
+            1.85, // EPIC
+            2.40, // LEGENDARY
+            3.10, // MYTHIC
+            3.90  // FABLED
+    };
+
     private static int getRarityThreshold(ItemRarity rarity) {
-        return switch (rarity) {
-            case COMMON -> 100;
-            case UNCOMMON -> 200;
-            case RARE -> 300;
-            case EPIC -> 400;
-            case LEGENDARY -> 500;
-            case MYTHIC -> 600;
-            case FABLED -> 0; // max rarity
-        };
+        return RARITY_THRESHOLDS[rarity.ordinal()];
+    }
+
+    private static double getRarityScale(ItemRarity rarity) {
+        return RARITY_ATTRIBUTE_SCALE[rarity.ordinal()];
     }
 
     private static Map<StatType, AttrData> rollAttributes(int slots, ItemRarity rarity, int starLevel, Random rand, Collection<StatType> exclude) {
@@ -442,12 +458,23 @@ public final class ClassEssence {
         ItemRarity rarity = ItemRarity.valueOf(pdc.get(RARITY_KEY, PersistentDataType.STRING));
         int star = pdc.has(STAR_KEY, PersistentDataType.INTEGER) ? pdc.get(STAR_KEY, PersistentDataType.INTEGER) : 0;
         ItemRarity upgradedTo = null;
-        Map<StatType, AttrData> attrs = getAttributes(stack);
+        Map<StatType, AttrData> attrs = new LinkedHashMap<>(getAttributes(stack));
 
         while (next > 0 && exp >= next && rarity != ItemRarity.FABLED) {
             exp -= next;
+            ItemRarity previous = rarity;
             rarity = nextRarity(rarity);
             upgradedTo = rarity;
+            double scale = getRarityScale(rarity) / Math.max(1e-9, getRarityScale(previous));
+            if (scale > 1.0) {
+                Map<StatType, AttrData> scaled = new LinkedHashMap<>();
+                for (Map.Entry<StatType, AttrData> entry : attrs.entrySet()) {
+                    AttrData data = entry.getValue();
+                    int scaledValue = (int) Math.max(1, Math.round(data.value * scale));
+                    scaled.put(entry.getKey(), new AttrData(scaledValue, data.percent));
+                }
+                attrs = scaled;
+            }
             int slots = getAttributeSlots(rarity);
             if (attrs.size() < slots) {
                 Map<StatType, AttrData> extra = rollAttributes(slots - attrs.size(), rarity, star, new Random(), attrs.keySet());

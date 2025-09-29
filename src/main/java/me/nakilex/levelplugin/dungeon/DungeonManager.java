@@ -725,8 +725,8 @@ public class DungeonManager {
             inst.returnLocations.put(player.getUniqueId(), player.getLocation());
         }
         instances.put(world, inst);
-        world.setDifficulty(org.bukkit.Difficulty.NORMAL);
-        world.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, true);
+        world.setDifficulty(org.bukkit.Difficulty.PEACEFUL);
+        world.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, false);
 
         class State { boolean allowFlight; boolean flying; boolean invul; State(Player p){allowFlight=p.getAllowFlight();flying=p.isFlying();invul=p.isInvulnerable();}}
         java.util.Map<Player, State> prev = new java.util.HashMap<>();
