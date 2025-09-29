@@ -101,7 +101,7 @@ public class SpellManager {
         archerMap.put("LEFT", new Spell(
             "backstep", "Backstep", "LEFT",
             5.0,
-            MythicSkillConfig.getCooldownSeconds("Backstep"), LVL_THREE,
+            Math.max(1L, MythicSkillConfig.getCooldownSeconds("Backstep")), LVL_THREE,
             WeaponType.BOW.getMaterials(),
             "MYTHIC_BACKSTEP", 0.0,
             false,

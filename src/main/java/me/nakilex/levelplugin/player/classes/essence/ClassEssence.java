@@ -196,12 +196,12 @@ public final class ClassEssence {
 
     private static final double[] RARITY_ATTRIBUTE_SCALE = {
             1.00, // COMMON
-            1.12, // UNCOMMON
-            1.30, // RARE
-            1.55, // EPIC
-            1.90, // LEGENDARY
-            2.30, // MYTHIC
-            2.70  // FABLED
+            1.20, // UNCOMMON
+            1.45, // RARE
+            1.85, // EPIC
+            2.40, // LEGENDARY
+            3.10, // MYTHIC
+            3.90  // FABLED
     };
 
     private static int getRarityThreshold(ItemRarity rarity) {
