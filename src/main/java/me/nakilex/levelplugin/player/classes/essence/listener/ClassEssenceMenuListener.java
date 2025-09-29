@@ -146,7 +146,9 @@ public class ClassEssenceMenuListener implements Listener {
                     me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, "§6§l-", 45);
                 }
                 ClassEssence.updateLore(current);
-                player.getInventory().addItem(current);
+                ItemStack returned = current.clone();
+                Map<Integer, ItemStack> overflow = player.getInventory().addItem(returned);
+                overflow.values().forEach(item -> player.getWorld().dropItemNaturally(player.getLocation(), item));
                 ps.essenceSlots[idx] = null;
                 event.getView().setItem(event.getRawSlot(), null);
             }

@@ -52,17 +52,6 @@ public class WanderingMerchantListener implements Listener {
         var merchant = manager.getMerchant();
         if (merchant == null) return;
         if (e.getEntity().getUniqueId().equals(merchant.getUniqueId())) {
-            WanderingMerchantGUI gui = manager.getGui();
-            if (gui != null) {
-                for (WanderingMerchantOffer offer : gui.getOffers()) {
-                    for (int i = 0; i < offer.getStock(); i++) {
-                        e.getEntity().getWorld().dropItemNaturally(
-                                e.getEntity().getLocation(),
-                                offer.getItem().clone()
-                        );
-                    }
-                }
-            }
             e.setDroppedExp(0);
             // despawn on next tick so drops are not cleared
             Bukkit.getScheduler().runTask(Main.getInstance(), manager::despawn);
