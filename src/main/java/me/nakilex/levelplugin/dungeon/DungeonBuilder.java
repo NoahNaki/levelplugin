@@ -729,9 +729,9 @@ public class DungeonBuilder implements Listener {
                 }
                 // remove the room instance and any exit holograms created
                 for (RoomTemplate.Marker m : templ.getExitMarkers()) {
-                    int[] vec = RoomTemplate.rotate(m.x - (int) Math.round(templ.getCenterX()),
+                    int[] exitOffset = RoomTemplate.rotate(m.x - (int) Math.round(templ.getCenterX()),
                             m.z - (int) Math.round(templ.getCenterZ()), rotation);
-                    Location loc = center.clone().add(vec[0], m.y - templ.getConnectorMinY(), vec[1]);
+                    Location loc = center.clone().add(exitOffset[0], m.y - templ.getConnectorMinY(), exitOffset[1]);
                     for (var ent : loc.getWorld().getNearbyEntities(loc, 1.5, 2.5, 1.5)) {
                         if (ent.getScoreboardTags().contains("dungeon_exit")) {
                             ent.remove();
