@@ -158,6 +158,9 @@ commands:
   potionbrowser:
     description: Browse and obtain potions.
     usage: /potionbrowser
+  battlepass:
+    description: View the battle pass rewards and your progress.
+    usage: /battlepass
     permission: none
   toggle:
     description: Toggle plugin features on/off.

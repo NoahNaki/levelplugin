@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.player.config;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.battlepass.BattlePassManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import org.bukkit.Bukkit;
@@ -92,6 +93,11 @@ public class PlayerConfig {
         }
         config.set(path + ".essences.equipped", equippedList);
 
+        BattlePassManager battlePass = Main.getInstance().getBattlePassManager();
+        if (battlePass != null) {
+            battlePass.saveProgress(uuid, config, path + ".battlepass");
+        }
+
         saveConfig();
     }
 
@@ -156,6 +162,11 @@ public class PlayerConfig {
         List<Boolean> equipped = config.getBooleanList(root + ".essences.equipped");
         for (int i = 0; i < Math.min(stats.equippedEssences.length, equipped.size()); i++) {
             stats.equippedEssences[i] = equipped.get(i);
+        }
+
+        BattlePassManager battlePass = Main.getInstance().getBattlePassManager();
+        if (battlePass != null) {
+            battlePass.loadProgress(uuid, config, root + ".battlepass");
         }
     }
 

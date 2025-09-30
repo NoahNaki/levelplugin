@@ -119,6 +119,8 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.world.WorldManager getWorldManager() { return bootstrap.getWorldManager(); }
     public me.nakilex.levelplugin.quests.managers.BeaconManager getBeaconManager() { return bootstrap.getBeaconManager(); }
     public me.nakilex.levelplugin.quests.managers.QuestManager getQuestManager() { return bootstrap.getQuestManager(); }
+    public me.nakilex.levelplugin.player.battlepass.BattlePassManager getBattlePassManager() { return bootstrap.getBattlePassManager(); }
+    public me.nakilex.levelplugin.player.battlepass.gui.BattlePassGUI getBattlePassGUI() { return bootstrap.getBattlePassGUI(); }
     public me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI getAuctionHouseGUI() { return bootstrap.getAuctionHouseGUI(); }
     public me.nakilex.levelplugin.settings.managers.SettingsManager getSettingsManager() { return bootstrap.getSettingsManager(); }
     public SettingsGUI getSettingsGUI() { return bootstrap.getSettingsGUI(); }
