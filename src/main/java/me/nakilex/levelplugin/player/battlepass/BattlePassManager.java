@@ -1,27 +1,26 @@
 package me.nakilex.levelplugin.player.battlepass;
 
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.fasttravel.FastTravelManager;
 import me.nakilex.levelplugin.items.managers.ItemManager;
-import me.nakilex.levelplugin.items.data.ItemRarity;
-import me.nakilex.levelplugin.items.data.WeaponType;
 import me.nakilex.levelplugin.player.battlepass.data.BattlePassEntry;
 import me.nakilex.levelplugin.player.battlepass.data.BattlePassReward;
 import me.nakilex.levelplugin.player.battlepass.data.BattlePassRewardContext;
 import me.nakilex.levelplugin.player.battlepass.data.BattlePassRewardDefinition;
-import me.nakilex.levelplugin.player.battlepass.data.BattlePassRewardDefinition.TransmogUnlock;
+import me.nakilex.levelplugin.player.battlepass.data.BattlePassRewardDefinition.DirectItemGrant;
 import me.nakilex.levelplugin.player.battlepass.data.BattlePassView;
 import me.nakilex.levelplugin.player.battlepass.gui.BattlePassGUI;
-import me.nakilex.levelplugin.player.classes.data.PlayerClass;
-import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
-import me.nakilex.levelplugin.player.profile.ProfileManager;
+import me.nakilex.levelplugin.player.classes.essence.SealingCharm;
+import me.nakilex.levelplugin.player.mining.items.MiningMaterial;
+import me.nakilex.levelplugin.potions.data.PotionInstance;
+import me.nakilex.levelplugin.potions.data.PotionTemplate;
+import me.nakilex.levelplugin.potions.managers.PotionManager;
 import me.nakilex.levelplugin.quests.data.QuestReward;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import me.nakilex.levelplugin.utils.TooltipUtil;
-import me.nakilex.levelplugin.transmog.TransmogManager;
 import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -41,6 +40,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 /**
  * Primary manager for the battle pass system.  The manager owns the season
@@ -55,9 +55,6 @@ public class BattlePassManager implements BattlePassProvider {
     private final Main plugin;
     private final QuestManager questManager;
     private final ItemManager itemManager;
-    private final FastTravelManager fastTravelManager;
-    private final TransmogManager transmogManager;
-    private final ProfileManager profileManager;
     private final BattlePassGUI gui;
     private final BattlePassRewardContext rewardContext;
     private final List<TierDefinition> tiers;
@@ -71,13 +68,10 @@ public class BattlePassManager implements BattlePassProvider {
         this.plugin = plugin;
         this.questManager = questManager;
         this.itemManager = itemManager;
-        this.fastTravelManager = plugin.getFastTravelManager();
-        this.transmogManager = plugin.getTransmogManager();
-        this.profileManager = ProfileManager.getInstance();
         this.seasonLabel = "Season of Arcane Echoes";
         this.seasonEnds = Instant.now().plus(45, ChronoUnit.DAYS);
         this.tiers = Collections.unmodifiableList(buildTierDefinitions());
-        this.rewardContext = new BattlePassRewardContext(itemManager, fastTravelManager, transmogManager);
+        this.rewardContext = new BattlePassRewardContext(itemManager);
         this.gui = new BattlePassGUI(this);
     }
 
@@ -194,17 +188,8 @@ public class BattlePassManager implements BattlePassProvider {
         if (questReward != null) {
             questManager.applyReward(player, questReward);
         }
-        if (!rewardDefinition.essences().isEmpty()) {
-            grantEssences(player, rewardDefinition.essences());
-        }
-        if (rewardDefinition.profileSlots() > 0) {
-            grantProfileSlots(player.getUniqueId(), rewardDefinition.profileSlots());
-        }
-        if (!rewardDefinition.fastTravelUnlocks().isEmpty()) {
-            grantFastTravelUnlocks(player, rewardDefinition.fastTravelUnlocks());
-        }
-        if (!rewardDefinition.transmogs().isEmpty()) {
-            grantTransmogUnlocks(player.getUniqueId(), rewardDefinition.transmogs());
+        if (!rewardDefinition.directItems().isEmpty()) {
+            grantDirectItems(player, rewardDefinition.directItems());
         }
         claimedSet.add(tier);
         ChatMessageUtil.send(
@@ -277,52 +262,73 @@ public class BattlePassManager implements BattlePassProvider {
         }
     }
 
-    private void grantEssences(Player player, List<BattlePassRewardDefinition.EssenceGrant> grants) {
-        for (BattlePassRewardDefinition.EssenceGrant grant : grants) {
-            for (int i = 0; i < grant.amount(); i++) {
-                ItemStack essence = ClassEssence.generateEssence(grant.playerClass(), grant.rarity(), grant.starLevel());
-                Map<Integer, ItemStack> leftover = player.getInventory().addItem(essence);
-                if (!leftover.isEmpty()) {
-                    leftover.values().forEach(stack -> player.getWorld().dropItem(player.getLocation(), stack));
-                }
-            }
-        }
-    }
-
-    private void grantProfileSlots(UUID uuid, int count) {
-        if (profileManager == null || count <= 0) {
+    private void grantDirectItems(Player player, List<DirectItemGrant> grants) {
+        if (player == null || grants == null || grants.isEmpty()) {
             return;
         }
-        for (int i = 0; i < count; i++) {
-            profileManager.unlockNextSlot(uuid);
-        }
-    }
-
-    private void grantFastTravelUnlocks(Player player, List<String> unlocks) {
-        if (fastTravelManager == null || player == null) {
-            return;
-        }
-        for (String id : unlocks) {
-            if (id == null || id.isBlank()) continue;
-            if (fastTravelManager.isUnlocked(player, id)) {
+        for (DirectItemGrant grant : grants) {
+            if (grant == null) continue;
+            ItemStack stack = safeCreateItem(grant);
+            if (stack == null || stack.getType() == Material.AIR) {
                 continue;
             }
-            fastTravelManager.unlock(player, id, true);
+            stack.setAmount(Math.max(1, grant.amount()));
+            Map<Integer, ItemStack> leftover = player.getInventory().addItem(stack);
+            if (!leftover.isEmpty()) {
+                leftover.values().forEach(rem -> player.getWorld().dropItem(player.getLocation(), rem));
+            }
         }
     }
 
-    private void grantTransmogUnlocks(UUID uuid, List<TransmogUnlock> unlocks) {
-        if (transmogManager == null || uuid == null) {
-            return;
-        }
-        for (TransmogUnlock unlock : unlocks) {
-            if (unlock == null) continue;
-            if (unlock.weaponType() != null) {
-                transmogManager.unlockModel(uuid, unlock.modelId(), unlock.weaponType(), null);
-            } else {
-                transmogManager.unlockModel(uuid, unlock.modelId(), null, unlock.armorType());
+    private ItemStack safeCreateItem(DirectItemGrant grant) {
+        try {
+            ItemStack item = grant.factory().get();
+            if (item == null) {
+                return new ItemStack(Material.AIR);
             }
+            return item.clone();
+        } catch (Exception ex) {
+            plugin.getLogger().warning("Failed to create battle pass item: " + ex.getMessage());
+            return new ItemStack(Material.AIR);
         }
+    }
+
+    private Supplier<ItemStack> sealingCharm(int amount) {
+        int count = Math.max(1, amount);
+        return () -> {
+            ItemStack stack = SealingCharm.create(count);
+            stack.setAmount(count);
+            return stack;
+        };
+    }
+
+    private Supplier<ItemStack> potion(String templateId) {
+        return () -> createPotionStack(templateId);
+    }
+
+    private Supplier<ItemStack> miningMaterial(MiningMaterial material, int amount) {
+        int count = Math.max(1, amount);
+        return () -> {
+            if (material == null) {
+                return new ItemStack(Material.AIR);
+            }
+            ItemStack stack = material.createItem(count);
+            stack.setAmount(count);
+            return stack;
+        };
+    }
+
+    private ItemStack createPotionStack(String templateId) {
+        PotionManager potionManager = plugin.getPotionManager();
+        if (potionManager == null || templateId == null || templateId.isBlank()) {
+            return new ItemStack(Material.POTION);
+        }
+        PotionTemplate template = potionManager.getTemplate(templateId);
+        if (template == null) {
+            return new ItemStack(Material.POTION);
+        }
+        PotionInstance instance = potionManager.createInstance(template);
+        return instance.toItemStack(plugin);
     }
 
     private void sendLevelUpMessage(Player player, int newTier, int currentProgress, int nextRequired) {
@@ -394,135 +400,97 @@ public class BattlePassManager implements BattlePassProvider {
     private List<TierDefinition> buildTierDefinitions() {
         List<TierDefinition> defs = new ArrayList<>();
         int tier = 1;
+
         defs.add(new TierDefinition(tier++,
                 BattlePassRewardDefinition.builder()
-                        .displayName("Explorer's Allowance")
+                        .displayName("Coal Hauler's Stipend")
+                        .coins(500)
+                        .directItem("Coal", 16, miningMaterial(MiningMaterial.COAL, 16))
+                        .build(),
+                BattlePassRewardDefinition.builder()
+                        .displayName("Premium Coal Cache")
                         .coins(750)
-                        .build(),
-                BattlePassRewardDefinition.builder()
-                        .displayName("Premium Gem Pouch")
-                        .gems(25)
-                        .xp(500)
+                        .gems(5)
+                        .directItem("Coal", 32, miningMaterial(MiningMaterial.COAL, 32))
                         .build()));
 
         defs.add(new TierDefinition(tier++,
                 BattlePassRewardDefinition.builder()
-                        .addItem(27)
-                        .xp(500)
+                        .displayName("Prospector's Find")
+                        .xp(600)
+                        .directItem("Raw Iron", 12, miningMaterial(MiningMaterial.IRON, 12))
                         .build(),
                 BattlePassRewardDefinition.builder()
-                        .coins(1000)
-                        .addItem(28)
+                        .displayName("Refined Ore Stockpile")
+                        .xp(900)
+                        .coins(900)
+                        .directItem("Raw Iron", 24, miningMaterial(MiningMaterial.IRON, 24))
                         .build()));
 
         defs.add(new TierDefinition(tier++,
                 BattlePassRewardDefinition.builder()
+                        .displayName("Field Medic Supplies")
+                        .directItem("Healing Potion", 1, potion("healing_i"))
+                        .coins(300)
+                        .build(),
+                BattlePassRewardDefinition.builder()
+                        .displayName("Arcane Tonic Reserve")
+                        .directItem("Healing Potion", 1, potion("healing_ii"))
                         .gems(10)
-                        .addItem(29)
-                        .build(),
-                BattlePassRewardDefinition.builder()
-                        .xp(1500)
-                        .addItem(26)
                         .build()));
 
         defs.add(new TierDefinition(tier++,
                 BattlePassRewardDefinition.builder()
-                        .coins(1250)
-                        .addItem(52)
-                        .unlockFastTravel("rowan")
+                        .displayName("Sealed Essence Kit")
+                        .directItem("Sealing Charm", 2, sealingCharm(2))
+                        .xp(1200)
                         .build(),
                 BattlePassRewardDefinition.builder()
+                        .displayName("Master Sealer Cache")
+                        .directItem("Sealing Charm", 4, sealingCharm(4))
+                        .coins(1500)
+                        .build()));
+
+        defs.add(new TierDefinition(tier++,
+                BattlePassRewardDefinition.builder()
+                        .displayName("Explorer's Kit")
+                        .coins(1500)
+                        .gems(10)
+                        .addItem(52)
+                        .build(),
+                BattlePassRewardDefinition.builder()
+                        .displayName("Premium Expedition Cache")
+                        .coins(2000)
                         .gems(20)
                         .addItem(53)
-                        .addItem(54)
-                        .unlockWeaponTransmog("witchcaster_animated-staff", WeaponType.WAND)
                         .build()));
 
         defs.add(new TierDefinition(tier++,
                 BattlePassRewardDefinition.builder()
-                        .xp(2000)
-                        .addItem(56)
-                        .build(),
-                BattlePassRewardDefinition.builder()
-                        .coins(2000)
-                        .addItem(57)
-                        .build()));
-
-        defs.add(new TierDefinition(tier++,
-                BattlePassRewardDefinition.builder()
-                        .gems(25)
-                        .addItem(58)
-                        .build(),
-                BattlePassRewardDefinition.builder()
+                        .displayName("Miner's Dividend")
                         .coins(2500)
-                        .xp(2500)
-                        .addItem(59)
-                        .unlockWeaponTransmog("arctic_knight_animated_weapon_set_bow", WeaponType.BOW)
-                        .build()));
-
-        defs.add(new TierDefinition(tier++,
-                BattlePassRewardDefinition.builder()
-                        .displayName("Mage Essence Cache")
-                        .addEssence(PlayerClass.MAGE, ItemRarity.RARE, 1)
+                        .directItem("Raw Iron", 32, miningMaterial(MiningMaterial.IRON, 32))
                         .build(),
                 BattlePassRewardDefinition.builder()
-                        .displayName("Awakened Mage Essence")
-                        .addEssence(PlayerClass.AWAKMAGE, ItemRarity.EPIC, 2)
+                        .displayName("Smith's Premium Bundle")
+                        .coins(3000)
+                        .directItem("Sealing Charm", 5, sealingCharm(5))
+                        .directItem("Coal", 32, miningMaterial(MiningMaterial.COAL, 32))
                         .build()));
 
         defs.add(new TierDefinition(tier++,
                 BattlePassRewardDefinition.builder()
-                        .displayName("Warrior's Essence")
-                        .addEssence(PlayerClass.WARRIOR, ItemRarity.RARE, 1)
-                        .build(),
-                BattlePassRewardDefinition.builder()
-                        .displayName("Awakened Warrior Essence")
-                        .addEssence(PlayerClass.AWAKWARRIOR, ItemRarity.EPIC, 2)
-                        .build()));
-
-        defs.add(new TierDefinition(tier++,
-                BattlePassRewardDefinition.builder()
-                        .displayName("Archer's Essence")
-                        .addEssence(PlayerClass.ARCHER, ItemRarity.RARE, 1)
-                        .build(),
-                BattlePassRewardDefinition.builder()
-                        .displayName("Awakened Archer Essence")
-                        .addEssence(PlayerClass.AWAKARCHER, ItemRarity.EPIC, 2)
-                        .build()));
-
-        defs.add(new TierDefinition(tier++,
-                BattlePassRewardDefinition.builder()
-                        .displayName("Rogue's Essence")
-                        .addEssence(PlayerClass.ROGUE, ItemRarity.RARE, 1)
-                        .build(),
-                BattlePassRewardDefinition.builder()
-                        .displayName("Awakened Rogue Essence")
-                        .addEssence(PlayerClass.AWAKROGUE, ItemRarity.EPIC, 2)
-                        .build()));
-
-        defs.add(new TierDefinition(tier++,
-                BattlePassRewardDefinition.builder()
-                        .coins(5000)
+                        .displayName("Season Completion Cache")
+                        .coins(3500)
+                        .gems(25)
                         .addItem(138)
-                        .unlockProfileSlot()
                         .build(),
                 BattlePassRewardDefinition.builder()
-                        .gems(40)
+                        .displayName("Premium Season Completion Cache")
+                        .coins(4500)
+                        .gems(35)
+                        .directItem("Healing Potion", 1, potion("healing_iii"))
                         .addItem(139)
-                        .unlockWeaponTransmog("molten_magma_animated_weapon_set_sword", WeaponType.SWORD)
-                        .build()));
-
-        defs.add(new TierDefinition(tier++,
-                BattlePassRewardDefinition.builder()
-                        .xp(5000)
-                        .addItem(140)
-                        .unlockWeaponTransmog("dwarven_weapon_assortment_sword", WeaponType.SWORD)
-                        .build(),
-                BattlePassRewardDefinition.builder()
-                        .coins(6000)
-                        .gems(50)
-                        .addItem(141)
-                        .unlockClass(PlayerClass.ARCHMAGE)
                         .build()));
 
         return defs;

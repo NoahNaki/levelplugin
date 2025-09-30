@@ -1,15 +1,11 @@
 package me.nakilex.levelplugin.player.battlepass.data;
 
-import me.nakilex.levelplugin.items.data.ArmorType;
 import me.nakilex.levelplugin.items.data.CustomItem;
-import me.nakilex.levelplugin.items.data.ItemRarity;
-import me.nakilex.levelplugin.items.data.WeaponType;
 import me.nakilex.levelplugin.items.managers.ItemManager;
-import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.quests.data.QuestReward;
 import me.nakilex.levelplugin.utils.NumberUtil;
-import me.nakilex.levelplugin.utils.TextUtil;
 import org.bukkit.ChatColor;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -17,10 +13,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 /**
  * Definition of an actionable battle pass reward.  The definition is responsible
- * for describing the actual game rewards (coins, gems, items, essences, etc.)
+ * for describing the actual game rewards (coins, gems, items, etc.)
  * so that the manager can both render a tooltip snapshot and grant the reward
  * when claimed.
  */
@@ -32,11 +29,7 @@ public final class BattlePassRewardDefinition {
     private final int coins;
     private final int gems;
     private final Map<Integer, Integer> itemIds;
-    private final List<EssenceGrant> essences;
-    private final List<PlayerClass> classUnlocks;
-    private final int profileSlots;
-    private final List<String> fastTravelUnlocks;
-    private final List<TransmogUnlock> transmogs;
+    private final List<DirectItemGrant> directItems;
 
     private BattlePassRewardDefinition(Builder builder) {
         this.displayName = builder.displayName;
@@ -45,11 +38,7 @@ public final class BattlePassRewardDefinition {
         this.coins = builder.coins;
         this.gems = builder.gems;
         this.itemIds = Collections.unmodifiableMap(new LinkedHashMap<>(builder.itemIds));
-        this.essences = List.copyOf(builder.essences);
-        this.classUnlocks = List.copyOf(builder.classUnlocks);
-        this.profileSlots = builder.profileSlots;
-        this.fastTravelUnlocks = List.copyOf(builder.fastTravelUnlocks);
-        this.transmogs = List.copyOf(builder.transmogs);
+        this.directItems = List.copyOf(builder.directItems);
     }
 
     public static Builder builder() {
@@ -80,28 +69,12 @@ public final class BattlePassRewardDefinition {
         return itemIds;
     }
 
-    public List<EssenceGrant> essences() {
-        return essences;
-    }
-
-    public List<PlayerClass> classUnlocks() {
-        return classUnlocks;
-    }
-
-    public int profileSlots() {
-        return profileSlots;
-    }
-
-    public List<String> fastTravelUnlocks() {
-        return fastTravelUnlocks;
-    }
-
-    public List<TransmogUnlock> transmogs() {
-        return transmogs;
+    public List<DirectItemGrant> directItems() {
+        return directItems;
     }
 
     public boolean hasQuestRewards() {
-        return xp > 0 || coins > 0 || gems > 0 || !itemIds.isEmpty() || !classUnlocks.isEmpty();
+        return xp > 0 || coins > 0 || gems > 0 || !itemIds.isEmpty();
     }
 
     public QuestReward toQuestReward() {
@@ -114,7 +87,7 @@ public final class BattlePassRewardDefinition {
                 items.add(entry.getKey());
             }
         }
-        return new QuestReward(xp, coins, gems, items, classUnlocks);
+        return new QuestReward(xp, coins, gems, items);
     }
 
     /**
@@ -138,44 +111,14 @@ public final class BattlePassRewardDefinition {
             if (itemManager == null) continue;
             CustomItem template = itemManager.getTemplateById(entry.getKey());
             if (template == null) continue;
-            ItemRarity rarity = template.getRarity();
-            ChatColor color = rarity != null ? rarity.getColor() : ChatColor.WHITE;
+            String name = template.getName();
             int amount = entry.getValue();
             String suffix = amount > 1 ? ChatColor.GRAY + " x" + amount : "";
-            lines.add(ChatColor.GRAY + "• " + color + template.getName() + suffix);
+            lines.add(ChatColor.GRAY + "• " + ChatColor.WHITE + name + suffix);
         }
-        for (EssenceGrant grant : essences) {
-            ChatColor color = grant.rarity().getColor();
-            String rarityName = TextUtil.beautifyWords(grant.rarity().name());
-            String amount = grant.amount() > 1 ? ChatColor.GRAY + " x" + grant.amount() : "";
-            String stars = grant.starLevel() > 0
-                    ? ChatColor.GOLD + " +" + grant.starLevel() + "★"
-                    : "";
-            lines.add(ChatColor.GRAY + "• " + color + grant.playerClass().getDisplayName()
-                    + ChatColor.GRAY + " Essence" + amount
-                    + ChatColor.DARK_GRAY + " (" + rarityName + stars + ChatColor.DARK_GRAY + ")");
-        }
-        for (PlayerClass clazz : classUnlocks) {
-            lines.add(ChatColor.GRAY + "• " + ChatColor.AQUA + "Unlocks Class: "
-                    + ChatColor.YELLOW + clazz.getDisplayName());
-        }
-        if (profileSlots > 0) {
-            String slots = profileSlots == 1
-                    ? "Unlocks +1 Character Slot"
-                    : "Unlocks +" + profileSlots + " Character Slots";
-            lines.add(ChatColor.GRAY + "• " + ChatColor.GREEN + slots);
-        }
-        for (String unlock : fastTravelUnlocks) {
-            String name = context != null ? context.fastTravelDisplayName(unlock)
-                    : TextUtil.beautifyWords(unlock.replace('-', ' ').replace('_', ' '));
-            lines.add(ChatColor.GRAY + "• " + ChatColor.DARK_AQUA + "Fast Travel: "
-                    + ChatColor.AQUA + name);
-        }
-        for (TransmogUnlock unlock : transmogs) {
-            String display = context != null ? context.transmogDisplayName(unlock)
-                    : TextUtil.beautifyWords(unlock.modelId().replace('-', ' ').replace('_', ' '));
-            lines.add(ChatColor.GRAY + "• " + ChatColor.LIGHT_PURPLE + "Transmog Skin: "
-                    + ChatColor.DARK_PURPLE + display);
+        for (DirectItemGrant grant : directItems) {
+            String suffix = grant.amount() > 1 ? ChatColor.GRAY + " x" + grant.amount() : "";
+            lines.add(ChatColor.GRAY + "• " + ChatColor.WHITE + grant.displayName() + suffix);
         }
         lines.addAll(extraLore);
         return lines;
@@ -206,35 +149,12 @@ public final class BattlePassRewardDefinition {
             }
             segments.add(sb.toString());
         }
-        for (EssenceGrant grant : essences) {
-            String rarityName = TextUtil.beautifyWords(grant.rarity().name());
-            StringBuilder sb = new StringBuilder(rarityName)
-                    .append(' ')
-                    .append(grant.playerClass().getDisplayName())
-                    .append(" Essence");
+        for (DirectItemGrant grant : directItems) {
             if (grant.amount() > 1) {
-                sb.append(" x").append(grant.amount());
+                segments.add(grant.amount() + "x " + grant.displayName());
+            } else {
+                segments.add(grant.displayName());
             }
-            if (grant.starLevel() > 0) {
-                sb.append(" (+").append(grant.starLevel()).append('★').append(')');
-            }
-            segments.add(sb.toString());
-        }
-        for (PlayerClass clazz : classUnlocks) {
-            segments.add("Unlocks Class: " + clazz.getDisplayName());
-        }
-        if (profileSlots > 0) {
-            segments.add(profileSlots == 1 ? "+1 Character Slot" : "+" + profileSlots + " Character Slots");
-        }
-        for (String unlock : fastTravelUnlocks) {
-            String name = context != null ? context.fastTravelDisplayName(unlock)
-                    : TextUtil.beautifyWords(unlock.replace('-', ' ').replace('_', ' '));
-            segments.add("Fast Travel: " + name);
-        }
-        for (TransmogUnlock unlock : transmogs) {
-            String display = context != null ? context.transmogDisplayName(unlock)
-                    : TextUtil.beautifyWords(unlock.modelId().replace('-', ' ').replace('_', ' '));
-            segments.add("Transmog Skin: " + display);
         }
         return segments;
     }
@@ -262,24 +182,12 @@ public final class BattlePassRewardDefinition {
                 return template.getName();
             }
         }
-        if (!essences.isEmpty()) {
-            return essences.get(0).playerClass().getDisplayName() + " Essence";
-        }
-        if (!classUnlocks.isEmpty()) {
-            return classUnlocks.get(0).getDisplayName() + " Unlock";
-        }
-        if (profileSlots > 0) {
-            return profileSlots == 1 ? "Character Slot Unlock" : profileSlots + " Character Slots";
-        }
-        if (!fastTravelUnlocks.isEmpty()) {
-            String name = context != null ? context.fastTravelDisplayName(fastTravelUnlocks.get(0))
-                    : TextUtil.beautifyWords(fastTravelUnlocks.get(0).replace('-', ' ').replace('_', ' '));
-            return name + " Fast Travel";
-        }
-        if (!transmogs.isEmpty()) {
-            String display = context != null ? context.transmogDisplayName(transmogs.get(0))
-                    : TextUtil.beautifyWords(transmogs.get(0).modelId().replace('-', ' ').replace('_', ' '));
-            return display + " Transmog";
+        if (!directItems.isEmpty()) {
+            DirectItemGrant grant = directItems.get(0);
+            if (grant.amount() > 1) {
+                return grant.amount() + "x " + grant.displayName();
+            }
+            return grant.displayName();
         }
         if (xp > 0) {
             return NumberUtil.formatCommas(xp) + " XP";
@@ -294,11 +202,7 @@ public final class BattlePassRewardDefinition {
         private int coins;
         private int gems;
         private final Map<Integer, Integer> itemIds = new LinkedHashMap<>();
-        private final List<EssenceGrant> essences = new ArrayList<>();
-        private final List<PlayerClass> classUnlocks = new ArrayList<>();
-        private int profileSlots;
-        private final List<String> fastTravelUnlocks = new ArrayList<>();
-        private final List<TransmogUnlock> transmogs = new ArrayList<>();
+        private final List<DirectItemGrant> directItems = new ArrayList<>();
 
         public Builder displayName(String name) {
             this.displayName = name;
@@ -344,57 +248,11 @@ public final class BattlePassRewardDefinition {
             return this;
         }
 
-        public Builder addEssence(PlayerClass clazz, ItemRarity rarity, int starLevel) {
-            return addEssence(clazz, rarity, starLevel, 1);
-        }
-
-        public Builder addEssence(PlayerClass clazz, ItemRarity rarity, int starLevel, int amount) {
-            if (clazz != null && rarity != null && amount > 0) {
-                essences.add(new EssenceGrant(clazz, rarity, Math.max(0, starLevel), amount));
+        public Builder directItem(String name, int amount, Supplier<ItemStack> factory) {
+            if (factory == null || name == null || name.isBlank() || amount <= 0) {
+                return this;
             }
-            return this;
-        }
-
-        public Builder unlockClass(PlayerClass clazz) {
-            if (clazz != null && !classUnlocks.contains(clazz)) {
-                classUnlocks.add(clazz);
-            }
-            return this;
-        }
-
-        public Builder unlockProfileSlot() {
-            profileSlots++;
-            return this;
-        }
-
-        public Builder unlockProfileSlots(int count) {
-            if (count > 0) {
-                profileSlots += count;
-            }
-            return this;
-        }
-
-        public Builder unlockFastTravel(String id) {
-            if (id != null && !id.isBlank()) {
-                String key = id.trim().toLowerCase();
-                if (!fastTravelUnlocks.contains(key)) {
-                    fastTravelUnlocks.add(key);
-                }
-            }
-            return this;
-        }
-
-        public Builder unlockWeaponTransmog(String modelId, WeaponType type) {
-            if (modelId != null && !modelId.isBlank() && type != null) {
-                transmogs.add(new TransmogUnlock(modelId.trim(), type, null));
-            }
-            return this;
-        }
-
-        public Builder unlockArmorTransmog(String modelId, ArmorType type) {
-            if (modelId != null && !modelId.isBlank() && type != null) {
-                transmogs.add(new TransmogUnlock(modelId.trim(), null, type));
-            }
+            directItems.add(new DirectItemGrant(name, amount, factory));
             return this;
         }
 
@@ -403,60 +261,27 @@ public final class BattlePassRewardDefinition {
         }
     }
 
-    public static final class EssenceGrant {
-        private final PlayerClass playerClass;
-        private final ItemRarity rarity;
-        private final int starLevel;
+    public static final class DirectItemGrant {
+        private final String displayName;
         private final int amount;
+        private final Supplier<ItemStack> factory;
 
-        public EssenceGrant(PlayerClass playerClass, ItemRarity rarity, int starLevel, int amount) {
-            this.playerClass = Objects.requireNonNull(playerClass, "playerClass");
-            this.rarity = Objects.requireNonNull(rarity, "rarity");
-            this.starLevel = Math.max(0, starLevel);
+        public DirectItemGrant(String displayName, int amount, Supplier<ItemStack> factory) {
+            this.displayName = ChatColor.stripColor(Objects.requireNonNull(displayName, "displayName"));
             this.amount = Math.max(1, amount);
+            this.factory = Objects.requireNonNull(factory, "factory");
         }
 
-        public PlayerClass playerClass() {
-            return playerClass;
-        }
-
-        public ItemRarity rarity() {
-            return rarity;
-        }
-
-        public int starLevel() {
-            return starLevel;
+        public String displayName() {
+            return displayName;
         }
 
         public int amount() {
             return amount;
         }
-    }
 
-    public static final class TransmogUnlock {
-        private final String modelId;
-        private final WeaponType weaponType;
-        private final ArmorType armorType;
-
-        public TransmogUnlock(String modelId, WeaponType weaponType, ArmorType armorType) {
-            this.modelId = Objects.requireNonNull(modelId, "modelId");
-            if ((weaponType == null) == (armorType == null)) {
-                throw new IllegalArgumentException("Exactly one of weaponType or armorType must be provided");
-            }
-            this.weaponType = weaponType;
-            this.armorType = armorType;
-        }
-
-        public String modelId() {
-            return modelId;
-        }
-
-        public WeaponType weaponType() {
-            return weaponType;
-        }
-
-        public ArmorType armorType() {
-            return armorType;
+        public Supplier<ItemStack> factory() {
+            return factory;
         }
     }
 }
