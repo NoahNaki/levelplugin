@@ -114,11 +114,19 @@ public class BattlePassManager implements BattlePassProvider {
         persist(player.getUniqueId());
     }
 
-    public void setPremium(UUID uuid, boolean active) {
+    public boolean setPremium(UUID uuid, boolean active) {
         PlayerProgress progress = progress(uuid);
+        if (progress.premiumActive == active) {
+            return false;
+        }
         progress.premiumActive = active;
         gui.refresh();
         persist(uuid);
+        return true;
+    }
+
+    public boolean hasPremium(UUID uuid) {
+        return progress(uuid).premiumActive();
     }
 
     @Override

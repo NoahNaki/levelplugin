@@ -167,6 +167,10 @@ commands:
     description: Grant battle pass XP to a player.
     usage: /bpxp <player> <amount>
     permission: levelplugin.admin
+  bpunlock:
+    description: Unlock the premium battle pass for a player or everyone.
+    usage: /bpunlock <player|@everyone>
+    permission: levelplugin.admin
   toggle:
     description: Toggle plugin features on/off.
     usage: /toggle <feature>

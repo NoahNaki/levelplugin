@@ -36,6 +36,7 @@ import me.nakilex.levelplugin.player.mining.commands.SetMiningLevelCommand;
 import me.nakilex.levelplugin.player.level.commands.SetLevelCommand;
 import me.nakilex.levelplugin.player.battlepass.BattlePassManager;
 import me.nakilex.levelplugin.player.battlepass.command.BattlePassCommand;
+import me.nakilex.levelplugin.player.battlepass.command.BattlePassUnlockCommand;
 import me.nakilex.levelplugin.player.battlepass.command.BattlePassXpCommand;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.player.commands.WipeProfileCommand;
@@ -198,6 +199,9 @@ public class CommandRegistry {
         BattlePassXpCommand battlePassXpCommand = new BattlePassXpCommand(battlePassManager);
         plugin.getCommand("bpxp").setExecutor(battlePassXpCommand);
         plugin.getCommand("bpxp").setTabCompleter(battlePassXpCommand);
+        BattlePassUnlockCommand battlePassUnlockCommand = new BattlePassUnlockCommand(battlePassManager);
+        plugin.getCommand("bpunlock").setExecutor(battlePassUnlockCommand);
+        plugin.getCommand("bpunlock").setTabCompleter(battlePassUnlockCommand);
         plugin.getCommand("dmgnumber").setExecutor(new DmgNumberCommand(dmgToggleManager));
         plugin.getCommand("dmgchat").setExecutor(new DmgChatCommand(settingsGUI.getSettingsManager()));
         plugin.getCommand("settings").setExecutor(new SettingsCommand(settingsGUI));
