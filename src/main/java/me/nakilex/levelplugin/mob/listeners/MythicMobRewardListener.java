@@ -17,6 +17,7 @@ import me.nakilex.levelplugin.guild.quests.GuildQuestManager;
 import io.lumine.mythic.api.skills.placeholders.PlaceholderString;
 import me.nakilex.levelplugin.party.Party;
 import me.nakilex.levelplugin.party.PartyManager;
+import me.nakilex.levelplugin.player.battlepass.BattlePassManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.utils.ExperienceUtil;
@@ -53,6 +54,7 @@ public class MythicMobRewardListener implements Listener {
     private final LootChestManager lootChestManager;
     private final ModelSetManager modelSetManager;
     private final MythicMobDamageTracker tracker;
+    private final BattlePassManager battlePassManager;
     private final ItemDropper itemDropper;
     private final PlayerToggleManager debugToggle;
 
@@ -62,7 +64,8 @@ public class MythicMobRewardListener implements Listener {
                                    EconomyManager economyManager,
                                    LootChestManager lootChestManager,
                                    ModelSetManager modelSetManager,
-                                   PlayerToggleManager debugToggle) {
+                                   PlayerToggleManager debugToggle,
+                                   BattlePassManager battlePassManager) {
         this.tracker = tracker;
         this.mobRewardsConfig = mobRewardsConfig;
         this.levelManager = levelManager;
@@ -71,6 +74,7 @@ public class MythicMobRewardListener implements Listener {
         this.modelSetManager = modelSetManager;
         this.itemDropper = new ItemDropper(levelManager, modelSetManager);
         this.debugToggle = debugToggle;
+        this.battlePassManager = battlePassManager;
     }
 
     @EventHandler
@@ -178,6 +182,7 @@ public class MythicMobRewardListener implements Listener {
                         + ChatColor.GOLD + "!");
             }
             GuildQuestManager.getInstance().handleKill(player, mobType);
+            maybeAwardBattlePassXp(player, mobType, tier, awardedExp);
             if (debugToggle.isEnabled(player)) {
                 sendDebugInfo(player, rawMobType, mythicMob, baseEntity, numericHpName);
                 String expColor = ChatFormatter.experienceColor();
@@ -185,6 +190,33 @@ public class MythicMobRewardListener implements Listener {
                         + ChatColor.GRAY + ", Coins: " + coins);
             }
         }
+    }
+
+    private void maybeAwardBattlePassXp(Player player, String mobType, int tier, int awardedExp) {
+        if (battlePassManager == null || player == null) {
+            return;
+        }
+        int battlePassXp = calculateBattlePassXp(tier, awardedExp);
+        if (battlePassXp <= 0) {
+            return;
+        }
+        String displayName = ChatColor.stripColor(MobNameUtil.getDisplayName(mobType));
+        if (displayName == null || displayName.isBlank()) {
+            displayName = MobNameUtil.toPrettyName(mobType);
+        }
+        battlePassManager.addProgress(
+                player,
+                battlePassXp,
+                "for defeating " + ChatColor.GOLD + displayName
+        );
+    }
+
+    private int calculateBattlePassXp(int tier, int awardedExp) {
+        int base = Math.max(25, awardedExp / 4);
+        if (tier > 0) {
+            base += tier * 35;
+        }
+        return Math.min(base, 500);
     }
 
     private void sendDebugInfo(Player player,

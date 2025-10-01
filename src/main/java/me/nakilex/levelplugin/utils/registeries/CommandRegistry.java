@@ -34,6 +34,10 @@ import me.nakilex.levelplugin.player.mining.commands.AddMiningXPCommand;
 import me.nakilex.levelplugin.player.mining.commands.MiningLevelCommand;
 import me.nakilex.levelplugin.player.mining.commands.SetMiningLevelCommand;
 import me.nakilex.levelplugin.player.level.commands.SetLevelCommand;
+import me.nakilex.levelplugin.player.battlepass.BattlePassManager;
+import me.nakilex.levelplugin.player.battlepass.command.BattlePassCommand;
+import me.nakilex.levelplugin.player.battlepass.command.BattlePassUnlockCommand;
+import me.nakilex.levelplugin.player.battlepass.command.BattlePassXpCommand;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.player.commands.WipeProfileCommand;
 import me.nakilex.levelplugin.potions.commands.AddPotionCommand;
@@ -126,7 +130,8 @@ public class CommandRegistry {
                                         CodexMainGUI codexGUI,
                                         WanderingMerchantManager wmManager,
                                         PathfindingManager pathManager,
-                                        MercenaryManager mercManager) {
+                                        MercenaryManager mercManager,
+                                        BattlePassManager battlePassManager) {
 
 
         plugin.getCommand("addpoints").setExecutor(new AddPointsCommand());
@@ -188,6 +193,15 @@ public class CommandRegistry {
         plugin.getCommand("salvage").setExecutor(new SalvageCommand(plugin));
         plugin.getCommand("enchant").setExecutor(new me.nakilex.levelplugin.enchanting.commands.EnchantCommand(enchantGUI));
         plugin.getCommand("spells").setExecutor(new SpellCommand());
+        BattlePassCommand battlePassCommand = new BattlePassCommand(battlePassManager);
+        plugin.getCommand("battlepass").setExecutor(battlePassCommand);
+        plugin.getCommand("battlepass").setTabCompleter(new EmptyTabCompleter());
+        BattlePassXpCommand battlePassXpCommand = new BattlePassXpCommand(battlePassManager);
+        plugin.getCommand("bpxp").setExecutor(battlePassXpCommand);
+        plugin.getCommand("bpxp").setTabCompleter(battlePassXpCommand);
+        BattlePassUnlockCommand battlePassUnlockCommand = new BattlePassUnlockCommand(battlePassManager);
+        plugin.getCommand("bpunlock").setExecutor(battlePassUnlockCommand);
+        plugin.getCommand("bpunlock").setTabCompleter(battlePassUnlockCommand);
         plugin.getCommand("dmgnumber").setExecutor(new DmgNumberCommand(dmgToggleManager));
         plugin.getCommand("dmgchat").setExecutor(new DmgChatCommand(settingsGUI.getSettingsManager()));
         plugin.getCommand("settings").setExecutor(new SettingsCommand(settingsGUI));

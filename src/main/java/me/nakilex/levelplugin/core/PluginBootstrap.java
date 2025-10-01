@@ -57,6 +57,8 @@ import me.nakilex.levelplugin.storage.events.StorageEvents;
 import me.nakilex.levelplugin.tips.BroadcastManager;
 import me.nakilex.levelplugin.tips.TipsConfigManager;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.player.battlepass.BattlePassManager;
+import me.nakilex.levelplugin.player.battlepass.gui.BattlePassGUI;
 import me.nakilex.levelplugin.guild.quests.GuildQuestManager;
 import me.nakilex.levelplugin.trade.data.ConfigValues;
 import me.nakilex.levelplugin.trade.utils.MessageStrings;
@@ -148,6 +150,8 @@ public class PluginBootstrap {
     private TipsConfigManager tipsCfg;
     private BroadcastManager broadcastMgr;
     private me.nakilex.levelplugin.quests.managers.QuestManager questManager;
+    private BattlePassManager battlePassManager;
+    private BattlePassGUI battlePassGUI;
     private me.nakilex.levelplugin.npc.dialog.NPCDialogManager dialogManager;
     private me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager scoreboardManager;
     private me.nakilex.levelplugin.quests.managers.BeaconManager beaconManager;
@@ -312,6 +316,8 @@ public class PluginBootstrap {
         broadcastMgr.start();
         settingsManager = new SettingsManager();
         questManager = new QuestManager(plugin, partyManager);
+        battlePassManager = new BattlePassManager(plugin, questManager, itemManager);
+        battlePassGUI = battlePassManager.getGui();
         dialogManager = new me.nakilex.levelplugin.npc.dialog.NPCDialogManager(plugin);
         scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(plugin, partyManager, questManager, arenaQueueManager, arenaRatingManager);
         arenaQueueManager.setScoreboardManager(scoreboardManager);
@@ -404,7 +410,8 @@ public class PluginBootstrap {
             codexGUI,
             wanderingMerchantManager,
             pathfindingManager,
-            mercenaryManager
+            mercenaryManager,
+            battlePassManager
         );
         me.nakilex.levelplugin.maintenance.MaintenanceCommand maintenanceCmd =
                 new me.nakilex.levelplugin.maintenance.MaintenanceCommand(maintenanceManager);
@@ -452,6 +459,7 @@ public class PluginBootstrap {
             arenaQueueGUI,
             arenaMatchManager
         );
+        plugin.getServer().getPluginManager().registerEvents(battlePassGUI, plugin);
         plugin.getServer().getPluginManager().registerEvents(
                 new me.nakilex.levelplugin.guild.siege.GuildSiegeListener(guildSiegeManager),
                 plugin);
@@ -606,6 +614,8 @@ public class PluginBootstrap {
     public TipsConfigManager getTipsCfg() { return tipsCfg; }
     public BroadcastManager getBroadcastMgr() { return broadcastMgr; }
     public me.nakilex.levelplugin.quests.managers.QuestManager getQuestManager() { return questManager; }
+    public BattlePassManager getBattlePassManager() { return battlePassManager; }
+    public BattlePassGUI getBattlePassGUI() { return battlePassGUI; }
     public me.nakilex.levelplugin.npc.dialog.NPCDialogManager getDialogManager() { return dialogManager; }
     public me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager getScoreboardManager() { return scoreboardManager; }
     public me.nakilex.levelplugin.quests.managers.BeaconManager getBeaconManager() { return beaconManager; }

@@ -3,8 +3,10 @@ package me.nakilex.levelplugin.lootchests.listeners;
 import com.nexomc.nexo.api.events.furniture.NexoFurnitureInteractEvent;
 import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
+import me.nakilex.levelplugin.player.battlepass.BattlePassManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.guild.quests.GuildQuestManager;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -15,9 +17,11 @@ import org.bukkit.inventory.ItemStack;
 public class LootChestListener implements Listener {
 
     private final LootChestManager lootChestManager;
+    private final BattlePassManager battlePassManager;
 
-    public LootChestListener(LootChestManager lootChestManager) {
+    public LootChestListener(LootChestManager lootChestManager, BattlePassManager battlePassManager) {
         this.lootChestManager = lootChestManager;
+        this.battlePassManager = battlePassManager;
     }
 
     @EventHandler
@@ -72,5 +76,21 @@ public class LootChestListener implements Listener {
 
         // 8) Track guild quest progress
         GuildQuestManager.getInstance().handleLootChestOpen(player);
+
+        awardBattlePassProgress(player, tier);
+    }
+
+    private void awardBattlePassProgress(Player player, int tier) {
+        if (battlePassManager == null || tier <= 0) {
+            return;
+        }
+        int battlePassXp = 120 + Math.max(0, tier - 1) * 35;
+        battlePassManager.addProgress(
+                player,
+                battlePassXp,
+                "for opening a Tier "
+                        + ChatColor.GOLD + tier
+                        + ChatColor.GRAY + " loot chest"
+        );
     }
 }

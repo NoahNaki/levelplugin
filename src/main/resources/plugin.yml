@@ -158,7 +158,19 @@ commands:
   potionbrowser:
     description: Browse and obtain potions.
     usage: /potionbrowser
+  battlepass:
+    description: View the battle pass rewards and your progress.
+    usage: /battlepass
     permission: none
+    aliases: [bp]
+  bpxp:
+    description: Grant battle pass XP to a player.
+    usage: /bpxp <player> <amount>
+    permission: levelplugin.admin
+  bpunlock:
+    description: Unlock the premium battle pass for a player or everyone.
+    usage: /bpunlock <player|@everyone>
+    permission: levelplugin.admin
   toggle:
     description: Toggle plugin features on/off.
     usage: /toggle <feature>

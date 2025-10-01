@@ -44,4 +44,25 @@ public final class TooltipUtil {
         }
         return lore;
     }
+
+    /**
+     * Generate a coloured bullet list using the standard grey styling. This is useful for
+     * describing key points in GUI tooltips without hand-writing the prefix every time.
+     *
+     * @param entries description lines to include
+     * @return list of formatted bullet lines
+     */
+    public static List<String> bulletList(String... entries) {
+        List<String> lore = new ArrayList<>();
+        if (entries == null) {
+            return lore;
+        }
+        for (String entry : entries) {
+            if (entry == null || entry.isBlank()) {
+                continue;
+            }
+            lore.add(ChatColor.DARK_GRAY + "• " + ChatColor.GRAY + entry.trim());
+        }
+        return lore;
+    }
 }
