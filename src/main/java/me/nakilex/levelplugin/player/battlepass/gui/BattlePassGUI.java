@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.player.battlepass.data.BattlePassView;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
+import me.nakilex.levelplugin.utils.TextUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -38,17 +39,16 @@ import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
  */
 public class BattlePassGUI implements Listener {
 
-    private static final int GUI_SIZE = 54;
-    private static final String TITLE = ChatColor.BLACK + "<glyph:treasure_icon> Battle Pass";
+    private static final int GUI_SIZE = 45;
+    private static final String TITLE = TextUtil.centerInventoryTitle(ChatColor.DARK_PURPLE + "Battle Pass");
 
     private static final int[] FREE_ROW = {10, 11, 12, 13, 14, 15, 16};
     private static final int[] PROGRESS_ROW = {19, 20, 21, 22, 23, 24, 25};
     private static final int[] PREMIUM_ROW = {28, 29, 30, 31, 32, 33, 34};
 
-    private static final int PREVIOUS_PAGE_SLOT = 45;
-    private static final int BACK_SLOT = 49;
-    private static final int RECEIVED_ITEMS_SLOT = 50;
-    private static final int NEXT_PAGE_SLOT = 53;
+    private static final int PREVIOUS_PAGE_SLOT = 36;
+    private static final int RECEIVED_ITEMS_SLOT = 40;
+    private static final int NEXT_PAGE_SLOT = 44;
     private static final int SEASON_SLOT = 4;
 
     private final BattlePassProvider provider;
@@ -125,8 +125,6 @@ public class BattlePassGUI implements Listener {
         if (endIndex < view.entries().size()) {
             builder.setItem(NEXT_PAGE_SLOT, GuiUtil.getNexoItem("arrow_right", ChatColor.GREEN + "Next Page"));
         }
-
-        builder.setItem(BACK_SLOT, GuiUtil.getNexoItem("cross", ChatColor.RED + "Back"));
         builder.setItem(RECEIVED_ITEMS_SLOT, createReceivedItemsButton());
         builder.setItem(SEASON_SLOT, createSeasonItem(view));
 
@@ -134,9 +132,10 @@ public class BattlePassGUI implements Listener {
     }
 
     private ItemStack createSeasonItem(BattlePassView view) {
-        ItemStack icon = GuiUtil.getNexoItem("calendar", ChatColor.GOLD + "Season Overview");
+        ItemStack icon = new ItemStack(Material.NETHER_STAR);
         ItemMeta meta = icon.getItemMeta();
         if (meta != null) {
+            meta.setDisplayName(ChatColor.GOLD + "Battle Pass Overview");
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.GRAY + "Season: " + ChatColor.YELLOW + view.seasonLabel());
             lore.add(ChatColor.GRAY + "Season Ends: " + ChatColor.YELLOW + view.seasonEnds());
@@ -207,7 +206,8 @@ public class BattlePassGUI implements Listener {
     }
 
     private ItemStack createRewardIcon(BattlePassEntry entry, BattlePassReward reward, BattlePassView view, boolean premium) {
-        ItemStack icon = new ItemStack(Material.CHEST_MINECART);
+        Material material = reward.claimed() ? Material.MINECART : Material.CHEST_MINECART;
+        ItemStack icon = new ItemStack(material);
         ItemMeta meta = icon.getItemMeta();
         if (meta != null) {
             ChatColor baseColor = premium ? ChatColor.AQUA : ChatColor.GOLD;
@@ -266,11 +266,6 @@ public class BattlePassGUI implements Listener {
         }
         if (slot == NEXT_PAGE_SLOT) {
             open(player, state.page() + 1);
-            return;
-        }
-        if (slot == BACK_SLOT) {
-            provider.handleBack(player);
-            player.closeInventory();
             return;
         }
         if (slot == RECEIVED_ITEMS_SLOT) {

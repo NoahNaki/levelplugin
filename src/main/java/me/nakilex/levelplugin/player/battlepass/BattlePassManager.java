@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.player.battlepass;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.player.battlepass.data.BattlePassEntry;
 import me.nakilex.levelplugin.player.battlepass.data.BattlePassReward;
@@ -9,6 +10,8 @@ import me.nakilex.levelplugin.player.battlepass.data.BattlePassRewardDefinition;
 import me.nakilex.levelplugin.player.battlepass.data.BattlePassRewardDefinition.DirectItemGrant;
 import me.nakilex.levelplugin.player.battlepass.data.BattlePassView;
 import me.nakilex.levelplugin.player.battlepass.gui.BattlePassGUI;
+import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import me.nakilex.levelplugin.player.classes.essence.SealingCharm;
 import me.nakilex.levelplugin.player.mining.items.MiningMaterial;
 import me.nakilex.levelplugin.potions.data.PotionInstance;
@@ -318,6 +321,13 @@ public class BattlePassManager implements BattlePassProvider {
         };
     }
 
+    private Supplier<ItemStack> essence(PlayerClass clazz, ItemRarity rarity, int starLevel) {
+        PlayerClass target = clazz == null ? PlayerClass.MAGE : clazz;
+        ItemRarity raritySafe = rarity == null ? ItemRarity.UNCOMMON : rarity;
+        int stars = Math.max(0, starLevel);
+        return () -> ClassEssence.generateEssence(target, raritySafe, stars);
+    }
+
     private ItemStack createPotionStack(String templateId) {
         PotionManager potionManager = plugin.getPotionManager();
         if (potionManager == null || templateId == null || templateId.isBlank()) {
@@ -456,13 +466,13 @@ public class BattlePassManager implements BattlePassProvider {
                         .displayName("Explorer's Kit")
                         .coins(1500)
                         .gems(10)
-                        .addItem(52)
+                        .directItem("Coal", 24, miningMaterial(MiningMaterial.COAL, 24))
                         .build(),
                 BattlePassRewardDefinition.builder()
                         .displayName("Premium Expedition Cache")
                         .coins(2000)
                         .gems(20)
-                        .addItem(53)
+                        .directItem("Raw Iron", 32, miningMaterial(MiningMaterial.IRON, 32))
                         .build()));
 
         defs.add(new TierDefinition(tier++,
@@ -483,14 +493,117 @@ public class BattlePassManager implements BattlePassProvider {
                         .displayName("Season Completion Cache")
                         .coins(3500)
                         .gems(25)
-                        .addItem(138)
+                        .directItem("Healing Potion", 1, potion("healing_ii"))
                         .build(),
                 BattlePassRewardDefinition.builder()
                         .displayName("Premium Season Completion Cache")
                         .coins(4500)
                         .gems(35)
                         .directItem("Healing Potion", 1, potion("healing_iii"))
-                        .addItem(139)
+                        .directItem("Sealing Charm", 6, sealingCharm(6))
+                        .build()));
+
+        defs.add(new TierDefinition(tier++,
+                BattlePassRewardDefinition.builder()
+                        .displayName("Frontier Supply Crate")
+                        .coins(1800)
+                        .xp(1200)
+                        .directItem("Coal", 24, miningMaterial(MiningMaterial.COAL, 24))
+                        .build(),
+                BattlePassRewardDefinition.builder()
+                        .displayName("Premier Frontier Crate")
+                        .coins(2300)
+                        .xp(1500)
+                        .gems(15)
+                        .directItem("Raw Iron", 24, miningMaterial(MiningMaterial.IRON, 24))
+                        .build()));
+
+        defs.add(new TierDefinition(tier++,
+                BattlePassRewardDefinition.builder()
+                        .displayName("Arcane Studies Cache")
+                        .coins(1200)
+                        .directItem(PlayerClass.MAGE.getDisplayName() + " Essence", 1,
+                                essence(PlayerClass.MAGE, ItemRarity.UNCOMMON, 0))
+                        .build(),
+                BattlePassRewardDefinition.builder()
+                        .displayName("Awakened Arcana Vault")
+                        .gems(15)
+                        .directItem(PlayerClass.AWAKMAGE.getDisplayName() + " Essence", 1,
+                                essence(PlayerClass.AWAKMAGE, ItemRarity.RARE, 0))
+                        .build()));
+
+        defs.add(new TierDefinition(tier++,
+                BattlePassRewardDefinition.builder()
+                        .displayName("Martial Discipline Pack")
+                        .coins(1400)
+                        .directItem(PlayerClass.WARRIOR.getDisplayName() + " Essence", 1,
+                                essence(PlayerClass.WARRIOR, ItemRarity.UNCOMMON, 0))
+                        .build(),
+                BattlePassRewardDefinition.builder()
+                        .displayName("Awakened Legion Cache")
+                        .gems(18)
+                        .directItem(PlayerClass.AWAKWARRIOR.getDisplayName() + " Essence", 1,
+                                essence(PlayerClass.AWAKWARRIOR, ItemRarity.RARE, 0))
+                        .build()));
+
+        defs.add(new TierDefinition(tier++,
+                BattlePassRewardDefinition.builder()
+                        .displayName("Sharpshooter's Satchel")
+                        .coins(1400)
+                        .directItem(PlayerClass.ARCHER.getDisplayName() + " Essence", 1,
+                                essence(PlayerClass.ARCHER, ItemRarity.UNCOMMON, 0))
+                        .build(),
+                BattlePassRewardDefinition.builder()
+                        .displayName("Awakened Ranger Kit")
+                        .gems(18)
+                        .directItem(PlayerClass.AWAKARCHER.getDisplayName() + " Essence", 1,
+                                essence(PlayerClass.AWAKARCHER, ItemRarity.RARE, 0))
+                        .build()));
+
+        defs.add(new TierDefinition(tier++,
+                BattlePassRewardDefinition.builder()
+                        .displayName("Shadow Operative Pack")
+                        .coins(1400)
+                        .directItem(PlayerClass.ROGUE.getDisplayName() + " Essence", 1,
+                                essence(PlayerClass.ROGUE, ItemRarity.UNCOMMON, 0))
+                        .build(),
+                BattlePassRewardDefinition.builder()
+                        .displayName("Awakened Shadow Cache")
+                        .gems(18)
+                        .directItem(PlayerClass.AWAKROGUE.getDisplayName() + " Essence", 1,
+                                essence(PlayerClass.AWAKROGUE, ItemRarity.RARE, 0))
+                        .build()));
+
+        defs.add(new TierDefinition(tier++,
+                BattlePassRewardDefinition.builder()
+                        .displayName("Elite Expedition Rewards")
+                        .xp(1600)
+                        .coins(2600)
+                        .directItem("Sealing Charm", 3, sealingCharm(3))
+                        .directItem("Coal", 32, miningMaterial(MiningMaterial.COAL, 32))
+                        .build(),
+                BattlePassRewardDefinition.builder()
+                        .displayName("Premier Expedition Rewards")
+                        .xp(2000)
+                        .coins(3200)
+                        .gems(20)
+                        .directItem("Healing Potion", 1, potion("healing_iii"))
+                        .build()));
+
+        defs.add(new TierDefinition(tier++,
+                BattlePassRewardDefinition.builder()
+                        .displayName("Season Finale Trove")
+                        .coins(5000)
+                        .gems(40)
+                        .directItem("Raw Iron", 48, miningMaterial(MiningMaterial.IRON, 48))
+                        .directItem("Sealing Charm", 6, sealingCharm(6))
+                        .build(),
+                BattlePassRewardDefinition.builder()
+                        .displayName("Premium Finale Hoard")
+                        .coins(6000)
+                        .gems(55)
+                        .directItem("Sealing Charm", 8, sealingCharm(8))
+                        .directItem("Healing Potion", 2, potion("healing_iii"))
                         .build()));
 
         return defs;
