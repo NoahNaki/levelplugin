@@ -46,9 +46,8 @@ public class BattlePassGUI implements Listener {
     private static final int[] PROGRESS_ROW = {19, 20, 21, 22, 23, 24, 25};
     private static final int[] PREMIUM_ROW = {28, 29, 30, 31, 32, 33, 34};
 
-    private static final int PREVIOUS_PAGE_SLOT = 36;
-    private static final int RECEIVED_ITEMS_SLOT = 40;
-    private static final int NEXT_PAGE_SLOT = 44;
+    private static final int PREVIOUS_PAGE_SLOT = 18;
+    private static final int NEXT_PAGE_SLOT = 26;
     private static final int SEASON_SLOT = 4;
 
     private final BattlePassProvider provider;
@@ -125,7 +124,6 @@ public class BattlePassGUI implements Listener {
         if (endIndex < view.entries().size()) {
             builder.setItem(NEXT_PAGE_SLOT, GuiUtil.getNexoItem("arrow_right", ChatColor.GREEN + "Next Page"));
         }
-        builder.setItem(RECEIVED_ITEMS_SLOT, createReceivedItemsButton());
         builder.setItem(SEASON_SLOT, createSeasonItem(view));
 
         return builder.build();
@@ -165,22 +163,6 @@ public class BattlePassGUI implements Listener {
             icon.setItemMeta(meta);
         }
         return icon;
-    }
-
-    private ItemStack createReceivedItemsButton() {
-        ItemStack item = new ItemStack(Material.MINECART);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(ChatColor.AQUA + "Received Items");
-            List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Review rewards you've already claimed.");
-            lore.add(" ");
-            lore.addAll(TooltipUtil.clickInstructions("to open the received items", null));
-            meta.setLore(lore);
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-            item.setItemMeta(meta);
-        }
-        return item;
     }
 
     private ItemStack createProgressPane(BattlePassEntry entry, BattlePassView view) {
@@ -268,11 +250,6 @@ public class BattlePassGUI implements Listener {
             open(player, state.page() + 1);
             return;
         }
-        if (slot == RECEIVED_ITEMS_SLOT) {
-            provider.openReceivedItems(player);
-            return;
-        }
-
         RewardTarget target = state.slotTargets().get(slot);
         if (target == null) {
             return;

@@ -27,8 +27,4 @@ public interface BattlePassProvider {
      */
     void handleBack(Player player);
 
-    /**
-     * Called when the player opens the received items menu.
-     */
-    void openReceivedItems(Player player);
 }

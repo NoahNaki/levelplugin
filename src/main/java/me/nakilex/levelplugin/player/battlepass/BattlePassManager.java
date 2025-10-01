@@ -217,25 +217,6 @@ public class BattlePassManager implements BattlePassProvider {
         ChatMessageUtil.send(player, MessageType.INFO, "Use /battlepass to reopen the menu anytime.");
     }
 
-    @Override
-    public void openReceivedItems(Player player) {
-        PlayerProgress progress = progress(player.getUniqueId());
-        ChatMessageUtil.send(
-                player,
-                MessageType.INFO,
-                ChatColor.YELLOW + "Free rewards claimed: " + progress.claimedFree.size() + "/" + tiers.size()
-        );
-        if (progress.premiumActive()) {
-            ChatMessageUtil.send(
-                    player,
-                    MessageType.INFO,
-                    ChatColor.AQUA + "Premium rewards claimed: " + progress.claimedPremium.size() + "/" + tiers.size()
-            );
-        } else {
-            ChatMessageUtil.send(player, MessageType.WARNING, "Unlock the premium pass to track premium rewards.");
-        }
-    }
-
     public void saveProgress(UUID uuid, FileConfiguration config, String path) {
         PlayerProgress progress = progressMap.get(uuid);
         if (progress == null) return;
@@ -604,6 +585,93 @@ public class BattlePassManager implements BattlePassProvider {
                         .gems(55)
                         .directItem("Sealing Charm", 8, sealingCharm(8))
                         .directItem("Healing Potion", 2, potion("healing_iii"))
+                        .build()));
+
+        defs.add(new TierDefinition(tier++,
+                BattlePassRewardDefinition.builder()
+                        .displayName("Gemcutter's Dividend")
+                        .coins(3200)
+                        .gems(12)
+                        .directItem("Raw Iron", 40, miningMaterial(MiningMaterial.IRON, 40))
+                        .build(),
+                BattlePassRewardDefinition.builder()
+                        .displayName("Master Gem Hoard")
+                        .coins(3800)
+                        .gems(28)
+                        .directItem("Coal", 48, miningMaterial(MiningMaterial.COAL, 48))
+                        .build()));
+
+        defs.add(new TierDefinition(tier++,
+                BattlePassRewardDefinition.builder()
+                        .displayName("Alchemist's Cache")
+                        .coins(1800)
+                        .xp(1800)
+                        .directItem("Healing Potion", 1, potion("healing_iii"))
+                        .build(),
+                BattlePassRewardDefinition.builder()
+                        .displayName("Grand Alchemical Reserve")
+                        .coins(2600)
+                        .xp(2400)
+                        .gems(20)
+                        .directItem("Healing Potion", 2, potion("healing_iii"))
+                        .build()));
+
+        defs.add(new TierDefinition(tier++,
+                BattlePassRewardDefinition.builder()
+                        .displayName("Sealwright Supplies")
+                        .coins(2400)
+                        .directItem("Sealing Charm", 4, sealingCharm(4))
+                        .build(),
+                BattlePassRewardDefinition.builder()
+                        .displayName("Sealwright Arsenal")
+                        .coins(3200)
+                        .gems(24)
+                        .directItem("Sealing Charm", 6, sealingCharm(6))
+                        .build()));
+
+        defs.add(new TierDefinition(tier++,
+                BattlePassRewardDefinition.builder()
+                        .displayName("Cleric's Boon")
+                        .coins(1600)
+                        .directItem(PlayerClass.CLERIC.getDisplayName() + " Essence", 1,
+                                essence(PlayerClass.CLERIC, ItemRarity.UNCOMMON, 0))
+                        .build(),
+                BattlePassRewardDefinition.builder()
+                        .displayName("Awakened Cleric's Cache")
+                        .gems(22)
+                        .directItem(PlayerClass.AWAKCLERIC.getDisplayName() + " Essence", 1,
+                                essence(PlayerClass.AWAKCLERIC, ItemRarity.RARE, 0))
+                        .build()));
+
+        defs.add(new TierDefinition(tier++,
+                BattlePassRewardDefinition.builder()
+                        .displayName("Frontline Renown Pack")
+                        .coins(2800)
+                        .directItem(PlayerClass.BARBARIAN.getDisplayName() + " Essence", 1,
+                                essence(PlayerClass.BARBARIAN, ItemRarity.UNCOMMON, 0))
+                        .build(),
+                BattlePassRewardDefinition.builder()
+                        .displayName("Dragon Warrior's Tribute")
+                        .gems(26)
+                        .directItem(PlayerClass.DRAGONWARRIOR.getDisplayName() + " Essence", 1,
+                                essence(PlayerClass.DRAGONWARRIOR, ItemRarity.RARE, 0))
+                        .build()));
+
+        defs.add(new TierDefinition(tier++,
+                BattlePassRewardDefinition.builder()
+                        .displayName("Eternal Champion's Cache")
+                        .coins(6500)
+                        .gems(45)
+                        .directItem("Raw Iron", 64, miningMaterial(MiningMaterial.IRON, 64))
+                        .directItem("Sealing Charm", 8, sealingCharm(8))
+                        .build(),
+                BattlePassRewardDefinition.builder()
+                        .displayName("Ascendant Champion's Hoard")
+                        .coins(7500)
+                        .gems(65)
+                        .directItem("Healing Potion", 2, potion("healing_iii"))
+                        .directItem(PlayerClass.ARCHMAGE.getDisplayName() + " Essence", 1,
+                                essence(PlayerClass.ARCHMAGE, ItemRarity.RARE, 0))
                         .build()));
 
         return defs;
