@@ -49,6 +49,7 @@ public class BattlePassGUI implements Listener {
     private static final int PREVIOUS_PAGE_SLOT = 18;
     private static final int NEXT_PAGE_SLOT = 26;
     private static final int SEASON_SLOT = 4;
+    private static final int INFO_SLOT = 8;
 
     private final BattlePassProvider provider;
     private final Map<UUID, PageState> openMenus = new HashMap<>();
@@ -125,6 +126,7 @@ public class BattlePassGUI implements Listener {
             builder.setItem(NEXT_PAGE_SLOT, GuiUtil.getNexoItem("arrow_right", ChatColor.GREEN + "Next Page"));
         }
         builder.setItem(SEASON_SLOT, createSeasonItem(view));
+        builder.setItem(INFO_SLOT, createXpInfoItem());
 
         return builder.build();
     }
@@ -160,6 +162,26 @@ public class BattlePassGUI implements Listener {
                 lore.add(ChatColor.GRAY + "Premium Status: " + ChatColor.RED + "Locked");
             }
             meta.setLore(lore);
+            icon.setItemMeta(meta);
+        }
+        return icon;
+    }
+
+    private ItemStack createXpInfoItem() {
+        ItemStack icon = GuiUtil.getNexoItem("info", ChatColor.AQUA + "Earning Battle Pass XP");
+        ItemMeta meta = icon.getItemMeta();
+        if (meta != null) {
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Complete activities to earn XP:");
+            lore.addAll(TooltipUtil.bulletList(
+                    ChatColor.YELLOW + "Defeat Mythic mobs",
+                    ChatColor.YELLOW + "Open loot chests",
+                    ChatColor.YELLOW + "Discover fast travel points"
+            ));
+            lore.add(" ");
+            lore.add(ChatColor.GRAY + "Level up to unlock additional rewards.");
+            meta.setLore(lore);
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             icon.setItemMeta(meta);
         }
         return icon;

@@ -94,19 +94,7 @@ public class BattlePassManager implements BattlePassProvider {
         if (player == null) {
             return;
         }
-        boolean added = addProgressInternal(player, amount);
-        if (added && reason != null && !reason.isBlank()) {
-            String detail = reason.trim();
-            StringBuilder message = new StringBuilder()
-                    .append(ChatColor.GRAY).append("You earned ")
-                    .append(ChatColor.YELLOW).append(amount)
-                    .append(ChatColor.GRAY).append(" battle pass XP");
-            if (!detail.isEmpty()) {
-                message.append(' ').append(detail);
-            }
-            message.append(ChatColor.GRAY).append('.');
-            ChatMessageUtil.send(player, MessageType.INFO, message.toString());
-        }
+        addProgressInternal(player, amount);
     }
 
     private boolean addProgressInternal(Player player, int amount) {
