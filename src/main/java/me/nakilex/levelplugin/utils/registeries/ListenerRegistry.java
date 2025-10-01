@@ -28,6 +28,7 @@ import me.nakilex.levelplugin.chat.ChatChannelListener;
 import me.nakilex.levelplugin.party.PartyInviteListener;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.attributes.listeners.StatsMenuListener;
+import me.nakilex.levelplugin.player.battlepass.BattlePassManager;
 import me.nakilex.levelplugin.player.listener.*;
 import me.nakilex.levelplugin.player.utils.ArrowUtils;
 import me.nakilex.levelplugin.potions.listeners.PotionUseListener;
@@ -114,6 +115,8 @@ public class ListenerRegistry {
         pm.registerEvents(new MobDamageListener(), plugin);
         MythicMobDamageTracker dmgTracker = new MythicMobDamageTracker();
         pm.registerEvents(dmgTracker, plugin);
+        BattlePassManager battlePassManager = plugin.getBattlePassManager();
+
         pm.registerEvents(new MythicMobRewardListener(
                 dmgTracker,
                 mobRewardsConfig,
@@ -121,7 +124,8 @@ public class ListenerRegistry {
                 economyManager,
                 lootChestManager,
                 plugin.getModelSetManager(),
-                mobDebugToggleManager
+                mobDebugToggleManager,
+                battlePassManager
         ), plugin);
         pm.registerEvents(new me.nakilex.levelplugin.player.mining.listeners.OreMiningListener(plugin, plugin.getMiningRewardsConfig(), plugin.getMiningManager()), plugin);
         pm.registerEvents(new PlayerJoinListener(plugin.getLevelManager(), plugin.getMiningManager(), plugin.getPlayerConfig(), plugin.getEnvironmentManager()), plugin);
@@ -144,7 +148,7 @@ public class ListenerRegistry {
         pm.registerEvents(arenaMatchManager, plugin);
         pm.registerEvents(new ChatChannelListener(), plugin);
         pm.registerEvents(new PartyInviteListener(partyManager), plugin);
-        pm.registerEvents(new LootChestListener(lootChestManager), plugin);
+        pm.registerEvents(new LootChestListener(lootChestManager, battlePassManager), plugin);
         pm.registerEvents(new LootChestCloseListener(lootChestManager, economyManager,
                 plugin.getDungeonManager()), plugin);
         pm.registerEvents(new PotionUseListener(potionManager, plugin), plugin);

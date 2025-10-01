@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.fasttravel;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.fasttravel.data.FastTravelPoint;
+import me.nakilex.levelplugin.player.battlepass.BattlePassManager;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -196,6 +197,15 @@ public class FastTravelManager {
             me.nakilex.levelplugin.utils.ChatFormatter.constructDivider(player, " ", 45);
             if (exp > 0) {
                 plugin.getLevelManager().addXP(player, exp);
+            }
+            BattlePassManager battlePassManager = Main.getInstance().getBattlePassManager();
+            if (battlePassManager != null) {
+                int battlePassXp = Math.max(150, exp > 0 ? exp / 2 : 150);
+                battlePassManager.addProgress(
+                        player,
+                        battlePassXp,
+                        "for discovering " + ChatColor.GOLD + pt.getName()
+                );
             }
         }
     }

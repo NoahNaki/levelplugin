@@ -87,10 +87,35 @@ public class BattlePassManager implements BattlePassProvider {
     }
 
     public void addProgress(Player player, int amount) {
-        if (amount <= 0) return;
+        addProgress(player, amount, null);
+    }
+
+    public void addProgress(Player player, int amount, String reason) {
+        if (player == null) {
+            return;
+        }
+        boolean added = addProgressInternal(player, amount);
+        if (added && reason != null && !reason.isBlank()) {
+            String detail = reason.trim();
+            StringBuilder message = new StringBuilder()
+                    .append(ChatColor.GRAY).append("You earned ")
+                    .append(ChatColor.YELLOW).append(amount)
+                    .append(ChatColor.GRAY).append(" battle pass XP");
+            if (!detail.isEmpty()) {
+                message.append(' ').append(detail);
+            }
+            message.append(ChatColor.GRAY).append('.');
+            ChatMessageUtil.send(player, MessageType.INFO, message.toString());
+        }
+    }
+
+    private boolean addProgressInternal(Player player, int amount) {
+        if (player == null || amount <= 0) {
+            return false;
+        }
         PlayerProgress progress = progress(player.getUniqueId());
         if (progress.tier >= tiers.size()) {
-            return;
+            return false;
         }
         progress.progress += amount;
         boolean leveled = false;
@@ -112,6 +137,7 @@ public class BattlePassManager implements BattlePassProvider {
             gui.refresh();
         }
         persist(player.getUniqueId());
+        return true;
     }
 
     public boolean setPremium(UUID uuid, boolean active) {
