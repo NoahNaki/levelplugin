@@ -64,6 +64,7 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.arena.instance.ArenaInstanceManager getArenaInstanceManager() { return bootstrap.getArenaInstanceManager(); }
     public me.nakilex.levelplugin.arena.rating.ArenaRatingManager getArenaRatingManager() { return bootstrap.getArenaRatingManager(); }
     public me.nakilex.levelplugin.arena.match.ArenaMatchManager getArenaMatchManager() { return bootstrap.getArenaMatchManager(); }
+    public me.nakilex.levelplugin.arena.match.ArenaTeamMatchManager getArenaTeamMatchManager() { return bootstrap.getArenaTeamMatchManager(); }
     public me.nakilex.levelplugin.guild.GuildManager getGuildManager() { return bootstrap.getGuildManager(); }
     public EconomyManager getEconomyManager() { return bootstrap.getEconomyManager(); }
     public ConfigValues getConfigValues() { return bootstrap.getConfigValues(); }

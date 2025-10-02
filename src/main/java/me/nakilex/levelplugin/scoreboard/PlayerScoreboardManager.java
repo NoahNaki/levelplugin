@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.scoreboard;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.arena.ArenaMode;
 import me.nakilex.levelplugin.arena.ArenaQueueManager;
 import me.nakilex.levelplugin.arena.rating.ArenaRatingManager;
 import me.nakilex.levelplugin.party.Party;
@@ -226,13 +227,15 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         }
 
         if (queueing) {
-            current[idx] = ChatColor.GOLD + "Arena Queue";
+            ArenaMode mode = arenaQueueManager.getMode(id).orElse(ArenaMode.ONE_VS_ONE);
+            ArenaRatingManager.RatingCategory category = mode.ratingCategory();
+            current[idx] = ChatColor.GOLD + mode.displayName() + ChatColor.GRAY + " Queue";
             if (!current[idx].equals(prev[idx])) {
                 setLine(board, obj, idx, line, current[idx]);
             }
             idx++; line--;
 
-            int size = arenaQueueManager.getQueueSize();
+            int size = arenaQueueManager.getQueuePopulation(mode);
             current[idx] = ChatColor.GRAY + "Players: " + ChatColor.WHITE + size;
             if (!current[idx].equals(prev[idx])) {
                 setLine(board, obj, idx, line, current[idx]);
@@ -241,7 +244,7 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
 
             Duration wait = arenaQueueManager.getWaitDuration(id);
             if (arenaRatingManager != null) {
-                int rating = arenaRatingManager.getRating(id);
+                int rating = arenaRatingManager.getRating(id, category);
                 current[idx] = ChatColor.GRAY + "ELO: " + ChatColor.WHITE + rating + ChatColor.GRAY + " ("
                         + arenaRatingManager.formatTier(rating) + ChatColor.GRAY + ")";
                 if (!current[idx].equals(prev[idx])) {
@@ -249,7 +252,7 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
                 }
                 idx++; line--;
 
-                int window = arenaRatingManager.computeMatchWindow(id, wait);
+                int window = arenaRatingManager.computeMatchWindow(id, wait, category);
                 current[idx] = ChatColor.GRAY + "Window: " + ChatColor.WHITE + "±" + window;
                 if (!current[idx].equals(prev[idx])) {
                     setLine(board, obj, idx, line, current[idx]);

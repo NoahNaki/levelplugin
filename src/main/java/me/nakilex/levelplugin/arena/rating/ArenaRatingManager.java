@@ -4,8 +4,14 @@ import me.nakilex.levelplugin.player.config.PlayerConfig;
 import org.bukkit.ChatColor;
 
 import java.time.Duration;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -21,58 +27,70 @@ public class ArenaRatingManager {
     private static final int MIN_RATING = 0;
     private static final int MAX_RATING = 4000;
 
+    public enum RatingCategory {
+        DUEL(null),
+        TEAM_2V2("team_2v2");
+
+        private final String pathSegment;
+
+        RatingCategory(String pathSegment) {
+            this.pathSegment = pathSegment;
+        }
+
+        String pathSegment() {
+            return pathSegment;
+        }
+    }
+
     private final PlayerConfig playerConfig;
-    private final Map<UUID, RatingProfile> profiles = new ConcurrentHashMap<>();
+    private final Map<RatingCategory, Map<UUID, RatingProfile>> profiles = new EnumMap<>(RatingCategory.class);
 
     public ArenaRatingManager(PlayerConfig playerConfig) {
         this.playerConfig = playerConfig;
+        for (RatingCategory category : RatingCategory.values()) {
+            profiles.put(category, new ConcurrentHashMap<>());
+        }
     }
 
-    /** Snapshot the player's current rating data. */
+    /** Snapshot the player's current rating data for the default duel ladder. */
     public RatingSnapshot getSnapshot(UUID playerId) {
-        RatingProfile profile = profiles.computeIfAbsent(playerId, this::loadProfile);
+        return getSnapshot(playerId, RatingCategory.DUEL);
+    }
+
+    /** Snapshot the player's rating data for the specified ladder. */
+    public RatingSnapshot getSnapshot(UUID playerId, RatingCategory category) {
+        RatingProfile profile = profileMap(category).computeIfAbsent(playerId, id -> loadProfile(id, category));
         return profile.toSnapshot();
     }
 
-    /** Current rating value for the player. */
+    /** Current rating value for the player on the default duel ladder. */
     public int getRating(UUID playerId) {
-        return getSnapshot(playerId).rating();
+        return getRating(playerId, RatingCategory.DUEL);
     }
 
-    /**
-     * Apply the rating change for a completed match. The returned update contains
-     * both the before/after values for each participant so callers can surface
-     * rich feedback messages.
-     */
+    /** Current rating value for the player on the specified ladder. */
+    public int getRating(UUID playerId, RatingCategory category) {
+        return getSnapshot(playerId, category).rating();
+    }
+
+    /** Apply the rating change for a 1v1 match on the default ladder. */
     public synchronized RatingUpdate recordMatch(UUID winnerId, UUID loserId) {
-        RatingProfile winner = profiles.computeIfAbsent(winnerId, this::loadProfile);
-        RatingProfile loser = profiles.computeIfAbsent(loserId, this::loadProfile);
+        return recordMatch(winnerId, loserId, RatingCategory.DUEL);
+    }
 
-        RatingSnapshot winnerBefore = winner.toSnapshot();
-        RatingSnapshot loserBefore = loser.toSnapshot();
+    /** Apply the rating change for a 1v1 match on the specified ladder. */
+    public synchronized RatingUpdate recordMatch(UUID winnerId, UUID loserId, RatingCategory category) {
+        MultiRatingUpdate update = recordMatchInternal(List.of(winnerId), List.of(loserId), category);
+        RatingChange winnerChange = update.change(winnerId);
+        RatingChange loserChange = update.change(loserId);
+        return new RatingUpdate(winnerChange.before(), winnerChange.after(), loserChange.before(), loserChange.after());
+    }
 
-        double expectedWinner = expectedScore(winner.rating, loser.rating);
-        double expectedLoser = expectedScore(loser.rating, winner.rating);
-
-        double winnerK = computeKFactor(winner);
-        double loserK = computeKFactor(loser);
-
-        winner.rating = clampRating(winner.rating + (int) Math.round(winnerK * (1.0 - expectedWinner)));
-        loser.rating = clampRating(loser.rating + (int) Math.round(loserK * (0.0 - expectedLoser)));
-
-        winner.matches++;
-        loser.matches++;
-
-        adjustDeviation(winner, Math.abs(winner.rating - winnerBefore.rating()));
-        adjustDeviation(loser, Math.abs(loser.rating - loserBefore.rating()));
-
-        RatingSnapshot winnerAfter = winner.toSnapshot();
-        RatingSnapshot loserAfter = loser.toSnapshot();
-
-        persist(winnerId, winner);
-        persist(loserId, loser);
-
-        return new RatingUpdate(winnerBefore, winnerAfter, loserBefore, loserAfter);
+    /** Apply the rating change for a multi-player match on the specified ladder. */
+    public synchronized MultiRatingUpdate recordMatch(Collection<UUID> winners,
+                                                      Collection<UUID> losers,
+                                                      RatingCategory category) {
+        return recordMatchInternal(winners, losers, category);
     }
 
     /** Tier describing the player's skill bracket. */
@@ -93,33 +111,130 @@ public class ArenaRatingManager {
         return tier.color + tier.displayName;
     }
 
-    /** Compute the matchmaking tolerance (rating window) for the player. */
+    /** Compute the matchmaking tolerance (rating window) for the player on the default ladder. */
     public int computeMatchWindow(UUID playerId, Duration waitTime) {
-        RatingProfile profile = profiles.computeIfAbsent(playerId, this::loadProfile);
+        return computeMatchWindow(playerId, waitTime, RatingCategory.DUEL);
+    }
+
+    /** Compute the matchmaking tolerance (rating window) for the player on the specified ladder. */
+    public int computeMatchWindow(UUID playerId, Duration waitTime, RatingCategory category) {
+        RatingProfile profile = profileMap(category).computeIfAbsent(playerId, id -> loadProfile(id, category));
         return profile.toSnapshot().matchWindow(waitTime);
     }
 
-    private RatingProfile loadProfile(UUID playerId) {
+    /** Message describing a tier promotion/demotion, if one occurred. */
+    public Optional<String> buildTierChangeMessage(int before, int after) {
+        RatingTier beforeTier = getTier(before);
+        RatingTier afterTier = getTier(after);
+        if (beforeTier == afterTier) {
+            return Optional.empty();
+        }
+        String message = ChatColor.GRAY + "Your arena tier is now " + afterTier.color + afterTier.displayName + ChatColor.GRAY + "!";
+        return Optional.of(message);
+    }
+
+    private MultiRatingUpdate recordMatchInternal(Collection<UUID> winners,
+                                                  Collection<UUID> losers,
+                                                  RatingCategory category) {
+        Map<UUID, RatingProfile> profileMap = profileMap(category);
+        Map<UUID, RatingProfile> winnerProfiles = new HashMap<>();
+        Map<UUID, RatingProfile> loserProfiles = new HashMap<>();
+
+        for (UUID id : winners) {
+            winnerProfiles.put(id, profileMap.computeIfAbsent(id, key -> loadProfile(key, category)));
+        }
+        for (UUID id : losers) {
+            loserProfiles.put(id, profileMap.computeIfAbsent(id, key -> loadProfile(key, category)));
+        }
+
+        if (winnerProfiles.isEmpty() || loserProfiles.isEmpty()) {
+            return new MultiRatingUpdate(Map.of());
+        }
+
+        double losersAverage = loserProfiles.values().stream()
+                .mapToInt(profile -> profile.rating)
+                .average()
+                .orElse(DEFAULT_RATING);
+        double winnersAverage = winnerProfiles.values().stream()
+                .mapToInt(profile -> profile.rating)
+                .average()
+                .orElse(DEFAULT_RATING);
+
+        Map<UUID, RatingChange> changes = new HashMap<>();
+        boolean dirty = false;
+
+        for (Map.Entry<UUID, RatingProfile> entry : winnerProfiles.entrySet()) {
+            UUID playerId = entry.getKey();
+            RatingProfile profile = entry.getValue();
+            RatingSnapshot before = profile.toSnapshot();
+            double expected = expectedScore(profile.rating, losersAverage);
+            double k = computeKFactor(profile);
+            int delta = (int) Math.round(k * (1.0 - expected));
+            profile.rating = clampRating(profile.rating + delta);
+            profile.matches++;
+            adjustDeviation(profile, Math.abs(profile.rating - before.rating()));
+            RatingSnapshot after = profile.toSnapshot();
+            changes.put(playerId, new RatingChange(before, after));
+            dirty |= persist(playerId, profile, category);
+        }
+
+        for (Map.Entry<UUID, RatingProfile> entry : loserProfiles.entrySet()) {
+            UUID playerId = entry.getKey();
+            RatingProfile profile = entry.getValue();
+            RatingSnapshot before = profile.toSnapshot();
+            double expected = expectedScore(profile.rating, winnersAverage);
+            double k = computeKFactor(profile);
+            int delta = (int) Math.round(k * (0.0 - expected));
+            profile.rating = clampRating(profile.rating + delta);
+            profile.matches++;
+            adjustDeviation(profile, Math.abs(profile.rating - before.rating()));
+            RatingSnapshot after = profile.toSnapshot();
+            changes.put(playerId, new RatingChange(before, after));
+            dirty |= persist(playerId, profile, category);
+        }
+
+        if (dirty && playerConfig != null) {
+            playerConfig.saveConfigFile();
+        }
+
+        return new MultiRatingUpdate(Collections.unmodifiableMap(new HashMap<>(changes)));
+    }
+
+    private Map<UUID, RatingProfile> profileMap(RatingCategory category) {
+        return profiles.computeIfAbsent(category, key -> new ConcurrentHashMap<>());
+    }
+
+    private RatingProfile loadProfile(UUID playerId, RatingCategory category) {
         if (playerConfig == null) {
             return new RatingProfile(DEFAULT_RATING, DEFAULT_DEVIATION, 0);
         }
-        String base = "players." + playerId + ".arena.";
+        String base = pathPrefix(playerId, category);
         int rating = playerConfig.getConfig().getInt(base + "elo", DEFAULT_RATING);
         double deviation = playerConfig.getConfig().getDouble(base + "deviation", DEFAULT_DEVIATION);
         int matches = playerConfig.getConfig().getInt(base + "matches", 0);
         return new RatingProfile(rating, deviation, matches);
     }
 
-    private void persist(UUID playerId, RatingProfile profile) {
-        if (playerConfig == null) return;
-        String base = "players." + playerId + ".arena.";
+    private boolean persist(UUID playerId, RatingProfile profile, RatingCategory category) {
+        if (playerConfig == null) {
+            return false;
+        }
+        String base = pathPrefix(playerId, category);
         playerConfig.getConfig().set(base + "elo", profile.rating);
         playerConfig.getConfig().set(base + "deviation", profile.deviation);
         playerConfig.getConfig().set(base + "matches", profile.matches);
-        playerConfig.saveConfigFile();
+        return true;
     }
 
-    private static double expectedScore(int rating, int opponent) {
+    private String pathPrefix(UUID playerId, RatingCategory category) {
+        String base = "players." + playerId + ".arena.";
+        if (category.pathSegment() == null || category.pathSegment().isEmpty()) {
+            return base;
+        }
+        return base + category.pathSegment() + ".";
+    }
+
+    private static double expectedScore(double rating, double opponent) {
         return 1.0 / (1.0 + Math.pow(10.0, (opponent - rating) / 400.0));
     }
 
@@ -171,7 +286,21 @@ public class ArenaRatingManager {
         }
     }
 
-    /** Result describing the before/after ratings for both players. */
+    /** Before/after pair for a single player's rating adjustment. */
+    public record RatingChange(RatingSnapshot before, RatingSnapshot after) {
+        public int delta() {
+            return after.rating() - before.rating();
+        }
+    }
+
+    /** Result describing the before/after ratings for all participants. */
+    public record MultiRatingUpdate(Map<UUID, RatingChange> changes) {
+        public RatingChange change(UUID playerId) {
+            return changes.get(playerId);
+        }
+    }
+
+    /** Result describing the before/after ratings for both players in a duel. */
     public record RatingUpdate(RatingSnapshot winnerBefore,
                                RatingSnapshot winnerAfter,
                                RatingSnapshot loserBefore,

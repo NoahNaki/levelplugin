@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.arena.match;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.arena.ArenaMode;
 import me.nakilex.levelplugin.arena.ArenaQueueManager;
 import me.nakilex.levelplugin.arena.instance.ArenaInstance;
 import me.nakilex.levelplugin.arena.instance.ArenaInstanceManager;
@@ -72,8 +73,13 @@ public class ArenaMatchManager implements Listener {
 
     /** Begin a new match for the provided queue entrants. */
     public void startMatch(ArenaQueueManager.QueueEntry first, ArenaQueueManager.QueueEntry second) {
-        Player one = Bukkit.getPlayer(first.playerId());
-        Player two = Bukkit.getPlayer(second.playerId());
+        if (first.members().isEmpty() || second.members().isEmpty()) {
+            return;
+        }
+        UUID firstId = first.members().get(0);
+        UUID secondId = second.members().get(0);
+        Player one = Bukkit.getPlayer(firstId);
+        Player two = Bukkit.getPlayer(secondId);
         if (one == null || !one.isOnline()) {
             if (two != null) {
                 sendMessage(two, MessageType.WARNING, ChatColor.GRAY + "Opponent left before the match started. Re-queuing you.");
@@ -87,7 +93,7 @@ public class ArenaMatchManager implements Listener {
             return;
         }
 
-        if (isInMatch(one.getUniqueId()) || isInMatch(two.getUniqueId())) {
+        if (isInMatch(firstId) || isInMatch(secondId)) {
             queueManager.requeue(first);
             queueManager.requeue(second);
             return;
@@ -102,14 +108,23 @@ public class ArenaMatchManager implements Listener {
             return;
         }
 
-        ArenaMatch match = new ArenaMatch(one.getUniqueId(),
-                two.getUniqueId(),
-                instance,
-                first.ratingSnapshot(),
-                second.ratingSnapshot());
+        ArenaRatingManager.RatingSnapshot firstSnapshot = first.ratingSnapshot(firstId);
+        if (firstSnapshot == null) {
+            firstSnapshot = ratingManager.getSnapshot(firstId, ArenaMode.ONE_VS_ONE.ratingCategory());
+        }
+        ArenaRatingManager.RatingSnapshot secondSnapshot = second.ratingSnapshot(secondId);
+        if (secondSnapshot == null) {
+            secondSnapshot = ratingManager.getSnapshot(secondId, ArenaMode.ONE_VS_ONE.ratingCategory());
+        }
 
-        matchesByPlayer.put(one.getUniqueId(), match);
-        matchesByPlayer.put(two.getUniqueId(), match);
+        ArenaMatch match = new ArenaMatch(firstId,
+                secondId,
+                instance,
+                firstSnapshot,
+                secondSnapshot);
+
+        matchesByPlayer.put(firstId, match);
+        matchesByPlayer.put(secondId, match);
 
         preparePlayer(one);
         preparePlayer(two);
@@ -203,10 +218,19 @@ public class ArenaMatchManager implements Listener {
                 ChatColor.GRAY + "Matched against " + ChatColor.YELLOW + one.getName() + ChatColor.GRAY +
                         " (" + ChatColor.GOLD + ratingOne + ChatColor.GRAY + ", " + ratingManager.formatTier(ratingOne) + ChatColor.GRAY + ")");
 
+        ArenaRatingManager.RatingSnapshot firstSnapshot = first.ratingSnapshot(firstId);
+        if (firstSnapshot == null) {
+            firstSnapshot = ratingManager.getSnapshot(firstId, ArenaMode.ONE_VS_ONE.ratingCategory());
+        }
+        ArenaRatingManager.RatingSnapshot secondSnapshot = second.ratingSnapshot(secondId);
+        if (secondSnapshot == null) {
+            secondSnapshot = ratingManager.getSnapshot(secondId, ArenaMode.ONE_VS_ONE.ratingCategory());
+        }
+
         sendMessage(one, MessageType.INFO,
-                ChatColor.DARK_GRAY + "Estimated rating window: ±" + first.ratingSnapshot().matchWindow(Duration.ZERO));
+                ChatColor.DARK_GRAY + "Estimated rating window: ±" + firstSnapshot.matchWindow(Duration.ZERO));
         sendMessage(two, MessageType.INFO,
-                ChatColor.DARK_GRAY + "Estimated rating window: ±" + second.ratingSnapshot().matchWindow(Duration.ZERO));
+                ChatColor.DARK_GRAY + "Estimated rating window: ±" + secondSnapshot.matchWindow(Duration.ZERO));
     }
 
     private void preparePlayer(Player player) {
@@ -376,12 +400,8 @@ public class ArenaMatchManager implements Listener {
         if (player == null) {
             return;
         }
-        ArenaRatingManager.RatingTier beforeTier = ratingManager.getTier(before);
-        ArenaRatingManager.RatingTier afterTier = ratingManager.getTier(after);
-        if (beforeTier != afterTier) {
-            String msg = ChatColor.GRAY + "Your arena tier is now " + afterTier.color() + afterTier.displayName() + ChatColor.GRAY + "!";
-            sendMessage(player, MessageType.INFO, msg);
-        }
+        ratingManager.buildTierChangeMessage(before, after)
+                .ifPresent(message -> sendMessage(player, MessageType.INFO, message));
     }
 
     private void teleportOut(Player player) {
