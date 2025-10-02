@@ -20,6 +20,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityRegainHealthEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -28,9 +29,11 @@ import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
@@ -46,6 +49,7 @@ public class ArenaTeamMatchManager implements Listener {
     private final ArenaInstanceManager instanceManager;
     private final ArenaRatingManager ratingManager;
     private final PlayerScoreboardManager scoreboardManager;
+    private final ArenaCombatTracker combatTracker;
 
     private final Map<UUID, ArenaTeamMatch> matchesByPlayer = new HashMap<>();
     private final Map<ArenaTeamMatch, BukkitTask> countdownTasks = new HashMap<>();
@@ -57,12 +61,14 @@ public class ArenaTeamMatchManager implements Listener {
                                  ArenaQueueManager queueManager,
                                  ArenaInstanceManager instanceManager,
                                  ArenaRatingManager ratingManager,
-                                 PlayerScoreboardManager scoreboardManager) {
+                                 PlayerScoreboardManager scoreboardManager,
+                                 ArenaCombatTracker combatTracker) {
         this.plugin = plugin;
         this.queueManager = queueManager;
         this.instanceManager = instanceManager;
         this.ratingManager = ratingManager;
         this.scoreboardManager = scoreboardManager;
+        this.combatTracker = combatTracker;
     }
 
     public boolean isInMatch(UUID playerId) {
@@ -118,6 +124,7 @@ public class ArenaTeamMatchManager implements Listener {
 
         ArenaTeamMatch match = new ArenaTeamMatch(teamOneIds, teamTwoIds, instance);
         registerMatch(match);
+        combatTracker.beginTracking(match.allPlayers());
 
         prepareTeam(teamOne);
         prepareTeam(teamTwo);
@@ -251,7 +258,7 @@ public class ArenaTeamMatchManager implements Listener {
                 if (match.getState() == ArenaTeamMatch.State.FINISHED) {
                     return;
                 }
-                finishMatch(match, match.getTeamOne(), match.getTeamTwo(), ChatColor.GRAY + "Match ended in a draw.", false);
+                finishMatch(match, match.getTeamOne(), match.getTeamTwo(), ChatColor.GRAY + "Match ended in a draw.", false, true);
             }
         }.runTaskLater(plugin, MATCH_TIMEOUT_TICKS);
         timeoutTasks.put(match, timeout);
@@ -287,7 +294,10 @@ public class ArenaTeamMatchManager implements Listener {
             return;
         }
 
-        double newHealth = victim.getHealth() - event.getFinalDamage();
+        double finalDamage = event.getFinalDamage();
+        combatTracker.recordDamage(attacker.getUniqueId(), finalDamage);
+
+        double newHealth = victim.getHealth() - finalDamage;
         if (newHealth <= 1.0) {
             event.setCancelled(true);
             event.setDamage(0);
@@ -316,6 +326,18 @@ public class ArenaTeamMatchManager implements Listener {
             event.setCancelled(true);
             eliminatePlayer(match, victim, ChatColor.RED + "You were eliminated!");
         }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onRegainHealth(EntityRegainHealthEvent event) {
+        if (!(event.getEntity() instanceof Player player)) {
+            return;
+        }
+        ArenaTeamMatch match = findMatch(player.getUniqueId()).orElse(null);
+        if (match == null || match.getState() != ArenaTeamMatch.State.ACTIVE) {
+            return;
+        }
+        combatTracker.recordHealing(player.getUniqueId(), event.getAmount());
     }
 
     @EventHandler
@@ -377,7 +399,7 @@ public class ArenaTeamMatchManager implements Listener {
             List<UUID> winners = teamOneEliminated ? match.getTeamTwo() : match.getTeamOne();
             List<UUID> losers = teamOneEliminated ? match.getTeamOne() : match.getTeamTwo();
             finishMatch(match, winners, losers,
-                    ChatColor.YELLOW + composeNames(winners) + ChatColor.GRAY + " won the match!", true);
+                    ChatColor.YELLOW + composeNames(winners) + ChatColor.GRAY + " won the match!", true, false);
         }
     }
 
@@ -409,7 +431,8 @@ public class ArenaTeamMatchManager implements Listener {
                              List<UUID> winners,
                              List<UUID> losers,
                              String message,
-                             boolean awardRating) {
+                             boolean awardRating,
+                             boolean draw) {
         if (match.getState() == ArenaTeamMatch.State.FINISHED) {
             return;
         }
@@ -418,16 +441,25 @@ public class ArenaTeamMatchManager implements Listener {
         cancelTask(timeoutTasks.remove(match));
         unregisterMatch(match);
 
-        for (UUID id : winners) {
-            Player player = Bukkit.getPlayer(id);
-            if (player != null) {
-                sendMessage(player, MessageType.SUCCESS, message);
+        if (draw) {
+            for (UUID id : match.allPlayers()) {
+                Player player = Bukkit.getPlayer(id);
+                if (player != null) {
+                    sendMessage(player, MessageType.INFO, message);
+                }
             }
-        }
-        for (UUID id : losers) {
-            Player player = Bukkit.getPlayer(id);
-            if (player != null) {
-                sendMessage(player, MessageType.WARNING, ChatColor.GRAY + "Better luck next time!");
+        } else {
+            for (UUID id : winners) {
+                Player player = Bukkit.getPlayer(id);
+                if (player != null) {
+                    sendMessage(player, MessageType.SUCCESS, message);
+                }
+            }
+            for (UUID id : losers) {
+                Player player = Bukkit.getPlayer(id);
+                if (player != null) {
+                    sendMessage(player, MessageType.WARNING, ChatColor.GRAY + "Better luck next time!");
+                }
             }
         }
 
@@ -445,6 +477,8 @@ public class ArenaTeamMatchManager implements Listener {
             }
         }
 
+        announceSummary(match, winners, draw);
+
         for (UUID id : match.allPlayers()) {
             Player player = Bukkit.getPlayer(id);
             if (player != null) {
@@ -454,6 +488,13 @@ public class ArenaTeamMatchManager implements Listener {
         }
 
         instanceManager.destroyInstance(match.getInstance());
+    }
+
+    private void announceSummary(ArenaTeamMatch match,
+                                 List<UUID> winners,
+                                 boolean draw) {
+        Set<UUID> winnerIds = draw ? Set.of() : new LinkedHashSet<>(winners);
+        ArenaCombatSummaryBroadcaster.broadcast(combatTracker, match.allPlayers(), winnerIds);
     }
 
     private void sendRatingFeedback(UUID playerId, boolean winner, ArenaRatingManager.MultiRatingUpdate update) {
@@ -513,4 +554,3 @@ public class ArenaTeamMatchManager implements Listener {
         }
     }
 }
-

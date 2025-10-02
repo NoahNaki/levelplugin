@@ -12,6 +12,7 @@ import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.economy.managers.GemsManager;
 import me.nakilex.levelplugin.arena.ArenaMode;
 import me.nakilex.levelplugin.arena.ArenaQueueManager;
+import me.nakilex.levelplugin.arena.match.ArenaCombatTracker;
 import me.nakilex.levelplugin.arena.match.ArenaMatchManager;
 import me.nakilex.levelplugin.arena.match.ArenaTeamMatchManager;
 import me.nakilex.levelplugin.arena.rating.ArenaRatingManager;
@@ -108,6 +109,7 @@ public class PluginBootstrap {
     private ArenaRatingManager arenaRatingManager;
     private ArenaMatchManager arenaMatchManager;
     private ArenaTeamMatchManager arenaTeamMatchManager;
+    private ArenaCombatTracker arenaCombatTracker;
     private ArenaQueueGUI arenaQueueGUI;
     private ArenaInstanceManager arenaInstanceManager;
     private me.nakilex.levelplugin.guild.GuildManager guildManager;
@@ -324,8 +326,9 @@ public class PluginBootstrap {
         dialogManager = new me.nakilex.levelplugin.npc.dialog.NPCDialogManager(plugin);
         scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(plugin, partyManager, questManager, arenaQueueManager, arenaRatingManager);
         arenaQueueManager.setScoreboardManager(scoreboardManager);
-        arenaMatchManager = new ArenaMatchManager(plugin, arenaQueueManager, arenaInstanceManager, arenaRatingManager, scoreboardManager);
-        arenaTeamMatchManager = new ArenaTeamMatchManager(plugin, arenaQueueManager, arenaInstanceManager, arenaRatingManager, scoreboardManager);
+        arenaCombatTracker = new ArenaCombatTracker();
+        arenaMatchManager = new ArenaMatchManager(plugin, arenaQueueManager, arenaInstanceManager, arenaRatingManager, scoreboardManager, arenaCombatTracker);
+        arenaTeamMatchManager = new ArenaTeamMatchManager(plugin, arenaQueueManager, arenaInstanceManager, arenaRatingManager, scoreboardManager, arenaCombatTracker);
         arenaQueueManager.setMatchCheck(arenaMatchManager::isInMatch);
         arenaQueueManager.addMatchCheck(arenaTeamMatchManager::isInMatch);
         arenaQueueManager.setMatchHandler(ArenaMode.ONE_VS_ONE, arenaMatchManager::startMatch);

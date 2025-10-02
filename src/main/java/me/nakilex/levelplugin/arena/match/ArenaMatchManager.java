@@ -19,6 +19,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityRegainHealthEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -26,8 +27,10 @@ import org.bukkit.scheduler.BukkitTask;
 
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
@@ -42,6 +45,7 @@ public class ArenaMatchManager implements Listener {
     private final ArenaInstanceManager instanceManager;
     private final ArenaRatingManager ratingManager;
     private final PlayerScoreboardManager scoreboardManager;
+    private final ArenaCombatTracker combatTracker;
 
     private final Map<UUID, ArenaMatch> matchesByPlayer = new HashMap<>();
     private final Map<ArenaMatch, BukkitTask> countdownTasks = new HashMap<>();
@@ -53,12 +57,14 @@ public class ArenaMatchManager implements Listener {
                              ArenaQueueManager queueManager,
                              ArenaInstanceManager instanceManager,
                              ArenaRatingManager ratingManager,
-                             PlayerScoreboardManager scoreboardManager) {
+                             PlayerScoreboardManager scoreboardManager,
+                             ArenaCombatTracker combatTracker) {
         this.plugin = plugin;
         this.queueManager = queueManager;
         this.instanceManager = instanceManager;
         this.ratingManager = ratingManager;
         this.scoreboardManager = scoreboardManager;
+        this.combatTracker = combatTracker;
     }
 
     /** Fetch the match the given player is currently involved in, if any. */
@@ -125,6 +131,8 @@ public class ArenaMatchManager implements Listener {
 
         matchesByPlayer.put(firstId, match);
         matchesByPlayer.put(secondId, match);
+
+        combatTracker.beginTracking(List.of(firstId, secondId));
 
         preparePlayer(one);
         preparePlayer(two);
@@ -269,7 +277,10 @@ public class ArenaMatchManager implements Listener {
             return;
         }
 
-        double newHealth = victim.getHealth() - event.getFinalDamage();
+        double finalDamage = event.getFinalDamage();
+        combatTracker.recordDamage(attacker.getUniqueId(), finalDamage);
+
+        double newHealth = victim.getHealth() - finalDamage;
         if (newHealth <= 1.0) {
             event.setCancelled(true);
             event.setDamage(0);
@@ -304,6 +315,18 @@ public class ArenaMatchManager implements Listener {
                     Optional.of(player.getUniqueId()),
                     VictoryReason.KNOCKOUT);
         }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onRegainHealth(EntityRegainHealthEvent event) {
+        if (!(event.getEntity() instanceof Player player)) {
+            return;
+        }
+        ArenaMatch match = findMatch(player.getUniqueId()).orElse(null);
+        if (match == null || match.getState() != ArenaMatch.State.ACTIVE) {
+            return;
+        }
+        combatTracker.recordHealing(player.getUniqueId(), event.getAmount());
     }
 
     @EventHandler
@@ -354,6 +377,8 @@ public class ArenaMatchManager implements Listener {
             sendMessage(playerTwo, MessageType.WARNING, ChatColor.GRAY + "Match ended in a draw after reaching the time limit.");
         }
 
+        announceSummary(match, winnerId, loserId);
+
         teleportOut(playerOne);
         teleportOut(playerTwo);
 
@@ -365,6 +390,14 @@ public class ArenaMatchManager implements Listener {
         }
 
         instanceManager.destroyInstance(match.getInstance());
+    }
+
+    private void announceSummary(ArenaMatch match,
+                                 Optional<UUID> winnerId,
+                                 Optional<UUID> loserId) {
+        List<UUID> participants = List.of(match.getPlayerOne(), match.getPlayerTwo());
+        Set<UUID> winners = winnerId.map(Set::of).orElseGet(Set::of);
+        ArenaCombatSummaryBroadcaster.broadcast(combatTracker, participants, winners);
     }
 
     private void applyRatingResults(ArenaMatch match,
