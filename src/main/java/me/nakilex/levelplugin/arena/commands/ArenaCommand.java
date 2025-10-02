@@ -1,7 +1,9 @@
 package me.nakilex.levelplugin.arena.commands;
 
+import me.nakilex.levelplugin.arena.ArenaMode;
 import me.nakilex.levelplugin.arena.ArenaQueueManager;
 import me.nakilex.levelplugin.arena.gui.ArenaQueueGUI;
+import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
@@ -11,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
@@ -43,28 +46,55 @@ public class ArenaCommand implements TabExecutor {
 
         UUID id = player.getUniqueId();
         if (equalsAny(args[0], "join", "queue")) {
-            if (queueManager.isQueued(id)) {
-                send(player, MessageType.WARNING, "You are already in the arena queue.");
+            ArenaMode mode = parseMode(args, 1).orElse(ArenaMode.ONE_VS_ONE);
+            Optional<ArenaMode> current = queueManager.getMode(id);
+            if (current.isPresent() && !current.get().equals(mode)) {
+                send(player, MessageType.ERROR, "Leave your current arena queue before joining another.");
+                return true;
+            }
+            if (current.isPresent()) {
+                send(player, MessageType.WARNING, "You are already in the " + current.get().displayName() + ChatColor.GRAY + " queue.");
+                return true;
+            }
+
+            ArenaQueueManager.QueueJoinOutcome outcome = queueManager.join(player, mode);
+            if (outcome.result() == ArenaQueueManager.QueueJoinResult.JOINED) {
+                send(player, MessageType.SUCCESS, "You joined the " + mode.displayName() + ChatColor.GRAY + " queue.");
+                gui.refresh();
             } else {
-                ArenaQueueManager.QueueJoinResult result = queueManager.join(player);
-                if (result == ArenaQueueManager.QueueJoinResult.JOINED) {
-                    send(player, MessageType.SUCCESS, "You joined the arena queue.");
-                    gui.refresh();
-                } else if (result == ArenaQueueManager.QueueJoinResult.IN_MATCH) {
-                    send(player, MessageType.ERROR, "You cannot queue while an arena match is active.");
-                } else {
-                    send(player, MessageType.WARNING, "You are already in the arena queue.");
+                String message = outcome.message();
+                if (message == null) {
+                    switch (outcome.result()) {
+                        case ALREADY_QUEUED -> message = ChatColor.RED + "You are already in that queue.";
+                        case IN_MATCH -> message = ChatColor.RED + "You cannot queue while an arena match is active.";
+                        case PARTY_REQUIRED -> message = ChatColor.RED + "A party of two is required for 2v2.";
+                        case PARTY_SIZE_INVALID -> message = ChatColor.RED + "Your party must contain exactly 2 members.";
+                        case PARTY_MEMBER_OFFLINE -> message = ChatColor.RED + "All party members must be online.";
+                        case TEAM_MEMBER_QUEUED -> message = ChatColor.RED + "A party member is already queued.";
+                        case TEAM_MEMBER_IN_MATCH -> message = ChatColor.RED + "A party member is already in a match.";
+                        case RANK_GAP_TOO_LARGE -> message = ChatColor.RED + "Party members must be within one arena tier.";
+                        default -> message = ChatColor.RED + "Unable to join the queue.";
+                    }
                 }
+                send(player, MessageType.ERROR, message);
             }
             return true;
         }
 
         if (equalsAny(args[0], "leave", "quit")) {
+            ArenaMode mode = parseMode(args, 1).orElse(null);
+            Optional<ArenaMode> current = queueManager.getMode(id);
+            if (current.isEmpty()) {
+                send(player, MessageType.WARNING, "You are not currently in an arena queue.");
+                return true;
+            }
+            if (mode != null && !current.get().equals(mode)) {
+                send(player, MessageType.WARNING, "You are not in the " + mode.displayName() + ChatColor.GRAY + " queue.");
+                return true;
+            }
             if (queueManager.leave(id)) {
-                send(player, MessageType.INFO, "You left the arena queue.");
+                send(player, MessageType.INFO, "You left the " + current.get().displayName() + ChatColor.GRAY + " queue.");
                 gui.refresh();
-            } else {
-                send(player, MessageType.WARNING, "You are not currently in the arena queue.");
             }
             return true;
         }
@@ -86,6 +116,17 @@ public class ArenaCommand implements TabExecutor {
             }
             return matches;
         }
+        if (args.length == 2 && equalsAny(args[0], "join", "queue", "leave", "quit")) {
+            String current = args[1].toLowerCase();
+            List<String> options = Arrays.asList("1v1", "2v2");
+            List<String> matches = new ArrayList<>();
+            for (String option : options) {
+                if (option.startsWith(current)) {
+                    matches.add(option);
+                }
+            }
+            return matches;
+        }
         return Collections.emptyList();
     }
 
@@ -96,5 +137,19 @@ public class ArenaCommand implements TabExecutor {
             }
         }
         return false;
+    }
+
+    private Optional<ArenaMode> parseMode(String[] args, int index) {
+        if (args.length <= index) {
+            return Optional.empty();
+        }
+        String modeArg = args[index].toLowerCase();
+        if (modeArg.contains("2")) {
+            return Optional.of(ArenaMode.TWO_VS_TWO);
+        }
+        if (modeArg.contains("1")) {
+            return Optional.of(ArenaMode.ONE_VS_ONE);
+        }
+        return Optional.empty();
     }
 }

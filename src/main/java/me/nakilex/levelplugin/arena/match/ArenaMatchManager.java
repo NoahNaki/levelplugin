@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.arena.match;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.arena.ArenaMode;
 import me.nakilex.levelplugin.arena.ArenaQueueManager;
 import me.nakilex.levelplugin.arena.instance.ArenaInstance;
 import me.nakilex.levelplugin.arena.instance.ArenaInstanceManager;
@@ -18,6 +19,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityRegainHealthEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -25,8 +27,10 @@ import org.bukkit.scheduler.BukkitTask;
 
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
@@ -41,6 +45,7 @@ public class ArenaMatchManager implements Listener {
     private final ArenaInstanceManager instanceManager;
     private final ArenaRatingManager ratingManager;
     private final PlayerScoreboardManager scoreboardManager;
+    private final ArenaCombatTracker combatTracker;
 
     private final Map<UUID, ArenaMatch> matchesByPlayer = new HashMap<>();
     private final Map<ArenaMatch, BukkitTask> countdownTasks = new HashMap<>();
@@ -52,12 +57,14 @@ public class ArenaMatchManager implements Listener {
                              ArenaQueueManager queueManager,
                              ArenaInstanceManager instanceManager,
                              ArenaRatingManager ratingManager,
-                             PlayerScoreboardManager scoreboardManager) {
+                             PlayerScoreboardManager scoreboardManager,
+                             ArenaCombatTracker combatTracker) {
         this.plugin = plugin;
         this.queueManager = queueManager;
         this.instanceManager = instanceManager;
         this.ratingManager = ratingManager;
         this.scoreboardManager = scoreboardManager;
+        this.combatTracker = combatTracker;
     }
 
     /** Fetch the match the given player is currently involved in, if any. */
@@ -72,8 +79,13 @@ public class ArenaMatchManager implements Listener {
 
     /** Begin a new match for the provided queue entrants. */
     public void startMatch(ArenaQueueManager.QueueEntry first, ArenaQueueManager.QueueEntry second) {
-        Player one = Bukkit.getPlayer(first.playerId());
-        Player two = Bukkit.getPlayer(second.playerId());
+        if (first.members().isEmpty() || second.members().isEmpty()) {
+            return;
+        }
+        UUID firstId = first.members().get(0);
+        UUID secondId = second.members().get(0);
+        Player one = Bukkit.getPlayer(firstId);
+        Player two = Bukkit.getPlayer(secondId);
         if (one == null || !one.isOnline()) {
             if (two != null) {
                 sendMessage(two, MessageType.WARNING, ChatColor.GRAY + "Opponent left before the match started. Re-queuing you.");
@@ -87,7 +99,7 @@ public class ArenaMatchManager implements Listener {
             return;
         }
 
-        if (isInMatch(one.getUniqueId()) || isInMatch(two.getUniqueId())) {
+        if (isInMatch(firstId) || isInMatch(secondId)) {
             queueManager.requeue(first);
             queueManager.requeue(second);
             return;
@@ -102,14 +114,25 @@ public class ArenaMatchManager implements Listener {
             return;
         }
 
-        ArenaMatch match = new ArenaMatch(one.getUniqueId(),
-                two.getUniqueId(),
-                instance,
-                first.ratingSnapshot(),
-                second.ratingSnapshot());
+        ArenaRatingManager.RatingSnapshot firstSnapshot = first.ratingSnapshot(firstId);
+        if (firstSnapshot == null) {
+            firstSnapshot = ratingManager.getSnapshot(firstId, ArenaMode.ONE_VS_ONE.ratingCategory());
+        }
+        ArenaRatingManager.RatingSnapshot secondSnapshot = second.ratingSnapshot(secondId);
+        if (secondSnapshot == null) {
+            secondSnapshot = ratingManager.getSnapshot(secondId, ArenaMode.ONE_VS_ONE.ratingCategory());
+        }
 
-        matchesByPlayer.put(one.getUniqueId(), match);
-        matchesByPlayer.put(two.getUniqueId(), match);
+        ArenaMatch match = new ArenaMatch(firstId,
+                secondId,
+                instance,
+                firstSnapshot,
+                secondSnapshot);
+
+        matchesByPlayer.put(firstId, match);
+        matchesByPlayer.put(secondId, match);
+
+        combatTracker.beginTracking(List.of(firstId, secondId));
 
         preparePlayer(one);
         preparePlayer(two);
@@ -117,7 +140,7 @@ public class ArenaMatchManager implements Listener {
         one.teleport(instance.getFirstSpawn());
         two.teleport(instance.getSecondSpawn());
 
-        announceMatchFound(one, two, first, second);
+        announceMatchFound(one, two, firstSnapshot, secondSnapshot);
         runCountdown(match, one, two);
         scheduleTimeout(match);
     }
@@ -192,10 +215,10 @@ public class ArenaMatchManager implements Listener {
 
     private void announceMatchFound(Player one,
                                     Player two,
-                                    ArenaQueueManager.QueueEntry first,
-                                    ArenaQueueManager.QueueEntry second) {
-        int ratingOne = ratingManager.getRating(one.getUniqueId());
-        int ratingTwo = ratingManager.getRating(two.getUniqueId());
+                                    ArenaRatingManager.RatingSnapshot firstSnapshot,
+                                    ArenaRatingManager.RatingSnapshot secondSnapshot) {
+        int ratingOne = firstSnapshot.rating();
+        int ratingTwo = secondSnapshot.rating();
         sendMessage(one, MessageType.INFO,
                 ChatColor.GRAY + "Matched against " + ChatColor.YELLOW + two.getName() + ChatColor.GRAY +
                         " (" + ChatColor.GOLD + ratingTwo + ChatColor.GRAY + ", " + ratingManager.formatTier(ratingTwo) + ChatColor.GRAY + ")");
@@ -204,9 +227,9 @@ public class ArenaMatchManager implements Listener {
                         " (" + ChatColor.GOLD + ratingOne + ChatColor.GRAY + ", " + ratingManager.formatTier(ratingOne) + ChatColor.GRAY + ")");
 
         sendMessage(one, MessageType.INFO,
-                ChatColor.DARK_GRAY + "Estimated rating window: ±" + first.ratingSnapshot().matchWindow(Duration.ZERO));
+                ChatColor.DARK_GRAY + "Estimated rating window: ±" + firstSnapshot.matchWindow(Duration.ZERO));
         sendMessage(two, MessageType.INFO,
-                ChatColor.DARK_GRAY + "Estimated rating window: ±" + second.ratingSnapshot().matchWindow(Duration.ZERO));
+                ChatColor.DARK_GRAY + "Estimated rating window: ±" + secondSnapshot.matchWindow(Duration.ZERO));
     }
 
     private void preparePlayer(Player player) {
@@ -245,7 +268,10 @@ public class ArenaMatchManager implements Listener {
             return;
         }
 
-        double newHealth = victim.getHealth() - event.getFinalDamage();
+        double finalDamage = event.getFinalDamage();
+        combatTracker.recordDamage(attacker.getUniqueId(), finalDamage);
+
+        double newHealth = victim.getHealth() - finalDamage;
         if (newHealth <= 1.0) {
             event.setCancelled(true);
             event.setDamage(0);
@@ -280,6 +306,18 @@ public class ArenaMatchManager implements Listener {
                     Optional.of(player.getUniqueId()),
                     VictoryReason.KNOCKOUT);
         }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onRegainHealth(EntityRegainHealthEvent event) {
+        if (!(event.getEntity() instanceof Player player)) {
+            return;
+        }
+        ArenaMatch match = findMatch(player.getUniqueId()).orElse(null);
+        if (match == null || match.getState() != ArenaMatch.State.ACTIVE) {
+            return;
+        }
+        combatTracker.recordHealing(player.getUniqueId(), event.getAmount());
     }
 
     @EventHandler
@@ -330,6 +368,8 @@ public class ArenaMatchManager implements Listener {
             sendMessage(playerTwo, MessageType.WARNING, ChatColor.GRAY + "Match ended in a draw after reaching the time limit.");
         }
 
+        announceSummary(match, winnerId, loserId);
+
         teleportOut(playerOne);
         teleportOut(playerTwo);
 
@@ -341,6 +381,14 @@ public class ArenaMatchManager implements Listener {
         }
 
         instanceManager.destroyInstance(match.getInstance());
+    }
+
+    private void announceSummary(ArenaMatch match,
+                                 Optional<UUID> winnerId,
+                                 Optional<UUID> loserId) {
+        List<UUID> participants = List.of(match.getPlayerOne(), match.getPlayerTwo());
+        Set<UUID> winners = winnerId.map(Set::of).orElseGet(Set::of);
+        ArenaCombatSummaryBroadcaster.broadcast(combatTracker, participants, winners);
     }
 
     private void applyRatingResults(ArenaMatch match,
@@ -376,12 +424,8 @@ public class ArenaMatchManager implements Listener {
         if (player == null) {
             return;
         }
-        ArenaRatingManager.RatingTier beforeTier = ratingManager.getTier(before);
-        ArenaRatingManager.RatingTier afterTier = ratingManager.getTier(after);
-        if (beforeTier != afterTier) {
-            String msg = ChatColor.GRAY + "Your arena tier is now " + afterTier.color() + afterTier.displayName() + ChatColor.GRAY + "!";
-            sendMessage(player, MessageType.INFO, msg);
-        }
+        ratingManager.buildTierChangeMessage(before, after)
+                .ifPresent(message -> sendMessage(player, MessageType.INFO, message));
     }
 
     private void teleportOut(Player player) {

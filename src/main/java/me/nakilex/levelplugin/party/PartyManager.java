@@ -8,11 +8,32 @@ public class PartyManager {
     // Map to store parties by leader UUID
     private Map<UUID, Party> parties;
     private Map<UUID, UUID> playerToParty; // Maps player UUIDs to their party leader UUID
+    private final java.util.List<PartyMembershipListener> membershipListeners = new java.util.ArrayList<>();
 
     // Constructor
     public PartyManager() {
         this.parties = new HashMap<>();
         this.playerToParty = new HashMap<>();
+    }
+
+    public void addMembershipListener(PartyMembershipListener listener) {
+        if (listener != null) {
+            membershipListeners.add(listener);
+        }
+    }
+
+    private void notifyMembersChanged(Party party) {
+        if (party == null) return;
+        for (PartyMembershipListener listener : membershipListeners) {
+            listener.onPartyMembersChanged(party);
+        }
+    }
+
+    private void notifyDisbanded(java.util.List<UUID> formerMembers) {
+        if (formerMembers == null || formerMembers.isEmpty()) return;
+        for (PartyMembershipListener listener : membershipListeners) {
+            listener.onPartyDisbanded(java.util.List.copyOf(formerMembers));
+        }
     }
 
     // Create a new party
@@ -23,6 +44,7 @@ public class PartyManager {
         Party party = new Party(leader);
         parties.put(leader, party);
         playerToParty.put(leader, leader);
+        notifyMembersChanged(party);
         return true;
     }
 
@@ -32,9 +54,11 @@ public class PartyManager {
             return false; // No such party
         }
         Party party = parties.remove(leader);
+        java.util.List<UUID> former = new java.util.ArrayList<>(party.getMembers());
         for (UUID member : party.getMembers()) {
             playerToParty.remove(member);
         }
+        notifyDisbanded(former);
         return true;
     }
 
@@ -56,6 +80,7 @@ public class PartyManager {
         // Proceed if there's room
         if (party.addMember(member)) {
             playerToParty.put(member, leader);
+            notifyMembersChanged(party);
             return true;
         }
 
@@ -81,9 +106,12 @@ public class PartyManager {
                     for (UUID m : party.getMembers()) {
                         playerToParty.put(m, newLeader);
                     }
+                    notifyMembersChanged(party);
                 } else {
                     disbandParty(leader);
                 }
+            } else {
+                notifyMembersChanged(party);
             }
             return true;
         }
@@ -102,6 +130,7 @@ public class PartyManager {
             for (UUID member : party.getMembers()) {
                 playerToParty.put(member, newLeader);
             }
+            notifyMembersChanged(party);
             return true;
         }
         return false;

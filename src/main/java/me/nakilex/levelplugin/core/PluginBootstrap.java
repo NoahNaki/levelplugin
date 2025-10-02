@@ -10,8 +10,11 @@ import me.nakilex.levelplugin.blacksmith.managers.ItemUpgradeManager;
 import me.nakilex.levelplugin.economy.gui.GemExchangeGUI;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.economy.managers.GemsManager;
+import me.nakilex.levelplugin.arena.ArenaMode;
 import me.nakilex.levelplugin.arena.ArenaQueueManager;
+import me.nakilex.levelplugin.arena.match.ArenaCombatTracker;
 import me.nakilex.levelplugin.arena.match.ArenaMatchManager;
+import me.nakilex.levelplugin.arena.match.ArenaTeamMatchManager;
 import me.nakilex.levelplugin.arena.rating.ArenaRatingManager;
 import me.nakilex.levelplugin.arena.gui.ArenaQueueGUI;
 import me.nakilex.levelplugin.arena.instance.ArenaInstanceManager;
@@ -105,6 +108,8 @@ public class PluginBootstrap {
     private ArenaQueueManager arenaQueueManager;
     private ArenaRatingManager arenaRatingManager;
     private ArenaMatchManager arenaMatchManager;
+    private ArenaTeamMatchManager arenaTeamMatchManager;
+    private ArenaCombatTracker arenaCombatTracker;
     private ArenaQueueGUI arenaQueueGUI;
     private ArenaInstanceManager arenaInstanceManager;
     private me.nakilex.levelplugin.guild.GuildManager guildManager;
@@ -292,7 +297,7 @@ public class PluginBootstrap {
         spellmanager = new SpellManager(plugin);
         partyManager = new PartyManager();
         arenaRatingManager = new ArenaRatingManager(playerConfig);
-        arenaQueueManager = new ArenaQueueManager(arenaRatingManager);
+        arenaQueueManager = new ArenaQueueManager(arenaRatingManager, partyManager);
         arenaQueueGUI = new ArenaQueueGUI(arenaQueueManager, arenaRatingManager);
         arenaInstanceManager = new ArenaInstanceManager(plugin);
         friendManager = new FriendManager();
@@ -321,9 +326,13 @@ public class PluginBootstrap {
         dialogManager = new me.nakilex.levelplugin.npc.dialog.NPCDialogManager(plugin);
         scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(plugin, partyManager, questManager, arenaQueueManager, arenaRatingManager);
         arenaQueueManager.setScoreboardManager(scoreboardManager);
-        arenaMatchManager = new ArenaMatchManager(plugin, arenaQueueManager, arenaInstanceManager, arenaRatingManager, scoreboardManager);
+        arenaCombatTracker = new ArenaCombatTracker();
+        arenaMatchManager = new ArenaMatchManager(plugin, arenaQueueManager, arenaInstanceManager, arenaRatingManager, scoreboardManager, arenaCombatTracker);
+        arenaTeamMatchManager = new ArenaTeamMatchManager(plugin, arenaQueueManager, arenaInstanceManager, arenaRatingManager, scoreboardManager, arenaCombatTracker);
         arenaQueueManager.setMatchCheck(arenaMatchManager::isInMatch);
-        arenaQueueManager.setMatchHandler(arenaMatchManager::startMatch);
+        arenaQueueManager.addMatchCheck(arenaTeamMatchManager::isInMatch);
+        arenaQueueManager.setMatchHandler(ArenaMode.ONE_VS_ONE, arenaMatchManager::startMatch);
+        arenaQueueManager.setMatchHandler(ArenaMode.TWO_VS_TWO, arenaTeamMatchManager::startMatch);
         arenaQueueManager.setQueueUpdateListener(arenaQueueGUI::refresh);
         calendarManager = new me.nakilex.levelplugin.calendar.CalendarManager(plugin);
         duelStatsManager = new me.nakilex.levelplugin.leaderboards.DuelStatsManager(plugin);
@@ -457,7 +466,8 @@ public class PluginBootstrap {
             locationCodexGUI,
             wanderingMerchantManager,
             arenaQueueGUI,
-            arenaMatchManager
+            arenaMatchManager,
+            arenaTeamMatchManager
         );
         plugin.getServer().getPluginManager().registerEvents(battlePassGUI, plugin);
         plugin.getServer().getPluginManager().registerEvents(
@@ -570,6 +580,7 @@ public class PluginBootstrap {
     public ArenaQueueManager getArenaQueueManager() { return arenaQueueManager; }
     public ArenaRatingManager getArenaRatingManager() { return arenaRatingManager; }
     public ArenaMatchManager getArenaMatchManager() { return arenaMatchManager; }
+    public ArenaTeamMatchManager getArenaTeamMatchManager() { return arenaTeamMatchManager; }
     public ArenaQueueGUI getArenaQueueGUI() { return arenaQueueGUI; }
     public ArenaInstanceManager getArenaInstanceManager() { return arenaInstanceManager; }
     public me.nakilex.levelplugin.guild.GuildManager getGuildManager() { return guildManager; }
