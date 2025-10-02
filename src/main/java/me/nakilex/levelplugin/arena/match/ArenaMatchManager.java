@@ -140,7 +140,7 @@ public class ArenaMatchManager implements Listener {
         one.teleport(instance.getFirstSpawn());
         two.teleport(instance.getSecondSpawn());
 
-        announceMatchFound(one, two, first, second);
+        announceMatchFound(one, two, firstSnapshot, secondSnapshot);
         runCountdown(match, one, two);
         scheduleTimeout(match);
     }
@@ -215,25 +215,16 @@ public class ArenaMatchManager implements Listener {
 
     private void announceMatchFound(Player one,
                                     Player two,
-                                    ArenaQueueManager.QueueEntry first,
-                                    ArenaQueueManager.QueueEntry second) {
-        int ratingOne = ratingManager.getRating(one.getUniqueId());
-        int ratingTwo = ratingManager.getRating(two.getUniqueId());
+                                    ArenaRatingManager.RatingSnapshot firstSnapshot,
+                                    ArenaRatingManager.RatingSnapshot secondSnapshot) {
+        int ratingOne = firstSnapshot.rating();
+        int ratingTwo = secondSnapshot.rating();
         sendMessage(one, MessageType.INFO,
                 ChatColor.GRAY + "Matched against " + ChatColor.YELLOW + two.getName() + ChatColor.GRAY +
                         " (" + ChatColor.GOLD + ratingTwo + ChatColor.GRAY + ", " + ratingManager.formatTier(ratingTwo) + ChatColor.GRAY + ")");
         sendMessage(two, MessageType.INFO,
                 ChatColor.GRAY + "Matched against " + ChatColor.YELLOW + one.getName() + ChatColor.GRAY +
                         " (" + ChatColor.GOLD + ratingOne + ChatColor.GRAY + ", " + ratingManager.formatTier(ratingOne) + ChatColor.GRAY + ")");
-
-        ArenaRatingManager.RatingSnapshot firstSnapshot = first.ratingSnapshot(firstId);
-        if (firstSnapshot == null) {
-            firstSnapshot = ratingManager.getSnapshot(firstId, ArenaMode.ONE_VS_ONE.ratingCategory());
-        }
-        ArenaRatingManager.RatingSnapshot secondSnapshot = second.ratingSnapshot(secondId);
-        if (secondSnapshot == null) {
-            secondSnapshot = ratingManager.getSnapshot(secondId, ArenaMode.ONE_VS_ONE.ratingCategory());
-        }
 
         sendMessage(one, MessageType.INFO,
                 ChatColor.DARK_GRAY + "Estimated rating window: ±" + firstSnapshot.matchWindow(Duration.ZERO));
