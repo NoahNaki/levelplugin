@@ -521,8 +521,8 @@ public class ArenaQueueManager implements PartyMembershipListener {
             Objects.requireNonNull(mode, "mode");
             Objects.requireNonNull(members, "members");
             Objects.requireNonNull(ratingSnapshots, "ratingSnapshots");
-            this.members = List.copyOf(members);
-            this.ratingSnapshots = Map.copyOf(ratingSnapshots);
+            members = List.copyOf(members);
+            ratingSnapshots = Map.copyOf(ratingSnapshots);
         }
 
         public Duration waitDuration() {
