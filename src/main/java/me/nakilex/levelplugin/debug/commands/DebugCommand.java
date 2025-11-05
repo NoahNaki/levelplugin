@@ -201,7 +201,6 @@ public class DebugCommand implements TabExecutor {
                 }
                 return true;
 
-            default:
             case "chatgame":
                 handleChatGameToggle(sender, args);
                 return true;
