@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin;
 
 import io.lumine.mythic.bukkit.BukkitAPIHelper;
+import me.nakilex.levelplugin.chat.games.ChatGameManager;
 import me.nakilex.levelplugin.core.PluginBootstrap;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.items.config.ItemConfig;
@@ -137,4 +138,5 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.guild.siege.GuildSiegeManager getGuildSiegeManager() { return bootstrap.getGuildSiegeManager(); }
     public PathfindingManager getPathfindingManager() { return bootstrap.getPathfindingManager(); }
     public me.nakilex.levelplugin.transmog.TransmogManager getTransmogManager() { return bootstrap.getTransmogManager(); }
+    public ChatGameManager getChatGameManager() { return bootstrap.getChatGameManager(); }
 }

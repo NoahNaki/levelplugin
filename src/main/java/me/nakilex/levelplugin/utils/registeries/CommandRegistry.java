@@ -90,6 +90,7 @@ import me.nakilex.levelplugin.pathfinding.PathfindingCommand;
 import me.nakilex.levelplugin.pathfinding.PathfindingManager;
 import me.nakilex.levelplugin.pathfinding.MercenaryCommand;
 import me.nakilex.levelplugin.chat.ChatModerationCommand;
+import me.nakilex.levelplugin.chat.games.ChatGameManager;
 import me.nakilex.levelplugin.chat.ChatCommand;
 import me.nakilex.levelplugin.chat.RollCommand;
 import org.bukkit.command.PluginCommand;
@@ -131,7 +132,8 @@ public class CommandRegistry {
                                         WanderingMerchantManager wmManager,
                                         PathfindingManager pathManager,
                                         MercenaryManager mercManager,
-                                        BattlePassManager battlePassManager) {
+                                        BattlePassManager battlePassManager,
+                                        ChatGameManager chatGameManager) {
 
 
         plugin.getCommand("addpoints").setExecutor(new AddPointsCommand());
@@ -235,7 +237,8 @@ public class CommandRegistry {
 
         DebugCommand debugCmd = new DebugCommand(mobDebugToggleManager,
                 plugin.getScoreboardManager(),
-                debugGUI);
+                debugGUI,
+                chatGameManager);
         plugin.getCommand("debug").setExecutor(debugCmd);
         plugin.getCommand("debug").setTabCompleter(debugCmd);
         plugin.getCommand("motd").setExecutor(new me.nakilex.levelplugin.motd.MotdCommand(motdManager));

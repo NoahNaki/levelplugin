@@ -26,6 +26,8 @@ import me.nakilex.levelplugin.npc.listeners.NPCClickListener;
 import me.nakilex.levelplugin.npc.listeners.NPCCommandListener;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
 import me.nakilex.levelplugin.chat.ChatChannelListener;
+import me.nakilex.levelplugin.chat.games.ChatGameListener;
+import me.nakilex.levelplugin.chat.games.ChatGameManager;
 import me.nakilex.levelplugin.party.PartyInviteListener;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.attributes.listeners.StatsMenuListener;
@@ -109,7 +111,8 @@ public class ListenerRegistry {
                                         me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager wmManager,
                                         ArenaQueueGUI arenaQueueGUI,
                                         ArenaMatchManager arenaMatchManager,
-                                        ArenaTeamMatchManager arenaTeamMatchManager) {
+                                        ArenaTeamMatchManager arenaTeamMatchManager,
+                                        ChatGameManager chatGameManager) {
 
 
         PluginManager pm = plugin.getServer().getPluginManager();
@@ -150,6 +153,7 @@ public class ListenerRegistry {
         pm.registerEvents(arenaMatchManager, plugin);
         pm.registerEvents(arenaTeamMatchManager, plugin);
         pm.registerEvents(new ChatChannelListener(), plugin);
+        pm.registerEvents(new ChatGameListener(chatGameManager), plugin);
         pm.registerEvents(new PartyInviteListener(partyManager), plugin);
         pm.registerEvents(new LootChestListener(lootChestManager, battlePassManager), plugin);
         pm.registerEvents(new LootChestCloseListener(lootChestManager, economyManager,

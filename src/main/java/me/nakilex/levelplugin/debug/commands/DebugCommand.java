@@ -6,6 +6,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import me.nakilex.levelplugin.chat.games.ChatGameManager;
+import me.nakilex.levelplugin.chat.games.ChatGameStatus;
 import me.nakilex.levelplugin.debug.gui.DebugGUI;
 import me.nakilex.levelplugin.debug.AutoCastManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
@@ -41,14 +43,17 @@ public class DebugCommand implements TabExecutor {
     private final PlayerToggleManager mobDebugManager;
     private final PlayerScoreboardManager scoreboardManager;
     private final DebugGUI debugGUI;
+    private final ChatGameManager chatGameManager;
     private final AutoCastManager autoCastManager = new AutoCastManager();
 
     public DebugCommand(PlayerToggleManager mobDebugManager,
                         PlayerScoreboardManager scoreboardManager,
-                        DebugGUI debugGUI) {
+                        DebugGUI debugGUI,
+                        ChatGameManager chatGameManager) {
         this.mobDebugManager = mobDebugManager;
         this.scoreboardManager = scoreboardManager;
         this.debugGUI = debugGUI;
+        this.chatGameManager = chatGameManager;
     }
 
     @Override
@@ -60,7 +65,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|autocast|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|autocast|chatgame|" + statUsage + ">");
             }
             return true;
         }
@@ -197,22 +202,80 @@ public class DebugCommand implements TabExecutor {
                 return true;
 
             default:
+            case "chatgame":
+                handleChatGameToggle(sender, args);
+                return true;
+
+            default:
                 sender.sendMessage("Unknown debug subcommand: " + sub);
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|autocast|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|autocast|chatgame|" + statUsage2 + ">");
                 return true;
         }
+    }
+
+    private void handleChatGameToggle(CommandSender sender, String[] args) {
+        if (chatGameManager == null) {
+            sender.sendMessage(ChatColor.RED + "Chat games are not initialized.");
+            return;
+        }
+        if (args.length == 1 || (args.length == 2 && args[1].equalsIgnoreCase("list"))) {
+            sender.sendMessage(ChatColor.YELLOW + "Chat games:");
+            for (ChatGameStatus status : chatGameManager.getStatuses()) {
+                ChatColor stateColor = status.enabled() ? ChatColor.GREEN : ChatColor.RED;
+                String playable = status.playable() ? "" : ChatColor.DARK_RED + " (unavailable)";
+                sender.sendMessage(ChatColor.GRAY + "- " + ChatColor.AQUA + status.id()
+                        + ChatColor.GRAY + " (" + status.displayName() + "): "
+                        + stateColor + (status.enabled() ? "enabled" : "disabled") + playable);
+            }
+            return;
+        }
+        if (args.length < 3) {
+            sender.sendMessage(ChatColor.RED + "Usage: /debug chatgame <id> <on|off>");
+            return;
+        }
+        String id = args[1].toLowerCase();
+        String toggle = args[2].toLowerCase();
+        Boolean enable = switch (toggle) {
+            case "on", "enable", "enabled" -> true;
+            case "off", "disable", "disabled" -> false;
+            default -> null;
+        };
+        if (enable == null) {
+            sender.sendMessage(ChatColor.RED + "Specify 'on' or 'off'.");
+            return;
+        }
+        boolean success = chatGameManager.setGameEnabled(id, enable);
+        if (!success) {
+            sender.sendMessage(ChatColor.RED + "Unknown chat game: " + id);
+            return;
+        }
+        sender.sendMessage(ChatColor.GRAY + "Chat game '" + ChatColor.AQUA + id + ChatColor.GRAY + "' is now "
+                + (enable ? ChatColor.GREEN + "enabled" : ChatColor.RED + "disabled") + ChatColor.GRAY + ".");
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "autocast", "hand"));
+            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "autocast", "hand", "chatgame"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
+                    .toList();
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("chatgame")) {
+            List<String> options = new ArrayList<>();
+            options.add("list");
+            if (chatGameManager != null) {
+                chatGameManager.getStatuses().forEach(status -> options.add(status.id()));
+            }
+            return options.stream()
+                    .filter(opt -> opt.startsWith(args[1].toLowerCase()))
+                    .toList();
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("chatgame")) {
+            return List.of("on", "off", "enable", "disable").stream()
+                    .filter(opt -> opt.startsWith(args[2].toLowerCase()))
                     .toList();
         }
         return Collections.emptyList();

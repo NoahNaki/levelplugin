@@ -164,6 +164,27 @@ public class StatsManager {
         }
     }
 
+    /** Increment a base stat directly and refresh derived attributes. */
+    public void addBaseStat(UUID uuid, StatType stat, int amount) {
+        if (amount == 0) {
+            return;
+        }
+        PlayerStats ps = getPlayerStats(uuid);
+        switch (stat) {
+            case STR -> ps.baseStrength = Math.max(0, ps.baseStrength + amount);
+            case AGI -> ps.baseAgility = Math.max(0, ps.baseAgility + amount);
+            case INT -> ps.baseIntelligence = Math.max(0, ps.baseIntelligence + amount);
+            case DEX -> ps.baseDexterity = Math.max(0, ps.baseDexterity + amount);
+            case VIT -> ps.baseVitality = Math.max(0, ps.baseVitality + amount);
+            case WIL -> ps.baseWill = Math.max(0, ps.baseWill + amount);
+            case TEC -> ps.baseTechnique = Math.max(0, ps.baseTechnique + amount);
+        }
+        Player player = Bukkit.getPlayer(uuid);
+        if (player != null) {
+            recalcDerivedStats(player);
+        }
+    }
+
     /** Unlock a class for the given player without switching to it. */
     public void unlockClass(UUID uuid, PlayerClass pc) {
         PlayerStats ps = getPlayerStats(uuid);
