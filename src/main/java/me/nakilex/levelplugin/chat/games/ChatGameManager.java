@@ -246,8 +246,15 @@ public class ChatGameManager {
         String header = ChatColor.WHITE + "" + ChatColor.BOLD + "Chat Game: " + ChatColor.AQUA + game.getDisplayName();
         double seconds = durationMillis / 1000.0;
         String formattedSeconds = String.format(Locale.US, "%.2f", seconds);
+        ChatGameReward reward = result.reward();
+        String rewardSummary = reward != null ? formatReward(reward) : "";
         String summary = ChatColor.LIGHT_PURPLE + winnerName + ChatColor.GRAY + " answered in "
-                + ChatColor.LIGHT_PURPLE + formattedSeconds + ChatColor.GRAY + " and got rewards!";
+                + ChatColor.LIGHT_PURPLE + formattedSeconds;
+        if (!rewardSummary.isEmpty()) {
+            summary += ChatColor.GRAY + " and got " + rewardSummary + ChatColor.GRAY + "!";
+        } else {
+            summary += ChatColor.GRAY + "!";
+        }
         for (Player player : Bukkit.getOnlinePlayers()) {
             ChatFormatter.sendCenteredMessage(player, header);
             ChatFormatter.sendCenteredMessage(player, " ");
