@@ -20,13 +20,12 @@ import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
 /** Coordinates chat mini-games, handles rotation, and awards prizes. */
 public class ChatGameManager {
-
-    private static final long ROTATION_TICKS = 15L * 60L * 20L; // 15 minutes
 
     private final Main plugin;
     private final EconomyManager economyManager;
@@ -37,6 +36,8 @@ public class ChatGameManager {
     private final List<ChatGame> rotation = new ArrayList<>();
     private final Map<String, ChatGame> gamesById = new HashMap<>();
 
+    private long rotationIntervalMinutes = 15L;
+    private long rotationIntervalTicks = 15L * 60L * 20L;
     private BukkitTask rotationTask;
     private int index = -1;
     private volatile ChatGame activeGame;
@@ -51,6 +52,7 @@ public class ChatGameManager {
         this.statsManager = statsManager;
         this.config = new ChatGamesConfig(plugin);
         registerGames();
+        refreshRotationInterval();
     }
 
     private void registerGames() {
@@ -74,8 +76,9 @@ public class ChatGameManager {
             plugin.getLogger().warning("No chat games available to start. Check chat_games.yml");
             return;
         }
+        refreshRotationInterval();
         startNextGame();
-        rotationTask = Bukkit.getScheduler().runTaskTimer(plugin, this::startNextGame, ROTATION_TICKS, ROTATION_TICKS);
+        scheduleRotationTask();
     }
 
     /** Cancel rotation and clear state. */
@@ -89,6 +92,31 @@ public class ChatGameManager {
         if (current != null) {
             current.stop(this);
         }
+    }
+
+    /** Reload game data and scheduler settings from disk. */
+    public void reload() {
+        Map<String, Boolean> previousStates = new HashMap<>();
+        gamesById.forEach((id, game) -> previousStates.put(id, game.isEnabled()));
+
+        stop();
+        config.reload();
+        rotation.clear();
+        gamesById.clear();
+        index = -1;
+        registerGames();
+        previousStates.forEach((id, enabled) -> {
+            ChatGame game = gamesById.get(id);
+            if (game != null) {
+                game.setEnabled(enabled);
+            }
+        });
+        refreshRotationInterval();
+        if (rotation.isEmpty()) {
+            plugin.getLogger().warning("No chat games available after reload. Check chat_games.yml");
+            return;
+        }
+        start();
     }
 
     private void startNextGame() {
@@ -115,6 +143,40 @@ public class ChatGameManager {
             activeGame = null;
         }
         plugin.getLogger().warning("All chat games are disabled or unavailable. Rotation paused.");
+    }
+
+    private void refreshRotationInterval() {
+        long minutes = 15L;
+        FileConfiguration cfg = plugin.getCustomConfig();
+        if (cfg != null) {
+            minutes = cfg.getLong("chat-games.interval-minutes", 15L);
+        }
+        if (minutes < 1L) {
+            minutes = 1L;
+        }
+        rotationIntervalMinutes = minutes;
+        long ticksPerMinute = 60L * 20L;
+        long ticks;
+        try {
+            ticks = Math.multiplyExact(rotationIntervalMinutes, ticksPerMinute);
+        } catch (ArithmeticException ex) {
+            ticks = Long.MAX_VALUE;
+        }
+        if (ticks <= 0L) {
+            ticks = 15L * ticksPerMinute;
+        }
+        if (ticks > Integer.MAX_VALUE) {
+            ticks = Integer.MAX_VALUE;
+        }
+        rotationIntervalTicks = ticks;
+    }
+
+    private void scheduleRotationTask() {
+        if (rotationTask != null) {
+            rotationTask.cancel();
+        }
+        rotationTask = Bukkit.getScheduler().runTaskTimer(plugin, this::startNextGame,
+                rotationIntervalTicks, rotationIntervalTicks);
     }
 
     /** Broadcast a formatted start banner to all players. */
@@ -186,7 +248,12 @@ public class ChatGameManager {
             ChatMessageUtil.broadcast(MessageType.REWARD,
                     winnerName + ChatColor.GRAY + " earned " + formatReward(reward));
         }
-        ChatMessageUtil.broadcast(MessageType.INFO, ChatColor.GRAY + "Next chat game begins in 15 minutes.");
+        if (rotationIntervalMinutes > 0) {
+            String unit = rotationIntervalMinutes == 1 ? "minute" : "minutes";
+            ChatMessageUtil.broadcast(MessageType.INFO,
+                    ChatColor.GRAY + "Next chat game begins in "
+                            + ChatColor.AQUA + rotationIntervalMinutes + ChatColor.GRAY + " " + unit + ".");
+        }
     }
 
     private String formatReward(ChatGameReward reward) {

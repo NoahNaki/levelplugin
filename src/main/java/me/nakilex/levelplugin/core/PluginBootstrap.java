@@ -385,7 +385,7 @@ public class PluginBootstrap {
         horseManager = new HorseManager(horseConfigManager);
         HorseGUI horseGUI = new HorseGUI(horseManager, economyManager);
         settingsGUI = new SettingsGUI(settingsManager);
-        debugGUI = new me.nakilex.levelplugin.debug.gui.DebugGUI(mobDebugToggleManager, scoreboardManager);
+        debugGUI = new me.nakilex.levelplugin.debug.gui.DebugGUI(mobDebugToggleManager, scoreboardManager, chatGameManager);
         this.storageManager = new StorageManager();
         this.guildVaultManager = new me.nakilex.levelplugin.guild.GuildVaultManager(storageEvents, guildMemberGUI);
         CommandRegistry.registerCommands(
@@ -675,6 +675,18 @@ public class PluginBootstrap {
     public MercenaryManager getMercenaryManager() { return mercenaryManager; }
     public me.nakilex.levelplugin.transmog.TransmogManager getTransmogManager() { return transmogManager; }
 
+    public void reloadPluginConfig() {
+        plugin.reloadConfig();
+        createCustomConfig();
+        configValues = new ConfigValues(this.customConfigFile);
+        if (broadcastMgr != null) {
+            broadcastMgr.start();
+        }
+        if (chatGameManager != null) {
+            chatGameManager.reload();
+        }
+    }
+
     private void createCustomConfig() {
         customConfigFile = new File(plugin.getDataFolder(), "config.yml");
         if (!customConfigFile.exists()) {
@@ -703,6 +715,9 @@ public class PluginBootstrap {
         }
         if (!customConfig.contains("debug.mythic-skill-damage")) {
             customConfig.set("debug.mythic-skill-damage", false);
+        }
+        if (!customConfig.contains("chat-games.interval-minutes")) {
+            customConfig.set("chat-games.interval-minutes", 15);
         }
         if (!customConfig.contains("tips.delay")) {
             customConfig.set("tips.delay", 120);

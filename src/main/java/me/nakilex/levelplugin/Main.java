@@ -78,7 +78,11 @@ public class Main extends JavaPlugin {
     public ItemConfig getItemConfig() { return bootstrap.getItemConfig(); }
     public MessageStrings getMessageStrings() { return bootstrap.getMessageStrings(); }
     public me.nakilex.levelplugin.spells.managers.ManaCostTracker getManaTracker() { return bootstrap.getManaTracker(); }
-    public void reloadConfigValues() { }
+    public void reloadConfigValues() {
+        if (bootstrap != null) {
+            bootstrap.reloadPluginConfig();
+        }
+    }
     public LevelManager getLevelManager() { return bootstrap.getLevelManager(); }
     public me.nakilex.levelplugin.player.mining.managers.MiningManager getMiningManager() { return bootstrap.getMiningManager(); }
     public me.nakilex.levelplugin.items.tools.ToolManager getToolManager() { return bootstrap.getToolManager(); }

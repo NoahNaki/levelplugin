@@ -91,6 +91,7 @@ import me.nakilex.levelplugin.pathfinding.PathfindingManager;
 import me.nakilex.levelplugin.pathfinding.MercenaryCommand;
 import me.nakilex.levelplugin.chat.ChatModerationCommand;
 import me.nakilex.levelplugin.chat.games.ChatGameManager;
+import me.nakilex.levelplugin.commands.LevelPluginCommand;
 import me.nakilex.levelplugin.chat.ChatCommand;
 import me.nakilex.levelplugin.chat.RollCommand;
 import org.bukkit.command.PluginCommand;
@@ -241,6 +242,10 @@ public class CommandRegistry {
                 chatGameManager);
         plugin.getCommand("debug").setExecutor(debugCmd);
         plugin.getCommand("debug").setTabCompleter(debugCmd);
+
+        LevelPluginCommand levelPluginCommand = new LevelPluginCommand(plugin);
+        plugin.getCommand("levelplugin").setExecutor(levelPluginCommand);
+        plugin.getCommand("levelplugin").setTabCompleter(levelPluginCommand);
         plugin.getCommand("motd").setExecutor(new me.nakilex.levelplugin.motd.MotdCommand(motdManager));
         me.nakilex.levelplugin.fakeblock.FakeGateCommand fakeGateCmd =
                 new me.nakilex.levelplugin.fakeblock.FakeGateCommand(plugin);
