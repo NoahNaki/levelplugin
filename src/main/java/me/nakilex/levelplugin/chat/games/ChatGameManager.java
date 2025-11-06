@@ -41,6 +41,7 @@ public class ChatGameManager {
     private BukkitTask rotationTask;
     private int index = -1;
     private volatile ChatGame activeGame;
+    private volatile long activeGameStartMillis;
 
     public ChatGameManager(Main plugin,
                            EconomyManager economyManager,
@@ -89,6 +90,7 @@ public class ChatGameManager {
         }
         ChatGame current = activeGame;
         activeGame = null;
+        activeGameStartMillis = 0L;
         if (current != null) {
             current.stop(this);
         }
@@ -124,6 +126,7 @@ public class ChatGameManager {
         if (current != null) {
             current.stop(this);
             activeGame = null;
+            activeGameStartMillis = 0L;
         }
         if (rotation.isEmpty()) {
             return;
@@ -137,6 +140,7 @@ public class ChatGameManager {
             activeGame = candidate;
             candidate.start(this);
             if (candidate.isRunning()) {
+                activeGameStartMillis = System.currentTimeMillis();
                 plugin.getLogger().info(() -> "Started chat game: " + candidate.getDisplayName());
                 return;
             }
@@ -209,8 +213,10 @@ public class ChatGameManager {
         }
         game.stop(this);
         activeGame = null;
+        long durationMillis = Math.max(0L, System.currentTimeMillis() - activeGameStartMillis);
+        activeGameStartMillis = 0L;
         awardReward(result);
-        announceWinner(game, result);
+        announceWinner(game, result, durationMillis);
     }
 
     private void awardReward(ChatGameResult result) {
@@ -235,18 +241,21 @@ public class ChatGameManager {
         }
     }
 
-    private void announceWinner(ChatGame game, ChatGameResult result) {
+    private void announceWinner(ChatGame game, ChatGameResult result, long durationMillis) {
         String winnerName = result.winnerName();
-        ChatMessageUtil.broadcast(MessageType.SUCCESS,
-                winnerName + ChatColor.GRAY + " solved " + ChatColor.AQUA + game.getDisplayName() + ChatColor.GRAY + "!" );
+        String header = ChatColor.WHITE + "" + ChatColor.BOLD + "Chat Game: " + ChatColor.AQUA + game.getDisplayName();
+        double seconds = durationMillis / 1000.0;
+        String formattedSeconds = String.format(Locale.US, "%.2f", seconds);
+        String summary = ChatColor.LIGHT_PURPLE + winnerName + ChatColor.GRAY + " answered in "
+                + ChatColor.LIGHT_PURPLE + formattedSeconds + ChatColor.GRAY + " and got rewards!";
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            ChatFormatter.sendCenteredMessage(player, header);
+            ChatFormatter.sendCenteredMessage(player, " ");
+            ChatFormatter.sendCenteredMessage(player, summary);
+        }
         if (result.solution() != null) {
             ChatMessageUtil.broadcast(MessageType.INFO,
                     ChatColor.GRAY + "Answer: " + ChatColor.AQUA + result.solution());
-        }
-        ChatGameReward reward = result.reward();
-        if (reward != null && !reward.isEmpty()) {
-            ChatMessageUtil.broadcast(MessageType.REWARD,
-                    winnerName + ChatColor.GRAY + " earned " + formatReward(reward));
         }
         if (rotationIntervalMinutes > 0) {
             String unit = rotationIntervalMinutes == 1 ? "minute" : "minutes";
@@ -286,6 +295,7 @@ public class ChatGameManager {
                 }
                 game.stop(this);
                 activeGame = null;
+                activeGameStartMillis = 0L;
                 ChatMessageUtil.broadcast(MessageType.WARNING,
                         ChatColor.YELLOW + game.getDisplayName() + ChatColor.GRAY + " has been disabled.");
                 startNextGame();
